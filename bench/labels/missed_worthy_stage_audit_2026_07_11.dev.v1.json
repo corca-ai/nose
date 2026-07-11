@@ -1,0 +1,4380 @@
+{
+  "candidates": [
+    {
+      "candidate_key": "alacritty:4c6345613406b888",
+      "candidate_sha256": "8cae2c55d06f5aa0629502ca36b780adffd969818f58a092bfcc12cf56f3454c",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "alacritty",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "alacritty:9c6effe5d34be3b4",
+      "candidate_sha256": "451b8eb4b29c7aa3e718b144461bc554bb8900fde8dbdaca35cb8e90c4162cb4",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "unrecovered",
+      "repo": "alacritty",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "alacritty:c5b0dc1d87506916",
+      "candidate_sha256": "3e31dd8c3b2b824a2d85b5669898e21f511fb7f568989944816b8b5698bab110",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "alacritty",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "alacritty:c93b1e63f96d2a38",
+      "candidate_sha256": "f83186eb24072ee1a58418d3f9766bdfd4a142104252d24e42f21dda27db1733",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "alacritty",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "alacritty:f4fee9de42105372",
+      "candidate_sha256": "e06eb5a07a0425e8c706523e30ec74eafa3a2593a08d714778bd99516a939662",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        3
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "alacritty",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "axios:2169018b8e46a6b6",
+      "candidate_sha256": "7c053d4386e72b2a87fa6c19877b813c6e4c195e4d5bb916bdf49728b7356e01",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "TypeScript",
+      "probe_class": "no-overlapping-unit",
+      "repo": "axios",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "axios:70db87b821c19292",
+      "candidate_sha256": "08e78be2fb64da819482c7afe8ce7694d69f648c6bb28bebd9e8e08fb5c76d96",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "TypeScript",
+      "probe_class": "subdag-ceiling",
+      "repo": "axios",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "axios:80e929ac1884dd5b",
+      "candidate_sha256": "bbb075fe97e8c7fc00926d503e9565e2f3c1b4ded052c7a288c6653b33fd71e3",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "TypeScript",
+      "probe_class": "subdag-ceiling",
+      "repo": "axios",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "axios:9c60235300651f6f",
+      "candidate_sha256": "1d808080030f35892d1fede79c727218f3376cf5e43e6453b23019b1c8c62bc6",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "TypeScript",
+      "probe_class": "subdag-ceiling",
+      "repo": "axios",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "axios:e4b2c19f4886a989",
+      "candidate_sha256": "250df6c0c2a309504c84e4f57ebcf127f92e4a1e04650aee84af6c1a364d352e",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "TypeScript",
+      "probe_class": "subdag-ceiling",
+      "repo": "axios",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "bat:05ca8156de2d3b25",
+      "candidate_sha256": "528e229525fd01172d03e3df2417bfa917d2a7dee9ae0e11554f8e23e5b40f60",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        3,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "unrecovered",
+      "repo": "bat",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "bat:3da3e13d270dcbb0",
+      "candidate_sha256": "ba8f1da69b0c67ea4e564906d185986e2a74124db71fed210f20ff9f1b38fe18",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "no-overlapping-unit",
+      "repo": "bat",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "bat:53a5234e49ea003a",
+      "candidate_sha256": "359684dee738479773e6d343bdd4e4e0d871d478a52362618b20dc91f982c38d",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "bat",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "bat:6a12988f697482b6",
+      "candidate_sha256": "108703c7be53dd72626686364cff5b6acff7ae1f8dc1ffe49408fff93e775f1f",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "bat",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "bat:7836101146be0e22",
+      "candidate_sha256": "1c073d7003d68460eca24d5c5e7380a7bc05ab222ac18b59a1c6230a68ee43b6",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "same-unit-window",
+      "repo": "bat",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "chi:154bd73cf15a6de5",
+      "candidate_sha256": "818c4cdb58b65284187992985c8c892352bf2def26eacc7b2b2d88a813984d10",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Go",
+      "probe_class": "same-unit-window",
+      "repo": "chi",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "chi:8aa3c17d2ce27099",
+      "candidate_sha256": "beeefa55d64f8783cc6be859424fc022b3b6736b0e199416497de3ba755b93ad",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Go",
+      "probe_class": "same-unit-window",
+      "repo": "chi",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "clap:26db8890dd78e8ec",
+      "candidate_sha256": "239f8fcc5e5e818a5f1d23098141cca0dd07dcb50a56f38b018554ff180456dd",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "unrecovered",
+      "repo": "clap",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "clap:67e4d3199dcb742a",
+      "candidate_sha256": "b7a0c3727f68d69163319f8fd419740245a7e7cede7d33b70446f24b0cf7a1ea",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "clap",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "clap:74091cb7bc4194da",
+      "candidate_sha256": "bd4a73247380b7e92dc5b8a9919ae044ccee42057b20b86689b81e082b013a06",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "same-unit-window",
+      "repo": "clap",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "clap:8314f42e205f4857",
+      "candidate_sha256": "780b15a62e1f5020b1f7f206af0ee1678770eaabc28a376bdbc8257270181b09",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "clap",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "clap:bb9832e72fa8ae15",
+      "candidate_sha256": "ad4d59be35c9cf519f0a171730079701dbd3ababf614bfee66976371f5cc2f8b",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "unrecovered",
+      "repo": "clap",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "clap:f54bde1dd7bb3151",
+      "candidate_sha256": "2aae16d76e8a03c2122ce24d180bf806e958e4c61d74c784fb41647d359cd9cb",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "no-overlapping-unit",
+      "repo": "clap",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "cobra:db88c9b581c2c760",
+      "candidate_sha256": "3c255fd3352ee4dc071afc43147cd945d0a7353eda757f4898cbd85bfcf5ff11",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Go",
+      "probe_class": "no-overlapping-unit",
+      "repo": "cobra",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "commons-lang:1ae611d010ed2053",
+      "candidate_sha256": "a20bb130b5336d401a5161cd8283440b4457fa08c2b34972bf468233bd9cf98b",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "same-unit-window",
+      "repo": "commons-lang",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "commons-lang:2eceec2b9e4c1883",
+      "candidate_sha256": "a13880ddf164e97255331605780b7e776a98b054aee1be5207b3db97285cc707",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        4,
+        4
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "commons-lang",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "commons-lang:7deea4aa415c6197",
+      "candidate_sha256": "e7d43c53204c6d5cc2532e8deac1d82bb99ce8646354117a395ef6eecd14d2aa",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Java",
+      "probe_class": "no-overlapping-unit",
+      "repo": "commons-lang",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "commons-lang:81a43aee2b3a31d7",
+      "candidate_sha256": "2621636f3998200d888dd37284e4b9d7c285267bb662606dd3553602c28a29f5",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Java",
+      "probe_class": "same-unit-window",
+      "repo": "commons-lang",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "curl:07576398d3db15e6",
+      "candidate_sha256": "83667906a78454c125dfa9765f0ac27818581d14db7c052a3bf58bb1b10a5eb3",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "curl",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "curl:08e1435f8564adf7",
+      "candidate_sha256": "b5aeb2fa7a54e29886f9554ab06d42bb95879127b8b3cc627f14d655e545dbaf",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "curl",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "curl:1b0b0a2a78f4053e",
+      "candidate_sha256": "41638e6c7fdaa4a41428c7a04c465e38ebe58921348b417a84c1ac3f9bf504ef",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "curl",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "curl:2a436119a08187ba",
+      "candidate_sha256": "82a67204587605f18a10cfcea9666a15e6fd1a6b525a40dae287cc61435a208b",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        6,
+        6
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "curl",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "curl:4240a5f55e0db83b",
+      "candidate_sha256": "61f6b4e3adc68eccafe60af286eab02f8046d7d8bea7d80175b67227fe611006",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "unrecovered",
+      "repo": "curl",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "curl:438cb822fefd5174",
+      "candidate_sha256": "c35dafac0462716c9b22ef89e6ecabb0ac3c2c14bbe886a1cd310db6f8ba7f11",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "curl",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "curl:688ec0f1c0146e0d",
+      "candidate_sha256": "f1563c12d08ab349164468810920123ee53693b64605604224d30632e7d13206",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "curl",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "curl:79d633f8b5dc6977",
+      "candidate_sha256": "5c783b367b3985ff36c7d6569272fd745f9803fb079d8c67db87901b0bcb917a",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "curl",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "curl:add4f3e341202511",
+      "candidate_sha256": "fccd16910f03e1eed91c4c02c620afcaf78ea55aa0d37f218c34baa19e3dd28c",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "curl",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "curl:af38d8d5c688322b",
+      "candidate_sha256": "efae248af068438a47474520e7518130aebea6ac8e0c8f1d0eae77b4f6bb8324",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "curl",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "curl:b4ce193dda870c7b",
+      "candidate_sha256": "5cfe053f885fb5d1aa87b41d238f043bd9520eafb687fb66284101f8dde60d84",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "unrecovered",
+      "repo": "curl",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "curl:b6645e054f2f60ec",
+      "candidate_sha256": "e6203ebcbc13cc6ae70c170dfce9943e372470ead2b4efbbcdfc9a5b0e129549",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "curl",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "curl:c06c2711b53dbd66",
+      "candidate_sha256": "a198b6ee87b0b44ae0121815e0e026651bb6a9b279c3467f9505159a46067605",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "unrecovered",
+      "repo": "curl",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "delve:de84b1952aa09a8e",
+      "candidate_sha256": "9129174bbac4023a963efac616e7f35a52b736b11e1904ba1f0dfde0faab507f",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        5,
+        5
+      ],
+      "language": "Go",
+      "probe_class": "subdag-ceiling",
+      "repo": "delve",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "devise:458679b19d6bcbfa",
+      "candidate_sha256": "4d23e77ce5493b3f4a9d48ee3b3e6aaed595b0a4ee18144c4e1b01229668b1ac",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        4,
+        4
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "devise",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "fastlane:37ed5651c32ff32a",
+      "candidate_sha256": "8bcfbd306aa9a7f3af1477744ba2078db2cadab88d9d8049dd921ed534369c2a",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "fastlane",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "fastlane:65e68827e870dbe0",
+      "candidate_sha256": "4f5bf9de13d6cfc527ac499767a7f9328484476a7498b02d1d7676386fe28dcd",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        0
+      ],
+      "language": "Ruby",
+      "probe_class": "inline-ceiling",
+      "repo": "fastlane",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "fastlane:cfbff7878814e3a7",
+      "candidate_sha256": "3bbb5404f3e9912926ce0b1faac9cd1a1ffaa7a1444ed3ddecce0d143715028e",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        4,
+        4
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "fastlane",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "fd:5f935c3d9e9dd8fd",
+      "candidate_sha256": "3512441f56023053fe8cbf3feafced3fa28d4187ea337a7d5bfe6b89d8218203",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "unrecovered",
+      "repo": "fd",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "fd:a46e9200da364aff",
+      "candidate_sha256": "b032b4c288b83f07f7a6d7aca3121cf4134bfe25c658c1c96bc3c7aa4d077bfb",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "inline-ceiling",
+      "repo": "fd",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "git:1d9b1c7f444d15d0",
+      "candidate_sha256": "0605378cce63ec592aafd62b787673acbb7a2b9697afbc18db849313fcfcfb29",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "same-unit-window",
+      "repo": "git",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "git:895d513507a19cf6",
+      "candidate_sha256": "1d8bd096b5de1d1281477b29fd03a3e5a751cecc759957b9cf3d1b81557075b4",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "git",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "git:d9d84da753e732ca",
+      "candidate_sha256": "ee2e371601024dfd5a3c2830c7aafd0300db5413cfa95844893c718e08db64b5",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "git",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gorm:06b22e78705e5939",
+      "candidate_sha256": "aa83c19eca8526082e862bc635525321d62a6642af5711591b3181722bcf570c",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Go",
+      "probe_class": "subdag-ceiling",
+      "repo": "gorm",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "gorm:07b0262946c3716d",
+      "candidate_sha256": "6e5d4b465b0515c217b45f8cfafdd587a3b3adc23c90d9f073d3a7535ab8f9ee",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Go",
+      "probe_class": "unrecovered",
+      "repo": "gorm",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "gorm:768d763acc7c5c60",
+      "candidate_sha256": "92c1f5a1b229f9a4d164eb1cd54b7962bcee9793050bcbd2f161e2c5e0210edc",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Go",
+      "probe_class": "subdag-ceiling",
+      "repo": "gorm",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "gorm:8478e206de15b28a",
+      "candidate_sha256": "cb90639932557afcb199f716b0bebd5a2cbe4cd9336c2ac4c7b631c16bdda739",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Go",
+      "probe_class": "unrecovered",
+      "repo": "gorm",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gorm:85171013eba5ae62",
+      "candidate_sha256": "9968b486a51ccf4c49515b2bed50294b8941a2c61c94f642b800b87186759f64",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Go",
+      "probe_class": "subdag-ceiling",
+      "repo": "gorm",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gorm:9696bb6606c9a9ab",
+      "candidate_sha256": "88eb1b79919cb27cfc188983adc06e40fdb81cdf203f42237f3e0c5bd6d13f90",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Go",
+      "probe_class": "subdag-ceiling",
+      "repo": "gorm",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gorm:96d46442b02433a5",
+      "candidate_sha256": "0fdadd6599fa1fbd35d100e278c3bc42ac48ffec014512b65bbf73e525c3e221",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Go",
+      "probe_class": "same-unit-window",
+      "repo": "gorm",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gorm:9aec931ab49f2c6e",
+      "candidate_sha256": "c90aa10f70f5c9f6ebb2521fb86a11b6b01df7f60bc806e4ea0c94527ebc6424",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Go",
+      "probe_class": "same-unit-window",
+      "repo": "gorm",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gorm:a12cc73e717d5c78",
+      "candidate_sha256": "58cd262fe0b0783d69ce26d18920566995f740489f5b25d8e42c28b93225abe4",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Go",
+      "probe_class": "unrecovered",
+      "repo": "gorm",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "gorm:b2cd9c61ce98289a",
+      "candidate_sha256": "89cbc2c55eac3f4c6c36d7bbf97711fe5602fd0b863de4b3190a4ee7991043c7",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Go",
+      "probe_class": "same-unit-window",
+      "repo": "gorm",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gorm:b47a856846cdf8fc",
+      "candidate_sha256": "6bdba2333e7272624c8cd1e6723962b2cdddfd6a5db9ad57c325b2143454d992",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Go",
+      "probe_class": "same-unit-window",
+      "repo": "gorm",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gorm:fdc399645a7b3dfd",
+      "candidate_sha256": "82230bea90c26a350f067dd27b69406ad327b1dfe9cd5adf6992eb29097ae06f",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        4,
+        4
+      ],
+      "language": "Go",
+      "probe_class": "subdag-ceiling",
+      "repo": "gorm",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "graphhopper:2acc71582f85cc79",
+      "candidate_sha256": "a4d67823c8ec861ddf2b850b5744598119502832a5bb8a9af5cac9f2c45f5a51",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "graphhopper",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "graphhopper:fb83868d7d451012",
+      "candidate_sha256": "82eef4b76c52b7e9f5d287412aa1667d3644d68109962f521e243341aecb4aec",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "graphhopper",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "gson:259a137cfe6cf7fd",
+      "candidate_sha256": "2f15d3120984cd0b1fb97885fc480760d97dc8d11ddc161bc43dd9e732fb8046",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "gson",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gson:3f4ccba9d70e07f7",
+      "candidate_sha256": "b1ce1831ce91fc372f0727bf80cb99d35e5371e2ae2ec600c3a2f6126e3c7cc0",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "gson",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gson:4014d594ab6a8e54",
+      "candidate_sha256": "4703ef0be15ca03e40b43336f7e8fefc53dd90edbf1a81d19ed170939c7047c3",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "gson",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "gson:579c5efb7564b4c6",
+      "candidate_sha256": "b108fc43ef8f64953f6db6f7b8ab6792f20028e43be9d790695875182a5d8494",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "gson",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gson:68efa18d00d17764",
+      "candidate_sha256": "0a6205c27c0217b70691265c0cdf5d09dfccbcc26868b5d11f1c53d8701ebed3",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "unrecovered",
+      "repo": "gson",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gson:9c7aefa30722a8cc",
+      "candidate_sha256": "e0b921da3781b44374761fb0187ded3c168f4607fef67f185bc12270bd916660",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "gson",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gson:c83b927017bfa33d",
+      "candidate_sha256": "188ba2421d1b7b7da361b325cff041e9b4e3d01ccd8fb6cb5aaf83f7420240a0",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Java",
+      "probe_class": "no-overlapping-unit",
+      "repo": "gson",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "gson:eab1115974df3594",
+      "candidate_sha256": "50ba7432a9498d6fe63e2ed3d58a908b2f2e516e9ca1ed3ccf0b6ccdce1881d6",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        3
+      ],
+      "language": "Java",
+      "probe_class": "unrecovered",
+      "repo": "gson",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gson:f46d73b4e0ed55a9",
+      "candidate_sha256": "071dedfeb8cbc89eb44a3c57055c8a5af640e26689b4e9ef8306b5f952ccaeaa",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "gson",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "gson:f7385770c6e8a429",
+      "candidate_sha256": "57a8fe1011e16c02e530406802d87586bcf3f2159a0477110a4a78702811c0e6",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Java",
+      "probe_class": "unrecovered",
+      "repo": "gson",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "image:09688c2c17ddd091",
+      "candidate_sha256": "2f938edee451f0efe7d7e7abdc8db62abe9f9a8f401c83090babdc614afe9735",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "unrecovered",
+      "repo": "image",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "image:37f494cca9a333c3",
+      "candidate_sha256": "d314a68ffcab3f5607e5439bf2c20364eb4c1d7f6d23c5a2eef6a3d04ff445e1",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "image",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "image:3bb7b58ae7adf7d9",
+      "candidate_sha256": "e46f5ef3dc20c1e3e213d9f263515a46d784e69f91aec18a4b33cd2f9eeed7a0",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "unrecovered",
+      "repo": "image",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "image:4a8e4387c0a05967",
+      "candidate_sha256": "6fe72a667b1b8cf64a710456d5573a48eafe24ebc846cd03a42aa2be4e8a5b9e",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "unrecovered",
+      "repo": "image",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "image:98f7b2d07afc459a",
+      "candidate_sha256": "d6b293a5058880ce7f0bc6bce0ee3fb7bd0e3224fab8ac398aeb4718ba994fdd",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "unrecovered",
+      "repo": "image",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "jekyll:1d13d09079bfb05e",
+      "candidate_sha256": "c88be8cf4242b31bef8b3b2c80d7fdc97c2f12820faebd781476e8502aa18ec0",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        5,
+        4
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "jekyll",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "jekyll:25f8eeacf08b1049",
+      "candidate_sha256": "451debc6020cbe6166fd2f82d6c4e83882a5e6617d00bc9f418c4732c0f88226",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Ruby",
+      "probe_class": "no-overlapping-unit",
+      "repo": "jekyll",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "jekyll:2791928407ad302c",
+      "candidate_sha256": "83fed4df03ca9b53775245f533e6f4c4d841d5c20bac934c03948545976e4934",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        5,
+        5
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "jekyll",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "jekyll:4acc42e4917235f2",
+      "candidate_sha256": "409db47e223da0dc0b545721f7a6652732af3d43980f30c6aa6b9b8be4d3bbc5",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Ruby",
+      "probe_class": "same-unit-window",
+      "repo": "jekyll",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "jekyll:69d8954d1b741b57",
+      "candidate_sha256": "80818b8e8b860ec4b749d3bb3d0d566e952ce13e47bc5ea72e44afca58f981b8",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Ruby",
+      "probe_class": "no-overlapping-unit",
+      "repo": "jekyll",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "jest:4c55eff3b52a86ff",
+      "candidate_sha256": "9679975d447841d1d453dac826bd359d78fd5adc300ee1d3ae6b19b29672f6cc",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "TypeScript",
+      "probe_class": "subdag-ceiling",
+      "repo": "jest",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "jq:c0adad57af0c4d06",
+      "candidate_sha256": "1072745a4b89b9daa9e056d5c50764034ea9a080206ea407b514c8f60d843dd4",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "unrecovered",
+      "repo": "jq",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "libsodium:37ebbd018de90717",
+      "candidate_sha256": "99c6a3f47d700ed4ac55bfb4761819d41f95e1fc9acae45f3dbff9f4690882cb",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "libsodium",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "libsodium:442744c3d62eaa4a",
+      "candidate_sha256": "13ceea04b4370c1e1705f1194a18c368b07fc95782373aa4955f07918ff76d52",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "libsodium",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "libsodium:4edecc65d87fe574",
+      "candidate_sha256": "be8b26f6e2e11e916488e5e1f89e76113312ce857ab669742a92a219b7e746a0",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "libsodium",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "libsodium:79eeba5922837da4",
+      "candidate_sha256": "497f54f1b8cf107a3334036598a752482d5629c005312cbaf7b5f621eeae06ea",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "libsodium",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "libsodium:863cbbeb598f2419",
+      "candidate_sha256": "9516a047a87343038c309af49f448c5159f40bbafd69e3d371b5e1b0883dfad3",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "libsodium",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "libsodium:8d6552152465a969",
+      "candidate_sha256": "f37841197a62355d74ef25fa792e89157f274c2f6a9567bbf468bde95892c2a9",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "libsodium",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "libsodium:d141aa6e57d27742",
+      "candidate_sha256": "7e8db5376529559209062ff6b72d62fc8925ad9859be24181de863ce3fdfeda7",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "libsodium",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "libsodium:d8e13c5353153ccd",
+      "candidate_sha256": "3a49be94e057ef67fabd0392cb11bfba20d9ce704036479d4b7f93976cf80846",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "libsodium",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "lua:6b8e0cef12881b68",
+      "candidate_sha256": "950159e99f06cd51d02cdf8966db074d302a29c869b61a3d8f10d8d4a84b0c6d",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "lua",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "lua:bc0ae7caf5d8bfbb",
+      "candidate_sha256": "decfb45ed5046c4d00b07165ac575a9e5a07521c9533b12c8f4ef2867bf1795d",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "lua",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "mockito:1fa8be0a8e1c9121",
+      "candidate_sha256": "42d4422c9de45752d7ce62357ae5abf40c5bbb9779aa9d53b91330d2d481cf6b",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "mockito",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "mockito:290e05f149bee68c",
+      "candidate_sha256": "65dcd34289de25e2464c1b799f5af0e2b458efc7caf470f72d647ac74e66d3a7",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Java",
+      "probe_class": "inline-ceiling",
+      "repo": "mockito",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "mockito:46e9a5d46cce9beb",
+      "candidate_sha256": "aa540a5c54e74cb05bf995ce9bd1039f078ecdae91bfa95f85b5ce3af42ce089",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Java",
+      "probe_class": "inline-ceiling",
+      "repo": "mockito",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "mockito:5b64ce572e3c94e1",
+      "candidate_sha256": "202520aae20a7550476016cb53241adde944990c93ecec5ae94f3bcea1b7d1a3",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Java",
+      "probe_class": "unrecovered",
+      "repo": "mockito",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "mockito:67d372348d1d6446",
+      "candidate_sha256": "96fa01a62ac8f45fc50755c573fc15d524fcd6ba84eeb8294353ec449843fd38",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "mockito",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "mockito:706f73f0e5fd1978",
+      "candidate_sha256": "41ef2d25be10a843f49a15a4485fcd5e59f97dca1255710f59cf35846df4bc46",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        4,
+        4
+      ],
+      "language": "Java",
+      "probe_class": "same-unit-window",
+      "repo": "mockito",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "mockito:79be91c925ed1869",
+      "candidate_sha256": "23befe06dd4fe660db7d8dd01bede971bc7888540b78923a2f431e2a776ebc2a",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "mockito",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "mockito:9f967a3cfc10f3b8",
+      "candidate_sha256": "65c41b6de18bf98429b7f62e4ef43ce63e5e540d56ff06e1b6cd70c11500caa7",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "mockito",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "mockito:baf4c3da359dfc3d",
+      "candidate_sha256": "574b2fa645f4bf9f76e7772cf5960575f0be8b9292645f70d852f77eb2f4c92e",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Java",
+      "probe_class": "inline-ceiling",
+      "repo": "mockito",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "mockito:d82f6e75097748da",
+      "candidate_sha256": "ffce9aa676545670fa722b6aac6c466679b9ecab9a930776e524c8bf20752790",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "mockito",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "mockito:db2a627e3c414165",
+      "candidate_sha256": "6f54e260b213a96cf5cb6661fe9c6aad46bdc484cbbd587c818993e953b2de41",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Java",
+      "probe_class": "inline-ceiling",
+      "repo": "mockito",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "mockito:e1ce9eafd54a610f",
+      "candidate_sha256": "18111f9faebf51418c2efa15ba273df9ad2740f7d28da304008b01603cff9e59",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        5,
+        5
+      ],
+      "language": "Java",
+      "probe_class": "unrecovered",
+      "repo": "mockito",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "mockito:faafc7cc04839b34",
+      "candidate_sha256": "6d23706f0ab5184274630ca16f1d221d34a7cd652dd85cd971bf15e26396e277",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "mockito",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "nats-server:5771783a43038bcb",
+      "candidate_sha256": "3f662100dce06ae51bf10c2426532fad29ab5ef12487e11f3f62103a5eb90dcd",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Go",
+      "probe_class": "no-overlapping-unit",
+      "repo": "nats-server",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "netty:265776dc187e262c",
+      "candidate_sha256": "f4e77681d990a6a9bf1f4779ef1925d7bf4ca9fd0ac8f6e13ea9426252a1a9a5",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        13,
+        13
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "netty",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "netty:43870dd59c2be294",
+      "candidate_sha256": "65ef1dc1ed9449357fca6df1c46a572f991299108fc348b4371e919d7db2657f",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "same-unit-window",
+      "repo": "netty",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "netty:5bd323713843fdad",
+      "candidate_sha256": "62f48635d2ee9e5ae9fd30c22cd52f4c46b99615f866623a83f242316d3276a1",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "netty",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "netty:aaffd3da87f0f758",
+      "candidate_sha256": "015328fdf97bfde5dfe02f043b3301d6d7b6066b57b62955d1e82a403ce1916f",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        5,
+        5
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "netty",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "netty:de6611cbcf1671b4",
+      "candidate_sha256": "7bcfad0d2d9c4814158bdd2c3e6f384a518445fc4610410a84b6cbe85863b5b0",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "netty",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "nginx:04895d9a2eeb6131",
+      "candidate_sha256": "1c8e07c01c934a7a00587577f14023aa45b7d83fa213fab6df85f91aa9ac1867",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "same-unit-window",
+      "repo": "nginx",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "nginx:7ea165022a7e3302",
+      "candidate_sha256": "98d578ce71995abd85042cc1c4cd3a82d3432c7407a74b1d5a71a5d1ae85c6d8",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "nginx",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "nginx:7ee7007d5fc2a0d5",
+      "candidate_sha256": "10547c85a27a4dc4ff35290f4113e9baf543eb4a15b990b97880498c80b5e74f",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "nginx",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "nginx:8fa530f40ce49c73",
+      "candidate_sha256": "082b947f579c6382ed2a65db79d1839152b8f0874b6ed8b7a0bed4355ae93eef",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "nginx",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "nginx:d153a4f3802a42c5",
+      "candidate_sha256": "cfda413ef10b5a9647428c8f134a0b454422092f82ec97e0e1f13a3553dfbf1e",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "nginx",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "nushell:06abb0a4b9c069e2",
+      "candidate_sha256": "d656910acbc36bc96cc6034b81628ff8fd9f0bfa9d9953ea606a2a255f7b88de",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        4,
+        4
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "nushell",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "nushell:2637963422239bd3",
+      "candidate_sha256": "72cf2e86a9687e1fb7b36dcbb1049f6863820d6e2e160ea410fd5122ac41185a",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "nushell",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "nushell:46fd2ef00c8d9e98",
+      "candidate_sha256": "8127cff718c923f4c4a5a709effe980dbd9460858e14a41666d9f6fb320f262d",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "no-overlapping-unit",
+      "repo": "nushell",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "nushell:5717ee835ee37e72",
+      "candidate_sha256": "2fa974a002ac3c6638d101fb2bfbe7360693c64a032da74822848ca852ea3435",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "no-overlapping-unit",
+      "repo": "nushell",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "nushell:5e0a811d5b711a35",
+      "candidate_sha256": "c1cd3e5b51fbfae434975172db05f5fe9f87fd50abefd39d3a9e5bcea23cdba5",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "no-overlapping-unit",
+      "repo": "nushell",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "nushell:5ed48a642e38d987",
+      "candidate_sha256": "0889bf08b1cf9dc62e6e61524cc405ed7876f62fde25754cdc4885c4d66ddf20",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "no-overlapping-unit",
+      "repo": "nushell",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "nushell:822da63ee38b1ab2",
+      "candidate_sha256": "ab302611e7b18a2ddc400da41f7db1da0af7e029bfa0e28a0ca0a1bfbfb989c3",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "nushell",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "nushell:88118551cbcdb7f3",
+      "candidate_sha256": "7c46cb62826396e29ad10cad83e02209fcda151c92f0fd42cc7f08e03d5c0f52",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        3,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "nushell",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "nushell:a5418a9b1b048516",
+      "candidate_sha256": "4666ed1c1dd180b663d71f91983a9331704d40e508045364ca78d0533f02b36d",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        6,
+        10
+      ],
+      "language": "Rust",
+      "probe_class": "inline-ceiling",
+      "repo": "nushell",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "nushell:b950a3c8f074b925",
+      "candidate_sha256": "7671f790119886fc9204cc53c05e2f851fd683acd3f2df8b9911465f487aeaa8",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "no-overlapping-unit",
+      "repo": "nushell",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "nushell:c6f90bd8a5eb11d7",
+      "candidate_sha256": "7ee961d084bbb96fa3f01886ec71dc0d340dd50649d5523071a8e42291190f74",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "nushell",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "nushell:d6fb645fa2e28fdf",
+      "candidate_sha256": "4203e1e9fc6ee28981ea38201f42bf7e2440a56b914c56de87553408289e49ea",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "no-overlapping-unit",
+      "repo": "nushell",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "packaging:227533476889cd6e",
+      "candidate_sha256": "6595d48f121cb7492b8cd7382b9c5e8060c4028ccccf75059f8e44660ec22dfd",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Python",
+      "probe_class": "no-overlapping-unit",
+      "repo": "packaging",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "packaging:9c308f351b219364",
+      "candidate_sha256": "1e0a0f5c4d7f7fec156b0f37adc2afd85121ea3a80ace737084c498202adfd33",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Python",
+      "probe_class": "no-overlapping-unit",
+      "repo": "packaging",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "packaging:aea1981ddc32dcf4",
+      "candidate_sha256": "47c95e3d4deac0f49167dd6cfcc855c1112af180394060c15aff79c19e4a5037",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Python",
+      "probe_class": "unrecovered",
+      "repo": "packaging",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "packaging:dff2a8be57aadc2d",
+      "candidate_sha256": "af3f9f0d1d642dafb77f7a4dea8475185fb564bdfb79775d2c97feca93992a7f",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Python",
+      "probe_class": "unrecovered",
+      "repo": "packaging",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "poetry:053a58bae5b5c441",
+      "candidate_sha256": "9e6f3d7b7cb1dd263a5146e3a3df310dc43024b44997023d6b8ee0f016abf688",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Python",
+      "probe_class": "subdag-ceiling",
+      "repo": "poetry",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "poetry:08556e25e7ab80e4",
+      "candidate_sha256": "e2363e766aa4eec9fde3402b25b7638df17c4112fe28ed78fb42a4d4638f7d2e",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Python",
+      "probe_class": "subdag-ceiling",
+      "repo": "poetry",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "poetry:e672109edfa67a72",
+      "candidate_sha256": "fe906c17c89e3f1855619d8e1fe56c7d5fdbd7428042f1117b8df46327b33686",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Python",
+      "probe_class": "subdag-ceiling",
+      "repo": "poetry",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "prometheus:00732ff2a6289f00",
+      "candidate_sha256": "0d4821d5164b5243d1bfe606fe34d2b14a5f902f43d309b2f24bdb2f26fa5051",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        7,
+        7
+      ],
+      "language": "Go",
+      "probe_class": "subdag-ceiling",
+      "repo": "prometheus",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "prometheus:03e916354ac5c664",
+      "candidate_sha256": "677110e9e1f4719b18ac783ced8b06bdd207bc47acf00c394b4e5e4f39c3c154",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Go",
+      "probe_class": "unrecovered",
+      "repo": "prometheus",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "rack:b7b0b53fbcbab71c",
+      "candidate_sha256": "a28b9f78fb129b1e8c865743008ea1b9c245bb756a16eb93b5a7169e35284956",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        4,
+        5
+      ],
+      "language": "Ruby",
+      "probe_class": "inline-ceiling",
+      "repo": "rack",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "requests:8465ccbf517afa52",
+      "candidate_sha256": "214b609709c65f27e46ed4d9cfc080ae9a0686a1a7922de797bf0ab9c0cc537e",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Python",
+      "probe_class": "no-overlapping-unit",
+      "repo": "requests",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "retrofit:450a5844cce0c0bd",
+      "candidate_sha256": "6f859b09aa73d760829daef7858f17b71d03fe1ba50618d57923b0c711bfa17d",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "retrofit",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "retrofit:4ce2a10ac749debd",
+      "candidate_sha256": "55557d01053d5d25e0fd00a2e0bbd655832aa24e9ca92e0d5a7c19b73f9d4a5f",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "retrofit",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "retrofit:68bb7155ddaec5fc",
+      "candidate_sha256": "a66771d93accae2804d9f39ed6313d5a1fbe133080929e22bab9698f0e47fb9e",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Java",
+      "probe_class": "unrecovered",
+      "repo": "retrofit",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "retrofit:a4f7b2b24dac8ef2",
+      "candidate_sha256": "ca0985690204aa85cb055c214011d6e7a6f75a0c1e3ae4922d5cc6e66eb182aa",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "inline-ceiling",
+      "repo": "retrofit",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "retrofit:ea9ce2ec096e44a2",
+      "candidate_sha256": "a6f45b7aa5f746ac164ffc9386d4d8625a434cfa63802c6e283816babd15f4e1",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "retrofit",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "retrofit:fa87ceae24540615",
+      "candidate_sha256": "f01175d6244d23e7c62e30b66988cf4089072805ed5bda5189aefabeb39e5084",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        8
+      ],
+      "language": "Java",
+      "probe_class": "subdag-ceiling",
+      "repo": "retrofit",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "rich:1cca23a830177a3b",
+      "candidate_sha256": "2904b1e9d0f510c2051857ad5353c131274ca453791565d5d296bcd9db6a2e08",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Python",
+      "probe_class": "subdag-ceiling",
+      "repo": "rich",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "rich:71efa9ae895b2852",
+      "candidate_sha256": "c0db31d870325d8a62aa85c6e485b768b26b18c883cbed60a25a31893ebb3975",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Python",
+      "probe_class": "subdag-ceiling",
+      "repo": "rich",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "rich:cd216bafb0dfec7c",
+      "candidate_sha256": "fef14163744c7e8f722ecc85c14a029942a4fb0b4164f1336fdbf187285f2b47",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Python",
+      "probe_class": "subdag-ceiling",
+      "repo": "rich",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "ripgrep:17b81b759c25a493",
+      "candidate_sha256": "38f0a0ae7529caea8cf34131dcde1fbb7e0d6f72fab8558b7bd1cff149a94de0",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "unrecovered",
+      "repo": "ripgrep",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "ripgrep:1b6dd934f70b9533",
+      "candidate_sha256": "7dac6e253617bdfff6ea429db88f56fd1d3a1cfc2bc353a996b433be5843cf9b",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "unrecovered",
+      "repo": "ripgrep",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "ripgrep:395768df3c164d72",
+      "candidate_sha256": "07d4d56528873eefb58d59a4da4302fe1a96e0045844aafc5a54306c4f0edb6a",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        4,
+        4
+      ],
+      "language": "Rust",
+      "probe_class": "unrecovered",
+      "repo": "ripgrep",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "ripgrep:4b007c95b7bc5666",
+      "candidate_sha256": "866c09759a8efbe5bfac59be3567b2ca56a2fa41503809846695933c855fa433",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "inline-ceiling",
+      "repo": "ripgrep",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "ripgrep:519afdcaed73af0d",
+      "candidate_sha256": "8cc801b76980e41c492850a8eb29d633df91772439d70a1e8022ff40c3830d00",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "ripgrep",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "ripgrep:645645048b72111d",
+      "candidate_sha256": "da91e4edb67b4c4940e50d96d3236b20bbe98159a9ca12b08a73a306bf4be2e0",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "unrecovered",
+      "repo": "ripgrep",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "ripgrep:70daf912736d8c82",
+      "candidate_sha256": "6d5ab713c2f94e97cda415936a0babc0a1e519bcefedfd0b47e8c04b493f755b",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "no-overlapping-unit",
+      "repo": "ripgrep",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "ripgrep:8172f2a4057bdd27",
+      "candidate_sha256": "b1c227348e5cdcadb7898908d5c9a573578da32976077068ec057c08569da755",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "no-overlapping-unit",
+      "repo": "ripgrep",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "ripgrep:82baabefb13ac0e4",
+      "candidate_sha256": "6662affebb6d29b5e18fde36273be68a18502222638fee7b5308646defb731bd",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        6,
+        5
+      ],
+      "language": "Rust",
+      "probe_class": "inline-ceiling",
+      "repo": "ripgrep",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "ripgrep:9194611e3dd97015",
+      "candidate_sha256": "9fb26bdd7c7b711187dff2789f996db4d1735c74a0b28cfd4365f28ac81f5d71",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "ripgrep",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "ripgrep:9b317c5d5b4ad4f5",
+      "candidate_sha256": "59d8278659467415a69792c275f845a03c5ef3e2016a6d854451ef01b80b03a6",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "ripgrep",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "ripgrep:9e4630087c22a3b0",
+      "candidate_sha256": "c5fbac4e0b11c206d847b0fa876d78077accb45db32ce6811f2d42ded69b6e92",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "ripgrep",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "ripgrep:e6d81b48f46ce521",
+      "candidate_sha256": "64396ec7388e952f66b1ab38598365aab8c80c5230eeed49bc55ae5489067e9f",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "ripgrep",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "rspec-core:122d3349380489f2",
+      "candidate_sha256": "61060671f4a657ae377460abeda28f8d263b03ee82c94cf38386133ca373a68f",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "rspec-core",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "rspec-core:32a7d7612a8cb12a",
+      "candidate_sha256": "f979c3bddb1644744d426d435bbea1766666bfa6327edfb673db43b9e2365fc8",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        3,
+        2
+      ],
+      "language": "Ruby",
+      "probe_class": "inline-ceiling",
+      "repo": "rspec-core",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "rspec-core:7b5147536093e82e",
+      "candidate_sha256": "a7328e0efd287e778d364d11b9733d6404de64c85bfdf7aa19bbd81e41efe968",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "rspec-core",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "rspec-core:a1957f9937b645c3",
+      "candidate_sha256": "4b5c0e4ef02ef4adb85997167c46a25c3d219c181b06a45dc684b53d917153f8",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        3,
+        2
+      ],
+      "language": "Ruby",
+      "probe_class": "inline-ceiling",
+      "repo": "rspec-core",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "rspec-core:f1d562131fa8096a",
+      "candidate_sha256": "21eabbe1f2150ae24e3b490bc42929097a30bbeb93772823ac38e5d6e62095ec",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "rspec-core",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "rspec-core:f90e040392961f73",
+      "candidate_sha256": "72027e2e2bfc85d17515fbe2642cd358ad0f5eeab2c81d33488d846060446d07",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "rspec-core",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "rubocop:107837ec875c769b",
+      "candidate_sha256": "c02dede825b90cf058f597c61f30be5831d7a9b32d9f93368fe6cd524be2c6e6",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        5,
+        5
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "rubocop",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "rubocop:1eead1acc41e3d0d",
+      "candidate_sha256": "b9fe0551e7f284c68a940eae1203bc687056637aa0ecfff6c80435de3ac434ae",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Ruby",
+      "probe_class": "inline-ceiling",
+      "repo": "rubocop",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "rubocop:24160f04580c3762",
+      "candidate_sha256": "32ecde2b4a157894db906edbd6bc621e3b7e15a734b2fc7b5fd950634d093dc2",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        5,
+        5
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "rubocop",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "rubocop:267fc66c0a4ce915",
+      "candidate_sha256": "7eb4711593614592a7a2852ea9267ecaf23a966b9bfd6b1f590023ad26fc8287",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        1
+      ],
+      "language": "Ruby",
+      "probe_class": "inline-ceiling",
+      "repo": "rubocop",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "rubocop:40711dc868c3de45",
+      "candidate_sha256": "68a188129c17a6db22e7b11f3f74ecedda2f72b32a465383a39d420860e61ade",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "rubocop",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "rubocop:40c914779a563002",
+      "candidate_sha256": "9b6bedfb8e05000737c1db547adaa54d41bb6bc6f14993be838cdbccd304e83d",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        5,
+        5
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "rubocop",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "rubocop:42b457f15c15680c",
+      "candidate_sha256": "36f80cea602af56393213c46b24d85799bac0e2df5626b24077afe6c8fce09e9",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "rubocop",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "rubocop:490869ad2d30695d",
+      "candidate_sha256": "97906a7afbc8e97fa64f3a319cbaa0eb770bf185c563f6b76e2f8a232681ab58",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        6,
+        6
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "rubocop",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "rubocop:66ab28d58fc0aa09",
+      "candidate_sha256": "21ff00cad2a4953c2bc3db6e75e268b3d728396d9c03be9b9edd0bc2c4c3de15",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "rubocop",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "rubocop:6af0178a5e70efbc",
+      "candidate_sha256": "32d6c8935886fb369c7968803f357c88ddfd1abe447876682650f32a659ef9dc",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "rubocop",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "rubocop:7bd6307d63463a53",
+      "candidate_sha256": "80d160c299ec4cc83b0e67a20b3ca373e1fcfedf19af461aaaabf71cbafe2e9a",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Ruby",
+      "probe_class": "inline-ceiling",
+      "repo": "rubocop",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "rubocop:8afc3058b26eb9b9",
+      "candidate_sha256": "0ac9cf5def628a085da23901ce057d57fb65267c023f1e462174ba6f211e895e",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        5,
+        5
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "rubocop",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "rubocop:8b9fd00e9f4e985b",
+      "candidate_sha256": "ab291e8517223219e63a5ead4bdd60065665cfc96540812cd38dbbaac4648180",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "rubocop",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "rubocop:9a3d18bd8a3ac7b6",
+      "candidate_sha256": "0b36a226af6ada5137b7d73b86478cb929f486913e7306c5b540352c8e90fa1c",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        6,
+        6
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "rubocop",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "rubocop:9ad4362831b976ff",
+      "candidate_sha256": "54afe9b0c2f1abfd8fa2659b7df0d6357dd66a6f2d94073a7c1123ce094069f6",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "rubocop",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "rubocop:ace293d11479450b",
+      "candidate_sha256": "834c124160d6f8b5f545cf2290068387ffed7fc8b7545a21da575eed07626415",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "rubocop",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "rubocop:b956b31a66387140",
+      "candidate_sha256": "f10fd6d5e5ce6567584176484eec4ccf35a55ec2981673dab9e91dd6c4f350d6",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        5,
+        5
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "rubocop",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "rubocop:c409de6f23092443",
+      "candidate_sha256": "152252ac9bb75ebc2c2a6eef6245a20ba6dd46c6f5df734e965628b1fd3f866f",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        4,
+        4
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "rubocop",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "rubocop:c6c89e4eb592a4cf",
+      "candidate_sha256": "15162dc483074dd4ccaad90bd9bfa705a212eb90fb2f1ee6834b04f51a065b69",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "rubocop",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "rubocop:c8a5713da90ca9c8",
+      "candidate_sha256": "d73ac56fead222d8ef8c248f14d30e576176f3104351cc782464a3497d3810b4",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        5,
+        5
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "rubocop",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "rubocop:fc6e340b14f9df88",
+      "candidate_sha256": "c26c95ff9498a5354650e4158d230c631e2521b17dc6fca4042a9373dda5bd92",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "rubocop",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "scrapy:533cc1e54f54c889",
+      "candidate_sha256": "ecbb3232eb5c714a8c6d2ffd28bf458ac128c5425416bbab358177b28e677eae",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Python",
+      "probe_class": "inline-ceiling",
+      "repo": "scrapy",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "scrapy:be72d6b46ad8eaf1",
+      "candidate_sha256": "6963b79dc8e4de4ceecd58c6b4c029e31dfd9ff7de15f4a4d3dd6faa92274441",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        3
+      ],
+      "language": "Python",
+      "probe_class": "subdag-ceiling",
+      "repo": "scrapy",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "serde_json:2515a9bc2af59ece",
+      "candidate_sha256": "62c870bf522611ae0c96dac81e5c421eab766b1e7bd25c2f84319fe7b8d2e427",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "serde_json",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "serde_json:2f42630683e613dd",
+      "candidate_sha256": "6594478fb9ba1f90c3d4b3b21e59cdd5e12a6927c1d5f98598ba96994f61f348",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "no-overlapping-unit",
+      "repo": "serde_json",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "serde_json:3f1d50e522be29ae",
+      "candidate_sha256": "e9c065ca3ff8bf83c2678ffe174e2b3a4740238cd7be16d38ba3c39a5bee4464",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "no-overlapping-unit",
+      "repo": "serde_json",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "serde_json:5c3a440867f18f80",
+      "candidate_sha256": "71002da8f374093139a4723d173a793a7f120f049d08f31e623376d94e468966",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "serde_json",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "serde_json:8dc63e0bf59dff86",
+      "candidate_sha256": "403bd910e440a367948b99a06941c25603cb84bbdf0205b255c951760a1f360e",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "serde_json",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "serde_json:946bfa61cb71d562",
+      "candidate_sha256": "d9014a0c4450f8a1a2798507d4ccce4c51d43e7720bf3cb98d64d39ffa5b5756",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "serde_json",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "serde_json:bec63f16f3ebd8fd",
+      "candidate_sha256": "02bc5e5b2e283122d6e8f6677394a77aa290416cd379b37cae396a5fcd105f61",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "serde_json",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "serde_json:c38a8703c271821c",
+      "candidate_sha256": "7f02544a571f3bd454d08d3f0d49f92b37a412698d0a0fbfb8d55833fc64b524",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "serde_json",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "serde_json:d4ed845b75ad1b1c",
+      "candidate_sha256": "442501fd63a58d848455acfd96ee7a9720f0dd05fbff4df8c0a868ee93393179",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Rust",
+      "probe_class": "subdag-ceiling",
+      "repo": "serde_json",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "serde_json:e05e8bc1734e5ef0",
+      "candidate_sha256": "649ecb6f45b3368bbade2f08632c04706de604561e63f28231b10f56242f1ce0",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "Rust",
+      "probe_class": "no-overlapping-unit",
+      "repo": "serde_json",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "sinatra:30191d2f42a72a70",
+      "candidate_sha256": "c79a47f10882731f6557bec002785b57b031bbfd860ff3bb9a4f8fcab9ef1b20",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "sinatra",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "sinatra:6c0f20ce8939ef2f",
+      "candidate_sha256": "6bfd6223b79802e10dd13d48a4cc4ceb84bd8a5bb081574935a289c65d214ccc",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "sinatra",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "sinatra:c8eba586fdfacedc",
+      "candidate_sha256": "44a40ca5891725586c168b2595f8993665311fa7ee56bc7f8de50927b5a72ee0",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "sinatra",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "sinatra:e4ad961494fe684e",
+      "candidate_sha256": "33e03e00951de052ebf8c5199a22e79475c7d2d4d39bdff69ab278843a979058",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "sinatra",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "sqlite:409c1b9791d270e9",
+      "candidate_sha256": "51161ad838cc6c0fdf7a9e3d19cafd8e61eb9891a0d01847350215d2bcea0e1e",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "sqlite",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "swr:9b7a03feec3a4cce",
+      "candidate_sha256": "e2c696c8e4ae43729bbd7ed107be9b9fab9fa3238563adbba9db3581eba6e1a7",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        0,
+        0
+      ],
+      "language": "TypeScript",
+      "probe_class": "no-overlapping-unit",
+      "repo": "swr",
+      "stage": "missing-unit"
+    },
+    {
+      "candidate_key": "thor:07e233ddffad07f0",
+      "candidate_sha256": "c3607b8739203183114dff0787b5aa08759c4fb42acca06dbd7fb183d1e90149",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Ruby",
+      "probe_class": "subdag-ceiling",
+      "repo": "thor",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "thor:c9e373f89995a6f6",
+      "candidate_sha256": "40bdfa3fc84c63f006826c975dbf01f4d5e7426ecc0fa4053ab37d9b0215df8c",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "Ruby",
+      "probe_class": "unrecovered",
+      "repo": "thor",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "tmux:3a515df5216b5259",
+      "candidate_sha256": "55bb86d898b3246f59dba9c293ee6acadd72935feea3d98e6a41ace3b044e732",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        3,
+        3
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "tmux",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "tmux:4d161d7f40bac6f1",
+      "candidate_sha256": "4f7c526daa79515217e08a28f45509a750a6a9374d57b58735554b3231e37f37",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "unrecovered",
+      "repo": "tmux",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "tmux:6c7a09c2a9c5c2b2",
+      "candidate_sha256": "9b3c61ac9465a247ebfabfcf4a955aea2f93934b44a7d72bcef627ebe5964c06",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        2,
+        1
+      ],
+      "language": "C",
+      "probe_class": "same-unit-window",
+      "repo": "tmux",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "tmux:a0458bd522fd4095",
+      "candidate_sha256": "f1cb97c9429ed4faff7ad01efdd527d6d468bc78acc9216727bd78eb977b5e48",
+      "direct_accepted": true,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "subdag-ceiling",
+      "repo": "tmux",
+      "stage": "accepted-pair"
+    },
+    {
+      "candidate_key": "tmux:efdb8be4fa09f367",
+      "candidate_sha256": "d085f256956589d3913272f48bdf53d35a1a82556b92acae9b6720194f2dd9ca",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "C",
+      "probe_class": "same-unit-window",
+      "repo": "tmux",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "zap:23de1a83b5d5ff94",
+      "candidate_sha256": "5bc3f8cfe16e43bce128a9d5cff8cfa5b85e5930a321e16ac2e25e3da81771dd",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "Go",
+      "probe_class": "unrecovered",
+      "repo": "zap",
+      "stage": "extracted-no-candidate"
+    },
+    {
+      "candidate_key": "zap:c3ae8f9eecbafd9e",
+      "candidate_sha256": "28e6e7bc9e43e98ff6ff82aa2ec96bea150c305ffb57718a0dee635af908124a",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "Go",
+      "probe_class": "unrecovered",
+      "repo": "zap",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "zod:1ad07dedfa877a0e",
+      "candidate_sha256": "11962c0913e6ba545a54e9f762bc65a9aac0a6225f1e88ccb4985185751344cb",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "TypeScript",
+      "probe_class": "subdag-ceiling",
+      "repo": "zod",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "zod:aa98d1623d4fda52",
+      "candidate_sha256": "c9144a02941d22cb0907d7c83547d2b9105241ca7c33f8f2cae6f3628f2d351e",
+      "direct_accepted": false,
+      "direct_candidate": true,
+      "extracted_unit_counts": [
+        2,
+        2
+      ],
+      "language": "TypeScript",
+      "probe_class": "subdag-ceiling",
+      "repo": "zod",
+      "stage": "candidate-only"
+    },
+    {
+      "candidate_key": "zod:e6c204c8d398e185",
+      "candidate_sha256": "82c6cd02f99bcee27a22f0ce51b8179097a191ccc81e7cc26fb29e62e74413e8",
+      "direct_accepted": false,
+      "direct_candidate": false,
+      "extracted_unit_counts": [
+        1,
+        1
+      ],
+      "language": "TypeScript",
+      "probe_class": "subdag-ceiling",
+      "repo": "zod",
+      "stage": "extracted-no-candidate"
+    }
+  ],
+  "failures": [],
+  "method": {
+    "interpretation": "A direct accepted pair is already admitted by the raw structural detector. Because query adds syntax and shape-candidate arms, this is a conservative accepted-pair witness, not a complete query simulation.",
+    "surface": "nose detect --candidates"
+  },
+  "provenance": {
+    "command": "python3 bench/labels/missed_worthy_stage_audit.py --artifact bench/labels/recall_ceiling_probe_2026_07_11.v2.json --nose target/release/nose --repos-root bench/repos --json-out bench/labels/missed_worthy_stage_audit_2026_07_11.dev.v1.json",
+    "git_sha": "067f1fbce81e1f8c4bdbb827b95a4090f89e6c59",
+    "nose": {
+      "path": "target/release/nose",
+      "sha256": "a0a210b9527353b65bbf253c1ee483f9a435e69e4b9587b432eefdcbdba52128",
+      "version": "nose 0.18.0"
+    },
+    "selection_sha256": "7bd95e47fa0191249e20a7bddb527868074a1531abe6fe2c0eb708f14cafb461",
+    "source_artifact": {
+      "path": "bench/labels/recall_ceiling_probe_2026_07_11.v2.json",
+      "sha256": "f5d41c679074b1e29988e525bd8ce56649068ebd68fd726436c31ff4b5b6180d"
+    },
+    "working_tree_status_before_measurement": ""
+  },
+  "repository_runs": {
+    "alacritty": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/alacritty",
+      "counts": {
+        "accepted_pairs": 318,
+        "candidate_pairs": 1640,
+        "units": 2092
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "a35592b880034f309086498ecb074075bb25f110b1cfef0ffc1db60fb27d8136",
+          "size_bytes": 18016
+        },
+        "predictions.json": {
+          "sha256": "128d39d5868ec564bc02d9fab1793399b9fc0f77790ba4e85b93d6afdcb2c017",
+          "size_bytes": 95069
+        },
+        "units.json": {
+          "sha256": "ec9fe89d232ce04563c45c6d7240a00935bed1a642b92c2ee048f60d601abb75",
+          "size_bytes": 198453
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "21a7bf5e1c3de11558f15f204c6aa773a437cd153c6b4ab3dd92670a9812b42a",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "axios": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/axios",
+      "counts": {
+        "accepted_pairs": 675,
+        "candidate_pairs": 1488,
+        "units": 1119
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "f848601d2c27823b2179fc32d233a389062b2c76bc6ac45371b57a84dd75057a",
+          "size_bytes": 15225
+        },
+        "predictions.json": {
+          "sha256": "27e46fd9021b4d2a2f94e5854ff5cfd050ba3b5b8934a0e7c3ebf65a0095e76e",
+          "size_bytes": 201557
+        },
+        "units.json": {
+          "sha256": "048ba96ea04eb777636ade0258db79370e54d721845ca74a59a8c32204e91b5b",
+          "size_bytes": 99128
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "6603a2955736afc2b85e8a5de91af2f8b61e93bd71f58c8f4e3e7542bb74060f",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "bat": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/bat",
+      "counts": {
+        "accepted_pairs": 69,
+        "candidate_pairs": 668,
+        "units": 1053
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "1bcd8a7e8180fca0d03658933979df8ab7cd980f63414e56f42bab5f86ee980b",
+          "size_bytes": 6640
+        },
+        "predictions.json": {
+          "sha256": "52181300e6cd60c2bf7921397b5cd48dcdcd5b11b1c200ba94a283abc5df7261",
+          "size_bytes": 20275
+        },
+        "units.json": {
+          "sha256": "418c60aaedd427f29c0685c1ed794c3a02bef72f6cae1232cecd3ddc13a58d9c",
+          "size_bytes": 82510
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "6dd3e0d44931bf8f8b1a04b7115342df41ee4d56ccfce760a570268cc85e90c4",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "chi": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/chi",
+      "counts": {
+        "accepted_pairs": 112,
+        "candidate_pairs": 380,
+        "units": 508
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "b4b85c6337c9d41881643d339234f8fc46b16c6a1a1d2a543aeb32cde926f5b1",
+          "size_bytes": 3497
+        },
+        "predictions.json": {
+          "sha256": "330acc272b76769663bc22c06eced77546d126677fe3d760bb49d169ed5364d5",
+          "size_bytes": 29121
+        },
+        "units.json": {
+          "sha256": "d045a02f1736e8237e82e0388c676a9282c57bb3a815ab2aa14d7da9d7a95af3",
+          "size_bytes": 39179
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "22505cc87ad8d1bb316e8b770fc2cbfa2e2f52db05bf8e9acb26d6662009a523",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "clap": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/clap",
+      "counts": {
+        "accepted_pairs": 2528,
+        "candidate_pairs": 8485,
+        "units": 4108
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "24075dd08176bf2a6362b4bb307c39e7542cd36fd11b5a664dfe526c9ea51e77",
+          "size_bytes": 96174
+        },
+        "predictions.json": {
+          "sha256": "9c63c8a42f87fec27563bcabf2969bf92e814a3f1d8f3abd5b4437cd9a834e67",
+          "size_bytes": 790144
+        },
+        "units.json": {
+          "sha256": "30270820f2d203d336d54bf841f310c56d7266e0d7c105410d4a8bcb6ef00a66",
+          "size_bytes": 368799
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "e31328bb07342c293361b199e6af264af55f06c73ef0daeabdf99d96e27be043",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "cobra": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/cobra",
+      "counts": {
+        "accepted_pairs": 233,
+        "candidate_pairs": 680,
+        "units": 581
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "0aeee82193268b5ecaffc180661ed4121a910695bc9468baa53a1aa481bdf0ba",
+          "size_bytes": 6205
+        },
+        "predictions.json": {
+          "sha256": "15679a3cb60a59e0d7cb32e6b9fd2dfcd67526213e9f11d6ada8f4198a3499ca",
+          "size_bytes": 67389
+        },
+        "units.json": {
+          "sha256": "d2d371b74023846338d89c2d46c80ccd55de2e8d7628d1946af6ee4602e77cbf",
+          "size_bytes": 42191
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "554b5ca0f498e5b7d17576eec81fb425f676f44043949bf42beb829802b39e6c",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "commons-lang": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/commons-lang",
+      "counts": {
+        "accepted_pairs": 9443,
+        "candidate_pairs": 37464,
+        "units": 11133
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "f5f5af6da380a97b148df59815b2ef460866d0253c03a3306aa73c17b151dd7d",
+          "size_bytes": 438940
+        },
+        "predictions.json": {
+          "sha256": "9818e27be917b7bc0a40b21628c07d621f2fa2e7a306f1e8238c737825e230d0",
+          "size_bytes": 3490858
+        },
+        "units.json": {
+          "sha256": "cf57ea1b9d0b5ab128f0f605427afac9e2356b15c4c8586f8af81b8efd53b11f",
+          "size_bytes": 1439551
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "7ff25a56b4e4a9b2e011e6b0638ae51c62298d134d8fdcf1f70cd841493be28c",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "curl": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/curl",
+      "counts": {
+        "accepted_pairs": 5701,
+        "candidate_pairs": 27907,
+        "units": 11983
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "800089d6c0df90d953669db19aee00603cbd407ff7037ddf2f923767470e65b6",
+          "size_bytes": 335249
+        },
+        "predictions.json": {
+          "sha256": "11dcda72aa5c1345a151fcbbaa7d9c2c226df61d30ea9e65cb60ae23d2f67b21",
+          "size_bytes": 1446790
+        },
+        "units.json": {
+          "sha256": "d304600c7874938b05fc72f4550891f7a2ff39f59c5c75b152677d8f717dbb5f",
+          "size_bytes": 916245
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "b29e289fbb3ec2b08a1eef9d9e3a94b96c31fa0791ae9de399f510633135f3b2",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "delve": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/delve",
+      "counts": {
+        "accepted_pairs": 2759,
+        "candidate_pairs": 9971,
+        "units": 5419
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "f4b024d035c215e359c0add775c49e4206e7a52a787ccffd6be3e26d6608ed85",
+          "size_bytes": 115601
+        },
+        "predictions.json": {
+          "sha256": "dadfce34c520afea0a991fb9c488805e892370f865470f61eba428cddf3a5695",
+          "size_bytes": 708097
+        },
+        "units.json": {
+          "sha256": "374f135120cfc3cf0c68f5c6e11788f1d9f95ebb03ab683ea8bf9da865e78670",
+          "size_bytes": 457665
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "1ba9d7246014d6e67204cc1e299d852fabab6ddf25fd6eea104d51d436dfb531",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "devise": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/devise",
+      "counts": {
+        "accepted_pairs": 108,
+        "candidate_pairs": 1035,
+        "units": 1328
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "2f1de2a54041f91bda92542dc5033083f147cb7cbca2bab499cb2acb46507760",
+          "size_bytes": 10815
+        },
+        "predictions.json": {
+          "sha256": "fdf918a4cb081dc20a42ad52a7403a5162eca36c2a468f9fab170efcd0755401",
+          "size_bytes": 39698
+        },
+        "units.json": {
+          "sha256": "0e801c0360aa950f364a014cc77bb9839411db073d95fb69e144a27673b8375a",
+          "size_bytes": 123686
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "957c1d004d79345a5dfd95c77802675060e46e091c78e1063031d3a58788ed97",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fastlane": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/fastlane",
+      "counts": {
+        "accepted_pairs": 7290,
+        "candidate_pairs": 26019,
+        "units": 13133
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "2dddbc82367c5e57e380eb5c721c1db2a02a4a6fdb9511ca31f5a3d55b61a9e4",
+          "size_bytes": 321885
+        },
+        "predictions.json": {
+          "sha256": "e0ccc3f05bb326ffa76f743f092b404314ce8c304ca7f8c6d90555729542be59",
+          "size_bytes": 2532428
+        },
+        "units.json": {
+          "sha256": "6a47a5190cc49f786a02c597315705dd2377f2e8751dad17285c52c07f1ea55e",
+          "size_bytes": 1389273
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "86f395fc869e183c8775078eb1c20aecc01e599e0d1f60361fea8a9a6b3f4fc6",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fd": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/fd",
+      "counts": {
+        "accepted_pairs": 25,
+        "candidate_pairs": 158,
+        "units": 445
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "0dbde7da3bf0c359f15a2c0ffc5a213b417474b5d47c5d2226b8572c215477b0",
+          "size_bytes": 1484
+        },
+        "predictions.json": {
+          "sha256": "2df2dc80964ff07d1d4c7382e0172bb7a1655b78118cb73397a946ea5f5de818",
+          "size_bytes": 7115
+        },
+        "units.json": {
+          "sha256": "790fa7237d96bb794c5a30b14f1f878642b9e3529d1a1dc1ad5c649b238eb741",
+          "size_bytes": 31267
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "3b496ffb84002979d92701fe504d878d3797fcfa35e24df1823d2bb11441cc6d",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "git": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/git",
+      "counts": {
+        "accepted_pairs": 2127,
+        "candidate_pairs": 26560,
+        "units": 19299
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "6068fc410985ae8e9aeee6f6111ab7a0f3a98fa142da50c8515a8cf27b83ac73",
+          "size_bytes": 342026
+        },
+        "predictions.json": {
+          "sha256": "041651775df8e8a2b570601e00d5a838b4f251341ce7afbd8ae34bc927b61d36",
+          "size_bytes": 488193
+        },
+        "units.json": {
+          "sha256": "dc79adce904c2e25d1449ac288b06af567b2df06af4478decf40214849867c2d",
+          "size_bytes": 1386836
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "5949a9f371b75a19b9a7595a7c672d77232c79c45856b8ee2f75893f77ac9cd7",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "gorm": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/gorm",
+      "counts": {
+        "accepted_pairs": 420,
+        "candidate_pairs": 2170,
+        "units": 2258
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "b08d4bc5952d8c89b2d6559dedaba948f97bf1efa97c67b86db1b079d11ee758",
+          "size_bytes": 23820
+        },
+        "predictions.json": {
+          "sha256": "e472dd4a6767c4f889b946d1f298635ef6e3b52a5357821514ca7985f92745a8",
+          "size_bytes": 108580
+        },
+        "units.json": {
+          "sha256": "8bc97f26729ca6fde7f4bd925d269ea2d2e747f2b21b498f705876b2dd73b043",
+          "size_bytes": 171502
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "dafbf29d40c1ac656dd98a14bbc3e5240f69884268391cb570e554fc28c4104c",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "graphhopper": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/graphhopper",
+      "counts": {
+        "accepted_pairs": 4009,
+        "candidate_pairs": 37968,
+        "units": 12141
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "b2c869e56e7cfbfef59e8d2156cd6085ed0a3668b14e43d201d96c5e98004687",
+          "size_bytes": 450747
+        },
+        "predictions.json": {
+          "sha256": "eca876307f430cc830722c4dbc8cc3dd892b340f5e79c31e080b44d2f922bbee",
+          "size_bytes": 1465692
+        },
+        "units.json": {
+          "sha256": "dee9548d3f6984b45e094ce8e037eec7e31b12d5ba8d29f507c39ab7e9425cc2",
+          "size_bytes": 1612064
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "0b81677946fdd74e0a9fac408e02908de467510af2fcb354b057decaff06c6e8",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "gson": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/gson",
+      "counts": {
+        "accepted_pairs": 1613,
+        "candidate_pairs": 11043,
+        "units": 3984
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "b091de7a77a1f99bc39edbfd5d4bc6982cf0f4b8cc7060d87fee6bb35a996fd8",
+          "size_bytes": 123796
+        },
+        "predictions.json": {
+          "sha256": "44413ef1b01d7c4f33c09af9e1f2a135ae5ca02bc89f19df6a15d5fad28e7e3d",
+          "size_bytes": 569494
+        },
+        "units.json": {
+          "sha256": "6b7673110a861d735f435dce8c1f5c92bd4ec38eed7b0b0d1d21243f1ff1ebcd",
+          "size_bytes": 496984
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "1bf9f579cca34334960a102bef66fa4ae650f1eadcbeff7d8bf294df6b9c0c8e",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "image": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/image",
+      "counts": {
+        "accepted_pairs": 645,
+        "candidate_pairs": 3401,
+        "units": 2723
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "61c1079fc14ca6d6ae6647c0764ce4d8c7a5d58c6d3f21242da7818273f18d30",
+          "size_bytes": 38753
+        },
+        "predictions.json": {
+          "sha256": "e7edd512d681e163d395feaba111a898b4b01334da9da3b84b0365e785d2e0eb",
+          "size_bytes": 178766
+        },
+        "units.json": {
+          "sha256": "e1f8178d03fd0a4431b2dc65aa779b093481c4ed0617aecab1ed41ce3bdd4cbb",
+          "size_bytes": 218939
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "81f6fd630903b4b7c2317f5202e983b8aa77810e08c35e255cf4e44c795c9166",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "jekyll": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/jekyll",
+      "counts": {
+        "accepted_pairs": 166,
+        "candidate_pairs": 1161,
+        "units": 1896
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "6fccf4aede76c910b89b39a9a9cbcb40b819dd69b3efcc6fd3e81cc78b46e550",
+          "size_bytes": 12217
+        },
+        "predictions.json": {
+          "sha256": "15950b3c595e9dee7afc848a5a11f84d9f1701557627168986691325dcb6e804",
+          "size_bytes": 47868
+        },
+        "units.json": {
+          "sha256": "6fd1acaec6346624ae03c94dfb76d4788e9237058df81aa79b92deb959432d37",
+          "size_bytes": 161291
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "a3abfe8afce2c4779c2e4ad258fa9c29ef8ad9e174f7b56b117e0c7c450829ee",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "jest": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/jest",
+      "counts": {
+        "accepted_pairs": 879,
+        "candidate_pairs": 5038,
+        "units": 4873
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "6c8c0ecf837533943d7b592d04a8e027fbcc20754541aded130b2399025f252d",
+          "size_bytes": 57060
+        },
+        "predictions.json": {
+          "sha256": "09b694a4e222b038fa4473cda7d70ee7f558379adc9b487af5f643f5020461af",
+          "size_bytes": 262411
+        },
+        "units.json": {
+          "sha256": "ce8a1412d3d01388c7c0ac40604b02ac69975feea56cc87cc47c8671506affe1",
+          "size_bytes": 485580
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "069d00ee2160261d3bb2469a45c960cc6b9e17eceeef78501156190ca145cf73",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "jq": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/jq",
+      "counts": {
+        "accepted_pairs": 28,
+        "candidate_pairs": 412,
+        "units": 1002
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "c841face0b6ddc17d6107f9b790bd6e706c2d66890afbe68ec19e0426cad8e3a",
+          "size_bytes": 4060
+        },
+        "predictions.json": {
+          "sha256": "97f60876228f4db91e84cd3be48470353f129a176b2081cecaa1512673b516f3",
+          "size_bytes": 6981
+        },
+        "units.json": {
+          "sha256": "bb073cec6e718992b22631fd7a7e518e757eff3f4716fa605f968318fa5ad47f",
+          "size_bytes": 69181
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "985e8ab1a400a190659eae0ed551e01a0fac498331e70647bd7f98a6a2c2fe69",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "libsodium": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/libsodium",
+      "counts": {
+        "accepted_pairs": 1067,
+        "candidate_pairs": 5103,
+        "units": 2003
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "4401adde2490d2309a260fe4c4e11bec9e14fc1b62670a50d2bb9412e4d69b21",
+          "size_bytes": 54971
+        },
+        "predictions.json": {
+          "sha256": "933095a9250a2f8bfc2a74a494391c8bb6954d99019ebb544c754775ae3a07d1",
+          "size_bytes": 353852
+        },
+        "units.json": {
+          "sha256": "17d0f1ba5fa6eb2369b4a4cf7a4a1b55038eb3ba2b503b9416fadcfd506dc7a6",
+          "size_bytes": 220994
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "00d48d2c00f3a29ce05a7d2a0d3350ae6f4cfaf73a7f1286532475b5ea1bfc01",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "lua": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/lua",
+      "counts": {
+        "accepted_pairs": 74,
+        "candidate_pairs": 1819,
+        "units": 1837
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "5432dbcf5e953e0bd4ddaccafc77bde4e06755d4d2e0b3141558eb171dfd97e9",
+          "size_bytes": 19523
+        },
+        "predictions.json": {
+          "sha256": "9e6d37cb2670dc5c96ece8527f1858e16ad058dd5fbcd93e9f0ecb6539e29274",
+          "size_bytes": 17919
+        },
+        "units.json": {
+          "sha256": "25e1a1467207f7c058e4edf136d2520690d023d8ca4d7da7ad9ddd1137721364",
+          "size_bytes": 119255
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "81be994e26254b3905e1ef030ca26a9dd525ce79b16dcaa9f8968fcd0eff06a5",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "mockito": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/mockito",
+      "counts": {
+        "accepted_pairs": 3224,
+        "candidate_pairs": 19252,
+        "units": 7322
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "78bbb8ffdef996a54f80b78a8f9c2449e334b707b3424bfb416bf63d58a83af0",
+          "size_bytes": 218302
+        },
+        "predictions.json": {
+          "sha256": "0f016e6a43292c69abf8a849cbd862f4bb2c3769bd082540646788a4109427ab",
+          "size_bytes": 1252490
+        },
+        "units.json": {
+          "sha256": "6c7c3eed534e7b613be27ce6cc5cfa930a54cc35079f672461d21d0dd19edbc7",
+          "size_bytes": 1067019
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "bbd318e03a182427879abc8f17b30e2733e1788c8ca8fae8ac3b7f1461e918df",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "nats-server": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/nats-server",
+      "counts": {
+        "accepted_pairs": 9347,
+        "candidate_pairs": 15661,
+        "units": 6048
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "8af3ca008bfa2a34b9dfc8471d0752e0b7cf9c373a5ba1e19a97d4281e39be17",
+          "size_bytes": 184933
+        },
+        "predictions.json": {
+          "sha256": "ec3ef35646a4c1bde3496e57cca41708984667f70b996cd4a0b3b9a2a4f46e7f",
+          "size_bytes": 3373685
+        },
+        "units.json": {
+          "sha256": "73506a5afa41f83268c10ff94bb3ff1e6223a51f404cc82ef29df43f80ab3a56",
+          "size_bytes": 520773
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "e14ae0e950c6dee0bbf5ed7cf2ff24ba638f66a97a85e6c9890646d4c4447257",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "netty": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/netty",
+      "counts": {
+        "accepted_pairs": 61418,
+        "candidate_pairs": 215880,
+        "units": 46248
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "6c4d40d8114ec5a204a65fca5c536591851696bb751dee6b5e3b5a1bae7da1a1",
+          "size_bytes": 2854756
+        },
+        "predictions.json": {
+          "sha256": "a0396f2de5efeabf7eca8e6f05f0b861d4321e7bf7f232b975476d412d97d458",
+          "size_bytes": 24195523
+        },
+        "units.json": {
+          "sha256": "cb7659692590bb862747bf65fe35d37d44a5e6e604e5e1795fb989950010b165",
+          "size_bytes": 6283803
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "c998c3001d16a52f08d5431a2a27e119f4bac2994b230b18ac79a4bac5dd67d8",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "nginx": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/nginx",
+      "counts": {
+        "accepted_pairs": 1675,
+        "candidate_pairs": 9854,
+        "units": 6703
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "394b0875a845c46a9450698f6e76baaad824dcf92a0b933546ed2d022dcb08e1",
+          "size_bytes": 114265
+        },
+        "predictions.json": {
+          "sha256": "06a5ca3910a91ddfb34f470d75d8892f9f69f2dd7159e1eef9f883674047a3c2",
+          "size_bytes": 521666
+        },
+        "units.json": {
+          "sha256": "6e03f26061835308d2656eb27e9e5e91462b2e7561e579b29de84b27556c586d",
+          "size_bytes": 623471
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "c790f6ce89ad8b75ec96352ec19b3fedca52c6ddab1dd5a2fb7f737c17ecad1e",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "nushell": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/nushell",
+      "counts": {
+        "accepted_pairs": 19483,
+        "candidate_pairs": 76370,
+        "units": 24341
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "06532d9357711dce2fe2671057d428831cd192e1d225c083c484ff6001c625ad",
+          "size_bytes": 995204
+        },
+        "predictions.json": {
+          "sha256": "3e8e3446c65d33efcda482aa1c7f04cc14045957e8f56c2fa4ce93345c98f2e2",
+          "size_bytes": 6438846
+        },
+        "units.json": {
+          "sha256": "4a844277979805a38cd83b8028350204c2d7aef617c943592b625fb3036e9002",
+          "size_bytes": 2471310
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "0d70d80236b551c5a9af653ddd2b3f1de29a04d474c5cc30a1045bf3a68652e6",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "packaging": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/packaging",
+      "counts": {
+        "accepted_pairs": 494,
+        "candidate_pairs": 4223,
+        "units": 1885
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "98fc599196b02820a0492a716e5724b46d11636fc34be12e6b50e2a419b37010",
+          "size_bytes": 47090
+        },
+        "predictions.json": {
+          "sha256": "f819a874bf112186d5fa115e629c9fd7e98a9cdedcc0e8d72c264db739260d13",
+          "size_bytes": 155725
+        },
+        "units.json": {
+          "sha256": "9bc3a28dc7b2ee9d9b382b89096364b1919e5de46dea8556c855a8ad2c25278d",
+          "size_bytes": 171164
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "a1c21d522ca37aa6f03d45e714ac70ea6e4746d30ac0173e08f74c4259983b32",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "poetry": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/poetry",
+      "counts": {
+        "accepted_pairs": 2622,
+        "candidate_pairs": 9006,
+        "units": 5304
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "d059fb5b54db7a91c764206df18102703052369a20aabc386654007c3c40e2bf",
+          "size_bytes": 104700
+        },
+        "predictions.json": {
+          "sha256": "40fa173ef4518c003793cf7dd113be51ddaba93ef287b7818bbe773e29dcc02f",
+          "size_bytes": 732670
+        },
+        "units.json": {
+          "sha256": "2c5706aac97e3934e994af6b0577e696dbcde64fc9b49bf0723e7365230256f4",
+          "size_bytes": 504546
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "da0c2ef84bf9fac6d7a8c1a88b127f50aa090a0bd88b44e2e44d0b935af9015d",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "prometheus": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/prometheus",
+      "counts": {
+        "accepted_pairs": 10324,
+        "candidate_pairs": 27557,
+        "units": 12705
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "0c5a2165bd81887cacc2b1cc6c1be1f0ce1cd3ebf2af75eb0bb6cd072661f7a1",
+          "size_bytes": 344330
+        },
+        "predictions.json": {
+          "sha256": "2a240e13cc89cfce3847741e830d21fdd9509ea005a08c7bbe06286ed824d3a0",
+          "size_bytes": 3220776
+        },
+        "units.json": {
+          "sha256": "5966760ee328962631befa2a4b25ea3e37456a42b7297f46dfc7da94bc16ccf9",
+          "size_bytes": 1200995
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "c5f67b4a6b507f5f67c2eec8e635d305b3383e0ffe94cefb769c37d21de1be23",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "rack": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/rack",
+      "counts": {
+        "accepted_pairs": 69,
+        "candidate_pairs": 656,
+        "units": 1263
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "01a7dafdb35e485c2552e004edb4670bd253e8cc8180d4b8bd0f99e592a4aaa9",
+          "size_bytes": 6562
+        },
+        "predictions.json": {
+          "sha256": "f88848553d357f06d58b719760c8bcf57f42b3dcb550c53a99b5e37cd24da5fc",
+          "size_bytes": 19962
+        },
+        "units.json": {
+          "sha256": "4275ff7679b1549ced5e26b0204f5e4cdf2fbb70595edceec56472fb81bc722f",
+          "size_bytes": 98842
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "da1b7aea6b2242045455ac5031444325b72f2e227d7eedd574c2de76e1b82082",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "requests": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/requests",
+      "counts": {
+        "accepted_pairs": 78,
+        "candidate_pairs": 422,
+        "units": 663
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "ae195b9f0daa12250991c4c9c830c84c57d3ef248b11e7b4ce589ab01038e653",
+          "size_bytes": 4133
+        },
+        "predictions.json": {
+          "sha256": "c9cae26938e9f1244dc6704c0de4e759af0a16b4b1fafe9f4ee3e95fce2ce8d3",
+          "size_bytes": 20083
+        },
+        "units.json": {
+          "sha256": "cc664a273e4501fed6eb7a8c34db2c3605ad565793a79a0c5e98b49ff2749517",
+          "size_bytes": 55402
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "745d729e6f17d1ea5b22b54fd0595d0d496dd3fa5ae86f6ec7eb16d572dab736",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "retrofit": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/retrofit",
+      "counts": {
+        "accepted_pairs": 5963,
+        "candidate_pairs": 15369,
+        "units": 2585
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "defe51708b4c2f1dd2bd257286f35c84de5e7de29e7368a82df69406df8f5ac9",
+          "size_bytes": 164928
+        },
+        "predictions.json": {
+          "sha256": "6fb44d5a4673fe4af11d9d55e70ddc9f1a94f10724a746d0dccc3c5992d882ae",
+          "size_bytes": 2472816
+        },
+        "units.json": {
+          "sha256": "701c09dbbac5da04fd9158d19b0d8bb5bfe30e5d82c382392e0e6952dc4d098a",
+          "size_bytes": 355694
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "9d1e78d1a4555b939d33eb36d667b2a314f30ec7fa8637ccb4eca30ef9c7ca7e",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "rich": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/rich",
+      "counts": {
+        "accepted_pairs": 330,
+        "candidate_pairs": 2749,
+        "units": 2666
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "a46b00ce73474045e2b9910f18fe6cbc0403c20796f8543550c6d24d7d4b5c27",
+          "size_bytes": 30405
+        },
+        "predictions.json": {
+          "sha256": "16640b598846884dbe6c94dbb9c04c026d58d7b40e1d6fb299eeeff65203b5fd",
+          "size_bytes": 85345
+        },
+        "units.json": {
+          "sha256": "dc884629a8d61d672692d08b372bcde79bc7688e70ac838e0ad2d684b1585724",
+          "size_bytes": 199604
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "3434f0065535b807202fa146827e0c9c3b50d57c836049ac7303e6137a8e859a",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ripgrep": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/ripgrep",
+      "counts": {
+        "accepted_pairs": 835,
+        "candidate_pairs": 7665,
+        "units": 3034
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "5a15c09137479dcfd45bd440b573d92f89e0516aa4612d13b04d984ea495c049",
+          "size_bytes": 86108
+        },
+        "predictions.json": {
+          "sha256": "557965f88791791e1ab670e3a317e4d9c51cd9d9d6ce7683e9ca086777b2b8be",
+          "size_bytes": 242820
+        },
+        "units.json": {
+          "sha256": "ced4c9a3ab5f5edf797890041e2e8d5cd92ec17eb4f1ee898a2afbcef50c60b5",
+          "size_bytes": 268514
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "1545585db4819d99e5fe3365d58feacf063733176a859f94ecb2ae6e91f441fd",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "rspec-core": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/rspec-core",
+      "counts": {
+        "accepted_pairs": 176,
+        "candidate_pairs": 1379,
+        "units": 2852
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "ee21a9f5c8278c5b8b48ce14e6096d5960983afd70869fa78f0963999169b3c2",
+          "size_bytes": 15185
+        },
+        "predictions.json": {
+          "sha256": "6c7080cb60156484b663066198830eabd3bb762c0f78f1e0c3cc6bf0dce9d076",
+          "size_bytes": 64182
+        },
+        "units.json": {
+          "sha256": "25bcfc90fe4a87d033197f0f149d5af56ea77a53b5663783e690d75f6284580e",
+          "size_bytes": 286186
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "8c1cb64efd5415fab09d9e6748062d05729f2368428acd3730ed72c980a4a4c3",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "rubocop": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/rubocop",
+      "counts": {
+        "accepted_pairs": 3941,
+        "candidate_pairs": 25986,
+        "units": 16007
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "a6a4129f1a75c9fe2bd840e72ca695103aad54fca6bb7daf4c788799ace39d14",
+          "size_bytes": 321536
+        },
+        "predictions.json": {
+          "sha256": "9346a3f11abe2d91292d02de8577d94b6f6e313b14518c05ad76fd51d6b46c82",
+          "size_bytes": 1398606
+        },
+        "units.json": {
+          "sha256": "a17664b96384bc8c633ad91cd4d7800eb2e57a6faef940acdb29437d21ca6935",
+          "size_bytes": 1670627
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "9dbc06e6f6b142516c2f83f3fdf42db830aea266a9d42befe56814421c642bc8",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "scrapy": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/scrapy",
+      "counts": {
+        "accepted_pairs": 2468,
+        "candidate_pairs": 11208,
+        "units": 7291
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "9d425dad040beae65d5006a4630614594527faf52a56eae845b8334aa5ef872d",
+          "size_bytes": 131485
+        },
+        "predictions.json": {
+          "sha256": "ed2fd8a9b39429d760a74ebe708b09c39e1e672fc0d69e185e826ab5f60684b6",
+          "size_bytes": 691834
+        },
+        "units.json": {
+          "sha256": "a4a1c2c9626bf50b14e6ac76e0af3a2671247cc17a1891e43e212982c0ecb079",
+          "size_bytes": 643212
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "d6ff8998e7354320b619ed251c32cca23ccd8addbbfca667da32ae867b06e795",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "serde_json": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/serde_json",
+      "counts": {
+        "accepted_pairs": 1689,
+        "candidate_pairs": 3426,
+        "units": 1498
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "ed08b9d0ccc1b74a4cf948dd3508838ac608ab83a9c7faf07e11961ea46ccaaf",
+          "size_bytes": 36727
+        },
+        "predictions.json": {
+          "sha256": "1f6fba4029c5dd9386183eb162874ffc422c8a45cec5c20810c7cd96c6985dff",
+          "size_bytes": 477586
+        },
+        "units.json": {
+          "sha256": "66570897f817496cf5eccdc35e573e9594bdd574c055cd73ce2f8404b5fbae55",
+          "size_bytes": 117190
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "85f868e3dc18531955949fc06aa5492c6b0bc819cdc8a87fe373b7b2a0afa120",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "sinatra": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/sinatra",
+      "counts": {
+        "accepted_pairs": 292,
+        "candidate_pairs": 1594,
+        "units": 1612
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "09de21cf5081668ca5a4b4c8c40119bb2c23cbc39472dc1aabb09c6a22ced95f",
+          "size_bytes": 17872
+        },
+        "predictions.json": {
+          "sha256": "b48427868896024ea67b5a7bb322c12acf67b154d09f7471eecd1a4cf9c8b6cf",
+          "size_bytes": 94545
+        },
+        "units.json": {
+          "sha256": "3e3c3cc666f28f4ef173672ead263ad2e8eba65021a7fc4825f828ef7b4df2c7",
+          "size_bytes": 150671
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "04f42caa84b0893438ac2b169340ef911631cc57869a0c5bb76a7f6fbf9b225a",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "sqlite": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/sqlite",
+      "counts": {
+        "accepted_pairs": 4147,
+        "candidate_pairs": 27040,
+        "units": 15386
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "36186f1967c4895d62528f42b34ff86b3dba65daf27b72f1cd0ba3879426a921",
+          "size_bytes": 339908
+        },
+        "predictions.json": {
+          "sha256": "81446d5b7a93581d3d2fcd6436ba5876810c8f4ffb24e6b6e12d66c890f45792",
+          "size_bytes": 1131795
+        },
+        "units.json": {
+          "sha256": "6ed15ad90b30b4240582f3f48d5e96dae596b4376337244e2c805715b687761d",
+          "size_bytes": 1230381
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "2cb383166b4083684493fd167f071ce1a0feb848f8e7919582f5541645b3a858",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "swr": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/swr",
+      "counts": {
+        "accepted_pairs": 2235,
+        "candidate_pairs": 3835,
+        "units": 1208
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "0b6710a005bbf342d5bc47dd34bca106ac18727940b1deb9320601baa3f977dc",
+          "size_bytes": 40100
+        },
+        "predictions.json": {
+          "sha256": "11003fba13bbf8552fe099f288865b6e506c249518d578e83ec4ee12797fe350",
+          "size_bytes": 612487
+        },
+        "units.json": {
+          "sha256": "ad85ca1d8a9d8d9082deed9ae4cbdd68f8273c60e36536bbc2c80417dab660bd",
+          "size_bytes": 107858
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "3daa94d1e20c12b71054af8cfb38564238a4cbf3aec32585186e842ee68fc363",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "thor": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/thor",
+      "counts": {
+        "accepted_pairs": 83,
+        "candidate_pairs": 433,
+        "units": 994
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "4b564f45e5109c3532af4396129ca056684c63796195e324fb8f4f7c438b0e34",
+          "size_bytes": 4265
+        },
+        "predictions.json": {
+          "sha256": "387351d08b14c1dba28024fe2763eb117ef493f8b706088447f811c1f8b38c76",
+          "size_bytes": 26339
+        },
+        "units.json": {
+          "sha256": "a50ce8b2180f5ad49fc4a6f097961ab8bbb4fcff4033adc31aa13d7d1c279ec0",
+          "size_bytes": 80811
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "ca8a3580ff9a4d52611bdf67b5b194579af705c7a520841ce1a4edcd69c40fcb",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tmux": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/tmux",
+      "counts": {
+        "accepted_pairs": 708,
+        "candidate_pairs": 6318,
+        "units": 4245
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "d826c5f1a5a7d7ca6d7ecaf40a5efa16ad15701cd1e174accdedb3ec1d181352",
+          "size_bytes": 73701
+        },
+        "predictions.json": {
+          "sha256": "a644cf92430f8340826a2473afcc49ac25cc65888bf8ec8bf0fe0367a1b7fe0e",
+          "size_bytes": 183002
+        },
+        "units.json": {
+          "sha256": "2dca2c4fdbffc4de08ab31d425b0acb68c40d2d5d1280112d1474e25edcb288b",
+          "size_bytes": 295096
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "3c2d8da5d2c1b983823de5a17a2b230f68e4e19795c476dc51634aeca6b4b94f",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "zap": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/zap",
+      "counts": {
+        "accepted_pairs": 1026,
+        "candidate_pairs": 2318,
+        "units": 1384
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "955649bd750b30e34db65f1f481ee791419f8d96318a2503598d4722fa3a5389",
+          "size_bytes": 24012
+        },
+        "predictions.json": {
+          "sha256": "4c50aaf738e6f5483d42d7943c314ba3ec95705bde8fd29ce0f1f2685552bcd9",
+          "size_bytes": 263196
+        },
+        "units.json": {
+          "sha256": "e1c2d83e7688dad06a27d500f7cb3714d5e649bfc730168952419889408a5fcd",
+          "size_bytes": 103911
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "ea482c11bd1a7b6eeb7ebcf2605dfa90a2d18b48151c1feebc3ba598126c18f0",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "zod": {
+      "command": "target/release/nose detect --candidates --dump <temporary-dump> --repos-root bench/repos bench/repos/zod",
+      "counts": {
+        "accepted_pairs": 4149,
+        "candidate_pairs": 8030,
+        "units": 2299
+      },
+      "dump": {
+        "candidates.json": {
+          "sha256": "45621e343f6b43947f98cb27763edb9d613a9cddef54895e0b282fb1eae9ffd2",
+          "size_bytes": 93972
+        },
+        "predictions.json": {
+          "sha256": "2c3f0f7260763bb701583cb5c0d8f3238e23f5c881d97fedbaf03cf332dfb451",
+          "size_bytes": 1107973
+        },
+        "units.json": {
+          "sha256": "d63458ace0e346700c0e75115841e0ee3a0fff9f0eeca36d4fcbf949e8bbde36",
+          "size_bytes": 212763
+        }
+      },
+      "returncode": 0,
+      "stderr_sha256": "fb7c34f2b837df4b112c04244084d5bffc4ead85ec297471a080072252d7b271",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "schema": "nose.missed_worthy_stage_audit.dev.v1",
+  "split": "dev",
+  "summary": {
+    "by_language": {
+      "C": {
+        "accepted-pair": 19,
+        "candidate-only": 2,
+        "extracted-no-candidate": 17
+      },
+      "Go": {
+        "accepted-pair": 2,
+        "candidate-only": 7,
+        "extracted-no-candidate": 10,
+        "missing-unit": 2
+      },
+      "Java": {
+        "accepted-pair": 7,
+        "candidate-only": 7,
+        "extracted-no-candidate": 23,
+        "missing-unit": 3
+      },
+      "Python": {
+        "accepted-pair": 1,
+        "candidate-only": 4,
+        "extracted-no-candidate": 5,
+        "missing-unit": 3
+      },
+      "Ruby": {
+        "accepted-pair": 9,
+        "candidate-only": 9,
+        "extracted-no-candidate": 14,
+        "missing-unit": 11
+      },
+      "Rust": {
+        "accepted-pair": 10,
+        "candidate-only": 10,
+        "extracted-no-candidate": 24,
+        "missing-unit": 14
+      },
+      "TypeScript": {
+        "accepted-pair": 3,
+        "candidate-only": 2,
+        "extracted-no-candidate": 3,
+        "missing-unit": 2
+      }
+    },
+    "by_probe_class": {
+      "inline-ceiling": {
+        "accepted-pair": 1,
+        "candidate-only": 2,
+        "extracted-no-candidate": 12,
+        "missing-unit": 2
+      },
+      "no-overlapping-unit": {
+        "missing-unit": 24
+      },
+      "same-unit-window": {
+        "accepted-pair": 1,
+        "candidate-only": 1,
+        "extracted-no-candidate": 15
+      },
+      "subdag-ceiling": {
+        "accepted-pair": 45,
+        "candidate-only": 28,
+        "extracted-no-candidate": 41,
+        "missing-unit": 3
+      },
+      "unrecovered": {
+        "accepted-pair": 4,
+        "candidate-only": 10,
+        "extracted-no-candidate": 28,
+        "missing-unit": 6
+      }
+    },
+    "states": {
+      "accepted-pair": 51,
+      "candidate-only": 41,
+      "extracted-no-candidate": 96,
+      "missing-unit": 35
+    },
+    "total": 223
+  }
+}

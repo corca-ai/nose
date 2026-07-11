@@ -1,0 +1,817 @@
+{
+  "schema": "nose.missed_worthy_dev_audit.v1",
+  "split": "dev",
+  "source_artifact": {
+    "path": "bench/labels/recall_ceiling_probe_2026_07_11.v2.json",
+    "sha256": "f5d41c679074b1e29988e525bd8ce56649068ebd68fd726436c31ff4b5b6180d"
+  },
+  "stage_artifact": {
+    "path": "bench/labels/missed_worthy_stage_audit_2026_07_11.dev.v1.json",
+    "sha256": "c4b652b55b56d483de82843d6e92fe769d93cd3de2de3ef0cf63a915bff5dad3"
+  },
+  "selection_sha256": "7bd95e47fa0191249e20a7bddb527868074a1531abe6fe2c0eb708f14cafb461",
+  "audit_method": {
+    "context_command": "python3 bench/labels/recall_ceiling_probe.py --render-dev bench/labels/recall_ceiling_probe_2026_07_11.v2.json --context-out /tmp/nose-issue-816-dev-context.md --context-lines 12",
+    "selection_frozen_commit": "449d5825",
+    "stage_evidence_frozen_commit": "6e61b4e8",
+    "heldout_source_inspected": false,
+    "notes": "Judgments use only the frozen 35-family dev sample, its member source, and the dev-only raw-stage artifact. An accepted-pair stage is treated as evidence that semantic/candidate admission already happened; disappearance from query is then a family-folding or overlap-presentation blocker, not a reason to widen matching."
+  },
+  "decisions": [
+    {
+      "candidate_key": "mockito:db2a627e3c414165",
+      "candidate_sha256": "6f54e260b213a96cf5cb6661fe9c6aad46bdc484cbbd587c818993e953b2de41",
+      "observed_stage": "extracted-no-candidate",
+      "blocker_classification": "no-coherent-general-mechanism",
+      "rationale": "The first member is one six-argument overload, while the second label span crosses several three-to-five-argument overloads. The optimistic inline lift comes from adding the enclosing 325-line class, which is neither one sibling helper nor a pure single-return unit, so it is not evidence for helper inlining or one connected clone.",
+      "smallest_sound_invariant": "Do not turn a multi-method label span into one inline candidate unless one explicit, pure helper call accounts for the shared computation on both sides.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/stubbing/answers/AnswerFunctionalInterfaces.java",
+          "start_line": 272,
+          "end_line": 288,
+          "observation": "This side is one complete Answer6 adapter method."
+        },
+        {
+          "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/stubbing/answers/AnswerFunctionalInterfaces.java",
+          "start_line": 119,
+          "end_line": 227,
+          "observation": "This label span contains multiple independent overload methods rather than one callable helper."
+        }
+      ]
+    },
+    {
+      "candidate_key": "gorm:b2cd9c61ce98289a",
+      "candidate_sha256": "89cbc2c55eac3f4c6c36d7bbf97711fe5602fd0b863de4b3190a4ee7991043c7",
+      "observed_stage": "extracted-no-candidate",
+      "blocker_classification": "same-unit-actionable-fragment",
+      "rationale": "Both members are adjacent LEFT/RIGHT JOIN rows inside the same TestJoin table. The only extracted unit is the enclosing test function, so whole-unit pairing cannot represent the repeated struct-literal window without also reporting the entire already-parameterized test.",
+      "smallest_sound_invariant": "A same-unit proposal must identify two disjoint repeated initializer windows and keep the varying join type, name, and SQL text as explicit parameters.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/gorm/clause/joins_test.go",
+          "start_line": 19,
+          "end_line": 40,
+          "observation": "Two disjoint table rows share the Join/Where initializer skeleton and vary only row data."
+        }
+      ]
+    },
+    {
+      "candidate_key": "packaging:aea1981ddc32dcf4",
+      "candidate_sha256": "47c95e3d4deac0f49167dd6cfcc855c1112af180394060c15aff79c19e4a5037",
+      "observed_stage": "extracted-no-candidate",
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "rationale": "The duplicated value is the ten-row pytest parameter table in decorators at lines 23-36 and 60-73. Function extraction starts at the def bodies, so the relevant decorator/table data never becomes a comparable unit even though nearby test functions do.",
+      "smallest_sound_invariant": "Extract a pytest parametrize decorator and its literal case table as test metadata, separate from the decorated function body.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/packaging/tests/test_utils.py",
+          "start_line": 23,
+          "end_line": 36,
+          "observation": "The first decorator owns the repeated ten-case name table."
+        },
+        {
+          "file": "bench/repos/packaging/tests/test_utils.py",
+          "start_line": 60,
+          "end_line": 73,
+          "observation": "The second decorator repeats that table for a different assertion body."
+        }
+      ]
+    },
+    {
+      "candidate_key": "serde_json:3f1d50e522be29ae",
+      "candidate_sha256": "e9c065ca3ff8bf83c2678ffe174e2b3a4740238cd7be16d38ba3c39a5bee4464",
+      "observed_stage": "missing-unit",
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "rationale": "Neither Rust test is extracted. Each function contains a local tuple struct plus a local Serialize impl, followed by the same three non-finite map assertions for f32 or f64, so candidate logic has no units to compare.",
+      "smallest_sound_invariant": "Rust test-function extraction must retain a function that contains local item declarations and impl blocks without promoting those local items into unrelated top-level units.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/serde_json/tests/test.rs",
+          "start_line": 2011,
+          "end_line": 2037,
+          "observation": "The f32 test contains a local F32Bits type/impl and three repeated assertions."
+        },
+        {
+          "file": "bench/repos/serde_json/tests/test.rs",
+          "start_line": 2040,
+          "end_line": 2066,
+          "observation": "The f64 test has the same function shape with type-width substitutions."
+        }
+      ]
+    },
+    {
+      "candidate_key": "libsodium:8d6552152465a969",
+      "candidate_sha256": "f37841197a62355d74ef25fa792e89157f274c2f6a9567bbf468bde95892c2a9",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The two AES-GCM tail blocks are extracted and already form a direct accepted raw pair. They perform the same last-block copy, padding, final-block authentication, xor, and output copy with a small ordering difference; the worthy miss is introduced only after raw acceptance when query families are clustered/folded.",
+      "smallest_sound_invariant": "An accepted pair of distinct source blocks must remain covered by one output family or carry explicit provenance to a covering family that overlaps both endpoints.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/libsodium/src/libsodium/crypto_aead/aes256gcm/aesni/aead_aes256gcm_aesni.c",
+          "start_line": 554,
+          "end_line": 570,
+          "observation": "Encryption finalizes a partial block and authenticates 16 or 32 bytes."
+        },
+        {
+          "file": "bench/repos/libsodium/src/libsodium/crypto_aead/aes256gcm/aesni/aead_aes256gcm_aesni.c",
+          "start_line": 699,
+          "end_line": 715,
+          "observation": "Decryption repeats the connected finalization block with two operations reordered."
+        }
+      ]
+    },
+    {
+      "candidate_key": "curl:07576398d3db15e6",
+      "candidate_sha256": "83667906a78454c125dfa9765f0ac27818581d14db7c052a3bf58bb1b10a5eb3",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The SCP and SFTP parallel-download tests are complete same-shaped methods and already a direct accepted raw pair. Only the protocol/test-number literals differ, so their absence from query is downstream family presentation loss.",
+      "smallest_sound_invariant": "Preserve pair-local coverage for accepted cross-file test methods even when their component joins a larger protocol-test family.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/curl/tests/http/test_50_scp.py",
+          "start_line": 126,
+          "end_line": 139,
+          "observation": "The SCP method builds the same five-download request and checks the same result."
+        },
+        {
+          "file": "bench/repos/curl/tests/http/test_51_sftp.py",
+          "start_line": 126,
+          "end_line": 139,
+          "observation": "The SFTP method differs only in protocol and test identity."
+        }
+      ]
+    },
+    {
+      "candidate_key": "nginx:8fa530f40ce49c73",
+      "candidate_sha256": "082b947f579c6382ed2a65db79d1839152b8f0874b6ed8b7a0bed4355ae93eef",
+      "observed_stage": "extracted-no-candidate",
+      "blocker_classification": "candidate-generation",
+      "rationale": "The UDP sendmsg and writev functions have a connected 30-plus-line prefix for readiness, kqueue error handling, limit normalization, and iovec setup. A two-file query finds this through the syntax channel, but the raw structural arm emits no direct candidate at repository scale.",
+      "smallest_sound_invariant": "Generate a bounded candidate when two extracted functions share one contiguous, nontrivial prefix across distinct files; keep the later send-specific loop outside the claim.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/nginx/src/os/unix/ngx_udp_sendmsg_chain.c",
+          "start_line": 22,
+          "end_line": 60,
+          "observation": "The UDP path performs common readiness, kqueue, limit, and vector initialization before its specialized loop."
+        },
+        {
+          "file": "bench/repos/nginx/src/os/unix/ngx_writev_chain.c",
+          "start_line": 17,
+          "end_line": 52,
+          "observation": "The writev path repeats that connected prefix before adding prev_send behavior."
+        }
+      ]
+    },
+    {
+      "candidate_key": "tmux:3a515df5216b5259",
+      "candidate_sha256": "55bb86d898b3246f59dba9c293ee6acadd72935feea3d98e6a41ace3b044e732",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The stdin and stdout special-path blocks are distinct extracted blocks and a direct accepted pair. They share client-file creation, EBADF guards, and control flow, parameterized by descriptor; query loses both endpoints after acceptance.",
+      "smallest_sound_invariant": "Keep two non-overlapping accepted blocks in one file represented independently of their enclosing read/write functions.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/tmux/file.c",
+          "start_line": 303,
+          "end_line": 315,
+          "observation": "The write path handles '-' with STDOUT and the common client-state guard."
+        },
+        {
+          "file": "bench/repos/tmux/file.c",
+          "start_line": 377,
+          "end_line": 389,
+          "observation": "The read path repeats the block with STDIN."
+        }
+      ]
+    },
+    {
+      "candidate_key": "sqlite:409c1b9791d270e9",
+      "candidate_sha256": "51161ad838cc6c0fdf7a9e3d19cafd8e61eb9891a0d01847350215d2bcea0e1e",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The two sqlEvalFunc implementations are line-for-line copies in different SQLite components, are extracted, and already form an accepted raw pair. No new semantic rule is needed; final family folding removes the label endpoints.",
+      "smallest_sound_invariant": "An exact accepted cross-file function pair remains output-covering even when one copy participates in a larger copied-extension component.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/sqlite/ext/misc/eval.c",
+          "start_line": 71,
+          "end_line": 102,
+          "observation": "The extension defines the complete sqlEvalFunc implementation."
+        },
+        {
+          "file": "bench/repos/sqlite/tool/fuzzershell.c",
+          "start_line": 332,
+          "end_line": 363,
+          "observation": "The fuzzer shell contains the same implementation."
+        }
+      ]
+    },
+    {
+      "candidate_key": "delve:de84b1952aa09a8e",
+      "candidate_sha256": "9129174bbac4023a963efac616e7f35a52b736b11e1904ba1f0dfde0faab507f",
+      "observed_stage": "candidate-only",
+      "blocker_classification": "connected-anchor-or-subdag-construction",
+      "rationale": "Unsigned and signed DWARF constant readers reach candidate generation but not acceptance. Their switch/control skeleton is coherent, while every signed case adds a width-specific sign conversion, so the multiset mass is not yet a connected shared witness.",
+      "smallest_sound_invariant": "A shared witness may cover the opcode-width dispatch and common error/stack tail only if each signed conversion is exposed as an explicit variation rather than erased.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/delve/pkg/dwarf/op/op.go",
+          "start_line": 290,
+          "end_line": 341,
+          "observation": "constnu and constns share dispatch and tail control but the signed arm changes each decoded value."
+        }
+      ]
+    },
+    {
+      "candidate_key": "prometheus:00732ff2a6289f00",
+      "candidate_sha256": "0d4821d5164b5243d1bfe606fe34d2b14a5f902f43d309b2f24bdb2f26fa5051",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The 128-line float and integer histogram expansion functions are extracted and directly accepted. Their iterator/state machine is shared, with float absolute counts versus integer deltas as explicit variation; query presentation, not admission, loses them.",
+      "smallest_sound_invariant": "Retain endpoint coverage for an accepted whole-function pair without claiming that every transitive member of its cluster shares the same histogram-count semantics.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/prometheus/tsdb/chunkenc/float_histogram.go",
+          "start_line": 330,
+          "end_line": 457,
+          "observation": "The float implementation carries absolute bucket counts through the shared expansion state machine."
+        },
+        {
+          "file": "bench/repos/prometheus/tsdb/chunkenc/histogram.go",
+          "start_line": 366,
+          "end_line": 493,
+          "observation": "The integer implementation repeats the state machine with delta accumulation."
+        }
+      ]
+    },
+    {
+      "candidate_key": "zap:23de1a83b5d5ff94",
+      "candidate_sha256": "5bc3f8cfe16e43bce128a9d5cff8cfa5b85e5930a321e16ac2e25e3da81771dd",
+      "observed_stage": "extracted-no-candidate",
+      "blocker_classification": "candidate-generation",
+      "rationale": "Both MarshalLogArray methods are complete seven-line units implementing the same error-accumulating AppendObject loop for different slice element types. Symbol/receiver identity leaves only mass five and no direct candidate despite a coherent whole-method abstraction.",
+      "smallest_sound_invariant": "Candidate generation may abstract receiver and element symbols only while preserving the ordered fold of every AppendObject error into multierr.Append.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/zap/benchmarks/zap_test.go",
+          "start_line": 85,
+          "end_line": 91,
+          "observation": "The users receiver folds AppendObject errors across its slice."
+        },
+        {
+          "file": "bench/repos/zap/sugar.go",
+          "start_line": 470,
+          "end_line": 476,
+          "observation": "invalidPairs repeats the same ordered fold in production code."
+        }
+      ]
+    },
+    {
+      "candidate_key": "chi:154bd73cf15a6de5",
+      "candidate_sha256": "818c4cdb58b65284187992985c8c892352bf2def26eacc7b2b2d88a813984d10",
+      "observed_stage": "extracted-no-candidate",
+      "blocker_classification": "same-unit-actionable-fragment",
+      "rationale": "The repeated RouteHeaders setup lives in two t.Run closures, but extraction represents both only through the 176-line enclosing TestRouteHeaders function. The actionable unit is a same-function test window, not a whole-function semantic clone.",
+      "smallest_sound_invariant": "A Go subtest fragment must remain bounded to one t.Run callback and must not merge setup from neighboring subtests in the enclosing test.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/chi/middleware/route_headers_test.go",
+          "start_line": 90,
+          "end_line": 108,
+          "observation": "One subtest builds the host route plus a default handler."
+        },
+        {
+          "file": "bench/repos/chi/middleware/route_headers_test.go",
+          "start_line": 160,
+          "end_line": 179,
+          "observation": "A later subtest repeats the host route and next-handler setup without a default."
+        }
+      ]
+    },
+    {
+      "candidate_key": "netty:265776dc187e262c",
+      "candidate_sha256": "f4e77681d990a6a9bf1f4779ef1925d7bf4ca9fd0ac8f6e13ea9426252a1a9a5",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The epoll and io_uring LinuxSocket class regions repeat a long run of native option wrappers and are already directly accepted. The desired extract-base signal is erased only when the large class component is collapsed and deduplicated for query.",
+      "smallest_sound_invariant": "Preserve the accepted cross-module class-region endpoints without flattening unrelated transport-specific methods into one equivalence claim.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/netty/transport-classes-epoll/src/main/java/io/netty/channel/epoll/LinuxSocket.java",
+          "start_line": 232,
+          "end_line": 277,
+          "observation": "The epoll class repeats native TCP/IP wrappers."
+        },
+        {
+          "file": "bench/repos/netty/transport-classes-io_uring/src/main/java/io/netty/channel/uring/LinuxSocket.java",
+          "start_line": 215,
+          "end_line": 260,
+          "observation": "The io_uring class has the corresponding wrapper sequence with one info type change."
+        }
+      ]
+    },
+    {
+      "candidate_key": "graphhopper:2acc71582f85cc79",
+      "candidate_sha256": "a4d67823c8ec861ddf2b850b5744598119502832a5bb8a9af5cac9f2c45f5a51",
+      "observed_stage": "candidate-only",
+      "blocker_classification": "connected-anchor-or-subdag-construction",
+      "rationale": "The two BFS tests reach candidate generation but not acceptance. Their connected common block is the anonymous BreadthFirstSearch subclass that records visited nodes; the graph fixtures and expected traversal sequences intentionally differ.",
+      "smallest_sound_invariant": "The witness must be exactly the anonymous recorder subclass and must leave graph construction and expected traversal order outside the shared region.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/graphhopper/core/src/test/java/com/graphhopper/util/BreadthFirstSearchTest.java",
+          "start_line": 44,
+          "end_line": 59,
+          "observation": "testBFS defines the reusable recorder subclass before its larger graph fixture."
+        },
+        {
+          "file": "bench/repos/graphhopper/core/src/test/java/com/graphhopper/util/BreadthFirstSearchTest.java",
+          "start_line": 83,
+          "end_line": 98,
+          "observation": "testBFS2 repeats the same subclass before a different graph."
+        }
+      ]
+    },
+    {
+      "candidate_key": "gson:4014d594ab6a8e54",
+      "candidate_sha256": "4703ef0be15ca03e40b43336f7e8fefc53dd90edbf1a81d19ed170939c7047c3",
+      "observed_stage": "candidate-only",
+      "blocker_classification": "no-coherent-general-mechanism",
+      "rationale": "wrap and unwrap are inverse lookup tables, not duplicate computations: every condition and return swaps primitive and wrapper roles. A shared bidirectional data table may be a valid manual design, but treating inverse mappings as one semantic clone would generalize far beyond this source fact.",
+      "smallest_sound_invariant": "Do not infer refactorability from parallel branch counts when corresponding predicates and results are reversed; a declared bidirectional mapping would be required.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/gson/gson/src/main/java/com/google/gson/internal/Primitives.java",
+          "start_line": 63,
+          "end_line": 75,
+          "observation": "wrap maps primitive class tokens to wrappers."
+        },
+        {
+          "file": "bench/repos/gson/gson/src/main/java/com/google/gson/internal/Primitives.java",
+          "start_line": 87,
+          "end_line": 99,
+          "observation": "unwrap intentionally reverses every mapping."
+        }
+      ]
+    },
+    {
+      "candidate_key": "graphhopper:fb83868d7d451012",
+      "candidate_sha256": "82eef4b76c52b7e9f5d287412aa1667d3644d68109962f521e243341aecb4aec",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The bus-trap and bus-enabled-bollard tests are extracted and directly accepted. They share the ReaderWay setup and priority assertion with barrier data as parameters, so the query miss occurs after valid candidate acceptance.",
+      "smallest_sound_invariant": "Keep each accepted parameterized-test pair covered without merging distinct barrier expectations through a transitive test cluster.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/graphhopper/core/src/test/java/com/graphhopper/routing/util/parsers/BusCustomModelTest.java",
+          "start_line": 148,
+          "end_line": 156,
+          "observation": "The bus-trap case constructs a residential barrier and expects priority one."
+        },
+        {
+          "file": "bench/repos/graphhopper/core/src/test/java/com/graphhopper/routing/util/parsers/BusCustomModelTest.java",
+          "start_line": 176,
+          "end_line": 184,
+          "observation": "The bollard-with-bus case repeats the harness with different node tags."
+        }
+      ]
+    },
+    {
+      "candidate_key": "rich:cd216bafb0dfec7c",
+      "candidate_sha256": "fef14163744c7e8f722ecc85c14a029942a4fb0b4164f1336fdbf187285f2b47",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "Both render helpers build the same configured Console, print one renderable, normalize link ids, and return output. The pair is already accepted; the markdown helper's extra debug print is a bounded variation that should not cause endpoint loss during family folding.",
+      "smallest_sound_invariant": "Retain an accepted helper pair while representing the optional debug print as variation, not as evidence that all connected render helpers are identical.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/rich/tests/test_markdown.py",
+          "start_line": 89,
+          "end_line": 96,
+          "observation": "The markdown helper renders, normalizes, prints debug output, and returns."
+        },
+        {
+          "file": "bench/repos/rich/tests/test_card.py",
+          "start_line": 20,
+          "end_line": 26,
+          "observation": "The card helper repeats the rendering path without the debug print."
+        }
+      ]
+    },
+    {
+      "candidate_key": "poetry:08556e25e7ab80e4",
+      "candidate_sha256": "e2363e766aa4eec9fde3402b25b7638df17c4112fe28ed78fb42a4d4638f7d2e",
+      "observed_stage": "extracted-no-candidate",
+      "blocker_classification": "candidate-generation",
+      "rationale": "The two test functions share a connected Chef construction, fixture lookup, prepare call, wheel-name/tempdir checks, and cleanup. Different editable flags and one ZipFile assertion keep their whole-unit fingerprints apart, leaving no direct candidate despite a coherent test-helper shape.",
+      "smallest_sound_invariant": "Candidate abstraction may vary fixture name, editable mode, expected wheel name, and optional archive assertion while preserving Chef construction, prepare, and cleanup order.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/poetry/tests/installation/test_chef.py",
+          "start_line": 63,
+          "end_line": 80,
+          "observation": "The base directory test constructs Chef, prepares a fixture, checks the wheel, and unlinks it."
+        },
+        {
+          "file": "bench/repos/poetry/tests/installation/test_chef.py",
+          "start_line": 105,
+          "end_line": 125,
+          "observation": "The editable case repeats the lifecycle with an editable flag and one archive assertion."
+        }
+      ]
+    },
+    {
+      "candidate_key": "scrapy:be72d6b46ad8eaf1",
+      "candidate_sha256": "6963b79dc8e4de4ceecd58c6b4c029e31dfd9ff7de15f4a4d3dd6faa92274441",
+      "observed_stage": "candidate-only",
+      "blocker_classification": "no-coherent-general-mechanism",
+      "rationale": "follow and follow_all both forward a long keyword list, but they implement different selector validation and call different superclass methods with scalar versus iterable URL contracts. The common multiset is mostly argument plumbing, not one connected computation whose extraction is clearly actionable.",
+      "smallest_sound_invariant": "Do not equate calls solely because their keyword names match; the callee and scalar-versus-iterable contract must remain identical for a shared call fragment.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/scrapy/scrapy/http/response/text.py",
+          "start_line": 200,
+          "end_line": 219,
+          "observation": "follow validates one selector and calls super().follow with a scalar url."
+        },
+        {
+          "file": "bench/repos/scrapy/scrapy/http/response/text.py",
+          "start_line": 267,
+          "end_line": 292,
+          "observation": "follow_all expands selector lists and calls super().follow_all with iterable urls."
+        }
+      ]
+    },
+    {
+      "candidate_key": "poetry:053a58bae5b5c441",
+      "candidate_sha256": "9e6f3d7b7cb1dd263a5146e3a3df310dc43024b44997023d6b8ee0f016abf688",
+      "observed_stage": "extracted-no-candidate",
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "rationale": "The repeated artifact is the identical four-row pytest parameter table at lines 40-47 and 135-142. Extracted function bodies differ by available versus failed keyring behavior, while decorator metadata is not represented as its own unit.",
+      "smallest_sound_invariant": "Represent the literal pytest case table independently from the decorated function so identical test data can be suggested without merging backend behavior.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/poetry/tests/utils/test_password_manager.py",
+          "start_line": 40,
+          "end_line": 47,
+          "observation": "The available-backend test declares the shared username/password table."
+        },
+        {
+          "file": "bench/repos/poetry/tests/utils/test_password_manager.py",
+          "start_line": 135,
+          "end_line": 142,
+          "observation": "The unavailable-backend test repeats the table verbatim."
+        }
+      ]
+    },
+    {
+      "candidate_key": "thor:07e233ddffad07f0",
+      "candidate_sha256": "c3607b8739203183114dff0787b5aa08759c4fb42acca06dbd7fb183d1e90149",
+      "observed_stage": "candidate-only",
+      "blocker_classification": "connected-anchor-or-subdag-construction",
+      "rationale": "The two RSpec examples reach candidate generation but not acceptance. Their complete expectation sequence is connected and differs only in Basic versus Readline editor class/name, making a shared example plausible if that variation remains explicit.",
+      "smallest_sound_invariant": "The witness must preserve the ordered constructor, readline expectation, and public LineEditor assertion while parameterizing only the selected editor class and label.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/thor/spec/line_editor_spec.rb",
+          "start_line": 17,
+          "end_line": 22,
+          "observation": "The Readline example has a three-expectation sequence."
+        },
+        {
+          "file": "bench/repos/thor/spec/line_editor_spec.rb",
+          "start_line": 37,
+          "end_line": 42,
+          "observation": "The Basic example repeats the sequence with one class substitution."
+        }
+      ]
+    },
+    {
+      "candidate_key": "rubocop:9a3d18bd8a3ac7b6",
+      "candidate_sha256": "0b36a226af6ada5137b7d73b86478cb929f486913e7306c5b540352c8e90fa1c",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The array and hash base_description case blocks are directly accepted. They share branch keys and two messages, varying only bracket/brace wording; query folding drops the accepted endpoints.",
+      "smallest_sound_invariant": "Preserve accepted method/block endpoints while keeping delimiter-specific messages as parameters and avoiding a claim that the surrounding cops are equivalent.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/rubocop/lib/rubocop/cop/layout/first_array_element_indentation.rb",
+          "start_line": 146,
+          "end_line": 157,
+          "observation": "The array cop maps indentation bases to bracket descriptions."
+        },
+        {
+          "file": "bench/repos/rubocop/lib/rubocop/cop/layout/first_hash_element_indentation.rb",
+          "start_line": 197,
+          "end_line": 208,
+          "observation": "The hash cop repeats the case with brace wording."
+        }
+      ]
+    },
+    {
+      "candidate_key": "fastlane:cfbff7878814e3a7",
+      "candidate_sha256": "3bbb5404f3e9912926ce0b1faac9cd1a1ffaa7a1444ed3ddecce0d143715028e",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The two storage backends implement the same currently_used_team_id method and are directly accepted. One call spells api_token with versus without self, a harmless source variation; final family handling loses the otherwise actionable pair.",
+      "smallest_sound_invariant": "A direct accepted cross-class method pair must retain both locations even when nearby backend methods connect their classes into broader families.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/fastlane/match/lib/match/storage/gitlab_secure_files.rb",
+          "start_line": 116,
+          "end_line": 127,
+          "observation": "GitLab storage returns team_id in readonly mode or resolves it through SpaceshipEnsure."
+        },
+        {
+          "file": "bench/repos/fastlane/match/lib/match/storage/google_cloud_storage.rb",
+          "start_line": 113,
+          "end_line": 124,
+          "observation": "Google storage repeats the method with self.api_token spelling."
+        }
+      ]
+    },
+    {
+      "candidate_key": "sinatra:6c0f20ce8939ef2f",
+      "candidate_sha256": "6bfd6223b79802e10dd13d48a4cc4ceb84bd8a5bb081574935a289c65d214ccc",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The before-filter and after-filter path tests are directly accepted and differ only in the filter phase. Their mock app, requests, and assertions form a clean parameterized test, so disappearance is downstream of matching.",
+      "smallest_sound_invariant": "Keep pair-local coverage while parameterizing the before/after registration call; do not merge other neighboring filter tests through transitivity.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/sinatra/test/filter_test.rb",
+          "start_line": 399,
+          "end_line": 411,
+          "observation": "The before-filter example exercises the same three request outcomes."
+        },
+        {
+          "file": "bench/repos/sinatra/test/filter_test.rb",
+          "start_line": 466,
+          "end_line": 478,
+          "observation": "The after-filter example repeats the harness with one phase change."
+        }
+      ]
+    },
+    {
+      "candidate_key": "rubocop:24160f04580c3762",
+      "candidate_sha256": "32ecde2b4a157894db906edbd6bc621e3b7e15a734b2fc7b5fd950634d093dc2",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "check_right_bracket and check_right_brace are directly accepted whole methods. They have identical control and autocorrect flow with delimiter-specific names, yet the query family layer erases the pair.",
+      "smallest_sound_invariant": "Preserve both accepted method endpoints and expose delimiter/name differences rather than collapsing their enclosing cop classes.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/rubocop/lib/rubocop/cop/layout/first_array_element_indentation.rb",
+          "start_line": 130,
+          "end_line": 143,
+          "observation": "The bracket method computes indentation and registers an autocorrection."
+        },
+        {
+          "file": "bench/repos/rubocop/lib/rubocop/cop/layout/first_hash_element_indentation.rb",
+          "start_line": 170,
+          "end_line": 182,
+          "observation": "The brace method repeats the flow with renamed delimiter variables."
+        }
+      ]
+    },
+    {
+      "candidate_key": "ripgrep:e6d81b48f46ce521",
+      "candidate_sha256": "64396ec7388e952f66b1ab38598365aab8c80c5230eeed49bc55ae5489067e9f",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The two per-match multiline tests are full, adjacent, directly accepted functions with identical printer/search setup. Regex and expected output are test data; the final family representation loses both accepted endpoints.",
+      "smallest_sound_invariant": "Retain each accepted test-function pair while treating regex and expected text as data and bounding family expansion across the larger numbered test series.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/ripgrep/crates/printer/src/standard.rs",
+          "start_line": 3380,
+          "end_line": 3406,
+          "observation": "The first test configures the same printer/searcher pipeline for one regex."
+        },
+        {
+          "file": "bench/repos/ripgrep/crates/printer/src/standard.rs",
+          "start_line": 3409,
+          "end_line": 3434,
+          "observation": "The second test repeats the pipeline with different regex and expected lines."
+        }
+      ]
+    },
+    {
+      "candidate_key": "nushell:06abb0a4b9c069e2",
+      "candidate_sha256": "d656910acbc36bc96cc6034b81628ff8fd9f0bfa9d9953ea606a2a255f7b88de",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "get_day and get_hour command dispatch blocks are directly accepted and differ only in the datetime operation. The repeated lazy/eager/expression dispatch is connected and actionable, but disappears during family grouping.",
+      "smallest_sound_invariant": "Keep the accepted dispatch blocks represented and parameterize only the day/hour operation; do not imply equivalence of every command module joined to the same cluster.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/nushell/crates/nu_plugin_polars/src/dataframe/command/datetime/get_day.rs",
+          "start_line": 105,
+          "end_line": 129,
+          "observation": "The day command dispatches three Polars object kinds and applies dt().day()."
+        },
+        {
+          "file": "bench/repos/nushell/crates/nu_plugin_polars/src/dataframe/command/datetime/get_hour.rs",
+          "start_line": 113,
+          "end_line": 137,
+          "observation": "The hour command repeats dispatch with dt().hour()."
+        }
+      ]
+    },
+    {
+      "candidate_key": "clap:67e4d3199dcb742a",
+      "candidate_sha256": "b7a0c3727f68d69163319f8fd419740245a7e7cede7d33b70446f24b0cf7a1ea",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The exhaustive and Nushell completion examples contain a large shared CLI builder and already form a direct accepted pair. One example is a superset, so component-level folding must retain the common pair endpoints without claiming their complete builders are equal.",
+      "smallest_sound_invariant": "Represent the accepted common builder region in both files and leave exhaustive-only commands outside the pair-local witness.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/clap/clap_complete/examples/exhaustive.rs",
+          "start_line": 62,
+          "end_line": 115,
+          "observation": "The exhaustive example defines action and quote command trees."
+        },
+        {
+          "file": "bench/repos/clap/clap_complete_nushell/examples/test.rs",
+          "start_line": 27,
+          "end_line": 83,
+          "observation": "The Nushell example repeats those command trees inside a smaller CLI."
+        }
+      ]
+    },
+    {
+      "candidate_key": "serde_json:946bfa61cb71d562",
+      "candidate_sha256": "d9014a0c4450f8a1a2798507d4ccce4c51d43e7720bf3cb98d64d39ffa5b5756",
+      "observed_stage": "candidate-only",
+      "blocker_classification": "no-coherent-general-mechanism",
+      "rationale": "mul_test and imul_test share extensive numeric test data, but one operation returns a new value while the other mutates its receiver. A callback abstraction would need to erase a real effect/ownership distinction, so this is not direct evidence for a pure HOF law or one sound semantic match.",
+      "smallest_sound_invariant": "Do not fold returning and in-place mutation operations through one callback unless mutation, ownership, and result equivalence are proven explicitly.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/serde_json/tests/lexical/float.rs",
+          "start_line": 474,
+          "end_line": 502,
+          "observation": "mul returns a new ExtendedFloat and the test asserts that value."
+        },
+        {
+          "file": "bench/repos/serde_json/tests/lexical/float.rs",
+          "start_line": 527,
+          "end_line": 556,
+          "observation": "imul mutates its receiver and the helper asserts post-mutation state."
+        }
+      ]
+    },
+    {
+      "candidate_key": "axios:9c60235300651f6f",
+      "candidate_sha256": "1d808080030f35892d1fede79c727218f3376cf5e43e6453b23019b1c8c62bc6",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "Bun and Deno createFetchMock helpers are directly accepted; only platform type annotations differ. Query emits other nearby smoke-test slices but drops these accepted helper endpoints during component/family folding.",
+      "smallest_sound_invariant": "Preserve the accepted helper locations independently of adjacent smoke-test families and expose platform typing as variation.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/axios/tests/smoke/bun/tests/fetch.smoke.test.ts",
+          "start_line": 4,
+          "end_line": 26,
+          "observation": "The Bun helper records calls and produces a default JSON response."
+        },
+        {
+          "file": "bench/repos/axios/tests/smoke/deno/tests/fetch.smoke.test.ts",
+          "start_line": 4,
+          "end_line": 26,
+          "observation": "The Deno helper repeats the implementation with any types."
+        }
+      ]
+    },
+    {
+      "candidate_key": "axios:80e929ac1884dd5b",
+      "candidate_sha256": "bbb075fe97e8c7fc00926d503e9565e2f3c1b4ded052c7a288c6653b33fd71e3",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The two getRequestMeta helpers are complete direct accepted pairs with only TypeScript annotation/default differences. Their absence is a pure family-presentation loss.",
+      "smallest_sound_invariant": "An accepted cross-platform helper pair must remain covered even if its files also contain larger accepted smoke-test components.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/axios/tests/smoke/bun/tests/fetch.smoke.test.ts",
+          "start_line": 28,
+          "end_line": 39,
+          "observation": "The Bun helper normalizes Request input and returns url, method, and optional body."
+        },
+        {
+          "file": "bench/repos/axios/tests/smoke/deno/tests/fetch.smoke.test.ts",
+          "start_line": 28,
+          "end_line": 39,
+          "observation": "The Deno helper repeats the behavior with looser annotations."
+        }
+      ]
+    },
+    {
+      "candidate_key": "axios:70db87b821c19292",
+      "candidate_sha256": "08e78be2fb64da819482c7afe8ce7694d69f648c6bb28bebd9e8e08fb5c76d96",
+      "observed_stage": "accepted-pair",
+      "blocker_classification": "family-folding-or-overlap-matching",
+      "rationale": "The headers and interceptors createFetchCapture helpers are directly accepted and differ only in response payload. Query keeps neighboring env fragments instead of these helper endpoints, demonstrating overlap/family replacement after acceptance.",
+      "smallest_sound_invariant": "Keep the accepted helper pair covered while parameterizing response payload, without substituting a nearby non-overlapping env fragment as its representative.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/axios/tests/smoke/bun/tests/headers.smoke.test.ts",
+          "start_line": 4,
+          "end_line": 21,
+          "observation": "The headers test captures Request objects and returns an ok response."
+        },
+        {
+          "file": "bench/repos/axios/tests/smoke/bun/tests/interceptors.smoke.test.ts",
+          "start_line": 4,
+          "end_line": 21,
+          "observation": "The interceptors test repeats the helper with a different JSON payload."
+        }
+      ]
+    },
+    {
+      "candidate_key": "swr:9b7a03feec3a4cce",
+      "candidate_sha256": "e2c696c8e4ae43729bbd7ed107be9b9fab9fa3238563adbba9db3581eba6e1a7",
+      "observed_stage": "missing-unit",
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "rationale": "Both members are try/catch mutation windows inside separate async it callbacks, and neither has an extracted unit. The enclosing test callbacks include different mutation histories, so candidate work cannot start until nested test/try regions are represented.",
+      "smallest_sound_invariant": "Extract one async test callback or try/catch window as a bounded test unit while preserving awaited mutation order and catch behavior.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/swr/test/use-swr-local-mutation.test.tsx",
+          "start_line": 1403,
+          "end_line": 1413,
+          "observation": "The first test catches a failed optimistic mutation to baz."
+        },
+        {
+          "file": "bench/repos/swr/test/use-swr-local-mutation.test.tsx",
+          "start_line": 1463,
+          "end_line": 1473,
+          "observation": "The second test repeats the catch window with qux after a different history."
+        }
+      ]
+    },
+    {
+      "candidate_key": "zod:e6c204c8d398e185",
+      "candidate_sha256": "82c6cd02f99bcee27a22f0ce51b8179097a191ccc81e7cc26fb29e62e74413e8",
+      "observed_stage": "extracted-no-candidate",
+      "blocker_classification": "candidate-generation",
+      "rationale": "isValidIP and isValidCidr are complete ten-line functions with identical two-version control flow and only regex-family substitutions. Their intersection mass is 12, below the anchor floor, and no direct candidate is emitted despite a coherent parameterized validator.",
+      "smallest_sound_invariant": "Generate a candidate only when both ordered v4/v6 guards and the final false return align, exposing the two regex references as paired parameters.",
+      "source_evidence": [
+        {
+          "file": "bench/repos/zod/packages/zod/src/v3/types.ts",
+          "start_line": 687,
+          "end_line": 696,
+          "observation": "isValidIP checks v4 then v6 IP regexes and returns false otherwise."
+        },
+        {
+          "file": "bench/repos/zod/packages/zod/src/v3/types.ts",
+          "start_line": 720,
+          "end_line": 729,
+          "observation": "isValidCidr repeats the control flow with CIDR regexes."
+        }
+      ]
+    }
+  ],
+  "classification_summary": {
+    "candidate-generation": 4,
+    "connected-anchor-or-subdag-construction": 3,
+    "family-folding-or-overlap-matching": 18,
+    "no-coherent-general-mechanism": 4,
+    "same-unit-actionable-fragment": 2,
+    "unit-extraction-or-missing-unit-kind": 4
+  },
+  "dev_proposal": {
+    "status": "frozen-before-heldout-confirmation",
+    "route": "A",
+    "heldout_source_confirmation": "not-run",
+    "mechanism": "Preserve pair-local endpoint coverage through union-find clustering, same-file collapse, and family subsumption. When a component-level family would erase a direct accepted pair, emit one bounded pair-local representative or explicit suppression provenance that points to a family covering both endpoints; do not widen detector admission.",
+    "smallest_sound_invariant": "Every direct accepted pair with two distinct, non-nested source sites is covered by at least one final query family that overlaps both endpoints, or by an explicit suppression edge to such a covering family. Pair coverage must not imply that every transitive member of A-B-C is mutually equivalent.",
+    "hard_negatives": [
+      "A-B and B-C accepted edges must not manufacture an unsupported A-C equivalence or one misleading all-member skeleton.",
+      "Nested function/block and overlapping same-file sites must stay one refactoring site rather than becoming duplicate rows.",
+      "Dense value/LSH buckets above the existing caps must remain bounded; the remedy may not materialize all O(n^2) pairs.",
+      "Generated, ignored, min-member, min-value, and surface-policy suppressions must remain effective and explainable.",
+      "Default output must not be flooded by tiny pair representatives when a true covering family already exists."
+    ],
+    "estimated_affected_dev_misses": {
+      "lower_bound": 51,
+      "denominator": 223,
+      "candidate_or_accepted_ceiling": 92,
+      "selected_direct_accepted": 18,
+      "selected_source_coherent": 18,
+      "interpretation": "51 is a conservative raw-structural lower bound: these current misses already have a direct accepted pair. The 41 candidate-only misses need separate proof and are not included in the lower bound."
+    },
+    "product_cost_budget": {
+      "default_output_upper_bound_additional_families_on_dev": 51,
+      "detector_candidate_and_score_work": "unchanged",
+      "implementation_scope": "post-acceptance grouping and presentation only",
+      "required_measurement": "Use the #809 base/head semantic-output and runtime gates; report raw/default family deltas separately and reject an O(n^2) or >5% corpus runtime regression."
+    },
+    "hof_route_d_status": "deferred-no-direct-pure-callback-evidence"
+  }
+}

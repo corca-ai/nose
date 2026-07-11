@@ -3469,6 +3469,41 @@ cargo test -q -p nose-cli --test css_html_quality
 awiki lint --root docs
 ```
 
+## DI. Current missed-worthy frontier — accepted pair, missing family (#816, 2026-07-11)
+
+The historical §BJ ceiling mixed three questions: whether relevant units exist, whether a
+pair reaches candidate/acceptance, and whether the final query family still covers the
+source endpoints. The current nose 0.18.0 rerun separates them while keeping v5 as the only
+source-independent worthy-recall pool.
+
+The checked arm-1 run exactly reproduces **2,626/2,849 dev** and **1,949/2,091 held-out**
+worthy recall. Its optimistic dev residual is 117 sub-DAG, 17 inline, 17 same-unit, 48
+unrecovered, and 24 extraction/other misses. A deterministic five-per-language dev sample
+was committed before source review. All 35 rows then received source lines, a blocker
+classification, rationale, and smallest sound invariant.
+
+The decisive result is downstream of matching. A dev-only raw-stage census mechanically
+finds **51/223** misses with a direct accepted structural pair; 18/35 selected rows are in
+that stage and all 18 are source-coherent. The remaining selected decisions are candidate
+generation 4, connected-anchor construction 3, extraction 4, same-unit fragments 2, and no
+coherent general mechanism 4. Only after that Route A proposal was committed did the one-time
+held-out check run; it passed its pre-registered 15-pair/3-language gate with **42/142**
+accepted pairs across six languages.
+
+**Decision:** do not lower a threshold or open a new Type-4 law. The pre-registered A-E
+tree omitted this post-acceptance grouping case, so recording #817 under nearest bounded
+Route A is an explicit protocol deviation rather than a claim that A's original connected-
+sub-DAG/candidate-generation trigger matched. Follow-up #817 must preserve
+pair-local endpoint coverage through clustering/folding with hard negatives for transitive
+bridges, nested sites, dense components, and output flooding. The current #809 seven-repo
+same-binary baseline is 1,263 raw / 415 default semantic families at 2,503.17ms aggregate,
+with zero output drift and zero control-adjusted runtime delta. This measures the current
+baseline/noise envelope only. Actual base/head intervention cost remains unmeasured and is a
+required #817 gate because #816 intentionally implements no product change.
+
+The full protocol, artifact links, rejected B-E routes, and result-dependent next action are
+in [the #816 closeout](missed-worthy-frontier-816.md).
+
 ## DH. Parser-artifact hygiene and unsupported-header routing (2026-06-20)
 
 After §DG, the largest `gap-impact` rows were no longer ordinary lowering misses. They were parser

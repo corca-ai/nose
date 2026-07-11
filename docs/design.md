@@ -183,13 +183,16 @@ its head is nose's one chance to demonstrate value. Two consequences:
   pure interprocedural inlining and anchored sub-DAG matching) — valuable for consumer 1,
   since the agent filters. **Hard constraint: it must never break zero-false-merge**, and
   recall-extension is gated on measuring that real missed-worthy pairs exist to recover.
-  *Measured 2026-06-10 ([experiments §BJ](experiments.md)): the residual beyond the
+  *Measured 2026-06-10 ([experiments §BJ](experiments.md)): the then-current residual beyond the
   shipped v1 mechanisms is small (sub-DAG ceiling 2.0% optimistic / 0.6% at the shipped
   anchor weight; inlining 0.3%) — further effort routes to unit-extraction coverage and
   the fragment axis, not more matching. The last unmeasured frontier — different-algorithm
   Type-4 below vj 0.8 — was measured 2026-06-11 ([experiments §BS](experiments.md)) via the
-  behavior-keyed arm: one worthy pair in 105 repos; every measured recall frontier is now
-  small.*
+  behavior-keyed arm: one worthy pair in 105 repos. **Current planning is superseded by the
+  2026-07-11 [missed-worthy frontier audit](missed-worthy-frontier-816.md): 51/223 dev and
+  42/142 held-out misses already have direct accepted raw pairs. That reopens no semantic
+  law; it routes the next bounded tranche to post-acceptance family coverage (#817), while
+  extraction, fragments, and unaccepted matcher residuals remain deferred.***
 - **Extractability ranking** — a "good enough" deterministic triage signal; no need to chase
   more.
 
@@ -297,7 +300,13 @@ Cheap experiments that turn direction into data:
   and the remaining misses are unit-extraction gaps, statement-window fragments, and
   zero-shared-mass judgment cases. Follow-up experiments closed most Ruby test-DSL block
   misses and part of the Rust `macro_rules!` arm gap; see [experiments §BN](experiments.md)
-  and [§BO](experiments.md).
+  and [§BO](experiments.md). **Refreshed 2026-07-11:** the current nose 0.18.0 run reproduces
+  2,626/2,849 dev and 1,949/2,091 held-out recall, then separates raw matching from final
+  product coverage. The largest mechanically stage-confirmed cohort is 51 dev misses whose
+  pair is already accepted but absent from query; all 18 sampled rows in that cohort are
+  source-coherent. The next experiment is therefore bounded family-folding
+  coverage (#817), not a lower anchor threshold. See the
+  [#816 closeout](missed-worthy-frontier-816.md) for the evidence and route decision.
 - **Byte-determinism stress** — diff `nose query <path> top=0 --format json` across thread counts on a large
   repo. Any difference is a hard-invariant violation. *(Protects both consumers.)*
 
