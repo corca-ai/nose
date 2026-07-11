@@ -818,7 +818,7 @@ def source_line_count(path: Path) -> int:
 
 
 def build_source_bounds(artifact_path: Path, decisions_path: Path) -> dict[str, Any]:
-    artifact = load_and_validate_artifact(artifact_path, check_sources=True)
+    artifact = load_and_validate_artifact(artifact_path)
     decisions = load_and_validate_decisions(decisions_path, artifact_path)
     evidence_files = sorted(
         {
@@ -831,6 +831,9 @@ def build_source_bounds(artifact_path: Path, decisions_path: Path) -> dict[str, 
     for path in evidence_files:
         frozen = artifact["source_files"][path]
         resolved = project_path(path)
+        _require(resolved.is_file(), f"source bounds {path}: checkout missing")
+        _require(sha256_file(resolved) == frozen["sha256"], f"source bounds {path}: hash mismatch")
+        _require(resolved.stat().st_size == frozen["size_bytes"], f"source bounds {path}: size mismatch")
         files[path] = {
             "sha256": frozen["sha256"],
             "size_bytes": frozen["size_bytes"],
