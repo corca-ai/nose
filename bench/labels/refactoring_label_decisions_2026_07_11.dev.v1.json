@@ -1,0 +1,419 @@
+{
+  "schema": "nose.refactoring_label_decisions.v1",
+  "split": "dev",
+  "decisions": [
+    {
+      "candidate_key": "raylib:ff44567fc8c4fbdd",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Identical monitor stubs implement the same platform API in mutually exclusive backends; centralizing them would couple backend files that are expected to diverge."
+    },
+    {
+      "candidate_key": "nginx:1d96418170e6e322",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-helper",
+      "confidence": "medium",
+      "note": "The repeated buffer-state logging payload is coherent across subsystems and can be owned by one diagnostic helper while callers retain their context-specific prefixes."
+    },
+    {
+      "candidate_key": "lua:92d786daa0de1b1c",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The overlap sits in adjacent VM opcode cases whose operand decoding and dispatch boundaries must remain explicit even though their finish-set tails look alike."
+    },
+    {
+      "candidate_key": "git:d57778f8335cf771",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The second member is a deliberately frozen historical source fixture under t/t4256, not a second maintained implementation that should share production code."
+    },
+    {
+      "candidate_key": "sqlite:c531828a286691f1",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Each identical registration table belongs to a mutually exclusive allocator backend and resolves its function symbols inside that backend's compilation unit."
+    },
+    {
+      "candidate_key": "nats-server:4262140b49bcb172",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Six tests duplicate the same consumer-assignment lookup and assertions; one test helper can return the shared objects without hiding scenario-specific behavior."
+    },
+    {
+      "candidate_key": "prometheus:516f7e84045a9323",
+      "votes": {"pragmatic": "extract-data-table", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": "parallel-by-design",
+      "confidence": "medium",
+      "note": "These are distinct FloatHistogram fixtures already expressed as table rows; their repeated struct shape is the data contract rather than another abstraction boundary."
+    },
+    {
+      "candidate_key": "cobra:b0e47f24b8fb2ad5",
+      "votes": {"pragmatic": "extract-data-table", "dedupe": "extract-data-table", "skeptic": "extract-data-table"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Four completion cases repeat execute/error/output assertions and vary only request arguments plus expected lines, which is a direct table-driven test boundary."
+    },
+    {
+      "candidate_key": "delve:08e9e43181bb3394",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Debugger methods intentionally repeat lock/validity guards around different target operations; a helper cannot safely own each method's defer-scoped lock lifetime and return type."
+    },
+    {
+      "candidate_key": "chi:877d94feab916510",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-helper",
+      "confidence": "medium",
+      "note": "The tests repeatedly create and close an httptest server before issuing the same request/assertion pattern; a scoped test helper can remove that setup without merging router scenarios."
+    },
+    {
+      "candidate_key": "gson:86ed7cd37297fdbf",
+      "votes": {"pragmatic": "trivial", "dedupe": "extract-helper", "skeptic": "trivial"},
+      "arbiter": "trivial",
+      "confidence": "medium",
+      "note": "The three four-line JUnit tearDown methods restore class-owned fields; introducing inheritance or a shared utility would cost more and couple otherwise unrelated test classes."
+    },
+    {
+      "candidate_key": "junit5:199289f1c3ec015e",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-helper",
+      "confidence": "medium",
+      "note": "Two lifecycle cases in one test class rebuild the same large key set and assertion sequence; a parameterized assertion helper can preserve the lifecycle-specific counts."
+    },
+    {
+      "candidate_key": "mockito:8f15c57a7e355948",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Two checker test classes contain the same messageContaining factory and full Throwable condition implementation; a shared test utility is an exact extraction."
+    },
+    {
+      "candidate_key": "guava:f843d90fbd97d861",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The package-private Internal classes are duplicated across package boundaries and Android/JRE source sets so each independently built artifact can use the helper without exporting it."
+    },
+    {
+      "candidate_key": "netty:0dfe624e6be7e11b",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The multicast block overload is required on four transport implementations and differs at backend exception and address boundaries; the parallel interface implementations are deliberate."
+    },
+    {
+      "candidate_key": "poetry:e42f081059d4c10a",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Two puzzle test modules duplicate the complete operation-to-summary conversion; one assertion/normalization helper can serve both callers."
+    },
+    {
+      "candidate_key": "click:c1116c0ce55d47a6",
+      "votes": {"pragmatic": "trivial", "dedupe": "trivial", "skeptic": "trivial"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The overlap is an import list in two modules; Python imports cannot be extracted into a useful shared abstraction and the modules need their own names."
+    },
+    {
+      "candidate_key": "scrapy:f2e4ebbaaff127aa",
+      "votes": {"pragmatic": "parameterize", "dedupe": "extract-data-table", "skeptic": "parallel-by-design"},
+      "arbiter": "parameterize",
+      "confidence": "medium",
+      "note": "Four adjacent form-button tests repeat response construction and request assertions while varying markup and expected submitted fields, fitting a parameterized case helper."
+    },
+    {
+      "candidate_key": "requests:47fb9f336c9e47e0",
+      "votes": {"pragmatic": "parameterize", "dedupe": "parameterize", "skeptic": "parameterize"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The HTTP verb convenience functions differ only in the method constant and thin signature details, matching the rubric's canonical parameterization case."
+    },
+    {
+      "candidate_key": "black:8267a875eab25f67",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "medium",
+      "note": "The repeated assertions are checkpoints after different state transitions inside one report-behavior test; combining them would obscure the sequence rather than expose a reusable operation."
+    },
+    {
+      "candidate_key": "fastlane:2f958030c2f63e14",
+      "votes": {"pragmatic": "extract-data-table", "dedupe": "parameterize", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-data-table",
+      "confidence": "medium",
+      "note": "Five xcodebuild examples repeat a long expected command template and vary a bounded option set, so expected fragments and inputs can live in one table."
+    },
+    {
+      "candidate_key": "rack:ea4200e8ab431791",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "parameterize", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-helper",
+      "confidence": "medium",
+      "note": "The multipart tests share body construction, mock environment creation, parsing, and core assertions; a helper can take the variant payload and expected fields."
+    },
+    {
+      "candidate_key": "jekyll:ddbfd0caf686f27d",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-helper",
+      "confidence": "medium",
+      "note": "Two fixture directories carry the exact same authored layout; under the rubric, fixture location does not excuse a reusable shared fixture or fixture-copy source."
+    },
+    {
+      "candidate_key": "devise:6c42c397aff72837",
+      "votes": {"pragmatic": "generated", "dedupe": "generated", "skeptic": "generated"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The three public error pages are stock Rails application templates in a test fixture, with framework-generated styling and per-status payloads."
+    },
+    {
+      "candidate_key": "thor:6c3172dfef5b0190",
+      "votes": {"pragmatic": "parameterize", "dedupe": "parameterize", "skeptic": "parameterize"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Adjacent invalid-name examples repeat Class.new plus the same error assertion and vary only the bad value and rendered message."
+    },
+    {
+      "candidate_key": "fd:18dc46fa3c667da2",
+      "votes": {"pragmatic": "parameterize", "dedupe": "extract-data-table", "skeptic": "parallel-by-design"},
+      "arbiter": "parameterize",
+      "confidence": "medium",
+      "note": "The integration tests repeatedly construct TestEnv and call assert_output with command arguments and expected text, a coherent parameterized harness boundary."
+    },
+    {
+      "candidate_key": "serde_json:ae075f6150cb9807",
+      "votes": {"pragmatic": "parameterize", "dedupe": "parameterize", "skeptic": "parameterize"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Ten integer writer methods repeat the same itoa buffer and write sequence and differ only by integer type, which can be expressed through a shared generic helper."
+    },
+    {
+      "candidate_key": "ripgrep:32a5921c2ac3985c",
+      "votes": {"pragmatic": "parameterize", "dedupe": "parameterize", "skeptic": "parameterize"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The printer test repeats a complete search-and-assert scenario for different context sizes; a table of builder settings and expected output is direct."
+    },
+    {
+      "candidate_key": "clap:48f5eeb4f7aafc68",
+      "votes": {"pragmatic": "parameterize", "dedupe": "parameterize", "skeptic": "parallel-by-design"},
+      "arbiter": "parameterize",
+      "confidence": "medium",
+      "note": "Four positional parsing cases share match construction and identical structural assertions while varying argument definitions and expected values."
+    },
+    {
+      "candidate_key": "nushell:6444eb6f7f8c8641",
+      "votes": {"pragmatic": "trivial", "dedupe": "trivial", "skeptic": "trivial"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The no-op run methods are small required command-trait implementations returning empty pipeline data; extracting them would not remove the required per-type methods."
+    },
+    {
+      "candidate_key": "prettier:09015cf743000e46",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Repeated markup blocks are intentionally parallel formatter fixtures for distinct colon-tag classifications; consolidating them would erase independent syntax cases."
+    },
+    {
+      "candidate_key": "jest:6768697265ce0ea9",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Separate E2E fixture modules must preserve CJS, ESM, and resetModules loading contexts; their near-identical bodies are the controlled experiment."
+    },
+    {
+      "candidate_key": "execa:a0a7b899b7583c2e",
+      "votes": {"pragmatic": "trivial", "dedupe": "trivial", "skeptic": "trivial"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The overlap is a handful of test-module imports, which cannot form a reusable runtime abstraction."
+    },
+    {
+      "candidate_key": "zustand:7f93e3d8cb51ce84",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": "parallel-by-design",
+      "confidence": "medium",
+      "note": "The shared storage setup appears in paired synchronous and asynchronous persistence specifications whose timing and hydration behavior are intentionally separate."
+    },
+    {
+      "candidate_key": "zod:81c841dd8f2ba539",
+      "votes": {"pragmatic": "extract-data-table", "dedupe": "extract-data-table", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-data-table",
+      "confidence": "medium",
+      "note": "The v3 and v4 suites duplicate the same long email-validity corpus; sharing the test vectors preserves version-specific parsers while removing copied data."
+    },
+    {
+      "candidate_key": "alamofire:75cd1fd73256787a",
+      "votes": {"pragmatic": "generated", "dedupe": "generated", "skeptic": "generated"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Hundreds of repeated parameter tables come from generated API HTML and its generated docset copy, not maintained Swift source."
+    },
+    {
+      "candidate_key": "alamofire:4dfebacbfb1aba55",
+      "votes": {"pragmatic": "generated", "dedupe": "generated", "skeptic": "generated"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The shared documentation header is emitted across generated API pages and duplicated in the generated Dash docset."
+    },
+    {
+      "candidate_key": "alamofire:d5648f8067f7f9c5",
+      "votes": {"pragmatic": "generated", "dedupe": "generated", "skeptic": "generated"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The repeated breadcrumb markup is generated API documentation boilerplate across classes, protocols, structs, and docset copies."
+    },
+    {
+      "candidate_key": "swift-algorithms:2e3d522c218ad187",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "medium",
+      "note": "Collection wrappers repeat the standard offsetForward/offsetBackward conformance surface over distinct Index semantics; a shared protocol layer would couple otherwise independent algorithms."
+    },
+    {
+      "candidate_key": "swift-algorithms:42a91f9195cd6d1a",
+      "votes": {"pragmatic": "extract-base", "dedupe": "extract-base", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-base",
+      "confidence": "medium",
+      "note": "JoinedByCollection and JoinedByClosureCollection duplicate a substantial delegated Collection implementation and Index wrapper that can live behind one shared generic protocol/base layer."
+    },
+    {
+      "candidate_key": "swift-algorithms:3c779f1b25b919ce",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "medium",
+      "note": "Windows and Chain share unbounded index movement but intentionally differ in limitedBy boundary rules, so merging the detected whole fragments risks hiding collection-specific semantics."
+    },
+    {
+      "candidate_key": "swift-argument-parser:029dc07ad05f5f49",
+      "votes": {"pragmatic": "parameterize", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "parameterize",
+      "confidence": "medium",
+      "note": "Two CommandConfiguration initializers assign the same eleven fields and differ only by the experimental super-command value, which can delegate through one initializer."
+    },
+    {
+      "candidate_key": "swift-argument-parser:c0463da034cca547",
+      "votes": {"pragmatic": "parameterize", "dedupe": "extract-data-table", "skeptic": "parallel-by-design"},
+      "arbiter": "parameterize",
+      "confidence": "medium",
+      "note": "Three global-option parsing tests share command execution and common assertions while varying arguments and a bounded expectation set."
+    },
+    {
+      "candidate_key": "swift-argument-parser:30da28668b505647",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Bare and Optional implement the exact same protocol update operation; a default protocol implementation can be shared while containers with different behavior override it."
+    },
+    {
+      "candidate_key": "swift-collections:63d29451e3ab279e",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The six minimal collection types deliberately expose different protocol capabilities and counters to test standard-library defaults; their parallel structure is the test design."
+    },
+    {
+      "candidate_key": "swift-collections:408ac08b2870f93d",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-helper",
+      "confidence": "medium",
+      "note": "Four container types duplicate the same invariant-check control flow and dump-on-first-error behavior; a generic diagnostic wrapper can accept type-specific check and dump callbacks."
+    },
+    {
+      "candidate_key": "swift-collections:ac6c751bb0282775",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Two deque handles contain the same large closeGap algorithm with only wrapper annotations and mutability plumbing, a high-value shared implementation boundary."
+    },
+    {
+      "candidate_key": "swift-composable-architecture:7ecc5d6288f9bd3d",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "These are progressive DocC tutorial snapshots of RecordMeetingView; each self-contained step intentionally carries forward earlier code."
+    },
+    {
+      "candidate_key": "swift-composable-architecture:796217534644a7e4",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "CounterFeature copies are authored previous/current tutorial stages whose small deltas demonstrate the lesson; sharing them would defeat the documentation structure."
+    },
+    {
+      "candidate_key": "swift-composable-architecture:af2eaf089f4ee589",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "SyncUpsList variants are sequential DocC tutorial snapshots with intentionally evolving state and reducer behavior, not concurrent maintained implementations."
+    },
+    {
+      "candidate_key": "swift-log:08a7688502ad22d3",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Seven named public log-level methods intentionally expose distinct API symbols and compile-time max-level guards while delegating the reusable work to _log."
+    },
+    {
+      "candidate_key": "swift-log:d58f2c40344057ab",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The repeated _log calls are the small required bodies of level-specific public methods; the level constant and conditional compilation are the intended variant payload."
+    },
+    {
+      "candidate_key": "swift-log:546a3fecd65c2962",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Level-specific convenience overloads already delegate to the fuller overload and must remain as separate public API entry points."
+    },
+    {
+      "candidate_key": "swiftlint:d2ed57ff49869c25",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Three rule tests duplicate the exact conversion of removed triggering examples into a modified description and verification call; one test helper can take the base and removal list."
+    },
+    {
+      "candidate_key": "swiftlint:8c6b0c9de657866c",
+      "votes": {"pragmatic": "parameterize", "dedupe": "parameterize", "skeptic": "parameterize"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Four RulesFilter tests repeat the same rule universe and differ by exclusion category plus expected identifiers, fitting one table-driven test."
+    },
+    {
+      "candidate_key": "swiftlint:d8abd1e4a128d058",
+      "votes": {"pragmatic": "parameterize", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "parameterize",
+      "confidence": "medium",
+      "note": "Analyze and Lint construct the same large options object from CommonOptions and vary only a small cache/stdin/rule tuple, suitable for a shared builder."
+    },
+    {
+      "candidate_key": "vapor:77dd3060e2be42c0",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Runner and tester expose the same request construction/error-recording implementation; the runner can delegate to the tester's shared request helper."
+    },
+    {
+      "candidate_key": "vapor:8c98a1e8e691b131",
+      "votes": {"pragmatic": "parameterize", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": "parallel-by-design",
+      "confidence": "medium",
+      "note": "Distinct public PeerMacro types are required for each HTTP attribute and already delegate behavior to HTTPMethodMacroUtilities; only unavoidable type shells remain."
+    },
+    {
+      "candidate_key": "vapor:5e541c290f6ad48b",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "parameterize", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-helper",
+      "confidence": "medium",
+      "note": "The URL-encoded form tests repeatedly decode into User and assert the same common fields; a shared assertion helper can retain each encoding-specific input and extra checks."
+    }
+  ]
+}

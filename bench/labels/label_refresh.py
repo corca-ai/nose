@@ -14,7 +14,17 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from labelset import LoadedLabelset, load_labelset, metric_eligible, sha256_file
+from labelset import (
+    COMPONENT_SCHEMA,
+    PRECISION_METRIC,
+    VOTE_NAMES,
+    WORTHY_REASONS,
+    LoadedLabelset,
+    load_labelset,
+    metric_eligible,
+    sha256_file,
+    validate_vote,
+)
 from query_schema import QUERY_SCHEMA_VERSION, member_locations, query_families
 
 
@@ -25,6 +35,7 @@ DEFAULT_CORPUS = ROOT / "bench" / "goldens" / "corpus.json"
 DEFAULT_BASE_LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v5.json"
 DEFAULT_RUBRIC = ROOT / "bench" / "labels" / "RUBRIC.md"
 ARTIFACT_SCHEMA = "nose.refactoring_label_refresh_candidates.v1"
+DECISIONS_SCHEMA = "nose.refactoring_label_decisions.v1"
 SELECTION_SEED = "nose-issue-812-existing-unmatched-v1"
 
 
@@ -528,6 +539,212 @@ def coverage(labels: LoadedLabelset, artifact: dict[str, Any]) -> dict[str, Any]
     }
 
 
+def representative_members(
+    members: list[dict[str, Any]], limit: int = 3
+) -> list[dict[str, Any]]:
+    by_file: dict[str, dict[str, Any]] = {}
+    for member in members:
+        by_file.setdefault(member["file"], member)
+    distinct = list(by_file.values())
+    if len(distinct) <= limit:
+        return distinct
+    indexes = sorted({0, len(distinct) // 2, len(distinct) - 1})
+    return [distinct[index] for index in indexes[:limit]]
+
+
+def source_excerpt(member: dict[str, Any], context_lines: int = 2) -> str:
+    path = ROOT / member["file"]
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    start = max(1, member["start_line"] - context_lines)
+    end = min(len(lines), member["end_line"] + context_lines)
+    if end - start + 1 > 40:
+        end = start + 39
+    return "\n".join(
+        f"{line_number:>6}: {lines[line_number - 1]}"
+        for line_number in range(start, end + 1)
+    )
+
+
+def render_context(artifact: dict[str, Any], split: str) -> str:
+    selected = sorted(
+        (
+            candidate
+            for candidate in artifact["candidates"]
+            if candidate["selected"] and candidate["split"] == split
+        ),
+        key=lambda row: row["selection_order"],
+    )
+    lines = [
+        f"# #812 {split} label context",
+        "",
+        "Generated from the frozen candidate artifact; excerpts are local review aids only.",
+        "",
+    ]
+    for candidate in selected:
+        family = candidate["family"]
+        lines += [
+            f"## {candidate['candidate_key']}",
+            "",
+            (
+                f"- lane: `{candidate['lane']}`; language: `{candidate['language']}`; "
+                f"rank: {candidate['rank']}; scope: `{family['scope']}`"
+            ),
+            (
+                f"- shape: `{family['extraction_shape']}`; witness: `{family['witness']}`; "
+                f"members: {family['member_count']}; value: {family['value']}"
+            ),
+            "- members:",
+        ]
+        members = family["members"]
+        for member in members[:12]:
+            lines.append(
+                f"  - `{member['file']}:{member['start_line']}` "
+                f"`{member.get('name') or '<anonymous>'}`"
+            )
+        if len(members) > 12:
+            lines.append(f"  - … {len(members) - 12} more")
+        for member in representative_members(members):
+            lines += [
+                "",
+                f"### `{member['file']}:{member['start_line']}`",
+                "",
+                "```text",
+                source_excerpt(member),
+                "```",
+            ]
+        lines.append("")
+    return "\n".join(lines)
+
+
+def relative_file_record(path: Path, parent: Path) -> dict[str, str]:
+    return {
+        "path": path.resolve().relative_to(parent.resolve()).as_posix(),
+        "sha256": sha256_file(path),
+    }
+
+
+def build_component(
+    artifact_path: Path,
+    artifact: dict[str, Any],
+    decisions_path: Path,
+    split: str,
+    output: Path,
+) -> dict[str, Any]:
+    decisions_payload = json.loads(decisions_path.read_text(encoding="utf-8"))
+    if (
+        not isinstance(decisions_payload, dict)
+        or decisions_payload.get("schema") != DECISIONS_SCHEMA
+        or decisions_payload.get("split") != split
+    ):
+        raise SystemExit("decision input schema/split mismatch")
+    decisions = decisions_payload.get("decisions")
+    if not isinstance(decisions, list):
+        raise SystemExit("decision input needs a decisions array")
+    by_key: dict[str, dict[str, Any]] = {}
+    for index, decision in enumerate(decisions):
+        if not isinstance(decision, dict):
+            raise SystemExit(f"decisions[{index}] must be an object")
+        key = decision.get("candidate_key")
+        if not isinstance(key, str) or not key or key in by_key:
+            raise SystemExit(f"decisions[{index}] has an invalid/duplicate candidate_key")
+        by_key[key] = decision
+    selected = sorted(
+        (
+            candidate
+            for candidate in artifact["candidates"]
+            if candidate["selected"] and candidate["split"] == split
+        ),
+        key=lambda row: row["selection_order"],
+    )
+    expected_keys = {candidate["candidate_key"] for candidate in selected}
+    if set(by_key) != expected_keys:
+        raise SystemExit(
+            "decision keys do not match frozen selection; "
+            f"missing={sorted(expected_keys - set(by_key))}, "
+            f"extra={sorted(set(by_key) - expected_keys)}"
+        )
+
+    families = []
+
+    def expand_vote(value: object) -> object:
+        if isinstance(value, str):
+            return {"worthy": value in WORTHY_REASONS, "reason": value}
+        return value
+
+    for candidate in selected:
+        decision = by_key[candidate["candidate_key"]]
+        votes = decision.get("votes")
+        if not isinstance(votes, dict) or set(votes) != set(VOTE_NAMES):
+            raise SystemExit(f"{candidate['candidate_key']}: expected exactly three panel votes")
+        normalized_votes = {name: expand_vote(votes[name]) for name in VOTE_NAMES}
+        panel = [
+            validate_vote(
+                normalized_votes[name], f"{candidate['candidate_key']}.votes.{name}"
+            )
+            for name in VOTE_NAMES
+        ]
+        unanimous = len(set(panel)) == 1
+        arbiter = expand_vote(decision.get("arbiter"))
+        if unanimous:
+            if arbiter is not None:
+                raise SystemExit(f"{candidate['candidate_key']}: unanimous vote cannot use arbiter")
+            worthy, reason = panel[0]
+            labeler = "panel"
+        else:
+            worthy, reason = validate_vote(
+                arbiter, f"{candidate['candidate_key']}.arbiter"
+            )
+            labeler = "llm-arbiter"
+        confidence = decision.get("confidence")
+        note = decision.get("note")
+        if confidence not in {"high", "medium", "low"}:
+            raise SystemExit(f"{candidate['candidate_key']}: invalid confidence")
+        if not isinstance(note, str) or not note.strip():
+            raise SystemExit(f"{candidate['candidate_key']}: a non-empty note is required")
+        family = candidate["family"]
+        families.append(
+            {
+                "family_id": family["id"],
+                "candidate_key": candidate["candidate_key"],
+                "candidate_sha256": candidate["candidate_sha256"],
+                "repo": candidate["repo"],
+                "split": candidate["split"],
+                "language": candidate["language"],
+                "channel": "current-default",
+                "scope": family["scope"],
+                "members": family["members"],
+                "metric_eligibility": [PRECISION_METRIC],
+                "worthy": worthy,
+                "reason": reason,
+                "confidence": confidence,
+                "labeler": labeler,
+                "votes": normalized_votes,
+                "arbiter": arbiter,
+                "note": note,
+                "selection": {
+                    "lane": candidate["lane"],
+                    "product_rank": candidate["rank"],
+                    "selection_order": candidate["selection_order"],
+                },
+            }
+        )
+    rubric = ROOT / artifact["provenance"]["rubric"]
+    return {
+        "schema": COMPONENT_SCHEMA,
+        "split": split,
+        "source_artifact": relative_file_record(artifact_path, output.parent),
+        "rubric": relative_file_record(rubric, output.parent),
+        "decision_input": relative_file_record(decisions_path, output.parent),
+        "protocol": {
+            "panel": list(VOTE_NAMES),
+            "split_votes_escalate_to": "llm-arbiter",
+            "metric_eligibility": [PRECISION_METRIC],
+            "policy_or_ranking_changes": "none",
+        },
+        "families": families,
+    }
+
+
 def run_self_test() -> None:
     candidates = []
     for split in ("dev", "heldout"):
@@ -587,6 +804,15 @@ def parse_args() -> argparse.Namespace:
     validate_parser.add_argument("--candidates", type=Path, required=True)
     validate_parser.add_argument("--labelset", type=Path)
     validate_parser.add_argument("--live", action="store_true")
+    context_parser = subparsers.add_parser("context")
+    context_parser.add_argument("--candidates", type=Path, required=True)
+    context_parser.add_argument("--split", choices=("dev", "heldout"), required=True)
+    context_parser.add_argument("--output", type=Path, required=True)
+    component_parser = subparsers.add_parser("build-component")
+    component_parser.add_argument("--candidates", type=Path, required=True)
+    component_parser.add_argument("--decisions", type=Path, required=True)
+    component_parser.add_argument("--split", choices=("dev", "heldout"), required=True)
+    component_parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
 
 
@@ -614,6 +840,23 @@ def main() -> None:
             print(json.dumps(report, indent=2, sort_keys=True))
         else:
             print("candidate artifact validation passed")
+        return
+    if args.command == "context":
+        artifact = load_artifact(args.candidates)
+        validate_candidate_artifact(artifact)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(render_context(artifact, args.split), encoding="utf-8")
+        print(f"wrote {args.output}")
+        return
+    if args.command == "build-component":
+        artifact = load_artifact(args.candidates)
+        validate_candidate_artifact(artifact)
+        component = build_component(
+            args.candidates, artifact, args.decisions, args.split, args.output
+        )
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(component, indent=2, sort_keys=True) + "\n")
+        print(f"wrote {args.output}: {len(component['families'])} labels")
         return
     raise SystemExit("choose collect or validate, or pass --self-test")
 

@@ -81,15 +81,15 @@ def validate_vote(vote: object, label: str) -> tuple[bool, str]:
         raise ValueError(f"{label}: expected an object")
     worthy = vote.get("worthy")
     reason = vote.get("reason")
-    rationale = vote.get("rationale")
     if not isinstance(worthy, bool):
         raise ValueError(f"{label}.worthy: expected a boolean")
     if reason not in REASONS:
         raise ValueError(f"{label}.reason: unsupported reason {reason!r}")
     if worthy != (reason in WORTHY_REASONS):
         raise ValueError(f"{label}: worthiness and reason disagree")
-    if not isinstance(rationale, str) or not rationale.strip():
-        raise ValueError(f"{label}.rationale: expected a non-empty string")
+    rationale = vote.get("rationale")
+    if rationale is not None and (not isinstance(rationale, str) or not rationale.strip()):
+        raise ValueError(f"{label}.rationale: expected a non-empty string when present")
     return worthy, reason
 
 
@@ -205,6 +205,7 @@ def load_labelset(path: Path) -> LoadedLabelset:
             raise ValueError(f"{record_label}: component schema/split mismatch")
         resolve_checked_file(component_path.parent, component.get("source_artifact"), f"{record_label}.source_artifact")
         resolve_checked_file(component_path.parent, component.get("rubric"), f"{record_label}.rubric")
+        resolve_checked_file(component_path.parent, component.get("decision_input"), f"{record_label}.decision_input")
         component_families = component.get("families")
         if not isinstance(component_families, list) or not component_families:
             raise ValueError(f"{record_label}.families: expected a non-empty array")
@@ -261,6 +262,7 @@ def run_self_test() -> None:
                 "split": split,
                 "source_artifact": {"path": source.name, "sha256": sha256_file(source)},
                 "rubric": {"path": rubric.name, "sha256": sha256_file(rubric)},
+                "decision_input": {"path": source.name, "sha256": sha256_file(source)},
                 "families": [
                     {
                         "family_id": family_id,
