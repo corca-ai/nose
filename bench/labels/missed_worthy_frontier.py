@@ -35,6 +35,10 @@ CHECKED_RECALL_PROFILES = {
         "dev": {"hits": 2626, "n": 2849},
         "heldout": {"hits": 1949, "n": 2091},
     },
+    "f7410ef73c1ab0ccd5ca23d938a032ee0a539ee57be662b4aa4d9045b93d6ce0": {
+        "dev": {"hits": 2691, "n": 2849},
+        "heldout": {"hits": 1996, "n": 2091},
+    },
 }
 REQUIRED_RESIDUAL_LANES = (
     "inline-ceiling",
@@ -1301,6 +1305,16 @@ def render_dev_context(artifact: dict[str, Any], output: Path, context_lines: in
 
 
 def run_self_test() -> None:
+    for digest, expected in CHECKED_RECALL_PROFILES.items():
+        checked = {
+            "sha256": digest,
+            "expected_worthy_recall": expected,
+        }
+        _require(
+            checked_recall_profile(checked) == expected,
+            f"registered recall profile {digest} did not round-trip",
+        )
+
     pre_817_input = {
         "sha256": "2664d2935eaf8e86243dcf3592225c9f4884154ac7757c1307fd2a4281688e2c",
         "expected_worthy_recall": {
@@ -1308,11 +1322,6 @@ def run_self_test() -> None:
             "heldout": {"hits": 1949, "n": 2091},
         },
     }
-    _require(
-        checked_recall_profile(pre_817_input)
-        == pre_817_input["expected_worthy_recall"],
-        "registered recall profile did not round-trip",
-    )
     unregistered = json.loads(json.dumps(pre_817_input))
     unregistered["sha256"] = "f" * 64
     try:
