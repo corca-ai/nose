@@ -23,6 +23,7 @@ from query_schema import QUERY_SCHEMA_VERSION
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT_SCHEMA = "nose.missed_worthy_frontier.v2"
 DECISIONS_SCHEMA = "nose.missed_worthy_dev_audit.v1"
+DECISIONS_SCHEMA_V2 = "nose.missed_worthy_dev_audit.v2"
 STAGE_AUDIT_SCHEMA = "nose.missed_worthy_stage_audit.dev.v1"
 CLOSEOUT_SCHEMA = "nose.missed_worthy_frontier_closeout.v1"
 SOURCE_BOUNDS_SCHEMA = "nose.missed_worthy_source_bounds.dev.v1"
@@ -63,6 +64,16 @@ VALID_BLOCKER_CLASSIFICATIONS = {
     "one-step-pure-helper-composition",
     "same-unit-actionable-fragment",
     "no-coherent-general-mechanism",
+}
+ISSUE_820_EXPLORATORY_PRESELECTION_KEYS = {
+    "curl:2a436119a08187ba",
+    "mockito:d82f6e75097748da",
+    "ripgrep:519afdcaed73af0d",
+}
+VALID_JUDGMENT_ORIGINS = {
+    "prior-frozen-816",
+    "exploratory-before-820-freeze",
+    "post-820-selection-freeze",
 }
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -713,13 +724,106 @@ def decision_summary(decisions: list[dict[str, Any]]) -> dict[str, int]:
     )
 
 
+def judgment_origin_summary(decisions: list[dict[str, Any]]) -> dict[str, int]:
+    return dict(sorted(Counter(decision["judgment_origin"] for decision in decisions).items()))
+
+
+def issue_820_cohort_comparison(
+    artifact: dict[str, Any],
+    stage_artifact: dict[str, Any],
+    decisions: list[dict[str, Any]],
+) -> tuple[dict[str, dict[str, int | str]], list[str], list[str], list[str]]:
+    """Derive the three frozen #820 dev cohorts and their reviewed evidence."""
+    candidates = {
+        record["candidate_key"]: record
+        for record in artifact["missed_worthy"]
+        if record["split"] == "dev"
+    }
+    stage_by_key = {
+        record["candidate_key"]: record for record in stage_artifact["candidates"]
+    }
+    decisions_by_key = {decision["candidate_key"]: decision for decision in decisions}
+    selected_keys = set(decisions_by_key)
+
+    connected_ids = sorted(
+        key
+        for key, candidate in candidates.items()
+        if stage_by_key.get(key, {}).get("stage") == "candidate-only"
+        and candidate["class"] == "subdag-ceiling"
+        and candidate.get("subdag_ge_20") is True
+    )
+    same_unit_ids = sorted(
+        key for key, candidate in candidates.items() if candidate["class"] == "same-unit-window"
+    )
+    missing_unit_ids = sorted(
+        key
+        for key in candidates
+        if stage_by_key.get(key, {}).get("stage") == "missing-unit"
+    )
+    _require(
+        set(connected_ids) <= selected_keys,
+        "the connected candidate/sub-DAG cohort is not completely source-reviewed",
+    )
+
+    connected_selected = [key for key in connected_ids if key in selected_keys]
+    same_unit_selected = [key for key in same_unit_ids if key in selected_keys]
+    missing_unit_selected = [key for key in missing_unit_ids if key in selected_keys]
+    connected_coherent = sorted(
+        key
+        for key in connected_selected
+        if decisions_by_key[key]["blocker_classification"]
+        == "connected-anchor-or-subdag-construction"
+    )
+    connected_no_go = sorted(set(connected_selected) - set(connected_coherent))
+    same_unit_coherent = sum(
+        decisions_by_key[key]["blocker_classification"]
+        == "same-unit-actionable-fragment"
+        for key in same_unit_selected
+    )
+    missing_unit_coherent = sum(
+        decisions_by_key[key]["blocker_classification"]
+        == "unit-extraction-or-missing-unit-kind"
+        for key in missing_unit_selected
+    )
+    comparison: dict[str, dict[str, int | str]] = {
+        "connected-candidate-subdag": {
+            "dev_ceiling": len(connected_ids),
+            "selected_reviewed": len(connected_selected),
+            "source_coherent": len(connected_coherent),
+            "source_no_go": len(connected_no_go),
+            "coverage": "complete",
+        },
+        "same-unit-window": {
+            "dev_ceiling": len(same_unit_ids),
+            "selected_reviewed": len(same_unit_selected),
+            "source_coherent": same_unit_coherent,
+            "source_no_go": len(same_unit_selected) - same_unit_coherent,
+            "coverage": "sampled",
+        },
+        "missing-unit-extraction": {
+            "dev_ceiling": len(missing_unit_ids),
+            "selected_reviewed": len(missing_unit_selected),
+            "source_coherent": missing_unit_coherent,
+            "source_no_go": len(missing_unit_selected) - missing_unit_coherent,
+            "coverage": "sampled-heterogeneous",
+        },
+    }
+    return comparison, connected_ids, connected_coherent, connected_no_go
+
+
 def validate_decisions(
     payload: object,
     artifact: dict[str, Any],
     stage_artifact: dict[str, Any],
+    *,
+    prior_decisions: dict[str, Any] | None = None,
 ) -> None:
     _require(isinstance(payload, dict), "decisions: expected an object")
-    _require(payload.get("schema") == DECISIONS_SCHEMA, "decisions: unsupported schema")
+    schema = payload.get("schema")
+    _require(
+        schema in {DECISIONS_SCHEMA, DECISIONS_SCHEMA_V2},
+        "decisions: unsupported schema",
+    )
     _require(payload.get("split") == "dev", "decisions must be dev-only")
     source = payload.get("source_artifact")
     _require(isinstance(source, dict), "source_artifact: expected an object")
@@ -795,13 +899,76 @@ def validate_decisions(
         payload.get("classification_summary") == decision_summary(decisions),
         "decision classification summary drifted",
     )
+
+    if schema == DECISIONS_SCHEMA_V2:
+        prior_record = payload.get("prior_decisions_artifact")
+        _require(isinstance(prior_record, dict), "prior decisions artifact missing")
+        _validate_hash(prior_record.get("sha256"), "prior decisions artifact hash invalid")
+        _require(
+            isinstance(prior_record.get("path"), str) and prior_record["path"],
+            "prior decisions artifact path missing",
+        )
+        _require(isinstance(prior_decisions, dict), "checked prior decisions are missing")
+        prior_rows = prior_decisions.get("decisions")
+        _require(isinstance(prior_rows, list), "checked prior decision rows are missing")
+        prior_by_candidate = {
+            (row["candidate_key"], row["candidate_sha256"]): row for row in prior_rows
+        }
+        selected_keys = {decision["candidate_key"] for decision in decisions}
+        exploratory_ids = sorted(
+            ISSUE_820_EXPLORATORY_PRESELECTION_KEYS & selected_keys
+        )
+        for index, decision in enumerate(decisions):
+            key = decision["candidate_key"]
+            prior = prior_by_candidate.get((key, decision["candidate_sha256"]))
+            if key in ISSUE_820_EXPLORATORY_PRESELECTION_KEYS:
+                expected_origin = "exploratory-before-820-freeze"
+            elif prior is not None:
+                expected_origin = "prior-frozen-816"
+            else:
+                expected_origin = "post-820-selection-freeze"
+            _require(
+                decision.get("judgment_origin") == expected_origin,
+                f"decisions[{index}].judgment_origin: chronology drifted",
+            )
+            _require(
+                decision["judgment_origin"] in VALID_JUDGMENT_ORIGINS,
+                f"decisions[{index}].judgment_origin: invalid",
+            )
+            if prior is not None:
+                reused = {key: value for key, value in decision.items() if key != "judgment_origin"}
+                _require(reused == prior, f"decisions[{index}]: prior frozen decision drifted")
+        _require(
+            payload.get("judgment_origin_summary") == judgment_origin_summary(decisions),
+            "judgment origin summary drifted",
+        )
+        method = payload.get("audit_method")
+        _require(isinstance(method, dict), "audit_method: expected an object")
+        _require(
+            method.get("heldout_source_inspected") is False,
+            "held-out source was inspected during the dev audit",
+        )
+        _require(
+            method.get("exploratory_preselection_ids") == exploratory_ids,
+            "exploratory preselection disclosure drifted",
+        )
+        for field in ("selection_frozen_commit", "stage_evidence_frozen_commit"):
+            value = method.get(field)
+            _require(
+                isinstance(value, str) and GIT_SHA_RE.fullmatch(value) is not None,
+                f"audit_method.{field}: invalid",
+            )
+        _require(
+            isinstance(method.get("notes"), str) and method["notes"].strip(),
+            "audit_method.notes: expected text",
+        )
+
     proposal = payload.get("dev_proposal")
     _require(isinstance(proposal, dict), "dev_proposal: expected an object")
     _require(
         proposal.get("status") == "frozen-before-heldout-confirmation",
         "dev proposal was not frozen before held-out confirmation",
     )
-    _require(proposal.get("route") in {"A", "B", "C", "D", "E"}, "invalid proposed route")
     _require(
         proposal.get("heldout_source_confirmation") == "not-run",
         "dev decision artifact must precede held-out confirmation",
@@ -812,13 +979,17 @@ def validate_decisions(
             f"dev_proposal.{field}: expected text",
         )
     hard_negatives = proposal.get("hard_negatives")
+    minimum_hard_negatives = 4 if schema == DECISIONS_SCHEMA_V2 else 2
     _require(
         isinstance(hard_negatives, list)
-        and len(hard_negatives) >= 2
+        and len(hard_negatives) >= minimum_hard_negatives
         and all(isinstance(item, str) and item.strip() for item in hard_negatives),
-        "dev_proposal.hard_negatives: expected at least two obligations",
+        f"dev_proposal.hard_negatives: expected at least {minimum_hard_negatives} obligations",
     )
-    if proposal["route"] == "A":
+
+    if schema == DECISIONS_SCHEMA:
+        _require(proposal.get("route") in {"A", "B", "C", "D", "E"}, "invalid proposed route")
+    if schema == DECISIONS_SCHEMA and proposal["route"] == "A":
         accepted = stage_artifact["summary"]["states"]["accepted-pair"]
         estimate = proposal.get("estimated_affected_dev_misses")
         _require(isinstance(estimate, dict), "route A needs a dev estimate")
@@ -826,9 +997,111 @@ def validate_decisions(
             estimate.get("lower_bound") == accepted,
             "route A lower bound must equal accepted raw dev pairs",
         )
+    if schema == DECISIONS_SCHEMA:
+        _require(
+            proposal.get("hof_route_d_status") == "deferred-no-direct-pure-callback-evidence",
+            "#806 may move only on direct pure-callback evidence",
+        )
+        return
+
     _require(
-        proposal.get("hof_route_d_status") == "deferred-no-direct-pure-callback-evidence",
-        "#806 may move only on direct pure-callback evidence",
+        proposal.get("selected_tranche") == "connected-candidate-subdag-witness",
+        "#820 selected an unsupported tranche",
+    )
+    for field in ("selection_rationale",):
+        _require(
+            isinstance(proposal.get(field), str) and proposal[field].strip(),
+            f"dev_proposal.{field}: expected text",
+        )
+    comparison, mechanical_ids, coherent_ids, no_go_ids = issue_820_cohort_comparison(
+        artifact,
+        stage_artifact,
+        decisions,
+    )
+    _require(
+        proposal.get("cohort_comparison") == comparison,
+        "#820 cohort comparison drifted",
+    )
+    _require(
+        proposal.get("mechanical_dev_ids") == mechanical_ids,
+        "#820 mechanical connected cohort drifted",
+    )
+    _require(
+        proposal.get("source_coherent_ids") == coherent_ids,
+        "#820 coherent connected cohort drifted",
+    )
+    _require(
+        proposal.get("source_no_go_ids") == no_go_ids,
+        "#820 connected no-go cohort drifted",
+    )
+    decisions_by_key = {decision["candidate_key"]: decision for decision in decisions}
+    for key in mechanical_ids:
+        _require(
+            decisions_by_key[key]["blocker_classification"]
+            in {
+                "connected-anchor-or-subdag-construction",
+                "no-coherent-general-mechanism",
+            },
+            f"{key}: connected cohort has an unrelated classification",
+        )
+    success_gate = proposal.get("dev_success_gate")
+    _require(
+        success_gate
+        == {
+            "required_recovery_ids": coherent_ids,
+            "forbidden_recovery_ids": no_go_ids,
+            "max_worthy_regressions": 0,
+            "max_false_merges": 0,
+            "connected_witness_required": True,
+        },
+        "#820 dev success gate drifted",
+    )
+    budget = proposal.get("output_growth_budget")
+    _require(isinstance(budget, dict), "#820 output-growth budget missing")
+    _require(
+        set(budget)
+        == {
+            "max_default_output_growth_pct",
+            "max_runtime_regression_pct",
+            "max_runtime_regression_ms",
+            "max_unrelated_added_rows",
+            "pricing_protocol",
+        },
+        "#820 output-growth budget fields drifted",
+    )
+    for field, upper in (
+        ("max_default_output_growth_pct", 5.0),
+        ("max_runtime_regression_pct", 5.0),
+        ("max_runtime_regression_ms", 5.0),
+    ):
+        value = budget.get(field)
+        _require(
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and 0 < value <= upper,
+            f"#820 {field} exceeds its bounded budget",
+        )
+    _require(budget.get("max_unrelated_added_rows") == 0, "#820 allows unrelated output")
+    _require(
+        isinstance(budget.get("pricing_protocol"), str) and budget["pricing_protocol"].strip(),
+        "#820 pricing protocol missing",
+    )
+    separate = proposal.get("separate_cohorts")
+    _require(
+        isinstance(separate, dict)
+        and set(separate)
+        == {
+            "candidate-generation",
+            "same-unit-window",
+            "unit-extraction",
+            "no-coherent-general-mechanism",
+        }
+        and all(isinstance(value, str) and value.strip() for value in separate.values()),
+        "#820 separate-cohort boundaries are incomplete",
+    )
+    _require(
+        proposal.get("next_action") == "open-connected-witness-implementation-issue",
+        "#820 result-dependent next action drifted",
     )
 
 
@@ -850,7 +1123,47 @@ def load_and_validate_decisions(path: Path, artifact_path: Path) -> dict[str, An
     _require(stage_path.is_file(), "stage artifact file is missing")
     _require(sha256_file(stage_path) == stage_source.get("sha256"), "stage artifact hash mismatch")
     stage_artifact = json.loads(stage_path.read_text(encoding="utf-8"))
-    validate_decisions(payload, artifact, stage_artifact)
+    prior_decisions = None
+    if payload.get("schema") == DECISIONS_SCHEMA_V2:
+        prior_source = payload.get("prior_decisions_artifact")
+        _require(isinstance(prior_source, dict), "prior decisions artifact missing")
+        prior_path_raw = prior_source.get("path")
+        _require(
+            isinstance(prior_path_raw, str) and prior_path_raw,
+            "prior decisions artifact path missing",
+        )
+        prior_path = project_path(prior_path_raw)
+        _require(prior_path.is_file(), "prior decisions artifact file is missing")
+        _require(
+            sha256_file(prior_path) == prior_source.get("sha256"),
+            "prior decisions artifact hash mismatch",
+        )
+        try:
+            unchecked_prior = json.loads(prior_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            raise ValueError(f"prior decisions artifact contains invalid JSON: {error}") from error
+        _require(
+            isinstance(unchecked_prior, dict)
+            and unchecked_prior.get("schema") == DECISIONS_SCHEMA,
+            "prior decisions artifact must use the frozen v1 schema",
+        )
+        prior_artifact_record = unchecked_prior.get("source_artifact")
+        _require(isinstance(prior_artifact_record, dict), "prior source artifact missing")
+        prior_artifact_raw = prior_artifact_record.get("path")
+        _require(
+            isinstance(prior_artifact_raw, str) and prior_artifact_raw,
+            "prior source artifact path missing",
+        )
+        prior_decisions = load_and_validate_decisions(
+            prior_path,
+            project_path(prior_artifact_raw),
+        )
+    validate_decisions(
+        payload,
+        artifact,
+        stage_artifact,
+        prior_decisions=prior_decisions,
+    )
     return payload
 
 
@@ -1265,7 +1578,7 @@ def load_and_validate_closeout(path: Path) -> dict[str, Any]:
 def render_dev_context(artifact: dict[str, Any], output: Path, context_lines: int = 8) -> None:
     candidates = {record["candidate_key"]: record for record in artifact["missed_worthy"]}
     lines = [
-        "# Frozen #816 dev audit context",
+        "# Frozen dev audit context",
         "",
         f"Selection SHA-256: `{artifact['dev_audit_selection']['sha256']}`",
         "",
@@ -1423,7 +1736,7 @@ def run_self_test() -> None:
     else:
         raise AssertionError("candidate tampering was accepted")
 
-    audited = rows[0]
+    audited = rows[2]
     selection_record = {
         "candidate_key": audited["candidate_key"],
         "candidate_sha256": audited["candidate_sha256"],
@@ -1498,6 +1811,136 @@ def run_self_test() -> None:
         _require("source_evidence" in str(error), "decision test failed for wrong reason")
     else:
         raise AssertionError("a decision without source evidence was accepted")
+
+    valid_v2 = json.loads(json.dumps(valid_decisions))
+    valid_v2["schema"] = "nose.missed_worthy_dev_audit.v2"
+    valid_v2["prior_decisions_artifact"] = {
+        "path": "prior-decisions.json",
+        "sha256": "2" * 64,
+    }
+    valid_v2["decisions"][0]["judgment_origin"] = "post-820-selection-freeze"
+    valid_v2["decisions"][0]["blocker_classification"] = (
+        "connected-anchor-or-subdag-construction"
+    )
+    valid_v2["classification_summary"] = {
+        "connected-anchor-or-subdag-construction": 1
+    }
+    valid_v2["judgment_origin_summary"] = {"post-820-selection-freeze": 1}
+    valid_v2["audit_method"] = {
+        "heldout_source_inspected": False,
+        "selection_frozen_commit": "2" * 40,
+        "stage_evidence_frozen_commit": "3" * 40,
+        "exploratory_preselection_ids": [],
+        "notes": "The synthetic row was reviewed after the selection freeze.",
+    }
+    valid_v2["dev_proposal"] = {
+        "status": "frozen-before-heldout-confirmation",
+        "selected_tranche": "connected-candidate-subdag-witness",
+        "heldout_source_confirmation": "not-run",
+        "mechanism": "Construct and score one connected shared witness already supported by a raw candidate.",
+        "smallest_sound_invariant": "Every admitted row carries one connected shared witness on both sides.",
+        "selection_rationale": "The complete candidate-only cohort has one coherent member.",
+        "cohort_comparison": {
+            "connected-candidate-subdag": {
+                "dev_ceiling": 1,
+                "selected_reviewed": 1,
+                "source_coherent": 1,
+                "source_no_go": 0,
+                "coverage": "complete",
+            },
+            "same-unit-window": {
+                "dev_ceiling": 0,
+                "selected_reviewed": 0,
+                "source_coherent": 0,
+                "source_no_go": 0,
+                "coverage": "sampled",
+            },
+            "missing-unit-extraction": {
+                "dev_ceiling": 0,
+                "selected_reviewed": 0,
+                "source_coherent": 0,
+                "source_no_go": 0,
+                "coverage": "sampled-heterogeneous",
+            },
+        },
+        "mechanical_dev_ids": [audited["candidate_key"]],
+        "source_coherent_ids": [audited["candidate_key"]],
+        "source_no_go_ids": [],
+        "dev_success_gate": {
+            "required_recovery_ids": [audited["candidate_key"]],
+            "forbidden_recovery_ids": [],
+            "max_worthy_regressions": 0,
+            "max_false_merges": 0,
+            "connected_witness_required": True,
+        },
+        "output_growth_budget": {
+            "max_default_output_growth_pct": 2.0,
+            "max_runtime_regression_pct": 5.0,
+            "max_runtime_regression_ms": 5.0,
+            "max_unrelated_added_rows": 0,
+            "pricing_protocol": "#809 alternating base/head plus same-binary control",
+        },
+        "hard_negatives": [
+            "Do not infer A-C from A-B and B-C.",
+            "Do not admit disconnected multiset mass.",
+            "Do not lower candidate or acceptance thresholds.",
+            "Do not recover a source-reviewed no-go row.",
+        ],
+        "separate_cohorts": {
+            "candidate-generation": "Remains outside connected candidate witnesses.",
+            "same-unit-window": "Requires bounded fragment output.",
+            "unit-extraction": "Requires a construct-specific extraction law.",
+            "no-coherent-general-mechanism": "Remains a hard negative.",
+        },
+        "next_action": "open-connected-witness-implementation-issue",
+    }
+    validate_decisions(
+        valid_v2,
+        fake_artifact,
+        fake_stage_artifact,
+        prior_decisions={"decisions": []},
+    )
+    invalid_origin = json.loads(json.dumps(valid_v2))
+    invalid_origin["decisions"][0]["judgment_origin"] = "prior-frozen-816"
+    invalid_origin["judgment_origin_summary"] = {"prior-frozen-816": 1}
+    try:
+        validate_decisions(
+            invalid_origin,
+            fake_artifact,
+            fake_stage_artifact,
+            prior_decisions={"decisions": []},
+        )
+    except ValueError as error:
+        _require("chronology drifted" in str(error), "origin test failed for wrong reason")
+    else:
+        raise AssertionError("a substituted judgment origin was accepted")
+
+    prior_row = {
+        key: value
+        for key, value in valid_v2["decisions"][0].items()
+        if key != "judgment_origin"
+    }
+    reused_v2 = json.loads(json.dumps(valid_v2))
+    reused_v2["decisions"][0]["judgment_origin"] = "prior-frozen-816"
+    reused_v2["judgment_origin_summary"] = {"prior-frozen-816": 1}
+    validate_decisions(
+        reused_v2,
+        fake_artifact,
+        fake_stage_artifact,
+        prior_decisions={"decisions": [prior_row]},
+    )
+    reused_v2["decisions"][0]["rationale"] = "A later review silently changed the rationale."
+    try:
+        validate_decisions(
+            reused_v2,
+            fake_artifact,
+            fake_stage_artifact,
+            prior_decisions={"decisions": [prior_row]},
+        )
+    except ValueError as error:
+        _require("prior frozen decision drifted" in str(error), "reuse test failed for wrong reason")
+    else:
+        raise AssertionError("a modified prior-frozen decision was accepted")
 
     with tempfile.TemporaryDirectory(prefix="nose-frontier-self-test-") as directory:
         output = Path(directory) / "canonical.json"
