@@ -116,6 +116,7 @@ run_regression_checker_selftests() {
     python3 bench/labels/labelset.py --self-test
     python3 bench/labels/label_refresh.py --self-test
     python3 bench/labels/recall_ceiling_probe.py --self-test
+    python3 bench/labels/missed_worthy_stage_audit.py --self-test
     python3 scripts/query-regression-harness.py --self-test
     python3 scripts/ruby-redefinition-scaling.py --self-test
     python3 scripts/semantic-regression-summary.py --self-test
