@@ -305,6 +305,84 @@ def require(condition: bool, message: str) -> None:
         raise ValueError(message)
 
 
+def valid_sha256(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def validate_stage_record(record: object, expected: dict[str, Any]) -> None:
+    key = expected["candidate_key"]
+    require(isinstance(record, dict), f"{key}: stage record must be an object")
+    identity = {
+        "candidate_sha256": expected["candidate_sha256"],
+        "repo": expected["repo"],
+        "language": expected["language"],
+        "probe_class": expected["class"],
+    }
+    for field, value in identity.items():
+        require(record.get(field) == value, f"{key}: {field} drifted")
+    counts = record.get("extracted_unit_counts")
+    require(
+        isinstance(counts, list)
+        and len(counts) == 2
+        and all(
+            isinstance(count, int) and not isinstance(count, bool) and count >= 0
+            for count in counts
+        ),
+        f"{key}: invalid unit counts",
+    )
+    candidate = record.get("direct_candidate")
+    accepted = record.get("direct_accepted")
+    require(isinstance(candidate, bool) and isinstance(accepted, bool), f"{key}: bad flags")
+    require(not accepted or candidate, f"{key}: accepted pair was not a candidate")
+    require(record.get("stage") in STATES, f"{key}: invalid stage")
+    require(
+        record["stage"] == audit_state(counts, candidate, accepted),
+        f"{key}: stage disagrees with evidence",
+    )
+
+
+def validate_repository_runs(
+    runs: object, expected_records: dict[str, dict[str, Any]]
+) -> None:
+    require(isinstance(runs, dict), "repository runs missing")
+    expected_repos = {record["repo"] for record in expected_records.values()}
+    require(set(runs) == expected_repos, "repository run set drifted")
+    for repo, run in runs.items():
+        require(isinstance(run, dict), f"{repo}: run must be an object")
+        require(isinstance(run.get("command"), str) and run["command"], f"{repo}: command missing")
+        require(run.get("returncode") == 0, f"{repo}: detector run failed")
+        require(valid_sha256(run.get("stdout_sha256")), f"{repo}: stdout hash invalid")
+        require(valid_sha256(run.get("stderr_sha256")), f"{repo}: stderr hash invalid")
+        counts = run.get("counts")
+        require(
+            isinstance(counts, dict)
+            and set(counts) == {"units", "candidate_pairs", "accepted_pairs"}
+            and all(
+                isinstance(count, int) and not isinstance(count, bool) and count >= 0
+                for count in counts.values()
+            ),
+            f"{repo}: counts invalid",
+        )
+        dump = run.get("dump")
+        require(
+            isinstance(dump, dict)
+            and set(dump) == {"units.json", "candidates.json", "predictions.json"},
+            f"{repo}: dump provenance missing",
+        )
+        for name, item in dump.items():
+            require(isinstance(item, dict), f"{repo}: {name} provenance invalid")
+            require(valid_sha256(item.get("sha256")), f"{repo}: {name} hash invalid")
+            size = item.get("size_bytes")
+            require(
+                isinstance(size, int) and not isinstance(size, bool) and size >= 0,
+                f"{repo}: {name} size invalid",
+            )
+
+
 def validate(payload: object, artifact_path: Path, *, check_binary: bool = False) -> None:
     require(isinstance(payload, dict), "stage audit must be an object")
     require(payload.get("schema") == SCHEMA, "unsupported stage-audit schema")
@@ -345,33 +423,10 @@ def validate(payload: object, artifact_path: Path, *, check_binary: bool = False
     )
     for record in records:
         key = record["candidate_key"]
-        require(record.get("candidate_sha256") == source_dev[key]["candidate_sha256"], f"{key}: hash drift")
-        counts = record.get("extracted_unit_counts")
-        require(
-            isinstance(counts, list)
-            and len(counts) == 2
-            and all(isinstance(count, int) and count >= 0 for count in counts),
-            f"{key}: invalid unit counts",
-        )
-        candidate = record.get("direct_candidate")
-        accepted = record.get("direct_accepted")
-        require(isinstance(candidate, bool) and isinstance(accepted, bool), f"{key}: bad flags")
-        require(not accepted or candidate, f"{key}: accepted pair was not a candidate")
-        require(record.get("stage") in STATES, f"{key}: invalid stage")
-        require(
-            record["stage"] == audit_state(counts, candidate, accepted),
-            f"{key}: stage disagrees with evidence",
-        )
+        validate_stage_record(record, source_dev[key])
     require(payload.get("summary") == summarize(records), "summary drifted")
 
-    runs = payload.get("repository_runs")
-    require(isinstance(runs, dict), "repository runs missing")
-    require(set(runs) == {record["repo"] for record in source_dev.values()}, "repository run set drifted")
-    for repo, run in runs.items():
-        require(run.get("returncode") == 0, f"{repo}: detector run failed")
-        require(isinstance(run.get("counts"), dict), f"{repo}: counts missing")
-        dump = run.get("dump")
-        require(isinstance(dump, dict) and len(dump) == 3, f"{repo}: dump provenance missing")
+    validate_repository_runs(payload.get("repository_runs"), source_dev)
 
 
 def run_self_test() -> None:
@@ -403,6 +458,32 @@ def run_self_test() -> None:
         },
     }
     require(summarize(rows) == expected, "summary self-test drifted")
+    expected_record = {
+        "candidate_key": "repo:family",
+        "candidate_sha256": "a" * 64,
+        "repo": "repo",
+        "language": "Rust",
+        "class": "subdag-ceiling",
+    }
+    valid_record = {
+        "candidate_key": "repo:family",
+        "candidate_sha256": "a" * 64,
+        "repo": "repo",
+        "language": "Rust",
+        "probe_class": "subdag-ceiling",
+        "extracted_unit_counts": [1, 1],
+        "direct_candidate": True,
+        "direct_accepted": True,
+        "stage": "accepted-pair",
+    }
+    validate_stage_record(valid_record, expected_record)
+    invalid_record = {**valid_record, "direct_candidate": False, "direct_accepted": False}
+    try:
+        validate_stage_record(invalid_record, expected_record)
+    except ValueError as error:
+        require("stage disagrees" in str(error), "unexpected stage validation error")
+    else:
+        raise AssertionError("contradictory accepted-pair evidence must fail")
     require(len(canonical_sha256(expected)) == 64, "canonical hash self-test")
     print("missed-worthy stage audit self-test passed")
 

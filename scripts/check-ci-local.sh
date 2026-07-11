@@ -118,6 +118,7 @@ run_regression_checker_selftests() {
     python3 bench/labels/recall_ceiling_probe.py --self-test
     python3 bench/labels/missed_worthy_stage_audit.py --self-test
     python3 bench/labels/missed_worthy_heldout_confirmation.py --self-test
+    python3 bench/labels/missed_worthy_source_bounds.py --self-test
     python3 scripts/query-regression-harness.py --self-test
     python3 scripts/ruby-redefinition-scaling.py --self-test
     python3 scripts/semantic-regression-summary.py --self-test
@@ -137,12 +138,16 @@ run_missed_worthy_frontier_checks() {
         --artifact bench/labels/recall_ceiling_probe_2026_07_11.v2.json
     python3 bench/labels/missed_worthy_heldout_confirmation.py \
         --validate bench/labels/missed_worthy_stage_confirmation_2026_07_11.heldout.v1.json
+    python3 bench/labels/missed_worthy_source_bounds.py \
+        --validate bench/labels/missed_worthy_audit_source_bounds_2026_07_11.dev.v1.json
     python3 scripts/check-query-regression.py \
         bench/labels/missed_worthy_grouping_pricing_2026_07_11.primary.v1.json \
         --same-binary-control bench/labels/missed_worthy_grouping_pricing_2026_07_11.control.v1.json \
         --require-same-binary-control \
         --max-runtime-delta-pct 5 \
-        --min-runtime-delta-ms 5
+        --min-runtime-delta-ms 5 \
+        --check-status bench/labels/missed_worthy_grouping_pricing_2026_07_11.status.v1.json \
+        --check-markdown bench/labels/missed_worthy_grouping_pricing_2026_07_11.summary.md
     python3 bench/labels/recall_ceiling_probe.py \
         --validate-closeout bench/labels/missed_worthy_frontier_closeout_2026_07_11.v1.json
 }

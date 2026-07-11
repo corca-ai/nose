@@ -11,6 +11,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from query_regression_summary import summarize_runs
+
 
 STATUS_SCHEMA = "nose.semantic_regression_check.v1"
 EXPECTED_DRIFT_SCHEMA = "nose.semantic_regression_expected_drift.v1"
@@ -242,6 +244,9 @@ def validate_v2_report(
                 raise CheckFailed(f"{run_label}.stages_ms.{stage}: expected non-negative time")
     if observed_runs != expected_runs:
         raise CheckFailed(f"{label}.runs: measurements do not match repos/iterations")
+    rebuilt_summary = summarize_runs(runs, repos)
+    if report.get("summary") != rebuilt_summary:
+        raise CheckFailed(f"{label}.summary: does not match raw runs")
 
 
 def validate_report_contract(
@@ -857,32 +862,7 @@ def sample_report(
             "working_tree_status_before_measurement": "",
         },
         "runs": runs,
-        "summary": {
-            "aggregate_baseline_median_ms": 100.0,
-            "aggregate_current_median_ms": 100.0 + delta,
-            "by_repo": {
-                "repo-a": {
-                    "baseline": {
-                        "bytes": [123],
-                        "families": [2],
-                        "hashes": [SAMPLE_OUTPUT_HASH],
-                        "median_ms": 100.0,
-                        "schema_versions": [7],
-                        "stages_median_ms": {"lower": 50.0},
-                        "surface_counts": [{"default": 2}],
-                    },
-                    "current": {
-                        "bytes": [123],
-                        "families": [2],
-                        "hashes": [hash_current],
-                        "median_ms": 100.0 + delta,
-                        "schema_versions": [7],
-                        "stages_median_ms": {"lower": 50.0 + delta},
-                        "surface_counts": [{"default": 2}],
-                    },
-                }
-            },
-        },
+        "summary": summarize_runs(runs, ["repo-a"]),
     }
 
 
@@ -915,6 +895,14 @@ def expected_manifest(hash_current: str = SAMPLE_CHANGED_HASH) -> dict[str, Any]
 
 def run_self_test() -> None:
     evaluate_gate(sample_report())
+    tampered_run = sample_report()
+    tampered_run["runs"][1]["sha256"] = SAMPLE_CHANGED_HASH
+    try:
+        evaluate_gate(tampered_run)
+    except CheckFailed as error:
+        assert "does not match raw runs" in str(error)
+    else:
+        raise AssertionError("v2 summary must be rebuilt from raw runs")
     for schema in ("typo", None):
         malformed = json.loads(json.dumps(sample_report()))
         malformed["schema"] = schema
@@ -1140,6 +1128,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--require-corpus-provenance", action="store_true")
     parser.add_argument("--status-output", type=Path)
     parser.add_argument("--markdown-output", type=Path)
+    parser.add_argument("--check-status", type=Path)
+    parser.add_argument("--check-markdown", type=Path)
     parser.add_argument("--print-json", action="store_true")
     parser.add_argument("--self-test", action="store_true")
     return parser.parse_args()
@@ -1149,6 +1139,17 @@ def write_result(path: Path | None, content: str) -> None:
     if path is not None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
+
+
+def check_result(path: Path | None, content: str, label: str) -> None:
+    if path is None:
+        return
+    try:
+        checked = path.read_text(encoding="utf-8")
+    except OSError as error:
+        raise CheckFailed(f"{label}: cannot read {path}: {error}") from error
+    if checked != content:
+        raise CheckFailed(f"{label}: checked output does not match regenerated result")
 
 
 def main() -> int:
@@ -1174,6 +1175,10 @@ def main() -> int:
     }
     try:
         status = evaluate_gate(report, **kwargs)
+        status_json = json.dumps(status, indent=2, sort_keys=True) + "\n"
+        status_markdown = markdown_summary(status, report)
+        check_result(args.check_status, status_json, "status")
+        check_result(args.check_markdown, status_markdown, "Markdown summary")
     except CheckFailed as error:
         status = error.status
         if status is not None:
@@ -1181,8 +1186,8 @@ def main() -> int:
             write_result(args.markdown_output, markdown_summary(status, report))
         print(f"query regression check failed: {error}", flush=True)
         return error.exit_code
-    write_result(args.status_output, json.dumps(status, indent=2, sort_keys=True) + "\n")
-    write_result(args.markdown_output, markdown_summary(status, report))
+    write_result(args.status_output, status_json)
+    write_result(args.markdown_output, status_markdown)
     if args.print_json:
         print(json.dumps(status, indent=2, sort_keys=True))
     else:

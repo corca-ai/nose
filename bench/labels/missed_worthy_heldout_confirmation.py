@@ -20,7 +20,15 @@ from typing import Any
 
 from labelset import sha256_file
 from missed_worthy_frontier import ROOT, load_and_validate_artifact, load_and_validate_decisions, relative_path
-from missed_worthy_stage_audit import display_arg, display_command, git_output, run_repository, summarize
+from missed_worthy_stage_audit import (
+    display_arg,
+    display_command,
+    git_output,
+    run_repository,
+    summarize,
+    validate_repository_runs,
+    validate_stage_record,
+)
 
 
 SCHEMA = "nose.missed_worthy_stage_confirmation.heldout.v1"
@@ -174,16 +182,14 @@ def validate(payload: object, args: argparse.Namespace, *, check_binary: bool = 
     )
     for record in records:
         key = record["candidate_key"]
-        require(record.get("candidate_sha256") == expected[key]["candidate_sha256"], f"{key}: hash drift")
+        validate_stage_record(record, expected[key])
     require(payload.get("summary") == summarize(records), "confirmation summary drifted")
     require(
         payload.get("confirmation_gate") == confirmation_result(payload["summary"]),
         "confirmation gate drifted",
     )
     require(payload["confirmation_gate"]["passed"] is True, "held-out confirmation failed")
-    runs = payload.get("repository_runs")
-    require(isinstance(runs, dict), "repository runs missing")
-    require(set(runs) == {record["repo"] for record in expected.values()}, "repository run set drifted")
+    validate_repository_runs(payload.get("repository_runs"), expected)
     if check_binary:
         nose = provenance["nose"]
         binary = ROOT / nose["path"]

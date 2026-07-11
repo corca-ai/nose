@@ -25,6 +25,7 @@ ARTIFACT_SCHEMA = "nose.missed_worthy_frontier.v2"
 DECISIONS_SCHEMA = "nose.missed_worthy_dev_audit.v1"
 STAGE_AUDIT_SCHEMA = "nose.missed_worthy_stage_audit.dev.v1"
 CLOSEOUT_SCHEMA = "nose.missed_worthy_frontier_closeout.v1"
+SOURCE_BOUNDS_SCHEMA = "nose.missed_worthy_source_bounds.dev.v1"
 SELECTION_SEED = "nose-issue-816-dev-audit-v1"
 SELECTION_PER_LANGUAGE = 5
 SUBDAG_FLOORS = (8, 12, 20)
@@ -523,6 +524,72 @@ def validate_artifact(
         payload.get("source_files"),
         check_sources=check_sources,
     )
+    if recall_labels is not None and corpus_payload is not None:
+        eligible = {
+            (family["repo"], family["family_id"]): family
+            for family in recall_labels.families
+            if family.get("worthy") is True and metric_eligible(family, RECALL_METRIC)
+        }
+        _require(
+            len(eligible)
+            == sum(
+                family.get("worthy") is True and metric_eligible(family, RECALL_METRIC)
+                for family in recall_labels.families
+            ),
+            "eligible recall family identity is not unique",
+        )
+        corpus_by_repo = {
+            repository["id"]: repository
+            for repository in corpus_payload["repositories"]
+        }
+        for record in candidates:
+            identity = (record["repo"], record["family_id"])
+            _require(identity in eligible, f"{record['candidate_key']}: not an eligible v5 family")
+            family = eligible[identity]
+            repository = corpus_by_repo.get(record["repo"])
+            _require(repository is not None, f"{record['candidate_key']}: repo missing from corpus")
+            _require(
+                record["candidate_key"] == f"{record['repo']}:{record['family_id']}",
+                f"{record['candidate_key']}: candidate identity drifted",
+            )
+            expected_members = [
+                {
+                    key: member[key]
+                    for key in ("file", "start_line", "end_line")
+                }
+                for member in family["members"][:2]
+            ]
+            expected_metadata = {
+                "split": family["split"],
+                "language": repository["primary_language"],
+                "reason": family["reason"],
+                "channel": family["channel"],
+                "scope": family["scope"],
+                "confidence": family.get("confidence"),
+                "members": expected_members,
+                "source_files": sorted({member["file"] for member in expected_members}),
+            }
+            for field, expected_value in expected_metadata.items():
+                _require(
+                    record.get(field) == expected_value,
+                    f"{record['candidate_key']}: {field} differs from frozen inputs",
+                )
+            _require(
+                family["split"] == repository["split"],
+                f"{record['candidate_key']}: label/corpus split mismatch",
+            )
+        eligible_by_repo = Counter(repo for repo, _ in eligible)
+        for repo, run in query_runs.items():
+            repository = corpus_by_repo[repo]
+            _require(run.get("split") == repository["split"], f"query_runs.{repo}: split drifted")
+            _require(
+                run.get("language") == repository["primary_language"],
+                f"query_runs.{repo}: language drifted",
+            )
+            _require(
+                run["worthy"] == eligible_by_repo[repo],
+                f"query_runs.{repo}: worthy denominator differs from v5",
+            )
     by_repo = Counter(record["repo"] for record in candidates)
     for repo, run in query_runs.items():
         _require(
@@ -746,6 +813,118 @@ def load_and_validate_decisions(path: Path, artifact_path: Path) -> dict[str, An
     return payload
 
 
+def source_line_count(path: Path) -> int:
+    return len(path.read_bytes().splitlines())
+
+
+def build_source_bounds(artifact_path: Path, decisions_path: Path) -> dict[str, Any]:
+    artifact = load_and_validate_artifact(artifact_path, check_sources=True)
+    decisions = load_and_validate_decisions(decisions_path, artifact_path)
+    evidence_files = sorted(
+        {
+            evidence["file"]
+            for decision in decisions["decisions"]
+            for evidence in decision["source_evidence"]
+        }
+    )
+    files = {}
+    for path in evidence_files:
+        frozen = artifact["source_files"][path]
+        resolved = project_path(path)
+        files[path] = {
+            "sha256": frozen["sha256"],
+            "size_bytes": frozen["size_bytes"],
+            "line_count": source_line_count(resolved),
+        }
+    return {
+        "schema": SOURCE_BOUNDS_SCHEMA,
+        "split": "dev",
+        "method": "line bounds derived from the hash-checked frozen source bytes",
+        "source_artifact": {
+            "path": relative_path(artifact_path),
+            "sha256": sha256_file(artifact_path),
+        },
+        "decisions": {
+            "path": relative_path(decisions_path),
+            "sha256": sha256_file(decisions_path),
+        },
+        "files": files,
+    }
+
+
+def validate_source_bounds(
+    payload: object,
+    artifact_path: Path,
+    decisions_path: Path,
+    *,
+    check_sources: bool = False,
+) -> None:
+    _require(isinstance(payload, dict), "source bounds: expected an object")
+    _require(payload.get("schema") == SOURCE_BOUNDS_SCHEMA, "source bounds: unsupported schema")
+    _require(payload.get("split") == "dev", "source bounds must be dev-only")
+    source_record = payload.get("source_artifact")
+    _require(isinstance(source_record, dict), "source bounds: source artifact missing")
+    _require(source_record.get("path") == relative_path(artifact_path), "source bounds path drifted")
+    _require(source_record.get("sha256") == sha256_file(artifact_path), "source bounds hash drifted")
+    decision_record = payload.get("decisions")
+    _require(isinstance(decision_record, dict), "source bounds: decisions missing")
+    _require(decision_record.get("path") == relative_path(decisions_path), "decision path drifted")
+    _require(decision_record.get("sha256") == sha256_file(decisions_path), "decision hash drifted")
+    artifact = load_and_validate_artifact(artifact_path)
+    decisions = load_and_validate_decisions(decisions_path, artifact_path)
+    evidence_files = {
+        evidence["file"]
+        for decision in decisions["decisions"]
+        for evidence in decision["source_evidence"]
+    }
+    files = payload.get("files")
+    _require(isinstance(files, dict) and set(files) == evidence_files, "source bound set drifted")
+    for path, record in files.items():
+        _require(isinstance(record, dict), f"source bounds {path}: expected an object")
+        frozen = artifact["source_files"][path]
+        _require(record.get("sha256") == frozen["sha256"], f"source bounds {path}: hash drifted")
+        _require(
+            record.get("size_bytes") == frozen["size_bytes"],
+            f"source bounds {path}: size drifted",
+        )
+        line_count = record.get("line_count")
+        _require(
+            isinstance(line_count, int) and not isinstance(line_count, bool) and line_count > 0,
+            f"source bounds {path}: invalid line count",
+        )
+        if check_sources:
+            resolved = project_path(path)
+            _require(resolved.is_file(), f"source bounds {path}: checkout missing")
+            _require(sha256_file(resolved) == frozen["sha256"], f"source bounds {path}: source hash mismatch")
+            _require(source_line_count(resolved) == line_count, f"source bounds {path}: line count mismatch")
+    for decision in decisions["decisions"]:
+        for evidence in decision["source_evidence"]:
+            _require(
+                evidence["end_line"] <= files[evidence["file"]]["line_count"],
+                f"{decision['candidate_key']}: source evidence exceeds frozen file bounds",
+            )
+
+
+def load_and_validate_source_bounds(
+    path: Path,
+    artifact_path: Path,
+    decisions_path: Path,
+    *,
+    check_sources: bool = False,
+) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot read source bounds {path}: {error}") from error
+    validate_source_bounds(
+        payload,
+        artifact_path,
+        decisions_path,
+        check_sources=check_sources,
+    )
+    return payload
+
+
 def _load_checked_record(record: object, label: str) -> tuple[Path, dict[str, Any]]:
     _require(isinstance(record, dict), f"{label}: expected an object")
     raw_path = record.get("path")
@@ -927,20 +1106,24 @@ def validate_closeout(payload: object) -> None:
     _require(pricing.get("slice_dev_accepted_pair_upper_bound") == 25, "pricing upper bound drifted")
     closeout_confirmation = payload.get("confirmation")
     _require(isinstance(closeout_confirmation, dict), "closeout confirmation missing")
-    selected_accepted = sum(
-        decision.get("observed_stage") == "accepted-pair" for decision in decisions["decisions"]
-    )
-    selected_coherent = sum(
-        decision.get("blocker_classification") == "family-folding-or-overlap-matching"
+    accepted_keys = {
+        decision["candidate_key"]
         for decision in decisions["decisions"]
-    )
+        if decision.get("observed_stage") == "accepted-pair"
+    }
+    coherent_keys = {
+        decision["candidate_key"]
+        for decision in decisions["decisions"]
+        if decision.get("blocker_classification")
+        == "family-folding-or-overlap-matching"
+    }
     _require(
         closeout_confirmation
         == {
             "dev_direct_accepted": dev_summary["states"]["accepted-pair"],
             "dev_misses": dev_summary["total"],
-            "selected_direct_accepted": selected_accepted,
-            "selected_source_coherent": selected_coherent,
+            "selected_direct_accepted": len(accepted_keys),
+            "selected_source_coherent": len(coherent_keys),
             "heldout_direct_accepted": heldout_summary["states"]["accepted-pair"],
             "heldout_misses": heldout_summary["total"],
             "heldout_languages": heldout_gate["observed_accepted_languages"],
@@ -949,7 +1132,10 @@ def validate_closeout(payload: object) -> None:
         },
         "closeout confirmation does not match checked evidence",
     )
-    _require(selected_accepted == selected_coherent == 18, "selected accepted-pair cohort drifted")
+    _require(
+        accepted_keys == coherent_keys and len(accepted_keys) == 18,
+        "selected accepted-pair and source-coherent cohorts differ",
+    )
     docs = payload.get("documentation")
     expected_docs = {
         "docs/missed-worthy-frontier-816.md",
