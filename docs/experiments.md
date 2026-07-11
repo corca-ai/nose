@@ -3482,20 +3482,24 @@ unrecovered, and 24 extraction/other misses. A deterministic five-per-language d
 was committed before source review. All 35 rows then received source lines, a blocker
 classification, rationale, and smallest sound invariant.
 
-The decisive result is downstream of matching. A dev-only raw-stage census finds **51/223**
-misses with a direct accepted structural pair; 18/35 selected rows are in that stage and all
-18 are source-coherent. The remaining selected decisions are candidate generation 4,
-connected-anchor construction 3, extraction 4, same-unit fragments 2, and no coherent
-general mechanism 4. Only after that Route A proposal was committed did the one-time
+The decisive result is downstream of matching. A dev-only raw-stage census mechanically
+finds **51/223** misses with a direct accepted structural pair; 18/35 selected rows are in
+that stage and all 18 are source-coherent. The remaining selected decisions are candidate
+generation 4, connected-anchor construction 3, extraction 4, same-unit fragments 2, and no
+coherent general mechanism 4. Only after that Route A proposal was committed did the one-time
 held-out check run; it passed its pre-registered 15-pair/3-language gate with **42/142**
 accepted pairs across six languages.
 
-**Decision:** do not lower a threshold or open a new Type-4 law. Follow-up #817 must preserve
+**Decision:** do not lower a threshold or open a new Type-4 law. The pre-registered A-E
+tree omitted this post-acceptance grouping case, so recording #817 under nearest bounded
+Route A is an explicit protocol deviation rather than a claim that A's original connected-
+sub-DAG/candidate-generation trigger matched. Follow-up #817 must preserve
 pair-local endpoint coverage through clustering/folding with hard negatives for transitive
 bridges, nested sites, dense components, and output flooding. The current #809 seven-repo
 same-binary baseline is 1,263 raw / 415 default semantic families at 2,503.17ms aggregate,
-with zero output drift and zero control-adjusted runtime delta. Actual base/head cost remains
-a required #817 measurement because #816 intentionally implements no product change.
+with zero output drift and zero control-adjusted runtime delta. This measures the current
+baseline/noise envelope only. Actual base/head intervention cost remains unmeasured and is a
+required #817 gate because #816 intentionally implements no product change.
 
 The full protocol, artifact links, rejected B-E routes, and result-dependent next action are
 in [the #816 closeout](missed-worthy-frontier-816.md).

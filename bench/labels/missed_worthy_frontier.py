@@ -953,6 +953,7 @@ def validate_closeout(payload: object) -> None:
         "frontier",
         "dev_stage",
         "dev_decisions",
+        "dev_source_bounds",
         "heldout_confirmation",
         "pricing_primary",
         "pricing_control",
@@ -967,6 +968,12 @@ def validate_closeout(payload: object) -> None:
     validate_artifact(frontier, check_inputs=True, check_sources=False)
     decisions_path, decisions = checked["dev_decisions"]
     load_and_validate_decisions(decisions_path, frontier_path)
+    source_bounds_path, _ = checked["dev_source_bounds"]
+    load_and_validate_source_bounds(
+        source_bounds_path,
+        frontier_path,
+        decisions_path,
+    )
     _, dev_stage = checked["dev_stage"]
     _require(dev_stage.get("schema") == STAGE_AUDIT_SCHEMA, "dev stage schema drifted")
     dev_summary = dev_stage.get("summary", {})
@@ -1031,7 +1038,11 @@ def validate_closeout(payload: object) -> None:
 
     selected = payload.get("selected_route")
     _require(isinstance(selected, dict), "selected_route: expected an object")
-    _require(selected.get("id") == "A", "closeout must select confirmed Route A")
+    _require(selected.get("id") == "A", "closeout must select exactly one A-E route")
+    _require(
+        selected.get("status") == "selected-with-protocol-deviation",
+        "Route A omission must be recorded as a protocol deviation",
+    )
     follow_up = selected.get("follow_up_issue")
     _require(isinstance(follow_up, dict), "selected route follow-up missing")
     _require(
@@ -1039,7 +1050,7 @@ def validate_closeout(payload: object) -> None:
         and follow_up.get("url") == "https://github.com/corca-ai/nose/issues/817",
         "Route A must link follow-up issue 817",
     )
-    for field in ("rationale", "smallest_sound_invariant"):
+    for field in ("rationale", "smallest_sound_invariant", "protocol_deviation"):
         _require(
             isinstance(selected.get(field), str) and selected[field].strip(),
             f"selected_route.{field}: expected text",
@@ -1106,7 +1117,16 @@ def validate_closeout(payload: object) -> None:
         == aggregate_signal.get("adjusted_delta_pct"),
         "pricing adjusted runtime summary drifted",
     )
-    _require(pricing.get("slice_dev_accepted_pair_upper_bound") == 25, "pricing upper bound drifted")
+    _require(pricing.get("intervention_head_measured") is False, "#816 did not measure a head")
+    _require(
+        pricing.get("slice_dev_labeled_recovery_scenario_rows") == 25,
+        "pricing labeled scenario drifted",
+    )
+    _require(pricing.get("raw_growth_scenario_pct") == 1.98, "pricing raw scenario drifted")
+    _require(
+        pricing.get("default_growth_scenario_pct") == 6.02,
+        "pricing default scenario drifted",
+    )
     closeout_confirmation = payload.get("confirmation")
     _require(isinstance(closeout_confirmation, dict), "closeout confirmation missing")
     accepted_keys = {
@@ -1152,11 +1172,36 @@ def validate_closeout(payload: object) -> None:
     _require(isinstance(docs, list) and set(docs) == expected_docs, "closeout documentation drifted")
     _require(all(project_path(path).is_file() for path in docs), "closeout documentation path missing")
     acceptance = payload.get("acceptance")
+    expected_acceptance = {
+        "checked_nose_0_18_artifact_complete_provenance",
+        "arm1_exact_dev_and_heldout_counts",
+        "deterministic_language_stratified_dev_selection_frozen",
+        "every_selected_family_has_source_classification",
+        "dev_proposal_committed_before_heldout_confirmation",
+        "current_product_baseline_and_noise_priced_with_809_conventions",
+        "actual_intervention_cost_deferred_to_817",
+        "exactly_one_route_and_followup_issue",
+        "route_tree_omission_recorded_as_protocol_deviation",
+        "hof_roadmap_deferred_without_direct_evidence",
+        "selected_and_rejected_routes_documented",
+    }
     _require(
         isinstance(acceptance, dict)
-        and acceptance
+        and set(acceptance) == expected_acceptance
         and all(value is True for value in acceptance.values()),
         "closeout acceptance is incomplete",
+    )
+    deviations = payload.get("protocol_deviations")
+    _require(
+        isinstance(deviations, list)
+        and all(isinstance(item, dict) for item in deviations)
+        and {item.get("id") for item in deviations if isinstance(item, dict)}
+        == {"route-tree-omission", "intervention-cost-non-goal-conflict"}
+        and all(
+            isinstance(item.get("disposition"), str) and item["disposition"].strip()
+            for item in deviations
+        ),
+        "closeout protocol deviations are incomplete",
     )
     next_actions = payload.get("result_dependent_next_action")
     _require(

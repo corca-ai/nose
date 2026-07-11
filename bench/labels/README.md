@@ -169,9 +169,10 @@ The current #816 refresh is
 `missed_worthy_frontier.py`. It records complete binary/input/repository/query provenance,
 exactly reproduces the v6 evaluator's v5-worthy recall counts, and freezes a deterministic
 35-family, seven-language dev audit before source judgment. The adjacent dev stage,
-decision, held-out confirmation, and #809 pricing artifacts separate raw accepted pairs
-from final query coverage. The selected Route A follow-up is #817; method, rejected routes,
-and commands are documented in
+decision, source-bound, held-out confirmation, and #809 baseline/noise artifacts separate
+raw accepted pairs from final query coverage. The bounded grouping follow-up is #817;
+the omitted post-acceptance branch in the original A-E tree is recorded as a Route A
+protocol deviation. Method, rejected routes, and commands are documented in
 [`docs/missed-worthy-frontier-816.md`](../../docs/missed-worthy-frontier-816.md).
 
 `query_json_agent_audit_2026_06_10.json` records the #216 agent-usability audit of the

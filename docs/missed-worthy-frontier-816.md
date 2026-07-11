@@ -17,9 +17,10 @@ was fixed in commits:
 2. From that clean commit, build nose 0.18.0 and freeze the current artifact.
 3. Freeze a language-stratified dev sample before reading its source.
 4. Record raw extraction/candidate/accepted stages for every dev miss.
-5. Audit only the 35 selected dev families and commit the dev Route A proposal.
+5. Audit only the 35 selected dev families and commit the then-labeled Route A proposal.
 6. Pre-register a held-out gate, then run the same mechanical stage check once.
-7. Price the current product baseline with the #809 same-binary control.
+7. Price the current product baseline/noise envelope with the #809 same-binary
+   control, and record that an actual intervention head belongs to #817.
 
 No held-out source received a human judgment, and no threshold or selection rule
 changed after dev review.
@@ -65,7 +66,9 @@ repositories. Selection uses label metadata and probe measurements only.
 
 Use the [`missed_worthy_audit_decisions_2026_07_11.dev.v1.json` dev audit](../bench/labels/missed_worthy_audit_decisions_2026_07_11.dev.v1.json) for the 35 checked source decisions.
 Every row links the frozen candidate hash to source lines, a blocker rationale,
-and its smallest sound invariant.
+and its smallest sound invariant. The adjacent [source-bound record](../bench/labels/missed_worthy_audit_source_bounds_2026_07_11.dev.v1.json)
+binds all 46 cited files to the frozen source hashes and exact line counts, so
+out-of-file evidence ranges fail validation without requiring corpus checkout in CI.
 
 | blocker | selected dev families | interpretation |
 | --- | ---: | --- |
@@ -94,7 +97,8 @@ pairs:
 | extracted, no direct candidate | 96 |
 | missing unit | 35 |
 
-The 51 accepted pairs are a conservative lower bound: the diagnostic does not
+The 51 mechanically stage-confirmed accepted pairs are a conservative lower bound:
+the diagnostic does not
 include query's syntax channel or additional shape-candidate arm. They span all
 seven dev languages. The source sample confirms 18/18 selected accepted-pair rows
 as coherent refactoring families rather than optimistic mass accidents.
@@ -106,12 +110,19 @@ passed with 42/142 accepted pairs across C, Go, Java, Python, Rust, and TypeScri
 Ruby had no accepted-pair row in that held-out snapshot. This confirms the stage
 mechanism without using held-out source to tune it.
 
-## Decision: Route A
+## Decision: bounded grouping follow-up (Route A protocol deviation)
 
 The selected next tranche is follow-up issue
 [#817](https://github.com/corca-ai/nose/issues/817): preserve accepted-pair
 endpoint coverage through union-find clustering, same-file site collapse, family
 subsumption, and query presentation.
+
+The pre-registered A-E tree omitted a branch for a material post-acceptance
+family-folding loss: its Route A trigger named connected-sub-DAG or candidate
+generation, while the observed dominant cohort had already passed acceptance.
+The closeout retains identifier A only as the nearest bounded implementation
+route so exactly one A-E identifier is selected. This is an explicit protocol
+deviation, not a claim that Route A's original trigger matched.
 
 The smallest invariant is:
 
@@ -131,7 +142,7 @@ frontier therefore remains at zero ready-for-defender packets.
 
 ## Product and runtime price
 
-The #809 same-binary pricing run covers one source-backed repository per dev
+The #809 same-binary baseline/noise run covers one source-backed repository per dev
 language: curl, prometheus, netty, rich, rubocop, nushell, and axios. Its checked
 primary/control/status artifacts are adjacent to the label artifacts; see the [compact pricing summary](../bench/labels/missed_worthy_grouping_pricing_2026_07_11.summary.md) for the result.
 
@@ -144,14 +155,22 @@ primary/control/status artifacts are adjacent to the label artifacts; see the [c
 | aggregate median | 2,503.17 ms |
 | output drift / adjusted runtime delta | 0 / 0 (same-binary control passed) |
 
-Those seven repositories contain 25 of the 51 dev accepted-pair misses. Emitting
-one new row for every uncovered pair would therefore be a deliberately loose
-upper bound of +25 raw families (+1.98%) and +25 default families (+6.02%) on the
-slice. #817 must do better by reusing covering families and applying normal
-surface policy. Because #816 does not implement the head behavior, the actual
-base/head output and runtime delta remains a mandatory #817 gate: exact output
-declaration, alternating order, same-binary control, and a focused rerun for a
-signal above both 5% and 5 ms.
+Those seven repositories contain 25 of the 51 known dev accepted-pair misses. A
+one-row-per-known-label scenario is +25 raw families (+1.98%) and, if every row
+were default, +25 default families (+6.02%) on the slice. This is not an upper
+bound on product growth: the invariant applies to all direct accepted edges, and
+the complete uncovered-edge census does not yet exist. It is also not a measured
+implementation forecast. Because #816 deliberately implements no head behavior,
+the actual base/head output and runtime cost is unmeasured and remains a mandatory
+#817 gate: full-edge census, reuse of covering families, exact output declaration,
+alternating order, same-binary control, and a focused rerun for a signal above
+both 5% and 5 ms.
+
+This closeout supersedes the frozen dev proposal's field named
+`default_output_upper_bound_additional_families_on_dev`: its value 51 also counted
+known labels, not all uncovered accepted edges, and must be read as a dev-label
+scenario rather than a product-output upper bound. The frozen proposal remains
+unchanged to preserve the dev-before-held-out chronology.
 
 ## Rejected routes
 
@@ -164,7 +183,8 @@ signal above both 5% and 5 ms.
 - **D — HOF roadmap:** no direct pure-callback miss survived source review.
   `mul`/`imul` changes mutation and ownership, so #794-#797 are not opened.
 - **E — no material mechanism:** rejected because 51 dev and 42 held-out misses
-  already have direct accepted raw pairs, with 18 source-coherent selected cases.
+  have mechanically confirmed direct accepted raw pairs, with 18/18 sampled
+  accepted-pair rows source-coherent.
 
 ## What happens after #817
 
@@ -191,12 +211,16 @@ python3 bench/labels/recall_ceiling_probe.py \
   --artifact bench/labels/recall_ceiling_probe_2026_07_11.v2.json
 python3 bench/labels/missed_worthy_heldout_confirmation.py \
   --validate bench/labels/missed_worthy_stage_confirmation_2026_07_11.heldout.v1.json
+python3 bench/labels/missed_worthy_source_bounds.py \
+  --validate bench/labels/missed_worthy_audit_source_bounds_2026_07_11.dev.v1.json
 python3 scripts/check-query-regression.py \
   bench/labels/missed_worthy_grouping_pricing_2026_07_11.primary.v1.json \
   --same-binary-control bench/labels/missed_worthy_grouping_pricing_2026_07_11.control.v1.json \
   --require-same-binary-control \
   --max-runtime-delta-pct 5 \
-  --min-runtime-delta-ms 5
+  --min-runtime-delta-ms 5 \
+  --check-status bench/labels/missed_worthy_grouping_pricing_2026_07_11.status.v1.json \
+  --check-markdown bench/labels/missed_worthy_grouping_pricing_2026_07_11.summary.md
 python3 bench/labels/recall_ceiling_probe.py \
   --validate-closeout bench/labels/missed_worthy_frontier_closeout_2026_07_11.v1.json
 ```
