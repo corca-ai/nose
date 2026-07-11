@@ -1,0 +1,924 @@
+{
+  "audit_method": {
+    "exploratory_preselection_ids": [
+      "curl:2a436119a08187ba",
+      "mockito:d82f6e75097748da",
+      "ripgrep:519afdcaed73af0d"
+    ],
+    "heldout_source_inspected": false,
+    "notes": "All rows use the frozen post-#817 selection and dev-only stage evidence. Sixteen exact hashes reuse unchanged #816 decisions. The three disclosed planning reads remain exploratory; the other sixteen new rows were reviewed only after selection and stage commits. No held-out source was rendered or judged.",
+    "selection_frozen_commit": "59530c575060abb0e6ce672efca4bad85e74c40f",
+    "stage_evidence_frozen_commit": "5d55ec439915e7a1994eaf1242f96a29303a2b81"
+  },
+  "classification_summary": {
+    "candidate-generation": 6,
+    "connected-anchor-or-subdag-construction": 7,
+    "no-coherent-general-mechanism": 9,
+    "same-unit-actionable-fragment": 3,
+    "unit-extraction-or-missing-unit-kind": 10
+  },
+  "decisions": [
+    {
+      "blocker_classification": "no-coherent-general-mechanism",
+      "candidate_key": "mockito:db2a627e3c414165",
+      "candidate_sha256": "6f54e260b213a96cf5cb6661fe9c6aad46bdc484cbbd587c818993e953b2de41",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "The first member is one six-argument overload, while the second label span crosses several three-to-five-argument overloads. The optimistic inline lift comes from adding the enclosing 325-line class, which is neither one sibling helper nor a pure single-return unit, so it is not evidence for helper inlining or one connected clone.",
+      "smallest_sound_invariant": "Do not turn a multi-method label span into one inline candidate unless one explicit, pure helper call accounts for the shared computation on both sides.",
+      "source_evidence": [
+        {
+          "end_line": 288,
+          "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/stubbing/answers/AnswerFunctionalInterfaces.java",
+          "observation": "This side is one complete Answer6 adapter method.",
+          "start_line": 272
+        },
+        {
+          "end_line": 227,
+          "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/stubbing/answers/AnswerFunctionalInterfaces.java",
+          "observation": "This label span contains multiple independent overload methods rather than one callable helper.",
+          "start_line": 119
+        }
+      ]
+    },
+    {
+      "blocker_classification": "same-unit-actionable-fragment",
+      "candidate_key": "gorm:b2cd9c61ce98289a",
+      "candidate_sha256": "89cbc2c55eac3f4c6c36d7bbf97711fe5602fd0b863de4b3190a4ee7991043c7",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "Both members are adjacent LEFT/RIGHT JOIN rows inside the same TestJoin table. The only extracted unit is the enclosing test function, so whole-unit pairing cannot represent the repeated struct-literal window without also reporting the entire already-parameterized test.",
+      "smallest_sound_invariant": "A same-unit proposal must identify two disjoint repeated initializer windows and keep the varying join type, name, and SQL text as explicit parameters.",
+      "source_evidence": [
+        {
+          "end_line": 40,
+          "file": "bench/repos/gorm/clause/joins_test.go",
+          "observation": "Two disjoint table rows share the Join/Where initializer skeleton and vary only row data.",
+          "start_line": 19
+        }
+      ]
+    },
+    {
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "candidate_key": "packaging:aea1981ddc32dcf4",
+      "candidate_sha256": "47c95e3d4deac0f49167dd6cfcc855c1112af180394060c15aff79c19e4a5037",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "The duplicated value is the ten-row pytest parameter table in decorators at lines 23-36 and 60-73. Function extraction starts at the def bodies, so the relevant decorator/table data never becomes a comparable unit even though nearby test functions do.",
+      "smallest_sound_invariant": "Extract a pytest parametrize decorator and its literal case table as test metadata, separate from the decorated function body.",
+      "source_evidence": [
+        {
+          "end_line": 36,
+          "file": "bench/repos/packaging/tests/test_utils.py",
+          "observation": "The first decorator owns the repeated ten-case name table.",
+          "start_line": 23
+        },
+        {
+          "end_line": 73,
+          "file": "bench/repos/packaging/tests/test_utils.py",
+          "observation": "The second decorator repeats that table for a different assertion body.",
+          "start_line": 60
+        }
+      ]
+    },
+    {
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "candidate_key": "serde_json:3f1d50e522be29ae",
+      "candidate_sha256": "e9c065ca3ff8bf83c2678ffe174e2b3a4740238cd7be16d38ba3c39a5bee4464",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "missing-unit",
+      "rationale": "Neither Rust test is extracted. Each function contains a local tuple struct plus a local Serialize impl, followed by the same three non-finite map assertions for f32 or f64, so candidate logic has no units to compare.",
+      "smallest_sound_invariant": "Rust test-function extraction must retain a function that contains local item declarations and impl blocks without promoting those local items into unrelated top-level units.",
+      "source_evidence": [
+        {
+          "end_line": 2037,
+          "file": "bench/repos/serde_json/tests/test.rs",
+          "observation": "The f32 test contains a local F32Bits type/impl and three repeated assertions.",
+          "start_line": 2011
+        },
+        {
+          "end_line": 2066,
+          "file": "bench/repos/serde_json/tests/test.rs",
+          "observation": "The f64 test has the same function shape with type-width substitutions.",
+          "start_line": 2040
+        }
+      ]
+    },
+    {
+      "blocker_classification": "candidate-generation",
+      "candidate_key": "curl:08e1435f8564adf7",
+      "candidate_sha256": "b5aeb2fa7a54e29886f9554ab06d42bb95879127b8b3cc627f14d655e545dbaf",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "Both unit tests contain one connected cleanup and failure-accounting tail, but raw extraction exposes only the larger enclosing functions and emits no candidate for the labeled region. A candidate must anchor the shared address-list exit, cleanup calls, and problem branch while excluding the different diagnostics before them.",
+      "smallest_sound_invariant": "Generate a cross-unit fragment only when one contiguous control-flow region has matching entry, exit, and side-effect order on both sides; disconnected whole-function mass is insufficient.",
+      "source_evidence": [
+        {
+          "end_line": 227,
+          "file": "bench/repos/curl/tests/unit/unit1607.c",
+          "observation": "This connected tail advances the address list, releases three resources, and accounts for the problem flag.",
+          "start_line": 209
+        },
+        {
+          "end_line": 209,
+          "file": "bench/repos/curl/tests/unit/unit1609.c",
+          "observation": "The second test has the same ordered tail after a different validation ladder.",
+          "start_line": 191
+        }
+      ]
+    },
+    {
+      "blocker_classification": "connected-anchor-or-subdag-construction",
+      "candidate_key": "curl:2a436119a08187ba",
+      "candidate_sha256": "82a67204587605f18a10cfcea9666a15e6fd1a6b525a40dae287cc61435a208b",
+      "judgment_origin": "exploratory-before-820-freeze",
+      "observed_stage": "candidate-only",
+      "rationale": "The raw detector already emits a candidate for two cohesive validation ladders. Each converts an address, checks null asymmetry, compares address and port, and exits through the same problem path. This source was read before the #820 selection freeze, so the positive judgment remains exploratory.",
+      "smallest_sound_invariant": "Acceptance requires one connected mapped witness spanning the ordered guards and error exits on both sides; intersection mass alone cannot satisfy it.",
+      "source_evidence": [
+        {
+          "end_line": 190,
+          "file": "bench/repos/curl/tests/unit/unit1607.c",
+          "observation": "The first loop has a connected conversion and four-check validation ladder with a common failure exit.",
+          "start_line": 149
+        },
+        {
+          "end_line": 189,
+          "file": "bench/repos/curl/tests/unit/unit1609.c",
+          "observation": "The second loop implements the same ladder with only conversion diagnostic text changed.",
+          "start_line": 148
+        }
+      ]
+    },
+    {
+      "blocker_classification": "same-unit-actionable-fragment",
+      "candidate_key": "git:1d9b1c7f444d15d0",
+      "candidate_sha256": "0605378cce63ec592aafd62b787673acbb7a2b9697afbc18db849313fcfcfb29",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "These are disjoint branches inside set_option that parse the same true/false vocabulary, assign one option field, and return identically. The enclosing function would be misleading output, but the two six-line branches are bounded sites.",
+      "smallest_sound_invariant": "Compare only distinct non-overlapping statement windows with closed control flow inside one function, and emit those windows rather than the enclosing function.",
+      "source_evidence": [
+        {
+          "end_line": 81,
+          "file": "bench/repos/git/remote-curl.c",
+          "observation": "The progress branch parses a boolean, assigns one field, rejects other values, and returns.",
+          "start_line": 74
+        },
+        {
+          "end_line": 106,
+          "file": "bench/repos/git/remote-curl.c",
+          "observation": "The deepen-relative branch is a disjoint instance of the same bounded shape.",
+          "start_line": 99
+        }
+      ]
+    },
+    {
+      "blocker_classification": "no-coherent-general-mechanism",
+      "candidate_key": "tmux:6c7a09c2a9c5c2b2",
+      "candidate_sha256": "9b3c61ac9465a247ebfabfcf4a955aea2f93934b44a7d72bcef627ebe5964c06",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "The ranges overlap on lines 341-346 and are shifted windows over one cursor-advancement sequence, not two refactoring locations. Treating them as a pair would duplicate one site and manufacture sliding-window clones.",
+      "smallest_sound_invariant": "Same-unit candidates must be disjoint after location collapse; overlapping or nested windows represent one site.",
+      "source_evidence": [
+        {
+          "end_line": 351,
+          "file": "bench/repos/tmux/layout-custom.c",
+          "observation": "Both members occupy this single parser sequence and share the comma check at lines 341-346.",
+          "start_line": 336
+        }
+      ]
+    },
+    {
+      "blocker_classification": "candidate-generation",
+      "candidate_key": "jq:c0adad57af0c4d06",
+      "candidate_sha256": "1072745a4b89b9daa9e056d5c50764034ea9a080206ea407b514c8f60d843dd4",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "gen_error and gen_const are complete sibling functions with the same allocate, constant assignment, and block-return graph, parameterized by opcode. Their structural intersection is too small to emit a candidate, while the inline ceiling incorrectly counts one whole sibling as augmentation.",
+      "smallest_sound_invariant": "Small sibling units may match when their complete operation graph agrees under explicit constant parameters; inline augmentation may not count one side twice.",
+      "source_evidence": [
+        {
+          "end_line": 151,
+          "file": "bench/repos/jq/src/compile.c",
+          "observation": "gen_error allocates ERRORK, stores the constant, and returns its block.",
+          "start_line": 146
+        },
+        {
+          "end_line": 158,
+          "file": "bench/repos/jq/src/compile.c",
+          "observation": "gen_const performs the same complete sequence for LOADK.",
+          "start_line": 153
+        }
+      ]
+    },
+    {
+      "blocker_classification": "connected-anchor-or-subdag-construction",
+      "candidate_key": "delve:de84b1952aa09a8e",
+      "candidate_sha256": "9129174bbac4023a963efac616e7f35a52b736b11e1904ba1f0dfde0faab507f",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "candidate-only",
+      "rationale": "Unsigned and signed DWARF constant readers reach candidate generation but not acceptance. Their switch/control skeleton is coherent, while every signed case adds a width-specific sign conversion, so the multiset mass is not yet a connected shared witness.",
+      "smallest_sound_invariant": "A shared witness may cover the opcode-width dispatch and common error/stack tail only if each signed conversion is exposed as an explicit variation rather than erased.",
+      "source_evidence": [
+        {
+          "end_line": 341,
+          "file": "bench/repos/delve/pkg/dwarf/op/op.go",
+          "observation": "constnu and constns share dispatch and tail control but the signed arm changes each decoded value.",
+          "start_line": 290
+        }
+      ]
+    },
+    {
+      "blocker_classification": "candidate-generation",
+      "candidate_key": "zap:23de1a83b5d5ff94",
+      "candidate_sha256": "5bc3f8cfe16e43bce128a9d5cff8cfa5b85e5930a321e16ac2e25e3da81771dd",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "Both MarshalLogArray methods are complete seven-line units implementing the same error-accumulating AppendObject loop for different slice element types. Symbol/receiver identity leaves only mass five and no direct candidate despite a coherent whole-method abstraction.",
+      "smallest_sound_invariant": "Candidate generation may abstract receiver and element symbols only while preserving the ordered fold of every AppendObject error into multierr.Append.",
+      "source_evidence": [
+        {
+          "end_line": 91,
+          "file": "bench/repos/zap/benchmarks/zap_test.go",
+          "observation": "The users receiver folds AppendObject errors across its slice.",
+          "start_line": 85
+        },
+        {
+          "end_line": 476,
+          "file": "bench/repos/zap/sugar.go",
+          "observation": "invalidPairs repeats the same ordered fold in production code.",
+          "start_line": 470
+        }
+      ]
+    },
+    {
+      "blocker_classification": "same-unit-actionable-fragment",
+      "candidate_key": "chi:154bd73cf15a6de5",
+      "candidate_sha256": "818c4cdb58b65284187992985c8c892352bf2def26eacc7b2b2d88a813984d10",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "The repeated RouteHeaders setup lives in two t.Run closures, but extraction represents both only through the 176-line enclosing TestRouteHeaders function. The actionable unit is a same-function test window, not a whole-function semantic clone.",
+      "smallest_sound_invariant": "A Go subtest fragment must remain bounded to one t.Run callback and must not merge setup from neighboring subtests in the enclosing test.",
+      "source_evidence": [
+        {
+          "end_line": 108,
+          "file": "bench/repos/chi/middleware/route_headers_test.go",
+          "observation": "One subtest builds the host route plus a default handler.",
+          "start_line": 90
+        },
+        {
+          "end_line": 179,
+          "file": "bench/repos/chi/middleware/route_headers_test.go",
+          "observation": "A later subtest repeats the host route and next-handler setup without a default.",
+          "start_line": 160
+        }
+      ]
+    },
+    {
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "candidate_key": "cobra:db88c9b581c2c760",
+      "candidate_sha256": "3c255fd3352ee4dc071afc43147cd945d0a7353eda757f4898cbd85bfcf5ff11",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "missing-unit",
+      "rationale": "Two complete top-level test helpers differ only in their literal completion table, but the raw stage finds no overlapping unit. This supports retaining small Go helper declarations as units, not broadening acceptance.",
+      "smallest_sound_invariant": "Extract each complete named Go function as a distinct scope-bound unit even when small, before ordinary candidate generation.",
+      "source_evidence": [
+        {
+          "end_line": 39,
+          "file": "bench/repos/cobra/completions_test.go",
+          "observation": "validArgsFunc is one complete helper with a two-row completion table.",
+          "start_line": 27
+        },
+        {
+          "end_line": 53,
+          "file": "bench/repos/cobra/completions_test.go",
+          "observation": "validArgsFunc2 repeats the full helper and changes only table values.",
+          "start_line": 41
+        }
+      ]
+    },
+    {
+      "blocker_classification": "connected-anchor-or-subdag-construction",
+      "candidate_key": "graphhopper:2acc71582f85cc79",
+      "candidate_sha256": "a4d67823c8ec861ddf2b850b5744598119502832a5bb8a9af5cac9f2c45f5a51",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "candidate-only",
+      "rationale": "The two BFS tests reach candidate generation but not acceptance. Their connected common block is the anonymous BreadthFirstSearch subclass that records visited nodes; the graph fixtures and expected traversal sequences intentionally differ.",
+      "smallest_sound_invariant": "The witness must be exactly the anonymous recorder subclass and must leave graph construction and expected traversal order outside the shared region.",
+      "source_evidence": [
+        {
+          "end_line": 59,
+          "file": "bench/repos/graphhopper/core/src/test/java/com/graphhopper/util/BreadthFirstSearchTest.java",
+          "observation": "testBFS defines the reusable recorder subclass before its larger graph fixture.",
+          "start_line": 44
+        },
+        {
+          "end_line": 98,
+          "file": "bench/repos/graphhopper/core/src/test/java/com/graphhopper/util/BreadthFirstSearchTest.java",
+          "observation": "testBFS2 repeats the same subclass before a different graph.",
+          "start_line": 83
+        }
+      ]
+    },
+    {
+      "blocker_classification": "no-coherent-general-mechanism",
+      "candidate_key": "gson:4014d594ab6a8e54",
+      "candidate_sha256": "4703ef0be15ca03e40b43336f7e8fefc53dd90edbf1a81d19ed170939c7047c3",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "candidate-only",
+      "rationale": "wrap and unwrap are inverse lookup tables, not duplicate computations: every condition and return swaps primitive and wrapper roles. A shared bidirectional data table may be a valid manual design, but treating inverse mappings as one semantic clone would generalize far beyond this source fact.",
+      "smallest_sound_invariant": "Do not infer refactorability from parallel branch counts when corresponding predicates and results are reversed; a declared bidirectional mapping would be required.",
+      "source_evidence": [
+        {
+          "end_line": 75,
+          "file": "bench/repos/gson/gson/src/main/java/com/google/gson/internal/Primitives.java",
+          "observation": "wrap maps primitive class tokens to wrappers.",
+          "start_line": 63
+        },
+        {
+          "end_line": 99,
+          "file": "bench/repos/gson/gson/src/main/java/com/google/gson/internal/Primitives.java",
+          "observation": "unwrap intentionally reverses every mapping.",
+          "start_line": 87
+        }
+      ]
+    },
+    {
+      "blocker_classification": "connected-anchor-or-subdag-construction",
+      "candidate_key": "mockito:d82f6e75097748da",
+      "candidate_sha256": "ffce9aa676545670fa722b6aac6c466679b9ecab9a930776e524c8bf20752790",
+      "judgment_origin": "exploratory-before-820-freeze",
+      "observed_stage": "candidate-only",
+      "rationale": "The candidate joins two complete tests sharing setup, invocation, listener verification, and a nested matcher. Expected count and found-versus-null are legitimate parameters. This source was read before the #820 freeze and is recorded as exploratory.",
+      "smallest_sound_invariant": "Accept only a connected witness mapping complete test phases and the nested matcher while retaining expected values as parameters.",
+      "source_evidence": [
+        {
+          "end_line": 60,
+          "file": "bench/repos/mockito/mockito-core/src/test/java/org/mockitousage/debugging/StubbingLookupListenerCallbackTest.java",
+          "observation": "The first test verifies the two-stubbing and found-stubbing case.",
+          "start_line": 32
+        },
+        {
+          "end_line": 89,
+          "file": "bench/repos/mockito/mockito-core/src/test/java/org/mockitousage/debugging/StubbingLookupListenerCallbackTest.java",
+          "observation": "The second test has the same phase graph for the default-answer case.",
+          "start_line": 62
+        }
+      ]
+    },
+    {
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "candidate_key": "commons-lang:7deea4aa415c6197",
+      "candidate_sha256": "e7d43c53204c6d5cc2532e8deac1d82bb99ce8646354117a395ef6eecd14d2aa",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "missing-unit",
+      "rationale": "Two complete JUnit methods enumerate the same comparison matrix for double and float, yet the raw stage exposes no overlapping units. Recovery first needs a full Java test-method unit rather than independent assertion rows.",
+      "smallest_sound_invariant": "Extract a complete test method as one scoped unit even when its body is a repeated assertion matrix; never combine rows within one method into locations.",
+      "source_evidence": [
+        {
+          "end_line": 294,
+          "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/math/NumberUtilsTest.java",
+          "observation": "testCompareDouble is a complete exhaustive matrix.",
+          "start_line": 211
+        },
+        {
+          "end_line": 379,
+          "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/math/NumberUtilsTest.java",
+          "observation": "testCompareFloat repeats it with the numeric type changed.",
+          "start_line": 296
+        }
+      ]
+    },
+    {
+      "blocker_classification": "candidate-generation",
+      "candidate_key": "poetry:08556e25e7ab80e4",
+      "candidate_sha256": "e2363e766aa4eec9fde3402b25b7638df17c4112fe28ed78fb42a4d4638f7d2e",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "The two test functions share a connected Chef construction, fixture lookup, prepare call, wheel-name/tempdir checks, and cleanup. Different editable flags and one ZipFile assertion keep their whole-unit fingerprints apart, leaving no direct candidate despite a coherent test-helper shape.",
+      "smallest_sound_invariant": "Candidate abstraction may vary fixture name, editable mode, expected wheel name, and optional archive assertion while preserving Chef construction, prepare, and cleanup order.",
+      "source_evidence": [
+        {
+          "end_line": 80,
+          "file": "bench/repos/poetry/tests/installation/test_chef.py",
+          "observation": "The base directory test constructs Chef, prepares a fixture, checks the wheel, and unlinks it.",
+          "start_line": 63
+        },
+        {
+          "end_line": 125,
+          "file": "bench/repos/poetry/tests/installation/test_chef.py",
+          "observation": "The editable case repeats the lifecycle with an editable flag and one archive assertion.",
+          "start_line": 105
+        }
+      ]
+    },
+    {
+      "blocker_classification": "no-coherent-general-mechanism",
+      "candidate_key": "scrapy:be72d6b46ad8eaf1",
+      "candidate_sha256": "6963b79dc8e4de4ceecd58c6b4c029e31dfd9ff7de15f4a4d3dd6faa92274441",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "candidate-only",
+      "rationale": "follow and follow_all both forward a long keyword list, but they implement different selector validation and call different superclass methods with scalar versus iterable URL contracts. The common multiset is mostly argument plumbing, not one connected computation whose extraction is clearly actionable.",
+      "smallest_sound_invariant": "Do not equate calls solely because their keyword names match; the callee and scalar-versus-iterable contract must remain identical for a shared call fragment.",
+      "source_evidence": [
+        {
+          "end_line": 219,
+          "file": "bench/repos/scrapy/scrapy/http/response/text.py",
+          "observation": "follow validates one selector and calls super().follow with a scalar url.",
+          "start_line": 200
+        },
+        {
+          "end_line": 292,
+          "file": "bench/repos/scrapy/scrapy/http/response/text.py",
+          "observation": "follow_all expands selector lists and calls super().follow_all with iterable urls.",
+          "start_line": 267
+        }
+      ]
+    },
+    {
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "candidate_key": "poetry:053a58bae5b5c441",
+      "candidate_sha256": "9e6f3d7b7cb1dd263a5146e3a3df310dc43024b44997023d6b8ee0f016abf688",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "The repeated artifact is the identical four-row pytest parameter table at lines 40-47 and 135-142. Extracted function bodies differ by available versus failed keyring behavior, while decorator metadata is not represented as its own unit.",
+      "smallest_sound_invariant": "Represent the literal pytest case table independently from the decorated function so identical test data can be suggested without merging backend behavior.",
+      "source_evidence": [
+        {
+          "end_line": 47,
+          "file": "bench/repos/poetry/tests/utils/test_password_manager.py",
+          "observation": "The available-backend test declares the shared username/password table.",
+          "start_line": 40
+        },
+        {
+          "end_line": 142,
+          "file": "bench/repos/poetry/tests/utils/test_password_manager.py",
+          "observation": "The unavailable-backend test repeats the table verbatim.",
+          "start_line": 135
+        }
+      ]
+    },
+    {
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "candidate_key": "requests:8465ccbf517afa52",
+      "candidate_sha256": "214b609709c65f27e46ed4d9cfc080ae9a0686a1a7922de797bf0ab9c0cc537e",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "missing-unit",
+      "rationale": "The class-contained tests share prepare, read-to-end, rewind, and reread phases, but raw stage reports a missing unit. Initial offset and expected suffix are coherent parameters.",
+      "smallest_sound_invariant": "Extract each class-contained Python test method as a scoped unit, preserving its method boundary and setup-to-assertion order.",
+      "source_evidence": [
+        {
+          "end_line": 1997,
+          "file": "bench/repos/requests/tests/test_requests.py",
+          "observation": "test_rewind_body is one complete full-read scenario.",
+          "start_line": 1986
+        },
+        {
+          "end_line": 2011,
+          "file": "bench/repos/requests/tests/test_requests.py",
+          "observation": "test_rewind_partially_read_body repeats it with an initial offset.",
+          "start_line": 1999
+        }
+      ]
+    },
+    {
+      "blocker_classification": "connected-anchor-or-subdag-construction",
+      "candidate_key": "thor:07e233ddffad07f0",
+      "candidate_sha256": "c3607b8739203183114dff0787b5aa08759c4fb42acca06dbd7fb183d1e90149",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "candidate-only",
+      "rationale": "The two RSpec examples reach candidate generation but not acceptance. Their complete expectation sequence is connected and differs only in Basic versus Readline editor class/name, making a shared example plausible if that variation remains explicit.",
+      "smallest_sound_invariant": "The witness must preserve the ordered constructor, readline expectation, and public LineEditor assertion while parameterizing only the selected editor class and label.",
+      "source_evidence": [
+        {
+          "end_line": 22,
+          "file": "bench/repos/thor/spec/line_editor_spec.rb",
+          "observation": "The Readline example has a three-expectation sequence.",
+          "start_line": 17
+        },
+        {
+          "end_line": 42,
+          "file": "bench/repos/thor/spec/line_editor_spec.rb",
+          "observation": "The Basic example repeats the sequence with one class substitution.",
+          "start_line": 37
+        }
+      ]
+    },
+    {
+      "blocker_classification": "no-coherent-general-mechanism",
+      "candidate_key": "rspec-core:a1957f9937b645c3",
+      "candidate_sha256": "4b5c0e4ef02ef4adb85997167c46a25c3d219c181b06a45dc684b53d917153f8",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "The members are fragments of two long expected transcripts. They share boilerplate prefix text but describe different successful and aborted histories. Inline mass comes from enclosing examples, not one pure helper or complete clone.",
+      "smallest_sound_invariant": "Do not turn shared prefixes of expected literals into a family unless the complete bounded values share one parameterizable structure.",
+      "source_evidence": [
+        {
+          "end_line": 220,
+          "file": "bench/repos/rspec-core/spec/rspec/core/bisect/coordinator_spec.rb",
+          "observation": "This heredoc describes an aborted bisect and abort-specific output.",
+          "start_line": 207
+        },
+        {
+          "end_line": 42,
+          "file": "bench/repos/rspec-core/spec/rspec/core/bisect/coordinator_spec.rb",
+          "observation": "This heredoc describes a successful multi-round bisect.",
+          "start_line": 29
+        }
+      ]
+    },
+    {
+      "blocker_classification": "no-coherent-general-mechanism",
+      "candidate_key": "rubocop:1eead1acc41e3d0d",
+      "candidate_sha256": "b9fe0551e7f284c68a940eae1203bc687056637aa0ecfff6c80435de3ac434ae",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "One member is a single offense example while the other spans over two hundred lines and many independent examples, negative cases, and contexts. The inline ceiling is suite-wide mass.",
+      "smallest_sound_invariant": "A span crossing independent tests cannot become one clone member by adding its enclosing suite or context.",
+      "source_evidence": [
+        {
+          "end_line": 262,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/style/multiple_comparison_spec.rb",
+          "observation": "This side is one complete hash-access offense example.",
+          "start_line": 249
+        },
+        {
+          "end_line": 249,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/style/multiple_comparison_spec.rb",
+          "observation": "The other span crosses many independent positive and negative examples.",
+          "start_line": 34
+        }
+      ]
+    },
+    {
+      "blocker_classification": "connected-anchor-or-subdag-construction",
+      "candidate_key": "jekyll:2791928407ad302c",
+      "candidate_sha256": "83fed4df03ca9b53775245f533e6f4c4d841d5c20bac934c03948545976e4934",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "candidate-only",
+      "rationale": "The candidate joins complete sibling replacement methods. Both normalize an expected expression, build the same assignment, and call assert_equal; collection conversion is the parameter. A full-method connected witness is coherent even below the sub-DAG floor.",
+      "smallest_sound_invariant": "Map one complete sibling method control/data graph to the other, representing collection conversion as a parameter rather than erasing it.",
+      "source_evidence": [
+        {
+          "end_line": 134,
+          "file": "bench/repos/jekyll/rubocop/jekyll/assert_equal_literal_actual.rb",
+          "observation": "The hash method normalizes braces and emits the shared template.",
+          "start_line": 124
+        },
+        {
+          "end_line": 146,
+          "file": "bench/repos/jekyll/rubocop/jekyll/assert_equal_literal_actual.rb",
+          "observation": "The array method repeats the graph with percent/Array normalization.",
+          "start_line": 136
+        }
+      ]
+    },
+    {
+      "blocker_classification": "no-coherent-general-mechanism",
+      "candidate_key": "rack:b7b0b53fbcbab71c",
+      "candidate_sha256": "a28b9f78fb129b1e8c865743008ea1b9c245bb756a16eb93b5a7169e35284956",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "candidate-only",
+      "rationale": "The header checks share iteration and a status guard, but content-type returns while content-length mutates instance state and continues. Erasing this effect boundary would make an unsafe helper.",
+      "smallest_sound_invariant": "A shared control skeleton is insufficient when corresponding branches have different return and mutation effects.",
+      "source_evidence": [
+        {
+          "end_line": 799,
+          "file": "bench/repos/rack/lib/rack/lint.rb",
+          "observation": "The content-type check validates and returns.",
+          "start_line": 789
+        },
+        {
+          "end_line": 814,
+          "file": "bench/repos/rack/lib/rack/lint.rb",
+          "observation": "The content-length check validates, mutates state, and continues.",
+          "start_line": 804
+        }
+      ]
+    },
+    {
+      "blocker_classification": "connected-anchor-or-subdag-construction",
+      "candidate_key": "ripgrep:519afdcaed73af0d",
+      "candidate_sha256": "8cc801b76980e41c492850a8eb29d633df91772439d70a1e8022ff40c3830d00",
+      "judgment_origin": "exploratory-before-820-freeze",
+      "observed_stage": "candidate-only",
+      "rationale": "The candidate joins cohesive configuration blocks in separate by-line branches. Each sets the terminator and pushes normal and every-line TesterConfig rows. It is coherent, but the source was read before the #820 freeze and remains exploratory.",
+      "smallest_sound_invariant": "Accept only the connected statement-and-construction witness, retaining label and line-number state as parameters.",
+      "source_evidence": [
+        {
+          "end_line": 575,
+          "file": "bench/repos/ripgrep/crates/searcher/src/testutil.rs",
+          "observation": "The no-line-number branch emits the normal and every-line configurations.",
+          "start_line": 559
+        },
+        {
+          "end_line": 613,
+          "file": "bench/repos/ripgrep/crates/searcher/src/testutil.rs",
+          "observation": "The line-number branch repeats the connected two-row construction.",
+          "start_line": 597
+        }
+      ]
+    },
+    {
+      "blocker_classification": "no-coherent-general-mechanism",
+      "candidate_key": "serde_json:946bfa61cb71d562",
+      "candidate_sha256": "d9014a0c4450f8a1a2798507d4ccce4c51d43e7720bf3cb98d64d39ffa5b5756",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "candidate-only",
+      "rationale": "mul_test and imul_test share extensive numeric test data, but one operation returns a new value while the other mutates its receiver. A callback abstraction would need to erase a real effect/ownership distinction, so this is not direct evidence for a pure HOF law or one sound semantic match.",
+      "smallest_sound_invariant": "Do not fold returning and in-place mutation operations through one callback unless mutation, ownership, and result equivalence are proven explicitly.",
+      "source_evidence": [
+        {
+          "end_line": 502,
+          "file": "bench/repos/serde_json/tests/lexical/float.rs",
+          "observation": "mul returns a new ExtendedFloat and the test asserts that value.",
+          "start_line": 474
+        },
+        {
+          "end_line": 556,
+          "file": "bench/repos/serde_json/tests/lexical/float.rs",
+          "observation": "imul mutates its receiver and the helper asserts post-mutation state.",
+          "start_line": 527
+        }
+      ]
+    },
+    {
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "candidate_key": "serde_json:2515a9bc2af59ece",
+      "candidate_sha256": "62c870bf522611ae0c96dac81e5c421eab766b1e7bd25c2f84319fe7b8d2e427",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "The members live in named local functions has_next_element and has_next_key nested in trait methods. Raw extraction exposes outer methods but not local items, so no candidate can represent their shared delimiter and error-control logic.",
+      "smallest_sound_invariant": "Extract a named Rust local function as its own scope-bound unit; do not assemble a fragment from unrelated outer-method parts.",
+      "source_evidence": [
+        {
+          "end_line": 1962,
+          "file": "bench/repos/serde_json/src/de.rs",
+          "observation": "has_next_element is a complete local function inside next_element_seed.",
+          "start_line": 1937
+        },
+        {
+          "end_line": 2018,
+          "file": "bench/repos/serde_json/src/de.rs",
+          "observation": "has_next_key is the corresponding local function inside next_key_seed.",
+          "start_line": 1990
+        }
+      ]
+    },
+    {
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "candidate_key": "serde_json:8dc63e0bf59dff86",
+      "candidate_sha256": "403bd910e440a367948b99a06941c25603cb84bbdf0205b255c951760a1f360e",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "These are matching whitespace-and-EOF prefixes of the same two Rust local functions. They confirm the local-item gap, but the prefix must not be admitted directly; complete local functions must be extracted first.",
+      "smallest_sound_invariant": "Surface complete named local items with scope identity, then apply connected matching to full units; a prefix alone is not a family.",
+      "source_evidence": [
+        {
+          "end_line": 1945,
+          "file": "bench/repos/serde_json/src/de.rs",
+          "observation": "The sequence local function begins with whitespace parsing and a list EOF error.",
+          "start_line": 1937
+        },
+        {
+          "end_line": 1996,
+          "file": "bench/repos/serde_json/src/de.rs",
+          "observation": "The map local function repeats it with an object EOF error.",
+          "start_line": 1990
+        }
+      ]
+    },
+    {
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "candidate_key": "swr:9b7a03feec3a4cce",
+      "candidate_sha256": "e2c696c8e4ae43729bbd7ed107be9b9fab9fa3238563adbba9db3581eba6e1a7",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "missing-unit",
+      "rationale": "Both members are try/catch mutation windows inside separate async it callbacks, and neither has an extracted unit. The enclosing test callbacks include different mutation histories, so candidate work cannot start until nested test/try regions are represented.",
+      "smallest_sound_invariant": "Extract one async test callback or try/catch window as a bounded test unit while preserving awaited mutation order and catch behavior.",
+      "source_evidence": [
+        {
+          "end_line": 1413,
+          "file": "bench/repos/swr/test/use-swr-local-mutation.test.tsx",
+          "observation": "The first test catches a failed optimistic mutation to baz.",
+          "start_line": 1403
+        },
+        {
+          "end_line": 1473,
+          "file": "bench/repos/swr/test/use-swr-local-mutation.test.tsx",
+          "observation": "The second test repeats the catch window with qux after a different history.",
+          "start_line": 1463
+        }
+      ]
+    },
+    {
+      "blocker_classification": "unit-extraction-or-missing-unit-kind",
+      "candidate_key": "axios:2169018b8e46a6b6",
+      "candidate_sha256": "7c053d4386e72b2a87fa6c19877b813c6e4c195e4d5bb916bdf49728b7356e01",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "missing-unit",
+      "rationale": "Both are complete async callbacks passed to it and repeat the request adapter plus assertion while varying maxRate data. Raw stage has no unit, so the boundary is a recognized test callback, not an arbitrary anonymous function.",
+      "smallest_sound_invariant": "For an explicit test-DSL call, extract its callback as one scoped test unit; do not generalize the allowlist to arbitrary callbacks.",
+      "source_evidence": [
+        {
+          "end_line": 56,
+          "file": "bench/repos/axios/tests/smoke/esm/tests/rateLimit.smoke.test.js",
+          "observation": "The first it callback is a complete numeric maxRate case.",
+          "start_line": 43
+        },
+        {
+          "end_line": 71,
+          "file": "bench/repos/axios/tests/smoke/esm/tests/rateLimit.smoke.test.js",
+          "observation": "The second repeats it for a tuple value.",
+          "start_line": 58
+        }
+      ]
+    },
+    {
+      "blocker_classification": "candidate-generation",
+      "candidate_key": "zod:e6c204c8d398e185",
+      "candidate_sha256": "82c6cd02f99bcee27a22f0ce51b8179097a191ccc81e7cc26fb29e62e74413e8",
+      "judgment_origin": "prior-frozen-816",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "isValidIP and isValidCidr are complete ten-line functions with identical two-version control flow and only regex-family substitutions. Their intersection mass is 12, below the anchor floor, and no direct candidate is emitted despite a coherent parameterized validator.",
+      "smallest_sound_invariant": "Generate a candidate only when both ordered v4/v6 guards and the final false return align, exposing the two regex references as paired parameters.",
+      "source_evidence": [
+        {
+          "end_line": 696,
+          "file": "bench/repos/zod/packages/zod/src/v3/types.ts",
+          "observation": "isValidIP checks v4 then v6 IP regexes and returns false otherwise.",
+          "start_line": 687
+        },
+        {
+          "end_line": 729,
+          "file": "bench/repos/zod/packages/zod/src/v3/types.ts",
+          "observation": "isValidCidr repeats the control flow with CIDR regexes.",
+          "start_line": 720
+        }
+      ]
+    },
+    {
+      "blocker_classification": "no-coherent-general-mechanism",
+      "candidate_key": "jest:4c55eff3b52a86ff",
+      "candidate_sha256": "9679975d447841d1d453dac826bd359d78fd5adc300ee1d3ae6b19b29672f6cc",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "The sync and async methods intentionally duplicate an algorithm across different effect models and APIs. Erasing await and Async suffixes is a language-specific shortcut, not a sound neutral witness.",
+      "smallest_sound_invariant": "Do not equate synchronous and asynchronous operations by erasing await or API suffixes; effect compatibility must be explicit.",
+      "source_evidence": [
+        {
+          "end_line": 388,
+          "file": "bench/repos/jest/packages/jest-resolve/src/resolver.ts",
+          "observation": "resolveModule calls synchronous APIs and returns a string.",
+          "start_line": 373
+        },
+        {
+          "end_line": 410,
+          "file": "bench/repos/jest/packages/jest-resolve/src/resolver.ts",
+          "observation": "resolveModuleAsync awaits distinct APIs and returns a Promise.",
+          "start_line": 390
+        }
+      ]
+    },
+    {
+      "blocker_classification": "candidate-generation",
+      "candidate_key": "axios:e4b2c19f4886a989",
+      "candidate_sha256": "250df6c0c2a309504c84e4f57ebcf127f92e4a1e04650aee84af6c1a364d352e",
+      "judgment_origin": "post-820-selection-freeze",
+      "observed_stage": "extracted-no-candidate",
+      "rationale": "getParams and getData are complete siblings with the same try/parse/catch/diagnostic/return graph, parameterized by input element and label. Extraction finds them but current small mass emits no candidate.",
+      "smallest_sound_invariant": "Generate a candidate for complete small sibling functions only when one connected control-and-effect graph matches under explicit parameters.",
+      "source_evidence": [
+        {
+          "end_line": 406,
+          "file": "bench/repos/axios/sandbox/client.html",
+          "observation": "getParams parses one element and reports its JSON error.",
+          "start_line": 399
+        },
+        {
+          "end_line": 415,
+          "file": "bench/repos/axios/sandbox/client.html",
+          "observation": "getData repeats the complete graph for another element.",
+          "start_line": 408
+        }
+      ]
+    }
+  ],
+  "dev_proposal": {
+    "cohort_comparison": {
+      "connected-candidate-subdag": {
+        "coverage": "complete",
+        "dev_ceiling": 9,
+        "selected_reviewed": 9,
+        "source_coherent": 6,
+        "source_no_go": 3
+      },
+      "missing-unit-extraction": {
+        "coverage": "sampled-heterogeneous",
+        "dev_ceiling": 33,
+        "selected_reviewed": 6,
+        "source_coherent": 6,
+        "source_no_go": 0
+      },
+      "same-unit-window": {
+        "coverage": "sampled",
+        "dev_ceiling": 16,
+        "selected_reviewed": 4,
+        "source_coherent": 3,
+        "source_no_go": 1
+      }
+    },
+    "dev_success_gate": {
+      "connected_witness_required": true,
+      "forbidden_recovery_ids": [
+        "gson:4014d594ab6a8e54",
+        "scrapy:be72d6b46ad8eaf1",
+        "serde_json:946bfa61cb71d562"
+      ],
+      "max_false_merges": 0,
+      "max_worthy_regressions": 0,
+      "required_recovery_ids": [
+        "curl:2a436119a08187ba",
+        "delve:de84b1952aa09a8e",
+        "graphhopper:2acc71582f85cc79",
+        "mockito:d82f6e75097748da",
+        "ripgrep:519afdcaed73af0d",
+        "thor:07e233ddffad07f0"
+      ]
+    },
+    "hard_negatives": [
+      "Do not admit disconnected optimistic multiset mass as a witness.",
+      "Do not infer A-C equivalence from A-B and B-C evidence.",
+      "Do not lower candidate or acceptance thresholds, ranking, or default-surface policy.",
+      "Do not recover gson:4014d594ab6a8e54, scrapy:be72d6b46ad8eaf1, or serde_json:946bfa61cb71d562.",
+      "Do not report an enclosing function for a bounded same-unit fragment.",
+      "Do not hide a language-specific shortcut inside the connected-witness rule."
+    ],
+    "heldout_source_confirmation": "not-run",
+    "mechanical_dev_ids": [
+      "curl:2a436119a08187ba",
+      "delve:de84b1952aa09a8e",
+      "graphhopper:2acc71582f85cc79",
+      "gson:4014d594ab6a8e54",
+      "mockito:d82f6e75097748da",
+      "ripgrep:519afdcaed73af0d",
+      "scrapy:be72d6b46ad8eaf1",
+      "serde_json:946bfa61cb71d562",
+      "thor:07e233ddffad07f0"
+    ],
+    "mechanism": "For an existing direct raw candidate, construct one actually connected shared control/data witness on both endpoints and require it for acceptance. Keep candidate generation, thresholds, ranking, default-surface policy, and grouping unchanged.",
+    "next_action": "open-connected-witness-implementation-issue",
+    "output_growth_budget": {
+      "max_default_output_growth_pct": 2,
+      "max_runtime_regression_ms": 5,
+      "max_runtime_regression_pct": 5,
+      "max_unrelated_added_rows": 0,
+      "pricing_protocol": "#809 alternating base/head plus same-binary control"
+    },
+    "selected_tranche": "connected-candidate-subdag-witness",
+    "selection_rationale": "The complete nine-row candidate-only plus sub-DAG>=20 dev cohort has six coherent witnesses and three no-go controls. Same-unit has three positives in a four-row sample but needs bounded-fragment output, while six sampled missing-unit rows are real yet split across unrelated language and construct boundaries.",
+    "separate_cohorts": {
+      "candidate-generation": "Extracted units without a raw candidate remain separate.",
+      "no-coherent-general-mechanism": "Mass accidents and effect mismatches remain hard negatives.",
+      "same-unit-window": "Disjoint fragment output needs its own language-bounded contract.",
+      "unit-extraction": "Go helpers, Java/Python tests, Rust local items, and JavaScript callbacks require separate extraction laws."
+    },
+    "smallest_sound_invariant": "Every newly accepted pair carries one connected mapped witness on both sides whose entry, exit, ordering, and relevant effects are preserved; multiset mass and transitive A-B-C overlap never substitute for it.",
+    "source_coherent_ids": [
+      "curl:2a436119a08187ba",
+      "delve:de84b1952aa09a8e",
+      "graphhopper:2acc71582f85cc79",
+      "mockito:d82f6e75097748da",
+      "ripgrep:519afdcaed73af0d",
+      "thor:07e233ddffad07f0"
+    ],
+    "source_no_go_ids": [
+      "gson:4014d594ab6a8e54",
+      "scrapy:be72d6b46ad8eaf1",
+      "serde_json:946bfa61cb71d562"
+    ],
+    "status": "frozen-before-heldout-confirmation"
+  },
+  "judgment_origin_summary": {
+    "exploratory-before-820-freeze": 3,
+    "post-820-selection-freeze": 16,
+    "prior-frozen-816": 16
+  },
+  "prior_decisions_artifact": {
+    "path": "bench/labels/missed_worthy_audit_decisions_2026_07_11.dev.v1.json",
+    "sha256": "137863fb62d02ac3784832d3f0729f0ff800ef2306e43d15e30c97f3eb621d8e"
+  },
+  "schema": "nose.missed_worthy_dev_audit.v2",
+  "selection_sha256": "419ab53ca32c9d33443c64dca03687220d2d92940e47bb8dd2df4b61e40d3712",
+  "source_artifact": {
+    "path": "bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json",
+    "sha256": "b3c3b8c6ba5581f5679bc6de685be52c63a40790640784f98c58597e002f57ac"
+  },
+  "split": "dev",
+  "stage_artifact": {
+    "path": "bench/labels/missed_worthy_stage_audit_post_817_2026_07_12.dev.v1.json",
+    "sha256": "2a3ca53a7933d78a8d52083f2c9788c6b686d08cffb5f85af380e56ee7719477"
+  }
+}
