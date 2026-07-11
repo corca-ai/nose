@@ -26,8 +26,7 @@ changed after dev review.
 
 ## Reproduction
 
-The checked artifact is
-[`recall_ceiling_probe_2026_07_11.v2.json`](../bench/labels/recall_ceiling_probe_2026_07_11.v2.json).
+Use the [`recall_ceiling_probe_2026_07_11.v2.json` reproduction record](../bench/labels/recall_ceiling_probe_2026_07_11.v2.json) as the checked artifact.
 It records the exact command, source commit, clean-tree state, nose version and
 binary hash, v5/v6/evaluation/corpus/prune/query-schema hashes, all 120 repository
 pins, per-repository query hashes, feature-run hashes, source hashes, and failures.
@@ -64,8 +63,7 @@ TypeScript. One candidate from every residual lane is reserved first, then each
 language is filled by preferring weight-20 sub-DAG ceilings and distinct
 repositories. Selection uses label metadata and probe measurements only.
 
-The 35 source decisions are checked in as
-[`missed_worthy_audit_decisions_2026_07_11.dev.v1.json`](../bench/labels/missed_worthy_audit_decisions_2026_07_11.dev.v1.json).
+Use the [`missed_worthy_audit_decisions_2026_07_11.dev.v1.json` dev audit](../bench/labels/missed_worthy_audit_decisions_2026_07_11.dev.v1.json) for the 35 checked source decisions.
 Every row links the frozen candidate hash to source lines, a blocker rationale,
 and its smallest sound invariant.
 
@@ -84,8 +82,7 @@ callback-purity work. Issue #806 therefore remains deferred.
 
 ## Stage evidence
 
-The dev-only stage artifact
-[`missed_worthy_stage_audit_2026_07_11.dev.v1.json`](../bench/labels/missed_worthy_stage_audit_2026_07_11.dev.v1.json)
+The dev-only [`missed_worthy_stage_audit_2026_07_11.dev.v1.json` stage artifact](../bench/labels/missed_worthy_stage_audit_2026_07_11.dev.v1.json)
 runs the raw structural candidate surface once per repository and joins every one
 of the 223 misses to extracted units, direct candidate edges, and direct accepted
 pairs:
@@ -104,8 +101,7 @@ as coherent refactoring families rather than optimistic mass accidents.
 
 After the dev proposal was committed, the pre-registered held-out gate required
 at least 15 accepted pairs in at least three languages. The one-time mechanical
-confirmation artifact
-[`missed_worthy_stage_confirmation_2026_07_11.heldout.v1.json`](../bench/labels/missed_worthy_stage_confirmation_2026_07_11.heldout.v1.json)
+confirmation [`missed_worthy_stage_confirmation_2026_07_11.heldout.v1.json` artifact](../bench/labels/missed_worthy_stage_confirmation_2026_07_11.heldout.v1.json)
 passed with 42/142 accepted pairs across C, Go, Java, Python, Rust, and TypeScript.
 Ruby had no accepted-pair row in that held-out snapshot. This confirms the stage
 mechanism without using held-out source to tune it.
@@ -137,8 +133,7 @@ frontier therefore remains at zero ready-for-defender packets.
 
 The #809 same-binary pricing run covers one source-backed repository per dev
 language: curl, prometheus, netty, rich, rubocop, nushell, and axios. Its checked
-primary/control/status artifacts are adjacent to the label artifacts, with a
-[compact summary](../bench/labels/missed_worthy_grouping_pricing_2026_07_11.summary.md).
+primary/control/status artifacts are adjacent to the label artifacts; see the [compact pricing summary](../bench/labels/missed_worthy_grouping_pricing_2026_07_11.summary.md) for the result.
 
 | current semantic product baseline | value |
 | --- | ---: |

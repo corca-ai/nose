@@ -304,8 +304,7 @@ Cheap experiments that turn direction into data:
   2,626/2,849 dev and 1,949/2,091 held-out recall, then separates raw matching from final
   product coverage. The largest source-confirmed cohort is 51 dev misses whose pair is
   already accepted but absent from query, so the next experiment is bounded family-folding
-  coverage (#817), not a lower anchor threshold. See the
-  [#816 closeout](missed-worthy-frontier-816.md).
+  coverage (#817), not a lower anchor threshold. See the [#816 closeout](missed-worthy-frontier-816.md) for the evidence and route decision.
 - **Byte-determinism stress** — diff `nose query <path> top=0 --format json` across thread counts on a large
   repo. Any difference is a hard-invariant violation. *(Protects both consumers.)*
 
