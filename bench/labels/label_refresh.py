@@ -193,6 +193,15 @@ def selected_keys(
     return keys, existing, swift
 
 
+def ordered_selection(
+    existing: dict[str, list[str]], swift: dict[str, list[str]]
+) -> list[str]:
+    return [
+        *[key for stratum in sorted(existing) for key in existing[stratum]],
+        *[key for repo in sorted(swift) for key in swift[repo]],
+    ]
+
+
 def query_repo(nose: Path, repo: Path) -> tuple[bytes, list[dict[str, Any]], list[str]]:
     command = [str(nose), "query", rel(repo), "all", "top=10", "--format", "json"]
     result = subprocess.run(command, cwd=ROOT, check=False, capture_output=True)
@@ -299,15 +308,7 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
     selection_order = {
         key: index
         for index, key in enumerate(
-            [
-                *[
-                    key
-                    for stratum in sorted(existing_selection)
-                    for key in existing_selection[stratum]
-                ],
-                *[key for repo in sorted(swift_selection) for key in swift_selection[repo]],
-            ],
-            start=1,
+            ordered_selection(existing_selection, swift_selection), start=1
         )
     }
     for candidate in candidates:
@@ -405,6 +406,8 @@ def validate_candidate_artifact(
     selection = artifact.get("selection", {})
     existing = selection.get("existing", {})
     swift = selection.get("swift", {})
+    if existing.get("seed") != SELECTION_SEED:
+        raise SystemExit("candidate selection seed mismatch")
     keys, expected_existing, expected_swift = selected_keys(
         candidates,
         existing_per_stratum=existing.get("per_language_split"),
@@ -412,14 +415,19 @@ def validate_candidate_artifact(
     )
     if existing.get("selected") != expected_existing or swift.get("selected") != expected_swift:
         raise SystemExit("candidate selection does not match the declared deterministic rule")
+    expected_order = ordered_selection(expected_existing, expected_swift)
     recorded_keys = selection.get("selected_candidate_keys")
-    if not isinstance(recorded_keys, list) or set(recorded_keys) != keys:
-        raise SystemExit("selected candidate key list does not match selection")
+    if recorded_keys != expected_order:
+        raise SystemExit("selected candidate key order does not match selection")
     if selection.get("selected_candidate_keys_sha256") != canonical_sha256(recorded_keys):
         raise SystemExit("selected candidate key digest mismatch")
+    expected_positions = {key: index for index, key in enumerate(expected_order, start=1)}
     for candidate in candidates:
-        if candidate.get("selected") != (candidate["candidate_key"] in keys):
+        key = candidate["candidate_key"]
+        if candidate.get("selected") != (key in keys):
             raise SystemExit(f"{candidate['candidate_key']}: selected flag mismatch")
+        if candidate.get("selection_order") != expected_positions.get(key):
+            raise SystemExit(f"{candidate['candidate_key']}: selection order mismatch")
 
     if live_root is not None:
         provenance = artifact.get("provenance", {})
@@ -780,6 +788,38 @@ def run_self_test() -> None:
     assert all(len(rows) == 5 for rows in existing.values())
     assert swift == {"swift": ["swift:family-0", "swift:family-1", "swift:family-2"]}
     assert selected_keys(candidates, existing_per_stratum=5, swift_per_repo=3)[0] == keys
+    selected_order = ordered_selection(existing, swift)
+    positions = {key: index for index, key in enumerate(selected_order, start=1)}
+    for candidate in candidates:
+        key = candidate["candidate_key"]
+        candidate["candidate_sha256"] = canonical_sha256(candidate_content(candidate))
+        candidate["selected"] = key in keys
+        candidate["selection_order"] = positions.get(key)
+    artifact = {
+        "schema": ARTIFACT_SCHEMA,
+        "candidates": candidates,
+        "selection": {
+            "existing": {
+                "seed": SELECTION_SEED,
+                "per_language_split": 5,
+                "selected": existing,
+            },
+            "swift": {"per_repository": 3, "selected": swift},
+            "selected_candidate_keys": selected_order,
+            "selected_candidate_keys_sha256": canonical_sha256(selected_order),
+        },
+    }
+    validate_candidate_artifact(artifact)
+    artifact["selection"]["selected_candidate_keys"] = list(reversed(selected_order))
+    artifact["selection"]["selected_candidate_keys_sha256"] = canonical_sha256(
+        artifact["selection"]["selected_candidate_keys"]
+    )
+    try:
+        validate_candidate_artifact(artifact)
+    except SystemExit as error:
+        assert "key order" in str(error)
+    else:
+        raise AssertionError("selection-order drift must fail closed")
     with tempfile.TemporaryDirectory(prefix="nose-label-refresh-self-test-") as directory:
         path = Path(directory) / "artifact.json"
         path.write_text(json.dumps({"schema": ARTIFACT_SCHEMA, "candidates": []}))
