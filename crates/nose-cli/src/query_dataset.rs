@@ -31,7 +31,8 @@ pub(super) fn build_query_dataset(
     refs: &[&std::path::Path],
 ) -> Result<QueryDataset> {
     let (settings, semantic_packs) = resolve_query_settings(args)?;
-    let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+    let mut opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+    opts.trace_accepted_coverage = true;
     let detector = detection_engine(settings.channels, &opts);
     let (mut report, scope) =
         query_detect_report(args, refs, &settings.exclude, &opts, detector.as_ref());
@@ -51,6 +52,11 @@ pub(super) fn build_query_dataset(
         for f in &mut families {
             for l in &mut f.locations {
                 relativize_loc(l, &cwd);
+            }
+            for obligation in &mut f.accepted_coverage {
+                for l in &mut obligation.sites {
+                    relativize_loc(l, &cwd);
+                }
             }
         }
         for r in &mut reinvented {

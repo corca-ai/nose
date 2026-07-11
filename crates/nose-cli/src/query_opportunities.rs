@@ -10,25 +10,28 @@ pub(crate) fn total_dup_lines_refs(fs: &[&nose_detect::RefactorFamily]) -> u32 {
 /// overlapping slices of the same source regions are one refactoring
 /// *opportunity*, not several. The primary (best-ranked) family keeps its
 /// numbered entry; its slices fold into a one-line note under it and carry
-/// `overlap_primary_id` in JSON. Grouping is presentation policy: every
-/// family stays in JSON, baselines, ignores, and `--fail-on` exactly as
-/// before.
+/// suppression navigation in JSON. Grouping is presentation policy: a folded
+/// family remains addressable with `id=`, while bulk lists and gates emit the
+/// visible roots.
 #[derive(Default)]
 pub(crate) struct OpportunityGroups {
-    /// Slice family id → its primary's family id.
+    /// Slice family id → its direct suppressor's family id. Syntax-only chains
+    /// may point through another slice; accepted evidence points to a covering
+    /// visible root.
     pub(crate) primary_of: FxHashMap<String, String>,
-    /// Primary family id → slice family ids, in rank order.
+    /// Direct suppressor family id → slice family ids, in rank order.
     pub(crate) slices_of: FxHashMap<String, Vec<String>>,
 }
 
 impl OpportunityGroups {
-    /// Group `families` (already in rank order — the first family of a group
-    /// is its primary). Two families join when at least two distinct member
-    /// pairs overlap on the same file by ≥ half of the shorter span: one
-    /// shared region can be coincidence, two parallel shared regions are the
-    /// same opportunity sliced (the craken-cli shape — six families, two
-    /// insights). Conservative by construction: 2-member families must
-    /// overlap on *both* members.
+    /// Group `families`, which arrive in rank order. Two families overlap as slices when at least two
+    /// distinct member pairs overlap by half of the shorter span. A fold is
+    /// allowed only when an earlier, still-visible primary also covers every
+    /// structural accepted-family obligation carried by the slice. Syntax-only
+    /// windows have no such obligation and retain the established folding
+    /// policy. Requiring direct obligation coverage prevents partial overlap or
+    /// an A-B-C bridge from hiding accepted endpoints the primary does not
+    /// represent.
     pub(crate) fn from_ranked(families: &[&nose_detect::RefactorFamily]) -> Self {
         // A file listing implausibly many families would make candidate
         // generation quadratic; skip it rather than risk query speed.
@@ -70,28 +73,53 @@ impl OpportunityGroups {
             })
             .collect();
         candidates.sort_unstable();
-        // Union-find keyed so each set's root is its smallest (best-ranked)
-        // index — that root is the opportunity's primary.
-        let mut parent: Vec<usize> = (0..families.len()).collect();
-        fn find(parent: &mut [usize], mut x: usize) -> usize {
-            while parent[x] != x {
-                parent[x] = parent[parent[x]];
-                x = parent[x];
+        let direct_pairs: Vec<(usize, usize)> = candidates
+            .into_iter()
+            .filter(|&(i, j)| overlapping_member_pairs(families[i], families[j]) >= 2)
+            .collect();
+        // Presentation overlap is a graph, not an equivalence relation. A direct
+        // spanning forest keeps syntax-only suppression edges navigable without
+        // manufacturing a transitive C → A edge. Accepted carriers may instead
+        // point at the visible component root only when it covers every direct
+        // accepted edge; otherwise they become visible.
+        let (direct_parent, original_roots) =
+            direct_suppression_forest(families.len(), &direct_pairs);
+        let mut primary_index = direct_parent.clone();
+        for (index, family) in families.iter().enumerate() {
+            if family.accepted_coverage.is_empty() {
+                continue;
             }
-            x
+            let root = opportunity_root(&direct_parent, index);
+            primary_index[index] = (root != index
+                && accepted_obligations_covered(families[root], family))
+            .then_some(root);
         }
-        for (i, j) in candidates {
-            if overlapping_member_pairs(families[i], families[j]) >= 2 {
-                let (ri, rj) = (find(&mut parent, i), find(&mut parent, j));
-                let (lo, hi) = (ri.min(rj), ri.max(rj));
-                parent[hi] = lo;
+        // A carrier rejected by its component root can still be redundant when
+        // the old visible roots collectively cover each of its accepted edges.
+        // Check exact edge pairs (never endpoint sites independently), then keep
+        // only carriers that add at least one previously uncovered accepted edge.
+        let mut coverage_roots = vec![false; families.len()];
+        for root in original_roots {
+            coverage_roots[root] = true;
+        }
+        for index in 0..families.len() {
+            if primary_index[index].is_some()
+                || direct_parent[index].is_none()
+                || families[index].accepted_coverage.is_empty()
+            {
+                continue;
+            }
+            if accepted_edges_covered_by_roots(families[index], families, &coverage_roots, &by_file)
+            {
+                primary_index[index] = direct_parent[index];
+            } else {
+                coverage_roots[index] = true;
             }
         }
         let mut groups = Self::default();
-        for i in 0..families.len() {
-            let root = find(&mut parent, i);
-            if root != i {
-                let primary = baseline::family_id(families[root]);
+        for (i, primary) in primary_index.into_iter().enumerate() {
+            if let Some(primary) = primary {
+                let primary = baseline::family_id(families[primary]);
                 let slice = baseline::family_id(families[i]);
                 groups.primary_of.insert(slice.clone(), primary.clone());
                 groups.slices_of.entry(primary).or_default().push(slice);
@@ -109,6 +137,64 @@ impl OpportunityGroups {
             .get(&baseline::family_id(family))
             .map(Vec::as_slice)
     }
+}
+
+fn opportunity_root(primary_index: &[Option<usize>], mut index: usize) -> usize {
+    while let Some(primary) = primary_index[index] {
+        index = primary;
+    }
+    index
+}
+
+fn direct_suppression_forest(
+    family_count: usize,
+    direct_pairs: &[(usize, usize)],
+) -> (Vec<Option<usize>>, Vec<usize>) {
+    fn find(parent: &mut [usize], mut index: usize) -> usize {
+        while parent[index] != index {
+            parent[index] = parent[parent[index]];
+            index = parent[index];
+        }
+        index
+    }
+
+    let mut union_parent: Vec<usize> = (0..family_count).collect();
+    let mut adjacent = vec![Vec::new(); family_count];
+    for &(left, right) in direct_pairs {
+        let left_root = find(&mut union_parent, left);
+        let right_root = find(&mut union_parent, right);
+        let (root, child) = (left_root.min(right_root), left_root.max(right_root));
+        union_parent[child] = root;
+        adjacent[left].push(right);
+        adjacent[right].push(left);
+    }
+    for neighbors in &mut adjacent {
+        neighbors.sort_unstable();
+        neighbors.dedup();
+    }
+    let mut roots = Vec::new();
+    for index in 0..family_count {
+        if find(&mut union_parent, index) == index {
+            roots.push(index);
+        }
+    }
+    let mut direct_parent = vec![None; family_count];
+    let mut visited = vec![false; family_count];
+    for &root in &roots {
+        let mut queue = std::collections::VecDeque::from([root]);
+        visited[root] = true;
+        while let Some(current) = queue.pop_front() {
+            for &neighbor in &adjacent[current] {
+                if visited[neighbor] {
+                    continue;
+                }
+                visited[neighbor] = true;
+                direct_parent[neighbor] = Some(current);
+                queue.push_back(neighbor);
+            }
+        }
+    }
+    (direct_parent, roots)
 }
 
 #[derive(Default)]
@@ -189,20 +275,20 @@ fn overlapping_member_pairs(
 ) -> usize {
     let mut used = vec![false; b.locations.len()];
     let mut pairs = 0;
-    for la in &a.locations {
-        for (j, lb) in b.locations.iter().enumerate() {
-            if used[j] || la.file != lb.file {
+    for a_loc in &a.locations {
+        for (j, b_loc) in b.locations.iter().enumerate() {
+            if used[j] || a_loc.file != b_loc.file {
                 continue;
             }
-            let lo = la.start_line.max(lb.start_line);
-            let hi = la.end_line.min(lb.end_line);
+            let lo = a_loc.start_line.max(b_loc.start_line);
+            let hi = a_loc.end_line.min(b_loc.end_line);
             if lo > hi {
                 continue;
             }
             let overlap = hi - lo + 1;
-            let len_a = la.end_line - la.start_line + 1;
-            let len_b = lb.end_line - lb.start_line + 1;
-            if overlap * 2 >= len_a.min(len_b) {
+            let a_len = a_loc.end_line - a_loc.start_line + 1;
+            let b_len = b_loc.end_line - b_loc.start_line + 1;
+            if overlap * 2 >= a_len.min(b_len) {
                 used[j] = true;
                 pairs += 1;
                 break;
@@ -210,6 +296,93 @@ fn overlapping_member_pairs(
         }
     }
     pairs
+}
+
+fn accepted_obligations_covered(
+    primary: &nose_detect::RefactorFamily,
+    slice: &nose_detect::RefactorFamily,
+) -> bool {
+    slice.accepted_coverage.iter().all(|obligation| {
+        obligation.edges.iter().all(|&(left, right)| {
+            let Some(left) = obligation.sites.get(left as usize) else {
+                return false;
+            };
+            let Some(right) = obligation.sites.get(right as usize) else {
+                return false;
+            };
+            primary
+                .locations
+                .iter()
+                .any(|loc| site_is_covered(loc, left))
+                && primary
+                    .locations
+                    .iter()
+                    .any(|loc| site_is_covered(loc, right))
+        })
+    })
+}
+
+fn accepted_edges_covered_by_roots(
+    carrier: &nose_detect::RefactorFamily,
+    families: &[&nose_detect::RefactorFamily],
+    coverage_roots: &[bool],
+    by_file: &FxHashMap<&str, FileOpportunityBucket>,
+) -> bool {
+    carrier.accepted_coverage.iter().all(|obligation| {
+        let roots_by_site: Vec<Vec<usize>> = obligation
+            .sites
+            .iter()
+            .map(|site| {
+                by_file
+                    .get(site.file.as_str())
+                    .into_iter()
+                    .flat_map(|bucket| bucket.families.iter().copied())
+                    .filter(|&family_index| {
+                        coverage_roots[family_index]
+                            && families[family_index]
+                                .locations
+                                .iter()
+                                .any(|loc| site_is_covered(loc, site))
+                    })
+                    .collect()
+            })
+            .collect();
+        obligation.edges.iter().all(|&(left, right)| {
+            let Some(left_roots) = roots_by_site.get(left as usize) else {
+                return false;
+            };
+            let Some(right_roots) = roots_by_site.get(right as usize) else {
+                return false;
+            };
+            sorted_lists_intersect(left_roots, right_roots)
+        })
+    })
+}
+
+fn sorted_lists_intersect(left: &[usize], right: &[usize]) -> bool {
+    let (mut i, mut j) = (0, 0);
+    while let (Some(&a), Some(&b)) = (left.get(i), right.get(j)) {
+        match a.cmp(&b) {
+            Ordering::Less => i += 1,
+            Ordering::Greater => j += 1,
+            Ordering::Equal => return true,
+        }
+    }
+    false
+}
+
+fn site_is_covered(outer: &nose_detect::Loc, site: &nose_detect::Loc) -> bool {
+    if outer.file != site.file {
+        return false;
+    }
+    let lo = outer.start_line.max(site.start_line);
+    let hi = outer.end_line.min(site.end_line);
+    if lo > hi {
+        return false;
+    }
+    let overlap = hi - lo + 1;
+    let site_len = site.end_line - site.start_line + 1;
+    overlap * 2 >= site_len
 }
 
 /// Distinct languages in a family, sorted — e.g. `"python, typescript"`. Empty

@@ -46,6 +46,10 @@ pub(crate) enum Cmd {
         /// default strict path for behavioral-clone research runs.
         #[arg(long)]
         candidates: bool,
+        /// Use the product query's structural channels and materialize their
+        /// accepted pairs. Hidden diagnostic for endpoint-coverage censuses.
+        #[arg(long, hide = true)]
+        query_accepted: bool,
         /// MinHash signature length (LSH).
         #[arg(long, default_value_t = 128, value_parser = parse_minhash_k)]
         minhash_k: usize,

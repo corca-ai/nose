@@ -266,7 +266,8 @@ pub fn detect_from_units(
         Vec::new()
     };
 
-    let groups = build_groups(&units, &accepted, &mut uf, &raw_groups, &enclosing, opts);
+    let (groups, accepted_group_edges) =
+        build_groups(&units, &accepted, &mut uf, &raw_groups, &enclosing, opts);
     clk.lap("groups");
 
     let reinvented = if opts.structural {
@@ -288,6 +289,7 @@ pub fn detect_from_units(
         duplicates,
         groups,
         reinvented,
+        accepted_group_edges,
     };
 
     // Copy-paste channel over the (raw-IL) token streams. Runs here, after the

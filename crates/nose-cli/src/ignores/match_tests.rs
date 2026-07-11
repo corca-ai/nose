@@ -41,6 +41,7 @@ fn family_with_locations(locations: &[(String, &str)]) -> RefactorFamily {
             .iter()
             .map(|(file, lang)| loc(file, lang))
             .collect(),
+        accepted_coverage: Vec::new(),
         mean_sem: 24.0,
         scope: "prod",
         discount: 1.0,

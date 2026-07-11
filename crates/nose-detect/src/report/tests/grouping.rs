@@ -100,7 +100,14 @@ fn subsumed_family_is_dropped() {
         members: vec![loc("a.rs", 10, 40, "rust"), loc("b.rs", 10, 40, "rust")],
         semantic_laws: Vec::new(),
         abstraction_witness: None,
-        witness: None,
+        witness: Some(crate::EquivalenceWitness {
+            kind: "copy-paste-run",
+            value_nodes: None,
+            mean_value_jaccard: None,
+            mean_shape_jaccard: None,
+            graded: None,
+            graded_pair: None,
+        }),
     };
     let inner = Group {
         score: 1.0,
@@ -109,12 +116,27 @@ fn subsumed_family_is_dropped() {
         abstraction_witness: None,
         witness: None,
     };
-    let fams = rank_families(&report(vec![inner, outer]));
+    let mut report = report(vec![inner, outer]);
+    report.accepted_group_edges = vec![vec![(0, 1)], Vec::new()];
+    let fams = rank_families(&report);
     assert_eq!(fams.len(), 1, "the contained family should be dropped");
     assert_eq!(
         fams[0].mean_lines, 31,
         "the surviving family is the outer one"
     );
+    let [obligation] = fams[0].accepted_coverage.as_slice() else {
+        panic!("the syntax survivor must inherit exactly one structural obligation")
+    };
+    assert_eq!(obligation.sites.len(), 2);
+    assert_eq!(obligation.edges, vec![(0, 1)]);
+    assert!(obligation
+        .sites
+        .iter()
+        .any(|loc| loc.file == "a.rs" && loc.start_line == 15 && loc.end_line == 25));
+    assert!(obligation
+        .sites
+        .iter()
+        .any(|loc| loc.file == "b.rs" && loc.start_line == 15 && loc.end_line == 25));
 }
 
 #[test]

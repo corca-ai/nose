@@ -52,6 +52,10 @@ pub struct DetectOptions {
     /// Materialize and sort raw accepted pair output. Hidden `nose detect` and library callers
     /// keep this on; query ranks grouped families and does not need the pair list.
     pub emit_pairs: bool,
+    /// Retain accepted-edge indices per structural group until family ranking.
+    /// Query uses this bounded internal provenance to prove presentation
+    /// suppressions; raw detection and divergence do not need it.
+    pub trace_accepted_coverage: bool,
 }
 
 impl Default for DetectOptions {
@@ -81,6 +85,7 @@ impl Default for DetectOptions {
             shape_features: true,
             abstraction_witnesses: false,
             emit_pairs: true,
+            trace_accepted_coverage: false,
         }
     }
 }

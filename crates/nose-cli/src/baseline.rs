@@ -475,6 +475,7 @@ mod tests {
             params: 0,
             shared_weight: 1.0,
             locations: starts.iter().copied().map(fragment_loc).collect(),
+            accepted_coverage: Vec::new(),
             mean_sem: 1.0,
             scope: "prod",
             discount: 1.0,

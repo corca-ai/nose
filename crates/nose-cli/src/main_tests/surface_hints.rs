@@ -117,6 +117,7 @@ pub(super) fn fam_kind(
         params: 0,
         shared_weight: 0.0,
         locations,
+        accepted_coverage: Vec::new(),
         mean_sem: 50.0,
         scope: "prod",
         discount: 1.0,

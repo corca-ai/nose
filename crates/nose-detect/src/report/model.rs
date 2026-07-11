@@ -7,6 +7,15 @@ use super::{
     score::{effective_copies, spread},
 };
 
+/// A compact direct-accepted-edge graph over one collapsed structural family.
+/// Sites are stored once; edges are local indices, so dense evidence is not
+/// expanded into duplicate location pairs.
+#[derive(Clone)]
+pub struct AcceptedCoverage {
+    pub sites: Vec<Loc>,
+    pub edges: Vec<(u32, u32)>,
+}
+
 #[derive(Serialize, Clone)]
 pub struct RefactorFamily {
     /// Ranking score (higher = more worth refactoring). See `refactor_value`.
@@ -44,6 +53,14 @@ pub struct RefactorFamily {
     pub shared_weight: f64,
     /// The duplicated sites, largest first.
     pub locations: Vec<Loc>,
+    /// Structural accepted-family sites this row must keep covered if a later
+    /// presentation layer suppresses it. Syntax-only windows start empty; when
+    /// rank subsumption drops a structural family, its obligation moves to the
+    /// covering survivor. Kept out of product JSON: this is bounded internal
+    /// suppression provenance, not another reported clone family.
+    #[doc(hidden)]
+    #[serde(skip)]
+    pub accepted_coverage: Vec<AcceptedCoverage>,
     /// Mean value-graph size across members (low → computation-poor type/data def).
     pub mean_sem: f64,
     /// Where the duplication lives: `"prod"`, `"test"` (all sites in test code), or
