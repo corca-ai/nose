@@ -7,7 +7,7 @@ There are two distinct questions, measured separately:
 
 | question | how | data |
 |---|---|---|
-| **Product quality** — does the query surface rank *genuine* refactoring candidates first? | precision@10 + worthy-recall, per language, dev/held-out, bootstrap 95% CIs | the v5 refactoring-family labelset |
+| **Product quality** — does the query surface rank *genuine* refactoring candidates first? | precision@10 + worthy-recall, per language, dev/held-out, bootstrap 95% CIs | the checked v6 composite refactoring-family labelset |
 | **Soundness** — does an equal fingerprint really mean equal behavior? | an interpreter oracle on a battery of inputs (`nose verify`) + Lean proofs | the pinned corpus |
 
 A third asset is the [Type-4 benchmark factory](type4-benchmark.md): an evidence-carrying
@@ -17,22 +17,26 @@ declared semantics, not whether a reported family is worth refactoring.
 
 ## Product quality — the refactoring-family labelset
 
-The active gold set is `bench/labels/refactoring_families.v5.json` (105 repos, ~9.5k
-families, each judged *worthy / not-worthy* of refactoring by a 3-persona LLM panel with
-tie-break/arbiter escalation — see [bench/labels/README.md](../bench/labels/README.md) and
-its [RUBRIC.md](../bench/labels/RUBRIC.md)). The corpus has a **dev / held-out** split (`bench/goldens/corpus.json`),
-so a change has to generalize, not just fit the dev repos; tune only on dev.
+The active gold set is the hash-checked
+`bench/labels/refactoring_families.v6.json` composite: the byte-frozen v5 multi-source
+pool (9,461 families) plus separate dev and held-out current-top-10 components (115
+families). In total it has **9,576 worthy/not-worthy judgments over 120 pinned
+repositories and eight languages**, including 45 labels from all 15 real Swift
+repositories. Each judgment follows a three-persona LLM panel with explicit arbiter
+resolution — see [bench/labels/README.md](../bench/labels/README.md) and the labeling
+contract in [RUBRIC.md](../bench/labels/RUBRIC.md).
 
-Swift support adds 15 pinned Swift repositories to `bench/goldens/corpus.json` for
-lowering/oracle/corpus coverage (120 repos total). The v5 product labelset remains frozen
-at 105 repos; Swift's initial LLM-judge add-on golden is
-`bench/labels/swift_families.v1.json` and is tied to the executable Type-4 Swift probes.
-That add-on has five worthy dev examples from synthetic probes, not product labels from the
-15 real repositories; [#812](https://github.com/corca-ai/nose/issues/812) tracks real Swift
-and current top-10 label coverage.
-The checked-in prune manifest is still the v5 product-corpus artifact; reconstructing the
-expanded corpus rewrites it for that checkout until the next product-labelset refresh
-commits a new prune snapshot.
+The corpus has a **dev / held-out** split (`bench/goldens/corpus.json`), so a change
+has to generalize, not just fit the dev repositories; tune only on dev. The dev
+component was committed before held-out judgment. The checked prune manifest protects
+the complete v6 labelset and records the unchanged 120-repository post-prune digest.
+
+The refresh labels are explicitly **precision-only**: they were selected from current
+top-10 output, so adding them to worthy-recall would bias the recall denominator toward
+what nose already sees. Worthy-recall continues to use only the source-independent v5
+pool. The candidate artifact freezes commands, binary/source hashes, repository commits,
+raw family hashes, deterministic selection, votes, and arbitration. The earlier
+`swift_families.v1.json` remains a synthetic Type-4 bring-up golden outside this metric.
 
 ```sh
 bench/setup_repos.sh                      # clone the pinned corpus into bench/repos
@@ -40,7 +44,7 @@ python3 bench/prune_corpus.py --check-manifest  # verify the recorded prune dige
 cargo build --release -p nose-cli
 python3 bench/labels/query_schema.py --self-test --nose target/release/nose
 python3 bench/labels/eval_by_language.py --rank extractability --bootstrap 500 \
-  --json-out bench/labels/product_quality_evaluation_2026_07_10.v1.json
+  --json-out bench/labels/product_quality_evaluation_2026_07_11.v2.json
 ```
 
 `--rank value` reproduces the historical volume order; `--rank extractability` keeps the
@@ -49,24 +53,38 @@ the historical anti-unification re-rank comparison. Query output passes through 
 schema-v7 adapter: a changed envelope, location key, surface, or scope fails with a
 path-specific error instead of silently dropping a result.
 
-**Reproducible snapshot (2026-07-10, nose 0.18.0):** the checked
-[machine-readable artifact](../bench/labels/product_quality_evaluation_2026_07_10.v1.json) records
-the exact command and configuration, git SHA `61fde21d3a43fe10e6611184a104da695ba2da8c`,
-release-binary SHA-256 `a0a210b9527353b65bbf253c1ee483f9a435e69e4b9587b432eefdcbdba52128`,
-label/corpus/prune hashes, the 105 pinned repository commits, per-repository counts, and
-deterministic 500-resample confidence intervals.
+**Reproducible snapshot (2026-07-11, nose 0.18.0):** the checked
+[machine-readable artifact](../bench/labels/product_quality_evaluation_2026_07_11.v2.json) records
+the exact command and configuration, git SHA
+`52457d541af605a65281f2c8642e153d2fe80950`, release-binary SHA-256
+`a0a210b9527353b65bbf253c1ee483f9a435e69e4b9587b432eefdcbdba52128`,
+all component/corpus/prune hashes, the 120 pinned repository commits,
+per-repository counts, and deterministic 500-resample confidence intervals.
 
 | split | repos | labeled precision@10 | matched top-10 | worthy recall |
 |---|---:|---:|---:|---:|
-| dev | 58 | 60.53% [55.73–65.87] | 375/580 | 2,626/2,849 = 92.17% [91.30–93.16] |
-| held-out | 47 | 54.89% [49.53–60.25] | 317/470 | 1,949/2,091 = 93.21% [92.11–94.36] |
+| dev | 66 | 259/437 = 59.27% [54.92–64.30] | 437/660 = 66.21% | 2,626/2,849 = 92.17% [91.30–93.19] |
+| held-out | 54 | 206/383 = 53.79% [48.30–58.75] | 383/540 = 70.93% | 1,949/2,091 = 93.21% [92.20–94.36] |
 
-Precision is conditional on a current top-10 family matching the frozen v5 pool. The
-artifact records 358 unmatched positions (205 dev, 153 held-out), so they are neither
-silently omitted from the coverage audit nor guessed worthy/not-worthy. Expanding that pool
-and the synthetic-only Swift add-on is [#812](https://github.com/corca-ai/nose/issues/812),
-separate from this evaluator repair. The anti-unification re-rank measures 60.05% dev and
-55.33% held-out, providing no generalizing reason to change current ranking policy here.
+Precision is conditional on a current top-10 family matching an active precision label;
+coverage is therefore reported as a first-class companion metric. On the original 105
+repositories, v6 matches 771/1,050 positions (73.43%) versus v5's 692/1,050 (65.90%):
+**+79 positions / +7.52 percentage points**. Across all 120 repositories it matches
+820/1,200 (68.33%). Real Swift coverage is 49/150, with labeled P@10 of 11/24 dev
+(45.83%) and 12/25 held-out (48.00%); Swift worthy-recall is absent because no
+source-independent Swift recall pool exists yet.
+
+The v5 labelset remains byte-frozen, and its historical results reproduce exactly.
+Running the evaluator with
+`--labelset bench/labels/refactoring_families.v5.json` produced a checked
+[v5 reproduction report](../bench/labels/product_quality_evaluation_v5_reproduction_2026_07_11.v2.json) whose
+raw counts, point estimates, and bootstrap intervals leave the frozen
+[2026-07-10 v1 report](../bench/labels/product_quality_evaluation_2026_07_10.v1.json) exactly unchanged.
+The v2 report adds coverage/eligibility metadata only.
+
+No detector, ranking, or default-surface policy changed in this refresh. The historical
+anti-unification re-rank remains comparison-only and still supplies no generalizing reason
+to replace the native extractability order.
 
 ## Soundness — the behavioral oracle
 

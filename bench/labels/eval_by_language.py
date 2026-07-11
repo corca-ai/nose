@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Evaluate v5 product precision and worthy-family recall by language and split.
+"""Evaluate product precision and worthy-family recall by language and split.
 
-The base metric uses either historical value order or nose's native
-extractability order. The report also retains the historical anti-unification
-re-rank as a comparison, with deterministic bootstrap confidence intervals.
+The active default is the checked v6 composite labelset; an explicit flat v5
+path reproduces the historical metric. The base metric uses either historical
+value order or nose's native extractability order. The report also retains the
+historical anti-unification re-rank as a comparison, with deterministic bootstrap
+confidence intervals.
 
 Examples:
 
