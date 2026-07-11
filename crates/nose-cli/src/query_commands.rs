@@ -192,6 +192,23 @@ fn query_opportunities(
     OpportunityGroups::from_ranked(&default_fams)
 }
 
+fn discard_accepted_coverage(families: &mut [nose_detect::RefactorFamily]) {
+    for family in families {
+        family.accepted_coverage.clear();
+    }
+}
+
+fn semantic_packs_for_output(
+    format: ReportFormat,
+    dataset: &QueryDataset,
+) -> Vec<serde_json::Value> {
+    if matches!(format, ReportFormat::Json) {
+        semantic_packs_json(&dataset.semantic_packs)
+    } else {
+        Vec::new()
+    }
+}
+
 fn split_query_roots_and_terms(
     roots: Vec<PathBuf>,
     positionals: Vec<String>,
@@ -331,14 +348,8 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
     // Accepted-edge graphs are needed only to decide the fold forest. Drop the
     // potentially large internal provenance before list selection and JSON
     // rendering; it is intentionally absent from the product schema.
-    for family in &mut dataset.families {
-        family.accepted_coverage.clear();
-    }
-    let semantic_packs_json = if matches!(args.format, ReportFormat::Json) {
-        semantic_packs_json(&dataset.semantic_packs)
-    } else {
-        Vec::new()
-    };
+    discard_accepted_coverage(&mut dataset.families);
+    let semantic_packs_json = semantic_packs_for_output(args.format, &dataset);
     let output = QueryOutput {
         args: &args,
         terms: &terms,

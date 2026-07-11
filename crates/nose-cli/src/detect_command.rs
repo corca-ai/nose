@@ -28,46 +28,7 @@ pub(crate) fn cmd_detect(args: DetectArgs) -> Result<()> {
     let corpus = time_lower(|| nose_frontend::lower_corpus_many(&refs));
     warn_if_empty(&corpus, &args.paths);
 
-    let (opts, detector): (nose_detect::DetectOptions, Box<dyn nose_detect::Detector>) = if args
-        .query_accepted
-    {
-        let channels = crate::query_options::DetectionChannels::resolve(
-            Vec::new(),
-            Vec::new(),
-            crate::query_options::QUERY_DEFAULT_MODES,
-        )?;
-        let mut opts =
-            crate::detect_pipeline::detection_options(channels, args.min_tokens, args.min_lines);
-        opts.emit_pairs = true;
-        let detector = crate::detect_pipeline::detection_engine(channels, &opts);
-        (opts, detector)
-    } else {
-        let opts = nose_detect::DetectOptions {
-            min_lines: args.min_lines,
-            min_tokens: args.min_tokens,
-            threshold: args
-                .threshold
-                .unwrap_or(if args.candidates { 0.70 } else { 0.86 }),
-            minhash_k: args.minhash_k,
-            bands: args.bands,
-            cfg_norm: !args.no_cfg_norm,
-            dce: args.dce,
-            block_units: !args.no_blocks,
-            ..Default::default()
-        };
-        let detector: Box<dyn nose_detect::Detector> = if args.candidates {
-            Box::new(
-                nose_detect::StructuralDetector::candidates(opts.jaccard_weight)
-                    .with_threshold(opts.threshold),
-            )
-        } else {
-            Box::new(
-                nose_detect::StructuralDetector::strict(opts.jaccard_weight)
-                    .with_threshold(opts.threshold),
-            )
-        };
-        (opts, detector)
-    };
+    let (opts, detector) = detection_config(&args)?;
 
     // Diagnostic dump: units + candidates + predictions to a directory.
     if let Some(dir) = &args.dump {
@@ -154,6 +115,49 @@ pub(crate) fn cmd_detect(args: DetectArgs) -> Result<()> {
         None => println!("{json}"),
     }
     Ok(())
+}
+
+fn detection_config(
+    args: &DetectArgs,
+) -> Result<(nose_detect::DetectOptions, Box<dyn nose_detect::Detector>)> {
+    if args.query_accepted {
+        let channels = crate::query_options::DetectionChannels::resolve(
+            Vec::new(),
+            Vec::new(),
+            crate::query_options::QUERY_DEFAULT_MODES,
+        )?;
+        let mut opts =
+            crate::detect_pipeline::detection_options(channels, args.min_tokens, args.min_lines);
+        opts.emit_pairs = true;
+        let detector = crate::detect_pipeline::detection_engine(channels, &opts);
+        Ok((opts, detector))
+    } else {
+        let opts = nose_detect::DetectOptions {
+            min_lines: args.min_lines,
+            min_tokens: args.min_tokens,
+            threshold: args
+                .threshold
+                .unwrap_or(if args.candidates { 0.70 } else { 0.86 }),
+            minhash_k: args.minhash_k,
+            bands: args.bands,
+            cfg_norm: !args.no_cfg_norm,
+            dce: args.dce,
+            block_units: !args.no_blocks,
+            ..Default::default()
+        };
+        let detector: Box<dyn nose_detect::Detector> = if args.candidates {
+            Box::new(
+                nose_detect::StructuralDetector::candidates(opts.jaccard_weight)
+                    .with_threshold(opts.threshold),
+            )
+        } else {
+            Box::new(
+                nose_detect::StructuralDetector::strict(opts.jaccard_weight)
+                    .with_threshold(opts.threshold),
+            )
+        };
+        Ok((opts, detector))
+    }
 }
 
 /// Map an absolute analyzed path to `(repo_id, repo_relative_path)` given the root

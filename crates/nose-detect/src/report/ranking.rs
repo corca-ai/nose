@@ -104,14 +104,14 @@ fn family_of_with_edges(group: &Group, group_edges: &[(u32, u32)]) -> RefactorFa
         langs.len(),
     ) * discount;
     let collapsed_edges = collapsed_accepted_edges(group, &locs, group_edges);
-    let accepted_coverage = (!collapsed_edges.is_empty())
-        .then(|| {
-            vec![AcceptedCoverage {
-                sites: locs.clone(),
-                edges: collapsed_edges,
-            }]
-        })
-        .unwrap_or_default();
+    let accepted_coverage = if collapsed_edges.is_empty() {
+        Vec::new()
+    } else {
+        vec![AcceptedCoverage {
+            sites: locs.clone(),
+            edges: collapsed_edges,
+        }]
+    };
     RefactorFamily {
         value,
         members,

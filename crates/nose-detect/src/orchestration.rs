@@ -359,16 +359,7 @@ fn detect_from_units_inner(
     // value-graph channel, so both `detect` and the CLI's `--cache-dir` path produce
     // the same families — the cache supplies cached streams, otherwise this would
     // silently omit every contiguous clone.
-    if opts.contiguous {
-        let mut extra = contiguous::detect(
-            streams,
-            opts.contiguous_min_tokens,
-            opts.contiguous_min_lines,
-        );
-        attach_enclosing_units(&mut extra, &units);
-        report.metrics.groups += extra.len();
-        report.groups.extend(extra);
-    }
+    append_contiguous_groups(&mut report, streams, opts, &units);
     clk.lap("contiguous");
 
     let dump = Dump {
@@ -389,4 +380,23 @@ fn detect_from_units_inner(
     };
 
     (report, dump)
+}
+
+fn append_contiguous_groups(
+    report: &mut Report,
+    streams: &[Stream],
+    opts: &DetectOptions,
+    units: &[UnitFeat],
+) {
+    if !opts.contiguous {
+        return;
+    }
+    let mut extra = contiguous::detect(
+        streams,
+        opts.contiguous_min_tokens,
+        opts.contiguous_min_lines,
+    );
+    attach_enclosing_units(&mut extra, units);
+    report.metrics.groups += extra.len();
+    report.groups.extend(extra);
 }
