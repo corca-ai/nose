@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT_SCHEMA = "nose.missed_worthy_frontier.v2"
 DECISIONS_SCHEMA = "nose.missed_worthy_dev_audit.v1"
 STAGE_AUDIT_SCHEMA = "nose.missed_worthy_stage_audit.dev.v1"
+CLOSEOUT_SCHEMA = "nose.missed_worthy_frontier_closeout.v1"
 SELECTION_SEED = "nose-issue-816-dev-audit-v1"
 SELECTION_PER_LANGUAGE = 5
 SUBDAG_FLOORS = (8, 12, 20)
@@ -742,6 +743,247 @@ def load_and_validate_decisions(path: Path, artifact_path: Path) -> dict[str, An
     _require(sha256_file(stage_path) == stage_source.get("sha256"), "stage artifact hash mismatch")
     stage_artifact = json.loads(stage_path.read_text(encoding="utf-8"))
     validate_decisions(payload, artifact, stage_artifact)
+    return payload
+
+
+def _load_checked_record(record: object, label: str) -> tuple[Path, dict[str, Any]]:
+    _require(isinstance(record, dict), f"{label}: expected an object")
+    raw_path = record.get("path")
+    _require(isinstance(raw_path, str) and raw_path, f"{label}.path: missing")
+    path = project_path(raw_path)
+    _require(path.is_file(), f"{label}: missing {path}")
+    _require(sha256_file(path) == record.get("sha256"), f"{label}: hash mismatch")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{label}: invalid JSON: {error}") from error
+    _require(isinstance(payload, dict), f"{label}: expected JSON object")
+    return path, payload
+
+
+def validate_closeout(payload: object) -> None:
+    _require(isinstance(payload, dict), "closeout: expected an object")
+    _require(payload.get("schema") == CLOSEOUT_SCHEMA, "closeout: unsupported schema")
+    _require(payload.get("issue") == 816, "closeout: expected issue 816")
+    artifacts = payload.get("artifacts")
+    _require(isinstance(artifacts, dict), "closeout.artifacts: expected an object")
+    expected_names = {
+        "frontier",
+        "dev_stage",
+        "dev_decisions",
+        "heldout_confirmation",
+        "pricing_primary",
+        "pricing_control",
+        "pricing_status",
+    }
+    _require(set(artifacts) == expected_names, "closeout artifact set is incomplete")
+    checked = {
+        name: _load_checked_record(record, f"closeout.artifacts.{name}")
+        for name, record in artifacts.items()
+    }
+    frontier_path, frontier = checked["frontier"]
+    validate_artifact(frontier, check_inputs=True, check_sources=False)
+    decisions_path, decisions = checked["dev_decisions"]
+    load_and_validate_decisions(decisions_path, frontier_path)
+    _, dev_stage = checked["dev_stage"]
+    _require(dev_stage.get("schema") == STAGE_AUDIT_SCHEMA, "dev stage schema drifted")
+    dev_summary = dev_stage.get("summary", {})
+    _require(dev_summary.get("total") == 223, "dev stage total drifted")
+    _require(
+        dev_summary.get("states")
+        == {
+            "accepted-pair": 51,
+            "candidate-only": 41,
+            "extracted-no-candidate": 96,
+            "missing-unit": 35,
+        },
+        "dev stage counts drifted",
+    )
+    _, confirmation = checked["heldout_confirmation"]
+    _require(
+        confirmation.get("schema") == "nose.missed_worthy_stage_confirmation.heldout.v1",
+        "held-out confirmation schema drifted",
+    )
+    _require(
+        confirmation.get("confirmation_gate", {}).get("passed") is True,
+        "held-out confirmation did not pass",
+    )
+    heldout_summary = confirmation.get("summary", {})
+    heldout_gate = confirmation.get("confirmation_gate", {})
+    _require(heldout_summary.get("total") == 142, "held-out stage total drifted")
+    _require(
+        heldout_summary.get("states", {}).get("accepted-pair") == 42,
+        "held-out accepted-pair count drifted",
+    )
+    _require(
+        confirmation.get("provenance", {}).get("frozen_dev_decisions", {}).get("sha256")
+        == sha256_file(decisions_path),
+        "held-out confirmation did not use the frozen dev decisions",
+    )
+    _, pricing_primary = checked["pricing_primary"]
+    _, pricing_control = checked["pricing_control"]
+    _, pricing_status = checked["pricing_status"]
+    _require(
+        pricing_primary.get("schema") == "nose.query_regression_harness.v2"
+        and pricing_control.get("schema") == "nose.query_regression_harness.v2",
+        "pricing harness schema drifted",
+    )
+    _require(
+        pricing_status.get("schema") == "nose.semantic_regression_check.v1"
+        and pricing_status.get("status") == "pass",
+        "pricing status did not pass",
+    )
+    _require(
+        all(pricing_primary["summary"]["hashes_identical_by_repo"].values()),
+        "pricing primary contains output drift",
+    )
+    _require(pricing_primary.get("repos") == pricing_control.get("repos"), "pricing repo set drifted")
+    primary_output = pricing_status.get("primary", {}).get("output", {})
+    _require(primary_output.get("unexpected_drifts") == [], "pricing status contains output drift")
+    aggregate_signals = [
+        signal
+        for signal in pricing_status.get("primary", {}).get("runtime", {}).get("signals", [])
+        if signal.get("scope") == "aggregate"
+    ]
+    _require(len(aggregate_signals) == 1, "pricing aggregate runtime signal missing")
+
+    selected = payload.get("selected_route")
+    _require(isinstance(selected, dict), "selected_route: expected an object")
+    _require(selected.get("id") == "A", "closeout must select confirmed Route A")
+    follow_up = selected.get("follow_up_issue")
+    _require(isinstance(follow_up, dict), "selected route follow-up missing")
+    _require(
+        follow_up.get("number") == 817
+        and follow_up.get("url") == "https://github.com/corca-ai/nose/issues/817",
+        "Route A must link follow-up issue 817",
+    )
+    for field in ("rationale", "smallest_sound_invariant"):
+        _require(
+            isinstance(selected.get(field), str) and selected[field].strip(),
+            f"selected_route.{field}: expected text",
+        )
+    rejected = payload.get("rejected_routes")
+    _require(
+        isinstance(rejected, dict) and set(rejected) == {"B", "C", "D", "E"},
+        "rejected route set drifted",
+    )
+    _require(
+        all(isinstance(reason, str) and reason.strip() for reason in rejected.values()),
+        "every rejected route needs a rationale",
+    )
+    _require(
+        payload.get("hof_roadmap_status") == "deferred-no-direct-pure-callback-evidence",
+        "#806 moved without direct HOF evidence",
+    )
+    pricing = payload.get("pricing")
+    _require(isinstance(pricing, dict), "closeout.pricing: expected an object")
+    pricing_repos = pricing.get("repositories")
+    _require(
+        isinstance(pricing_repos, list)
+        and len(pricing_repos) == 7
+        and set(pricing_repos) == set(pricing_primary["repos"]),
+        "closeout pricing repositories drifted",
+    )
+    baseline_by_repo = pricing_primary["summary"]["by_repo"]
+    family_totals: Counter[str] = Counter()
+    for repo in pricing_primary["repos"]:
+        baseline = baseline_by_repo[repo]["baseline"]
+        families = baseline.get("families")
+        surfaces = baseline.get("surface_counts")
+        _require(
+            isinstance(families, list) and len(set(families)) == 1,
+            f"pricing {repo} family count is unstable",
+        )
+        _require(
+            isinstance(surfaces, list)
+            and surfaces
+            and all(surface == surfaces[0] for surface in surfaces),
+            f"pricing {repo} surface count is unstable",
+        )
+        family_totals["raw"] += families[0]
+        family_totals.update(surfaces[0])
+    _require(pricing.get("raw_families") == family_totals["raw"] == 1263, "pricing raw count drifted")
+    _require(pricing.get("default_families") == family_totals["default"] == 415, "pricing default count drifted")
+    _require(pricing.get("hidden_families") == family_totals["hidden"] == 795, "pricing hidden count drifted")
+    _require(
+        pricing.get("divergence_families") == family_totals["divergence"] == 53,
+        "pricing divergence count drifted",
+    )
+    _require(
+        pricing.get("aggregate_baseline_median_ms")
+        == round(pricing_primary["summary"]["aggregate_baseline_median_ms"], 2),
+        "pricing aggregate baseline drifted",
+    )
+    aggregate_signal = aggregate_signals[0]
+    _require(
+        pricing.get("same_binary_output_drift") == len(primary_output["unexpected_drifts"]),
+        "pricing output-drift summary drifted",
+    )
+    _require(
+        pricing.get("control_adjusted_runtime_delta_pct")
+        == aggregate_signal.get("adjusted_delta_pct"),
+        "pricing adjusted runtime summary drifted",
+    )
+    _require(pricing.get("slice_dev_accepted_pair_upper_bound") == 25, "pricing upper bound drifted")
+    closeout_confirmation = payload.get("confirmation")
+    _require(isinstance(closeout_confirmation, dict), "closeout confirmation missing")
+    selected_accepted = sum(
+        decision.get("observed_stage") == "accepted-pair" for decision in decisions["decisions"]
+    )
+    selected_coherent = sum(
+        decision.get("blocker_classification") == "family-folding-or-overlap-matching"
+        for decision in decisions["decisions"]
+    )
+    _require(
+        closeout_confirmation
+        == {
+            "dev_direct_accepted": dev_summary["states"]["accepted-pair"],
+            "dev_misses": dev_summary["total"],
+            "selected_direct_accepted": selected_accepted,
+            "selected_source_coherent": selected_coherent,
+            "heldout_direct_accepted": heldout_summary["states"]["accepted-pair"],
+            "heldout_misses": heldout_summary["total"],
+            "heldout_languages": heldout_gate["observed_accepted_languages"],
+            "heldout_gate": "passed",
+            "heldout_source_review": "none",
+        },
+        "closeout confirmation does not match checked evidence",
+    )
+    _require(selected_accepted == selected_coherent == 18, "selected accepted-pair cohort drifted")
+    docs = payload.get("documentation")
+    expected_docs = {
+        "docs/missed-worthy-frontier-816.md",
+        "docs/benchmark.md",
+        "docs/design.md",
+        "docs/experiments.md",
+        "docs/home.md",
+        "bench/labels/README.md",
+        "CHANGELOG.md",
+    }
+    _require(isinstance(docs, list) and set(docs) == expected_docs, "closeout documentation drifted")
+    _require(all(project_path(path).is_file() for path in docs), "closeout documentation path missing")
+    acceptance = payload.get("acceptance")
+    _require(
+        isinstance(acceptance, dict)
+        and acceptance
+        and all(value is True for value in acceptance.values()),
+        "closeout acceptance is incomplete",
+    )
+    next_actions = payload.get("result_dependent_next_action")
+    _require(
+        isinstance(next_actions, list)
+        and len(next_actions) == 3
+        and all(isinstance(item, str) and item.strip() for item in next_actions),
+        "result-dependent next actions are incomplete",
+    )
+
+
+def load_and_validate_closeout(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot read closeout {path}: {error}") from error
+    validate_closeout(payload)
     return payload
 
 

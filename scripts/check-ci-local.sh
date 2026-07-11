@@ -126,6 +126,27 @@ run_regression_checker_selftests() {
     python3 scripts/check-recall-loss-baselines.py --self-test
 }
 
+run_missed_worthy_frontier_checks() {
+    need_cmd python3
+    python3 bench/labels/recall_ceiling_probe.py \
+        --validate bench/labels/recall_ceiling_probe_2026_07_11.v2.json
+    python3 bench/labels/missed_worthy_stage_audit.py \
+        --validate bench/labels/missed_worthy_stage_audit_2026_07_11.dev.v1.json
+    python3 bench/labels/recall_ceiling_probe.py \
+        --validate-decisions bench/labels/missed_worthy_audit_decisions_2026_07_11.dev.v1.json \
+        --artifact bench/labels/recall_ceiling_probe_2026_07_11.v2.json
+    python3 bench/labels/missed_worthy_heldout_confirmation.py \
+        --validate bench/labels/missed_worthy_stage_confirmation_2026_07_11.heldout.v1.json
+    python3 scripts/check-query-regression.py \
+        bench/labels/missed_worthy_grouping_pricing_2026_07_11.primary.v1.json \
+        --same-binary-control bench/labels/missed_worthy_grouping_pricing_2026_07_11.control.v1.json \
+        --require-same-binary-control \
+        --max-runtime-delta-pct 5 \
+        --min-runtime-delta-ms 5
+    python3 bench/labels/recall_ceiling_probe.py \
+        --validate-closeout bench/labels/missed_worthy_frontier_closeout_2026_07_11.v1.json
+}
+
 run_product_query_schema_live_check() {
     need_cmd python3
     python3 bench/labels/query_schema.py --self-test --nose "$1"
@@ -166,6 +187,9 @@ run_type4_frontier_evidence_checks
 
 step "regression checker self-tests"
 run_regression_checker_selftests
+
+step "current missed-worthy frontier artifacts"
+run_missed_worthy_frontier_checks
 
 step "Cargo target prune self-test"
 ./scripts/prune-cargo-target.sh --self-test

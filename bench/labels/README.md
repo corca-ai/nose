@@ -164,6 +164,16 @@ over-approximated classification of whether generalized sub-DAG matching or one-
 pure inlining could recover it. The measured verdict and method are recorded in
 [`docs/experiments.md`](../../docs/experiments.md) §BJ.
 
+The current #816 refresh is
+`recall_ceiling_probe_2026_07_11.v2.json`, backed by the same script plus
+`missed_worthy_frontier.py`. It records complete binary/input/repository/query provenance,
+exactly reproduces the v6 evaluator's v5-worthy recall counts, and freezes a deterministic
+35-family, seven-language dev audit before source judgment. The adjacent dev stage,
+decision, held-out confirmation, and #809 pricing artifacts separate raw accepted pairs
+from final query coverage. The selected Route A follow-up is #817; method, rejected routes,
+and commands are documented in
+[`docs/missed-worthy-frontier-816.md`](../../docs/missed-worthy-frontier-816.md).
+
 `query_json_agent_audit_2026_06_10.json` records the #216 agent-usability audit of the
 query-JSON contract: 18 sampled families, JSON-only decisions graded against source,
 and the ranked evidence-gap list. See

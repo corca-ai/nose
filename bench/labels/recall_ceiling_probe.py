@@ -36,6 +36,7 @@ from missed_worthy_frontier import (
     candidate_sha256,
     canonical_sha256,
     load_and_validate_artifact,
+    load_and_validate_closeout,
     load_and_validate_decisions,
     relative_path,
     render_dev_context,
@@ -702,6 +703,7 @@ def parse_args() -> argparse.Namespace:
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--validate", type=Path, metavar="ARTIFACT")
     modes.add_argument("--validate-decisions", type=Path, metavar="DECISIONS")
+    modes.add_argument("--validate-closeout", type=Path, metavar="CLOSEOUT")
     modes.add_argument("--render-dev", type=Path, metavar="ARTIFACT")
     modes.add_argument("--self-test", action="store_true")
     parser.add_argument("--artifact", type=Path, help="source artifact for decision validation")
@@ -738,6 +740,10 @@ def main() -> None:
             raise SystemExit("--validate-decisions requires --artifact")
         load_and_validate_decisions(args.validate_decisions, args.artifact)
         print(f"validated {args.validate_decisions}")
+        return
+    if args.validate_closeout is not None:
+        load_and_validate_closeout(args.validate_closeout)
+        print(f"validated {args.validate_closeout}")
         return
     if args.render_dev is not None:
         if args.context_out is None:

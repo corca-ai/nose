@@ -131,6 +131,9 @@ fundamentals; the rest is grouped by area.
 ### Type-4, hazard & measurement
 
 - [benchmark](benchmark.md) — the gold set, methodology, and the headline precision/recall numbers.
+- [current missed-worthy frontier](missed-worthy-frontier-816.md) — the #816
+  dev-first recall audit, accepted-pair coverage-loss result, Route A decision,
+  rejected alternatives, and #817 follow-up gates.
 - [type4-benchmark](type4-benchmark.md) — the evidence-carrying synthetic Type-4 benchmark factory.
 - [type4-adversarial-coverage](type4-adversarial-coverage.md) — focused Type-4 cases, target-packet task cards, and verifier-lead draft workflow.
 - [frontier-platform](frontier-platform.md) — corpus-balanced evidence platform that ranks the next Type-4 axis by presence breadth (not raw count) and separates the queue signal from human-verified evidence.

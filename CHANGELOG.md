@@ -7,6 +7,11 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added the #816 current missed-worthy frontier audit: complete nose 0.18.0
+  reproduction provenance, exact v5-worthy recall counts, a frozen seven-language
+  dev source audit, raw extraction/candidate/accepted stage evidence, one-time
+  held-out confirmation, #809 product/runtime pricing, and the bounded #817 Route A
+  follow-up for preserving already-accepted pair coverage through family folding.
 - Added the v6 product-label composite: a hash-checked, split-safe overlay of 115
   current top-10 judgments (including all 15 real Swift repositories) on the frozen
   v5 pool, with durable selection/source provenance, panel votes and arbitration,
