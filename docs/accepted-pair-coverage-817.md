@@ -7,8 +7,8 @@ accepted endpoint. The change preserves pair-local evidence without changing
 candidate thresholds, accepted-pair semantics, ranking order, or default-surface
 classification.
 
-This page records the dev result and the held-out gate as frozen before held-out
-measurement. See the machine-readable [`accepted_pair_coverage_dev_gate_2026_07_11.v1.json` chronology](../bench/labels/accepted_pair_coverage_dev_gate_2026_07_11.v1.json).
+This page records the dev result, the held-out gate frozen before measurement,
+and the later one-time confirmation. See the machine-readable [`accepted_pair_coverage_dev_gate_2026_07_11.v1.json` chronology](../bench/labels/accepted_pair_coverage_dev_gate_2026_07_11.v1.json).
 
 ## Reproduced defect
 
@@ -187,15 +187,25 @@ families, zero worthy regressions, P@10 no worse than -1 percentage point, defau
 growth at most 10%, zero unexpected accepted-edge regressions, zero unaccounted added
 families, and both runtime gates passing. Dev passes every condition.
 
-Held-out will now run exactly once with no subsequent grouping tune. It passes when it
-recovers at least 15 worthy labels across at least three languages, regresses none, and
-keeps P@10 within -2 percentage points of the frozen baseline.
+Held-out was then run exactly once from clean commit `074f029b`, with no subsequent
+grouping tune. The pre-registered pass rule was at least 15 recovered worthy labels
+across at least three languages, no regression, and P@10 within -2 percentage points
+of the frozen baseline.
 
-- If held-out passes, merge this bounded fix, rerun the missed-worthy frontier, and
-  choose the next tranche only from the remaining misses.
-- If held-out fails, record a grouping no-go without tuning on held-out and proceed to
-  the second split-safe precision-label refresh over the remaining unmatched top-10
-  positions.
+| held-out metric | baseline | head | delta |
+| --- | ---: | ---: | ---: |
+| worthy recall | 1,949/2,091 (93.21%) | 1,996/2,091 (95.46%) | +47 |
+| labeled P@10 | 206/383 (53.79%) | 214/384 (55.73%) | +1.94 pp |
+| label-match coverage | 383/540 (70.93%) | 384/540 (71.11%) | +1 |
+
+No worthy label regressed. Recovery spans C +9, Go +2, Java +23, Python +2,
+Rust +6, and TypeScript +5: 47 labels across six languages. The confirmation
+therefore passes every frozen condition. The [held-out evaluation](../bench/labels/product_quality_evaluation_issue_817_2026_07_11.heldout.v1.json)
+contains the exact recovered IDs, and the [confirmation record](../bench/labels/accepted_pair_coverage_heldout_confirmation_2026_07_11.v1.json)
+binds it to the pre-held-out dev gate.
+
+The selected next action is now the pass branch: merge this bounded fix, rerun the
+missed-worthy frontier, and choose the next tranche only from the remaining misses.
 
 ## Validation
 

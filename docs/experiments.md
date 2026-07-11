@@ -3531,8 +3531,10 @@ display counts and isolating accepted tracing from the extraction hot path, 20-i
 focused gates pass at **-2.11% semantic** and **-4.54% CLI-default** control-adjusted aggregate.
 
 The dev criterion and result-dependent held-out action were committed before the one-time
-held-out evaluation. Full methodology, exact 65 recovered IDs, artifact links, and validation
-commands are in [the #817 closeout](accepted-pair-coverage-817.md).
+held-out evaluation. That confirmation passed with **1,949/2,091 -> 1,996/2,091 (+47)**
+worthy recall, zero regressions, recovery across six languages, and P@10 **53.79% ->
+55.73%**. Full methodology, exact recovered IDs, artifact links, and validation commands
+are in [the #817 closeout](accepted-pair-coverage-817.md).
 
 ## DH. Parser-artifact hygiene and unsupported-header routing (2026-06-20)
 

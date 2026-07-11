@@ -181,7 +181,9 @@ product-quality report, and the semantic/default `accepted_pair_coverage_pricing
 artifacts. Together they bind the full dev accepted-edge universe, exact recovered
 and regressed worthy IDs, output declarations, same-binary controls, and focused
 runtime gates. `accepted_pair_coverage_dev_gate_2026_07_11.v1.json` freezes the
-success criterion before held-out. Method and results are documented in
+success criterion before held-out;
+`accepted_pair_coverage_heldout_confirmation_2026_07_11.v1.json` binds the later
+one-time passing confirmation to that gate. Method and results are documented in
 [`docs/accepted-pair-coverage-817.md`](../../docs/accepted-pair-coverage-817.md).
 
 `query_json_agent_audit_2026_06_10.json` records the #216 agent-usability audit of the
