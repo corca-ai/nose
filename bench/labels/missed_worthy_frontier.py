@@ -41,6 +41,13 @@ CHECKED_RECALL_PROFILES = {
         "heldout": {"hits": 1996, "n": 2091},
     },
 }
+CHECKED_COMPARISON_PROFILES = {
+    "f7410ef73c1ab0ccd5ca23d938a032ee0a539ee57be662b4aa4d9045b93d6ce0": {
+        "delta": 112,
+        "recovered_count": 112,
+        "regressed_count": 0,
+    },
+}
 REQUIRED_RESIDUAL_LANES = (
     "inline-ceiling",
     "same-unit-window",
@@ -124,6 +131,19 @@ def validate_evaluation_recall(
             {"hits": actual.get("hits"), "n": actual.get("n")} == expected,
             f"checked evaluation {split} worthy recall drifted",
         )
+
+
+def validate_evaluation_comparison(evaluation: object, digest: str) -> None:
+    expected = CHECKED_COMPARISON_PROFILES.get(digest)
+    if expected is None:
+        return
+    _require(isinstance(evaluation, dict), "checked evaluation: expected an object")
+    comparison = evaluation.get("comparison")
+    _require(isinstance(comparison, dict), "checked evaluation comparison missing")
+    worthy = comparison.get("worthy_recall")
+    _require(isinstance(worthy, dict), "checked evaluation worthy comparison missing")
+    actual = {field: worthy.get(field) for field in expected}
+    _require(actual == expected, "checked evaluation comparison drifted")
 
 
 def project_path(path: str) -> Path:
@@ -497,6 +517,10 @@ def validate_artifact(
                 )
         evaluation = json.loads(resolved_inputs["evaluation_report"].read_text())
         validate_evaluation_recall(evaluation, expected_recall)
+        validate_evaluation_comparison(
+            evaluation,
+            inputs["evaluation_report"]["sha256"],
+        )
         corpus_payload = json.loads(resolved_inputs["corpus_manifest"].read_text())
         repositories = corpus_payload.get("repositories")
         _require(isinstance(repositories, list), "corpus manifest repositories missing")
@@ -1665,6 +1689,30 @@ def run_self_test() -> None:
         _require("heldout worthy recall drifted" in str(error), "metric drift failed unclearly")
     else:
         raise AssertionError("a checked evaluation metric substitution was accepted")
+
+    comparison_evaluation = {
+        "comparison": {
+            "worthy_recall": {
+                "delta": 112,
+                "recovered_count": 112,
+                "regressed_count": 0,
+            }
+        }
+    }
+    validate_evaluation_comparison(
+        comparison_evaluation,
+        "f7410ef73c1ab0ccd5ca23d938a032ee0a539ee57be662b4aa4d9045b93d6ce0",
+    )
+    comparison_evaluation["comparison"]["worthy_recall"]["regressed_count"] = 1
+    try:
+        validate_evaluation_comparison(
+            comparison_evaluation,
+            "f7410ef73c1ab0ccd5ca23d938a032ee0a539ee57be662b4aa4d9045b93d6ce0",
+        )
+    except ValueError as error:
+        _require("comparison drifted" in str(error), "comparison test failed unclearly")
+    else:
+        raise AssertionError("an evaluation comparison regression was accepted")
 
     def row(
         key: str,
