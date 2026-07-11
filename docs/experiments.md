@@ -3504,6 +3504,38 @@ required #817 gate because #816 intentionally implements no product change.
 The full protocol, artifact links, rejected B-E routes, and result-dependent next action are
 in [the #816 closeout](missed-worthy-frontier-816.md).
 
+## DJ. Accepted-pair endpoint coverage through family folding (#817, 2026-07-11)
+
+The #816 lead was a downstream representation defect, not a detector-admission gap. The
+sqlite `sqlEvalFunc` pair demonstrated the exact chain: rank subsumption moved accepted
+evidence into a larger syntax window, partial opportunity overlap folded that window under
+an unrelated earlier family, and transitive union-find rooting left neither accepted endpoint
+in final output.
+
+The fix carries a compact direct-edge graph through same-file collapse and rank subsumption,
+then uses a direct suppression forest. An accepted carrier folds only when one visible family
+covers both endpoints of every direct edge. It does not infer A-C from A-B/B-C, emit one row
+per pair, lower a threshold, or change surface policy. A rejected site-union implementation
+lost 7,849 Guava edges because independently covered endpoints are not a covered pair.
+
+The frozen 66-repo dev census contains **1,222,948** accepted edges, of which **1,222,904**
+are distinct and non-nested. Baseline final output covers 798,973; the fix covers 1,222,856,
+recovering **423,883 with zero regressions**. The remaining 48 are explicitly generated or
+vendored. All 2,377 added visible families account for recovered evidence.
+
+Dev worthy recall moves **2,626/2,849 -> 2,691/2,849 (+65)** with zero label regressions;
+labeled P@10 moves **59.27% -> 59.06% (-0.21 pp)**. On the seven-repo #809 slice, actual
+CLI-default output grows 11,849 -> 12,312 all families (+3.91%) and 6,200 -> 6,663 default
+families (+7.47%). Exact output declarations pass. After reusing already-computed all-copy
+display counts and isolating accepted tracing from the extraction hot path, 20-iteration
+focused gates pass at **-2.11% semantic** and **-4.54% CLI-default** control-adjusted aggregate.
+
+The dev criterion and result-dependent held-out action were committed before the one-time
+held-out evaluation. That confirmation passed with **1,949/2,091 -> 1,996/2,091 (+47)**
+worthy recall, zero regressions, recovery across six languages, and P@10 **53.79% ->
+55.73%**. Full methodology, exact recovered IDs, artifact links, and validation commands
+are in [the #817 closeout](accepted-pair-coverage-817.md).
+
 ## DH. Parser-artifact hygiene and unsupported-header routing (2026-06-20)
 
 After §DG, the largest `gap-impact` rows were no longer ordinary lowering misses. They were parser

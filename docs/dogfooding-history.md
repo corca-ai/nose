@@ -1071,3 +1071,13 @@ closed enum into different domains: semantic receiver requirements versus
 stable LibraryApi contract keys. Sharing them would couple two separate policy
 tables and make exhaustiveness less explicit. The budget is raised to 31 for
 this reviewed enum-projection span, not for avoidable duplication.
+
+The accepted-pair endpoint coverage fix (#817) keeps the reviewed default-surface
+count at 31. Compact accepted-edge tracing added ahead of
+`candidates.rs::anchor_candidates`, moving that function's source span and the
+already reviewed cross-engine candidate-pair enumeration representative from
+`ec66a9b9f2569018` to `0f873b1c184596cb`. Its members remain
+`nose-markdown`'s `fingerprint.rs::candidate_pairs` and `nose-detect`'s
+`candidates.rs::anchor_candidates`; this is representative-ID churn for the same
+visible cross-engine algorithm debt, not a new duplicate family. No new budget is
+accepted.

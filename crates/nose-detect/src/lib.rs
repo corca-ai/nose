@@ -45,8 +45,13 @@ pub use model::{
     LineSpan, Loc, LocInit, Metrics, Report, UnitLoc,
 };
 pub use options::DetectOptions;
-pub use orchestration::{detect, detect_from_units, detect_with_dump, file_stream, units_of_file};
+pub use orchestration::{
+    detect, detect_from_units, detect_from_units_with_accepted_coverage,
+    detect_with_accepted_coverage, detect_with_dump, file_stream, units_of_file,
+};
 pub use reinvented::{reinvented_helpers, ReinventedHelper};
-pub use report::{is_test_loc, is_test_path, rank_families, RefactorFamily, VaryingSpot};
+pub use report::{
+    is_test_loc, is_test_path, rank_families, AcceptedCoverage, RefactorFamily, VaryingSpot,
+};
 pub use units::{unit_dags_at, UnitFeat};
 pub use witness::{graded_witness, GradedWitness, WitnessHole};

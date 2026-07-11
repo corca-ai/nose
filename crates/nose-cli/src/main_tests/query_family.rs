@@ -1,6 +1,8 @@
 use super::surface_hints::{fam, fam_kind};
 use super::*;
 
+mod accepted_coverage;
+
 fn loc_at(file: &str, start: u32, end: u32, kind: nose_il::UnitKind) -> Loc {
     Loc::new(LocInit {
         file: file.to_string(),
@@ -21,6 +23,20 @@ fn fam_at(spans: &[(&str, u32, u32)]) -> RefactorFamily {
         .map(|(file, s, e)| loc_at(file, *s, *e, nose_il::UnitKind::Block))
         .collect();
     f
+}
+
+#[test]
+fn query_reuses_precomputed_all_copy_counts() {
+    let mut f = fam_at(&[("missing/a.go", 1, 20), ("missing/b.go", 1, 20)]);
+    f.shared_lines = 11;
+    f.params = 7;
+    f.display_params = Some(2);
+
+    assert_eq!(
+        all_copies_shared(&f),
+        (11, 2),
+        "rendering uses the all-copies count cached during shared-line weighting"
+    );
 }
 
 #[test]
@@ -68,29 +84,6 @@ fn compiled_css_pipeline_demotes_source_plus_outputs_but_not_cross_source() {
     // a non-CSS member disqualifies — this rule is CSS-only.
     let mixed = fam_at(&[("src/_a.css", 1, 9), ("app.js", 1, 9)]);
     assert!(!family_is_compiled_css_pipeline(&mixed, &gen));
-}
-
-#[test]
-fn overlapping_slices_fold_under_their_primary() {
-    // B's members are both shifted slices of A's regions → one opportunity.
-    // C shares only ONE region with A (its other member lives elsewhere) —
-    // a single shared region can be coincidence, so C stays its own entry.
-    let a = fam_at(&[("t/a.go", 100, 130), ("t/b.go", 50, 70)]);
-    let b = fam_at(&[("t/a.go", 105, 128), ("t/b.go", 52, 66)]);
-    let c = fam_at(&[("t/a.go", 100, 130), ("t/z.go", 5, 25)]);
-    let ranked = [&a, &b, &c];
-    let groups = OpportunityGroups::from_ranked(&ranked);
-    assert!(groups.is_slice(&b), "b is a slice of a");
-    assert!(
-        !groups.is_slice(&a),
-        "the best-ranked family is the primary"
-    );
-    assert!(!groups.is_slice(&c), "one shared region must not group");
-    assert_eq!(
-        groups.slices(&a),
-        Some(&[baseline::family_id(&b)][..]),
-        "a lists exactly b as its folded slice"
-    );
 }
 
 #[test]

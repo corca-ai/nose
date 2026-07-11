@@ -52,6 +52,11 @@ pub(super) fn build_query_dataset(
             for l in &mut f.locations {
                 relativize_loc(l, &cwd);
             }
+            for obligation in &mut f.accepted_coverage {
+                for l in &mut obligation.sites {
+                    relativize_loc(l, &cwd);
+                }
+            }
         }
         for r in &mut reinvented {
             r.helper_file = relativize(&r.helper_file, &cwd);
@@ -168,12 +173,18 @@ fn query_detect_report(
             streams,
             files,
         } = cache::build_units_cached(&corpus, opts, dir);
-        let report = nose_detect::detect_from_units(units, files, &streams, opts, detector).0;
+        let report = nose_detect::detect_from_units_with_accepted_coverage(
+            units, files, &streams, opts, detector,
+        )
+        .0;
         (report, scope)
     } else {
         let corpus = time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude));
         let scope = QueryScope::from_corpus(&corpus);
-        (nose_detect::detect(&corpus, opts, detector), scope)
+        (
+            nose_detect::detect_with_accepted_coverage(&corpus, opts, detector),
+            scope,
+        )
     }
 }
 
@@ -229,6 +240,7 @@ fn weight_shared_lines(
             f.shared_lines = s.display;
             f.shared_weight = s.rank_lines.len() as f64 * gate;
             f.params = s.params;
+            f.display_params = Some(s.display_params);
         }
     }
 }

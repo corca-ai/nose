@@ -3,7 +3,7 @@ use nose_semantics::value_law_provenance;
 use rayon::prelude::*;
 
 use super::{
-    model::RefactorFamily,
+    model::{AcceptedCoverage, RefactorFamily},
     paths::{
         is_generated_loc, is_test_loc, module_of, overlap_frac, refactor_discount, span_lines,
     },
@@ -32,7 +32,12 @@ fn distinct_by<'a>(locs: &'a [Loc], key: impl Fn(&'a Loc) -> &'a str) -> Vec<&'a
     v
 }
 
+#[cfg(test)]
 pub(super) fn family_of(group: &Group) -> RefactorFamily {
+    family_of_with_edges(group, &[])
+}
+
+fn family_of_with_edges(group: &Group, group_edges: &[(u32, u32)]) -> RefactorFamily {
     // Collapse co-located units to one refactoring site. Block extraction yields a
     // function unit *and* inner blocks that overlap it, and near-identical spans can
     // differ by a line; all of these are one place to refactor, not several. Keep the
@@ -98,6 +103,15 @@ pub(super) fn family_of(group: &Group) -> RefactorFamily {
         modules.len(),
         langs.len(),
     ) * discount;
+    let collapsed_edges = collapsed_accepted_edges(group, &locs, group_edges);
+    let accepted_coverage = if collapsed_edges.is_empty() {
+        Vec::new()
+    } else {
+        vec![AcceptedCoverage {
+            sites: locs.clone(),
+            edges: collapsed_edges,
+        }]
+    };
     RefactorFamily {
         value,
         members,
@@ -112,6 +126,8 @@ pub(super) fn family_of(group: &Group) -> RefactorFamily {
         params: 0,
         shared_weight: 0.0,
         locations: locs,
+        accepted_coverage,
+        display_params: None,
         mean_sem,
         scope,
         discount,
@@ -126,6 +142,38 @@ pub(super) fn family_of(group: &Group) -> RefactorFamily {
     }
 }
 
+fn collapsed_accepted_edges(
+    group: &Group,
+    collapsed_sites: &[Loc],
+    group_edges: &[(u32, u32)],
+) -> Vec<(u32, u32)> {
+    let site_of: Vec<Option<u32>> = group
+        .members
+        .iter()
+        .map(|member| {
+            collapsed_sites
+                .iter()
+                .enumerate()
+                .filter(|(_, site)| site.file == member.file)
+                .map(|(index, site)| (index as u32, overlap_frac(site, member)))
+                .filter(|(_, overlap)| *overlap >= 0.5)
+                .max_by(|a, b| a.1.total_cmp(&b.1))
+                .map(|(index, _)| index)
+        })
+        .collect();
+    let mut edges: Vec<(u32, u32)> = group_edges
+        .iter()
+        .filter_map(|&(left, right)| {
+            let left = site_of.get(left as usize).copied().flatten()?;
+            let right = site_of.get(right as usize).copied().flatten()?;
+            (left != right).then_some((left.min(right), left.max(right)))
+        })
+        .collect();
+    edges.sort_unstable();
+    edges.dedup();
+    edges
+}
+
 /// Rank a detection report's groups as refactoring opportunities, highest value
 /// first. Trivial families (a single pair of tiny fragments) sink to the bottom.
 pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
@@ -133,7 +181,17 @@ pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
         report
             .groups
             .par_iter()
-            .map(family_of)
+            .enumerate()
+            .map(|(index, group)| {
+                family_of_with_edges(
+                    group,
+                    report
+                        .accepted_group_edges
+                        .get(index)
+                        .map(Vec::as_slice)
+                        .unwrap_or_default(),
+                )
+            })
             // Drop families living entirely in generated / vendored / ambient-declaration
             // files (`vendor/`, `.min.`, `*.d.ts`, `// Generated`-style paths): you don't
             // refactor code a tool regenerates. A *partly*-generated family is kept — that's
@@ -175,18 +233,24 @@ pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
     let mut by_file: rustc_hash::FxHashMap<String, Vec<(u32, u32, usize)>> =
         rustc_hash::FxHashMap::default();
     time_rank_stage("dedup", || {
-        for f in fams {
-            let subsumed = f.locations.first().is_some_and(|first| {
-                by_file.get(first.file.as_str()).is_some_and(|spans| {
+        for mut f in fams {
+            let subsumer = f.locations.first().and_then(|first| {
+                by_file.get(first.file.as_str()).and_then(|spans| {
                     let mut seen = rustc_hash::FxHashSet::default();
-                    spans.iter().any(|&(start, end, ki)| {
-                        seen.insert(ki)
+                    spans.iter().find_map(|&(start, end, ki)| {
+                        (seen.insert(ki)
                             && overlap_frac_span(start, end, first) >= SUBSUME_COVER
-                            && subsumes(&kept[ki], &f)
+                            && subsumes(&kept[ki], &f))
+                        .then_some(ki)
                     })
                 })
             });
-            if !subsumed {
+            if let Some(ki) = subsumer {
+                merge_accepted_coverage(
+                    &mut kept[ki].accepted_coverage,
+                    std::mem::take(&mut f.accepted_coverage),
+                );
+            } else {
                 let ki = kept.len();
                 for l in &f.locations {
                     by_file
@@ -199,6 +263,21 @@ pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
         }
     });
     kept
+}
+
+fn merge_accepted_coverage(existing: &mut Vec<AcceptedCoverage>, incoming: Vec<AcceptedCoverage>) {
+    for obligation in incoming {
+        let duplicate = existing.iter().any(|current| {
+            current.edges == obligation.edges
+                && current.sites.len() == obligation.sites.len()
+                && current.sites.iter().zip(&obligation.sites).all(|(a, b)| {
+                    a.file == b.file && a.start_line == b.start_line && a.end_line == b.end_line
+                })
+        });
+        if !duplicate {
+            existing.push(obligation);
+        }
+    }
 }
 
 /// Total source lines a family spans across all its sites — its "size" for dedup.

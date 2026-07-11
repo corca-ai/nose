@@ -1,0 +1,3042 @@
+{
+  "command": "nose query <repo> all top=0 --mode semantic --format json",
+  "corpus": {
+    "corpus_manifest": "/Users/ak/prjs/cc/nose/bench/goldens/corpus.json",
+    "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
+    "prune_manifest": "/Users/ak/prjs/cc/nose/bench/labels/prune_manifest.json",
+    "prune_manifest_sha256": "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980",
+    "repositories": [
+      {
+        "commit": "4306df21e84332fc576e98c2de549347c06bfb76",
+        "repo": "axios"
+      },
+      {
+        "commit": "ba600296d2a1d8a4e53a36eb4bd30c1f0d0152cc",
+        "repo": "curl"
+      },
+      {
+        "commit": "e90eee9f556e3c770dda5ee171276e886266ae71",
+        "repo": "netty"
+      },
+      {
+        "commit": "779e2473aa28092760fe91ceefb288f36f0670e7",
+        "repo": "nushell"
+      },
+      {
+        "commit": "f3d653fb5cee5e503356eef531b5da7e578cf22f",
+        "repo": "prometheus"
+      },
+      {
+        "commit": "46cebbb032f920eb096efbaf23cdc6fe9dd541f7",
+        "repo": "rich"
+      },
+      {
+        "commit": "43942e260071e869bccc7497bbba82d5d458530e",
+        "repo": "rubocop"
+      }
+    ],
+    "selection_sha256": "dd7c60f848c2839db59b618dd630042e9538040f7c7a4d256d1634b5ab05bd6c"
+  },
+  "environment": {
+    "architecture": "arm64",
+    "logical_cpu_count": 18,
+    "machine_model": "Mac17,7",
+    "memory_bytes": 137438953472,
+    "os": "Darwin",
+    "os_release": "25.5.0",
+    "python_version": "3.14.5",
+    "rustc_version": "rustc 1.96.0 (ac68faa20 2026-05-25)"
+  },
+  "execution": {
+    "repo_argument": "<repo-id>",
+    "working_directory": "/Users/ak/prjs/cc/nose/bench/repos"
+  },
+  "measurement": {
+    "iterations": 4,
+    "warmups": 1
+  },
+  "provenance": {
+    "baseline_binary": "/Users/ak/prjs/cc/nose/target/release/nose",
+    "baseline_binary_sha256": "a0a210b9527353b65bbf253c1ee483f9a435e69e4b9587b432eefdcbdba52128",
+    "baseline_source_ref": "main",
+    "baseline_source_sha": "2a7047bfa4533dc1a83f245df13eb9e0a922ffea",
+    "current_binary": "/Users/ak/prjs/cc/nose/target/issue-817-head/release/nose",
+    "current_binary_sha256": "6328f1bb8234e24e9dcdb53863aad2d9f666ec114919875b83d76c509048fbf5",
+    "current_source_ref": "HEAD",
+    "current_source_sha": "653690b9792bb22ea9b9b642e161dde4be698d73",
+    "harness": "scripts/query-regression-harness.py",
+    "harness_command": "python3 scripts/query-regression-harness.py --baseline-binary target/release/nose --current-binary target/issue-817-head/release/nose --baseline-source-ref main --current-source-ref HEAD --baseline-source-sha 2a7047bfa4533dc1a83f245df13eb9e0a922ffea --current-source-sha 653690b9792bb22ea9b9b642e161dde4be698d73 --repos-root bench/repos --repo curl --repo prometheus --repo netty --repo rich --repo rubocop --repo nushell --repo axios --iterations 4 --warmups 1 --corpus-manifest bench/goldens/corpus.json --prune-manifest bench/labels/prune_manifest.json --output /tmp/accepted_pair_coverage_pricing_2026_07_11.semantic.primary.v3.json",
+    "working_tree_status_before_measurement": ""
+  },
+  "repos": [
+    "axios",
+    "curl",
+    "netty",
+    "nushell",
+    "prometheus",
+    "rich",
+    "rubocop"
+  ],
+  "runs": [
+    {
+      "bytes": 43777,
+      "elapsed_ms": 161.413875001017,
+      "families": 18,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "axios",
+      "schema_version": 7,
+      "sha256": "9413a2851787f18c7a0d4f299af9011aaf81c283de772fd82ef5bb51024059a7",
+      "stages_ms": {
+        "candidates": 1.5,
+        "cluster": 0.0,
+        "contiguous": 0.0,
+        "discover": 9.5,
+        "groups": 0.1,
+        "import-resolve": 3.0,
+        "lower": 128.0,
+        "normalize+extract": 13.7,
+        "parse+lower": 115.5,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.0,
+        "query_render": 0.9,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.3,
+        "rank_dedup": 0.0,
+        "rank_families": 0.2,
+        "rank_map": 0.2,
+        "rank_sort": 0.0,
+        "score": 0.2,
+        "shared_lines": 11.0
+      },
+      "surface_counts": {
+        "default": 6,
+        "hidden": 12
+      }
+    },
+    {
+      "bytes": 166996,
+      "elapsed_ms": 219.6866250014864,
+      "families": 115,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "curl",
+      "schema_version": 7,
+      "sha256": "8558de85689af7656b59a250f131783a510ae7c192feda126eb6f392547cedc2",
+      "stages_ms": {
+        "candidates": 4.8,
+        "cluster": 0.4,
+        "contiguous": 0.1,
+        "discover": 17.2,
+        "groups": 1.9,
+        "import-resolve": 0.6,
+        "lower": 74.1,
+        "normalize+extract": 73.0,
+        "parse+lower": 56.3,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.2,
+        "query_opp": 0.2,
+        "query_rank_sort": 0.4,
+        "query_render": 8.7,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.4,
+        "rank_dedup": 0.0,
+        "rank_families": 0.5,
+        "rank_map": 0.4,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 40.5
+      },
+      "surface_counts": {
+        "default": 37,
+        "divergence": 1,
+        "hidden": 77
+      }
+    },
+    {
+      "bytes": 1279338,
+      "elapsed_ms": 827.056458016159,
+      "families": 879,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "netty",
+      "schema_version": 7,
+      "sha256": "991bb874017575fc14d1c85e5933dd3538147ba93330a0962c328bb071966f66",
+      "stages_ms": {
+        "candidates": 24.8,
+        "cluster": 1.2,
+        "contiguous": 0.4,
+        "discover": 77.6,
+        "groups": 8.5,
+        "import-resolve": 123.3,
+        "lower": 362.5,
+        "normalize+extract": 197.5,
+        "parse+lower": 161.5,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 1.5,
+        "query_opp": 1.0,
+        "query_rank_sort": 2.3,
+        "query_render": 49.7,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 14.2,
+        "rank_dedup": 0.3,
+        "rank_families": 1.6,
+        "rank_map": 0.9,
+        "rank_sort": 0.4,
+        "score": 0.7,
+        "shared_lines": 131.9
+      },
+      "surface_counts": {
+        "default": 250,
+        "divergence": 51,
+        "hidden": 578
+      }
+    },
+    {
+      "bytes": 113745,
+      "elapsed_ms": 541.9232079875655,
+      "families": 59,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "nushell",
+      "schema_version": 7,
+      "sha256": "b7866cfd5846b20f9008f8147b54f95ca9006b69e2caabe69ab65acde026598b",
+      "stages_ms": {
+        "candidates": 12.6,
+        "cluster": 0.6,
+        "contiguous": 0.2,
+        "discover": 31.0,
+        "groups": 3.9,
+        "import-resolve": 32.0,
+        "lower": 226.5,
+        "normalize+extract": 204.1,
+        "parse+lower": 163.5,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 5.4,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.6,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.6,
+        "shared_lines": 63.0
+      },
+      "surface_counts": {
+        "default": 54,
+        "hidden": 5
+      }
+    },
+    {
+      "bytes": 142392,
+      "elapsed_ms": 373.92587499925867,
+      "families": 66,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "prometheus",
+      "schema_version": 7,
+      "sha256": "8c3965334dd4b2053f8c27789d74f740e6bbaee909258da4c4cd554b643f577c",
+      "stages_ms": {
+        "candidates": 6.1,
+        "cluster": 0.4,
+        "contiguous": 0.1,
+        "discover": 20.1,
+        "groups": 1.8,
+        "import-resolve": 20.0,
+        "lower": 205.9,
+        "normalize+extract": 96.8,
+        "parse+lower": 165.8,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 4.9,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.7,
+        "rank_dedup": 0.1,
+        "rank_families": 0.5,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 40.9
+      },
+      "surface_counts": {
+        "default": 35,
+        "divergence": 1,
+        "hidden": 30
+      }
+    },
+    {
+      "bytes": 49745,
+      "elapsed_ms": 76.29870899836533,
+      "families": 22,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "rich",
+      "schema_version": 7,
+      "sha256": "29bb9b0bfe8c1c6c4a6e4599147985fa56787e9023428dbcd7fafdb2c375cbab",
+      "stages_ms": {
+        "candidates": 1.8,
+        "cluster": 0.1,
+        "contiguous": 0.0,
+        "discover": 5.9,
+        "groups": 0.3,
+        "import-resolve": 3.5,
+        "lower": 33.5,
+        "normalize+extract": 22.0,
+        "parse+lower": 24.1,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.0,
+        "query_render": 1.3,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.5,
+        "rank_dedup": 0.0,
+        "rank_families": 0.2,
+        "rank_map": 0.2,
+        "rank_sort": 0.0,
+        "score": 0.2,
+        "shared_lines": 9.7
+      },
+      "surface_counts": {
+        "default": 13,
+        "hidden": 9
+      }
+    },
+    {
+      "bytes": 134193,
+      "elapsed_ms": 280.9150000102818,
+      "families": 104,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "rubocop",
+      "schema_version": 7,
+      "sha256": "9de12710efb9b9306a30a3e62485841574039958bbfb5198448d0f5112754606",
+      "stages_ms": {
+        "candidates": 6.6,
+        "cluster": 0.5,
+        "contiguous": 0.1,
+        "discover": 28.3,
+        "groups": 1.5,
+        "import-resolve": 0.1,
+        "lower": 127.6,
+        "normalize+extract": 71.5,
+        "parse+lower": 99.1,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 5.6,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.5,
+        "rank_dedup": 0.0,
+        "rank_families": 0.4,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.2,
+        "shared_lines": 51.6
+      },
+      "surface_counts": {
+        "default": 20,
+        "hidden": 84
+      }
+    },
+    {
+      "bytes": 43777,
+      "elapsed_ms": 172.590416012099,
+      "families": 18,
+      "iteration": 1,
+      "label": "current",
+      "repo": "axios",
+      "schema_version": 7,
+      "sha256": "9413a2851787f18c7a0d4f299af9011aaf81c283de772fd82ef5bb51024059a7",
+      "stages_ms": {
+        "candidates": 2.1,
+        "cluster": 0.1,
+        "contiguous": 0.0,
+        "discover": 9.5,
+        "groups": 0.2,
+        "import-resolve": 3.1,
+        "lower": 136.8,
+        "normalize+extract": 14.0,
+        "parse+lower": 124.2,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.0,
+        "query_render": 0.4,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.3,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.4,
+        "shared_lines": 12.6
+      },
+      "surface_counts": {
+        "default": 6,
+        "hidden": 12
+      }
+    },
+    {
+      "bytes": 166996,
+      "elapsed_ms": 240.3835830045864,
+      "families": 115,
+      "iteration": 1,
+      "label": "current",
+      "repo": "curl",
+      "schema_version": 7,
+      "sha256": "8558de85689af7656b59a250f131783a510ae7c192feda126eb6f392547cedc2",
+      "stages_ms": {
+        "candidates": 5.9,
+        "cluster": 0.4,
+        "contiguous": 0.1,
+        "discover": 18.9,
+        "groups": 1.9,
+        "import-resolve": 0.6,
+        "lower": 92.5,
+        "normalize+extract": 76.9,
+        "parse+lower": 73.0,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.2,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.4,
+        "query_render": 2.2,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.3,
+        "rank_dedup": 0.1,
+        "rank_families": 0.4,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.5,
+        "shared_lines": 40.9
+      },
+      "surface_counts": {
+        "default": 37,
+        "divergence": 1,
+        "hidden": 77
+      }
+    },
+    {
+      "bytes": 1304905,
+      "elapsed_ms": 772.7179169887677,
+      "families": 887,
+      "iteration": 1,
+      "label": "current",
+      "repo": "netty",
+      "schema_version": 7,
+      "sha256": "b0a2d8e1709f42053962dc44f38f33e42573fcf252b0c19978d75afc65d2e2c2",
+      "stages_ms": {
+        "candidates": 22.6,
+        "cluster": 1.2,
+        "contiguous": 0.4,
+        "discover": 77.2,
+        "groups": 8.6,
+        "import-resolve": 121.7,
+        "lower": 334.4,
+        "normalize+extract": 187.8,
+        "parse+lower": 135.4,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 1.6,
+        "query_opp": 1.0,
+        "query_rank_sort": 2.4,
+        "query_render": 21.9,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 13.2,
+        "rank_dedup": 0.4,
+        "rank_families": 1.8,
+        "rank_map": 1.0,
+        "rank_sort": 0.4,
+        "score": 0.5,
+        "shared_lines": 144.8
+      },
+      "surface_counts": {
+        "default": 258,
+        "divergence": 51,
+        "hidden": 578
+      }
+    },
+    {
+      "bytes": 113745,
+      "elapsed_ms": 568.789208016824,
+      "families": 59,
+      "iteration": 1,
+      "label": "current",
+      "repo": "nushell",
+      "schema_version": 7,
+      "sha256": "b7866cfd5846b20f9008f8147b54f95ca9006b69e2caabe69ab65acde026598b",
+      "stages_ms": {
+        "candidates": 9.6,
+        "cluster": 0.6,
+        "contiguous": 0.1,
+        "discover": 33.3,
+        "groups": 3.2,
+        "import-resolve": 32.1,
+        "lower": 261.3,
+        "normalize+extract": 206.7,
+        "parse+lower": 195.8,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 1.2,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.7,
+        "rank_dedup": 0.0,
+        "rank_families": 0.6,
+        "rank_map": 0.5,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 65.1
+      },
+      "surface_counts": {
+        "default": 54,
+        "hidden": 5
+      }
+    },
+    {
+      "bytes": 142392,
+      "elapsed_ms": 358.2437500008382,
+      "families": 66,
+      "iteration": 1,
+      "label": "current",
+      "repo": "prometheus",
+      "schema_version": 7,
+      "sha256": "8c3965334dd4b2053f8c27789d74f740e6bbaee909258da4c4cd554b643f577c",
+      "stages_ms": {
+        "candidates": 9.7,
+        "cluster": 0.5,
+        "contiguous": 0.1,
+        "discover": 18.1,
+        "groups": 2.9,
+        "import-resolve": 20.1,
+        "lower": 185.8,
+        "normalize+extract": 93.6,
+        "parse+lower": 147.5,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.2,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 1.7,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.7,
+        "rank_dedup": 0.2,
+        "rank_families": 0.6,
+        "rank_map": 0.3,
+        "rank_sort": 0.1,
+        "score": 0.5,
+        "shared_lines": 43.6
+      },
+      "surface_counts": {
+        "default": 35,
+        "divergence": 1,
+        "hidden": 30
+      }
+    },
+    {
+      "bytes": 49745,
+      "elapsed_ms": 77.62770901899785,
+      "families": 22,
+      "iteration": 1,
+      "label": "current",
+      "repo": "rich",
+      "schema_version": 7,
+      "sha256": "29bb9b0bfe8c1c6c4a6e4599147985fa56787e9023428dbcd7fafdb2c375cbab",
+      "stages_ms": {
+        "candidates": 2.9,
+        "cluster": 0.1,
+        "contiguous": 0.1,
+        "discover": 7.5,
+        "groups": 0.3,
+        "import-resolve": 3.5,
+        "lower": 32.8,
+        "normalize+extract": 23.8,
+        "parse+lower": 21.7,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.0,
+        "query_render": 0.5,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.5,
+        "rank_dedup": 0.0,
+        "rank_families": 0.2,
+        "rank_map": 0.2,
+        "rank_sort": 0.0,
+        "score": 0.4,
+        "shared_lines": 9.9
+      },
+      "surface_counts": {
+        "default": 13,
+        "hidden": 9
+      }
+    },
+    {
+      "bytes": 134193,
+      "elapsed_ms": 269.45804100250825,
+      "families": 104,
+      "iteration": 1,
+      "label": "current",
+      "repo": "rubocop",
+      "schema_version": 7,
+      "sha256": "9de12710efb9b9306a30a3e62485841574039958bbfb5198448d0f5112754606",
+      "stages_ms": {
+        "candidates": 7.3,
+        "cluster": 0.5,
+        "contiguous": 0.1,
+        "discover": 29.4,
+        "groups": 1.5,
+        "import-resolve": 0.1,
+        "lower": 111.1,
+        "normalize+extract": 77.3,
+        "parse+lower": 81.6,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 1.6,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.6,
+        "rank_dedup": 0.0,
+        "rank_families": 0.5,
+        "rank_map": 0.4,
+        "rank_sort": 0.0,
+        "score": 0.2,
+        "shared_lines": 52.8
+      },
+      "surface_counts": {
+        "default": 20,
+        "hidden": 84
+      }
+    },
+    {
+      "bytes": 43777,
+      "elapsed_ms": 155.14295900356956,
+      "families": 18,
+      "iteration": 2,
+      "label": "current",
+      "repo": "axios",
+      "schema_version": 7,
+      "sha256": "9413a2851787f18c7a0d4f299af9011aaf81c283de772fd82ef5bb51024059a7",
+      "stages_ms": {
+        "candidates": 1.5,
+        "cluster": 0.0,
+        "contiguous": 0.0,
+        "discover": 8.1,
+        "groups": 0.1,
+        "import-resolve": 3.0,
+        "lower": 125.4,
+        "normalize+extract": 11.9,
+        "parse+lower": 114.3,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.0,
+        "query_render": 0.4,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.4,
+        "rank_dedup": 0.0,
+        "rank_families": 0.2,
+        "rank_map": 0.2,
+        "rank_sort": 0.0,
+        "score": 0.2,
+        "shared_lines": 9.6
+      },
+      "surface_counts": {
+        "default": 6,
+        "hidden": 12
+      }
+    },
+    {
+      "bytes": 166996,
+      "elapsed_ms": 203.86112501728348,
+      "families": 115,
+      "iteration": 2,
+      "label": "current",
+      "repo": "curl",
+      "schema_version": 7,
+      "sha256": "8558de85689af7656b59a250f131783a510ae7c192feda126eb6f392547cedc2",
+      "stages_ms": {
+        "candidates": 4.9,
+        "cluster": 0.3,
+        "contiguous": 0.1,
+        "discover": 17.5,
+        "groups": 1.9,
+        "import-resolve": 0.6,
+        "lower": 72.7,
+        "normalize+extract": 64.5,
+        "parse+lower": 54.6,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.2,
+        "query_opp": 0.2,
+        "query_rank_sort": 0.4,
+        "query_render": 2.1,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.4,
+        "rank_dedup": 0.1,
+        "rank_families": 0.4,
+        "rank_map": 0.2,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 40.9
+      },
+      "surface_counts": {
+        "default": 37,
+        "divergence": 1,
+        "hidden": 77
+      }
+    },
+    {
+      "bytes": 1304905,
+      "elapsed_ms": 804.0023329958785,
+      "families": 887,
+      "iteration": 2,
+      "label": "current",
+      "repo": "netty",
+      "schema_version": 7,
+      "sha256": "b0a2d8e1709f42053962dc44f38f33e42573fcf252b0c19978d75afc65d2e2c2",
+      "stages_ms": {
+        "candidates": 22.5,
+        "cluster": 1.1,
+        "contiguous": 0.4,
+        "discover": 76.7,
+        "groups": 8.5,
+        "import-resolve": 132.5,
+        "lower": 339.7,
+        "normalize+extract": 226.8,
+        "parse+lower": 130.3,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 1.6,
+        "query_opp": 1.1,
+        "query_rank_sort": 2.3,
+        "query_render": 21.1,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 14.3,
+        "rank_dedup": 0.3,
+        "rank_families": 1.7,
+        "rank_map": 0.9,
+        "rank_sort": 0.4,
+        "score": 0.5,
+        "shared_lines": 132.4
+      },
+      "surface_counts": {
+        "default": 258,
+        "divergence": 51,
+        "hidden": 578
+      }
+    },
+    {
+      "bytes": 113745,
+      "elapsed_ms": 557.8218330047093,
+      "families": 59,
+      "iteration": 2,
+      "label": "current",
+      "repo": "nushell",
+      "schema_version": 7,
+      "sha256": "b7866cfd5846b20f9008f8147b54f95ca9006b69e2caabe69ab65acde026598b",
+      "stages_ms": {
+        "candidates": 10.6,
+        "cluster": 0.6,
+        "contiguous": 0.1,
+        "discover": 32.7,
+        "groups": 3.6,
+        "import-resolve": 32.4,
+        "lower": 234.7,
+        "normalize+extract": 215.8,
+        "parse+lower": 169.5,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 1.2,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.6,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.6,
+        "shared_lines": 68.2
+      },
+      "surface_counts": {
+        "default": 54,
+        "hidden": 5
+      }
+    },
+    {
+      "bytes": 142392,
+      "elapsed_ms": 352.5569580087904,
+      "families": 66,
+      "iteration": 2,
+      "label": "current",
+      "repo": "prometheus",
+      "schema_version": 7,
+      "sha256": "8c3965334dd4b2053f8c27789d74f740e6bbaee909258da4c4cd554b643f577c",
+      "stages_ms": {
+        "candidates": 8.4,
+        "cluster": 0.4,
+        "contiguous": 0.1,
+        "discover": 19.9,
+        "groups": 1.8,
+        "import-resolve": 19.8,
+        "lower": 199.7,
+        "normalize+extract": 80.1,
+        "parse+lower": 160.0,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 1.7,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.8,
+        "rank_dedup": 0.1,
+        "rank_families": 0.6,
+        "rank_map": 0.4,
+        "rank_sort": 0.0,
+        "score": 0.4,
+        "shared_lines": 42.7
+      },
+      "surface_counts": {
+        "default": 35,
+        "divergence": 1,
+        "hidden": 30
+      }
+    },
+    {
+      "bytes": 49745,
+      "elapsed_ms": 73.14479202614166,
+      "families": 22,
+      "iteration": 2,
+      "label": "current",
+      "repo": "rich",
+      "schema_version": 7,
+      "sha256": "29bb9b0bfe8c1c6c4a6e4599147985fa56787e9023428dbcd7fafdb2c375cbab",
+      "stages_ms": {
+        "candidates": 2.0,
+        "cluster": 0.1,
+        "contiguous": 0.0,
+        "discover": 4.3,
+        "groups": 0.3,
+        "import-resolve": 3.5,
+        "lower": 29.2,
+        "normalize+extract": 21.3,
+        "parse+lower": 21.3,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.1,
+        "query_render": 0.5,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.5,
+        "rank_dedup": 0.0,
+        "rank_families": 0.2,
+        "rank_map": 0.2,
+        "rank_sort": 0.0,
+        "score": 0.2,
+        "shared_lines": 11.6
+      },
+      "surface_counts": {
+        "default": 13,
+        "hidden": 9
+      }
+    },
+    {
+      "bytes": 134193,
+      "elapsed_ms": 243.54883399792016,
+      "families": 104,
+      "iteration": 2,
+      "label": "current",
+      "repo": "rubocop",
+      "schema_version": 7,
+      "sha256": "9de12710efb9b9306a30a3e62485841574039958bbfb5198448d0f5112754606",
+      "stages_ms": {
+        "candidates": 7.0,
+        "cluster": 0.5,
+        "contiguous": 0.1,
+        "discover": 28.8,
+        "groups": 1.5,
+        "import-resolve": 0.1,
+        "lower": 89.9,
+        "normalize+extract": 75.2,
+        "parse+lower": 60.9,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 1.7,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.4,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.2,
+        "rank_sort": 0.0,
+        "score": 0.2,
+        "shared_lines": 51.3
+      },
+      "surface_counts": {
+        "default": 20,
+        "hidden": 84
+      }
+    },
+    {
+      "bytes": 43777,
+      "elapsed_ms": 173.60787501093,
+      "families": 18,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "axios",
+      "schema_version": 7,
+      "sha256": "9413a2851787f18c7a0d4f299af9011aaf81c283de772fd82ef5bb51024059a7",
+      "stages_ms": {
+        "candidates": 1.9,
+        "cluster": 0.1,
+        "contiguous": 0.0,
+        "discover": 9.6,
+        "groups": 0.1,
+        "import-resolve": 3.1,
+        "lower": 138.6,
+        "normalize+extract": 14.4,
+        "parse+lower": 125.8,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.0,
+        "query_render": 0.9,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.4,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.2,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 11.0
+      },
+      "surface_counts": {
+        "default": 6,
+        "hidden": 12
+      }
+    },
+    {
+      "bytes": 166996,
+      "elapsed_ms": 241.74183400464244,
+      "families": 115,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "curl",
+      "schema_version": 7,
+      "sha256": "8558de85689af7656b59a250f131783a510ae7c192feda126eb6f392547cedc2",
+      "stages_ms": {
+        "candidates": 6.1,
+        "cluster": 0.4,
+        "contiguous": 0.1,
+        "discover": 19.6,
+        "groups": 2.0,
+        "import-resolve": 0.6,
+        "lower": 89.3,
+        "normalize+extract": 76.2,
+        "parse+lower": 68.9,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.2,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.4,
+        "query_render": 8.7,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.4,
+        "rank_dedup": 0.1,
+        "rank_families": 0.4,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.7,
+        "shared_lines": 41.4
+      },
+      "surface_counts": {
+        "default": 37,
+        "divergence": 1,
+        "hidden": 77
+      }
+    },
+    {
+      "bytes": 1279338,
+      "elapsed_ms": 788.1279999855906,
+      "families": 879,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "netty",
+      "schema_version": 7,
+      "sha256": "991bb874017575fc14d1c85e5933dd3538147ba93330a0962c328bb071966f66",
+      "stages_ms": {
+        "candidates": 23.8,
+        "cluster": 1.1,
+        "contiguous": 0.4,
+        "discover": 76.6,
+        "groups": 8.4,
+        "import-resolve": 118.4,
+        "lower": 330.1,
+        "normalize+extract": 184.4,
+        "parse+lower": 135.1,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 1.9,
+        "query_opp": 1.0,
+        "query_rank_sort": 2.2,
+        "query_render": 52.7,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 13.8,
+        "rank_dedup": 0.3,
+        "rank_families": 1.6,
+        "rank_map": 0.8,
+        "rank_sort": 0.4,
+        "score": 0.5,
+        "shared_lines": 133.7
+      },
+      "surface_counts": {
+        "default": 250,
+        "divergence": 51,
+        "hidden": 578
+      }
+    },
+    {
+      "bytes": 113745,
+      "elapsed_ms": 582.6995419920422,
+      "families": 59,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "nushell",
+      "schema_version": 7,
+      "sha256": "b7866cfd5846b20f9008f8147b54f95ca9006b69e2caabe69ab65acde026598b",
+      "stages_ms": {
+        "candidates": 9.1,
+        "cluster": 0.6,
+        "contiguous": 0.2,
+        "discover": 32.0,
+        "groups": 3.3,
+        "import-resolve": 34.2,
+        "lower": 269.4,
+        "normalize+extract": 206.8,
+        "parse+lower": 203.1,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 5.1,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.6,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.4,
+        "shared_lines": 65.7
+      },
+      "surface_counts": {
+        "default": 54,
+        "hidden": 5
+      }
+    },
+    {
+      "bytes": 142392,
+      "elapsed_ms": 360.9558750176802,
+      "families": 66,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "prometheus",
+      "schema_version": 7,
+      "sha256": "8c3965334dd4b2053f8c27789d74f740e6bbaee909258da4c4cd554b643f577c",
+      "stages_ms": {
+        "candidates": 5.8,
+        "cluster": 0.3,
+        "contiguous": 0.1,
+        "discover": 18.1,
+        "groups": 1.8,
+        "import-resolve": 19.6,
+        "lower": 187.2,
+        "normalize+extract": 93.4,
+        "parse+lower": 149.4,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 5.1,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.6,
+        "rank_dedup": 0.1,
+        "rank_families": 0.5,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 49.8
+      },
+      "surface_counts": {
+        "default": 35,
+        "divergence": 1,
+        "hidden": 30
+      }
+    },
+    {
+      "bytes": 49745,
+      "elapsed_ms": 83.08887499151751,
+      "families": 22,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "rich",
+      "schema_version": 7,
+      "sha256": "29bb9b0bfe8c1c6c4a6e4599147985fa56787e9023428dbcd7fafdb2c375cbab",
+      "stages_ms": {
+        "candidates": 2.6,
+        "cluster": 0.1,
+        "contiguous": 0.1,
+        "discover": 4.4,
+        "groups": 0.3,
+        "import-resolve": 3.6,
+        "lower": 33.9,
+        "normalize+extract": 26.3,
+        "parse+lower": 25.8,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.1,
+        "query_render": 1.4,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.5,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 10.1
+      },
+      "surface_counts": {
+        "default": 13,
+        "hidden": 9
+      }
+    },
+    {
+      "bytes": 134193,
+      "elapsed_ms": 278.43550001853146,
+      "families": 104,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "rubocop",
+      "schema_version": 7,
+      "sha256": "9de12710efb9b9306a30a3e62485841574039958bbfb5198448d0f5112754606",
+      "stages_ms": {
+        "candidates": 8.1,
+        "cluster": 0.5,
+        "contiguous": 0.1,
+        "discover": 30.7,
+        "groups": 1.4,
+        "import-resolve": 0.1,
+        "lower": 111.9,
+        "normalize+extract": 80.8,
+        "parse+lower": 81.0,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 5.6,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.6,
+        "rank_dedup": 0.0,
+        "rank_families": 0.4,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 52.6
+      },
+      "surface_counts": {
+        "default": 20,
+        "hidden": 84
+      }
+    },
+    {
+      "bytes": 43777,
+      "elapsed_ms": 163.3365000016056,
+      "families": 18,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "axios",
+      "schema_version": 7,
+      "sha256": "9413a2851787f18c7a0d4f299af9011aaf81c283de772fd82ef5bb51024059a7",
+      "stages_ms": {
+        "candidates": 1.7,
+        "cluster": 0.0,
+        "contiguous": 0.0,
+        "discover": 7.9,
+        "groups": 0.1,
+        "import-resolve": 3.1,
+        "lower": 127.2,
+        "normalize+extract": 15.8,
+        "parse+lower": 116.2,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.0,
+        "query_render": 0.9,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.4,
+        "rank_dedup": 0.0,
+        "rank_families": 0.4,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.4,
+        "shared_lines": 11.0
+      },
+      "surface_counts": {
+        "default": 6,
+        "hidden": 12
+      }
+    },
+    {
+      "bytes": 166996,
+      "elapsed_ms": 214.07737501431257,
+      "families": 115,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "curl",
+      "schema_version": 7,
+      "sha256": "8558de85689af7656b59a250f131783a510ae7c192feda126eb6f392547cedc2",
+      "stages_ms": {
+        "candidates": 5.1,
+        "cluster": 0.4,
+        "contiguous": 0.1,
+        "discover": 18.6,
+        "groups": 1.8,
+        "import-resolve": 0.6,
+        "lower": 75.4,
+        "normalize+extract": 66.3,
+        "parse+lower": 56.1,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.2,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.3,
+        "query_render": 8.6,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.4,
+        "rank_dedup": 0.0,
+        "rank_families": 0.4,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 40.0
+      },
+      "surface_counts": {
+        "default": 37,
+        "divergence": 1,
+        "hidden": 77
+      }
+    },
+    {
+      "bytes": 1279338,
+      "elapsed_ms": 867.9957920103334,
+      "families": 879,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "netty",
+      "schema_version": 7,
+      "sha256": "991bb874017575fc14d1c85e5933dd3538147ba93330a0962c328bb071966f66",
+      "stages_ms": {
+        "candidates": 24.8,
+        "cluster": 1.1,
+        "contiguous": 0.4,
+        "discover": 75.5,
+        "groups": 9.0,
+        "import-resolve": 132.9,
+        "lower": 366.2,
+        "normalize+extract": 224.1,
+        "parse+lower": 157.8,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 1.5,
+        "query_opp": 1.0,
+        "query_rank_sort": 2.3,
+        "query_render": 55.1,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 14.1,
+        "rank_dedup": 0.3,
+        "rank_families": 1.6,
+        "rank_map": 0.9,
+        "rank_sort": 0.4,
+        "score": 0.6,
+        "shared_lines": 134.6
+      },
+      "surface_counts": {
+        "default": 250,
+        "divergence": 51,
+        "hidden": 578
+      }
+    },
+    {
+      "bytes": 113745,
+      "elapsed_ms": 557.9748339951038,
+      "families": 59,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "nushell",
+      "schema_version": 7,
+      "sha256": "b7866cfd5846b20f9008f8147b54f95ca9006b69e2caabe69ab65acde026598b",
+      "stages_ms": {
+        "candidates": 10.9,
+        "cluster": 0.6,
+        "contiguous": 0.2,
+        "discover": 30.3,
+        "groups": 3.9,
+        "import-resolve": 32.3,
+        "lower": 221.4,
+        "normalize+extract": 222.1,
+        "parse+lower": 158.8,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 5.5,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.7,
+        "rank_dedup": 0.0,
+        "rank_families": 0.5,
+        "rank_map": 0.4,
+        "rank_sort": 0.0,
+        "score": 1.3,
+        "shared_lines": 68.9
+      },
+      "surface_counts": {
+        "default": 54,
+        "hidden": 5
+      }
+    },
+    {
+      "bytes": 142392,
+      "elapsed_ms": 355.2249170024879,
+      "families": 66,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "prometheus",
+      "schema_version": 7,
+      "sha256": "8c3965334dd4b2053f8c27789d74f740e6bbaee909258da4c4cd554b643f577c",
+      "stages_ms": {
+        "candidates": 6.5,
+        "cluster": 0.3,
+        "contiguous": 0.1,
+        "discover": 20.8,
+        "groups": 1.8,
+        "import-resolve": 19.8,
+        "lower": 199.0,
+        "normalize+extract": 81.6,
+        "parse+lower": 158.4,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 9.1,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.7,
+        "rank_dedup": 0.1,
+        "rank_families": 0.5,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.5,
+        "shared_lines": 40.8
+      },
+      "surface_counts": {
+        "default": 35,
+        "divergence": 1,
+        "hidden": 30
+      }
+    },
+    {
+      "bytes": 49745,
+      "elapsed_ms": 81.49345801211894,
+      "families": 22,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "rich",
+      "schema_version": 7,
+      "sha256": "29bb9b0bfe8c1c6c4a6e4599147985fa56787e9023428dbcd7fafdb2c375cbab",
+      "stages_ms": {
+        "candidates": 1.9,
+        "cluster": 0.1,
+        "contiguous": 0.1,
+        "discover": 7.4,
+        "groups": 0.3,
+        "import-resolve": 3.6,
+        "lower": 35.2,
+        "normalize+extract": 22.7,
+        "parse+lower": 24.3,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.0,
+        "query_render": 1.3,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.5,
+        "rank_dedup": 0.0,
+        "rank_families": 0.2,
+        "rank_map": 0.1,
+        "rank_sort": 0.0,
+        "score": 0.2,
+        "shared_lines": 13.0
+      },
+      "surface_counts": {
+        "default": 13,
+        "hidden": 9
+      }
+    },
+    {
+      "bytes": 134193,
+      "elapsed_ms": 276.4815840055235,
+      "families": 104,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "rubocop",
+      "schema_version": 7,
+      "sha256": "9de12710efb9b9306a30a3e62485841574039958bbfb5198448d0f5112754606",
+      "stages_ms": {
+        "candidates": 7.7,
+        "cluster": 0.5,
+        "contiguous": 0.1,
+        "discover": 27.5,
+        "groups": 1.4,
+        "import-resolve": 0.1,
+        "lower": 118.5,
+        "normalize+extract": 74.4,
+        "parse+lower": 90.8,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 5.7,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.5,
+        "rank_dedup": 0.0,
+        "rank_families": 0.4,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.2,
+        "shared_lines": 51.5
+      },
+      "surface_counts": {
+        "default": 20,
+        "hidden": 84
+      }
+    },
+    {
+      "bytes": 43777,
+      "elapsed_ms": 161.86312501668,
+      "families": 18,
+      "iteration": 3,
+      "label": "current",
+      "repo": "axios",
+      "schema_version": 7,
+      "sha256": "9413a2851787f18c7a0d4f299af9011aaf81c283de772fd82ef5bb51024059a7",
+      "stages_ms": {
+        "candidates": 2.2,
+        "cluster": 0.1,
+        "contiguous": 0.0,
+        "discover": 7.9,
+        "groups": 0.2,
+        "import-resolve": 4.1,
+        "lower": 126.4,
+        "normalize+extract": 13.7,
+        "parse+lower": 114.3,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.0,
+        "query_render": 0.4,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.3,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.2,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 11.7
+      },
+      "surface_counts": {
+        "default": 6,
+        "hidden": 12
+      }
+    },
+    {
+      "bytes": 166996,
+      "elapsed_ms": 238.89287500060163,
+      "families": 115,
+      "iteration": 3,
+      "label": "current",
+      "repo": "curl",
+      "schema_version": 7,
+      "sha256": "8558de85689af7656b59a250f131783a510ae7c192feda126eb6f392547cedc2",
+      "stages_ms": {
+        "candidates": 6.2,
+        "cluster": 0.4,
+        "contiguous": 0.1,
+        "discover": 18.5,
+        "groups": 2.0,
+        "import-resolve": 0.6,
+        "lower": 89.8,
+        "normalize+extract": 79.5,
+        "parse+lower": 70.6,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.2,
+        "query_opp": 0.2,
+        "query_rank_sort": 0.4,
+        "query_render": 2.2,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.2,
+        "rank_dedup": 0.1,
+        "rank_families": 0.5,
+        "rank_map": 0.4,
+        "rank_sort": 0.1,
+        "score": 0.6,
+        "shared_lines": 41.3
+      },
+      "surface_counts": {
+        "default": 37,
+        "divergence": 1,
+        "hidden": 77
+      }
+    },
+    {
+      "bytes": 1304905,
+      "elapsed_ms": 801.7007090093102,
+      "families": 887,
+      "iteration": 3,
+      "label": "current",
+      "repo": "netty",
+      "schema_version": 7,
+      "sha256": "b0a2d8e1709f42053962dc44f38f33e42573fcf252b0c19978d75afc65d2e2c2",
+      "stages_ms": {
+        "candidates": 23.7,
+        "cluster": 1.1,
+        "contiguous": 0.4,
+        "discover": 80.5,
+        "groups": 8.2,
+        "import-resolve": 119.8,
+        "lower": 359.3,
+        "normalize+extract": 189.6,
+        "parse+lower": 158.9,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 1.6,
+        "query_opp": 1.1,
+        "query_rank_sort": 3.1,
+        "query_render": 22.0,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 14.0,
+        "rank_dedup": 0.3,
+        "rank_families": 2.0,
+        "rank_map": 1.2,
+        "rank_sort": 0.4,
+        "score": 0.5,
+        "shared_lines": 143.4
+      },
+      "surface_counts": {
+        "default": 258,
+        "divergence": 51,
+        "hidden": 578
+      }
+    },
+    {
+      "bytes": 113745,
+      "elapsed_ms": 574.7154169948772,
+      "families": 59,
+      "iteration": 3,
+      "label": "current",
+      "repo": "nushell",
+      "schema_version": 7,
+      "sha256": "b7866cfd5846b20f9008f8147b54f95ca9006b69e2caabe69ab65acde026598b",
+      "stages_ms": {
+        "candidates": 9.6,
+        "cluster": 0.8,
+        "contiguous": 0.1,
+        "discover": 35.1,
+        "groups": 3.6,
+        "import-resolve": 32.0,
+        "lower": 270.0,
+        "normalize+extract": 202.4,
+        "parse+lower": 202.9,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 1.2,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.8,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.2,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 64.9
+      },
+      "surface_counts": {
+        "default": 54,
+        "hidden": 5
+      }
+    },
+    {
+      "bytes": 142392,
+      "elapsed_ms": 359.9117080157157,
+      "families": 66,
+      "iteration": 3,
+      "label": "current",
+      "repo": "prometheus",
+      "schema_version": 7,
+      "sha256": "8c3965334dd4b2053f8c27789d74f740e6bbaee909258da4c4cd554b643f577c",
+      "stages_ms": {
+        "candidates": 5.8,
+        "cluster": 0.4,
+        "contiguous": 0.1,
+        "discover": 19.1,
+        "groups": 2.0,
+        "import-resolve": 20.2,
+        "lower": 191.0,
+        "normalize+extract": 99.2,
+        "parse+lower": 151.7,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 1.7,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.7,
+        "rank_dedup": 0.1,
+        "rank_families": 0.5,
+        "rank_map": 0.4,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 42.5
+      },
+      "surface_counts": {
+        "default": 35,
+        "divergence": 1,
+        "hidden": 30
+      }
+    },
+    {
+      "bytes": 49745,
+      "elapsed_ms": 83.32712497212924,
+      "families": 22,
+      "iteration": 3,
+      "label": "current",
+      "repo": "rich",
+      "schema_version": 7,
+      "sha256": "29bb9b0bfe8c1c6c4a6e4599147985fa56787e9023428dbcd7fafdb2c375cbab",
+      "stages_ms": {
+        "candidates": 3.2,
+        "cluster": 0.1,
+        "contiguous": 0.1,
+        "discover": 7.0,
+        "groups": 0.3,
+        "import-resolve": 4.6,
+        "lower": 36.2,
+        "normalize+extract": 25.7,
+        "parse+lower": 24.6,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.0,
+        "query_render": 0.5,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.6,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 9.9
+      },
+      "surface_counts": {
+        "default": 13,
+        "hidden": 9
+      }
+    },
+    {
+      "bytes": 134193,
+      "elapsed_ms": 280.95654101343825,
+      "families": 104,
+      "iteration": 3,
+      "label": "current",
+      "repo": "rubocop",
+      "schema_version": 7,
+      "sha256": "9de12710efb9b9306a30a3e62485841574039958bbfb5198448d0f5112754606",
+      "stages_ms": {
+        "candidates": 8.1,
+        "cluster": 0.5,
+        "contiguous": 0.1,
+        "discover": 29.8,
+        "groups": 1.7,
+        "import-resolve": 0.1,
+        "lower": 109.1,
+        "normalize+extract": 86.9,
+        "parse+lower": 79.2,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 1.6,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.3,
+        "rank_dedup": 0.0,
+        "rank_families": 0.4,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.6,
+        "shared_lines": 55.5
+      },
+      "surface_counts": {
+        "default": 20,
+        "hidden": 84
+      }
+    },
+    {
+      "bytes": 43777,
+      "elapsed_ms": 164.37020900775678,
+      "families": 18,
+      "iteration": 4,
+      "label": "current",
+      "repo": "axios",
+      "schema_version": 7,
+      "sha256": "9413a2851787f18c7a0d4f299af9011aaf81c283de772fd82ef5bb51024059a7",
+      "stages_ms": {
+        "candidates": 1.5,
+        "cluster": 0.0,
+        "contiguous": 0.0,
+        "discover": 8.1,
+        "groups": 0.1,
+        "import-resolve": 3.0,
+        "lower": 129.0,
+        "normalize+extract": 14.0,
+        "parse+lower": 117.9,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.0,
+        "query_render": 0.4,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.4,
+        "rank_dedup": 0.0,
+        "rank_families": 0.2,
+        "rank_map": 0.1,
+        "rank_sort": 0.0,
+        "score": 0.2,
+        "shared_lines": 12.6
+      },
+      "surface_counts": {
+        "default": 6,
+        "hidden": 12
+      }
+    },
+    {
+      "bytes": 166996,
+      "elapsed_ms": 209.12062498973683,
+      "families": 115,
+      "iteration": 4,
+      "label": "current",
+      "repo": "curl",
+      "schema_version": 7,
+      "sha256": "8558de85689af7656b59a250f131783a510ae7c192feda126eb6f392547cedc2",
+      "stages_ms": {
+        "candidates": 5.3,
+        "cluster": 0.4,
+        "contiguous": 0.1,
+        "discover": 17.3,
+        "groups": 1.9,
+        "import-resolve": 0.6,
+        "lower": 76.2,
+        "normalize+extract": 66.8,
+        "parse+lower": 58.2,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.2,
+        "query_opp": 0.2,
+        "query_rank_sort": 0.4,
+        "query_render": 2.2,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.3,
+        "rank_dedup": 0.1,
+        "rank_families": 0.4,
+        "rank_map": 0.2,
+        "rank_sort": 0.0,
+        "score": 0.5,
+        "shared_lines": 39.1
+      },
+      "surface_counts": {
+        "default": 37,
+        "divergence": 1,
+        "hidden": 77
+      }
+    },
+    {
+      "bytes": 1304905,
+      "elapsed_ms": 837.0512080146,
+      "families": 887,
+      "iteration": 4,
+      "label": "current",
+      "repo": "netty",
+      "schema_version": 7,
+      "sha256": "b0a2d8e1709f42053962dc44f38f33e42573fcf252b0c19978d75afc65d2e2c2",
+      "stages_ms": {
+        "candidates": 24.3,
+        "cluster": 1.2,
+        "contiguous": 0.4,
+        "discover": 77.3,
+        "groups": 8.5,
+        "import-resolve": 131.2,
+        "lower": 367.0,
+        "normalize+extract": 227.1,
+        "parse+lower": 158.5,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 1.6,
+        "query_opp": 1.0,
+        "query_rank_sort": 2.3,
+        "query_render": 21.1,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 14.3,
+        "rank_dedup": 0.3,
+        "rank_families": 1.8,
+        "rank_map": 1.0,
+        "rank_sort": 0.4,
+        "score": 0.7,
+        "shared_lines": 135.0
+      },
+      "surface_counts": {
+        "default": 258,
+        "divergence": 51,
+        "hidden": 578
+      }
+    },
+    {
+      "bytes": 113745,
+      "elapsed_ms": 546.7132500198204,
+      "families": 59,
+      "iteration": 4,
+      "label": "current",
+      "repo": "nushell",
+      "schema_version": 7,
+      "sha256": "b7866cfd5846b20f9008f8147b54f95ca9006b69e2caabe69ab65acde026598b",
+      "stages_ms": {
+        "candidates": 10.8,
+        "cluster": 0.6,
+        "contiguous": 0.1,
+        "discover": 31.2,
+        "groups": 3.6,
+        "import-resolve": 32.2,
+        "lower": 234.1,
+        "normalize+extract": 204.0,
+        "parse+lower": 170.7,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 1.2,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.7,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.5,
+        "shared_lines": 69.0
+      },
+      "surface_counts": {
+        "default": 54,
+        "hidden": 5
+      }
+    },
+    {
+      "bytes": 142392,
+      "elapsed_ms": 385.5652500060387,
+      "families": 66,
+      "iteration": 4,
+      "label": "current",
+      "repo": "prometheus",
+      "schema_version": 7,
+      "sha256": "8c3965334dd4b2053f8c27789d74f740e6bbaee909258da4c4cd554b643f577c",
+      "stages_ms": {
+        "candidates": 6.5,
+        "cluster": 0.4,
+        "contiguous": 0.1,
+        "discover": 19.4,
+        "groups": 1.9,
+        "import-resolve": 20.1,
+        "lower": 208.1,
+        "normalize+extract": 99.3,
+        "parse+lower": 168.5,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 1.7,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.7,
+        "rank_dedup": 0.1,
+        "rank_families": 0.5,
+        "rank_map": 0.3,
+        "rank_sort": 0.1,
+        "score": 0.3,
+        "shared_lines": 50.5
+      },
+      "surface_counts": {
+        "default": 35,
+        "divergence": 1,
+        "hidden": 30
+      }
+    },
+    {
+      "bytes": 49745,
+      "elapsed_ms": 71.77325000520796,
+      "families": 22,
+      "iteration": 4,
+      "label": "current",
+      "repo": "rich",
+      "schema_version": 7,
+      "sha256": "29bb9b0bfe8c1c6c4a6e4599147985fa56787e9023428dbcd7fafdb2c375cbab",
+      "stages_ms": {
+        "candidates": 2.0,
+        "cluster": 0.1,
+        "contiguous": 0.0,
+        "discover": 5.8,
+        "groups": 0.3,
+        "import-resolve": 3.5,
+        "lower": 29.3,
+        "normalize+extract": 22.5,
+        "parse+lower": 19.9,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.0,
+        "query_render": 0.5,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.4,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.2,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 9.9
+      },
+      "surface_counts": {
+        "default": 13,
+        "hidden": 9
+      }
+    },
+    {
+      "bytes": 134193,
+      "elapsed_ms": 242.4504579976201,
+      "families": 104,
+      "iteration": 4,
+      "label": "current",
+      "repo": "rubocop",
+      "schema_version": 7,
+      "sha256": "9de12710efb9b9306a30a3e62485841574039958bbfb5198448d0f5112754606",
+      "stages_ms": {
+        "candidates": 7.3,
+        "cluster": 0.5,
+        "contiguous": 0.1,
+        "discover": 28.4,
+        "groups": 1.4,
+        "import-resolve": 0.1,
+        "lower": 90.5,
+        "normalize+extract": 72.3,
+        "parse+lower": 61.9,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 1.6,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.4,
+        "rank_dedup": 0.0,
+        "rank_families": 0.5,
+        "rank_map": 0.4,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 51.9
+      },
+      "surface_counts": {
+        "default": 20,
+        "hidden": 84
+      }
+    },
+    {
+      "bytes": 43777,
+      "elapsed_ms": 163.54583299835213,
+      "families": 18,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "axios",
+      "schema_version": 7,
+      "sha256": "9413a2851787f18c7a0d4f299af9011aaf81c283de772fd82ef5bb51024059a7",
+      "stages_ms": {
+        "candidates": 1.5,
+        "cluster": 0.1,
+        "contiguous": 0.0,
+        "discover": 8.0,
+        "groups": 0.2,
+        "import-resolve": 3.1,
+        "lower": 127.9,
+        "normalize+extract": 13.7,
+        "parse+lower": 116.7,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.0,
+        "query_render": 0.9,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.3,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 12.8
+      },
+      "surface_counts": {
+        "default": 6,
+        "hidden": 12
+      }
+    },
+    {
+      "bytes": 166996,
+      "elapsed_ms": 257.75745799182914,
+      "families": 115,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "curl",
+      "schema_version": 7,
+      "sha256": "8558de85689af7656b59a250f131783a510ae7c192feda126eb6f392547cedc2",
+      "stages_ms": {
+        "candidates": 6.7,
+        "cluster": 0.4,
+        "contiguous": 0.1,
+        "discover": 25.7,
+        "groups": 2.1,
+        "import-resolve": 0.6,
+        "lower": 97.4,
+        "normalize+extract": 82.0,
+        "parse+lower": 71.0,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.2,
+        "query_opp": 0.2,
+        "query_rank_sort": 0.4,
+        "query_render": 9.6,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.3,
+        "rank_dedup": 0.0,
+        "rank_families": 0.5,
+        "rank_map": 0.4,
+        "rank_sort": 0.0,
+        "score": 0.7,
+        "shared_lines": 41.3
+      },
+      "surface_counts": {
+        "default": 37,
+        "divergence": 1,
+        "hidden": 77
+      }
+    },
+    {
+      "bytes": 1279338,
+      "elapsed_ms": 809.3608330236748,
+      "families": 879,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "netty",
+      "schema_version": 7,
+      "sha256": "991bb874017575fc14d1c85e5933dd3538147ba93330a0962c328bb071966f66",
+      "stages_ms": {
+        "candidates": 22.3,
+        "cluster": 1.1,
+        "contiguous": 0.4,
+        "discover": 85.1,
+        "groups": 8.3,
+        "import-resolve": 122.4,
+        "lower": 346.5,
+        "normalize+extract": 185.2,
+        "parse+lower": 138.9,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 1.7,
+        "query_opp": 1.2,
+        "query_rank_sort": 2.4,
+        "query_render": 58.5,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 13.9,
+        "rank_dedup": 0.3,
+        "rank_families": 1.6,
+        "rank_map": 0.8,
+        "rank_sort": 0.4,
+        "score": 0.5,
+        "shared_lines": 134.8
+      },
+      "surface_counts": {
+        "default": 250,
+        "divergence": 51,
+        "hidden": 578
+      }
+    },
+    {
+      "bytes": 113745,
+      "elapsed_ms": 592.1352079894859,
+      "families": 59,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "nushell",
+      "schema_version": 7,
+      "sha256": "b7866cfd5846b20f9008f8147b54f95ca9006b69e2caabe69ab65acde026598b",
+      "stages_ms": {
+        "candidates": 9.1,
+        "cluster": 0.6,
+        "contiguous": 0.1,
+        "discover": 35.5,
+        "groups": 3.2,
+        "import-resolve": 31.8,
+        "lower": 276.8,
+        "normalize+extract": 208.9,
+        "parse+lower": 209.4,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 5.1,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.6,
+        "rank_dedup": 0.0,
+        "rank_families": 0.4,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 65.6
+      },
+      "surface_counts": {
+        "default": 54,
+        "hidden": 5
+      }
+    },
+    {
+      "bytes": 142392,
+      "elapsed_ms": 358.40687502059154,
+      "families": 66,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "prometheus",
+      "schema_version": 7,
+      "sha256": "8c3965334dd4b2053f8c27789d74f740e6bbaee909258da4c4cd554b643f577c",
+      "stages_ms": {
+        "candidates": 6.3,
+        "cluster": 0.4,
+        "contiguous": 0.1,
+        "discover": 21.0,
+        "groups": 1.8,
+        "import-resolve": 20.0,
+        "lower": 192.8,
+        "normalize+extract": 81.0,
+        "parse+lower": 151.8,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.2,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 5.1,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 1.6,
+        "rank_dedup": 0.1,
+        "rank_families": 0.6,
+        "rank_map": 0.4,
+        "rank_sort": 0.0,
+        "score": 0.3,
+        "shared_lines": 54.3
+      },
+      "surface_counts": {
+        "default": 35,
+        "divergence": 1,
+        "hidden": 30
+      }
+    },
+    {
+      "bytes": 49745,
+      "elapsed_ms": 85.02450000378303,
+      "families": 22,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "rich",
+      "schema_version": 7,
+      "sha256": "29bb9b0bfe8c1c6c4a6e4599147985fa56787e9023428dbcd7fafdb2c375cbab",
+      "stages_ms": {
+        "candidates": 2.4,
+        "cluster": 0.1,
+        "contiguous": 0.1,
+        "discover": 6.2,
+        "groups": 0.4,
+        "import-resolve": 3.7,
+        "lower": 38.5,
+        "normalize+extract": 24.1,
+        "parse+lower": 28.5,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.0,
+        "query_opp": 0.0,
+        "query_rank_sort": 0.1,
+        "query_render": 1.4,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 0.4,
+        "rank_dedup": 0.0,
+        "rank_families": 0.3,
+        "rank_map": 0.2,
+        "rank_sort": 0.0,
+        "score": 0.4,
+        "shared_lines": 10.0
+      },
+      "surface_counts": {
+        "default": 13,
+        "hidden": 9
+      }
+    },
+    {
+      "bytes": 134193,
+      "elapsed_ms": 288.3899580047,
+      "families": 104,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "rubocop",
+      "schema_version": 7,
+      "sha256": "9de12710efb9b9306a30a3e62485841574039958bbfb5198448d0f5112754606",
+      "stages_ms": {
+        "candidates": 7.7,
+        "cluster": 0.6,
+        "contiguous": 0.1,
+        "discover": 30.4,
+        "groups": 1.7,
+        "import-resolve": 0.1,
+        "lower": 114.7,
+        "normalize+extract": 87.2,
+        "parse+lower": 84.1,
+        "query_activate": 0.0,
+        "query_filter": 0.0,
+        "query_gate": 0.1,
+        "query_opp": 0.1,
+        "query_rank_sort": 0.1,
+        "query_render": 5.8,
+        "query_since": 0.0,
+        "query_sort": 0.0,
+        "query_surface": 2.4,
+        "rank_dedup": 0.0,
+        "rank_families": 0.4,
+        "rank_map": 0.3,
+        "rank_sort": 0.0,
+        "score": 0.5,
+        "shared_lines": 52.4
+      },
+      "surface_counts": {
+        "default": 20,
+        "hidden": 84
+      }
+    }
+  ],
+  "schema": "nose.query_regression_harness.v2",
+  "summary": {
+    "aggregate_baseline_median_ms": 2504.349021051894,
+    "aggregate_current_median_ms": 2444.2478755518096,
+    "aggregate_delta_ms": -60.101145500084385,
+    "aggregate_delta_pct": -2.3998709842304766,
+    "by_repo": {
+      "axios": {
+        "baseline": {
+          "bytes": [
+            43777
+          ],
+          "families": [
+            18
+          ],
+          "hashes": [
+            "9413a2851787f18c7a0d4f299af9011aaf81c283de772fd82ef5bb51024059a7"
+          ],
+          "median_ms": 163.44116649997886,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 1.6,
+            "cluster": 0.05,
+            "contiguous": 0.0,
+            "discover": 8.75,
+            "groups": 0.1,
+            "import-resolve": 3.1,
+            "lower": 127.95,
+            "normalize+extract": 14.05,
+            "parse+lower": 116.45,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 0.0,
+            "query_opp": 0.0,
+            "query_rank_sort": 0.0,
+            "query_render": 0.9,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 0.35,
+            "rank_dedup": 0.0,
+            "rank_families": 0.3,
+            "rank_map": 0.25,
+            "rank_sort": 0.0,
+            "score": 0.3,
+            "shared_lines": 11.0
+          },
+          "surface_counts": [
+            {
+              "default": 6,
+              "hidden": 12
+            }
+          ]
+        },
+        "current": {
+          "bytes": [
+            43777
+          ],
+          "families": [
+            18
+          ],
+          "hashes": [
+            "9413a2851787f18c7a0d4f299af9011aaf81c283de772fd82ef5bb51024059a7"
+          ],
+          "median_ms": 163.1166670122184,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 1.8,
+            "cluster": 0.05,
+            "contiguous": 0.0,
+            "discover": 8.1,
+            "groups": 0.15000000000000002,
+            "import-resolve": 3.05,
+            "lower": 127.7,
+            "normalize+extract": 13.85,
+            "parse+lower": 116.1,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 0.0,
+            "query_opp": 0.0,
+            "query_rank_sort": 0.0,
+            "query_render": 0.4,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 0.35,
+            "rank_dedup": 0.0,
+            "rank_families": 0.25,
+            "rank_map": 0.2,
+            "rank_sort": 0.0,
+            "score": 0.25,
+            "shared_lines": 12.149999999999999
+          },
+          "surface_counts": [
+            {
+              "default": 6,
+              "hidden": 12
+            }
+          ]
+        }
+      },
+      "curl": {
+        "baseline": {
+          "bytes": [
+            166996
+          ],
+          "families": [
+            115
+          ],
+          "hashes": [
+            "8558de85689af7656b59a250f131783a510ae7c192feda126eb6f392547cedc2"
+          ],
+          "median_ms": 230.71422950306442,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 5.6,
+            "cluster": 0.4,
+            "contiguous": 0.1,
+            "discover": 19.1,
+            "groups": 1.95,
+            "import-resolve": 0.6,
+            "lower": 82.35,
+            "normalize+extract": 74.6,
+            "parse+lower": 62.6,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 0.2,
+            "query_opp": 0.15000000000000002,
+            "query_rank_sort": 0.4,
+            "query_render": 8.7,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 2.4,
+            "rank_dedup": 0.0,
+            "rank_families": 0.45,
+            "rank_map": 0.35,
+            "rank_sort": 0.0,
+            "score": 0.5,
+            "shared_lines": 40.9
+          },
+          "surface_counts": [
+            {
+              "default": 37,
+              "divergence": 1,
+              "hidden": 77
+            }
+          ]
+        },
+        "current": {
+          "bytes": [
+            166996
+          ],
+          "families": [
+            115
+          ],
+          "hashes": [
+            "8558de85689af7656b59a250f131783a510ae7c192feda126eb6f392547cedc2"
+          ],
+          "median_ms": 224.00674999516923,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 5.6,
+            "cluster": 0.4,
+            "contiguous": 0.1,
+            "discover": 18.0,
+            "groups": 1.9,
+            "import-resolve": 0.6,
+            "lower": 83.0,
+            "normalize+extract": 71.85,
+            "parse+lower": 64.4,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 0.2,
+            "query_opp": 0.2,
+            "query_rank_sort": 0.4,
+            "query_render": 2.2,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 2.3,
+            "rank_dedup": 0.1,
+            "rank_families": 0.4,
+            "rank_map": 0.25,
+            "rank_sort": 0.0,
+            "score": 0.5,
+            "shared_lines": 40.9
+          },
+          "surface_counts": [
+            {
+              "default": 37,
+              "divergence": 1,
+              "hidden": 77
+            }
+          ]
+        }
+      },
+      "netty": {
+        "baseline": {
+          "bytes": [
+            1279338
+          ],
+          "families": [
+            879
+          ],
+          "hashes": [
+            "991bb874017575fc14d1c85e5933dd3538147ba93330a0962c328bb071966f66"
+          ],
+          "median_ms": 818.2086455199169,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 24.3,
+            "cluster": 1.1,
+            "contiguous": 0.4,
+            "discover": 77.1,
+            "groups": 8.45,
+            "import-resolve": 122.85,
+            "lower": 354.5,
+            "normalize+extract": 191.35,
+            "parse+lower": 148.35000000000002,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 1.6,
+            "query_opp": 1.0,
+            "query_rank_sort": 2.3,
+            "query_render": 53.900000000000006,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 14.0,
+            "rank_dedup": 0.3,
+            "rank_families": 1.6,
+            "rank_map": 0.8500000000000001,
+            "rank_sort": 0.4,
+            "score": 0.55,
+            "shared_lines": 134.14999999999998
+          },
+          "surface_counts": [
+            {
+              "default": 250,
+              "divergence": 51,
+              "hidden": 578
+            }
+          ]
+        },
+        "current": {
+          "bytes": [
+            1304905
+          ],
+          "families": [
+            887
+          ],
+          "hashes": [
+            "b0a2d8e1709f42053962dc44f38f33e42573fcf252b0c19978d75afc65d2e2c2"
+          ],
+          "median_ms": 802.8515210025944,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 23.15,
+            "cluster": 1.15,
+            "contiguous": 0.4,
+            "discover": 77.25,
+            "groups": 8.5,
+            "import-resolve": 126.44999999999999,
+            "lower": 349.5,
+            "normalize+extract": 208.2,
+            "parse+lower": 146.95,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 1.6,
+            "query_opp": 1.05,
+            "query_rank_sort": 2.3499999999999996,
+            "query_render": 21.5,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 14.15,
+            "rank_dedup": 0.3,
+            "rank_families": 1.8,
+            "rank_map": 1.0,
+            "rank_sort": 0.4,
+            "score": 0.5,
+            "shared_lines": 139.2
+          },
+          "surface_counts": [
+            {
+              "default": 258,
+              "divergence": 51,
+              "hidden": 578
+            }
+          ]
+        }
+      },
+      "nushell": {
+        "baseline": {
+          "bytes": [
+            113745
+          ],
+          "families": [
+            59
+          ],
+          "hashes": [
+            "b7866cfd5846b20f9008f8147b54f95ca9006b69e2caabe69ab65acde026598b"
+          ],
+          "median_ms": 570.337187993573,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 10.0,
+            "cluster": 0.6,
+            "contiguous": 0.2,
+            "discover": 31.5,
+            "groups": 3.5999999999999996,
+            "import-resolve": 32.15,
+            "lower": 247.95,
+            "normalize+extract": 207.85000000000002,
+            "parse+lower": 183.3,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 0.1,
+            "query_opp": 0.1,
+            "query_rank_sort": 0.1,
+            "query_render": 5.25,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 1.6,
+            "rank_dedup": 0.0,
+            "rank_families": 0.35,
+            "rank_map": 0.3,
+            "rank_sort": 0.0,
+            "score": 0.5,
+            "shared_lines": 65.65
+          },
+          "surface_counts": [
+            {
+              "default": 54,
+              "hidden": 5
+            }
+          ]
+        },
+        "current": {
+          "bytes": [
+            113745
+          ],
+          "families": [
+            59
+          ],
+          "hashes": [
+            "b7866cfd5846b20f9008f8147b54f95ca9006b69e2caabe69ab65acde026598b"
+          ],
+          "median_ms": 563.3055205107667,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 10.1,
+            "cluster": 0.6,
+            "contiguous": 0.1,
+            "discover": 33.0,
+            "groups": 3.6,
+            "import-resolve": 32.150000000000006,
+            "lower": 248.0,
+            "normalize+extract": 205.35,
+            "parse+lower": 183.25,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 0.1,
+            "query_opp": 0.1,
+            "query_rank_sort": 0.1,
+            "query_render": 1.2,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 1.7,
+            "rank_dedup": 0.0,
+            "rank_families": 0.3,
+            "rank_map": 0.3,
+            "rank_sort": 0.0,
+            "score": 0.4,
+            "shared_lines": 66.65
+          },
+          "surface_counts": [
+            {
+              "default": 54,
+              "hidden": 5
+            }
+          ]
+        }
+      },
+      "prometheus": {
+        "baseline": {
+          "bytes": [
+            142392
+          ],
+          "families": [
+            66
+          ],
+          "hashes": [
+            "8c3965334dd4b2053f8c27789d74f740e6bbaee909258da4c4cd554b643f577c"
+          ],
+          "median_ms": 359.6813750191359,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 6.199999999999999,
+            "cluster": 0.35,
+            "contiguous": 0.1,
+            "discover": 20.450000000000003,
+            "groups": 1.8,
+            "import-resolve": 19.9,
+            "lower": 195.9,
+            "normalize+extract": 87.5,
+            "parse+lower": 155.10000000000002,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 0.1,
+            "query_opp": 0.1,
+            "query_rank_sort": 0.1,
+            "query_render": 5.1,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 1.65,
+            "rank_dedup": 0.1,
+            "rank_families": 0.5,
+            "rank_map": 0.3,
+            "rank_sort": 0.0,
+            "score": 0.3,
+            "shared_lines": 45.349999999999994
+          },
+          "surface_counts": [
+            {
+              "default": 35,
+              "divergence": 1,
+              "hidden": 30
+            }
+          ]
+        },
+        "current": {
+          "bytes": [
+            142392
+          ],
+          "families": [
+            66
+          ],
+          "hashes": [
+            "8c3965334dd4b2053f8c27789d74f740e6bbaee909258da4c4cd554b643f577c"
+          ],
+          "median_ms": 359.07772900827695,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 7.45,
+            "cluster": 0.4,
+            "contiguous": 0.1,
+            "discover": 19.25,
+            "groups": 1.95,
+            "import-resolve": 20.1,
+            "lower": 195.35,
+            "normalize+extract": 96.4,
+            "parse+lower": 155.85,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 0.1,
+            "query_opp": 0.1,
+            "query_rank_sort": 0.1,
+            "query_render": 1.7,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 1.7,
+            "rank_dedup": 0.1,
+            "rank_families": 0.55,
+            "rank_map": 0.35,
+            "rank_sort": 0.05,
+            "score": 0.35,
+            "shared_lines": 43.150000000000006
+          },
+          "surface_counts": [
+            {
+              "default": 35,
+              "divergence": 1,
+              "hidden": 30
+            }
+          ]
+        }
+      },
+      "rich": {
+        "baseline": {
+          "bytes": [
+            49745
+          ],
+          "families": [
+            22
+          ],
+          "hashes": [
+            "29bb9b0bfe8c1c6c4a6e4599147985fa56787e9023428dbcd7fafdb2c375cbab"
+          ],
+          "median_ms": 82.29116650181822,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 2.15,
+            "cluster": 0.1,
+            "contiguous": 0.1,
+            "discover": 6.050000000000001,
+            "groups": 0.3,
+            "import-resolve": 3.6,
+            "lower": 34.55,
+            "normalize+extract": 23.4,
+            "parse+lower": 25.05,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 0.0,
+            "query_opp": 0.0,
+            "query_rank_sort": 0.05,
+            "query_render": 1.35,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 0.5,
+            "rank_dedup": 0.0,
+            "rank_families": 0.25,
+            "rank_map": 0.2,
+            "rank_sort": 0.0,
+            "score": 0.25,
+            "shared_lines": 10.05
+          },
+          "surface_counts": [
+            {
+              "default": 13,
+              "hidden": 9
+            }
+          ]
+        },
+        "current": {
+          "bytes": [
+            49745
+          ],
+          "families": [
+            22
+          ],
+          "hashes": [
+            "29bb9b0bfe8c1c6c4a6e4599147985fa56787e9023428dbcd7fafdb2c375cbab"
+          ],
+          "median_ms": 75.38625052256975,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 2.45,
+            "cluster": 0.1,
+            "contiguous": 0.05,
+            "discover": 6.4,
+            "groups": 0.3,
+            "import-resolve": 3.5,
+            "lower": 31.049999999999997,
+            "normalize+extract": 23.15,
+            "parse+lower": 21.5,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 0.0,
+            "query_opp": 0.0,
+            "query_rank_sort": 0.0,
+            "query_render": 0.5,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 0.5,
+            "rank_dedup": 0.0,
+            "rank_families": 0.25,
+            "rank_map": 0.2,
+            "rank_sort": 0.0,
+            "score": 0.3,
+            "shared_lines": 9.9
+          },
+          "surface_counts": [
+            {
+              "default": 13,
+              "hidden": 9
+            }
+          ]
+        }
+      },
+      "rubocop": {
+        "baseline": {
+          "bytes": [
+            134193
+          ],
+          "families": [
+            104
+          ],
+          "hashes": [
+            "9de12710efb9b9306a30a3e62485841574039958bbfb5198448d0f5112754606"
+          ],
+          "median_ms": 279.67525001440663,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 7.7,
+            "cluster": 0.5,
+            "contiguous": 0.1,
+            "discover": 29.35,
+            "groups": 1.45,
+            "import-resolve": 0.1,
+            "lower": 116.6,
+            "normalize+extract": 77.6,
+            "parse+lower": 87.44999999999999,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 0.1,
+            "query_opp": 0.1,
+            "query_rank_sort": 0.1,
+            "query_render": 5.65,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 2.5,
+            "rank_dedup": 0.0,
+            "rank_families": 0.4,
+            "rank_map": 0.3,
+            "rank_sort": 0.0,
+            "score": 0.25,
+            "shared_lines": 52.0
+          },
+          "surface_counts": [
+            {
+              "default": 20,
+              "hidden": 84
+            }
+          ]
+        },
+        "current": {
+          "bytes": [
+            134193
+          ],
+          "families": [
+            104
+          ],
+          "hashes": [
+            "9de12710efb9b9306a30a3e62485841574039958bbfb5198448d0f5112754606"
+          ],
+          "median_ms": 256.5034375002142,
+          "schema_versions": [
+            7
+          ],
+          "stages_median_ms": {
+            "candidates": 7.3,
+            "cluster": 0.5,
+            "contiguous": 0.1,
+            "discover": 29.1,
+            "groups": 1.5,
+            "import-resolve": 0.1,
+            "lower": 99.8,
+            "normalize+extract": 76.25,
+            "parse+lower": 70.55,
+            "query_activate": 0.0,
+            "query_filter": 0.0,
+            "query_gate": 0.1,
+            "query_opp": 0.1,
+            "query_rank_sort": 0.1,
+            "query_render": 1.6,
+            "query_since": 0.0,
+            "query_sort": 0.0,
+            "query_surface": 2.4,
+            "rank_dedup": 0.0,
+            "rank_families": 0.45,
+            "rank_map": 0.35,
+            "rank_sort": 0.0,
+            "score": 0.25,
+            "shared_lines": 52.349999999999994
+          },
+          "surface_counts": [
+            {
+              "default": 20,
+              "hidden": 84
+            }
+          ]
+        }
+      }
+    },
+    "hashes_identical_by_repo": {
+      "axios": true,
+      "curl": true,
+      "netty": false,
+      "nushell": true,
+      "prometheus": true,
+      "rich": true,
+      "rubocop": true
+    }
+  }
+}

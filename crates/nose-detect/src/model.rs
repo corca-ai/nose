@@ -259,6 +259,10 @@ pub struct Report {
     /// Reinvented-helper containment findings — see [`ReinventedHelper`].
     pub reinvented: Vec<ReinventedHelper>,
     pub metrics: Metrics,
+    /// For each structural `groups` entry, direct accepted edges as local
+    /// member-index pairs. Empty outside query's suppression-provenance path.
+    #[serde(skip)]
+    pub accepted_group_edges: Vec<Vec<(u32, u32)>>,
 }
 
 fn unit_kind_name(kind: UnitKind) -> &'static str {

@@ -175,6 +175,17 @@ the omitted post-acceptance branch in the original A-E tree is recorded as a Rou
 protocol deviation. Method, rejected routes, and commands are documented in
 [`docs/missed-worthy-frontier-816.md`](../../docs/missed-worthy-frontier-816.md).
 
+The #817 follow-up is recorded by `accepted_pair_coverage.py`, the paired
+`accepted_pair_coverage_2026_07_11.dev.*.v2.json` censuses, the issue-specific
+product-quality report, and the semantic/default `accepted_pair_coverage_pricing_*`
+artifacts. Together they bind the full dev accepted-edge universe, exact recovered
+and regressed worthy IDs, output declarations, same-binary controls, and focused
+runtime gates. `accepted_pair_coverage_dev_gate_2026_07_11.v1.json` freezes the
+success criterion before held-out;
+`accepted_pair_coverage_heldout_confirmation_2026_07_11.v1.json` binds the later
+one-time passing confirmation to that gate. Method and results are documented in
+[`docs/accepted-pair-coverage-817.md`](../../docs/accepted-pair-coverage-817.md).
+
 `query_json_agent_audit_2026_06_10.json` records the #216 agent-usability audit of the
 query-JSON contract: 18 sampled families, JSON-only decisions graded against source,
 and the ranked evidence-gap list. See
@@ -256,3 +267,7 @@ Pass `--mode` to compare a non-default channel mix without editing the script:
 ```sh
 python3 bench/labels/eval_by_language.py --mode syntax,semantic,near
 ```
+
+Pass `--comparison-nose` when a change needs a durable label-level delta. The
+primary metrics still describe `--nose`; the report additionally lists every
+recovered and regressed worthy `repo:family_id` against the comparison binary.

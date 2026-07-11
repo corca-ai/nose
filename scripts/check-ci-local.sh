@@ -119,12 +119,43 @@ run_regression_checker_selftests() {
     python3 bench/labels/missed_worthy_stage_audit.py --self-test
     python3 bench/labels/missed_worthy_heldout_confirmation.py --self-test
     python3 bench/labels/missed_worthy_source_bounds.py --self-test
+    python3 bench/labels/accepted_pair_coverage.py --self-test
     python3 scripts/query-regression-harness.py --self-test
     python3 scripts/ruby-redefinition-scaling.py --self-test
     python3 scripts/semantic-regression-summary.py --self-test
     python3 scripts/recall-loss-diff.py --self-test
     python3 scripts/check-query-regression.py --self-test
     python3 scripts/check-recall-loss-baselines.py --self-test
+}
+
+run_accepted_pair_coverage_checks() {
+    need_cmd python3
+    python3 bench/labels/accepted_pair_coverage.py \
+        --validate bench/labels/accepted_pair_coverage_2026_07_11.dev.baseline.v2.json
+    python3 bench/labels/accepted_pair_coverage.py \
+        --validate bench/labels/accepted_pair_coverage_2026_07_11.dev.head.v2.json
+    python3 scripts/check-query-regression.py \
+        bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.primary.v3.json \
+        --same-binary-control bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.control.v3.json \
+        --expected-drift-manifest bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.expected-drift.v1.json \
+        --focused-report bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.focused.v3.json \
+        --focused-same-binary-control bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.focused-control.v3.json \
+        --require-same-binary-control \
+        --max-runtime-delta-pct 5 \
+        --min-runtime-delta-ms 5 \
+        --check-status bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.status.v3.json \
+        --check-markdown bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.summary.v3.md
+    python3 scripts/check-query-regression.py \
+        bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.primary.v3.json \
+        --same-binary-control bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.control.v3.json \
+        --expected-drift-manifest bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.expected-drift.v1.json \
+        --focused-report bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.focused.v3.json \
+        --focused-same-binary-control bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.focused-control.v3.json \
+        --require-same-binary-control \
+        --max-runtime-delta-pct 5 \
+        --min-runtime-delta-ms 5 \
+        --check-status bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.status.v3.json \
+        --check-markdown bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.summary.v3.md
 }
 
 run_missed_worthy_frontier_checks() {
@@ -195,6 +226,9 @@ run_regression_checker_selftests
 
 step "current missed-worthy frontier artifacts"
 run_missed_worthy_frontier_checks
+
+step "current accepted-pair coverage artifacts"
+run_accepted_pair_coverage_checks
 
 step "Cargo target prune self-test"
 ./scripts/prune-cargo-target.sh --self-test

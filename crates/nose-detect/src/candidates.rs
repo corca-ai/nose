@@ -100,14 +100,15 @@ pub(crate) fn build_groups(
     raw_groups: &[Vec<usize>],
     enclosing: &[Option<EnclosingUnit>],
     opts: &DetectOptions,
-) -> Vec<Group> {
+    trace_accepted_coverage: bool,
+) -> (Vec<Group>, Vec<Vec<(u32, u32)>>) {
     let mut by_root: FxHashMap<usize, (f64, u32)> = FxHashMap::default();
     for &(i, _j, s) in accepted {
         let e = by_root.entry(uf.find(i)).or_insert((0.0, 0));
         e.0 += s;
         e.1 += 1;
     }
-    raw_groups
+    let groups = raw_groups
         .iter()
         .map(|members| {
             let root = uf.find(members[0]);
@@ -141,7 +142,39 @@ pub(crate) fn build_groups(
                 witness: Some(group_witness(members, units)),
             }
         })
-        .collect()
+        .collect();
+    let accepted_group_edges = if trace_accepted_coverage {
+        accepted_edges_by_group(units.len(), raw_groups, accepted)
+    } else {
+        Vec::new()
+    };
+    (groups, accepted_group_edges)
+}
+
+fn accepted_edges_by_group(
+    unit_count: usize,
+    raw_groups: &[Vec<usize>],
+    accepted: &[(usize, usize, f64)],
+) -> Vec<Vec<(u32, u32)>> {
+    let mut member_position: Vec<Option<(usize, u32)>> = vec![None; unit_count];
+    for (group_index, members) in raw_groups.iter().enumerate() {
+        for (local_index, &unit_index) in members.iter().enumerate() {
+            member_position[unit_index] = Some((group_index, local_index as u32));
+        }
+    }
+    let mut edges = vec![Vec::new(); raw_groups.len()];
+    for &(left, right, _) in accepted {
+        let (Some((left_group, left_local)), Some((right_group, right_local))) =
+            (member_position[left], member_position[right])
+        else {
+            continue;
+        };
+        debug_assert_eq!(left_group, right_group);
+        if left_group == right_group {
+            edges[left_group].push((left_local, right_local));
+        }
+    }
+    edges
 }
 
 fn semantic_laws_for_members(members: &[usize], units: &[UnitFeat]) -> Vec<ValueLaw> {

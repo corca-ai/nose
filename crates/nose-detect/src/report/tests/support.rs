@@ -108,6 +108,8 @@ pub(super) fn fam(
         params,
         shared_weight: shared as f64,
         locations: locs,
+        accepted_coverage: Vec::new(),
+        display_params: None,
         mean_sem: 50.0,
         scope: "prod",
         discount: 1.0,
@@ -125,6 +127,7 @@ pub(super) fn report(groups: Vec<Group>) -> Report {
         detector: "structural".into(),
         duplicates: vec![],
         reinvented: vec![],
+        accepted_group_edges: Vec::new(),
         groups,
         metrics: Metrics {
             files: 0,

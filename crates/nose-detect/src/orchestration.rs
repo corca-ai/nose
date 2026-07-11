@@ -25,6 +25,17 @@ pub fn detect(corpus: &Corpus, opts: &DetectOptions, detector: &dyn Detector) ->
     detect_with_dump(corpus, opts, detector).0
 }
 
+/// Product-query detection with compact direct accepted-edge provenance retained
+/// through ranking. Keeping this control outside [`DetectOptions`] leaves the
+/// normalize/extract hot path and its option layout identical for every caller.
+pub fn detect_with_accepted_coverage(
+    corpus: &Corpus,
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+) -> Report {
+    detect_with_dump_inner(corpus, opts, detector, true).0
+}
+
 /// Per-stage wall-clock timing, printed to stderr when `NOSE_TIME` is set. A
 /// zero-cost no-op otherwise (the `Instant`s are cheap; only the env check gates
 /// printing).
@@ -61,21 +72,36 @@ impl StageTimer {
 /// may pass a throwaway per-file interner — which is exactly what makes caching a
 /// file's units by its source-content hash sound.
 pub fn units_of_file(il: &Il, interner: &Interner, opts: &DetectOptions) -> Vec<UnitFeat> {
-    if raw_il_is_empty_module(il) || units::large_test_file(il) {
-        return Vec::new();
-    }
     let norm_opts = NormalizeOptions {
         cfg_norm: opts.cfg_norm,
         dce: opts.dce,
         ..Default::default()
     };
     let seeds = minhash::seeds(opts.minhash_k);
-    let n = nose_normalize::normalize(il, interner, &norm_opts);
+    extract_units_of_file(il, interner, opts, &norm_opts, &seeds)
+}
+
+/// Keep the normalization/extraction body out of the Rayon closure. This path
+/// is large and hot; sharing one non-inlined implementation with the cached
+/// per-file entry point avoids code-layout-sensitive copies while preserving
+/// the fused normalize-then-extract lifetime.
+#[inline(never)]
+fn extract_units_of_file(
+    il: &Il,
+    interner: &Interner,
+    opts: &DetectOptions,
+    norm_opts: &NormalizeOptions,
+    seeds: &[u64],
+) -> Vec<UnitFeat> {
+    if raw_il_is_empty_module(il) || units::large_test_file(il) {
+        return Vec::new();
+    }
+    let n = nose_normalize::normalize(il, interner, norm_opts);
     let block_units = block_units_for_file(&n, opts);
     units::extract(
         &n,
         interner,
-        &seeds,
+        seeds,
         opts.min_lines,
         opts.min_tokens,
         block_units,
@@ -90,6 +116,15 @@ pub fn detect_with_dump(
     corpus: &Corpus,
     opts: &DetectOptions,
     detector: &dyn Detector,
+) -> (Report, Dump) {
+    detect_with_dump_inner(corpus, opts, detector, false)
+}
+
+fn detect_with_dump_inner(
+    corpus: &Corpus,
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+    trace_accepted_coverage: bool,
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
@@ -109,24 +144,7 @@ pub fn detect_with_dump(
         .par_iter()
         .map(|il| {
             let units = if opts.structural {
-                if raw_il_is_empty_module(il) || units::large_test_file(il) {
-                    Vec::new()
-                } else {
-                    let n = nose_normalize::normalize(il, &corpus.interner, &norm_opts);
-                    let block_units = block_units_for_file(&n, opts);
-                    units::extract(
-                        &n,
-                        &corpus.interner,
-                        &seeds,
-                        opts.min_lines,
-                        opts.min_tokens,
-                        block_units,
-                        units::ExtractFeatures {
-                            shape_features: opts.shape_features,
-                            abstraction_witnesses: opts.abstraction_witnesses,
-                        },
-                    )
-                }
+                extract_units_of_file(il, &corpus.interner, opts, &norm_opts, &seeds)
             } else {
                 Vec::new()
             };
@@ -142,8 +160,17 @@ pub fn detect_with_dump(
             (units, stream)
         })
         .collect();
-    let mut units: Vec<UnitFeat> = Vec::new();
-    let mut streams: Vec<Stream> = Vec::new();
+    // `UnitFeat` is large enough that repeatedly growing the aggregate vector
+    // copies a meaningful amount of memory on repositories with many files.
+    // The parallel pass already owns every per-file length, so reserve the
+    // exact aggregate capacities before moving the results into place.
+    let unit_count = per_file.iter().map(|(units, _)| units.len()).sum();
+    let stream_count = per_file
+        .iter()
+        .filter(|(_, stream)| stream.is_some())
+        .count();
+    let mut units: Vec<UnitFeat> = Vec::with_capacity(unit_count);
+    let mut streams: Vec<Stream> = Vec::with_capacity(stream_count);
     for (u, s) in per_file {
         units.extend(u);
         if let Some(s) = s {
@@ -155,7 +182,14 @@ pub fn detect_with_dump(
     // `detect_from_units` runs its own `StageTimer` for the detection sub-phases
     // (candidates/score/groups/contiguous), so no lap here — a single outer lap would
     // mislabel the whole call (group scoring dwarfs contiguous) as "contiguous".
-    detect_from_units(units, corpus.files.len(), &streams, opts, detector)
+    detect_from_units_inner(
+        units,
+        corpus.files.len(),
+        &streams,
+        opts,
+        detector,
+        trace_accepted_coverage,
+    )
 }
 
 fn raw_il_is_empty_module(il: &Il) -> bool {
@@ -208,6 +242,28 @@ pub fn detect_from_units(
     streams: &[Stream],
     opts: &DetectOptions,
     detector: &dyn Detector,
+) -> (Report, Dump) {
+    detect_from_units_inner(units, files, streams, opts, detector, false)
+}
+
+/// Cached-query counterpart to [`detect_with_accepted_coverage`].
+pub fn detect_from_units_with_accepted_coverage(
+    units: Vec<UnitFeat>,
+    files: usize,
+    streams: &[Stream],
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+) -> (Report, Dump) {
+    detect_from_units_inner(units, files, streams, opts, detector, true)
+}
+
+fn detect_from_units_inner(
+    units: Vec<UnitFeat>,
+    files: usize,
+    streams: &[Stream],
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+    trace_accepted_coverage: bool,
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
@@ -266,7 +322,15 @@ pub fn detect_from_units(
         Vec::new()
     };
 
-    let groups = build_groups(&units, &accepted, &mut uf, &raw_groups, &enclosing, opts);
+    let (groups, accepted_group_edges) = build_groups(
+        &units,
+        &accepted,
+        &mut uf,
+        &raw_groups,
+        &enclosing,
+        opts,
+        trace_accepted_coverage,
+    );
     clk.lap("groups");
 
     let reinvented = if opts.structural {
@@ -288,22 +352,14 @@ pub fn detect_from_units(
         duplicates,
         groups,
         reinvented,
+        accepted_group_edges,
     };
 
     // Copy-paste channel over the (raw-IL) token streams. Runs here, after the
     // value-graph channel, so both `detect` and the CLI's `--cache-dir` path produce
     // the same families — the cache supplies cached streams, otherwise this would
     // silently omit every contiguous clone.
-    if opts.contiguous {
-        let mut extra = contiguous::detect(
-            streams,
-            opts.contiguous_min_tokens,
-            opts.contiguous_min_lines,
-        );
-        attach_enclosing_units(&mut extra, &units);
-        report.metrics.groups += extra.len();
-        report.groups.extend(extra);
-    }
+    append_contiguous_groups(&mut report, streams, opts, &units);
     clk.lap("contiguous");
 
     let dump = Dump {
@@ -324,4 +380,23 @@ pub fn detect_from_units(
     };
 
     (report, dump)
+}
+
+fn append_contiguous_groups(
+    report: &mut Report,
+    streams: &[Stream],
+    opts: &DetectOptions,
+    units: &[UnitFeat],
+) {
+    if !opts.contiguous {
+        return;
+    }
+    let mut extra = contiguous::detect(
+        streams,
+        opts.contiguous_min_tokens,
+        opts.contiguous_min_lines,
+    );
+    attach_enclosing_units(&mut extra, units);
+    report.metrics.groups += extra.len();
+    report.groups.extend(extra);
 }

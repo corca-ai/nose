@@ -378,6 +378,11 @@ fn repo_relative(fam: &RefactorFamily, base_prefix: &Path) -> RefactorFamily {
     for loc in &mut fam.locations {
         repo_relative_loc(loc, base_prefix);
     }
+    for obligation in &mut fam.accepted_coverage {
+        for loc in &mut obligation.sites {
+            repo_relative_loc(loc, base_prefix);
+        }
+    }
     fam
 }
 

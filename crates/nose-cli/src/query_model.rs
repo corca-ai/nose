@@ -424,6 +424,9 @@ pub(super) fn all_copies_shared_cached(
     f: &nose_detect::RefactorFamily,
     cache: &mut FileLineCache,
 ) -> (u32, u32) {
+    if let Some(params) = f.display_params {
+        return (f.shared_lines, params);
+    }
     if f.languages != 1 {
         return (f.shared_lines, f.params);
     }

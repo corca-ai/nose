@@ -225,6 +225,8 @@ fn divergence_family(locs: Vec<Loc>) -> RefactorFamily {
         params: 0,
         shared_weight: 4.0,
         locations: locs,
+        accepted_coverage: Vec::new(),
+        display_params: None,
         mean_sem: 4.0,
         scope: "prod",
         discount: 1.0,
