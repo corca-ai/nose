@@ -61,6 +61,12 @@ pub struct RefactorFamily {
     #[doc(hidden)]
     #[serde(skip)]
     pub accepted_coverage: Vec<AcceptedCoverage>,
+    /// All-copies parameter count computed alongside `shared_lines` while source
+    /// slices are already cached. Query rendering reuses it instead of reading
+    /// and diffing every displayed family a second time.
+    #[doc(hidden)]
+    #[serde(skip)]
+    pub display_params: Option<u32>,
     /// Mean value-graph size across members (low → computation-poor type/data def).
     pub mean_sem: f64,
     /// Where the duplication lives: `"prod"`, `"test"` (all sites in test code), or

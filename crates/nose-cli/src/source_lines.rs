@@ -126,6 +126,10 @@ pub(crate) struct SharedLines {
     /// `N of M shared, K spots differ` summary can never read `5 of 6 + 2 spots`
     /// (the §S4-C2 self-contradiction).
     pub(crate) display: u32,
+    /// Hole count over the same all-copies intersection as `display`. Query
+    /// output uses this count, so computing it here avoids repeating every
+    /// source read and N-way diff during JSON rendering.
+    pub(crate) display_params: u32,
     /// The representative pair's hole count — `K` in `N of M shared, K spots differ`,
     /// kept tied to `varying_spots` and the `param_penalty`/`shallow-extraction`
     /// ranking. Deliberately representative-pair, not all-copies: the all-copies
@@ -205,10 +209,18 @@ pub(crate) fn shared_lines_of(
     // diverge). Display-only and gold-set-measured ranking-neutral: the order reads
     // `shared_weight`/`params`, never this. (All-copies *params* was measured too and
     // regressed held-out — experiments §CL — so `params` stays representative-pair.)
-    let display = display_survive
-        .into_iter()
-        .filter(|survives| *survives)
-        .count() as u32;
+    let mut display = 0u32;
+    let mut display_params = 0u32;
+    let mut in_hole = false;
+    for survives in display_survive {
+        if survives {
+            display += 1;
+            in_hole = false;
+        } else if !in_hole {
+            display_params += 1;
+            in_hole = true;
+        }
+    }
     let need = ((n_others as f64) * 0.6).ceil().max(1.0) as usize;
     let mut rank_lines: Vec<String> = counts
         .into_iter()
@@ -223,6 +235,7 @@ pub(crate) fn shared_lines_of(
     Some(SharedLines {
         rank_lines,
         display,
+        display_params,
         params,
     })
 }

@@ -235,6 +235,7 @@ fn weight_shared_lines(
             f.shared_lines = s.display;
             f.shared_weight = s.rank_lines.len() as f64 * gate;
             f.params = s.params;
+            f.display_params = Some(s.display_params);
         }
     }
 }

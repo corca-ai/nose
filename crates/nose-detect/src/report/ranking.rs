@@ -127,6 +127,7 @@ fn family_of_with_edges(group: &Group, group_edges: &[(u32, u32)]) -> RefactorFa
         shared_weight: 0.0,
         locations: locs,
         accepted_coverage,
+        display_params: None,
         mean_sem,
         scope,
         discount,

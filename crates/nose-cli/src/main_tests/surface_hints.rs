@@ -118,6 +118,7 @@ pub(super) fn fam_kind(
         shared_weight: 0.0,
         locations,
         accepted_coverage: Vec::new(),
+        display_params: None,
         mean_sem: 50.0,
         scope: "prod",
         discount: 1.0,
@@ -191,6 +192,11 @@ fn shared_lines_params_come_from_first_successful_pair() {
     assert_eq!(
         s.params, 1,
         "params must come from the first successful pair, not iteration 0"
+    );
+    assert_eq!(s.display, 2, "two lines survive across every readable copy");
+    assert_eq!(
+        s.display_params, 1,
+        "the all-copies display has one leading parameter hole"
     );
 
     let _ = std::fs::remove_dir_all(&dir);

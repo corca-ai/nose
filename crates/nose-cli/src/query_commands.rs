@@ -328,6 +328,12 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
     let opp = time_stage("query_opp", || {
         query_opportunities(&dataset.families, &overrides)
     });
+    // Accepted-edge graphs are needed only to decide the fold forest. Drop the
+    // potentially large internal provenance before list selection and JSON
+    // rendering; it is intentionally absent from the product schema.
+    for family in &mut dataset.families {
+        family.accepted_coverage.clear();
+    }
     let semantic_packs_json = if matches!(args.format, ReportFormat::Json) {
         semantic_packs_json(&dataset.semantic_packs)
     } else {

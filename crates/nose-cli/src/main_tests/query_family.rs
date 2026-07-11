@@ -31,6 +31,20 @@ fn accepted_pair(sites: Vec<Loc>) -> nose_detect::AcceptedCoverage {
 }
 
 #[test]
+fn query_reuses_precomputed_all_copy_counts() {
+    let mut f = fam_at(&[("missing/a.go", 1, 20), ("missing/b.go", 1, 20)]);
+    f.shared_lines = 11;
+    f.params = 7;
+    f.display_params = Some(2);
+
+    assert_eq!(
+        all_copies_shared(&f),
+        (11, 2),
+        "rendering uses the all-copies count cached during shared-line weighting"
+    );
+}
+
+#[test]
 fn compiled_css_pipeline_demotes_source_plus_outputs_but_not_cross_source() {
     let gen: rustc_hash::FxHashSet<String> = [
         "css/bundle.css".to_string(),

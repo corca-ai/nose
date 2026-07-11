@@ -109,6 +109,7 @@ pub(super) fn fam(
         shared_weight: shared as f64,
         locations: locs,
         accepted_coverage: Vec::new(),
+        display_params: None,
         mean_sem: 50.0,
         scope: "prod",
         discount: 1.0,
