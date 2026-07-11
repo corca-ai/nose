@@ -1,6 +1,6 @@
 {
   "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
-  "prune_manifest_sha256": "70e3ba6446202ee76dcc781e59aa4e976936bc7b4f12841fcb3d4eb4fbc7579d",
+  "prune_manifest_sha256": "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980",
   "repositories": [
     "alacritty",
     "asciidoctor",

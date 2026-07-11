@@ -1,0 +1,398 @@
+{
+  "schema": "nose.refactoring_label_decisions.v1",
+  "split": "heldout",
+  "decisions": [
+    {
+      "candidate_key": "zstd:999a0d156e575733",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The members are intentionally retained version-specific Zstandard sources; sharing code across the historical copies would defeat their independent compatibility boundaries."
+    },
+    {
+      "candidate_key": "vim:e680ce74dedcc1ed",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-helper",
+      "confidence": "medium",
+      "note": "Both spell-tree walks duplicate the same byte-array binary search and child transition; a helper can own that coherent operation while callers keep their distinct whitespace behavior."
+    },
+    {
+      "candidate_key": "wrk:76aeb1309818ccd5",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Connection, read, and write paths repeat the same OpenSSL error classification and reporting sequence, which has a natural shared diagnostic-helper boundary."
+    },
+    {
+      "candidate_key": "cmark:3e5851874172adb5",
+      "votes": {"pragmatic": "parameterize", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "parameterize",
+      "confidence": "medium",
+      "note": "The adjacent parser setup blocks perform the same node construction and attachment flow while varying the markdown/item inputs, making the variation explicit as parameters."
+    },
+    {
+      "candidate_key": "libuv:78b98644f71817e6",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "trivial"},
+      "arbiter": "extract-helper",
+      "confidence": "medium",
+      "note": "Three maintained network tests copy the complete slab allocation callback; one test-support callback can serve all three without hiding scenario behavior."
+    },
+    {
+      "candidate_key": "urfave-cli:18738908e84e847b",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parameterize", "skeptic": "parallel-by-design"},
+      "arbiter": "parallel-by-design",
+      "confidence": "medium",
+      "note": "The command lifecycle cases exercise different Before, After, and shell-completion semantics; their common command construction is boilerplate around independently meaningful scenarios."
+    },
+    {
+      "candidate_key": "etcd:d3b9c50d6738110a",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Two integration tests duplicate the embedded server, client, snapshot, and cleanup sequence, which can be returned by one scoped test harness."
+    },
+    {
+      "candidate_key": "fzf:641e51249d00bb43",
+      "votes": {"pragmatic": "extract-data-table", "dedupe": "extract-data-table", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-data-table",
+      "confidence": "medium",
+      "note": "The large color-theme literals repeat a stable default field set and vary a bounded palette; a base table plus explicit overrides would remove substantial duplication."
+    },
+    {
+      "candidate_key": "minio:16ff7e77a87414d2",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The event and logger packages carry the same Kafka SCRAM client implementation; an internal shared package can own the mechanism without changing either caller."
+    },
+    {
+      "candidate_key": "gin:ac020afc23150b69",
+      "votes": {"pragmatic": "parameterize", "dedupe": "parameterize", "skeptic": "parameterize"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Adjacent cookie tests repeat construction and assertions while varying cookie attributes, a direct table-driven test case."
+    },
+    {
+      "candidate_key": "h2database:03bc8fe3b9bbb4fa",
+      "votes": {"pragmatic": "trivial", "dedupe": "trivial", "skeptic": "trivial"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The overlap is a Java import list; each compilation unit must declare the names it uses and there is no behavioral abstraction to extract."
+    },
+    {
+      "candidate_key": "jsoup:e906265708b2d692",
+      "votes": {"pragmatic": "parameterize", "dedupe": "parameterize", "skeptic": "parallel-by-design"},
+      "arbiter": "parameterize",
+      "confidence": "medium",
+      "note": "The single- and double-quoted tokenizer states duplicate the same scan/escape/termination logic and differ primarily in the terminating quote character."
+    },
+    {
+      "candidate_key": "libgdx:6faf43e3488930de",
+      "votes": {"pragmatic": "generated", "dedupe": "generated", "skeptic": "generated"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The hundreds of members are SWIG-generated Java wrappers, so the repeated binding scaffolding is not maintained as hand-refactorable application code."
+    },
+    {
+      "candidate_key": "rxjava:8ef86a4ab5d17ec0",
+      "votes": {"pragmatic": "trivial", "dedupe": "trivial", "skeptic": "trivial"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The detected family consists of repeated imports in independent test compilation units and exposes no reusable behavior."
+    },
+    {
+      "candidate_key": "jackson-core:6869c97e91e132fd",
+      "votes": {"pragmatic": "trivial", "dedupe": "extract-helper", "skeptic": "trivial"},
+      "arbiter": "trivial",
+      "confidence": "medium",
+      "note": "The match is a four-line accessor required on distinct parser subclasses; an extra indirection would not remove the per-class method contract."
+    },
+    {
+      "candidate_key": "marshmallow:340f9952d525a911",
+      "votes": {"pragmatic": "parameterize", "dedupe": "parameterize", "skeptic": "parameterize"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The two TimeDelta microsecond cases repeat setup and assertions and vary only the input/expected boundary values, fitting one parameterized test."
+    },
+    {
+      "candidate_key": "httpie:1b7577867fae2c85",
+      "votes": {"pragmatic": "trivial", "dedupe": "extract-helper", "skeptic": "trivial"},
+      "arbiter": "trivial",
+      "confidence": "medium",
+      "note": "Each member is a two-line teardown in a separate test class; a shared base or helper would add coupling for negligible code removal."
+    },
+    {
+      "candidate_key": "sympy:555eb74f8d40d7c1",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Distribution tests repeat the same seeded sample-consistency loop; a shared assertion helper can accept the distribution and expected samples."
+    },
+    {
+      "candidate_key": "boltons:7ef4ebec5969df2a",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "parallel-by-design",
+      "confidence": "medium",
+      "note": "urlutils explicitly embeds a dated OrderedMultiDict snapshot from dictutils to remain self-contained; sharing its prelude would undo that deliberate frozen-copy boundary."
+    },
+    {
+      "candidate_key": "flask:6962456706ee0269",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The application and sans-I/O application modules duplicate the same type variables and timedelta conversion helper, which belong in their shared internal support layer."
+    },
+    {
+      "candidate_key": "pry:f53aa884b3a953b3",
+      "votes": {"pragmatic": "parameterize", "dedupe": "parameterize", "skeptic": "trivial"},
+      "arbiter": "parameterize",
+      "confidence": "medium",
+      "note": "Adjacent cdpath examples repeat the same stub, chdir expectation, and Pry command while varying only the selected path case."
+    },
+    {
+      "candidate_key": "asciidoctor:ce6f2ebae333ecf6",
+      "votes": {"pragmatic": "parameterize", "dedupe": "extract-data-table", "skeptic": "parameterize"},
+      "arbiter": "parameterize",
+      "confidence": "high",
+      "note": "Six UI-macro conversion tests duplicate header construction, conversion, and suffix assertion while varying only macro input and expected rendering."
+    },
+    {
+      "candidate_key": "kramdown:9a24a5d7acb6ae21",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "trivial", "skeptic": "parallel-by-design"},
+      "arbiter": "parallel-by-design",
+      "confidence": "high",
+      "note": "The duplicated HTML fragments are independent expected-output cases in a parser fixture; consolidating them would erase the literal expectations being specified."
+    },
+    {
+      "candidate_key": "puma:18a2a4ab3571428f",
+      "votes": {"pragmatic": "extract-base", "dedupe": "extract-helper", "skeptic": "extract-base"},
+      "arbiter": "extract-base",
+      "confidence": "high",
+      "note": "Two related release tests contain the exact same nontrivial teardown lifecycle, which can live in their common test base."
+    },
+    {
+      "candidate_key": "liquid:45d242492681453a",
+      "votes": {"pragmatic": "extract-base", "dedupe": "extract-base", "skeptic": "extract-base"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "ForloopDrop and TableRowLoopDrop duplicate the same index, reverse-index, first, and last behavior over identical state, a clear shared loop-drop abstraction."
+    },
+    {
+      "candidate_key": "hyperfine:b71046f90afc6315",
+      "votes": {"pragmatic": "trivial", "dedupe": "trivial", "skeptic": "trivial"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The overlap is a small Rust use list shared by exporter modules; each module still needs its own imports and no computation is duplicated."
+    },
+    {
+      "candidate_key": "tokio:64101c27dd69940a",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "parallel-by-design",
+      "confidence": "medium",
+      "note": "The memchr implementation is duplicated across tokio and tokio-util crate boundaries so each crate can use it without introducing a reverse or cyclic dependency."
+    },
+    {
+      "candidate_key": "tokei:39062e5960f73437",
+      "votes": {"pragmatic": "trivial", "dedupe": "trivial", "skeptic": "trivial"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Both members are two-line lines-count getters on different domain types; extracting the arithmetic would cost more than it removes."
+    },
+    {
+      "candidate_key": "sled:faa8b2506b57a319",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Heap and metadata recovery copy the same external sync invocation and failure logging, a coherent recovery helper with one outcome."
+    },
+    {
+      "candidate_key": "tokio:13762df7315f062c",
+      "votes": {"pragmatic": "trivial", "dedupe": "extract-helper", "skeptic": "trivial"},
+      "arbiter": "trivial",
+      "confidence": "high",
+      "note": "The family is a two-line milliseconds convenience function spread across independent test targets and one internal module; centralizing it would add more dependency surface than code."
+    },
+    {
+      "candidate_key": "pixijs:73eb6492b474e782",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parameterize", "skeptic": "parallel-by-design"},
+      "arbiter": "parallel-by-design",
+      "confidence": "medium",
+      "note": "The visual scenes independently specify bitmap, tagged, split, and ordinary text rendering; their shared style is setup around intentionally separate renderer fixtures."
+    },
+    {
+      "candidate_key": "marked:3a554c5f1bab3bb3",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "trivial", "skeptic": "parallel-by-design"},
+      "arbiter": "parallel-by-design",
+      "confidence": "high",
+      "note": "The repeated table markup is literal expected output for two parser cases in one golden fixture, not maintained behavior that can be shared."
+    },
+    {
+      "candidate_key": "ky:0fc82b85bc363d27",
+      "votes": {"pragmatic": "parameterize", "dedupe": "parameterize", "skeptic": "parameterize"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Four retry tests repeat server setup, failing response, request options, rejection, and count assertions while varying status/method inputs."
+    },
+    {
+      "candidate_key": "date-fns:9b730a31a2330013",
+      "votes": {"pragmatic": "type-def", "dedupe": "extract-data-table", "skeptic": "type-def"},
+      "arbiter": "type-def",
+      "confidence": "high",
+      "note": "The locale objects are declarative per-language definitions whose shared fields are the required schema and whose options are the variant payload, not duplicated behavior."
+    },
+    {
+      "candidate_key": "rxjs:8a8d40cbce60fce6",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parameterize", "skeptic": "parallel-by-design"},
+      "arbiter": "parallel-by-design",
+      "confidence": "medium",
+      "note": "Each marble test specifies a different operator's never-emitting behavior; a cross-operator helper would obscure the independent public contracts for little setup reduction."
+    },
+    {
+      "candidate_key": "kingfisher:b1be842d279f6499",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "parallel-by-design",
+      "confidence": "medium",
+      "note": "The similar bodies are required public overloads on distinct constrained UI extensions, with different placeholder and image-access semantics delegated into their specialized parsed-options paths."
+    },
+    {
+      "candidate_key": "kingfisher:31bd9262f80a1e22",
+      "votes": {"pragmatic": "trivial", "dedupe": "extract-helper", "skeptic": "trivial"},
+      "arbiter": "trivial",
+      "confidence": "medium",
+      "note": "These Resource overloads are thin public API delegations that convert to Source; the per-type signatures must remain and extracting the few statements would not remove them."
+    },
+    {
+      "candidate_key": "kingfisher:8ac94e70ec72a901",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The files are successive authored documentation tutorial stages whose shared viewDidLoad prefix intentionally preserves each independently compilable step."
+    },
+    {
+      "candidate_key": "nimble:3bf860b474d20cb8",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parameterize", "skeptic": "parallel-by-design"},
+      "arbiter": "parallel-by-design",
+      "confidence": "medium",
+      "note": "The require family exposes distinct sync/async and closure/autoclosure public overloads with different generic return contracts; their construction is intentional API symmetry."
+    },
+    {
+      "candidate_key": "nimble:2f2e69d916a1cd11",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "parallel-by-design", "skeptic": "parallel-by-design"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The package manifests intentionally target different Swift tools versions and must remain standalone inputs to SwiftPM even while their current contents overlap."
+    },
+    {
+      "candidate_key": "nimble:b74dac6fcf026d7f",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-helper",
+      "confidence": "medium",
+      "note": "Three polling requirement paths copy the full execute/poll/verify orchestration; a shared internal operation can accept the matcher and final verification behavior."
+    },
+    {
+      "candidate_key": "quick:1217e79ef1bdb87b",
+      "votes": {"pragmatic": "generated", "dedupe": "generated", "skeptic": "generated"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The repeated parameter tables are generated Jazzy HTML and duplicated docset output, not source maintained for manual refactoring."
+    },
+    {
+      "candidate_key": "quick:da4dfaf07198e9d5",
+      "votes": {"pragmatic": "generated", "dedupe": "generated", "skeptic": "generated"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The breadcrumbs and navigation wrappers are generated Jazzy pages, including mirrored docset copies."
+    },
+    {
+      "candidate_key": "quick:77f79258223953f5",
+      "votes": {"pragmatic": "generated", "dedupe": "generated", "skeptic": "generated"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The common headers are generated documentation chrome repeated across HTML and docset pages."
+    },
+    {
+      "candidate_key": "rxswift:2d8aa94c868b777d",
+      "votes": {"pragmatic": "generated", "dedupe": "generated", "skeptic": "generated"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The members are generated documentation page headers rather than Swift product source."
+    },
+    {
+      "candidate_key": "rxswift:8345173c8f08d093",
+      "votes": {"pragmatic": "generated", "dedupe": "generated", "skeptic": "generated"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The large repeated navigation lists are generated documentation output shared across hundreds of pages."
+    },
+    {
+      "candidate_key": "rxswift:f2814fd71a59ef5b",
+      "votes": {"pragmatic": "generated", "dedupe": "generated", "skeptic": "generated"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "The repeated RxSwift navigation blocks are generated HTML, not an authored abstraction opportunity."
+    },
+    {
+      "candidate_key": "swift-metrics:77b7d4335ca6862a",
+      "votes": {"pragmatic": "parameterize", "dedupe": "extract-helper", "skeptic": "parameterize"},
+      "arbiter": "parameterize",
+      "confidence": "high",
+      "note": "Core and global counter tests repeat the same concurrent stress sequence and differ only in how the Counter obtains its factory."
+    },
+    {
+      "candidate_key": "swift-metrics:061cd62b523ca77a",
+      "votes": {"pragmatic": "parameterize", "dedupe": "extract-helper", "skeptic": "parameterize"},
+      "arbiter": "parameterize",
+      "confidence": "high",
+      "note": "Recorder concurrency tests duplicate setup, dispatch-group recording, and count assertions with only factory construction varying."
+    },
+    {
+      "candidate_key": "swift-metrics:60ae7264e326d48a",
+      "votes": {"pragmatic": "parameterize", "dedupe": "extract-helper", "skeptic": "parameterize"},
+      "arbiter": "parameterize",
+      "confidence": "high",
+      "note": "Timer concurrency tests copy the complete stress harness across core and global systems and can share a parameterized constructor."
+    },
+    {
+      "candidate_key": "swift-nio:1208bc987481bb77",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Six test targets duplicate the same timed polling assertion implementation; NIO test support can own one shared assertion helper."
+    },
+    {
+      "candidate_key": "swift-nio:3a67ae90c4664f36",
+      "votes": {"pragmatic": "trivial", "dedupe": "extract-helper", "skeptic": "trivial"},
+      "arbiter": "trivial",
+      "confidence": "medium",
+      "note": "Each standalone example handler must implement errorCaught, and the shared body is only a print plus close operation whose extraction would leave every required method in place."
+    },
+    {
+      "candidate_key": "swift-nio:d6cadb39793e0fda",
+      "votes": {"pragmatic": "parallel-by-design", "dedupe": "extract-base", "skeptic": "parallel-by-design"},
+      "arbiter": "parallel-by-design",
+      "confidence": "medium",
+      "note": "NIOFS and _NIOFileSystem expose the same FileType across separate module/API boundaries during migration; sharing the public definition would collapse the compatibility boundary."
+    },
+    {
+      "candidate_key": "swift-service-lifecycle:56fdeb78a526556f",
+      "votes": {"pragmatic": "parameterize", "dedupe": "extract-helper", "skeptic": "parameterize"},
+      "arbiter": "parameterize",
+      "confidence": "high",
+      "note": "Seven lifecycle tests repeat a long run, iterator, signal, ping, and staged-shutdown scenario while varying service configuration and terminal ordering."
+    },
+    {
+      "candidate_key": "swift-service-lifecycle:8d8b095fa4723cc6",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "extract-helper"},
+      "arbiter": null,
+      "confidence": "high",
+      "note": "Two related test classes copy the full configurable ServiceGroup factory; one test-support constructor can serve both."
+    },
+    {
+      "candidate_key": "swift-service-lifecycle:1e11d3a41be3fb90",
+      "votes": {"pragmatic": "extract-helper", "dedupe": "extract-helper", "skeptic": "parallel-by-design"},
+      "arbiter": "extract-helper",
+      "confidence": "medium",
+      "note": "Three tests repeat the same staged service-exit and liveness assertion sequence; a helper can drive the iterators and services while preserving each test's final outcome."
+    }
+  ]
+}

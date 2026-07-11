@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Evaluate v5 product precision and worthy-family recall by language and split.
+"""Evaluate product precision and worthy-family recall by language and split.
 
-The base metric uses either historical value order or nose's native
-extractability order. The report also retains the historical anti-unification
-re-rank as a comparison, with deterministic bootstrap confidence intervals.
+The active default is the checked v6 composite labelset; an explicit flat v5
+path reproduces the historical metric. The base metric uses either historical
+value order or nose's native extractability order. The report also retains the
+historical anti-unification re-rank as a comparison, with deterministic bootstrap
+confidence intervals.
 
 Examples:
 
@@ -25,13 +27,15 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from labelset import PRECISION_METRIC, RECALL_METRIC, load_labelset, metric_eligible
 from query_schema import QUERY_SCHEMA_VERSION, member_locations, query_families
 
 
 sys.setrecursionlimit(100000)
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_NOSE = ROOT / "target" / "release" / "nose"
-LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v5.json"
+HISTORICAL_LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v5.json"
+DEFAULT_LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v6.json"
 CORPUS = ROOT / "bench" / "goldens" / "corpus.json"
 PRUNE_MANIFEST = ROOT / "bench" / "labels" / "prune_manifest.json"
 RNG_SEED = 1
@@ -43,8 +47,8 @@ assert spec.loader is not None
 spec.loader.exec_module(au)
 
 
-def rel(path: str) -> str:
-    path = path.replace(str(ROOT) + "/", "")
+def rel(path: str | Path) -> str:
+    path = str(path).replace(str(ROOT) + "/", "")
     index = path.find("bench/repos/")
     return path[index:] if index >= 0 else path
 
@@ -154,6 +158,14 @@ def binary_metric(flags: list[int], *, bootstrap: int, rng: random.Random) -> di
     }
 
 
+def ratio_metric(hits: int, count: int) -> dict[str, Any]:
+    return {
+        "hits": hits,
+        "n": count,
+        "pct": round((100 * hits / count) if count else 0.0, 4),
+    }
+
+
 # Historical helper signature retained for extractability_vs_value.py.
 def ci(flags: list[int], b: int = 2000) -> tuple[float, float]:
     return confidence_interval(flags, bootstrap=b, rng=COMPAT_RNG)
@@ -191,7 +203,7 @@ def worthy_recall_flags(
     flags = []
     family_locations = [matched_locations(family) for family in families]
     for label in labels:
-        if not label["worthy"]:
+        if not label["worthy"] or not metric_eligible(label, RECALL_METRIC):
             continue
         hit = any(
             any(overlaps(site, member) for site in sites for member in label["members"])
@@ -264,10 +276,11 @@ def build_metrics(
     accumulator: dict[tuple[str, str], dict[str, Any]],
     *,
     bootstrap: int,
+    splits: tuple[str, ...] = ("dev", "heldout"),
 ) -> dict[str, dict[str, dict[str, Any]]]:
     rng = random.Random(RNG_SEED)
     report: dict[str, dict[str, dict[str, Any]]] = {}
-    for split in ("dev", "heldout"):
+    for split in splits:
         split_report: dict[str, dict[str, Any]] = {}
         rows = sorted(
             ((language, data) for (language, row_split), data in accumulator.items() if row_split == split),
@@ -277,7 +290,11 @@ def build_metrics(
             split_report[language] = {
                 "repositories": data["repositories"],
                 "labels": data["labels"],
+                "precision_labels": data["precision_labels"],
                 "worthy_labels": data["worthy_labels"],
+                "label_match_coverage": ratio_metric(
+                    data["matched_top_10"], data["reported_top_10"]
+                ),
                 "precision_at_10": binary_metric(data["base"], bootstrap=bootstrap, rng=rng),
                 "antiunification_rerank_precision_at_10": binary_metric(
                     data["rerank"], bootstrap=bootstrap, rng=rng
@@ -290,7 +307,12 @@ def build_metrics(
         split_report["OVERALL"] = {
             "repositories": sum(data["repositories"] for _, data in rows),
             "labels": sum(data["labels"] for _, data in rows),
+            "precision_labels": sum(data["precision_labels"] for _, data in rows),
             "worthy_labels": sum(data["worthy_labels"] for _, data in rows),
+            "label_match_coverage": ratio_metric(
+                sum(data["matched_top_10"] for _, data in rows),
+                sum(data["reported_top_10"] for _, data in rows),
+            ),
             "precision_at_10": binary_metric(all_base, bootstrap=bootstrap, rng=rng),
             "antiunification_rerank_precision_at_10": binary_metric(
                 all_rerank, bootstrap=bootstrap, rng=rng
@@ -305,11 +327,14 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
     working_tree_status_before_measurement = git_output(["status", "--short"])
     au.NOSE = args.nose
     au._cache.clear()
-    labels = json.loads(LABELSET.read_text(encoding="utf-8"))["families"]
+    loaded_labelset = load_labelset(args.labelset)
+    labels = loaded_labelset.families
     corpus_rows = json.loads(CORPUS.read_text(encoding="utf-8"))["repositories"]
     corpus = {record["id"]: record for record in corpus_rows}
     by_repo: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for family in labels:
+        if family.get("split") not in args.splits:
+            continue
         by_repo[family["repo"]].append(family)
 
     repo_ids = sorted(by_repo)
@@ -342,13 +367,19 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
             "recall": [],
             "repositories": 0,
             "labels": 0,
+            "precision_labels": 0,
             "worthy_labels": 0,
+            "reported_top_10": 0,
+            "matched_top_10": 0,
         }
     )
     repositories: dict[str, dict[str, Any]] = {}
 
     for repo_id in repo_ids:
         repo_labels = by_repo[repo_id]
+        precision_labels = [
+            label for label in repo_labels if metric_eligible(label, PRECISION_METRIC)
+        ]
         metadata = corpus[repo_id]
         language = metadata["primary_language"]
         split = metadata["split"]
@@ -371,8 +402,8 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
             for family in top
         }
         reranked = sorted(top, key=lambda family: -rerank_scores[family["id"]]) + ordered[40:]
-        base_flags = best_label_flags(ordered, repo_labels)
-        rerank_flags = best_label_flags(reranked, repo_labels)
+        base_flags = best_label_flags(ordered, precision_labels)
+        rerank_flags = best_label_flags(reranked, precision_labels)
         recall_flags = worthy_recall_flags(ordered, repo_labels)
 
         row = accumulator[(language, split)]
@@ -381,16 +412,28 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         row["recall"].extend(recall_flags)
         row["repositories"] += 1
         row["labels"] += len(repo_labels)
-        row["worthy_labels"] += sum(1 for label in repo_labels if label["worthy"])
+        row["precision_labels"] += len(precision_labels)
+        row["worthy_labels"] += sum(
+            1
+            for label in repo_labels
+            if label["worthy"] and metric_eligible(label, RECALL_METRIC)
+        )
+        row["reported_top_10"] += min(10, len(ordered))
+        row["matched_top_10"] += len(base_flags)
         repositories[repo_id] = {
             "commit": metadata["commit"],
             "language": language,
             "split": split,
             "labels": len(repo_labels),
+            "precision_labels": len(precision_labels),
             "worthy_labels": len(recall_flags),
             "reported_families": len(families),
             "top_10_reported": min(10, len(ordered)),
             "unmatched_top_10": min(10, len(ordered)) - len(base_flags),
+            "label_match_coverage": {
+                "hits": len(base_flags),
+                "n": min(10, len(ordered)),
+            },
             "precision_at_10": {"hits": sum(base_flags), "n": len(base_flags)},
             "antiunification_rerank_precision_at_10": {
                 "hits": sum(rerank_flags),
@@ -399,10 +442,10 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
             "worthy_recall": {"hits": sum(recall_flags), "n": len(recall_flags)},
         }
 
-    metrics = build_metrics(accumulator, bootstrap=args.bootstrap)
+    metrics = build_metrics(accumulator, bootstrap=args.bootstrap, splits=args.splits)
     nose = args.nose.resolve()
     return {
-        "schema": "nose.product_quality_evaluation.v1",
+        "schema": "nose.product_quality_evaluation.v2",
         "query_schema_version": QUERY_SCHEMA_VERSION,
         "provenance": {
             "command": shlex.join(["python3", *sys.argv]),
@@ -411,8 +454,13 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
             "nose_binary": nose.as_posix(),
             "nose_binary_sha256": sha256_file(nose),
             "nose_version": nose_version(nose),
-            "labelset": rel(LABELSET.as_posix()),
-            "labelset_sha256": sha256_file(LABELSET),
+            "labelset": rel(args.labelset.resolve().as_posix()),
+            "labelset_sha256": sha256_file(args.labelset),
+            "labelset_version": loaded_labelset.version,
+            "labelset_inputs": [
+                {"path": rel(row["path"]), "sha256": row["sha256"]}
+                for row in loaded_labelset.inputs
+            ],
             "corpus_manifest": rel(CORPUS.as_posix()),
             "corpus_manifest_sha256": sha256_file(CORPUS),
             "corpus_commit_digest": corpus_digest(corpus, repo_ids),
@@ -425,11 +473,15 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
             "cache_dir": args.cache_dir.as_posix() if args.cache_dir else None,
             "limit_repos": args.limit_repos,
             "mode": mode or "CLI default",
-            "precision_denominator": "reported top-10 families matching at least one v5 label",
+            "precision_denominator": (
+                "reported top-10 families matching at least one active precision label"
+            ),
+            "recall_denominator": "worthy labels eligible for unbiased worthy-recall",
             "rank": args.rank,
             "repos_root": rel(args.repos_root.resolve().as_posix()),
             "timeout_seconds_per_repo": args.timeout,
             "top": args.top,
+            "splits": list(args.splits),
         },
         "repository_count": len(repo_ids),
         "metrics": metrics,
@@ -446,7 +498,7 @@ def format_metric(metric: dict[str, Any]) -> str:
 
 def print_report(result: dict[str, Any]) -> None:
     rank = result["configuration"]["rank"]
-    for split in ("dev", "heldout"):
+    for split in result["configuration"]["splits"]:
         print(f"\n=== {split} ===")
         print(
             f"{'lang':<11}{'worthy':>11}  {f'P@10 {rank}':<23}"
@@ -468,10 +520,31 @@ def print_report(result: dict[str, Any]) -> None:
             f"{format_metric(overall['antiunification_rerank_precision_at_10']):<23}"
             f"{format_metric(overall['worthy_recall']):<23}"
         )
+        coverage = overall["label_match_coverage"]
+        print(
+            f"label-match coverage: {coverage['hits']}/{coverage['n']} "
+            f"= {coverage['pct']:.2f}%"
+        )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--labelset",
+        type=Path,
+        default=DEFAULT_LABELSET,
+        help=(
+            "flat historical labelset or checked composite manifest "
+            f"(default: {rel(DEFAULT_LABELSET)})"
+        ),
+    )
+    parser.add_argument(
+        "--split",
+        action="append",
+        choices=("dev", "heldout"),
+        dest="splits",
+        help="evaluate only one split; repeat for both (default: dev and heldout)",
+    )
     parser.add_argument(
         "--mode",
         action="append",
@@ -503,6 +576,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     args = parser.parse_args(argv)
+    args.splits = tuple(dict.fromkeys(args.splits or ("dev", "heldout")))
     if args.bootstrap <= 0:
         parser.error("--bootstrap must be positive")
     if args.top < 0:

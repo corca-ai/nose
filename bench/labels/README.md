@@ -8,23 +8,51 @@ This is the most important asset in `bench/` — the metric that keeps ranking/
 detection changes honest (it has rejected several plausible-but-wrong ideas; see
 `docs/experiments.md` §U/§V/§X/§Z/§AB).
 
-## The set — `refactoring_families.v5.json`
+## The active set — `refactoring_families.v6.json`
 
-- **9,461 families** — 4,940 worthy / 4,521 not-worthy.
-- **105 repos, 7 pre-Swift imperative languages**, with a dev (5,445) /
-  **held-out** (4,016) split — held-out is a generalization gate; tune only on dev.
+v6 is a hash-checked composite manifest, not a rewrite of the historical pool:
+
+- frozen `refactoring_families.v5.json`: 9,461 multi-source families used for both
+  precision and worthy-recall;
+- `refactoring_families.v6.dev.json`: 59 current-top-10 judgments;
+- `refactoring_families.v6.heldout.json`: 56 current-top-10 judgments.
+
+Together they contain **9,576 families** — 4,995 worthy / 4,581 not-worthy — over
+**120 pinned repositories and 8 imperative languages**. The split remains a hard
+generalization boundary: 5,504 labels are dev and 4,072 are held-out; tune only on dev.
+The manifest checks the SHA-256 of the frozen base and both split components before
+loading them.
+
+### v6 coverage-refresh protocol
+
+The refresh artifact
+[`refactoring_label_refresh_candidates_2026_07_11.v1.json`](refactoring_label_refresh_candidates_2026_07_11.v1.json)
+records the exact nose binary, command, repository commits, raw query-family hashes,
+2,072 source-file hashes, deterministic selection order, and label/rubric inputs.
+Selection was frozen before judgment:
+
+- five current unmatched top-10 families per language × split across the existing
+  seven-language corpus (70 labels), using the SHA-256 seed
+  `nose-issue-812-existing-unmatched-v1` and preferring distinct repositories;
+- the first three current product families from every one of the 15 real pinned Swift
+  repositories (45 labels).
+
+The three-persona panel judged 115 families (55 worthy / 60 not-worthy); 50 split votes
+were resolved by an explicit arbiter. The dev decisions/component were committed before
+held-out judgment. Every refresh label carries `metric_eligibility: ["precision_at_10"]`:
+because this sample came from the current top-10, allowing it into worthy-recall would
+bias that metric. Worthy-recall therefore remains the frozen v5 multi-source pool. No
+ranking, detector, or default-surface policy changed during the refresh.
 
 ## Swift add-on — `swift_families.v1.json`
 
-Swift support adds 15 pinned Swift repositories to the corpus manifest and a focused
-add-on golden over the executable Swift Type-4 probes. `swift_families.v1.json` contains
+`swift_families.v1.json` is the earlier focused add-on golden over the executable Swift
+Type-4 probes. It contains
 5 high-confidence, 3-persona LLM-judge families with adjacent hard negatives for
 collection emptiness, string affixes, collection membership, option presence, and
-for-in/indexed-loop reduction. It is a Swift bring-up golden; the active product metric
-above remains the frozen v5 labelset. All five are worthy dev examples under the synthetic
-`type4-swift-probes` repository, so this add-on cannot estimate real-repository Swift
-precision or held-out behavior. [#812](https://github.com/corca-ai/nose/issues/812) tracks
-that label-coverage work separately from the evaluator repair.
+for-in/indexed-loop reduction. It remains a Swift bring-up golden, not part of the product
+metric. v6 supersedes its coverage limitation with 45 worthy/not-worthy labels from all
+15 real Swift repositories and both corpus splits.
 
 ## The declarative set — `frontend_families.v1.json`
 
@@ -92,7 +120,7 @@ Added: Vue (vitesse, vuero, vue-cli, vue-theme), Svelte (sveltesociety, svelte-c
 
 ## How it was built (methodology)
 
-The frozen labelset was produced by an LLM-panel pipeline (the build scripts are historical;
+The frozen v5 base was produced by an LLM-panel pipeline (the build scripts are historical;
 this records the method):
 
 1. **Pool** — an unbiased candidate set: nose's structural candidates ∪ a `jscpd`-weak
@@ -104,10 +132,12 @@ this records the method):
    still-ambiguous to a final arbiter (`labeler: claude-arbiter`; 126 remain genuinely
    undecidable and are marked as such).
 
-The labelset evolved v1 (235) → v2 (576, +heldout) → v3 (3,092) → v4 (4,615, 62 repos) →
+The base evolved v1 (235) → v2 (576, +heldout) → v3 (3,092) → v4 (4,615, 62 repos) →
 **v5 (9,461, 105 repos)**; adding repos per language is the lever for per-language
 *precision* CIs (bounded by #repos×10, not #labels). v5 (§AU) settled the anti-unification
 re-rank as small-sample overfit (+1pp dev / −1pp heldout, Rust-only — **not shipped**).
+v6 retains that pool byte-for-byte and adds only the split-safe, precision-eligible overlay
+described above.
 
 ## Adjacent audit artifacts
 
@@ -115,17 +145,16 @@ re-rank as small-sample overfit (+1pp dev / −1pp heldout, Rust-only — **not 
 file-level corpus prune. It lists generated/vendored source files removed after clone,
 label-referenced files that were protected from removal, and the post-prune corpus
 digest used to verify a reconstructed checkout. The checked-in manifest remains scoped to
-the frozen v5 product corpus; `bench/setup_repos.sh` rewrites it when reconstructing the
-expanded 120-repo corpus, and a refreshed committed manifest should travel with the next
-product-labelset refresh.
+the active v6 composite and all 120 pinned repositories. Its labelset path and protected
+source counts are checked together with the post-prune corpus digest.
 
-`fragment_quality_audit_2026_06_10.json` is not part of the v5 product metric. It is a
+`fragment_quality_audit_2026_06_10.json` is not part of the active v6 product metric. It is a
 small, three-person audit of Java/Python hidden/divergence exact-fragment families used to
 validate surface policy after the semantic corpus pass. See
 [`docs/fragment-quality-audit-2026-06-10.md`](../../docs/fragment-quality-audit-2026-06-10.md).
 
 `lawpack_provenance_audit_2026_06_10.json` is also adjacent evidence, not part of
-the v5 metric. It records the full-corpus and targeted real-repo pass for the
+the active metric. It records the full-corpus and targeted real-repo pass for the
 first-party `nose.value_graph.laws` LawPack pilot. See
 [`docs/lawpack-provenance-audit-2026-06-10.md`](../../docs/lawpack-provenance-audit-2026-06-10.md).
 
@@ -176,14 +205,40 @@ they tell you whether a per-language difference is real or noise.
 cargo build --release -p nose-cli
 python3 bench/labels/query_schema.py --self-test --nose target/release/nose
 python3 bench/labels/eval_by_language.py --rank extractability --bootstrap 500 \
-  --json-out bench/labels/product_quality_evaluation_2026_07_10.v1.json
+  --json-out bench/labels/product_quality_evaluation_2026_07_11.v2.json
 ```
 
-The [2026-07-10 product-quality artifact](product_quality_evaluation_2026_07_10.v1.json)
-records the exact binary/source/input hashes, pinned corpus digest, configuration,
-per-repository counts, and current dev/held-out metrics. Its precision denominator is
-explicitly the current top-10 families that match the frozen v5 label pool; #812 tracks the
-358 unmatched top-10 positions instead of assigning them a silent label.
+The [2026-07-11 product-quality artifact](product_quality_evaluation_2026_07_11.v2.json)
+records the exact binary/source/input hashes, all composite input hashes, pinned corpus
+digest, configuration, per-repository counts, and current dev/held-out metrics. Precision
+remains conditional on a top-10 family matching an active precision label; coverage is
+reported beside it, never silently discarded.
+
+| split | repos | labeled precision@10 | matched top-10 | v5 worthy recall |
+|---|---:|---:|---:|---:|
+| dev | 66 | 259/437 = 59.27% [54.92–64.30] | 437/660 = 66.21% | 2,626/2,849 = 92.17% [91.30–93.19] |
+| held-out | 54 | 206/383 = 53.79% [48.30–58.75] | 383/540 = 70.93% | 1,949/2,091 = 93.21% [92.20–94.36] |
+
+On the original 105 repositories, v6 matches 771/1,050 top-10 positions versus v5's
+692/1,050: +79 positions and +7.52 percentage points. Across all 15 Swift repositories it
+matches 49/150 positions; the 45 selected labels can match more than one overlapping
+reported family. Swift's labeled P@10 is 11/24 dev and 12/25 held-out. Swift has no
+multi-source recall labels yet, so its recall denominator is correctly zero.
+
+To reproduce the historical v5 metric, pass the base explicitly:
+
+```sh
+python3 bench/labels/eval_by_language.py \
+  --labelset bench/labels/refactoring_families.v5.json \
+  --rank extractability --bootstrap 500 \
+  --json-out bench/labels/product_quality_evaluation_v5_reproduction_2026_07_11.v2.json
+```
+
+The [v5 reproduction artifact](product_quality_evaluation_v5_reproduction_2026_07_11.v2.json)
+has the same 105 repositories and exactly reproduces every metric field (raw counts, point
+estimates, and deterministic bootstrap intervals) in the frozen
+[2026-07-10 v1 report](product_quality_evaluation_2026_07_10.v1.json). Schema v2 adds only
+coverage and metric-eligibility metadata.
 
 Pass `--mode` to compare a non-default channel mix without editing the script:
 

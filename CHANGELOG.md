@@ -7,6 +7,11 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added the v6 product-label composite: a hash-checked, split-safe overlay of 115
+  current top-10 judgments (including all 15 real Swift repositories) on the frozen
+  v5 pool, with durable selection/source provenance, panel votes and arbitration,
+  precision-only eligibility, improved top-10 match coverage, and an exact v5
+  reproduction artifact.
 - Added a bounded base/head semantic regression CI gate with a pinned seven-repository
   language-balanced corpus, exact intentional-output declarations, same-binary noise
   controls, 5%/5 ms repository and stage thresholds, automatic focused reruns, raw
