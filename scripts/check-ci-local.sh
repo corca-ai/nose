@@ -181,6 +181,22 @@ run_missed_worthy_frontier_checks() {
         --check-markdown bench/labels/missed_worthy_grouping_pricing_2026_07_11.summary.md
     python3 bench/labels/recall_ceiling_probe.py \
         --validate-closeout bench/labels/missed_worthy_frontier_closeout_2026_07_11.v1.json
+    python3 bench/labels/recall_ceiling_probe.py \
+        --validate bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json
+    python3 bench/labels/missed_worthy_stage_audit.py \
+        --validate bench/labels/missed_worthy_stage_audit_post_817_2026_07_12.dev.v1.json \
+        --artifact bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json
+    python3 bench/labels/recall_ceiling_probe.py \
+        --validate-decisions bench/labels/missed_worthy_audit_decisions_post_817_2026_07_12.dev.v2.json \
+        --artifact bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json
+    python3 bench/labels/missed_worthy_source_bounds.py \
+        --validate bench/labels/missed_worthy_audit_source_bounds_post_817_2026_07_12.dev.v1.json \
+        --artifact bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json \
+        --decisions bench/labels/missed_worthy_audit_decisions_post_817_2026_07_12.dev.v2.json
+    python3 bench/labels/missed_worthy_heldout_confirmation.py \
+        --validate bench/labels/missed_worthy_stage_confirmation_post_817_2026_07_12.heldout.v2.json \
+        --artifact bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json \
+        --decisions bench/labels/missed_worthy_audit_decisions_post_817_2026_07_12.dev.v2.json
 }
 
 run_product_query_schema_live_check() {

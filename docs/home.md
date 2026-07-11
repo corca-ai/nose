@@ -137,6 +137,9 @@ fundamentals; the rest is grouped by area.
 - [accepted-pair endpoint coverage](accepted-pair-coverage-817.md) — the #817
   bounded grouping fix, full dev accepted-edge census, exact recovered worthy
   families, product/runtime price, hard negatives, and frozen held-out gate.
+- [post-#817 missed-worthy frontier](missed-worthy-frontier-820.md) — the #820
+  snapshot-aware refresh, source-bound dev comparison of connected witnesses,
+  same-unit fragments, and extraction, plus the bounded #821 decision.
 - [type4-benchmark](type4-benchmark.md) — the evidence-carrying synthetic Type-4 benchmark factory.
 - [type4-adversarial-coverage](type4-adversarial-coverage.md) — focused Type-4 cases, target-packet task cards, and verifier-lead draft workflow.
 - [frontier-platform](frontier-platform.md) — corpus-balanced evidence platform that ranks the next Type-4 axis by presence breadth (not raw count) and separates the queue signal from human-verified evidence.

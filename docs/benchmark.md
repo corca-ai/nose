@@ -84,15 +84,20 @@ The v2 report adds coverage/eligibility metadata only.
 
 ### Current missed-worthy frontier
 
-The [#816 dev-first frontier audit](missed-worthy-frontier-816.md) reruns the current
-nose 0.18.0 query against the unchanged v5 worthy-recall pool and exactly reproduces
-2,626/2,849 dev and 1,949/2,091 held-out hits. Its optimistic ceiling is not used as
-admission evidence: a frozen seven-language dev sample and a raw-stage census show that
-51/223 dev misses already have direct accepted structural pairs. After the then-labeled
-Route A dev proposal was committed, a one-time held-out stage check confirmed 42/142 across six
-languages. The next bounded issue is [#817](https://github.com/corca-ai/nose/issues/817),
-which preserves accepted-pair endpoint coverage through family folding; extraction,
-same-unit fragments, HOF work, ranking, and default policy remain separate.
+The [#816 dev-first frontier audit](missed-worthy-frontier-816.md) found that 51/223
+dev misses already had accepted raw pairs. [#817](accepted-pair-coverage-817.md)
+preserved those endpoints through family folding and recovered 65 dev plus 47 held-out
+worthy families with zero regressions.
+
+The current [post-#817 refresh](missed-worthy-frontier-820.md) exactly reproduces
+2,691/2,849 dev and 1,996/2,091 held-out recall, leaving 158 and 95 misses. Its regenerated
+raw-stage census confirms zero remaining direct accepted rows. A source-bound dev audit
+selects the complete candidate-only + sub-DAG>=20 cohort: six of nine rows have coherent
+connected witnesses and three are hard negatives. Same-unit windows are sampled at 3/4
+coherent but require bounded fragment output; six sampled extraction rows are real but
+span unrelated construct-specific laws. The bounded next issue is
+[#821](https://github.com/corca-ai/nose/issues/821), which must construct an actual connected
+witness without admitting optimistic intersection mass.
 
 No detector, ranking, or default-surface policy changed in this refresh. The historical
 anti-unification re-rank remains comparison-only and still supplies no generalizing reason

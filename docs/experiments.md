@@ -3536,6 +3536,32 @@ worthy recall, zero regressions, recovery across six languages, and P@10 **53.79
 55.73%**. Full methodology, exact recovered IDs, artifact links, and validation commands
 are in [the #817 closeout](accepted-pair-coverage-817.md).
 
+## DK. Post-#817 missed-worthy frontier — connected witness next (#820, 2026-07-12)
+
+The merged #817 result was rerun against the unchanged source-independent v5 worthy pool.
+The checked combined evaluation reproduces **2,691/2,849 dev** and **1,996/2,091
+held-out**, with 112 total recoveries and zero regressions versus pre-#817. The refreshed
+frontier leaves 158 dev and 95 held-out misses. A regenerated raw-stage census confirms
+that the former post-acceptance cohort is exhausted: direct accepted rows are zero; dev
+splits into 40 candidate-only, 85 extracted/no-candidate, and 33 missing-unit rows.
+
+The deterministic 35-row dev audit preserves sixteen exact #816 decisions, discloses three
+pre-freeze exploratory reads, and adds sixteen post-freeze decisions. The complete
+candidate-only + sub-DAG>=20 cohort is nine rows: six have coherent connected witnesses and
+three are source no-go controls. The same-unit ceiling is larger (16), but only four rows
+are sampled and output must be bounded fragments; the missing-unit ceiling is 33, but six
+reviewed positives span unrelated Go, Java, Python, Rust, and JavaScript extraction laws.
+
+**Decision:** open #821 for an actual connected mapped witness on both candidate endpoints.
+Do not admit multiset intersection mass, lower thresholds, infer A-C from A-B/B-C, or mix
+candidate generation, same-unit fragments, and extraction into the tranche. The dev gate
+requires all six positives, none of the three no-go IDs, zero regressions/false merges,
+zero unrelated output, at most 2% default growth on the #809 slice, and a 5% / 5 ms runtime
+budget. After the dev proposal was committed, one mechanical held-out check confirmed zero
+accepted rows and exactly two candidate-only + sub-DAG>=20 rows in C and Java; held-out
+source stayed closed. See [the #820 closeout](missed-worthy-frontier-820.md) for the full
+chronology, IDs, artifacts, and commands.
+
 ## DH. Parser-artifact hygiene and unsupported-header routing (2026-06-20)
 
 After §DG, the largest `gap-impact` rows were no longer ordinary lowering misses. They were parser

@@ -205,7 +205,9 @@ contains the exact recovered IDs, and the [confirmation record](../bench/labels/
 binds it to the pre-held-out dev gate.
 
 The selected next action is now the pass branch: merge this bounded fix, rerun the
-missed-worthy frontier, and choose the next tranche only from the remaining misses.
+missed-worthy frontier, and choose the next tranche only from the remaining misses. That
+rerun is the [#820 post-#817 frontier](missed-worthy-frontier-820.md), which selects the
+bounded connected-witness follow-up #821.
 
 ## Validation
 

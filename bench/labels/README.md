@@ -186,6 +186,16 @@ success criterion before held-out;
 one-time passing confirmation to that gate. Method and results are documented in
 [`docs/accepted-pair-coverage-817.md`](../../docs/accepted-pair-coverage-817.md).
 
+The post-#817 #820 refresh is
+`recall_ceiling_probe_post_817_2026_07_12.v1.json`, paired with the combined product
+evaluation, regenerated dev stage audit, v2 dev decisions, source bounds, and one-time v2
+held-out stage confirmation. Frontier validation is keyed by the evaluation digest, so the
+historical #816 profile and post-#817 profile both remain strict while unregistered count
+substitutions fail. The source-bound comparison selects six coherent and three no-go rows
+from the complete candidate-only + sub-DAG>=20 dev cohort; same-unit and heterogeneous
+extraction evidence remain separate. Method, exact IDs, and #821 gates are in
+[`docs/missed-worthy-frontier-820.md`](../../docs/missed-worthy-frontier-820.md).
+
 `query_json_agent_audit_2026_06_10.json` records the #216 agent-usability audit of the
 query-JSON contract: 18 sampled families, JSON-only decisions graded against source,
 and the ranked evidence-gap list. See

@@ -190,9 +190,12 @@ its head is nose's one chance to demonstrate value. Two consequences:
   Type-4 below vj 0.8 — was measured 2026-06-11 ([experiments §BS](experiments.md)) via the
   behavior-keyed arm: one worthy pair in 105 repos. **Current planning is superseded by the
   2026-07-11 [missed-worthy frontier audit](missed-worthy-frontier-816.md): 51/223 dev and
-  42/142 held-out misses already have direct accepted raw pairs. That reopens no semantic
-  law; it routes the next bounded tranche to post-acceptance family coverage (#817), while
-  extraction, fragments, and unaccepted matcher residuals remain deferred.***
+  42/142 held-out misses already had direct accepted raw pairs, routing the next tranche to
+  post-acceptance family coverage (#817). After #817 shipped, the 2026-07-12
+  [post-#817 refresh](missed-worthy-frontier-820.md) confirms that accepted-pair loss is
+  zero and selects a smaller six-positive/three-negative connected-witness cohort for
+  #821. The optimistic multiset ceiling remains non-admission evidence; same-unit and
+  construct-specific extraction stay separate.***
 - **Extractability ranking** — a "good enough" deterministic triage signal; no need to chase
   more.
 
