@@ -61,15 +61,30 @@ impl StageTimer {
 /// may pass a throwaway per-file interner — which is exactly what makes caching a
 /// file's units by its source-content hash sound.
 pub fn units_of_file(il: &Il, interner: &Interner, opts: &DetectOptions) -> Vec<UnitFeat> {
-    if raw_il_is_empty_module(il) || units::large_test_file(il) {
-        return Vec::new();
-    }
     let norm_opts = NormalizeOptions {
         cfg_norm: opts.cfg_norm,
         dce: opts.dce,
         ..Default::default()
     };
     let seeds = minhash::seeds(opts.minhash_k);
+    extract_units_of_file(il, interner, opts, &norm_opts, &seeds)
+}
+
+/// Keep the normalization/extraction body out of the Rayon closure. This path
+/// is large and hot; sharing one non-inlined implementation with the cached
+/// per-file entry point avoids code-layout-sensitive copies while preserving
+/// the fused normalize-then-extract lifetime.
+#[inline(never)]
+fn extract_units_of_file(
+    il: &Il,
+    interner: &Interner,
+    opts: &DetectOptions,
+    norm_opts: &NormalizeOptions,
+    seeds: &[u64],
+) -> Vec<UnitFeat> {
+    if raw_il_is_empty_module(il) || units::large_test_file(il) {
+        return Vec::new();
+    }
     let n = nose_normalize::normalize(il, interner, &norm_opts);
     let block_units = block_units_for_file(&n, opts);
     units::extract(
@@ -109,24 +124,7 @@ pub fn detect_with_dump(
         .par_iter()
         .map(|il| {
             let units = if opts.structural {
-                if raw_il_is_empty_module(il) || units::large_test_file(il) {
-                    Vec::new()
-                } else {
-                    let n = nose_normalize::normalize(il, &corpus.interner, &norm_opts);
-                    let block_units = block_units_for_file(&n, opts);
-                    units::extract(
-                        &n,
-                        &corpus.interner,
-                        &seeds,
-                        opts.min_lines,
-                        opts.min_tokens,
-                        block_units,
-                        units::ExtractFeatures {
-                            shape_features: opts.shape_features,
-                            abstraction_witnesses: opts.abstraction_witnesses,
-                        },
-                    )
-                }
+                extract_units_of_file(il, &corpus.interner, opts, &norm_opts, &seeds)
             } else {
                 Vec::new()
             };
@@ -142,8 +140,17 @@ pub fn detect_with_dump(
             (units, stream)
         })
         .collect();
-    let mut units: Vec<UnitFeat> = Vec::new();
-    let mut streams: Vec<Stream> = Vec::new();
+    // `UnitFeat` is large enough that repeatedly growing the aggregate vector
+    // copies a meaningful amount of memory on repositories with many files.
+    // The parallel pass already owns every per-file length, so reserve the
+    // exact aggregate capacities before moving the results into place.
+    let unit_count = per_file.iter().map(|(units, _)| units.len()).sum();
+    let stream_count = per_file
+        .iter()
+        .filter(|(_, stream)| stream.is_some())
+        .count();
+    let mut units: Vec<UnitFeat> = Vec::with_capacity(unit_count);
+    let mut streams: Vec<Stream> = Vec::with_capacity(stream_count);
     for (u, s) in per_file {
         units.extend(u);
         if let Some(s) = s {
