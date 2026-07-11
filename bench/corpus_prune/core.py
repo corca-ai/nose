@@ -25,7 +25,7 @@ except ModuleNotFoundError:  # Imported as bench.corpus_prune.core from the proj
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REPOS_ROOT = PROJECT_ROOT / "bench" / "repos"
-DEFAULT_LABELS = PROJECT_ROOT / "bench" / "labels" / "refactoring_families.v5.json"
+DEFAULT_LABELS = PROJECT_ROOT / "bench" / "labels" / "refactoring_families.v6.json"
 DEFAULT_MANIFEST = PROJECT_ROOT / "bench" / "labels" / "prune_manifest.json"
 DEFAULT_CORPUS = PROJECT_ROOT / "bench" / "goldens" / "corpus.json"
 BANNER_BYTES = 8192
