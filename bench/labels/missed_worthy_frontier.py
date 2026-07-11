@@ -23,6 +23,7 @@ from query_schema import QUERY_SCHEMA_VERSION
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT_SCHEMA = "nose.missed_worthy_frontier.v2"
 DECISIONS_SCHEMA = "nose.missed_worthy_dev_audit.v1"
+STAGE_AUDIT_SCHEMA = "nose.missed_worthy_stage_audit.dev.v1"
 SELECTION_SEED = "nose-issue-816-dev-audit-v1"
 SELECTION_PER_LANGUAGE = 5
 SUBDAG_FLOORS = (8, 12, 20)
@@ -597,7 +598,17 @@ def load_and_validate_artifact(
     return payload
 
 
-def validate_decisions(payload: object, artifact: dict[str, Any]) -> None:
+def decision_summary(decisions: list[dict[str, Any]]) -> dict[str, int]:
+    return dict(
+        sorted(Counter(decision["blocker_classification"] for decision in decisions).items())
+    )
+
+
+def validate_decisions(
+    payload: object,
+    artifact: dict[str, Any],
+    stage_artifact: dict[str, Any],
+) -> None:
     _require(isinstance(payload, dict), "decisions: expected an object")
     _require(payload.get("schema") == DECISIONS_SCHEMA, "decisions: unsupported schema")
     _require(payload.get("split") == "dev", "decisions must be dev-only")
@@ -609,6 +620,18 @@ def validate_decisions(payload: object, artifact: dict[str, Any]) -> None:
         payload.get("selection_sha256") == selection["sha256"],
         "decisions were not made against the frozen selection",
     )
+    _require(
+        stage_artifact.get("schema") == STAGE_AUDIT_SCHEMA,
+        "decisions use an unsupported stage artifact",
+    )
+    _require(stage_artifact.get("split") == "dev", "stage artifact must be dev-only")
+    _require(
+        stage_artifact.get("provenance", {}).get("selection_sha256") == selection["sha256"],
+        "stage evidence uses a different dev selection",
+    )
+    stage_by_key = {
+        record["candidate_key"]: record for record in stage_artifact["candidates"]
+    }
     selected = {record["candidate_key"]: record for record in selection["candidates"]}
     candidates = {record["candidate_key"]: record for record in artifact["missed_worthy"]}
     decisions = payload.get("decisions")
@@ -627,6 +650,11 @@ def validate_decisions(payload: object, artifact: dict[str, Any]) -> None:
         _require(
             decision.get("candidate_sha256") == selected[key]["candidate_sha256"],
             f"{label}: candidate hash mismatch",
+        )
+        _require(key in stage_by_key, f"{label}: stage evidence is missing")
+        _require(
+            decision.get("observed_stage") == stage_by_key[key]["stage"],
+            f"{label}: observed stage drifted",
         )
         _require(
             decision.get("blocker_classification") in VALID_BLOCKER_CLASSIFICATIONS,
@@ -654,6 +682,45 @@ def validate_decisions(payload: object, artifact: dict[str, Any]) -> None:
                 isinstance(item.get("observation"), str) and bool(item["observation"].strip()),
                 f"{item_label}.observation: expected text",
             )
+    _require(
+        payload.get("classification_summary") == decision_summary(decisions),
+        "decision classification summary drifted",
+    )
+    proposal = payload.get("dev_proposal")
+    _require(isinstance(proposal, dict), "dev_proposal: expected an object")
+    _require(
+        proposal.get("status") == "frozen-before-heldout-confirmation",
+        "dev proposal was not frozen before held-out confirmation",
+    )
+    _require(proposal.get("route") in {"A", "B", "C", "D", "E"}, "invalid proposed route")
+    _require(
+        proposal.get("heldout_source_confirmation") == "not-run",
+        "dev decision artifact must precede held-out confirmation",
+    )
+    for field in ("mechanism", "smallest_sound_invariant"):
+        _require(
+            isinstance(proposal.get(field), str) and bool(proposal[field].strip()),
+            f"dev_proposal.{field}: expected text",
+        )
+    hard_negatives = proposal.get("hard_negatives")
+    _require(
+        isinstance(hard_negatives, list)
+        and len(hard_negatives) >= 2
+        and all(isinstance(item, str) and item.strip() for item in hard_negatives),
+        "dev_proposal.hard_negatives: expected at least two obligations",
+    )
+    if proposal["route"] == "A":
+        accepted = stage_artifact["summary"]["states"]["accepted-pair"]
+        estimate = proposal.get("estimated_affected_dev_misses")
+        _require(isinstance(estimate, dict), "route A needs a dev estimate")
+        _require(
+            estimate.get("lower_bound") == accepted,
+            "route A lower bound must equal accepted raw dev pairs",
+        )
+    _require(
+        proposal.get("hof_route_d_status") == "deferred-no-direct-pure-callback-evidence",
+        "#806 may move only on direct pure-callback evidence",
+    )
 
 
 def load_and_validate_decisions(path: Path, artifact_path: Path) -> dict[str, Any]:
@@ -666,7 +733,15 @@ def load_and_validate_decisions(path: Path, artifact_path: Path) -> dict[str, An
     _require(isinstance(source, dict), "source_artifact: expected an object")
     _require(relative_path(artifact_path) == source.get("path"), "source artifact path mismatch")
     _require(sha256_file(artifact_path) == source.get("sha256"), "source artifact hash mismatch")
-    validate_decisions(payload, artifact)
+    stage_source = payload.get("stage_artifact")
+    _require(isinstance(stage_source, dict), "stage_artifact: expected an object")
+    stage_path_raw = stage_source.get("path")
+    _require(isinstance(stage_path_raw, str) and stage_path_raw, "stage artifact path missing")
+    stage_path = project_path(stage_path_raw)
+    _require(stage_path.is_file(), "stage artifact file is missing")
+    _require(sha256_file(stage_path) == stage_source.get("sha256"), "stage artifact hash mismatch")
+    stage_artifact = json.loads(stage_path.read_text(encoding="utf-8"))
+    validate_decisions(payload, artifact, stage_artifact)
     return payload
 
 
@@ -804,11 +879,13 @@ def run_self_test() -> None:
         "schema": DECISIONS_SCHEMA,
         "split": "dev",
         "source_artifact": {"path": "artifact.json", "sha256": "0" * 64},
+        "stage_artifact": {"path": "stage.json", "sha256": "1" * 64},
         "selection_sha256": fake_artifact["dev_audit_selection"]["sha256"],
         "decisions": [
             {
                 "candidate_key": audited["candidate_key"],
                 "candidate_sha256": audited["candidate_sha256"],
+                "observed_stage": "candidate-only",
                 "blocker_classification": "one-step-pure-helper-composition",
                 "rationale": "The two members differ only by one local pure helper.",
                 "smallest_sound_invariant": "Inline one proven-pure single-return helper.",
@@ -822,12 +899,36 @@ def run_self_test() -> None:
                 ],
             }
         ],
+        "classification_summary": {"one-step-pure-helper-composition": 1},
+        "dev_proposal": {
+            "status": "frozen-before-heldout-confirmation",
+            "route": "A",
+            "heldout_source_confirmation": "not-run",
+            "mechanism": "Keep accepted pair endpoints represented through grouping.",
+            "smallest_sound_invariant": "Every accepted pair retains endpoint coverage.",
+            "hard_negatives": ["Do not infer A-C from A-B and B-C.", "Do not emit nested duplicates."],
+            "estimated_affected_dev_misses": {"lower_bound": 1},
+            "hof_route_d_status": "deferred-no-direct-pure-callback-evidence",
+        },
     }
-    validate_decisions(valid_decisions, fake_artifact)
+    fake_stage_artifact = {
+        "schema": STAGE_AUDIT_SCHEMA,
+        "split": "dev",
+        "provenance": {
+            "selection_sha256": fake_artifact["dev_audit_selection"]["sha256"]
+        },
+        "summary": {"states": {"accepted-pair": 1}},
+        "candidates": [
+            {"candidate_key": audited["candidate_key"], "stage": "candidate-only"}
+        ],
+    }
+    # Use an accepted count of one only to exercise the route-A estimate check;
+    # the selected record's observed stage independently exercises the exact join.
+    validate_decisions(valid_decisions, fake_artifact, fake_stage_artifact)
     invalid_decisions = json.loads(json.dumps(valid_decisions))
     invalid_decisions["decisions"][0]["source_evidence"] = []
     try:
-        validate_decisions(invalid_decisions, fake_artifact)
+        validate_decisions(invalid_decisions, fake_artifact, fake_stage_artifact)
     except ValueError as error:
         _require("source_evidence" in str(error), "decision test failed for wrong reason")
     else:
