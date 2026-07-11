@@ -256,3 +256,7 @@ Pass `--mode` to compare a non-default channel mix without editing the script:
 ```sh
 python3 bench/labels/eval_by_language.py --mode syntax,semantic,near
 ```
+
+Pass `--comparison-nose` when a change needs a durable label-level delta. The
+primary metrics still describe `--nose`; the report additionally lists every
+recovered and regressed worthy `repo:family_id` against the comparison binary.

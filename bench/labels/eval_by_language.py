@@ -200,7 +200,18 @@ def best_label_flags(
 def worthy_recall_flags(
     families: list[dict[str, Any]], labels: list[dict[str, Any]]
 ) -> list[int]:
-    flags = []
+    hits = worthy_recall_hit_ids(families, labels)
+    return [
+        1 if label["family_id"] in hits else 0
+        for label in labels
+        if label["worthy"] and metric_eligible(label, RECALL_METRIC)
+    ]
+
+
+def worthy_recall_hit_ids(
+    families: list[dict[str, Any]], labels: list[dict[str, Any]]
+) -> set[str]:
+    hits = set()
     family_locations = [matched_locations(family) for family in families]
     for label in labels:
         if not label["worthy"] or not metric_eligible(label, RECALL_METRIC):
@@ -209,8 +220,22 @@ def worthy_recall_flags(
             any(overlaps(site, member) for site in sites for member in label["members"])
             for sites in family_locations
         )
-        flags.append(1 if hit else 0)
-    return flags
+        if hit:
+            hits.add(label["family_id"])
+    return hits
+
+
+def label_delta_row(
+    label: dict[str, Any], *, repo_id: str, language: str
+) -> dict[str, Any]:
+    return {
+        "candidate_key": f"{repo_id}:{label['family_id']}",
+        "repo": repo_id,
+        "family_id": label["family_id"],
+        "language": language,
+        "channel": label["channel"],
+        "scope": label["scope"],
+    }
 
 
 def sha256_file(path: Path) -> str:
@@ -325,6 +350,8 @@ def build_metrics(
 
 def evaluate(args: argparse.Namespace) -> dict[str, Any]:
     working_tree_status_before_measurement = git_output(["status", "--short"])
+    if args.comparison_nose is not None and not args.comparison_nose.is_file():
+        raise SystemExit(f"comparison nose binary is missing: {args.comparison_nose}")
     au.NOSE = args.nose
     au._cache.clear()
     loaded_labelset = load_labelset(args.labelset)
@@ -374,6 +401,11 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         }
     )
     repositories: dict[str, dict[str, Any]] = {}
+    comparison_recovered: list[dict[str, Any]] = []
+    comparison_regressed: list[dict[str, Any]] = []
+    comparison_by_repository: dict[str, dict[str, int]] = {}
+    comparison_hits = 0
+    current_hits = 0
 
     for repo_id in repo_ids:
         repo_labels = by_repo[repo_id]
@@ -404,7 +436,42 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         reranked = sorted(top, key=lambda family: -rerank_scores[family["id"]]) + ordered[40:]
         base_flags = best_label_flags(ordered, precision_labels)
         rerank_flags = best_label_flags(reranked, precision_labels)
-        recall_flags = worthy_recall_flags(ordered, repo_labels)
+        current_hit_ids = worthy_recall_hit_ids(ordered, repo_labels)
+        recall_flags = [
+            1 if label["family_id"] in current_hit_ids else 0
+            for label in repo_labels
+            if label["worthy"] and metric_eligible(label, RECALL_METRIC)
+        ]
+
+        if args.comparison_nose is not None:
+            comparison_families = query_repo(
+                args.repos_root / repo_id,
+                nose=args.comparison_nose,
+                mode=mode or None,
+                cache_dir=args.cache_dir,
+                top=args.top,
+                timeout=args.timeout,
+            )
+            comparison_hit_ids = worthy_recall_hit_ids(comparison_families, repo_labels)
+            recovered_ids = current_hit_ids - comparison_hit_ids
+            regressed_ids = comparison_hit_ids - current_hit_ids
+            comparison_hits += len(comparison_hit_ids)
+            current_hits += len(current_hit_ids)
+            comparison_by_repository[repo_id] = {
+                "comparison_hits": len(comparison_hit_ids),
+                "current_hits": len(current_hit_ids),
+                "delta": len(current_hit_ids) - len(comparison_hit_ids),
+            }
+            for label in repo_labels:
+                family_id = label["family_id"]
+                if family_id in recovered_ids:
+                    comparison_recovered.append(
+                        label_delta_row(label, repo_id=repo_id, language=language)
+                    )
+                if family_id in regressed_ids:
+                    comparison_regressed.append(
+                        label_delta_row(label, repo_id=repo_id, language=language)
+                    )
 
         row = accumulator[(language, split)]
         row["base"].extend(base_flags)
@@ -444,7 +511,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
 
     metrics = build_metrics(accumulator, bootstrap=args.bootstrap, splits=args.splits)
     nose = args.nose.resolve()
-    return {
+    result = {
         "schema": "nose.product_quality_evaluation.v2",
         "query_schema_version": QUERY_SCHEMA_VERSION,
         "provenance": {
@@ -487,6 +554,31 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         "metrics": metrics,
         "repositories": repositories,
     }
+    if args.comparison_nose is not None:
+        comparison_nose = args.comparison_nose.resolve()
+        result["comparison"] = {
+            "direction": "current --nose minus --comparison-nose",
+            "provenance": {
+                "nose_binary": comparison_nose.as_posix(),
+                "nose_binary_sha256": sha256_file(comparison_nose),
+                "nose_version": nose_version(comparison_nose),
+            },
+            "worthy_recall": {
+                "comparison_hits": comparison_hits,
+                "current_hits": current_hits,
+                "delta": current_hits - comparison_hits,
+                "recovered_count": len(comparison_recovered),
+                "regressed_count": len(comparison_regressed),
+                "by_repository": comparison_by_repository,
+                "recovered": sorted(
+                    comparison_recovered, key=lambda row: row["candidate_key"]
+                ),
+                "regressed": sorted(
+                    comparison_regressed, key=lambda row: row["candidate_key"]
+                ),
+            },
+        }
+    return result
 
 
 def format_metric(metric: dict[str, Any]) -> str:
@@ -560,6 +652,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="checkout root containing one directory per corpus repo",
     )
     parser.add_argument("--nose", type=Path, default=DEFAULT_NOSE)
+    parser.add_argument(
+        "--comparison-nose",
+        type=Path,
+        help=(
+            "optional baseline binary; records exact worthy-label recovery and "
+            "regression IDs without changing the primary metrics"
+        ),
+    )
     parser.add_argument("--cache-dir", type=Path, help="forwarded to nose query --cache-dir")
     parser.add_argument("--top", type=int, default=1000000, help="forwarded to query top=N")
     parser.add_argument("--timeout", type=int, default=300, help="per-repo query timeout in seconds")
