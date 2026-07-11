@@ -30,9 +30,11 @@ SELECTION_SEED = "nose-issue-816-dev-audit-v1"
 SELECTION_PER_LANGUAGE = 5
 SUBDAG_FLOORS = (8, 12, 20)
 INLINE_FLOOR = 20
-EXPECTED_CURRENT_RECALL = {
-    "dev": {"hits": 2626, "n": 2849},
-    "heldout": {"hits": 1949, "n": 2091},
+CHECKED_RECALL_PROFILES = {
+    "2664d2935eaf8e86243dcf3592225c9f4884154ac7757c1307fd2a4281688e2c": {
+        "dev": {"hits": 2626, "n": 2849},
+        "heldout": {"hits": 1949, "n": 2091},
+    },
 }
 REQUIRED_RESIDUAL_LANES = (
     "inline-ceiling",
@@ -68,6 +70,45 @@ def canonical_json(value: object) -> str:
 
 def canonical_sha256(value: object) -> str:
     return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def registered_recall_profile(digest: object) -> dict[str, dict[str, int]]:
+    """Return the recall contract registered for an evaluation digest."""
+    _validate_hash(digest, "evaluation input sha256: invalid")
+    registered = CHECKED_RECALL_PROFILES.get(digest)
+    _require(registered is not None, f"evaluation report {digest} is unregistered")
+    return {split: dict(counts) for split, counts in registered.items()}
+
+
+def checked_recall_profile(evaluation_input: object) -> dict[str, dict[str, int]]:
+    """Validate and return the recall contract carried by an artifact input."""
+    _require(isinstance(evaluation_input, dict), "evaluation input: expected an object")
+    registered = registered_recall_profile(evaluation_input.get("sha256"))
+    _require(
+        evaluation_input.get("expected_worthy_recall") == registered,
+        "evaluation report recall differs from its registered profile",
+    )
+    return registered
+
+
+def validate_evaluation_recall(
+    evaluation: object,
+    expected_recall: dict[str, dict[str, int]],
+) -> None:
+    _require(isinstance(evaluation, dict), "checked evaluation: expected an object")
+    metrics = evaluation.get("metrics")
+    _require(isinstance(metrics, dict), "checked evaluation metrics missing")
+    for split, expected in expected_recall.items():
+        split_metrics = metrics.get(split)
+        _require(isinstance(split_metrics, dict), f"checked evaluation {split} missing")
+        overall = split_metrics.get("OVERALL")
+        _require(isinstance(overall, dict), f"checked evaluation {split} overall missing")
+        actual = overall.get("worthy_recall")
+        _require(isinstance(actual, dict), f"checked evaluation {split} recall missing")
+        _require(
+            {"hits": actual.get("hits"), "n": actual.get("n")} == expected,
+            f"checked evaluation {split} worthy recall drifted",
+        )
 
 
 def project_path(path: str) -> Path:
@@ -407,6 +448,7 @@ def validate_artifact(
         "query_schema",
     }
     _require(set(inputs) == required_inputs, "provenance.inputs: incomplete input set")
+    expected_recall = checked_recall_profile(inputs.get("evaluation_report"))
     resolved_inputs: dict[str, Path] = {}
     recall_labels = None
     corpus_payload = None
@@ -439,12 +481,7 @@ def validate_artifact(
                     "v6 current-output overlay entered worthy recall",
                 )
         evaluation = json.loads(resolved_inputs["evaluation_report"].read_text())
-        for split, expected in EXPECTED_CURRENT_RECALL.items():
-            actual = evaluation["metrics"][split]["OVERALL"]["worthy_recall"]
-            _require(
-                {"hits": actual["hits"], "n": actual["n"]} == expected,
-                f"checked evaluation {split} worthy recall drifted",
-            )
+        validate_evaluation_recall(evaluation, expected_recall)
         corpus_payload = json.loads(resolved_inputs["corpus_manifest"].read_text())
         repositories = corpus_payload.get("repositories")
         _require(isinstance(repositories, list), "corpus manifest repositories missing")
@@ -627,7 +664,7 @@ def validate_artifact(
     by_language, by_split = aggregate_metrics(query_runs, candidates)
     _require(payload.get("metrics_by_language") == by_language, "language metrics drifted")
     _require(payload.get("metrics") == by_split, "split metrics drifted")
-    for split, expected in EXPECTED_CURRENT_RECALL.items():
+    for split, expected in expected_recall.items():
         actual = by_split.get(split, {})
         _require(
             {"hits": actual.get("hit_arm1"), "n": actual.get("worthy")} == expected,
@@ -1264,6 +1301,49 @@ def render_dev_context(artifact: dict[str, Any], output: Path, context_lines: in
 
 
 def run_self_test() -> None:
+    pre_817_input = {
+        "sha256": "2664d2935eaf8e86243dcf3592225c9f4884154ac7757c1307fd2a4281688e2c",
+        "expected_worthy_recall": {
+            "dev": {"hits": 2626, "n": 2849},
+            "heldout": {"hits": 1949, "n": 2091},
+        },
+    }
+    _require(
+        checked_recall_profile(pre_817_input)
+        == pre_817_input["expected_worthy_recall"],
+        "registered recall profile did not round-trip",
+    )
+    unregistered = json.loads(json.dumps(pre_817_input))
+    unregistered["sha256"] = "f" * 64
+    try:
+        checked_recall_profile(unregistered)
+    except ValueError as error:
+        _require("unregistered" in str(error), "unregistered profile failed unclearly")
+    else:
+        raise AssertionError("an unregistered evaluation report was accepted")
+    substituted = json.loads(json.dumps(pre_817_input))
+    substituted["expected_worthy_recall"]["dev"]["hits"] += 1
+    try:
+        checked_recall_profile(substituted)
+    except ValueError as error:
+        _require("recall" in str(error), "recall substitution failed unclearly")
+    else:
+        raise AssertionError("a registered evaluation recall substitution was accepted")
+    evaluation = {
+        "metrics": {
+            split: {"OVERALL": {"worthy_recall": dict(counts)}}
+            for split, counts in pre_817_input["expected_worthy_recall"].items()
+        }
+    }
+    validate_evaluation_recall(evaluation, checked_recall_profile(pre_817_input))
+    evaluation["metrics"]["heldout"]["OVERALL"]["worthy_recall"]["hits"] -= 1
+    try:
+        validate_evaluation_recall(evaluation, checked_recall_profile(pre_817_input))
+    except ValueError as error:
+        _require("heldout worthy recall drifted" in str(error), "metric drift failed unclearly")
+    else:
+        raise AssertionError("a checked evaluation metric substitution was accepted")
+
     def row(
         key: str,
         language: str,
