@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-time held-out confirmation for the frozen #816 dev proposal.
+"""One-time held-out stage confirmation for a frozen dev proposal.
 
 The dev proposal is loaded and validated before any held-out detector run.  This
 reuses the exact raw-stage method from ``missed_worthy_stage_audit.py`` and emits
@@ -19,7 +19,13 @@ import sys
 from typing import Any
 
 from labelset import sha256_file
-from missed_worthy_frontier import ROOT, load_and_validate_artifact, load_and_validate_decisions, relative_path
+from missed_worthy_frontier import (
+    DECISIONS_SCHEMA_V2,
+    ROOT,
+    load_and_validate_artifact,
+    load_and_validate_decisions,
+    relative_path,
+)
 from missed_worthy_stage_audit import (
     display_arg,
     display_command,
@@ -32,8 +38,12 @@ from missed_worthy_stage_audit import (
 
 
 SCHEMA = "nose.missed_worthy_stage_confirmation.heldout.v1"
+SCHEMA_V2 = "nose.missed_worthy_stage_confirmation.heldout.v2"
 MIN_ACCEPTED_PAIRS = 15
 MIN_ACCEPTED_LANGUAGES = 3
+EXPECTED_POST_817_ACCEPTED_PAIRS = 0
+EXPECTED_POST_817_CANDIDATE_SUBDAG = 2
+EXPECTED_POST_817_CANDIDATE_SUBDAG_LANGUAGES = ["C", "Java"]
 DEFAULT_ARTIFACT = ROOT / "bench" / "labels" / "recall_ceiling_probe_2026_07_11.v2.json"
 DEFAULT_DECISIONS = (
     ROOT / "bench" / "labels" / "missed_worthy_audit_decisions_2026_07_11.dev.v1.json"
@@ -57,6 +67,44 @@ def confirmation_result(summary: dict[str, Any]) -> dict[str, Any]:
         "passed": accepted >= MIN_ACCEPTED_PAIRS
         and len(languages) >= MIN_ACCEPTED_LANGUAGES,
     }
+
+
+def confirmation_result_v2(
+    summary: dict[str, Any],
+    records: list[dict[str, Any]],
+    source_candidates: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Check the pre-registered post-#817 mechanical stage expectation."""
+    candidate_only_subdag = []
+    for record in records:
+        source = source_candidates[record["candidate_key"]]
+        if (
+            record["stage"] == "candidate-only"
+            and source["class"] == "subdag-ceiling"
+            and source.get("subdag_ge_20") is True
+        ):
+            candidate_only_subdag.append(record["candidate_key"])
+    languages = sorted(
+        {source_candidates[key]["language"] for key in candidate_only_subdag}
+    )
+    accepted = summary["states"].get("accepted-pair", 0)
+    result = {
+        "expected_accepted_pairs": EXPECTED_POST_817_ACCEPTED_PAIRS,
+        "expected_candidate_only_subdag_ge20": EXPECTED_POST_817_CANDIDATE_SUBDAG,
+        "expected_candidate_only_subdag_ge20_languages": (
+            EXPECTED_POST_817_CANDIDATE_SUBDAG_LANGUAGES
+        ),
+        "observed_accepted_pairs": accepted,
+        "observed_candidate_only_subdag_ge20": len(candidate_only_subdag),
+        "observed_candidate_only_subdag_ge20_ids": sorted(candidate_only_subdag),
+        "observed_candidate_only_subdag_ge20_languages": languages,
+    }
+    result["passed"] = (
+        accepted == EXPECTED_POST_817_ACCEPTED_PAIRS
+        and len(candidate_only_subdag) == EXPECTED_POST_817_CANDIDATE_SUBDAG
+        and languages == EXPECTED_POST_817_CANDIDATE_SUBDAG_LANGUAGES
+    )
+    return result
 
 
 def collect(args: argparse.Namespace) -> dict[str, Any]:
@@ -95,7 +143,13 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
         )
     records.sort(key=lambda record: record["candidate_key"])
     summary = summarize(records)
-    result = confirmation_result(summary)
+    source_candidates = {record["candidate_key"]: record for record in heldout}
+    is_post_817 = decisions.get("schema") == DECISIONS_SCHEMA_V2
+    result = (
+        confirmation_result_v2(summary, records, source_candidates)
+        if is_post_817
+        else confirmation_result(summary)
+    )
     version = subprocess.run(
         [display_arg(args.nose), "--version"],
         cwd=ROOT,
@@ -105,7 +159,7 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
     )
     invocation = ["python3", relative_path(Path(__file__)), *sys.argv[1:]]
     return {
-        "schema": SCHEMA,
+        "schema": SCHEMA_V2 if is_post_817 else SCHEMA,
         "split": "heldout",
         "method": {
             "source_review": "none",
@@ -129,7 +183,9 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
                 "path": relative_path(args.decisions),
                 "sha256": sha256_file(args.decisions),
                 "commit": git_output("log", "-1", "--format=%H", "--", relative_path(args.decisions)),
-                "route": proposal["route"],
+                (
+                    "selected_tranche" if is_post_817 else "route"
+                ): proposal["selected_tranche"] if is_post_817 else proposal["route"],
             },
         },
         "failures": failures,
@@ -147,7 +203,8 @@ def require(condition: bool, message: str) -> None:
 
 def validate(payload: object, args: argparse.Namespace, *, check_binary: bool = False) -> None:
     require(isinstance(payload, dict), "confirmation must be an object")
-    require(payload.get("schema") == SCHEMA, "unsupported confirmation schema")
+    schema = payload.get("schema")
+    require(schema in {SCHEMA, SCHEMA_V2}, "unsupported confirmation schema")
     require(payload.get("split") == "heldout", "confirmation must be held-out")
     provenance = payload.get("provenance")
     require(isinstance(provenance, dict), "missing provenance")
@@ -165,7 +222,19 @@ def validate(payload: object, args: argparse.Namespace, *, check_binary: bool = 
     require(decision_record.get("path") == relative_path(args.decisions), "decision path drifted")
     require(decision_record.get("sha256") == sha256_file(args.decisions), "decision hash drifted")
     decisions = load_and_validate_decisions(args.decisions, args.artifact)
-    require(decision_record.get("route") == decisions["dev_proposal"]["route"], "route drifted")
+    is_post_817 = decisions.get("schema") == DECISIONS_SCHEMA_V2
+    require(
+        schema == (SCHEMA_V2 if is_post_817 else SCHEMA),
+        "confirmation schema does not match the dev decision contract",
+    )
+    if is_post_817:
+        require(
+            decision_record.get("selected_tranche")
+            == decisions["dev_proposal"]["selected_tranche"],
+            "selected tranche drifted",
+        )
+    else:
+        require(decision_record.get("route") == decisions["dev_proposal"]["route"], "route drifted")
     require(payload.get("failures") == [], "confirmation contains failures")
     require(payload.get("method", {}).get("source_review") == "none", "held-out source was judged")
 
@@ -184,10 +253,12 @@ def validate(payload: object, args: argparse.Namespace, *, check_binary: bool = 
         key = record["candidate_key"]
         validate_stage_record(record, expected[key])
     require(payload.get("summary") == summarize(records), "confirmation summary drifted")
-    require(
-        payload.get("confirmation_gate") == confirmation_result(payload["summary"]),
-        "confirmation gate drifted",
+    expected_gate = (
+        confirmation_result_v2(payload["summary"], records, expected)
+        if is_post_817
+        else confirmation_result(payload["summary"])
     )
+    require(payload.get("confirmation_gate") == expected_gate, "confirmation gate drifted")
     require(payload["confirmation_gate"]["passed"] is True, "held-out confirmation failed")
     validate_repository_runs(payload.get("repository_runs"), expected)
     if check_binary:
@@ -214,6 +285,49 @@ def run_self_test() -> None:
         },
     }
     require(confirmation_result(failing)["passed"] is False, "failing gate accepted")
+
+    post_817_candidates = {
+        "c-one": {
+            "candidate_key": "c-one",
+            "language": "C",
+            "class": "subdag-ceiling",
+            "subdag_ge_20": True,
+        },
+        "java-one": {
+            "candidate_key": "java-one",
+            "language": "Java",
+            "class": "subdag-ceiling",
+            "subdag_ge_20": True,
+        },
+    }
+    post_817_records = [
+        {"candidate_key": key, "stage": "candidate-only"}
+        for key in post_817_candidates
+    ]
+    post_817_summary = {
+        "states": {"candidate-only": 2},
+        "by_language": {"C": {"candidate-only": 1}, "Java": {"candidate-only": 1}},
+    }
+    require(
+        confirmation_result_v2(
+            post_817_summary,
+            post_817_records,
+            post_817_candidates,
+        )["passed"]
+        is True,
+        "post-817 passing gate rejected",
+    )
+    post_817_records[0]["stage"] = "accepted-pair"
+    post_817_summary["states"] = {"accepted-pair": 1, "candidate-only": 1}
+    require(
+        confirmation_result_v2(
+            post_817_summary,
+            post_817_records,
+            post_817_candidates,
+        )["passed"]
+        is False,
+        "post-817 accepted-pair drift passed",
+    )
     print("missed-worthy held-out confirmation self-test passed")
 
 
