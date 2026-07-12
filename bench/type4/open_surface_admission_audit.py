@@ -119,7 +119,7 @@ EPIC_778_OUT_OF_SCOPE_ROWS = [
     {
         "pattern_id": "map.default.absence-lookup",
         "language": "Swift",
-        "reason": "needs dictionary receiver, key/fallback coordinate, and mutation facts",
+        "reason": "the controlled #798 Swift Dictionary default-subscript slice is admitted; attributed coordinates, custom dispatch, aliases, directives, and namespace shadows remain closed",
     },
     {
         "pattern_id": "option.presence-default.proven-channel-coordinate",
@@ -228,8 +228,8 @@ EPIC_791_BLOCKED_ROWS = [
             "map.default.key-fallback-coordinate",
             "map.receiver.no-intervening-mutation",
         ],
-        "work": "model Swift Dictionary default lookup receiver, key, fallback, and mutation facts",
-        "reason": "default subscript admission needs absent-key fallback and receiver-coordinate proof instead of subscript spelling",
+        "work": "connected Swift Dictionary default lookup to modeled receiver, plain key/fallback coordinate, and mutation facts in #798",
+        "reason": "the modeled absence-fallback, source-identity, coordinate, and no-mutation perimeter removes this row from the current open audit",
     },
 ]
 
@@ -1378,6 +1378,12 @@ def selftest() -> None:
         raise OpenSurfaceAuditError(
             "selftest #791 resolved row was not counted as promoted/resolved"
         )
+    if format_epic_row_current_state(resolved_blocked_slice["frozen_rows"][-1]) != (
+        "not-in-current-open-audit"
+    ):
+        raise OpenSurfaceAuditError(
+            "selftest resolved #791 row rendered an empty current priority"
+        )
 
     promoted_spec = EPIC_791_BLOCKED_ROWS[-1]
     promoted_surface_key = row_surface_key(
@@ -1470,6 +1476,8 @@ def selftest() -> None:
         raise OpenSurfaceAuditError(
             "selftest expected unknown #791 fact group id to fail"
         )
+    if format_count_summary({}) != "none":
+        raise OpenSurfaceAuditError("selftest empty count summaries must render as none")
     print("selftest OK")
 
 
@@ -1487,8 +1495,20 @@ def format_count_map(values: dict[str, Any]) -> str:
     return ", ".join(f"{key}={format_value(value)}" for key, value in values.items())
 
 
+def format_count_summary(values: dict[str, Any]) -> str:
+    return format_count_map(values) or "none"
+
+
 def markdown_cell(value: Any) -> str:
     return str(value).replace("\n", " ").replace("|", "\\|")
+
+
+def format_epic_row_current_state(row: dict[str, Any]) -> str:
+    current_state = row["current_open_audit_state"]
+    current_priority = row.get("current_candidate_priority")
+    if current_priority is not None and current_priority != row["candidate_priority"]:
+        return f"{current_state} (`{current_priority}`)"
+    return current_state
 
 
 def render_epic_778_slice(slice_report: dict[str, Any]) -> list[str]:
@@ -1515,11 +1535,7 @@ def render_epic_778_slice(slice_report: dict[str, Any]) -> list[str]:
         "|---|---|---|---|---|---|---|---|---|",
     ]
     for row in slice_report["in_scope"]:
-        current_state = row["current_open_audit_state"]
-        if row.get("current_candidate_priority") != row["candidate_priority"]:
-            current_state = (
-                f"{current_state} (`{row.get('current_candidate_priority', '')}`)"
-            )
+        current_state = format_epic_row_current_state(row)
         lines.append(
             "| "
             f"{row['order']} | "
@@ -1540,11 +1556,7 @@ def render_epic_778_slice(slice_report: dict[str, Any]) -> list[str]:
         "|---|---|---|---|---|---|---|",
     ])
     for row in slice_report["out_of_scope"]:
-        current_state = row["current_open_audit_state"]
-        if row.get("current_candidate_priority") != row["candidate_priority"]:
-            current_state = (
-                f"{current_state} (`{row.get('current_candidate_priority', '')}`)"
-            )
+        current_state = format_epic_row_current_state(row)
         lines.append(
             "| "
             f"`{row['candidate_priority']}` | "
@@ -1628,11 +1640,7 @@ def render_epic_791_slice(slice_report: dict[str, Any]) -> list[str]:
         "|---|---|---|---|---|---|---|---|---|---|",
     ])
     for row in slice_report["frozen_rows"]:
-        current_state = row["current_open_audit_state"]
-        if row.get("current_candidate_priority") != row["candidate_priority"]:
-            current_state = (
-                f"{current_state} (`{row.get('current_candidate_priority', '')}`)"
-            )
+        current_state = format_epic_row_current_state(row)
         lines.append(
             "| "
             f"{row['order']} | "
@@ -1681,9 +1689,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         f"- audited surface statuses: {', '.join(summary['audited_surface_statuses'])}",
         f"- open surfaces: {summary['open_surface_count']}",
-        f"- priorities: {format_count_map(summary['by_priority'])}",
-        f"- evidence levels: {format_count_map(summary['by_evidence_level'])}",
-        f"- languages: {format_count_map(summary['by_language'])}",
+        f"- priorities: {format_count_summary(summary['by_priority'])}",
+        f"- evidence levels: {format_count_summary(summary['by_evidence_level'])}",
+        f"- languages: {format_count_summary(summary['by_language'])}",
         f"- unresolved surface evidence refs: {summary['unresolved_surface_evidence_ref_count']}",
         "",
     ]

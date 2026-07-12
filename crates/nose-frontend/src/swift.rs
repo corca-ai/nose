@@ -16,12 +16,13 @@ use nose_il::{
 };
 use nose_semantics::{
     SWIFT_ALL_SATISFY_DISPATCH_BARRIER_MARKER, SWIFT_COMPACT_MAP_DISPATCH_BARRIER_MARKER,
-    SWIFT_FLAT_MAP_DISPATCH_BARRIER_MARKER, SWIFT_NIL_LITERAL_CONFORMANCE_MARKER,
-    SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER,
+    SWIFT_DICTIONARY_DEFAULT_SUBSCRIPT_BARRIER_MARKER, SWIFT_FLAT_MAP_DISPATCH_BARRIER_MARKER,
+    SWIFT_NIL_LITERAL_CONFORMANCE_MARKER, SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER,
 };
 use tree_sitter::Node as TsNode;
 
 mod calls;
+mod dispatch_barriers;
 mod expressions;
 mod helpers;
 mod items;
@@ -30,7 +31,8 @@ mod properties;
 mod statements;
 
 use self::{
-    calls::*, expressions::*, helpers::*, items::*, lambdas::*, properties::*, statements::*,
+    calls::*, dispatch_barriers::*, expressions::*, helpers::*, items::*, lambdas::*,
+    properties::*, statements::*,
 };
 
 pub(crate) fn lower(
@@ -39,7 +41,7 @@ pub(crate) fn lower(
     src: &[u8],
     interner: &Interner,
 ) -> anyhow::Result<Il> {
-    crate::lower::lower_file(
+    let mut il = crate::lower::lower_file(
         file,
         path,
         src,
@@ -48,7 +50,9 @@ pub(crate) fn lower(
         || tree_sitter_swift::LANGUAGE.into(),
         Lang::Swift,
         lower_items,
-    )
+    )?;
+    crate::swift_cross_file_shadows::close_local_dictionary_default_subscript(&mut il, interner);
+    Ok(il)
 }
 
 #[cfg(test)]

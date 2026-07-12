@@ -19,6 +19,69 @@ return dict["red", default: 0]
 }
 
 #[test]
+fn dictionary_parameter_records_language_core_source_spelling() {
+    let il = il(r#"
+func bracket(_ lookup: [String: Int], _ key: String, _ fallback: Int) -> Int {
+    lookup[key, default: fallback]
+}
+func nominal(_ lookup: Dictionary<String, Int>, _ key: String, _ fallback: Int) -> Int {
+    lookup[key, default: fallback]
+}
+func qualified(_ lookup: Swift.Dictionary<String, Int>, _ key: String, _ fallback: Int) -> Int {
+    lookup[key, default: fallback]
+}
+"#);
+    for (kind, label) in [
+        (
+            TypeEvidenceKind::SwiftBracketDictionaryParameter,
+            "bracket Dictionary",
+        ),
+        (
+            TypeEvidenceKind::SwiftUnqualifiedDictionaryParameter,
+            "unqualified Dictionary",
+        ),
+        (
+            TypeEvidenceKind::SwiftQualifiedDictionaryParameter,
+            "Swift.Dictionary",
+        ),
+    ] {
+        let records = il
+            .evidence
+            .iter()
+            .filter(|record| record.kind == EvidenceKind::Type(kind))
+            .collect::<Vec<_>>();
+        assert_eq!(records.len(), 1, "expected one {label} source proof");
+        assert!(
+            records
+                .iter()
+                .all(|record| nose_semantics::language_core_record_has_provenance(&il, record)),
+            "{label} source proof must retain Swift language-core provenance"
+        );
+    }
+}
+
+#[test]
+fn modified_dictionary_parameters_do_not_prove_stable_receivers() {
+    let il = il(r#"
+func mutate(_ lookup: inout Dictionary<String, Int>, _ key: String, _ fallback: Int) -> Int {
+    lookup[key] = fallback
+    return lookup[key, default: fallback]
+}
+"#);
+    assert!(
+        !il.evidence.iter().any(|record| matches!(
+            record.kind,
+            EvidenceKind::Type(
+                TypeEvidenceKind::SwiftBracketDictionaryParameter
+                    | TypeEvidenceKind::SwiftUnqualifiedDictionaryParameter
+                    | TypeEvidenceKind::SwiftQualifiedDictionaryParameter
+            )
+        )),
+        "inout Dictionary parameters must not prove stable receiver identity"
+    );
+}
+
+#[test]
 fn bracket_array_parameter_records_a_stronger_language_core_domain() {
     let il = il(r#"
 func compare(_ bracket: [Bool], _ modified: inout [Bool], _ nominal: Array<Bool>, _ protocolValue: Collection) {}

@@ -69,10 +69,10 @@ packet-specific current status locally.
 | `reduction.short-circuit-direction` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes existential versus universal short-circuit direction. |
 | `reduction.selection-seed-domain` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only preserves seeded min/max selection behavior; unseeded terminals need separate proof. |
 | `hof.flat-map.aggregate-guard-coordinate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves outer, inner, and terminal guard placement for flat-map aggregates. |
-| `map.default.absence-fallback` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Requires receiver identity, key/default coordinates, and mutation closure. |
-| `map.receiver.source-identity` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves that both sides query the same map value source. |
-| `map.default.key-fallback-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes the key/default coordinate boundary. |
-| `map.receiver.no-intervening-mutation` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes mutation and stale-receiver boundaries. |
+| `map.default.absence-fallback` | `modeled-controlled` | `focused-executable`, `source-evidence` | Requires receiver identity, key/default coordinates, and mutation closure. |
+| `map.receiver.source-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves that both sides query the same map value source. |
+| `map.default.key-fallback-coordinate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes the key/default coordinate boundary. |
+| `map.receiver.no-intervening-mutation` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes mutation and stale-receiver boundaries. |
 
 ## Compatibility Aliases
 

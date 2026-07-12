@@ -146,6 +146,67 @@ pub fn map_get_contract_by_hash(
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct SwiftDictionaryDefaultSubscriptContract {
+    pub receiver: NodeId,
+    pub key: NodeId,
+    pub default: NodeId,
+}
+
+/// Resolve the lowered source shape for Swift's labeled default subscript,
+/// without claiming that its receiver, coordinates, or lazy demand are safe to
+/// canonicalize.
+pub fn swift_dictionary_default_subscript_surface_for_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<SwiftDictionaryDefaultSubscriptContract> {
+    if il.meta.lang != Lang::Swift || il.kind(node) != NodeKind::Index {
+        return None;
+    }
+    let [receiver, index] = il.children(node) else {
+        return None;
+    };
+    if il.kind(*index) != NodeKind::Seq
+        || !matches!(
+            il.node(*index).payload,
+            Payload::Name(tag) if interner.resolve(tag) == "swift_subscript_default"
+        )
+    {
+        return None;
+    }
+    let [key, default] = il.children(*index) else {
+        return None;
+    };
+    Some(SwiftDictionaryDefaultSubscriptContract {
+        receiver: *receiver,
+        key: *key,
+        default: *default,
+    })
+}
+
+/// Resolve the controlled Swift `Dictionary` default-subscript perimeter.
+///
+/// The syntax proves absent-key fallback semantics only after the receiver is a
+/// live language-core Dictionary parameter. Key and fallback expressions must
+/// be stable direct parameter coordinates: this preserves their identity and
+/// prevents Swift's lazy `@autoclosure` default from being conflated with an
+/// eager, effectful default expression in another language. A plain immutable
+/// parameter also supplies the no-intervening-map-mutation boundary.
+pub fn swift_dictionary_default_subscript_contract_for_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<SwiftDictionaryDefaultSubscriptContract> {
+    let surface = swift_dictionary_default_subscript_surface_for_node(il, interner, node)?;
+    if !swift_dictionary_parameter_reference_proven(il, interner, surface.receiver) {
+        return None;
+    }
+    swift_plain_parameter_for_reference(il, surface.key)?;
+    swift_plain_parameter_for_reference(il, surface.default)?;
+    Some(surface)
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct TypeofOperatorContract {
     pub name: &'static str,
     pub required_source_fact: SourceFactKind,

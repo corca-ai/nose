@@ -18,7 +18,7 @@ proof-carrying frontier gates required by the linked pattern.
 | `collection.empty-check.proven-receiver-domain` | `pattern-carded` | 4 | 0 | 0 | 8 |
 | `string.affix.proven-receiver-coordinate` | `pattern-carded` | 6 | 0 | 0 | 7 |
 | `option.presence-default.proven-channel-coordinate` | `pattern-carded` | 6 | 0 | 0 | 8 |
-| `map.default.absence-lookup` | `pattern-carded` | 4 | 0 | 0 | 5 |
+| `map.default.absence-lookup` | `controlled-slice-admitted` | 4 | 0 | 0 | 5 |
 | `hof.filter-map.option-emission` | `controlled-slice-admitted` | 5 | 0 | 0 | 4 |
 | `hof.flat-map.one-level-flatten` | `controlled-slice-admitted` | 5 | 0 | 0 | 5 |
 | `reduction.aggregate.proven-terminal-identity` | `pattern-carded` | 7 | 2 | 1 | 8 |
@@ -167,12 +167,12 @@ Null/Option presence and defaulting surfaces are equivalent only when source evi
 
 Map-default lookup surfaces are equivalent only when they read the same stable map source with the same key and fallback, and the fallback is proven to mean absent-key behavior.
 
-- status: `pattern-carded`
+- status: `controlled-slice-admitted`
 - rationale: The frontier platform records map_default_lookup as a high-breadth multi-language candidate with focused cross-file evidence and adjacent mutation/wrong-map negatives; carding it keeps future work on map semantics instead of API spelling.
 - required facts: `map.default.absence-fallback`, `map.receiver.source-identity`, `map.default.key-fallback-coordinate`, `map.receiver.no-intervening-mutation`
-- hard-negative templates: `map.receiver-mutation`, `map.wrong-receiver`, `map.changed-key`, `map.changed-fallback`, `map.nullish-vs-absent-default`, `protocol-boundary.api-identity`
-- boundaries: absent-key fallback is distinct from nullish, truthy, or falsey value replacement; the map receiver must be the same proven source, including imported immutable literal sources; the lookup key and fallback/default coordinates must match independently; receiver mutation between construction/import, guard, and lookup is behavior-defining
-- evidence: `bench/type4/adversarial/cases/cases.v1.json::map_default_imported_literal`, `bench/type4/adversarial/cases/cases.v1.json::map_default_imported_js_ts_literal`, `bench/type4/adversarial/cases/cases.v1.json::map_default_imported_java_static_literal`, `bench/type4/adversarial/cases/cases.v1.json::map_default_imported_rust_const_literal`, `bench/type4/adversarial/cases/cases.v1.json::map_default_mutated_receiver`, `bench/type4/adversarial/cases/cases.v1.json::map_default_wrong_map`, `bench/type4/proof_fact_registry.v1.json::map.default.absence-fallback`, `bench/type4/proof_fact_registry.v1.json::map.receiver.source-identity`, `bench/type4/proof_fact_registry.v1.json::map.default.key-fallback-coordinate`, `bench/type4/proof_fact_registry.v1.json::map.receiver.no-intervening-mutation`
+- hard-negative templates: `map.receiver-mutation`, `map.wrong-receiver`, `map.changed-key`, `map.changed-fallback`, `map.nullish-vs-absent-default`, `protocol-boundary.api-identity`, `effect.observed-callback-effect`
+- boundaries: absent-key fallback is distinct from nullish, truthy, or falsey value replacement; the map receiver must be the same proven source, including imported immutable literal sources; the lookup key and fallback/default coordinates must match independently; receiver mutation between construction/import, guard, and lookup is behavior-defining; Swift Dictionary default arguments are lazy autoclosures, so calls, operators, and derived fallback expressions stay closed without separate demand/effect proof; custom Dictionary types, visible/conditional/escaped/comment-qualified/alias-targeted default-subscript overloads, imports, macros, directives, type aliases, local Swift namespace shadows, and non-plain receiver/key/fallback parameters keep Swift stdlib dispatch closed
+- evidence: `bench/type4/adversarial/cases/cases.v1.json::map_default_imported_literal`, `bench/type4/adversarial/cases/cases.v1.json::map_default_imported_js_ts_literal`, `bench/type4/adversarial/cases/cases.v1.json::map_default_imported_java_static_literal`, `bench/type4/adversarial/cases/cases.v1.json::map_default_imported_rust_const_literal`, `bench/type4/adversarial/cases/cases.v1.json::map_default_mutated_receiver`, `bench/type4/adversarial/cases/cases.v1.json::map_default_wrong_map`, `bench/type4/adversarial/cases/cases.v1.json::swift_dictionary_default_positive`, `bench/type4/adversarial/cases/cases.v1.json::swift_dictionary_default_boundaries`, `bench/type4/proof_fact_registry.v1.json::map.default.absence-fallback`, `bench/type4/proof_fact_registry.v1.json::map.receiver.source-identity`, `bench/type4/proof_fact_registry.v1.json::map.default.key-fallback-coordinate`, `bench/type4/proof_fact_registry.v1.json::map.receiver.no-intervening-mutation`
 
 | language | surface | status | evidence |
 |---|---|---|---|
@@ -180,7 +180,7 @@ Map-default lookup surfaces are equivalent only when they read the same stable m
 | JS/TS | named imports from unmutated sibling map/object exports | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::map_default_imported_js_ts_literal |
 | Java | static Map.of field imports with getOrDefault-style absence fallback | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::map_default_imported_java_static_literal |
 | Rust | use-imported const entry arrays consumed by HashMap::from | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::map_default_imported_rust_const_literal |
-| Swift | Dictionary default subscript after receiver-coordinate proof | `open` |  |
+| Swift | import-free Swift Dictionary default subscript over a direct plain immutable parameter whose type is bracket Dictionary, unshadowed Dictionary, or unshadowed Swift.Dictionary, with direct plain immutable key and fallback parameter coordinates; wrong coordinates, Optional ??, lazy call/operator/derived defaults and hoisted eager calls, inout/property-wrapped coordinates, local or cross-file custom Dictionary types, visible/conditional/escaped/comment-qualified/alias-targeted default-subscript overloads, imports, macros, directives, aliases, local Swift namespace shadows, and mutation stay split or closed | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::swift_dictionary_default_positive; bench/type4/adversarial/cases/cases.v1.json::swift_dictionary_default_boundaries |
 
 ## `hof.filter-map.option-emission`
 

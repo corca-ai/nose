@@ -110,6 +110,92 @@ fn map_get_contracts_are_language_and_arity_constrained() {
 }
 
 #[test]
+fn swift_dictionary_default_subscript_requires_live_stable_coordinates() {
+    let interner = Interner::new();
+    let marker = interner.intern("swift_subscript_default");
+    let mut b = IlBuilder::new(FileId(0));
+    let receiver_param = b.add(NodeKind::Param, Payload::Cid(0), sp(40), &[]);
+    let key_param = b.add(NodeKind::Param, Payload::Cid(1), sp(41), &[]);
+    let default_param = b.add(NodeKind::Param, Payload::Cid(2), sp(42), &[]);
+    let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(43), &[]);
+    let key = b.add(NodeKind::Var, Payload::Cid(1), sp(44), &[]);
+    let default = b.add(NodeKind::Var, Payload::Cid(2), sp(45), &[]);
+    let marker = b.add(
+        NodeKind::Seq,
+        Payload::Name(marker),
+        sp(46),
+        &[key, default],
+    );
+    let index = b.add(NodeKind::Index, Payload::None, sp(47), &[receiver, marker]);
+    let root = b.add(
+        NodeKind::Func,
+        Payload::None,
+        sp(39),
+        &[receiver_param, key_param, default_param, index],
+    );
+    let mut il = finish_il(b, root, Lang::Swift);
+    il.evidence.push(language_core_evidence(
+        0,
+        EvidenceAnchor::param(sp(40)),
+        EvidenceKind::Type(TypeEvidenceKind::SwiftUnqualifiedDictionaryParameter),
+        EvidenceStatus::Asserted,
+        Lang::Swift,
+    ));
+
+    let contract = swift_dictionary_default_subscript_contract_for_node(&il, &interner, index)
+        .expect("live Dictionary source and direct coordinates should be admitted");
+    assert_eq!(contract.receiver, receiver);
+    assert_eq!(contract.key, key);
+    assert_eq!(contract.default, default);
+
+    il.evidence[0].status = EvidenceStatus::Ambiguous;
+    assert!(
+        swift_dictionary_default_subscript_contract_for_node(&il, &interner, index).is_none(),
+        "shadow-tombstoned Dictionary evidence must close the contract"
+    );
+}
+
+#[test]
+fn swift_dictionary_default_subscript_rejects_lazy_expression_defaults() {
+    let interner = Interner::new();
+    let marker_name = interner.intern("swift_subscript_default");
+    let observe_name = interner.intern("observe");
+    let mut b = IlBuilder::new(FileId(0));
+    let receiver_param = b.add(NodeKind::Param, Payload::Cid(0), sp(50), &[]);
+    let key_param = b.add(NodeKind::Param, Payload::Cid(1), sp(51), &[]);
+    let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(52), &[]);
+    let key = b.add(NodeKind::Var, Payload::Cid(1), sp(53), &[]);
+    let callee = b.add(NodeKind::Var, Payload::Name(observe_name), sp(54), &[]);
+    let effectful_default = b.add(NodeKind::Call, Payload::None, sp(55), &[callee]);
+    let marker = b.add(
+        NodeKind::Seq,
+        Payload::Name(marker_name),
+        sp(56),
+        &[key, effectful_default],
+    );
+    let index = b.add(NodeKind::Index, Payload::None, sp(57), &[receiver, marker]);
+    let root = b.add(
+        NodeKind::Func,
+        Payload::None,
+        sp(49),
+        &[receiver_param, key_param, index],
+    );
+    let mut il = finish_il(b, root, Lang::Swift);
+    il.evidence.push(language_core_evidence(
+        0,
+        EvidenceAnchor::param(sp(50)),
+        EvidenceKind::Type(TypeEvidenceKind::SwiftBracketDictionaryParameter),
+        EvidenceStatus::Asserted,
+        Lang::Swift,
+    ));
+
+    assert!(
+        swift_dictionary_default_subscript_contract_for_node(&il, &interner, index).is_none(),
+        "a lazy call expression is not a stable fallback coordinate"
+    );
+}
+
+#[test]
 fn js_static_builtin_contracts_are_language_and_arity_constrained() {
     assert_eq!(
         static_global_symbol_contract(Lang::JavaScript, "Math"),

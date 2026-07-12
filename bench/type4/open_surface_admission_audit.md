@@ -10,10 +10,10 @@ surface admission issue without re-triaging every pattern card by hand.
 ## Summary
 
 - audited surface statuses: open
-- open surfaces: 1
-- priorities: blocked-by-unmodeled-facts=1
-- evidence levels: missing=1
-- languages: Swift=1
+- open surfaces: 0
+- priorities: none
+- evidence levels: none
+- languages: none
 - unresolved surface evidence refs: 0
 
 ## Epic #778 Audit Slice
@@ -26,31 +26,31 @@ neutral proof facts before admission work is sound.
 - setup issue: #781
 - closeout issue: #785
 - in-scope rows: 6 (0 currently present in the open audit)
-- out-of-scope blocked rows: 7 (1 currently present in the open audit)
+- out-of-scope blocked rows: 7 (0 currently present in the open audit)
 - unexpected actionable open rows: 0
 
 ### In Scope
 
 | order | issue | priority | pattern | language | current state | blocker | work | surface |
 |---|---|---|---|---|---|---|---|---|
-| 1 | #779 | `probe-to-focused-candidate` | `collection.membership.proven-receiver-element` | Swift | not-in-current-open-audit (``) |  | promote Swift collection membership probe evidence into focused admission |  |
-| 2 | #780 | `probe-to-focused-candidate` | `collection.empty-check.proven-receiver-domain` | Swift | not-in-current-open-audit (``) |  | promote Swift collection empty-check probe evidence into focused admission |  |
-| 3 | #782 | `probe-to-focused-candidate` | `string.affix.proven-receiver-coordinate` | Swift | not-in-current-open-audit (``) |  | complete the Swift hasPrefix/hasSuffix focused perimeter |  |
-| 4 | #784 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | JavaScript | not-in-current-open-audit (``) |  | add JavaScript Array.prototype.every focused fixtures and expectations |  |
-| 5 | #783 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | Rust | not-in-current-open-audit (``) |  | add Rust Iterator::all focused fixtures and expectations |  |
-| 6 | #724 | `needs-surface-focused-perimeter` | `numeric.clamp.proven-integer-bounds` | Go | not-in-current-open-audit (``) |  | connect Go numeric clamp bound-order and integer-domain proof evidence |  |
+| 1 | #779 | `probe-to-focused-candidate` | `collection.membership.proven-receiver-element` | Swift | not-in-current-open-audit |  | promote Swift collection membership probe evidence into focused admission |  |
+| 2 | #780 | `probe-to-focused-candidate` | `collection.empty-check.proven-receiver-domain` | Swift | not-in-current-open-audit |  | promote Swift collection empty-check probe evidence into focused admission |  |
+| 3 | #782 | `probe-to-focused-candidate` | `string.affix.proven-receiver-coordinate` | Swift | not-in-current-open-audit |  | complete the Swift hasPrefix/hasSuffix focused perimeter |  |
+| 4 | #784 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | JavaScript | not-in-current-open-audit |  | add JavaScript Array.prototype.every focused fixtures and expectations |  |
+| 5 | #783 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | Rust | not-in-current-open-audit |  | add Rust Iterator::all focused fixtures and expectations |  |
+| 6 | #724 | `needs-surface-focused-perimeter` | `numeric.clamp.proven-integer-bounds` | Go | not-in-current-open-audit |  | connect Go numeric clamp bound-order and integer-domain proof evidence |  |
 
 ### Out Of Scope For #778
 
 | priority | pattern | language | current state | reason | missing facts | surface |
 |---|---|---|---|---|---|---|
-| `blocked-by-unmodeled-facts` | `hof.filter-map.option-emission` | Swift | not-in-current-open-audit (``) | needs optional-result channel and callback-effect facts |  |  |
-| `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Java | not-in-current-open-audit (``) | the controlled #797 Stream.flatMap/reduce slice is admitted; broader aggregate shapes remain outside the focused card |  |  |
-| `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Swift | not-in-current-open-audit (``) | the controlled #797 flatMap/allSatisfy slice is admitted; Swift reduce and broader aggregate dispatch remain closed |  |  |
-| `blocked-by-unmodeled-facts` | `hof.flat-map.one-level-flatten` | Swift | not-in-current-open-audit (``) | needs one-level flatten, nested-order, emitted-value, and callback facts |  |  |
-| `blocked-by-unmodeled-facts` | `map.default.absence-lookup` | Swift | present | needs dictionary receiver, key/fallback coordinate, and mutation facts | `map.default.absence-fallback`, `map.receiver.source-identity`, `map.default.key-fallback-coordinate`, `map.receiver.no-intervening-mutation` | Dictionary default subscript after receiver-coordinate proof |
-| `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Ruby | not-in-current-open-audit (``) | needs absence-channel identity before nil? admission |  |  |
-| `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Swift | not-in-current-open-audit (``) | needs absence-channel identity before Optional presence/defaulting admission |  |  |
+| `blocked-by-unmodeled-facts` | `hof.filter-map.option-emission` | Swift | not-in-current-open-audit | needs optional-result channel and callback-effect facts |  |  |
+| `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Java | not-in-current-open-audit | the controlled #797 Stream.flatMap/reduce slice is admitted; broader aggregate shapes remain outside the focused card |  |  |
+| `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Swift | not-in-current-open-audit | the controlled #797 flatMap/allSatisfy slice is admitted; Swift reduce and broader aggregate dispatch remain closed |  |  |
+| `blocked-by-unmodeled-facts` | `hof.flat-map.one-level-flatten` | Swift | not-in-current-open-audit | needs one-level flatten, nested-order, emitted-value, and callback facts |  |  |
+| `blocked-by-unmodeled-facts` | `map.default.absence-lookup` | Swift | not-in-current-open-audit | the controlled #798 Swift Dictionary default-subscript slice is admitted; attributed coordinates, custom dispatch, aliases, directives, and namespace shadows remain closed |  |  |
+| `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Ruby | not-in-current-open-audit | needs absence-channel identity before nil? admission |  |  |
+| `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Swift | not-in-current-open-audit | needs absence-channel identity before Optional presence/defaulting admission |  |  |
 
 ## Epic #791 Neutral-Fact Blocked Slice
 
@@ -63,9 +63,9 @@ admit Ruby, Swift, Java, or map/HOF spellings directly.
 - setup issue: #792
 - predecessor issue: #778
 - closeout issue: #799
-- frozen blocked rows: 7 (1 currently blocked)
-- promoted or resolved frozen rows: 6
-- current blocked open rows: 1
+- frozen blocked rows: 7 (0 currently blocked)
+- promoted or resolved frozen rows: 7
+- current blocked open rows: 0
 - unexpected blocked open rows: 0
 
 ### Fact Groups And Admission Order
@@ -77,59 +77,50 @@ admit Ruby, Swift, Java, or map/HOF spellings directly.
 | 3 | #795 | `hof.filter-map.coordinates` Filter-map drop and emitted-value coordinates | `hof.filter-map.drop-condition-coordinate`:modeled-controlled, `hof.filter-map.emitted-value-coordinate`:modeled-controlled | `hof.filter-map.option-emission:Swift` | `hof.filter-map.option-emission:Swift` |  |
 | 4 | #796 | `hof.flat-map.one-level-stream` One-level flat-map source and emitted stream | `collection.flatten-depth.one-level`:modeled-controlled, `hof.flat-map.nested-iteration-order`:modeled-controlled, `hof.flat-map.emitted-value-coordinate`:modeled-controlled | `hof.flat-map.one-level-flatten:Swift`, `hof.flat-map.aggregate-reduction:Java`, `hof.flat-map.aggregate-reduction:Swift` | `hof.flat-map.one-level-flatten:Swift` | flat-map aggregate reductions wait for aggregate guard-coordinate proof |
 | 5 | #797 | `hof.flat-map.aggregate-guard` Flat-map aggregate guard coordinate | `hof.flat-map.aggregate-guard-coordinate`:modeled-controlled | `hof.flat-map.aggregate-reduction:Java`, `hof.flat-map.aggregate-reduction:Swift` | `hof.flat-map.aggregate-reduction:Java`, `hof.flat-map.aggregate-reduction:Swift` |  |
-| 6 | #798 | `map.default.receiver-fallback` Map default receiver and fallback coordinates | `map.default.absence-fallback`:specified-not-modeled, `map.receiver.source-identity`:specified-not-modeled, `map.default.key-fallback-coordinate`:specified-not-modeled, `map.receiver.no-intervening-mutation`:specified-not-modeled | `map.default.absence-lookup:Swift` | `map.default.absence-lookup:Swift` |  |
+| 6 | #798 | `map.default.receiver-fallback` Map default receiver and fallback coordinates | `map.default.absence-fallback`:modeled-controlled, `map.receiver.source-identity`:modeled-controlled, `map.default.key-fallback-coordinate`:modeled-controlled, `map.receiver.no-intervening-mutation`:modeled-controlled | `map.default.absence-lookup:Swift` | `map.default.absence-lookup:Swift` |  |
 | 7 | #799 | `blocked-surface-closeout` Blocked-surface closeout and replay evidence |  |  |  | any row still open after #793-#798 must carry stronger blocker or replay evidence |
 
 ### Frozen Rows
 
 | order | issue | priority | pattern | language | current state | blocker | missing facts | work | surface |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | #793 | `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Ruby | not-in-current-open-audit (``) |  |  | model absence-channel identity before Ruby nil?/nil comparison admission |  |
-| 2 | #793 | `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Swift | not-in-current-open-audit (``) |  |  | model absence-channel identity before Swift Optional presence/defaulting admission |  |
-| 3 | #795 | `blocked-by-unmodeled-facts` | `hof.filter-map.option-emission` | Swift | not-in-current-open-audit (``) |  |  | model Swift compactMap drop-condition and emitted-value coordinates |  |
-| 4 | #796 | `blocked-by-unmodeled-facts` | `hof.flat-map.one-level-flatten` | Swift | not-in-current-open-audit (``) |  |  | model one-level flatten, nested-order, and emitted-value facts for Swift flatMap |  |
-| 5 | #797 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Java | not-in-current-open-audit (``) |  |  | connected Java Stream.flatMap aggregate reductions to the modeled one-level source facts in #797 |  |
-| 6 | #797 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Swift | not-in-current-open-audit (``) |  |  | connected Swift flatMap/allSatisfy terminals to the modeled one-level source facts in #797 |  |
-| 7 | #798 | `blocked-by-unmodeled-facts` | `map.default.absence-lookup` | Swift | present | model required facts before detector admission | `map.default.absence-fallback`, `map.receiver.source-identity`, `map.default.key-fallback-coordinate`, `map.receiver.no-intervening-mutation` | model Swift Dictionary default lookup receiver, key, fallback, and mutation facts | Dictionary default subscript after receiver-coordinate proof |
+| 1 | #793 | `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Ruby | not-in-current-open-audit |  |  | model absence-channel identity before Ruby nil?/nil comparison admission |  |
+| 2 | #793 | `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Swift | not-in-current-open-audit |  |  | model absence-channel identity before Swift Optional presence/defaulting admission |  |
+| 3 | #795 | `blocked-by-unmodeled-facts` | `hof.filter-map.option-emission` | Swift | not-in-current-open-audit |  |  | model Swift compactMap drop-condition and emitted-value coordinates |  |
+| 4 | #796 | `blocked-by-unmodeled-facts` | `hof.flat-map.one-level-flatten` | Swift | not-in-current-open-audit |  |  | model one-level flatten, nested-order, and emitted-value facts for Swift flatMap |  |
+| 5 | #797 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Java | not-in-current-open-audit |  |  | connected Java Stream.flatMap aggregate reductions to the modeled one-level source facts in #797 |  |
+| 6 | #797 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Swift | not-in-current-open-audit |  |  | connected Swift flatMap/allSatisfy terminals to the modeled one-level source facts in #797 |  |
+| 7 | #798 | `blocked-by-unmodeled-facts` | `map.default.absence-lookup` | Swift | not-in-current-open-audit |  |  | connected Swift Dictionary default lookup to modeled receiver, plain key/fallback coordinate, and mutation facts in #798 |  |
 
 ## Candidate Rows
 
 | priority | pattern | language | surface | status | evidence | blocker | facts | surface focused | pattern perimeter | coverage |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `blocked-by-unmodeled-facts` | `map.default.absence-lookup` | Swift | Dictionary default subscript after receiver-coordinate proof | `open` | `missing` | model required facts before detector admission | `map.default.absence-fallback`:specified-not-modeled, `map.receiver.source-identity`:specified-not-modeled, `map.default.key-fallback-coordinate`:specified-not-modeled, `map.receiver.no-intervening-mutation`:specified-not-modeled | positive=0, hard_negative=0, group=0 | positive=4, hard_negative=2, group=0 |  |
 
 ## By Pattern
 
 | pattern | open surfaces |
 |---|---|
-| `map.default.absence-lookup` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Blocker
 
 | blocker | open surfaces |
 |---|---|
-| model required facts before detector admission | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Language
 
 | language | open surfaces |
 |---|---|
-| Swift | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Surface Status
 
 | status | open surfaces |
 |---|---|
-| `open` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Proof Fact
 
 | proof fact | open surfaces |
 |---|---|
-| `map.default.absence-fallback` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `map.default.key-fallback-coordinate` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `map.receiver.no-intervening-mutation` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `map.receiver.source-identity` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## How To Use
 

@@ -70,6 +70,20 @@ pub(super) fn evidence(
     )
 }
 
+pub(super) fn language_core_evidence(
+    id: u32,
+    lang: Lang,
+    anchor: EvidenceAnchor,
+    kind: EvidenceKind,
+    dependencies: Vec<EvidenceId>,
+) -> EvidenceRecord {
+    let mut record = evidence(id, anchor, kind, dependencies);
+    let (pack_id, producer_id) = language_core_evidence_provenance(lang);
+    record.provenance.pack_hash = Some(stable_symbol_hash(pack_id));
+    record.provenance.rule_hash = Some(stable_symbol_hash(producer_id));
+    record
+}
+
 pub(super) fn method_call_library_api_evidence(
     id: u32,
     lang: Lang,
@@ -120,14 +134,11 @@ pub(super) fn call_target_evidence(
     target: CallTargetEvidenceKind,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record = evidence(
+    language_core_evidence(
         id,
+        lang,
         EvidenceAnchor::node(call_span, NodeKind::Call),
         EvidenceKind::CallTarget(target),
         dependencies,
-    );
-    let (pack_id, producer_id) = language_core_evidence_provenance(lang);
-    record.provenance.pack_hash = Some(stable_symbol_hash(pack_id));
-    record.provenance.rule_hash = Some(stable_symbol_hash(producer_id));
-    record
+    )
 }

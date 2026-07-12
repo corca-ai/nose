@@ -497,30 +497,13 @@ pub(super) fn strict_exact_swift_default_subscript_index_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if il.meta.lang != Lang::Swift || il.kind(node) != NodeKind::Index {
-        return false;
-    }
-    let [receiver, index] = il.children(node) else {
+    let Some(contract) = swift_dictionary_default_subscript_contract_for_node(il, interner, node)
+    else {
         return false;
     };
-    if !strict_exact_proven_map_receiver_safe(il, interner, facts, *receiver) {
-        return false;
-    }
-    if il.kind(*index) != NodeKind::Seq {
-        return false;
-    }
-    if !matches!(
-        il.node(*index).payload,
-        Payload::Name(tag) if stable_symbol_hash(interner.resolve(tag))
-            == stable_symbol_hash("swift_subscript_default")
-    ) {
-        return false;
-    }
-    let [key, default] = il.children(*index) else {
-        return false;
-    };
-    strict_exact_safe_tree(il, interner, facts, *key)
-        && strict_exact_safe_tree(il, interner, facts, *default)
+    strict_exact_safe_tree(il, interner, facts, contract.receiver)
+        && strict_exact_safe_tree(il, interner, facts, contract.key)
+        && strict_exact_safe_tree(il, interner, facts, contract.default)
 }
 
 fn strict_exact_go_literal_zero_map_safe(

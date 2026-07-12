@@ -59,6 +59,7 @@ pub(super) fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
             record_all_satisfy_dispatch_barrier(lo, node);
             record_compact_map_dispatch_barrier(lo, node);
             record_flat_map_dispatch_barrier(lo, node);
+            record_dictionary_default_subscript_proof_barrier(lo, span);
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
                 .map(|child| lower_expr(lo, child))
@@ -69,6 +70,11 @@ pub(super) fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
 }
 pub(super) fn lower_directive(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
+    // Conditional-compilation branches can contain imports, aliases, macros,
+    // or Dictionary extensions, but directive children are expression-lowered
+    // rather than item-lowered. Close the controlled dispatch slice instead of
+    // losing declarations hidden under #if/#elseif.
+    record_dictionary_default_subscript_proof_barrier(lo, span);
     let tag = swift_directive_tag(lo.text(node));
     let kids: Vec<NodeId> = Lowering::named_children(node)
         .into_iter()

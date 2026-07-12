@@ -1,94 +1,9 @@
 {
-  "by_blocker": {
-    "model required facts before detector admission": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "map.default.absence-lookup",
-        "surface": "Dictionary default subscript after receiver-coordinate proof",
-        "surface_status": "open"
-      }
-    ]
-  },
-  "by_fact": {
-    "map.default.absence-fallback": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "map.default.absence-lookup",
-        "surface": "Dictionary default subscript after receiver-coordinate proof",
-        "surface_status": "open"
-      }
-    ],
-    "map.default.key-fallback-coordinate": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "map.default.absence-lookup",
-        "surface": "Dictionary default subscript after receiver-coordinate proof",
-        "surface_status": "open"
-      }
-    ],
-    "map.receiver.no-intervening-mutation": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "map.default.absence-lookup",
-        "surface": "Dictionary default subscript after receiver-coordinate proof",
-        "surface_status": "open"
-      }
-    ],
-    "map.receiver.source-identity": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "map.default.absence-lookup",
-        "surface": "Dictionary default subscript after receiver-coordinate proof",
-        "surface_status": "open"
-      }
-    ]
-  },
-  "by_language": {
-    "Swift": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "map.default.absence-lookup",
-        "surface": "Dictionary default subscript after receiver-coordinate proof",
-        "surface_status": "open"
-      }
-    ]
-  },
-  "by_pattern": {
-    "map.default.absence-lookup": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "map.default.absence-lookup",
-        "surface": "Dictionary default subscript after receiver-coordinate proof",
-        "surface_status": "open"
-      }
-    ]
-  },
-  "by_surface_status": {
-    "open": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "map.default.absence-lookup",
-        "surface": "Dictionary default subscript after receiver-coordinate proof",
-        "surface_status": "open"
-      }
-    ]
-  },
+  "by_blocker": {},
+  "by_fact": {},
+  "by_language": {},
+  "by_pattern": {},
+  "by_surface_status": {},
   "epic_slices": {
     "epic_778": {
       "closeout_issue": 785,
@@ -190,32 +105,11 @@
         },
         {
           "candidate_priority": "blocked-by-unmodeled-facts",
-          "current_candidate_priority": "blocked-by-unmodeled-facts",
-          "current_open_audit_state": "present",
-          "evidence_level": "missing",
+          "current_open_audit_state": "not-in-current-open-audit",
           "language": "Swift",
-          "likely_blocker": "model required facts before detector admission",
-          "pattern_focused_support": {
-            "hard_negative": 2,
-            "hard_negative_group": 0,
-            "positive": 4
-          },
           "pattern_id": "map.default.absence-lookup",
-          "reason": "needs dictionary receiver, key/fallback coordinate, and mutation facts",
-          "selector": "map.default.absence-lookup:Swift:blocked-by-unmodeled-facts",
-          "surface": "Dictionary default subscript after receiver-coordinate proof",
-          "surface_focused_support": {
-            "hard_negative": 0,
-            "hard_negative_group": 0,
-            "positive": 0
-          },
-          "surface_status": "open",
-          "unmodeled_facts": [
-            "map.default.absence-fallback",
-            "map.receiver.source-identity",
-            "map.default.key-fallback-coordinate",
-            "map.receiver.no-intervening-mutation"
-          ]
+          "reason": "the controlled #798 Swift Dictionary default-subscript slice is admitted; attributed coordinates, custom dispatch, aliases, directives, and namespace shadows remain closed",
+          "selector": "map.default.absence-lookup:Swift:blocked-by-unmodeled-facts"
         },
         {
           "candidate_priority": "blocked-by-unmodeled-facts",
@@ -253,11 +147,11 @@
       "source": "bench/type4/open_surface_admission_audit.v1.json",
       "summary": {
         "current_actionable_open_count": 0,
-        "current_blocked_open_count": 1,
+        "current_blocked_open_count": 0,
         "in_scope_count": 6,
         "in_scope_currently_open": 0,
         "out_of_scope_count": 7,
-        "out_of_scope_currently_open": 1,
+        "out_of_scope_currently_open": 0,
         "unexpected_actionable_open_count": 0,
         "validation_error_count": 0
       },
@@ -386,10 +280,10 @@
         },
         {
           "fact_statuses": {
-            "map.default.absence-fallback": "specified-not-modeled",
-            "map.default.key-fallback-coordinate": "specified-not-modeled",
-            "map.receiver.no-intervening-mutation": "specified-not-modeled",
-            "map.receiver.source-identity": "specified-not-modeled"
+            "map.default.absence-fallback": "modeled-controlled",
+            "map.default.key-fallback-coordinate": "modeled-controlled",
+            "map.receiver.no-intervening-mutation": "modeled-controlled",
+            "map.receiver.source-identity": "modeled-controlled"
           },
           "facts": [
             "map.default.absence-fallback",
@@ -524,18 +418,10 @@
         },
         {
           "candidate_priority": "blocked-by-unmodeled-facts",
-          "current_candidate_priority": "blocked-by-unmodeled-facts",
-          "current_open_audit_state": "present",
-          "evidence_level": "missing",
+          "current_open_audit_state": "not-in-current-open-audit",
           "issue": 798,
           "language": "Swift",
-          "likely_blocker": "model required facts before detector admission",
           "order": 7,
-          "pattern_focused_support": {
-            "hard_negative": 2,
-            "hard_negative_group": 0,
-            "positive": 4
-          },
           "pattern_id": "map.default.absence-lookup",
           "planned_unmodeled_facts": [
             "map.default.absence-fallback",
@@ -543,22 +429,9 @@
             "map.default.key-fallback-coordinate",
             "map.receiver.no-intervening-mutation"
           ],
-          "reason": "default subscript admission needs absent-key fallback and receiver-coordinate proof instead of subscript spelling",
+          "reason": "the modeled absence-fallback, source-identity, coordinate, and no-mutation perimeter removes this row from the current open audit",
           "selector": "map.default.absence-lookup:Swift:blocked-by-unmodeled-facts",
-          "surface": "Dictionary default subscript after receiver-coordinate proof",
-          "surface_focused_support": {
-            "hard_negative": 0,
-            "hard_negative_group": 0,
-            "positive": 0
-          },
-          "surface_status": "open",
-          "unmodeled_facts": [
-            "map.default.absence-fallback",
-            "map.receiver.source-identity",
-            "map.default.key-fallback-coordinate",
-            "map.receiver.no-intervening-mutation"
-          ],
-          "work": "model Swift Dictionary default lookup receiver, key, fallback, and mutation facts"
+          "work": "connected Swift Dictionary default lookup to modeled receiver, plain key/fallback coordinate, and mutation facts in #798"
         }
       ],
       "issue": 791,
@@ -574,11 +447,11 @@
       "source": "bench/type4/open_surface_admission_audit.v1.json",
       "summary": {
         "current_actionable_open_count": 0,
-        "current_blocked_open_count": 1,
+        "current_blocked_open_count": 0,
         "fact_group_count": 7,
         "frozen_blocked_count": 7,
-        "frozen_currently_blocked": 1,
-        "frozen_promoted_or_resolved": 6,
+        "frozen_currently_blocked": 0,
+        "frozen_promoted_or_resolved": 7,
         "unexpected_blocked_open_count": 0,
         "validation_error_count": 0
       },
@@ -587,67 +460,17 @@
       "validation_errors": []
     }
   },
-  "rows": [
-    {
-      "candidate_priority": "blocked-by-unmodeled-facts",
-      "coverage": {},
-      "evidence_level": "missing",
-      "fact_statuses": {
-        "map.default.absence-fallback": "specified-not-modeled",
-        "map.default.key-fallback-coordinate": "specified-not-modeled",
-        "map.receiver.no-intervening-mutation": "specified-not-modeled",
-        "map.receiver.source-identity": "specified-not-modeled"
-      },
-      "language": "Swift",
-      "likely_blocker": "model required facts before detector admission",
-      "pattern_focused_support": {
-        "hard_negative": 2,
-        "hard_negative_group": 0,
-        "positive": 4
-      },
-      "pattern_id": "map.default.absence-lookup",
-      "pattern_status": "pattern-carded",
-      "required_facts": [
-        "map.default.absence-fallback",
-        "map.receiver.source-identity",
-        "map.default.key-fallback-coordinate",
-        "map.receiver.no-intervening-mutation"
-      ],
-      "surface": "Dictionary default subscript after receiver-coordinate proof",
-      "surface_evidence": "",
-      "surface_focused_support": {
-        "hard_negative": 0,
-        "hard_negative_group": 0,
-        "positive": 0
-      },
-      "surface_status": "open",
-      "unmodeled_facts": [
-        "map.default.absence-fallback",
-        "map.receiver.source-identity",
-        "map.default.key-fallback-coordinate",
-        "map.receiver.no-intervening-mutation"
-      ],
-      "unresolved_surface_evidence_refs": []
-    }
-  ],
+  "rows": [],
   "schema_version": 1,
   "summary": {
     "audited_surface_statuses": [
       "open"
     ],
-    "by_evidence_level": {
-      "missing": 1
-    },
-    "by_language": {
-      "Swift": 1
-    },
-    "by_priority": {
-      "blocked-by-unmodeled-facts": 1
-    },
-    "by_status": {
-      "open": 1
-    },
-    "open_surface_count": 1,
+    "by_evidence_level": {},
+    "by_language": {},
+    "by_priority": {},
+    "by_status": {},
+    "open_surface_count": 0,
     "unresolved_surface_evidence_ref_count": 0
   },
   "tool_version": "open-surface-admission-audit/1"

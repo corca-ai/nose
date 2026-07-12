@@ -1,5 +1,7 @@
 use super::super::*;
 
+const SWIFT_UNPROVEN_DEFAULT_SUBSCRIPT_TAG: u64 = 0x5357_4446;
+
 impl<'a> Builder<'a> {
     pub(super) fn eval_field_expr(
         &mut self,
@@ -70,6 +72,27 @@ impl<'a> Builder<'a> {
         expr: NodeId,
         env: &FxHashMap<u32, ValueId>,
     ) -> ValueId {
+        if swift_dictionary_default_subscript_surface_for_node(self.il, self.interner, expr)
+            .is_some()
+        {
+            if let Some(contract) =
+                swift_dictionary_default_subscript_contract_for_node(self.il, self.interner, expr)
+            {
+                let map = self.eval(contract.receiver, env);
+                let key = self.eval(contract.key, env);
+                let default = self.eval(contract.default, env);
+                return self.mk(
+                    ValOp::Call(builtin_tag(Builtin::GetOrDefault)),
+                    vec![map, key, default],
+                );
+            }
+            // The default expression is an autoclosure and therefore cannot be
+            // evaluated with ordinary eager Index children. Preserve the whole
+            // unsupported source as an opaque, source-salted boundary before
+            // walking any child; otherwise a lazy call can collapse with a
+            // hoisted eager call when the key is present.
+            return self.source_salted_opaque(expr, SWIFT_UNPROVEN_DEFAULT_SUBSCRIPT_TAG);
+        }
         let kids = self.il.children(expr).to_vec();
         let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
         if a.len() == 2 {
@@ -86,31 +109,7 @@ impl<'a> Builder<'a> {
                     vec![map, a[1], default],
                 );
             }
-            if let Some(value) = self.swift_default_subscript_value(a[0], a[1]) {
-                return value;
-            }
         }
         self.mk(ValOp::Index, a)
-    }
-    fn swift_default_subscript_value(&mut self, map: ValueId, index: ValueId) -> Option<ValueId> {
-        if self.il.meta.lang != Lang::Swift {
-            return None;
-        }
-        let node = &self.nodes[index as usize];
-        if !matches!(node.op, ValOp::Seq(tag) if tag == stable_symbol_hash("swift_subscript_default"))
-            || node.args.len() != 2
-        {
-            return None;
-        }
-        let args = node.args.clone();
-        let map = if self.is_param_value(map, DomainEvidence::Map) {
-            map
-        } else {
-            self.proven_map_value(map)?
-        };
-        Some(self.mk(
-            ValOp::Call(builtin_tag(Builtin::GetOrDefault)),
-            vec![map, args[0], args[1]],
-        ))
     }
 }
