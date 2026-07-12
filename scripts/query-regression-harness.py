@@ -18,20 +18,14 @@ import time
 from pathlib import Path
 from typing import Any
 
+from binary_identity import binary_identity, run_self_test as run_binary_identity_self_test
+from binary_identity import sha256_file
 from query_regression_summary import summarize_runs
 
 
 DEFAULT_QUERY_ARGS = ("query", "{repo}", "all", "top=0", "--mode", "semantic", "--format", "json")
 SCHEMA = "nose.query_regression_harness.v2"
 TIME_RE = re.compile(r"\[time\]\s+([a-zA-Z0-9_+\-]+)\s+([0-9.]+)ms")
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def git_output(args: list[str]) -> str:
@@ -321,6 +315,8 @@ def corpus_provenance(
 
 
 def run_self_test() -> None:
+    run_binary_identity_self_test()
+
     def row(repo: str, label: str, elapsed_ms: float, size: int, stage_ms: float) -> dict[str, Any]:
         return {
             "repo": repo,
@@ -454,6 +450,8 @@ def main() -> int:
                 )
 
     repo_names = [repo for repo, _ in repos]
+    baseline_identity = binary_identity(baseline_binary)
+    current_identity = binary_identity(current_binary)
     output = {
         "schema": SCHEMA,
         "command": "nose " + " ".join(query_args).replace("{repo}", "<repo>"),
@@ -466,11 +464,15 @@ def main() -> int:
         },
         "provenance": {
             "baseline_binary": baseline_binary.as_posix(),
-            "baseline_binary_sha256": sha256_file(baseline_binary),
+            "baseline_binary_code_sha256": baseline_identity.code_sha256,
+            "baseline_binary_code_sha256_algorithm": baseline_identity.code_sha256_algorithm,
+            "baseline_binary_sha256": baseline_identity.file_sha256,
             "baseline_source_ref": args.baseline_source_ref,
             "baseline_source_sha": args.baseline_source_sha or git_output(["rev-parse", args.baseline_source_ref]),
             "current_binary": current_binary.as_posix(),
-            "current_binary_sha256": sha256_file(current_binary),
+            "current_binary_code_sha256": current_identity.code_sha256,
+            "current_binary_code_sha256_algorithm": current_identity.code_sha256_algorithm,
+            "current_binary_sha256": current_identity.file_sha256,
             "current_source_ref": args.current_source_ref,
             "current_source_sha": args.current_source_sha or git_output(["rev-parse", args.current_source_ref]),
             "harness": "scripts/query-regression-harness.py",
