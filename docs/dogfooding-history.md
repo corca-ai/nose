@@ -1160,3 +1160,14 @@ value-graph collection whole-impl span-noise representative from
 sharing only two lines. That is not a useful shared abstraction; it is
 representative churn caused by the new fail-closed reducer guards. The family
 count remains 30, so no additional budget or avoidable duplication is accepted.
+
+The bounded #829 stabilization pass tightens the reviewed default-surface count
+from 30 to 29. The removed test family `85074f64d038d1a0` repeated the complete
+Rust `Map.get(...).unwrap_or(...)` evidence setup across one positive and two
+adjacent hard negatives. A test-only fixture now owns the shared IL and evidence
+construction while each test retains its observable admission assertion. The
+fixture exposes only the two behavior-defining variations: whether map-domain
+proof belongs to the call receiver, and the nested `MapGet` source arity. No
+production policy is shared, no family is added, and the three focused tests
+still exercise receiver dependency, arity, and builtin-kind boundaries. The
+stale ID is removed and the budget is tightened to 29.

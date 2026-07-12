@@ -422,9 +422,23 @@ fn java_math_canonical_builtin_requires_math_pack_provenance() {
     }
 }
 
-#[test]
-fn rust_map_get_unwrap_or_canonical_builtin_uses_map_get_dependency() {
+#[derive(Clone, Copy)]
+enum RustMapDomainProof {
+    CallReceiver,
+    UnrelatedReceiver,
+}
+
+fn rust_map_get_unwrap_or_fixture(
+    domain_proof: RustMapDomainProof,
+    map_get_arity: u16,
+) -> (Il, NodeId) {
     let mut b = IlBuilder::new(FileId(0));
+    let unrelated_map = match domain_proof {
+        RustMapDomainProof::CallReceiver => None,
+        RustMapDomainProof::UnrelatedReceiver => {
+            Some(b.add(NodeKind::Var, Payload::Cid(99), sp(37), &[]))
+        }
+    };
     let map = b.add(NodeKind::Var, Payload::Cid(0), sp(38), &[]);
     let key = b.add(NodeKind::Var, Payload::Cid(1), sp(39), &[]);
     let default = b.add(NodeKind::Lit, Payload::LitInt(0), sp(40), &[]);
@@ -438,20 +452,27 @@ fn rust_map_get_unwrap_or_canonical_builtin_uses_map_get_dependency() {
     let map_get = library_map_get_contract(Lang::Rust, "get", 1).expect("Rust map get contract");
     let unwrap_or =
         library_method_call_contract(Lang::Rust, "unwrap_or", 1).expect("Rust unwrap_or contract");
+    let proven_map = unrelated_map.unwrap_or(map);
 
     il.evidence.push(evidence(
         9,
-        EvidenceAnchor::node(il.node(map).span, il.kind(map)),
+        EvidenceAnchor::node(il.node(proven_map).span, il.kind(proven_map)),
         EvidenceKind::Domain(DomainEvidence::Map),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(map_get_protocol_record(
-        10,
-        sp(39),
-        map_get,
-        EvidenceStatus::Asserted,
-        &[9],
-    ));
+    let map_get_evidence = if map_get_arity == 1 {
+        map_get_protocol_record(10, sp(39), map_get, EvidenceStatus::Asserted, &[9])
+    } else {
+        map_get_protocol_record_with_arity(
+            10,
+            sp(39),
+            map_get,
+            map_get_arity,
+            EvidenceStatus::Asserted,
+            &[9],
+        )
+    };
+    il.evidence.push(map_get_evidence);
     il.evidence.push(builtin_method_call_protocol_record(
         11,
         il.node(call).span,
@@ -460,6 +481,13 @@ fn rust_map_get_unwrap_or_canonical_builtin_uses_map_get_dependency() {
         EvidenceStatus::Asserted,
         &[10],
     ));
+
+    (il, call)
+}
+
+#[test]
+fn rust_map_get_unwrap_or_canonical_builtin_uses_map_get_dependency() {
+    let (il, call) = rust_map_get_unwrap_or_fixture(RustMapDomainProof::CallReceiver, 1);
 
     assert!(admitted_builtin_semantics_at_call(
         &il,
@@ -475,43 +503,7 @@ fn rust_map_get_unwrap_or_canonical_builtin_uses_map_get_dependency() {
 
 #[test]
 fn rust_map_get_unwrap_or_canonical_builtin_rejects_nested_map_get_arity_drift() {
-    let mut b = IlBuilder::new(FileId(0));
-    let map = b.add(NodeKind::Var, Payload::Cid(0), sp(38), &[]);
-    let key = b.add(NodeKind::Var, Payload::Cid(1), sp(39), &[]);
-    let default = b.add(NodeKind::Lit, Payload::LitInt(0), sp(40), &[]);
-    let (mut il, call) = canonical_builtin_call_il(
-        Lang::Rust,
-        Builtin::GetOrDefault,
-        &[map, key, default],
-        b,
-        map,
-    );
-    let map_get = library_map_get_contract(Lang::Rust, "get", 1).expect("Rust map get contract");
-    let unwrap_or =
-        library_method_call_contract(Lang::Rust, "unwrap_or", 1).expect("Rust unwrap_or contract");
-
-    il.evidence.push(evidence(
-        9,
-        EvidenceAnchor::node(il.node(map).span, il.kind(map)),
-        EvidenceKind::Domain(DomainEvidence::Map),
-        EvidenceStatus::Asserted,
-    ));
-    il.evidence.push(map_get_protocol_record_with_arity(
-        10,
-        sp(39),
-        map_get,
-        2,
-        EvidenceStatus::Asserted,
-        &[9],
-    ));
-    il.evidence.push(builtin_method_call_protocol_record(
-        11,
-        il.node(call).span,
-        unwrap_or,
-        1,
-        EvidenceStatus::Asserted,
-        &[10],
-    ));
+    let (il, call) = rust_map_get_unwrap_or_fixture(RustMapDomainProof::CallReceiver, 2);
 
     assert!(
         !admitted_builtin_semantics_at_call(&il, call, Builtin::GetOrDefault),
@@ -521,43 +513,7 @@ fn rust_map_get_unwrap_or_canonical_builtin_rejects_nested_map_get_arity_drift()
 
 #[test]
 fn rust_map_get_unwrap_or_canonical_builtin_rejects_unrelated_map_dependency() {
-    let mut b = IlBuilder::new(FileId(0));
-    let unrelated_map = b.add(NodeKind::Var, Payload::Cid(99), sp(37), &[]);
-    let map = b.add(NodeKind::Var, Payload::Cid(0), sp(38), &[]);
-    let key = b.add(NodeKind::Var, Payload::Cid(1), sp(39), &[]);
-    let default = b.add(NodeKind::Lit, Payload::LitInt(0), sp(40), &[]);
-    let (mut il, call) = canonical_builtin_call_il(
-        Lang::Rust,
-        Builtin::GetOrDefault,
-        &[map, key, default],
-        b,
-        map,
-    );
-    let map_get = library_map_get_contract(Lang::Rust, "get", 1).expect("Rust map get contract");
-    let unwrap_or =
-        library_method_call_contract(Lang::Rust, "unwrap_or", 1).expect("Rust unwrap_or contract");
-
-    il.evidence.push(evidence(
-        9,
-        EvidenceAnchor::node(il.node(unrelated_map).span, il.kind(unrelated_map)),
-        EvidenceKind::Domain(DomainEvidence::Map),
-        EvidenceStatus::Asserted,
-    ));
-    il.evidence.push(map_get_protocol_record(
-        10,
-        sp(39),
-        map_get,
-        EvidenceStatus::Asserted,
-        &[9],
-    ));
-    il.evidence.push(builtin_method_call_protocol_record(
-        11,
-        il.node(call).span,
-        unwrap_or,
-        1,
-        EvidenceStatus::Asserted,
-        &[10],
-    ));
+    let (il, call) = rust_map_get_unwrap_or_fixture(RustMapDomainProof::UnrelatedReceiver, 1);
 
     assert!(
         !admitted_builtin_semantics_at_call(&il, call, Builtin::GetOrDefault),
