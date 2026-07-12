@@ -25,6 +25,14 @@ different actions.
 
 ## Harness
 
+For a post-release stabilization or performance pass, use the official binary
+asset from the most recent non-prerelease GitHub release as the product
+baseline. Verify the published archive checksum, record the extracted binary's
+SHA-256, and name the release tag and commit in the harness provenance. A local
+rebuild of the release tag is useful for diagnosis but is not the release
+baseline. A pre-change `main` binary may be retained as a secondary attribution
+comparison; it does not replace the official release binary.
+
 Use `scripts/runtime-triage-harness.py` when comparing two binaries on one or more corpus
 repos. It runs `nose query <repo> all top=0 --mode semantic --format json` with
 `NOSE_TIME=1` and `NOSE_TIME_UNIT_SUMMARY=1`, stores raw runs, aggregates median stage
@@ -74,6 +82,15 @@ The harness writes `schema: nose.runtime_triage_harness.v1` and classifies each 
 - `no-family-growth-mixed-hot-path`: family count did not grow, but timing is split across
   stages and needs narrower instrumentation before a fix.
 
+Both runtime harnesses record two binary identities. The full-file SHA-256 owns
+artifact provenance. The code SHA-256 owns regression identity: on thin
+little-endian Mach-O binaries it zeros `LC_UUID` and the ad-hoc code-signature
+blob before hashing, because Darwin relinks otherwise identical executable code
+with fresh values in those fields. Other binaries use their full-file digest as
+their code digest. `check-query-regression.py` treats equal code digests as a
+same-binary comparison, while still retaining distinct artifact digests in the
+report. `scripts/binary_identity.py --self-test` pins this normalization.
+
 The default thresholds are intentionally conservative:
 
 - `--regression-pct 20`
@@ -102,6 +119,11 @@ Use the timing knobs in increasing order of verbosity:
 4. Optimize only `no-family-growth-*` cases with clear stage attribution.
 5. For `capability-growth`, report cost per newly surfaced family before changing code.
 6. Record the artifact under `bench/recall_loss/` or `target/` and link the summary doc.
+
+Criterion microbenchmarks are diagnostic only. Use their absolute intervals and
+a freshly named baseline; do not treat an unnamed cached local `change` result
+as a product performance verdict. Product-level alternating runs, output hashes,
+same-binary controls, and focused triage remain authoritative.
 
 The triage is complete when every selected repo has a recorded classification, any
 code change names the stage it is intended to improve, and the follow-up document

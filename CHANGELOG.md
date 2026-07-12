@@ -84,6 +84,13 @@ break.
   provenance artifacts, and a deterministic Ruby superlinear-scan tripwire.
 
 ### Fixed
+- Fixed performance-regression identity on Darwin by retaining exact artifact
+  SHA-256 while comparing a normalized Mach-O code SHA-256 that excludes
+  per-link `LC_UUID` and ad-hoc signature bytes. The official v0.18.0 binary now
+  anchors the #829 baseline; current head is 4.61% faster on the checked
+  seven-repository slice while reporting 464 additional families. The same pass
+  shares Rust map-default evidence fixture setup and tightens the substantial
+  self-duplication budget from 30 families to 29 without product-output drift.
 - Hardened higher-order callback admission so free/global reads, JavaScript
   default/rest/destructured parameters, spread, `instanceof`, and BigInt-ambiguous
   arithmetic; Ruby splat/non-plain parameters and map-key hashing; plus Swift

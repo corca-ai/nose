@@ -57,6 +57,13 @@ def require_provenance(report: dict[str, Any], label: str) -> dict[str, Any]:
     return require_object(report, "provenance", label)
 
 
+def binary_code_identity(provenance: dict[str, Any], side: str) -> object:
+    return provenance.get(
+        f"{side}_binary_code_sha256",
+        provenance.get(f"{side}_binary_sha256"),
+    )
+
+
 def finite_number(value: object, label: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise CheckFailed(f"{label}: expected a number")
@@ -119,6 +126,23 @@ def validate_v2_report(
     provenance = require_provenance(report, label)
     for key in ("baseline_binary_sha256", "current_binary_sha256"):
         require_hex(provenance, key, 64, f"{label}.provenance")
+    code_identity_keys = (
+        "baseline_binary_code_sha256",
+        "baseline_binary_code_sha256_algorithm",
+        "current_binary_code_sha256",
+        "current_binary_code_sha256_algorithm",
+    )
+    present_code_identity_keys = [key for key in code_identity_keys if key in provenance]
+    if present_code_identity_keys and len(present_code_identity_keys) != len(code_identity_keys):
+        raise CheckFailed(f"{label}.provenance: incomplete binary code identity")
+    if present_code_identity_keys:
+        for key in ("baseline_binary_code_sha256", "current_binary_code_sha256"):
+            require_hex(provenance, key, 64, f"{label}.provenance")
+        for key in (
+            "baseline_binary_code_sha256_algorithm",
+            "current_binary_code_sha256_algorithm",
+        ):
+            require_string(provenance, key, f"{label}.provenance")
     for key in ("baseline_source_sha", "current_source_sha"):
         require_hex(provenance, key, 40, f"{label}.provenance")
     for key in (
@@ -330,18 +354,20 @@ def validate_same_binary_control(
     current_sha = control_provenance.get("current_binary_sha256")
     if not isinstance(baseline_sha, str) or not isinstance(current_sha, str):
         raise CheckFailed("same-binary control missing baseline/current binary sha256 provenance")
-    if baseline_sha != current_sha:
+    baseline_code_identity = binary_code_identity(control_provenance, "baseline")
+    current_code_identity = binary_code_identity(control_provenance, "current")
+    if baseline_code_identity != current_code_identity:
         raise CheckFailed(
             "same-binary control must compare one binary with itself; "
-            f"got {baseline_sha} vs {current_sha}"
+            f"got code identities {baseline_code_identity} vs {current_code_identity}"
         )
-    report_shas = {
-        report_provenance.get("baseline_binary_sha256"),
-        report_provenance.get("current_binary_sha256"),
+    report_code_identities = {
+        binary_code_identity(report_provenance, "baseline"),
+        binary_code_identity(report_provenance, "current"),
     }
-    if baseline_sha not in report_shas:
+    if baseline_code_identity not in report_code_identities:
         raise CheckFailed(
-            "same-binary control binary sha256 must match the report baseline or current binary"
+            "same-binary control code identity must match the report baseline or current binary"
         )
     if report_kind == "v2":
         control_base_source = control_provenance.get("baseline_source_sha")
@@ -349,9 +375,9 @@ def validate_same_binary_control(
         if control_base_source != control_current_source:
             raise CheckFailed("same-binary control must record one source SHA on both sides")
         matching_source_shas = set()
-        if baseline_sha == report_provenance.get("baseline_binary_sha256"):
+        if baseline_code_identity == binary_code_identity(report_provenance, "baseline"):
             matching_source_shas.add(report_provenance.get("baseline_source_sha"))
-        if baseline_sha == report_provenance.get("current_binary_sha256"):
+        if baseline_code_identity == binary_code_identity(report_provenance, "current"):
             matching_source_shas.add(report_provenance.get("current_source_sha"))
         if control_base_source not in matching_source_shas:
             raise CheckFailed("same-binary control source SHA does not match its report binary")
@@ -471,9 +497,13 @@ def runtime_signals(
     summary = require_summary(report, "report")
     control_summary = require_summary(control, "same-binary control") if control else None
     provenance = require_provenance(report, "report")
-    if provenance.get("baseline_binary_sha256") == provenance.get("current_binary_sha256"):
-        # A byte-identical binary cannot be a code regression. Use its own paired
-        # movement as the noise control so scheduling jitter never hard-fails it.
+    if binary_code_identity(provenance, "baseline") == binary_code_identity(
+        provenance, "current"
+    ):
+        # Code-identical binaries cannot be a code regression. Full artifact digests
+        # can still differ on Darwin because LC_UUID and ad-hoc signatures are fresh.
+        # Use the paired movement as its own control so that metadata never turns
+        # scheduling jitter into a hard failure.
         control_summary = summary
     signals = [
         time_signal(
@@ -596,12 +626,23 @@ def validate_focused_report(
         raise CheckFailed("focused rerun command does not match primary report")
     if sorted(focused.get("repos", [])) != expected_repos:
         raise CheckFailed("focused rerun repo set does not match triggered repositories")
-    for key in (
+    provenance_keys = [
         "baseline_binary_sha256",
         "current_binary_sha256",
         "baseline_source_sha",
         "current_source_sha",
-    ):
+    ]
+    primary_provenance = require_provenance(primary, "primary report")
+    if "baseline_binary_code_sha256" in primary_provenance:
+        provenance_keys.extend(
+            [
+                "baseline_binary_code_sha256",
+                "baseline_binary_code_sha256_algorithm",
+                "current_binary_code_sha256",
+                "current_binary_code_sha256_algorithm",
+            ]
+        )
+    for key in provenance_keys:
         if require_provenance(focused, "focused report").get(key) != require_provenance(
             primary, "primary report"
         ).get(key):
@@ -850,10 +891,14 @@ def sample_report(
         },
         "provenance": {
             "baseline_binary": "/tmp/base/nose",
+            "baseline_binary_code_sha256": SAMPLE_BASE_BINARY,
+            "baseline_binary_code_sha256_algorithm": "sha256/full-file-v1",
             "baseline_binary_sha256": SAMPLE_BASE_BINARY,
             "baseline_source_ref": "base",
             "baseline_source_sha": SAMPLE_BASE_SOURCE,
             "current_binary": "/tmp/head/nose",
+            "current_binary_code_sha256": SAMPLE_CURRENT_BINARY,
+            "current_binary_code_sha256_algorithm": "sha256/full-file-v1",
             "current_binary_sha256": SAMPLE_CURRENT_BINARY,
             "current_source_ref": "head",
             "current_source_sha": SAMPLE_CURRENT_SOURCE,
@@ -868,6 +913,8 @@ def sample_report(
 
 def sample_control(*, delta: float = 2.0, iterations: int = 1) -> dict[str, Any]:
     report = sample_report(delta=delta, iterations=iterations)
+    report["provenance"]["baseline_binary_code_sha256"] = SAMPLE_CURRENT_BINARY
+    report["provenance"]["current_binary_code_sha256"] = SAMPLE_CURRENT_BINARY
     report["provenance"]["baseline_binary_sha256"] = SAMPLE_CURRENT_BINARY
     report["provenance"]["current_binary_sha256"] = SAMPLE_CURRENT_BINARY
     report["provenance"]["baseline_source_sha"] = SAMPLE_CURRENT_SOURCE
@@ -980,9 +1027,18 @@ def run_self_test() -> None:
         else:
             raise AssertionError(f"invalid {threshold_name} must fail closed")
     identical = sample_report(delta=50.0)
+    identical["provenance"]["baseline_binary_code_sha256"] = "0" * 64
+    identical["provenance"]["current_binary_code_sha256"] = "0" * 64
     identical["provenance"]["baseline_binary_sha256"] = "0" * 64
     identical["provenance"]["current_binary_sha256"] = "0" * 64
     assert evaluate_gate(identical)["status"] == "pass"
+    code_identical = sample_report(delta=50.0)
+    code_identical["provenance"]["baseline_binary_code_sha256"] = "0" * 64
+    code_identical["provenance"]["current_binary_code_sha256"] = "0" * 64
+    assert code_identical["provenance"]["baseline_binary_sha256"] != code_identical[
+        "provenance"
+    ]["current_binary_sha256"]
+    assert evaluate_gate(code_identical)["status"] == "pass"
     assert time_signal(
         scope="repo", repo="a", stage=None,
         baseline_ms=100.0, current_ms=106.0,
@@ -1011,6 +1067,7 @@ def run_self_test() -> None:
     else:
         raise AssertionError("an active declaration without drift must fail")
     invalid_control = sample_control()
+    invalid_control["provenance"]["current_binary_code_sha256"] = "9" * 64
     invalid_control["provenance"]["current_binary_sha256"] = "9" * 64
     try:
         evaluate_gate(sample_report(), same_binary_control=invalid_control)

@@ -109,6 +109,7 @@ fundamentals; the rest is grouped by area.
 
 #### Historical closeouts and audits
 
+- [stabilization-829](stabilization-829.md) — bounded pre-#821 documentation, test, code-quality, and official v0.18.0 performance-baseline closeout, including Mach-O code identity and the tightened duplication ratchet.
 - [semantic-kernel-builtin-expansion-509](semantic-kernel-builtin-expansion-509.md) — issue #509 blocker packet, admitted API result-domain primitive, and builtin expansion record.
 - [semantic-kernel-expansion-511](semantic-kernel-expansion-511.md) — issue #511 R1-R3 cycles: generalized admitted API result-domain materialization, external fixed-domain authoring, and transition assessment.
 - [semantic-kernel-external-authorability-511](semantic-kernel-external-authorability-511.md) — issue #511 R4: external-pack authorability matrix, Guava fixed-domain dry run, and transition-to-R5 assessment.
