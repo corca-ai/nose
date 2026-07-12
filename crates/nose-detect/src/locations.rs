@@ -114,7 +114,7 @@ pub(crate) fn attach_enclosing_units(groups: &mut [Group], units: &[UnitFeat]) {
     }
 }
 
-pub(crate) fn enclosing_units(units: &[UnitFeat]) -> Vec<Option<EnclosingUnit>> {
+pub(crate) fn enclosing_unit_indices(units: &[UnitFeat]) -> Vec<Option<usize>> {
     let mut by_file: HashMap<&str, Vec<usize>> = HashMap::new();
     for (idx, unit) in units.iter().enumerate() {
         by_file.entry(unit.path.as_str()).or_default().push(idx);
@@ -148,11 +148,18 @@ pub(crate) fn enclosing_units(units: &[UnitFeat]) -> Vec<Option<EnclosingUnit>> 
                 .copied()
                 .find(|&parent_idx| contains_span(&units[parent_idx], &units[idx]))
             {
-                out[idx] = Some(enclosing_unit_of(&units[parent]));
+                out[idx] = Some(parent);
             }
         }
     }
     out
+}
+
+pub(crate) fn enclosing_units(units: &[UnitFeat]) -> Vec<Option<EnclosingUnit>> {
+    enclosing_unit_indices(units)
+        .into_iter()
+        .map(|parent| parent.map(|index| enclosing_unit_of(&units[index])))
+        .collect()
 }
 
 /// Two units from the same file where one span contains the other (e.g. a method

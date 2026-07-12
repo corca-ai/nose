@@ -89,6 +89,24 @@ pub(super) fn lower_body_declarations(lo: &mut Lowering, node: TsNode) -> NodeId
         .collect();
     lo.add(NodeKind::Block, Payload::None, span, &kids)
 }
+
+/// Preserve an anonymous class's executable method bodies inside the constructing
+/// expression without registering those implementation details as top-level detection units.
+pub(super) fn lower_anonymous_body_declarations(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let kids: Vec<NodeId> = Lowering::named_children(node)
+        .into_iter()
+        .filter_map(|child| match child.kind() {
+            "method_declaration" | "constructor_declaration" => {
+                Some(lower_method_node(lo, child).0)
+            }
+            "field_declaration" | "constant_declaration" => Some(lower_field(lo, child)),
+            "static_initializer" => Some(lower_static_initializer(lo, child)),
+            _ => None,
+        })
+        .collect();
+    lo.add(NodeKind::Block, Payload::None, span, &kids)
+}
 pub(super) fn lower_static_initializer(lo: &mut Lowering, node: TsNode) -> NodeId {
     Lowering::named_children(node)
         .into_iter()
@@ -213,6 +231,17 @@ pub(super) fn lower_type(lo: &mut Lowering, node: TsNode) -> NodeId {
     block
 }
 pub(super) fn lower_method(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let (func, name, has_body) = lower_method_node(lo, node);
+    lo.push_unit_with_origin(
+        func,
+        UnitKind::Method,
+        name,
+        java_method_origin(node, has_body),
+    );
+    func
+}
+
+fn lower_method_node(lo: &mut Lowering, node: TsNode) -> (NodeId, Option<nose_il::Symbol>, bool) {
     let span = lo.span(node);
     let name = node.child_by_field_name("name").map(|n| lo.sym(lo.text(n)));
     let mut kids = Vec::new();
@@ -239,13 +268,7 @@ pub(super) fn lower_method(lo: &mut Lowering, node: TsNode) -> NodeId {
         .unwrap_or_else(|| lo.empty_block(span));
     kids.push(body);
     let func = lo.add(NodeKind::Func, Payload::None, span, &kids);
-    lo.push_unit_with_origin(
-        func,
-        UnitKind::Method,
-        name,
-        java_method_origin(node, body_node.is_some()),
-    );
-    func
+    (func, name, body_node.is_some())
 }
 
 fn java_param_type_text<'a>(lo: &'a Lowering<'a>, param: TsNode) -> &'a str {

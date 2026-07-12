@@ -460,6 +460,11 @@ fn extract_unit(
     } = gate_unit(ctx, unit_root, unit_timer)?;
     let feature_start = unit_timer.start();
     let (shapes, shape_minhash, linear, abstraction_tokens) = unit_shape_features(ctx, &pre);
+    let connected_tokens = if ctx.features.shape_features {
+        crate::connected::mapped_tokens(ctx.il, ctx.interner, &pre)
+    } else {
+        Vec::new()
+    };
 
     // Candidate generation keys on the value graph when present (so clones
     // that converge only semantically still become candidates).
@@ -502,6 +507,7 @@ fn extract_unit(
         value,
         minhash,
         linear,
+        connected_tokens,
         abstraction_tokens,
         lits,
         returns,

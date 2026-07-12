@@ -10,6 +10,7 @@ mod abstraction;
 mod align;
 mod candidates;
 mod cluster;
+mod connected;
 mod contiguous;
 mod detectors;
 mod exact_policy;
@@ -41,8 +42,8 @@ pub use fragment::{
     FragmentContract, FragmentKind, Place, ProofFacts,
 };
 pub use model::{
-    AbstractionHole, AbstractionWitness, Dump, DupPair, EnclosingUnit, EquivalenceWitness, Group,
-    LineSpan, Loc, LocInit, Metrics, Report, UnitLoc,
+    AbstractionHole, AbstractionWitness, ConnectedWitness, Dump, DupPair, EnclosingUnit,
+    EquivalenceWitness, Group, LineSpan, Loc, LocInit, Metrics, Report, UnitLoc,
 };
 pub use options::DetectOptions;
 pub use orchestration::{

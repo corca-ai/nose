@@ -1,9 +1,11 @@
 use crate::{
     align,
     candidates::shared_anchor_weight,
+    connected,
     exact_policy::{candidate_value_floor_met, exact_value_match_eligible},
     strict_exact,
     units::UnitFeat,
+    ConnectedWitness, LineSpan,
 };
 use nose_il::{Il, Interner, NodeId};
 use std::collections::HashMap;
@@ -12,6 +14,18 @@ use std::collections::HashMap;
 pub trait Detector: Sync {
     fn name(&self) -> &str;
     fn score(&self, a: &UnitFeat, b: &UnitFeat) -> f64;
+
+    /// Pair-local proof used only after an existing raw candidate seeds the two source
+    /// regions. Exact/strict detectors keep the default closed implementation.
+    fn connected_witness(
+        &self,
+        _a: &UnitFeat,
+        _b: &UnitFeat,
+        _a_seed: LineSpan,
+        _b_seed: LineSpan,
+    ) -> Option<ConnectedWitness> {
+        None
+    }
 }
 
 /// A no-op scorer used when a mode intentionally runs only the contiguous
@@ -227,6 +241,18 @@ impl Detector for StructuralDetector {
         }
         score
     }
+
+    fn connected_witness(
+        &self,
+        a: &UnitFeat,
+        b: &UnitFeat,
+        a_seed: LineSpan,
+        b_seed: LineSpan,
+    ) -> Option<ConnectedWitness> {
+        (self.candidate_mode && a.lang == b.lang).then(|| {
+            connected::connected_witness(&a.connected_tokens, &b.connected_tokens, a_seed, b_seed)
+        })?
+    }
 }
 
 /// Surfacing score for a partial / sub-DAG clone, GRADED by the shared sub-DAG's weight: a
@@ -239,6 +265,10 @@ fn anchor_partial_score(weight: u32) -> f64 {
     let half: f64 = env_or("NOSE_ANCHOR_SCORE_REF", 60.0_f64).max(1.0); // extra weight at half-saturation
     let extra = (f64::from(weight) - f64::from(nose_normalize::anchor_min_weight())).max(0.0);
     floor + (cap - floor) * (extra / (extra + half))
+}
+
+pub(crate) fn connected_witness_score(witness: ConnectedWitness) -> f64 {
+    anchor_partial_score(witness.mapped_nodes)
 }
 
 /// Value-Jaccard threshold above which candidate mode accepts a pair on the value graph alone

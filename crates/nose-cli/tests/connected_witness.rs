@@ -40,6 +40,7 @@ fn crosses_files(left: &str, right: &str, a: &str, b: &str) -> bool {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)] // The two source fixtures are intentionally readable in full.
 fn connected_validation_ladder_promotes_an_existing_candidate() {
     let left = r#"
 int validate_left(Item *items, int count) {
@@ -143,8 +144,16 @@ int validate_right(Item *items, int count) {
         .iter()
         .find(|pair| {
             crosses_files(&pair.left.file, &pair.right.file, "left.c", "right.c")
-                && pair.left.name.as_deref().is_some_and(|name| name.starts_with("validate_"))
-                && pair.right.name.as_deref().is_some_and(|name| name.starts_with("validate_"))
+                && pair
+                    .left
+                    .name
+                    .as_deref()
+                    .is_some_and(|name| name.starts_with("validate_"))
+                && pair
+                    .right
+                    .name
+                    .as_deref()
+                    .is_some_and(|name| name.starts_with("validate_"))
         })
         .expect("the connected validation ladders should be accepted");
     let (left_span, right_span) = if pair.left.file == "left.c" {
@@ -152,6 +161,85 @@ int validate_right(Item *items, int count) {
     } else {
         (pair.right.shared_subdag, pair.left.shared_subdag)
     };
-    assert_eq!(left_span, Some((11, 25)));
-    assert_eq!(right_span, Some((9, 23)));
+    assert_eq!(left_span, Some((12, 26)));
+    assert_eq!(right_span, Some((10, 24)));
+}
+
+#[test]
+fn connected_edges_remain_pair_local_instead_of_clustering_transitively() {
+    let a = r#"
+int left(State *s) {
+  prepare_left(s);
+  if(s->alpha) {
+    alpha_open(s); alpha_scan(s); alpha_record(s); alpha_close(s); alpha_commit(s);
+  }
+  finish_left(s);
+  return s->status;
+}
+"#;
+    let b = r#"
+int bridge(State *s) {
+  prepare_bridge(s);
+  if(s->alpha) {
+    alpha_open(s); alpha_scan(s); alpha_record(s); alpha_close(s); alpha_commit(s);
+  }
+  audit_bridge(s);
+  if(s->beta) {
+    beta_open(s); beta_scan(s); beta_record(s); beta_close(s); beta_commit(s);
+  }
+  finish_bridge(s);
+  return s->status;
+}
+"#;
+    let c = r#"
+int right(State *s) {
+  prepare_right(s);
+  if(s->beta) {
+    beta_open(s); beta_scan(s); beta_record(s); beta_close(s); beta_commit(s);
+  }
+  finish_right(s);
+  return s->status;
+}
+"#;
+    let opts = candidate_options();
+    let (report, _) = detect_with_dump(
+        &corpus(&[
+            ("a.c", a, Lang::C),
+            ("b.c", b, Lang::C),
+            ("c.c", c, Lang::C),
+        ]),
+        &opts,
+        &StructuralDetector::candidates(opts.jaccard_weight).with_threshold(opts.threshold),
+    );
+
+    let connected = report
+        .duplicates
+        .iter()
+        .filter(|pair| pair.left.shared_subdag.is_some() && pair.right.shared_subdag.is_some())
+        .collect::<Vec<_>>();
+    assert!(
+        connected
+            .iter()
+            .any(|pair| crosses_files(&pair.left.file, &pair.right.file, "a.c", "b.c")),
+        "A-B should have its own alpha witness"
+    );
+    assert!(
+        connected
+            .iter()
+            .any(|pair| crosses_files(&pair.left.file, &pair.right.file, "b.c", "c.c")),
+        "B-C should have its own beta witness"
+    );
+    assert!(
+        !report.duplicates.iter().any(|pair| crosses_files(
+            &pair.left.file,
+            &pair.right.file,
+            "a.c",
+            "c.c"
+        )),
+        "A-B plus B-C must not manufacture an A-C edge"
+    );
+    assert!(
+        report.groups.iter().all(|group| group.members.len() == 2),
+        "connected edges must remain two-member pair-local groups"
+    );
 }

@@ -191,6 +191,17 @@ pub struct AbstractionHole {
     pub right_line: u32,
 }
 
+/// One pair-local, source-bounded mapped witness. Unlike multiset intersection mass, the two
+/// ranges name one contiguous ordered region and `mapped_nodes` counts the normalized IL nodes
+/// whose tree roles were mapped. `holes` are consistently paired value leaves only.
+#[derive(Clone, Copy, Serialize, PartialEq, Eq, Debug)]
+pub struct ConnectedWitness {
+    pub left_lines: (u32, u32),
+    pub right_lines: (u32, u32),
+    pub mapped_nodes: u32,
+    pub holes: u32,
+}
+
 #[derive(Serialize)]
 pub struct Group {
     pub score: f64,

@@ -15,6 +15,70 @@ fn raw_kinds(src: &str) -> Vec<String> {
 }
 
 #[test]
+fn anonymous_class_method_body_stays_in_the_enclosing_expression() {
+    let interner = Interner::new();
+    let il = lower(
+        FileId(0),
+        "T.java",
+        b"class T { void visit() { Object x = new Object() { void record() { save(entry()); } }; } }",
+        &interner,
+    )
+    .expect("lower anonymous class");
+    assert_eq!(
+        il.units
+            .iter()
+            .filter(|unit| unit.kind == UnitKind::Method)
+            .count(),
+        1,
+        "the anonymous implementation is evidence inside visit, not a standalone unit"
+    );
+    let visit = il
+        .units
+        .iter()
+        .find(|unit| {
+            unit.kind == UnitKind::Method
+                && unit
+                    .name
+                    .is_some_and(|name| interner.resolve(name) == "visit")
+        })
+        .expect("visit method");
+    let mut preorder = Vec::new();
+    let mut stack = vec![visit.root];
+    while let Some(node) = stack.pop() {
+        preorder.push(node);
+        stack.extend(il.children(node).iter().rev());
+    }
+    assert!(
+        preorder
+            .iter()
+            .filter(|&&node| il.kind(node) == NodeKind::Func)
+            .count()
+            >= 2,
+        "the anonymous record method must remain structurally visible below visit"
+    );
+}
+
+#[test]
+fn inline_anonymous_callback_does_not_expand_enclosing_candidate_shape() {
+    let interner = Interner::new();
+    let il = lower(
+        FileId(0),
+        "T.java",
+        b"class T { void verify() { consume(new Matcher() { boolean matches(Object x) { return true; } }); } }",
+        &interner,
+    )
+    .expect("lower inline anonymous callback");
+    assert_eq!(
+        il.nodes
+            .iter()
+            .filter(|node| node.kind == NodeKind::Func)
+            .count(),
+        1,
+        "inline callback implementation must not dominate the enclosing method signature"
+    );
+}
+
+#[test]
 fn local_record_and_annotation_declarations_do_not_fall_to_raw() {
     // Local type declarations are type metadata in this IL. They should follow the
     // same class-like lowering path as top-level declarations instead of surfacing
