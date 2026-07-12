@@ -7,6 +7,16 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added a controlled Swift one-level `flatMap` slice for #796: eager unary
+  callbacks over direct language-core-proven plain bracket-array parameters may
+  expose either that inner collection or one admitted inner `map`. The dedicated
+  proof preserves outer/inner traversal order, emitted-value coordinates, and
+  exactly one flatten layer. Derived, nominal, attributed, or modified sources;
+  zero/recursive depth; reordered traversal; changed values or sources; effects;
+  imports; property-wrapped or parser-recovered callback parameters; lexically
+  unrelated parameter proofs; and same-file/cross-file custom `flatMap`/`map`
+  dispatch remain split. Surviving raw Swift `flatMap` selectors cannot borrow
+  opaque exact-call identity; the executable Type-4 suite is 314/314.
 - Added a controlled Swift `compactMap` option-emission slice for #795: eager unary
   callbacks converge with explicit filtered emission only over a direct, attribute- and modifier-free
   function parameter carrying language-core bracket-array (`[T]`) source evidence when the same callback-bound

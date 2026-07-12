@@ -53,7 +53,7 @@ pub fn swift_bracket_array_parameter_proven(il: &Il, param: NodeId) -> bool {
 /// not backed by plain bracket-array syntax. Such a nominal, attributed, or
 /// modified parameter can change source identity or route HOF selectors through
 /// user-defined dispatch and therefore cannot participate in the controlled
-/// compactMap/filter+map equivalence perimeter.
+/// compactMap or one-level flatMap equivalence perimeters.
 pub fn swift_has_unproven_collection_parameter(il: &Il) -> bool {
     if il.meta.lang != Lang::Swift {
         return false;

@@ -6564,6 +6564,261 @@
       "evidence": "Focused admission, exact-product, and executable tests keep the six required boundaries plus Optional emitted values, custom or retroactively changed nil-literal channels, derived/source-losing receivers, property-wrapped or modified parameters, and custom nominal receivers split; only language-core plain, attribute- and modifier-free bracket-array parameter evidence opens the source perimeter, while nominal Array/Collection parameters, parameter attributes/modifiers/property wrappers, same-file and corpus-visible cross-file compactMap/map/filter methods or callable properties, and ExpressibleByNilLiteral conformances close stdlib option-emission proof before normalization."
     },
     {
+      "id": "swift_flat_map_one_level_positive",
+      "kind": "positive",
+      "semantic_family": "hof.flat_map",
+      "claim": "Swift flatMap exposes the same ordered one-level flattened element stream as a multi-clause comprehension only when both outer and inner sources are direct plain bracket-array parameters and the callback returns that inner source or a proven pure map over it.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+        "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift"
+      ],
+      "executable_expectations": [
+        {
+          "id": "swift_flat_map_exact_matches_one_level_reference",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+              "name": "flatMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+              "name": "flatMapExact"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_identity_matches_one_level_reference",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+              "name": "flatMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+              "name": "flatMapIdentity"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_cross_product_matches_ordered_reference",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+              "name": "flatMapCrossReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+              "name": "flatMapCrossExact"
+            }
+          ]
+        }
+      ],
+      "evidence": "The Swift-specific FlatMap callback obligation proves direct language-core bracket-array outer and inner sources, an identity inner collection or standard nested map, one-level FlatMap graph shape, emitted-value coordinates, eager demand, and effect closure before exact admission."
+    },
+    {
+      "id": "swift_flat_map_one_level_boundaries",
+      "kind": "hard-negative",
+      "semantic_family": "hof.flat_map",
+      "claim": "Zero-depth map, recursive flattening, reordered traversal, changed emitted values, wrong or derived sources, scalar results, and callback effects stay outside the controlled Swift one-level flatMap perimeter.",
+      "mutation": "change exactly one flatten-depth, nested-order, source, emitted-value, or callback-effect coordinate",
+      "fixtures": [
+        "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+        "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift"
+      ],
+      "executable_expectations": [
+        {
+          "id": "swift_flat_map_zero_depth_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+              "name": "flatMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+              "name": "flatMapZeroDepth"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_derived_outer_source_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+              "name": "flatMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+              "name": "flatMapDerivedOuter"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_derived_inner_source_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+              "name": "flatMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+              "name": "flatMapDerivedInner"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_scalar_result_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+              "name": "flatMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+              "name": "flatMapScalarResult"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_effectful_callback_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+              "name": "flatMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+              "name": "flatMapEffectful"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_reordered_traversal_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+              "name": "flatMapCrossReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+              "name": "flatMapReordered"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_changed_value_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+              "name": "flatMapCrossReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+              "name": "flatMapChangedValue"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_wrong_source_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+              "name": "flatMapCrossReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+              "name": "flatMapWrongSource"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_recursive_depth_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+              "name": "flatMapOneLevelRowsReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+              "name": "flatMapRecursiveDepth"
+            }
+          ]
+        }
+      ],
+      "evidence": "Focused product and executable tests keep each adjacent traversal, source, flatten-depth, emitted-value, scalar-result, and effect boundary distinct."
+    },
+    {
+      "id": "swift_flat_map_custom_dispatch_boundaries",
+      "kind": "hard-negative",
+      "semantic_family": "hof.flat_map",
+      "claim": "Same-file or corpus-visible flatMap and nested map overloads close Swift standard-library one-level flatten admission.",
+      "mutation": "replace standard Array.flatMap or its inner Array.map producer with a visible custom member",
+      "fixtures": [
+        "bench/type4/adversarial/cases/swift_flat_map_custom_overload/reference.py",
+        "bench/type4/adversarial/cases/swift_flat_map_custom_overload/overload.swift",
+        "bench/type4/adversarial/cases/swift_flat_map_custom_overload/consumer.swift",
+        "bench/type4/adversarial/cases/swift_flat_map_custom_inner_map/reference.py",
+        "bench/type4/adversarial/cases/swift_flat_map_custom_inner_map/overload.swift",
+        "bench/type4/adversarial/cases/swift_flat_map_custom_inner_map/consumer.swift"
+      ],
+      "executable_expectations": [
+        {
+          "id": "swift_flat_map_custom_overload_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_custom_overload",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_custom_overload/reference.py",
+              "name": "flatMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_custom_overload/consumer.swift",
+              "name": "flatMapCustomOverload"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_custom_inner_map_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_custom_inner_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_custom_inner_map/reference.py",
+              "name": "flatMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_custom_inner_map/consumer.swift",
+              "name": "flatMapCustomInnerMap"
+            }
+          ]
+        }
+      ],
+      "evidence": "Swift lowering emits a dedicated flatMap/map dispatch barrier and corpus lowering tombstones matching evidence before normalization."
+    },
+    {
       "id": "hof_error_propagation",
       "kind": "positive",
       "semantic_family": "oracle",

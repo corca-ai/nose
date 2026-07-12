@@ -740,7 +740,11 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   protocol receiver proof and inline effect-closed callback proof are present,
   and Swift `map`/`filter`/`flatMap` HOFs with the same provenance when
   Array/Collection receiver proof and inline effect-closed callback proof are
-  present, and Ruby Enumerable `map`/`collect`/`select`/`filter`/`reject` HOFs
+  present. Exact Swift `flatMap` additionally requires direct plain bracket-array
+  evidence for the lexically resolved outer and inner parameters, exactly one
+  identity or admitted-inner-`map` output layer, plain attribute/modifier/error-free
+  callback parameters, and a closed `flatMap`/`map` dispatch perimeter. Ruby
+  Enumerable `map`/`collect`/`select`/`filter`/`reject` HOFs
   with the same provenance when Array/Collection receiver proof and inline
   effect-closed block proof are present, generic method-call and namespace-call builtin semantics with
   `nose.protocols.builtin_method_calls` provenance when no narrower pack owns

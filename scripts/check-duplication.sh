@@ -219,6 +219,10 @@ set -euo pipefail
 # remove the two families exposed during final boundary hardening. The pre-existing int/float
 # interpreter dispatcher family no longer reports after the FilterMap semantic changes, so the
 # ratchet tightens again without accepting new duplication.
+# 29 -> 29 (#796 Swift one-level flatMap): the dedicated callback obligation, lexical parameter
+# proof, non-plain callback markers, raw-selector guard, dispatch barriers, corpus tombstones, and
+# focused fixtures preserve every accepted family ID. No new duplication or budget change is
+# accepted.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

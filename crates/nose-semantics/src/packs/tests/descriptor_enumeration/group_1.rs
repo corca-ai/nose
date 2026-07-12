@@ -464,8 +464,8 @@ pub(super) fn assert_group() {
     );
     assert_eq!(sequence_hof_adapter.counts().evidence_producers, 1);
     assert_eq!(sequence_hof_adapter.counts().contracts, 1);
-    assert_eq!(sequence_hof_adapter.counts().positive_fixtures, 16);
-    assert_eq!(sequence_hof_adapter.counts().hard_negatives, 32);
+    assert_eq!(sequence_hof_adapter.counts().positive_fixtures, 18);
+    assert_eq!(sequence_hof_adapter.counts().hard_negatives, 43);
     assert!(sequence_hof_adapter
         .conformance_refs()
         .contains(&"rust-iterator-hof-missing-terminal-proof-hard-negative"));
@@ -475,6 +475,15 @@ pub(super) fn assert_group() {
     assert!(sequence_hof_adapter
         .conformance_refs()
         .contains(&"swift-sequence-hof-flat-map-positive"));
+    assert!(sequence_hof_adapter
+        .conformance_refs()
+        .contains(&"swift-sequence-hof-flat-map-identity-positive"));
+    assert!(sequence_hof_adapter
+        .conformance_refs()
+        .contains(&"swift-sequence-hof-flat-map-recursive-depth-hard-negative"));
+    assert!(sequence_hof_adapter
+        .conformance_refs()
+        .contains(&"swift-sequence-hof-flat-map-custom-inner-map-hard-negative"));
     assert!(sequence_hof_adapter
         .conformance_refs()
         .contains(&"swift-sequence-hof-compact-map-positive"));

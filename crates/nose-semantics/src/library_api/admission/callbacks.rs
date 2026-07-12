@@ -1,6 +1,10 @@
 use super::*;
 use nose_il::UnitKind;
 
+mod swift_flat_map;
+
+use swift_flat_map::swift_flat_map_coordinates_proven;
+
 #[derive(Clone, Copy)]
 pub(super) enum CallbackCoordinate {
     EffectClosed,
@@ -12,6 +16,7 @@ pub(super) enum CallbackObligation {
     Transform(CallbackCoordinate),
     Predicate(CallbackCoordinate),
     FilterMap(CallbackCoordinate),
+    FlatMap(CallbackCoordinate),
 }
 
 impl CallbackObligation {
@@ -19,20 +24,25 @@ impl CallbackObligation {
         match self {
             Self::Transform(coordinate)
             | Self::Predicate(coordinate)
-            | Self::FilterMap(coordinate) => coordinate,
+            | Self::FilterMap(coordinate)
+            | Self::FlatMap(coordinate) => coordinate,
         }
     }
 
     fn requires_proven_operator_dispatch(self) -> bool {
-        matches!(self, Self::Transform(_))
+        matches!(self, Self::Transform(_) | Self::FlatMap(_))
     }
 
     fn is_pure_transform(self) -> bool {
-        matches!(self, Self::Transform(_))
+        matches!(self, Self::Transform(_) | Self::FlatMap(_))
     }
 
     fn is_pure_filter_map(self) -> bool {
         matches!(self, Self::FilterMap(_))
+    }
+
+    fn is_pure_flat_map(self) -> bool {
+        matches!(self, Self::FlatMap(_))
     }
 
     /// Whether a successful callback check under `self` already proves every
@@ -40,14 +50,20 @@ impl CallbackObligation {
     ///
     /// Pure transforms add operator-dispatch and Swift value-surface gates on
     /// top of the predicate perimeter; coordinate arity is checked by the
-    /// nested contract admission itself. Avoiding an identical/weaker second
-    /// tree walk keeps deeply nested HOF chains from recursively rechecking the
-    /// same callback subtree.
+    /// nested contract admission itself. FlatMap source/depth coordinates are
+    /// also checked by that admission before this effect-only relation is used.
+    /// Avoiding an identical/weaker second tree walk keeps deeply nested HOF
+    /// chains from recursively rechecking the same callback subtree.
     fn subsumes(self, required: Self) -> bool {
         matches!(
             (self, required),
-            (Self::Transform(_), Self::Transform(_) | Self::Predicate(_))
-                | (Self::Predicate(_), Self::Predicate(_))
+            (
+                Self::Transform(_),
+                Self::Transform(_) | Self::FlatMap(_) | Self::Predicate(_)
+            ) | (
+                Self::FlatMap(_),
+                Self::Transform(_) | Self::FlatMap(_) | Self::Predicate(_)
+            ) | (Self::Predicate(_), Self::Predicate(_))
                 | (Self::FilterMap(_), Self::FilterMap(_) | Self::Predicate(_),)
         )
     }
@@ -86,6 +102,7 @@ fn transform_callback_coordinate(lang: Lang, kind: HoFKind) -> Option<CallbackCo
 fn transform_callback_obligation(lang: Lang, kind: HoFKind) -> Option<CallbackObligation> {
     let coordinate = transform_callback_coordinate(lang, kind)?;
     Some(match kind {
+        HoFKind::FlatMap if lang == Lang::Swift => CallbackObligation::FlatMap(coordinate),
         HoFKind::Map | HoFKind::FlatMap => CallbackObligation::Transform(coordinate),
         HoFKind::Filter | HoFKind::Reject => CallbackObligation::Predicate(coordinate),
         HoFKind::FilterMap if lang == Lang::Swift => CallbackObligation::FilterMap(coordinate),
@@ -135,6 +152,14 @@ pub(super) fn library_api_callback_obligation_matches_node(
             return false;
         }
     }
+    if obligation.is_pure_flat_map() {
+        let Some(interner) = interner else {
+            return false;
+        };
+        if !swift_flat_map_coordinates_proven(il, interner, node, callback) {
+            return false;
+        }
+    }
     callback_effect_closed(il, interner, callback, obligation)
 }
 
@@ -172,25 +197,29 @@ fn swift_compact_map_has_direct_parameter_source(il: &Il, node: NodeId) -> bool 
 }
 
 fn swift_compact_map_direct_function_param(il: &Il, source: NodeId) -> Option<NodeId> {
+    swift_direct_parameter_source(il, source)
+        .filter(|(scope, _)| il.kind(*scope) == NodeKind::Func)
+        .map(|(_, param)| param)
+}
+
+fn swift_direct_parameter_source(il: &Il, source: NodeId) -> Option<(NodeId, NodeId)> {
     if il.kind(source) != NodeKind::Var {
         return None;
     }
     match il.node(source).payload {
-        Payload::Name(name) => nearest_named_param_scope(il, source, name)
-            .filter(|(scope, _)| il.kind(*scope) == NodeKind::Func)
-            .map(|(_, param)| param),
+        Payload::Name(name) => nearest_named_param_scope(il, source, name),
         Payload::Cid(cid) => {
             let span = receiver_cid_param_span(il, source, cid)?;
             let mut params = il.nodes_spanning(span).filter(|&param| {
                 il.node(param).span == span
                     && il.kind(param) == NodeKind::Param
                     && matches!(il.node(param).payload, Payload::Cid(param_cid) if param_cid == cid)
-                    && il
-                        .nearest_scope(param)
-                        .is_some_and(|scope| il.kind(scope) == NodeKind::Func)
             });
             let param = params.next()?;
-            params.next().is_none().then_some(param)
+            if params.next().is_some() {
+                return None;
+            }
+            il.nearest_scope(param).map(|scope| (scope, param))
         }
         _ => None,
     }

@@ -208,9 +208,22 @@ Focused semantic and CLI tests also keep nominal Array/Collection annotations, i
 type aliases, macros, captured condition/emission, local aliases, nested HOF receivers,
 parameter attributes/modifiers/property wrappers, same-file/cross-file `compactMap`/`map`/`filter` methods and callable properties, multi-parameter callbacks,
 both-present/both-absent branches, contextual literals, and overloadable/derived expressions
-closed. The complete executable suite is now 300/300,
+closed. At that checkpoint the executable suite was 300/300,
 and the Swift filter-map row leaves the open-surface audit only inside this direct-source,
 same-callback-parameter condition/value perimeter.
+
+The Swift one-level `flatMap` slice adds three executable positives: a proven
+nested `map`, identity flattening, and an ordered cross-product that retains both
+outer and inner value coordinates. Eleven new executable splits independently
+cover zero or recursive flatten depth, derived outer or inner sources, a scalar
+result, an observed callback effect, reordered traversal, changed emitted values,
+a wrong inner source, and corpus-visible custom `flatMap` or inner `map`
+dispatch. Focused tests additionally close nominal/attributed/modified parameters,
+property-wrapped and parser-recovered callback coordinates, sibling-function proof
+borrowing, surviving raw selector identity, imports, type aliases, macros, callable
+properties, and effects in either callback.
+All 314 executable expectations pass; Java/Swift aggregate admission remains
+separate because #797 still owns the aggregate-guard coordinate.
 
 The `python.loop_demorgan_all` focused group clarifies the README-facing same-language
 packet. Its positive fixture captures `all(x != 0 and x != 1 for x in xs)` versus the

@@ -33,6 +33,16 @@ fn pure_transform_callback_obligation_admits_inline_local_value_computation() {
         "Swift transform literals remain contextual protocol dispatch"
     );
 
+    let swift_flat_map = CallbackSurface {
+        lang: Lang::Swift,
+        method: "flatMap",
+        domain: DomainEvidence::Collection,
+    };
+    assert!(
+        !callback_surface_is_admitted(swift_flat_map, CallbackShape::PureIdentity, None),
+        "Swift flatMap callback purity alone must not stand in for one-level source proof"
+    );
+
     let ruby_map = CallbackSurface {
         lang: Lang::Ruby,
         method: "map",

@@ -57,6 +57,7 @@ pub(super) fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
             // an ERROR/Raw subtree. Preserve the same fail-closed dispatch fact
             // that structured type/extension/property lowering would emit.
             record_compact_map_dispatch_barrier(lo, node);
+            record_flat_map_dispatch_barrier(lo, node);
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
                 .map(|child| lower_expr(lo, child))

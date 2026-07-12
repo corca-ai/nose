@@ -29,8 +29,14 @@ experiments that validated these passes are in [experiments](experiments.md).
 > **identity flat-map `flatMap(λx. x)` canonicalized to
 > the modeled element-stream inner (the monad law `flatMap id = join`; proven in
 > `normalize.value_graph.flatmap_identity`), so it converges with explicit nested
-> builder loops**. Inner method chains such as `xs.map(...)` still require nested
-> element collection proof before they enter the exact channel. Pure inner-Map
+> builder loops**. Swift now has a controlled one-level slice: direct plain
+> bracket-array outer/inner function parameters plus an identity result or one
+> admitted inner `map` supply nested-order, emitted-value, and exact one-level
+> flatten facts. Those parameters are resolved in lexical scope and must remain
+> attribute/modifier/error-free. Derived chains, recursive depth, ambiguous
+> `flatMap`/`map` dispatch, and surviving raw `flatMap` selectors stay closed.
+> Other inner method chains such as `xs.map(...)` still
+> require nested element collection proof before they enter the exact channel. Pure inner-Map
 > aggregate consumers such as
 > sum/max/any over flat-map streams versus nested reduction loops when the contribution
 > uses the outer element (kept distinct from nested-list comprehensions, Java stream

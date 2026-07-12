@@ -62,8 +62,18 @@ iterator HOF rows require
 `nose.protocols.sequence_hof_adapters` occurrence provenance on a proven
 protocol receiver; `count` terminal rows use the same receiver provenance
 boundary, while Rust `any`/`all` terminals additionally require inline
-effect-closed callback proof. Swift `map`/`filter`/`flatMap` rows use the same pack only on
+effect-closed callback proof. Swift `map`/`filter` rows use the same pack only on
 proven Array/Collection receivers with inline effect-closed callbacks. Swift
+`flatMap` additionally has an eager one-level controlled slice: the outer source
+must be a direct, attribute- and modifier-free function parameter with
+language-core bracket-array (`[T]`) evidence, and its unary effect-closed callback
+must return either a direct bracket-array parameter or exactly one admitted inner
+`map` over one. Imports, type aliases, macros, visible `flatMap`/`map` methods or
+callable properties, property-wrapped or parser-recovered callback parameters,
+lexically unrelated parameter evidence, derived sources, filters, scalar results,
+and recursive `flatMap` output close the proof before normalization. Any raw
+Swift `flatMap` selector that survives normalization also stays outside opaque
+same-callee exact identity. Swift
 `compactMap` additionally has an eager-per-element controlled slice: the callback must run
 over a direct, attribute- and modifier-free function parameter with language-core bracket-array (`[T]`) source evidence, have one plain parameter used as
 both the `Bool` condition and emitted value, have exactly one `nil` branch, and run in

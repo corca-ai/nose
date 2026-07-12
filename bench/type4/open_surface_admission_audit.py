@@ -104,12 +104,12 @@ EPIC_778_OUT_OF_SCOPE_ROWS = [
     {
         "pattern_id": "hof.flat-map.aggregate-reduction",
         "language": "Java",
-        "reason": "needs flat-map source, one-level depth, callback, and aggregate-guard facts",
+        "reason": "one-level flat-map source facts are modeled; aggregate-guard coordinates remain",
     },
     {
         "pattern_id": "hof.flat-map.aggregate-reduction",
         "language": "Swift",
-        "reason": "needs flat-map source, one-level depth, callback, and aggregate-guard facts",
+        "reason": "one-level flat-map source facts are modeled; aggregate-guard coordinates remain",
     },
     {
         "pattern_id": "hof.flat-map.one-level-flatten",
@@ -197,8 +197,8 @@ EPIC_791_BLOCKED_ROWS = [
             "collection.flatten-depth.one-level",
             "hof.flat-map.aggregate-guard-coordinate",
         ],
-        "work": "connect Java Stream.flatMap aggregate reductions after flat-map source facts land",
-        "reason": "aggregate reduction facts are modeled, but flat-map traversal and guard-coordinate facts are still missing",
+        "work": "connect Java Stream.flatMap aggregate reductions using the modeled one-level source facts",
+        "reason": "one-level traversal and emitted-stream facts are modeled; aggregate guard placement is the remaining proof gap",
     },
     {
         "order": 6,
@@ -213,8 +213,8 @@ EPIC_791_BLOCKED_ROWS = [
             "collection.flatten-depth.one-level",
             "hof.flat-map.aggregate-guard-coordinate",
         ],
-        "work": "connect Swift flatMap terminal aggregates after one-level flatten facts land",
-        "reason": "terminal aggregate identity is reusable only after the flattened element stream and guard coordinates are proven",
+        "work": "connect Swift flatMap terminal aggregates using the modeled one-level source facts",
+        "reason": "the flattened element stream is now reusable; aggregate guard placement remains unproven",
     },
     {
         "order": 7,

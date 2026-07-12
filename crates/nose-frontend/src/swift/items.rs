@@ -28,6 +28,7 @@ pub(super) fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         "macro_declaration" => {
             let span = lo.span(node);
             record_nil_literal_proof_barrier(lo, span);
+            record_flat_map_dispatch_proof_barrier(lo, span);
             None
         }
         "associatedtype_declaration"
@@ -71,6 +72,7 @@ pub(super) fn lower_enum_entry(lo: &mut Lowering, node: TsNode) -> NodeId {
 pub(super) fn lower_import(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     record_nil_literal_proof_barrier(lo, span);
+    record_flat_map_dispatch_proof_barrier(lo, span);
     let module = Lowering::named_children(node)
         .into_iter()
         .filter(|child| matches!(child.kind(), "identifier" | "simple_identifier"))
@@ -89,6 +91,7 @@ pub(super) fn lower_type(lo: &mut Lowering, node: TsNode) -> NodeId {
     let body = node.child_by_field_name("body");
     let mut kids = Vec::new();
     record_compact_map_dispatch_barrier(lo, node);
+    record_flat_map_dispatch_barrier(lo, node);
     record_nil_literal_conformance(lo, node, &mut kids);
     if let Some(body) = body {
         for child in Lowering::named_children(body) {
@@ -109,6 +112,7 @@ pub(super) fn lower_extension(lo: &mut Lowering, node: TsNode) -> NodeId {
         .map(|name| lo.sym(&name));
     let mut kids = Vec::new();
     record_compact_map_dispatch_barrier(lo, node);
+    record_flat_map_dispatch_barrier(lo, node);
     record_nil_literal_conformance(lo, node, &mut kids);
     for child in Lowering::named_children(node) {
         match child.kind() {
@@ -154,6 +158,21 @@ pub(super) fn record_compact_map_dispatch_barrier(lo: &mut Lowering, node: TsNod
     lo.add(NodeKind::Block, Payload::Name(marker), lo.span(node), &[]);
 }
 
+pub(super) fn record_flat_map_dispatch_barrier(lo: &mut Lowering, node: TsNode) {
+    if !["flatMap", "map"]
+        .into_iter()
+        .any(|name| swift_source_mentions_identifier(lo.text(node), name))
+    {
+        return;
+    }
+    record_flat_map_dispatch_proof_barrier(lo, lo.span(node));
+}
+
+fn record_flat_map_dispatch_proof_barrier(lo: &mut Lowering, span: Span) {
+    let marker = lo.sym(SWIFT_FLAT_MAP_DISPATCH_BARRIER_MARKER);
+    lo.add(NodeKind::Block, Payload::Name(marker), span, &[]);
+}
+
 fn record_nil_literal_proof_barrier(lo: &mut Lowering, span: Span) {
     let marker = lo.sym(SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER);
     lo.add(NodeKind::Block, Payload::Name(marker), span, &[]);
@@ -161,6 +180,7 @@ fn record_nil_literal_proof_barrier(lo: &mut Lowering, span: Span) {
 pub(super) fn record_typealias_shadow(lo: &mut Lowering, node: TsNode) {
     let span = lo.span(node);
     record_nil_literal_proof_barrier(lo, span);
+    record_flat_map_dispatch_proof_barrier(lo, span);
     if let Some(name) = swift_decl_name(lo, node) {
         // Keep type-only syntax out of the structural tree while preserving the
         // declaration as a same-file shadow for stdlib free-name contracts.
@@ -431,11 +451,8 @@ pub(super) fn lower_param(
     let has_parameter_modifiers = Lowering::named_children(param)
         .into_iter()
         .any(|child| child.kind() == "parameter_modifiers");
-    if type_node.is_some_and(|ty| ty.kind() == "array_type")
-        && !has_attribute
-        && !has_parameter_modifiers
-        && !param.has_error()
-    {
+    let plain_parameter = !has_attribute && !has_parameter_modifiers && !param.has_error();
+    if type_node.is_some_and(|ty| ty.kind() == "array_type") && plain_parameter {
         // Swift's bracket type is the one source surface that proves a builtin
         // Array independently of nominal `Array`/`Collection` declarations.
         // Parameter attributes can denote property wrappers that replace the
@@ -454,7 +471,12 @@ pub(super) fn lower_param(
     {
         lo.record_param_domain_resolution(span, domain);
     }
-    out.push(lo.add(NodeKind::Param, payload, span, &[]));
+    let shape = if plain_parameter {
+        Vec::new()
+    } else {
+        vec![lo.raw("swift_non_plain_parameter", span, &[])]
+    };
+    out.push(lo.add(NodeKind::Param, payload, span, &shape));
 }
 pub(super) fn parameter_binding_name(param: TsNode) -> Option<TsNode> {
     let mut cursor = param.walk();

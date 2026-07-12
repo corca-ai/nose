@@ -600,11 +600,36 @@ condition/emission, local aliases and nested HOF receivers, nominal Array/Collec
 both-present/both-absent callbacks, contextual literals, extra callback parameters, and
 parameter attributes/modifiers/property wrappers, same-file `compactMap`/`map`/`filter` methods or callable properties. Corpus-level ambiguity is a refresh tombstone,
 so repeated normalization cannot reopen a cross-file custom overload or conformance;
-surviving unmodeled `compactMap` selectors cannot borrow opaque exact method identity. All
-300 executable Type-4 expectations pass.
+surviving unmodeled `compactMap` selectors cannot borrow opaque exact method identity. At
+this checkpoint, all 300 executable Type-4 expectations passed.
 The proof registry marks both coordinate facts modeled-controlled, the semantic card is
 `controlled-slice-admitted`, and #791 records #795 as absent from the current open audit;
-#796 and #797 remain the next original rows for one-level flattening and aggregate guards.
+at that checkpoint #796 and #797 were the next original rows for one-level
+flattening and aggregate guards.
+
+## Swift One-Level FlatMap Coordinates
+
+Closed #796 by modeling `hof.flat-map.nested-iteration-order`,
+`hof.flat-map.emitted-value-coordinate`, and `collection.flatten-depth.one-level`
+as controlled reusable facts. Swift exact admission now uses a dedicated
+`FlatMap` callback obligation rather than treating generic transform purity as a
+flatten proof. The outer source must be a direct plain function parameter with
+language-core bracket-array evidence. The callback must expose either one direct
+proven bracket-array parameter or one admitted inner `map` over such a parameter;
+eager demand and callback-effect closure remain required.
+
+Three executable positives cover nested mapping, identity flattening, and an
+ordered cross-product. Eleven adjacent splits cover zero or recursive depth,
+derived outer or inner sources, scalar output, observed effects, reordered
+traversal, changed emitted values, a wrong inner source, and custom outer or
+inner dispatch. Same-file syntax barriers and cross-file evidence tombstones keep
+imports, aliases, macros, methods, and callable properties fail-closed. Focused
+product regressions also pin property-wrapped outer/inner callback coordinates,
+lexically scoped parameter proof, and the raw-selector exact-channel fallback.
+All 314
+executable Type-4 expectations pass. The open-surface audit removes #796 and
+leaves only `hof.flat-map.aggregate-guard-coordinate` for the original Java and
+Swift aggregate row in #797.
 
 ## Current Next Work
 

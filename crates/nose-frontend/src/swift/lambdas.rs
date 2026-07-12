@@ -3,6 +3,10 @@ use super::*;
 pub(super) fn lower_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let protocol_modifiers = swift_lambda_protocol_modifiers(lo.text(node));
+    let non_plain_parameter_header = node.has_error()
+        || Lowering::named_children(node)
+            .into_iter()
+            .any(|child| matches!(child.kind(), "attribute" | "ERROR"));
     let mut kids = Vec::new();
     if let Some(captures) = node.child_by_field_name("captures") {
         let values = Lowering::named_children(captures)
@@ -13,13 +17,13 @@ pub(super) fn lower_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
         kids.push(lo.raw("swift_capture_list", lo.span(captures), &values));
     }
     if let Some(lambda_type) = node.child_by_field_name("type") {
-        lower_lambda_type_params(lo, lambda_type, &mut kids);
+        lower_lambda_type_params(lo, lambda_type, non_plain_parameter_header, &mut kids);
     }
     for child in Lowering::named_children(node)
         .into_iter()
         .filter(|child| child.kind() == "lambda_function_type")
     {
-        lower_lambda_type_params(lo, child, &mut kids);
+        lower_lambda_type_params(lo, child, non_plain_parameter_header, &mut kids);
     }
     if kids.is_empty() {
         for name in lambda_parameter_names_from_text(lo.text(node)) {
@@ -60,15 +64,32 @@ pub(super) fn dedupe_lambda_params(lo: &Lowering, kids: &mut Vec<NodeId>) {
         }
     });
 }
-pub(super) fn lower_lambda_type_params(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>) {
+pub(super) fn lower_lambda_type_params(
+    lo: &mut Lowering,
+    node: TsNode,
+    inherited_non_plain: bool,
+    out: &mut Vec<NodeId>,
+) {
+    let inherited_non_plain = inherited_non_plain || node.has_error();
+    let mut previous_was_attribute = inherited_non_plain;
     for child in Lowering::named_children(node) {
-        if child.kind() == "lambda_parameter" {
-            lower_param(lo, child, false, out);
-        } else if matches!(
-            child.kind(),
-            "lambda_function_type" | "lambda_function_type_parameters"
-        ) {
-            lower_lambda_type_params(lo, child, out);
+        match child.kind() {
+            "attribute" => previous_was_attribute = true,
+            "lambda_parameter" => {
+                lower_param(lo, child, previous_was_attribute, out);
+                previous_was_attribute = inherited_non_plain;
+            }
+            "lambda_function_type" | "lambda_function_type_parameters" => {
+                lower_lambda_type_params(
+                    lo,
+                    child,
+                    inherited_non_plain || previous_was_attribute,
+                    out,
+                );
+                previous_was_attribute = inherited_non_plain;
+            }
+            "ERROR" => previous_was_attribute = true,
+            _ => previous_was_attribute = inherited_non_plain,
         }
     }
 }

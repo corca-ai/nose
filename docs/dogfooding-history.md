@@ -1126,3 +1126,11 @@ baseline delta is that the pre-existing
 member-set comparison against `origin/main` confirms that all other 29 families
 are unchanged. No new duplication is accepted, so the stale family is removed
 and the budget is tightened to 29.
+
+The Swift one-level `flatMap` slice (#796) keeps the reviewed default-surface
+count at 29. The final release-binary gate matches every accepted family ID in
+`scripts/duplication-baseline.json`; the dedicated FlatMap callback obligation,
+lexical parameter resolution, non-plain callback markers, raw-selector exact
+guard, Swift dispatch barriers, cross-file tombstones, focused fixtures, and
+generated proof artifacts introduce no substantial default-surface family. No
+new duplication or budget change is accepted.

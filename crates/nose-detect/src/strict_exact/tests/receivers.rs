@@ -332,3 +332,46 @@ fn unmodeled_swift_compact_map_selector_is_not_opaque_exact_identity() {
         "a surviving compactMap selector must not borrow opaque exact method identity"
     );
 }
+
+#[test]
+fn unmodeled_swift_flat_map_selector_is_not_opaque_exact_identity() {
+    let interner = Interner::new();
+    let il = normalized_swift(
+        r#"struct Values {
+    func flatMap(_ transform: ([Bool]) -> [Bool]) -> [Bool] { [] }
+}
+func f(_ groups: [[Bool]]) -> [Bool] {
+    groups.flatMap { (group: [Bool]) in group }
+}
+func g(_ groups: Values) -> [Bool] {
+    groups.flatMap { (group: [Bool]) in group }
+}
+"#,
+        &interner,
+    );
+    let flat_maps = il
+        .nodes
+        .iter()
+        .enumerate()
+        .filter_map(|(index, node)| {
+            if node.kind != NodeKind::Call {
+                return None;
+            }
+            let call = NodeId(index as u32);
+            let callee = il.children(call).first().copied()?;
+            matches!(
+                (il.kind(callee), il.node(callee).payload),
+                (NodeKind::Field, Payload::Name(name)) if interner.resolve(name) == "flatMap"
+            )
+            .then_some(call)
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(flat_maps.len(), 2, "both ambiguous flatMap calls stay raw");
+    let facts = StrictFacts::collect(&il, &interner);
+    for flat_map in flat_maps {
+        assert!(
+            !strict_exact_safe_tree(&il, &interner, &facts, flat_map),
+            "a surviving flatMap selector must not borrow opaque exact method identity"
+        );
+    }
+}
