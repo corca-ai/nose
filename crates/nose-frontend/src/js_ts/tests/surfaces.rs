@@ -1,8 +1,52 @@
 use super::support::{
-    lower_ts_with_interner, raw_names, seq_names, sequence_surface_count_for_seq_name,
-    source_binding_count, unit_root_seq_names,
+    lower_js_with_interner, lower_ts_with_interner, raw_names, seq_names,
+    sequence_surface_count_for_seq_name, source_binding_count, unit_root_seq_names,
 };
 use nose_il::{SequenceSurfaceKind, SourceBindingKind, UnitKind};
+
+#[test]
+fn callback_parameter_shapes_remain_visible_to_semantic_admission() {
+    let (il, interner) = lower_ts_with_interner(
+        r#"
+declare function observe(): number;
+function variants(xs: unknown[]) {
+  const defaulted = xs.map((x = observe()) => x);
+  const rest = xs.map((...values) => values);
+  const destructured = xs.map(({ value }) => value);
+  const typed = xs.map((x: number) => x);
+  const functionTyped = xs.map((callback: (value: number) => number) => callback);
+  const undefinedNamed = xs.map((undefined) => undefined);
+  return [defaulted, rest, destructured, typed, functionTyped, undefinedNamed];
+}
+"#,
+    );
+
+    let raw = raw_names(&il, &interner);
+    for expected in [
+        "js_default_parameter",
+        "js_rest_parameter",
+        "js_destructured_parameter",
+    ] {
+        assert!(
+            raw.iter().any(|name| name == expected),
+            "{expected} must remain visible on its Param node: {raw:?}"
+        );
+        assert!(
+            crate::is_intentional_raw_boundary_tag(expected),
+            "{expected} is a deliberate fail-closed parameter boundary"
+        );
+    }
+    assert_eq!(
+        raw.iter()
+            .filter(|name| name.starts_with("js_") && name.ends_with("_parameter"))
+            .count(),
+        3,
+        "a plain typed parameter must stay childless while non-plain forms are marked: {raw:?}"
+    );
+    assert!(crate::is_intentional_raw_boundary_tag(
+        "js_non_plain_parameter"
+    ));
+}
 
 #[test]
 fn ts_object_opaque_surfaces_do_not_cascade_raw_wrappers() {
@@ -78,6 +122,79 @@ const trailing = [1,];
             SequenceSurfaceKind::Collection
         ) >= 2,
         "dense arrays, including trailing-comma arrays, should still mint collection proof"
+    );
+}
+
+#[test]
+fn js_array_spread_remains_an_unproven_sequence_boundary() {
+    let (il, interner) = lower_ts_with_interner(
+        r#"
+function expand(xs: number[], source: number[]) {
+  return xs.map((_value) => [...source]);
+}
+"#,
+    );
+
+    let seq = seq_names(&il, &interner);
+    assert!(
+        seq.iter().any(|name| name == "js_array_spread"),
+        "array spread must remain visible inside the outer array literal: {seq:?}"
+    );
+    assert_eq!(
+        sequence_surface_count_for_seq_name(
+            &il,
+            &interner,
+            "js_array_spread",
+            SequenceSurfaceKind::Collection,
+        ),
+        0,
+        "an array-spread marker must not mint exact collection proof"
+    );
+}
+
+#[test]
+fn js_class_heritage_expression_remains_in_the_class_unit() {
+    let (il, interner) = lower_ts_with_interner(
+        r#"
+function observeBase(): typeof Object { return Object }
+function variants(xs: number[]) {
+  return xs.map((_value) => [class extends observeBase() {}]);
+}
+"#,
+    );
+    let seq = seq_names(&il, &interner);
+    assert!(
+        seq.iter().any(|name| name == "js_class_definition"),
+        "runtime extends expressions must remain attached to the class unit: {seq:?}"
+    );
+    assert!(
+        il.nodes
+            .iter()
+            .any(|node| node.kind == nose_il::NodeKind::Call),
+        "the heritage call must not disappear from lowered IL"
+    );
+}
+
+#[test]
+fn javascript_class_heritage_expression_remains_in_the_class_unit() {
+    let (il, interner) = lower_js_with_interner(
+        r#"
+function observeBase() { return Object }
+function variants(xs) {
+  return xs.map((_value) => [class extends observeBase() {}]);
+}
+"#,
+    );
+    let seq = seq_names(&il, &interner);
+    assert!(
+        seq.iter().any(|name| name == "js_class_definition"),
+        "JavaScript's direct class_heritage child must remain attached: {seq:?}"
+    );
+    assert!(
+        il.nodes
+            .iter()
+            .any(|node| node.kind == nose_il::NodeKind::Call),
+        "the JavaScript heritage call must not disappear from lowered IL"
     );
 }
 

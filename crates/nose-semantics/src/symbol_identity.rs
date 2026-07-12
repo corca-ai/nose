@@ -400,7 +400,7 @@ pub(super) fn evidence_record_has_unshadowed_root_dependency(
     record: &EvidenceRecord,
     root: &str,
 ) -> bool {
-    let span = evidence_anchor_span(record.anchor);
+    let span = record.anchor.span();
     let expected = EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
         name_hash: stable_symbol_hash(root),
     });
@@ -412,16 +412,6 @@ pub(super) fn evidence_record_has_unshadowed_root_dependency(
                 && il.evidence_dependencies_asserted(dependency)
         })
     })
-}
-
-pub(super) fn evidence_anchor_span(anchor: EvidenceAnchor) -> Span {
-    match anchor {
-        EvidenceAnchor::SourceSpan(span)
-        | EvidenceAnchor::Node { span, .. }
-        | EvidenceAnchor::Param { span }
-        | EvidenceAnchor::Binding { span, .. }
-        | EvidenceAnchor::Sequence { span } => span,
-    }
 }
 
 pub(super) fn imported_symbol(

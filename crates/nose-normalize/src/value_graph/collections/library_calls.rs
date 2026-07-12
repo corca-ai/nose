@@ -1,5 +1,4 @@
 use super::super::*;
-use nose_semantics::js_like_lang;
 
 impl<'a> Builder<'a> {
     pub(in crate::value_graph) fn filter_parts(&self, node: NodeId) -> Option<(NodeId, NodeId)> {
@@ -142,11 +141,6 @@ impl<'a> Builder<'a> {
         if self.il.kind(lambda) != NodeKind::Lambda {
             return None;
         }
-        if bool_reduction_requires_unary_value_callback(self.il.meta.lang)
-            && self.lambda_param_count(lambda) != 1
-        {
-            return None;
-        }
         let coll = self.eval(occurrence.receiver?, env);
         if all && self.js_like_array_param_universal_closed(coll) {
             return None;
@@ -233,8 +227,4 @@ impl<'a> Builder<'a> {
         let (map, key) = self.proven_map_get_value(value)?;
         Some(self.mk(ValOp::Bin(Op::In as u32), vec![key, map]))
     }
-}
-
-fn bool_reduction_requires_unary_value_callback(lang: Lang) -> bool {
-    matches!(lang, Lang::Ruby | Lang::Swift) || js_like_lang(lang)
 }

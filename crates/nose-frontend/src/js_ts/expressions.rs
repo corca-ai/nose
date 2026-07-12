@@ -71,18 +71,7 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         | "function"
         | "generator_function"
         | "generator_function_declaration" => lower_arrow(lo, node),
-        "array" => {
-            let kids: Vec<NodeId> = Lowering::named_children(node)
-                .into_iter()
-                .map(|c| lower_expr(lo, c))
-                .collect();
-            let tag = if js_array_has_elision(node) {
-                lo.sym("js_sparse_array")
-            } else {
-                lo.sym("array")
-            };
-            lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
-        }
+        "array" => lower_array(lo, node),
         "object" => lower_object(lo, node),
         "pair" => lower_object_pair(lo, node),
         "ternary_expression" => {
@@ -113,6 +102,34 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
         _ => lower_expr_rest(lo, node),
     }
+}
+
+fn lower_array(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let kids: Vec<NodeId> = Lowering::named_children(node)
+        .into_iter()
+        .map(|child| {
+            if child.kind() == "spread_element" {
+                let spread_children: Vec<NodeId> = Lowering::named_children(child)
+                    .into_iter()
+                    .map(|value| lower_expr(lo, value))
+                    .collect();
+                lo.add(
+                    NodeKind::Seq,
+                    Payload::Name(lo.sym("js_array_spread")),
+                    lo.span(child),
+                    &spread_children,
+                )
+            } else {
+                lower_expr(lo, child)
+            }
+        })
+        .collect();
+    let tag = if js_array_has_elision(node) {
+        lo.sym("js_sparse_array")
+    } else {
+        lo.sym("array")
+    };
+    lo.add(NodeKind::Seq, Payload::Name(tag), lo.span(node), &kids)
 }
 
 fn js_array_has_elision(node: TsNode) -> bool {

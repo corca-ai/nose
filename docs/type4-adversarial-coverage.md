@@ -170,6 +170,31 @@ Convention glossary:
 | `protocol-boundary.lifecycle` | settlement, cancellation, scheduling, channel, or runtime lifecycle state |
 | `protocol-boundary.callback-effect` | callback mutation, ordering, exceptions, and externally observed effects |
 
+The `effect.pure-callback` focused slice keeps this convention executable with
+a TypeScript exact-Array identity `map`/builder-loop positive and adjacent
+splits for an observed call, captured-state mutation, an extra index coordinate,
+free/global reads, operator/custom dispatch, an effect hidden in a nested HOF source,
+implicit `arguments` context, a throwing sink, default/rest/destructured parameter
+forms, JS/Ruby spread or splat iteration, Ruby optional/destructured/splat parameters
+and map-key hashing, mixed BigInt arithmetic, `instanceof`, and Swift contextual
+literal/prefix/unwrap/interpolation boundaries. A qualified user-defined Swift
+`Float` with an observed prefix operator pins nominal ambiguity closed, and a
+nested coercive predicate pins the enclosing transform obligation stronger than
+the standalone predicate rule. Ruby trailing-comma/block-local coordinates,
+nonlocal return, and method/class definitions, plus Swift capture initialization,
+pin the remaining control, definition, ownership, and closure-formation effects closed.
+Ruby dynamic regex interpolation, Swift forced casts, and JavaScript/TypeScript runtime
+class heritage bring the executable hard-negative perimeter to 36 splits. Equality-shaped
+JS/TS operators also have a focused ambiguous-source-evidence regression so `instanceof`
+cannot fall back to primitive equality when its source fact is not uniquely admitted.
+An end-to-end TypeScript regression also pins an inner destructured `x` (whose
+coercion can be observed) against an outer numeric parameter with the same spelling
+and reused alpha id; lexical binder proof must stop in the inner Func.
+Controlled tests separately admit JS/TS primitive-proven non-dispatching arithmetic and
+proof-backed collection/tuple construction. The neutral fact is reusable, but
+these fixtures do not by themselves prove optional emission, one-level
+flattening, aggregate guards, or a new language/API surface.
+
 The `python.loop_demorgan_all` focused group clarifies the README-facing same-language
 packet. Its positive fixture captures `all(x != 0 and x != 1 for x in xs)` versus the
 early-return counterexample loop; hard negatives cover vacuous truth, observed effects,

@@ -188,14 +188,7 @@ pub(super) fn lower_method(lo: &mut Lowering, node: TsNode) -> NodeId {
     let mut kids = Vec::new();
     if let Some(params) = node.child_by_field_name("parameters") {
         for p in Lowering::named_children(params) {
-            let pspan = lo.span(p);
-            let sym = param_name(lo, p);
-            kids.push(lo.add(
-                NodeKind::Param,
-                sym.map(Payload::Name).unwrap_or(Payload::None),
-                pspan,
-                &[],
-            ));
+            kids.push(lower_param_node(lo, p));
         }
     }
     let body = node
@@ -210,8 +203,36 @@ pub(super) fn lower_method(lo: &mut Lowering, node: TsNode) -> NodeId {
 pub(super) fn param_name(lo: &Lowering, p: TsNode) -> Option<Symbol> {
     match p.kind() {
         "identifier" => Some(lo.sym(lo.text(p))),
-        _ => p.named_child(0).map(|n| lo.sym(lo.text(n))),
+        _ => p
+            .child_by_field_name("name")
+            .or_else(|| {
+                p.named_child(0)
+                    .filter(|child| child.kind() == "identifier")
+            })
+            .map(|name| lo.sym(lo.text(name))),
     }
+}
+
+pub(super) fn lower_param_node(lo: &mut Lowering, param: TsNode) -> NodeId {
+    let span = lo.span(param);
+    let marker_tag = match param.kind() {
+        "identifier" => None,
+        "splat_parameter" | "hash_splat_parameter" => Some("ruby_splat_parameter"),
+        "destructured_parameter" => Some("ruby_destructured_parameter"),
+        _ => Some("ruby_non_plain_parameter"),
+    };
+    let marker = marker_tag.map(|tag| {
+        let children = param
+            .child_by_field_name("value")
+            .map(|value| vec![lower_expr(lo, value)])
+            .unwrap_or_default();
+        lo.raw(tag, span, &children)
+    });
+    let children = marker.into_iter().collect::<Vec<_>>();
+    let payload = param_name(lo, param)
+        .map(Payload::Name)
+        .unwrap_or(Payload::None);
+    lo.add(NodeKind::Param, payload, span, &children)
 }
 pub(super) fn lower_return_value(lo: &mut Lowering, node: TsNode) -> NodeId {
     if node.kind() == "argument_list" && node.named_child_count() == 1 {

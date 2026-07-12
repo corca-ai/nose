@@ -44,6 +44,8 @@ mod async_scheduling_hard_negatives;
 mod branch_selection;
 #[path = "equivalence/call_binding_boundaries.rs"]
 mod call_binding_boundaries;
+#[path = "equivalence/callback_purity_boundaries.rs"]
+mod callback_purity_boundaries;
 #[path = "equivalence/collection_builders.rs"]
 mod collection_builders;
 #[path = "equivalence/collection_empty.rs"]

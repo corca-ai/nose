@@ -1,19 +1,24 @@
 use nose_il::{
     stable_symbol_hash, EvidenceAnchor, EvidenceKind, EvidenceStatus, FileId, GuardEvidenceKind,
     Il, Interner, Lang, LibraryApiEvidenceKind, NodeId, NodeKind, Op, Payload, SequenceSurfaceKind,
-    SourceBindingKind, SourceFactKind, SourceOperatorKind, Span, SymbolEvidenceKind, UnitKind,
+    SourceBindingKind, SourceFactKind, SourceOperatorKind, SymbolEvidenceKind, UnitKind,
 };
 
 pub(super) fn lower_js(src: &str) -> Il {
+    lower_js_with_interner(src).0
+}
+
+pub(super) fn lower_js_with_interner(src: &str) -> (Il, Interner) {
     let interner = Interner::new();
-    crate::lower_source(
+    let il = crate::lower_source(
         FileId(0),
         "t.js",
         src.as_bytes(),
         Lang::JavaScript,
         &interner,
     )
-    .expect("lower js")
+    .expect("lower js");
+    (il, interner)
 }
 
 pub(super) fn lower_ts_with_interner(src: &str) -> (Il, Interner) {
@@ -154,16 +159,6 @@ pub(super) fn qualified_global_evidence_records<'a>(
         .collect()
 }
 
-pub(super) fn evidence_anchor_span(anchor: EvidenceAnchor) -> Span {
-    match anchor {
-        EvidenceAnchor::SourceSpan(span)
-        | EvidenceAnchor::Node { span, .. }
-        | EvidenceAnchor::Param { span }
-        | EvidenceAnchor::Binding { span, .. }
-        | EvidenceAnchor::Sequence { span } => span,
-    }
-}
-
 pub(super) fn evidence_by_id(il: &Il, id: nose_il::EvidenceId) -> Option<&nose_il::EvidenceRecord> {
     il.evidence
         .get(id.0 as usize)
@@ -195,7 +190,7 @@ pub(super) fn record_has_source_unshadowed_dependency(
     record: &nose_il::EvidenceRecord,
     root: &str,
 ) -> bool {
-    let span = evidence_anchor_span(record.anchor);
+    let span = record.anchor.span();
     let expected = stable_symbol_hash(root);
     record.dependencies.iter().any(|&id| {
         evidence_by_id(il, id).is_some_and(|dependency| {

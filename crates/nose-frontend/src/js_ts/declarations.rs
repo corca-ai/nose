@@ -50,7 +50,33 @@ pub(super) fn lower_class(lo: &mut Lowering, node: TsNode) -> NodeId {
         Some(b) => super::lower_stmt_list(lo, b, NodeKind::Block, true),
         None => lo.empty_block(span),
     };
-    let unit_root = lower_own_decorated_definition(lo, node, block);
+    let mut class_children = Lowering::named_children(node)
+        .into_iter()
+        .filter(|child| child.kind() == "class_heritage")
+        .flat_map(Lowering::named_children)
+        .filter_map(|clause_or_value| match clause_or_value.kind() {
+            // tree-sitter-typescript wraps the expression in `extends_clause`.
+            "extends_clause" => clause_or_value.child_by_field_name("value"),
+            // `implements` is type-only and deliberately absent from runtime IL.
+            "implements_clause" => None,
+            // tree-sitter-javascript puts the heritage expression directly
+            // under `class_heritage`.
+            _ => Some(clause_or_value),
+        })
+        .map(|value| lower_expr(lo, value))
+        .collect::<Vec<_>>();
+    let class_body = if class_children.is_empty() {
+        block
+    } else {
+        class_children.push(block);
+        lo.add(
+            NodeKind::Seq,
+            Payload::Name(lo.sym("js_class_definition")),
+            span,
+            &class_children,
+        )
+    };
+    let unit_root = lower_own_decorated_definition(lo, node, class_body);
     lo.push_unit_with_origin(
         unit_root,
         UnitKind::Class,
@@ -163,25 +189,95 @@ pub(super) fn lower_field(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
 }
 
 fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
-    // A single-identifier arrow param arrives as the identifier itself.
-    if matches!(params.kind(), "identifier" | "undefined") {
-        let span = lo.span(params);
-        let sym = lo.sym(lo.text(params));
-        out.push(lo.add(NodeKind::Param, Payload::Name(sym), span, &[]));
+    // A single arrow parameter can arrive as the parameter node itself rather than a
+    // `formal_parameters` container. Preserve it as one coordinate even for patterns.
+    if matches!(
+        params.kind(),
+        "identifier"
+            | "undefined"
+            | "required_parameter"
+            | "optional_parameter"
+            | "assignment_pattern"
+            | "rest_pattern"
+            | "object_pattern"
+            | "array_pattern"
+    ) {
+        lower_param(lo, params, out);
         return;
     }
     for p in Lowering::named_children(params) {
-        let span = lo.span(p);
-        let name = param_name(lo, p);
-        let payload = match name {
-            Some(s) => Payload::Name(lo.sym(s)),
-            None => Payload::None,
-        };
-        if let Some(domain) = lo.type_domain_from_text_with_dependencies(lo.text(p)) {
-            lo.record_param_domain_resolution(span, domain);
-        }
-        out.push(lo.add(NodeKind::Param, payload, span, &[]));
+        lower_param(lo, p, out);
     }
+}
+
+fn lower_param(lo: &mut Lowering, param: TsNode, out: &mut Vec<NodeId>) {
+    let span = lo.span(param);
+    let payload = param_name(lo, param)
+        .map(|name| Payload::Name(lo.sym(name)))
+        .unwrap_or(Payload::None);
+    if let Some(domain) = lo.type_domain_from_text_with_dependencies(lo.text(param)) {
+        lo.record_param_domain_resolution(span, domain);
+    }
+    let shape = non_plain_parameter_shape(lo, param);
+    out.push(lo.add(NodeKind::Param, payload, span, &shape));
+}
+
+fn non_plain_parameter_shape(lo: &mut Lowering, param: TsNode) -> Vec<NodeId> {
+    if plain_parameter_identifier(param) {
+        return Vec::new();
+    }
+
+    let assignment = first_named_descendant_of_kind(param, &["assignment_pattern"]);
+    let rest = first_named_descendant_of_kind(param, &["rest_pattern"]);
+    let destructured = first_named_descendant_of_kind(param, &["object_pattern", "array_pattern"]);
+    let has_default = assignment.is_some() || param.child_by_field_name("value").is_some();
+    let surface = if has_default {
+        "js_default_parameter"
+    } else if rest.is_some() {
+        "js_rest_parameter"
+    } else if destructured.is_some() {
+        "js_destructured_parameter"
+    } else {
+        "js_non_plain_parameter"
+    };
+    let default_value = assignment
+        .and_then(|assignment| {
+            assignment
+                .child_by_field_name("right")
+                .or_else(|| assignment.named_child(1))
+        })
+        .or_else(|| {
+            (surface == "js_default_parameter")
+                .then(|| param.child_by_field_name("value"))
+                .flatten()
+        })
+        .map(|value| lower_expr(lo, value));
+    let marker_children = default_value.into_iter().collect::<Vec<_>>();
+    let marker = lo.raw(surface, lo.span(param), &marker_children);
+    vec![marker]
+}
+
+fn plain_parameter_identifier(param: TsNode) -> bool {
+    if matches!(param.kind(), "identifier" | "undefined") {
+        return true;
+    }
+    param.kind() == "required_parameter"
+        && param.child_by_field_name("value").is_none()
+        && param
+            .child_by_field_name("pattern")
+            .or_else(|| param.named_child(0))
+            .is_some_and(|pattern| matches!(pattern.kind(), "identifier" | "undefined"))
+}
+
+fn first_named_descendant_of_kind<'a>(root: TsNode<'a>, expected: &[&str]) -> Option<TsNode<'a>> {
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if expected.contains(&node.kind()) {
+            return Some(node);
+        }
+        stack.extend(Lowering::named_children(node));
+    }
+    None
 }
 
 fn param_name<'a>(lo: &Lowering<'a>, p: TsNode<'a>) -> Option<&'a str> {

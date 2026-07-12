@@ -65,6 +65,13 @@ impl Span {
         }
     }
 
+    /// Whether `other` is wholly contained in this half-open byte range.
+    pub fn contains(self, other: Span) -> bool {
+        self.file == other.file
+            && self.start_byte <= other.start_byte
+            && other.end_byte <= self.end_byte
+    }
+
     pub fn line_count(self) -> u32 {
         self.end_line.saturating_sub(self.start_line) + 1
     }

@@ -1,5 +1,7 @@
 use super::*;
 
+mod nested;
+
 fn js_array_hof_call_il(method: &str, arg_count: usize) -> (Il, Interner, NodeId, NodeId) {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
@@ -161,9 +163,12 @@ fn js_array_normalized_hof_with_callback_il(
     (finish_il(b, root, Lang::JavaScript), hof, receiver)
 }
 
-fn js_array_normalized_nested_hof_callback_il() -> (Il, Interner, NodeId, NodeId, NodeId, NodeId) {
+type NormalizedNestedHofFixture = (Il, Interner, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId);
+
+fn js_array_normalized_nested_hof_callback_il() -> NormalizedNestedHofFixture {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
+    let inner_source_param = b.add(NodeKind::Param, Payload::Cid(1), sp(299), &[]);
     let outer_receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(300), &[]);
     let inner_receiver = b.add(NodeKind::Var, Payload::Cid(1), sp(301), &[]);
     let outer_param = b.add(NodeKind::Param, Payload::Cid(2), sp(302), &[]);
@@ -204,7 +209,12 @@ fn js_array_normalized_nested_hof_callback_il() -> (Il, Interner, NodeId, NodeId
         sp(314),
         &[outer_receiver, outer_lambda],
     );
-    let root = b.add(NodeKind::Func, Payload::None, sp(315), &[outer_hof]);
+    let root = b.add(
+        NodeKind::Func,
+        Payload::None,
+        sp(315),
+        &[inner_source_param, outer_hof],
+    );
     (
         finish_il(b, root, Lang::JavaScript),
         interner,
@@ -212,6 +222,8 @@ fn js_array_normalized_nested_hof_callback_il() -> (Il, Interner, NodeId, NodeId
         inner_hof,
         outer_receiver,
         inner_receiver,
+        outer_param,
+        inner_param,
     )
 }
 
@@ -527,31 +539,6 @@ fn js_array_normalized_hof_rechecks_callback_obligation() {
     assert!(
         !admitted_hof_api_at_node(&il, hof, HoFKind::Map),
         "normalized JS Array.map evidence must still satisfy callback obligations"
-    );
-}
-
-#[test]
-fn js_array_normalized_hof_allows_admitted_nested_hof_callback() {
-    let (mut il, interner, outer_hof, inner_hof, outer_receiver, inner_receiver) =
-        js_array_normalized_nested_hof_callback_il();
-    push_receiver_domain_dependency_with_id(&mut il, 0, outer_receiver, DomainEvidence::Array);
-    push_receiver_domain_dependency_with_id(&mut il, 1, inner_receiver, DomainEvidence::Array);
-    let inner_contract =
-        library_method_call_contract(Lang::JavaScript, "map", 1).expect("JS Array.map row");
-    il.evidence
-        .push(js_array_hof_record(2, &il, inner_hof, inner_contract, &[1]));
-    let outer_contract =
-        library_method_call_contract(Lang::JavaScript, "flatMap", 1).expect("JS Array.flatMap row");
-    il.evidence
-        .push(js_array_hof_record(3, &il, outer_hof, outer_contract, &[0]));
-
-    assert!(
-        admitted_hof_api_at_node_with_interner(&il, Some(&interner), inner_hof, HoFKind::Map),
-        "inner JS Array.map evidence should admit the nested normalized HOF"
-    );
-    assert!(
-        admitted_hof_api_at_node_with_interner(&il, Some(&interner), outer_hof, HoFKind::FlatMap),
-        "outer JS Array.flatMap callback may contain an admitted nested JS Array HOF"
     );
 }
 

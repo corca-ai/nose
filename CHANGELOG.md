@@ -28,6 +28,18 @@ break.
   provenance artifacts, and a deterministic Ruby superlinear-scan tripwire.
 
 ### Fixed
+- Hardened higher-order callback admission so free/global reads, JavaScript
+  default/rest/destructured parameters, spread, `instanceof`, and BigInt-ambiguous
+  arithmetic; Ruby splat/non-plain parameters and map-key hashing; plus Swift
+  contextual literals, nominally ambiguous operators, and overloadable/trapping
+  surfaces, casts, and capture lists remain split unless their purity coordinates are
+  proven. Ruby dynamic regex interpolation, nonlocal return, and runtime definitions,
+  plus JavaScript/TypeScript runtime class heritage, stay closed. Equality-shaped
+  operators require a unique source identity, and nested HOF callbacks are rechecked
+  whenever their own obligation is weaker than the enclosing transform obligation.
+  Callback variable proof now follows cached lexical binders, stops at intervening
+  parameter/assignment/destructuring/foreach shadows, and never crosses a fresh
+  function's alpha-renaming namespace on numeric canonical-id coincidence.
 - Restored the v5 product-quality evaluation workflow against query JSON schema v7,
   added a strict live schema-drift check, refreshed dev/held-out precision and recall,
   and made frozen-label coverage explicit in a reproducible artifact.

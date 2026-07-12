@@ -325,7 +325,8 @@ fn comprehension_converges_with_js_map() {
     // so the same transform written either way converges cross-language.
     let i = Interner::new();
     let py = "def f(items):\n    return [x * 2 for x in items]\n";
-    let js = "function g(items: number[]): number[] {\n  return items.map(x => x * 2);\n}\n";
+    let js =
+        "function g(items: number[]): number[] {\n  return items.map((x: number) => x * 2);\n}\n";
     assert_eq!(
         unit_hash(&i, py, Lang::Python),
         unit_hash(&i, js, Lang::TypeScript),

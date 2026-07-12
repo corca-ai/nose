@@ -2,6 +2,8 @@
 
 use super::*;
 
+mod callback_effects;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct OperatorSemantics {
     pub(super) lang: Lang,

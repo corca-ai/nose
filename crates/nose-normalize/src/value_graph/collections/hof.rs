@@ -259,14 +259,6 @@ impl<'a> Builder<'a> {
         self.eval_block_return(body, &mut env)
     }
 
-    pub(in crate::value_graph) fn lambda_param_count(&self, lambda: NodeId) -> usize {
-        self.il
-            .children(lambda)
-            .iter()
-            .filter(|&&child| self.il.kind(child) == NodeKind::Param)
-            .count()
-    }
-
     fn eval_filter_map_lambda_body(
         &mut self,
         lambda: NodeId,

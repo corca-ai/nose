@@ -58,6 +58,12 @@ fn raw_names(src: &str) -> Vec<String> {
     crate::test_helpers::payload_names_for_kind(&il, &interner, NodeKind::Raw)
 }
 
+fn seq_names(src: &str) -> Vec<String> {
+    let interner = Interner::new();
+    let il = lower(FileId(0), "t.rb", src.as_bytes(), &interner).expect("lower");
+    crate::test_helpers::payload_names_for_kind(&il, &interner, NodeKind::Seq)
+}
+
 fn node_kinds(src: &str) -> Vec<NodeKind> {
     nodes(src).into_iter().map(|node| node.kind).collect()
 }
@@ -310,6 +316,58 @@ fn arrow_lambda_lowers_without_lambda_raw() {
     let kinds = node_kinds("handler = ->(env) { env }\n");
     assert!(kinds.contains(&NodeKind::Lambda));
     assert!(kinds.contains(&NodeKind::Param));
+}
+
+#[test]
+fn ruby_callback_parameter_shapes_and_array_splat_remain_visible() {
+    let src = r#"
+xs.map { |*values| values }
+xs.map { |(value, other)| value }
+xs.map { |value = observe| value }
+xs.map { |value, &block| value }
+xs.map { |value,| value }
+xs.map { |; value| value }
+xs.map { |value| [*source] }
+"#;
+    let raw = raw_names(src);
+    for expected in [
+        "ruby_splat_parameter",
+        "ruby_destructured_parameter",
+        "ruby_non_plain_parameter",
+        "ruby_trailing_comma_parameter",
+        "ruby_block_local_parameters",
+    ] {
+        assert!(
+            raw.iter().any(|name| name == expected),
+            "{expected} must remain visible on its Param node: {raw:?}"
+        );
+        assert!(
+            crate::is_intentional_raw_boundary_tag(expected),
+            "{expected} is a deliberate fail-closed parameter boundary"
+        );
+    }
+    let seq = seq_names(src);
+    assert!(
+        seq.iter().any(|name| name == "ruby_array_splat"),
+        "array splat must remain visible inside the outer array literal: {seq:?}"
+    );
+}
+
+#[test]
+fn ruby_interpolated_regex_preserves_its_effectful_expression() {
+    let src = r#"xs.map { |value| /#{observe(value)}/ }"#;
+    let raw = raw_names(src);
+    assert!(
+        raw.iter().any(|name| name == "ruby_interpolated_regex"),
+        "dynamic regexp interpolation must remain a callback effect boundary: {raw:?}"
+    );
+    assert!(crate::is_intentional_raw_boundary_tag(
+        "ruby_interpolated_regex"
+    ));
+    assert!(
+        node_kinds(src).contains(&NodeKind::Call),
+        "the interpolation expression must not disappear from lowered IL"
+    );
 }
 
 #[test]

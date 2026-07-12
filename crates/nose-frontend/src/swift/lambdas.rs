@@ -4,6 +4,14 @@ pub(super) fn lower_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let protocol_modifiers = swift_lambda_protocol_modifiers(lo.text(node));
     let mut kids = Vec::new();
+    if let Some(captures) = node.child_by_field_name("captures") {
+        let values = Lowering::named_children(captures)
+            .into_iter()
+            .filter_map(|item| item.child_by_field_name("value"))
+            .map(|value| lower_expr(lo, value))
+            .collect::<Vec<_>>();
+        kids.push(lo.raw("swift_capture_list", lo.span(captures), &values));
+    }
     if let Some(lambda_type) = node.child_by_field_name("type") {
         lower_lambda_type_params(lo, lambda_type, &mut kids);
     }

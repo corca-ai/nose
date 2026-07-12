@@ -16,6 +16,7 @@ pub(crate) fn run(il: &mut Il) {
     let mut scope = Scope::default();
     let bound = compute_bound(il, root);
     rename(il, root, &mut scope, &bound, &mut names);
+    il.invalidate_scope_binding_index();
     il.cid_names = names;
 }
 

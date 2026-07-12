@@ -32,8 +32,8 @@ pub(in crate::library_api) fn library_api_contract_obligations_match_call(
     id: LibraryApiContractId,
     record: &EvidenceRecord,
 ) -> bool {
-    if method_hof_callback_obligation_required(il.meta.lang, id) {
-        return method_hof_callback_obligation_matches_node(il, interner, call, id);
+    if let Some(obligation) = library_api_callback_obligation(il.meta.lang, id) {
+        return library_api_callback_obligation_matches_node(il, interner, call, obligation);
     }
 
     let Some(source_args) = library_api_contract_iterable_source_argument_indices(il.meta.lang, id)
@@ -61,8 +61,8 @@ pub(in crate::library_api) fn library_api_contract_obligations_match_node(
     node: NodeId,
     id: LibraryApiContractId,
 ) -> bool {
-    if method_hof_callback_obligation_required(il.meta.lang, id) {
-        return method_hof_callback_obligation_matches_node(il, interner, node, id);
+    if let Some(obligation) = library_api_callback_obligation(il.meta.lang, id) {
+        return library_api_callback_obligation_matches_node(il, interner, node, obligation);
     }
     true
 }
@@ -72,169 +72,7 @@ pub(in crate::library_api) fn library_api_contract_requires_call_obligations(
     id: LibraryApiContractId,
 ) -> bool {
     library_api_contract_iterable_source_argument_indices(lang, id).is_some()
-        || method_hof_callback_obligation_required(lang, id)
-}
-
-fn method_hof_callback_obligation_required(lang: Lang, id: LibraryApiContractId) -> bool {
-    match id {
-        LibraryApiContractId::MethodCall(
-            MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
-            | MethodSemanticContract::Builtin(Builtin::Any | Builtin::All),
-        ) if js_like_lang(lang) => true,
-        LibraryApiContractId::MethodCall(
-            MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
-            | MethodSemanticContract::Builtin(Builtin::All),
-        ) if lang == Lang::Swift => true,
-        LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
-            HoFKind::Map | HoFKind::Filter | HoFKind::Reject,
-        )) if lang == Lang::Ruby => true,
-        LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
-            Builtin::Any | Builtin::All,
-        )) if lang == Lang::Ruby => true,
-        LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
-            Builtin::Any | Builtin::All,
-        )) if lang == Lang::Rust => true,
-        _ => false,
-    }
-}
-
-fn method_hof_callback_obligation_matches_node(
-    il: &Il,
-    interner: Option<&Interner>,
-    node: NodeId,
-    id: LibraryApiContractId,
-) -> bool {
-    let Some(&callback) = il.children(node).get(1) else {
-        return false;
-    };
-    if method_hof_callback_value_only_obligation_required(il.meta.lang, id)
-        && !method_hof_callback_has_single_value_param(il, callback)
-    {
-        return false;
-    }
-    method_hof_callback_effect_closed(il, interner, callback)
-}
-
-fn method_hof_callback_value_only_obligation_required(
-    lang: Lang,
-    id: LibraryApiContractId,
-) -> bool {
-    match id {
-        LibraryApiContractId::MethodCall(
-            MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::Reject)
-            | MethodSemanticContract::Builtin(Builtin::Any | Builtin::All),
-        ) if lang == Lang::Ruby => true,
-        LibraryApiContractId::MethodCall(
-            MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
-            | MethodSemanticContract::Builtin(Builtin::All),
-        ) if lang == Lang::Swift => true,
-        LibraryApiContractId::MethodCall(
-            MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
-            | MethodSemanticContract::Builtin(Builtin::Any | Builtin::All),
-        ) if js_like_lang(lang) => true,
-        _ => false,
-    }
-}
-
-fn method_hof_callback_has_single_value_param(il: &Il, callback: NodeId) -> bool {
-    if !matches!(il.kind(callback), NodeKind::Func | NodeKind::Lambda) {
-        return false;
-    }
-    il.children(callback)
-        .iter()
-        .filter(|&&child| il.kind(child) == NodeKind::Param)
-        .count()
-        == 1
-}
-
-fn method_hof_callback_effect_closed(
-    il: &Il,
-    interner: Option<&Interner>,
-    callback: NodeId,
-) -> bool {
-    if !matches!(il.kind(callback), NodeKind::Func | NodeKind::Lambda) {
-        return false;
-    }
-    let mut stack = vec![callback];
-    while let Some(node) = stack.pop() {
-        if il.kind(node) == NodeKind::Call {
-            if !method_hof_callback_nested_call_effect_closed(il, interner, node) {
-                return false;
-            }
-            continue;
-        }
-        if il.kind(node) == NodeKind::HoF {
-            if library_api_dependency_id_for_normalized_hof(il, interner, node).is_none() {
-                return false;
-            }
-            continue;
-        }
-        if !method_hof_callback_node_effect_closed(il.kind(node)) {
-            return false;
-        }
-        stack.extend(il.children(node).iter().copied());
-    }
-    true
-}
-
-fn method_hof_callback_node_effect_closed(kind: NodeKind) -> bool {
-    matches!(
-        kind,
-        NodeKind::Func
-            | NodeKind::Lambda
-            | NodeKind::Param
-            | NodeKind::Block
-            | NodeKind::ExprStmt
-            | NodeKind::Return
-            | NodeKind::If
-            | NodeKind::Var
-            | NodeKind::Lit
-            | NodeKind::BinOp
-            | NodeKind::UnOp
-            | NodeKind::Seq
-    )
-}
-
-fn method_hof_callback_nested_call_effect_closed(
-    il: &Il,
-    interner: Option<&Interner>,
-    call: NodeId,
-) -> bool {
-    let Some(interner) = interner else {
-        return false;
-    };
-    let Some(&callee) = il.children(call).first() else {
-        return false;
-    };
-    let NodeKind::Field = il.kind(callee) else {
-        return false;
-    };
-    let Payload::Name(method) = il.node(callee).payload else {
-        return false;
-    };
-    let arg_count = il.children(call).len().saturating_sub(1);
-    library_method_call_contracts(il.meta.lang, interner.resolve(method), arg_count)
-        .into_iter()
-        .filter(|contract| method_hof_callback_nested_method_call(il.meta.lang, contract.result))
-        .any(|contract| {
-            matches!(
-                library_api_contract_evidence_for_call(
-                    il,
-                    interner,
-                    call,
-                    contract.id,
-                    contract.callee,
-                    arg_count,
-                ),
-                LibraryApiEvidenceStatus::Admitted
-            )
-        })
-}
-
-fn method_hof_callback_nested_method_call(lang: Lang, contract: MethodCallContract) -> bool {
-    js_like_array_hof_method_call(lang, contract)
-        || swift_sequence_hof_method_call(lang, contract)
-        || ruby_sequence_hof_method_call(lang, contract)
+        || library_api_callback_obligation(lang, id).is_some()
 }
 
 fn library_api_record_has_iterable_source_dependency(
