@@ -20,7 +20,7 @@ fn anonymous_class_method_body_stays_in_the_enclosing_expression() {
     let il = lower(
         FileId(0),
         "T.java",
-        b"class T { void visit() { Object x = new Object() { void record() { save(entry()); } }; } }",
+        b"class T { void visit() { Object x = new Object() { void record() { save(a()); save(b()); save(c()); return; } }; } }",
         &interner,
     )
     .expect("lower anonymous class");
@@ -55,6 +55,26 @@ fn anonymous_class_method_body_stays_in_the_enclosing_expression() {
             .count()
             >= 2,
         "the anonymous record method must remain structurally visible below visit"
+    );
+}
+
+#[test]
+fn throw_only_anonymous_guard_stays_constructor_shaped() {
+    let interner = Interner::new();
+    let il = lower(
+        FileId(0),
+        "T.java",
+        b"class T { void verify() { Object key = new Object() { public int hashCode() { throw new Error(); } public boolean equals(Object x) { throw new Error(); } }; use(key); } }",
+        &interner,
+    )
+    .expect("lower throw-only anonymous guard");
+    assert_eq!(
+        il.nodes
+            .iter()
+            .filter(|node| node.kind == NodeKind::Func)
+            .count(),
+        1,
+        "incidental defensive overrides must not alter the enclosing method's features"
     );
 }
 
