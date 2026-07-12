@@ -25,7 +25,6 @@ from typing import Any
 from labelset import RECALL_METRIC, load_labelset, metric_eligible, sha256_file
 from missed_worthy_frontier import (
     ARTIFACT_SCHEMA,
-    EXPECTED_CURRENT_RECALL,
     INLINE_FLOOR,
     REQUIRED_RESIDUAL_LANES,
     ROOT,
@@ -39,6 +38,7 @@ from missed_worthy_frontier import (
     load_and_validate_closeout,
     load_and_validate_decisions,
     relative_path,
+    registered_recall_profile,
     render_dev_context,
     run_self_test,
     select_dev_audit,
@@ -463,6 +463,11 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
     if not args.nose.is_file():
         raise SystemExit(f"release binary is missing: {args.nose}")
 
+    evaluation_input = tracked_input(args.evaluation_report)
+    evaluation_input["expected_worthy_recall"] = registered_recall_profile(
+        evaluation_input["sha256"]
+    )
+
     recall_labelset = load_labelset(args.recall_labelset)
     if recall_labelset.version != "v5":
         raise SystemExit("--recall-labelset must be the source-independent v5 pool")
@@ -632,10 +637,7 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
                     version="v6",
                     role="precision-only-current-output-overlay",
                 ),
-                "evaluation_report": tracked_input(
-                    args.evaluation_report,
-                    expected_worthy_recall=EXPECTED_CURRENT_RECALL,
-                ),
+                "evaluation_report": evaluation_input,
                 "corpus_manifest": tracked_input(args.corpus_manifest),
                 "prune_manifest": tracked_input(args.prune_manifest),
                 "query_schema": tracked_input(QUERY_SCHEMA_PATH),

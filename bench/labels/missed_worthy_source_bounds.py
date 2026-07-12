@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Freeze and validate source line bounds for the #816 dev audit evidence."""
+"""Freeze and validate source line bounds for a checked dev audit."""
 
 from __future__ import annotations
 

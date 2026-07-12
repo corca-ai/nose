@@ -7,6 +7,10 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added the #820 post-#817 missed-worthy frontier: snapshot-aware validation that preserves
+  #816, exact combined dev/held-out evaluation and zero-regression comparison, regenerated
+  raw stages, chronology- and source-bound dev decisions, a held-out-source-free mechanical
+  confirmation, and the bounded connected-witness follow-up #821.
 - Added the #816 current missed-worthy frontier audit: complete nose 0.18.0
   reproduction provenance, exact v5-worthy recall counts, a frozen seven-language
   dev source audit, raw extraction/candidate/accepted stage evidence, one-time
