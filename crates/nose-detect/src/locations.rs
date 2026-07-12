@@ -60,6 +60,30 @@ fn enclosing_unit_of(parent: &UnitFeat) -> EnclosingUnit {
     unit
 }
 
+/// Turn a pair-local witness into the actionable source location while retaining its
+/// enclosing named unit as context. Whole-unit locations stay unchanged.
+pub(crate) fn connected_loc_of(
+    unit: &UnitFeat,
+    enclosing_unit: Option<EnclosingUnit>,
+    span: (u32, u32),
+    mapped_nodes: u32,
+) -> Loc {
+    let mut loc = loc_of(unit, enclosing_unit);
+    loc.shared_subdag = Some(span);
+    if span != (unit.start_line, unit.end_line) {
+        if loc.enclosing_unit.is_none() && can_enclose_fragment(unit) {
+            loc.enclosing_unit = Some(enclosing_unit_of(unit));
+        }
+        loc.start_line = span.0;
+        loc.end_line = span.1;
+        loc.span_lines = LineSpan::new(span.0, span.1).line_count();
+        loc.span_tokens = mapped_nodes as usize;
+        loc.kind = UnitKind::Block;
+        loc.name = None;
+    }
+    loc
+}
+
 /// Attach enclosing function/method names to copy-paste-run members. Contiguous
 /// groups are built from token streams, not from the unit set, so they never
 /// passed through `enclosing_units` — and the #216 audit's sampled block

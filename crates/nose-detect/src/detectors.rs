@@ -1,11 +1,10 @@
 use crate::{
     align,
     candidates::shared_anchor_weight,
-    connected,
     exact_policy::{candidate_value_floor_met, exact_value_match_eligible},
     strict_exact,
     units::UnitFeat,
-    ConnectedWitness, LineSpan,
+    ConnectedWitness,
 };
 use nose_il::{Il, Interner, NodeId};
 use std::collections::HashMap;
@@ -14,18 +13,6 @@ use std::collections::HashMap;
 pub trait Detector: Sync {
     fn name(&self) -> &str;
     fn score(&self, a: &UnitFeat, b: &UnitFeat) -> f64;
-
-    /// Pair-local proof used only after an existing raw candidate seeds the two source
-    /// regions. Exact/strict detectors keep the default closed implementation.
-    fn connected_witness(
-        &self,
-        _a: &UnitFeat,
-        _b: &UnitFeat,
-        _a_seed: LineSpan,
-        _b_seed: LineSpan,
-    ) -> Option<ConnectedWitness> {
-        None
-    }
 }
 
 /// A no-op scorer used when a mode intentionally runs only the contiguous
@@ -240,18 +227,6 @@ impl Detector for StructuralDetector {
             return score.min(base + (1.0 - base) * rj);
         }
         score
-    }
-
-    fn connected_witness(
-        &self,
-        a: &UnitFeat,
-        b: &UnitFeat,
-        a_seed: LineSpan,
-        b_seed: LineSpan,
-    ) -> Option<ConnectedWitness> {
-        (self.candidate_mode && a.lang == b.lang).then(|| {
-            connected::connected_witness(&a.connected_tokens, &b.connected_tokens, a_seed, b_seed)
-        })?
     }
 }
 

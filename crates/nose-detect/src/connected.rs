@@ -8,15 +8,16 @@
 
 use crate::{model::ConnectedWitness, LineSpan};
 use nose_il::{Il, Interner, NodeId, NodeKind};
-use nose_normalize::node_tag;
+use nose_normalize::node_tag_valued;
 
 const MAX_TOKENS: usize = 2_000;
 const MIN_MAPPED_NODES: u32 = 20;
 const MIN_COMPLETE_EXIT_NODES: u32 = 18;
 const MAX_HOLES: usize = 8;
 
-/// Two words per normalized IL node. `tag` is the existing structural tag; `meta` packs the
-/// node kind, arity, preorder-subtree length, and source span. Keeping this compact matters:
+/// Two words per normalized IL node. `tag` retains leaf values so variations count as mapped
+/// holes; `meta` packs the node kind, arity, preorder-subtree length, and source span. Keeping
+/// this compact matters:
 /// units are cached and a large repository can retain hundreds of thousands of nodes.
 #[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub(crate) struct MappedToken {
@@ -114,7 +115,7 @@ pub(crate) fn mapped_tokens(il: &Il, interner: &Interner, preorder: &[NodeId]) -
         .map(|(position, &node)| {
             let node = il.node(node);
             MappedToken::new(
-                node_tag(node.kind, node.payload, interner),
+                node_tag_valued(node.kind, node.payload, interner),
                 node.kind,
                 node.child_len as usize,
                 subtree_lens[position],
@@ -282,6 +283,8 @@ fn candidate(
     right_constraint: LineSpan,
     complete_exit_suffix: bool,
 ) -> Option<ConnectedWitness> {
+    let overlaps_seed =
+        overlaps(left_span, left_constraint) && overlaps(right_span, right_constraint);
     let substantial = state.nodes >= MIN_MAPPED_NODES
         || (complete_exit_suffix
             && state.nodes >= MIN_COMPLETE_EXIT_NODES
@@ -290,8 +293,7 @@ fn candidate(
         || state.observable == 0
         || left_span.0 == 0
         || right_span.0 == 0
-        || !overlaps(left_span, left_constraint)
-        || !overlaps(right_span, right_constraint)
+        || (!overlaps_seed && !complete_exit_suffix)
     {
         return None;
     }
@@ -300,6 +302,7 @@ fn candidate(
         right_lines: right_span,
         mapped_nodes: state.nodes,
         holes: state.holes.len() as u32,
+        complete_exit: complete_exit_suffix,
     })
 }
 
@@ -360,7 +363,7 @@ pub(crate) fn connected_witness(
                     &whole,
                     left_constraint,
                     right_constraint,
-                    true,
+                    false,
                 ) {
                     best = Some(best.map_or(found, |current| better(current, found)));
                 }

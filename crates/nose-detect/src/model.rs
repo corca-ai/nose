@@ -200,6 +200,8 @@ pub struct ConnectedWitness {
     pub right_lines: (u32, u32),
     pub mapped_nodes: u32,
     pub holes: u32,
+    #[serde(skip)]
+    pub complete_exit: bool,
 }
 
 #[derive(Serialize)]

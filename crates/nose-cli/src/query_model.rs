@@ -13,6 +13,7 @@ fn witness_alias(v: &str) -> &str {
     match v {
         "exact" => "exact-value-graph",
         "subdag" | "shared-core" => "shared-sub-dag",
+        "connected" | "connected-core" => "connected-mapped-sub-dag",
         "copy-paste" | "copypaste" => "copy-paste-run",
         "similar" | "structural" => "structural-similarity",
         other => other,
@@ -25,6 +26,7 @@ pub(super) fn witness_token(kind: Option<&str>) -> &'static str {
     match kind {
         Some("exact-value-graph") => "exact",
         Some("shared-sub-dag") => "subdag",
+        Some("connected-mapped-sub-dag") => "connected",
         Some("copy-paste-run") => "copy-paste",
         Some("structural-similarity") => "similar",
         _ => "?",
@@ -38,6 +40,7 @@ pub(super) fn witness_token(kind: Option<&str>) -> &'static str {
 pub(super) fn witness_label(kind: Option<&str>) -> &'static str {
     match kind {
         Some("shared-sub-dag") => "shared-core",
+        Some("connected-mapped-sub-dag") => "connected-core",
         other => witness_token(other),
     }
 }
@@ -48,7 +51,7 @@ pub(super) fn witness_styled(kind: Option<&str>) -> String {
     let label = witness_label(kind);
     match kind {
         Some("exact-value-graph") => style::bold_green(label),
-        Some("shared-sub-dag") => style::green(label),
+        Some("shared-sub-dag" | "connected-mapped-sub-dag") => style::green(label),
         Some("copy-paste-run") => style::yellow(label),
         Some("structural-similarity") => style::blue(label),
         _ => label.to_string(),

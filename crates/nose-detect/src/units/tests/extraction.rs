@@ -40,6 +40,7 @@ fn lowered_java_units_with_features(
         ExtractFeatures {
             shape_features,
             abstraction_witnesses,
+            connected_witnesses: false,
         },
     )
 }
@@ -94,6 +95,7 @@ fn lowered_fragment_units(src: &str, lang: Lang, interner: &Interner) -> Vec<Uni
         ExtractFeatures {
             shape_features: false,
             abstraction_witnesses: false,
+            connected_witnesses: false,
         },
     )
     .into_iter()

@@ -31,6 +31,8 @@ fn candidate_options() -> DetectOptions {
         threshold: 0.70,
         min_lines: 3,
         min_tokens: 12,
+        shape_candidates: true,
+        connected_witnesses: true,
         ..Default::default()
     }
 }
@@ -144,16 +146,8 @@ int validate_right(Item *items, int count) {
         .iter()
         .find(|pair| {
             crosses_files(&pair.left.file, &pair.right.file, "left.c", "right.c")
-                && pair
-                    .left
-                    .name
-                    .as_deref()
-                    .is_some_and(|name| name.starts_with("validate_"))
-                && pair
-                    .right
-                    .name
-                    .as_deref()
-                    .is_some_and(|name| name.starts_with("validate_"))
+                && pair.left.shared_subdag.is_some()
+                && pair.right.shared_subdag.is_some()
         })
         .expect("the connected validation ladders should be accepted");
     let (left_span, right_span) = if pair.left.file == "left.c" {
@@ -163,6 +157,14 @@ int validate_right(Item *items, int count) {
     };
     assert_eq!(left_span, Some((12, 26)));
     assert_eq!(right_span, Some((10, 24)));
+    assert_eq!(
+        (pair.left.start_line, pair.left.end_line),
+        pair.left.shared_subdag.unwrap()
+    );
+    assert_eq!(
+        (pair.right.start_line, pair.right.end_line),
+        pair.right.shared_subdag.unwrap()
+    );
 }
 
 #[test]
@@ -171,7 +173,7 @@ fn connected_edges_remain_pair_local_instead_of_clustering_transitively() {
 int left(State *s) {
   prepare_left(s);
   if(s->alpha) {
-    alpha_open(s); alpha_scan(s); alpha_record(s); alpha_close(s); alpha_commit(s);
+    alpha_open(s, 1); alpha_scan(s); alpha_record(s); alpha_close(s); alpha_commit(s);
   }
   finish_left(s);
   return s->status;
@@ -181,11 +183,11 @@ int left(State *s) {
 int bridge(State *s) {
   prepare_bridge(s);
   if(s->alpha) {
-    alpha_open(s); alpha_scan(s); alpha_record(s); alpha_close(s); alpha_commit(s);
+    alpha_open(s, 2); alpha_scan(s); alpha_record(s); alpha_close(s); alpha_commit(s);
   }
   audit_bridge(s);
   if(s->beta) {
-    beta_open(s); beta_scan(s); beta_record(s); beta_close(s); beta_commit(s);
+    beta_open(s, 3); beta_scan(s); beta_record(s); beta_close(s); beta_commit(s);
   }
   finish_bridge(s);
   return s->status;
@@ -195,7 +197,7 @@ int bridge(State *s) {
 int right(State *s) {
   prepare_right(s);
   if(s->beta) {
-    beta_open(s); beta_scan(s); beta_record(s); beta_close(s); beta_commit(s);
+    beta_open(s, 4); beta_scan(s); beta_record(s); beta_close(s); beta_commit(s);
   }
   finish_right(s);
   return s->status;

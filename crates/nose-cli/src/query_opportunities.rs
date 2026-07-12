@@ -83,6 +83,11 @@ impl OpportunityGroups {
         let direct_pairs: Vec<(usize, usize)> = candidates
             .into_iter()
             .filter(|&(i, j)| overlapping_member_pairs(families[i], families[j]) >= 2)
+            // A newly admitted pair-local witness may be ranked above a broad existing
+            // family because its source bounds are tighter. It can be folded under that
+            // existing family when covered, but it must never become the presentation
+            // root that hides previously visible product output.
+            .filter(|&(i, j)| !is_connected(families[i]) || is_connected(families[j]))
             .collect();
         // Presentation overlap is a graph, not an equivalence relation. A direct
         // spanning forest keeps syntax-only suppression edges navigable without
@@ -144,6 +149,10 @@ impl OpportunityGroups {
             .get(&baseline::family_id(family))
             .map(Vec::as_slice)
     }
+}
+
+fn is_connected(family: &nose_detect::RefactorFamily) -> bool {
+    family.witness.as_ref().map(|witness| witness.kind) == Some("connected-mapped-sub-dag")
 }
 
 #[derive(Default)]

@@ -14,7 +14,7 @@ pub(crate) fn enrich_graded_witnesses(
         f.locations.len() >= 2
             && matches!(
                 f.witness.as_ref().map(|w| w.kind),
-                Some("structural-similarity" | "shared-sub-dag")
+                Some("structural-similarity" | "shared-sub-dag" | "connected-mapped-sub-dag")
             )
     };
     if !families.iter().any(is_enrichable) {

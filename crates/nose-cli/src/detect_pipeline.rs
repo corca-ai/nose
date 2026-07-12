@@ -19,19 +19,6 @@ impl nose_detect::Detector for ChannelDetector {
             .map(|d| d.score(a, b))
             .fold(0.0, f64::max)
     }
-
-    fn connected_witness(
-        &self,
-        a: &nose_detect::UnitFeat,
-        b: &nose_detect::UnitFeat,
-        a_seed: nose_detect::LineSpan,
-        b_seed: nose_detect::LineSpan,
-    ) -> Option<nose_detect::ConnectedWitness> {
-        self.detectors
-            .iter()
-            .filter_map(|detector| detector.connected_witness(a, b, a_seed, b_seed))
-            .max_by_key(|witness| (witness.mapped_nodes, std::cmp::Reverse(witness.holes)))
-    }
 }
 
 /// Lower + detect + rank clone families for divergence's base tree. This keeps
@@ -82,6 +69,7 @@ pub(crate) fn detection_options(
         value_candidates: channels.semantic || channels.near || channels.abstraction,
         shape_candidates: channels.near || channels.abstraction,
         shape_features: channels.near || channels.abstraction,
+        connected_witnesses: channels.near || channels.abstraction,
         abstraction_witnesses: channels.abstraction,
         emit_pairs: false,
         ..Default::default()

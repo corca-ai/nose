@@ -8,6 +8,23 @@ fn accepted_pair(sites: Vec<Loc>) -> nose_detect::AcceptedCoverage {
 }
 
 #[test]
+fn connected_witness_never_hides_an_existing_family() {
+    let mut connected = fam_at(&[("t/a.go", 10, 30), ("t/b.go", 10, 30)]);
+    connected.witness = Some(nose_detect::EquivalenceWitness {
+        kind: "connected-mapped-sub-dag",
+        value_nodes: Some(42),
+        mean_value_jaccard: None,
+        mean_shape_jaccard: None,
+        graded: None,
+        graded_pair: None,
+    });
+    let existing = fam_at(&[("t/a.go", 1, 40), ("t/b.go", 1, 40)]);
+    let groups = OpportunityGroups::from_ranked(&[&connected, &existing]);
+
+    assert!(!groups.is_slice(&existing));
+}
+
+#[test]
 fn overlapping_slices_fold_under_their_primary() {
     // B's members are both shifted slices of A's regions → one opportunity.
     // C shares only ONE region with A (its other member lives elsewhere) —

@@ -3,7 +3,7 @@ use crate::{
     cluster::UnionFind,
     detectors::env_or,
     exact_policy::exact_claim_eligible,
-    locations::loc_of,
+    locations::{connected_loc_of, loc_of},
     lsh,
     model::{EnclosingUnit, EquivalenceWitness, Group, Loc},
     options::DetectOptions,
@@ -13,11 +13,19 @@ use nose_semantics::ValueLaw;
 use rustc_hash::FxHashMap;
 
 #[derive(Clone, Copy)]
+pub(crate) enum ConnectedRoute {
+    Mapped,
+    CompleteExit,
+    Nested,
+}
+
+#[derive(Clone, Copy)]
 pub(crate) struct ConnectedAccepted {
     pub left: usize,
     pub right: usize,
     pub score: f64,
     pub witness: crate::ConnectedWitness,
+    pub route: ConnectedRoute,
 }
 
 fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
@@ -169,10 +177,18 @@ pub(crate) fn build_connected_groups(
     let groups = accepted
         .iter()
         .map(|pair| {
-            let mut left = loc_of(&units[pair.left], enclosing[pair.left].clone());
-            let mut right = loc_of(&units[pair.right], enclosing[pair.right].clone());
-            left.shared_subdag = Some(pair.witness.left_lines);
-            right.shared_subdag = Some(pair.witness.right_lines);
+            let left = connected_loc_of(
+                &units[pair.left],
+                enclosing[pair.left].clone(),
+                pair.witness.left_lines,
+                pair.witness.mapped_nodes,
+            );
+            let right = connected_loc_of(
+                &units[pair.right],
+                enclosing[pair.right].clone(),
+                pair.witness.right_lines,
+                pair.witness.mapped_nodes,
+            );
             let members = [pair.left, pair.right];
             Group {
                 score: round3(pair.score),

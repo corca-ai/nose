@@ -45,6 +45,7 @@ pub(super) fn family_summary(f: &nose_detect::RefactorFamily) -> String {
     let evidence = match f.witness.as_ref().map(|w| w.kind) {
         Some("exact-value-graph") => " · exact behavior match",
         Some("shared-sub-dag") => " · shared core computation",
+        Some("connected-mapped-sub-dag") => " · connected shared computation",
         Some("copy-paste-run") => " · copy-paste",
         Some("structural-similarity") => " · near-duplicate",
         _ => "",
