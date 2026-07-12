@@ -10,9 +10,9 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_eq!(json["status"], "ok");
     assert_eq!(json["totals"]["packs"], 49);
     assert_eq!(json["totals"]["builtin_packs"], 49);
-    assert_eq!(json["totals"]["positive_fixtures"], 194);
-    assert_eq!(json["totals"]["hard_negatives"], 178);
-    assert_eq!(json["totals"]["conformance_refs"], 372);
+    assert_eq!(json["totals"]["positive_fixtures"], 195);
+    assert_eq!(json["totals"]["hard_negatives"], 188);
+    assert_eq!(json["totals"]["conformance_refs"], 383);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -186,6 +186,7 @@ fn assert_sequence_hof_adapter_pack(packs: &[serde_json::Value]) {
             "rust-iterator-hof-count-terminal-positive",
             "swift-sequence-hof-map-positive",
             "swift-sequence-hof-filter-positive",
+            "swift-sequence-hof-compact-map-positive",
             "swift-sequence-hof-flat-map-positive",
             "ruby-enumerable-hof-map-positive",
             "ruby-enumerable-hof-collect-positive",
@@ -210,7 +211,17 @@ fn assert_sequence_hof_adapter_pack(packs: &[serde_json::Value]) {
             "swift-sequence-hof-throwing-closure-hard-negative",
             "swift-sequence-hof-mutating-closure-hard-negative",
             "swift-sequence-hof-any-sequence-reuse-hard-negative",
-            "swift-sequence-hof-compact-map-unsupported-hard-negative",
+            "swift-sequence-hof-compact-map-changed-drop-hard-negative",
+            "swift-sequence-hof-compact-map-changed-value-hard-negative",
+            "swift-sequence-hof-compact-map-wrong-source-hard-negative",
+            "swift-sequence-hof-compact-map-wrong-option-channel-hard-negative",
+            "swift-sequence-hof-compact-map-effectful-closure-hard-negative",
+            "swift-sequence-hof-compact-map-custom-overload-hard-negative",
+            "swift-sequence-hof-compact-map-custom-nominal-receiver-hard-negative",
+            "swift-sequence-hof-compact-map-optional-emitted-value-hard-negative",
+            "swift-sequence-hof-compact-map-custom-nil-literal-hard-negative",
+            "swift-sequence-hof-compact-map-derived-source-hard-negative",
+            "swift-sequence-hof-compact-map-retroactive-nil-conformance-hard-negative",
             "ruby-enumerable-hof-no-block-hard-negative",
             "ruby-enumerable-hof-lazy-enumerator-hard-negative",
             "ruby-enumerable-hof-framework-relation-hard-negative",
@@ -225,7 +236,6 @@ fn assert_sequence_hof_adapter_pack(packs: &[serde_json::Value]) {
         json_array_strings(&sequence_hof["conformance"], "unsupported_refs"),
         vec![
             "rust-iterator-hof-find-unsupported-hard-negative",
-            "swift-sequence-hof-compact-map-unsupported-hard-negative",
             "ruby-enumerable-hof-flat-map-unsupported-hard-negative"
         ]
     );

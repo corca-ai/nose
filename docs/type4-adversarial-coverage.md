@@ -195,6 +195,23 @@ proof-backed collection/tuple construction. The neutral fact is reusable, but
 these fixtures do not by themselves prove optional emission, one-level
 flattening, aggregate guards, or a new language/API surface.
 
+The Swift `compactMap` option-emission slice supplies that next conjunction for a
+narrow controlled perimeter. One executable positive matches an eager
+`compactMap { value in value ? value : nil }` over a direct language-core-proven
+plain, attribute- and modifier-free bracket-array (`[T]`) parameter to the equivalent filtered Python comprehension. Eleven
+executable hard negatives independently change
+the emitted value, change the drop condition, traverse a different source, use
+`.map` as the wrong Optional channel, observe a callback effect, or dispatch to a
+custom overload, and additionally cover a custom nominal receiver, Optional emitted values,
+custom nil-literal channels, retroactive nil-literal conformances, and derived sources.
+Focused semantic and CLI tests also keep nominal Array/Collection annotations, imports,
+type aliases, macros, captured condition/emission, local aliases, nested HOF receivers,
+parameter attributes/modifiers/property wrappers, same-file/cross-file `compactMap`/`map`/`filter` methods and callable properties, multi-parameter callbacks,
+both-present/both-absent branches, contextual literals, and overloadable/derived expressions
+closed. The complete executable suite is now 300/300,
+and the Swift filter-map row leaves the open-surface audit only inside this direct-source,
+same-callback-parameter condition/value perimeter.
+
 The `python.loop_demorgan_all` focused group clarifies the README-facing same-language
 packet. Its positive fixture captures `all(x != 0 and x != 1 for x in xs)` versus the
 early-return counterexample loop; hard negatives cover vacuous truth, observed effects,

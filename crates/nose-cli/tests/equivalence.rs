@@ -116,6 +116,8 @@ mod semantic_law_boundaries;
 mod source_identity_boundaries;
 #[path = "equivalence/swift_all_satisfy.rs"]
 mod swift_all_satisfy;
+#[path = "equivalence/swift_compact_map.rs"]
+mod swift_compact_map;
 #[path = "equivalence/syntax_surfaces.rs"]
 mod syntax_surfaces;
 #[path = "equivalence/typescript_every.rs"]

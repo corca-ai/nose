@@ -454,7 +454,7 @@ pub fn library_hof_demand_timing(lang: Lang, kind: HoFKind) -> Option<HofDemandT
             HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter,
         )
         | (Lang::Ruby, HoFKind::Map | HoFKind::Filter | HoFKind::Reject)
-        | (Lang::Swift, HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter) => {
+        | (Lang::Swift, HoFKind::Map | HoFKind::FlatMap | HoFKind::FilterMap | HoFKind::Filter) => {
             HofDemandTiming::EagerPerElement
         }
         (Lang::Python, HoFKind::Map | HoFKind::Filter)

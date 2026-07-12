@@ -376,6 +376,15 @@ Method receiver contracts expose their domain-backed obligations through
 `DomainRequirement`; obligations such as imported namespace, unshadowed global,
 exact map literal, and future demand/effect constraints remain separate checks.
 
+Plain (attribute- and modifier-free) Swift bracket-array parameter syntax (`[T]`) additionally emits
+`Type(SwiftBracketArrayParameter)` on the exact `Param` anchor. This is a
+language-core source-surface fact, not a synonym for the broader `Collection`
+domain. It is emitted only when the parameter has no custom attribute/property
+wrapper or parameter modifier, because those surfaces can replace or mediate the
+caller-provided value. Controlled `compactMap` admission requires this narrower
+fact so nominal `Array<T>`, `Collection`, custom dynamic-member receivers, and
+externally asserted type facts cannot impersonate builtin bracket-array dispatch.
+
 Parameter `Domain` evidence also seeds the semantic-kernel `ValueDomain`
 contract used by value-graph and recursion laws. That bridge is intentionally
 narrow: integer/float/number domains seed `Number`, boolean seeds `Boolean`,

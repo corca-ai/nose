@@ -53,6 +53,10 @@ pub(super) fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
             Some(lo.add(NodeKind::ExprStmt, Payload::None, span, &[expr]))
         }
         _ => {
+            // Tree-sitter can recover some valid compact Swift declarations as
+            // an ERROR/Raw subtree. Preserve the same fail-closed dispatch fact
+            // that structured type/extension/property lowering would emit.
+            record_compact_map_dispatch_barrier(lo, node);
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
                 .map(|child| lower_expr(lo, child))

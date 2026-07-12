@@ -5,8 +5,8 @@ use nose_il::{
 };
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
-    library_free_name_collection_factory_contract, library_swift_map_factory_contract,
-    LibraryApiCalleeContract, LibraryApiContractId,
+    library_free_name_collection_factory_contract, library_method_call_contract,
+    library_swift_map_factory_contract, LibraryApiCalleeContract, LibraryApiContractId,
 };
 use std::fs;
 
@@ -180,6 +180,7 @@ fn lower_corpus_closes_swift_stdlib_factories_shadowed_by_cross_file_typealias()
         r#"struct MyArray {
   init(_ values: [Int]) {}
 }
+
 struct MyDictionary {
   init(uniqueKeysWithValues values: [(String, Int)]) {}
 }
@@ -258,6 +259,92 @@ typealias Dictionary = MyDictionary
             + asserted_unshadowed_global_count(consumer_il, "Dictionary"),
         0,
         "cross-file stdlib type shadows must close unshadowed-global proofs"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn lower_corpus_closes_swift_compact_map_shadowed_by_cross_file_overload() {
+    assert_cross_file_swift_compact_map_closed(
+        "swift_cross_file_compact_map_overload",
+        "Overload.swift",
+        r#"extension Array where Element == Bool {
+  func `compactMap`(_ transform: (Bool) -> Bool?) -> [Bool] { return [] }
+}
+"#,
+        "a cross-file Array.compactMap overload must close stdlib HOF evidence",
+    );
+}
+
+#[test]
+fn lower_corpus_closes_swift_compact_map_shadowed_by_cross_file_property() {
+    assert_cross_file_swift_compact_map_closed(
+        "swift_cross_file_compact_map_property",
+        "Property.swift",
+        r#"extension Array where Element==Bool{var `compactMap`:(((Bool)->Bool?)->[Bool]){{_ in []}}}
+"#,
+        "a cross-file compactMap property must close stdlib HOF evidence",
+    );
+}
+
+#[test]
+fn lower_corpus_closes_compact_map_against_custom_filter_map_dispatch() {
+    assert_cross_file_swift_compact_map_closed(
+        "swift_cross_file_filter_map_dispatch",
+        "Overrides.swift",
+        r#"extension Array where Element == Bool {
+  func filter(_ predicate: (Bool) -> Bool) -> [Bool] { [] }
+  func map<T>(_ transform: (Bool) -> T) -> [T] { [] }
+}
+"#,
+        "custom filter/map dispatch must close compactMap graph convergence",
+    );
+}
+
+#[test]
+fn lower_corpus_closes_swift_compact_map_after_cross_file_nil_conformance() {
+    assert_cross_file_swift_compact_map_closed(
+        "swift_cross_file_nil_literal_conformance",
+        "Conformance.swift",
+        r#"typealias NilProtocol = ExpressibleByNilLiteral
+extension Bool: @retroactive NilProtocol {
+  public init(nilLiteral: ()) { self = true }
+}
+"#,
+        "a cross-file nil-literal conformance must close compactMap option-channel proof",
+    );
+}
+
+fn assert_cross_file_swift_compact_map_closed(
+    tag: &str,
+    declaration_file: &str,
+    declaration: &str,
+    failure_message: &str,
+) {
+    let dir = temp_dir(tag);
+    fs::write(dir.join(declaration_file), declaration).unwrap();
+    let consumer = dir.join("Consumer.swift");
+    fs::write(
+        &consumer,
+        r#"func f(_ values: [Bool]) -> [Bool] {
+  return values.compactMap { value in value ? value : nil }
+}
+"#,
+    )
+    .unwrap();
+
+    let corpus = lower_corpus_filtered(&[dir.as_path()], &[]);
+    let consumer_il = corpus
+        .files
+        .iter()
+        .find(|il| il.meta.path == consumer.to_string_lossy())
+        .expect("consumer Swift file should be lowered");
+    let contract =
+        library_method_call_contract(Lang::Swift, "compactMap", 1).expect("compactMap contract");
+    assert_eq!(
+        asserted_contract_api_count(consumer_il, contract.id, contract.callee),
+        0,
+        "{failure_message}"
     );
     let _ = fs::remove_dir_all(&dir);
 }

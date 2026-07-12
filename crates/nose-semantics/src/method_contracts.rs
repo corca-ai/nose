@@ -204,7 +204,7 @@ pub(super) fn method_call_contract_shapes(
         (lang, method_hof_contract(lang, name)),
         (
             Lang::Swift,
-            Some(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
+            Some(HoFKind::Map | HoFKind::Filter | HoFKind::FilterMap | HoFKind::FlatMap)
         ) | (
             Lang::Ruby,
             Some(HoFKind::Map | HoFKind::Filter | HoFKind::Reject)

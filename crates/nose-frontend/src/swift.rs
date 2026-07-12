@@ -11,8 +11,12 @@ use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
     stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceKind, FileId, Il, Interner, Lang,
     LitClass, LoopKind, NodeId, NodeKind, Op, Payload, RegionKind, SourceGranularity,
-    SourceProtocolKind, Span, Symbol, UnitBodyKind, UnitDomain, UnitDomains, UnitEvidenceFlag,
-    UnitKind, UnitOrigin, UnitSubkind,
+    SourceProtocolKind, Span, Symbol, TypeEvidenceKind, UnitBodyKind, UnitDomain, UnitDomains,
+    UnitEvidenceFlag, UnitKind, UnitOrigin, UnitSubkind,
+};
+use nose_semantics::{
+    SWIFT_COMPACT_MAP_DISPATCH_BARRIER_MARKER, SWIFT_NIL_LITERAL_CONFORMANCE_MARKER,
+    SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER,
 };
 use tree_sitter::Node as TsNode;
 

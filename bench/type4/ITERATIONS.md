@@ -578,6 +578,34 @@ therefore removes only
 Java/Swift flat-map aggregate blocker sets; #795, #796, and #797 still own their emitted
 value, drop condition, nested traversal, flatten-depth, and aggregate-guard coordinates.
 
+## Swift compactMap Option-Emission Coordinates
+
+Closed #795 by modeling `hof.filter-map.drop-condition-coordinate` and
+`hof.filter-map.emitted-value-coordinate` as controlled neutral facts and admitting a
+narrow Swift `compactMap` slice. Admission requires one plain callback parameter over a
+direct, attribute- and modifier-free function parameter with language-core bracket-array (`[T]`) source evidence, that callback parameter itself as both
+the `Bool` condition and emitted value, exactly one `nil` absence branch, eager demand,
+callback-effect closure, unambiguous stdlib dispatch, and a closed nil-literal namespace
+without imports, type aliases, macros, or visible `ExpressibleByNilLiteral` conformances.
+The value graph keeps condition and emitted value as independent coordinates and
+canonicalizes the admitted `FilterMap` to the same exact family as an explicit filtered
+comprehension.
+
+The executable perimeter adds one same-family expectation and eleven independent splits:
+changed emitted value, changed drop condition, wrong source, wrong Optional channel,
+observed callback effect, custom overload, custom nominal receiver, Optional emitted value,
+custom nil-literal channel, retroactive nil-literal conformance, and derived source. Focused
+tests additionally close imported or aliased nil-literal namespaces, captured
+condition/emission, local aliases and nested HOF receivers, nominal Array/Collection sources,
+both-present/both-absent callbacks, contextual literals, extra callback parameters, and
+parameter attributes/modifiers/property wrappers, same-file `compactMap`/`map`/`filter` methods or callable properties. Corpus-level ambiguity is a refresh tombstone,
+so repeated normalization cannot reopen a cross-file custom overload or conformance;
+surviving unmodeled `compactMap` selectors cannot borrow opaque exact method identity. All
+300 executable Type-4 expectations pass.
+The proof registry marks both coordinate facts modeled-controlled, the semantic card is
+`controlled-slice-admitted`, and #791 records #795 as absent from the current open audit;
+#796 and #797 remain the next original rows for one-level flattening and aggregate guards.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,

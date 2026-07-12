@@ -26,6 +26,51 @@ pub fn domain_evidence_for_param(il: &Il, param: NodeId) -> Option<DomainEvidenc
         .and_then(|span| domain_evidence_at_span(il, span))
 }
 
+/// Whether a parameter has a unique, dependency-live language-core proof that
+/// it is attribute/modifier-free and uses Swift bracket-array syntax (`[T]`).
+pub fn swift_bracket_array_parameter_proven(il: &Il, param: NodeId) -> bool {
+    if il.kind(param) != NodeKind::Param {
+        return false;
+    }
+    let span = il.node(param).span;
+    matches!(
+        unique_asserted_record_evidence_at(
+            il,
+            span,
+            |anchor| anchor == EvidenceAnchor::param(span),
+            |record| match record.kind {
+                EvidenceKind::Type(TypeEvidenceKind::SwiftBracketArrayParameter) => {
+                    Some(language_core_record_has_provenance(il, record))
+                }
+                _ => None,
+            },
+        ),
+        EvidenceResolution::Found(true)
+    )
+}
+
+/// Whether Swift source contains an Array/Collection-domain parameter that is
+/// not backed by plain bracket-array syntax. Such a nominal, attributed, or
+/// modified parameter can change source identity or route HOF selectors through
+/// user-defined dispatch and therefore cannot participate in the controlled
+/// compactMap/filter+map equivalence perimeter.
+pub fn swift_has_unproven_collection_parameter(il: &Il) -> bool {
+    if il.meta.lang != Lang::Swift {
+        return false;
+    }
+    il.nodes
+        .iter()
+        .enumerate()
+        .map(|(index, _)| NodeId(index as u32))
+        .filter(|&node| il.kind(node) == NodeKind::Param)
+        .any(|param| {
+            matches!(
+                domain_evidence_for_param(il, param),
+                Some(DomainEvidence::Array | DomainEvidence::Collection)
+            ) && !swift_bracket_array_parameter_proven(il, param)
+        })
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DomainRequirement {
     Exact(DomainEvidence),
@@ -405,6 +450,17 @@ pub(crate) fn var_references_same_binding(il: &Il, lhs: NodeId, reference: NodeI
     if il.kind(lhs) != NodeKind::Var || il.kind(reference) != NodeKind::Var {
         return false;
     }
+    binding_payloads_match(il, lhs, reference)
+}
+
+pub(crate) fn var_references_param_binding(il: &Il, reference: NodeId, param: NodeId) -> bool {
+    if il.kind(reference) != NodeKind::Var || il.kind(param) != NodeKind::Param {
+        return false;
+    }
+    binding_payloads_match(il, reference, param)
+}
+
+fn binding_payloads_match(il: &Il, lhs: NodeId, reference: NodeId) -> bool {
     match (il.node(lhs).payload, il.node(reference).payload) {
         (Payload::Cid(lhs_cid), Payload::Cid(reference_cid)) => lhs_cid == reference_cid,
         (Payload::Name(lhs_name), Payload::Name(reference_name)) => lhs_name == reference_name,

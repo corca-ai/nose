@@ -466,9 +466,19 @@
     },
     {
       "accepted_evidence": [
-        "filter_map, compactMap, or equivalent callback forms whose absence branch drops exactly the same elements as the explicit filter predicate",
+        "controlled Swift compactMap callbacks over a direct, attribute- and modifier-free function parameter with language-core bracket-array (`[T]`) evidence, one plain value parameter used as the Bool condition, and exactly one nil absence branch in a closed nil-literal namespace",
+        "either conditional branch orientation when exactly one branch is nil and the other re-emits that same callback parameter",
         "guarded builders that push only on the same drop-condition complement",
         "match, if-let, and and_then-style option forms that expose the same absence condition"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::swift_compact_map_option_emission_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_compact_map_option_emission_boundaries",
+        "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof/swift_compact_map.rs::swift_compact_map_admits_both_exact_optional_emission_orientations",
+        "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof/swift_compact_map.rs::swift_compact_map_requires_language_core_bracket_array_source_proof",
+        "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof/swift_compact_map.rs::swift_compact_map_rejects_effectful_conditions_and_non_unary_callbacks",
+        "crates/nose-cli/tests/equivalence/swift_compact_map.rs::swift_compact_map_preserves_adjacent_option_emission_boundaries",
+        "crates/nose-cli/tests/equivalence/swift_compact_map.rs::swift_compact_map_keeps_source_losing_receivers_out_of_exact_families"
       ],
       "detector_admission_implication": "Does not admit filter-map convergence by itself; emitted value, source identity, option channel, and callback purity facts remain separate.",
       "evidence_requirements": [
@@ -482,24 +492,38 @@
       ],
       "implementation_guidance": [
         "Treat the drop condition as a first-class coordinate distinct from the emitted value expression.",
+        "For the controlled Swift slice, admit only the single callback parameter itself as the condition over a direct, attribute- and modifier-free function parameter with language-core bracket-array (`[T]`) evidence, with no parameter wrapper/modifier, import, typealias, macro declaration, visible ExpressibleByNilLiteral conformance, nominal Array/Collection parameter elsewhere in the Swift corpus, or compactMap/map/filter dispatch barrier; custom receivers, captured Vars, Swift operators, calls, properties, derived conditions, derived sources, and local aliases remain closed.",
         "Reject changed predicates, inverted predicates, extra filters, and post-filter drops unless a separate proof connects them.",
         "Keep explicit filter+map chains and option-producing callbacks connected through this fact, not through API spelling."
       ],
       "rejected_evidence": [
         "same emitted value with a changed filter/drop predicate",
         "extra post-filter conditions that can remove emitted values",
-        "truthiness checks that decide dropping from the emitted payload instead of the option channel"
+        "truthiness checks that decide dropping from the emitted payload instead of the option channel",
+        "Swift captured, operator, call, property, or derived conditions without separate source, nominal-dispatch, and effect proof",
+        "nested HOF receivers, local aliases, or other derived compactMap sources whose cardinality coordinate is not preserved",
+        "parameter attributes/modifiers/property wrappers, nominal Array/Collection parameters, custom nominal or dynamic-member receivers, and callable compactMap/map/filter properties or overloads without proven stdlib dispatch",
+        "Swift imports, type aliases, macros, and direct or aliased ExpressibleByNilLiteral conformances that prevent closed-world nil absence proof"
       ],
       "semantic_family": "hof.filter_map",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "Filter-map convergence requires proof that both surfaces drop exactly the same source elements before emitted values are compared.",
       "title": "Filter-map drop-condition coordinate"
     },
     {
       "accepted_evidence": [
-        "the Some/Just/present branch emits the same value coordinate as the explicit map expression",
+        "the controlled Swift compactMap present branch re-emits the same callback parameter used as the Bool condition",
+        "either conditional branch orientation when exactly one branch is nil and the other emits that same callback parameter",
         "guarded builders push the same value expression as the option-producing callback emits",
-        "literal, parameter, field, or arithmetic coordinates are preserved through lowering"
+        "other filter-map implementations may attach broader coordinates only when their own value and option-channel proofs preserve them"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::swift_compact_map_option_emission_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_compact_map_option_emission_boundaries",
+        "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof/swift_compact_map.rs::swift_compact_map_keeps_drop_and_emitted_value_as_independent_coordinates",
+        "crates/nose-cli/tests/equivalence/swift_compact_map.rs::swift_compact_map_converges_for_exact_drop_and_emitted_value_coordinates",
+        "crates/nose-cli/tests/equivalence/swift_compact_map.rs::swift_compact_map_executable_fixture_converges",
+        "crates/nose-cli/tests/equivalence/swift_compact_map.rs::swift_compact_map_rejects_optional_and_custom_nil_literal_false_merges"
       ],
       "detector_admission_implication": "Does not admit filter-map convergence by itself; drop condition, source identity, option channel, and callback purity facts remain separate.",
       "evidence_requirements": [
@@ -513,16 +537,19 @@
       ],
       "implementation_guidance": [
         "Compare emitted values independently from the condition that decides whether a value is emitted.",
+        "For the controlled Swift slice, admit only the callback parameter that is also the Bool condition in a closed nil-literal namespace; captured or Optional Vars, literals, operators, calls, properties, collection construction, and derived values remain closed.",
         "Reject Some/Just payload changes, derived payloads, and wrong pushed values unless a separate value proof connects them.",
         "Keep wrapped absence payloads as emitted values when the option channel says they are present."
       ],
       "rejected_evidence": [
         "same drop condition with a changed emitted value",
         "mapping Option/Maybe values as payloads instead of emitting their inner present values",
-        "derived emitted values without a value-equivalence proof"
+        "captured Optional Vars, custom ExpressibleByNilLiteral values, retroactive conformances, imports, type aliases, or macros whose contextual nil is not proven to be Optional absence",
+        "derived emitted values without a value-equivalence proof",
+        "Swift literals, operators, calls, properties, or constructed values without separate nominal-dispatch, contextual-literal, and effect proof"
       ],
       "semantic_family": "hof.filter_map",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "Filter-map convergence requires the present branch, explicit map expression, or guarded push to emit the same value coordinate.",
       "title": "Filter-map emitted value coordinate"
     },

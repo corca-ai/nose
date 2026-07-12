@@ -1108,3 +1108,21 @@ callback matcher deliberately preserves the narrower Number/BigInt and
 effect-closure policy. Sharing that policy would weaken the boundary rather
 than clarify it. With the real helper duplication removed and one stale family
 gone, the budget is tightened to 30.
+
+The Swift `compactMap` option-emission slice (#795) tightens the reviewed
+default-surface count from 30 to 29. The first self-query showed two apparent
+new test-family IDs because the new strict-exact regression was inserted ahead
+of existing receiver tests. Moving that regression after the existing tests
+preserves the accepted HOF-demand and receiver-domain representatives. A final
+boundary-hardening run then exposed real repeated setup across four new
+cross-file `compactMap` corpus tests and pushed the pre-existing
+`lower_expr`/`lower_pattern_value` Swift lowering overlap over the substantial
+threshold. A shared corpus assertion helper removes the repeated setup; routing
+expression-shaped patterns through `lower_expr` with guard-clause control flow
+removes the overlap without adding a high-parameter abstraction. The only final
+baseline delta is that the pre-existing
+`interp/ops.rs::int_bin` / `float_bin` dispatcher family
+`856ea94f585f0c67` no longer reports after the FilterMap semantic changes; a
+member-set comparison against `origin/main` confirms that all other 29 families
+are unchanged. No new duplication is accepted, so the stale family is removed
+and the budget is tightened to 29.

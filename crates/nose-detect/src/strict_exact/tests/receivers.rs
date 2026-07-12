@@ -256,3 +256,79 @@ fn swift_default_subscript_requires_map_receiver_domain() {
     let facts = StrictFacts::collect(&il, &interner);
     assert!(strict_exact_safe_tree(&il, &interner, &facts, index));
 }
+
+#[test]
+fn swift_compact_map_with_proven_option_emission_is_exact_safe() {
+    let interner = Interner::new();
+    let il = normalized_swift(
+        "func f(_ xs: [Bool]) -> [Bool] {\n    return xs.compactMap { x in x ? x : nil }\n}\n",
+        &interner,
+    );
+    let root = il
+        .units
+        .iter()
+        .find(|unit| unit.name.is_some_and(|name| interner.resolve(name) == "f"))
+        .expect("function f")
+        .root;
+    let facts = StrictFacts::collect(&il, &interner);
+    let hof = il
+        .nodes
+        .iter()
+        .enumerate()
+        .find_map(|(index, node)| {
+            (node.payload == Payload::HoF(HoFKind::FilterMap)).then_some(NodeId(index as u32))
+        })
+        .expect("normalized compactMap HOF");
+    assert!(
+        admitted_hof_demand_effect_profile_at_node_with_interner(
+            &il,
+            Some(&interner),
+            hof,
+            HoFKind::FilterMap,
+        )
+        .is_some(),
+        "the admitted compactMap HOF should retain its demand/effect evidence"
+    );
+    for &child in il.children(hof) {
+        assert!(
+            strict_exact_safe_tree(&il, &interner, &facts, child),
+            "compactMap HOF child {:?} must be exact-safe",
+            il.kind(child)
+        );
+    }
+    assert!(
+        strict_exact_safe_tree(&il, &interner, &facts, root),
+        "an admitted Swift compactMap callback should participate in exact semantic matching"
+    );
+}
+
+#[test]
+fn unmodeled_swift_compact_map_selector_is_not_opaque_exact_identity() {
+    let interner = Interner::new();
+    let il = normalized_swift(
+        "func f(_ xs: [Bool], _ other: [Bool], _ flag: Bool) -> [Bool] {\n    return xs.map { _ in flag }.compactMap { x in x ? x : nil }\n}\n",
+        &interner,
+    );
+    let compact_map = il
+        .nodes
+        .iter()
+        .enumerate()
+        .find_map(|(index, node)| {
+            if node.kind != NodeKind::Call {
+                return None;
+            }
+            let call = NodeId(index as u32);
+            let callee = il.children(call).first().copied()?;
+            matches!(
+                (il.kind(callee), il.node(callee).payload),
+                (NodeKind::Field, Payload::Name(name)) if interner.resolve(name) == "compactMap"
+            )
+            .then_some(call)
+        })
+        .expect("unmodeled compactMap call remains raw");
+    let facts = StrictFacts::collect(&il, &interner);
+    assert!(
+        !strict_exact_safe_tree(&il, &interner, &facts, compact_map),
+        "a surviving compactMap selector must not borrow opaque exact method identity"
+    );
+}

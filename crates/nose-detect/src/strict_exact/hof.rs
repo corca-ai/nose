@@ -68,13 +68,24 @@ impl StrictExactHofUse {
         }
     }
 
-    fn allows_hof_kind(self, il: &Il, node: NodeId, kind: HoFKind) -> bool {
+    fn allows_hof_kind(self, il: &Il, interner: &Interner, node: NodeId, kind: HoFKind) -> bool {
         match self {
             StrictExactHofUse::Tree | StrictExactHofUse::TerminalReductionArg => {
-                admitted_hof_demand_effect_profile_at_node(il, node, kind).is_some()
+                admitted_hof_demand_effect_profile_at_node_with_interner(
+                    il,
+                    Some(interner),
+                    node,
+                    kind,
+                )
+                .is_some()
             }
-            StrictExactHofUse::LenArg => admitted_hof_demand_effect_profile_at_node(il, node, kind)
-                .is_some_and(|profile| profile.proves_eager_per_element_callback_demand()),
+            StrictExactHofUse::LenArg => admitted_hof_demand_effect_profile_at_node_with_interner(
+                il,
+                Some(interner),
+                node,
+                kind,
+            )
+            .is_some_and(|profile| profile.proves_eager_per_element_callback_demand()),
         }
     }
 }
@@ -95,7 +106,7 @@ fn strict_exact_hof_use_safe(
         }
         Some(_) => false,
         None => match il.node(node).payload {
-            Payload::HoF(kind) if hof_use.allows_hof_kind(il, node, kind) => {
+            Payload::HoF(kind) if hof_use.allows_hof_kind(il, interner, node, kind) => {
                 strict_exact_hof_children_safe(il, interner, facts, node)
             }
             _ => false,

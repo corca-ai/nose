@@ -38,6 +38,7 @@ pub fn method_hof_contract(lang: Lang, name: &str) -> Option<HoFKind> {
         | (Lang::Java, "map")
         | (Lang::Swift, "map")
         | (Lang::Ruby, "map" | "collect") => HoFKind::Map,
+        (Lang::Swift, "compactMap") | (Lang::Rust, "filter_map") => HoFKind::FilterMap,
         (
             Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html,
             "flatMap",
@@ -45,7 +46,6 @@ pub fn method_hof_contract(lang: Lang, name: &str) -> Option<HoFKind> {
         | (Lang::Rust, "flat_map")
         | (Lang::Java, "flatMap")
         | (Lang::Swift, "flatMap") => HoFKind::FlatMap,
-        (Lang::Rust, "filter_map") => HoFKind::FilterMap,
         (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "filter")
         | (Lang::Rust, "filter")
         | (Lang::Java, "filter")

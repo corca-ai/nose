@@ -540,9 +540,15 @@ still being migrated toward it.
   `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance and
   `any`/`all`/`count` terminal proof on explicit protocol receivers. It also
   owns Swift `map`/`filter`/`flatMap` HOF occurrence provenance on proven
-  Array/Collection receivers with inline effect-closed callbacks, while Swift
-  `Set`, `Dictionary`, `Sequence`/`AnySequence`, `.lazy`, throwing or mutating
-  callbacks, and `compactMap` remain hard negatives or unsupported boundaries.
+  Array/Collection receivers with inline effect-closed callbacks. It also owns a
+  controlled Swift `compactMap`/`FilterMap` slice over a direct, attribute- and modifier-free function parameter with
+  language-core bracket-array (`[T]`) source evidence when one plain callback parameter is both the `Bool` condition and emitted
+  value opposite exactly one `nil` branch in a closed nil-literal namespace. Swift `Set`, `Dictionary`, arbitrary
+  `Sequence`/`AnySequence`, `.lazy`, throwing or mutating callbacks, captured/Optional
+  values, custom nil-literal channels, parameter attributes/modifiers/property wrappers, nominal/custom receivers, custom
+  same-file/cross-file `compactMap`/`map`/`filter` methods or callable properties, derived or aliased sources, imports,
+  type aliases, macros, and operator/literal/property/call coordinates remain hard negatives
+  or unsupported boundaries.
   It also owns Ruby Enumerable `map`/`collect`/`select`/`filter`/`reject` HOF
   occurrence provenance on proven Array/Collection receivers with inline
   effect-closed blocks. Ruby calls without blocks, `Enumerator::Lazy`,
@@ -570,10 +576,11 @@ still being migrated toward it.
   surfaces, casts/type checks/consume expressions, Ruby trailing-comma/block-local
   coordinates, dynamic regex interpolation, nonlocal return and runtime definitions,
   JavaScript/TypeScript runtime class heritage, ambiguous equality source identity, and unproven
-  property/field reads stay closed. The callback fact alone does not
-  open `compactMap`, one-level flattening, or flat-map aggregate rows; those
-  still require their source, emitted-value, channel, flatten-depth, and
-  aggregate coordinates. The
+  property/field reads stay closed. The callback fact alone does not open a HOF
+  surface: controlled Swift `compactMap` is now admitted only by combining source,
+  absence-channel, drop-condition, and emitted-value facts with callback purity.
+  One-level flattening and flat-map aggregate rows still require their source,
+  emitted-value, channel, flatten-depth, and aggregate coordinates. The
   `nose.go.stdlib.namespace_calls` descriptor owns Go `fmt.Print*`,
   `strings.Contains`, `strings.Join`, and `slices.Contains` namespace-call API
   occurrence provenance under imported namespace proof. `strings.Contains`
@@ -1098,7 +1105,9 @@ migrated.
   `map`/`filter`/`flatMap` same-span occurrences use the same pack only when
   their receiver proof is Array/Collection rather than arbitrary `Sequence`,
   `Set`, or `Dictionary`, so chained Swift HOFs can reuse pack-backed receiver
-  proof without opening one-shot or ordering assumptions. The Swift corpus audit [`swift-stdlib-partial-audit-2026-06-28.v2.json`](../bench/recall_loss/swift-stdlib-partial-audit-2026-06-28.v2.json)
+  proof without opening one-shot or ordering assumptions. Controlled `compactMap`
+  occurrences additionally recheck their option-emission callback and same-file
+  overload perimeter with an interner before exact-channel admission. The Swift corpus audit [`swift-stdlib-partial-audit-2026-06-28.v2.json`](../bench/recall_loss/swift-stdlib-partial-audit-2026-06-28.v2.json)
   processes the 5,000+ cardinality receiver-proof group as existing-contract
   coverage, keeping selector-only `count`/`isEmpty` closed without
   ExactCollection proof. Ruby

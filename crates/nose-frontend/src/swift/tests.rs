@@ -1,6 +1,7 @@
 use super::*;
 
 mod async_protocols;
+mod parameter_domains;
 mod surfaces;
 
 fn il_with_interner(src: &str) -> (Il, Interner) {
@@ -384,43 +385,6 @@ return dict[key, default: fallback]
 }
 
 #[test]
-fn parameter_type_annotation_records_domain() {
-    let il = il(r#"
-func lookup(_ dict: Dictionary<String, Int>, _ value: Any) -> Int {
-return dict["red", default: 0]
-}
-"#);
-    assert_eq!(
-        il.evidence
-            .iter()
-            .filter(|record| record.kind == EvidenceKind::Domain(nose_il::DomainEvidence::Map))
-            .count(),
-        1,
-        "only Dictionary parameters should record a Map domain"
-    );
-}
-
-#[test]
-fn property_type_annotation_records_binding_domain() {
-    let il = il(r#"
-func build(_ xs: [Int]) -> [Int] {
-var out: [Int] = []
-for x in xs {
-    out.append(x)
-}
-return out
-}
-"#);
-    assert!(il.evidence.iter().any(|record| {
-        matches!(
-            record.anchor,
-            EvidenceAnchor::Binding { local_hash, .. }
-                if local_hash == stable_symbol_hash("out")
-        ) && record.kind == EvidenceKind::Domain(nose_il::DomainEvidence::Collection)
-    }));
-}
-
-#[test]
 fn parenthesized_single_expression_does_not_become_tuple() {
     let il = il(r#"
 func mapped(_ xs: [Int]) -> [Int] {
@@ -511,4 +475,53 @@ extension Task {
             .any(|unit| unit.kind == UnitKind::Class && unit.name == Some(interner.intern("Task"))),
         "extension Task should preserve the extended type name as a visible unit"
     );
+}
+
+#[test]
+fn nil_literal_proof_risks_emit_a_fail_closed_marker() {
+    for source in [
+        r#"struct Nilish: ExpressibleByNilLiteral {
+  init(nilLiteral: ()) {}
+}
+"#,
+        r#"extension Bool: @retroactive ExpressibleByNilLiteral {
+  public init(nilLiteral: ()) { self = true }
+}
+"#,
+        "typealias NilProtocol = ExpressibleByNilLiteral\n",
+        "import Foundation\n",
+    ] {
+        let (il, interner) = il_with_interner(source);
+        assert!(
+            il.nodes.iter().any(|node| {
+                matches!(node.payload, Payload::Name(name) if matches!(
+                    interner.resolve(name),
+                    SWIFT_NIL_LITERAL_CONFORMANCE_MARKER
+                        | SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER
+                ))
+            }),
+            "Swift nil-literal proof risk must remain visible to corpus admission: {source}"
+        );
+    }
+}
+
+#[test]
+fn compact_map_and_filter_map_counterparts_emit_a_dispatch_barrier() {
+    for source in [
+        r#"
+extension Array where Element==Bool{var `compactMap`:(((Bool)->Bool?)->[Bool]){{_ in []}}}
+"#,
+        r#"
+extension Array where Element == Bool {
+  func filter(_ predicate: (Bool) -> Bool) -> [Bool] { [] }
+  func map<T>(_ transform: (Bool) -> T) -> [T] { [] }
+}
+"#,
+    ] {
+        let (il, interner) = il_with_interner(source);
+        assert!(il.nodes.iter().any(|node| {
+            matches!(node.payload, Payload::Name(name) if interner.resolve(name)
+                == SWIFT_COMPACT_MAP_DISPATCH_BARRIER_MARKER)
+        }));
+    }
 }

@@ -6347,6 +6347,223 @@
       "evidence": "The shared admission resolver, frontend shape tests, and focused TypeScript/Swift/Ruby fixtures keep all 36 behavior-defining callback boundaries split from a pure unary map or equivalent builder family."
     },
     {
+      "id": "swift_compact_map_option_emission_positive",
+      "kind": "positive",
+      "semantic_family": "hof.filter_map",
+      "claim": "Swift compactMap converges with explicit filtered emission only for a direct language-core-proven plain, attribute- and modifier-free bracket-array parameter source when the same callback-bound Bool controls dropping and is re-emitted, the nil-literal namespace is closed, and the Optional absence channel and callback purity are proven.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/swift_compact_map/reference.py",
+        "bench/type4/adversarial/cases/swift_compact_map/compact_map.swift"
+      ],
+      "executable_expectations": [
+        {
+          "id": "swift_compact_map_exact_matches_filtered_reference",
+          "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/reference.py",
+              "name": "compactMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/compact_map.swift",
+              "name": "compactMapExact"
+            }
+          ]
+        }
+      ],
+      "evidence": "The controlled Swift Sequence.compactMap contract admits a unary, effect-closed conditional callback only over a direct, attribute- and modifier-free function parameter with language-core bracket-array (`[T]`) source evidence when one branch is Optional absence, the other re-emits the same callback parameter used as the Bool condition, and no parameter wrapper/modifier, import, typealias, macro, visible ExpressibleByNilLiteral conformance, custom nominal receiver, or visible compactMap member can change source, nil, or dispatch meaning."
+    },
+    {
+      "id": "swift_compact_map_option_emission_boundaries",
+      "kind": "hard-negative",
+      "semantic_family": "hof.filter_map",
+      "claim": "Changed, derived, attributed/property-wrapped, or non-bracket-array sources, changed emitted values or drop conditions, Optional payload emissions, custom nil-literal channels, effectful closures, custom nominal receivers, and same-file or cross-file compactMap members stay outside the modeled Swift option-emission perimeter.",
+      "mutation": "change one source surface, drop, emitted-value, Optional-channel, contextual-nil, callback-effect, receiver identity, or stdlib-dispatch coordinate",
+    "fixtures": [
+      "bench/type4/adversarial/cases/swift_compact_map/reference.py",
+      "bench/type4/adversarial/cases/swift_compact_map/compact_map.swift",
+      "bench/type4/adversarial/cases/swift_compact_map_custom_overload/reference.py",
+      "bench/type4/adversarial/cases/swift_compact_map_custom_overload/overload.swift",
+      "bench/type4/adversarial/cases/swift_compact_map_custom_overload/consumer.swift",
+      "bench/type4/adversarial/cases/swift_compact_map_custom_nominal/reference.py",
+      "bench/type4/adversarial/cases/swift_compact_map_custom_nominal/custom.swift",
+      "bench/type4/adversarial/cases/swift_compact_map_custom_nil_literal/reference.py",
+      "bench/type4/adversarial/cases/swift_compact_map_custom_nil_literal/custom_nil.swift",
+      "bench/type4/adversarial/cases/swift_compact_map_nil_conformance/reference.py",
+      "bench/type4/adversarial/cases/swift_compact_map_nil_conformance/conformance.swift",
+      "bench/type4/adversarial/cases/swift_compact_map_nil_conformance/consumer.swift"
+      ],
+      "executable_expectations": [
+        {
+          "id": "swift_compact_map_changed_value_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/reference.py",
+              "name": "compactMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/compact_map.swift",
+              "name": "compactMapChangedValue"
+            }
+          ]
+        },
+        {
+          "id": "swift_compact_map_changed_drop_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/reference.py",
+              "name": "compactMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/compact_map.swift",
+              "name": "compactMapChangedDrop"
+            }
+          ]
+        },
+        {
+          "id": "swift_compact_map_wrong_source_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/reference.py",
+              "name": "compactMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/compact_map.swift",
+              "name": "compactMapWrongSource"
+            }
+          ]
+        },
+        {
+          "id": "swift_compact_map_wrong_optional_channel_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/reference.py",
+              "name": "compactMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/compact_map.swift",
+              "name": "compactMapWrongOptionalChannel"
+            }
+          ]
+        },
+        {
+          "id": "swift_compact_map_effectful_callback_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/reference.py",
+              "name": "compactMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/compact_map.swift",
+              "name": "compactMapEffectful"
+            }
+          ]
+        },
+        {
+          "id": "swift_compact_map_optional_emitted_value_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/reference.py",
+              "name": "compactMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/compact_map.swift",
+              "name": "compactMapOptionalEmittedValue"
+            }
+          ]
+        },
+        {
+          "id": "swift_compact_map_custom_nil_literal_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_compact_map_custom_nil_literal",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map_custom_nil_literal/reference.py",
+              "name": "compactMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map_custom_nil_literal/custom_nil.swift",
+              "name": "compactMapCustomNilLiteral"
+            }
+          ]
+        },
+        {
+          "id": "swift_compact_map_retroactive_nil_conformance_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_compact_map_nil_conformance",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map_nil_conformance/reference.py",
+              "name": "compactMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map_nil_conformance/consumer.swift",
+              "name": "compactMapRetroactiveNilConformance"
+            }
+          ]
+        },
+        {
+          "id": "swift_compact_map_derived_source_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/reference.py",
+              "name": "compactMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map/compact_map.swift",
+              "name": "compactMapDerivedSource"
+            }
+          ]
+        },
+        {
+          "id": "swift_compact_map_custom_overload_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_compact_map_custom_overload",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map_custom_overload/reference.py",
+              "name": "compactMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map_custom_overload/consumer.swift",
+              "name": "compactMapCustomOverload"
+            }
+          ]
+        },
+        {
+          "id": "swift_compact_map_custom_nominal_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_compact_map_custom_nominal",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map_custom_nominal/reference.py",
+              "name": "compactMapReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_compact_map_custom_nominal/custom.swift",
+              "name": "compactMapCustomNominal"
+            }
+          ]
+        }
+      ],
+      "evidence": "Focused admission, exact-product, and executable tests keep the six required boundaries plus Optional emitted values, custom or retroactively changed nil-literal channels, derived/source-losing receivers, property-wrapped or modified parameters, and custom nominal receivers split; only language-core plain, attribute- and modifier-free bracket-array parameter evidence opens the source perimeter, while nominal Array/Collection parameters, parameter attributes/modifiers/property wrappers, same-file and corpus-visible cross-file compactMap/map/filter methods or callable properties, and ExpressibleByNilLiteral conformances close stdlib option-emission proof before normalization."
+    },
+    {
       "id": "hof_error_propagation",
       "kind": "positive",
       "semantic_family": "oracle",

@@ -54,7 +54,7 @@ pub(crate) mod grammar {
 pub(crate) fn is_trivia(kind: &str) -> bool {
     matches!(
         kind,
-        "comment" | "line_comment" | "block_comment" | "hash_bang_line"
+        "comment" | "line_comment" | "block_comment" | "multiline_comment" | "hash_bang_line"
     )
 }
 

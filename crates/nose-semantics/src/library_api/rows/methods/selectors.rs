@@ -24,6 +24,7 @@ pub(crate) fn library_method_selector_name(name: &str) -> Option<&'static str> {
         "append" => "append",
         "clamp" => "clamp",
         "collect" => "collect",
+        "compactMap" => "compactMap",
         "contains" => "contains",
         "containsKey" => "containsKey",
         "contains_key" => "contains_key",

@@ -216,6 +216,11 @@ fn hof_demand_effect_profiles_split_eager_and_pull_lazy_timing() {
             .unwrap()
             .proves_eager_per_element_callback_demand()
     );
+    assert!(
+        library_hof_demand_effect_profile(Lang::Swift, HoFKind::FilterMap)
+            .unwrap()
+            .proves_eager_per_element_callback_demand()
+    );
     assert!(library_hof_demand_effect_profile(Lang::Rust, HoFKind::Map)
         .unwrap()
         .callback_effects_delayed_until_pull());

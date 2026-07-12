@@ -19,7 +19,7 @@ proof-carrying frontier gates required by the linked pattern.
 | `string.affix.proven-receiver-coordinate` | `pattern-carded` | 6 | 0 | 0 | 7 |
 | `option.presence-default.proven-channel-coordinate` | `pattern-carded` | 6 | 0 | 0 | 8 |
 | `map.default.absence-lookup` | `pattern-carded` | 4 | 0 | 0 | 5 |
-| `hof.filter-map.option-emission` | `pattern-carded` | 5 | 0 | 0 | 4 |
+| `hof.filter-map.option-emission` | `controlled-slice-admitted` | 5 | 0 | 0 | 4 |
 | `hof.flat-map.one-level-flatten` | `pattern-carded` | 5 | 0 | 0 | 5 |
 | `reduction.aggregate.proven-terminal-identity` | `pattern-carded` | 7 | 2 | 1 | 8 |
 | `hof.flat-map.aggregate-reduction` | `pattern-carded` | 9 | 0 | 0 | 5 |
@@ -188,19 +188,19 @@ Map-default lookup surfaces are equivalent only when they read the same stable m
 
 Filter-map style surfaces are equivalent to explicit filter+map or guarded builders only when they traverse the same source, drop the same elements through a proven absence channel, emit the same present value, and callback effects are closed.
 
-- status: `pattern-carded`
+- status: `controlled-slice-admitted`
 - rationale: The hof_filter_map corpus already contains cross-language positives plus hard negatives for None-as-value, changed payloads, falsey payloads, wrapped None payloads, and effectful callbacks; carding the pattern makes future compactMap/filter_map work attach to optional-emission facts instead of per-language API names.
 - required facts: `iteration.same-source-identity`, `effect.pure-callback`, `hof.filter-map.drop-condition-coordinate`, `hof.filter-map.emitted-value-coordinate`, `option.absence-channel.identity`
 - hard-negative templates: `hof.filter-map.changed-drop-condition`, `hof.filter-map.changed-emitted-value`, `option.none-as-payload`, `option.falsey-payload`, `effect.observed-callback-effect`, `iteration.source-identity`
 - boundaries: the drop condition is independent from the emitted value expression; None/Null/Nil absence drops an element, but falsey present payloads are still emitted; wrapped absence payloads such as Some(None) remain present payloads in nested option domains; observed callback effects and evaluation timing are behavior-defining
-- evidence: `bench/type4/adversarial/cases/cases.v1.json::filter_map_filter_map_equiv`, `bench/type4/adversarial/cases/cases.v1.json::filter_map_match_option_equiv`, `bench/type4/adversarial/cases/cases.v1.json::filter_map_none_boundary`, `bench/type4/adversarial/cases/cases.v1.json::filter_map_value_change`, `bench/type4/adversarial/cases/cases.v1.json::filter_map_falsey_value_boundary`, `bench/type4/adversarial/cases/cases.v1.json::filter_map_wrapped_none_payload`, `bench/type4/adversarial/cases/cases.v1.json::hof_effectful_lambda`, `bench/type4/adversarial/cases/cases.v1.json::hof_callback_purity_inline_transform`, `bench/type4/adversarial/cases/cases.v1.json::hof_callback_purity_effect_boundary`, `bench/type4/proof_fact_registry.v1.json::iteration.same-source-identity`, `bench/type4/proof_fact_registry.v1.json::effect.pure-callback`, `bench/type4/proof_fact_registry.v1.json::hof.filter-map.drop-condition-coordinate`, `bench/type4/proof_fact_registry.v1.json::hof.filter-map.emitted-value-coordinate`, `bench/type4/proof_fact_registry.v1.json::option.absence-channel.identity`
+- evidence: `bench/type4/adversarial/cases/cases.v1.json::filter_map_filter_map_equiv`, `bench/type4/adversarial/cases/cases.v1.json::filter_map_match_option_equiv`, `bench/type4/adversarial/cases/cases.v1.json::filter_map_none_boundary`, `bench/type4/adversarial/cases/cases.v1.json::filter_map_value_change`, `bench/type4/adversarial/cases/cases.v1.json::filter_map_falsey_value_boundary`, `bench/type4/adversarial/cases/cases.v1.json::filter_map_wrapped_none_payload`, `bench/type4/adversarial/cases/cases.v1.json::hof_effectful_lambda`, `bench/type4/adversarial/cases/cases.v1.json::hof_callback_purity_inline_transform`, `bench/type4/adversarial/cases/cases.v1.json::hof_callback_purity_effect_boundary`, `bench/type4/adversarial/cases/cases.v1.json::swift_compact_map_option_emission_positive`, `bench/type4/adversarial/cases/cases.v1.json::swift_compact_map_option_emission_boundaries`, `bench/type4/proof_fact_registry.v1.json::iteration.same-source-identity`, `bench/type4/proof_fact_registry.v1.json::effect.pure-callback`, `bench/type4/proof_fact_registry.v1.json::hof.filter-map.drop-condition-coordinate`, `bench/type4/proof_fact_registry.v1.json::hof.filter-map.emitted-value-coordinate`, `bench/type4/proof_fact_registry.v1.json::option.absence-channel.identity`
 
 | language | surface | status | evidence |
 |---|---|---|---|
 | Python | filtered comprehensions as explicit drop-condition plus emitted-value surfaces | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::filter_map_filter_map_equiv |
 | JS/TS | filter().map() chains with the same predicate and mapped value coordinates | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::filter_map_match_option_equiv |
 | Rust | Iterator::filter_map with Some/None, match guards, and pure Option::and_then callbacks | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::filter_map_match_option_equiv |
-| Swift | Sequence.compactMap after optional-result channel and callback-effect proof | `open` |  |
+| Swift | eager Swift compactMap over a direct, attribute- and modifier-free function parameter with language-core bracket-array (`[T]`) source evidence, one plain callback parameter used as both Bool drop condition and emitted value, and exactly one nil branch in a closed nil-literal namespace; nominal/custom receivers or collection parameters, parameter attributes/modifiers/property wrappers, imports, type aliases, macros, visible nil-literal conformances, captured/Optional/custom-nil values, derived or aliased sources, changed coordinates, wrong channels, effects, custom compactMap/map/filter methods or callable properties, operators, literals, and calls stay split or closed | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::swift_compact_map_option_emission_positive; bench/type4/adversarial/cases/cases.v1.json::swift_compact_map_option_emission_boundaries |
 
 ## `hof.flat-map.one-level-flatten`
 
