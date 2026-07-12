@@ -7,6 +7,11 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added the durable #791/#799 blocked-surface closeout. The checked snapshot
+  records all 7 frozen rows resolved, all 12 required neutral facts
+  `modeled-controlled`, 358/358 executable expectations, the unchanged 29/29
+  real-frontier replay, 7 unchanged target packets, and no exact-admission-ready
+  packet. No focused fixture or probe is promoted as new real-corpus evidence.
 - Added the controlled Swift `Dictionary` default-subscript slice for #798.
   Import-free plain parameters written as `[K: V]`, unshadowed
   `Dictionary<K, V>`, or `Swift.Dictionary<K, V>` now converge with existing

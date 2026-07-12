@@ -517,6 +517,22 @@ Swift Dictionary default receiver/fallback facts, and final closeout. The audit 
 new unexpected blocked rows as drift while allowing frozen rows to become actionable or leave
 the open audit as their facts land.
 
+## Neutral-Fact Blocked Epic Closeout
+
+Completed #799's #791 closeout in `issue_791_closeout.v1.json` and
+`issue_791_closeout.md`. All seven frozen rows are now resolved through controlled focused
+admissions, all twelve facts across the six implementation groups are
+`modeled-controlled`, and the current open audit is empty. The audit's seventh group is the
+closeout itself and adds no fact.
+
+The final evidence state is 358/358 executable expectations, the unchanged 29/29
+real-frontier replay over 11 query runs, seven unchanged target packets, and zero
+exact-admission-ready packets. The 31-item real-frontier inventory contains no new
+source-backed pair for the #791 language surfaces, so focused fixtures and probes remain
+focused evidence instead of being relabeled as real-corpus replay. There is no residual
+row to reclassify and no evidence-backed packet to schedule; future work begins only from
+new source-backed evidence rather than an automatic follow-up issue.
+
 ## Option Absence-Channel Focused Admission
 
 Closed #793 by turning `option.absence-channel.identity` from specified-only into a
