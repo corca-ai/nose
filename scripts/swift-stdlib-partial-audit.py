@@ -129,9 +129,9 @@ SUPPORTED_PARTIAL_METHODS: dict[str, tuple[str, str, str, str]] = {
     ),
     "flatMap": (
         "swift.stdlib.sequence_hof",
-        "hof-callback-proof",
+        "flat-map-one-level-proof",
         "iterator-hof-materialization",
-        "flatMap needs receiver, callback, and materialization proof",
+        "flatMap needs direct outer/inner source, one-level output, callback, and dispatch proof",
     ),
     "map": (
         "swift.stdlib.sequence_hof",

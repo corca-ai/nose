@@ -87,11 +87,11 @@ pub(super) fn strict_exact_safe_call(
     if strict_exact_iterator_identity_adapter_call_safe(il, interner, facts, node, callee, method) {
         return true;
     }
-    if il.meta.lang == Lang::Swift && method == "compactMap" {
-        // An admitted stdlib compactMap is normalized to FilterMap before this
-        // gate. Any surviving selector is custom, ambiguous, or outside the
-        // controlled callback/source perimeter and must not borrow opaque
-        // same-callee identity for the exact channel.
+    if il.meta.lang == Lang::Swift && matches!(method, "compactMap" | "flatMap") {
+        // An admitted stdlib compactMap/flatMap is normalized to FilterMap/FlatMap
+        // before this gate. Any surviving selector is custom, ambiguous, or
+        // outside its controlled callback/source perimeter and must not borrow
+        // opaque same-callee identity for the exact channel.
         return false;
     }
     if strict_exact_js_like_promise_continuation_selector(il, method) {

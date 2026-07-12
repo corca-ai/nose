@@ -540,8 +540,16 @@ still being migrated toward it.
   `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance and
   `any`/`all`/`count` terminal proof on explicit protocol receivers. It also
   owns Swift `map`/`filter`/`flatMap` HOF occurrence provenance on proven
-  Array/Collection receivers with inline effect-closed callbacks. It also owns a
-  controlled Swift `compactMap`/`FilterMap` slice over a direct, attribute- and modifier-free function parameter with
+  Array/Collection receivers with inline effect-closed callbacks. Exact Swift
+  `flatMap` admission additionally uses a dedicated one-level obligation: a direct,
+  plain language-core bracket-array outer source, and a callback that exposes a
+  direct proven inner bracket-array parameter or one admitted inner `map` over it.
+  This preserves nested traversal, emitted-value, and flatten-depth coordinates;
+  derived/nominal/modified sources, property-wrapped or parser-recovered callback
+  parameters, lexically unrelated proofs, filters, recursive depth, imports, and
+  visible `flatMap`/`map` overrides remain closed. Raw surviving `flatMap`
+  selectors cannot fall back to opaque same-callee exact identity. It also owns a controlled Swift
+  `compactMap`/`FilterMap` slice over a direct, attribute- and modifier-free function parameter with
   language-core bracket-array (`[T]`) source evidence when one plain callback parameter is both the `Bool` condition and emitted
   value opposite exactly one `nil` branch in a closed nil-literal namespace. Swift `Set`, `Dictionary`, arbitrary
   `Sequence`/`AnySequence`, `.lazy`, throwing or mutating callbacks, captured/Optional
@@ -577,10 +585,12 @@ still being migrated toward it.
   coordinates, dynamic regex interpolation, nonlocal return and runtime definitions,
   JavaScript/TypeScript runtime class heritage, ambiguous equality source identity, and unproven
   property/field reads stay closed. The callback fact alone does not open a HOF
-  surface: controlled Swift `compactMap` is now admitted only by combining source,
+  surface: controlled Swift `compactMap` is admitted only by combining source,
   absence-channel, drop-condition, and emitted-value facts with callback purity.
-  One-level flattening and flat-map aggregate rows still require their source,
-  emitted-value, channel, flatten-depth, and aggregate coordinates. The
+  Controlled Swift one-level `flatMap` combines direct outer/inner source,
+  nested-order, emitted-value, one-level-depth, eager-demand, and callback-purity
+  facts. Java/Swift flat-map aggregate rows can reuse those modeled one-level
+  facts but still require the aggregate-guard coordinate tracked by #797. The
   `nose.go.stdlib.namespace_calls` descriptor owns Go `fmt.Print*`,
   `strings.Contains`, `strings.Join`, and `slices.Contains` namespace-call API
   occurrence provenance under imported namespace proof. `strings.Contains`
@@ -1105,7 +1115,11 @@ migrated.
   `map`/`filter`/`flatMap` same-span occurrences use the same pack only when
   their receiver proof is Array/Collection rather than arbitrary `Sequence`,
   `Set`, or `Dictionary`, so chained Swift HOFs can reuse pack-backed receiver
-  proof without opening one-shot or ordering assumptions. Controlled `compactMap`
+  proof without opening one-shot or ordering assumptions. Controlled `flatMap`
+  occurrences additionally recheck direct bracket-array outer/inner sources,
+  their lexical parameter binding, one-level callback output, plain callback
+  coordinates, and the same-file dispatch perimeter with an interner before
+  exact-channel admission. Controlled `compactMap`
   occurrences additionally recheck their option-emission callback and same-file
   overload perimeter with an interner before exact-channel admission. The Swift corpus audit [`swift-stdlib-partial-audit-2026-06-28.v2.json`](../bench/recall_loss/swift-stdlib-partial-audit-2026-06-28.v2.json)
   processes the 5,000+ cardinality receiver-proof group as existing-contract
@@ -1680,9 +1694,11 @@ this worktree because the required evidence is not yet modeled:
 - Untyped JS/TS array method chains do not enter exact higher-order contracts
   unless the receiver is a literal/proven collection surface.
 - Nested element method chains such as `xs.map(...)` inside a flat-map callback
-  stay closed unless the nested element collection proof is available. Explicit
-  nested builder loops can still converge with identity flat-map when their loop
-  structure proves the emitted elements.
+  stay closed unless the nested element collection proof is available. The
+  controlled Swift slice now supplies that proof only for a direct plain
+  bracket-array parameter and one admitted inner `map`; derived chains remain
+  closed. Explicit nested builder loops can still converge with identity flat-map
+  when their loop structure proves the emitted elements.
 - Ruby untyped `Enumerable` methods, including block loop surfaces such as
   `.each` and `.each_with_index`, plus Ruby scalar/array `abs`/`min`/`max` and
   C `fmin`/`fmax`, remain closed until the relevant receiver, stdlib, and

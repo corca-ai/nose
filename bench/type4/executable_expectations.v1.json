@@ -1,9 +1,9 @@
 {
-  "expectation_count": 300,
+  "expectation_count": 314,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 300,
-  "query_count": 26,
+  "passed": 314,
+  "query_count": 29,
   "results": [
     {
       "case_id": "collection_membership_literal_and_typed_positive",
@@ -3754,6 +3754,207 @@
       "expect": "split",
       "expectation_id": "swift_compact_map_custom_nominal_stays_split",
       "fixture": "bench/type4/adversarial/cases/swift_compact_map_custom_nominal",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_one_level_positive",
+      "expect": "same-family",
+      "expectation_id": "swift_flat_map_exact_matches_one_level_reference",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+            "name": "flatMapExact",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+            "name": "flatMapIdentity",
+            "start": 5
+          },
+          {
+            "end": 2,
+            "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+            "name": "flatMapReference",
+            "start": 1
+          },
+          {
+            "end": 10,
+            "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+            "name": "flatMapOneLevelRowsReference",
+            "start": 9
+          }
+        ],
+        "value": 10.8,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_one_level_positive",
+      "expect": "same-family",
+      "expectation_id": "swift_flat_map_identity_matches_one_level_reference",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+            "name": "flatMapExact",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+            "name": "flatMapIdentity",
+            "start": 5
+          },
+          {
+            "end": 2,
+            "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+            "name": "flatMapReference",
+            "start": 1
+          },
+          {
+            "end": 10,
+            "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+            "name": "flatMapOneLevelRowsReference",
+            "start": 9
+          }
+        ],
+        "value": 10.8,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_one_level_positive",
+      "expect": "same-family",
+      "expectation_id": "swift_flat_map_cross_product_matches_ordered_reference",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 42,
+            "file": "bench/type4/adversarial/cases/swift_flat_map/flat_map.swift",
+            "name": "flatMapCrossExact",
+            "start": 40
+          },
+          {
+            "end": 6,
+            "file": "bench/type4/adversarial/cases/swift_flat_map/reference.py",
+            "name": "flatMapCrossReference",
+            "start": 5
+          }
+        ],
+        "value": 3.6,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_one_level_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_zero_depth_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_one_level_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_derived_outer_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_one_level_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_derived_inner_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_one_level_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_scalar_result_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_one_level_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_effectful_callback_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_one_level_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_reordered_traversal_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_one_level_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_changed_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_one_level_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_wrong_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_one_level_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_recursive_depth_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_custom_dispatch_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_custom_overload_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_custom_overload",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_custom_dispatch_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_custom_inner_map_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_custom_inner_map",
       "matching_family": null,
       "observed": "split",
       "ok": true

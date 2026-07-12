@@ -51,6 +51,7 @@ pub(crate) const INTENTIONAL_RAW_BOUNDARY_TAGS: &[&str] = &[
     "swift_cast_or_type_check",
     "swift_consume_expression",
     "swift_force_unwrap",
+    "swift_non_plain_parameter",
 ];
 
 fn sequence_surface_domain(surface: SequenceSurfaceKind) -> Option<DomainEvidence> {

@@ -94,11 +94,6 @@ const TRANSFORM_SURFACES: &[CallbackSurface] = &[
         method: "filter",
         domain: DomainEvidence::Collection,
     },
-    CallbackSurface {
-        lang: Lang::Swift,
-        method: "flatMap",
-        domain: DomainEvidence::Collection,
-    },
 ];
 
 const VALUE_TRANSFORM_SURFACES: &[CallbackSurface] = &[
@@ -130,11 +125,6 @@ const VALUE_TRANSFORM_SURFACES: &[CallbackSurface] = &[
     CallbackSurface {
         lang: Lang::Swift,
         method: "map",
-        domain: DomainEvidence::Collection,
-    },
-    CallbackSurface {
-        lang: Lang::Swift,
-        method: "flatMap",
         domain: DomainEvidence::Collection,
     },
 ];

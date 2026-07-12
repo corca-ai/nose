@@ -761,7 +761,14 @@
       "accepted_evidence": [
         "a flat-map, multi-clause comprehension, or nested builder whose output appends every inner element in outer iteration order",
         "source evidence that the same inner collection is traversed for each corresponding outer element",
-        "no extra filter, early exit, mutation, or receiver substitution changes the outer/inner traversal coordinates"
+        "no extra filter, early exit, mutation, or receiver substitution changes the outer/inner traversal coordinates",
+        "controlled Swift flatMap whose outer and inner receivers are direct language-core-proven plain bracket-array parameters and whose callback exposes the inner collection directly or through one admitted map"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_boundaries",
+        "crates/nose-cli/tests/equivalence/swift_flat_map.rs::swift_flat_map_preserves_depth_order_value_and_source_boundaries",
+        "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof/swift_flat_map.rs::swift_flat_map_requires_outer_and_inner_bracket_array_proofs"
       ],
       "detector_admission_implication": "Does not admit flat-map convergence by itself; flatten depth, emitted value, source identity, and callback purity facts remain separate.",
       "evidence_requirements": [
@@ -776,7 +783,8 @@
       "implementation_guidance": [
         "Track outer and inner iteration coordinates separately.",
         "Reject changed inner receivers, reordered traversal, dropped outer iterations, and derived inner collections without source evidence.",
-        "Use this fact for one-level flat-map and for later flat-map aggregate surfaces."
+        "Use this fact for one-level flat-map and for later flat-map aggregate surfaces.",
+        "For Swift, require the dedicated FlatMap callback obligation rather than treating a pure transform callback as nested-order proof."
       ],
       "rejected_evidence": [
         "same emitted expression over a different inner collection",
@@ -784,7 +792,7 @@
         "extra outer or inner filters without separate predicate-coordinate proof"
       ],
       "semantic_family": "hof.flat_map",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "Flat-map convergence requires the same nested traversal order: each outer element exposes the same inner source before emitted values are flattened.",
       "title": "Flat-map nested iteration order"
     },
@@ -792,7 +800,14 @@
       "accepted_evidence": [
         "the inner map, builder push, or yielded value computes the same expression for each matched outer/inner coordinate",
         "literal, parameter, field, or arithmetic coordinates are preserved through comprehension, stream, and callback lowering",
-        "focused hard negatives that change the inner emitted value remain split"
+        "focused hard negatives that change the inner emitted value remain split",
+        "a controlled Swift nested map whose normalized contribution retains both matched outer/inner bindings"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_boundaries",
+        "crates/nose-cli/tests/equivalence/swift_flat_map.rs::swift_flat_map_converges_for_proven_one_level_sources_and_emitted_values",
+        "crates/nose-cli/tests/equivalence/swift_flat_map.rs::swift_flat_map_preserves_depth_order_value_and_source_boundaries"
       ],
       "detector_admission_implication": "Does not admit flat-map convergence by itself; traversal order, flatten depth, source identity, and callback purity facts remain separate.",
       "evidence_requirements": [
@@ -807,7 +822,8 @@
       "implementation_guidance": [
         "Compare emitted values after outer and inner coordinates are matched.",
         "Reject changed inner map expressions, wrong pushed values, and derived values without a value-equivalence proof.",
-        "Keep aggregate terminals separate; this fact only describes the flattened element stream."
+        "Keep aggregate terminals separate; this fact only describes the flattened element stream.",
+        "For Swift, retain the nested map contribution in the FlatMap value graph; callback spelling alone does not prove the emitted coordinate."
       ],
       "rejected_evidence": [
         "same nested traversal with a changed yielded or pushed expression",
@@ -815,7 +831,7 @@
         "aggregate results whose terminal operation changes the observed value"
       ],
       "semantic_family": "hof.flat_map",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "Flat-map convergence requires the callback, comprehension, or nested builder to emit the same value for every matched nested iteration coordinate.",
       "title": "Flat-map emitted value coordinate"
     },
@@ -823,7 +839,14 @@
       "accepted_evidence": [
         "flatMap, flat_map, stream flatMap, or multi-clause comprehension semantics that flatten exactly one collection layer",
         "nested builder loops that append inner elements into a single output collection",
-        "hard negatives where map-returning-collection or nested-list outputs remain nested"
+        "hard negatives where map-returning-collection or nested-list outputs remain nested",
+        "controlled Swift flatMap callback output restricted to one direct proven collection or one admitted inner map"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_boundaries",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_custom_dispatch_boundaries",
+        "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof/swift_flat_map.rs::swift_flat_map_rejects_scalar_nested_depth_and_custom_dispatch"
       ],
       "detector_admission_implication": "Does not admit flat-map convergence by itself; it only closes the flattened-vs-nested shape boundary for separately proven traversal and value facts.",
       "evidence_requirements": [
@@ -839,7 +862,8 @@
       "implementation_guidance": [
         "Represent exactly one layer of flattening, not recursive flattening or identity map.",
         "Reject map-returning-collection forms unless a flat-map or join proof supplies this fact.",
-        "Reject scalar callback results for APIs whose flat-map contract requires a collection."
+        "Reject scalar callback results for APIs whose flat-map contract requires a collection.",
+        "For Swift, close derived inner HOF chains, recursive flatMap output, imports, and visible flatMap/map overrides before normalization."
       ],
       "rejected_evidence": [
         "map returning a nested collection without flattening",
@@ -847,7 +871,7 @@
         "scalar callback results under a collection-producing flat-map contract"
       ],
       "semantic_family": "collection.flatten_depth",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "Flat-map and nested-builder rewrites must prove exactly one collection layer is flattened so nested-list/map shapes stay behavior-defining.",
       "title": "One-level flatten depth"
     },

@@ -5,8 +5,8 @@ use nose_il::{
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash, library_method_call_contract,
     swift_has_unproven_collection_parameter, swift_identifier_matches,
-    SWIFT_COMPACT_MAP_DISPATCH_BARRIER_MARKER, SWIFT_NIL_LITERAL_CONFORMANCE_MARKER,
-    SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER,
+    SWIFT_COMPACT_MAP_DISPATCH_BARRIER_MARKER, SWIFT_FLAT_MAP_DISPATCH_BARRIER_MARKER,
+    SWIFT_NIL_LITERAL_CONFORMANCE_MARKER, SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER,
 };
 use rustc_hash::FxHashSet;
 
@@ -14,11 +14,18 @@ const SWIFT_STDLIB_FACTORY_NAMES: &[&str] = &["Array", "Set", "Dictionary"];
 
 pub(crate) fn close_shadowed_stdlib_apis(files: &mut [Il], interner: &Interner) {
     let shadowed = shadowed_swift_stdlib_factory_name_hashes(files, interner);
+    let unproven_collection_parameter = swift_unproven_collection_parameter_declared(files);
     let compact_map_dispatch_ambiguous =
         swift_compact_map_dispatch_shadow_declared(files, interner)
-            || swift_unproven_collection_parameter_declared(files);
+            || unproven_collection_parameter;
+    let flat_map_dispatch_ambiguous =
+        swift_flat_map_dispatch_shadow_declared(files, interner) || unproven_collection_parameter;
     let nil_literal_conformance = swift_nil_literal_conformance_declared(files, interner);
-    if shadowed.is_empty() && !compact_map_dispatch_ambiguous && !nil_literal_conformance {
+    if shadowed.is_empty()
+        && !compact_map_dispatch_ambiguous
+        && !flat_map_dispatch_ambiguous
+        && !nil_literal_conformance
+    {
         return;
     }
     for il in files.iter_mut().filter(|il| il.meta.lang == Lang::Swift) {
@@ -26,7 +33,33 @@ pub(crate) fn close_shadowed_stdlib_apis(files: &mut [Il], interner: &Interner) 
         if compact_map_dispatch_ambiguous || nil_literal_conformance {
             close_shadowed_compact_map(il);
         }
+        if flat_map_dispatch_ambiguous {
+            close_shadowed_flat_map(il);
+        }
     }
+}
+
+fn swift_flat_map_dispatch_shadow_declared(files: &[Il], interner: &Interner) -> bool {
+    let method_declared = files
+        .iter()
+        .filter(|il| il.meta.lang == Lang::Swift)
+        .flat_map(|il| &il.units)
+        .any(|unit| {
+            unit.name.is_some_and(|name| {
+                ["flatMap", "map"]
+                    .into_iter()
+                    .any(|expected| swift_identifier_matches(interner.resolve(name), expected))
+            })
+        });
+    method_declared
+        || files
+            .iter()
+            .filter(|il| il.meta.lang == Lang::Swift)
+            .flat_map(|il| &il.nodes)
+            .any(|node| {
+                matches!(node.payload, Payload::Name(name) if interner.resolve(name)
+                    == SWIFT_FLAT_MAP_DISPATCH_BARRIER_MARKER)
+            })
 }
 
 fn swift_nil_literal_conformance_declared(files: &[Il], interner: &Interner) -> bool {
@@ -132,8 +165,16 @@ fn close_shadowed_unshadowed_globals(il: &mut Il, shadowed: &FxHashSet<u64>) {
 }
 
 fn close_shadowed_compact_map(il: &mut Il) {
-    let contract = library_method_call_contract(Lang::Swift, "compactMap", 1)
-        .expect("Swift compactMap contract");
+    close_shadowed_swift_hof(il, "compactMap");
+}
+
+fn close_shadowed_flat_map(il: &mut Il) {
+    close_shadowed_swift_hof(il, "flatMap");
+}
+
+fn close_shadowed_swift_hof(il: &mut Il, method: &str) {
+    let contract =
+        library_method_call_contract(Lang::Swift, method, 1).expect("known Swift HOF contract");
     let expected = EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
         contract_hash: library_api_contract_id_hash(contract.id),
         callee_hash: library_api_callee_contract_hash(contract.callee),

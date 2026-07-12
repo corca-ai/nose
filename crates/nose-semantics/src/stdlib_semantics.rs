@@ -18,6 +18,12 @@ pub const SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER: &str = "__nose_swift_nil_liter
 pub const SWIFT_COMPACT_MAP_DISPATCH_BARRIER_MARKER: &str =
     "__nose_swift_compact_map_dispatch_barrier";
 
+/// Internal marker emitted when Swift source can override `flatMap` or its
+/// nested `map` producer, or can import/macro-expand such an override. The
+/// controlled one-level flatten proof stays closed whenever this marker is
+/// visible.
+pub const SWIFT_FLAT_MAP_DISPATCH_BARRIER_MARKER: &str = "__nose_swift_flat_map_dispatch_barrier";
+
 /// Compare a lowered Swift identifier after removing the language's backtick
 /// escape syntax. Escaping changes how a keyword is parsed, not the identifier
 /// denoted at runtime.

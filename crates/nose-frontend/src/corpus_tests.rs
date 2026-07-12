@@ -315,6 +315,59 @@ extension Bool: @retroactive NilProtocol {
     );
 }
 
+#[test]
+fn lower_corpus_closes_swift_flat_map_shadowed_by_cross_file_overload() {
+    assert_cross_file_swift_flat_map_closed(
+        "swift_cross_file_flat_map_overload",
+        r#"extension Array where Element == [Bool] {
+  func flatMap<T>(_ transform: ([Bool]) -> [T]) -> [T] { [] }
+}
+"#,
+        "a cross-file Array.flatMap overload must close stdlib HOF evidence",
+    );
+}
+
+#[test]
+fn lower_corpus_closes_swift_flat_map_after_cross_file_inner_map_overload() {
+    assert_cross_file_swift_flat_map_closed(
+        "swift_cross_file_flat_map_inner_map_overload",
+        r#"extension Array where Element == Bool {
+  func map<T>(_ transform: (Bool) -> T) -> [T] { [] }
+}
+"#,
+        "a cross-file inner Array.map overload must close one-level flatMap evidence",
+    );
+}
+
+fn assert_cross_file_swift_flat_map_closed(tag: &str, declaration: &str, failure_message: &str) {
+    let dir = temp_dir(tag);
+    fs::write(dir.join("Overload.swift"), declaration).unwrap();
+    let consumer = dir.join("Consumer.swift");
+    fs::write(
+        &consumer,
+        r#"func f(_ groups: [[Bool]]) -> [Bool] {
+  return groups.flatMap { (group: [Bool]) in group.map { value in value } }
+}
+"#,
+    )
+    .unwrap();
+
+    let corpus = lower_corpus_filtered(&[dir.as_path()], &[]);
+    let consumer_il = corpus
+        .files
+        .iter()
+        .find(|il| il.meta.path == consumer.to_string_lossy())
+        .expect("consumer Swift file should be lowered");
+    let contract =
+        library_method_call_contract(Lang::Swift, "flatMap", 1).expect("flatMap contract");
+    assert_eq!(
+        asserted_contract_api_count(consumer_il, contract.id, contract.callee),
+        0,
+        "{failure_message}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
 fn assert_cross_file_swift_compact_map_closed(
     tag: &str,
     declaration_file: &str,

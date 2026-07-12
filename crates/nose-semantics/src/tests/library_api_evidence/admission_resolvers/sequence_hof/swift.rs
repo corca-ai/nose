@@ -220,11 +220,10 @@ fn admitted_swift_sequence_hof_requires_sequence_hof_pack_and_ordered_collection
 }
 
 #[test]
-fn admitted_swift_sequence_hof_pack_covers_supported_eager_hofs() {
+fn admitted_swift_sequence_hof_pack_covers_supported_eager_non_flattening_hofs() {
     for (method, semantic) in [
         ("map", MethodSemanticContract::HoF(HoFKind::Map)),
         ("filter", MethodSemanticContract::HoF(HoFKind::Filter)),
-        ("flatMap", MethodSemanticContract::HoF(HoFKind::FlatMap)),
         ("allSatisfy", MethodSemanticContract::Builtin(Builtin::All)),
     ] {
         let (mut il, interner, call, receiver) =
