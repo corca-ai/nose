@@ -64,6 +64,15 @@ experiments that validated these passes are in [experiments](experiments.md).
 > `Stream.reduce(seed, step)`; the controlled Swift slice admits eager unary
 > `allSatisfy` with standard dispatch. Swift `reduce` remains closed until its
 > fold callback, operator, overload, and trap semantics are separately proven),
+> **absence-preserving map defaults** use a shared `GetOrDefault(map, key,
+> fallback)` value only after receiver, key, fallback, and mutation facts are
+> proven. The controlled Swift default-subscript slice requires an import-free
+> plain language-core Dictionary parameter plus direct plain immutable key and
+> fallback parameters. This direct fallback restriction preserves Swift's lazy
+> autoclosure demand boundary; rejected default-subscript surfaces become
+> source-salted opaque values before child evaluation, so calls, operators,
+> property wrappers, derived defaults, `??`, mutation, aliases, directives,
+> namespace shadows, and custom/imported dispatch stay opaque,
 > full **AC flatten+sort in the value graph itself** (not
 > only the `algebra` IL pass), with `+` association/reorder kept domain-gated in
 > string-coercive languages, **operator-law contracts** from the semantic kernel

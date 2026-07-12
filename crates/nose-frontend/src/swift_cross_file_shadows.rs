@@ -1,17 +1,40 @@
 use nose_il::{
     stable_symbol_hash, EvidenceId, EvidenceKind, EvidenceStatus, Il, Interner, Lang,
     LibraryApiEvidenceKind, NodeId, NodeKind, Payload, Symbol, SymbolEvidenceKind,
+    TypeEvidenceKind,
 };
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash, library_method_call_contract,
     swift_has_unproven_collection_parameter, swift_identifier_matches,
     SWIFT_ALL_SATISFY_DISPATCH_BARRIER_MARKER, SWIFT_COMPACT_MAP_DISPATCH_BARRIER_MARKER,
-    SWIFT_FLAT_MAP_DISPATCH_BARRIER_MARKER, SWIFT_NIL_LITERAL_CONFORMANCE_MARKER,
-    SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER,
+    SWIFT_DICTIONARY_DEFAULT_SUBSCRIPT_BARRIER_MARKER, SWIFT_FLAT_MAP_DISPATCH_BARRIER_MARKER,
+    SWIFT_NIL_LITERAL_CONFORMANCE_MARKER, SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER,
 };
 use rustc_hash::FxHashSet;
 
-const SWIFT_STDLIB_FACTORY_NAMES: &[&str] = &["Array", "Set", "Dictionary"];
+const SWIFT_STDLIB_SHADOW_NAMES: &[&str] = &["Array", "Set", "Dictionary", "Swift"];
+
+pub(crate) fn close_local_dictionary_default_subscript(il: &mut Il, interner: &Interner) {
+    if il.meta.lang != Lang::Swift {
+        return;
+    }
+    let close_all =
+        swift_dictionary_default_subscript_barrier_declared(std::slice::from_ref(il), interner);
+    let unqualified_shadowed =
+        shadowed_swift_stdlib_factory_name_hashes(std::slice::from_ref(il), interner)
+            .contains(&stable_symbol_hash("Dictionary"));
+    let qualified_shadowed =
+        shadowed_swift_stdlib_factory_name_hashes(std::slice::from_ref(il), interner)
+            .contains(&stable_symbol_hash("Swift"));
+    if close_all || unqualified_shadowed || qualified_shadowed {
+        close_shadowed_swift_dictionary_parameters(
+            il,
+            unqualified_shadowed,
+            qualified_shadowed,
+            close_all,
+        );
+    }
+}
 
 pub(crate) fn close_shadowed_stdlib_apis(files: &mut [Il], interner: &Interner) {
     let shadowed = shadowed_swift_stdlib_factory_name_hashes(files, interner);
@@ -24,16 +47,32 @@ pub(crate) fn close_shadowed_stdlib_apis(files: &mut [Il], interner: &Interner) 
     let all_satisfy_dispatch_ambiguous =
         swift_all_satisfy_dispatch_shadow_declared(files, interner);
     let nil_literal_conformance = swift_nil_literal_conformance_declared(files, interner);
+    let dictionary_default_subscript_ambiguous =
+        swift_dictionary_default_subscript_barrier_declared(files, interner);
+    let dictionary_name_shadowed = shadowed.contains(&stable_symbol_hash("Dictionary"));
+    let swift_namespace_shadowed = shadowed.contains(&stable_symbol_hash("Swift"));
     if shadowed.is_empty()
         && !compact_map_dispatch_ambiguous
         && !flat_map_dispatch_ambiguous
         && !all_satisfy_dispatch_ambiguous
         && !nil_literal_conformance
+        && !dictionary_default_subscript_ambiguous
     {
         return;
     }
     for il in files.iter_mut().filter(|il| il.meta.lang == Lang::Swift) {
         close_shadowed_unshadowed_globals(il, &shadowed);
+        if dictionary_name_shadowed
+            || swift_namespace_shadowed
+            || dictionary_default_subscript_ambiguous
+        {
+            close_shadowed_swift_dictionary_parameters(
+                il,
+                dictionary_name_shadowed,
+                swift_namespace_shadowed,
+                dictionary_default_subscript_ambiguous,
+            );
+        }
         if compact_map_dispatch_ambiguous || nil_literal_conformance {
             close_shadowed_compact_map(il);
         }
@@ -44,6 +83,55 @@ pub(crate) fn close_shadowed_stdlib_apis(files: &mut [Il], interner: &Interner) 
             close_shadowed_swift_method(il, "allSatisfy", 1);
         }
     }
+}
+
+fn swift_dictionary_default_subscript_barrier_declared(files: &[Il], interner: &Interner) -> bool {
+    files
+        .iter()
+        .filter(|il| il.meta.lang == Lang::Swift)
+        .flat_map(|il| &il.nodes)
+        .any(|node| {
+            matches!(node.payload, Payload::Name(name) if interner.resolve(name)
+                == SWIFT_DICTIONARY_DEFAULT_SUBSCRIPT_BARRIER_MARKER)
+        })
+}
+
+fn close_shadowed_swift_dictionary_parameters(
+    il: &mut Il,
+    close_unqualified: bool,
+    close_qualified: bool,
+    close_all: bool,
+) {
+    let mut ambiguous = FxHashSet::default();
+    for record in &mut il.evidence {
+        if record.status != EvidenceStatus::Asserted {
+            continue;
+        }
+        let is_dictionary_parameter = close_all
+            && matches!(
+                record.kind,
+                EvidenceKind::Type(
+                    TypeEvidenceKind::SwiftBracketDictionaryParameter
+                        | TypeEvidenceKind::SwiftUnqualifiedDictionaryParameter
+                        | TypeEvidenceKind::SwiftQualifiedDictionaryParameter
+                )
+            )
+            || close_unqualified
+                && matches!(
+                    record.kind,
+                    EvidenceKind::Type(TypeEvidenceKind::SwiftUnqualifiedDictionaryParameter)
+                )
+            || close_qualified
+                && matches!(
+                    record.kind,
+                    EvidenceKind::Type(TypeEvidenceKind::SwiftQualifiedDictionaryParameter)
+                );
+        if is_dictionary_parameter {
+            record.status = EvidenceStatus::Ambiguous;
+            ambiguous.insert(record.id);
+        }
+    }
+    propagate_ambiguity(il, ambiguous);
 }
 
 fn swift_all_satisfy_dispatch_shadow_declared(files: &[Il], interner: &Interner) -> bool {
@@ -155,7 +243,7 @@ fn insert_stdlib_factory_name_hash(
     symbol: Symbol,
 ) {
     let name = interner.resolve(symbol);
-    if let Some(canonical) = SWIFT_STDLIB_FACTORY_NAMES
+    if let Some(canonical) = SWIFT_STDLIB_SHADOW_NAMES
         .iter()
         .copied()
         .find(|expected| swift_identifier_matches(name, expected))

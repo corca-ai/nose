@@ -1,7 +1,7 @@
 use super::*;
 use nose_il::{
     stable_symbol_hash, DomainEvidence, EvidenceKind, EvidenceStatus, Lang, LibraryApiEvidenceKind,
-    SymbolEvidenceKind,
+    SymbolEvidenceKind, TypeEvidenceKind,
 };
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
@@ -180,7 +180,6 @@ fn lower_corpus_closes_swift_stdlib_factories_shadowed_by_cross_file_typealias()
         r#"struct MyArray {
   init(_ values: [Int]) {}
 }
-
 struct MyDictionary {
   init(uniqueKeysWithValues values: [(String, Int)]) {}
 }
@@ -259,6 +258,47 @@ typealias Dictionary = MyDictionary
             + asserted_unshadowed_global_count(consumer_il, "Dictionary"),
         0,
         "cross-file stdlib type shadows must close unshadowed-global proofs"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn lower_corpus_closes_cross_file_custom_dictionary_default_subscript() {
+    let dir = temp_dir("swift_cross_file_dictionary_default_subscript");
+    fs::write(
+        dir.join("Custom.swift"),
+        r#"struct Dictionary<Key: Hashable, Value> {
+  subscript(key: Key, default fallback: Value) -> Value { fallback }
+}
+"#,
+    )
+    .unwrap();
+    let consumer = dir.join("Consumer.swift");
+    fs::write(
+        &consumer,
+        r#"func lookup(_ table: Dictionary<String, Int>, _ key: String, _ fallback: Int) -> Int {
+  table[key, default: fallback]
+}
+"#,
+    )
+    .unwrap();
+
+    let corpus = lower_corpus_filtered(&[dir.as_path()], &[]);
+    let consumer_il = corpus
+        .files
+        .iter()
+        .find(|il| il.meta.path == consumer.to_string_lossy())
+        .expect("consumer Swift file should be lowered");
+    assert!(consumer_il.evidence.iter().any(|record| {
+        record.kind == EvidenceKind::Type(TypeEvidenceKind::SwiftUnqualifiedDictionaryParameter)
+            && record.status == EvidenceStatus::Ambiguous
+    }));
+    assert!(
+        !consumer_il.evidence.iter().any(|record| {
+            record.kind == EvidenceKind::Type(TypeEvidenceKind::SwiftUnqualifiedDictionaryParameter)
+                && record.status == EvidenceStatus::Asserted
+        }),
+        "cross-file custom Dictionary must tombstone the stdlib receiver proof"
     );
     let _ = fs::remove_dir_all(&dir);
 }

@@ -2,6 +2,10 @@ use super::*;
 use rustc_hash::FxHashMap;
 use std::cell::RefCell;
 
+mod swift;
+
+pub use swift::*;
+
 pub fn domain_evidence_from_param_semantic(semantic: ParamSemantic) -> DomainEvidence {
     DomainEvidence::from_param_semantic(semantic)
 }
@@ -24,51 +28,6 @@ pub fn domain_evidence_for_param(il: &Il, param: NodeId) -> Option<DomainEvidenc
     (il.kind(param) == NodeKind::Param)
         .then_some(il.node(param).span)
         .and_then(|span| domain_evidence_at_span(il, span))
-}
-
-/// Whether a parameter has a unique, dependency-live language-core proof that
-/// it is attribute/modifier-free and uses Swift bracket-array syntax (`[T]`).
-pub fn swift_bracket_array_parameter_proven(il: &Il, param: NodeId) -> bool {
-    if il.kind(param) != NodeKind::Param {
-        return false;
-    }
-    let span = il.node(param).span;
-    matches!(
-        unique_asserted_record_evidence_at(
-            il,
-            span,
-            |anchor| anchor == EvidenceAnchor::param(span),
-            |record| match record.kind {
-                EvidenceKind::Type(TypeEvidenceKind::SwiftBracketArrayParameter) => {
-                    Some(language_core_record_has_provenance(il, record))
-                }
-                _ => None,
-            },
-        ),
-        EvidenceResolution::Found(true)
-    )
-}
-
-/// Whether Swift source contains an Array/Collection-domain parameter that is
-/// not backed by plain bracket-array syntax. Such a nominal, attributed, or
-/// modified parameter can change source identity or route HOF selectors through
-/// user-defined dispatch and therefore cannot participate in the controlled
-/// compactMap or one-level flatMap equivalence perimeters.
-pub fn swift_has_unproven_collection_parameter(il: &Il) -> bool {
-    if il.meta.lang != Lang::Swift {
-        return false;
-    }
-    il.nodes
-        .iter()
-        .enumerate()
-        .map(|(index, _)| NodeId(index as u32))
-        .filter(|&node| il.kind(node) == NodeKind::Param)
-        .any(|param| {
-            matches!(
-                domain_evidence_for_param(il, param),
-                Some(DomainEvidence::Array | DomainEvidence::Collection)
-            ) && !swift_bracket_array_parameter_proven(il, param)
-        })
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

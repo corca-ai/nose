@@ -241,6 +241,21 @@ Swift `reduce` remains a focused split pending fold/operator/overload/trap proof
 All 341 executable expectations pass, and the proof registry marks
 `hof.flat-map.aggregate-guard-coordinate` modeled-controlled.
 
+The Swift `Dictionary` default-subscript slice adds three executable positives
+for unqualified nominal, bracket, and `Swift.Dictionary` receiver syntax.
+Fourteen executable splits independently change receiver/key/fallback
+coordinates, replace absence defaulting with Optional `??`, distinguish lazy
+and hoisted eager calls, add a property-wrapped fallback, mutate an `inout`
+receiver, or introduce a custom Dictionary type, conditional/escaped or
+alias-targeted or comment-qualified subscript overload, shadowed `Swift`
+namespace, or import-visible dispatch ambiguity. The shared resolver requires a direct plain immutable
+Dictionary parameter plus direct plain immutable key and fallback parameters
+before either value-graph or exact admission emits `GetOrDefault`; rejected lazy
+surfaces become source-salted opaque values before child evaluation. Raw
+subscript spelling and broad Map-domain evidence are not enough. All 358
+executable expectations pass and the original #791 open audit
+is empty after #798.
+
 The `python.loop_demorgan_all` focused group clarifies the README-facing same-language
 packet. Its positive fixture captures `all(x != 0 and x != 1 for x in xs)` versus the
 early-return counterexample loop; hard negatives cover vacuous truth, observed effects,

@@ -1549,7 +1549,14 @@
       "accepted_evidence": [
         "map get/index lookup paired with an explicit fallback only for absent keys",
         "membership guard plus lookup returning the same fallback for absence",
-        "language API evidence that separates absent-key fallback from present key with null/nil/None payload"
+        "language API evidence that separates absent-key fallback from present key with null/nil/None payload",
+        "a Swift default-subscript marker on a proven language-core Dictionary parameter with a stable direct plain fallback parameter"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::swift_dictionary_default_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_dictionary_default_boundaries",
+        "crates/nose-cli/tests/equivalence/map_default_boundaries.rs::swift_dictionary_default_subscript_requires_map_receiver_coordinates",
+        "crates/nose-semantics/src/tests/library_api_contracts/map_and_js_statics.rs::swift_dictionary_default_subscript_rejects_lazy_expression_defaults"
       ],
       "detector_admission_implication": "Does not admit map-default convergence by itself; receiver identity, key/default coordinates, and mutation closure remain separate facts.",
       "evidence_requirements": [
@@ -1564,15 +1571,17 @@
       "implementation_guidance": [
         "Model only absence-default APIs or guards whose fallback fires on missing keys.",
         "Keep nullish/truthy defaulting and present-null payload semantics outside this fact.",
-        "Require a separate API identity proof for language helpers such as Python get, JS Map.get with has, Java Map.getOrDefault, Rust HashMap lookup, and Swift dictionary default subscripts."
+        "Require a separate API identity proof for language helpers such as Python get, JS Map.get with has, Java Map.getOrDefault, Rust HashMap lookup, and Swift dictionary default subscripts.",
+        "For Swift, keep lazy call/operator/default expressions closed unless their demand and effect behavior is separately proven."
       ],
       "rejected_evidence": [
         "nullish coalescing on a map read without absent-key proof",
         "truthy/default idioms that treat present falsey values as absent",
-        "custom helper names without API identity evidence"
+        "custom helper names without API identity evidence",
+        "Swift lazy default expressions that are calls, operators, property-wrapped coordinates, or derived values, including eager-hoisted lookalikes"
       ],
       "semantic_family": "map.default_lookup",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "Map-default lookup may converge only when the fallback is proven to represent absent-key behavior, not nullish or truthy value replacement.",
       "title": "Map default absence fallback"
     },
@@ -1580,7 +1589,17 @@
       "accepted_evidence": [
         "the compared lookups read from the same local map binding, imported immutable map, or statically proven map literal source",
         "module/export/static field provenance for imported literal maps",
-        "no alias changes the receiver between construction/import and lookup"
+        "no alias changes the receiver between construction/import and lookup",
+        "a direct plain immutable Swift parameter with bracket Dictionary, unshadowed Dictionary, or unshadowed Swift.Dictionary source evidence"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::map_default_imported_literal",
+        "bench/type4/adversarial/cases/cases.v1.json::map_default_imported_js_ts_literal",
+        "bench/type4/adversarial/cases/cases.v1.json::map_default_imported_java_static_literal",
+        "bench/type4/adversarial/cases/cases.v1.json::map_default_imported_rust_const_literal",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_dictionary_default_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_dictionary_default_boundaries",
+        "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_closes_cross_file_custom_dictionary_default_subscript"
       ],
       "detector_admission_implication": "Does not admit map-default convergence by itself; it only proves that both sides query the same map value source.",
       "evidence_requirements": [
@@ -1603,7 +1622,7 @@
         "receiver aliases whose source cannot be traced"
       ],
       "semantic_family": "map.default_lookup",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "Map-default surfaces must query the same proven map source before key/default and fallback semantics can be compared.",
       "title": "Map receiver source identity"
     },
@@ -1611,7 +1630,14 @@
       "accepted_evidence": [
         "the lookup key coordinates are equal on both surfaces",
         "the fallback/default value coordinates are equal on both surfaces",
-        "literal, imported, or parameter coordinates are preserved through lowering"
+        "literal, imported, or parameter coordinates are preserved through lowering",
+        "the controlled Swift slice uses direct plain immutable key and fallback parameter references"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::swift_dictionary_default_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_dictionary_default_boundaries",
+        "crates/nose-cli/tests/equivalence/map_default_boundaries.rs::swift_dictionary_default_subscript_requires_map_receiver_coordinates",
+        "crates/nose-semantics/src/tests/library_api_contracts/map_and_js_statics.rs::swift_dictionary_default_subscript_requires_live_stable_coordinates"
       ],
       "detector_admission_implication": "Does not admit map-default convergence by itself; it only closes the key/default coordinate boundary.",
       "evidence_requirements": [
@@ -1631,10 +1657,10 @@
       "rejected_evidence": [
         "same receiver with a changed lookup key",
         "same receiver/key with a changed fallback value",
-        "derived keys or defaults without value-equivalence proof"
+        "derived or property-wrapped keys/defaults without value-equivalence and demand proof"
       ],
       "semantic_family": "map.default_lookup",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "Map-default convergence requires the same map receiver, the same lookup key, and the same fallback/default value coordinates.",
       "title": "Map key/default coordinate identity"
     },
@@ -1642,7 +1668,14 @@
       "accepted_evidence": [
         "no writes, updates, deletes, or mutating method calls can affect the map receiver before lookup",
         "imported literal maps are immutable or treated as frozen evidence",
-        "guard and lookup read the same receiver state"
+        "guard and lookup read the same receiver state",
+        "a plain immutable Swift Dictionary parameter with no canonical-id reassignment or inout/property-wrapper modifier"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::map_default_mutated_receiver",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_dictionary_default_boundaries",
+        "crates/nose-cli/tests/equivalence/map_default_boundaries.rs::swift_dictionary_default_subscript_requires_map_receiver_coordinates",
+        "crates/nose-frontend/src/swift/tests/parameter_domains.rs::modified_dictionary_parameters_do_not_prove_stable_receivers"
       ],
       "detector_admission_implication": "Does not admit map-default convergence by itself; it only closes mutation and stale-receiver boundaries.",
       "evidence_requirements": [
@@ -1665,7 +1698,7 @@
         "guarded lookups with intervening writes"
       ],
       "semantic_family": "map.default_lookup",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "Map-default surfaces require a stable receiver state; mutation between receiver proof and lookup is behavior-defining.",
       "title": "Map receiver mutation closure"
     },

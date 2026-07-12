@@ -44,6 +44,17 @@ Builtins have demand/effect profiles for:
 - append mutation;
 - nullish/default fallback, where the fallback child is conditional.
 
+Swift `Dictionary`'s default subscript has a lazy autoclosure fallback rather
+than the eager argument demand of Python `dict.get` or Java `getOrDefault`.
+The controlled cross-language slice therefore admits only a direct plain
+immutable fallback parameter read, whose demand timing is unobservable. Calls,
+operators, property-wrapped coordinates, derived expressions, and other
+potentially effectful or trapping defaults stay closed until a separate
+demand/effect proof can preserve that distinction. A rejected Swift
+default-subscript is made source-salted opaque before value-graph child
+evaluation, so its autoclosure is not accidentally modeled as an eager call or
+merged with a hoisted eager fallback.
+
 Higher-order forms have per-element callback profiles for `map`, `flat_map`,
 `filter_map`, `filter`, and `reduce`, but a raw HOF kind does not choose eager
 or lazy timing. Timing comes from an explicit demand source. Python

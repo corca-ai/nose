@@ -204,33 +204,37 @@ fn map_get_method_requires_library_api_occurrence_evidence() {
 }
 
 #[test]
-fn swift_default_subscript_requires_map_receiver_domain() {
+fn swift_default_subscript_requires_language_core_dictionary_receiver() {
     let interner = Interner::new();
     let dict = interner.intern("dict");
+    let key_name = interner.intern("key");
+    let default_name = interner.intern("fallback");
     let marker = interner.intern("swift_subscript_default");
     let mut b = IlBuilder::new(FileId(0));
-    let param = b.add(NodeKind::Param, Payload::Cid(0), sp(50), &[]);
-    let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(51), &[]);
-    let key = b.add(
-        NodeKind::Lit,
-        Payload::LitStr(stable_symbol_hash("ready")),
-        sp(52),
-        &[],
-    );
-    let default = b.add(NodeKind::Lit, Payload::LitInt(0), sp(53), &[]);
+    let receiver_param = b.add(NodeKind::Param, Payload::Cid(0), sp(50), &[]);
+    let key_param = b.add(NodeKind::Param, Payload::Cid(1), sp(51), &[]);
+    let default_param = b.add(NodeKind::Param, Payload::Cid(2), sp(52), &[]);
+    let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(53), &[]);
+    let key = b.add(NodeKind::Var, Payload::Cid(1), sp(54), &[]);
+    let default = b.add(NodeKind::Var, Payload::Cid(2), sp(55), &[]);
     let index_marker = b.add(
         NodeKind::Seq,
         Payload::Name(marker),
-        sp(54),
+        sp(56),
         &[key, default],
     );
     let index = b.add(
         NodeKind::Index,
         Payload::None,
-        sp(55),
+        sp(57),
         &[receiver, index_marker],
     );
-    let root = b.add(NodeKind::Func, Payload::None, sp(49), &[param, index]);
+    let root = b.add(
+        NodeKind::Func,
+        Payload::None,
+        sp(49),
+        &[receiver_param, key_param, default_param, index],
+    );
     let mut il = b.finish(
         root,
         FileMeta {
@@ -238,7 +242,7 @@ fn swift_default_subscript_requires_map_receiver_domain() {
             lang: Lang::Swift,
         },
         Vec::new(),
-        vec![dict],
+        vec![dict, key_name, default_name],
     );
 
     let facts = StrictFacts::collect(&il, &interner);
@@ -254,7 +258,23 @@ fn swift_default_subscript_requires_map_receiver_domain() {
         Vec::new(),
     ));
     let facts = StrictFacts::collect(&il, &interner);
-    assert!(strict_exact_safe_tree(&il, &interner, &facts, index));
+    assert!(
+        !strict_exact_safe_tree(&il, &interner, &facts, index),
+        "broad Map-domain evidence alone must not open the Swift subscript path"
+    );
+
+    il.evidence.push(language_core_evidence(
+        1,
+        Lang::Swift,
+        EvidenceAnchor::param(sp(50)),
+        EvidenceKind::Type(nose_il::TypeEvidenceKind::SwiftUnqualifiedDictionaryParameter),
+        Vec::new(),
+    ));
+    let facts = StrictFacts::collect(&il, &interner);
+    assert!(
+        strict_exact_safe_tree(&il, &interner, &facts, index),
+        "live language-core Dictionary evidence should open stable direct coordinates"
+    );
 }
 
 #[test]

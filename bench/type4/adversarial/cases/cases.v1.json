@@ -7358,6 +7358,219 @@
       "evidence": "Swift lowering records allSatisfy and guarded-filter dispatch barriers, and corpus lowering tombstones dependent API evidence."
     },
     {
+      "id": "swift_dictionary_default_positive",
+      "kind": "positive",
+      "semantic_family": "map_default_lookup",
+      "claim": "Swift Dictionary default subscripts converge with absence-preserving map defaults only for a direct plain language-core Dictionary parameter and stable direct key and fallback parameter coordinates.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/swift_dictionary_default/reference.py",
+        "bench/type4/adversarial/cases/swift_dictionary_default/default.swift"
+      ],
+      "executable_expectations": [
+        {
+          "id": "swift_dictionary_default_nominal_matches_reference",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_dictionary_default/reference.py",
+              "name": "dictionaryDefaultReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift",
+              "name": "dictionaryDefaultExact"
+            }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_bracket_matches_reference",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_dictionary_default/reference.py",
+              "name": "dictionaryDefaultReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift",
+              "name": "dictionaryDefaultBracket"
+            }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_qualified_matches_reference",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_dictionary_default/reference.py",
+              "name": "dictionaryDefaultReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift",
+              "name": "dictionaryDefaultQualified"
+            }
+          ]
+        }
+      ],
+      "evidence": "The Swift frontend records one of three plain Dictionary parameter source proofs; the shared semantic resolver then requires direct immutable receiver, key, and fallback parameters before value-graph and exact consumers emit GetOrDefault."
+    },
+    {
+      "id": "swift_dictionary_default_boundaries",
+      "kind": "hard-negative",
+      "semantic_family": "map_default_lookup",
+      "claim": "Changed receiver/key/fallback coordinates, property-wrapped coordinates, lazy default expressions, inout mutation, nullish Optional defaulting, custom Dictionary types, visible/conditional/escaped/comment-qualified/alias-targeted default-subscript overloads, and import-visible dispatch ambiguity stay outside the controlled Swift absence-default perimeter.",
+      "mutation": "change one receiver, key, fallback, demand/effect, mutation, channel, nominal-type, or dispatch coordinate",
+      "fixtures": [
+        "bench/type4/adversarial/cases/swift_dictionary_default/reference.py",
+        "bench/type4/adversarial/cases/swift_dictionary_default/default.swift",
+        "bench/type4/adversarial/cases/swift_dictionary_default_custom/reference.py",
+        "bench/type4/adversarial/cases/swift_dictionary_default_custom/custom.swift",
+        "bench/type4/adversarial/cases/swift_dictionary_default_custom/consumer.swift",
+        "bench/type4/adversarial/cases/swift_dictionary_default_overload/reference.py",
+        "bench/type4/adversarial/cases/swift_dictionary_default_overload/overload.swift",
+        "bench/type4/adversarial/cases/swift_dictionary_default_overload/consumer.swift",
+        "bench/type4/adversarial/cases/swift_dictionary_default_alias/reference.py",
+        "bench/type4/adversarial/cases/swift_dictionary_default_alias/alias.swift",
+        "bench/type4/adversarial/cases/swift_dictionary_default_alias/consumer.swift",
+        "bench/type4/adversarial/cases/swift_dictionary_default_swift_shadow/reference.py",
+        "bench/type4/adversarial/cases/swift_dictionary_default_swift_shadow/shadow.swift",
+        "bench/type4/adversarial/cases/swift_dictionary_default_comment_overload/reference.py",
+        "bench/type4/adversarial/cases/swift_dictionary_default_comment_overload/overload.swift",
+        "bench/type4/adversarial/cases/swift_dictionary_default_import/reference.py",
+        "bench/type4/adversarial/cases/swift_dictionary_default_import/consumer.swift"
+      ],
+      "executable_expectations": [
+        {
+          "id": "swift_dictionary_default_wrong_key_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/reference.py", "name": "dictionaryDefaultReference" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift", "name": "dictionaryDefaultWrongKey" }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_wrong_fallback_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/reference.py", "name": "dictionaryDefaultReference" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift", "name": "dictionaryDefaultWrongFallback" }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_wrong_receiver_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/reference.py", "name": "dictionaryDefaultReference" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift", "name": "dictionaryDefaultWrongReceiver" }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_effectful_fallback_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/reference.py", "name": "dictionaryDefaultReference" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift", "name": "dictionaryDefaultEffectfulFallback" }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_lazy_vs_hoisted_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift", "name": "dictionaryDefaultEffectfulFallback" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift", "name": "dictionaryDefaultHoistedFallback" }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_wrapped_fallback_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/reference.py", "name": "dictionaryDefaultReference" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift", "name": "dictionaryDefaultWrappedFallback" }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_mutated_receiver_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/reference.py", "name": "dictionaryDefaultReference" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift", "name": "dictionaryDefaultMutatedReceiver" }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_nullish_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/reference.py", "name": "dictionaryDefaultReference" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift", "name": "dictionaryDefaultNullish" }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_custom_type_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default_custom",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default_custom/reference.py", "name": "dictionaryDefaultReference" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default_custom/consumer.swift", "name": "dictionaryDefaultCustom" }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_custom_overload_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default_overload",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default_overload/reference.py", "name": "dictionaryDefaultReference" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default_overload/consumer.swift", "name": "dictionaryDefaultOverload" }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_alias_overload_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default_alias",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default_alias/reference.py", "name": "dictionaryDefaultReference" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default_alias/consumer.swift", "name": "dictionaryDefaultAliasOverload" }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_shadowed_swift_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default_swift_shadow",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default_swift_shadow/reference.py", "name": "dictionaryDefaultReference" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default_swift_shadow/shadow.swift", "name": "dictionaryDefaultShadowedSwift" }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_comment_overload_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default_comment_overload",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default_comment_overload/reference.py", "name": "dictionaryDefaultReference" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default_comment_overload/overload.swift", "name": "dictionaryDefaultCommentOverload" }
+          ]
+        },
+        {
+          "id": "swift_dictionary_default_import_dispatch_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_dictionary_default_import",
+          "expect": "split",
+          "members": [
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default_import/reference.py", "name": "dictionaryDefaultReference" },
+            { "file": "bench/type4/adversarial/cases/swift_dictionary_default_import/consumer.swift", "name": "dictionaryDefaultImportedDispatch" }
+          ]
+        }
+      ],
+      "evidence": "Focused product and executable checks keep every neutral coordinate, demand/effect, mutation, channel, nominal identity, and dispatch boundary independently visible."
+    },
+    {
       "id": "hof_error_propagation",
       "kind": "positive",
       "semantic_family": "oracle",

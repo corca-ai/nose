@@ -32,6 +32,12 @@ pub const SWIFT_FLAT_MAP_DISPATCH_BARRIER_MARKER: &str = "__nose_swift_flat_map_
 pub const SWIFT_ALL_SATISFY_DISPATCH_BARRIER_MARKER: &str =
     "__nose_swift_all_satisfy_dispatch_barrier";
 
+/// Internal marker emitted when imports, macros, or a visible extension can
+/// change `Dictionary` default-subscript overload resolution. The controlled
+/// absence-default slice stays closed whenever this marker is visible.
+pub const SWIFT_DICTIONARY_DEFAULT_SUBSCRIPT_BARRIER_MARKER: &str =
+    "__nose_swift_dictionary_default_subscript_barrier";
+
 /// Compare a lowered Swift identifier after removing the language's backtick
 /// escape syntax. Escaping changes how a keyword is parsed, not the identifier
 /// denoted at runtime.

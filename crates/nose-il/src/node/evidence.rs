@@ -148,6 +148,17 @@ pub enum TypeEvidenceKind {
     /// text, this source surface cannot denote a user-declared receiver type or
     /// a property-wrapped value.
     SwiftBracketArrayParameter,
+    /// An attribute- and modifier-free Swift parameter whose source type is
+    /// bracket Dictionary syntax (`[K: V]`). The syntax denotes the language's
+    /// Dictionary independently of nominal lookup or imported aliases.
+    SwiftBracketDictionaryParameter,
+    /// An attribute- and modifier-free Swift parameter whose source type is an
+    /// unqualified `Dictionary<K, V>`. Corpus-level shadow and dispatch checks
+    /// may mark this evidence ambiguous before exact consumers use it.
+    SwiftUnqualifiedDictionaryParameter,
+    /// An attribute- and modifier-free Swift parameter whose source type is
+    /// explicitly `Swift.Dictionary<K, V>`.
+    SwiftQualifiedDictionaryParameter,
 }
 
 /// Kernel-facing proof that a source-level symbol denotes a specific global or

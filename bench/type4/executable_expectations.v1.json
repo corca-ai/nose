@@ -1,9 +1,9 @@
 {
-  "expectation_count": 341,
+  "expectation_count": 358,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 341,
-  "query_count": 34,
+  "passed": 358,
+  "query_count": 41,
   "results": [
     {
       "case_id": "collection_membership_literal_and_typed_positive",
@@ -4272,6 +4272,246 @@
       "expect": "split",
       "expectation_id": "swift_flat_map_custom_filter_stays_split",
       "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate_custom_filter",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_positive",
+      "expect": "same-family",
+      "expectation_id": "swift_dictionary_default_nominal_matches_reference",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 10,
+            "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift",
+            "name": "dictionaryDefaultExact",
+            "start": 1
+          },
+          {
+            "end": 21,
+            "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift",
+            "name": "dictionaryDefaultBracket",
+            "start": 12
+          },
+          {
+            "end": 32,
+            "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift",
+            "name": "dictionaryDefaultQualified",
+            "start": 23
+          },
+          {
+            "end": 9,
+            "file": "bench/type4/adversarial/cases/swift_dictionary_default/reference.py",
+            "name": "dictionaryDefaultReference",
+            "start": 1
+          }
+        ],
+        "value": 48.6,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_positive",
+      "expect": "same-family",
+      "expectation_id": "swift_dictionary_default_bracket_matches_reference",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 10,
+            "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift",
+            "name": "dictionaryDefaultExact",
+            "start": 1
+          },
+          {
+            "end": 21,
+            "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift",
+            "name": "dictionaryDefaultBracket",
+            "start": 12
+          },
+          {
+            "end": 32,
+            "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift",
+            "name": "dictionaryDefaultQualified",
+            "start": 23
+          },
+          {
+            "end": 9,
+            "file": "bench/type4/adversarial/cases/swift_dictionary_default/reference.py",
+            "name": "dictionaryDefaultReference",
+            "start": 1
+          }
+        ],
+        "value": 48.6,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_positive",
+      "expect": "same-family",
+      "expectation_id": "swift_dictionary_default_qualified_matches_reference",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 10,
+            "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift",
+            "name": "dictionaryDefaultExact",
+            "start": 1
+          },
+          {
+            "end": 21,
+            "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift",
+            "name": "dictionaryDefaultBracket",
+            "start": 12
+          },
+          {
+            "end": 32,
+            "file": "bench/type4/adversarial/cases/swift_dictionary_default/default.swift",
+            "name": "dictionaryDefaultQualified",
+            "start": 23
+          },
+          {
+            "end": 9,
+            "file": "bench/type4/adversarial/cases/swift_dictionary_default/reference.py",
+            "name": "dictionaryDefaultReference",
+            "start": 1
+          }
+        ],
+        "value": 48.6,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_wrong_key_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_wrong_fallback_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_wrong_receiver_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_effectful_fallback_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_lazy_vs_hoisted_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_wrapped_fallback_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_mutated_receiver_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_nullish_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_custom_type_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default_custom",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_custom_overload_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default_overload",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_alias_overload_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default_alias",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_shadowed_swift_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default_swift_shadow",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_comment_overload_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default_comment_overload",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_dictionary_default_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_dictionary_default_import_dispatch_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_dictionary_default_import",
       "matching_family": null,
       "observed": "split",
       "ok": true

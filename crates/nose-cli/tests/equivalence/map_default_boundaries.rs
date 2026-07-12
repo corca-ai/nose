@@ -131,6 +131,16 @@ fn map_default_lookup_keeps_alias_and_guard_boundaries() {
 fn swift_dictionary_default_subscript_requires_map_receiver_coordinates() {
     let i = Interner::new();
     let python = "def f(lookup: dict[str, int], key: str, fallback: int, other: str, other_default: int) -> int:\n    return lookup.get(key, fallback)\n";
+    let fp = value_fp(&i, python, Lang::Python);
+
+    assert_swift_dictionary_default_positive_cases(&i, &fp);
+    assert_swift_dictionary_default_boundary_cases(&i, &fp);
+    assert_swift_dictionary_default_dispatch_boundaries(&i, &fp);
+    assert_swift_dictionary_default_source_syntax_boundaries(&i, &fp);
+    assert_swift_dictionary_default_effect_boundary(&i);
+}
+
+fn assert_swift_dictionary_default_positive_cases(i: &Interner, fp: &[u64]) {
     let default_subscript = r#"
 func f(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
     return dict[key, default: fallback]
@@ -141,6 +151,40 @@ func g(_ lookup: Dictionary<String, Int>, _ name: String, _ missing: Int, _ othe
     return lookup[name, default: missing]
 }
 "#;
+    let bracket_dictionary = r#"
+func f(_ dict: [String: Int], _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#;
+    let qualified_dictionary = r#"
+func f(_ dict: Swift.Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#;
+
+    assert_eq!(
+        fp,
+        value_fp(i, default_subscript, Lang::Swift),
+        "Swift Dictionary default subscript should join the absence-default map lookup family"
+    );
+    assert_eq!(
+        fp,
+        value_fp(i, renamed, Lang::Swift),
+        "Swift Dictionary default subscripts should alpha-converge through map/key/default coordinates"
+    );
+    assert_eq!(
+        fp,
+        value_fp(i, bracket_dictionary, Lang::Swift),
+        "bracket Dictionary syntax should carry the same language-core receiver proof"
+    );
+    assert_eq!(
+        fp,
+        value_fp(i, qualified_dictionary, Lang::Swift),
+        "Swift.Dictionary should carry the same language-core receiver proof"
+    );
+}
+
+fn assert_swift_dictionary_default_boundary_cases(i: &Interner, fp: &[u64]) {
     let wrong_key = r#"
 func f(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
     return dict[other, default: fallback]
@@ -161,36 +205,198 @@ func f(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other:
     return dict[key] ?? fallback
 }
 "#;
-
-    let fp = value_fp(&i, python, Lang::Python);
-    assert_eq!(
-        fp,
-        value_fp(&i, default_subscript, Lang::Swift),
-        "Swift Dictionary default subscript should join the absence-default map lookup family"
-    );
-    assert_eq!(
-        fp,
-        value_fp(&i, renamed, Lang::Swift),
-        "Swift Dictionary default subscripts should alpha-converge through map/key/default coordinates"
-    );
+    let mutated_inout_receiver = r#"
+func f(_ dict: inout Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    dict[key] = otherDefault
+    return dict[key, default: fallback]
+}
+"#;
     assert_ne!(
         fp,
-        value_fp(&i, wrong_key, Lang::Swift),
+        value_fp(i, wrong_key, Lang::Swift),
         "a different key coordinate changes the lookup"
     );
     assert_ne!(
         fp,
-        value_fp(&i, wrong_default, Lang::Swift),
+        value_fp(i, wrong_default, Lang::Swift),
         "a different fallback coordinate changes the lookup"
     );
     assert_ne!(
         fp,
-        value_fp(&i, untyped_receiver, Lang::Swift),
+        value_fp(i, untyped_receiver, Lang::Swift),
         "subscript syntax alone must not prove a map receiver"
     );
     assert_ne!(
         fp,
-        value_fp(&i, nullish_default, Lang::Swift),
+        value_fp(i, nullish_default, Lang::Swift),
         "Swift optional defaulting is not an absence-only Dictionary default subscript"
     );
+    assert_ne!(
+        fp,
+        value_fp(i, mutated_inout_receiver, Lang::Swift),
+        "an inout receiver with an intervening write must stay outside the stable-map perimeter"
+    );
+}
+
+fn assert_swift_dictionary_default_dispatch_boundaries(i: &Interner, fp: &[u64]) {
+    let custom_dictionary = r#"
+struct Dictionary<Key: Hashable, Value> {
+    subscript(key: Key, default fallback: Value) -> Value { fallback }
+}
+func f(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#;
+    let shadowed_dictionary_alias = r#"
+struct Lookup<Key: Hashable, Value> {
+    subscript(key: Key, default fallback: Value) -> Value { fallback }
+}
+typealias Dictionary = Lookup
+func f(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#;
+    let imported_dispatch = r#"
+import Foundation
+func f(_ dict: Swift.Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#;
+    let custom_dictionary_extension = r#"
+extension Dictionary where Key == String, Value == Int {
+    subscript(key: String, default fallback: Int) -> Int { return fallback + 1 }
+}
+func f(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#;
+
+    assert_ne!(
+        fp,
+        value_fp(i, custom_dictionary, Lang::Swift),
+        "a user-defined Dictionary and subscript must not borrow stdlib absence-default semantics"
+    );
+    assert_ne!(
+        fp,
+        value_fp(i, shadowed_dictionary_alias, Lang::Swift),
+        "a Dictionary typealias must not borrow stdlib absence-default semantics"
+    );
+    assert_ne!(
+        fp,
+        value_fp(i, imported_dispatch, Lang::Swift),
+        "imports keep Dictionary default-subscript overload resolution closed"
+    );
+    assert_ne!(
+        fp,
+        value_fp(i, custom_dictionary_extension, Lang::Swift),
+        "a visible Dictionary default-subscript overload must close stdlib dispatch"
+    );
+}
+
+fn assert_swift_dictionary_default_effect_boundary(i: &Interner) {
+    let python_effectful_default = r#"
+def observe() -> int:
+    return 7
+
+def f(lookup: dict[str, int], key: str, fallback: int, other: str, other_default: int) -> int:
+    return lookup.get(key, observe())
+"#;
+    let swift_effectful_default = r#"
+func observe() -> Int { return 7 }
+func f(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: observe()]
+}
+"#;
+    let swift_eager_default = r#"
+func observe() -> Int { return 7 }
+func f(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    let observed = observe()
+    return dict[key, default: observed]
+}
+"#;
+
+    assert_ne!(
+        value_fp_named(i, python_effectful_default, Lang::Python, "f"),
+        value_fp_named(i, swift_effectful_default, Lang::Swift, "f"),
+        "a lazy Swift default expression must not merge with an eager Python default expression"
+    );
+    assert_ne!(
+        value_fp_named(i, swift_effectful_default, Lang::Swift, "f"),
+        value_fp_named(i, swift_eager_default, Lang::Swift, "f"),
+        "a lazy Swift autoclosure default must not merge with an eagerly hoisted call"
+    );
+}
+
+fn assert_swift_dictionary_default_source_syntax_boundaries(i: &Interner, fp: &[u64]) {
+    let wrapped_fallback = r#"
+@propertyWrapper
+struct Shifted {
+    private var value: Int
+    var wrappedValue: Int { value + 1 }
+    init(wrappedValue: Int) { self.value = wrappedValue }
+}
+func f(_ dict: Dictionary<String, Int>, _ key: String, @Shifted _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#;
+    let alias_extension = r#"
+typealias StringIntDictionary = Dictionary<String, Int>
+extension StringIntDictionary {
+    subscript(key: String, default fallback: Int) -> Int { fallback + 1 }
+}
+func f(_ dict: Swift.Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#;
+    let escaped_extension = r#"
+extension `Dictionary` where Key == String, Value == Int {
+    subscript(key: String, default fallback: Int) -> Int { fallback + 3 }
+}
+func f(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#;
+    let shadowed_swift_namespace = r#"
+enum Swift {
+    struct Dictionary<Key: Hashable, Value> {
+        subscript(key: Key, default fallback: Int) -> Int where Value == Int { fallback + 6 }
+    }
+}
+func f(_ dict: Swift.Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#;
+    let comment_qualified_extension = r#"
+extension Swift /* gap */ . Dictionary where Key == String, Value == Int {
+    subscript(key: String, default fallback: Int) -> Int { fallback + 7 }
+}
+func f(_ dict: Swift.Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#;
+
+    for (source, reason) in [
+        (
+            wrapped_fallback,
+            "a property-wrapped fallback must not borrow a plain coordinate proof",
+        ),
+        (
+            alias_extension,
+            "a Dictionary alias extension must close stdlib dispatch",
+        ),
+        (
+            escaped_extension,
+            "an escaped Dictionary extension must close stdlib dispatch",
+        ),
+        (
+            shadowed_swift_namespace,
+            "a local Swift namespace must not prove the stdlib module qualifier",
+        ),
+        (
+            comment_qualified_extension,
+            "a comment-qualified Dictionary extension must close stdlib dispatch",
+        ),
+    ] {
+        assert_ne!(fp, value_fp_named(i, source, Lang::Swift, "f"), "{reason}");
+    }
 }

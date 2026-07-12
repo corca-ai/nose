@@ -1359,6 +1359,15 @@ migrated.
   `fetch(key) { fallback }` carries a separate zero-arg-lambda fallback argument
   contract, so block fallback demand is not inferred from the selector name in
   normalize/detect.
+- Swift Dictionary default-subscript syntax enters the same absence-preserving
+  `GetOrDefault` value only through a dedicated source contract. The receiver
+  must be a direct plain immutable parameter with bracket, unshadowed nominal,
+  or `Swift.Dictionary` type evidence, and key/default must be direct plain
+  immutable parameter coordinates. Import/macro/directive ambiguity, aliases,
+  local or corpus-visible Dictionary and `Swift` namespace shadows, escaped or
+  alias-targeted subscript overloads, property wrappers, `inout` mutation,
+  Optional `??`, and lazy call/operator/derived defaults remain closed. Rejected
+  lazy surfaces become source-salted opaque values before child evaluation.
 - JS-like static array `indexOf`/`findIndex` membership surfaces are explicit
   `LibraryApi` occurrence contracts, including the static non-float literal
   collection requirement and accepted `-1`/`0` threshold comparisons through

@@ -582,6 +582,15 @@ alone, the dependency chain must prove that specialization. For example, Rust
 `unwrap_or` occurrence has the Rust `RustMapGetOrExactOption` receiver contract
 and depends on an admitted pack-proven `MapGet` occurrence for the exact
 receiver.
+Swift Dictionary default subscripts use a source contract rather than a method
+selector contract. A plain parameter carries one of the bracket, unqualified,
+or `Swift.Dictionary` type records; local/corpus shadow and dispatch analysis
+can tombstone those records. The shared map-default resolver additionally
+requires direct plain immutable key and fallback parameter references, keeping
+property wrappers, ownership/inout modifiers, and lazy effectful default
+expressions outside `GetOrDefault`. Imports, aliases, macros, directives,
+visible default-subscript extensions, and local/corpus `Swift` namespace
+shadows tombstone the affected receiver proof before consumers run.
 
 Imported API occurrence evidence is not a broad name guess. A call-site
 `Symbol(ImportedBinding)` or `Symbol(ImportedNamespace)` dependency must itself
@@ -954,7 +963,10 @@ callers:
   `Builtin::GetOrDefault(receiver, key, default)` is exact-safe only when the
   receiver is a proven map receiver/factory or an already exact-safe non-binding
   literal/factory value, and the key/default arguments are exact-safe. Opaque
-  same-callee exact identity
+  Swift default-subscript syntax instead requires the dedicated proven
+  Dictionary parameter contract; broad Map-domain evidence alone cannot open
+  it, and import/custom-overload ambiguity closes the type evidence before
+  normalization. Opaque same-callee exact identity
   remains separate: it can keep identical calls comparable, but it does not
   assign cross-language or library semantics;
 - normalize idiom canonicalization shares the admitted occurrence resolver layer

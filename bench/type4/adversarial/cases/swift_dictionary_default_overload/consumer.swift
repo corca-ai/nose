@@ -1,0 +1,5 @@
+func dictionaryDefaultOverload(
+    _ lookup: Dictionary<String, Int>, _ key: String, _ fallback: Int
+) -> Int {
+    return lookup[key, default: fallback]
+}

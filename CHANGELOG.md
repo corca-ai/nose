@@ -7,6 +7,17 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added the controlled Swift `Dictionary` default-subscript slice for #798.
+  Import-free plain parameters written as `[K: V]`, unshadowed
+  `Dictionary<K, V>`, or `Swift.Dictionary<K, V>` now converge with existing
+  absence-preserving map defaults when receiver, key, and fallback are direct
+  immutable parameter coordinates. Wrong coordinates, `??`, lazy call/operator
+  defaults and lazy-versus-hoisted calls, `inout` mutation, custom Dictionary
+  types, visible/conditional/alias-targeted subscript overloads, imports,
+  macros, aliases, `Swift` namespace shadows, comment-qualified extensions, and
+  property-wrapped or modified parameters remain split. The executable Type-4
+  suite is 358/358 and the open
+  surface audit now has zero rows.
 - Added controlled Java and Swift flat-map aggregate slices for #797. Java
   `Arrays.stream(...).flatMap(...).reduce(seed, step)` now converges with the
   equivalent nested reduction when one-level sources, optional outer/inner

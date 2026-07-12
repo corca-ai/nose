@@ -656,6 +656,35 @@ standard unary call and therefore does not suppress valid admission. Swift
 trap behavior are separately proven. All 341 executable Type-4 expectations
 pass, and the open-surface audit removes both original #797 rows.
 
+## Swift Dictionary Default Lookup Facts
+
+Closed #798 by modeling `map.default.absence-fallback`,
+`map.receiver.source-identity`, `map.default.key-fallback-coordinate`, and
+`map.receiver.no-intervening-mutation` as controlled reusable facts. Swift
+default-subscript admission now goes through one shared semantic contract used
+by the value graph and strict exact gate. Its receiver must be a direct plain
+immutable parameter with language-core bracket Dictionary, unshadowed
+`Dictionary<K, V>`, or `Swift.Dictionary<K, V>` source evidence; key and
+fallback must be direct plain immutable parameter coordinates.
+
+Three executable positives cover nominal, bracket, and qualified Dictionary
+syntax. Fourteen adjacent splits independently cover wrong key, fallback, or
+receiver coordinates; a lazy call default and its eagerly hoisted counterpart;
+property-wrapped fallback; `inout` receiver mutation; Optional `??`; a
+local/cross-file custom Dictionary; visible conditional/escaped and
+alias-targeted and comment-qualified default-subscript overloads; a shadowed
+`Swift` namespace; and import-visible dispatch ambiguity. The direct
+fallback-coordinate rule is also
+a demand boundary: Swift's autoclosure default cannot converge with an eager
+effectful default expression merely because the lowered value matches. Rejected
+default-subscript expressions become source-salted opaque values before their
+lazy fallback child can be evaluated. Property wrappers, parameter modifiers,
+aliases, macros, directives, imports, derived coordinates, and custom dispatch
+remain closed. All 358 executable Type-4
+expectations pass, all seven frozen #791 rows have left the current open audit,
+and no Swift real-corpus replay is promoted because no source-backed real pair
+exists in the checked frontier.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,
