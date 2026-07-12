@@ -276,7 +276,11 @@ current workflow.
 
 Epic closeouts that summarize an admission batch's final replay/blocker disposition live
 beside the frontier artifacts. The #778 audit-ready admission closeout is recorded in
-`issue_778_closeout.v1.json` and `issue_778_closeout.md`.
+`issue_778_closeout.v1.json` and `issue_778_closeout.md`. The #791 neutral-fact blocked
+slice closeout is recorded in `issue_791_closeout.v1.json` and
+`issue_791_closeout.md`; it distinguishes the 31-item real-frontier inventory from the
+unchanged 29-entry executable replay and does not promote focused fixtures as real-corpus
+evidence.
 
 ## Frontier evidence platform
 
