@@ -64,9 +64,15 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "navigation_expression" => lower_navigation(lo, node),
         "selector_expression" => lower_selector_expression(lo, node),
         "lambda_literal" => lower_lambda(lo, node),
-        "as_expression" | "check_expression" | "consume_expression" | "value_pack_expansion" => {
-            peel_value_child(lo, node)
+        "as_expression" | "check_expression" => {
+            let value = peel_value_child(lo, node);
+            lo.raw("swift_cast_or_type_check", span, &[value])
         }
+        "consume_expression" => {
+            let value = peel_value_child(lo, node);
+            lo.raw("swift_consume_expression", span, &[value])
+        }
+        "value_pack_expansion" => peel_value_child(lo, node),
         "try_expression" => {
             let value = first_expr_child(node)
                 .map(|child| lower_expr(lo, child))
@@ -374,7 +380,9 @@ pub(super) fn lower_prefix(lo: &mut Lowering, node: TsNode) -> NodeId {
         lo.add(NodeKind::UnOp, Payload::Op(Op::Not), span, &[operand])
     } else if op_text == "-" {
         lo.add(NodeKind::UnOp, Payload::Op(Op::Neg), span, &[operand])
-    } else if op_text == "+" || op_text == "&" {
+    } else if op_text == "+" {
+        lo.add(NodeKind::UnOp, Payload::Op(Op::Pos), span, &[operand])
+    } else if op_text == "&" {
         operand
     } else if op_text == "." {
         lower_implicit_member(lo, span, operand)
@@ -511,8 +519,10 @@ pub(super) fn lower_postfix(lo: &mut Lowering, node: TsNode) -> NodeId {
     let operand = operand_node
         .map(|child| lower_expr(lo, child))
         .unwrap_or_else(|| lo.empty_block(span));
-    if op_text.ends_with('?') || op_text.ends_with('!') {
+    if op_text.ends_with('?') {
         operand
+    } else if op_text.ends_with('!') {
+        lo.raw("swift_force_unwrap", span, &[operand])
     } else {
         lo.raw("postfix_expression", span, &[operand])
     }

@@ -19,7 +19,7 @@ report keeps the fuller evidence and admission boundary.
 - by detector admission: `{"controlled-slice-admitted": 4, "real-pair-admitted": 3}`
 - by executable witness coverage: `{"covered": 7}`
 - by real-frontier replay expectations: `{"passed": 7}`
-- executable expectations: 251/251 passed
+- executable expectations: 288/288 passed
 - real-frontier replay expectations: 29/29 passed; 0 unavailable
 
 ## Admission Policy

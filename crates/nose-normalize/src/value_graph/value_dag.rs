@@ -256,12 +256,6 @@ fn content_hash(il: &Il, node: NodeId, interner: &Interner, memo: &mut FxHashMap
     memo.get(&node.0).copied().unwrap_or(0)
 }
 
-fn span_within(outer: Span, inner: Span) -> bool {
-    outer.file == inner.file
-        && inner.start_byte >= outer.start_byte
-        && inner.end_byte <= outer.end_byte
-}
-
 /// Per-file referent-resolution tables, built once and reused across the file's units
 /// (the maps are O(file), so rebuilding them per unit is what made huge generated
 /// files pathological). Construct with [`FileReferents::new`], then call
@@ -345,7 +339,7 @@ impl<'a> FileReferents<'a> {
     fn import_referent(&self, stmt_span: Span, local: &str) -> Option<u64> {
         self.import_evidence
             .iter()
-            .filter(|(s, _)| span_within(stmt_span, *s))
+            .filter(|(s, _)| stmt_span.contains(*s))
             .find_map(|(_, ik)| match *ik {
                 ImportEvidenceKind::Binding {
                     module_hash,
@@ -396,7 +390,7 @@ impl<'a> FileReferents<'a> {
             .iter()
             .take_while(|(s, _)| s.start_byte <= unit_span.end_byte)
         {
-            if !span_within(unit_span, *span) {
+            if !unit_span.contains(*span) {
                 continue;
             }
             let k = *k;

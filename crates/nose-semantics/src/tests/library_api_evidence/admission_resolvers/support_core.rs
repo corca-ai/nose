@@ -140,6 +140,7 @@ pub(crate) fn callback_fixture_node(
             &[],
         ),
         CallbackFixtureShape::EffectfulCall { callee, arg_cid } => {
+            let param = b.add(NodeKind::Param, Payload::Cid(arg_cid), sp(span_base), &[]);
             let callee = b.add(
                 NodeKind::Var,
                 Payload::Name(interner.intern(callee)),
@@ -155,9 +156,15 @@ pub(crate) fn callback_fixture_node(
             );
             let ret = b.add(NodeKind::Return, Payload::None, sp(span_base + 4), &[call]);
             let body = b.add(NodeKind::Block, Payload::None, sp(span_base + 5), &[ret]);
-            b.add(NodeKind::Lambda, Payload::None, sp(span_base + 6), &[body])
+            b.add(
+                NodeKind::Lambda,
+                Payload::None,
+                sp(span_base + 6),
+                &[param, body],
+            )
         }
         CallbackFixtureShape::MutatingAssign { lhs_cid, rhs_cid } => {
+            let param = b.add(NodeKind::Param, Payload::Cid(rhs_cid), sp(span_base), &[]);
             let lhs = b.add(NodeKind::Var, Payload::Cid(lhs_cid), sp(span_base + 1), &[]);
             let rhs = b.add(NodeKind::Var, Payload::Cid(rhs_cid), sp(span_base + 2), &[]);
             let assign = b.add(
@@ -167,13 +174,24 @@ pub(crate) fn callback_fixture_node(
                 &[lhs, rhs],
             );
             let body = b.add(NodeKind::Block, Payload::None, sp(span_base + 4), &[assign]);
-            b.add(NodeKind::Lambda, Payload::None, sp(span_base + 5), &[body])
+            b.add(
+                NodeKind::Lambda,
+                Payload::None,
+                sp(span_base + 5),
+                &[param, body],
+            )
         }
         CallbackFixtureShape::Throwing { err_cid } => {
+            let param = b.add(NodeKind::Param, Payload::Cid(err_cid), sp(span_base), &[]);
             let err = b.add(NodeKind::Var, Payload::Cid(err_cid), sp(span_base + 1), &[]);
             let throw = b.add(NodeKind::Throw, Payload::None, sp(span_base + 2), &[err]);
             let body = b.add(NodeKind::Block, Payload::None, sp(span_base + 3), &[throw]);
-            b.add(NodeKind::Lambda, Payload::None, sp(span_base + 4), &[body])
+            b.add(
+                NodeKind::Lambda,
+                Payload::None,
+                sp(span_base + 4),
+                &[param, body],
+            )
         }
     }
 }

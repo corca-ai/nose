@@ -60,7 +60,7 @@ fn multi_clause_comprehension_converges_as_flat_map() {
     );
     let flat_map_js = value_fp(
         &i,
-        "function h(xs: number[], ys: number[]): number[] { return xs.flatMap(x => ys.map(y => x + y)); }",
+        "function h(xs: number[], ys: number[]): number[] { return xs.flatMap((x: number) => ys.map((y: number) => x + y)); }",
         Lang::TypeScript,
     );
     let nested_list = value_fp(
@@ -101,7 +101,7 @@ fn flat_map_sum_aggregate_converges_with_nested_reduction_loop() {
     );
     let sum_js = value_fp(
         &i,
-        "function h(xs: number[], ys: number[]): number { return xs.flatMap(x => ys.map(y => x + y)).reduce((a, v) => a + v, 0); }",
+        "function h(xs: number[], ys: number[]): number { return xs.flatMap((x: number) => ys.map((y: number) => x + y)).reduce((a, v) => a + v, 0); }",
         Lang::TypeScript,
     );
     let wrong_seed = value_fp(

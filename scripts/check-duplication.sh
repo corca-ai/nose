@@ -209,6 +209,12 @@ set -euo pipefail
 # enum-projection overlap between MethodReceiverContract's domain-requirement table and
 # stable contract-key table after adding RubyCoreNilPredicate. Reviewed in
 # docs/dogfooding-history.md; accepted as explicit policy-table span noise.
+# 31 -> 30 (#794 HOF callback purity): the first self-query exposed duplicated
+# EvidenceAnchor span projection and byte-range containment helpers; routing them through
+# `EvidenceAnchor::span` and `Span::contains` removes both families. Remaining frontend and
+# value-DAG IDs are reviewed representative churn, while one four-line callback-literal overlap
+# is whole-impl span noise. A stale string-affix fixture family also disappears, so the ratchet
+# tightens. See docs/dogfooding-history.md.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

@@ -1,8 +1,10 @@
 use super::*;
 
+mod callbacks;
 mod iterator_sources;
 mod provenance;
 
+use callbacks::{library_api_callback_obligation, library_api_callback_obligation_matches_node};
 pub use iterator_sources::library_api_contract_iterable_source_argument_indices;
 pub(in crate::library_api) use iterator_sources::{
     library_api_contract_obligations_match_call, library_api_contract_obligations_match_node,

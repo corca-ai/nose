@@ -1,5 +1,7 @@
 use super::*;
 
+mod shadowing;
+
 #[test]
 fn method_receiver_contracts_expose_only_domain_backed_obligations() {
     assert_eq!(

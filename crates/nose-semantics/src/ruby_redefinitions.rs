@@ -196,7 +196,7 @@ fn ruby_class_unit_redefines_method(
                         && method_unit
                             .name
                             .is_some_and(|name| interner.resolve(name) == expected_method)
-                        && span_contains(class_span, method_span)
+                        && class_span.contains(method_span)
                 }) || il.nodes.iter().enumerate().any(|(idx, node)| {
                     let call = NodeId(idx as u32);
                     node.kind == NodeKind::Call
@@ -207,7 +207,7 @@ fn ruby_class_unit_redefines_method(
                             expected_method,
                             default_node_name,
                         )
-                        && span_contains(class_span, node.span)
+                        && class_span.contains(node.span)
                 })
             }
     })
@@ -257,10 +257,10 @@ fn ruby_class_eval_redefines_method(
             && ruby_class_eval_call(il, interner, call, class_names, node_name)
             && (method_spans
                 .iter()
-                .any(|&method_span| span_contains(node.span, method_span))
+                .any(|&method_span| node.span.contains(method_span))
                 || define_method_spans
                     .iter()
-                    .any(|&define_method_span| span_contains(node.span, define_method_span)))
+                    .any(|&define_method_span| node.span.contains(define_method_span)))
     })
 }
 

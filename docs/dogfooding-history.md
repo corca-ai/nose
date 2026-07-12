@@ -1081,3 +1081,30 @@ already reviewed cross-engine candidate-pair enumeration representative from
 `candidates.rs::anchor_candidates`; this is representative-ID churn for the same
 visible cross-engine algorithm debt, not a new duplicate family. No new budget is
 accepted.
+
+The HOF callback-purity slice (#794) tightens the reviewed default-surface count
+from 31 to 30. The first self-query reported 32 families, including two
+avoidable helper families introduced or enlarged by this work. Three modules
+were repeating the span projection already owned by `EvidenceAnchor::span`, and
+four crates maintained equivalent byte-range containment functions. Removing
+those wrappers and adding the domain-neutral `Span::contains` method eliminates
+the new `3929d0b5bb2cdef6` / `d25a506b4942c20e` findings and the stale accepted
+evidence-anchor representative `734ee4c50e4d001e`.
+
+The final 30-family report contains three reviewed representative moves:
+`2a5aa3db45d33592` becomes `1faed9f36902890e` for the existing
+builder/value-DAG whole-impl span after the containment cleanup;
+`ac31c3c9bc390d55` becomes `af4b6d3f13df0fcb` for the per-frontend
+call/constructor/enum-constant lowering family; and `ebf5e40476ceff32`
+becomes `6bd7fd9ff22dcd0f` for the per-language expression-dispatch family,
+now also represented by Ruby after its source-boundary hardening. These remain
+the previously reviewed language-frontend parallelism and value-graph span-noise
+classes. The old string-affix fixture family `f4bd533cf627ba92` no longer crosses
+the substantial threshold. The sole new accepted representative,
+`a679fd9cdbda1be2`, is a broad whole-impl match between the 489-line general
+operator-semantics implementation and the 17-line callback literal-domain
+matcher: only four literal projection lines are shared/removable, while the
+callback matcher deliberately preserves the narrower Number/BigInt and
+effect-closure policy. Sharing that policy would weaken the boundary rather
+than clarify it. With the real helper duplication removed and one stale family
+gone, the budget is tightened to 30.

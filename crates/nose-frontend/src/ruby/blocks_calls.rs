@@ -11,16 +11,7 @@ pub(super) fn lower_block_lambda_with_unit(
     let span = lo.span(node);
     let mut kids = Vec::new();
     if let Some(params) = node.child_by_field_name("parameters") {
-        for p in Lowering::named_children(params) {
-            let pspan = lo.span(p);
-            let sym = param_name(lo, p);
-            kids.push(lo.add(
-                NodeKind::Param,
-                sym.map(Payload::Name).unwrap_or(Payload::None),
-                pspan,
-                &[],
-            ));
-        }
+        lower_block_params(lo, params, &mut kids);
     }
     let body = block_body(lo, node);
     if let Some(name) = block_unit_name {
@@ -28,6 +19,38 @@ pub(super) fn lower_block_lambda_with_unit(
     }
     kids.push(body);
     lo.add(NodeKind::Lambda, Payload::None, span, &kids)
+}
+
+fn lower_block_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
+    let mut has_block_locals = false;
+    for index in 0..params.child_count() {
+        let Some(param) = params.child(index) else {
+            continue;
+        };
+        if !param.is_named() {
+            continue;
+        }
+        if params.field_name_for_child(index as u32) == Some("locals") {
+            has_block_locals = true;
+        } else {
+            out.push(lower_param_node(lo, param));
+        }
+    }
+    if block_params_have_trailing_comma(lo.text(params)) {
+        out.push(lo.raw("ruby_trailing_comma_parameter", lo.span(params), &[]));
+    }
+    if has_block_locals {
+        out.push(lo.raw("ruby_block_local_parameters", lo.span(params), &[]));
+    }
+}
+
+fn block_params_have_trailing_comma(source: &str) -> bool {
+    let formals = source.split(';').next().unwrap_or(source).trim_end();
+    formals
+        .strip_suffix('|')
+        .unwrap_or(formals)
+        .trim_end()
+        .ends_with(',')
 }
 pub(super) fn is_test_dsl_method(method: &str) -> bool {
     matches!(

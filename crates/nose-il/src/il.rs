@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 mod evidence_index;
 use evidence_index::EvidenceIndex;
+mod scope_index;
 
 /// One lowered source file. `nodes` is the arena; child links live out-of-line in
 /// `edges` so each [`Node`] stays small. `file == ` this file's index in the
@@ -42,6 +43,11 @@ pub struct Il {
     /// immutable once an `Il` is built — passes rebuild the arena instead.
     #[serde(skip)]
     scope_index: std::sync::OnceLock<Vec<Option<NodeId>>>,
+    /// Lazy nearest-scope → next enclosing scope index (see
+    /// [`Il::parent_scope`]). This lets consumers walk captured-parameter
+    /// scopes without repeating a whole-arena span scan for every reference.
+    #[serde(skip)]
+    scope_parent_index: std::sync::OnceLock<Vec<Option<NodeId>>>,
     /// Lazy byte-span → node-ids index (see [`Il::nodes_spanning`]). Sound under
     /// the same immutability discipline as `scope_index`: node spans and kinds
     /// are never rewritten in place (only payloads/edges are), and passes that
@@ -53,6 +59,16 @@ pub struct Il {
     /// in arena order. Same immutability discipline as `scope_index`.
     #[serde(skip)]
     assign_scope_index: std::sync::OnceLock<std::collections::HashMap<u32, Vec<NodeId>>>,
+    /// Lazy canonical-id → parameter-node index (see [`Il::params_with_cid`]).
+    /// Used by the synthetic/no-source-scope fallback without a per-reference
+    /// arena walk.
+    #[serde(skip)]
+    param_cid_index: std::sync::OnceLock<std::collections::HashMap<u32, Vec<NodeId>>>,
+    /// Lazy per-scope local-binder index (params plus assignment/foreach
+    /// targets). Keeps pre-alpha shadow checks and post-alpha reassignment checks
+    /// complete without per-reference subtree walks.
+    #[serde(skip)]
+    scope_binding_index: std::sync::OnceLock<scope_index::ScopeBindingIndex>,
     /// Lazy evidence lookup index (see [`Il::evidence_anchored_at`]). Appends to
     /// `evidence` are picked up incrementally (the index tracks how many records
     /// it has seen); code that mutates existing records IN PLACE must call
@@ -76,8 +92,11 @@ impl Clone for Il {
             // Caches are cheap to recompute and a clone is usually about to be
             // mutated — start fresh.
             scope_index: std::sync::OnceLock::new(),
+            scope_parent_index: std::sync::OnceLock::new(),
             span_index: std::sync::OnceLock::new(),
             assign_scope_index: std::sync::OnceLock::new(),
+            param_cid_index: std::sync::OnceLock::new(),
+            scope_binding_index: std::sync::OnceLock::new(),
             evidence_index: std::sync::RwLock::new(None),
         }
     }
@@ -104,8 +123,11 @@ impl Il {
             suppressed: Vec::new(),
             evidence: Vec::new(),
             scope_index: std::sync::OnceLock::new(),
+            scope_parent_index: std::sync::OnceLock::new(),
             span_index: std::sync::OnceLock::new(),
             assign_scope_index: std::sync::OnceLock::new(),
+            param_cid_index: std::sync::OnceLock::new(),
+            scope_binding_index: std::sync::OnceLock::new(),
             evidence_index: std::sync::RwLock::new(None),
         }
     }
@@ -173,16 +195,6 @@ impl Il {
         (self.kind(lhs) == NodeKind::Var).then_some((lhs, rhs))
     }
 
-    /// The nearest enclosing `Func`/`Lambda` scope of `node` by source span: the
-    /// smallest-width scope whose span contains the node's span, ties broken by
-    /// the lowest scope id. Computed for the whole arena on first use and cached —
-    /// the per-query linear pass this replaces was O(nodes) *per call*, which went
-    /// quadratic (4-minute single files) on minified-bundle-sized inputs.
-    pub fn nearest_scope(&self, node: NodeId) -> Option<NodeId> {
-        let index = self.scope_index.get_or_init(|| self.build_scope_index());
-        index.get(node.0 as usize).copied().flatten()
-    }
-
     pub fn span_inside_local_scope(&self, span: Span) -> bool {
         self.nodes.iter().any(|node| {
             matches!(
@@ -207,75 +219,6 @@ impl Il {
             })
             .min_by_key(|(_, node)| node.span.end_byte.saturating_sub(node.span.start_byte))
             .map(|(idx, _)| NodeId(idx as u32))
-    }
-
-    /// One-pass exact computation of [`Il::nearest_scope`] for every node.
-    ///
-    /// Scopes are visited in (width asc, id asc) order — the same preference order
-    /// a per-node argmin would use — and each scope claims every still-unclaimed
-    /// node whose span it contains, so the first claim is the best one. A
-    /// path-compressed "next unclaimed position" skip list over the start-sorted
-    /// node order makes each node's claim O(α); per scope, only nodes that start
-    /// inside but end outside its span (its ancestors — O(depth) of them) are
-    /// re-examined later.
-    fn build_scope_index(&self) -> Vec<Option<NodeId>> {
-        let n = self.nodes.len();
-        let mut scopes: Vec<(u32, u32)> = self
-            .nodes
-            .iter()
-            .enumerate()
-            .filter(|(_, node)| matches!(node.kind, NodeKind::Func | NodeKind::Lambda))
-            .map(|(idx, node)| {
-                let width = node.span.end_byte.saturating_sub(node.span.start_byte);
-                (width, idx as u32)
-            })
-            .collect();
-        scopes.sort_unstable();
-
-        let mut order: Vec<u32> = (0..n as u32).collect();
-        order.sort_unstable_by_key(|&idx| (self.nodes[idx as usize].span.start_byte, idx));
-        let starts: Vec<u32> = order
-            .iter()
-            .map(|&idx| self.nodes[idx as usize].span.start_byte)
-            .collect();
-
-        let mut by_node: Vec<Option<NodeId>> = vec![None; n];
-        // next[pos] = the next possibly-unclaimed position at or after pos.
-        let mut next: Vec<u32> = (0..=n as u32).collect();
-        fn next_unclaimed(next: &mut [u32], from: u32) -> u32 {
-            let mut root = from;
-            while next[root as usize] != root {
-                root = next[root as usize];
-            }
-            let mut cur = from;
-            while next[cur as usize] != root {
-                let hop = next[cur as usize];
-                next[cur as usize] = root;
-                cur = hop;
-            }
-            root
-        }
-
-        for (_, scope_idx) in scopes {
-            let scope_span = self.nodes[scope_idx as usize].span;
-            let lo = starts.partition_point(|&start| start < scope_span.start_byte) as u32;
-            let mut pos = next_unclaimed(&mut next, lo);
-            while (pos as usize) < n {
-                let target = order[pos as usize];
-                let target_span = self.nodes[target as usize].span;
-                if target_span.start_byte > scope_span.end_byte {
-                    break;
-                }
-                if target_span.file == scope_span.file
-                    && target_span.end_byte <= scope_span.end_byte
-                {
-                    by_node[target as usize] = Some(NodeId(scope_idx));
-                    next[pos as usize] = pos + 1;
-                }
-                pos = next_unclaimed(&mut next, pos + 1);
-            }
-        }
-        by_node
     }
 
     pub fn find_or_push_builtin_evidence(
@@ -406,31 +349,6 @@ impl Il {
             .unwrap_or_default()
             .iter()
             .map(|&idx| NodeId(idx))
-    }
-
-    /// `Assign` node ids whose [`Il::nearest_scope`] is `scope` (`None` =
-    /// module level), in arena order. Backed by a lazy index: binding-LHS
-    /// resolution filters assignments by scope per *reference*, which was a
-    /// whole-arena pass per query before.
-    pub fn assigns_in_scope(&self, scope: Option<NodeId>) -> &[NodeId] {
-        let index = self.assign_scope_index.get_or_init(|| {
-            let mut by_scope: std::collections::HashMap<u32, Vec<NodeId>> =
-                std::collections::HashMap::new();
-            for (idx, node) in self.nodes.iter().enumerate() {
-                if node.kind != NodeKind::Assign {
-                    continue;
-                }
-                let id = NodeId(idx as u32);
-                let key = self.nearest_scope(id).map_or(0, |scope| scope.0 + 1);
-                by_scope.entry(key).or_default().push(id);
-            }
-            by_scope
-        });
-        let key = scope.map_or(0, |scope| scope.0 + 1);
-        index
-            .get(&key)
-            .map(|ids| ids.as_slice())
-            .unwrap_or_default()
     }
 
     /// Indices into [`Il::evidence`] for records whose anchor sits exactly at

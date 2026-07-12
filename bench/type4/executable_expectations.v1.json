@@ -1,9 +1,9 @@
 {
-  "expectation_count": 251,
+  "expectation_count": 288,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 251,
-  "query_count": 20,
+  "passed": 288,
+  "query_count": 21,
   "results": [
     {
       "case_id": "collection_membership_literal_and_typed_positive",
@@ -3273,6 +3273,362 @@
       "expect": "split",
       "expectation_id": "python_loop_demorgan_iterator_identity_stays_split",
       "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/iterator_identity.py",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_inline_transform",
+      "expect": "same-family",
+      "expectation_id": "hof_callback_purity_inline_map_matches_loop",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 11,
+            "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+            "name": "pureCallbackLoop",
+            "start": 5
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+            "name": "swiftPureCallbackMap",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+            "name": "pureCallbackMap",
+            "start": 1
+          }
+        ],
+        "value": 14.4,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_observed_call_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_captured_mutation_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_extra_value_coordinate_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_custom_dispatch_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_throwing_sink_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_overloadable_operator_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_nested_receiver_effect_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_implicit_arguments_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_default_parameter_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_rest_parameter_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_destructured_parameter_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_mixed_bigint_operator_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_swift_prefix_plus_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_swift_force_unwrap_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_swift_custom_prefix_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_swift_interpolation_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_instanceof_trap_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_array_spread_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_free_global_read_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_swift_contextual_literal_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_swift_custom_nominal_operator_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_swift_capture_initializer_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_nested_predicate_operator_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_ruby_splat_parameter_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_ruby_destructured_parameter_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_ruby_optional_parameter_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_ruby_trailing_comma_parameter_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_ruby_block_local_parameter_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_ruby_nonlocal_return_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_ruby_method_definition_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_ruby_class_definition_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_ruby_interpolated_regex_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_swift_forced_cast_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_js_class_heritage_effect_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_ruby_array_splat_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "hof_callback_purity_effect_boundary",
+      "expect": "split",
+      "expectation_id": "hof_callback_ruby_map_key_hashing_stays_split",
+      "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
       "matching_family": null,
       "observed": "split",
       "ok": true

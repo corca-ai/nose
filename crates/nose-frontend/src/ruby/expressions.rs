@@ -95,14 +95,7 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .collect();
             lo.add(NodeKind::Index, Payload::None, span, &kids)
         }
-        "array" => {
-            let kids: Vec<NodeId> = Lowering::named_children(node)
-                .into_iter()
-                .map(|c| lower_expr(lo, c))
-                .collect();
-            let tag = lo.sym("array");
-            lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
-        }
+        "array" => lower_array(lo, node),
         "hash" => lower_hash(lo, node),
         "pair" => lower_hash_pair(lo, node),
         "block" | "do_block" => lower_block_lambda(lo, node),
@@ -134,8 +127,7 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             .unwrap_or_else(|| lo.empty_block(span)),
         // `Foo::Bar` — a qualified name; treat as one Var atom (robust to nesting).
         "scope_resolution" => lo.var(lo.text(node), span),
-        // A regex literal is a constant.
-        "regex" => lo.str_lit(lo.text(node), span),
+        "regex" => lower_regex(lo, node),
         // `begin … rescue … end` as an expression (e.g. RHS of an assignment).
         "begin" | "do" => lower_begin(lo, node),
         // `expr rescue fallback` is expression-level exception handling.
@@ -164,6 +156,48 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         _ => raw_kids(lo, node),
     }
 }
+
+fn lower_regex(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let interpolations = Lowering::named_children(node)
+        .into_iter()
+        .filter(|child| child.kind() == "interpolation")
+        .filter_map(|interpolation| interpolation.named_child(0))
+        .map(|value| lower_expr(lo, value))
+        .collect::<Vec<_>>();
+    if interpolations.is_empty() {
+        lo.str_lit(lo.text(node), lo.span(node))
+    } else {
+        lo.raw("ruby_interpolated_regex", lo.span(node), &interpolations)
+    }
+}
+
+fn lower_array(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let kids: Vec<NodeId> = Lowering::named_children(node)
+        .into_iter()
+        .map(|child| {
+            if child.kind() == "splat_argument" {
+                let splat_children: Vec<NodeId> = Lowering::named_children(child)
+                    .into_iter()
+                    .map(|value| lower_expr(lo, value))
+                    .collect();
+                lo.add(
+                    NodeKind::Seq,
+                    Payload::Name(lo.sym("ruby_array_splat")),
+                    lo.span(child),
+                    &splat_children,
+                )
+            } else {
+                lower_expr(lo, child)
+            }
+        })
+        .collect();
+    lo.add(
+        NodeKind::Seq,
+        Payload::Name(lo.sym("array")),
+        lo.span(node),
+        &kids,
+    )
+}
 pub(super) fn lower_rescue_modifier(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let kids = Lowering::named_children(node);
@@ -190,14 +224,7 @@ pub(super) fn lower_arrow_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
         .find(|child| child.kind() == "lambda_parameters")
     {
         for param in Lowering::named_children(*params) {
-            let pspan = lo.span(param);
-            let sym = param_name(lo, param);
-            kids.push(lo.add(
-                NodeKind::Param,
-                sym.map(Payload::Name).unwrap_or(Payload::None),
-                pspan,
-                &[],
-            ));
+            kids.push(lower_param_node(lo, param));
         }
     }
     let body = children

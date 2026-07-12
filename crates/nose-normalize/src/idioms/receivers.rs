@@ -1,5 +1,4 @@
 use super::*;
-use nose_semantics::js_like_lang;
 
 #[derive(Clone, Copy)]
 pub(super) enum ProvenReceiver {
@@ -121,10 +120,6 @@ pub(super) fn apply_method_contract(
     receiver: ProvenReceiver,
     args: &[NodeId],
 ) -> CallCanon {
-    if !method_contract_callback_shape_allowed(old, contract, args) {
-        return CallCanon::None;
-    }
-
     let op = match contract.semantic {
         MethodSemanticContract::Builtin(op) => op,
         MethodSemanticContract::HoF(kind) => {
@@ -223,49 +218,4 @@ pub(super) fn apply_method_contract(
             collection_reduction_args(old, interner, op, direct)
         }
     }
-}
-
-fn method_contract_requires_unary_value_callback(lang: Lang, contract: MethodCallContract) -> bool {
-    match lang {
-        Lang::Ruby => {
-            matches!(
-                contract.semantic,
-                MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::Reject)
-            ) || contract.args == MethodBuiltinArgs::BoolReduction
-        }
-        Lang::Swift => {
-            matches!(
-                contract.semantic,
-                MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
-            ) || contract.args == MethodBuiltinArgs::BoolReduction
-        }
-        _ if js_like_lang(lang) => {
-            matches!(
-                contract.semantic,
-                MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
-            ) || contract.args == MethodBuiltinArgs::BoolReduction
-        }
-        _ => false,
-    }
-}
-
-fn method_contract_callback_shape_allowed(
-    old: &Il,
-    contract: MethodCallContract,
-    args: &[NodeId],
-) -> bool {
-    !method_contract_requires_unary_value_callback(old.meta.lang, contract)
-        || args
-            .first()
-            .is_some_and(|&callback| lambda_param_count(old, callback) == 1)
-}
-
-fn lambda_param_count(il: &Il, lambda: NodeId) -> usize {
-    if !matches!(il.kind(lambda), NodeKind::Func | NodeKind::Lambda) {
-        return 0;
-    }
-    il.children(lambda)
-        .iter()
-        .filter(|&&child| il.kind(child) == NodeKind::Param)
-        .count()
 }

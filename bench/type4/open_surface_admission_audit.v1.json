@@ -548,9 +548,9 @@
           "language": "Swift",
           "likely_blocker": "model required facts before detector admission",
           "pattern_focused_support": {
-            "hard_negative": 5,
+            "hard_negative": 6,
             "hard_negative_group": 0,
-            "positive": 2
+            "positive": 3
           },
           "pattern_id": "hof.filter-map.option-emission",
           "reason": "needs optional-result channel and callback-effect facts",
@@ -563,7 +563,6 @@
           },
           "surface_status": "open",
           "unmodeled_facts": [
-            "effect.pure-callback",
             "hof.filter-map.drop-condition-coordinate",
             "hof.filter-map.emitted-value-coordinate"
           ]
@@ -576,9 +575,9 @@
           "language": "Java",
           "likely_blocker": "model required facts before detector admission",
           "pattern_focused_support": {
-            "hard_negative": 6,
+            "hard_negative": 7,
             "hard_negative_group": 0,
-            "positive": 4
+            "positive": 5
           },
           "pattern_id": "hof.flat-map.aggregate-reduction",
           "reason": "needs flat-map source, one-level depth, callback, and aggregate-guard facts",
@@ -591,7 +590,35 @@
           },
           "surface_status": "open",
           "unmodeled_facts": [
-            "effect.pure-callback",
+            "hof.flat-map.nested-iteration-order",
+            "hof.flat-map.emitted-value-coordinate",
+            "collection.flatten-depth.one-level",
+            "hof.flat-map.aggregate-guard-coordinate"
+          ]
+        },
+        {
+          "candidate_priority": "blocked-by-unmodeled-facts",
+          "current_candidate_priority": "blocked-by-unmodeled-facts",
+          "current_open_audit_state": "present",
+          "evidence_level": "missing",
+          "language": "Swift",
+          "likely_blocker": "model required facts before detector admission",
+          "pattern_focused_support": {
+            "hard_negative": 7,
+            "hard_negative_group": 0,
+            "positive": 5
+          },
+          "pattern_id": "hof.flat-map.aggregate-reduction",
+          "reason": "needs flat-map source, one-level depth, callback, and aggregate-guard facts",
+          "selector": "hof.flat-map.aggregate-reduction:Swift:blocked-by-unmodeled-facts",
+          "surface": "Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence",
+          "surface_focused_support": {
+            "hard_negative": 0,
+            "hard_negative_group": 0,
+            "positive": 0
+          },
+          "surface_status": "open",
+          "unmodeled_facts": [
             "hof.flat-map.nested-iteration-order",
             "hof.flat-map.emitted-value-coordinate",
             "collection.flatten-depth.one-level",
@@ -608,37 +635,7 @@
           "pattern_focused_support": {
             "hard_negative": 6,
             "hard_negative_group": 0,
-            "positive": 4
-          },
-          "pattern_id": "hof.flat-map.aggregate-reduction",
-          "reason": "needs flat-map source, one-level depth, callback, and aggregate-guard facts",
-          "selector": "hof.flat-map.aggregate-reduction:Swift:blocked-by-unmodeled-facts",
-          "surface": "Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence",
-          "surface_focused_support": {
-            "hard_negative": 0,
-            "hard_negative_group": 0,
-            "positive": 0
-          },
-          "surface_status": "open",
-          "unmodeled_facts": [
-            "effect.pure-callback",
-            "hof.flat-map.nested-iteration-order",
-            "hof.flat-map.emitted-value-coordinate",
-            "collection.flatten-depth.one-level",
-            "hof.flat-map.aggregate-guard-coordinate"
-          ]
-        },
-        {
-          "candidate_priority": "blocked-by-unmodeled-facts",
-          "current_candidate_priority": "blocked-by-unmodeled-facts",
-          "current_open_audit_state": "present",
-          "evidence_level": "missing",
-          "language": "Swift",
-          "likely_blocker": "model required facts before detector admission",
-          "pattern_focused_support": {
-            "hard_negative": 5,
-            "hard_negative_group": 0,
-            "positive": 2
+            "positive": 3
           },
           "pattern_id": "hof.flat-map.one-level-flatten",
           "reason": "needs one-level flatten, nested-order, emitted-value, and callback facts",
@@ -651,7 +648,6 @@
           },
           "surface_status": "open",
           "unmodeled_facts": [
-            "effect.pure-callback",
             "hof.flat-map.nested-iteration-order",
             "hof.flat-map.emitted-value-coordinate",
             "collection.flatten-depth.one-level"
@@ -763,7 +759,7 @@
         },
         {
           "fact_statuses": {
-            "effect.pure-callback": "specified-not-modeled"
+            "effect.pure-callback": "modeled-controlled"
           },
           "facts": [
             "effect.pure-callback"
@@ -931,9 +927,9 @@
           "likely_blocker": "model required facts before detector admission",
           "order": 3,
           "pattern_focused_support": {
-            "hard_negative": 5,
+            "hard_negative": 6,
             "hard_negative_group": 0,
-            "positive": 2
+            "positive": 3
           },
           "pattern_id": "hof.filter-map.option-emission",
           "planned_unmodeled_facts": [
@@ -952,7 +948,6 @@
           },
           "surface_status": "open",
           "unmodeled_facts": [
-            "effect.pure-callback",
             "hof.filter-map.drop-condition-coordinate",
             "hof.filter-map.emitted-value-coordinate"
           ],
@@ -968,9 +963,9 @@
           "likely_blocker": "model required facts before detector admission",
           "order": 4,
           "pattern_focused_support": {
-            "hard_negative": 5,
+            "hard_negative": 6,
             "hard_negative_group": 0,
-            "positive": 2
+            "positive": 3
           },
           "pattern_id": "hof.flat-map.one-level-flatten",
           "planned_unmodeled_facts": [
@@ -989,7 +984,6 @@
           },
           "surface_status": "open",
           "unmodeled_facts": [
-            "effect.pure-callback",
             "hof.flat-map.nested-iteration-order",
             "hof.flat-map.emitted-value-coordinate",
             "collection.flatten-depth.one-level"
@@ -1006,9 +1000,9 @@
           "likely_blocker": "model required facts before detector admission",
           "order": 5,
           "pattern_focused_support": {
-            "hard_negative": 6,
+            "hard_negative": 7,
             "hard_negative_group": 0,
-            "positive": 4
+            "positive": 5
           },
           "pattern_id": "hof.flat-map.aggregate-reduction",
           "planned_unmodeled_facts": [
@@ -1028,7 +1022,6 @@
           },
           "surface_status": "open",
           "unmodeled_facts": [
-            "effect.pure-callback",
             "hof.flat-map.nested-iteration-order",
             "hof.flat-map.emitted-value-coordinate",
             "collection.flatten-depth.one-level",
@@ -1046,9 +1039,9 @@
           "likely_blocker": "model required facts before detector admission",
           "order": 6,
           "pattern_focused_support": {
-            "hard_negative": 6,
+            "hard_negative": 7,
             "hard_negative_group": 0,
-            "positive": 4
+            "positive": 5
           },
           "pattern_id": "hof.flat-map.aggregate-reduction",
           "planned_unmodeled_facts": [
@@ -1068,7 +1061,6 @@
           },
           "surface_status": "open",
           "unmodeled_facts": [
-            "effect.pure-callback",
             "hof.flat-map.nested-iteration-order",
             "hof.flat-map.emitted-value-coordinate",
             "collection.flatten-depth.one-level",
@@ -1147,7 +1139,7 @@
       "coverage": {},
       "evidence_level": "missing",
       "fact_statuses": {
-        "effect.pure-callback": "specified-not-modeled",
+        "effect.pure-callback": "modeled-controlled",
         "hof.filter-map.drop-condition-coordinate": "specified-not-modeled",
         "hof.filter-map.emitted-value-coordinate": "specified-not-modeled",
         "iteration.same-source-identity": "modeled-controlled",
@@ -1156,9 +1148,9 @@
       "language": "Swift",
       "likely_blocker": "model required facts before detector admission",
       "pattern_focused_support": {
-        "hard_negative": 5,
+        "hard_negative": 6,
         "hard_negative_group": 0,
-        "positive": 2
+        "positive": 3
       },
       "pattern_id": "hof.filter-map.option-emission",
       "pattern_status": "pattern-carded",
@@ -1178,7 +1170,6 @@
       },
       "surface_status": "open",
       "unmodeled_facts": [
-        "effect.pure-callback",
         "hof.filter-map.drop-condition-coordinate",
         "hof.filter-map.emitted-value-coordinate"
       ],
@@ -1190,7 +1181,7 @@
       "evidence_level": "missing",
       "fact_statuses": {
         "collection.flatten-depth.one-level": "specified-not-modeled",
-        "effect.pure-callback": "specified-not-modeled",
+        "effect.pure-callback": "modeled-controlled",
         "effect.pure-predicate": "modeled-controlled",
         "hof.flat-map.aggregate-guard-coordinate": "specified-not-modeled",
         "hof.flat-map.emitted-value-coordinate": "specified-not-modeled",
@@ -1202,9 +1193,9 @@
       "language": "Java",
       "likely_blocker": "model required facts before detector admission",
       "pattern_focused_support": {
-        "hard_negative": 6,
+        "hard_negative": 7,
         "hard_negative_group": 0,
-        "positive": 4
+        "positive": 5
       },
       "pattern_id": "hof.flat-map.aggregate-reduction",
       "pattern_status": "pattern-carded",
@@ -1228,7 +1219,6 @@
       },
       "surface_status": "open",
       "unmodeled_facts": [
-        "effect.pure-callback",
         "hof.flat-map.nested-iteration-order",
         "hof.flat-map.emitted-value-coordinate",
         "collection.flatten-depth.one-level",
@@ -1242,7 +1232,7 @@
       "evidence_level": "missing",
       "fact_statuses": {
         "collection.flatten-depth.one-level": "specified-not-modeled",
-        "effect.pure-callback": "specified-not-modeled",
+        "effect.pure-callback": "modeled-controlled",
         "effect.pure-predicate": "modeled-controlled",
         "hof.flat-map.aggregate-guard-coordinate": "specified-not-modeled",
         "hof.flat-map.emitted-value-coordinate": "specified-not-modeled",
@@ -1254,9 +1244,9 @@
       "language": "Swift",
       "likely_blocker": "model required facts before detector admission",
       "pattern_focused_support": {
-        "hard_negative": 6,
+        "hard_negative": 7,
         "hard_negative_group": 0,
-        "positive": 4
+        "positive": 5
       },
       "pattern_id": "hof.flat-map.aggregate-reduction",
       "pattern_status": "pattern-carded",
@@ -1280,7 +1270,6 @@
       },
       "surface_status": "open",
       "unmodeled_facts": [
-        "effect.pure-callback",
         "hof.flat-map.nested-iteration-order",
         "hof.flat-map.emitted-value-coordinate",
         "collection.flatten-depth.one-level",
@@ -1294,7 +1283,7 @@
       "evidence_level": "missing",
       "fact_statuses": {
         "collection.flatten-depth.one-level": "specified-not-modeled",
-        "effect.pure-callback": "specified-not-modeled",
+        "effect.pure-callback": "modeled-controlled",
         "hof.flat-map.emitted-value-coordinate": "specified-not-modeled",
         "hof.flat-map.nested-iteration-order": "specified-not-modeled",
         "iteration.same-source-identity": "modeled-controlled"
@@ -1302,9 +1291,9 @@
       "language": "Swift",
       "likely_blocker": "model required facts before detector admission",
       "pattern_focused_support": {
-        "hard_negative": 5,
+        "hard_negative": 6,
         "hard_negative_group": 0,
-        "positive": 2
+        "positive": 3
       },
       "pattern_id": "hof.flat-map.one-level-flatten",
       "pattern_status": "pattern-carded",
@@ -1324,7 +1313,6 @@
       },
       "surface_status": "open",
       "unmodeled_facts": [
-        "effect.pure-callback",
         "hof.flat-map.nested-iteration-order",
         "hof.flat-map.emitted-value-coordinate",
         "collection.flatten-depth.one-level"

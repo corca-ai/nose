@@ -1,6 +1,7 @@
 use super::*;
 
 mod array;
+mod callback_purity;
 mod iterator_adapter;
 mod js_array_hof;
 mod map_get;

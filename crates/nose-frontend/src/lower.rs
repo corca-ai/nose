@@ -36,7 +36,21 @@ pub(crate) const PROTOCOL_BOUNDARY_TAGS: &[&str] = &[
 pub(crate) const INTENTIONAL_RAW_BOUNDARY_TAGS: &[&str] = &[
     "availability_condition",
     "fallthrough_statement",
+    "js_default_parameter",
+    "js_destructured_parameter",
+    "js_non_plain_parameter",
+    "js_rest_parameter",
     "macro_rule_body",
+    "ruby_block_local_parameters",
+    "ruby_destructured_parameter",
+    "ruby_interpolated_regex",
+    "ruby_non_plain_parameter",
+    "ruby_splat_parameter",
+    "ruby_trailing_comma_parameter",
+    "swift_capture_list",
+    "swift_cast_or_type_check",
+    "swift_consume_expression",
+    "swift_force_unwrap",
 ];
 
 fn sequence_surface_domain(surface: SequenceSurfaceKind) -> Option<DomainEvidence> {

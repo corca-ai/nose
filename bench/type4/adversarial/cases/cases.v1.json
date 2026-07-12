@@ -5765,6 +5765,588 @@
       "evidence": "Focused equivalence tests and the map_default_non_python_import corpus prove Rust use-imported const entry arrays consumed by HashMap::from converge with local literal map-default lookup."
     },
     {
+      "id": "hof_callback_purity_inline_transform",
+      "kind": "positive",
+      "semantic_family": "effect.purity",
+      "claim": "A value-only inline callback made from local value projection can participate in a proven collection transform.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts"
+      ],
+      "executable_expectations": [
+        {
+          "id": "hof_callback_purity_inline_map_matches_loop",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackLoop"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused TypeScript fixture proves an exact Array.map occurrence with a unary local-value callback converges with the equivalent ordered builder loop; controlled admission tests separately require primitive-domain proof before arithmetic operators enter a value transform."
+    },
+    {
+      "id": "hof_callback_purity_effect_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "effect.purity",
+      "claim": "Observed calls, captured mutation, non-plain or extra callback coordinates, free/global reads, operator/custom dispatch, nested predicate dispatch, spread/splat iteration, contextual Swift literals, casts, and capture lists, Ruby nonlocal control/runtime definitions and dynamic regex interpolation, runtime class heritage, map-key hashing, nested-source effects, implicit invocation context, trapping Swift surfaces, abstract JS numeric literals, and throwing sinks stay outside pure callback admission.",
+      "mutation": "replace a proven primitive unary transform with an effectful, stateful, non-plain/extra-coordinate, free/global-reading, dispatching, nested-predicate, spread/splat/capture/contextual-literal, dynamic-regex/runtime-definition/class-heritage, trapping/casting, or otherwise unproven callback",
+      "fixtures": [
+        "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+        "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+        "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb"
+      ],
+      "executable_expectations": [
+        {
+          "id": "hof_callback_observed_call_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "observedCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_captured_mutation_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "capturedMutationCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_extra_value_coordinate_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "extraArgumentCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_custom_dispatch_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "customDispatchMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_throwing_sink_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "throwingCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_overloadable_operator_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "overloadableOperatorCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_nested_receiver_effect_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "nestedReceiverEffectCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_implicit_arguments_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "implicitArgumentsCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_default_parameter_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "defaultParameterCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_rest_parameter_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "restParameterCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_destructured_parameter_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "destructuredParameterCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_mixed_bigint_operator_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "pureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "mixedBigIntCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_swift_prefix_plus_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftPrefixPlusCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_swift_force_unwrap_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftForceUnwrapCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_swift_custom_prefix_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftCustomPrefixCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_swift_interpolation_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftInterpolationCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_instanceof_trap_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "equalityCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "instanceofTrapCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_array_spread_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "wrappedSourceCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "arraySpreadCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_free_global_read_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "localReadCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "unresolvedGlobalCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_swift_contextual_literal_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "constantCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftContextualLiteralCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_swift_custom_nominal_operator_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "negativeCallbackLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftCustomNominalFloatCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_swift_capture_initializer_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftCaptureInitializerCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_nested_predicate_operator_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "nestedNumericPredicateCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "nestedCoercivePredicateCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_ruby_splat_parameter_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubySplatParameterCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_ruby_destructured_parameter_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyDestructuredParameterCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_ruby_optional_parameter_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyOptionalParameterCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_ruby_trailing_comma_parameter_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyTrailingCommaParameterCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_ruby_block_local_parameter_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyBlockLocalParameterCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_ruby_nonlocal_return_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyExplicitReturnCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_ruby_method_definition_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyMethodDefinitionCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_ruby_class_definition_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyClassDefinitionCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_ruby_interpolated_regex_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyInterpolatedRegexCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_swift_forced_cast_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftPureCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.swift",
+              "name": "swiftForcedCastCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_js_class_heritage_effect_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "staticClassHeritageCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "observedClassHeritageCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_ruby_array_splat_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyWrappedSourceCallbackMap"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyArraySplatCallbackMap"
+            }
+          ]
+        },
+        {
+          "id": "hof_callback_ruby_map_key_hashing_stays_split",
+          "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.ts",
+              "name": "objectEntryCallbackLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/hof_callback_purity/callbacks.rb",
+              "name": "rubyHashCallbackMap"
+            }
+          ]
+        }
+      ],
+      "evidence": "The shared admission resolver, frontend shape tests, and focused TypeScript/Swift/Ruby fixtures keep all 36 behavior-defining callback boundaries split from a pure unary map or equivalent builder family."
+    },
+    {
       "id": "hof_error_propagation",
       "kind": "positive",
       "semantic_family": "oracle",

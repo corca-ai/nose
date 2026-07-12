@@ -155,6 +155,24 @@ pub fn seq_surface_contract_for_node(
     }
 }
 
+/// Resolve the admitted language-core sequence-surface fact anchored at `node`.
+///
+/// This evidence-only form is for canonicalized consumers that no longer carry an interner and
+/// therefore cannot re-resolve a `Payload::Name` tag. The record still has to be unique,
+/// asserted, dependency-live, and emitted by the builtin language-core producer.
+pub fn admitted_sequence_surface_kind_at_node(
+    il: &Il,
+    node: NodeId,
+) -> Option<SequenceSurfaceKind> {
+    if il.kind(node) != NodeKind::Seq {
+        return None;
+    }
+    match sequence_surface_evidence_record_at_sequence_span(il, il.node(node).span) {
+        EvidenceResolution::Found((kind, _)) => Some(kind),
+        EvidenceResolution::Missing | EvidenceResolution::Ambiguous => None,
+    }
+}
+
 pub(super) fn sequence_surface_evidence_at_sequence_span(
     il: &Il,
     span: Span,

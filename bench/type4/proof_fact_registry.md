@@ -37,7 +37,7 @@ packet-specific current status locally.
 | `quantifier.vacuous-truth` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes the empty-input boundary for a separately proven counterexample loop. |
 | `iteration.same-source-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only rules out different receivers, iterators, or traversal sources. |
 | `effect.pure-predicate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only permits comparing short-circuit boundaries after predicate effects are closed. |
-| `effect.pure-callback` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes callback effect/timing boundaries for separately proven HoF facts. |
+| `effect.pure-callback` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes callback effect/timing boundaries for separately proven HoF facts. |
 | `hof.filter-map.drop-condition-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves that both surfaces drop the same source elements. |
 | `hof.filter-map.emitted-value-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves that present branches, maps, or guarded pushes emit the same value. |
 | `option.absence-channel.identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes absence-vs-payload channel boundaries. |
@@ -103,6 +103,38 @@ direction, fallback coordinate, pure/default trigger, and API identity.
 | `option.default-fallback-coordinate` | not-applicable | modeled-controlled | not-applicable | modeled-controlled Optional fq evidence | modeled-controlled unwrap_or | not-applicable | not-applicable | modeled-controlled Optional ?? |
 | `option.default-short-circuit` | not-applicable | modeled-controlled for pure/already-evaluated fallbacks | not-applicable | modeled-controlled Optional fq evidence for pure/already-evaluated fallbacks | modeled-controlled unwrap_or with already-evaluated fallback | not-applicable | not-applicable | modeled-controlled for already-evaluated fallback |
 | `option.api-identity` | modeled-controlled for built-in None | modeled-controlled for nullish protocol | modeled-controlled nil comparison | modeled-controlled null and fq java.util.Optional | modeled-controlled Option; Result closed | modeled-controlled NULL | modeled-controlled core nil?; redefinitions closed | modeled-controlled Optional; custom nil/?? closed |
+
+## HOF Callback Purity Pattern Matrix
+
+This matrix records the reusable effect-closed callback contract separately
+from boolean predicate proof. A modeled callback fact does not prove receiver,
+source, emitted-value, optional-channel, flatten-depth, aggregate, or demand
+timing coordinates.
+
+| fact | JS/TS | Ruby | Swift | Java | Rust |
+|---|---|---|---|---|---|
+| `effect.pure-callback` | modeled-controlled for exact Array unary inline map/filter/flatMap callbacks with one plain parameter and immutable local/captured reads; value-transform operators require exact primitive non-dispatch proof, `instanceof` remains closed, and abstract integers do not prove Number | modeled-controlled for ordered Array/Collection unary inline map/filter/reject blocks; Ruby operators, map-key hashing, and splat surfaces remain closed | modeled-controlled for ordered Array/Collection unary inline map/filter/flatMap callbacks; contextual transform literals/collections and all operators remain closed until stdlib nominal identity is proven | modeled fact; Stream flat-map aggregate attachment remains open behind #796/#797 coordinates | modeled fact; lazy transform attachment is separate from current effect-preserving iterator admission |
+| `effect.pure-predicate` | separately modeled for admitted quantifier predicates | separately modeled for Enumerable quantifier blocks | separately modeled for allSatisfy predicates | separately modeled predicate/aggregate work remains open | separately modeled for Iterator any/all predicates |
+
+Observed calls, free/global reads, captured assignment,
+extra/default/rest/destructured/optional/trailing-comma/block-local coordinates,
+intervening parameter/assignment/destructuring/foreach shadows and cross-Func
+canonical-id reuse,
+spread/splat iteration, implicit `arguments`/dynamic-`this` context, map-key
+hashing, operator or custom dispatch, throwing/unsupported sinks, Ruby dynamic
+regex interpolation, nonlocal return and runtime definitions, JS `instanceof`,
+runtime class heritage, ambiguous equality identity, and abstract integer/BigInt
+ambiguity, Swift contextual transform literals/collections, nominally ambiguous
+operators and capture lists, force-unwrap/cast/type-check/consume/interpolation surfaces, and unproven
+property or field reads stay closed.
+Nested HOF calls are accepted only when their own API, receiver, and callback
+obligations are admitted recursively, and their eagerly evaluated source is
+walked again for effects. Their callbacks are rechecked when their own obligation
+does not subsume the enclosing one, so a weaker predicate rule cannot hide operator
+dispatch without duplicating identical or stronger subtree checks.
+Sequence construction additionally requires an asserted
+language-core collection or tuple surface fact; map/pair construction stays closed
+without key-hashing proof.
 
 ## Collection Membership Pattern Matrix
 

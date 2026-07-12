@@ -483,15 +483,9 @@ fn nearest_unit(
 ) -> Option<nose_il::NodeId> {
     units
         .iter()
-        .filter(|(_, span)| span_contains(*span, raw_span))
+        .filter(|(_, span)| span.contains(raw_span))
         .min_by_key(|(root, span)| (span.end_byte.saturating_sub(span.start_byte), root.0))
         .map(|(root, _)| *root)
-}
-
-fn span_contains(outer: nose_il::Span, inner: nose_il::Span) -> bool {
-    outer.file == inner.file
-        && outer.start_byte <= inner.start_byte
-        && outer.end_byte >= inner.end_byte
 }
 
 fn subtree_node_count(il: &nose_il::Il, root: nose_il::NodeId) -> usize {

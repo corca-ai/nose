@@ -1,6 +1,69 @@
 use super::*;
 
 #[test]
+fn callback_sensitive_swift_prefix_and_unwrap_surfaces_are_not_erased() {
+    let src = r#"
+prefix operator +++
+prefix func +++ (value: Int) -> Int { value }
+
+func variants(_ xs: [Int], _ optional: Int?) {
+    let positive = xs.map { value in +value }
+    let forced = xs.map { _ in optional! }
+    let custom = xs.map { value in +++value }
+    let interpolated = xs.map { value in "\(value)" }
+    _ = (positive, forced, custom, interpolated)
+}
+
+func observeCapture() -> Int { 0 }
+func captured(_ xs: [Int]) -> [Int] {
+    xs.map { [snapshot = observeCapture()] value in value }
+}
+
+func casts(_ xs: [Any]) {
+    let forced = xs.map { value in value as! Int }
+    let conditional = xs.map { value in value as? Int }
+    let checked = xs.map { value in value is Int }
+    _ = (forced, conditional, checked)
+}
+"#;
+    let (il, interner) = il_with_interner(src);
+
+    assert!(
+        il.nodes
+            .iter()
+            .any(|node| node.kind == NodeKind::UnOp && node.payload == Payload::Op(Op::Pos)),
+        "Swift prefix `+` must remain an explicit operator"
+    );
+    let raw = raw_names(&il, &interner);
+    assert!(
+        raw.iter().any(|name| name == "swift_force_unwrap"),
+        "force unwrap must remain a trapping boundary: {raw:?}"
+    );
+    assert!(crate::is_intentional_raw_boundary_tag("swift_force_unwrap"));
+    assert!(
+        raw.iter().any(|name| name == "swift_capture_list"),
+        "closure capture lists must remain an effect/lifetime boundary: {raw:?}"
+    );
+    assert!(crate::is_intentional_raw_boundary_tag("swift_capture_list"));
+    assert!(
+        raw.iter().any(|name| name == "swift_cast_or_type_check"),
+        "Swift casts/type checks must remain trapping or dispatching boundaries: {raw:?}"
+    );
+    assert!(crate::is_intentional_raw_boundary_tag(
+        "swift_cast_or_type_check"
+    ));
+    let seq = seq_names(&il, &interner);
+    assert!(
+        seq.iter().any(|name| name == "swift_prefix_operator"),
+        "custom prefix dispatch must remain a Swift-specific sequence surface: {seq:?}"
+    );
+    assert!(
+        seq.iter().any(|name| name == "interpolated_string"),
+        "string interpolation must remain distinct from a literal string: {seq:?}"
+    );
+}
+
+#[test]
 fn swift_pattern_and_keypath_surfaces_do_not_fall_to_generic_raw() {
     let (il, interner) = il_with_interner(
         r#"

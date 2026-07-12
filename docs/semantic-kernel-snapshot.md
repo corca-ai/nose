@@ -552,7 +552,28 @@ still being migrated toward it.
   instead of reusing the positive filter predicate.
   Rust custom methods, missing receiver proof, eager callback assumptions,
   missing terminal proof, one-shot iterator reuse, `collect_vec`, and `find`
-  remain hard negatives or unsupported boundaries. The
+  remain hard negatives or unsupported boundaries. Transform callback purity
+  and boolean predicate purity are separate admission obligations backed by one
+  shared effect-closure resolver: immutable local/captured parameter projection,
+  proof-backed JS/TS primitive operators, and recursively admitted nested HOFs are controlled.
+  Literal construction additionally requires an asserted language-core sequence
+  collection/tuple surface, and unary value coordinates require one plain childless parameter.
+  Nested HOF sources remain part of the enclosing transform-effect walk; callbacks
+  are rechecked only when their own obligation does not subsume the enclosing one.
+  Observed calls, captured
+  assignment, free/global reads, extra/default/rest/destructured/optional value
+  coordinates, spread/splat iteration, map-key hashing, implicit callback context,
+  intervening local-binder shadows and cross-Func canonical-id reuse,
+  operator or custom dispatch, throwing sinks, JS `instanceof` and abstract
+  integer/BigInt ambiguity, Swift contextual transform literals/collections and all
+  nominally ambiguous transform operators, capture lists, force-unwrap/interpolation
+  surfaces, casts/type checks/consume expressions, Ruby trailing-comma/block-local
+  coordinates, dynamic regex interpolation, nonlocal return and runtime definitions,
+  JavaScript/TypeScript runtime class heritage, ambiguous equality source identity, and unproven
+  property/field reads stay closed. The callback fact alone does not
+  open `compactMap`, one-level flattening, or flat-map aggregate rows; those
+  still require their source, emitted-value, channel, flatten-depth, and
+  aggregate coordinates. The
   `nose.go.stdlib.namespace_calls` descriptor owns Go `fmt.Print*`,
   `strings.Contains`, `strings.Join`, and `slices.Contains` namespace-call API
   occurrence provenance under imported namespace proof. `strings.Contains`

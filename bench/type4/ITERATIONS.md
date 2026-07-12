@@ -532,6 +532,52 @@ and effectful nil-coalescing fallbacks all stay split. #791 now shows the Ruby/S
 option rows as resolved from the frozen blocked slice, while Swift `compactMap` remains
 blocked on callback purity plus filter-map drop/emitted-value coordinate facts.
 
+## HOF Callback-Purity Neutral Fact
+
+Closed #794 by extracting transform-callback and boolean-predicate obligations into one
+shared library-API admission resolver while keeping the two proof facts distinct.
+`effect.pure-callback` is now modeled-controlled for unary inline local-value callbacks on
+the already-admitted JS/TS Array, Swift Array/Collection, and Ruby Array/Collection HOF
+surfaces. JS/TS value-transform operators require primitive non-dispatch proof and a unique
+source identity for equality-shaped operators. Ruby operators remain closed, nested HOF sources
+stay in the enclosing transform-effect walk, and callbacks are rechecked when their own
+obligation is weaker than the enclosing obligation,
+and implicit JS callback context
+is rejected. Variable reads must resolve to immutable local or captured parameters; free/global
+names and names shadowed by an intervening parameter, assignment/destructuring target, or foreach
+pattern remain closed. Canonical ids may cross Lambda scopes but stop at the first owning Func,
+where alpha-renaming starts a fresh namespace. Unary coordinates require one plain childless parameter, so default, rest,
+destructured, optional, and splat forms remain explicit boundaries. Abstract JS integer literals
+are not accepted as Number proof because they may be BigInt, while `instanceof` remains closed
+because its source-level operand checks can throw. JS/Ruby spread and splat iteration stays
+visible, Ruby map-key hashing remains unproven, and Swift contextual transform literals and
+collection construction remain closed alongside prefix `+`, force unwrap, custom prefix
+dispatch, casts/type checks, and interpolation. Dynamic Ruby regex interpolation and runtime
+class-heritage evaluation also stay visible and closed. All Swift transform operators stay closed until stdlib nominal
+identity can distinguish a builtin type from a qualified user type with the same final name.
+Only language-core-proven collection/tuple sequence surfaces enter
+the callback walk. No new `compactMap`, one-level `flatMap`, or
+flat-map aggregate surface opened in this step.
+
+The focused perimeter adds one executable pure identity `map`/builder-loop family and thirty-six
+retained splits for an observed call, captured-state assignment, extra or non-plain callback
+coordinates, free/global reads, operator/custom dispatch, spread/splat iteration, map-key hashing,
+an effect hidden in a nested source, implicit `arguments`, throwing, mixed BigInt arithmetic,
+and Swift contextual-literal/nominal-operator/trap/dispatch/interpolation surfaces, plus a
+coercive nested predicate under an outer transform. Ruby trailing-comma/block-local
+coordinates, nonlocal return, runtime method/class definitions, and dynamic regex interpolation
+stay closed, as do Swift capture-list initialization, forced casts, and ownership boundaries.
+JavaScript/TypeScript runtime class heritage with an observed base expression stays split too.
+The semantic admission tests
+exercise the complete JS/TS, Ruby, Swift, and Rust
+callback-policy matrix plus primitive-proven arithmetic, while frontend tests pin the
+source shapes and the existing
+`effect.pure-predicate` terminal behavior is checked independently. The open-surface audit
+therefore removes only
+`effect.pure-callback` from the Swift `compactMap`, Swift one-level `flatMap`, and
+Java/Swift flat-map aggregate blocker sets; #795, #796, and #797 still own their emitted
+value, drop condition, nested traversal, flatten-depth, and aggregate-guard coordinates.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,

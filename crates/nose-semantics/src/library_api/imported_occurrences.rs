@@ -1,5 +1,4 @@
 use super::*;
-use crate::evidence::span_contains;
 
 #[derive(Default)]
 pub struct ImportedOccurrenceValidationCache {
@@ -152,7 +151,7 @@ pub(in crate::library_api) fn innermost_enclosing_function_span_with_cache(
     let result = function_spans
         .iter()
         .copied()
-        .filter(|function_span| span_contains(*function_span, span))
+        .filter(|function_span| function_span.contains(span))
         .min_by_key(|span| span.end_byte.saturating_sub(span.start_byte));
     cache.function_span_by_span.insert(span, result);
     result

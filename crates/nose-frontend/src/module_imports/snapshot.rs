@@ -74,7 +74,7 @@ fn snapshot_evidence(il: &Il, nodes: &[SnapshotNode]) -> Vec<SnapshotEvidence> {
         .collect();
     let mut kept: FxHashSet<EvidenceId> = asserted
         .values()
-        .filter(|record| spans.contains(&evidence_anchor_span(record.anchor)))
+        .filter(|record| spans.contains(&record.anchor.span()))
         .map(|record| record.id)
         .collect();
 
@@ -133,7 +133,7 @@ pub(super) fn record_immutable_literal_export_evidence(
     let mut dependencies = Vec::new();
     for id in il.evidence.iter().filter_map(|record| {
         (record.status == EvidenceStatus::Asserted
-            && spans.contains(&evidence_anchor_span(record.anchor))
+            && spans.contains(&record.anchor.span())
             && !matches!(
                 record.kind,
                 EvidenceKind::Import(
@@ -178,16 +178,6 @@ fn subtree_spans(il: &Il, root: NodeId) -> FxHashSet<Span> {
     let mut spans = FxHashSet::default();
     collect(il, root, &mut spans);
     spans
-}
-
-fn evidence_anchor_span(anchor: EvidenceAnchor) -> Span {
-    match anchor {
-        EvidenceAnchor::SourceSpan(span)
-        | EvidenceAnchor::Node { span, .. }
-        | EvidenceAnchor::Param { span }
-        | EvidenceAnchor::Binding { span, .. }
-        | EvidenceAnchor::Sequence { span } => span,
-    }
 }
 
 pub(super) fn append_snapshot(il: &mut Il, snapshot: &SubtreeSnapshot) -> AppendedSnapshot {

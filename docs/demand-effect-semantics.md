@@ -72,6 +72,48 @@ their demand, receiver, ordering, or flattening semantics are represented.
 Admitted HOF identity alone is still not enough; consumers resolve the
 node-level demand/effect profile before opening exact behavior.
 
+Library-API admission now represents transform-callback purity separately from
+boolean-predicate purity through one shared callback-obligation resolver. For
+already-admitted JS/TS Array, Swift Array/Collection, and Ruby Array/Collection
+HOF rows, a transform callback must be a unary inline function whose body stays
+inside immutable local or captured parameter projection, language-core-proven
+collection/tuple construction,
+proof-backed non-dispatching/non-trapping JS/TS primitive operators, and recursively
+admitted HOF calls. Unary value coordinates require exactly one plain childless
+parameter; default, rest, destructured, optional, and other non-plain forms stay
+closed. Ruby trailing-comma destructuring and block-local declarations remain
+container markers rather than yielded-value parameters; dynamic regex interpolation,
+explicit return, and nested method/class definitions remain evaluation, nonlocal-control,
+or runtime-definition effects. A nested HOF's eager receiver/source is still walked under
+the enclosing transform obligation after recursive admission. Its callback is rechecked when
+the nested obligation is weaker, so a predicate rule cannot hide coercive operator dispatch;
+an identical or stronger nested obligation is reused without a duplicate subtree walk. Observed
+calls, free/global/unresolved reads, captured assignment, extra index/source coordinates, implicit
+`arguments`/dynamic-`this` context, operator or custom dispatch, throwing or
+unsupported sinks, and unproven property/field reads close admission.
+Pre-alpha name lookup stops at every intervening parameter, assignment/destructuring,
+or foreach binder, and post-alpha canonical ids cross Lambdas but never a fresh Func
+namespace. This prevents a same-spelling or same-number local from borrowing an outer
+parameter's domain/purity proof. Ruby value-transform operators, array splat, and
+map-key hashing stay closed. JS array
+spread remains an unproven nested sequence, and `instanceof` remains closed
+because source-level operand checks can throw. Equality-shaped JS/TS operators require a
+unique admitted source-operator identity, so missing, ambiguous, or broken evidence cannot
+reinterpret `instanceof` as equality. Runtime class-heritage expressions also remain visible
+and closed. Swift value-transform literals and
+collection construction stay closed because literal protocols and hashing are
+contextual dispatch. Every Swift value-transform operator also stays closed until
+stdlib nominal identity can distinguish a builtin primitive from a qualified user
+type with the same final name; force unwrap, casts/type checks, consume expressions, and
+interpolation remain explicit closed
+surfaces. Swift closure capture lists also remain closed because initializers run at
+closure formation and capture ownership affects lifetimes. JS abstract integer literals are not
+Number proof because the lowering also represents BigInt with that class.
+Quantifier/filter predicates use the separate pure-predicate
+obligation even though both obligations share the same effect-closure walker.
+This callback fact does not prove receiver/source,
+emitted-value, optional-channel, flatten-depth, aggregate, or timing facts.
+
 Promise `.then` now carries an async-continuation demand/effect profile in its
 contract row. That does not open exact beta-reduction by itself. The value-graph
 rule requires an admitted Promise-like receiver plus a recoverable supported

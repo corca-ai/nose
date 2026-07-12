@@ -93,9 +93,17 @@ fn div_zero_map_len_il() -> (Il, NodeId) {
     (il, hof)
 }
 
-fn bool_predicate_source(b: &mut IlBuilder) -> (NodeId, NodeId) {
+fn bool_predicate_source(b: &mut IlBuilder, lang: Lang) -> (NodeId, NodeId) {
     let coll = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
-    let pred = const_bool_lambda(b, 2, true, sp(2));
+    let pred = if lang == Lang::Ruby {
+        let param = b.add(NodeKind::Param, Payload::Cid(2), sp(2), &[]);
+        let value = b.add(NodeKind::Lit, Payload::LitBool(true), sp(2), &[]);
+        let expr = b.add(NodeKind::ExprStmt, Payload::None, sp(2), &[value]);
+        let body = b.add(NodeKind::Block, Payload::None, sp(2), &[expr]);
+        b.add(NodeKind::Lambda, Payload::None, sp(2), &[param, body])
+    } else {
+        const_bool_lambda(b, 2, true, sp(2))
+    };
     (coll, pred)
 }
 
@@ -205,38 +213,18 @@ fn library_hof_static_callback_error_requires_explicit_eager_demand() {
 }
 
 #[test]
-fn eager_js_map_demand_exposes_static_callback_error_unless_broken() {
-    let interner = Interner::new();
+fn eager_js_map_rejects_static_callback_errors_before_demand_admission() {
     let (mut js_il, hof) = div_zero_map_len_il();
     js_il.meta.lang = Lang::JavaScript;
     push_map_contract_evidence(&mut js_il, Lang::JavaScript, hof, "JS map contract");
-    assert!(nose_semantics::admitted_hof_api_at_node(
-        &js_il,
-        hof,
-        HoFKind::Map
-    ));
     assert!(
-        admitted_hof_demand_effect_profile_at_node(&js_il, hof, HoFKind::Map)
-            .is_some_and(|profile| profile.proves_eager_per_element_callback_demand()),
-        "JS Array.map resolves to eager per-element callback demand"
+        !nose_semantics::admitted_hof_api_at_node(&js_il, hof, HoFKind::Map),
+        "a potentially trapping callback must fail the pure-transform obligation"
     );
-    let mut builder = Builder::new(&js_il, &interner);
-    assert!(
-        builder.expr_is_static_runtime_err(hof, &FxHashMap::default()),
-        "an admitted eager JS Array.map demand profile exposes callback exception timing"
-    );
-
-    let mut broken_js_il = js_il.clone();
-    broken_js_il.evidence[1].status = EvidenceStatus::Ambiguous;
     assert_eq!(
-        admitted_hof_demand_effect_profile_at_node(&broken_js_il, hof, HoFKind::Map),
+        admitted_hof_demand_effect_profile_at_node(&js_il, hof, HoFKind::Map),
         None,
-        "broken library API evidence must not resolve HOF demand profiles"
-    );
-    let mut builder = Builder::new(&broken_js_il, &interner);
-    assert!(
-        !builder.expr_is_static_runtime_err(hof, &FxHashMap::default()),
-        "broken library API evidence must keep callback exception timing closed"
+        "a rejected callback cannot inherit eager HOF demand evidence"
     );
 }
 
@@ -375,7 +363,7 @@ fn len_of_library_hof_requires_materialized_demand_profile() {
 fn source_comprehension_admits_internal_python_filter_hof_only_in_context() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
-    let (coll, pred) = bool_predicate_source(&mut b);
+    let (coll, pred) = bool_predicate_source(&mut b, Lang::Python);
     let filter = predicate_hof(&mut b, HoFKind::Filter, sp(3), coll, pred);
     let mapper = identity_lambda(&mut b, 3, sp(4));
     let map = b.add(
@@ -412,7 +400,7 @@ fn source_comprehension_admits_internal_python_filter_hof_only_in_context() {
 fn len_of_raw_filter_hof_requires_filter_admission() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
-    let (coll, pred) = bool_predicate_source(&mut b);
+    let (coll, pred) = bool_predicate_source(&mut b, Lang::Python);
     let filter = predicate_hof(&mut b, HoFKind::Filter, sp(3), coll, pred);
     let len = b.add(
         NodeKind::Call,
@@ -444,7 +432,7 @@ fn len_of_raw_filter_hof_requires_filter_admission() {
 fn ruby_reject_hof_carries_negated_predicate() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
-    let (coll, pred) = bool_predicate_source(&mut b);
+    let (coll, pred) = bool_predicate_source(&mut b, Lang::Ruby);
     let filter = predicate_hof(&mut b, HoFKind::Filter, sp(3), coll, pred);
     let reject = predicate_hof(&mut b, HoFKind::Reject, sp(4), coll, pred);
     let root = b.add(NodeKind::Block, Payload::None, sp(5), &[filter, reject]);

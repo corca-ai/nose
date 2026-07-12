@@ -216,19 +216,7 @@ pub(in crate::library_api) fn name_is_assigned_in_scope_cached(
     if let Some(&assigned) = cache.name_assigned_in_scope.get(&(scope, name)) {
         return assigned;
     }
-    let assigned = il.nodes.iter().enumerate().any(|(idx, node)| {
-        if node.kind != NodeKind::Assign {
-            return false;
-        }
-        let id = NodeId(idx as u32);
-        if nearest_scope_cached(il, id, cache) != Some(scope) {
-            return false;
-        }
-        let Some(&lhs) = il.children(id).first() else {
-            return false;
-        };
-        il.kind(lhs) == NodeKind::Var && il.node(lhs).payload == Payload::Name(name)
-    });
+    let assigned = il.scope_writes_name(scope, name);
     cache.name_assigned_in_scope.insert((scope, name), assigned);
     assigned
 }

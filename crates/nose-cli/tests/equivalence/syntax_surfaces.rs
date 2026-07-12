@@ -126,7 +126,7 @@ fn non_equivalent_swapped_params_differ() {
 fn comprehension_equals_js_map() {
     let i = Interner::new();
     let py = "def f(xs):\n    return [x * 2 for x in xs]\n";
-    let ts = "function f(xs: number[]): number[] { return xs.map(x => x * 2); }";
+    let ts = "function f(xs: number[]): number[] { return xs.map((x: number) => x * 2); }";
     assert_eq!(
         unit_hash(&i, py, Lang::Python),
         unit_hash(&i, ts, Lang::TypeScript)

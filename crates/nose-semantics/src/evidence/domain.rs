@@ -230,7 +230,12 @@ impl<'a> ReceiverDomainEvidenceIndex<'a> {
     }
 }
 
-fn domain_evidence_for_var_reference(il: &Il, node: NodeId) -> Option<DomainEvidence> {
+/// Resolve domain evidence for a variable occurrence without requiring an interner.
+///
+/// This is the scoped-parameter fallback used by consumers that operate on canonicalized IL,
+/// where `Cid` identity is available but source spellings are not. Unlike
+/// [`domain_evidence_for_receiver`], it deliberately does not attempt binding-name resolution.
+pub fn domain_evidence_for_var_reference(il: &Il, node: NodeId) -> Option<DomainEvidence> {
     if il.kind(node) != NodeKind::Var {
         return None;
     }
@@ -245,6 +250,23 @@ fn domain_evidence_for_var_reference(il: &Il, node: NodeId) -> Option<DomainEvid
             domain_evidence_for_param(il, param)
         }
         _ => None,
+    }
+}
+
+/// Whether a variable occurrence is proven to read an immutable function/lambda parameter.
+///
+/// Callback-effect admission uses this narrower predicate instead of treating every `Var` as a
+/// local read. Free names can trigger language hooks such as Ruby `const_missing`/autoload, while
+/// unresolved JavaScript globals can throw; neither is effect-closed without binding proof.
+pub(crate) fn effect_closed_local_var_reference(il: &Il, node: NodeId) -> bool {
+    if il.kind(node) != NodeKind::Var {
+        return false;
+    }
+    match il.node(node).payload {
+        Payload::Cid(cid) => receiver_cid_param_span(il, node, cid).is_some(),
+        Payload::Name(name) => nearest_named_param_scope(il, node, name)
+            .is_some_and(|(scope, _)| !name_is_assigned_in_scope(il, name, scope)),
+        _ => false,
     }
 }
 
@@ -396,33 +418,28 @@ pub(crate) fn var_references_same_binding(il: &Il, lhs: NodeId, reference: NodeI
 }
 
 pub(crate) fn receiver_cid_param_span(il: &Il, receiver: NodeId, cid: u32) -> Option<Span> {
-    let Some(scope) = nearest_scope(il, receiver) else {
-        return unique_param_span_for_cid(
-            il,
-            il.nodes
-                .iter()
-                .enumerate()
-                .filter_map(move |(idx, candidate)| {
-                    (candidate.kind == NodeKind::Param
-                        && matches!(candidate.payload, Payload::Cid(param_cid) if param_cid == cid))
-                    .then_some(NodeId(idx as u32))
-                }),
-        );
+    let Some(mut scope) = il.nearest_scope(receiver) else {
+        return unique_param_span_for_cid(il, il.params_with_cid(cid));
     };
-    if cid_is_assigned_in_scope(il, cid, scope) {
-        return None;
+    loop {
+        if cid_is_assigned_in_scope(il, cid, scope) {
+            return None;
+        }
+        if let Some(span) = unique_param_span_for_cid(il, params_in_scope_with_cid(il, scope, cid))
+        {
+            return (il.scope_cid_param_count(scope, cid) == 1).then_some(span);
+        }
+        if il.scope_cid_param_count(scope, cid) != 0 {
+            return None;
+        }
+        // Alpha-renaming resets its cid namespace at every Func; only Lambda
+        // scopes share cids with their enclosing function. Never interpret an
+        // equal numeric cid beyond the first owning Func as an outer capture.
+        if il.kind(scope) == NodeKind::Func {
+            return None;
+        }
+        scope = il.parent_scope(scope)?;
     }
-    if let Some(span) = unique_param_span_for_cid(il, params_in_scope_with_cid(il, scope, cid)) {
-        return Some(span);
-    }
-    if il.kind(scope) != NodeKind::Lambda {
-        return None;
-    }
-    let func_scope = enclosing_func_scope(il, receiver)?;
-    if cid_is_assigned_in_scope(il, cid, func_scope) {
-        return None;
-    }
-    unique_param_span_for_cid(il, params_in_scope_with_cid(il, func_scope, cid))
 }
 
 fn params_in_scope_with_cid(il: &Il, scope: NodeId, cid: u32) -> impl Iterator<Item = NodeId> + '_ {
@@ -450,83 +467,40 @@ pub(crate) fn nearest_named_param_scope(
     node: NodeId,
     name: Symbol,
 ) -> Option<(NodeId, NodeId)> {
-    let target = il.node(node).span;
-    let mut best: Option<(u32, NodeId, NodeId)> = None;
-    for (idx, candidate) in il.nodes.iter().enumerate() {
-        if !matches!(candidate.kind, NodeKind::Func | NodeKind::Lambda) {
-            continue;
+    let mut scope = il.nearest_scope(node)?;
+    loop {
+        // A same-name assignment in any intervening scope shadows an outer
+        // pre-alpha parameter. Stop there rather than borrowing the outer
+        // parameter's domain/purity proof; the Cid path enforces the same
+        // reassignment boundary after alpha-renaming.
+        if name_is_assigned_in_scope(il, name, scope) {
+            return None;
         }
-        if !span_contains(candidate.span, target) {
-            continue;
-        }
-        let scope = NodeId(idx as u32);
-        let Some(param) = il.children(scope).iter().copied().find(|&child| {
+        if let Some(param) = il.children(scope).iter().copied().find(|&child| {
             il.kind(child) == NodeKind::Param && il.node(child).payload == Payload::Name(name)
-        }) else {
-            continue;
-        };
-        let width = candidate
-            .span
-            .end_byte
-            .saturating_sub(candidate.span.start_byte);
-        if best.is_none_or(|(best_width, _, _)| width < best_width) {
-            best = Some((width, scope, param));
+        }) {
+            return (il.scope_name_param_count(scope, name) == 1).then_some((scope, param));
         }
+        // A non-direct Param (for example a catch-style binder) or another
+        // alpha local binder in this intervening scope shadows any outer Param.
+        if il.scope_binds_name(scope, name) {
+            return None;
+        }
+        scope = il.parent_scope(scope)?;
     }
-    best.map(|(_, scope, param)| (scope, param))
-}
-
-pub(crate) fn span_contains(outer: Span, inner: Span) -> bool {
-    outer.file == inner.file
-        && outer.start_byte <= inner.start_byte
-        && inner.end_byte <= outer.end_byte
 }
 
 fn name_is_assigned_in_scope(il: &Il, name: Symbol, scope: NodeId) -> bool {
-    il.assigns_in_scope(Some(scope)).iter().any(|&id| {
-        let Some(&lhs) = il.children(id).first() else {
-            return false;
-        };
-        il.kind(lhs) == NodeKind::Var && il.node(lhs).payload == Payload::Name(name)
-    })
+    il.scope_writes_name(scope, name)
 }
 
 /// Cid-keyed counterpart of [`name_is_assigned_in_scope`]: is the alpha-renamed binding
 /// `cid` the target of a reassignment inside `scope`? Used to keep a reassigned
 /// parameter from proving its declared domain on the normalized (Cid) IL.
 fn cid_is_assigned_in_scope(il: &Il, cid: u32, scope: NodeId) -> bool {
-    il.assigns_in_scope(Some(scope)).iter().any(|&id| {
-        let Some(&lhs) = il.children(id).first() else {
-            return false;
-        };
-        il.kind(lhs) == NodeKind::Var
-            && matches!(il.node(lhs).payload, Payload::Cid(lhs_cid) if lhs_cid == cid)
-    })
+    il.scope_writes_cid(scope, cid)
 }
 
 pub(crate) fn nearest_scope(il: &Il, node: NodeId) -> Option<NodeId> {
     il.nearest_scope(node)
-}
-
-fn enclosing_func_scope(il: &Il, node: NodeId) -> Option<NodeId> {
-    let span = il.node(node).span;
-    il.nodes
-        .iter()
-        .enumerate()
-        .filter(|(_, candidate)| {
-            candidate.kind == NodeKind::Func
-                && candidate.span.file == span.file
-                && candidate.span.start_byte <= span.start_byte
-                && candidate.span.end_byte >= span.end_byte
-        })
-        .min_by_key(|(idx, candidate)| {
-            (
-                candidate
-                    .span
-                    .end_byte
-                    .saturating_sub(candidate.span.start_byte),
-                *idx,
-            )
-        })
-        .map(|(idx, _)| NodeId(idx as u32))
 }
