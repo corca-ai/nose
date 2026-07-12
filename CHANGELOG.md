@@ -7,6 +7,27 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added controlled Java and Swift flat-map aggregate slices for #797. Java
+  `Arrays.stream(...).flatMap(...).reduce(seed, step)` now converges with the
+  equivalent nested reduction when one-level sources, optional outer/inner
+  guards, emitted values, identity, step, callback effects, and `Arrays`
+  dispatch are proven. Swift eager `flatMap(...).allSatisfy(...)` now converges
+  with equivalent nested counterexample loops over direct bracket-array
+  parameters, with at most one admitted pure filter on each traversal
+  coordinate and standard `flatMap`/`filter`/`map`/`allSatisfy` dispatch.
+  Changed guards, seed, step, source/cardinality, depth, terminal predicate,
+  effects, and custom dispatch stay split. Maps in which neither the contribution
+  nor a carried guard retains a bound inner element remain source-bound and
+  opaque so captured or constant emissions cannot erase repetition count;
+  repeated same-source or derived coordinate aliases and recursive Java
+  `flatMap` depth also remain closed. Swift `reduce`
+  remains closed pending separate fold/operator/overload/trap proof. Explicit
+  reducers and method-terminal
+  predicates that ignore their bound flattened value stay opaque so source
+  cardinality and empty-input behavior cannot disappear, and a disjoint
+  two-argument callback overload does not suppress the standard unary
+  `allSatisfy` surface. The
+  executable Type-4 suite is 341/341.
 - Added a controlled Swift one-level `flatMap` slice for #796: eager unary
   callbacks over direct language-core-proven plain bracket-array parameters may
   expose either that inner collection or one admitted inner `map`. The dedicated

@@ -1134,3 +1134,29 @@ lexical parameter resolution, non-plain callback markers, raw-selector exact
 guard, Swift dispatch barriers, cross-file tombstones, focused fixtures, and
 generated proof artifacts introduce no substantial default-surface family. No
 new duplication or budget change is accepted.
+
+The guarded `flatMap` aggregate slice (#797) moves the reviewed default-surface
+count from 29 to 30. Its first self-query exposed `2284c1cbcb9277f1`, repeated
+temporary-corpus setup across the new cross-file Swift `filter` and
+`allSatisfy` boundary tests. Routing those cases, along with the existing
+`flatMap` and `compactMap` cases, through a narrow method-contract assertion
+helper removes that avoidable test family before the baseline update.
+
+The sole remaining delta is `856ea94f585f0c67`, the pre-existing
+`interp/ops.rs::int_bin` / `float_bin` dispatcher family already reviewed during
+the Python loop/De Morgan admission. Neither member changes in #797. The new
+aggregate semantic admission shifts nose's self-query fingerprints enough for
+the family to cross the value >= 40 boundary again after it had fallen below
+that boundary in #795. Integer wrapping and divide/modulo checks still differ
+materially from float IEEE behavior, so extracting their ten shared dispatch
+lines would obscure rather than simplify the numeric boundary. The reviewed ID
+is restored and the budget is raised to 30; no new avoidable duplication is
+accepted.
+
+Final reducer-cardinality hardening also moves the previously reviewed
+value-graph collection whole-impl span-noise representative from
+`2fb6d5f9c8c6d045` to `cf7e3e2870c92ccb`. The replacement pairs the 384-line
+`cardinality.rs` `impl Builder` span with a ten-line slice in `reductions.rs`,
+sharing only two lines. That is not a useful shared abstraction; it is
+representative churn caused by the new fail-closed reducer guards. The family
+count remains 30, so no additional budget or avoidable duplication is accepted.

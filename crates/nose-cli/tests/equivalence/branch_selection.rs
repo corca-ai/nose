@@ -54,6 +54,20 @@ fn min_and_max_reductions_stay_distinct() {
 }
 
 #[test]
+fn filtered_constant_selection_keeps_source_and_empty_input_boundaries() {
+    let i = Interner::new();
+    for terminal in ["max", "min"] {
+        let from_xs = format!("def f(xs, ys):\n    return {terminal}(1 for x in xs if x > 0)\n");
+        let from_ys = format!("def f(xs, ys):\n    return {terminal}(1 for y in ys if y > 0)\n");
+        assert_ne!(
+            value_fp(&i, &from_xs, Lang::Python),
+            value_fp(&i, &from_ys, Lang::Python),
+            "filtered {terminal} over different sources must retain source identity and empty-input behavior"
+        );
+    }
+}
+
+#[test]
 fn if_assign_converges_with_ternary() {
     // `if c { x = a }` ≡ `x = a if c else x` (§AK): a statement-if that conditionally
     // assigns converges with the ternary form — the condition lives in the resulting

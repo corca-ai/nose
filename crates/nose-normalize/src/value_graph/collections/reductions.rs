@@ -81,9 +81,18 @@ impl<'a> Builder<'a> {
         let acc = self.fresh_opaque();
         let mut params = Vec::with_capacity(elems.len() + 1);
         params.push(acc);
-        params.extend(elems);
+        params.extend(elems.iter().copied());
         let body = self.eval_lambda_body(kids[0], &params, env)?;
         let (op, contrib) = self.as_reduction(body, acc)?;
+        let consumes_every_element =
+            (0..elems.len()).all(|index| self.lambda_param_referenced(kids[0], index + 1));
+        if !consumes_every_element || !self.refs_elem(contrib) {
+            // A fold step that ignores its bound element still runs once per
+            // source element. The compact Reduce layout carries only seed and
+            // contribution, so admitting it here would erase source identity
+            // and cardinality (for example `acc + 1` over two flat-map sources).
+            return None;
+        }
         let contrib = if let Some(guard) = guard {
             let ident = self.int_const(identity_of(op)?);
             self.mk(ValOp::Phi, vec![guard, contrib, ident])
@@ -133,7 +142,12 @@ impl<'a> Builder<'a> {
             (n.op.clone(), n.args.clone())
         };
         let contrib = match op {
-            ValOp::Hof(k) if k == HoFKind::Map as u32 && !args.is_empty() => args[0],
+            ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() == 1 => args[0],
+            // A filtered map carries `[contrib, predicate]`. Selection has no
+            // identity value with which to encode rejected elements, and it
+            // errors when the filtered source is empty. Dropping the predicate
+            // here would erase both source identity and empty-input behavior.
+            ValOp::Hof(k) if k == HoFKind::Map as u32 => return None,
             _ => self.elem(av),
         };
         Some(self.mk(ValOp::Reduce(reduce_code), vec![contrib]))
@@ -160,6 +174,13 @@ impl<'a> Builder<'a> {
             }
             let (elem, carried_guard) = self.collection_elem_with_pred(coll);
             let pred = self.eval_lambda_body(kids[1], &[elem], env)?;
+            if !self.lambda_param_referenced(kids[1], 0) || !self.refs_elem(pred) {
+                // Constant or captured-only predicates still distinguish an
+                // empty source from a non-empty one. Without the element
+                // coordinate Reduce(ALL/ANY, [pred]) would erase that source
+                // and its cardinality, so leave the terminal call opaque.
+                return None;
+            }
             if carried_guard.is_none()
                 && code == REDUCE_ANY
                 && self.is_static_non_float_collection_expr(kids[0])

@@ -303,6 +303,17 @@ pub(super) const JS_RELATIONAL_CMP_TAG: u64 = 0x4A53_5243_4D50;
 pub(super) const C_U16_BE_BYTE_PACK_CODE: u32 = 0x4331_3642;
 pub(super) const C_U32_BE_BYTE_PACK_CODE: u32 = 0x4333_3242;
 pub(super) const EFFECT_ORDINAL_SINK_TAG: u64 = 0xEFFE_C701;
+/// A map whose compact contribution and carried-predicate coordinates do not
+/// retain every bound source element. The mapped values may look constant, but
+/// collection cardinality and source identity still determine how often they
+/// are observed. Keep those element coordinates in an opaque boundary instead
+/// of representing the collection as an ordinary source-free `Hof(Map, ...)`.
+pub(super) const SOURCE_INDEPENDENT_MAP_TAG: u64 = 0x4D41_5053_5243_494E;
+/// A FlatMap whose outer source is already a derived element stream. The
+/// controlled one-level bridge only models a direct (optionally filtered)
+/// source coordinate; retaining the evaluated outer/inner values here prevents
+/// a derived coordinate from borrowing that exact aggregate proof.
+pub(super) const UNPROVEN_FLAT_MAP_COORDINATE_TAG: u64 = 0x464C_4154_434F_4F52;
 
 /// A selection reduction (min/max) keeps no additive/multiplicative identity, so its
 /// `Reduce` carries only the per-element contribution (no init).

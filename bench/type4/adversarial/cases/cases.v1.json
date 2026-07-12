@@ -367,6 +367,57 @@
       "claim": "Reduction admission must keep identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior, source identity, receiver/API identity, and effect safety beside every sum/product/any/all/min/max bridge."
     },
     {
+      "id": "flat-map-aggregate-proof-perimeter",
+      "semantic_family": "hof.flat_map",
+      "packet_ids": [
+        "reduction-minmax-anyall-2026-07-08"
+      ],
+      "conventions": [
+        "reduction.identity-empty",
+        "reduction.step-coordinate",
+        "reduction.terminal-predicate",
+        "reduction.short-circuit-direction",
+        "loop.iterator-identity",
+        "collection.cardinality",
+        "collection.collection-coordinate",
+        "boolean.effect-safety",
+        "protocol-boundary.callback-effect",
+        "protocol-boundary.api-identity"
+      ],
+      "positive_cases": [
+        "java_flat_map_aggregate_positive",
+        "swift_flat_map_aggregate_positive"
+      ],
+      "hard_negative_cases": [
+        "java_flat_map_aggregate_boundaries",
+        "java_flat_map_aggregate_custom_dispatch_boundary",
+        "swift_flat_map_aggregate_boundaries",
+        "swift_flat_map_aggregate_custom_dispatch_boundaries"
+      ],
+      "regression_gates": [
+        "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_boundaries",
+        "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_custom_dispatch_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_boundaries",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_custom_dispatch_boundaries",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_sum_converges_with_nested_reduction",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_filtered_flat_map_sum_preserves_outer_and_inner_guards",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_sum_preserves_identity_step_source_depth_effect_and_dispatch",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_reduce_stays_closed_without_fold_dispatch_proof",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_all_satisfy_converges_with_nested_counterexample_loop",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_filtered_flat_map_all_satisfy_preserves_guard_coordinates",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_aggregate_custom_terminal_dispatch_stays_closed",
+        "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::all_satisfy_dispatch_and_namespace_risks_emit_a_barrier",
+        "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::ordinary_all_satisfy_use_does_not_emit_a_dispatch_barrier",
+        "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::disjoint_callback_arity_overload_does_not_emit_a_dispatch_barrier",
+        "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_closes_guarded_swift_flat_map_after_cross_file_filter_overload",
+        "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_closes_swift_all_satisfy_after_cross_file_overload",
+        "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_keeps_swift_all_satisfy_after_disjoint_callback_arity_overload"
+      ],
+      "claim": "Flat-map aggregate admission must keep one-level source/order/emitted coordinates, outer and inner guard placement, terminal identity/step/predicate, source cardinality, callback effects, and API dispatch proof beside every Java reduce or Swift allSatisfy positive."
+    },
+    {
       "id": "rust-iterator-all-proof-perimeter",
       "semantic_family": "quantifier.universal.counterexample-loop",
       "packet_ids": [
@@ -6817,6 +6868,494 @@
         }
       ],
       "evidence": "Swift lowering emits a dedicated flatMap/map dispatch barrier and corpus lowering tombstones matching evidence before normalization."
+    },
+    {
+      "id": "java_flat_map_aggregate_positive",
+      "kind": "positive",
+      "semantic_family": "hof.flat_map",
+      "claim": "Java Stream flatMap reductions consume the same proven one-level emitted stream, outer guard, inner guard, seed, and reduction step as equivalent nested loops.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/java_flat_map_aggregate/reference.py",
+        "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java"
+      ],
+      "executable_expectations": [
+        {
+          "id": "java_flat_map_sum_matches_loop",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaFlatMapSumLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaFlatMapSum"
+            }
+          ]
+        },
+        {
+          "id": "java_filtered_flat_map_sum_matches_loop",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaFilteredFlatMapSumLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaFilteredFlatMapSum"
+            }
+          ]
+        }
+      ],
+      "evidence": "The Java Stream adapter, one-level flatMap graph, carried filter predicates, and explicit reduce seed/step normalize to the corresponding nested reduction facts."
+    },
+    {
+      "id": "java_flat_map_aggregate_boundaries",
+      "kind": "hard-negative",
+      "semantic_family": "hof.flat_map",
+      "claim": "Changed Java flat-map aggregate seeds, steps, guards, sources, inner cardinality, depth, and callback effects remain distinct; reducer steps must consume the flattened value coordinate.",
+      "mutation": "change exactly one reduction identity, step/value coordinate, guard, source/cardinality, flatten-depth, or effect coordinate",
+      "fixtures": [
+        "bench/type4/adversarial/cases/java_flat_map_aggregate/reference.py",
+        "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java"
+      ],
+      "executable_expectations": [
+        {
+          "id": "java_flat_map_wrong_seed_stays_split",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaFlatMapSum"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaWrongSeed"
+            }
+          ]
+        },
+        {
+          "id": "java_flat_map_wrong_step_stays_split",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaFlatMapSum"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaWrongStep"
+            }
+          ]
+        },
+        {
+          "id": "java_flat_map_wrong_outer_guard_stays_split",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaFilteredFlatMapSum"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaWrongOuterGuard"
+            }
+          ]
+        },
+        {
+          "id": "java_flat_map_wrong_inner_guard_stays_split",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaFilteredFlatMapSum"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaWrongInnerGuard"
+            }
+          ]
+        },
+        {
+          "id": "java_flat_map_wrong_source_stays_split",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaFlatMapSource"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaWrongSource"
+            }
+          ]
+        },
+        {
+          "id": "java_flat_map_wrong_depth_stays_split",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaFlatMapSum"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaWrongDepth"
+            }
+          ]
+        },
+        {
+          "id": "java_flat_map_ignored_inner_source_stays_split",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaIgnoredInnerSourceYs"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaIgnoredInnerSourceOther"
+            }
+          ]
+        },
+        {
+          "id": "java_flat_map_same_source_coordinates_stay_split",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaSameSourceDirect"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaSameSourceFlatMap"
+            }
+          ]
+        },
+        {
+          "id": "java_flat_map_recursive_depth_stays_split",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaRecursiveDepthLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaRecursiveDepth"
+            }
+          ]
+        },
+        {
+          "id": "java_flat_map_wrapped_recursive_depth_stays_split",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaRecursiveDepthLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaRecursiveDepthWrapped"
+            }
+          ]
+        },
+        {
+          "id": "java_flat_map_ignored_reducer_value_stays_split",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaIgnoredReducerValueYs"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaIgnoredReducerValueOther"
+            }
+          ]
+        },
+        {
+          "id": "java_flat_map_effectful_callback_stays_split",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaFlatMapSum"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+              "name": "javaEffectfulCallback"
+            }
+          ]
+        }
+      ],
+      "evidence": "Focused expectations independently pin every Java reduction, guard, source/cardinality, direct or wrapped recursive depth, and effect boundary."
+    },
+    {
+      "id": "java_flat_map_aggregate_custom_dispatch_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "hof.flat_map",
+      "claim": "A corpus-visible Java Arrays shadow cannot borrow java.util.Arrays Stream flat-map aggregate semantics.",
+      "mutation": "shadow the imported Arrays namespace",
+      "fixtures": [
+        "bench/type4/adversarial/cases/java_flat_map_aggregate_custom/aggregate.java"
+      ],
+      "executable_expectations": [
+        {
+          "id": "java_flat_map_custom_dispatch_stays_split",
+          "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate_custom",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate_custom/aggregate.java",
+              "name": "javaNestedLoopReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/java_flat_map_aggregate_custom/aggregate.java",
+              "name": "javaCustomDispatch"
+            }
+          ]
+        }
+      ],
+      "evidence": "Imported-symbol evidence closes when Arrays is shadowed in the same corpus."
+    },
+    {
+      "id": "swift_flat_map_aggregate_positive",
+      "kind": "positive",
+      "semantic_family": "hof.flat_map",
+      "claim": "Swift eager flatMap allSatisfy terminals consume the same one-level emitted stream and carried outer/inner guards as equivalent nested counterexample loops.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/swift_flat_map_aggregate/reference.py",
+        "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift"
+      ],
+      "executable_expectations": [
+        {
+          "id": "swift_flat_map_all_matches_loop",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftFlatMapAllLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftFlatMapAll"
+            }
+          ]
+        },
+        {
+          "id": "swift_filtered_flat_map_all_matches_loop",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftFilteredFlatMapAllLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftFilteredFlatMapAll"
+            }
+          ]
+        }
+      ],
+      "evidence": "The Swift FlatMap obligation now accepts one admitted pure filter over each direct bracket-array coordinate and allSatisfy consumes the resulting carried guards."
+    },
+    {
+      "id": "swift_flat_map_aggregate_boundaries",
+      "kind": "hard-negative",
+      "semantic_family": "hof.flat_map",
+      "claim": "Changed Swift outer, inner, terminal, source/cardinality, depth, and effect coordinates remain distinct from the admitted flat-map aggregate; terminal predicates must consume the flattened value coordinate.",
+      "mutation": "change exactly one guard, terminal predicate, source/cardinality, flatten-depth, or callback-effect coordinate",
+      "fixtures": [
+        "bench/type4/adversarial/cases/swift_flat_map_aggregate/reference.py",
+        "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift"
+      ],
+      "executable_expectations": [
+        {
+          "id": "swift_flat_map_wrong_outer_guard_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftFilteredFlatMapAll"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftWrongOuterGuard"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_wrong_inner_guard_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftFilteredFlatMapAll"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftWrongInnerGuard"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_wrong_terminal_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftFilteredFlatMapAll"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftWrongTerminal"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_aggregate_wrong_source_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftFlatMapSource"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftWrongSource"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_wrong_depth_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftFlatMapAll"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftWrongDepth"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_ignored_inner_source_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftIgnoredInnerSourceYs"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftIgnoredInnerSourceOther"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_ignored_terminal_value_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftIgnoredTerminalGroups"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftIgnoredTerminalOther"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_aggregate_effectful_callback_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftFlatMapAll"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+              "name": "swiftEffectfulCallback"
+            }
+          ]
+        }
+      ],
+      "evidence": "Focused expectations keep every Swift aggregate guard, terminal/value, source/cardinality, depth, and effect boundary executable."
+    },
+    {
+      "id": "swift_flat_map_aggregate_custom_dispatch_boundaries",
+      "kind": "hard-negative",
+      "semantic_family": "hof.flat_map",
+      "claim": "Corpus-visible Swift filter or allSatisfy overloads close guarded flat-map terminal admission.",
+      "mutation": "replace a standard guarded source or terminal with a visible custom member",
+      "fixtures": [
+        "bench/type4/adversarial/cases/swift_flat_map_aggregate_custom_terminal/overload.swift",
+        "bench/type4/adversarial/cases/swift_flat_map_aggregate_custom_terminal/consumer.swift",
+        "bench/type4/adversarial/cases/swift_flat_map_aggregate_custom_filter/overload.swift",
+        "bench/type4/adversarial/cases/swift_flat_map_aggregate_custom_filter/consumer.swift"
+      ],
+      "executable_expectations": [
+        {
+          "id": "swift_flat_map_custom_terminal_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate_custom_terminal",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate_custom_terminal/consumer.swift",
+              "name": "swiftFlatMapAllLoopReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate_custom_terminal/consumer.swift",
+              "name": "swiftCustomTerminal"
+            }
+          ]
+        },
+        {
+          "id": "swift_flat_map_custom_filter_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate_custom_filter",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate_custom_filter/consumer.swift",
+              "name": "swiftFilteredFlatMapAllLoopReference"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate_custom_filter/consumer.swift",
+              "name": "swiftCustomFilter"
+            }
+          ]
+        }
+      ],
+      "evidence": "Swift lowering records allSatisfy and guarded-filter dispatch barriers, and corpus lowering tombstones dependent API evidence."
     },
     {
       "id": "hof_error_propagation",

@@ -767,7 +767,11 @@
       "controlled_evidence": [
         "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_positive",
         "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_boundaries",
+        "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_boundaries",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_boundaries",
         "crates/nose-cli/tests/equivalence/swift_flat_map.rs::swift_flat_map_preserves_depth_order_value_and_source_boundaries",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_aggregate_closes_when_inner_cardinality_is_not_in_the_emitted_value",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_aggregate_closes_when_inner_cardinality_is_not_in_the_emitted_value",
         "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof/swift_flat_map.rs::swift_flat_map_requires_outer_and_inner_bracket_array_proofs"
       ],
       "detector_admission_implication": "Does not admit flat-map convergence by itself; flatten depth, emitted value, source identity, and callback purity facts remain separate.",
@@ -783,6 +787,8 @@
       "implementation_guidance": [
         "Track outer and inner iteration coordinates separately.",
         "Reject changed inner receivers, reordered traversal, dropped outer iterations, and derived inner collections without source evidence.",
+        "Keep a map source-bound when neither its contribution nor its carried predicate references every bound element; constant or captured emissions still repeat according to source cardinality.",
+        "Keep repeated iteration over the same canonical source opaque until outer and inner occurrence coordinates can be distinguished.",
         "Use this fact for one-level flat-map and for later flat-map aggregate surfaces.",
         "For Swift, require the dedicated FlatMap callback obligation rather than treating a pure transform callback as nested-order proof."
       ],
@@ -806,8 +812,12 @@
       "controlled_evidence": [
         "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_positive",
         "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_boundaries",
+        "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_boundaries",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_boundaries",
         "crates/nose-cli/tests/equivalence/swift_flat_map.rs::swift_flat_map_converges_for_proven_one_level_sources_and_emitted_values",
-        "crates/nose-cli/tests/equivalence/swift_flat_map.rs::swift_flat_map_preserves_depth_order_value_and_source_boundaries"
+        "crates/nose-cli/tests/equivalence/swift_flat_map.rs::swift_flat_map_preserves_depth_order_value_and_source_boundaries",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_aggregate_closes_when_inner_cardinality_is_not_in_the_emitted_value",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_aggregate_closes_when_inner_cardinality_is_not_in_the_emitted_value"
       ],
       "detector_admission_implication": "Does not admit flat-map convergence by itself; traversal order, flatten depth, source identity, and callback purity facts remain separate.",
       "evidence_requirements": [
@@ -822,6 +832,7 @@
       "implementation_guidance": [
         "Compare emitted values after outer and inner coordinates are matched.",
         "Reject changed inner map expressions, wrong pushed values, and derived values without a value-equivalence proof.",
+        "Fail closed when an inner map contribution omits a bound element whose source still determines emission cardinality.",
         "Keep aggregate terminals separate; this fact only describes the flattened element stream.",
         "For Swift, retain the nested map contribution in the FlatMap value graph; callback spelling alone does not prove the emitted coordinate."
       ],
@@ -1352,6 +1363,10 @@
         "any/all predicates observe the same flattened element coordinate as the explicit early-return loop",
         "focused hard negatives where changed terminal predicates or contribution expressions remain split"
       ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_boundaries",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_reducer_step_must_consume_the_flattened_value"
+      ],
       "detector_admission_implication": "Does not admit aggregate convergence by itself; source identity, flattening, identity/empty behavior, and effect facts remain separate.",
       "evidence_requirements": [
         "focused-executable",
@@ -1367,6 +1382,7 @@
       ],
       "implementation_guidance": [
         "Compare reduction step expressions after the flattened element coordinate is established.",
+        "Require an explicit fold contribution to retain both the lexical element binding and an element value-graph coordinate; otherwise leave the fold opaque so source cardinality is not erased.",
         "For any/all terminals, compare the terminal predicate independently from upstream filters.",
         "Reject aggregate terminals that observe the outer coordinate, nested row, or a changed predicate without a separate value proof.",
         "Keep numeric overflow, float, NaN, and unproven cross-language number domains outside exact aggregate admission unless a separate numeric-domain proof is present."
@@ -1374,6 +1390,7 @@
       "rejected_evidence": [
         "terminal any/all predicate changed while traversal is unchanged",
         "reduction contribution changed from the flattened emitted value",
+        "a reducer contribution such as acc + 1 that ignores the flattened element and therefore only counts an otherwise untracked source",
         "aggregate over nested rows instead of flattened elements",
         "cross-language numeric reductions outside the focused integer/value-model slice without finite/integer domain evidence"
       ],
@@ -1388,6 +1405,10 @@
         "terminal predicates are compared independently from upstream filter predicates",
         "focused hard negatives where changed any/all predicates remain split"
       ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_boundaries",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_terminal_predicate_must_consume_the_flattened_value"
+      ],
       "detector_admission_implication": "Does not admit terminal reduction convergence by itself; source identity, identity/empty behavior, short-circuit direction, and effect facts remain separate.",
       "evidence_requirements": [
         "focused-executable",
@@ -1400,12 +1421,14 @@
       ],
       "implementation_guidance": [
         "Compare any/all terminal predicates after the source element coordinate is established.",
+        "Require a method-terminal predicate to retain both its lexical parameter binding and an element value-graph coordinate; constant or captured-only predicates remain opaque because empty input changes their result.",
         "Reject changed comparison operators, thresholds, predicate helpers without purity proof, and predicates moved between filter and terminal coordinates.",
         "Keep terminal predicates separate from reducer contribution expressions."
       ],
       "rejected_evidence": [
         "any(x > 0) treated as any(x >= 0)",
         "some/every callback helper calls without purity proof",
+        "allSatisfy or every predicates that ignore the bound element and would erase empty/non-empty source behavior",
         "an upstream filter predicate substituted for the terminal predicate"
       ],
       "semantic_family": "reduction.terminal",
@@ -1482,7 +1505,19 @@
       "accepted_evidence": [
         "outer and inner filters in a flat-map aggregate guard the same matched traversal coordinates",
         "nested guarded loops and flat-map/filter chains preserve the same guard placement before aggregation",
-        "focused hard negatives where outer, inner, or terminal predicates are changed remain split"
+        "focused hard negatives where outer, inner, or terminal predicates are changed remain split",
+        "controlled Java Stream flatMap/reduce and Swift flatMap/allSatisfy surfaces whose admitted filter predicates remain attached to their original traversal coordinates"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_boundaries",
+        "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_custom_dispatch_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_boundaries",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_custom_dispatch_boundaries",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_filtered_flat_map_sum_preserves_outer_and_inner_guards",
+        "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_filtered_flat_map_all_satisfy_preserves_guard_coordinates",
+        "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_keeps_swift_all_satisfy_after_disjoint_callback_arity_overload"
       ],
       "detector_admission_implication": "Does not admit aggregate convergence by itself; it only closes guard placement after nested traversal and terminal step facts are proven.",
       "evidence_requirements": [
@@ -1497,7 +1532,8 @@
       "implementation_guidance": [
         "Track whether a predicate guards the outer traversal, inner traversal, or terminal aggregate.",
         "Reject predicates moved across coordinates unless a separate equivalence proof preserves cardinality and short-circuit behavior.",
-        "Keep numeric or ordering predicates closed when their domain proof is missing."
+        "Keep numeric or ordering predicates closed when their domain proof is missing.",
+        "For controlled Swift flatMap, admit at most one standard pure filter over each direct bracket-array outer or inner source and close the proof on visible filter or allSatisfy dispatch ambiguity."
       ],
       "rejected_evidence": [
         "outer guard changed while inner and terminal expressions remain unchanged",
@@ -1505,7 +1541,7 @@
         "terminal predicate substituted for an upstream filter or vice versa"
       ],
       "semantic_family": "hof.flat_map",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "Filtered flat-map aggregate rewrites must preserve whether each guard belongs to the outer traversal, inner traversal, or terminal aggregate coordinate.",
       "title": "Flat-map aggregate guard coordinate"
     },

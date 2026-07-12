@@ -19,6 +19,10 @@ fn flat_map_dispatch_and_namespace_risks_emit_a_barrier() {
   func map<T>(_ transform: (Bool) -> T) -> [T] { [] }
 }
 "#,
+        r#"extension Array where Element == Bool {
+  func filter(_ predicate: (Bool) -> Bool) -> [Bool] { [] }
+}
+"#,
         r#"extension Array where Element == [Bool] {
   var `flatMap`: ((([Bool]) -> [Bool]) -> [Bool]) { { _ in [] } }
 }

@@ -140,6 +140,9 @@ pub(super) fn library_api_callback_obligation_matches_node(
     {
         return false;
     }
+    if swift_all_satisfy_dispatch_ambiguous_for_call(il, interner, node) {
+        return false;
+    }
     if obligation.is_pure_filter_map() {
         let Some(interner) = interner else {
             return false;
@@ -161,6 +164,34 @@ pub(super) fn library_api_callback_obligation_matches_node(
         }
     }
     callback_effect_closed(il, interner, callback, obligation)
+}
+
+fn swift_all_satisfy_dispatch_ambiguous_for_call(
+    il: &Il,
+    interner: Option<&Interner>,
+    node: NodeId,
+) -> bool {
+    if il.meta.lang != Lang::Swift {
+        return false;
+    }
+    let Some(interner) = interner else {
+        return true;
+    };
+    let is_all_satisfy = il
+        .children(node)
+        .first()
+        .copied()
+        .filter(|&callee| il.kind(callee) == NodeKind::Field)
+        .and_then(|callee| match il.node(callee).payload {
+            Payload::Name(name) => Some(interner.resolve(name)),
+            _ => None,
+        })
+        .is_some_and(|method| swift_identifier_matches(method, "allSatisfy"));
+    is_all_satisfy
+        && il.nodes.iter().any(|node| {
+            matches!(node.payload, Payload::Name(name) if interner.resolve(name)
+                == SWIFT_ALL_SATISFY_DISPATCH_BARRIER_MARKER)
+        })
 }
 
 fn callback_has_single_value_param(il: &Il, callback: NodeId) -> bool {

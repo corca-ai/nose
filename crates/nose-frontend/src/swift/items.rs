@@ -27,6 +27,7 @@ pub(super) fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         }
         "macro_declaration" => {
             let span = lo.span(node);
+            record_all_satisfy_dispatch_proof_barrier(lo, span);
             record_nil_literal_proof_barrier(lo, span);
             record_flat_map_dispatch_proof_barrier(lo, span);
             None
@@ -71,6 +72,7 @@ pub(super) fn lower_enum_entry(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 pub(super) fn lower_import(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
+    record_all_satisfy_dispatch_proof_barrier(lo, span);
     record_nil_literal_proof_barrier(lo, span);
     record_flat_map_dispatch_proof_barrier(lo, span);
     let module = Lowering::named_children(node)
@@ -90,6 +92,7 @@ pub(super) fn lower_type(lo: &mut Lowering, node: TsNode) -> NodeId {
     let name = node.child_by_field_name("name").map(|n| lo.sym(lo.text(n)));
     let body = node.child_by_field_name("body");
     let mut kids = Vec::new();
+    record_all_satisfy_dispatch_barrier(lo, node);
     record_compact_map_dispatch_barrier(lo, node);
     record_flat_map_dispatch_barrier(lo, node);
     record_nil_literal_conformance(lo, node, &mut kids);
@@ -111,6 +114,7 @@ pub(super) fn lower_extension(lo: &mut Lowering, node: TsNode) -> NodeId {
         .and_then(|ty| type_surface_name(lo, ty))
         .map(|name| lo.sym(&name));
     let mut kids = Vec::new();
+    record_all_satisfy_dispatch_barrier(lo, node);
     record_compact_map_dispatch_barrier(lo, node);
     record_flat_map_dispatch_barrier(lo, node);
     record_nil_literal_conformance(lo, node, &mut kids);
@@ -159,13 +163,96 @@ pub(super) fn record_compact_map_dispatch_barrier(lo: &mut Lowering, node: TsNod
 }
 
 pub(super) fn record_flat_map_dispatch_barrier(lo: &mut Lowering, node: TsNode) {
-    if !["flatMap", "map"]
+    if !["flatMap", "filter", "map"]
         .into_iter()
         .any(|name| swift_source_mentions_identifier(lo.text(node), name))
     {
         return;
     }
     record_flat_map_dispatch_proof_barrier(lo, lo.span(node));
+}
+
+pub(super) fn record_all_satisfy_dispatch_barrier(lo: &mut Lowering, node: TsNode) {
+    if !swift_all_satisfy_dispatch_may_overlap(lo, node) {
+        return;
+    }
+    record_all_satisfy_dispatch_proof_barrier(lo, lo.span(node));
+}
+
+fn swift_all_satisfy_dispatch_may_overlap(lo: &Lowering, root: TsNode) -> bool {
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        match node.kind() {
+            "function_declaration" | "protocol_function_declaration" => {
+                if swift_declaration_name_matches(lo, node, "allSatisfy")
+                    && swift_all_satisfy_function_accepts_unary_predicate(node)
+                {
+                    return true;
+                }
+                // Calls inside a function body do not declare an overload on
+                // its enclosing type. Keep scanning sibling declarations when
+                // this declaration is proven callback-arity-disjoint.
+                continue;
+            }
+            "property_declaration"
+            | "protocol_property_declaration"
+            | "protocol_property_requirements" => {
+                if swift_declaration_name_matches(lo, node, "allSatisfy") {
+                    return true;
+                }
+                continue;
+            }
+            "ERROR" if swift_source_mentions_identifier(lo.text(node), "allSatisfy") => {
+                return true;
+            }
+            _ => {}
+        }
+        stack.extend(Lowering::named_children(node));
+    }
+    false
+}
+
+fn swift_declaration_name_matches(lo: &Lowering, node: TsNode, expected: &str) -> bool {
+    let mut cursor = node.walk();
+    let matches = node
+        .children_by_field_name("name", &mut cursor)
+        .any(|name| swift_source_mentions_identifier(lo.text(name), expected));
+    matches
+}
+
+fn swift_all_satisfy_function_accepts_unary_predicate(function: TsNode) -> bool {
+    let parameters: Vec<_> = Lowering::named_children(function)
+        .into_iter()
+        .filter(|child| child.kind() == "parameter")
+        .collect();
+    let [parameter] = parameters.as_slice() else {
+        // Default arguments and recovered signatures are not modeled here.
+        return true;
+    };
+    let Some(callback_type) = parameter.child_by_field_name("type") else {
+        return true;
+    };
+    if callback_type.kind() != "function_type" {
+        return true;
+    }
+    let Some(callback_parameters) = callback_type.child_by_field_name("params") else {
+        return true;
+    };
+    if callback_parameters.kind() != "tuple_type" {
+        // A parenthesized single type is represented as a tuple_type_item;
+        // an unparenthesized function input is likewise unary.
+        return true;
+    }
+    let mut cursor = callback_parameters.walk();
+    callback_parameters
+        .children_by_field_name("element", &mut cursor)
+        .count()
+        == 1
+}
+
+fn record_all_satisfy_dispatch_proof_barrier(lo: &mut Lowering, span: Span) {
+    let marker = lo.sym(SWIFT_ALL_SATISFY_DISPATCH_BARRIER_MARKER);
+    lo.add(NodeKind::Block, Payload::Name(marker), span, &[]);
 }
 
 fn record_flat_map_dispatch_proof_barrier(lo: &mut Lowering, span: Span) {
@@ -179,6 +266,7 @@ fn record_nil_literal_proof_barrier(lo: &mut Lowering, span: Span) {
 }
 pub(super) fn record_typealias_shadow(lo: &mut Lowering, node: TsNode) {
     let span = lo.span(node);
+    record_all_satisfy_dispatch_proof_barrier(lo, span);
     record_nil_literal_proof_barrier(lo, span);
     record_flat_map_dispatch_proof_barrier(lo, span);
     if let Some(name) = swift_decl_name(lo, node) {

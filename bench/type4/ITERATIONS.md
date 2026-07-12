@@ -631,6 +631,31 @@ executable Type-4 expectations pass. The open-surface audit removes #796 and
 leaves only `hof.flat-map.aggregate-guard-coordinate` for the original Java and
 Swift aggregate row in #797.
 
+## Java and Swift FlatMap Aggregate Guards
+
+Closed #797 by modeling `hof.flat-map.aggregate-guard-coordinate` and composing
+it with the existing one-level traversal, emitted-value, flatten-depth,
+identity/step, predicate, and callback-effect facts. Java exact admission now
+connects proven `Arrays.stream` flat-map pipelines to explicit seeded reduction
+steps. Swift exact admission connects the controlled one-level `flatMap` slice
+to eager unary `allSatisfy` terminals; each direct bracket-array outer or inner
+source may carry one admitted pure `filter` whose predicate stays attached to
+that traversal coordinate.
+
+Four executable positives cover unfiltered and guarded Java nested sums plus
+unfiltered and guarded Swift nested counterexample loops. Twenty-three adjacent
+splits independently cover wrong identity, step, outer/inner/terminal guard,
+source, source cardinality when an inner element is ignored, same-source
+coordinate aliasing, direct or identity-wrapped recursive Java flatMap depth,
+flatten depth, ignored reducer/terminal value coordinates, callback effect,
+shadowed Java `Arrays`, custom Swift
+`filter`, and custom unary `allSatisfy` dispatch. The Swift terminal barrier is
+callback-shape aware: a two-argument predicate overload cannot match the
+standard unary call and therefore does not suppress valid admission. Swift
+`reduce` remains an explicit split until fold callback, operator, overload, and
+trap behavior are separately proven. All 341 executable Type-4 expectations
+pass, and the open-surface audit removes both original #797 rows.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,

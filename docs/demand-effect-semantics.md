@@ -68,10 +68,15 @@ proven Array/Collection receivers with inline effect-closed callbacks. Swift
 must be a direct, attribute- and modifier-free function parameter with
 language-core bracket-array (`[T]`) evidence, and its unary effect-closed callback
 must return either a direct bracket-array parameter or exactly one admitted inner
-`map` over one. Imports, type aliases, macros, visible `flatMap`/`map` methods or
+`map` over one. The controlled aggregate slice may place one admitted pure
+`filter` over either direct outer or inner source, retaining both predicate
+coordinates before an eager unary `allSatisfy` terminal. Imports, type aliases,
+macros, visible `flatMap`/`filter`/`map` methods or
 callable properties, property-wrapped or parser-recovered callback parameters,
-lexically unrelated parameter evidence, derived sources, filters, scalar results,
-and recursive `flatMap` output close the proof before normalization. Any raw
+lexically unrelated parameter evidence, derived or repeated filters, scalar
+results, and recursive `flatMap` output close the proof before normalization.
+Visible unary `allSatisfy` overloads close terminal admission, while a proven
+two-argument callback overload is disjoint from the standard unary call. Any raw
 Swift `flatMap` selector that survives normalization also stays outside opaque
 same-callee exact identity. Swift
 `compactMap` additionally has an eager-per-element controlled slice: the callback must run

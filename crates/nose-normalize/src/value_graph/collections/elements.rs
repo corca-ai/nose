@@ -84,7 +84,22 @@ impl<'a> Builder<'a> {
                 let outer = args[0];
                 let inner = args[1];
                 let outer_predicate = args.get(2).copied();
-                let (emitted, inner_predicate) = self.hof_emitted_elem_with_pred(inner)?;
+                let (inner_op, inner_args) = {
+                    let inner = &self.nodes[inner as usize];
+                    (inner.op.clone(), inner.args.clone())
+                };
+                let (emitted, inner_predicate) = match inner_op {
+                    ValOp::Hof(k) if k == HoFKind::Map as u32 && inner_args.len() == 1 => {
+                        (inner_args[0], None)
+                    }
+                    ValOp::Hof(k) if k == HoFKind::Map as u32 && inner_args.len() == 2 => {
+                        (inner_args[0], Some(inner_args[1]))
+                    }
+                    // The controlled aggregate bridge proves exactly one
+                    // inner Map layer. Recursive FlatMap output stays opaque
+                    // until deeper traversal coordinates are modeled.
+                    _ => return None,
+                };
                 if !self.references(emitted, outer) {
                     return None;
                 }

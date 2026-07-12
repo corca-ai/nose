@@ -1,5 +1,6 @@
 use super::*;
 
+mod aggregate_proof;
 mod async_protocols;
 mod flat_map_proof;
 mod parameter_domains;

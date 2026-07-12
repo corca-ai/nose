@@ -1,9 +1,9 @@
 {
-  "expectation_count": 314,
+  "expectation_count": 341,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 314,
-  "query_count": 29,
+  "passed": 341,
+  "query_count": 34,
   "results": [
     {
       "case_id": "collection_membership_literal_and_typed_positive",
@@ -3955,6 +3955,323 @@
       "expect": "split",
       "expectation_id": "swift_flat_map_custom_inner_map_stays_split",
       "fixture": "bench/type4/adversarial/cases/swift_flat_map_custom_inner_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_positive",
+      "expect": "same-family",
+      "expectation_id": "java_flat_map_sum_matches_loop",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 12,
+            "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+            "name": "javaFlatMapSumLoop",
+            "start": 4
+          },
+          {
+            "end": 18,
+            "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+            "name": "javaFlatMapSum",
+            "start": 14
+          },
+          {
+            "end": 71,
+            "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+            "name": "javaFlatMapSource",
+            "start": 67
+          }
+        ],
+        "value": 12.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_positive",
+      "expect": "same-family",
+      "expectation_id": "java_filtered_flat_map_sum_matches_loop",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 32,
+            "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+            "name": "javaFilteredFlatMapSumLoop",
+            "start": 20
+          },
+          {
+            "end": 39,
+            "file": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+            "name": "javaFilteredFlatMapSum",
+            "start": 34
+          }
+        ],
+        "value": 9.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "java_flat_map_wrong_seed_stays_split",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "java_flat_map_wrong_step_stays_split",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "java_flat_map_wrong_outer_guard_stays_split",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "java_flat_map_wrong_inner_guard_stays_split",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "java_flat_map_wrong_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "java_flat_map_wrong_depth_stays_split",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "java_flat_map_ignored_inner_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "java_flat_map_same_source_coordinates_stay_split",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "java_flat_map_recursive_depth_stays_split",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "java_flat_map_wrapped_recursive_depth_stays_split",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "java_flat_map_ignored_reducer_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "java_flat_map_effectful_callback_stays_split",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "java_flat_map_aggregate_custom_dispatch_boundary",
+      "expect": "split",
+      "expectation_id": "java_flat_map_custom_dispatch_stays_split",
+      "fixture": "bench/type4/adversarial/cases/java_flat_map_aggregate_custom",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_aggregate_positive",
+      "expect": "same-family",
+      "expectation_id": "swift_flat_map_all_matches_loop",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 10,
+            "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+            "name": "swiftFlatMapAllLoop",
+            "start": 1
+          },
+          {
+            "end": 15,
+            "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+            "name": "swiftFlatMapAll",
+            "start": 12
+          }
+        ],
+        "value": 7.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_aggregate_positive",
+      "expect": "same-family",
+      "expectation_id": "swift_filtered_flat_map_all_matches_loop",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 33,
+            "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+            "name": "swiftFilteredFlatMapAllLoop",
+            "start": 17
+          },
+          {
+            "end": 44,
+            "file": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+            "name": "swiftFilteredFlatMapAll",
+            "start": 35
+          }
+        ],
+        "value": 13.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_wrong_outer_guard_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_wrong_inner_guard_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_wrong_terminal_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_aggregate_wrong_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_wrong_depth_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_ignored_inner_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_ignored_terminal_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_aggregate_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_aggregate_effectful_callback_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_aggregate_custom_dispatch_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_custom_terminal_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate_custom_terminal",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_flat_map_aggregate_custom_dispatch_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_flat_map_custom_filter_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_flat_map_aggregate_custom_filter",
       "matching_family": null,
       "observed": "split",
       "ok": true

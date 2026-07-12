@@ -743,7 +743,11 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   present. Exact Swift `flatMap` additionally requires direct plain bracket-array
   evidence for the lexically resolved outer and inner parameters, exactly one
   identity or admitted-inner-`map` output layer, plain attribute/modifier/error-free
-  callback parameters, and a closed `flatMap`/`map` dispatch perimeter. Ruby
+  callback parameters, and a closed `flatMap`/`filter`/`map` dispatch perimeter.
+  A controlled aggregate may carry one admitted pure filter at each outer/inner
+  coordinate before an eager unary `allSatisfy`; a visible unary-compatible
+  `allSatisfy` declaration tombstones that terminal evidence across the corpus,
+  while a proven two-argument callback overload remains disjoint. Ruby
   Enumerable `map`/`collect`/`select`/`filter`/`reject` HOFs
   with the same provenance when Array/Collection receiver proof and inline
   effect-closed block proof are present, generic method-call and namespace-call builtin semantics with
