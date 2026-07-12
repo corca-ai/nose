@@ -285,18 +285,10 @@ fn detect_from_units_inner(
         clk.lap("candidates");
 
         // 4. Score candidates in parallel; keep accepted pairs.
-        let accepted: Vec<AcceptedPair> = candidates
-            .par_iter()
-            .filter_map(|&(left, right)| {
-                if is_nested(&units[left], &units[right]) {
-                    return None;
-                }
-                let score = detector.score(&units[left], &units[right]);
-                (score >= opts.threshold).then_some((left, right, score))
-            })
-            .collect();
+        let (scored, accepted) =
+            score_ordinary_candidates(&units, &candidates, detector, opts.threshold);
         let connected = if opts.connected_witnesses {
-            score_connected_candidates(&units, &candidates, &accepted, opts.threshold)
+            score_connected_candidates(&units, &scored, &accepted, opts.threshold, !opts.emit_pairs)
         } else {
             Vec::new()
         };
@@ -399,6 +391,41 @@ fn detect_from_units_inner(
 
 type AcceptedPair = (usize, usize, f64);
 
+#[derive(Clone, Copy, Debug)]
+struct ScoredCandidate {
+    left: usize,
+    right: usize,
+    /// Nested pairs are intentionally not scored by the ordinary detector.
+    ordinary_score: Option<f64>,
+}
+
+fn score_ordinary_candidates(
+    units: &[UnitFeat],
+    candidates: &[(usize, usize)],
+    detector: &dyn Detector,
+    threshold: f64,
+) -> (Vec<ScoredCandidate>, Vec<AcceptedPair>) {
+    let scored = candidates
+        .par_iter()
+        .map(|&(left, right)| ScoredCandidate {
+            left,
+            right,
+            ordinary_score: (!is_nested(&units[left], &units[right]))
+                .then(|| detector.score(&units[left], &units[right])),
+        })
+        .collect::<Vec<_>>();
+    let accepted = scored
+        .iter()
+        .filter_map(|candidate| {
+            candidate
+                .ordinary_score
+                .filter(|&score| score >= threshold)
+                .map(|score| (candidate.left, candidate.right, score))
+        })
+        .collect();
+    (scored, accepted)
+}
+
 fn build_pair_output(
     units: &[UnitFeat],
     enclosing: &[Option<EnclosingUnit>],
@@ -444,9 +471,10 @@ fn build_pair_output(
 
 fn score_connected_candidates(
     units: &[UnitFeat],
-    candidates: &[(usize, usize)],
+    candidates: &[ScoredCandidate],
     ordinary: &[AcceptedPair],
     threshold: f64,
+    bound_product_work: bool,
 ) -> Vec<ConnectedAccepted> {
     let ordinary_pairs = ordinary
         .iter()
@@ -460,9 +488,25 @@ fn score_connected_candidates(
             .or_default()
             .push(index);
     }
-    let connected = candidates
+    let unit_paths = units
+        .iter()
+        .map(|unit| unit.path.as_str())
+        .collect::<Vec<_>>();
+    let unit_weights = units
+        .iter()
+        .map(|unit| unit.connected_tokens.len())
+        .collect::<Vec<_>>();
+    let candidate_indices = connected_seed_indices(
+        candidates,
+        &unit_paths,
+        &unit_weights,
+        threshold,
+        bound_product_work,
+    );
+    let connected = candidate_indices
         .par_iter()
-        .flat_map_iter(|&(left, right)| {
+        .flat_map_iter(|&index| {
+            let ScoredCandidate { left, right, .. } = candidates[index];
             evaluate_connected_candidate(
                 units,
                 &enclosing_indices,
@@ -477,6 +521,113 @@ fn score_connected_candidates(
         })
         .collect::<Vec<_>>();
     connected
+}
+
+/// The raw audit interface evaluates every seed. Product queries instead price the
+/// expensive pair-local proof only for the strongest ordinary near misses, while always
+/// retaining nested seeds because they are the sole route to disjoint descendants.
+/// Endpoints below 18 nodes cannot meet the matcher's lowest complete-exit threshold.
+fn connected_seed_indices(
+    candidates: &[ScoredCandidate],
+    unit_paths: &[&str],
+    unit_weights: &[usize],
+    threshold: f64,
+    bound_product_work: bool,
+) -> Vec<usize> {
+    const MIN_PRODUCT_SEED_NODES: usize = 18;
+    const PRODUCT_GENERAL_SEED_CAP: usize = 2_048;
+    const PRODUCT_NESTED_SEED_CAP: usize = 512;
+    const PRODUCT_NESTED_PER_FILE_CAP: usize = 64;
+    const PRODUCT_CROSS_FILE_PER_FILE_CAP: usize = 8;
+
+    if !bound_product_work {
+        return (0..candidates.len()).collect();
+    }
+    let mut nested = Vec::new();
+    let mut nested_per_file: HashMap<&str, Vec<usize>> = HashMap::new();
+    let mut scored = Vec::new();
+    let mut cross_per_file: HashMap<&str, Vec<(usize, f64)>> = HashMap::new();
+    let mut same_per_file: HashMap<&str, Vec<(usize, f64)>> = HashMap::new();
+    for (index, candidate) in candidates.iter().enumerate() {
+        let weight = unit_weights[candidate.left].min(unit_weights[candidate.right]);
+        if weight < MIN_PRODUCT_SEED_NODES {
+            continue;
+        }
+        if let Some(score) = candidate.ordinary_score.filter(|&score| score < threshold) {
+            scored.push((index, score));
+            let left_path = unit_paths[candidate.left];
+            let right_path = unit_paths[candidate.right];
+            if left_path == right_path {
+                record_scored_seed(
+                    &mut same_per_file,
+                    left_path,
+                    index,
+                    score,
+                    PRODUCT_CROSS_FILE_PER_FILE_CAP,
+                );
+            } else {
+                for path in [left_path, right_path] {
+                    record_scored_seed(
+                        &mut cross_per_file,
+                        path,
+                        index,
+                        score,
+                        PRODUCT_CROSS_FILE_PER_FILE_CAP,
+                    );
+                }
+            }
+        } else if candidate.ordinary_score.is_none() {
+            nested.push(index);
+            let per_file = nested_per_file
+                .entry(unit_paths[candidate.left])
+                .or_default();
+            if per_file.len() < PRODUCT_NESTED_PER_FILE_CAP {
+                per_file.push(index);
+            }
+        }
+    }
+    nested.truncate(PRODUCT_NESTED_SEED_CAP);
+    scored.sort_unstable_by(|(left_index, left_score), (right_index, right_score)| {
+        right_score
+            .total_cmp(left_score)
+            .then_with(|| left_index.cmp(right_index))
+    });
+    scored.truncate(PRODUCT_GENERAL_SEED_CAP);
+    let mut selected = nested.into_iter().collect::<HashSet<_>>();
+    selected.extend(nested_per_file.into_values().flatten());
+    selected.extend(scored.into_iter().map(|(index, _)| index));
+    selected.extend(
+        cross_per_file
+            .into_values()
+            .flatten()
+            .map(|(index, _)| index),
+    );
+    selected.extend(
+        same_per_file
+            .into_values()
+            .flatten()
+            .map(|(index, _)| index),
+    );
+    let mut selected = selected.into_iter().collect::<Vec<_>>();
+    selected.sort_unstable();
+    selected
+}
+
+fn record_scored_seed<'a>(
+    by_file: &mut HashMap<&'a str, Vec<(usize, f64)>>,
+    path: &'a str,
+    index: usize,
+    score: f64,
+    cap: usize,
+) {
+    let best = by_file.entry(path).or_default();
+    best.push((index, score));
+    best.sort_unstable_by(|(left_index, left_score), (right_index, right_score)| {
+        right_score
+            .total_cmp(left_score)
+            .then_with(|| left_index.cmp(right_index))
+    });
+    best.truncate(cap);
 }
 
 fn evaluate_connected_candidate(
@@ -588,7 +739,7 @@ fn deduplicate_connected(
 fn retain_strongest_connected_routes(connected: &mut Vec<ConnectedAccepted>) {
     const MAPPED_CAP: usize = 32;
     const EXIT_CAP: usize = 32;
-    const NESTED_CAP: usize = 4;
+    const NESTED_CAP: usize = 32;
     connected.sort_unstable_by(|left, right| {
         right
             .witness
@@ -693,4 +844,68 @@ fn append_contiguous_groups(
     attach_enclosing_units(&mut extra, units);
     report.metrics.groups += extra.len();
     report.groups.extend(extra);
+}
+
+#[cfg(test)]
+mod connected_seed_tests {
+    use super::*;
+
+    fn scored(score: Option<f64>) -> ScoredCandidate {
+        ScoredCandidate {
+            left: 0,
+            right: 1,
+            ordinary_score: score,
+        }
+    }
+
+    fn nested(left: usize, right: usize) -> ScoredCandidate {
+        ScoredCandidate {
+            left,
+            right,
+            ordinary_score: None,
+        }
+    }
+
+    #[test]
+    fn raw_connected_audit_keeps_every_seed() {
+        let candidates = [scored(Some(0.1)), scored(None), scored(Some(0.9))];
+        assert_eq!(
+            connected_seed_indices(&candidates, &["a", "b"], &[20, 20], 0.7, false),
+            vec![0, 1, 2]
+        );
+    }
+
+    #[test]
+    fn product_connected_work_keeps_nested_and_strongest_scored_seeds() {
+        let mut candidates = vec![scored(Some(0.1)); 2_050];
+        candidates[0] = scored(None);
+        candidates[1] = scored(Some(0.0));
+        candidates[2_049] = scored(Some(0.99));
+        let selected = connected_seed_indices(&candidates, &["x/a", "y/b"], &[20, 20], 1.0, true);
+        assert!(
+            selected.contains(&0),
+            "nested routes are never budgeted away"
+        );
+        assert!(
+            selected.contains(&2_049),
+            "the strongest scored seed is retained"
+        );
+        assert!(
+            !selected.contains(&1),
+            "the weakest overflow seed is dropped"
+        );
+        assert_eq!(selected.len(), 2_049);
+    }
+
+    #[test]
+    fn product_connected_work_reserves_nested_seeds_per_file() {
+        let mut candidates = vec![nested(0, 1); 513];
+        candidates.push(nested(2, 3));
+        let paths = ["dense/a.rs", "dense/a.rs", "small/b.rs", "small/b.rs"];
+        let selected = connected_seed_indices(&candidates, &paths, &[20; 4], 0.7, true);
+        assert!(
+            selected.contains(&513),
+            "a later file keeps its own nested seed after the global cap"
+        );
+    }
 }

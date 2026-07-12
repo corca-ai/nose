@@ -202,8 +202,9 @@ fn observable_boundary(tokens: &[MappedToken], root: usize) -> bool {
         {
             true
         }
-        value if value == kind(NodeKind::Assign) => child_roots(tokens, root)
-            .and_then(|children| children.first().copied())
+        value if value == kind(NodeKind::Assign) => (token.arity() > 0 && token.subtree_len() > 1)
+            .then_some(root + 1)
+            .filter(|&target| target < tokens.len())
             .is_some_and(|target| {
                 matches!(
                     tokens[target].kind(),
@@ -246,17 +247,34 @@ fn match_tree(
             && left_token.arity() == right_token.arity()
             && left_token.tag == right_token.tag
         {
-            let (Some(left_children), Some(right_children)) = (
-                child_roots(left, left_index),
-                child_roots(right, right_index),
-            ) else {
+            let Some(left_end) = left_index.checked_add(left_token.subtree_len()) else {
                 return false;
             };
-            for (position, (&left_child, &right_child)) in
-                left_children.iter().zip(&right_children).enumerate().rev()
-            {
+            let Some(right_end) = right_index.checked_add(right_token.subtree_len()) else {
+                return false;
+            };
+            let (mut left_child, mut right_child) = (left_index + 1, right_index + 1);
+            let children_start = stack.len();
+            for position in 0..left_token.arity() {
+                let (Some(left_node), Some(right_node)) =
+                    (left.get(left_child), right.get(right_child))
+                else {
+                    return false;
+                };
                 stack.push((left_child, right_child, Some(left_token.kind()), position));
+                left_child = match left_child.checked_add(left_node.subtree_len()) {
+                    Some(next) => next,
+                    None => return false,
+                };
+                right_child = match right_child.checked_add(right_node.subtree_len()) {
+                    Some(next) => next,
+                    None => return false,
+                };
             }
+            if left_child != left_end || right_child != right_end {
+                return false;
+            }
+            stack[children_start..].reverse();
             continue;
         }
         let direct_callee = parent_kind == Some(kind(NodeKind::Call)) && child_position == 0;
@@ -486,11 +504,11 @@ func signed(code int, c *context) error {
         let source = r#"
 class SearchTest {
   void first() {
-    Visitor v = new Visitor() { void visit(Node n) { seen.add(n.id()); trace.record(n); } };
+    Visitor v = new Visitor() { void visit(Node n) { seen.add(n.id()); trace.record(n); audit.record(n); count.increment(); } };
     graph.add(1, 2); graph.add(2, 3); run(v); assertOrder(1, 2, 3);
   }
   void second() {
-    Visitor v = new Visitor() { void visit(Node n) { seen.add(n.id()); trace.record(n); } };
+    Visitor v = new Visitor() { void visit(Node n) { seen.add(n.id()); trace.record(n); audit.record(n); count.increment(); } };
     graph.add(4, 5); graph.add(5, 6); graph.add(6, 7); run(v); assertOrder(4, 5, 6, 7);
   }
 }
