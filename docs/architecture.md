@@ -69,6 +69,8 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
 5. **Accept / score**: `semantic` accepts only exact-safe value-fingerprint equality, `near`
    scores candidates with structural alignment (RANSAC) plus weighted shape/value
    Jaccard and accepts above the inline `near:T` threshold (default `near:0.70`), and
+   may separately admit a bounded pair-local connected block/statement-window witness
+   without changing the ordinary scorer ([connected witnesses](connected-witness-821.md));
    `syntax` emits duplicated runs above the line/token floors. Experimental
    `abstraction` then checks same-language near-style families for one shared
    supported literal-leaf hole position and attaches a weak witness instead of an

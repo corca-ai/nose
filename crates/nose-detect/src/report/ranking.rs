@@ -239,6 +239,7 @@ pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
                     let mut seen = rustc_hash::FxHashSet::default();
                     spans.iter().find_map(|&(start, end, ki)| {
                         (seen.insert(ki)
+                            && (!is_connected(&kept[ki]) || is_connected(&f))
                             && overlap_frac_span(start, end, first) >= SUBSUME_COVER
                             && subsumes(&kept[ki], &f))
                         .then_some(ki)
@@ -263,6 +264,10 @@ pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
         }
     });
     kept
+}
+
+fn is_connected(family: &RefactorFamily) -> bool {
+    family.witness.as_ref().map(|witness| witness.kind) == Some("connected-mapped-sub-dag")
 }
 
 fn merge_accepted_coverage(existing: &mut Vec<AcceptedCoverage>, incoming: Vec<AcceptedCoverage>) {

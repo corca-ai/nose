@@ -31,6 +31,11 @@ pub struct UnitFeat {
     pub minhash: Vec<u64>,
     /// Pre-order node-tag sequence, for alignment scoring.
     pub linear: Vec<u64>,
+    /// Compact normalized-IL tree roles used only to prove a source-connected mapped witness
+    /// for an existing near-candidate seed. Empty when shape features are disabled or the unit
+    /// exceeds the bounded witness representation.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(crate) connected_tokens: Vec<crate::connected::MappedToken>,
     /// Pre-order typed tokens used only by the experimental abstraction witness layer.
     ///
     /// Unlike `linear`, this keeps a value-sensitive literal tag so a pair that differs

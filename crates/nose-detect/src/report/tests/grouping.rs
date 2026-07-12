@@ -140,6 +140,40 @@ fn subsumed_family_is_dropped() {
 }
 
 #[test]
+fn connected_family_does_not_subsume_existing_output() {
+    let connected = Group {
+        score: 0.8,
+        members: vec![loc("a.rs", 10, 40, "rust"), loc("b.rs", 10, 40, "rust")],
+        semantic_laws: Vec::new(),
+        abstraction_witness: None,
+        witness: Some(crate::EquivalenceWitness {
+            kind: "connected-mapped-sub-dag",
+            value_nodes: Some(60),
+            mean_value_jaccard: None,
+            mean_shape_jaccard: None,
+            graded: None,
+            graded_pair: None,
+        }),
+    };
+    let existing = Group {
+        score: 0.9,
+        members: vec![loc("a.rs", 15, 25, "rust"), loc("b.rs", 15, 25, "rust")],
+        semantic_laws: Vec::new(),
+        abstraction_witness: None,
+        witness: Some(crate::EquivalenceWitness {
+            kind: "structural-similarity",
+            value_nodes: None,
+            mean_value_jaccard: Some(0.8),
+            mean_shape_jaccard: Some(0.9),
+            graded: None,
+            graded_pair: None,
+        }),
+    };
+
+    assert_eq!(rank_families(&report(vec![connected, existing])).len(), 2);
+}
+
+#[test]
 fn single_site_family_does_not_subsume_reportable_family() {
     // A contiguous-channel group can be one long same-file window after
     // `family_of` coalesces overlapping matches. It is not itself reportable, so

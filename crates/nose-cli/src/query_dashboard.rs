@@ -155,13 +155,15 @@ pub(super) fn render_query_dashboard(
             .count()
     };
     let n_exact = kind_of("exact-value-graph");
-    let n_subdag = kind_of("shared-sub-dag");
+    let n_subdag = kind_of("shared-sub-dag") + kind_of("connected-mapped-sub-dag");
     let proven: Vec<_> = def
         .iter()
         .filter(|f| {
             matches!(
                 f.witness.as_ref().map(|w| w.kind),
-                Some("exact-value-graph") | Some("shared-sub-dag")
+                Some("exact-value-graph")
+                    | Some("shared-sub-dag")
+                    | Some("connected-mapped-sub-dag")
             )
         })
         .collect();

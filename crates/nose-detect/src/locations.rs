@@ -60,6 +60,30 @@ fn enclosing_unit_of(parent: &UnitFeat) -> EnclosingUnit {
     unit
 }
 
+/// Turn a pair-local witness into the actionable source location while retaining its
+/// enclosing named unit as context. Whole-unit locations stay unchanged.
+pub(crate) fn connected_loc_of(
+    unit: &UnitFeat,
+    enclosing_unit: Option<EnclosingUnit>,
+    span: (u32, u32),
+    mapped_nodes: u32,
+) -> Loc {
+    let mut loc = loc_of(unit, enclosing_unit);
+    loc.shared_subdag = Some(span);
+    if span != (unit.start_line, unit.end_line) {
+        if loc.enclosing_unit.is_none() && can_enclose_fragment(unit) {
+            loc.enclosing_unit = Some(enclosing_unit_of(unit));
+        }
+        loc.start_line = span.0;
+        loc.end_line = span.1;
+        loc.span_lines = LineSpan::new(span.0, span.1).line_count();
+        loc.span_tokens = mapped_nodes as usize;
+        loc.kind = UnitKind::Block;
+        loc.name = None;
+    }
+    loc
+}
+
 /// Attach enclosing function/method names to copy-paste-run members. Contiguous
 /// groups are built from token streams, not from the unit set, so they never
 /// passed through `enclosing_units` — and the #216 audit's sampled block
@@ -114,7 +138,7 @@ pub(crate) fn attach_enclosing_units(groups: &mut [Group], units: &[UnitFeat]) {
     }
 }
 
-pub(crate) fn enclosing_units(units: &[UnitFeat]) -> Vec<Option<EnclosingUnit>> {
+pub(crate) fn enclosing_unit_indices(units: &[UnitFeat]) -> Vec<Option<usize>> {
     let mut by_file: HashMap<&str, Vec<usize>> = HashMap::new();
     for (idx, unit) in units.iter().enumerate() {
         by_file.entry(unit.path.as_str()).or_default().push(idx);
@@ -148,11 +172,18 @@ pub(crate) fn enclosing_units(units: &[UnitFeat]) -> Vec<Option<EnclosingUnit>> 
                 .copied()
                 .find(|&parent_idx| contains_span(&units[parent_idx], &units[idx]))
             {
-                out[idx] = Some(enclosing_unit_of(&units[parent]));
+                out[idx] = Some(parent);
             }
         }
     }
     out
+}
+
+pub(crate) fn enclosing_units(units: &[UnitFeat]) -> Vec<Option<EnclosingUnit>> {
+    enclosing_unit_indices(units)
+        .into_iter()
+        .map(|parent| parent.map(|index| enclosing_unit_of(&units[index])))
+        .collect()
 }
 
 /// Two units from the same file where one span contains the other (e.g. a method

@@ -4,6 +4,7 @@ use crate::{
     exact_policy::{candidate_value_floor_met, exact_value_match_eligible},
     strict_exact,
     units::UnitFeat,
+    ConnectedWitness,
 };
 use nose_il::{Il, Interner, NodeId};
 use std::collections::HashMap;
@@ -239,6 +240,10 @@ fn anchor_partial_score(weight: u32) -> f64 {
     let half: f64 = env_or("NOSE_ANCHOR_SCORE_REF", 60.0_f64).max(1.0); // extra weight at half-saturation
     let extra = (f64::from(weight) - f64::from(nose_normalize::anchor_min_weight())).max(0.0);
     floor + (cap - floor) * (extra / (extra + half))
+}
+
+pub(crate) fn connected_witness_score(witness: ConnectedWitness) -> f64 {
+    anchor_partial_score(witness.mapped_nodes)
 }
 
 /// Value-Jaccard threshold above which candidate mode accepts a pair on the value graph alone

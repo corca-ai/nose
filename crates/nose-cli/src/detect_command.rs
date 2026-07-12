@@ -143,6 +143,7 @@ fn detection_config(
             cfg_norm: !args.no_cfg_norm,
             dce: args.dce,
             block_units: !args.no_blocks,
+            connected_witnesses: args.candidates,
             ..Default::default()
         };
         let detector: Box<dyn nose_detect::Detector> = if args.candidates {

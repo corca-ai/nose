@@ -1171,3 +1171,15 @@ proof belongs to the call receiver, and the nested `MapGet` source arity. No
 production policy is shared, no family is added, and the three focused tests
 still exercise receiver dependency, arity, and builtin-kind boundaries. The
 stale ID is removed and the budget is tightened to 29.
+
+The #821 connected-witness closeout tightens the count from 29 to 28. Its first
+self-query surfaced repeated async-await oracle-exclusion setup across the
+obligation and classification tests; `await_oracle_exclusion_report` now owns
+that shared project/report fixture, so the new connected family is removed.
+Three remaining deltas are representative churn for reviewed families:
+`0f873b1c184596cb` -> `17e10a85fc7439bc` for Markdown/detect candidate-pair
+enumeration, `6bd7fd9ff22dcd0f` -> `1c0371a3681dc8ca` for cross-frontend
+expression dispatch, and `af4b6d3f13df0fcb` -> `f6d422cfc56ae976` for
+call/constructor/enum-constant lowering. The old numeric dispatcher
+representative `856ea94f585f0c67` no longer crosses the threshold. No new
+avoidable duplication is accepted, and the budget tightens to 28.

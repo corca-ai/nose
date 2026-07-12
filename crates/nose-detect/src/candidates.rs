@@ -3,7 +3,7 @@ use crate::{
     cluster::UnionFind,
     detectors::env_or,
     exact_policy::exact_claim_eligible,
-    locations::loc_of,
+    locations::{connected_loc_of, loc_of},
     lsh,
     model::{EnclosingUnit, EquivalenceWitness, Group, Loc},
     options::DetectOptions,
@@ -11,6 +11,22 @@ use crate::{
 };
 use nose_semantics::ValueLaw;
 use rustc_hash::FxHashMap;
+
+#[derive(Clone, Copy)]
+pub(crate) enum ConnectedRoute {
+    Mapped,
+    CompleteExit,
+    Nested,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct ConnectedAccepted {
+    pub left: usize,
+    pub right: usize,
+    pub score: f64,
+    pub witness: crate::ConnectedWitness,
+    pub route: ConnectedRoute,
+}
 
 fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
     let first = &units[members[0]];
@@ -149,6 +165,57 @@ pub(crate) fn build_groups(
         Vec::new()
     };
     (groups, accepted_group_edges)
+}
+
+pub(crate) fn build_connected_groups(
+    units: &[UnitFeat],
+    accepted: &[ConnectedAccepted],
+    enclosing: &[Option<EnclosingUnit>],
+    opts: &DetectOptions,
+    trace_accepted_coverage: bool,
+) -> (Vec<Group>, Vec<Vec<(u32, u32)>>) {
+    let groups = accepted
+        .iter()
+        .map(|pair| {
+            let left = connected_loc_of(
+                &units[pair.left],
+                enclosing[pair.left].clone(),
+                pair.witness.left_lines,
+                pair.witness.mapped_nodes,
+            );
+            let right = connected_loc_of(
+                &units[pair.right],
+                enclosing[pair.right].clone(),
+                pair.witness.right_lines,
+                pair.witness.mapped_nodes,
+            );
+            let members = [pair.left, pair.right];
+            Group {
+                score: round3(pair.score),
+                members: vec![left, right],
+                semantic_laws: semantic_laws_for_members(&members, units),
+                abstraction_witness: if opts.abstraction_witnesses {
+                    units::abstraction_family_witness(members.iter().map(|&m| &units[m]))
+                } else {
+                    None
+                },
+                witness: Some(EquivalenceWitness {
+                    kind: "connected-mapped-sub-dag",
+                    value_nodes: Some(pair.witness.mapped_nodes as usize),
+                    mean_value_jaccard: None,
+                    mean_shape_jaccard: None,
+                    graded: None,
+                    graded_pair: None,
+                }),
+            }
+        })
+        .collect();
+    let edges = if trace_accepted_coverage {
+        vec![vec![(0, 1)]; accepted.len()]
+    } else {
+        Vec::new()
+    };
+    (groups, edges)
 }
 
 fn accepted_edges_by_group(

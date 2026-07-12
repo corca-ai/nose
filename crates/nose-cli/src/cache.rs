@@ -21,9 +21,9 @@ use rayon::prelude::*;
 use std::path::Path;
 
 /// Bump when the cached payload's layout, extraction, or feature hashing changes — old
-/// cache entries then live under a different directory and are ignored. (v9: generalized
-/// pure interprocedural inlining changes value fingerprints of helper callers.)
-const SCHEMA: u32 = 10;
+/// cache entries then live under a different directory and are ignored. (v11: compact
+/// connected-witness tokens were added to near-channel unit features.)
+const SCHEMA: u32 = 11;
 
 pub(crate) struct CachedUnits {
     pub units: Vec<UnitFeat>,
@@ -122,6 +122,7 @@ fn options_signature(opts: &DetectOptions) -> u64 {
         opts.dce as u64,
         opts.minhash_k as u64,
         opts.shape_features as u64,
+        opts.connected_witnesses as u64,
         opts.abstraction_witnesses as u64,
     ] {
         h = crate::fnv::mix(h, v);

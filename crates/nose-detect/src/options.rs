@@ -45,6 +45,8 @@ pub struct DetectOptions {
     /// structural scoring. Exact semantic runs do not need them: candidate generation
     /// and scoring both use the value graph only.
     pub shape_features: bool,
+    /// Build and evaluate bounded pair-local connected witnesses for the near channel.
+    pub connected_witnesses: bool,
     /// Attach experimental abstraction witnesses to near-derived families whose normalized
     /// structure differs by exactly one supported literal leaf. This is a weak refactoring
     /// claim and never participates in exact semantic acceptance.
@@ -79,6 +81,7 @@ impl Default for DetectOptions {
             value_candidates: true,
             shape_candidates: false,
             shape_features: true,
+            connected_witnesses: false,
             abstraction_witnesses: false,
             emit_pairs: true,
         }

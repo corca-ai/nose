@@ -69,6 +69,7 @@ pub(crate) fn detection_options(
         value_candidates: channels.semantic || channels.near || channels.abstraction,
         shape_candidates: channels.near || channels.abstraction,
         shape_features: channels.near || channels.abstraction,
+        connected_witnesses: channels.near || channels.abstraction,
         abstraction_witnesses: channels.abstraction,
         emit_pairs: false,
         ..Default::default()

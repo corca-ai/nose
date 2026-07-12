@@ -59,22 +59,7 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "update_expression" => lower_update(lo, node),
         "method_invocation" => lower_call(lo, node),
         "switch_expression" => lower_switch_expr(lo, node),
-        "object_creation_expression" => {
-            let mut kids = Vec::new();
-            if let Some(args) = node.child_by_field_name("arguments") {
-                for a in Lowering::named_children(args) {
-                    kids.push(lower_expr(lo, a));
-                }
-            }
-            if let Some(list) = lower_empty_java_collection_constructor(lo, node, &kids, span) {
-                return list;
-            }
-            if let Some(future) = lower_java_completable_future_constructor(lo, node, &kids, span) {
-                return future;
-            }
-            lo.record_source_fact(span, SourceFactKind::Call(SourceCallKind::Construct));
-            lo.add(NodeKind::Call, Payload::None, span, &kids)
-        }
+        "object_creation_expression" => lower_object_creation(lo, node),
         "field_access" => {
             let base = node
                 .child_by_field_name("object")
@@ -102,6 +87,72 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "lambda_expression" => lower_lambda(lo, node),
         _ => lower_expr_rest(lo, node),
     }
+}
+
+fn lower_object_creation(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let mut kids = Vec::new();
+    if let Some(args) = node.child_by_field_name("arguments") {
+        for argument in Lowering::named_children(args) {
+            kids.push(lower_expr(lo, argument));
+        }
+    }
+    // Locally-bound anonymous objects are reusable behavior objects (visitors/recorders).
+    // Expanding inline callback arguments would instead dominate their enclosing call shape.
+    if anonymous_object_is_locally_bound(node) {
+        let body = node.child_by_field_name("body").or_else(|| {
+            Lowering::named_children(node)
+                .into_iter()
+                .find(|child| child.kind() == "class_body")
+        });
+        if let Some(body) = body.filter(|&body| anonymous_body_is_substantive(body)) {
+            kids.push(lower_anonymous_body_declarations(lo, body));
+        }
+    }
+    if let Some(list) = lower_empty_java_collection_constructor(lo, node, &kids, span) {
+        return list;
+    }
+    if let Some(future) = lower_java_completable_future_constructor(lo, node, &kids, span) {
+        return future;
+    }
+    lo.record_source_fact(span, SourceFactKind::Call(SourceCallKind::Construct));
+    lo.add(NodeKind::Call, Payload::None, span, &kids)
+}
+
+fn anonymous_object_is_locally_bound(node: TsNode) -> bool {
+    node.parent().is_some_and(|parent| {
+        matches!(
+            parent.kind(),
+            "variable_declarator" | "assignment_expression"
+        )
+    })
+}
+
+/// Keep multi-step behavior objects visible to connected-witness matching while leaving
+/// small defensive overrides (for example throw-only equality guards) constructor-shaped.
+/// Four executable statements is enough to admit visitor/recorder implementations without
+/// perturbing existing method similarities for incidental anonymous classes.
+fn anonymous_body_is_substantive(body: TsNode) -> bool {
+    const MIN_EXECUTABLE_STATEMENTS: usize = 4;
+
+    let mut executable_statements = 0;
+    let mut stack = vec![body];
+    while let Some(node) = stack.pop() {
+        if matches!(
+            node.kind(),
+            "expression_statement"
+                | "local_variable_declaration"
+                | "return_statement"
+                | "throw_statement"
+        ) {
+            executable_statements += 1;
+            if executable_statements >= MIN_EXECUTABLE_STATEMENTS {
+                return true;
+            }
+        }
+        stack.extend(Lowering::named_children(node));
+    }
+    false
 }
 /// Tail of [`lower_expr`]'s dispatch: grouping/cast wrappers, aggregate
 /// initializers, constructor delegation, label/constant kinds, and type-level

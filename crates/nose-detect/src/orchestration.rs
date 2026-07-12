@@ -1,11 +1,18 @@
 use crate::{
-    candidates::{build_groups, round3, structural_candidates},
+    candidates::{
+        build_connected_groups, build_groups, round3, structural_candidates, ConnectedAccepted,
+        ConnectedRoute,
+    },
     cluster::UnionFind,
+    connected,
     contiguous::{self, Stream},
-    detectors::Detector,
-    locations::{attach_enclosing_units, enclosing_units, is_nested, loc_of},
+    detectors::{connected_witness_score, Detector},
+    locations::{
+        attach_enclosing_units, connected_loc_of, enclosing_unit_indices, enclosing_units,
+        is_nested, loc_of,
+    },
     minhash,
-    model::{Dump, DupPair, Metrics, Report, UnitLoc},
+    model::{Dump, DupPair, EnclosingUnit, LineSpan, Metrics, Report, UnitLoc},
     options::DetectOptions,
     reinvented::reinvented_helpers,
     units::{self, UnitFeat},
@@ -13,6 +20,7 @@ use crate::{
 use nose_il::{Corpus, Il, Interner, NodeKind};
 use nose_normalize::NormalizeOptions;
 use rayon::prelude::*;
+use std::collections::{HashMap, HashSet};
 
 /// Build one file's syntax-channel token stream from its (raw) IL. Exposed so the
 /// CLI's `--cache-dir` can cache it per file and pass it to [`detect_from_units`] — the
@@ -108,6 +116,7 @@ fn extract_units_of_file(
         units::ExtractFeatures {
             shape_features: opts.shape_features,
             abstraction_witnesses: opts.abstraction_witnesses,
+            connected_witnesses: opts.connected_witnesses,
         },
     )
 }
@@ -267,7 +276,7 @@ fn detect_from_units_inner(
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
-    let (candidates, accepted) = if opts.structural {
+    let (candidates, accepted, mut connected_accepted) = if opts.structural {
         // 3. LSH candidate generation. Semantic runs use the value-graph signature;
         //    near-duplicate runs also use shape signatures so Type-3 edits that
         //    change behavior-defining values still reach the scorer. When both
@@ -276,21 +285,20 @@ fn detect_from_units_inner(
         clk.lap("candidates");
 
         // 4. Score candidates in parallel; keep accepted pairs.
-        let accepted: Vec<(usize, usize, f64)> = candidates
-            .par_iter()
-            .filter_map(|&(i, j)| {
-                if is_nested(&units[i], &units[j]) {
-                    return None;
-                }
-                let s = detector.score(&units[i], &units[j]);
-                (s >= opts.threshold).then_some((i, j, s))
-            })
-            .collect();
-        (candidates, accepted)
+        let (scored, accepted) =
+            score_ordinary_candidates(&units, &candidates, detector, opts.threshold);
+        let connected = if opts.connected_witnesses {
+            score_connected_candidates(&units, &scored, &accepted, opts.threshold, !opts.emit_pairs)
+        } else {
+            Vec::new()
+        };
+        (candidates, accepted, connected)
     } else {
         clk.lap("candidates");
-        (Vec::new(), Vec::new())
+        (Vec::new(), Vec::new(), Vec::new())
     };
+
+    deduplicate_connected(&accepted, &mut connected_accepted, !opts.emit_pairs);
 
     clk.lap("score");
 
@@ -304,25 +312,15 @@ fn detect_from_units_inner(
 
     let enclosing = enclosing_units(&units);
 
-    // Build pair output only for raw-detection surfaces. Query uses the grouped
-    // refactoring families, so they skip this accepted-pair materialization and sort.
-    let duplicates: Vec<DupPair> = if opts.emit_pairs {
-        let mut duplicates: Vec<DupPair> = accepted
-            .iter()
-            .map(|&(i, j, s)| DupPair {
-                left: loc_of(&units[i], enclosing[i].clone()),
-                right: loc_of(&units[j], enclosing[j].clone()),
-                score: round3(s),
-                cross_language: units[i].lang != units[j].lang,
-            })
-            .collect();
-        duplicates.sort_by(|a, b| b.score.total_cmp(&a.score));
-        duplicates
-    } else {
-        Vec::new()
-    };
+    let duplicates = build_pair_output(
+        &units,
+        &enclosing,
+        &accepted,
+        &connected_accepted,
+        opts.emit_pairs,
+    );
 
-    let (groups, accepted_group_edges) = build_groups(
+    let (mut groups, mut accepted_group_edges) = build_groups(
         &units,
         &accepted,
         &mut uf,
@@ -331,6 +329,15 @@ fn detect_from_units_inner(
         opts,
         trace_accepted_coverage,
     );
+    let (connected_groups, connected_edges) = build_connected_groups(
+        &units,
+        &connected_accepted,
+        &enclosing,
+        opts,
+        trace_accepted_coverage,
+    );
+    groups.extend(connected_groups);
+    accepted_group_edges.extend(connected_edges);
     clk.lap("groups");
 
     let reinvented = if opts.structural {
@@ -346,7 +353,7 @@ fn detect_from_units_inner(
             files,
             units: units.len(),
             candidate_pairs: candidates.len(),
-            accepted_pairs: accepted.len(),
+            accepted_pairs: accepted.len() + connected_accepted.len(),
             groups: groups.len(),
         },
         duplicates,
@@ -382,6 +389,91 @@ fn detect_from_units_inner(
     (report, dump)
 }
 
+type AcceptedPair = (usize, usize, f64);
+
+#[derive(Clone, Copy, Debug)]
+struct ScoredCandidate {
+    left: usize,
+    right: usize,
+    /// Nested pairs are intentionally not scored by the ordinary detector.
+    ordinary_score: Option<f64>,
+}
+
+fn score_ordinary_candidates(
+    units: &[UnitFeat],
+    candidates: &[(usize, usize)],
+    detector: &dyn Detector,
+    threshold: f64,
+) -> (Vec<ScoredCandidate>, Vec<AcceptedPair>) {
+    let scored = candidates
+        .par_iter()
+        .map(|&(left, right)| ScoredCandidate {
+            left,
+            right,
+            ordinary_score: (!is_nested(&units[left], &units[right]))
+                .then(|| detector.score(&units[left], &units[right])),
+        })
+        .collect::<Vec<_>>();
+    let accepted = scored
+        .iter()
+        .filter_map(|candidate| {
+            candidate
+                .ordinary_score
+                .filter(|&score| score >= threshold)
+                .map(|score| (candidate.left, candidate.right, score))
+        })
+        .collect();
+    (scored, accepted)
+}
+
+fn build_pair_output(
+    units: &[UnitFeat],
+    enclosing: &[Option<EnclosingUnit>],
+    ordinary: &[AcceptedPair],
+    connected: &[ConnectedAccepted],
+    emit_pairs: bool,
+) -> Vec<DupPair> {
+    if !emit_pairs {
+        return Vec::new();
+    }
+    let mut output = ordinary
+        .iter()
+        .map(|&(left, right, score)| DupPair {
+            left: loc_of(&units[left], enclosing[left].clone()),
+            right: loc_of(&units[right], enclosing[right].clone()),
+            score: round3(score),
+            cross_language: units[left].lang != units[right].lang,
+        })
+        .collect::<Vec<_>>();
+    output.extend(connected.iter().map(|pair| {
+        let left = connected_loc_of(
+            &units[pair.left],
+            enclosing[pair.left].clone(),
+            pair.witness.left_lines,
+            pair.witness.mapped_nodes,
+        );
+        let right = connected_loc_of(
+            &units[pair.right],
+            enclosing[pair.right].clone(),
+            pair.witness.right_lines,
+            pair.witness.mapped_nodes,
+        );
+        DupPair {
+            left,
+            right,
+            score: round3(pair.score),
+            cross_language: units[pair.left].lang != units[pair.right].lang,
+        }
+    }));
+    output.sort_by(|left, right| right.score.total_cmp(&left.score));
+    output
+}
+
+mod connected_pricing;
+#[cfg(test)]
+use connected_pricing::connected_seed_indices;
+use connected_pricing::{deduplicate_connected, score_connected_candidates};
+
 fn append_contiguous_groups(
     report: &mut Report,
     streams: &[Stream],
@@ -399,4 +491,68 @@ fn append_contiguous_groups(
     attach_enclosing_units(&mut extra, units);
     report.metrics.groups += extra.len();
     report.groups.extend(extra);
+}
+
+#[cfg(test)]
+mod connected_seed_tests {
+    use super::*;
+
+    fn scored(score: Option<f64>) -> ScoredCandidate {
+        ScoredCandidate {
+            left: 0,
+            right: 1,
+            ordinary_score: score,
+        }
+    }
+
+    fn nested(left: usize, right: usize) -> ScoredCandidate {
+        ScoredCandidate {
+            left,
+            right,
+            ordinary_score: None,
+        }
+    }
+
+    #[test]
+    fn raw_connected_audit_keeps_every_seed() {
+        let candidates = [scored(Some(0.1)), scored(None), scored(Some(0.9))];
+        assert_eq!(
+            connected_seed_indices(&candidates, &["a", "b"], &[20, 20], 0.7, false),
+            vec![0, 1, 2]
+        );
+    }
+
+    #[test]
+    fn product_connected_work_keeps_nested_and_strongest_scored_seeds() {
+        let mut candidates = vec![scored(Some(0.1)); 2_050];
+        candidates[0] = scored(None);
+        candidates[1] = scored(Some(0.0));
+        candidates[2_049] = scored(Some(0.99));
+        let selected = connected_seed_indices(&candidates, &["x/a", "y/b"], &[20, 20], 1.0, true);
+        assert!(
+            selected.contains(&0),
+            "nested routes are never budgeted away"
+        );
+        assert!(
+            selected.contains(&2_049),
+            "the strongest scored seed is retained"
+        );
+        assert!(
+            !selected.contains(&1),
+            "the weakest overflow seed is dropped"
+        );
+        assert_eq!(selected.len(), 2_049);
+    }
+
+    #[test]
+    fn product_connected_work_reserves_nested_seeds_per_file() {
+        let mut candidates = vec![nested(0, 1); 513];
+        candidates.push(nested(2, 3));
+        let paths = ["dense/a.rs", "dense/a.rs", "small/b.rs", "small/b.rs"];
+        let selected = connected_seed_indices(&candidates, &paths, &[20; 4], 0.7, true);
+        assert!(
+            selected.contains(&513),
+            "a later file keeps its own nested seed after the global cap"
+        );
+    }
 }
