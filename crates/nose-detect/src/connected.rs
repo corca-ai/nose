@@ -293,6 +293,8 @@ fn candidate(
         || state.observable == 0
         || left_span.0 == 0
         || right_span.0 == 0
+        || left_span.0 > left_span.1
+        || right_span.0 > right_span.1
         || (!overlaps_seed && !complete_exit_suffix)
     {
         return None;
@@ -371,10 +373,12 @@ pub(crate) fn connected_witness(
 
             // Otherwise find one contiguous, order-preserving statement window under the two
             // blocks. No gaps are skipped: disconnected A-B-C mass cannot become a witness.
-            for (left_offset, &left_child) in left_children.iter().enumerate() {
-                for (right_offset, &right_child) in right_children.iter().enumerate() {
+            for left_offset in 0..left_children.len() {
+                for right_offset in 0..right_children.len() {
                     let mut state = MatchState::default();
                     let mut step = 0usize;
+                    let mut left_span = (u32::MAX, 0);
+                    let mut right_span = (u32::MAX, 0);
                     while left_offset + step < left_children.len()
                         && right_offset + step < right_children.len()
                     {
@@ -385,11 +389,10 @@ pub(crate) fn connected_witness(
                             break;
                         }
                         state = extended;
-                        let left_span = (left[left_child].start_line(), left[left_root].end_line());
-                        let right_span = (
-                            right[right_child].start_line(),
-                            right[right_root].end_line(),
-                        );
+                        left_span.0 = left_span.0.min(left[left_root].start_line());
+                        left_span.1 = left_span.1.max(left[left_root].end_line());
+                        right_span.0 = right_span.0.min(right[right_root].start_line());
+                        right_span.1 = right_span.1.max(right[right_root].end_line());
                         if let Some(found) = candidate(
                             left_span,
                             right_span,
