@@ -1,5 +1,41 @@
 use super::*;
 
+fn await_oracle_exclusion_report(project_name: &str) -> serde_json::Value {
+    let project = TempProject::new(project_name);
+    project.write(
+        "await.js",
+        "async function idAsync(x) {\n  return await x + 1;\n}\n",
+    );
+    project.write(
+        "await.ts",
+        "async function idAsync(x: Promise<number>) {\n  return await x + 1;\n}\n",
+    );
+    project.write(
+        "await.py",
+        "async def id_async(x):\n    return await x + 1\n",
+    );
+    project.write(
+        "await.rs",
+        "async fn id_async(x: i32) -> i32 { async move { x + 1 }.await }\n",
+    );
+    project.write(
+        "await.swift",
+        "func idAsync(_ x: Int) async -> Int { return await x + 1 }\n",
+    );
+    let report_path = project.path().join("recall-loss.json");
+    let out = run_raw(&[
+        "verify",
+        project.path().to_str().unwrap(),
+        "--max-violations",
+        "0",
+        "--recall-loss-report",
+        report_path.to_str().unwrap(),
+    ]);
+    assert!(out.contains("GATE: 0"));
+    serde_json::from_str(&fs::read_to_string(report_path).expect("recall-loss report"))
+        .expect("recall-loss report JSON")
+}
+
 #[path = "commands/baseline.rs"]
 mod baseline;
 #[path = "commands/capabilities_robustness.rs"]

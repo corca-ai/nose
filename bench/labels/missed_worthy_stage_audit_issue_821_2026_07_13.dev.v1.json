@@ -2219,8 +2219,8 @@
     "surface": "nose detect --candidates"
   },
   "provenance": {
-    "command": "python3 bench/labels/missed_worthy_stage_audit.py --artifact bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json --nose target/issue-821/release/nose --repos-root bench/repos --json-out bench/labels/missed_worthy_stage_audit_issue_821_2026_07_13.dev.v1.json --check-binary --allow-dirty",
-    "git_sha": "880a36679d7aa5c8b31e0006dd857072a1b7eeb3",
+    "command": "python3 bench/labels/missed_worthy_stage_audit.py --artifact bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json --nose target/issue-821/release/nose --repos-root bench/repos --json-out bench/labels/missed_worthy_stage_audit_issue_821_2026_07_13.dev.v1.json --check-binary",
+    "git_sha": "56b43cc8675aca13a4d2150240653d02a6595d63",
     "nose": {
       "path": "target/issue-821/release/nose",
       "sha256": "97b9eab5b964c4bedecdeb7e85b083c337a5d5e8aef643151359de6c88fc066d",
@@ -2231,7 +2231,7 @@
       "path": "bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json",
       "sha256": "b3c3b8c6ba5581f5679bc6de685be52c63a40790640784f98c58597e002f57ac"
     },
-    "working_tree_status_before_measurement": "?? bench/labels/connected_witness_pricing_2026_07_13.control.v1.json\n?? bench/labels/connected_witness_pricing_2026_07_13.focused-control.v1.json\n?? bench/labels/connected_witness_pricing_2026_07_13.release-focused.v1.json\n?? bench/labels/connected_witness_pricing_2026_07_13.release-primary.v1.json\n?? bench/labels/product_quality_evaluation_issue_821_2026_07_13.v1.json"
+    "working_tree_status_before_measurement": ""
   },
   "repository_runs": {
     "alacritty": {

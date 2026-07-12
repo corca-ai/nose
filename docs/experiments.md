@@ -3562,6 +3562,21 @@ accepted rows and exactly two candidate-only + sub-DAG>=20 rows in C and Java; h
 source stayed closed. See [the #820 closeout](missed-worthy-frontier-820.md) for the full
 chronology, IDs, artifacts, and commands.
 
+## DL. Pair-local connected mapped witnesses (#821, 2026-07-13)
+
+The bounded #820 cohort was implemented as a separate proof over existing near-candidate seeds.
+Whole blocks or contiguous statement windows must map on both endpoints with exact control,
+effects, call roles, order, and arity; only consistent value-leaf holes may vary. The proof is
+pair-local, so A-B and B-C never manufacture A-C. Exhaustive raw audit and bounded product pricing
+remain separate policies.
+
+The final dev audit accepts all six planned positives and none of the three no-go controls. The
+combined v6 comparison moves **4,684 -> 4,711 worthy hits (+27)** with zero regressions; held-out
+source remained closed. The fixed-slice default surface grows **6,663 -> 6,782 (+1.79%)**.
+Against the official v0.18.0 release binary, aggregate runtime is **+3.78%** with a **+0.12%**
+same-binary control; the focused noisy slice is +2.26% primary / -0.25% control. See
+[the #821 closeout](connected-witness-821.md) for the design, IDs, artifacts, and next decision.
+
 ## DH. Parser-artifact hygiene and unsupported-header routing (2026-06-20)
 
 After §DG, the largest `gap-impact` rows were no longer ordinary lowering misses. They were parser

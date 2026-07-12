@@ -141,6 +141,9 @@ fundamentals; the rest is grouped by area.
 - [post-#817 missed-worthy frontier](missed-worthy-frontier-820.md) — the #820
   snapshot-aware refresh, source-bound dev comparison of connected witnesses,
   same-unit fragments, and extraction, plus the bounded #821 decision.
+- [connected mapped witnesses](connected-witness-821.md) — the #821 pair-local connected
+  witness, hard-negative boundary, output/work budgets, official-release runtime price,
+  and zero-regression v6 closeout.
 - [type4-benchmark](type4-benchmark.md) — the evidence-carrying synthetic Type-4 benchmark factory.
 - [type4-adversarial-coverage](type4-adversarial-coverage.md) — focused Type-4 cases, target-packet task cards, and verifier-lead draft workflow.
 - [frontier-platform](frontier-platform.md) — corpus-balanced evidence platform that ranks the next Type-4 axis by presence breadth (not raw count) and separates the queue signal from human-verified evidence.
