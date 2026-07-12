@@ -339,33 +339,79 @@ fn lower_corpus_closes_swift_flat_map_after_cross_file_inner_map_overload() {
     );
 }
 
+#[test]
+fn lower_corpus_closes_guarded_swift_flat_map_after_cross_file_filter_overload() {
+    assert_cross_file_swift_method_contract_count(
+        "swift_cross_file_flat_map_filter_overload",
+        "Overload.swift",
+        r#"extension Array where Element == Int {
+  func filter(_ predicate: (Int) -> Bool) -> [Int] { [] }
+}
+"#,
+        r#"func f(_ groups: [[Int]], _ enabled: Bool) -> [Int] {
+  return groups.filter { group in enabled }.flatMap { (group: [Int]) in
+    group.filter { value in enabled }.map { value in value }
+  }
+}
+"#,
+        "flatMap",
+        0,
+        "a cross-file Array.filter overload must close guarded flatMap evidence",
+    );
+}
+
+#[test]
+fn lower_corpus_closes_swift_all_satisfy_after_cross_file_overload() {
+    assert_cross_file_swift_method_contract_count(
+        "swift_cross_file_all_satisfy_overload",
+        "Overload.swift",
+        r#"extension Array where Element == Int {
+  func allSatisfy(_ predicate: (Int) -> Bool) -> Bool { false }
+}
+"#,
+        r#"func f(_ groups: [[Int]], _ minimum: Int) -> Bool {
+  return groups.flatMap { (group: [Int]) in group.map { value in value } }
+    .allSatisfy { value in value >= minimum }
+}
+"#,
+        "allSatisfy",
+        0,
+        "a cross-file Array.allSatisfy overload must close terminal aggregate evidence",
+    );
+}
+
+#[test]
+fn lower_corpus_keeps_swift_all_satisfy_after_disjoint_callback_arity_overload() {
+    assert_cross_file_swift_method_contract_count(
+        "swift_cross_file_all_satisfy_disjoint_overload",
+        "Overload.swift",
+        r#"extension Array {
+  func allSatisfy(_ predicate: (Element, Int) -> Bool) -> Bool { false }
+}
+"#,
+        r#"func f(_ values: [Int]) -> Bool {
+  return values.allSatisfy { value in value >= 0 }
+}
+"#,
+        "allSatisfy",
+        1,
+        "a disjoint two-argument callback overload must not close standard unary allSatisfy evidence",
+    );
+}
+
 fn assert_cross_file_swift_flat_map_closed(tag: &str, declaration: &str, failure_message: &str) {
-    let dir = temp_dir(tag);
-    fs::write(dir.join("Overload.swift"), declaration).unwrap();
-    let consumer = dir.join("Consumer.swift");
-    fs::write(
-        &consumer,
+    assert_cross_file_swift_method_contract_count(
+        tag,
+        "Overload.swift",
+        declaration,
         r#"func f(_ groups: [[Bool]]) -> [Bool] {
   return groups.flatMap { (group: [Bool]) in group.map { value in value } }
 }
 "#,
-    )
-    .unwrap();
-
-    let corpus = lower_corpus_filtered(&[dir.as_path()], &[]);
-    let consumer_il = corpus
-        .files
-        .iter()
-        .find(|il| il.meta.path == consumer.to_string_lossy())
-        .expect("consumer Swift file should be lowered");
-    let contract =
-        library_method_call_contract(Lang::Swift, "flatMap", 1).expect("flatMap contract");
-    assert_eq!(
-        asserted_contract_api_count(consumer_il, contract.id, contract.callee),
+        "flatMap",
         0,
-        "{failure_message}"
+        failure_message,
     );
-    let _ = fs::remove_dir_all(&dir);
 }
 
 fn assert_cross_file_swift_compact_map_closed(
@@ -374,17 +420,33 @@ fn assert_cross_file_swift_compact_map_closed(
     declaration: &str,
     failure_message: &str,
 ) {
-    let dir = temp_dir(tag);
-    fs::write(dir.join(declaration_file), declaration).unwrap();
-    let consumer = dir.join("Consumer.swift");
-    fs::write(
-        &consumer,
+    assert_cross_file_swift_method_contract_count(
+        tag,
+        declaration_file,
+        declaration,
         r#"func f(_ values: [Bool]) -> [Bool] {
   return values.compactMap { value in value ? value : nil }
 }
 "#,
-    )
-    .unwrap();
+        "compactMap",
+        0,
+        failure_message,
+    );
+}
+
+fn assert_cross_file_swift_method_contract_count(
+    tag: &str,
+    declaration_file: &str,
+    declaration: &str,
+    consumer_source: &str,
+    method: &str,
+    expected_count: usize,
+    failure_message: &str,
+) {
+    let dir = temp_dir(tag);
+    fs::write(dir.join(declaration_file), declaration).unwrap();
+    let consumer = dir.join("Consumer.swift");
+    fs::write(&consumer, consumer_source).unwrap();
 
     let corpus = lower_corpus_filtered(&[dir.as_path()], &[]);
     let consumer_il = corpus
@@ -392,11 +454,11 @@ fn assert_cross_file_swift_compact_map_closed(
         .iter()
         .find(|il| il.meta.path == consumer.to_string_lossy())
         .expect("consumer Swift file should be lowered");
-    let contract =
-        library_method_call_contract(Lang::Swift, "compactMap", 1).expect("compactMap contract");
+    let contract = library_method_call_contract(Lang::Swift, method, 1)
+        .unwrap_or_else(|| panic!("{method} contract"));
     assert_eq!(
         asserted_contract_api_count(consumer_il, contract.id, contract.callee),
-        0,
+        expected_count,
         "{failure_message}"
     );
     let _ = fs::remove_dir_all(&dir);

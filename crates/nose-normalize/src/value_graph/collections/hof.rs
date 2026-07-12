@@ -12,15 +12,15 @@ impl<'a> Builder<'a> {
         coll_node: Option<NodeId>,
         env: &FxHashMap<u32, ValueId>,
         allow_internal_python_filter: bool,
-    ) -> (Vec<ValueId>, Option<ValueId>) {
+    ) -> (Vec<ValueId>, Option<ValueId>, Option<ValueId>) {
         let Some(c) = coll_node else {
-            return (Vec::new(), None);
+            return (Vec::new(), None, None);
         };
         if self.il.kind(c) == NodeKind::Call
             && matches!(self.il.node(c).payload, Payload::Builtin(Builtin::Zip))
             && self.admitted_builtin_call(c, Builtin::Zip)
         {
-            return (self.elem_bindings(Some(c), env), None);
+            return (self.elem_bindings(Some(c), env), None, None);
         }
         let cv = if allow_internal_python_filter
             && self.il.meta.lang == Lang::Python
@@ -32,13 +32,86 @@ impl<'a> Builder<'a> {
         } else {
             self.eval(c, env)
         };
+        let flat_map_depth_source = matches!(
+            self.nodes[cv as usize].op,
+            ValOp::Hof(k) if k == HoFKind::FlatMap as u32
+        )
+        .then_some(cv)
+        .or_else(|| {
+            matches!(
+                self.nodes[cv as usize].op,
+                ValOp::Opaque(tag) if tag == UNPROVEN_FLAT_MAP_COORDINATE_TAG
+            )
+            .then_some(cv)
+        });
         if let ValOp::Hof(k) = self.nodes[cv as usize].op {
             if k == HoFKind::Map as u32 && self.nodes[cv as usize].args.len() == 2 {
                 let args = self.nodes[cv as usize].args.clone();
-                return (vec![args[0]], Some(args[1]));
+                return (vec![args[0]], Some(args[1]), flat_map_depth_source);
             }
         }
-        (vec![self.elem(cv)], None)
+        (vec![self.elem(cv)], None, flat_map_depth_source)
+    }
+
+    fn eval_map_hof_value(
+        &mut self,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+        allow_internal_python_filter: bool,
+    ) -> ValueId {
+        let (elems, carried_pred, flat_map_depth_source) =
+            self.map_source(kids.first().copied(), env, allow_internal_python_filter);
+        let fallback = elems
+            .first()
+            .copied()
+            .unwrap_or_else(|| self.fresh_opaque());
+        let contrib = match kids.get(1) {
+            Some(&lambda) => self
+                .eval_lambda_body(lambda, &elems, env)
+                .unwrap_or(fallback),
+            None => fallback,
+        };
+        if let Some(source) = flat_map_depth_source {
+            let mut args = vec![source, contrib];
+            args.extend(elems);
+            if let Some(predicate) = carried_pred {
+                args.push(predicate);
+            }
+            return self.mk(ValOp::Opaque(UNPROVEN_FLAT_MAP_COORDINATE_TAG), args);
+        }
+        let aliases_captured_coordinate = elems.iter().any(|&elem| {
+            env.values()
+                .any(|&captured| self.references(captured, elem))
+        });
+        let preserves_element_coordinates = elems.iter().all(|&elem| {
+            self.references(contrib, elem)
+                || carried_pred.is_some_and(|predicate| self.references(predicate, elem))
+        });
+        if aliases_captured_coordinate || !preserves_element_coordinates {
+            // A constant/captured-only contribution with no element-dependent
+            // filter still occurs once per source element. The compact Map
+            // layout otherwise drops the source entirely, which can merge
+            // reductions over different inner collections. An
+            // element-dependent carried filter does retain the
+            // source/cardinality coordinate and supports count reductions such
+            // as `sum(1 for x in xs if p(x))`. A newly bound element that
+            // aliases an already captured coordinate remains ambiguous:
+            // repeated iteration over the same source needs distinct
+            // outer/inner witnesses. Keep every unproven coordinate behind an
+            // opaque boundary until multiplicity is modeled.
+            let mut args =
+                Vec::with_capacity(1 + elems.len() + usize::from(carried_pred.is_some()));
+            args.push(contrib);
+            args.extend(elems);
+            if let Some(predicate) = carried_pred {
+                args.push(predicate);
+            }
+            return self.mk(ValOp::Opaque(SOURCE_INDEPENDENT_MAP_TAG), args);
+        }
+        match carried_pred {
+            Some(predicate) => self.mk(ValOp::Hof(HoFKind::Map as u32), vec![contrib, predicate]),
+            None => self.mk(ValOp::Hof(HoFKind::Map as u32), vec![contrib]),
+        }
     }
 
     pub(in crate::value_graph) fn eval_hof_value(
@@ -54,26 +127,9 @@ impl<'a> Builder<'a> {
             // canonical `Elem(xs)`, so `[x*x for x in xs]` and `xs.map(x=>x*x)`
             // converge regardless of the lambda's syntax. `map_source` resolves
             // the collection to its element stream and any carried predicate.
-            HoFKind::Map => {
-                let (elems, carried_pred) =
-                    self.map_source(kids.first().copied(), env, allow_internal_python_filter);
-                let fallback = elems
-                    .first()
-                    .copied()
-                    .unwrap_or_else(|| self.fresh_opaque());
-                let contrib = match kids.get(1) {
-                    Some(&lambda) => self
-                        .eval_lambda_body(lambda, &elems, env)
-                        .unwrap_or(fallback),
-                    None => fallback,
-                };
-                match carried_pred {
-                    Some(predicate) => self.mk(ValOp::Hof(kind as u32), vec![contrib, predicate]),
-                    None => self.mk(ValOp::Hof(kind as u32), vec![contrib]),
-                }
-            }
+            HoFKind::Map => self.eval_map_hof_value(&kids, env, allow_internal_python_filter),
             HoFKind::FlatMap => {
-                let (elems, carried_pred) =
+                let (elems, carried_pred, flat_map_depth_source) =
                     self.map_source(kids.first().copied(), env, allow_internal_python_filter);
                 let outer_elem = elems
                     .first()
@@ -98,10 +154,18 @@ impl<'a> Builder<'a> {
                 if let Some(predicate) = carried_pred {
                     args.push(predicate);
                 }
+                if let Some(source) = flat_map_depth_source {
+                    args.push(source);
+                }
+                if flat_map_depth_source.is_some()
+                    || !matches!(self.nodes[outer_elem as usize].op, ValOp::Elem(_))
+                {
+                    return self.mk(ValOp::Opaque(UNPROVEN_FLAT_MAP_COORDINATE_TAG), args);
+                }
                 self.mk(ValOp::Hof(kind as u32), args)
             }
             HoFKind::FilterMap => {
-                let (elems, carried_pred) =
+                let (elems, carried_pred, flat_map_depth_source) =
                     self.map_source(kids.first().copied(), env, allow_internal_python_filter);
                 let Some((contrib, own_pred)) = kids
                     .get(1)
@@ -110,6 +174,13 @@ impl<'a> Builder<'a> {
                     let args: Vec<ValueId> = kids.iter().map(|&kid| self.eval(kid, env)).collect();
                     return self.mk(ValOp::Hof(kind as u32), args);
                 };
+                if let Some(source) = flat_map_depth_source {
+                    let mut args = vec![source, contrib];
+                    if let Some(predicate) = self.and_preds(own_pred, carried_pred) {
+                        args.push(predicate);
+                    }
+                    return self.mk(ValOp::Opaque(UNPROVEN_FLAT_MAP_COORDINATE_TAG), args);
+                }
                 match self.and_preds(own_pred, carried_pred) {
                     Some(predicate) => {
                         self.mk(ValOp::Hof(HoFKind::Map as u32), vec![contrib, predicate])
@@ -121,7 +192,7 @@ impl<'a> Builder<'a> {
                 // `filter(p, coll)` ≡ the identity map with a predicate. This keeps the
                 // element stream attached, lets nested filters fuse, and matches filtered
                 // comprehensions/builders without letting raw HOF payloads bypass proof.
-                let (elems, carried_pred) =
+                let (elems, carried_pred, flat_map_depth_source) =
                     self.map_source(kids.first().copied(), env, allow_internal_python_filter);
                 let elem = elems
                     .first()
@@ -135,6 +206,13 @@ impl<'a> Builder<'a> {
                 } else {
                     own_pred
                 };
+                if let Some(source) = flat_map_depth_source {
+                    let mut args = vec![source, elem];
+                    if let Some(predicate) = self.and_preds(own_pred, carried_pred) {
+                        args.push(predicate);
+                    }
+                    return self.mk(ValOp::Opaque(UNPROVEN_FLAT_MAP_COORDINATE_TAG), args);
+                }
                 match self.and_preds(own_pred, carried_pred) {
                     Some(predicate) => {
                         self.mk(ValOp::Hof(HoFKind::Map as u32), vec![elem, predicate])
@@ -257,6 +335,34 @@ impl<'a> Builder<'a> {
         }
         let body = *kids.last()?;
         self.eval_block_return(body, &mut env)
+    }
+
+    /// Whether one lexical callback parameter is mentioned by the callback
+    /// body. This preserves binding-coordinate evidence even when evaluation
+    /// substitutes that parameter with a composite emitted value whose exact
+    /// node may be rebuilt by canonicalization.
+    pub(in crate::value_graph) fn lambda_param_referenced(
+        &self,
+        lambda: NodeId,
+        param_index: usize,
+    ) -> bool {
+        if self.il.kind(lambda) != NodeKind::Lambda {
+            return false;
+        }
+        let kids = self.il.children(lambda);
+        let Some(param) = kids
+            .iter()
+            .copied()
+            .filter(|&child| self.il.kind(child) == NodeKind::Param)
+            .nth(param_index)
+        else {
+            return false;
+        };
+        let Payload::Cid(cid) = self.il.node(param).payload else {
+            return false;
+        };
+        kids.last()
+            .is_some_and(|&body| mentioned_cids(self.il, body).contains(&cid))
     }
 
     fn eval_filter_map_lambda_body(

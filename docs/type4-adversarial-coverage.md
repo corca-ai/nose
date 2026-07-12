@@ -222,8 +222,24 @@ dispatch. Focused tests additionally close nominal/attributed/modified parameter
 property-wrapped and parser-recovered callback coordinates, sibling-function proof
 borrowing, surviving raw selector identity, imports, type aliases, macros, callable
 properties, and effects in either callback.
-All 314 executable expectations pass; Java/Swift aggregate admission remains
-separate because #797 still owns the aggregate-guard coordinate.
+At that checkpoint all 314 executable expectations passed; #797 then reused
+these one-level facts for the aggregate layer.
+
+The Java/Swift flat-map aggregate slice adds four executable positives:
+unfiltered and guarded Java `Stream.flatMap(...).reduce(...)` versus nested sums,
+and unfiltered and guarded Swift `flatMap(...).allSatisfy(...)` versus nested
+counterexample loops. Twenty-three executable splits independently change the
+reduction identity or step, outer/inner/terminal guard, source or source
+cardinality when an inner element is ignored, same-source coordinate aliasing,
+recursive Java flatMap depth (including an identity-map wrapper), flatten depth,
+an ignored reducer or terminal value coordinate, callback effect, Java `Arrays`
+dispatch, Swift `filter` dispatch, or Swift
+`allSatisfy` dispatch. Focused frontend tests prove that unary-compatible
+same-file and cross-file terminal overloads close admission without letting a
+disjoint two-argument callback overload suppress the standard unary surface.
+Swift `reduce` remains a focused split pending fold/operator/overload/trap proof.
+All 341 executable expectations pass, and the proof registry marks
+`hof.flat-map.aggregate-guard-coordinate` modeled-controlled.
 
 The `python.loop_demorgan_all` focused group clarifies the README-facing same-language
 packet. Its positive fixture captures `all(x != 0 and x != 1 for x in xs)` versus the

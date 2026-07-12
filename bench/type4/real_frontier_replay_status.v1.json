@@ -9,13 +9,13 @@
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "e6a788c39fdacceff97c176b14d9d9358c62b0e86110bfc3acaf7d8b8278aeac",
-      "size_bytes": 108267
+      "sha256": "5faf8e23dbd6c35dd515f783ebdea5ac867bca2f4fba46903bd5822d9e4ddd5a",
+      "size_bytes": 111281
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "21e0e8a0142c924851a6544056dfe2c0bccbd517263a1c2c749b341a54f94ed9",
-      "size_bytes": 115528
+      "sha256": "f9b4cfaa68df2b840a44d3cce1a68135a334c3214fb3c7fd33d1341f09f9e8e0",
+      "size_bytes": 128778
     }
   },
   "nose_binary": "nose",

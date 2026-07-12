@@ -104,18 +104,18 @@
       },
       "executable_expectations": {
         "path": "bench/type4/executable_expectations.v1.json",
-        "sha256": "f523d7ee365f9b12d3cad1b128a3a894db69c4573551279669272ad8e9e9fa90",
-        "size_bytes": 136829
+        "sha256": "642039d0995867eaf2bd2bc935ace675e50abfa6965db5f555a0f1713410fa89",
+        "size_bytes": 147633
       },
       "focused_cases": {
         "path": "bench/type4/adversarial/cases/cases.v1.json",
-        "sha256": "b7bc8d77a2742d261545e3b1e3379ee5633db4349319a762f89b9bac19f03086",
-        "size_bytes": 303099
+        "sha256": "7f204a9893aada2bcb89b98e8d68fef37782c224379484d6f31449910dda6336",
+        "size_bytes": 326727
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
-        "sha256": "12a7805392ec66e7e280404b38b39cf4296e241626d1769bb600f6b6153b1079",
-        "size_bytes": 110979
+        "sha256": "57f0cd9048ea741ae70fde7d2e6fcde0794f0cc681017863c03218474dd4b906",
+        "size_bytes": 115013
       },
       "python_loop_demorgan_proof_facts": {
         "path": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
@@ -124,8 +124,8 @@
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
-        "sha256": "e6a788c39fdacceff97c176b14d9d9358c62b0e86110bfc3acaf7d8b8278aeac",
-        "size_bytes": 108267
+        "sha256": "5faf8e23dbd6c35dd515f783ebdea5ac867bca2f4fba46903bd5822d9e4ddd5a",
+        "size_bytes": 111281
       },
       "real_frontier_replay": {
         "path": "bench/type4/real_frontier_replay.v1.json",
@@ -134,13 +134,13 @@
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "a301496cca89036293222c5083e1c2b33d2e09344699aba47646086f9291fdfa",
+        "sha256": "ec7c78707a39dd0ac2e5979163d7c828d09ddaf58baca5a16264ff142823e10b",
         "size_bytes": 35184
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "21e0e8a0142c924851a6544056dfe2c0bccbd517263a1c2c749b341a54f94ed9",
-        "size_bytes": 115528
+        "sha256": "f9b4cfaa68df2b840a44d3cce1a68135a334c3214fb3c7fd33d1341f09f9e8e0",
+        "size_bytes": 128778
       }
     },
     "target_packet_identity": {
@@ -1922,6 +1922,96 @@
         {
           "by_expectation": [
             {
+              "case_id": "java_flat_map_aggregate_positive",
+              "expect": "same-family",
+              "expectation_id": "java_filtered_flat_map_sum_matches_loop",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_custom_dispatch_boundary",
+              "expect": "split",
+              "expectation_id": "java_flat_map_custom_dispatch_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_effectful_callback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_ignored_inner_source_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_ignored_reducer_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_recursive_depth_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_same_source_coordinates_stay_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_positive",
+              "expect": "same-family",
+              "expectation_id": "java_flat_map_sum_matches_loop",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrapped_recursive_depth_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrong_depth_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrong_inner_guard_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrong_outer_guard_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrong_seed_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrong_source_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrong_step_stays_split",
+              "status": "passed"
+            },
+            {
               "case_id": "reduction_changed_step_boundary",
               "expect": "split",
               "expectation_id": "reduction_c_sum_count_step_stays_split",
@@ -2202,11 +2292,98 @@
               "expect": "split",
               "expectation_id": "swift_all_satisfy_wrong_empty_truth_stays_split",
               "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_positive",
+              "expect": "same-family",
+              "expectation_id": "swift_filtered_flat_map_all_matches_loop",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_aggregate_effectful_callback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_aggregate_wrong_source_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_positive",
+              "expect": "same-family",
+              "expectation_id": "swift_flat_map_all_matches_loop",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_custom_dispatch_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_custom_filter_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_custom_dispatch_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_custom_terminal_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_ignored_inner_source_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_ignored_terminal_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_wrong_depth_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_wrong_inner_guard_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_wrong_outer_guard_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_wrong_terminal_stays_split",
+              "status": "passed"
             }
           ],
           "coverage_status": "covered",
-          "declared_expectation_count": 47,
+          "declared_expectation_count": 74,
           "declared_expectation_ids": [
+            "java_filtered_flat_map_sum_matches_loop",
+            "java_flat_map_custom_dispatch_stays_split",
+            "java_flat_map_effectful_callback_stays_split",
+            "java_flat_map_ignored_inner_source_stays_split",
+            "java_flat_map_ignored_reducer_value_stays_split",
+            "java_flat_map_recursive_depth_stays_split",
+            "java_flat_map_same_source_coordinates_stay_split",
+            "java_flat_map_sum_matches_loop",
+            "java_flat_map_wrapped_recursive_depth_stays_split",
+            "java_flat_map_wrong_depth_stays_split",
+            "java_flat_map_wrong_inner_guard_stays_split",
+            "java_flat_map_wrong_outer_guard_stays_split",
+            "java_flat_map_wrong_seed_stays_split",
+            "java_flat_map_wrong_source_stays_split",
+            "java_flat_map_wrong_step_stays_split",
             "reduction_c_sum_count_step_stays_split",
             "reduction_go_sum_count_step_stays_split",
             "reduction_java_sum_product_step_stays_split",
@@ -2253,11 +2430,26 @@
             "swift_all_satisfy_lazy_receiver_stays_split",
             "swift_all_satisfy_loop_effect_stays_split",
             "swift_all_satisfy_loop_matches_call",
-            "swift_all_satisfy_wrong_empty_truth_stays_split"
+            "swift_all_satisfy_wrong_empty_truth_stays_split",
+            "swift_filtered_flat_map_all_matches_loop",
+            "swift_flat_map_aggregate_effectful_callback_stays_split",
+            "swift_flat_map_aggregate_wrong_source_stays_split",
+            "swift_flat_map_all_matches_loop",
+            "swift_flat_map_custom_filter_stays_split",
+            "swift_flat_map_custom_terminal_stays_split",
+            "swift_flat_map_ignored_inner_source_stays_split",
+            "swift_flat_map_ignored_terminal_value_stays_split",
+            "swift_flat_map_wrong_depth_stays_split",
+            "swift_flat_map_wrong_inner_guard_stays_split",
+            "swift_flat_map_wrong_outer_guard_stays_split",
+            "swift_flat_map_wrong_terminal_stays_split"
           ],
           "failed_expectation_count": 0,
           "failed_expectation_ids": [],
           "manifest_case_ids": [
+            "java_flat_map_aggregate_boundaries",
+            "java_flat_map_aggregate_custom_dispatch_boundary",
+            "java_flat_map_aggregate_positive",
             "reduction_any_all_terminal_positive",
             "reduction_changed_step_boundary",
             "reduction_selection_seed_domain_boundary",
@@ -2276,9 +2468,14 @@
             "rust_iterator_all_vacuous_truth_boundary",
             "rust_iterator_all_value_return_type_boundary",
             "swift_all_satisfy_positive",
-            "swift_all_satisfy_proof_boundary"
+            "swift_all_satisfy_proof_boundary",
+            "swift_flat_map_aggregate_boundaries",
+            "swift_flat_map_aggregate_custom_dispatch_boundaries",
+            "swift_flat_map_aggregate_positive"
           ],
           "manifest_hard_negative_case_ids": [
+            "java_flat_map_aggregate_boundaries",
+            "java_flat_map_aggregate_custom_dispatch_boundary",
             "reduction_changed_step_boundary",
             "reduction_selection_seed_domain_boundary",
             "reduction_terminal_predicate_boundary",
@@ -2291,24 +2488,43 @@
             "rust_iterator_all_source_identity_boundary",
             "rust_iterator_all_vacuous_truth_boundary",
             "rust_iterator_all_value_return_type_boundary",
-            "swift_all_satisfy_proof_boundary"
+            "swift_all_satisfy_proof_boundary",
+            "swift_flat_map_aggregate_boundaries",
+            "swift_flat_map_aggregate_custom_dispatch_boundaries"
           ],
           "manifest_only_case_ids": [
             "rust_iterator_all_value_return_type_boundary"
           ],
           "manifest_positive_case_ids": [
+            "java_flat_map_aggregate_positive",
             "reduction_any_all_terminal_positive",
             "reduction_selection_seeded_positive",
             "reduction_sum_step_positive",
             "ruby_enumerable_quantifier_positive",
             "rust_iterator_all_universal_positive",
-            "swift_all_satisfy_positive"
+            "swift_all_satisfy_positive",
+            "swift_flat_map_aggregate_positive"
           ],
           "missing_expectation_count": 0,
           "missing_expectation_ids": [],
           "packet_id": "reduction-minmax-anyall-2026-07-08",
-          "passed_expectation_count": 47,
+          "passed_expectation_count": 74,
           "passed_expectation_ids": [
+            "java_filtered_flat_map_sum_matches_loop",
+            "java_flat_map_custom_dispatch_stays_split",
+            "java_flat_map_effectful_callback_stays_split",
+            "java_flat_map_ignored_inner_source_stays_split",
+            "java_flat_map_ignored_reducer_value_stays_split",
+            "java_flat_map_recursive_depth_stays_split",
+            "java_flat_map_same_source_coordinates_stay_split",
+            "java_flat_map_sum_matches_loop",
+            "java_flat_map_wrapped_recursive_depth_stays_split",
+            "java_flat_map_wrong_depth_stays_split",
+            "java_flat_map_wrong_inner_guard_stays_split",
+            "java_flat_map_wrong_outer_guard_stays_split",
+            "java_flat_map_wrong_seed_stays_split",
+            "java_flat_map_wrong_source_stays_split",
+            "java_flat_map_wrong_step_stays_split",
             "reduction_c_sum_count_step_stays_split",
             "reduction_go_sum_count_step_stays_split",
             "reduction_java_sum_product_step_stays_split",
@@ -2355,14 +2571,26 @@
             "swift_all_satisfy_lazy_receiver_stays_split",
             "swift_all_satisfy_loop_effect_stays_split",
             "swift_all_satisfy_loop_matches_call",
-            "swift_all_satisfy_wrong_empty_truth_stays_split"
+            "swift_all_satisfy_wrong_empty_truth_stays_split",
+            "swift_filtered_flat_map_all_matches_loop",
+            "swift_flat_map_aggregate_effectful_callback_stays_split",
+            "swift_flat_map_aggregate_wrong_source_stays_split",
+            "swift_flat_map_all_matches_loop",
+            "swift_flat_map_custom_filter_stays_split",
+            "swift_flat_map_custom_terminal_stays_split",
+            "swift_flat_map_ignored_inner_source_stays_split",
+            "swift_flat_map_ignored_terminal_value_stays_split",
+            "swift_flat_map_wrong_depth_stays_split",
+            "swift_flat_map_wrong_inner_guard_stays_split",
+            "swift_flat_map_wrong_outer_guard_stays_split",
+            "swift_flat_map_wrong_terminal_stays_split"
           ],
           "stale_expectation_count": 0,
           "stale_expectation_ids": []
         }
       ],
       "summary": {
-        "declared_expectation_count": 314,
+        "declared_expectation_count": 341,
         "extra": 0,
         "failed": 0,
         "fully_covered_packet_count": 7,
@@ -2372,13 +2600,13 @@
         "packet_count_by_coverage": {
           "covered": 7
         },
-        "passed": 314,
-        "query_count": 29,
+        "passed": 341,
+        "query_count": 34,
         "report_extra_expectation_ids": [],
         "report_failed_expectation_ids": [],
         "report_missing_expectation_ids": [],
         "report_stale_expectation_ids": [],
-        "result_count": 314,
+        "result_count": 341,
         "stale": 0
       }
     },
@@ -2675,6 +2903,54 @@
           "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_custom_overload_callback_shape_boundary"
         ],
         "semantic_family": "reduction.aggregate"
+      },
+      {
+        "conventions": [
+          "reduction.identity-empty",
+          "reduction.step-coordinate",
+          "reduction.terminal-predicate",
+          "reduction.short-circuit-direction",
+          "loop.iterator-identity",
+          "collection.cardinality",
+          "collection.collection-coordinate",
+          "boolean.effect-safety",
+          "protocol-boundary.callback-effect",
+          "protocol-boundary.api-identity"
+        ],
+        "group_id": "flat-map-aggregate-proof-perimeter",
+        "hard_negative_cases": [
+          "java_flat_map_aggregate_boundaries",
+          "java_flat_map_aggregate_custom_dispatch_boundary",
+          "swift_flat_map_aggregate_boundaries",
+          "swift_flat_map_aggregate_custom_dispatch_boundaries"
+        ],
+        "packet_id": "reduction-minmax-anyall-2026-07-08",
+        "positive_cases": [
+          "java_flat_map_aggregate_positive",
+          "swift_flat_map_aggregate_positive"
+        ],
+        "regression_gates": [
+          "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_boundaries",
+          "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_custom_dispatch_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_boundaries",
+          "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_custom_dispatch_boundaries",
+          "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_sum_converges_with_nested_reduction",
+          "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_filtered_flat_map_sum_preserves_outer_and_inner_guards",
+          "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_sum_preserves_identity_step_source_depth_effect_and_dispatch",
+          "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_reduce_stays_closed_without_fold_dispatch_proof",
+          "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_all_satisfy_converges_with_nested_counterexample_loop",
+          "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_filtered_flat_map_all_satisfy_preserves_guard_coordinates",
+          "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_aggregate_custom_terminal_dispatch_stays_closed",
+          "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::all_satisfy_dispatch_and_namespace_risks_emit_a_barrier",
+          "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::ordinary_all_satisfy_use_does_not_emit_a_dispatch_barrier",
+          "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::disjoint_callback_arity_overload_does_not_emit_a_dispatch_barrier",
+          "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_closes_guarded_swift_flat_map_after_cross_file_filter_overload",
+          "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_closes_swift_all_satisfy_after_cross_file_overload",
+          "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_keeps_swift_all_satisfy_after_disjoint_callback_arity_overload"
+        ],
+        "semantic_family": "hof.flat_map"
       },
       {
         "conventions": [
@@ -5449,13 +5725,15 @@
             "converges Rust any/all terminal forms, focused Rust Iterator::all universal loops, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript/JavaScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
             "converges controlled Ruby Enumerable any?/all? terminal forms with literal Array receiver proof, same-source loop proof, pure one-argument blocks, vacuous all? behavior for empty literal arrays, and standard Array/Enumerable API identity",
             "converges controlled Swift allSatisfy terminal forms with eager Array/Collection receiver proof, same-source loop proof, pure inline one-argument predicates, vacuous truth, unary callback shape, and standard Swift Collection API identity",
+            "converges controlled Java Stream flatMap/reduce aggregates with equivalent nested reductions when Arrays/Stream dispatch, one-level outer/inner sources, optional pure guard coordinates, emitted values that retain both traversal coordinates, explicit identity, and reduction steps are proven",
+            "converges controlled Swift flatMap/allSatisfy aggregates with equivalent nested counterexample loops when direct bracket-array outer/inner sources, at most one admitted pure filter at each traversal coordinate, one-level emitted values that retain both traversal coordinates, terminal predicates, eager demand, and standard dispatch are proven",
             "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, selection domain, and numeric.selection-value-order-domain evidence match",
             "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, Rust Iterator::all wrong empty truth, changed source, consumed iterator, callback or loop effect, mutating borrow, TypeScript/JavaScript every sparse-array parameter, TypeScript/JavaScript every callback index/source-argument, JavaScript every prototype replacement, JS/TS value-returning predicate, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, Swift changed predicate/source, wrong empty truth, callback/loop effect, two-argument custom overload callback, lazy receiver, min/max direction, unseeded selection, numeric-domain, float-special-value, effect, and unproven receiver/protocol boundaries"
           ],
-          "hard_negative_gate_count": 40,
-          "positive_gate_count": 18,
+          "hard_negative_gate_count": 65,
+          "positive_gate_count": 20,
           "remaining_real_pair_gap": "the linked Drizzle real-corpus TypeScript every(Boolean) pair is replayed as split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled; broader reduce/min/max/any/all real-pair admission still needs separate audit",
-          "scope": "controlled integer/value-model sum/product, any/all terminal, focused Rust Iterator::all universal loops, dense-literal TypeScript/JavaScript every, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
+          "scope": "controlled integer/value-model sum/product, any/all terminal, focused Rust Iterator::all universal loops, dense-literal TypeScript/JavaScript every, Swift eager allSatisfy, Java Stream flatMap/reduce, Swift flatMap/allSatisfy, and seeded min/max selection reductions with source, one-level flatten order/value/depth, aggregate guard coordinate, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
           "status": "controlled-slice-admitted"
         },
         "evidence_case_ids": [
@@ -5465,6 +5743,96 @@
         "evidence_tier": "frontier-recorded",
         "executable_witness_coverage": {
           "by_expectation": [
+            {
+              "case_id": "java_flat_map_aggregate_positive",
+              "expect": "same-family",
+              "expectation_id": "java_filtered_flat_map_sum_matches_loop",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_custom_dispatch_boundary",
+              "expect": "split",
+              "expectation_id": "java_flat_map_custom_dispatch_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_effectful_callback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_ignored_inner_source_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_ignored_reducer_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_recursive_depth_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_same_source_coordinates_stay_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_positive",
+              "expect": "same-family",
+              "expectation_id": "java_flat_map_sum_matches_loop",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrapped_recursive_depth_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrong_depth_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrong_inner_guard_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrong_outer_guard_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrong_seed_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrong_source_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "java_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "java_flat_map_wrong_step_stays_split",
+              "status": "passed"
+            },
             {
               "case_id": "reduction_changed_step_boundary",
               "expect": "split",
@@ -5746,11 +6114,98 @@
               "expect": "split",
               "expectation_id": "swift_all_satisfy_wrong_empty_truth_stays_split",
               "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_positive",
+              "expect": "same-family",
+              "expectation_id": "swift_filtered_flat_map_all_matches_loop",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_aggregate_effectful_callback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_aggregate_wrong_source_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_positive",
+              "expect": "same-family",
+              "expectation_id": "swift_flat_map_all_matches_loop",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_custom_dispatch_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_custom_filter_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_custom_dispatch_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_custom_terminal_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_ignored_inner_source_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_ignored_terminal_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_wrong_depth_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_wrong_inner_guard_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_wrong_outer_guard_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_flat_map_aggregate_boundaries",
+              "expect": "split",
+              "expectation_id": "swift_flat_map_wrong_terminal_stays_split",
+              "status": "passed"
             }
           ],
           "coverage_status": "covered",
-          "declared_expectation_count": 47,
+          "declared_expectation_count": 74,
           "declared_expectation_ids": [
+            "java_filtered_flat_map_sum_matches_loop",
+            "java_flat_map_custom_dispatch_stays_split",
+            "java_flat_map_effectful_callback_stays_split",
+            "java_flat_map_ignored_inner_source_stays_split",
+            "java_flat_map_ignored_reducer_value_stays_split",
+            "java_flat_map_recursive_depth_stays_split",
+            "java_flat_map_same_source_coordinates_stay_split",
+            "java_flat_map_sum_matches_loop",
+            "java_flat_map_wrapped_recursive_depth_stays_split",
+            "java_flat_map_wrong_depth_stays_split",
+            "java_flat_map_wrong_inner_guard_stays_split",
+            "java_flat_map_wrong_outer_guard_stays_split",
+            "java_flat_map_wrong_seed_stays_split",
+            "java_flat_map_wrong_source_stays_split",
+            "java_flat_map_wrong_step_stays_split",
             "reduction_c_sum_count_step_stays_split",
             "reduction_go_sum_count_step_stays_split",
             "reduction_java_sum_product_step_stays_split",
@@ -5797,11 +6252,26 @@
             "swift_all_satisfy_lazy_receiver_stays_split",
             "swift_all_satisfy_loop_effect_stays_split",
             "swift_all_satisfy_loop_matches_call",
-            "swift_all_satisfy_wrong_empty_truth_stays_split"
+            "swift_all_satisfy_wrong_empty_truth_stays_split",
+            "swift_filtered_flat_map_all_matches_loop",
+            "swift_flat_map_aggregate_effectful_callback_stays_split",
+            "swift_flat_map_aggregate_wrong_source_stays_split",
+            "swift_flat_map_all_matches_loop",
+            "swift_flat_map_custom_filter_stays_split",
+            "swift_flat_map_custom_terminal_stays_split",
+            "swift_flat_map_ignored_inner_source_stays_split",
+            "swift_flat_map_ignored_terminal_value_stays_split",
+            "swift_flat_map_wrong_depth_stays_split",
+            "swift_flat_map_wrong_inner_guard_stays_split",
+            "swift_flat_map_wrong_outer_guard_stays_split",
+            "swift_flat_map_wrong_terminal_stays_split"
           ],
           "failed_expectation_count": 0,
           "failed_expectation_ids": [],
           "manifest_case_ids": [
+            "java_flat_map_aggregate_boundaries",
+            "java_flat_map_aggregate_custom_dispatch_boundary",
+            "java_flat_map_aggregate_positive",
             "reduction_any_all_terminal_positive",
             "reduction_changed_step_boundary",
             "reduction_selection_seed_domain_boundary",
@@ -5820,9 +6290,14 @@
             "rust_iterator_all_vacuous_truth_boundary",
             "rust_iterator_all_value_return_type_boundary",
             "swift_all_satisfy_positive",
-            "swift_all_satisfy_proof_boundary"
+            "swift_all_satisfy_proof_boundary",
+            "swift_flat_map_aggregate_boundaries",
+            "swift_flat_map_aggregate_custom_dispatch_boundaries",
+            "swift_flat_map_aggregate_positive"
           ],
           "manifest_hard_negative_case_ids": [
+            "java_flat_map_aggregate_boundaries",
+            "java_flat_map_aggregate_custom_dispatch_boundary",
             "reduction_changed_step_boundary",
             "reduction_selection_seed_domain_boundary",
             "reduction_terminal_predicate_boundary",
@@ -5835,24 +6310,43 @@
             "rust_iterator_all_source_identity_boundary",
             "rust_iterator_all_vacuous_truth_boundary",
             "rust_iterator_all_value_return_type_boundary",
-            "swift_all_satisfy_proof_boundary"
+            "swift_all_satisfy_proof_boundary",
+            "swift_flat_map_aggregate_boundaries",
+            "swift_flat_map_aggregate_custom_dispatch_boundaries"
           ],
           "manifest_only_case_ids": [
             "rust_iterator_all_value_return_type_boundary"
           ],
           "manifest_positive_case_ids": [
+            "java_flat_map_aggregate_positive",
             "reduction_any_all_terminal_positive",
             "reduction_selection_seeded_positive",
             "reduction_sum_step_positive",
             "ruby_enumerable_quantifier_positive",
             "rust_iterator_all_universal_positive",
-            "swift_all_satisfy_positive"
+            "swift_all_satisfy_positive",
+            "swift_flat_map_aggregate_positive"
           ],
           "missing_expectation_count": 0,
           "missing_expectation_ids": [],
           "packet_id": "reduction-minmax-anyall-2026-07-08",
-          "passed_expectation_count": 47,
+          "passed_expectation_count": 74,
           "passed_expectation_ids": [
+            "java_filtered_flat_map_sum_matches_loop",
+            "java_flat_map_custom_dispatch_stays_split",
+            "java_flat_map_effectful_callback_stays_split",
+            "java_flat_map_ignored_inner_source_stays_split",
+            "java_flat_map_ignored_reducer_value_stays_split",
+            "java_flat_map_recursive_depth_stays_split",
+            "java_flat_map_same_source_coordinates_stay_split",
+            "java_flat_map_sum_matches_loop",
+            "java_flat_map_wrapped_recursive_depth_stays_split",
+            "java_flat_map_wrong_depth_stays_split",
+            "java_flat_map_wrong_inner_guard_stays_split",
+            "java_flat_map_wrong_outer_guard_stays_split",
+            "java_flat_map_wrong_seed_stays_split",
+            "java_flat_map_wrong_source_stays_split",
+            "java_flat_map_wrong_step_stays_split",
             "reduction_c_sum_count_step_stays_split",
             "reduction_go_sum_count_step_stays_split",
             "reduction_java_sum_product_step_stays_split",
@@ -5899,31 +6393,49 @@
             "swift_all_satisfy_lazy_receiver_stays_split",
             "swift_all_satisfy_loop_effect_stays_split",
             "swift_all_satisfy_loop_matches_call",
-            "swift_all_satisfy_wrong_empty_truth_stays_split"
+            "swift_all_satisfy_wrong_empty_truth_stays_split",
+            "swift_filtered_flat_map_all_matches_loop",
+            "swift_flat_map_aggregate_effectful_callback_stays_split",
+            "swift_flat_map_aggregate_wrong_source_stays_split",
+            "swift_flat_map_all_matches_loop",
+            "swift_flat_map_custom_filter_stays_split",
+            "swift_flat_map_custom_terminal_stays_split",
+            "swift_flat_map_ignored_inner_source_stays_split",
+            "swift_flat_map_ignored_terminal_value_stays_split",
+            "swift_flat_map_wrong_depth_stays_split",
+            "swift_flat_map_wrong_inner_guard_stays_split",
+            "swift_flat_map_wrong_outer_guard_stays_split",
+            "swift_flat_map_wrong_terminal_stays_split"
           ],
           "stale_expectation_count": 0,
           "stale_expectation_ids": []
         },
-        "hard_negative_count": 17,
+        "hard_negative_count": 20,
         "hard_negative_group_ids": [
           "reduction-minmax-anyall-proof-perimeter",
+          "flat-map-aggregate-proof-perimeter",
           "rust-iterator-all-proof-perimeter"
         ],
-        "owner_issue": "#758/#784/#783",
+        "owner_issue": "#758/#784/#783/#797",
         "owner_route": "team-a-detector",
         "packet_id": "reduction-minmax-anyall-2026-07-08",
         "proof_fact_model": {
-          "fact_count": 10,
+          "fact_count": 15,
           "fact_ids": [
             "numeric.aggregate-value-model-domain",
             "numeric.selection-value-order-domain",
             "numeric.float-special-value-boundary",
             "iteration.same-source-identity",
+            "hof.flat-map.nested-iteration-order",
+            "hof.flat-map.emitted-value-coordinate",
+            "collection.flatten-depth.one-level",
+            "hof.flat-map.aggregate-guard-coordinate",
             "reduction.identity-empty-behavior",
             "reduction.step-coordinate-identity",
             "reduction.terminal-predicate-coordinate",
             "reduction.short-circuit-direction",
             "reduction.selection-seed-domain",
+            "effect.pure-callback",
             "effect.pure-predicate"
           ],
           "facts": [
@@ -6031,6 +6543,119 @@
               "title": "Iteration same-source identity"
             },
             {
+              "controlled_evidence": {
+                "artifacts": [
+                  "bench/type4/adversarial/cases/cases.v1.json",
+                  "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs",
+                  "crates/nose-cli/tests/equivalence/swift_flat_map.rs",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof/swift_flat_map.rs"
+                ],
+                "refs": [
+                  "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_boundaries",
+                  "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_boundaries",
+                  "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_boundaries",
+                  "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_positive",
+                  "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_aggregate_closes_when_inner_cardinality_is_not_in_the_emitted_value",
+                  "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_aggregate_closes_when_inner_cardinality_is_not_in_the_emitted_value",
+                  "crates/nose-cli/tests/equivalence/swift_flat_map.rs::swift_flat_map_preserves_depth_order_value_and_source_boundaries",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof/swift_flat_map.rs::swift_flat_map_requires_outer_and_inner_bracket_array_proofs"
+                ],
+                "validated_ref_count": 8
+              },
+              "current_real_pair_status": "satisfied for controlled Java and Swift flat-map aggregate fixtures: outer elements expose the same inner source in order, while changed source/cardinality, source-independent inner map contributions, repeated or derived same-source aliases, reordered or recursive traversal, and custom dispatch remain split",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "hof.flat-map.nested-iteration-order",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "hof.flat_map",
+              "title": "Flat-map nested iteration order"
+            },
+            {
+              "controlled_evidence": {
+                "artifacts": [
+                  "bench/type4/adversarial/cases/cases.v1.json",
+                  "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs",
+                  "crates/nose-cli/tests/equivalence/swift_flat_map.rs"
+                ],
+                "refs": [
+                  "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_boundaries",
+                  "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_boundaries",
+                  "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_boundaries",
+                  "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_positive",
+                  "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_aggregate_closes_when_inner_cardinality_is_not_in_the_emitted_value",
+                  "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_aggregate_closes_when_inner_cardinality_is_not_in_the_emitted_value",
+                  "crates/nose-cli/tests/equivalence/swift_flat_map.rs::swift_flat_map_converges_for_proven_one_level_sources_and_emitted_values",
+                  "crates/nose-cli/tests/equivalence/swift_flat_map.rs::swift_flat_map_preserves_depth_order_value_and_source_boundaries"
+                ],
+                "validated_ref_count": 8
+              },
+              "current_real_pair_status": "satisfied for controlled Java Stream flatMap/reduce and Swift flatMap/allSatisfy fixtures: the mapped inner contribution and terminal predicate consume the same flattened element coordinate, while changed emitted values, source-independent inner contributions, and terminal predicates remain split",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "hof.flat-map.emitted-value-coordinate",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "hof.flat_map",
+              "title": "Flat-map emitted value coordinate"
+            },
+            {
+              "controlled_evidence": {
+                "artifacts": [
+                  "bench/type4/adversarial/cases/cases.v1.json",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof/swift_flat_map.rs"
+                ],
+                "refs": [
+                  "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_custom_dispatch_boundaries",
+                  "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_boundaries",
+                  "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_one_level_positive",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof/swift_flat_map.rs::swift_flat_map_rejects_scalar_nested_depth_and_custom_dispatch"
+                ],
+                "validated_ref_count": 4
+              },
+              "current_real_pair_status": "satisfied for controlled Java and Swift flat-map aggregate fixtures that flatten exactly one admitted outer/inner collection layer; map-without-flatten and recursive/deeper shapes remain split",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "collection.flatten-depth.one-level",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "collection.flatten_depth",
+              "title": "One-level flatten depth"
+            },
+            {
+              "controlled_evidence": {
+                "artifacts": [
+                  "bench/type4/adversarial/cases/cases.v1.json",
+                  "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs",
+                  "crates/nose-frontend/src/corpus_tests.rs"
+                ],
+                "refs": [
+                  "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_boundaries",
+                  "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_custom_dispatch_boundary",
+                  "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_positive",
+                  "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_boundaries",
+                  "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_custom_dispatch_boundaries",
+                  "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_positive",
+                  "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_filtered_flat_map_sum_preserves_outer_and_inner_guards",
+                  "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_filtered_flat_map_all_satisfy_preserves_guard_coordinates",
+                  "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_keeps_swift_all_satisfy_after_disjoint_callback_arity_overload"
+                ],
+                "validated_ref_count": 9
+              },
+              "current_real_pair_status": "satisfied for controlled filtered Java and Swift flat-map aggregate fixtures: outer, inner, and terminal predicates remain attached to distinct traversal or terminal coordinates; changed guards and custom filter/allSatisfy dispatch remain split",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "hof.flat-map.aggregate-guard-coordinate",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "hof.flat_map",
+              "title": "Flat-map aggregate guard coordinate"
+            },
+            {
               "controlled_evidence": null,
               "current_real_pair_status": "satisfied for focused sum/product/any/all/selection fixtures: matching seeds and empty-input results converge while wrong seeds and selection APIs with different empty/all-negative behavior stay split",
               "evidence_requirements": [
@@ -6043,8 +6668,18 @@
               "title": "Reduction identity and empty-input behavior"
             },
             {
-              "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused integer/value-model sum/product/count fixtures under numeric.aggregate-value-model-domain: additive sums converge across loops and terminals while product and count contributions stay separate; unproven overflow, float, and NaN domains remain outside this claim",
+              "controlled_evidence": {
+                "artifacts": [
+                  "bench/type4/adversarial/cases/cases.v1.json",
+                  "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs"
+                ],
+                "refs": [
+                  "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_boundaries",
+                  "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_reducer_step_must_consume_the_flattened_value"
+                ],
+                "validated_ref_count": 2
+              },
+              "current_real_pair_status": "satisfied for focused integer/value-model sum/product/count fixtures under numeric.aggregate-value-model-domain: additive sums converge across loops and terminals while product and count contributions stay separate; controlled flat-map explicit folds must consume their bound flattened value, and ignored-value counting steps remain opaque; unproven overflow, float, and NaN domains remain outside this claim",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -6055,8 +6690,18 @@
               "title": "Reduction step coordinate identity"
             },
             {
-              "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including focused Rust Iterator::all, controlled dense-literal TypeScript/JavaScript every slices, Ruby Enumerable any?/all? literal receiver slice, and Swift eager Array/Collection allSatisfy slice; the Drizzle real pair is blocked until Boolean-as-value-only predicate evidence is tied to proven local-array source evidence",
+              "controlled_evidence": {
+                "artifacts": [
+                  "bench/type4/adversarial/cases/cases.v1.json",
+                  "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs"
+                ],
+                "refs": [
+                  "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_boundaries",
+                  "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_terminal_predicate_must_consume_the_flattened_value"
+                ],
+                "validated_ref_count": 2
+              },
+              "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including focused Rust Iterator::all, controlled dense-literal TypeScript/JavaScript every slices, Ruby Enumerable any?/all? literal receiver slice, and Swift eager Array/Collection allSatisfy slice; method predicates that ignore their bound element remain opaque so empty/non-empty source behavior is retained; the Drizzle real pair is blocked until Boolean-as-value-only predicate evidence is tied to proven local-array source evidence",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -6092,6 +6737,54 @@
             },
             {
               "controlled_evidence": {
+                "artifacts": [
+                  "bench/type4/adversarial/cases/cases.v1.json",
+                  "crates/nose-cli/tests/equivalence/callback_purity_boundaries.rs",
+                  "crates/nose-frontend/src/js_ts/tests/surfaces.rs",
+                  "crates/nose-frontend/src/ruby/tests.rs",
+                  "crates/nose-frontend/src/swift/tests/surfaces.rs",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/callback_purity.rs",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/callback_purity/nested_predicates.rs",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/callback_purity/nested_sources.rs",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/callback_purity/operator_effects.rs",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/callback_purity/transform_boundaries.rs",
+                  "crates/nose-semantics/src/tests/semantic_evidence/receiver_domains/shadowing.rs"
+                ],
+                "refs": [
+                  "bench/type4/adversarial/cases/cases.v1.json::hof_callback_purity_effect_boundary",
+                  "bench/type4/adversarial/cases/cases.v1.json::hof_callback_purity_inline_transform",
+                  "crates/nose-cli/tests/equivalence/callback_purity_boundaries.rs::destructured_inner_binding_cannot_borrow_outer_param_purity_proof",
+                  "crates/nose-frontend/src/js_ts/tests/surfaces.rs::callback_parameter_shapes_remain_visible_to_semantic_admission",
+                  "crates/nose-frontend/src/js_ts/tests/surfaces.rs::javascript_class_heritage_expression_remains_in_the_class_unit",
+                  "crates/nose-frontend/src/js_ts/tests/surfaces.rs::js_array_spread_remains_an_unproven_sequence_boundary",
+                  "crates/nose-frontend/src/js_ts/tests/surfaces.rs::js_class_heritage_expression_remains_in_the_class_unit",
+                  "crates/nose-frontend/src/ruby/tests.rs::ruby_callback_parameter_shapes_and_array_splat_remain_visible",
+                  "crates/nose-frontend/src/ruby/tests.rs::ruby_interpolated_regex_preserves_its_effectful_expression",
+                  "crates/nose-frontend/src/swift/tests/surfaces.rs::callback_sensitive_swift_prefix_and_unwrap_surfaces_are_not_erased",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/callback_purity.rs::pure_predicate_obligation_preserves_existing_terminal_effect_boundary",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/callback_purity/nested_predicates.rs::outer_transform_rechecks_nested_predicate_under_transform_effect_rules",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/callback_purity/nested_sources.rs::nested_hof_admission_does_not_hide_effects_in_eager_sources",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/callback_purity/operator_effects.rs::ambiguous_type_membership_fact_cannot_fall_back_to_primitive_equality",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/callback_purity/operator_effects.rs::value_transform_operators_require_non_dispatching_primitive_evidence",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/callback_purity/transform_boundaries.rs::pure_transform_callback_obligation_admits_inline_local_value_computation",
+                  "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/callback_purity/transform_boundaries.rs::pure_transform_callback_obligation_rejects_each_effect_and_coordinate_boundary",
+                  "crates/nose-semantics/src/tests/semantic_evidence/receiver_domains/shadowing.rs::cid_receiver_domain_stops_at_fresh_function_namespace",
+                  "crates/nose-semantics/src/tests/semantic_evidence/receiver_domains/shadowing.rs::named_receiver_domain_stops_at_intervening_destructured_shadow"
+                ],
+                "validated_ref_count": 19
+              },
+              "current_real_pair_status": "satisfied for controlled Java and Swift flat-map transform callbacks whose effects are closed; observed effects in outer or inner callbacks and ambiguous custom dispatch remain outside admission",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "effect.pure-callback",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "effect.purity",
+              "title": "Pure callback/effect safety"
+            },
+            {
+              "controlled_evidence": {
                 "artifact": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
                 "evidence_ids": [
                   "python-loop-demorgan-effect-negative-helper-call",
@@ -6119,7 +6812,7 @@
           ],
           "model_status": "modeled-controlled"
         },
-        "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, satisfy numeric.aggregate-value-model-domain when controlled aggregate arithmetic matters, satisfy numeric.selection-value-order-domain when controlled min/max or relational selection matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, prove receiver/API identity for protocol methods, require value-only predicate callback shape, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, consumed iterators, mutating borrows, TypeScript/JavaScript Array.every callbacks observing index or source-array arguments, JavaScript Array.prototype.every replacement, Swift two-argument custom allSatisfy overloads, Swift lazy allSatisfy receiver demand semantics, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, wrong empty truth, unseeded terminal selection APIs, broad runtime no-overflow or total-order claims, and unproven receiver/protocol, overflow, float, NaN, signed-zero, or numeric-domain evidence must remain non-equivalent.",
+        "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, satisfy numeric.aggregate-value-model-domain when controlled aggregate arithmetic matters, satisfy numeric.selection-value-order-domain when controlled min/max or relational selection matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, prove receiver/API identity for protocol methods, require value-only predicate callback shape, and for min/max preserve the same explicit seed and selection domain. Flat-map aggregates additionally require one-level outer/inner traversal order, emitted-value, source-cardinality, and flatten-depth facts; distinct outer/inner coordinates even when sources alias directly or through a derived outer value; reducer steps and terminal predicates that consume the flattened element; distinct outer/inner/terminal guard coordinates; pure transform and predicate callbacks; and standard Java Arrays/Stream or Swift flatMap/filter/map/allSatisfy dispatch. Predicate/callback effects, source-independent inner maps, direct or wrapper-hidden recursive flattening, consumed iterators, mutating borrows, TypeScript/JavaScript Array.every callbacks observing index or source-array arguments, JavaScript Array.prototype.every replacement, Swift two-argument custom allSatisfy overloads, Swift lazy allSatisfy receiver demand semantics, Swift reduce without fold/operator/overload/trap proof, wrong seeds, changed contributions, guards, sources, flatten depth, terminal predicates, all-vs-any direction changes, wrong empty truth, custom aggregate dispatch, unseeded terminal selection APIs, broad runtime no-overflow or total-order claims, and unproven receiver/protocol, overflow, float, NaN, signed-zero, or numeric-domain evidence must remain non-equivalent.",
         "readiness": {
           "blocking_items": [
             "the Drizzle flags.every(Boolean) real pair uses a local array populated by pushes; the current TypeScript every proof facts only admit dense literal sources",
@@ -6274,7 +6967,7 @@
           "reduction-typescript-every-append-only-flags-drizzle-real-pair",
           "reduction-selection-focused-controlled-pair"
         ],
-        "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, numeric.aggregate-value-model-domain for controlled aggregate arithmetic, numeric.selection-value-order-domain for controlled min/max or relational selection, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, receiver/API identity for protocol methods, and effect-safe value-only predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all plus focused Iterator::all universal terminal bridges, TypeScript any/some, dense-literal one-argument TypeScript and JavaScript every/for-of terminal bridges; Swift eager Array/Collection allSatisfy terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, Rust Iterator::all wrong empty truth, changed source, consumed iterator, callback or loop effect, mutating borrow, TypeScript/JavaScript array-param every sparse-hole boundaries, TypeScript/JavaScript every callbacks observing index/source-array arguments, JavaScript Array.prototype.every prototype replacement, Swift changed predicate/source, wrong empty truth, callback or loop effects, two-argument custom allSatisfy overloads, lazy allSatisfy demand semantics, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, broad runtime no-overflow or total-order claims, and unproven overflow/float/NaN/signed-zero numeric domains remain outside the exact family through numeric.float-special-value-boundary.",
+        "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, numeric.aggregate-value-model-domain for controlled aggregate arithmetic, numeric.selection-value-order-domain for controlled min/max or relational selection, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, receiver/API identity for protocol methods, and effect-safe value-only predicates or callbacks. Flat-map aggregate convergence additionally requires a proven one-level outer/inner stream, emitted-value and source-cardinality coordinates, distinct outer/inner/terminal guard coordinates, reducer steps and terminal predicates that consume the flattened value, and standard dispatch. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all plus focused Iterator::all universal terminal bridges; TypeScript any/some and dense-literal one-argument TypeScript/JavaScript every/for-of terminal bridges; Swift eager Array/Collection allSatisfy terminal bridges; controlled Java Stream flatMap/reduce nested-reduction bridges; controlled Swift flatMap/allSatisfy nested-counterexample-loop bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, flat-map guards, sources, source-independent maps, aliased same/derived source coordinates, direct or wrapper-hidden recursive flattening, reducers or terminal predicates that ignore the flattened value, any-vs-all direction changes, Rust Iterator::all wrong empty truth, consumed iterator, callback or loop effect, mutating borrow, TypeScript/JavaScript array-param every sparse-hole boundaries, callbacks observing index/source-array arguments, JavaScript Array.prototype.every replacement, custom Java Arrays or Swift filter/allSatisfy dispatch, Swift reduce without fold proof, Swift wrong empty truth, two-argument custom allSatisfy overloads, lazy allSatisfy demand semantics, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, broad runtime no-overflow or total-order claims, and unproven overflow/float/NaN/signed-zero numeric domains remain outside the exact family through numeric.float-special-value-boundary.",
         "why_now": "reduce_minmax_anyall has all-language probe coverage and already appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. The useful work is to record the shared reduction proof perimeter \u2014 identity/empty behavior, aggregate value-model closure for arithmetic reductions, selection value-order closure for min/max, step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and predicate or reducer effect closure \u2014 so future reduce, any/all, and min/max surfaces extend neutral facts instead of per-language spellings."
       }
     ],

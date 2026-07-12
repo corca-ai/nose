@@ -5,8 +5,9 @@ use nose_il::{
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash, library_method_call_contract,
     swift_has_unproven_collection_parameter, swift_identifier_matches,
-    SWIFT_COMPACT_MAP_DISPATCH_BARRIER_MARKER, SWIFT_FLAT_MAP_DISPATCH_BARRIER_MARKER,
-    SWIFT_NIL_LITERAL_CONFORMANCE_MARKER, SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER,
+    SWIFT_ALL_SATISFY_DISPATCH_BARRIER_MARKER, SWIFT_COMPACT_MAP_DISPATCH_BARRIER_MARKER,
+    SWIFT_FLAT_MAP_DISPATCH_BARRIER_MARKER, SWIFT_NIL_LITERAL_CONFORMANCE_MARKER,
+    SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER,
 };
 use rustc_hash::FxHashSet;
 
@@ -20,10 +21,13 @@ pub(crate) fn close_shadowed_stdlib_apis(files: &mut [Il], interner: &Interner) 
             || unproven_collection_parameter;
     let flat_map_dispatch_ambiguous =
         swift_flat_map_dispatch_shadow_declared(files, interner) || unproven_collection_parameter;
+    let all_satisfy_dispatch_ambiguous =
+        swift_all_satisfy_dispatch_shadow_declared(files, interner);
     let nil_literal_conformance = swift_nil_literal_conformance_declared(files, interner);
     if shadowed.is_empty()
         && !compact_map_dispatch_ambiguous
         && !flat_map_dispatch_ambiguous
+        && !all_satisfy_dispatch_ambiguous
         && !nil_literal_conformance
     {
         return;
@@ -36,7 +40,21 @@ pub(crate) fn close_shadowed_stdlib_apis(files: &mut [Il], interner: &Interner) 
         if flat_map_dispatch_ambiguous {
             close_shadowed_flat_map(il);
         }
+        if all_satisfy_dispatch_ambiguous {
+            close_shadowed_swift_method(il, "allSatisfy", 1);
+        }
     }
+}
+
+fn swift_all_satisfy_dispatch_shadow_declared(files: &[Il], interner: &Interner) -> bool {
+    files
+        .iter()
+        .filter(|il| il.meta.lang == Lang::Swift)
+        .flat_map(|il| &il.nodes)
+        .any(|node| {
+            matches!(node.payload, Payload::Name(name) if interner.resolve(name)
+                == SWIFT_ALL_SATISFY_DISPATCH_BARRIER_MARKER)
+        })
 }
 
 fn swift_flat_map_dispatch_shadow_declared(files: &[Il], interner: &Interner) -> bool {
@@ -46,7 +64,7 @@ fn swift_flat_map_dispatch_shadow_declared(files: &[Il], interner: &Interner) ->
         .flat_map(|il| &il.units)
         .any(|unit| {
             unit.name.is_some_and(|name| {
-                ["flatMap", "map"]
+                ["flatMap", "filter", "map"]
                     .into_iter()
                     .any(|expected| swift_identifier_matches(interner.resolve(name), expected))
             })
@@ -173,12 +191,16 @@ fn close_shadowed_flat_map(il: &mut Il) {
 }
 
 fn close_shadowed_swift_hof(il: &mut Il, method: &str) {
+    close_shadowed_swift_method(il, method, 1);
+}
+
+fn close_shadowed_swift_method(il: &mut Il, method: &str, arity: usize) {
     let contract =
-        library_method_call_contract(Lang::Swift, method, 1).expect("known Swift HOF contract");
+        library_method_call_contract(Lang::Swift, method, arity).expect("known Swift method");
     let expected = EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
         contract_hash: library_api_contract_id_hash(contract.id),
         callee_hash: library_api_callee_contract_hash(contract.callee),
-        arity: 1,
+        arity: arity as u16,
     });
     let mut ambiguous = FxHashSet::default();
     for record in &mut il.evidence {

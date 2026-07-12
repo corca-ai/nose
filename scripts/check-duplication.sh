@@ -223,6 +223,14 @@ set -euo pipefail
 # proof, non-plain callback markers, raw-selector guard, dispatch barriers, corpus tombstones, and
 # focused fixtures preserve every accepted family ID. No new duplication or budget change is
 # accepted.
+# 29 -> 30 (#797 flatMap aggregate guards): the draft's repeated cross-file Swift corpus setup was
+# extracted into the shared method-contract assertion helper. The aggregate semantic admission
+# restores the previously reviewed `int_bin` / `float_bin` dispatcher family
+# `856ea94f585f0c67`. Final reducer-cardinality hardening also moves the reviewed value-graph
+# collection whole-impl span-noise representative from `2fb6d5f9c8c6d045` to
+# `cf7e3e2870c92ccb`; the replacement shares only two lines across a 384-line impl and a ten-line
+# reducer slice, so there is no useful helper to extract. No new budget or avoidable duplication is
+# accepted; see docs/dogfooding-history.md.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

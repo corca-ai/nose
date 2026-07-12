@@ -1671,10 +1671,11 @@ TARGET_PACKETS = [
         ],
         "hard_negative_group_ids": [
             "reduction-minmax-anyall-proof-perimeter",
+            "flat-map-aggregate-proof-perimeter",
             "rust-iterator-all-proof-perimeter",
         ],
         "owner_route": "team-a-detector",
-        "owner_issue": "#758/#784/#783",
+        "owner_issue": "#758/#784/#783/#797",
         "why_now": "reduce_minmax_anyall has all-language probe coverage and already "
         "appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. "
         "The useful work is to record the shared reduction proof perimeter — identity/empty "
@@ -1702,16 +1703,32 @@ TARGET_PACKETS = [
                     "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing; focused Rust Iterator::all keeps changed source and consumed-iterator boundaries split; dense-literal TypeScript and JavaScript every/for-of slices are admitted, while the Drizzle flags.every(Boolean) real pair remains unsatisfied because append-only dense local-array provenance is not yet modeled",
                 },
                 {
+                    "fact_id": "hof.flat-map.nested-iteration-order",
+                    "current_real_pair_status": "satisfied for controlled Java and Swift flat-map aggregate fixtures: outer elements expose the same inner source in order, while changed source/cardinality, source-independent inner map contributions, repeated or derived same-source aliases, reordered or recursive traversal, and custom dispatch remain split",
+                },
+                {
+                    "fact_id": "hof.flat-map.emitted-value-coordinate",
+                    "current_real_pair_status": "satisfied for controlled Java Stream flatMap/reduce and Swift flatMap/allSatisfy fixtures: the mapped inner contribution and terminal predicate consume the same flattened element coordinate, while changed emitted values, source-independent inner contributions, and terminal predicates remain split",
+                },
+                {
+                    "fact_id": "collection.flatten-depth.one-level",
+                    "current_real_pair_status": "satisfied for controlled Java and Swift flat-map aggregate fixtures that flatten exactly one admitted outer/inner collection layer; map-without-flatten and recursive/deeper shapes remain split",
+                },
+                {
+                    "fact_id": "hof.flat-map.aggregate-guard-coordinate",
+                    "current_real_pair_status": "satisfied for controlled filtered Java and Swift flat-map aggregate fixtures: outer, inner, and terminal predicates remain attached to distinct traversal or terminal coordinates; changed guards and custom filter/allSatisfy dispatch remain split",
+                },
+                {
                     "fact_id": "reduction.identity-empty-behavior",
                     "current_real_pair_status": "satisfied for focused sum/product/any/all/selection fixtures: matching seeds and empty-input results converge while wrong seeds and selection APIs with different empty/all-negative behavior stay split",
                 },
                 {
                     "fact_id": "reduction.step-coordinate-identity",
-                    "current_real_pair_status": "satisfied for focused integer/value-model sum/product/count fixtures under numeric.aggregate-value-model-domain: additive sums converge across loops and terminals while product and count contributions stay separate; unproven overflow, float, and NaN domains remain outside this claim",
+                    "current_real_pair_status": "satisfied for focused integer/value-model sum/product/count fixtures under numeric.aggregate-value-model-domain: additive sums converge across loops and terminals while product and count contributions stay separate; controlled flat-map explicit folds must consume their bound flattened value, and ignored-value counting steps remain opaque; unproven overflow, float, and NaN domains remain outside this claim",
                 },
                 {
                     "fact_id": "reduction.terminal-predicate-coordinate",
-                    "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including focused Rust Iterator::all, controlled dense-literal TypeScript/JavaScript every slices, Ruby Enumerable any?/all? literal receiver slice, and Swift eager Array/Collection allSatisfy slice; the Drizzle real pair is blocked until Boolean-as-value-only predicate evidence is tied to proven local-array source evidence",
+                    "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including focused Rust Iterator::all, controlled dense-literal TypeScript/JavaScript every slices, Ruby Enumerable any?/all? literal receiver slice, and Swift eager Array/Collection allSatisfy slice; method predicates that ignore their bound element remain opaque so empty/non-empty source behavior is retained; the Drizzle real pair is blocked until Boolean-as-value-only predicate evidence is tied to proven local-array source evidence",
                 },
                 {
                     "fact_id": "reduction.short-circuit-direction",
@@ -1720,6 +1737,10 @@ TARGET_PACKETS = [
                 {
                     "fact_id": "reduction.selection-seed-domain",
                     "current_real_pair_status": "satisfied for focused Python/Rust seeded min/max fixtures: seeded min/max loops and folds converge while min-vs-max direction and unseeded max().unwrap_or(0) boundaries stay split",
+                },
+                {
+                    "fact_id": "effect.pure-callback",
+                    "current_real_pair_status": "satisfied for controlled Java and Swift flat-map transform callbacks whose effects are closed; observed effects in outer or inner callbacks and ambiguous custom dispatch remain outside admission",
                 },
                 {
                     "fact_id": "effect.pure-predicate",
@@ -1758,6 +1779,12 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_boundaries",
+                "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_custom_dispatch_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_boundaries",
+                "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_custom_dispatch_boundaries",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::loop_converges_with_reduce_and_comprehension",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
@@ -1774,19 +1801,42 @@ TARGET_PACKETS = [
                 "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_predicate_source_and_empty_truth_boundaries",
                 "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_effect_and_lazy_boundaries",
                 "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_custom_overload_callback_shape_boundary",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_sum_converges_with_nested_reduction",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_filtered_flat_map_sum_preserves_outer_and_inner_guards",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_sum_preserves_identity_step_source_depth_effect_and_dispatch",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_aggregate_closes_when_inner_cardinality_is_not_in_the_emitted_value",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_aggregate_closes_when_nested_coordinates_alias_the_same_source",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_recursive_flat_map_aggregate_stays_closed",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_reducer_step_must_consume_the_flattened_value",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_reduce_stays_closed_without_fold_dispatch_proof",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_all_satisfy_converges_with_nested_counterexample_loop",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_filtered_flat_map_all_satisfy_preserves_guard_coordinates",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_aggregate_closes_when_inner_cardinality_is_not_in_the_emitted_value",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_terminal_predicate_must_consume_the_flattened_value",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_eager_flat_map_filter_with_overloadable_predicate_stays_closed",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_aggregate_custom_terminal_dispatch_stays_closed",
+                "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::all_satisfy_dispatch_and_namespace_risks_emit_a_barrier",
+                "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::ordinary_all_satisfy_use_does_not_emit_a_dispatch_barrier",
+                "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::disjoint_callback_arity_overload_does_not_emit_a_dispatch_barrier",
+                "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::any_unary_compatible_overload_emits_a_dispatch_barrier",
+                "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_closes_guarded_swift_flat_map_after_cross_file_filter_overload",
+                "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_closes_swift_all_satisfy_after_cross_file_overload",
+                "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_keeps_swift_all_satisfy_after_disjoint_callback_arity_overload",
                 "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_extreme_type4_idioms",
                 "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall",
             ],
         },
         "detector_admission": {
             "status": "controlled-slice-admitted",
-            "scope": "controlled integer/value-model sum/product, any/all terminal, focused Rust Iterator::all universal loops, dense-literal TypeScript/JavaScript every, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
+            "scope": "controlled integer/value-model sum/product, any/all terminal, focused Rust Iterator::all universal loops, dense-literal TypeScript/JavaScript every, Swift eager allSatisfy, Java Stream flatMap/reduce, Swift flatMap/allSatisfy, and seeded min/max selection reductions with source, one-level flatten order/value/depth, aggregate guard coordinate, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
             "remaining_real_pair_gap": "the linked Drizzle real-corpus TypeScript every(Boolean) pair is replayed as split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled; broader reduce/min/max/any/all real-pair admission still needs separate audit",
             "capabilities": [
                 "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and numeric.aggregate-value-model-domain evidence match",
                 "converges Rust any/all terminal forms, focused Rust Iterator::all universal loops, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript/JavaScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
                 "converges controlled Ruby Enumerable any?/all? terminal forms with literal Array receiver proof, same-source loop proof, pure one-argument blocks, vacuous all? behavior for empty literal arrays, and standard Array/Enumerable API identity",
                 "converges controlled Swift allSatisfy terminal forms with eager Array/Collection receiver proof, same-source loop proof, pure inline one-argument predicates, vacuous truth, unary callback shape, and standard Swift Collection API identity",
+                "converges controlled Java Stream flatMap/reduce aggregates with equivalent nested reductions when Arrays/Stream dispatch, one-level outer/inner sources, optional pure guard coordinates, emitted values that retain both traversal coordinates, explicit identity, and reduction steps are proven",
+                "converges controlled Swift flatMap/allSatisfy aggregates with equivalent nested counterexample loops when direct bracket-array outer/inner sources, at most one admitted pure filter at each traversal coordinate, one-level emitted values that retain both traversal coordinates, terminal predicates, eager demand, and standard dispatch are proven",
                 "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, selection domain, and numeric.selection-value-order-domain evidence match",
                 "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, Rust Iterator::all wrong empty truth, changed source, consumed iterator, callback or loop effect, mutating borrow, TypeScript/JavaScript every sparse-array parameter, TypeScript/JavaScript every callback index/source-argument, JavaScript every prototype replacement, JS/TS value-returning predicate, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, Swift changed predicate/source, wrong empty truth, callback/loop effect, two-argument custom overload callback, lazy receiver, min/max direction, unseeded selection, numeric-domain, float-special-value, effect, and unproven receiver/protocol boundaries",
             ],
@@ -1799,6 +1849,8 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_positive",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::loop_converges_with_reduce_and_comprehension",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
@@ -1834,6 +1886,10 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_boundaries",
+                "bench/type4/adversarial/cases/cases.v1.json::java_flat_map_aggregate_custom_dispatch_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_boundaries",
+                "bench/type4/adversarial/cases/cases.v1.json::swift_flat_map_aggregate_custom_dispatch_boundaries",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_iterator_any_keeps_effect_and_borrow_boundaries",
@@ -1851,6 +1907,27 @@ TARGET_PACKETS = [
                 "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_predicate_source_and_empty_truth_boundaries",
                 "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_effect_and_lazy_boundaries",
                 "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_custom_overload_callback_shape_boundary",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_sum_converges_with_nested_reduction",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_filtered_flat_map_sum_preserves_outer_and_inner_guards",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_sum_preserves_identity_step_source_depth_effect_and_dispatch",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_aggregate_closes_when_inner_cardinality_is_not_in_the_emitted_value",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_aggregate_closes_when_nested_coordinates_alias_the_same_source",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_recursive_flat_map_aggregate_stays_closed",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::java_flat_map_reducer_step_must_consume_the_flattened_value",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_reduce_stays_closed_without_fold_dispatch_proof",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_all_satisfy_converges_with_nested_counterexample_loop",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_filtered_flat_map_all_satisfy_preserves_guard_coordinates",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_aggregate_closes_when_inner_cardinality_is_not_in_the_emitted_value",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_terminal_predicate_must_consume_the_flattened_value",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_eager_flat_map_filter_with_overloadable_predicate_stays_closed",
+                "crates/nose-cli/tests/equivalence/flat_map_aggregates.rs::swift_flat_map_aggregate_custom_terminal_dispatch_stays_closed",
+                "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::all_satisfy_dispatch_and_namespace_risks_emit_a_barrier",
+                "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::ordinary_all_satisfy_use_does_not_emit_a_dispatch_barrier",
+                "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::disjoint_callback_arity_overload_does_not_emit_a_dispatch_barrier",
+                "crates/nose-frontend/src/swift/tests/aggregate_proof.rs::any_unary_compatible_overload_emits_a_dispatch_barrier",
+                "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_closes_guarded_swift_flat_map_after_cross_file_filter_overload",
+                "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_closes_swift_all_satisfy_after_cross_file_overload",
+                "crates/nose-frontend/src/corpus_tests.rs::lower_corpus_keeps_swift_all_satisfy_after_disjoint_callback_arity_overload",
             ],
         },
         "blocked_by": [
@@ -1859,8 +1936,11 @@ TARGET_PACKETS = [
             "Boolean-as-callback is value-only only when the binding is the standard Boolean function and all pushed values are proven boolean",
         ],
         "notes": "This packet records the current focused reduction perimeter as reusable proof "
-        "facts. The linked Drizzle real-corpus replay is an executable split expectation for the "
-        "next TypeScript every source-provenance fact, not a real-pair admission. It intentionally does not claim a new non-focused real-corpus admission, "
+        "facts. #797 adds controlled Java Stream flatMap/reduce and Swift flatMap/allSatisfy "
+        "slices by composing the modeled one-level stream with aggregate guard, identity/step, "
+        "predicate, effect, and dispatch facts. The linked Drizzle real-corpus replay remains an "
+        "executable split expectation for a future TypeScript every source-provenance fact, not a "
+        "real-pair admission. It intentionally does not claim a new non-focused real-corpus admission, "
         "broader untyped JS relational reduction admission, Ruby parameter/custom Enumerable receiver "
         "admission, Swift reduce, Swift contains(where:), or Swift lazy allSatisfy admission until those proof perimeters are separately covered.",
         "locations": [
@@ -1943,6 +2023,22 @@ TARGET_PACKETS = [
                 "path": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
                 "span": "1-80",
                 "snippet": "Swift eager Array/Collection allSatisfy representatives with changed predicate/source, wrong empty truth, effect, custom overload, and lazy receiver boundaries",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Java",
+                "path": "bench/type4/adversarial/cases/java_flat_map_aggregate/aggregate.java",
+                "span": "1-154",
+                "snippet": "Java nested-loop and Stream flatMap/reduce representatives with identity, reducer-step/value-use, outer/inner guard, source/cardinality, same-source coordinate, direct/wrapped recursive-depth, effect, and dispatch boundaries",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Swift",
+                "path": "bench/type4/adversarial/cases/swift_flat_map_aggregate/aggregate.swift",
+                "span": "1-147",
+                "snippet": "Swift nested-counterexample-loop and flatMap/allSatisfy representatives with outer/inner/terminal guard, source/cardinality, terminal-value-use, depth, effect, filter-dispatch, and terminal-dispatch boundaries",
             },
             {
                 "repo": "drizzle-orm",

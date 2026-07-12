@@ -544,10 +544,28 @@ still being migrated toward it.
   `flatMap` admission additionally uses a dedicated one-level obligation: a direct,
   plain language-core bracket-array outer source, and a callback that exposes a
   direct proven inner bracket-array parameter or one admitted inner `map` over it.
-  This preserves nested traversal, emitted-value, and flatten-depth coordinates;
+  The aggregate slice may guard each direct outer or inner source with one
+  admitted pure `filter`, preserving that predicate's traversal coordinate
+  before an eager unary `allSatisfy`. This preserves nested traversal,
+  emitted-value, flatten-depth, and aggregate-guard coordinates;
   derived/nominal/modified sources, property-wrapped or parser-recovered callback
-  parameters, lexically unrelated proofs, filters, recursive depth, imports, and
-  visible `flatMap`/`map` overrides remain closed. Raw surviving `flatMap`
+  parameters, lexically unrelated proofs, repeated/derived filters, recursive
+  depth, imports, and visible `flatMap`/`filter`/`map` overrides remain closed.
+  Maps whose contribution and carried predicate together do not reference every
+  bound source element remain a source-bound opaque value-graph boundary, so
+  captured or constant emissions cannot erase inner-source identity, emptiness,
+  or repetition count during an aggregate reduction. An element-dependent
+  carried predicate still supports filtered count reductions. The same boundary
+  covers repeated same-source coordinates and derived outer values that
+  transitively capture the rebound inner element; recursive inner FlatMap output
+  is not peeled as a one-level aggregate.
+  Explicit fold contributions and method-terminal predicates separately prove
+  that their lexical callback parameter survives as an element value-graph
+  coordinate; ignored-value reducers and predicates remain opaque so source
+  cardinality and empty-input truth cannot be erased.
+  Visible unary-compatible `allSatisfy` declarations close terminal evidence;
+  proven two-argument callback overloads do not collide with the unary standard
+  surface. Raw surviving `flatMap`
   selectors cannot fall back to opaque same-callee exact identity. It also owns a controlled Swift
   `compactMap`/`FilterMap` slice over a direct, attribute- and modifier-free function parameter with
   language-core bracket-array (`[T]`) source evidence when one plain callback parameter is both the `Bool` condition and emitted
@@ -589,8 +607,12 @@ still being migrated toward it.
   absence-channel, drop-condition, and emitted-value facts with callback purity.
   Controlled Swift one-level `flatMap` combines direct outer/inner source,
   nested-order, emitted-value, one-level-depth, eager-demand, and callback-purity
-  facts. Java/Swift flat-map aggregate rows can reuse those modeled one-level
-  facts but still require the aggregate-guard coordinate tracked by #797. The
+  facts. The #797 Java `Stream.flatMap`/`reduce` and Swift
+  `flatMap`/`allSatisfy` controlled slices additionally combine distinct
+  outer/inner/terminal guard coordinates with reduction identity/step or terminal
+  predicate facts and API dispatch evidence. Source-independent inner maps remain
+  closed with their source coordinates intact. Swift `reduce` remains closed until
+  its fold callback, operator, overload, and trap behavior are proven. The
   `nose.go.stdlib.namespace_calls` descriptor owns Go `fmt.Print*`,
   `strings.Contains`, `strings.Join`, and `slices.Contains` namespace-call API
   occurrence provenance under imported namespace proof. `strings.Contains`
@@ -1117,9 +1139,12 @@ migrated.
   `Set`, or `Dictionary`, so chained Swift HOFs can reuse pack-backed receiver
   proof without opening one-shot or ordering assumptions. Controlled `flatMap`
   occurrences additionally recheck direct bracket-array outer/inner sources,
-  their lexical parameter binding, one-level callback output, plain callback
-  coordinates, and the same-file dispatch perimeter with an interner before
-  exact-channel admission. Controlled `compactMap`
+  their optional single-filter guard coordinates, lexical parameter binding,
+  one-level callback output, plain callback coordinates, and the same-file
+  `flatMap`/`filter`/`map` dispatch perimeter with an interner before exact-channel
+  admission. Controlled Swift aggregate terminals also recheck unary-compatible
+  `allSatisfy` declarations locally and across the corpus; disjoint two-argument
+  callback overloads remain admissible. Controlled `compactMap`
   occurrences additionally recheck their option-emission callback and same-file
   overload perimeter with an interner before exact-channel admission. The Swift corpus audit [`swift-stdlib-partial-audit-2026-06-28.v2.json`](../bench/recall_loss/swift-stdlib-partial-audit-2026-06-28.v2.json)
   processes the 5,000+ cardinality receiver-proof group as existing-contract

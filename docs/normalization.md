@@ -33,8 +33,25 @@ experiments that validated these passes are in [experiments](experiments.md).
 > bracket-array outer/inner function parameters plus an identity result or one
 > admitted inner `map` supply nested-order, emitted-value, and exact one-level
 > flatten facts. Those parameters are resolved in lexical scope and must remain
-> attribute/modifier/error-free. Derived chains, recursive depth, ambiguous
-> `flatMap`/`map` dispatch, and surviving raw `flatMap` selectors stay closed.
+> attribute/modifier/error-free. For aggregate consumers, the direct outer and
+> inner sources may each carry one admitted pure `filter`; its predicate remains
+> attached to that traversal coordinate. Derived or repeated filter chains,
+> recursive depth, ambiguous `flatMap`/`filter`/`map` dispatch, and surviving raw
+> `flatMap` selectors stay closed.
+> A `map` whose contribution and carried predicate together do not reference
+> every bound source element is likewise kept behind a source-bound opaque
+> value-graph node. The mapped value may be constant or captured, but its
+> observation count still depends on every source's cardinality; dropping those
+> element coordinates would merge flat-map aggregates over different inner
+> collections. An element-dependent carried predicate retains that coordinate
+> for filtered count reductions. A bound inner element that
+> aliases a captured or derived outer coordinate from the same source is kept
+> behind the same boundary, and aggregate peeling accepts one direct inner Map
+> rather than recursively consuming another FlatMap.
+> Explicit fold contributions and method any/all predicates must also retain
+> their lexical bound-element and value-graph element coordinates. A reducer or
+> terminal predicate that ignores the element remains opaque because its result
+> can still depend on source cardinality or empty-input behavior.
 > Other inner method chains such as `xs.map(...)` still
 > require nested element collection proof before they enter the exact channel. Pure inner-Map
 > aggregate consumers such as
@@ -43,7 +60,11 @@ experiments that validated these passes are in [experiments](experiments.md).
 > `map` returning streams, wrong reduction seeds, outer-cardinality-only cases, and
 > changed flattened predicates; filtered Sum/Reduce FlatMap aggregates, method-terminal
 > Any/All predicates, and filtered nested early-return any/all loops preserve carried
-> outer/inner predicates), full **AC flatten+sort in the value graph itself** (not
+> outer/inner predicates). The controlled Java slice admits explicit
+> `Stream.reduce(seed, step)`; the controlled Swift slice admits eager unary
+> `allSatisfy` with standard dispatch. Swift `reduce` remains closed until its
+> fold callback, operator, overload, and trap semantics are separately proven),
+> full **AC flatten+sort in the value graph itself** (not
 > only the `algebra` IL pass), with `+` association/reorder kept domain-gated in
 > string-coercive languages, **operator-law contracts** from the semantic kernel
 > gate comparison transforms, comparison-lattice rewrites, static cardinality

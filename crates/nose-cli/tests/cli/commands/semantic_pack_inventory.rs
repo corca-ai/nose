@@ -10,9 +10,9 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_eq!(json["status"], "ok");
     assert_eq!(json["totals"]["packs"], 49);
     assert_eq!(json["totals"]["builtin_packs"], 49);
-    assert_eq!(json["totals"]["positive_fixtures"], 197);
-    assert_eq!(json["totals"]["hard_negatives"], 199);
-    assert_eq!(json["totals"]["conformance_refs"], 396);
+    assert_eq!(json["totals"]["positive_fixtures"], 200);
+    assert_eq!(json["totals"]["hard_negatives"], 208);
+    assert_eq!(json["totals"]["conformance_refs"], 408);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -190,6 +190,9 @@ fn assert_sequence_hof_adapter_pack(packs: &[serde_json::Value]) {
             "swift-sequence-hof-flat-map-positive",
             "swift-sequence-hof-flat-map-identity-positive",
             "swift-sequence-hof-flat-map-cross-product-positive",
+            "swift-sequence-hof-flat-map-all-satisfy-positive",
+            "swift-sequence-hof-filtered-flat-map-all-satisfy-positive",
+            "swift-sequence-hof-all-satisfy-disjoint-overload-positive",
             "ruby-enumerable-hof-map-positive",
             "ruby-enumerable-hof-collect-positive",
             "ruby-enumerable-hof-select-positive",
@@ -235,6 +238,15 @@ fn assert_sequence_hof_adapter_pack(packs: &[serde_json::Value]) {
             "swift-sequence-hof-flat-map-wrong-source-hard-negative",
             "swift-sequence-hof-flat-map-custom-overload-hard-negative",
             "swift-sequence-hof-flat-map-custom-inner-map-hard-negative",
+            "swift-sequence-hof-flat-map-aggregate-wrong-outer-guard-hard-negative",
+            "swift-sequence-hof-flat-map-aggregate-wrong-inner-guard-hard-negative",
+            "swift-sequence-hof-flat-map-aggregate-wrong-terminal-hard-negative",
+            "swift-sequence-hof-flat-map-aggregate-wrong-source-hard-negative",
+            "swift-sequence-hof-flat-map-aggregate-wrong-depth-hard-negative",
+            "swift-sequence-hof-flat-map-aggregate-effectful-callback-hard-negative",
+            "swift-sequence-hof-flat-map-aggregate-custom-filter-hard-negative",
+            "swift-sequence-hof-flat-map-aggregate-custom-all-satisfy-hard-negative",
+            "swift-sequence-hof-flat-map-aggregate-reduce-unproven-hard-negative",
             "ruby-enumerable-hof-no-block-hard-negative",
             "ruby-enumerable-hof-lazy-enumerator-hard-negative",
             "ruby-enumerable-hof-framework-relation-hard-negative",

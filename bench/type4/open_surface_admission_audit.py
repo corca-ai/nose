@@ -104,12 +104,12 @@ EPIC_778_OUT_OF_SCOPE_ROWS = [
     {
         "pattern_id": "hof.flat-map.aggregate-reduction",
         "language": "Java",
-        "reason": "one-level flat-map source facts are modeled; aggregate-guard coordinates remain",
+        "reason": "the controlled #797 Stream.flatMap/reduce slice is admitted; broader aggregate shapes remain outside the focused card",
     },
     {
         "pattern_id": "hof.flat-map.aggregate-reduction",
         "language": "Swift",
-        "reason": "one-level flat-map source facts are modeled; aggregate-guard coordinates remain",
+        "reason": "the controlled #797 flatMap/allSatisfy slice is admitted; Swift reduce and broader aggregate dispatch remain closed",
     },
     {
         "pattern_id": "hof.flat-map.one-level-flatten",
@@ -197,8 +197,8 @@ EPIC_791_BLOCKED_ROWS = [
             "collection.flatten-depth.one-level",
             "hof.flat-map.aggregate-guard-coordinate",
         ],
-        "work": "connect Java Stream.flatMap aggregate reductions using the modeled one-level source facts",
-        "reason": "one-level traversal and emitted-stream facts are modeled; aggregate guard placement is the remaining proof gap",
+        "work": "connected Java Stream.flatMap aggregate reductions to the modeled one-level source facts in #797",
+        "reason": "the modeled aggregate guard coordinate removes this row from the current open audit",
     },
     {
         "order": 6,
@@ -213,8 +213,8 @@ EPIC_791_BLOCKED_ROWS = [
             "collection.flatten-depth.one-level",
             "hof.flat-map.aggregate-guard-coordinate",
         ],
-        "work": "connect Swift flatMap terminal aggregates using the modeled one-level source facts",
-        "reason": "the flattened element stream is now reusable; aggregate guard placement remains unproven",
+        "work": "connected Swift flatMap/allSatisfy terminals to the modeled one-level source facts in #797",
+        "reason": "the modeled aggregate guard and standard terminal dispatch perimeter remove this row from the current open audit",
     },
     {
         "order": 7,
