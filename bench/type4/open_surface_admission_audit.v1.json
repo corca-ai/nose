@@ -3,14 +3,6 @@
     "model required facts before detector admission": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "hof.filter-map.option-emission",
-        "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
         "language": "Java",
         "likely_blocker": "model required facts before detector admission",
         "pattern_id": "hof.flat-map.aggregate-reduction",
@@ -73,14 +65,6 @@
     "effect.pure-callback": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "hof.filter-map.option-emission",
-        "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
         "language": "Java",
         "likely_blocker": "model required facts before detector admission",
         "pattern_id": "hof.flat-map.aggregate-reduction",
@@ -119,26 +103,6 @@
         "likely_blocker": "model required facts before detector admission",
         "pattern_id": "hof.flat-map.aggregate-reduction",
         "surface": "Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence",
-        "surface_status": "open"
-      }
-    ],
-    "hof.filter-map.drop-condition-coordinate": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "hof.filter-map.option-emission",
-        "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
-        "surface_status": "open"
-      }
-    ],
-    "hof.filter-map.emitted-value-coordinate": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "hof.filter-map.option-emission",
-        "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
         "surface_status": "open"
       }
     ],
@@ -215,14 +179,6 @@
     "iteration.same-source-identity": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "hof.filter-map.option-emission",
-        "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
         "language": "Java",
         "likely_blocker": "model required facts before detector admission",
         "pattern_id": "hof.flat-map.aggregate-reduction",
@@ -286,16 +242,6 @@
         "surface_status": "open"
       }
     ],
-    "option.absence-channel.identity": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "hof.filter-map.option-emission",
-        "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
-        "surface_status": "open"
-      }
-    ],
     "reduction.identity-empty-behavior": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
@@ -349,14 +295,6 @@
         "candidate_priority": "blocked-by-unmodeled-facts",
         "language": "Swift",
         "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "hof.filter-map.option-emission",
-        "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
         "pattern_id": "hof.flat-map.aggregate-reduction",
         "surface": "Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence",
         "surface_status": "open"
@@ -380,16 +318,6 @@
     ]
   },
   "by_pattern": {
-    "hof.filter-map.option-emission": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "hof.filter-map.option-emission",
-        "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
-        "surface_status": "open"
-      }
-    ],
     "hof.flat-map.aggregate-reduction": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
@@ -431,14 +359,6 @@
   },
   "by_surface_status": {
     "open": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "hof.filter-map.option-emission",
-        "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
-        "surface_status": "open"
-      },
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
         "language": "Java",
@@ -542,30 +462,11 @@
       "out_of_scope": [
         {
           "candidate_priority": "blocked-by-unmodeled-facts",
-          "current_candidate_priority": "blocked-by-unmodeled-facts",
-          "current_open_audit_state": "present",
-          "evidence_level": "missing",
+          "current_open_audit_state": "not-in-current-open-audit",
           "language": "Swift",
-          "likely_blocker": "model required facts before detector admission",
-          "pattern_focused_support": {
-            "hard_negative": 6,
-            "hard_negative_group": 0,
-            "positive": 3
-          },
           "pattern_id": "hof.filter-map.option-emission",
           "reason": "needs optional-result channel and callback-effect facts",
-          "selector": "hof.filter-map.option-emission:Swift:blocked-by-unmodeled-facts",
-          "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
-          "surface_focused_support": {
-            "hard_negative": 0,
-            "hard_negative_group": 0,
-            "positive": 0
-          },
-          "surface_status": "open",
-          "unmodeled_facts": [
-            "hof.filter-map.drop-condition-coordinate",
-            "hof.filter-map.emitted-value-coordinate"
-          ]
+          "selector": "hof.filter-map.option-emission:Swift:blocked-by-unmodeled-facts"
         },
         {
           "candidate_priority": "blocked-by-unmodeled-facts",
@@ -718,11 +619,11 @@
       "source": "bench/type4/open_surface_admission_audit.v1.json",
       "summary": {
         "current_actionable_open_count": 0,
-        "current_blocked_open_count": 5,
+        "current_blocked_open_count": 4,
         "in_scope_count": 6,
         "in_scope_currently_open": 0,
         "out_of_scope_count": 7,
-        "out_of_scope_currently_open": 5,
+        "out_of_scope_currently_open": 4,
         "unexpected_actionable_open_count": 0,
         "validation_error_count": 0
       },
@@ -782,8 +683,8 @@
         },
         {
           "fact_statuses": {
-            "hof.filter-map.drop-condition-coordinate": "specified-not-modeled",
-            "hof.filter-map.emitted-value-coordinate": "specified-not-modeled"
+            "hof.filter-map.drop-condition-coordinate": "modeled-controlled",
+            "hof.filter-map.emitted-value-coordinate": "modeled-controlled"
           },
           "facts": [
             "hof.filter-map.drop-condition-coordinate",
@@ -919,18 +820,10 @@
         },
         {
           "candidate_priority": "blocked-by-unmodeled-facts",
-          "current_candidate_priority": "blocked-by-unmodeled-facts",
-          "current_open_audit_state": "present",
-          "evidence_level": "missing",
+          "current_open_audit_state": "not-in-current-open-audit",
           "issue": 795,
           "language": "Swift",
-          "likely_blocker": "model required facts before detector admission",
           "order": 3,
-          "pattern_focused_support": {
-            "hard_negative": 6,
-            "hard_negative_group": 0,
-            "positive": 3
-          },
           "pattern_id": "hof.filter-map.option-emission",
           "planned_unmodeled_facts": [
             "effect.pure-callback",
@@ -940,17 +833,6 @@
           ],
           "reason": "after option channel and callback purity, compactMap still needs filter-map coordinate facts before admission",
           "selector": "hof.filter-map.option-emission:Swift:blocked-by-unmodeled-facts",
-          "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
-          "surface_focused_support": {
-            "hard_negative": 0,
-            "hard_negative_group": 0,
-            "positive": 0
-          },
-          "surface_status": "open",
-          "unmodeled_facts": [
-            "hof.filter-map.drop-condition-coordinate",
-            "hof.filter-map.emitted-value-coordinate"
-          ],
           "work": "model Swift compactMap drop-condition and emitted-value coordinates"
         },
         {
@@ -1120,11 +1002,11 @@
       "source": "bench/type4/open_surface_admission_audit.v1.json",
       "summary": {
         "current_actionable_open_count": 0,
-        "current_blocked_open_count": 5,
+        "current_blocked_open_count": 4,
         "fact_group_count": 7,
         "frozen_blocked_count": 7,
-        "frozen_currently_blocked": 5,
-        "frozen_promoted_or_resolved": 2,
+        "frozen_currently_blocked": 4,
+        "frozen_promoted_or_resolved": 3,
         "unexpected_blocked_open_count": 0,
         "validation_error_count": 0
       },
@@ -1134,47 +1016,6 @@
     }
   },
   "rows": [
-    {
-      "candidate_priority": "blocked-by-unmodeled-facts",
-      "coverage": {},
-      "evidence_level": "missing",
-      "fact_statuses": {
-        "effect.pure-callback": "modeled-controlled",
-        "hof.filter-map.drop-condition-coordinate": "specified-not-modeled",
-        "hof.filter-map.emitted-value-coordinate": "specified-not-modeled",
-        "iteration.same-source-identity": "modeled-controlled",
-        "option.absence-channel.identity": "modeled-controlled"
-      },
-      "language": "Swift",
-      "likely_blocker": "model required facts before detector admission",
-      "pattern_focused_support": {
-        "hard_negative": 6,
-        "hard_negative_group": 0,
-        "positive": 3
-      },
-      "pattern_id": "hof.filter-map.option-emission",
-      "pattern_status": "pattern-carded",
-      "required_facts": [
-        "iteration.same-source-identity",
-        "effect.pure-callback",
-        "hof.filter-map.drop-condition-coordinate",
-        "hof.filter-map.emitted-value-coordinate",
-        "option.absence-channel.identity"
-      ],
-      "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
-      "surface_evidence": "",
-      "surface_focused_support": {
-        "hard_negative": 0,
-        "hard_negative_group": 0,
-        "positive": 0
-      },
-      "surface_status": "open",
-      "unmodeled_facts": [
-        "hof.filter-map.drop-condition-coordinate",
-        "hof.filter-map.emitted-value-coordinate"
-      ],
-      "unresolved_surface_evidence_refs": []
-    },
     {
       "candidate_priority": "blocked-by-unmodeled-facts",
       "coverage": {},
@@ -1367,19 +1208,19 @@
       "open"
     ],
     "by_evidence_level": {
-      "missing": 5
+      "missing": 4
     },
     "by_language": {
       "Java": 1,
-      "Swift": 4
+      "Swift": 3
     },
     "by_priority": {
-      "blocked-by-unmodeled-facts": 5
+      "blocked-by-unmodeled-facts": 4
     },
     "by_status": {
-      "open": 5
+      "open": 4
     },
-    "open_surface_count": 5,
+    "open_surface_count": 4,
     "unresolved_surface_evidence_ref_count": 0
   },
   "tool_version": "open-surface-admission-audit/1"

@@ -7,6 +7,15 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added a controlled Swift `compactMap` option-emission slice for #795: eager unary
+  callbacks converge with explicit filtered emission only over a direct, attribute- and modifier-free
+  function parameter carrying language-core bracket-array (`[T]`) source evidence when the same callback-bound
+  `Bool` is the drop condition and emitted value opposite a single `nil` branch. Nominal or
+  custom receivers, captured or Optional values, custom nil-literal channels, changed or
+  derived/aliased sources, effects, custom/cross-file `compactMap`/`map`/`filter` methods
+  and callable properties,
+  parameter attributes/modifiers/property wrappers, imports, type aliases, macros, retroactive nil-literal conformances, and overloadable
+  expressions remain split; the executable Type-4 suite is 300/300.
 - Added the #820 post-#817 missed-worthy frontier: snapshot-aware validation that preserves
   #816, exact combined dev/held-out evaluation and zero-regression comparison, regenerated
   raw stages, chronology- and source-bound dev decisions, a held-out-source-free mechanical

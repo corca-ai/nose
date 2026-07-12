@@ -63,7 +63,7 @@ pub(super) fn dedupe_lambda_params(lo: &Lowering, kids: &mut Vec<NodeId>) {
 pub(super) fn lower_lambda_type_params(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>) {
     for child in Lowering::named_children(node) {
         if child.kind() == "lambda_parameter" {
-            lower_param(lo, child, out);
+            lower_param(lo, child, false, out);
         } else if matches!(
             child.kind(),
             "lambda_function_type" | "lambda_function_type_parameters"

@@ -9,23 +9,30 @@ pub(super) enum CallbackCoordinate {
 
 #[derive(Clone, Copy)]
 pub(super) enum CallbackObligation {
-    PureTransform(CallbackCoordinate),
-    PurePredicate(CallbackCoordinate),
+    Transform(CallbackCoordinate),
+    Predicate(CallbackCoordinate),
+    FilterMap(CallbackCoordinate),
 }
 
 impl CallbackObligation {
     fn coordinate(self) -> CallbackCoordinate {
         match self {
-            Self::PureTransform(coordinate) | Self::PurePredicate(coordinate) => coordinate,
+            Self::Transform(coordinate)
+            | Self::Predicate(coordinate)
+            | Self::FilterMap(coordinate) => coordinate,
         }
     }
 
     fn requires_proven_operator_dispatch(self) -> bool {
-        matches!(self, Self::PureTransform(_))
+        matches!(self, Self::Transform(_))
     }
 
     fn is_pure_transform(self) -> bool {
-        matches!(self, Self::PureTransform(_))
+        matches!(self, Self::Transform(_))
+    }
+
+    fn is_pure_filter_map(self) -> bool {
+        matches!(self, Self::FilterMap(_))
     }
 
     /// Whether a successful callback check under `self` already proves every
@@ -37,7 +44,12 @@ impl CallbackObligation {
     /// tree walk keeps deeply nested HOF chains from recursively rechecking the
     /// same callback subtree.
     fn subsumes(self, required: Self) -> bool {
-        self.is_pure_transform() || !required.is_pure_transform()
+        matches!(
+            (self, required),
+            (Self::Transform(_), Self::Transform(_) | Self::Predicate(_))
+                | (Self::Predicate(_), Self::Predicate(_))
+                | (Self::FilterMap(_), Self::FilterMap(_) | Self::Predicate(_),)
+        )
     }
 }
 
@@ -51,7 +63,7 @@ pub(super) fn library_api_callback_obligation(
     match semantic {
         MethodSemanticContract::HoF(kind) => transform_callback_obligation(lang, kind),
         MethodSemanticContract::Builtin(builtin) => {
-            predicate_callback_coordinate(lang, builtin).map(CallbackObligation::PurePredicate)
+            predicate_callback_coordinate(lang, builtin).map(CallbackObligation::Predicate)
         }
     }
 }
@@ -59,7 +71,10 @@ pub(super) fn library_api_callback_obligation(
 fn transform_callback_coordinate(lang: Lang, kind: HoFKind) -> Option<CallbackCoordinate> {
     let supported = match lang {
         Lang::Ruby => matches!(kind, HoFKind::Map | HoFKind::Filter | HoFKind::Reject),
-        Lang::Swift => matches!(kind, HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap),
+        Lang::Swift => matches!(
+            kind,
+            HoFKind::Map | HoFKind::Filter | HoFKind::FilterMap | HoFKind::FlatMap
+        ),
         _ if js_like_lang(lang) => {
             matches!(kind, HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
         }
@@ -71,8 +86,9 @@ fn transform_callback_coordinate(lang: Lang, kind: HoFKind) -> Option<CallbackCo
 fn transform_callback_obligation(lang: Lang, kind: HoFKind) -> Option<CallbackObligation> {
     let coordinate = transform_callback_coordinate(lang, kind)?;
     Some(match kind {
-        HoFKind::Map | HoFKind::FlatMap => CallbackObligation::PureTransform(coordinate),
-        HoFKind::Filter | HoFKind::Reject => CallbackObligation::PurePredicate(coordinate),
+        HoFKind::Map | HoFKind::FlatMap => CallbackObligation::Transform(coordinate),
+        HoFKind::Filter | HoFKind::Reject => CallbackObligation::Predicate(coordinate),
+        HoFKind::FilterMap if lang == Lang::Swift => CallbackObligation::FilterMap(coordinate),
         HoFKind::Reduce | HoFKind::FilterMap => return None,
     })
 }
@@ -107,22 +123,181 @@ pub(super) fn library_api_callback_obligation_matches_node(
     {
         return false;
     }
+    if obligation.is_pure_filter_map() {
+        let Some(interner) = interner else {
+            return false;
+        };
+        if !swift_compact_map_has_direct_parameter_source(il, node)
+            || swift_compact_map_dispatch_ambiguous_in_file(il, interner)
+            || swift_nil_literal_conformance_in_file(il, interner)
+            || !callback_filter_map_coordinates_proven(il, callback)
+        {
+            return false;
+        }
+    }
     callback_effect_closed(il, interner, callback, obligation)
 }
 
 fn callback_has_single_value_param(il: &Il, callback: NodeId) -> bool {
+    callback_single_value_param(il, callback).is_some()
+}
+
+fn callback_single_value_param(il: &Il, callback: NodeId) -> Option<NodeId> {
     if !matches!(il.kind(callback), NodeKind::Func | NodeKind::Lambda) {
-        return false;
+        return None;
     }
     let mut params = il
         .children(callback)
         .iter()
         .copied()
         .filter(|&child| il.kind(child) == NodeKind::Param);
-    let Some(param) = params.next() else {
+    let param = params.next()?;
+    (params.next().is_none() && il.children(param).is_empty()).then_some(param)
+}
+
+fn swift_compact_map_has_direct_parameter_source(il: &Il, node: NodeId) -> bool {
+    let source = match il.kind(node) {
+        NodeKind::Call => {
+            let callee = il.children(node).first().copied();
+            callee
+                .filter(|&callee| il.kind(callee) == NodeKind::Field)
+                .and_then(|callee| il.children(callee).first().copied())
+        }
+        NodeKind::HoF => il.children(node).first().copied(),
+        _ => None,
+    };
+    source
+        .and_then(|source| swift_compact_map_direct_function_param(il, source))
+        .is_some_and(|param| swift_bracket_array_parameter_proven(il, param))
+}
+
+fn swift_compact_map_direct_function_param(il: &Il, source: NodeId) -> Option<NodeId> {
+    if il.kind(source) != NodeKind::Var {
+        return None;
+    }
+    match il.node(source).payload {
+        Payload::Name(name) => nearest_named_param_scope(il, source, name)
+            .filter(|(scope, _)| il.kind(*scope) == NodeKind::Func)
+            .map(|(_, param)| param),
+        Payload::Cid(cid) => {
+            let span = receiver_cid_param_span(il, source, cid)?;
+            let mut params = il.nodes_spanning(span).filter(|&param| {
+                il.node(param).span == span
+                    && il.kind(param) == NodeKind::Param
+                    && matches!(il.node(param).payload, Payload::Cid(param_cid) if param_cid == cid)
+                    && il
+                        .nearest_scope(param)
+                        .is_some_and(|scope| il.kind(scope) == NodeKind::Func)
+            });
+            let param = params.next()?;
+            params.next().is_none().then_some(param)
+        }
+        _ => None,
+    }
+}
+
+fn swift_compact_map_dispatch_ambiguous_in_file(il: &Il, interner: &Interner) -> bool {
+    il.units.iter().any(|unit| {
+        matches!(unit.kind, UnitKind::Function | UnitKind::Method)
+            && unit.name.is_some_and(|name| {
+                ["compactMap", "filter", "map"]
+                    .into_iter()
+                    .any(|expected| swift_identifier_matches(interner.resolve(name), expected))
+            })
+    }) || il.nodes.iter().any(|node| {
+        matches!(node.payload, Payload::Name(name) if interner.resolve(name)
+            == SWIFT_COMPACT_MAP_DISPATCH_BARRIER_MARKER)
+    }) || swift_has_unproven_collection_parameter(il)
+}
+
+fn swift_nil_literal_conformance_in_file(il: &Il, interner: &Interner) -> bool {
+    il.nodes.iter().any(|node| {
+        matches!(node.payload, Payload::Name(name) if matches!(
+            interner.resolve(name),
+            SWIFT_NIL_LITERAL_CONFORMANCE_MARKER | SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER
+        ))
+    })
+}
+
+/// Prove the controlled Swift `compactMap` callback perimeter: one branch is
+/// exactly Optional absence and the other re-emits the same callback binding
+/// that controls the condition. Swift requires that condition binding to be
+/// `Bool`, which makes the contextual `nil` Optional absence without trusting
+/// nominal type text. Captured/other Vars stay closed because they may be
+/// Optional or conform to `ExpressibleByNilLiteral`.
+fn callback_filter_map_coordinates_proven(il: &Il, callback: NodeId) -> bool {
+    let Some(param) = callback_single_value_param(il, callback) else {
         return false;
     };
-    params.next().is_none() && il.children(param).is_empty()
+    let Some(output) = callback_single_output(il, callback) else {
+        return false;
+    };
+    let [condition, then_branch, else_branch] = il.children(output) else {
+        return false;
+    };
+    let Some(condition) = callback_single_output(il, *condition) else {
+        return false;
+    };
+    if il.kind(output) != NodeKind::If || il.kind(condition) != NodeKind::Var {
+        return false;
+    }
+    let emitted = match (
+        callback_filter_map_branch(il, *then_branch),
+        callback_filter_map_branch(il, *else_branch),
+    ) {
+        (Some(FilterMapBranch::Emit(emitted)), Some(FilterMapBranch::Drop))
+        | (Some(FilterMapBranch::Drop), Some(FilterMapBranch::Emit(emitted))) => emitted,
+        _ => return false,
+    };
+    var_references_same_binding(il, condition, emitted)
+        && var_references_param_binding(il, condition, param)
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum FilterMapBranch {
+    Emit(NodeId),
+    Drop,
+}
+
+fn callback_filter_map_branch(il: &Il, branch: NodeId) -> Option<FilterMapBranch> {
+    let output = callback_single_output(il, branch)?;
+    match (il.kind(output), il.node(output).payload) {
+        (NodeKind::Lit, Payload::Lit(LitClass::Null)) => Some(FilterMapBranch::Drop),
+        (NodeKind::Var, _) => Some(FilterMapBranch::Emit(output)),
+        _ => None,
+    }
+}
+
+fn callback_single_output(il: &Il, root: NodeId) -> Option<NodeId> {
+    let mut node = root;
+    loop {
+        match il.kind(node) {
+            NodeKind::Func | NodeKind::Lambda => {
+                let mut outputs = il
+                    .children(node)
+                    .iter()
+                    .copied()
+                    .filter(|&child| il.kind(child) != NodeKind::Param);
+                node = outputs.next()?;
+                if outputs.next().is_some() {
+                    return None;
+                }
+            }
+            NodeKind::Block => {
+                let [only] = il.children(node) else {
+                    return None;
+                };
+                node = *only;
+            }
+            NodeKind::Return | NodeKind::ExprStmt => {
+                let [value] = il.children(node) else {
+                    return None;
+                };
+                node = *value;
+            }
+            _ => return Some(node),
+        }
+    }
 }
 
 fn callback_effect_closed(

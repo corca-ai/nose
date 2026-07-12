@@ -111,6 +111,42 @@ fn asserted(records: Vec<&EvidenceRecord>) -> Vec<&EvidenceRecord> {
 }
 
 #[test]
+fn ambiguous_builtin_api_evidence_is_a_refresh_tombstone() {
+    let mut interner = Interner::new();
+    let (mut il, call, _, _) = method_call_il(&mut interner, Lang::JavaScript, "map", 1);
+    let contract = library_method_call_contract(Lang::JavaScript, "map", 1).expect("map row");
+    let anchor = EvidenceAnchor::node(il.node(call).span, NodeKind::Call);
+    let kind = EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+        contract_hash: library_api_contract_id_hash(contract.id),
+        callee_hash: library_api_callee_contract_hash(contract.callee),
+        arity: 1,
+    });
+    let first = upsert_builtin_evidence_with_pack_id(
+        &mut il,
+        anchor,
+        kind,
+        contract.pack_id,
+        contract.producer_id,
+        Vec::new(),
+    );
+    il.evidence[first.0 as usize].status = EvidenceStatus::Ambiguous;
+
+    let refreshed = upsert_builtin_evidence_with_pack_id(
+        &mut il,
+        anchor,
+        kind,
+        contract.pack_id,
+        contract.producer_id,
+        Vec::new(),
+    );
+
+    assert_eq!(refreshed, first);
+    let records = library_api_records(&il, call);
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].status, EvidenceStatus::Ambiguous);
+}
+
+#[test]
 fn builder_append_method_api_evidence_admits_first_party_rows() {
     for (lang, method) in [
         (Lang::Python, "append"),

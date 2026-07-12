@@ -2,6 +2,33 @@
 
 use super::*;
 
+/// Internal source marker emitted when Swift declares a conformance that can
+/// change the contextual meaning of `nil` away from Optional absence.
+pub const SWIFT_NIL_LITERAL_CONFORMANCE_MARKER: &str =
+    "__nose_swift_expressible_by_nil_literal_conformance";
+
+/// Internal marker for Swift source constructs that can hide a nil-literal
+/// conformance from the current name resolver (imports, type aliases, macros).
+pub const SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER: &str = "__nose_swift_nil_literal_proof_barrier";
+
+/// Internal marker emitted when Swift source can override `compactMap`, `map`,
+/// or `filter` dispatch. This includes methods and callable properties, even
+/// when parser recovery does not produce a function/method unit, so exact
+/// stdlib dispatch must remain closed in its presence.
+pub const SWIFT_COMPACT_MAP_DISPATCH_BARRIER_MARKER: &str =
+    "__nose_swift_compact_map_dispatch_barrier";
+
+/// Compare a lowered Swift identifier after removing the language's backtick
+/// escape syntax. Escaping changes how a keyword is parsed, not the identifier
+/// denoted at runtime.
+pub fn swift_identifier_matches(actual: &str, expected: &str) -> bool {
+    actual == expected
+        || actual
+            .strip_prefix('`')
+            .and_then(|value| value.strip_suffix('`'))
+            == Some(expected)
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct StdlibSemantics {
     pub(super) lang: Lang,
@@ -58,6 +85,10 @@ impl StdlibSemantics {
 
     pub fn rust_filter_map_option_contract(self) -> bool {
         self.lang == Lang::Rust
+    }
+
+    pub fn swift_compact_map_option_contract(self) -> bool {
+        self.lang == Lang::Swift
     }
 
     pub fn imported_map_factory(self) -> Option<ImportedMapFactoryContract> {

@@ -1,9 +1,9 @@
 {
-  "expectation_count": 288,
+  "expectation_count": 300,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 288,
-  "query_count": 21,
+  "passed": 300,
+  "query_count": 26,
   "results": [
     {
       "case_id": "collection_membership_literal_and_typed_positive",
@@ -3629,6 +3629,131 @@
       "expect": "split",
       "expectation_id": "hof_callback_ruby_map_key_hashing_stays_split",
       "fixture": "bench/type4/adversarial/cases/hof_callback_purity",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_compact_map_option_emission_positive",
+      "expect": "same-family",
+      "expectation_id": "swift_compact_map_exact_matches_filtered_reference",
+      "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/swift_compact_map/compact_map.swift",
+            "name": "compactMapExact",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "bench/type4/adversarial/cases/swift_compact_map/reference.py",
+            "name": "compactMapReference",
+            "start": 1
+          }
+        ],
+        "value": 3.6,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "swift_compact_map_option_emission_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_compact_map_changed_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_compact_map_option_emission_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_compact_map_changed_drop_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_compact_map_option_emission_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_compact_map_wrong_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_compact_map_option_emission_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_compact_map_wrong_optional_channel_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_compact_map_option_emission_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_compact_map_effectful_callback_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_compact_map_option_emission_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_compact_map_optional_emitted_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_compact_map_option_emission_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_compact_map_custom_nil_literal_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_compact_map_custom_nil_literal",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_compact_map_option_emission_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_compact_map_retroactive_nil_conformance_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_compact_map_nil_conformance",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_compact_map_option_emission_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_compact_map_derived_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_compact_map",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_compact_map_option_emission_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_compact_map_custom_overload_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_compact_map_custom_overload",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_compact_map_option_emission_boundaries",
+      "expect": "split",
+      "expectation_id": "swift_compact_map_custom_nominal_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_compact_map_custom_nominal",
       "matching_family": null,
       "observed": "split",
       "ok": true

@@ -397,16 +397,20 @@ pub(super) fn upsert_builtin_evidence_with_pack_id(
     let pack_hash = stable_symbol_hash(pack_id);
     let rule_hash = stable_symbol_hash(rule);
     let mut found = None;
+    let mut ambiguous = None;
     // Index-backed (see `effect_evidence::upsert`): only same-span records can
     // match, and the fields updated in place are read live by the index.
     for idx in il.evidence_indices_anchored_at(anchor.span()) {
         let record = &mut il.evidence[idx as usize];
         if record.anchor == anchor
             && record.kind == kind
-            && record.status == EvidenceStatus::Asserted
             && record.provenance.emitter == EvidenceEmitter::Builtin
             && record.provenance.pack_hash == Some(pack_hash)
         {
+            if record.status == EvidenceStatus::Ambiguous {
+                ambiguous.get_or_insert(record.id);
+                continue;
+            }
             if found.is_none() {
                 found = Some(record.id);
             }
@@ -414,7 +418,10 @@ pub(super) fn upsert_builtin_evidence_with_pack_id(
             record.dependencies = dependencies.clone();
         }
     }
-    found.unwrap_or_else(|| {
+    // Ambiguous first-party evidence is a fail-closed tombstone. Corpus-level
+    // shadow resolution deliberately writes such records, and later evidence
+    // refresh passes must not resurrect the same API on re-normalization.
+    ambiguous.or(found).unwrap_or_else(|| {
         il.find_or_push_builtin_evidence(anchor, kind, pack_id, rule, dependencies)
     })
 }

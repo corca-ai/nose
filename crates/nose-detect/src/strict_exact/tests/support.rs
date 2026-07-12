@@ -24,6 +24,13 @@ pub(super) fn normalized_python(src: &str, interner: &Interner) -> Il {
     normalize(&raw, interner, &NormalizeOptions::default())
 }
 
+pub(super) fn normalized_swift(src: &str, interner: &Interner) -> Il {
+    let raw =
+        nose_frontend::lower_source(FileId(0), "t.swift", src.as_bytes(), Lang::Swift, interner)
+            .expect("lower Swift source");
+    normalize(&raw, interner, &NormalizeOptions::default())
+}
+
 pub(super) fn first_call_with_target(
     il: &Il,
     interner: &Interner,

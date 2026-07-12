@@ -63,7 +63,12 @@ iterator HOF rows require
 protocol receiver; `count` terminal rows use the same receiver provenance
 boundary, while Rust `any`/`all` terminals additionally require inline
 effect-closed callback proof. Swift `map`/`filter`/`flatMap` rows use the same pack only on
-proven Array/Collection receivers with inline effect-closed callbacks. Ruby
+proven Array/Collection receivers with inline effect-closed callbacks. Swift
+`compactMap` additionally has an eager-per-element controlled slice: the callback must run
+over a direct, attribute- and modifier-free function parameter with language-core bracket-array (`[T]`) source evidence, have one plain parameter used as
+both the `Bool` condition and emitted value, have exactly one `nil` branch, and run in
+a closed nil-literal namespace without imports, type aliases, macros, or visible
+`ExpressibleByNilLiteral` conformances. Ruby
 Enumerable rows use the same pack only on proven Array/Collection receivers with
 inline effect-closed blocks; no-block Enumerator returns, lazy enumerators,
 framework relations, Hash/Set receivers, and `flat_map` remain closed until
@@ -113,6 +118,18 @@ Quantifier/filter predicates use the separate pure-predicate
 obligation even though both obligations share the same effect-closure walker.
 This callback fact does not prove receiver/source,
 emitted-value, optional-channel, flatten-depth, aggregate, or timing facts.
+
+The Swift `compactMap` slice combines those independent facts rather than treating
+the selector as proof. Its `FilterMap` value keeps the drop condition and emitted
+value as separate coordinates and preserves the Optional absence channel. Changed
+conditions or emitted values, a different source, `.map` returning Optional payloads,
+captured or Optional emissions, custom nil-literal channels, effectful callbacks,
+same-file/corpus-visible custom `compactMap`/`map`/`filter` methods or callable properties, parameter attributes/modifiers/property wrappers, nominal/custom
+receivers, derived or aliased sources, and imports, type aliases, macros, overloadable or
+derived expressions remain split or fail closed. Exact-channel consumers
+revalidate the admitted HOF with the same interner used for source/API identity; ambiguous
+corpus evidence remains a tombstone across repeated normalization, and any surviving raw
+Swift `compactMap` selector stays outside opaque exact method identity.
 
 Promise `.then` now carries an async-continuation demand/effect profile in its
 contract row. That does not open exact beta-reduction by itself. The value-graph

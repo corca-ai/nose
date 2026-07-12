@@ -155,10 +155,10 @@ fn swift_sequence_hof_method_callee(
         (id, callee),
         (
             LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
-                HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap,
+                HoFKind::Map | HoFKind::Filter | HoFKind::FilterMap | HoFKind::FlatMap,
             )),
             LibraryApiCalleeContract::Method {
-                method: "map" | "filter" | "flatMap",
+                method: "map" | "filter" | "compactMap" | "flatMap",
                 receiver: MethodReceiverContract::ExactArrayOrCollection,
             },
         ) | (

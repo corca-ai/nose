@@ -34,6 +34,10 @@ fn method_protocol_contracts_are_language_constrained() {
         Some(HoFKind::FlatMap)
     );
     assert_eq!(
+        method_hof_contract(Lang::Swift, "compactMap"),
+        Some(HoFKind::FilterMap)
+    );
+    assert_eq!(
         method_hof_contract(Lang::Ruby, "select"),
         Some(HoFKind::Filter)
     );
@@ -173,6 +177,14 @@ fn method_call_contracts_carry_receiver_and_resolution_obligations() {
         method_call_contract(Lang::Swift, "flatMap", 1),
         Some(MethodCallContract {
             semantic: MethodSemanticContract::HoF(HoFKind::FlatMap),
+            receiver: MethodReceiverContract::ExactArrayOrCollection,
+            args: MethodBuiltinArgs::Hof,
+        })
+    );
+    assert_eq!(
+        method_call_contract(Lang::Swift, "compactMap", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::HoF(HoFKind::FilterMap),
             receiver: MethodReceiverContract::ExactArrayOrCollection,
             args: MethodBuiltinArgs::Hof,
         })

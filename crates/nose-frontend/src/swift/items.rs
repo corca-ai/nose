@@ -25,10 +25,14 @@ pub(super) fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
             record_typealias_shadow(lo, node);
             None
         }
+        "macro_declaration" => {
+            let span = lo.span(node);
+            record_nil_literal_proof_barrier(lo, span);
+            None
+        }
         "associatedtype_declaration"
         | "operator_declaration"
         | "precedence_group_declaration"
-        | "macro_declaration"
         | "line_comment"
         | "multiline_comment" => None,
         _ => lower_stmt(lo, node),
@@ -66,6 +70,7 @@ pub(super) fn lower_enum_entry(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 pub(super) fn lower_import(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
+    record_nil_literal_proof_barrier(lo, span);
     let module = Lowering::named_children(node)
         .into_iter()
         .filter(|child| matches!(child.kind(), "identifier" | "simple_identifier"))
@@ -83,6 +88,8 @@ pub(super) fn lower_type(lo: &mut Lowering, node: TsNode) -> NodeId {
     let name = node.child_by_field_name("name").map(|n| lo.sym(lo.text(n)));
     let body = node.child_by_field_name("body");
     let mut kids = Vec::new();
+    record_compact_map_dispatch_barrier(lo, node);
+    record_nil_literal_conformance(lo, node, &mut kids);
     if let Some(body) = body {
         for child in Lowering::named_children(body) {
             if let Some(id) = lower_item(lo, child) {
@@ -101,6 +108,8 @@ pub(super) fn lower_extension(lo: &mut Lowering, node: TsNode) -> NodeId {
         .and_then(|ty| type_surface_name(lo, ty))
         .map(|name| lo.sym(&name));
     let mut kids = Vec::new();
+    record_compact_map_dispatch_barrier(lo, node);
+    record_nil_literal_conformance(lo, node, &mut kids);
     for child in Lowering::named_children(node) {
         match child.kind() {
             "class_body" | "enum_class_body" => {
@@ -117,8 +126,41 @@ pub(super) fn lower_extension(lo: &mut Lowering, node: TsNode) -> NodeId {
     lo.push_unit_with_origin(block, UnitKind::Class, name, swift_extension_origin(node));
     block
 }
+
+fn record_nil_literal_conformance(lo: &mut Lowering, node: TsNode, kids: &mut Vec<NodeId>) {
+    let header = lo.text(node).split('{').next().unwrap_or_default();
+    if !swift_source_mentions_identifier(header, "ExpressibleByNilLiteral") {
+        return;
+    }
+    let span = lo.span(node);
+    let marker = lo.sym(SWIFT_NIL_LITERAL_CONFORMANCE_MARKER);
+    kids.push(lo.add(NodeKind::Block, Payload::Name(marker), span, &[]));
+}
+
+pub(super) fn swift_source_mentions_identifier(source: &str, expected: &str) -> bool {
+    source
+        .split(|ch: char| !(ch == '_' || ch.is_ascii_alphanumeric()))
+        .any(|token| token == expected)
+}
+
+pub(super) fn record_compact_map_dispatch_barrier(lo: &mut Lowering, node: TsNode) {
+    if !["compactMap", "filter", "map"]
+        .into_iter()
+        .any(|name| swift_source_mentions_identifier(lo.text(node), name))
+    {
+        return;
+    }
+    let marker = lo.sym(SWIFT_COMPACT_MAP_DISPATCH_BARRIER_MARKER);
+    lo.add(NodeKind::Block, Payload::Name(marker), lo.span(node), &[]);
+}
+
+fn record_nil_literal_proof_barrier(lo: &mut Lowering, span: Span) {
+    let marker = lo.sym(SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER);
+    lo.add(NodeKind::Block, Payload::Name(marker), span, &[]);
+}
 pub(super) fn record_typealias_shadow(lo: &mut Lowering, node: TsNode) {
     let span = lo.span(node);
+    record_nil_literal_proof_barrier(lo, span);
     if let Some(name) = swift_decl_name(lo, node) {
         // Keep type-only syntax out of the structural tree while preserving the
         // declaration as a same-file shadow for stdlib free-name contracts.
@@ -130,11 +172,16 @@ pub(super) fn lower_function(lo: &mut Lowering, node: TsNode, method: bool) -> N
     let name = swift_decl_name(lo, node);
     let protocol_modifiers = swift_function_protocol_modifiers(node);
     let mut kids = Vec::new();
-    for param in Lowering::named_children(node)
-        .into_iter()
-        .filter(|child| child.kind() == "parameter")
-    {
-        lower_param(lo, param, &mut kids);
+    let mut previous_was_attribute = false;
+    for child in Lowering::named_children(node) {
+        match child.kind() {
+            "attribute" => previous_was_attribute = true,
+            "parameter" => {
+                lower_param(lo, child, previous_was_attribute, &mut kids);
+                previous_was_attribute = false;
+            }
+            _ => previous_was_attribute = false,
+        }
     }
     let body_node = node.child_by_field_name("body");
     let body = body_node
@@ -368,15 +415,40 @@ pub(super) fn swift_decl_name(lo: &mut Lowering, node: TsNode) -> Option<Symbol>
         })
         .map(|name| lo.sym(lo.text(name)))
 }
-pub(super) fn lower_param(lo: &mut Lowering, param: TsNode, out: &mut Vec<NodeId>) {
+pub(super) fn lower_param(
+    lo: &mut Lowering,
+    param: TsNode,
+    has_attribute: bool,
+    out: &mut Vec<NodeId>,
+) {
     let span = lo.span(param);
     let name = parameter_binding_name(param);
     let payload = name
         .filter(|n| lo.text(*n) != "_")
         .map(|n| Payload::Name(lo.sym(lo.text(n))))
         .unwrap_or(Payload::None);
-    if let Some(domain) = param
-        .child_by_field_name("type")
+    let type_node = param.child_by_field_name("type");
+    let has_parameter_modifiers = Lowering::named_children(param)
+        .into_iter()
+        .any(|child| child.kind() == "parameter_modifiers");
+    if type_node.is_some_and(|ty| ty.kind() == "array_type")
+        && !has_attribute
+        && !has_parameter_modifiers
+        && !param.has_error()
+    {
+        // Swift's bracket type is the one source surface that proves a builtin
+        // Array independently of nominal `Array`/`Collection` declarations.
+        // Parameter attributes can denote property wrappers that replace the
+        // caller's value before the function body observes it. Other parameter
+        // modifiers and parser-recovered parameter syntax also stay outside
+        // this deliberately plain source proof.
+        lo.record_evidence(
+            EvidenceAnchor::param(span),
+            EvidenceKind::Type(TypeEvidenceKind::SwiftBracketArrayParameter),
+            "swift_bracket_array_parameter",
+        );
+    }
+    if let Some(domain) = type_node
         .and_then(|ty| lo.type_domain_from_text_with_dependencies(lo.text(ty)))
         .or_else(|| lo.type_domain_from_text_with_dependencies(lo.text(param)))
     {

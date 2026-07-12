@@ -10,10 +10,10 @@ surface admission issue without re-triaging every pattern card by hand.
 ## Summary
 
 - audited surface statuses: open
-- open surfaces: 5
-- priorities: blocked-by-unmodeled-facts=5
-- evidence levels: missing=5
-- languages: Java=1, Swift=4
+- open surfaces: 4
+- priorities: blocked-by-unmodeled-facts=4
+- evidence levels: missing=4
+- languages: Java=1, Swift=3
 - unresolved surface evidence refs: 0
 
 ## Epic #778 Audit Slice
@@ -26,7 +26,7 @@ neutral proof facts before admission work is sound.
 - setup issue: #781
 - closeout issue: #785
 - in-scope rows: 6 (0 currently present in the open audit)
-- out-of-scope blocked rows: 7 (5 currently present in the open audit)
+- out-of-scope blocked rows: 7 (4 currently present in the open audit)
 - unexpected actionable open rows: 0
 
 ### In Scope
@@ -44,7 +44,7 @@ neutral proof facts before admission work is sound.
 
 | priority | pattern | language | current state | reason | missing facts | surface |
 |---|---|---|---|---|---|---|
-| `blocked-by-unmodeled-facts` | `hof.filter-map.option-emission` | Swift | present | needs optional-result channel and callback-effect facts | `hof.filter-map.drop-condition-coordinate`, `hof.filter-map.emitted-value-coordinate` | Sequence.compactMap after optional-result channel and callback-effect proof |
+| `blocked-by-unmodeled-facts` | `hof.filter-map.option-emission` | Swift | not-in-current-open-audit (``) | needs optional-result channel and callback-effect facts |  |  |
 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Java | present | needs flat-map source, one-level depth, callback, and aggregate-guard facts | `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level`, `hof.flat-map.aggregate-guard-coordinate` | Stream.flatMap terminal reductions after flat-map source proof is connected to stream aggregate facts |
 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Swift | present | needs flat-map source, one-level depth, callback, and aggregate-guard facts | `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level`, `hof.flat-map.aggregate-guard-coordinate` | Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence |
 | `blocked-by-unmodeled-facts` | `hof.flat-map.one-level-flatten` | Swift | present | needs one-level flatten, nested-order, emitted-value, and callback facts | `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level` | Sequence.flatMap after focused one-level flatten and callback-effect evidence |
@@ -63,9 +63,9 @@ admit Ruby, Swift, Java, or map/HOF spellings directly.
 - setup issue: #792
 - predecessor issue: #778
 - closeout issue: #799
-- frozen blocked rows: 7 (5 currently blocked)
-- promoted or resolved frozen rows: 2
-- current blocked open rows: 5
+- frozen blocked rows: 7 (4 currently blocked)
+- promoted or resolved frozen rows: 3
+- current blocked open rows: 4
 - unexpected blocked open rows: 0
 
 ### Fact Groups And Admission Order
@@ -74,7 +74,7 @@ admit Ruby, Swift, Java, or map/HOF spellings directly.
 |---|---|---|---|---|---|---|
 | 1 | #793 | `option.absence-channel` Option absence-channel identity | `option.absence-channel.identity`:modeled-controlled | `option.presence-default.proven-channel-coordinate:Ruby`, `option.presence-default.proven-channel-coordinate:Swift`, `hof.filter-map.option-emission:Swift` | `option.presence-default.proven-channel-coordinate:Ruby`, `option.presence-default.proven-channel-coordinate:Swift` | hof.filter-map.option-emission:Swift waits for callback purity and filter-map coordinates |
 | 2 | #794 | `effect.hof-callback-purity` Higher-order callback effect safety | `effect.pure-callback`:modeled-controlled | `hof.filter-map.option-emission:Swift`, `hof.flat-map.one-level-flatten:Swift`, `hof.flat-map.aggregate-reduction:Java`, `hof.flat-map.aggregate-reduction:Swift` |  | compactMap waits for option-emission coordinate facts; flatMap waits for one-level flatten and nested traversal facts |
-| 3 | #795 | `hof.filter-map.coordinates` Filter-map drop and emitted-value coordinates | `hof.filter-map.drop-condition-coordinate`:specified-not-modeled, `hof.filter-map.emitted-value-coordinate`:specified-not-modeled | `hof.filter-map.option-emission:Swift` | `hof.filter-map.option-emission:Swift` |  |
+| 3 | #795 | `hof.filter-map.coordinates` Filter-map drop and emitted-value coordinates | `hof.filter-map.drop-condition-coordinate`:modeled-controlled, `hof.filter-map.emitted-value-coordinate`:modeled-controlled | `hof.filter-map.option-emission:Swift` | `hof.filter-map.option-emission:Swift` |  |
 | 4 | #796 | `hof.flat-map.one-level-stream` One-level flat-map source and emitted stream | `collection.flatten-depth.one-level`:specified-not-modeled, `hof.flat-map.nested-iteration-order`:specified-not-modeled, `hof.flat-map.emitted-value-coordinate`:specified-not-modeled | `hof.flat-map.one-level-flatten:Swift`, `hof.flat-map.aggregate-reduction:Java`, `hof.flat-map.aggregate-reduction:Swift` | `hof.flat-map.one-level-flatten:Swift` | flat-map aggregate reductions wait for aggregate guard-coordinate proof |
 | 5 | #797 | `hof.flat-map.aggregate-guard` Flat-map aggregate guard coordinate | `hof.flat-map.aggregate-guard-coordinate`:specified-not-modeled | `hof.flat-map.aggregate-reduction:Java`, `hof.flat-map.aggregate-reduction:Swift` | `hof.flat-map.aggregate-reduction:Java`, `hof.flat-map.aggregate-reduction:Swift` |  |
 | 6 | #798 | `map.default.receiver-fallback` Map default receiver and fallback coordinates | `map.default.absence-fallback`:specified-not-modeled, `map.receiver.source-identity`:specified-not-modeled, `map.default.key-fallback-coordinate`:specified-not-modeled, `map.receiver.no-intervening-mutation`:specified-not-modeled | `map.default.absence-lookup:Swift` | `map.default.absence-lookup:Swift` |  |
@@ -86,7 +86,7 @@ admit Ruby, Swift, Java, or map/HOF spellings directly.
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | #793 | `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Ruby | not-in-current-open-audit (``) |  |  | model absence-channel identity before Ruby nil?/nil comparison admission |  |
 | 2 | #793 | `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Swift | not-in-current-open-audit (``) |  |  | model absence-channel identity before Swift Optional presence/defaulting admission |  |
-| 3 | #795 | `blocked-by-unmodeled-facts` | `hof.filter-map.option-emission` | Swift | present | model required facts before detector admission | `hof.filter-map.drop-condition-coordinate`, `hof.filter-map.emitted-value-coordinate` | model Swift compactMap drop-condition and emitted-value coordinates | Sequence.compactMap after optional-result channel and callback-effect proof |
+| 3 | #795 | `blocked-by-unmodeled-facts` | `hof.filter-map.option-emission` | Swift | not-in-current-open-audit (``) |  |  | model Swift compactMap drop-condition and emitted-value coordinates |  |
 | 4 | #796 | `blocked-by-unmodeled-facts` | `hof.flat-map.one-level-flatten` | Swift | present | model required facts before detector admission | `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level` | model one-level flatten, nested-order, and emitted-value facts for Swift flatMap | Sequence.flatMap after focused one-level flatten and callback-effect evidence |
 | 5 | #797 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Java | present | model required facts before detector admission | `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level`, `hof.flat-map.aggregate-guard-coordinate` | connect Java Stream.flatMap aggregate reductions after flat-map source facts land | Stream.flatMap terminal reductions after flat-map source proof is connected to stream aggregate facts |
 | 6 | #797 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Swift | present | model required facts before detector admission | `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level`, `hof.flat-map.aggregate-guard-coordinate` | connect Swift flatMap terminal aggregates after one-level flatten facts land | Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence |
@@ -96,7 +96,6 @@ admit Ruby, Swift, Java, or map/HOF spellings directly.
 
 | priority | pattern | language | surface | status | evidence | blocker | facts | surface focused | pattern perimeter | coverage |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `blocked-by-unmodeled-facts` | `hof.filter-map.option-emission` | Swift | Sequence.compactMap after optional-result channel and callback-effect proof | `open` | `missing` | model required facts before detector admission | `iteration.same-source-identity`:modeled-controlled, `effect.pure-callback`:modeled-controlled, `hof.filter-map.drop-condition-coordinate`:specified-not-modeled, `hof.filter-map.emitted-value-coordinate`:specified-not-modeled, `option.absence-channel.identity`:modeled-controlled | positive=0, hard_negative=0, group=0 | positive=3, hard_negative=6, group=0 |  |
 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Java | Stream.flatMap terminal reductions after flat-map source proof is connected to stream aggregate facts | `open` | `missing` | model required facts before detector admission | `iteration.same-source-identity`:modeled-controlled, `effect.pure-callback`:modeled-controlled, `effect.pure-predicate`:modeled-controlled, `hof.flat-map.nested-iteration-order`:specified-not-modeled, `hof.flat-map.emitted-value-coordinate`:specified-not-modeled, `collection.flatten-depth.one-level`:specified-not-modeled, `reduction.identity-empty-behavior`:modeled-controlled, `reduction.step-coordinate-identity`:modeled-controlled, `hof.flat-map.aggregate-guard-coordinate`:specified-not-modeled | positive=0, hard_negative=0, group=0 | positive=5, hard_negative=7, group=0 |  |
 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Swift | Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence | `open` | `missing` | model required facts before detector admission | `iteration.same-source-identity`:modeled-controlled, `effect.pure-callback`:modeled-controlled, `effect.pure-predicate`:modeled-controlled, `hof.flat-map.nested-iteration-order`:specified-not-modeled, `hof.flat-map.emitted-value-coordinate`:specified-not-modeled, `collection.flatten-depth.one-level`:specified-not-modeled, `reduction.identity-empty-behavior`:modeled-controlled, `reduction.step-coordinate-identity`:modeled-controlled, `hof.flat-map.aggregate-guard-coordinate`:specified-not-modeled | positive=0, hard_negative=0, group=0 | positive=5, hard_negative=7, group=0 |  |
 | `blocked-by-unmodeled-facts` | `hof.flat-map.one-level-flatten` | Swift | Sequence.flatMap after focused one-level flatten and callback-effect evidence | `open` | `missing` | model required facts before detector admission | `iteration.same-source-identity`:modeled-controlled, `effect.pure-callback`:modeled-controlled, `hof.flat-map.nested-iteration-order`:specified-not-modeled, `hof.flat-map.emitted-value-coordinate`:specified-not-modeled, `collection.flatten-depth.one-level`:specified-not-modeled | positive=0, hard_negative=0, group=0 | positive=3, hard_negative=6, group=0 |  |
@@ -106,7 +105,6 @@ admit Ruby, Swift, Java, or map/HOF spellings directly.
 
 | pattern | open surfaces |
 |---|---|
-| `hof.filter-map.option-emission` | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `hof.flat-map.aggregate-reduction` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `hof.flat-map.one-level-flatten` | hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `map.default.absence-lookup` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
@@ -115,39 +113,36 @@ admit Ruby, Swift, Java, or map/HOF spellings directly.
 
 | blocker | open surfaces |
 |---|---|
-| model required facts before detector admission | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
+| model required facts before detector admission | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Language
 
 | language | open surfaces |
 |---|---|
 | Java | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| Swift | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
+| Swift | hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Surface Status
 
 | status | open surfaces |
 |---|---|
-| `open` | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
+| `open` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Proof Fact
 
 | proof fact | open surfaces |
 |---|---|
 | `collection.flatten-depth.one-level` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `effect.pure-callback` | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
+| `effect.pure-callback` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `effect.pure-predicate` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `hof.filter-map.drop-condition-coordinate` | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `hof.filter-map.emitted-value-coordinate` | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `hof.flat-map.aggregate-guard-coordinate` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `hof.flat-map.emitted-value-coordinate` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `hof.flat-map.nested-iteration-order` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `iteration.same-source-identity` | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
+| `iteration.same-source-identity` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `map.default.absence-fallback` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `map.default.key-fallback-coordinate` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `map.receiver.no-intervening-mutation` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `map.receiver.source-identity` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `option.absence-channel.identity` | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `reduction.identity-empty-behavior` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `reduction.step-coordinate-identity` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 

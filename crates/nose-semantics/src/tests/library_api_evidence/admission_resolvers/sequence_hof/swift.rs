@@ -247,32 +247,6 @@ fn admitted_swift_sequence_hof_pack_covers_supported_eager_hofs() {
 }
 
 #[test]
-fn swift_sequence_hof_pack_rejects_unsupported_optional_channel_surface() {
-    let (mut il, interner, call, receiver) =
-        swift_sequence_hof_call_il("compactMap", SwiftCallbackShape::Inline);
-    push_receiver_domain_dependency(&mut il, 0, receiver, DomainEvidence::Collection);
-    il.evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            il.node(call).span,
-            LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(HoFKind::Map)),
-            LibraryApiCalleeContract::Method {
-                method: "compactMap",
-                receiver: MethodReceiverContract::ExactArrayOrCollection,
-            },
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
-        ));
-    assert!(
-        admitted_library_method_call_at_call(&il, &interner, call).is_none(),
-        "Swift compactMap remains closed until optional-channel semantics are represented"
-    );
-}
-
-#[test]
 fn swift_sequence_hof_pack_rejects_non_inline_or_effectful_callbacks() {
     for method in ["map", "allSatisfy"] {
         let contract =

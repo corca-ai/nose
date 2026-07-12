@@ -63,6 +63,11 @@ fn rust_iterator_hof_rows_use_sequence_hof_protocol_pack() {
             MethodBuiltinArgs::Hof,
         ),
         (
+            "compactMap",
+            MethodSemanticContract::HoF(HoFKind::FilterMap),
+            MethodBuiltinArgs::Hof,
+        ),
+        (
             "flatMap",
             MethodSemanticContract::HoF(HoFKind::FlatMap),
             MethodBuiltinArgs::Hof,
@@ -91,13 +96,15 @@ fn rust_iterator_hof_rows_use_sequence_hof_protocol_pack() {
         );
     }
     assert!(
-        library_method_call_contract(Lang::Swift, "compactMap", 1).is_none(),
-        "Swift compactMap stays closed until optional-channel semantics are represented"
-    );
-    assert!(
         library_method_call_contract(Lang::Swift, "map", 2).is_none(),
         "Swift Sequence HOF rows stay closed outside the single-callback shape"
     );
+    for arity in [0, 2] {
+        assert!(
+            library_method_call_contract(Lang::Swift, "compactMap", arity).is_none(),
+            "Swift compactMap stays closed outside the single-callback shape"
+        );
+    }
     assert!(
         library_method_call_contract(Lang::Swift, "allSatisfy", 0).is_none(),
         "Swift allSatisfy requires an explicit predicate closure"

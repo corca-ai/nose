@@ -66,5 +66,9 @@ fn stdlib_predicates_preserve_existing_gates() {
         assert_eq!(stdlib.swift_collection_factories(), lang == Lang::Swift);
         assert_eq!(stdlib.go_literal_zero_map_lookup(), lang == Lang::Go);
         assert_eq!(stdlib.rust_filter_map_option_contract(), lang == Lang::Rust);
+        assert_eq!(
+            stdlib.swift_compact_map_option_contract(),
+            lang == Lang::Swift
+        );
     }
 }

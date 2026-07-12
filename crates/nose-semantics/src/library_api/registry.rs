@@ -516,6 +516,7 @@ fn method_call_contract_callees_for_semantic(
         "inject",
         "map",
         "collect",
+        "compactMap",
         "filter",
         "select",
         "flatMap",

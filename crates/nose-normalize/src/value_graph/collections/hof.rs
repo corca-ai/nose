@@ -332,6 +332,10 @@ impl<'a> Builder<'a> {
             NodeKind::If => self.eval_filter_map_if(node, env),
             NodeKind::Lit if self.is_null_literal(node) => Some(FilterMapResult::Drop),
             NodeKind::Var if self.is_rust_option_none_node(node) => Some(FilterMapResult::Drop),
+            NodeKind::Var if self.il.meta.lang == Lang::Swift => Some(FilterMapResult::Emit {
+                value: self.eval(node, env),
+                predicate: None,
+            }),
             NodeKind::Call => {
                 if let Some((receiver, lambda)) = self.rust_option_and_then_call_parts(node) {
                     return self.eval_filter_map_and_then(receiver, lambda, env);

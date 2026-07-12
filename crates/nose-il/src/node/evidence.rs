@@ -143,6 +143,11 @@ pub enum TypeEvidenceKind {
         type_hash: u64,
         domain: DomainEvidence,
     },
+    /// An attribute- and modifier-free Swift parameter whose type used
+    /// bracket-array syntax (`[T]`). Unlike nominal `Array<T>`/`Collection`
+    /// text, this source surface cannot denote a user-declared receiver type or
+    /// a property-wrapped value.
+    SwiftBracketArrayParameter,
 }
 
 /// Kernel-facing proof that a source-level symbol denotes a specific global or

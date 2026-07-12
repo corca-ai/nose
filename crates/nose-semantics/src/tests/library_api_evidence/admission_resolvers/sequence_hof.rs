@@ -2,6 +2,7 @@ use super::*;
 
 mod ruby;
 mod swift;
+mod swift_compact_map;
 
 fn sequence_hof_call_il(method: &str, arg_count: usize) -> (Il, Interner, NodeId, NodeId) {
     let interner = Interner::new();

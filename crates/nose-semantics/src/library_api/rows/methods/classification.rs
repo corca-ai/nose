@@ -49,7 +49,9 @@ pub(in crate::library_api) fn swift_sequence_hof_method_call(
         && matches!(
             (contract.semantic, contract.receiver, contract.args),
             (
-                MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap),
+                MethodSemanticContract::HoF(
+                    HoFKind::Map | HoFKind::Filter | HoFKind::FilterMap | HoFKind::FlatMap,
+                ),
                 MethodReceiverContract::ExactArrayOrCollection,
                 MethodBuiltinArgs::Hof,
             ) | (

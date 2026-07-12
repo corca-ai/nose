@@ -6,6 +6,7 @@ pub(super) fn lower_property(lo: &mut Lowering, node: TsNode) -> NodeId {
     let is_async_let = swift_property_is_async_let(lo.text(node));
     let mut cursor = node.walk();
     let names: Vec<TsNode> = node.children_by_field_name("name", &mut cursor).collect();
+    record_compact_map_dispatch_barrier(lo, node);
     let values = field_children(node, "value");
     let types = field_children(node, "type");
     for (idx, name_node) in names.iter().enumerate() {

@@ -215,6 +215,10 @@ set -euo pipefail
 # value-DAG IDs are reviewed representative churn, while one four-line callback-literal overlap
 # is whole-impl span noise. A stale string-affix fixture family also disappears, so the ratchet
 # tightens. See docs/dogfooding-history.md.
+# 30 -> 29 (#795 Swift compactMap): shared corpus-test setup and guard-clause pattern lowering
+# remove the two families exposed during final boundary hardening. The pre-existing int/float
+# interpreter dispatcher family no longer reports after the FilterMap semantic changes, so the
+# ratchet tightens again without accepting new duplication.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

@@ -104,18 +104,18 @@
       },
       "executable_expectations": {
         "path": "bench/type4/executable_expectations.v1.json",
-        "sha256": "43c499e91eb417faadbca70171da935241dd48ffbafe0a67eef4862eb1f5fbd7",
-        "size_bytes": 125845
+        "sha256": "4f4526b9780bd75248686c0f52e9892b96111d73c5d51844a2f9d06165360ed9",
+        "size_bytes": 130258
       },
       "focused_cases": {
         "path": "bench/type4/adversarial/cases/cases.v1.json",
-        "sha256": "d663417e6736654a47e8fafc1a9c88b5df8cf600c8611619fbbcc46acbdca171",
-        "size_bytes": 282102
+        "sha256": "b61dfd0f46858de78d4f4e51aa1a6395fabecdb5ecc1797e8bdad6e595dd9c55",
+        "size_bytes": 292647
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
-        "sha256": "5f9c343db1f57c7cdd4c95fcb1a149ef5c2324e1e123fc750c6c5594b769d0b9",
-        "size_bytes": 104392
+        "sha256": "c01665ed589555ba4d54eaf204877ee4ac53812d3b447a850d64c1a71f5d5429",
+        "size_bytes": 108591
       },
       "python_loop_demorgan_proof_facts": {
         "path": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
@@ -2362,7 +2362,7 @@
         }
       ],
       "summary": {
-        "declared_expectation_count": 288,
+        "declared_expectation_count": 300,
         "extra": 0,
         "failed": 0,
         "fully_covered_packet_count": 7,
@@ -2372,13 +2372,13 @@
         "packet_count_by_coverage": {
           "covered": 7
         },
-        "passed": 288,
-        "query_count": 21,
+        "passed": 300,
+        "query_count": 26,
         "report_extra_expectation_ids": [],
         "report_failed_expectation_ids": [],
         "report_missing_expectation_ids": [],
         "report_stale_expectation_ids": [],
-        "result_count": 288,
+        "result_count": 300,
         "stale": 0
       }
     },
