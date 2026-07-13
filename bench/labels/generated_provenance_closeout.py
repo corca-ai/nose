@@ -34,6 +34,7 @@ OFFICIAL_SOURCE = "54f8a67436e39e24c777a85e14224273116add6b"
 CURRENT_SHA = "6d906e88270994a6ac2589977b2ce9b7616788c1bba67f9dc1b66791161de3dc"
 CURRENT_SOURCE = "1f5d6b450a2a68b1382e6ce843843fe8f195c898"
 BEHAVIOR_DIGEST = "17158a23270a2ba902dfd58b916b0f0720f9bbaffbe9760cf52bf732cecef6a8"
+PRUNE_SHA = "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980"
 QUERY_COMMAND = "nose query <repo> all top=0 --mode semantic --format json"
 
 
@@ -69,6 +70,37 @@ def stable_outputs(report: dict[str, Any], label: str) -> None:
             require(len(row[role]["hashes"]) == 1, f"{label}:{repo}:{role}: unstable output")
 
 
+def report_corpus_rows(report: dict[str, Any], label: str) -> list[dict[str, str]]:
+    rows = report.get("corpus", {}).get("repositories")
+    require(isinstance(rows, list), f"{label}: missing corpus repository rows")
+    require(
+        all(isinstance(row, dict) and set(row) == {"repo", "commit"} for row in rows),
+        f"{label}: malformed corpus repository row",
+    )
+    repos = report.get("repos")
+    require(repos == [row["repo"] for row in rows], f"{label}: report/corpus repository order differs")
+    require(len(repos) == len(set(repos)), f"{label}: duplicate corpus repository")
+    return rows
+
+
+def validate_bound_corpus(
+    report: dict[str, Any],
+    bound_rows: list[dict[str, str]],
+    manifest_sha: str,
+    label: str,
+) -> None:
+    corpus = report["corpus"]
+    require(corpus.get("corpus_manifest_sha256") == manifest_sha, f"{label}: corpus manifest binding changed")
+    require(corpus.get("prune_manifest_sha256") == PRUNE_SHA, f"{label}: prune manifest binding changed")
+    bound = {row["repo"]: row["commit"] for row in bound_rows}
+    require(len(bound) == len(bound_rows), "behavior evidence has duplicate corpus repositories")
+    expected = []
+    for repo in report["repos"]:
+        require(repo in bound, f"{label}: {repo} is outside the bound dev corpus")
+        expected.append({"repo": repo, "commit": bound[repo]})
+    require(report_corpus_rows(report, label) == expected, f"{label}: corpus revision binding changed")
+
+
 def validate_report_role(
     report: dict[str, Any],
     control: dict[str, Any],
@@ -83,6 +115,7 @@ def validate_report_role(
         require(value.get("command") == QUERY_COMMAND, f"{label}:{role}: wrong query command")
         require(value.get("measurement") == {"iterations": iterations, "warmups": warmups}, f"{label}:{role}: wrong measurement")
         require(len(value.get("repos", [])) == repos, f"{label}:{role}: wrong repository count")
+        report_corpus_rows(value, f"{label}:{role}")
         stable_outputs(value, f"{label}:{role}")
     require(report["repos"] == control["repos"], f"{label}: control repository set differs")
     require(report["corpus"]["repositories"] == control["corpus"]["repositories"], f"{label}: control corpus differs")
@@ -242,6 +275,18 @@ def validate(path: Path) -> None:
     ]
     for report, control, repos, iterations, warmups, label in pairs:
         validate_report_role(report, control, repos=repos, iterations=iterations, warmups=warmups, label=label)
+        validate_bound_corpus(
+            report,
+            behavior["corpus"]["repositories"],
+            behavior["corpus"]["manifest_sha256"],
+            f"{label}:report",
+        )
+        validate_bound_corpus(
+            control,
+            behavior["corpus"]["repositories"],
+            behavior["corpus"]["manifest_sha256"],
+            f"{label}:control",
+        )
     compare_metrics(performance["all_dev_three_iteration"], aggregate(reports[0], reports[1]), "all-dev aggregate")
     compare_metrics(performance["final_forty_iteration"], aggregate(reports[6], reports[7]), "final-40 aggregate")
     expected_surface = {repo: query_surface_adjusted(reports[6], reports[7], repo) for repo in reports[6]["repos"]}
@@ -293,7 +338,14 @@ def validate(path: Path) -> None:
 def self_test() -> None:
     report = load(ROOT / "bench/recall_loss/issue-842-official-v0.19.0-focused-r40-2026-07-14.v2.json")
     control = load(ROOT / "bench/recall_loss/issue-842-current-control-focused-r40-2026-07-14.v2.json")
+    behavior = load(ROOT / "bench/labels/generated_provenance_behavior_2026_07_13.dev.v1.json")
     validate_report_role(report, control, repos=2, iterations=40, warmups=2, label="self-test-good")
+    validate_bound_corpus(
+        report,
+        behavior["corpus"]["repositories"],
+        behavior["corpus"]["manifest_sha256"],
+        "self-test-good",
+    )
     tampered = copy.deepcopy(report)
     tampered["provenance"]["current_binary_sha256"] = OFFICIAL_SHA
     try:
@@ -302,6 +354,19 @@ def self_test() -> None:
         pass
     else:
         fail("role-substitution self-test was not rejected")
+    tampered = copy.deepcopy(report)
+    tampered["corpus"]["repositories"][0]["commit"] = "0" * 40
+    try:
+        validate_bound_corpus(
+            tampered,
+            behavior["corpus"]["repositories"],
+            behavior["corpus"]["manifest_sha256"],
+            "self-test-tampered-corpus",
+        )
+    except SystemExit:
+        pass
+    else:
+        fail("coherent corpus-revision substitution self-test was not rejected")
     require(hashlib.sha256(b"nose").hexdigest() == "d77e22123e64d3d87f1f95d9cff7a0b6af6c32b9a81552cb90e991eb55cf63d4", "SHA self-test failed")
     print("generated provenance closeout self-test passed")
 
