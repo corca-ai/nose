@@ -85,33 +85,6 @@ fn query_uses_default_folds(q: &Query, widen: bool) -> bool {
         })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::query_terms::QFilter;
-
-    #[test]
-    fn explicit_default_surface_uses_default_only_folds() {
-        let query = Query {
-            filters: vec![QFilter {
-                field: "surface".into(),
-                op: QOp::Eq,
-                value: "default".into(),
-                negate: false,
-            }],
-            ..Query::default()
-        };
-        let widen = query.filters.iter().any(|filter| filter.field == "surface");
-        let default_folds = query_uses_default_folds(&query, widen);
-
-        assert!(widen, "surface filters still open the non-default universe");
-        assert!(
-            default_folds,
-            "an explicit default filter must not fold under a generated primary"
-        );
-    }
-}
-
 pub(super) fn render_query_output(ctx: &QueryOutput<'_>) -> Result<bool> {
     match ctx.args.format {
         ReportFormat::Markdown | ReportFormat::Sarif => {
@@ -289,4 +262,129 @@ pub(super) fn enforce_query_fail_on(ctx: &QueryOutput<'_>) -> Result<()> {
         ctx.baseline_comparison,
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::query_terms::QFilter;
+    use nose_detect::{LineSpan, Loc, LocInit, RefactorFamily};
+    use nose_il::UnitKind;
+
+    fn family_at(spans: &[(&str, u32, u32)]) -> RefactorFamily {
+        let locations = spans
+            .iter()
+            .map(|(file, start, end)| {
+                Loc::new(LocInit {
+                    file: (*file).to_string(),
+                    source_span: LineSpan::new(*start, *end),
+                    lang: "html".into(),
+                    kind: UnitKind::Block,
+                    origin: Default::default(),
+                    name: None,
+                    sem: 50,
+                    span_tokens: 50,
+                })
+            })
+            .collect();
+        RefactorFamily {
+            value: 1.0,
+            members: spans.len(),
+            files: spans.len(),
+            modules: 1,
+            languages: 1,
+            mean_score: 0.9,
+            mean_lines: 10,
+            dup_lines: 10,
+            shared_lines: 0,
+            params: 0,
+            shared_weight: 0.0,
+            locations,
+            accepted_coverage: Vec::new(),
+            display_params: None,
+            mean_sem: 50.0,
+            scope: "prod",
+            discount: 1.0,
+            abstraction_witness: None,
+            witness: None,
+            varying_spots: Vec::new(),
+            semantic_laws: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn explicit_default_surface_uses_default_only_folds() {
+        let query = Query {
+            filters: vec![QFilter {
+                field: "surface".into(),
+                op: QOp::Eq,
+                value: "default".into(),
+                negate: false,
+            }],
+            ..Query::default()
+        };
+        let widen = query.filters.iter().any(|filter| filter.field == "surface");
+        let default_folds = query_uses_default_folds(&query, widen);
+
+        assert!(widen, "surface filters still open the non-default universe");
+        assert!(
+            default_folds,
+            "an explicit default filter must not fold under a generated primary"
+        );
+    }
+
+    #[test]
+    fn explicit_default_surface_keeps_a_partial_default_slice() {
+        let primary = family_at(&[
+            ("docs/generated-a.html", 100, 130),
+            ("docs/generated-b.html", 50, 70),
+        ]);
+        let slice = family_at(&[
+            ("docs/generated-a.html", 105, 128),
+            ("docs/generated-b.html", 52, 66),
+            ("docs/hand-written.html", 10, 20),
+        ]);
+        let families = vec![primary, slice];
+        let overrides = SurfaceOverrides {
+            generated_sources: Default::default(),
+            additional_generated_surface_sources: [
+                "docs/generated-a.html".to_string(),
+                "docs/generated-b.html".to_string(),
+            ]
+            .into_iter()
+            .collect(),
+            declaration_run_ids: Default::default(),
+        };
+        let ranked: Vec<&RefactorFamily> = families.iter().collect();
+        let mut groups = OpportunityGroups::from_ranked(&ranked);
+        let default_ids = families
+            .iter()
+            .filter(|family| is_default_report_family(family, &overrides))
+            .map(baseline::family_id)
+            .collect();
+        groups.restrict_default_slices_to(&default_ids);
+        let query = Query {
+            filters: vec![QFilter {
+                field: "surface".into(),
+                op: QOp::Eq,
+                value: "default".into(),
+                negate: false,
+            }],
+            ..Query::default()
+        };
+
+        let selected = query_selection(&families, &overrides, &groups, &query, ".", None)
+            .expect("selection succeeds");
+
+        assert_eq!(selected.len(), 1);
+        assert_eq!(
+            baseline::family_id(selected[0]),
+            baseline::family_id(&families[1])
+        );
+        assert!(groups.is_slice(&families[1]), "the all view keeps its fold");
+        assert!(
+            !groups.is_default_slice(&families[1]),
+            "the default view cannot fold under its generated primary"
+        );
+    }
 }
