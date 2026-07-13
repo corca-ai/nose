@@ -82,6 +82,38 @@ EXPECTED_TRUTH = {
 }
 SOURCE_READ_LIMIT = 65_536
 FROZEN_V5_SHA256 = "e18b65543f4b6373d7eadbc93159adda69699eafe8f5f814d9ba53e245a6d9f9"
+FROZEN_V5_DEV_FAMILIES_SHA256 = (
+    "01702dde6576a035fe0aa497123d910a79c196db264c7b25e38513ff64a4f969"
+)
+FROZEN_DEEP_LABELED_KEYS_SHA256 = (
+    "5662e63d1cf3d1589ea6043ceb38a5f601861110ae11f87c0b7dcc7c339833aa"
+)
+FROZEN_AUDIT_PACKET_SET_SHA256 = (
+    "ce9bfadb3fca20dac489e0e55b69d39ea9751ab9d2a0042045ad4f0827b5c61e"
+)
+FROZEN_LEVER_AUDIT_PACKET_SET_SHA256 = {
+    "generated-provenance.v1": "7eefa33034ac9e85d1eba25063e6e75e204196cafa5305c6fef75c824d99196e",
+    "declaration-only-type.v1": "e7b9b5dddbc7766d2613188db81e80889664f1976f64e0f1eb1317c4042c5c4f",
+    "proof-actionability.v1": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+}
+FROZEN_COLLECT_COMMAND = (
+    "python3 bench/labels/default_head_taxonomy.py collect "
+    "--nose target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose "
+    "--output bench/labels/default_head_taxonomy_2026_07_13.dev.core.v1.json "
+    "--audit-output "
+    "bench/labels/default_head_taxonomy_audit_packets_2026_07_13.dev.v1.json"
+)
+REVIEWED_REBIND_SOURCE_CORE_SHA256 = (
+    "d39648d0950c8680dbb821e1a823803d719591ee6f84717e483ccf8811aea036"
+)
+REVIEWED_REBIND_SOURCE_AUDIT_SHA256 = (
+    "6352f61366b0888ef345e310c434b3d02131432ab574b88f5871ff75c0970b59"
+)
+REVIEWED_REBIND_SOURCE_VOTE_SHA256 = {
+    "pragmatic": "c9d1b24ecc7b19e941a2ec792fbb3cf2d0bdda7db2a35ddd8f6d2c389f3df7ed",
+    "dedupe": "c3ec64c7ca2ea017de07540ef1abedd544b3f30e80527d0a31c53f8c7a263d89",
+    "skeptic": "8533c4462bdacdc5ddeb35d877b3a108d5ff3fbe4b8cce0f36a1a7e6b647fa44",
+}
 HELDOUT_POLICY = "closed; no held-out component, source path, or judgment was read"
 AUDIT_QUESTION = (
     "Does the frozen mechanical premise hold for every member, and would moving this "
@@ -248,8 +280,11 @@ def validate_v5_dev(payload: dict[str, Any]) -> None:
         fail("v5 dev projection must contain exactly 5,445 rows")
     if any(not isinstance(row, dict) or row.get("split") != "dev" for row in families):
         fail("v5 dev projection contains a non-dev row")
-    if canonical_sha256(families) != payload["families_sha256"]:
+    digest = canonical_sha256(families)
+    if digest != payload["families_sha256"]:
         fail("v5 dev family projection digest mismatch")
+    if digest != FROZEN_V5_DEV_FAMILIES_SHA256:
+        fail("v5 dev projection differs from the frozen parent dev subset")
 
 
 def load_dev_labels() -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
@@ -366,6 +401,7 @@ def live_source_record(path_text: str, repo: str) -> tuple[int, str]:
     return path.stat().st_size, file_sha256(path)
 
 
+@lru_cache(maxsize=None)
 def jazzy_evidence(path_text: str, repo: str) -> dict[str, Any] | None:
     path = source_path(path_text, repo)
     with path.open("rb") as stream:
@@ -988,8 +1024,10 @@ def collect(nose: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         commit = repository_head(repo_path)
         if commit != meta["commit"]:
             fail(f"{repo}: pinned commit drift: {commit} != {meta['commit']}")
-        command = [str(nose.resolve()), "query", rel(repo_path), "top=30", "--format", "json"]
-        stdout = run(command)
+        query_args = [
+            str(nose.resolve()), "query", rel(repo_path), "top=30", "--format", "json"
+        ]
+        stdout = run(query_args)
         expected_stdout = runway_repos[repo]["query_stdout_sha256"]
         if hashlib.sha256(stdout).hexdigest() != expected_stdout:
             fail(f"{repo}: official v0.19.0 query stdout drifted from #840")
@@ -999,7 +1037,9 @@ def collect(nose: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         repository_records[repo] = {
             "commit": commit,
             "primary_language": meta["primary_language"],
-            "query_command": shlex.join(command),
+            "query_command": shlex.join(
+                [rel(nose), "query", rel(repo_path), "top=30", "--format", "json"]
+            ),
             "query_stdout_sha256": expected_stdout,
             "top_30_reported": len(families),
             "top_10_reported": min(10, len(families)),
@@ -1249,6 +1289,8 @@ def validate_core(artifact: dict[str, Any], *, live_sources: bool = False) -> No
     ]
     if provenance["inputs"] != expected_input_records:
         fail("taxonomy provenance inputs differ from the current checked dev-only files")
+    if provenance["command"] != FROZEN_COLLECT_COMMAND:
+        fail("taxonomy collection command differs from the frozen invocation")
     runway_provenance = runway.get("provenance", {})
     for field in ("nose_binary", "nose_binary_sha256", "nose_version"):
         if provenance[field] != runway_provenance.get(field):
@@ -1265,6 +1307,12 @@ def validate_core(artifact: dict[str, Any], *, live_sources: bool = False) -> No
         expected = {
             "commit": meta["commit"],
             "primary_language": meta["primary_language"],
+            "query_command": shlex.join(
+                [
+                    provenance["nose_binary"], "query", rel(REPOS_ROOT / repo),
+                    "top=30", "--format", "json",
+                ]
+            ),
             "query_stdout_sha256": frozen.get("query_stdout_sha256"),
             "top_30_reported": frozen.get("top_30_reported"),
             "top_10_reported": frozen.get("top_10_reported"),
@@ -1287,6 +1335,10 @@ def validate_core(artifact: dict[str, Any], *, live_sources: bool = False) -> No
     deep = artifact["deep_labeled_rows"]
     if not isinstance(rows, list) or len(rows) != 658 or not isinstance(deep, list) or len(deep) != 65:
         fail("taxonomy must contain exactly 658 head and 65 deep labeled rows")
+    if canonical_sha256([row.get("position_key") for row in deep]) != (
+        FROZEN_DEEP_LABELED_KEYS_SHA256
+    ):
+        fail("deep labeled rows differ from the frozen deterministic cohort")
     all_keys = [row.get("position_key") for row in [*rows, *deep]]
     if len(all_keys) != len(set(all_keys)):
         fail("taxonomy position keys must be globally unique")
@@ -1371,6 +1423,9 @@ def validate_core(artifact: dict[str, Any], *, live_sources: bool = False) -> No
             runway_sources=runway_sources,
             live_sources=live_sources,
         )
+        expected_generated = generated_provenance(row["raw_family"], repo)
+        if stored_generated != expected_generated:
+            fail(f"{row['position_key']}: generated evidence differs from bounded source evidence")
         expected_facets = {
             "witness": row["raw_family"].get("witness"),
             "surface": row["raw_family"].get("surface"),
@@ -1479,6 +1534,10 @@ def validate_core(artifact: dict[str, Any], *, live_sources: bool = False) -> No
         keys = lever["audit_packet_keys"]
         if not isinstance(keys, list) or len(keys) != expected_audit or len(keys) != len(set(keys)):
             fail(f"{lever['lever_id']}: audit packet key count/uniqueness drift")
+        if lever["audit_packet_set_sha256"] != FROZEN_LEVER_AUDIT_PACKET_SET_SHA256[
+            lever["lever_id"]
+        ]:
+            fail(f"{lever['lever_id']}: audit cohort differs from the frozen commitment")
         if lever["lever_id"] != "proof-actionability.v1" and worthy:
             fail(f"{lever['lever_id']}: worthy row enters a selected/no-go demotion cohort")
     if canonical_sha256({key: value for key, value in artifact.items() if key != "core_sha256"}) != artifact["core_sha256"]:
@@ -1536,6 +1595,8 @@ def validate_audit_packet(
             "end_line": checked["end"],
         } != {key: compact.get(key) for key in ("file", "start_line", "end_line")}:
             fail(f"{row['audit_key']}: packet bounds differ from #840")
+        if compact.get("name") is not None and checked["name"] != compact["name"]:
+            fail(f"{row['audit_key']}: packet member name differs from #840")
     evidence = exact_keys(
         row["frozen_evidence"],
         {"generated_provenance", "origin", "witness", "extraction_shape"},
@@ -1589,6 +1650,8 @@ def validate_audit_artifact(
     )
     if audit["schema"] != AUDIT_SCHEMA or audit["split"] != "dev" or audit["core_sha256"] != core["core_sha256"]:
         fail("audit artifact schema/split/core binding mismatch")
+    if audit["packet_set_sha256"] != FROZEN_AUDIT_PACKET_SET_SHA256:
+        fail("audit packet set differs from the frozen reviewed cohort")
     runway = load_json(RUNWAY)
     runway_by_key = {row["candidate_key"]: row for row in runway["candidates"]}
     packets = audit["packets"]
@@ -1688,22 +1751,42 @@ def validate_vote(
 
 def rebind_vote(
     old_core: dict[str, Any],
+    old_audit: dict[str, Any],
     old_vote: dict[str, Any],
     new_core: dict[str, Any],
     new_audit: dict[str, Any],
     persona: str,
 ) -> dict[str, Any]:
-    """Carry judgments only when the reviewer-visible packet projection is identical."""
+    """Carry the one reviewed vote set across a truth-free binding-only re-freeze."""
 
-    if old_vote.get("schema") != VOTE_SCHEMA or old_vote.get("persona") != persona:
-        fail(f"{persona}: unsupported source vote")
-    if old_vote.get("core_sha256") != old_core.get("core_sha256"):
-        fail(f"{persona}: source vote/core binding mismatch")
-    old_packets = [
-        packet
-        for lever in old_core.get("levers", [])
-        for packet in lever.get("audit_packets", [])
-    ]
+    if old_core.get("core_sha256") != REVIEWED_REBIND_SOURCE_CORE_SHA256 or canonical_sha256(
+        {key: value for key, value in old_core.items() if key != "core_sha256"}
+    ) != old_core.get("core_sha256"):
+        fail(f"{persona}: source core is not the frozen reviewed core")
+    if (
+        old_audit.get("schema") != AUDIT_SCHEMA
+        or old_audit.get("core_sha256") != old_core["core_sha256"]
+        or old_audit.get("artifact_sha256") != REVIEWED_REBIND_SOURCE_AUDIT_SHA256
+        or canonical_sha256(
+            {key: value for key, value in old_audit.items() if key != "artifact_sha256"}
+        )
+        != old_audit.get("artifact_sha256")
+        or old_audit.get("packet_set_sha256") != FROZEN_AUDIT_PACKET_SET_SHA256
+        or canonical_sha256(old_audit.get("packets")) != FROZEN_AUDIT_PACKET_SET_SHA256
+    ):
+        fail(f"{persona}: source audit is not the frozen reviewed audit")
+    if (
+        old_vote.get("schema") != VOTE_SCHEMA
+        or old_vote.get("persona") != persona
+        or canonical_sha256(old_vote) != REVIEWED_REBIND_SOURCE_VOTE_SHA256[persona]
+        or old_vote.get("core_sha256") != old_core["core_sha256"]
+        or old_vote.get("audit_artifact_sha256") != old_audit["artifact_sha256"]
+        or old_vote.get("audit_packet_set_sha256") != old_audit["packet_set_sha256"]
+    ):
+        fail(f"{persona}: source vote is not the frozen independently reviewed vote")
+    validate_core(new_core)
+    validate_audit_artifact(new_core, new_audit)
+    old_packets = old_audit["packets"]
     new_packets = new_audit["packets"]
     if len(old_packets) != len(new_packets):
         fail(f"{persona}: packet count changed; fresh source review is required")
@@ -2081,6 +2164,14 @@ def self_test() -> None:
         "extra=['gold']",
     )
 
+    v5_drift = load_json(V5_DEV)
+    v5_drift["families"][0]["confidence"] = "self-test-drift"
+    v5_drift["families_sha256"] = canonical_sha256(v5_drift["families"])
+    expect_error(
+        lambda: validate_v5_dev(v5_drift),
+        "differs from the frozen parent dev subset",
+    )
+
     if CHECKED_CORE.is_file() and CHECKED_AUDIT.is_file():
         checked_core = load_json(CHECKED_CORE)
         checked_audit = load_json(CHECKED_AUDIT)
@@ -2118,11 +2209,90 @@ def self_test() -> None:
             "provenance inputs differ",
         )
 
+        command_drift = copy.deepcopy(checked_core)
+        command_drift["provenance"]["command"] = "python3 wrong.py collect"
+        expect_error(
+            lambda: validate_core(command_drift),
+            "collection command differs from the frozen invocation",
+        )
+
+        query_command_drift = copy.deepcopy(checked_core)
+        first_repo = next(iter(query_command_drift["repositories"]))
+        query_command_drift["repositories"][first_repo]["query_command"] = "nose query elsewhere"
+        expect_error(
+            lambda: validate_core(query_command_drift),
+            "repository record differs from corpus/#840",
+        )
+
+        deep_drift = copy.deepcopy(checked_core)
+        deep_drift["deep_labeled_rows"][0], deep_drift["deep_labeled_rows"][1] = (
+            deep_drift["deep_labeled_rows"][1],
+            deep_drift["deep_labeled_rows"][0],
+        )
+        expect_error(
+            lambda: validate_core(deep_drift),
+            "deep labeled rows differ from the frozen deterministic cohort",
+        )
+
+        generated_drift = copy.deepcopy(checked_core)
+        generated_row = next(
+            row
+            for row in generated_drift["head_rows"]
+            if row["predicate_results"]["generated-provenance.v1"]
+        )
+        signal = generated_row["facets"]["generated_provenance"]["files"][0]["signals"][0]
+        signal["line"] += 1
+        signal["digest"] = hashlib.sha256(
+            signal["kind"].encode() + b"\0" + str(signal["line"]).encode()
+        ).hexdigest()
+        expect_error(
+            lambda: validate_core(generated_drift),
+            "generated evidence differs from bounded source evidence",
+        )
+
         packet_extra = copy.deepcopy(checked_audit)
         packet_extra["packets"][0]["gold"] = {"classification": "hidden"}
         expect_error(
             lambda: validate_audit_artifact(checked_core, packet_extra),
             "extra=['gold']",
+        )
+
+        packet_truth_hint = copy.deepcopy(checked_audit)
+        packet_truth_hint["packets"][0]["source_bounds"][0]["name"] = (
+            "worthy extract-helper"
+        )
+        packet_truth_hint["packets"][0]["packet_sha256"] = canonical_sha256(
+            {
+                key: value
+                for key, value in packet_truth_hint["packets"][0].items()
+                if key != "packet_sha256"
+            }
+        )
+        packet_truth_hint["packet_set_sha256"] = canonical_sha256(
+            packet_truth_hint["packets"]
+        )
+        packet_truth_hint["artifact_sha256"] = canonical_sha256(
+            {
+                key: value
+                for key, value in packet_truth_hint.items()
+                if key != "artifact_sha256"
+            }
+        )
+        expect_error(
+            lambda: validate_audit_artifact(checked_core, packet_truth_hint),
+            "audit packet set differs from the frozen reviewed cohort",
+        )
+
+        expect_error(
+            lambda: rebind_vote(
+                {"core_sha256": "synthetic"},
+                {},
+                {},
+                checked_core,
+                checked_audit,
+                "pragmatic",
+            ),
+            "source core is not the frozen reviewed core",
         )
 
         duplicate_core = copy.deepcopy(checked_core)
@@ -2155,6 +2325,7 @@ def parser() -> argparse.ArgumentParser:
     template_parser.add_argument("--output", type=Path, required=True)
     rebind_parser = sub.add_parser("rebind-vote")
     rebind_parser.add_argument("old_core", type=Path)
+    rebind_parser.add_argument("old_audit", type=Path)
     rebind_parser.add_argument("old_vote", type=Path)
     rebind_parser.add_argument("new_core", type=Path)
     rebind_parser.add_argument("new_audit", type=Path)
@@ -2195,6 +2366,7 @@ def main() -> None:
         elif args.command == "rebind-vote":
             rebound = rebind_vote(
                 load_json(args.old_core),
+                load_json(args.old_audit),
                 load_json(args.old_vote),
                 load_json(args.new_core),
                 load_json(args.new_audit),

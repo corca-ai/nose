@@ -1,7 +1,7 @@
 {
-  "audit_artifact_sha256": "6352f61366b0888ef345e310c434b3d02131432ab574b88f5871ff75c0970b59",
+  "audit_artifact_sha256": "128edbb9917ab6e88ed0bb412efb4a2e40783ba3d7ba31a518fcf0db9ac20f0e",
   "audit_packet_set_sha256": "ce9bfadb3fca20dac489e0e55b69d39ea9751ab9d2a0042045ad4f0827b5c61e",
-  "core_sha256": "d39648d0950c8680dbb821e1a823803d719591ee6f84717e483ccf8811aea036",
+  "core_sha256": "438b939e458832796306882409be50741803d76012bd4b02d89f41ea8550ce84",
   "items": [
     {
       "audit_key": "generated-provenance.v1:alamofire:793e32805b42004a:rank-11",

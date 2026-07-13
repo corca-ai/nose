@@ -1,5 +1,5 @@
 {
-  "core_sha256": "d39648d0950c8680dbb821e1a823803d719591ee6f84717e483ccf8811aea036",
+  "core_sha256": "438b939e458832796306882409be50741803d76012bd4b02d89f41ea8550ce84",
   "cross_tabs": {
     "actionability_classifier": {
       "unavailable-in-query-schema-v7": {
@@ -242105,7 +242105,7 @@
       },
       {
         "path": "bench/labels/default_head_taxonomy.py",
-        "sha256": "7d1bad5297097881cfaa5377865fc05ee472d45604410af8e862fe49205c1ffe"
+        "sha256": "9be8cefa82869cf93eec1b0319fefce119462cb4f741c56e5b3665acc4c9e1d5"
       }
     ],
     "nose_binary": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose",
@@ -243956,7 +243956,7 @@
     "alacritty": {
       "commit": "aaf3bd744a4f7608fe7d7168fb12b62a2155d311",
       "primary_language": "Rust",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/alacritty top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/alacritty top=30 --format json",
       "query_stdout_sha256": "30160d25319b5d2141118b8c856525f346edab48f2ffa8377e4815788b2264c2",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -243964,7 +243964,7 @@
     "alamofire": {
       "commit": "7595cbcf59809f9977c5f6378500de2ad73b7ddb",
       "primary_language": "Swift",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/alamofire top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/alamofire top=30 --format json",
       "query_stdout_sha256": "abdadbb650a5192c1e62619b4e6c7999157346a129d2d551df2d1dd7ffd07a24",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -243972,7 +243972,7 @@
     "antlr4": {
       "commit": "7d5770395bb7b02eb56e7c62662cb1d7c08f42a3",
       "primary_language": "Java",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/antlr4 top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/antlr4 top=30 --format json",
       "query_stdout_sha256": "f2d53ef175d52b9fba707ff5d89452437d5baab9c3762f0289a5d204b01590a4",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -243980,7 +243980,7 @@
     "axios": {
       "commit": "4306df21e84332fc576e98c2de549347c06bfb76",
       "primary_language": "TypeScript",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/axios top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/axios top=30 --format json",
       "query_stdout_sha256": "fe73af38f8d83f3697c2783a69b5acc09723009ad7b5eb16188f4a3fda2de80d",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -243988,7 +243988,7 @@
     "bat": {
       "commit": "af1f53d9a977154216d01435991fe33631b74713",
       "primary_language": "Rust",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/bat top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/bat top=30 --format json",
       "query_stdout_sha256": "46bc2449e1f1dc1195b5e383d2953f4260abc4c3f363e228ce1acf3ffe7c1e55",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -243996,7 +243996,7 @@
     "black": {
       "commit": "d246367ab471cd56298407858661d475c33b3e36",
       "primary_language": "Python",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/black top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/black top=30 --format json",
       "query_stdout_sha256": "b419f519d5505ec9b04cc5a45a7394ca86130fd52be4a7118f7509c0fd4f9427",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244004,7 +244004,7 @@
     "chi": {
       "commit": "3b171578ca44dfd75ca3c5cbddc7b44c600a7b49",
       "primary_language": "Go",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/chi top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/chi top=30 --format json",
       "query_stdout_sha256": "cb7bc6368aa177e568e5f48995f0dcb4d512db5fc5ade7e76c5849385d1043c9",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244012,7 +244012,7 @@
     "clap": {
       "commit": "8387c812c4b9726474b8407f81ec97f0acf570ed",
       "primary_language": "Rust",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/clap top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/clap top=30 --format json",
       "query_stdout_sha256": "e9860538a835736329f3ba46951b2c3ee46cd74237f1defc411c450e3e229421",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244020,7 +244020,7 @@
     "click": {
       "commit": "c48021040a50c659b74e24ac2b11c9c9c6620a21",
       "primary_language": "Python",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/click top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/click top=30 --format json",
       "query_stdout_sha256": "315e2771a12e15e82c023dff4ac8c0d151aab573ae2f67d13c69864635f0aa4c",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244028,7 +244028,7 @@
     "cobra": {
       "commit": "ad460ea8f249db69c943a365fb84f3a59042d54e",
       "primary_language": "Go",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/cobra top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/cobra top=30 --format json",
       "query_stdout_sha256": "2ba9ca401742385a794111a35f61a315fc61c6576c96d213de7cd018d139768f",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244036,7 +244036,7 @@
     "commons-lang": {
       "commit": "62ea4b620be45462ace4247df34ca938aa29a4da",
       "primary_language": "Java",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/commons-lang top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/commons-lang top=30 --format json",
       "query_stdout_sha256": "c9943ef30e805ce646d79225d7f30388876e0b5b82a29c624b5797fda33ab4c8",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244044,7 +244044,7 @@
     "curl": {
       "commit": "ba600296d2a1d8a4e53a36eb4bd30c1f0d0152cc",
       "primary_language": "C",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/curl top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/curl top=30 --format json",
       "query_stdout_sha256": "cb156b333f544ca96f5229a0ded2aabe018d8f74424b59e1c2579103993df0ad",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244052,7 +244052,7 @@
     "delve": {
       "commit": "b17af91dec79ddb2d1fcc08fa13c10d13de77b83",
       "primary_language": "Go",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/delve top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/delve top=30 --format json",
       "query_stdout_sha256": "bb7bcbc66c230cf29fa7c61c61c48996691276a8be21cca02ecaefa7ade10529",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244060,7 +244060,7 @@
     "devise": {
       "commit": "9ea459de9aec5f1217ad738c58e0d23fb9f5beaa",
       "primary_language": "Ruby",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/devise top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/devise top=30 --format json",
       "query_stdout_sha256": "01784dc23736fd042e593883a2d5ccdf32bcb8409d921a1250df2e9e141ac854",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244068,7 +244068,7 @@
     "drizzle-orm": {
       "commit": "48e5406027103a9fca6eb66417187c4a8b5c6aa3",
       "primary_language": "TypeScript",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/drizzle-orm top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/drizzle-orm top=30 --format json",
       "query_stdout_sha256": "815119c8bba210e80a27b5d69cc4cc9115d71581cf305dffc74278ba17b0d664",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244076,7 +244076,7 @@
     "execa": {
       "commit": "f3a2e8481a1e9138de3895827895c834078b9456",
       "primary_language": "TypeScript",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/execa top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/execa top=30 --format json",
       "query_stdout_sha256": "4a801b5175aa80820d176f2dbc9c18a8874a1746d0c3f3645e80665fc0d0be1e",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244084,7 +244084,7 @@
     "faraday": {
       "commit": "59334e0e9b1918bd26b143f4a7bbc8c765de3ac4",
       "primary_language": "Ruby",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/faraday top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/faraday top=30 --format json",
       "query_stdout_sha256": "ae3089ce5f5e438e238d3e54089dbf446de0b033751074fa930c014c9930c6e2",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244092,7 +244092,7 @@
     "fastlane": {
       "commit": "c30e449d26dc99fa3841f94f3a2a505a676aedbf",
       "primary_language": "Ruby",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/fastlane top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/fastlane top=30 --format json",
       "query_stdout_sha256": "67b578ae3e89f0a7986ad0b8c5f9d9268dee78f0e0389859eadce048604968d8",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244100,7 +244100,7 @@
     "fd": {
       "commit": "42b2ab8a84ddedf80eeed9079128c60161f64658",
       "primary_language": "Rust",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/fd top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/fd top=30 --format json",
       "query_stdout_sha256": "1e2f22d344b44fe0eceb852534f8d24b2d9ce651365d732c478a24938ecd142d",
       "top_10_reported": 8,
       "top_30_reported": 8
@@ -244108,7 +244108,7 @@
     "git": {
       "commit": "9ac3f193c05c2237e2b14ebaa1149e9fc8a1abe0",
       "primary_language": "C",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/git top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/git top=30 --format json",
       "query_stdout_sha256": "4a50ee9c405162912c882ec47a623422c34842360f92f0e36113b9d70d480c60",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244116,7 +244116,7 @@
     "gorm": {
       "commit": "d0ee5e2296150d691364c5f4f7f2b32abde04545",
       "primary_language": "Go",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/gorm top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/gorm top=30 --format json",
       "query_stdout_sha256": "16d98c56903650e1f273d6f85eb689b4d59846a94b15a24f5441d12434734b5e",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244124,7 +244124,7 @@
     "graphhopper": {
       "commit": "2d63716da2e1981fff64d52ee46a0a011202af02",
       "primary_language": "Java",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/graphhopper top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/graphhopper top=30 --format json",
       "query_stdout_sha256": "f458bc7aeccb9d30072481aae546c2c1f2d2869a62701190985e7c56192f52f4",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244132,7 +244132,7 @@
     "gson": {
       "commit": "ed2397502708ebaba53643e5c3d60e0974d7045f",
       "primary_language": "Java",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/gson top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/gson top=30 --format json",
       "query_stdout_sha256": "131c4c74ddd0914a2d5ec0cdf2f12a7c644e6d89420013702f7ac59f14634a6d",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244140,7 +244140,7 @@
     "guava": {
       "commit": "8ee72dc2b4f14a0d10ba434a2453262899a1ca0b",
       "primary_language": "Java",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/guava top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/guava top=30 --format json",
       "query_stdout_sha256": "65d730cd5bbb60f01c40c4c4e8dd971a82ad6614ce96477cb1d4985094d8610c",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244148,7 +244148,7 @@
     "hugo": {
       "commit": "b01ecd4cd4377921efe427fed8a16326b85f2ace",
       "primary_language": "Go",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/hugo top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/hugo top=30 --format json",
       "query_stdout_sha256": "7e0d20e67f52a4e416350b4498dffe684aff6785e7b18a3a47ed3db6fc4af217",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244156,7 +244156,7 @@
     "image": {
       "commit": "1063f55cef361fc55ab2e805030d07d11337dad3",
       "primary_language": "Rust",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/image top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/image top=30 --format json",
       "query_stdout_sha256": "9fd9e6ba3fee9cbf1eddcdcf6b62cf6b0ebfb7523fa3734cd332646d75a5140d",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244164,7 +244164,7 @@
     "jekyll": {
       "commit": "202df571314ba1d18e9fccd81d12aaad4a703c38",
       "primary_language": "Ruby",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/jekyll top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/jekyll top=30 --format json",
       "query_stdout_sha256": "0afcc8b5690f9f2c34251db0060cdd05755453aaf86a9973bd2a226ca0e108a3",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244172,7 +244172,7 @@
     "jest": {
       "commit": "4c3091b4204d703f4ebe343b8ac9d8a28ac4388e",
       "primary_language": "TypeScript",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/jest top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/jest top=30 --format json",
       "query_stdout_sha256": "7772aee7f49e031479417c0f80f63134b6ea141db039e296c423085f19e6d4ef",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244180,7 +244180,7 @@
     "jq": {
       "commit": "985abe534fdd48186015e169da7786c05fd7f868",
       "primary_language": "C",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/jq top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/jq top=30 --format json",
       "query_stdout_sha256": "2bc2188f15e3acf6a530f8b39c29812064d3c7288bbb471aa2e6f621196d050b",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244188,7 +244188,7 @@
     "junit5": {
       "commit": "9a7a266fdd22cbe62d0d06e69fe8aab0dd2649cd",
       "primary_language": "Java",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/junit5 top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/junit5 top=30 --format json",
       "query_stdout_sha256": "0ada986fbe5f5fc8c60eab19ef6c81f279bad4973c1a3ceb7768c2fcf51b9a56",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244196,7 +244196,7 @@
     "libsodium": {
       "commit": "3591adef1c26061b3cce43366ec32e03f1df8a5e",
       "primary_language": "C",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/libsodium top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/libsodium top=30 --format json",
       "query_stdout_sha256": "11b16e9a693c717499de1d1dacb4b4baae79a693254c8f93c0019e8237cf419c",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244204,7 +244204,7 @@
     "lua": {
       "commit": "53b41d0cddd80bf33fdc631bdd32e3ba53842b89",
       "primary_language": "C",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/lua top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/lua top=30 --format json",
       "query_stdout_sha256": "4c43cf34d7172fcff636f1917c3d70a2a2afc6db009e34ec1f1a30ca3563a188",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244212,7 +244212,7 @@
     "mockito": {
       "commit": "70a97b057b36b4c0c165318826e3b12b49dbd970",
       "primary_language": "Java",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/mockito top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/mockito top=30 --format json",
       "query_stdout_sha256": "7ad87c2bab1e9b61bf6d5dcf9bc4bb9d7496611496f7f54de8d9de1959f9812b",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244220,7 +244220,7 @@
     "nats-server": {
       "commit": "050df88d3fb7e968ef8acf02b3ea092d439881c3",
       "primary_language": "Go",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/nats-server top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/nats-server top=30 --format json",
       "query_stdout_sha256": "d34f0b4b69fa91215a4f81f85eee843c9f1d3692d62c8b2b3b02f210c91bc841",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244228,7 +244228,7 @@
     "netty": {
       "commit": "e90eee9f556e3c770dda5ee171276e886266ae71",
       "primary_language": "Java",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/netty top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/netty top=30 --format json",
       "query_stdout_sha256": "edbc869bf15dc7790531cb3c15016305628ae471df5285a046d5a1a9bc33560a",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244236,7 +244236,7 @@
     "nginx": {
       "commit": "d44205284fa41662da803b796d6056fc1e59b1f3",
       "primary_language": "C",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/nginx top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/nginx top=30 --format json",
       "query_stdout_sha256": "d789320f50d08ec42b356b1d6036bcfab597b298c800cd87ac08010dfff46d21",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244244,7 +244244,7 @@
     "nushell": {
       "commit": "779e2473aa28092760fe91ceefb288f36f0670e7",
       "primary_language": "Rust",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/nushell top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/nushell top=30 --format json",
       "query_stdout_sha256": "d454028ec9bcacd846938a223fdbdff9fad8dc3d1af78d1ed9e09a81d4fe64fe",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244252,7 +244252,7 @@
     "packaging": {
       "commit": "cf5dc921b4e1e85b50e3146f94e69d0268d5543d",
       "primary_language": "Python",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/packaging top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/packaging top=30 --format json",
       "query_stdout_sha256": "4ca2a98936a57ea453db4a1f0301d69d7404fde1003746cc95f9394127d541de",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244260,7 +244260,7 @@
     "poetry": {
       "commit": "aab3194f200e52198101d0f303b0f6423897829c",
       "primary_language": "Python",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/poetry top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/poetry top=30 --format json",
       "query_stdout_sha256": "799f433a6466a41b4a663f9834a95fa5a694941c92428a8926e4437f476a0e87",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244268,7 +244268,7 @@
     "prettier": {
       "commit": "a5e7b7c3bd1e783ce33d8b0e335530317fe85bab",
       "primary_language": "TypeScript",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/prettier top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/prettier top=30 --format json",
       "query_stdout_sha256": "89563c9f744f5e71e8349d5cab5b977ec5f85cfebb8787b03030e3e1e657ef3e",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244276,7 +244276,7 @@
     "prometheus": {
       "commit": "f3d653fb5cee5e503356eef531b5da7e578cf22f",
       "primary_language": "Go",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/prometheus top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/prometheus top=30 --format json",
       "query_stdout_sha256": "0e948ba7374cdc93b04c1ceb76165fd9e604841f8087ac7cb1e3045bcddeac44",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244284,7 +244284,7 @@
     "rack": {
       "commit": "1551230b9868c5981d8614e487646dd634a0eb41",
       "primary_language": "Ruby",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/rack top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/rack top=30 --format json",
       "query_stdout_sha256": "d05b80a3f735cf86bba7c42421d88ca76e6f7eb895dc1bf1da074b1bad6f5bd3",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244292,7 +244292,7 @@
     "raylib": {
       "commit": "895154bcb2c55540cee9e2aa2de95c0e5ba9b729",
       "primary_language": "C",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/raylib top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/raylib top=30 --format json",
       "query_stdout_sha256": "b0e3f59a7d494c4345fd0654640cb0a65379a7a7ca0d76df0ee9f9340aa4089f",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244300,7 +244300,7 @@
     "requests": {
       "commit": "cd90742ed94d901759e26766197d0ce7c7bd9c8e",
       "primary_language": "Python",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/requests top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/requests top=30 --format json",
       "query_stdout_sha256": "dad12308a9eb1f454fc707e1522f85c2641c7e6e5944a6369361a7cd411e475c",
       "top_10_reported": 10,
       "top_30_reported": 25
@@ -244308,7 +244308,7 @@
     "retrofit": {
       "commit": "8e83a242eac1afc22a13c52098eddb27421353ff",
       "primary_language": "Java",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/retrofit top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/retrofit top=30 --format json",
       "query_stdout_sha256": "5d68491717a47d87ee7ec7aa2363cd3df78cdddd2b513ffe7ed285ff0066b319",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244316,7 +244316,7 @@
     "rich": {
       "commit": "46cebbb032f920eb096efbaf23cdc6fe9dd541f7",
       "primary_language": "Python",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/rich top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/rich top=30 --format json",
       "query_stdout_sha256": "e61d4030795884a6752f7e7f9f8b1ad8578927a5688cb17e8d092c7cb993b463",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244324,7 +244324,7 @@
     "ripgrep": {
       "commit": "4857d6fa67db69a95cd4b6f2adda5d807d4d0119",
       "primary_language": "Rust",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/ripgrep top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/ripgrep top=30 --format json",
       "query_stdout_sha256": "877393cac4551927b71eafe2f6040428826156a99e58d544492c54fcc4f15676",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244332,7 +244332,7 @@
     "rspec-core": {
       "commit": "aec5f49485d97908183dbe790a7fefb8baaa8091",
       "primary_language": "Ruby",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/rspec-core top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/rspec-core top=30 --format json",
       "query_stdout_sha256": "9c37da029401fc463713f5398817016a0d3aaf77cadac8b5ca562e458f1ad884",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244340,7 +244340,7 @@
     "rubocop": {
       "commit": "43942e260071e869bccc7497bbba82d5d458530e",
       "primary_language": "Ruby",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/rubocop top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/rubocop top=30 --format json",
       "query_stdout_sha256": "6ca1c0ff954771ac0400714affbb845fb4af31dd54e698c6134cc85387a43dd5",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244348,7 +244348,7 @@
     "scrapy": {
       "commit": "44406806f819b0e5230ed0dbe619a31defeb7afc",
       "primary_language": "Python",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/scrapy top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/scrapy top=30 --format json",
       "query_stdout_sha256": "41aaea27fa94d27d88c3350e3cff7d73fd41056987a33f3bb204527e4865ea0d",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244356,7 +244356,7 @@
     "serde_json": {
       "commit": "a1ae73ac6a6940a4a57c673aebaa13ed4dfe3e8c",
       "primary_language": "Rust",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/serde_json top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/serde_json top=30 --format json",
       "query_stdout_sha256": "ade44647102ed44ca316fb5665eda610b6c7971b32ac84c3766a87a7792ee323",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244364,7 +244364,7 @@
     "sinatra": {
       "commit": "5236d3459b8b9015e5ce21ddd0c6beb0db4081d4",
       "primary_language": "Ruby",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/sinatra top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/sinatra top=30 --format json",
       "query_stdout_sha256": "eb3fa95c104af4e8ba86c06a672c052e65ce47bbc9d25d87c6943bd5795ac550",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244372,7 +244372,7 @@
     "sqlite": {
       "commit": "2acb57c1be48b34129b2d91b33d7b5fdbaac7d07",
       "primary_language": "C",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/sqlite top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/sqlite top=30 --format json",
       "query_stdout_sha256": "45bbdc8debf1ce782cccf18e1f8e7aa9baf858017987829cf2a9f168cee0396f",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244380,7 +244380,7 @@
     "swift-algorithms": {
       "commit": "0b4376902cfc3901c496a79f2cb70f1ffd583fff",
       "primary_language": "Swift",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swift-algorithms top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swift-algorithms top=30 --format json",
       "query_stdout_sha256": "76c5c272a52329ee4dc79df11884cfc7d546914b8e63a7429e59befbde2e64f4",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244388,7 +244388,7 @@
     "swift-argument-parser": {
       "commit": "6a52f3251125d74daf04fcbd5e6f08a75d074382",
       "primary_language": "Swift",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swift-argument-parser top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swift-argument-parser top=30 --format json",
       "query_stdout_sha256": "83c6fab3b8d66904c7d8d58ab84c53810dbb6bb2013885dac41fb9b57bf01d6a",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244396,7 +244396,7 @@
     "swift-collections": {
       "commit": "f5b320c29f5af4087bc8f527ed52e0930f4f9fb4",
       "primary_language": "Swift",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swift-collections top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swift-collections top=30 --format json",
       "query_stdout_sha256": "c010810a530d3d70462fa0039fbb05ff2296c01f767aeb5597cceeef99bdce04",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244404,7 +244404,7 @@
     "swift-composable-architecture": {
       "commit": "a28ddfada0ec31d726e5c8e525318c3745ad97d9",
       "primary_language": "Swift",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swift-composable-architecture top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swift-composable-architecture top=30 --format json",
       "query_stdout_sha256": "dccdf8bb0b421f0c32ce521b6b422c71a794d91425b2fc412c5f033b8e4a5519",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244412,7 +244412,7 @@
     "swift-log": {
       "commit": "ca6118469893201380f29a4d67feb68bcb44fa25",
       "primary_language": "Swift",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swift-log top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swift-log top=30 --format json",
       "query_stdout_sha256": "00522bdb02d95e3eb92c8a53f8f9d30b25f7b8e5f9ea953f82bc5e92018a7fc6",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244420,7 +244420,7 @@
     "swiftlint": {
       "commit": "64b731e35cda419025868a9c5248a3bdf1b57631",
       "primary_language": "Swift",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swiftlint top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swiftlint top=30 --format json",
       "query_stdout_sha256": "60c43f28d3b3eae880005d16270794a0f54cf89d9e2a5708a81a53568274439b",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244428,7 +244428,7 @@
     "swr": {
       "commit": "e384af7f0d3e8620e4ec10c5b7c2b0e9bb9466be",
       "primary_language": "TypeScript",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swr top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/swr top=30 --format json",
       "query_stdout_sha256": "1225e7699d47ac130a1e138ef831c10a8f71ffd325b4fb971a4cbb4c4b5509fd",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244436,7 +244436,7 @@
     "thor": {
       "commit": "036cb4ddd5ccecc3a61c16186d2810addb7d42f3",
       "primary_language": "Ruby",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/thor top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/thor top=30 --format json",
       "query_stdout_sha256": "79d9d3d28d1ba329a2251335a01542410fd2b0554505da817a709fb1a74c1e5d",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244444,7 +244444,7 @@
     "tmux": {
       "commit": "0759030ee8c44def03158bcbeac33338fd2b719e",
       "primary_language": "C",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/tmux top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/tmux top=30 --format json",
       "query_stdout_sha256": "5a924384c990176fd24e6dd0e9b40d0e28cdaa8a5b9c2544f1bab4101d08530f",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244452,7 +244452,7 @@
     "vapor": {
       "commit": "fff4892930e69b49ea2612699bed9583721723dc",
       "primary_language": "Swift",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/vapor top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/vapor top=30 --format json",
       "query_stdout_sha256": "8bffcb730fa16e9a42e4bff275dd0e7fd21fcaeca74969d7f64626975d1879a1",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244460,7 +244460,7 @@
     "zap": {
       "commit": "5b81b37b81b8e2ed447a6f57991e372ee4fa5c8f",
       "primary_language": "Go",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/zap top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/zap top=30 --format json",
       "query_stdout_sha256": "9fc4d7d1dc2571208d6c733ca02ba6699619131e66f63e3ea8615d41cc3ce39a",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244468,7 +244468,7 @@
     "zod": {
       "commit": "bbc68f990c7e6a5e3f506c56fb04bd0279b9c9b5",
       "primary_language": "TypeScript",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/zod top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/zod top=30 --format json",
       "query_stdout_sha256": "c35bafaf81aeb1adacd1721d22ac786c2d1916e7ddab1b3e53d8415e26200b14",
       "top_10_reported": 10,
       "top_30_reported": 30
@@ -244476,7 +244476,7 @@
     "zustand": {
       "commit": "04a8487aea075b13e71a327cc99b16fb68352c1a",
       "primary_language": "TypeScript",
-      "query_command": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/zustand top=30 --format json",
+      "query_command": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose query bench/repos/zustand top=30 --format json",
       "query_stdout_sha256": "010dcfbdf163d546619bd8b207361ac258f011af78a1b7ea191767240eb427b3",
       "top_10_reported": 10,
       "top_30_reported": 30

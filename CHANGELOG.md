@@ -19,8 +19,10 @@ break.
   closed, and CI reconstructs the compact decision overlay from its checked dev-only
   label projection, 8.1 MB core, standalone truth-free audit packets, and all three raw
   vote files. Exact nested schemas and #840/live source bindings replay raw-derived
-  facets, predicates, buckets, and audit-key uniqueness rather than trusting dependent
-  hashes.
+  facets, predicates, buckets, frozen deep/audit cohorts, bounded generator evidence,
+  and audit-key uniqueness rather than trusting dependent hashes. Frozen v5-dev and
+  packet-set commitments, exact command provenance, and a source-locked one-time vote
+  rebind reject consistently rehashed substitutions and synthetic prior judgments.
 - Added the split-safe v7 default-head label runway (#840): every v6-unmatched
   dev top-10 family plus deterministic rank 11–30 repository samples now have
   independent three-persona votes and explicit arbitration, while a pre-hashed

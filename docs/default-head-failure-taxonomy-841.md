@@ -12,10 +12,11 @@ hashes, and source bounds match the split-safe [#840 runway](default-head-label-
 The collector opens only the hash-bound `refactoring_families.v5.dev.json`, `v6.dev`, and
 `v7.dev` components; it never parses the v5 mixed-split file, resolves the composite v7
 manifest, or opens a held-out component. The v5 dev projection contains exactly 5,445 dev
-rows and rejects non-dev repositories, member paths, or line bounds.
+rows; its `01702d…f969` family digest is frozen against the parent, so a consistently
+rehashed edit is rejected along with non-dev repositories, member paths, or line bounds.
 
 The checked core (`default_head_taxonomy_2026_07_13.dev.core.v1.json`, semantic SHA-256
-`d39648…a036`) gives every position one truth bucket and a separate mechanical bucket.
+`438b93…ce84`) gives every position one truth bucket and a separate mechanical bucket.
 This separation prevents a label such as `generated` from masquerading as product proof,
 and prevents a strong `exact` or `subdag` witness from masquerading as an actionability
 verdict.
@@ -107,10 +108,14 @@ reading one another's work or existing labels. Every reviewer returned 24/24
 `premise_holds=true` and `non-actionable`, so both selected classifiers clear the 90%
 gate independently.
 
-The validator-hardening pass changed only packet identity bindings; a checked rebind
-accepted the existing judgments only after proving every reviewer-visible packet
-projection unchanged. The compact decision overlay
-`default_head_taxonomy_2026_07_13.dev.v1.json` has artifact SHA-256 `45ac11…cddb` and
+The validator freezes the ordered 65-row deep-label cohort and the complete
+`ce9bfa…c61e` reviewer-visible packet set outside the artifacts. That prevents a valid
+but different deep row, a head positive, or an allowed string field from being swapped
+in by merely recomputing dependent hashes. The one checked vote rebind accepts only the
+exact previously reviewed core, packet artifact, and persona vote digests, and only when
+the complete reviewer-visible packet projection is unchanged; arbitrary legacy inputs
+cannot supply judgments. The compact decision overlay
+`default_head_taxonomy_2026_07_13.dev.v1.json` has artifact SHA-256 `424c5d…445a` and
 binds the 8.1 MB core, 1.8 MB blind packet artifact, three raw vote files, predicates,
 source-bound hard negatives, costs, rejected alternatives, and audit summaries without
 duplicating the core rows.
@@ -122,23 +127,22 @@ python3 bench/labels/default_head_taxonomy.py validate \
   bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json \
   --pragmatic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.pragmatic.v1.json \
   --dedupe bench/labels/default_head_taxonomy_votes_2026_07_13.dev.dedupe.v1.json \
-  --skeptic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.skeptic.v1.json
-
-# Optional local-source and pinned-commit verification:
-python3 bench/labels/default_head_taxonomy.py validate \
-  bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json --live-sources
+  --skeptic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.skeptic.v1.json \
+  --live-sources
 ```
 
 Validation reconstructs the final overlay from the bound core, blind packet artifact,
 and votes. It exact-schema checks nested packets/votes; binds every row to the #840
 candidate, raw-family, and source hashes; recomputes label truth, origin/ranking facets,
 predicates, mechanical buckets, selected cohorts, cross-tabs, rejected heuristics, hard
-negatives, and per-reviewer precision; and checks every provenance input against the
-current files. `--live-sources` additionally resolves every path beneath its exact dev
-repository and rechecks file bytes, hashes, commits, bounded generator evidence, and
-signal locations. Duplicate audit keys, a worthy selected row, held-out path, unknown
-packet field, missing or changed vote, incomplete origin, cohort overlap, or sub-90%
-review fails closed. Self-tests preserve the reviewed invalid-artifact reproductions.
+negatives, frozen deep/audit identities, bounded generator evidence, and per-reviewer
+precision; and checks the exact collection/query commands plus every provenance input
+against the current files. The CI-required `--live-sources` also resolves every path
+beneath its exact dev repository and rechecks file bytes, hashes, commits, and signal
+locations. Duplicate audit keys, a consistently rehashed packet or v5 projection, a
+synthetic vote source, a worthy selected row, held-out path, unknown packet field,
+missing or changed vote, incomplete origin, cohort overlap, or sub-90% review fails
+closed. Self-tests preserve the reviewed invalid-artifact reproductions.
 
 Next, #842 implements and prices the frozen generated-provenance transition, #843 handles
 the declaration-only contract, and #844 records the proof/actionability no-go. They may

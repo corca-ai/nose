@@ -306,7 +306,8 @@ python3 bench/labels/default_head_taxonomy.py validate \
   bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json \
   --pragmatic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.pragmatic.v1.json \
   --dedupe bench/labels/default_head_taxonomy_votes_2026_07_13.dev.dedupe.v1.json \
-  --skeptic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.skeptic.v1.json
+  --skeptic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.skeptic.v1.json \
+  --live-sources
 ```
 
 The earlier [2026-07-11 nose 0.18.0 artifact](product_quality_evaluation_2026_07_11.v2.json)
