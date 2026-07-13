@@ -71,7 +71,7 @@ the frozen v6 judgments until #846.
 
 An explicit v6 replay reproduced the #839 configuration, all 120 repository results, and
 all metrics exactly (stable core SHA-256 `17c013…a9`). The checked v7 report is
-`product_quality_evaluation_v7_dev_runway_2026_07_13.v1.json` (`bdc99a…3443`). Two full
+`product_quality_evaluation_v7_dev_runway_2026_07_13.v1.json` (`583504…ebc9`). Two full
 runs had the same measurement payload; only the second run's expected untracked-output
 status differed before that status field was removed for comparison.
 
