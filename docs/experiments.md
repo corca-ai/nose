@@ -3594,8 +3594,8 @@ concrete `If`, `Seq`, and `Call` roots. Held-out source stayed closed.
 
 The final v6 comparison adds ten worthy hits (five dev and five held-out) with zero regressions.
 Default output on the fixed #809 slice grows 6,782 -> 6,842 (+0.88%). Against the official
-v0.18.0 binary, aggregate runtime is +2.88% with a +0.83% same-binary control, or about +2.05%
-control-adjusted. The incremental post-#821 cost is -0.44% raw / -1.27% control-adjusted.
+v0.18.0 binary, aggregate runtime is +3.17% with a +0.20% same-binary control, or about +2.97%
+control-adjusted. The incremental post-#821 cost is -0.24% raw / -0.44% control-adjusted.
 
 See [the #832 closeout](bounded-same-unit-windows-832.md) for exact IDs, artifacts, budgets, and the
 result-dependent next action.

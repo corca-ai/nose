@@ -54,10 +54,10 @@ On the fixed #809 seven-repository slice, default output moves **6,782 -> 6,842 
 +0.88%)**. All-family output moves **12,504 -> 12,613 (+109, +0.87%)**.
 
 The official v0.18.0 Darwin arm64 release asset remains the primary performance baseline.
-Five alternating measurements report **3,646.77ms -> 3,751.61ms (+2.88%)**. The HEAD/HEAD
-same-binary control is **+0.83%**, leaving about **+2.05% control-adjusted** cumulative cost.
-The incremental post-#821 measurement is **3,909.29ms -> 3,892.03ms (-0.44%)**, or
-**-1.27% control-adjusted**. Exact output hashes are stable within the control run.
+Five alternating measurements report **3,671.18ms -> 3,787.41ms (+3.17%)**. The HEAD/HEAD
+same-binary control is **+0.20%**, leaving about **+2.97% control-adjusted** cumulative cost.
+The incremental post-#821 measurement is **3,884.88ms -> 3,875.42ms (-0.24%)**, or
+**-0.44% control-adjusted**. Exact output hashes are stable within the control run.
 
 ## Evidence
 
