@@ -198,6 +198,14 @@ run_missed_worthy_frontier_checks() {
         --validate bench/labels/missed_worthy_stage_confirmation_post_817_2026_07_12.heldout.v2.json \
         --artifact bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json \
         --decisions bench/labels/missed_worthy_audit_decisions_post_817_2026_07_12.dev.v2.json
+    python3 bench/labels/recall_ceiling_probe.py \
+        --validate bench/labels/recall_ceiling_probe_post_821_2026_07_13.v1.json
+    python3 bench/labels/missed_worthy_stage_audit.py \
+        --validate bench/labels/missed_worthy_stage_audit_post_821_2026_07_13.dev.v1.json \
+        --artifact bench/labels/recall_ceiling_probe_post_821_2026_07_13.v1.json
+    python3 bench/labels/missed_worthy_stage_audit.py \
+        --validate bench/labels/missed_worthy_stage_audit_issue_832_2026_07_13.dev.v1.json \
+        --artifact bench/labels/recall_ceiling_probe_post_821_2026_07_13.v1.json
 }
 
 run_product_query_schema_live_check() {

@@ -45,18 +45,26 @@ Held-out source was never opened. Only the evaluator's mechanical ID comparison 
 
 ## Quality and price
 
-`FINAL_EVAL`
+The final combined v6 comparison moves **4,711 -> 4,721 worthy hits (+10)** with zero
+regressions. Dev moves **2,711/2,849 -> 2,716/2,849 (+5)**: the three required IDs, the
+coherent clap row, and the documented gorm metric alias. Held-out moves
+**2,000/2,091 -> 2,005/2,091 (+5)** by mechanical comparison only.
 
-`FINAL_OUTPUT`
+On the fixed #809 seven-repository slice, default output moves **6,782 -> 6,842 (+60,
++0.88%)**. All-family output moves **12,504 -> 12,613 (+109, +0.87%)**.
 
 The official v0.18.0 Darwin arm64 release asset remains the primary performance baseline.
-`FINAL_RUNTIME`
+Five alternating measurements report **3,646.77ms -> 3,751.61ms (+2.88%)**. The HEAD/HEAD
+same-binary control is **+0.83%**, leaving about **+2.05% control-adjusted** cumulative cost.
+The incremental post-#821 measurement is **3,909.29ms -> 3,892.03ms (-0.44%)**, or
+**-1.27% control-adjusted**. Exact output hashes are stable within the control run.
 
 ## Evidence
 
 - `bench/labels/product_quality_evaluation_post_821_2026_07_13.v1.json`
 - `bench/labels/recall_ceiling_probe_post_821_2026_07_13.v1.json`
 - `bench/labels/missed_worthy_stage_audit_post_821_2026_07_13.dev.v1.json`
+- `bench/labels/missed_worthy_stage_audit_issue_832_2026_07_13.dev.v1.json`
 - `bench/labels/bounded_same_unit_dev_review_issue_832_2026_07_13.v1.json`
 - `bench/labels/product_quality_evaluation_issue_832_2026_07_13.v1.json`
 - `bench/labels/bounded_same_unit_pricing_2026_07_13.release-primary.v1.json`
