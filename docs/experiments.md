@@ -3577,6 +3577,26 @@ Against the official v0.18.0 release binary, aggregate runtime is **+3.78%** wit
 same-binary control; the focused noisy slice is +2.26% primary / -0.25% control. See
 [the #821 closeout](connected-witness-821.md) for the design, IDs, artifacts, and next decision.
 
+## DM. Bounded same-unit mapped windows (#832, 2026-07-13)
+
+The clean merged post-#821 rerun leaves 17 dev misses in the optimistic same-unit lane. #832 takes
+only the three previously reviewed positive rows plus one overlapping hard negative. Product work
+compares bounded whole-subtree pairs inside at most two functions or methods per file, with
+separate work and output caps from the cross-unit connected routes. A result reports its two
+disjoint windows under the `bounded-window` witness; it is never promoted to an exact fragment or
+the enclosing unit.
+
+The frozen proposal recovers the required git, gorm, and chi rows. The tmux shifted-overlap control
+stays missed. Post-freeze dev review found one independent coherent clap assertion pair and one
+gorm metric alias. It also found a Gson switch-arm row from a different frozen lane; rejecting bare
+scope-container `Block` roots removed that unrelated addition while preserving the required
+concrete `If`, `Seq`, and `Call` roots. Held-out source stayed closed.
+
+`FINAL_EXPERIMENT_RESULT`
+
+See [the #832 closeout](bounded-same-unit-windows-832.md) for exact IDs, artifacts, budgets, and the
+result-dependent next action.
+
 ## DH. Parser-artifact hygiene and unsupported-header routing (2026-06-20)
 
 After §DG, the largest `gap-impact` rows were no longer ordinary lowering misses. They were parser

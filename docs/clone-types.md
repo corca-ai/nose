@@ -163,6 +163,13 @@ core canonicalizations, but not a per-run or whole-pipeline proof. See
   on one execution path is a behavior change, not a Type-4 clone. The full grammar of admitted
   fragment shapes is in [fragment-contracts](fragment-contracts.md).
 
+The bounded same-unit route is deliberately separate from that exact-fragment catalog. It may
+surface two disjoint, concrete subtrees in one enclosing unit as a `near` refactoring candidate
+when their control/effect roles and value-hole mapping agree. Its `bounded-window` witness does
+not assert behavior equality, does not set exact-fragment metadata, and never reports the whole
+enclosing unit in place of the two actionable spans. See
+[bounded same-unit windows](bounded-same-unit-windows-832.md).
+
 Exact fragment proof is not the same thing as user-facing refactorability. Fragment
 locations carry stable proof metadata explaining why a region is exact-safe, but product
 placement — which surface a family lands on — is decided separately. See

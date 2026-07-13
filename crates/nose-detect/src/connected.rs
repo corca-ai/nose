@@ -459,6 +459,12 @@ pub(crate) fn same_unit_witness(tokens: &[MappedToken]) -> Option<ConnectedWitne
     let mut roots: BTreeMap<(u64, usize, usize), Vec<usize>> = BTreeMap::new();
     for (index, token) in tokens.iter().copied().enumerate() {
         if token.subtree_len() < MIN_MAPPED_NODES as usize
+            // A bare block is only a scope container. Inside one unit, pairing two such
+            // containers can erase the construct that owns them (notably two switch arms)
+            // and report a parametric relationship that the frozen frontier did not
+            // establish. Concrete roots such as If, Call, Seq, and ExprStmt retain that
+            // ownership boundary and remain eligible.
+            || token.kind() == kind(NodeKind::Block)
             || token.start_line() == 0
             || token.start_line() > token.end_line()
             || token.end_line() - token.start_line() + 1 < MIN_SAME_UNIT_LINES

@@ -144,6 +144,8 @@ fundamentals; the rest is grouped by area.
 - [connected mapped witnesses](connected-witness-821.md) — the #821 pair-local connected
   witness, hard-negative boundary, output/work budgets, official-release runtime price,
   and zero-regression v6 closeout.
+- [bounded same-unit windows](bounded-same-unit-windows-832.md) — the #832 bounded intra-unit
+  near route, disjoint-location contract, frozen dev review, and release-based price.
 - [type4-benchmark](type4-benchmark.md) — the evidence-carrying synthetic Type-4 benchmark factory.
 - [type4-adversarial-coverage](type4-adversarial-coverage.md) — focused Type-4 cases, target-packet task cards, and verifier-lead draft workflow.
 - [frontier-platform](frontier-platform.md) — corpus-balanced evidence platform that ranks the next Type-4 axis by presence breadth (not raw count) and separates the queue signal from human-verified evidence.

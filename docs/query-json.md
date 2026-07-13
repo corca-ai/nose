@@ -159,7 +159,7 @@ Composition rules for v8:
 |---|---|
 | `id` | family id (the `id=` handle; any unique prefix opens it) |
 | `scope` | `prod` \| `test` \| `mixed` (context, never a worthiness penalty; conventional test paths such as `tests/`, `spec/`, `__tests__/`, `*_test.go`, `*.test.*`, `*.spec.*`, `conftest.py`, and Rust modular `test.rs`/`tests.rs` count as test scope, as do Rust inline `mod test`/`mod tests` spans) |
-| `witness` | why the copies merged: `exact` (same unit behavior) \| `subdag` (shared computation inside each site) \| `copy-paste` \| `similar` |
+| `witness` | why the copies merged: `exact` (same unit behavior) \| `subdag` (shared computation inside each site) \| `connected` (pair-local mapped cross-unit region) \| `bounded-window` (two disjoint mapped regions in one enclosing unit; a near/refactoring witness, not exact-fragment proof) \| `copy-paste` \| `similar` |
 | `surface` | `default` \| `divergence` \| `hidden` \| `shallow` \| `generated` \| `declaration` \| `debug` (curation tier; `debug` is a reserved diagnostic tier normal runs don't emit) |
 | `members` | number of copies |
 | `files` / `dirs` / `languages` | distinct files / directories / languages the copies span |
@@ -202,6 +202,9 @@ Fragment proof metadata is intentionally scoped to views that need it. Dashboard
 `locations[]` stay compact and do not repeat `is_fragment`, `fragment_kind`, `reason_code`,
 or `enclosing_unit`; the divergent-edit `base` view serializes those fields on
 `changed[]`/`not_updated[]` sites because fragment context affects the gate explanation.
+For `bounded-window`, the two compact locations are already the actionable windows; they do not
+carry exact-fragment metadata. Their enclosing function or method is context retained by the
+detector, never substituted for either location.
 
 Evidence, never a verdict: there is no `worth_it`/`confidence` field — the worthy-vs-parallel
 judgment is the caller's ([design §2](design.md)). See the [agent-recipe](agent-recipe.md) for

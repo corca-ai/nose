@@ -71,6 +71,10 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    Jaccard and accepts above the inline `near:T` threshold (default `near:0.70`), and
    may separately admit a bounded pair-local connected block/statement-window witness
    without changing the ordinary scorer ([connected witnesses](connected-witness-821.md));
+   a separately priced same-unit route may report two disjoint concrete subtree windows under
+   one enclosing unit ([bounded same-unit windows](bounded-same-unit-windows-832.md)). It is a
+   `near` refactoring witness, not an exact-fragment proof, and bare scope-container blocks are
+   ineligible;
    `syntax` emits duplicated runs above the line/token floors. Experimental
    `abstraction` then checks same-language near-style families for one shared
    supported literal-leaf hole position and attaches a weak witness instead of an

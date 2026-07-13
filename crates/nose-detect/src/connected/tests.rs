@@ -145,6 +145,40 @@ int parse(char **cursor) {
 }
 
 #[test]
+fn same_unit_witness_does_not_erase_switch_arm_ownership() {
+    let source = r#"
+class Reader {
+  int peek(int scope, int c) {
+    int value = 0;
+    switch (scope) {
+      case 1: {
+        if (c == ']') { value = 10; break; }
+        else if (c == ';') checkLenient();
+        checkLenient();
+        position--;
+        value = 11;
+        break;
+      }
+      case 2: {
+        if (c == '}') { value = 20; break; }
+        else if (c == ';') checkLenient();
+        checkLenient();
+        position--;
+        value = 21;
+        break;
+      }
+    }
+    return value;
+  }
+}
+"#;
+    assert!(
+        same_unit(source, Lang::Java, "peek").is_none(),
+        "two bare switch-arm blocks must not lose their owning construct"
+    );
+}
+
+#[test]
 fn same_unit_witness_keeps_disjoint_observable_callbacks_bounded() {
     let source = r#"
 package fixture
