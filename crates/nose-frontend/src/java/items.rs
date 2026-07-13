@@ -302,40 +302,17 @@ pub(super) fn lower_compact_constructor(lo: &mut Lowering, node: TsNode) -> Node
     func
 }
 pub(super) fn java_type_origin(node: TsNode) -> UnitOrigin {
-    let has_body = java_node_has_method_body(node);
+    let has_method_body = java_node_has_method_body(node);
+    let has_runtime_initializer = java_node_has_field_initializer(node);
     match node.kind() {
-        "interface_declaration" => UnitOrigin::new(
-            UnitDomains::of(UnitDomain::TypeContract),
-            UnitSubkind::InterfaceTraitProtocol,
-            if has_body {
-                UnitBodyKind::Mixed
-            } else {
-                UnitBodyKind::DeclarationOnly
-            },
-            SourceGranularity::WholeUnit,
-            RegionKind::Code,
-        )
-        .with_evidence(if has_body {
-            UnitEvidenceFlag::InterfaceDefaultMethod
-        } else {
-            UnitEvidenceFlag::DeclarationOnly
-        })
-        .with_evidence(UnitEvidenceFlag::TypeOnly),
+        "interface_declaration" => java_interface_origin(has_method_body, has_runtime_initializer),
         // An annotation type (`@interface`) is a declaration-only type contract, not an
         // implementation-inheritance candidate — it must not read as `extract-base-class`.
-        "annotation_type_declaration" => UnitOrigin::new(
-            UnitDomains::of(UnitDomain::TypeContract),
-            UnitSubkind::DefinedType,
-            UnitBodyKind::DeclarationOnly,
-            SourceGranularity::WholeUnit,
-            RegionKind::Code,
-        )
-        .with_evidence(UnitEvidenceFlag::DeclarationOnly)
-        .with_evidence(UnitEvidenceFlag::TypeOnly),
+        "annotation_type_declaration" => java_annotation_type_origin(has_runtime_initializer),
         // A `record` is a data/struct contract (its canonical body is the component header);
         // it gains an implementation facet only when it carries real method bodies.
         "record_declaration" => UnitOrigin::new(
-            if has_body {
+            if has_method_body {
                 UnitDomains::of(UnitDomain::TypeContract)
                     .with(UnitDomain::Data)
                     .with(UnitDomain::ImplementationType)
@@ -343,7 +320,7 @@ pub(super) fn java_type_origin(node: TsNode) -> UnitOrigin {
                 UnitDomains::of(UnitDomain::TypeContract).with(UnitDomain::Data)
             },
             UnitSubkind::StructRecord,
-            if has_body {
+            if has_method_body {
                 UnitBodyKind::Mixed
             } else {
                 UnitBodyKind::DeclarativeDenotation
@@ -352,7 +329,7 @@ pub(super) fn java_type_origin(node: TsNode) -> UnitOrigin {
             RegionKind::Code,
         )
         .with_evidence(UnitEvidenceFlag::RecordHeader)
-        .with_evidence(if has_body {
+        .with_evidence(if has_method_body {
             UnitEvidenceFlag::HasReusableBody
         } else {
             UnitEvidenceFlag::DataShapeOnly
@@ -360,7 +337,7 @@ pub(super) fn java_type_origin(node: TsNode) -> UnitOrigin {
         "enum_declaration" => UnitOrigin::new(
             UnitDomains::of(UnitDomain::TypeContract).with(UnitDomain::Data),
             UnitSubkind::Enum,
-            if has_body {
+            if has_method_body {
                 UnitBodyKind::Mixed
             } else {
                 UnitBodyKind::DeclarativeDenotation
@@ -368,12 +345,12 @@ pub(super) fn java_type_origin(node: TsNode) -> UnitOrigin {
             SourceGranularity::WholeUnit,
             RegionKind::Code,
         )
-        .with_domain(if has_body {
+        .with_domain(if has_method_body {
             UnitDomain::ImplementationType
         } else {
             UnitDomain::Unknown
         })
-        .with_evidence(if has_body {
+        .with_evidence(if has_method_body {
             UnitEvidenceFlag::HasReusableBody
         } else {
             UnitEvidenceFlag::DataShapeOnly
@@ -382,7 +359,7 @@ pub(super) fn java_type_origin(node: TsNode) -> UnitOrigin {
         _ => UnitOrigin::new(
             UnitDomains::of(UnitDomain::ImplementationType),
             UnitSubkind::Class,
-            if has_body {
+            if has_method_body {
                 UnitBodyKind::Implementation
             } else {
                 UnitBodyKind::DeclarationOnly
@@ -390,12 +367,60 @@ pub(super) fn java_type_origin(node: TsNode) -> UnitOrigin {
             SourceGranularity::WholeUnit,
             RegionKind::Code,
         )
-        .with_evidence(if has_body {
+        .with_evidence(if has_method_body {
             UnitEvidenceFlag::HasReusableBody
         } else {
             UnitEvidenceFlag::DeclarationOnly
         }),
     }
+}
+fn java_interface_origin(has_method_body: bool, has_runtime_initializer: bool) -> UnitOrigin {
+    let has_behavior = has_method_body || has_runtime_initializer;
+    let origin = UnitOrigin::new(
+        UnitDomains::of(UnitDomain::TypeContract),
+        UnitSubkind::InterfaceTraitProtocol,
+        if has_behavior {
+            UnitBodyKind::Mixed
+        } else {
+            UnitBodyKind::DeclarationOnly
+        },
+        SourceGranularity::WholeUnit,
+        RegionKind::Code,
+    )
+    .with_evidence(if has_behavior {
+        if has_method_body {
+            UnitEvidenceFlag::InterfaceDefaultMethod
+        } else {
+            UnitEvidenceFlag::RuntimeValue
+        }
+    } else {
+        UnitEvidenceFlag::DeclarationOnly
+    })
+    .with_evidence(UnitEvidenceFlag::TypeOnly);
+    if has_method_body && has_runtime_initializer {
+        origin.with_evidence(UnitEvidenceFlag::RuntimeValue)
+    } else {
+        origin
+    }
+}
+fn java_annotation_type_origin(has_runtime_initializer: bool) -> UnitOrigin {
+    UnitOrigin::new(
+        UnitDomains::of(UnitDomain::TypeContract),
+        UnitSubkind::DefinedType,
+        if has_runtime_initializer {
+            UnitBodyKind::Mixed
+        } else {
+            UnitBodyKind::DeclarationOnly
+        },
+        SourceGranularity::WholeUnit,
+        RegionKind::Code,
+    )
+    .with_evidence(if has_runtime_initializer {
+        UnitEvidenceFlag::RuntimeValue
+    } else {
+        UnitEvidenceFlag::DeclarationOnly
+    })
+    .with_evidence(UnitEvidenceFlag::TypeOnly)
 }
 pub(super) fn java_method_origin(node: TsNode, has_body: bool) -> UnitOrigin {
     if !has_body {
@@ -428,6 +453,15 @@ pub(super) fn java_node_has_method_body(node: TsNode) -> bool {
             "method_declaration" | "constructor_declaration"
         ) && child.child_by_field_name("body").is_some()
             || java_node_has_method_body(child)
+    })
+}
+fn java_node_has_field_initializer(node: TsNode) -> bool {
+    Lowering::named_children(node).into_iter().any(|child| {
+        if java_is_nested_type_decl(child.kind()) {
+            return false;
+        }
+        child.kind() == "variable_declarator" && child.child_by_field_name("value").is_some()
+            || java_node_has_field_initializer(child)
     })
 }
 pub(super) fn java_is_nested_type_decl(kind: &str) -> bool {

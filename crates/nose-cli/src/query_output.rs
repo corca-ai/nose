@@ -303,6 +303,7 @@ mod tests {
             .into_iter()
             .collect(),
             declaration_run_ids: Default::default(),
+            declaration_only_type_contract_ids: Default::default(),
         };
         let ranked: Vec<_> = families.iter().collect();
         let mut groups = OpportunityGroups::from_ranked(&ranked);

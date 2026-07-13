@@ -423,7 +423,7 @@ pub(super) fn lower_type_block(lo: &mut Lowering, node: TsNode, methods: bool) -
 pub(super) fn rust_type_origin(node: TsNode) -> UnitOrigin {
     match node.kind() {
         "trait_item" => {
-            let has_body = rust_node_has_function_body(node);
+            let has_body = rust_trait_has_implementation_signal(node);
             UnitOrigin::new(
                 UnitDomains::of(UnitDomain::TypeContract).union(if has_body {
                     UnitDomains::of(UnitDomain::ImplementationType)
@@ -457,14 +457,37 @@ pub(super) fn rust_type_origin(node: TsNode) -> UnitOrigin {
         _ => UnitOrigin::unknown(),
     }
 }
-pub(super) fn rust_node_has_function_body(node: TsNode) -> bool {
+fn rust_trait_has_implementation_signal(node: TsNode) -> bool {
+    if rust_trait_has_outer_attribute(node) {
+        return true;
+    }
     Lowering::named_children(node).into_iter().any(|child| {
         if rust_is_nested_item_boundary(child.kind()) {
             return false;
         }
-        child.kind() == "function_item" && child.child_by_field_name("body").is_some()
-            || rust_node_has_function_body(child)
+        let has_default = child.kind() == "function_item"
+            && child.child_by_field_name("body").is_some()
+            || child.kind() == "const_item" && child.child_by_field_name("value").is_some()
+            || matches!(child.kind(), "type_item" | "associated_type")
+                && (child.child_by_field_name("type").is_some()
+                    || child.child_by_field_name("value").is_some());
+        let may_inject_implementation = matches!(
+            child.kind(),
+            "macro_invocation" | "attribute_item" | "inner_attribute_item"
+        );
+        has_default || may_inject_implementation || rust_trait_has_implementation_signal(child)
     })
+}
+fn rust_trait_has_outer_attribute(node: TsNode) -> bool {
+    let mut previous = node.prev_named_sibling();
+    while let Some(sibling) = previous {
+        match sibling.kind() {
+            "attribute_item" | "inner_attribute_item" => return true,
+            "line_comment" | "block_comment" => previous = sibling.prev_named_sibling(),
+            _ => return false,
+        }
+    }
+    false
 }
 pub(super) fn rust_is_nested_item_boundary(kind: &str) -> bool {
     matches!(
