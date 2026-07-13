@@ -12,10 +12,12 @@ from __future__ import annotations
 import argparse
 from collections import Counter, defaultdict
 import copy
+from functools import lru_cache
 import hashlib
 import json
 import math
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+import re
 import shlex
 import statistics
 import subprocess
@@ -30,6 +32,7 @@ REPOS_ROOT = ROOT / "bench" / "repos"
 CORPUS = ROOT / "bench" / "goldens" / "corpus.json"
 RUNWAY = ROOT / "bench" / "labels" / "default_head_label_runway_2026_07_13.dev.v1.json"
 V5 = ROOT / "bench" / "labels" / "refactoring_families.v5.json"
+V5_DEV = ROOT / "bench" / "labels" / "refactoring_families.v5.dev.json"
 V6_DEV = ROOT / "bench" / "labels" / "refactoring_families.v6.dev.json"
 V7_DEV = ROOT / "bench" / "labels" / "refactoring_families.v7.dev.json"
 DEFAULT_NOSE = (
@@ -40,10 +43,14 @@ DEFAULT_NOSE = (
     / "nose-cli-aarch64-apple-darwin"
     / "nose"
 )
+CHECKED_CORE = ROOT / "bench" / "labels" / "default_head_taxonomy_2026_07_13.dev.core.v1.json"
+CHECKED_AUDIT = ROOT / "bench" / "labels" / "default_head_taxonomy_audit_packets_2026_07_13.dev.v1.json"
 
 CORE_SCHEMA = "nose.default_head_taxonomy_core.v1"
 FINAL_SCHEMA = "nose.default_head_taxonomy.v1"
 VOTE_SCHEMA = "nose.default_head_taxonomy_vote.v1"
+AUDIT_SCHEMA = "nose.default_head_taxonomy_audit_packets.v1"
+V5_DEV_SCHEMA = "nose.refactoring_families.v5.dev_projection.v1"
 AUDIT_PERSONAS = ("pragmatic", "dedupe", "skeptic")
 TRUTH_REASONS = (
     "extract-helper",
@@ -74,6 +81,12 @@ EXPECTED_TRUTH = {
     "type-def": 9,
 }
 SOURCE_READ_LIMIT = 65_536
+FROZEN_V5_SHA256 = "e18b65543f4b6373d7eadbc93159adda69699eafe8f5f814d9ba53e245a6d9f9"
+HELDOUT_POLICY = "closed; no held-out component, source path, or judgment was read"
+AUDIT_QUESTION = (
+    "Does the frozen mechanical premise hold for every member, and would moving this "
+    "family out of the bare default avoid hiding an actionable refactoring?"
+)
 
 
 class TaxonomyError(ValueError):
@@ -108,6 +121,32 @@ def load_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         fail(f"{path}: expected a JSON object")
     return value
+
+
+def exact_keys(value: object, allowed: set[str], source: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        fail(f"{source}: expected an object")
+    actual = set(value)
+    if actual != allowed:
+        fail(
+            f"{source}: exact keys differ; missing={sorted(allowed - actual)}, "
+            f"extra={sorted(actual - allowed)}"
+        )
+    return value
+
+
+def is_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def safe_repo_relative_path(path_text: str, repo: str) -> bool:
+    path = PurePosixPath(path_text)
+    return (
+        not path.is_absolute()
+        and ".." not in path.parts
+        and path.parts[:3] == ("bench", "repos", repo)
+        and len(path.parts) > 3
+    )
 
 
 def write_json(path: Path, value: object) -> None:
@@ -164,22 +203,94 @@ def label_overlap(members: list[dict[str, Any]], label: dict[str, Any]) -> int:
     )
 
 
+def freeze_v5_dev(output: Path) -> dict[str, Any]:
+    """Create the one-time dev projection; normal #841 collection never calls this."""
+
+    parent = load_json(V5)
+    families = parent.get("families")
+    if not isinstance(families, list):
+        fail(f"{V5}: families must be an array")
+    dev = [family for family in families if family.get("split") == "dev"]
+    if len(dev) != 5_445 or any(family.get("split") != "dev" for family in dev):
+        fail("frozen v5 dev projection must contain exactly 5,445 dev rows")
+    artifact = {
+        "schema": V5_DEV_SCHEMA,
+        "split": "dev",
+        "parent": {
+            "path": rel(V5),
+            "sha256": file_sha256(V5),
+            "schema_version": parent.get("schema_version"),
+        },
+        "families_sha256": canonical_sha256(dev),
+        "families": dev,
+    }
+    write_json(output, artifact)
+    return artifact
+
+
+def validate_v5_dev(payload: dict[str, Any]) -> None:
+    exact_keys(
+        payload,
+        {"schema", "split", "parent", "families_sha256", "families"},
+        "v5 dev projection",
+    )
+    if payload["schema"] != V5_DEV_SCHEMA or payload["split"] != "dev":
+        fail("unsupported v5 dev projection")
+    exact_keys(payload["parent"], {"path", "sha256", "schema_version"}, "v5 parent")
+    if payload["parent"] != {
+        "path": rel(V5),
+        "sha256": FROZEN_V5_SHA256,
+        "schema_version": "0.1.0",
+    }:
+        fail("v5 dev projection parent commitment drift")
+    families = payload["families"]
+    if not isinstance(families, list) or len(families) != 5_445:
+        fail("v5 dev projection must contain exactly 5,445 rows")
+    if any(not isinstance(row, dict) or row.get("split") != "dev" for row in families):
+        fail("v5 dev projection contains a non-dev row")
+    if canonical_sha256(families) != payload["families_sha256"]:
+        fail("v5 dev family projection digest mismatch")
+
+
 def load_dev_labels() -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
     """Load only explicit dev components; never resolve a composite labelset."""
 
     rows: list[dict[str, Any]] = []
     by_candidate: dict[str, dict[str, Any]] = {}
-    sources = ((V5, "v5-dev"), (V6_DEV, "v6-dev"), (V7_DEV, "v7-dev"))
+    corpus = load_json(CORPUS)
+    dev_repos = {
+        row["id"] for row in corpus.get("repositories", []) if row.get("split") == "dev"
+    }
+    sources = ((V5_DEV, "v5-dev"), (V6_DEV, "v6-dev"), (V7_DEV, "v7-dev"))
     for path, source in sources:
         payload = load_json(path)
+        if path == V5_DEV:
+            validate_v5_dev(payload)
         families = payload.get("families")
         if not isinstance(families, list):
             fail(f"{path}: families must be an array")
         for original in families:
             if original.get("split") != "dev":
-                if path == V5:
-                    continue
                 fail(f"{path}: non-dev row in an explicit dev component")
+            repo = original.get("repo")
+            members = original.get("members")
+            if repo not in dev_repos or not isinstance(members, list) or not members:
+                fail(f"{path}: label is outside the exact dev repository set")
+            for index, label_member in enumerate(members):
+                exact_keys(
+                    label_member,
+                    {"file", "start_line", "end_line", "name"},
+                    f"{path}: {original.get('family_id')}.members[{index}]",
+                )
+                if not safe_repo_relative_path(label_member.get("file", ""), repo):
+                    fail(f"{path}: label member escapes its dev repository")
+                if (
+                    not is_int(label_member.get("start_line"))
+                    or not is_int(label_member.get("end_line"))
+                    or label_member["start_line"] < 1
+                    or label_member["end_line"] < label_member["start_line"]
+                ):
+                    fail(f"{path}: label member has invalid line bounds")
             row = copy.deepcopy(original)
             row["_label_source"] = source
             row["_label_sha256"] = canonical_sha256(original)
@@ -249,9 +360,16 @@ def source_path(path_text: str, repo: str) -> Path:
     return path
 
 
+@lru_cache(maxsize=None)
+def live_source_record(path_text: str, repo: str) -> tuple[int, str]:
+    path = source_path(path_text, repo)
+    return path.stat().st_size, file_sha256(path)
+
+
 def jazzy_evidence(path_text: str, repo: str) -> dict[str, Any] | None:
     path = source_path(path_text, repo)
-    bounded = path.read_bytes()[:SOURCE_READ_LIMIT]
+    with path.open("rb") as stream:
+        bounded = stream.read(SOURCE_READ_LIMIT)
     lower = bounded.lower()
     asset_tokens = (b"jazzy.css", b"jazzy.js")
     anchor_tokens = (b'class="dashanchor"', b"//apple_ref/")
@@ -272,8 +390,8 @@ def jazzy_evidence(path_text: str, repo: str) -> dict[str, Any] | None:
     return {
         "kind": "jazzy-generated-documentation",
         "path": path_text,
-        "source_bytes": path.stat().st_size,
-        "source_sha256": file_sha256(path),
+        "source_bytes": live_source_record(path_text, repo)[0],
+        "source_sha256": live_source_record(path_text, repo)[1],
         "read_bytes": len(bounded),
         "read_limit": SOURCE_READ_LIMIT,
         "signals": [signal(asset), signal(anchor)],
@@ -455,7 +573,8 @@ def classify_mechanical(
 def source_bounds(family: dict[str, Any], repo: str) -> list[dict[str, Any]]:
     records = []
     for location in family["locations"]:
-        path = source_path(location["file"], repo)
+        source_path(location["file"], repo)
+        size, digest = live_source_record(location["file"], repo)
         records.append(
             {
                 "id": location.get("id"),
@@ -464,8 +583,8 @@ def source_bounds(family: dict[str, Any], repo: str) -> list[dict[str, Any]]:
                 "end": location["end"],
                 "name": location.get("name"),
                 "lang": location.get("lang"),
-                "source_bytes": path.stat().st_size,
-                "source_sha256": file_sha256(path),
+                "source_bytes": size,
+                "source_sha256": digest,
             }
         )
     return records
@@ -521,6 +640,7 @@ def make_row(
         "facets": {
             "witness": family.get("witness"),
             "surface": family.get("surface"),
+            "actionability_classifier": "unavailable-in-query-schema-v7",
             "scope": family.get("scope"),
             "extraction_shape": family.get("extraction_shape"),
             "same_symbol": family.get("same_symbol"),
@@ -633,6 +753,9 @@ def build_cross_tabs(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "truth_reason": cross_tab(rows, lambda row: row["truth"]["reason"]),
         "witness": cross_tab(rows, lambda row: row["facets"]["witness"]),
         "surface": cross_tab(rows, lambda row: row["facets"]["surface"]),
+        "actionability_classifier": cross_tab(
+            rows, lambda row: row["facets"]["actionability_classifier"]
+        ),
         "scope": cross_tab(rows, lambda row: row["facets"]["scope"]),
         "extraction_shape": cross_tab(rows, lambda row: row["facets"]["extraction_shape"]),
         "origin_coverage": cross_tab(rows, lambda row: row["facets"]["origin"]["coverage"]),
@@ -715,14 +838,13 @@ def audit_packet(row: dict[str, Any], lever: str) -> dict[str, Any]:
     packet = {
         "audit_key": f"{lever}:{row['position_key']}",
         "lever_id": lever,
+        "candidate_sha256": row["candidate_sha256"],
+        "raw_family_sha256": row["raw_family_sha256"],
         "repo": row["repo"],
         "rank": row["rank"],
         "query_family_id": row["query_family_id"],
         "source_bounds": row["source_bounds"],
-        "review_question": (
-            "Does the frozen mechanical premise hold for every member, and would "
-            "moving this family out of the bare default avoid hiding an actionable refactoring?"
-        ),
+        "review_question": AUDIT_QUESTION,
         "frozen_evidence": {
             "generated_provenance": row["facets"]["generated_provenance"],
             "origin": row["facets"]["origin"],
@@ -734,16 +856,17 @@ def audit_packet(row: dict[str, Any], lever: str) -> dict[str, Any]:
     return packet
 
 
-def make_levers(head: list[dict[str, Any]], deep: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    definitions = [
+def lever_contracts() -> list[dict[str, Any]]:
+    return [
         {
             "lever_id": "generated-provenance.v1",
             "status": "selected-pending-independent-audit",
             "predicate_ast": {
                 "op": "all_unique_member_files",
                 "suffix": ".html",
+                "normalization": "ascii-lowercase",
                 "bounded_prefix_bytes": SOURCE_READ_LIMIT,
-                "requires_any": [["jazzy.css", "jazzy.js"], ["class=\"dashAnchor\"", "//apple_ref/"]],
+                "requires_any": [["jazzy.css", "jazzy.js"], ["class=\"dashanchor\"", "//apple_ref/"]],
             },
             "missing_value_policy": "fail-closed",
             "runtime_cost": "read at most 64 KiB once per unique member file; only for candidate HTML files",
@@ -779,7 +902,14 @@ def make_levers(head: list[dict[str, Any]], deep: list[dict[str, Any]]) -> list[
             "reason": "blanket exemption removal has worthy hard negatives and fails the 90% gate",
         },
     ]
+
+
+def make_levers(
+    head: list[dict[str, Any]], deep: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    definitions = lever_contracts()
     result = []
+    packets: list[dict[str, Any]] = []
     for definition in definitions:
         lever = definition["lever_id"]
         if lever == "proof-actionability.v1":
@@ -807,7 +937,8 @@ def make_levers(head: list[dict[str, Any]], deep: list[dict[str, Any]]) -> list[
                 "member_language_breadth": sorted(
                     {lang for row in positives for lang in row["facets"]["actual_member_languages"]}
                 ),
-                "audit_packets": audit,
+                "audit_packet_keys": [packet["audit_key"] for packet in audit],
+                "audit_packet_count": len(audit),
                 "audit_packet_set_sha256": canonical_sha256(audit),
                 "replacement_effect": {
                     "vacated_head_slots": len(positives),
@@ -815,11 +946,12 @@ def make_levers(head: list[dict[str, Any]], deep: list[dict[str, Any]]) -> list[
                 },
             }
         )
+        packets.extend(audit)
         result.append(definition)
-    return result
+    return result, packets
 
 
-def collect(nose: Path) -> dict[str, Any]:
+def collect(nose: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     corpus = load_json(CORPUS)
     runway = load_json(RUNWAY)
     if runway.get("split") != "dev":
@@ -914,12 +1046,12 @@ def collect(nose: Path) -> dict[str, Any]:
                 if audit_row is not None:
                     deep_audit_rows.append(audit_row)
 
-    levers = make_levers(head_rows, deep_audit_rows)
-    input_paths = (CORPUS, RUNWAY, V5, V6_DEV, V7_DEV, Path(__file__))
+    levers, audit_packets = make_levers(head_rows, deep_audit_rows)
+    input_paths = (CORPUS, RUNWAY, V5_DEV, V6_DEV, V7_DEV, Path(__file__))
     artifact = {
         "schema": CORE_SCHEMA,
         "split": "dev",
-        "heldout_policy": "closed; no held-out component, source path, or judgment was read",
+        "heldout_policy": HELDOUT_POLICY,
         "query_schema_version": QUERY_SCHEMA_VERSION,
         "provenance": {
             "command": shlex.join(["python3", *sys.argv]),
@@ -946,8 +1078,19 @@ def collect(nose: Path) -> dict[str, Any]:
         "rejected_heuristics": rejected_heuristics(head_rows + deep_rows),
     }
     artifact["core_sha256"] = canonical_sha256({key: value for key, value in artifact.items() if key != "core_sha256"})
-    validate_core(artifact)
-    return artifact
+    validate_core(artifact, live_sources=True)
+    audit_artifact = {
+        "schema": AUDIT_SCHEMA,
+        "split": "dev",
+        "core_sha256": artifact["core_sha256"],
+        "packet_set_sha256": canonical_sha256(audit_packets),
+        "packets": audit_packets,
+    }
+    audit_artifact["artifact_sha256"] = canonical_sha256(
+        {key: value for key, value in audit_artifact.items() if key != "artifact_sha256"}
+    )
+    validate_audit_artifact(artifact, audit_artifact, live_sources=True)
+    return artifact, audit_artifact
 
 
 def find_lever(artifact: dict[str, Any], lever_id: str) -> dict[str, Any]:
@@ -957,189 +1100,654 @@ def find_lever(artifact: dict[str, Any], lever_id: str) -> dict[str, Any]:
     return matches[0]
 
 
-def validate_core(artifact: dict[str, Any]) -> None:
-    if artifact.get("schema") != CORE_SCHEMA:
-        fail("unsupported taxonomy core schema")
-    if artifact.get("split") != "dev" or len(artifact.get("repositories", {})) != 66:
-        fail("taxonomy must contain exactly the 66 dev repositories")
-    rows = artifact.get("head_rows")
-    deep = artifact.get("deep_labeled_rows")
-    if not isinstance(rows, list) or len(rows) != 658:
-        fail("taxonomy must contain exactly 658 head rows")
-    if not isinstance(deep, list) or len(deep) != 65:
-        fail("taxonomy must contain exactly 65 frozen labeled deep rows")
-    keys = [row.get("position_key") for row in rows]
-    if len(keys) != len(set(keys)):
-        fail("head position keys must be unique")
+def validate_source_bound(
+    bound: object,
+    *,
+    repo: str,
+    source: str,
+    runway_sources: dict[str, dict[str, Any]],
+    live_sources: bool,
+) -> dict[str, Any]:
+    row = exact_keys(
+        bound,
+        {"id", "file", "start", "end", "name", "lang", "source_bytes", "source_sha256"},
+        source,
+    )
+    path_text = row.get("file")
+    if not isinstance(path_text, str) or not safe_repo_relative_path(path_text, repo):
+        fail(f"{source}: path is outside its exact dev repository")
+    if not is_int(row.get("start")) or not is_int(row.get("end")):
+        fail(f"{source}: line bounds must be integers")
+    if row["start"] < 1 or row["end"] < row["start"]:
+        fail(f"{source}: invalid inclusive line bounds")
+    frozen = runway_sources.get(path_text)
+    expected_source = {
+        "source_bytes": frozen.get("bytes") if isinstance(frozen, dict) else None,
+        "source_sha256": frozen.get("sha256") if isinstance(frozen, dict) else None,
+    }
+    if {key: row.get(key) for key in expected_source} != expected_source:
+        fail(f"{source}: source bytes/hash differ from the #840 runway")
+    if live_sources:
+        size, digest = live_source_record(path_text, repo)
+        if size != row["source_bytes"] or digest != row["source_sha256"]:
+            fail(f"{source}: live source bytes/hash drift")
+    return row
+
+
+def validate_generated_record(
+    value: object,
+    *,
+    repo: str,
+    member_files: list[str],
+    source: str,
+    runway_sources: dict[str, dict[str, Any]],
+    live_sources: bool,
+) -> dict[str, Any]:
+    record = exact_keys(value, {"rule", "matched", "files"}, source)
+    if record["rule"] != "all-member-files-jazzy-asset-and-apple-symbol-anchor.v1":
+        fail(f"{source}: generated provenance rule drift")
+    if not isinstance(record["matched"], bool) or not isinstance(record["files"], list):
+        fail(f"{source}: invalid generated provenance shape")
+    evidence_paths = []
+    for index, item in enumerate(record["files"]):
+        evidence = exact_keys(
+            item,
+            {"kind", "path", "source_bytes", "source_sha256", "read_bytes", "read_limit", "signals"},
+            f"{source}.files[{index}]",
+        )
+        if evidence["kind"] != "jazzy-generated-documentation":
+            fail(f"{source}: unexpected generated evidence kind")
+        path_text = evidence["path"]
+        if path_text not in member_files or not safe_repo_relative_path(path_text, repo):
+            fail(f"{source}: generated evidence is not a member file")
+        frozen = runway_sources.get(path_text)
+        if not isinstance(frozen, dict) or {
+            "source_bytes": frozen.get("bytes"),
+            "source_sha256": frozen.get("sha256"),
+        } != {key: evidence[key] for key in ("source_bytes", "source_sha256")}:
+            fail(f"{source}: generated evidence source binding drift")
+        if evidence["read_limit"] != SOURCE_READ_LIMIT or evidence["read_bytes"] != min(
+            SOURCE_READ_LIMIT, evidence["source_bytes"]
+        ):
+            fail(f"{source}: generated evidence read bound drift")
+        signals = evidence["signals"]
+        if not isinstance(signals, list) or len(signals) != 2:
+            fail(f"{source}: expected exactly two generated signals")
+        kinds = []
+        for signal_index, item_signal in enumerate(signals):
+            signal = exact_keys(
+                item_signal,
+                {"kind", "line", "digest"},
+                f"{source}.files[{index}].signals[{signal_index}]",
+            )
+            if signal["kind"] not in {"jazzy.css", "jazzy.js", 'class="dashanchor"', "//apple_ref/"}:
+                fail(f"{source}: unexpected generated signal")
+            if not is_int(signal["line"]) or signal["line"] < 1:
+                fail(f"{source}: invalid generated signal line")
+            expected_digest = hashlib.sha256(
+                signal["kind"].encode() + b"\0" + str(signal["line"]).encode()
+            ).hexdigest()
+            if signal["digest"] != expected_digest:
+                fail(f"{source}: generated signal digest drift")
+            kinds.append(signal["kind"])
+        if not ({"jazzy.css", "jazzy.js"} & set(kinds)) or not (
+            {'class="dashanchor"', "//apple_ref/"} & set(kinds)
+        ):
+            fail(f"{source}: generated signal classes are incomplete")
+        if live_sources:
+            actual = jazzy_evidence(path_text, repo)
+            if actual != evidence:
+                fail(f"{source}: live generated evidence drift")
+        evidence_paths.append(path_text)
+    if len(evidence_paths) != len(set(evidence_paths)):
+        fail(f"{source}: duplicate generated evidence file")
+    expected_match = bool(member_files) and set(evidence_paths) == set(member_files) and all(
+        path.lower().endswith(".html") for path in member_files
+    )
+    if record["matched"] != expected_match:
+        fail(f"{source}: generated matched flag does not reproduce from evidence")
+    return record
+
+
+def validate_core(artifact: dict[str, Any], *, live_sources: bool = False) -> None:
+    exact_keys(
+        artifact,
+        {
+            "schema", "split", "heldout_policy", "query_schema_version", "provenance",
+            "repositories", "summary", "head_rows", "deep_labeled_rows", "cross_tabs",
+            "levers", "rejected_heuristics", "core_sha256",
+        },
+        "taxonomy core",
+    )
+    if artifact["schema"] != CORE_SCHEMA or artifact["split"] != "dev":
+        fail("unsupported taxonomy core schema/split")
+    if artifact["heldout_policy"] != HELDOUT_POLICY:
+        fail("taxonomy held-out policy drift")
+    if artifact["query_schema_version"] != QUERY_SCHEMA_VERSION:
+        fail("taxonomy query schema version drift")
+    corpus = load_json(CORPUS)
+    runway = load_json(RUNWAY)
+    dev_metadata = {
+        row["id"]: row for row in corpus.get("repositories", []) if row.get("split") == "dev"
+    }
+    if len(dev_metadata) != 66 or set(artifact["repositories"]) != set(dev_metadata):
+        fail("taxonomy repository set must equal the exact corpus dev split")
+    runway_repos = runway.get("repositories")
+    runway_sources = runway.get("source_files")
+    if not isinstance(runway_repos, dict) or not isinstance(runway_sources, dict):
+        fail("#840 runway repository/source bindings are absent")
+    runway_by_key = {row["candidate_key"]: row for row in runway.get("candidates", [])}
+
+    provenance = exact_keys(
+        artifact["provenance"],
+        {"command", "nose_binary", "nose_binary_sha256", "nose_version", "inputs"},
+        "taxonomy provenance",
+    )
+    expected_inputs = (CORPUS, RUNWAY, V5_DEV, V6_DEV, V7_DEV, Path(__file__))
+    expected_input_records = [
+        {"path": rel(path), "sha256": file_sha256(path)} for path in expected_inputs
+    ]
+    if provenance["inputs"] != expected_input_records:
+        fail("taxonomy provenance inputs differ from the current checked dev-only files")
+    runway_provenance = runway.get("provenance", {})
+    for field in ("nose_binary", "nose_binary_sha256", "nose_version"):
+        if provenance[field] != runway_provenance.get(field):
+            fail(f"taxonomy provenance {field} differs from #840")
+
+    for repo, record in artifact["repositories"].items():
+        exact_keys(
+            record,
+            {"commit", "primary_language", "query_command", "query_stdout_sha256", "top_30_reported", "top_10_reported"},
+            f"repositories.{repo}",
+        )
+        meta = dev_metadata[repo]
+        frozen = runway_repos.get(repo, {})
+        expected = {
+            "commit": meta["commit"],
+            "primary_language": meta["primary_language"],
+            "query_stdout_sha256": frozen.get("query_stdout_sha256"),
+            "top_30_reported": frozen.get("top_30_reported"),
+            "top_10_reported": frozen.get("top_10_reported"),
+        }
+        if {key: record[key] for key in expected} != expected:
+            fail(f"{repo}: repository record differs from corpus/#840")
+        if live_sources and repository_head(REPOS_ROOT / repo) != record["commit"]:
+            fail(f"{repo}: live repository commit drift")
+
+    labels, labels_by_candidate = load_dev_labels()
+    labels_by_repo: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    labels_by_id: dict[str, dict[str, Any]] = {}
+    for label in labels:
+        labels_by_repo[label["repo"]].append(label)
+        if label["family_id"] in labels_by_id:
+            fail(f"duplicate dev label family ID: {label['family_id']}")
+        labels_by_id[label["family_id"]] = label
+
+    rows = artifact["head_rows"]
+    deep = artifact["deep_labeled_rows"]
+    if not isinstance(rows, list) or len(rows) != 658 or not isinstance(deep, list) or len(deep) != 65:
+        fail("taxonomy must contain exactly 658 head and 65 deep labeled rows")
+    all_keys = [row.get("position_key") for row in [*rows, *deep]]
+    if len(all_keys) != len(set(all_keys)):
+        fail("taxonomy position keys must be globally unique")
     by_repo: dict[str, list[int]] = defaultdict(list)
-    for row in [*rows, *deep]:
-        if row["repo"] not in artifact["repositories"]:
-            fail(f"{row.get('position_key')}: repository is outside the dev allowlist")
-        bounds = row.get("source_bounds")
-        locations = row.get("raw_family", {}).get("locations")
-        if not isinstance(bounds, list) or not isinstance(locations, list):
-            fail(f"{row.get('position_key')}: source bounds or raw locations are absent")
+    for index, row in enumerate([*rows, *deep]):
+        exact_keys(
+            row,
+            {
+                "position_key", "candidate_sha256", "repo", "rank", "primary_language",
+                "query_family_id", "raw_family_sha256", "raw_family", "source_bounds",
+                "truth", "facets", "predicate_results", "mechanical_bucket",
+                "matched_levers", "selected_lever", "row_sha256",
+            },
+            f"rows[{index}]",
+        )
+        repo = row["repo"]
+        candidate = runway_by_key.get(row["position_key"])
+        if not isinstance(candidate, dict) or candidate.get("repo") != repo or candidate.get("rank") != row["rank"]:
+            fail(f"{row['position_key']}: position differs from the #840 runway")
+        if row["candidate_sha256"] != candidate.get("candidate_sha256"):
+            fail(f"{row['position_key']}: candidate digest differs from #840")
+        if row["query_family_id"] != candidate.get("family", {}).get("id"):
+            fail(f"{row['position_key']}: family ID differs from #840")
+        if row["raw_family_sha256"] != candidate.get("raw_family_sha256"):
+            fail(f"{row['position_key']}: raw family digest differs from #840")
+        if canonical_sha256(row["raw_family"]) != row["raw_family_sha256"]:
+            fail(f"{row['position_key']}: raw family content digest mismatch")
+        locations = row["raw_family"].get("locations")
+        if not isinstance(locations, list) or not locations:
+            fail(f"{row['position_key']}: raw family locations are absent")
         projected = [
             {
-                "id": location.get("id"),
-                "file": location["file"],
-                "start": location["start"],
-                "end": location["end"],
-                "name": location.get("name"),
-                "lang": location.get("lang"),
+                "id": location.get("id"), "file": location["file"], "start": location["start"],
+                "end": location["end"], "name": location.get("name"), "lang": location.get("lang"),
             }
             for location in locations
         ]
-        recorded = [
-            {key: bound.get(key) for key in ("id", "file", "start", "end", "name", "lang")}
-            for bound in bounds
-        ]
-        if projected != recorded:
-            fail(f"{row.get('position_key')}: source bounds differ from raw family locations")
-        prefix = f"bench/repos/{row['repo']}/"
-        if any(
-            not bound["file"].startswith(prefix)
-            or not isinstance(bound.get("source_sha256"), str)
-            or len(bound["source_sha256"]) != 64
-            for bound in bounds
+        bounds = row["source_bounds"]
+        if not isinstance(bounds, list) or len(bounds) != len(projected):
+            fail(f"{row['position_key']}: source bound count mismatch")
+        for bound_index, bound in enumerate(bounds):
+            checked = validate_source_bound(
+                bound,
+                repo=repo,
+                source=f"{row['position_key']}.source_bounds[{bound_index}]",
+                runway_sources=runway_sources,
+                live_sources=live_sources,
+            )
+            if {key: checked[key] for key in projected[bound_index]} != projected[bound_index]:
+                fail(f"{row['position_key']}: source bound differs from raw location")
+
+        members = [member(location) for location in locations]
+        label, overlap_count, runner_up = match_label(
+            repo=repo,
+            candidate_key=row["position_key"],
+            members=members,
+            labels_by_repo=labels_by_repo,
+            labels_by_candidate=labels_by_candidate,
+            labels_by_id=labels_by_id,
+            preferred_family_id=candidate["family"].get("matched_v6_family_id"),
+        )
+        expected_truth = {
+            "worthy": label["worthy"], "reason": label["reason"],
+            "bucket": truth_bucket(label), "confidence": label.get("confidence"),
+            "label_family_id": label["family_id"], "label_source": label["_label_source"],
+            "label_sha256": label["_label_sha256"], "member_overlap": overlap_count,
+            "runner_up_overlap": runner_up,
+        }
+        exact_keys(
+            row["truth"],
+            {"worthy", "reason", "bucket", "confidence", "label_family_id", "label_source", "label_sha256", "member_overlap", "runner_up_overlap"},
+            f"{row['position_key']}.truth",
+        )
+        if row["truth"] != expected_truth:
+            fail(f"{row['position_key']}: truth does not reproduce from dev labels")
+
+        stored_generated = validate_generated_record(
+            row["facets"].get("generated_provenance"),
+            repo=repo,
+            member_files=sorted({location["file"] for location in locations}),
+            source=f"{row['position_key']}.generated_provenance",
+            runway_sources=runway_sources,
+            live_sources=live_sources,
+        )
+        expected_facets = {
+            "witness": row["raw_family"].get("witness"),
+            "surface": row["raw_family"].get("surface"),
+            "actionability_classifier": "unavailable-in-query-schema-v7",
+            "scope": row["raw_family"].get("scope"),
+            "extraction_shape": row["raw_family"].get("extraction_shape"),
+            "same_symbol": row["raw_family"].get("same_symbol"),
+            "source_comparable": row["raw_family"].get("source_comparable"),
+            "origin": origin_facets(row["raw_family"]),
+            "generated_provenance": stored_generated,
+            **derived_features(row["raw_family"]),
+        }
+        exact_keys(row["facets"], set(expected_facets), f"{row['position_key']}.facets")
+        if row["facets"] != expected_facets:
+            fail(f"{row['position_key']}: facets do not reproduce from the raw family")
+        expected_predicates = {
+            "generated-provenance.v1": stored_generated["matched"],
+            "declaration-only-type.v1": declaration_only_type(row["raw_family"]),
+            **proof_flags(row["raw_family"]),
+        }
+        exact_keys(row["predicate_results"], set(expected_predicates), f"{row['position_key']}.predicates")
+        if row["predicate_results"] != expected_predicates:
+            fail(f"{row['position_key']}: predicate results do not reproduce")
+        expected_bucket, expected_matches, expected_selected = classify_mechanical(
+            label=label,
+            generated=expected_predicates["generated-provenance.v1"],
+            declaration=expected_predicates["declaration-only-type.v1"],
+            proof=expected_predicates["proof_backed"],
+        )
+        if (
+            row["mechanical_bucket"] != expected_bucket
+            or row["matched_levers"] != expected_matches
+            or row["selected_lever"] != expected_selected
         ):
-            fail(f"{row.get('position_key')}: source binding escapes its dev repository")
-        raw_hash = canonical_sha256(row["raw_family"])
-        if raw_hash != row.get("raw_family_sha256"):
-            fail(f"{row.get('position_key')}: raw family digest mismatch")
+            fail(f"{row['position_key']}: mechanical classification does not reproduce")
+        if expected_selected and label["worthy"]:
+            fail(f"{row['position_key']}: selected cohort contains a worthy row")
         content = {key: value for key, value in row.items() if key != "row_sha256"}
-        if canonical_sha256(content) != row.get("row_sha256"):
-            fail(f"{row.get('position_key')}: row digest mismatch")
-        if row["truth"]["bucket"] != (
-            ("worthy." if row["truth"]["worthy"] else "non_action.") + row["truth"]["reason"]
-        ):
-            fail(f"{row['position_key']}: truth bucket mismatch")
-    for row in rows:
-        by_repo[row["repo"]].append(row["rank"])
-        selected = row.get("selected_lever")
-        matches = row.get("matched_levers")
-        if not isinstance(matches, list) or len(matches) > 1 or selected not in (*matches, None):
-            fail(f"{row['position_key']}: selected lever overlap or mismatch")
-        if selected and row["truth"]["worthy"]:
-            fail(f"{row['position_key']}: worthy row lacks a reviewed demotion explanation")
-        if row["facets"]["ownership_relation"] != "unknown":
-            fail(f"{row['position_key']}: ownership was inferred without evidence")
-        if row["predicate_results"]["declaration-only-type.v1"]:
-            if row["facets"]["origin"]["coverage"] != "all":
-                fail(f"{row['position_key']}: declaration cohort must fail closed")
+        if canonical_sha256(content) != row["row_sha256"]:
+            fail(f"{row['position_key']}: row digest mismatch")
+        if index < len(rows):
+            by_repo[repo].append(row["rank"])
+
     for repo, ranks in by_repo.items():
-        expected = list(range(1, artifact["repositories"][repo]["top_10_reported"] + 1))
-        if sorted(ranks) != expected:
+        if sorted(ranks) != list(range(1, artifact["repositories"][repo]["top_10_reported"] + 1)):
             fail(f"{repo}: incomplete or duplicate head ranks")
     reasons = Counter(row["truth"]["reason"] for row in rows)
     if dict(reasons) != EXPECTED_TRUTH:
         fail(f"truth distribution drift: {dict(reasons)}")
-    if artifact.get("summary", {}).get("worthy") != 382:
-        fail("worthy summary must remain 382/658")
     expected_summary = {
-        "head_positions": len(rows),
-        "deep_labeled_audit_pool": len(deep),
+        "head_positions": 658, "deep_labeled_audit_pool": 65,
         "deep_mechanical_audit_positives": 24,
-        "worthy": sum(row["truth"]["worthy"] for row in rows),
-        "non_action": sum(not row["truth"]["worthy"] for row in rows),
-        "truth_reasons": dict(
-            sorted(Counter(row["truth"]["reason"] for row in rows).items())
-        ),
+        "worthy": 382, "non_action": 276,
+        "truth_reasons": dict(sorted(reasons.items())),
     }
-    if artifact.get("summary") != expected_summary:
+    if artifact["summary"] != expected_summary:
         fail("taxonomy summary does not reproduce from its rows")
-    if artifact.get("cross_tabs") != build_cross_tabs(rows):
+    if artifact["cross_tabs"] != build_cross_tabs(rows):
         fail("taxonomy cross-tabs do not reproduce from the head rows")
-    if artifact.get("rejected_heuristics") != rejected_heuristics(rows + deep):
+    if artifact["rejected_heuristics"] != rejected_heuristics(rows + deep):
         fail("rejected heuristic statistics do not reproduce from the labeled rows")
-    generated = find_lever(artifact, "generated-provenance.v1")
-    declaration = find_lever(artifact, "declaration-only-type.v1")
-    proof = find_lever(artifact, "proof-actionability.v1")
-    if generated.get("head_movement") != 10 or declaration.get("head_movement") != 1:
-        fail("selected bounded cohort head movement drifted")
-    if proof.get("status") != "rejected-no-go":
-        fail("proof/actionability blanket removal must remain a no-go")
-    if proof.get("positive_position_keys") != [
-        row["position_key"] for row in rows if row["predicate_results"]["proof_backed"]
-    ]:
-        fail("proof/actionability cohort differs from the frozen witness predicate")
-    for lever in (generated, declaration):
-        expected_positives = [
-            row["position_key"]
-            for row in rows
-            if row["selected_lever"] == lever["lever_id"]
-        ]
-        if lever.get("positive_position_keys") != expected_positives:
-            fail(f"{lever['lever_id']}: positive cohort differs from row predicates")
-        if lever.get("worthy_false_demotions"):
-            fail(f"{lever['lever_id']}: selected cohort contains a worthy row")
-        packets = lever.get("audit_packets")
-        expected_count = 20 if lever is generated else 4
-        if not isinstance(packets, list) or len(packets) != expected_count:
-            fail(f"{lever['lever_id']}: expected {expected_count} audit packets")
-        if canonical_sha256(packets) != lever.get("audit_packet_set_sha256"):
-            fail(f"{lever['lever_id']}: audit packet set digest mismatch")
-        for packet in packets:
-            packet_text = json.dumps(packet, sort_keys=True)
-            if any(token in packet_text for token in ('"truth"', '"worthy"', '"reason"', '"label_')):
-                fail(f"{packet.get('audit_key')}: truth leaked into a blind audit packet")
-            content = {key: value for key, value in packet.items() if key != "packet_sha256"}
-            if canonical_sha256(content) != packet.get("packet_sha256"):
-                fail(f"{packet.get('audit_key')}: audit packet digest mismatch")
-    core = {key: value for key, value in artifact.items() if key != "core_sha256"}
-    if canonical_sha256(core) != artifact.get("core_sha256"):
+
+    contracts = {row["lever_id"]: row for row in lever_contracts()}
+    levers = artifact["levers"]
+    if not isinstance(levers, list) or {row.get("lever_id") for row in levers} != set(contracts):
+        fail("taxonomy lever set differs from the frozen contracts")
+    for lever in levers:
+        contract = contracts[lever["lever_id"]]
+        for key, expected in contract.items():
+            if lever.get(key) != expected:
+                fail(f"{lever['lever_id']}: frozen lever contract field {key} drift")
+        if set(lever) != set(contract) | {
+            "positive_position_keys", "head_movement", "head_non_action",
+            "worthy_false_demotions", "head_false_demotion_rate", "repository_breadth",
+            "member_language_breadth", "audit_packet_keys", "audit_packet_count",
+            "audit_packet_set_sha256", "replacement_effect",
+        }:
+            fail(f"{lever['lever_id']}: lever schema drift")
+        if lever["lever_id"] == "proof-actionability.v1":
+            positives = [row for row in rows if row["predicate_results"]["proof_backed"]]
+            expected_audit = 0
+        else:
+            positives = [row for row in rows if row["selected_lever"] == lever["lever_id"]]
+            expected_audit = 20 if lever["lever_id"] == "generated-provenance.v1" else 4
+        worthy = [row for row in positives if row["truth"]["worthy"]]
+        expected_fields = {
+            "positive_position_keys": [row["position_key"] for row in positives],
+            "head_movement": len(positives),
+            "head_non_action": len(positives) - len(worthy),
+            "worthy_false_demotions": [
+                {"position_key": row["position_key"], "truth_reason": row["truth"]["reason"], "reviewed_explanation": None}
+                for row in worthy
+            ],
+            "head_false_demotion_rate": len(worthy) / len(positives) if positives else 0.0,
+            "repository_breadth": sorted({row["repo"] for row in positives}),
+            "member_language_breadth": sorted({lang for row in positives for lang in row["facets"]["actual_member_languages"]}),
+            "audit_packet_count": expected_audit,
+            "replacement_effect": {
+                "vacated_head_slots": len(positives),
+                "rank_11_replacements": "not modeled in #841; measured after product implementation",
+            },
+        }
+        for key, expected in expected_fields.items():
+            if lever[key] != expected:
+                fail(f"{lever['lever_id']}: derived lever field {key} drift")
+        keys = lever["audit_packet_keys"]
+        if not isinstance(keys, list) or len(keys) != expected_audit or len(keys) != len(set(keys)):
+            fail(f"{lever['lever_id']}: audit packet key count/uniqueness drift")
+        if lever["lever_id"] != "proof-actionability.v1" and worthy:
+            fail(f"{lever['lever_id']}: worthy row enters a selected/no-go demotion cohort")
+    if canonical_sha256({key: value for key, value in artifact.items() if key != "core_sha256"}) != artifact["core_sha256"]:
         fail("taxonomy core digest mismatch")
-    serialized = json.dumps(artifact, sort_keys=True)
-    forbidden = ("refactoring_families.v6.heldout", "refactoring_families.v7.heldout", "heldout.seal")
-    if any(value in serialized for value in forbidden):
-        fail("taxonomy artifact contains a held-out input or source reference")
 
 
-def vote_template(core: dict[str, Any], persona: str) -> dict[str, Any]:
+def validate_audit_packet(
+    packet: object,
+    *,
+    runway_by_key: dict[str, dict[str, Any]],
+    runway_sources: dict[str, dict[str, Any]],
+    live_sources: bool,
+) -> dict[str, Any]:
+    row = exact_keys(
+        packet,
+        {
+            "audit_key", "lever_id", "candidate_sha256", "raw_family_sha256",
+            "repo", "rank", "query_family_id", "source_bounds",
+            "review_question", "frozen_evidence", "packet_sha256",
+        },
+        "audit packet",
+    )
+    candidate_key = row["audit_key"].removeprefix(row["lever_id"] + ":")
+    candidate = runway_by_key.get(candidate_key)
+    if not isinstance(candidate, dict):
+        fail(f"{row['audit_key']}: packet candidate is absent from #840")
+    expected_identity = {
+        "candidate_sha256": candidate["candidate_sha256"],
+        "raw_family_sha256": candidate["raw_family_sha256"],
+        "repo": candidate["repo"],
+        "rank": candidate["rank"],
+        "query_family_id": candidate["family"]["id"],
+    }
+    if {key: row[key] for key in expected_identity} != expected_identity:
+        fail(f"{row['audit_key']}: packet identity differs from #840")
+    if row["lever_id"] not in {"generated-provenance.v1", "declaration-only-type.v1"}:
+        fail(f"{row['audit_key']}: packet uses an unselected lever")
+    if row["review_question"] != AUDIT_QUESTION:
+        fail(f"{row['audit_key']}: review question drift")
+    bounds = row["source_bounds"]
+    members = candidate["family"]["members"]
+    if not isinstance(bounds, list) or len(bounds) != len(members):
+        fail(f"{row['audit_key']}: packet source bound count mismatch")
+    for index, bound in enumerate(bounds):
+        checked = validate_source_bound(
+            bound,
+            repo=row["repo"],
+            source=f"{row['audit_key']}.source_bounds[{index}]",
+            runway_sources=runway_sources,
+            live_sources=live_sources,
+        )
+        compact = members[index]
+        if {
+            "file": checked["file"], "start_line": checked["start"],
+            "end_line": checked["end"],
+        } != {key: compact.get(key) for key in ("file", "start_line", "end_line")}:
+            fail(f"{row['audit_key']}: packet bounds differ from #840")
+    evidence = exact_keys(
+        row["frozen_evidence"],
+        {"generated_provenance", "origin", "witness", "extraction_shape"},
+        f"{row['audit_key']}.frozen_evidence",
+    )
+    exact_keys(
+        evidence["origin"],
+        {"coverage", "body_kinds", "region_kinds", "source_granularities", "subkinds", "domains", "evidence_flags"},
+        f"{row['audit_key']}.origin",
+    )
+    generated = validate_generated_record(
+        evidence["generated_provenance"],
+        repo=row["repo"],
+        member_files=sorted({bound["file"] for bound in bounds}),
+        source=f"{row['audit_key']}.generated_provenance",
+        runway_sources=runway_sources,
+        live_sources=live_sources,
+    )
+    if evidence["witness"] != candidate["family"].get("witness") or evidence[
+        "extraction_shape"
+    ] != candidate["family"].get("extraction_shape"):
+        fail(f"{row['audit_key']}: review facets differ from #840")
+    if row["lever_id"] == "generated-provenance.v1" and not generated["matched"]:
+        fail(f"{row['audit_key']}: generated audit packet does not satisfy its premise")
+    if row["lever_id"] == "declaration-only-type.v1":
+        origin = evidence["origin"]
+        if not (
+            origin["coverage"] == "all"
+            and origin["body_kinds"] == ["declaration-only"]
+            and "type-contract" in origin["domains"]
+            and origin["source_granularities"] == ["whole-unit"]
+            and {"declaration-only", "type-only"}.issubset(origin["evidence_flags"])
+            and not {"runtime", "implementation-type", "data"}.intersection(origin["domains"])
+            and not {"has-runtime-body", "has-reusable-body"}.intersection(
+                origin["evidence_flags"]
+            )
+        ):
+            fail(f"{row['audit_key']}: declaration audit packet does not satisfy its premise")
+    if canonical_sha256({key: value for key, value in row.items() if key != "packet_sha256"}) != row["packet_sha256"]:
+        fail(f"{row['audit_key']}: packet digest mismatch")
+    return row
+
+
+def validate_audit_artifact(
+    core: dict[str, Any], audit: dict[str, Any], *, live_sources: bool = False
+) -> None:
+    exact_keys(
+        audit,
+        {"schema", "split", "core_sha256", "packet_set_sha256", "packets", "artifact_sha256"},
+        "audit artifact",
+    )
+    if audit["schema"] != AUDIT_SCHEMA or audit["split"] != "dev" or audit["core_sha256"] != core["core_sha256"]:
+        fail("audit artifact schema/split/core binding mismatch")
+    runway = load_json(RUNWAY)
+    runway_by_key = {row["candidate_key"]: row for row in runway["candidates"]}
+    packets = audit["packets"]
+    if not isinstance(packets, list) or len(packets) != 24:
+        fail("audit artifact must contain exactly 24 packets")
+    checked = [
+        validate_audit_packet(
+            packet,
+            runway_by_key=runway_by_key,
+            runway_sources=runway["source_files"],
+            live_sources=live_sources,
+        )
+        for packet in packets
+    ]
+    keys = [packet["audit_key"] for packet in checked]
+    if len(keys) != len(set(keys)):
+        fail("audit keys must be globally unique")
+    if canonical_sha256(checked) != audit["packet_set_sha256"]:
+        fail("audit packet set digest mismatch")
+    expected_keys = [key for lever in core["levers"] for key in lever["audit_packet_keys"]]
+    if keys != expected_keys:
+        fail("audit packet order/keys differ from the core commitment")
+    by_lever: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for packet in checked:
+        by_lever[packet["lever_id"]].append(packet)
+    for lever in core["levers"]:
+        if canonical_sha256(by_lever[lever["lever_id"]]) != lever["audit_packet_set_sha256"]:
+            fail(f"{lever['lever_id']}: packet subset digest differs from core")
+    if canonical_sha256({key: value for key, value in audit.items() if key != "artifact_sha256"}) != audit["artifact_sha256"]:
+        fail("audit artifact digest mismatch")
+
+
+def vote_template(
+    core: dict[str, Any], audit: dict[str, Any], persona: str
+) -> dict[str, Any]:
     if persona not in AUDIT_PERSONAS:
         fail(f"unknown audit persona: {persona}")
     items = []
-    for lever in core["levers"]:
-        for packet in lever.get("audit_packets", []):
-            items.append(
-                {
-                    "audit_key": packet["audit_key"],
-                    "packet_sha256": packet["packet_sha256"],
-                    "premise_holds": None,
-                    "verdict": None,
-                    "rationale": "",
-                }
-            )
+    validate_audit_artifact(core, audit)
+    for packet in audit["packets"]:
+        items.append(
+            {
+                "audit_key": packet["audit_key"],
+                "packet_sha256": packet["packet_sha256"],
+                "premise_holds": None,
+                "verdict": None,
+                "rationale": "",
+            }
+        )
     return {
         "schema": VOTE_SCHEMA,
         "persona": persona,
         "core_sha256": core["core_sha256"],
-        "audit_packet_set_sha256": canonical_sha256(
-            [packet for lever in core["levers"] for packet in lever.get("audit_packets", [])]
-        ),
+        "audit_artifact_sha256": audit["artifact_sha256"],
+        "audit_packet_set_sha256": audit["packet_set_sha256"],
         "items": items,
     }
 
 
-def validate_vote(core: dict[str, Any], vote: dict[str, Any], persona: str) -> None:
-    if vote.get("schema") != VOTE_SCHEMA or vote.get("persona") != persona:
+def validate_vote(
+    core: dict[str, Any], audit: dict[str, Any], vote: dict[str, Any], persona: str
+) -> None:
+    exact_keys(
+        vote,
+        {"schema", "persona", "core_sha256", "audit_artifact_sha256", "audit_packet_set_sha256", "items"},
+        f"{persona} vote",
+    )
+    if vote["schema"] != VOTE_SCHEMA or vote["persona"] != persona:
         fail(f"{persona}: invalid vote schema or persona")
-    template = vote_template(core, persona)
-    if vote.get("core_sha256") != core["core_sha256"]:
+    template = vote_template(core, audit, persona)
+    if vote["core_sha256"] != core["core_sha256"]:
         fail(f"{persona}: vote was cast against another taxonomy core")
-    if vote.get("audit_packet_set_sha256") != template["audit_packet_set_sha256"]:
+    if vote["audit_artifact_sha256"] != audit["artifact_sha256"]:
+        fail(f"{persona}: vote was cast against another audit artifact")
+    if vote["audit_packet_set_sha256"] != template["audit_packet_set_sha256"]:
         fail(f"{persona}: audit packet set digest mismatch")
     expected = [(item["audit_key"], item["packet_sha256"]) for item in template["items"]]
     actual = [(item.get("audit_key"), item.get("packet_sha256")) for item in vote.get("items", [])]
     if actual != expected:
         fail(f"{persona}: vote items do not exactly match the frozen packet order")
     for item in vote["items"]:
+        exact_keys(
+            item,
+            {"audit_key", "packet_sha256", "premise_holds", "verdict", "rationale"},
+            f"{persona}/{item.get('audit_key')}",
+        )
         if not isinstance(item.get("premise_holds"), bool):
             fail(f"{persona}/{item['audit_key']}: premise_holds must be boolean")
         if item.get("verdict") not in {"non-actionable", "actionable", "uncertain"}:
             fail(f"{persona}/{item['audit_key']}: invalid verdict")
         if not isinstance(item.get("rationale"), str) or not item["rationale"].strip():
             fail(f"{persona}/{item['audit_key']}: rationale is required")
+        referenced_repos = set(re.findall(r"bench/repos/([^/\s]+)", item["rationale"]))
+        if not referenced_repos.issubset(core["repositories"]):
+            fail(f"{persona}/{item['audit_key']}: rationale references a non-dev repository path")
+
+
+def rebind_vote(
+    old_core: dict[str, Any],
+    old_vote: dict[str, Any],
+    new_core: dict[str, Any],
+    new_audit: dict[str, Any],
+    persona: str,
+) -> dict[str, Any]:
+    """Carry judgments only when the reviewer-visible packet projection is identical."""
+
+    if old_vote.get("schema") != VOTE_SCHEMA or old_vote.get("persona") != persona:
+        fail(f"{persona}: unsupported source vote")
+    if old_vote.get("core_sha256") != old_core.get("core_sha256"):
+        fail(f"{persona}: source vote/core binding mismatch")
+    old_packets = [
+        packet
+        for lever in old_core.get("levers", [])
+        for packet in lever.get("audit_packets", [])
+    ]
+    new_packets = new_audit["packets"]
+    if len(old_packets) != len(new_packets):
+        fail(f"{persona}: packet count changed; fresh source review is required")
+
+    def projection(packet: dict[str, Any]) -> dict[str, Any]:
+        return {
+            key: value
+            for key, value in packet.items()
+            if key
+            not in {
+                "candidate_sha256",
+                "raw_family_sha256",
+                "packet_sha256",
+            }
+        }
+
+    if [projection(packet) for packet in old_packets] != [
+        projection(packet) for packet in new_packets
+    ]:
+        fail(f"{persona}: reviewer-visible packet content changed; fresh review is required")
+    old_items = old_vote.get("items")
+    if not isinstance(old_items, list) or len(old_items) != len(old_packets):
+        fail(f"{persona}: source vote item count mismatch")
+    for item, packet in zip(old_items, old_packets, strict=True):
+        exact_keys(
+            item,
+            {"audit_key", "packet_sha256", "premise_holds", "verdict", "rationale"},
+            f"{persona} source vote item",
+        )
+        if item["audit_key"] != packet["audit_key"] or item["packet_sha256"] != packet["packet_sha256"]:
+            fail(f"{persona}: source vote packet binding mismatch")
+        if not isinstance(item["premise_holds"], bool) or item["verdict"] not in {
+            "non-actionable", "actionable", "uncertain"
+        } or not isinstance(item["rationale"], str) or not item["rationale"].strip():
+            fail(f"{persona}: source vote judgment is incomplete")
+    rebound = vote_template(new_core, new_audit, persona)
+    for target, source_item in zip(rebound["items"], old_items, strict=True):
+        target.update(
+            premise_holds=source_item["premise_holds"],
+            verdict=source_item["verdict"],
+            rationale=source_item["rationale"],
+        )
+    validate_vote(new_core, new_audit, rebound, persona)
+    return rebound
 
 
 def hard_negative_record(row: dict[str, Any], boundary: str) -> dict[str, Any]:
@@ -1217,14 +1825,19 @@ def bound_hard_negatives(artifact: dict[str, Any]) -> None:
 
 
 def build_final_overlay(
-    core: dict[str, Any], core_path: Path, vote_paths: dict[str, Path]
+    core: dict[str, Any],
+    core_path: Path,
+    audit_artifact: dict[str, Any],
+    audit_path: Path,
+    vote_paths: dict[str, Path],
 ) -> dict[str, Any]:
     validate_core(core)
+    validate_audit_artifact(core, audit_artifact)
     votes = {}
     for persona in AUDIT_PERSONAS:
         path = vote_paths[persona]
         vote = load_json(path)
-        validate_vote(core, vote, persona)
+        validate_vote(core, audit_artifact, vote, persona)
         votes[persona] = vote
     working = copy.deepcopy(core)
     bound_hard_negatives(working)
@@ -1243,8 +1856,11 @@ def build_final_overlay(
         for persona, vote in votes.items()
     }
     decisions = []
+    packets_by_lever: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for packet in audit_artifact["packets"]:
+        packets_by_lever[packet["lever_id"]].append(packet)
     for lever in working["levers"]:
-        packets = lever.get("audit_packets", [])
+        packets = packets_by_lever[lever["lever_id"]]
         if packets:
             summaries = {}
             for persona in AUDIT_PERSONAS:
@@ -1268,7 +1884,6 @@ def build_final_overlay(
             if not passed:
                 fail(f"{lever['lever_id']}: independent audit did not reach 90% for every reviewer")
         decision = copy.deepcopy(lever)
-        decision.pop("audit_packets", None)
         decisions.append(decision)
     artifact = {
         "schema": FINAL_SCHEMA,
@@ -1278,6 +1893,11 @@ def build_final_overlay(
             "path": rel(core_path),
             "file_sha256": file_sha256(core_path),
             "core_sha256": core["core_sha256"],
+        },
+        "audit_input": {
+            "path": rel(audit_path),
+            "file_sha256": file_sha256(audit_path),
+            "artifact_sha256": audit_artifact["artifact_sha256"],
         },
         "summary": core["summary"],
         "lever_decisions": decisions,
@@ -1291,15 +1911,35 @@ def build_final_overlay(
 
 
 def finalize(
-    core: dict[str, Any], core_path: Path, vote_paths: dict[str, Path]
+    core: dict[str, Any],
+    core_path: Path,
+    audit_artifact: dict[str, Any],
+    audit_path: Path,
+    vote_paths: dict[str, Path],
 ) -> dict[str, Any]:
-    artifact = build_final_overlay(core, core_path, vote_paths)
+    artifact = build_final_overlay(
+        core, core_path, audit_artifact, audit_path, vote_paths
+    )
     validate_final(artifact, vote_paths=vote_paths)
     return artifact
 
 
-def validate_final(artifact: dict[str, Any], *, vote_paths: dict[str, Path] | None = None) -> None:
-    if artifact.get("schema") != FINAL_SCHEMA:
+def validate_final(
+    artifact: dict[str, Any],
+    *,
+    vote_paths: dict[str, Path] | None = None,
+    live_sources: bool = False,
+) -> None:
+    exact_keys(
+        artifact,
+        {
+            "schema", "split", "heldout_policy", "core_input", "audit_input",
+            "summary", "lever_decisions", "rejected_heuristics", "independent_audit",
+            "artifact_sha256",
+        },
+        "final taxonomy",
+    )
+    if artifact["schema"] != FINAL_SCHEMA or artifact["split"] != "dev":
         fail("unsupported final taxonomy schema")
     content = {key: value for key, value in artifact.items() if key != "artifact_sha256"}
     if canonical_sha256(content) != artifact.get("artifact_sha256"):
@@ -1315,9 +1955,25 @@ def validate_final(artifact: dict[str, Any], *, vote_paths: dict[str, Path] | No
     if file_sha256(core_path) != core_input.get("file_sha256"):
         fail("final taxonomy core file digest mismatch")
     core = load_json(core_path)
-    validate_core(core)
+    validate_core(core, live_sources=live_sources)
     if core["core_sha256"] != core_input.get("core_sha256"):
         fail("final taxonomy core semantic digest mismatch")
+    audit_input = exact_keys(
+        artifact["audit_input"],
+        {"path", "file_sha256", "artifact_sha256"},
+        "final taxonomy audit input",
+    )
+    audit_path = (ROOT / audit_input["path"]).resolve()
+    try:
+        audit_path.relative_to(ROOT.resolve())
+    except ValueError:
+        fail("final taxonomy audit path escapes the repository")
+    if file_sha256(audit_path) != audit_input["file_sha256"]:
+        fail("final taxonomy audit file digest mismatch")
+    audit_artifact = load_json(audit_path)
+    validate_audit_artifact(core, audit_artifact, live_sources=live_sources)
+    if audit_artifact["artifact_sha256"] != audit_input["artifact_sha256"]:
+        fail("final taxonomy audit semantic digest mismatch")
     decisions = {row["lever_id"]: row for row in artifact.get("lever_decisions", [])}
     for lever_id in ("generated-provenance.v1", "declaration-only-type.v1"):
         lever = decisions.get(lever_id, {})
@@ -1354,13 +2010,23 @@ def validate_final(artifact: dict[str, Any], *, vote_paths: dict[str, Path] | No
     for persona, path in effective_paths.items():
         if file_sha256(path) != recorded[persona]["sha256"]:
             fail(f"{persona}: live vote file digest mismatch")
-        validate_vote(core, load_json(path), persona)
-    expected = build_final_overlay(core, core_path, effective_paths)
+        validate_vote(core, audit_artifact, load_json(path), persona)
+    expected = build_final_overlay(
+        core, core_path, audit_artifact, audit_path, effective_paths
+    )
     if canonical_bytes(expected) != canonical_bytes(artifact):
         fail("final taxonomy does not reproduce from its bound core and votes")
 
 
 def self_test() -> None:
+    def expect_error(callback: Any, expected: str) -> None:
+        try:
+            callback()
+        except TaxonomyError as error:
+            assert expected in str(error), (expected, str(error))
+        else:
+            raise AssertionError(f"expected TaxonomyError containing {expected!r}")
+
     sample = {
         "id": "a",
         "locations": [
@@ -1405,27 +2071,98 @@ def self_test() -> None:
         assert "overlap" in str(error)
     else:
         raise AssertionError("overlapping selected cohorts must fail")
-    assert not isinstance(True, float)
+    expect_error(lambda: finite_number(True, "boolean"), "expected a number")
+    assert safe_repo_relative_path("bench/repos/alacritty/src/a.rs", "alacritty")
+    assert not safe_repo_relative_path(
+        "bench/repos/alacritty/../../labels/secret.json", "alacritty"
+    )
+    expect_error(
+        lambda: exact_keys({"allowed": 1, "gold": 2}, {"allowed"}, "exact"),
+        "extra=['gold']",
+    )
+
+    if CHECKED_CORE.is_file() and CHECKED_AUDIT.is_file():
+        checked_core = load_json(CHECKED_CORE)
+        checked_audit = load_json(CHECKED_AUDIT)
+        validate_core(checked_core)
+        validate_audit_artifact(checked_core, checked_audit)
+
+        wrong_source = copy.deepcopy(checked_core)
+        wrong_source["head_rows"][0]["source_bounds"][0]["source_sha256"] = "0" * 64
+        expect_error(lambda: validate_core(wrong_source), "differ from the #840 runway")
+
+        escaping = copy.deepcopy(checked_core)
+        escaping["head_rows"][0]["source_bounds"][0]["file"] = (
+            "bench/repos/alacritty/../../labels/secret.json"
+        )
+        expect_error(lambda: validate_core(escaping), "outside its exact dev repository")
+
+        raw_drift = copy.deepcopy(checked_core)
+        raw_drift["head_rows"][0]["raw_family"]["surface"] = "generated"
+        raw_drift["head_rows"][0]["raw_family_sha256"] = canonical_sha256(
+            raw_drift["head_rows"][0]["raw_family"]
+        )
+        expect_error(lambda: validate_core(raw_drift), "differs from #840")
+
+        bucket_drift = copy.deepcopy(checked_core)
+        bucket_drift["head_rows"][0]["mechanical_bucket"] = "banana.not-a-bucket"
+        expect_error(
+            lambda: validate_core(bucket_drift),
+            "mechanical classification does not reproduce",
+        )
+
+        provenance_drift = copy.deepcopy(checked_core)
+        provenance_drift["provenance"]["inputs"][-1]["sha256"] = "0" * 64
+        expect_error(
+            lambda: validate_core(provenance_drift),
+            "provenance inputs differ",
+        )
+
+        packet_extra = copy.deepcopy(checked_audit)
+        packet_extra["packets"][0]["gold"] = {"classification": "hidden"}
+        expect_error(
+            lambda: validate_audit_artifact(checked_core, packet_extra),
+            "extra=['gold']",
+        )
+
+        duplicate_core = copy.deepcopy(checked_core)
+        duplicate_core["levers"][0]["audit_packet_keys"][1] = duplicate_core["levers"][0][
+            "audit_packet_keys"
+        ][0]
+        expect_error(lambda: validate_core(duplicate_core), "key count/uniqueness drift")
     print("default-head taxonomy self-test passed")
 
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     sub = result.add_subparsers(dest="command")
+    freeze_parser = sub.add_parser("freeze-v5-dev")
+    freeze_parser.add_argument("--output", type=Path, default=V5_DEV)
     collect_parser = sub.add_parser("collect")
     collect_parser.add_argument("--nose", type=Path, default=DEFAULT_NOSE)
     collect_parser.add_argument("--output", type=Path, required=True)
+    collect_parser.add_argument("--audit-output", type=Path, required=True)
     validate_parser = sub.add_parser("validate")
     validate_parser.add_argument("artifact", type=Path)
     validate_parser.add_argument("--pragmatic", type=Path)
     validate_parser.add_argument("--dedupe", type=Path)
     validate_parser.add_argument("--skeptic", type=Path)
+    validate_parser.add_argument("--live-sources", action="store_true")
     template_parser = sub.add_parser("vote-template")
     template_parser.add_argument("core", type=Path)
+    template_parser.add_argument("audit", type=Path)
     template_parser.add_argument("--persona", choices=AUDIT_PERSONAS, required=True)
     template_parser.add_argument("--output", type=Path, required=True)
+    rebind_parser = sub.add_parser("rebind-vote")
+    rebind_parser.add_argument("old_core", type=Path)
+    rebind_parser.add_argument("old_vote", type=Path)
+    rebind_parser.add_argument("new_core", type=Path)
+    rebind_parser.add_argument("new_audit", type=Path)
+    rebind_parser.add_argument("--persona", choices=AUDIT_PERSONAS, required=True)
+    rebind_parser.add_argument("--output", type=Path, required=True)
     finalize_parser = sub.add_parser("finalize")
     finalize_parser.add_argument("core", type=Path)
+    finalize_parser.add_argument("audit", type=Path)
     finalize_parser.add_argument("--pragmatic", type=Path, required=True)
     finalize_parser.add_argument("--dedupe", type=Path, required=True)
     finalize_parser.add_argument("--skeptic", type=Path, required=True)
@@ -1439,31 +2176,60 @@ def main() -> None:
     try:
         if args.self_test:
             self_test()
+        elif args.command == "freeze-v5-dev":
+            artifact = freeze_v5_dev(args.output)
+            print(f"wrote {args.output} ({len(artifact['families'])} dev labels)")
         elif args.command == "collect":
-            artifact = collect(args.nose.resolve())
+            artifact, audit = collect(args.nose.resolve())
             write_json(args.output, artifact)
+            write_json(args.audit_output, audit)
             print(f"wrote {args.output} ({artifact['summary']['head_positions']} head rows)")
+            print(f"wrote {args.audit_output} ({len(audit['packets'])} blind packets)")
         elif args.command == "vote-template":
             core = load_json(args.core)
             validate_core(core)
-            write_json(args.output, vote_template(core, args.persona))
+            audit = load_json(args.audit)
+            validate_audit_artifact(core, audit)
+            write_json(args.output, vote_template(core, audit, args.persona))
             print(f"wrote {args.output}")
+        elif args.command == "rebind-vote":
+            rebound = rebind_vote(
+                load_json(args.old_core),
+                load_json(args.old_vote),
+                load_json(args.new_core),
+                load_json(args.new_audit),
+                args.persona,
+            )
+            write_json(args.output, rebound)
+            print(f"wrote {args.output} (review-visible packets unchanged)")
         elif args.command == "finalize":
             paths = {persona: getattr(args, persona) for persona in AUDIT_PERSONAS}
-            artifact = finalize(load_json(args.core), args.core.resolve(), paths)
+            artifact = finalize(
+                load_json(args.core),
+                args.core.resolve(),
+                load_json(args.audit),
+                args.audit.resolve(),
+                paths,
+            )
             write_json(args.output, artifact)
             print(f"wrote {args.output}")
         elif args.command == "validate":
             artifact = load_json(args.artifact)
             if artifact.get("schema") == CORE_SCHEMA:
-                validate_core(artifact)
+                validate_core(artifact, live_sources=args.live_sources)
+            elif artifact.get("schema") == AUDIT_SCHEMA:
+                fail("validate an audit artifact through its bound final overlay")
             elif artifact.get("schema") == FINAL_SCHEMA:
                 vote_paths = None
                 if any(getattr(args, persona) for persona in AUDIT_PERSONAS):
                     if not all(getattr(args, persona) for persona in AUDIT_PERSONAS):
                         fail("provide all three vote paths together")
                     vote_paths = {persona: getattr(args, persona) for persona in AUDIT_PERSONAS}
-                validate_final(artifact, vote_paths=vote_paths)
+                validate_final(
+                    artifact,
+                    vote_paths=vote_paths,
+                    live_sources=args.live_sources,
+                )
             else:
                 fail("unsupported artifact schema")
             print(f"validated {args.artifact}")
