@@ -7,6 +7,7 @@ import argparse
 import json
 import subprocess
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -23,9 +24,20 @@ def fail(source: str, path: str, message: str) -> QuerySchemaError:
     return QuerySchemaError(f"{source}: {path}: {message}")
 
 
-def dashboard_families(
+@dataclass(frozen=True)
+class DashboardQuery:
+    families: list[dict[str, Any]]
+    reported_families: int
+    shown: int
+
+
+def is_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def dashboard_query(
     stdout: str, *, source: str = "nose query dashboard"
-) -> list[dict[str, Any]]:
+) -> DashboardQuery:
     try:
         payload = json.loads(stdout)
     except json.JSONDecodeError as error:
@@ -44,6 +56,13 @@ def dashboard_families(
         raise fail(
             source, "view", f"expected 'dashboard', got {payload.get('view')!r}"
         )
+    summary = payload.get("summary")
+    if not isinstance(summary, dict):
+        raise fail(source, "summary", "expected an object")
+    for field in ("families", "shown"):
+        value = summary.get(field)
+        if not is_int(value) or value < 0:
+            raise fail(source, f"summary.{field}", "expected a non-negative integer")
 
     def validated_field(field: str) -> list[dict[str, Any]]:
         adapted = dict(payload)
@@ -63,7 +82,30 @@ def dashboard_families(
             "top_candidates",
             "expected the dashboard compatibility alias to match families IDs/order",
         )
-    return families
+    if summary["shown"] != len(families):
+        raise fail(
+            source,
+            "summary.shown",
+            f"expected {len(families)} for the emitted families, got {summary['shown']}",
+        )
+    if summary["families"] < summary["shown"]:
+        raise fail(
+            source,
+            "summary.families",
+            f"expected at least summary.shown={summary['shown']}, got {summary['families']}",
+        )
+    return DashboardQuery(
+        families=families,
+        reported_families=summary["families"],
+        shown=summary["shown"],
+    )
+
+
+def dashboard_families(
+    stdout: str, *, source: str = "nose query dashboard"
+) -> list[dict[str, Any]]:
+    """Compatibility helper for consumers that only need the dashboard rows."""
+    return dashboard_query(stdout, source=source).families
 
 
 def example_family() -> dict[str, Any]:
@@ -123,23 +165,34 @@ def second(values):
         default_families = query_families(
             run("top=0"), source="live default-list self-test"
         )
-        dashboard = dashboard_families(run(), source="live bare-dashboard self-test")
+        dashboard = dashboard_query(run(), source="live bare-dashboard self-test")
         derived_ids = [
             family["id"]
             for family in all_families
             if family_surface(family, source="live all-list family") == "default"
         ]
         default_ids = [family["id"] for family in default_families]
-        dashboard_ids = [family["id"] for family in dashboard]
+        dashboard_ids = [family["id"] for family in dashboard.families]
         assert derived_ids == default_ids, (
             "default-list IDs/order must match default-filtered all list",
             derived_ids,
             default_ids,
         )
-        assert dashboard_ids == default_ids[: len(dashboard_ids)], (
-            "bare dashboard must be a prefix of the default list",
+        expected_dashboard_ids = default_ids[: min(5, len(default_ids))]
+        assert dashboard.reported_families == len(default_ids), (
+            "bare dashboard summary must report the full default-list count",
+            dashboard.reported_families,
+            len(default_ids),
+        )
+        assert dashboard.shown == len(expected_dashboard_ids), (
+            "bare dashboard summary must report the product top-five count",
+            dashboard.shown,
+            len(expected_dashboard_ids),
+        )
+        assert dashboard_ids == expected_dashboard_ids, (
+            "bare dashboard must be the complete product top-five prefix",
             dashboard_ids,
-            default_ids,
+            expected_dashboard_ids,
         )
 
 
@@ -149,10 +202,14 @@ def run_self_test(nose: Path | None = None) -> None:
         "schema_version": QUERY_SCHEMA_VERSION,
         "tool": "nose",
         "view": "dashboard",
+        "summary": {"families": 1, "shown": 1},
         "families": [family],
         "top_candidates": [family],
     }
-    assert dashboard_families(json.dumps(dashboard))[0]["id"] == family["id"]
+    decoded = dashboard_query(json.dumps(dashboard))
+    assert decoded.families[0]["id"] == family["id"]
+    assert decoded.reported_families == 1
+    assert decoded.shown == 1
     dashboard["top_candidates"] = [{**family, "id": "different"}]
     try:
         dashboard_families(json.dumps(dashboard), source="self-test dashboard")
@@ -160,6 +217,14 @@ def run_self_test(nose: Path | None = None) -> None:
         assert "compatibility alias" in str(error)
     else:
         raise AssertionError("mismatched dashboard alias must fail")
+    dashboard["top_candidates"] = [family]
+    dashboard["summary"] = {"families": 1, "shown": 0}
+    try:
+        dashboard_query(json.dumps(dashboard), source="self-test short dashboard")
+    except QuerySchemaError as error:
+        assert "summary.shown" in str(error)
+    else:
+        raise AssertionError("dashboard summary must match emitted families")
     if nose is not None:
         check_live_binary(nose.resolve())
     print("default-head query schema self-test passed")

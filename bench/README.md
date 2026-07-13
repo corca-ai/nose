@@ -45,13 +45,16 @@ python3 bench/labels/eval_by_language.py --nose <official-v0.19.0-nose> \
   --nose-release-archive <official-v0.19.0-archive> \
   --nose-release-checksum <official-v0.19.0-archive.sha256> \
   --rank extractability --bootstrap 2000 \
-  --json-out bench/labels/product_quality_evaluation_v0_19_0_default_head_2026_07_13.v3.json
+  --json-out target/reproduced-default-head.v3.json
 ```
 
 The v3 metric measures default-surface P@10 and full-universe worthy recall,
 proves default-list raw order and literal bare-dashboard prefix parity, and
 rejects cached baselines. This is the metric the experiment log
 (`docs/experiments.md` §AU onward) reports.
+The checked artifact is immutable: write replays under `target/` and compare
+them with it. Exact whole-file equality also requires the recorded evaluator
+revision and command/output path because both are included in provenance.
 `v5` remains frozen for historical measurements and the unbiased worthy-recall pool;
 earlier versions (`v1`–`v4`) remain for the sections that cite them. v6's refresh labels
 are precision-only because they were sampled from current top-10 output. The current

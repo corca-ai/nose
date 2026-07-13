@@ -48,8 +48,12 @@ python3 bench/labels/eval_by_language.py --nose <official-v0.19.0-nose> \
   --nose-release-archive <official-v0.19.0-archive> \
   --nose-release-checksum <official-v0.19.0-archive.sha256> \
   --rank extractability --bootstrap 2000 \
-  --json-out bench/labels/product_quality_evaluation_v0_19_0_default_head_2026_07_13.v3.json
+  --json-out target/reproduced-default-head.v3.json
 ```
+
+Write replays under `target/`; the checked baseline is immutable. Exact
+whole-file equality additionally requires the recorded evaluator revision and
+command/output path because both are stored in provenance.
 
 `--rank value` reproduces the historical volume order; `--rank extractability` keeps the
 native `nose query --format json` order used by the current product. Both reports also show

@@ -164,7 +164,9 @@ jobs:
       - name: build
         run: cargo build --release
       - name: product query JSON schema
-        run: python3 bench/labels/query_schema.py --self-test --nose target/release/nose
+        run: |
+          python3 bench/labels/query_schema.py --self-test --nose target/release/nose
+          python3 bench/labels/default_head_query_schema.py --self-test --nose target/release/nose
       - name: semantic-pack example conformance
         run: target/release/nose semantic-pack check docs/examples/semantic-packs/v0 --format json
       - name: Type-4 executable focused expectations

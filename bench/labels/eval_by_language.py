@@ -27,7 +27,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from default_head_query_schema import dashboard_families
+from default_head_query_schema import DashboardQuery, dashboard_query
 from labelset import PRECISION_METRIC, RECALL_METRIC, load_labelset, metric_eligible
 from query_schema import (
     QUERY_SCHEMA_VERSION,
@@ -119,7 +119,7 @@ def query_repo(
     cache_dir: Path | None = None,
     top: int = 1000000,
     timeout: int = 300,
-) -> list[dict[str, Any]]:
+) -> list[dict[str, Any]] | DashboardQuery:
     if universe not in ("all", "default", "dashboard"):
         raise ValueError(f"unsupported query universe: {universe}")
     command = [str(nose), "query", str(repo)]
@@ -147,7 +147,7 @@ def query_repo(
         )
     source = f"nose query {repo} ({universe})"
     if universe == "dashboard":
-        return dashboard_families(result.stdout, source=source)
+        return dashboard_query(result.stdout, source=source)
     return query_families(result.stdout, source=source)
 
 
@@ -226,13 +226,13 @@ def assert_default_list_parity(
 
 def assert_dashboard_prefix(
     default_families: list[dict[str, Any]],
-    dashboard: list[dict[str, Any]],
+    dashboard: DashboardQuery,
     *,
     repo_id: str,
 ) -> None:
     non_default = [
         family["id"]
-        for family in dashboard
+        for family in dashboard.families
         if family_surface(family, source=f"{repo_id} dashboard family") != "default"
     ]
     if non_default:
@@ -241,8 +241,19 @@ def assert_dashboard_prefix(
             f"non-default family IDs {', '.join(non_default[:5])}"
         )
     default_ids = [family["id"] for family in default_families]
-    dashboard_ids = [family["id"] for family in dashboard]
-    expected = default_ids[: len(dashboard_ids)]
+    dashboard_ids = [family["id"] for family in dashboard.families]
+    expected = default_ids[: min(5, len(default_ids))]
+    if dashboard.reported_families != len(default_ids):
+        raise SystemExit(
+            f"bare-dashboard parity failed for {repo_id}: summary.families "
+            f"reported {dashboard.reported_families}, expected {len(default_ids)}"
+        )
+    if dashboard.shown != len(expected) or len(dashboard_ids) != len(expected):
+        raise SystemExit(
+            f"bare-dashboard parity failed for {repo_id}: dashboard showed "
+            f"summary={dashboard.shown}, rows={len(dashboard_ids)}, "
+            f"expected {len(expected)}"
+        )
     if dashboard_ids != expected:
         raise SystemExit(
             f"bare-dashboard parity failed for {repo_id}: dashboard IDs "
@@ -618,6 +629,8 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         default_list_parity_checked = False
         dashboard_prefix_checked = False
         dashboard_reported_families: int | None = None
+        dashboard_summary_families: int | None = None
+        dashboard_summary_shown: int | None = None
         if (
             args.precision_surface == "default"
             and not args.no_check_bare_default_parity
@@ -645,13 +658,17 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
                 cache_dir=args.cache_dir,
                 timeout=args.timeout,
             )
+            if not isinstance(dashboard, DashboardQuery):
+                raise AssertionError("dashboard query returned list-view rows")
             assert_dashboard_prefix(
                 precision_pool,
                 dashboard,
                 repo_id=repo_id,
             )
             dashboard_prefix_checked = True
-            dashboard_reported_families = len(dashboard)
+            dashboard_reported_families = len(dashboard.families)
+            dashboard_summary_families = dashboard.reported_families
+            dashboard_summary_shown = dashboard.shown
         ordered = rank_families(precision_pool, rank=args.rank)
         top = ordered[:40]
         rerank_scores = {
@@ -732,6 +749,8 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
                 "checked" if dashboard_prefix_checked else "not-checked"
             ),
             "bare_dashboard_reported_families": dashboard_reported_families,
+            "bare_dashboard_summary_families": dashboard_summary_families,
+            "bare_dashboard_summary_shown": dashboard_summary_shown,
             "top_10_reported": min(10, len(ordered)),
             "unmatched_top_10": min(10, len(ordered)) - len(base_flags),
             "label_match_coverage": {
@@ -946,19 +965,46 @@ def run_self_test() -> None:
         assert "non-default family IDs hidden" in str(error)
     else:
         raise AssertionError("non-default list family must fail")
-    assert_dashboard_prefix(
-        default_families, default_families[:1], repo_id="self-test"
+    dashboard = DashboardQuery(
+        families=list(default_families), reported_families=2, shown=2
     )
+    assert_dashboard_prefix(default_families, dashboard, repo_id="self-test")
     try:
         assert_dashboard_prefix(
             default_families,
-            [default_families[1]],
+            DashboardQuery(
+                families=list(reversed(default_families)),
+                reported_families=2,
+                shown=2,
+            ),
             repo_id="self-test-dashboard",
         )
     except SystemExit as error:
         assert "not the default-list prefix" in str(error)
     else:
         raise AssertionError("non-prefix dashboard order must fail")
+    try:
+        assert_dashboard_prefix(
+            default_families,
+            DashboardQuery(families=[], reported_families=2, shown=0),
+            repo_id="self-test-short-dashboard",
+        )
+    except SystemExit as error:
+        assert "dashboard showed" in str(error)
+    else:
+        raise AssertionError("short dashboard must fail")
+    try:
+        assert_dashboard_prefix(
+            default_families,
+            DashboardQuery(
+                families=list(default_families), reported_families=1, shown=2
+            ),
+            repo_id="self-test-dashboard-summary",
+        )
+    except SystemExit as error:
+        assert "summary.families" in str(error)
+    else:
+        raise AssertionError("wrong dashboard total must fail")
     assert surface_counts(families) == {"default": 2, "hidden": 1}
     print("product-quality evaluator self-test passed")
 

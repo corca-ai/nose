@@ -241,14 +241,17 @@ python3 bench/labels/eval_by_language.py --nose <official-v0.19.0-nose> \
   --nose-release-archive <official-v0.19.0-archive> \
   --nose-release-checksum <official-v0.19.0-archive.sha256> \
   --rank extractability --bootstrap 2000 \
-  --json-out bench/labels/product_quality_evaluation_v0_19_0_default_head_2026_07_13.v3.json
+  --json-out target/reproduced-default-head.v3.json
 ```
 
 Schema v3 measures the product surface directly: precision uses the first ten
 `surface=default` families, while worthy recall searches the complete explicit
 `all` universe. Every default run fails unless its default-list raw IDs exactly
 match the default families derived from `all` and its literal bare dashboard is
-that list's prefix on every repository.
+that list's complete product top-five prefix on every repository. Replay into
+`target/`; never overwrite the checked artifact. Exact whole-file equality also
+requires its recorded evaluator revision and command/output path because those
+values are part of provenance.
 Pass `--precision-surface all` to request the old full-universe precision definition.
 
 The [published-v0.19.0 default-head artifact](product_quality_evaluation_v0_19_0_default_head_2026_07_13.v3.json)
