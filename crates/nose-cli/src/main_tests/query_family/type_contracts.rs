@@ -94,6 +94,26 @@ fn strict_declaration_only_type_contracts_are_reason_coded_and_fold_stable() {
 }
 
 #[test]
+fn omission_note_counts_hidden_and_declaration_only_type_contract_families() {
+    let mut contract = fam_at(&[("Api.java", 1, 20), ("api.ts", 1, 20)]);
+    for location in &mut contract.locations {
+        location.kind = nose_il::UnitKind::Class;
+        location.origin = declaration_only_type_origin();
+    }
+    let mut hidden = fam_at(&[("tiny-a.rs", 1, 1), ("tiny-b.rs", 1, 1)]);
+    hidden.mean_lines = 1;
+    let mut families = [contract, hidden];
+    let overrides = classify_surface_overrides(&mut families);
+
+    assert_eq!(effective_surface(&families[0], &overrides), "declaration");
+    assert_eq!(effective_surface(&families[1], &overrides), "hidden");
+    assert_eq!(
+        surface_omission_note(&families, &overrides).as_deref(),
+        Some("omitted 2 families from default output (1 declaration-only-type-contract, 1 hidden)")
+    );
+}
+
+#[test]
 fn incomplete_or_contradictory_type_contract_origins_fail_open() {
     use nose_il::{
         SourceGranularity, UnitBodyKind, UnitDomain, UnitDomains, UnitEvidenceFlag,

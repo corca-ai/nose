@@ -490,6 +490,7 @@ pub(crate) fn surface_omission_note(
     }
     if generated == 0
         && declaration == 0
+        && type_contract == 0
         && shallow == 0
         && divergence == 0
         && hidden == 1
