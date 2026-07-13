@@ -1183,3 +1183,12 @@ expression dispatch, and `af4b6d3f13df0fcb` -> `f6d422cfc56ae976` for
 call/constructor/enum-constant lowering. The old numeric dispatcher
 representative `856ea94f585f0c67` no longer crosses the threshold. No new
 avoidable duplication is accepted, and the budget tightens to 28.
+
+The #832 bounded same-unit route keeps the reviewed count at 28. Adding the
+separately priced same-unit candidate arm shifts `anchor_candidates` in
+`candidates.rs`, so the existing Markdown/detect candidate-pair enumeration
+representative moves from `17e10a85fc7439bc` to `8462d08908be9e8a`. The members
+remain exactly `fingerprint.rs::candidate_pairs` and
+`candidates.rs::anchor_candidates`; the replacement shares ten lines across
+roughly 50-line spans and still carries five presentation parameters. No new
+family, budget, or useful shared abstraction is accepted.

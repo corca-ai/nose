@@ -231,6 +231,10 @@ set -euo pipefail
 # `cf7e3e2870c92ccb`; the replacement shares only two lines across a 384-line impl and a ten-line
 # reducer slice, so there is no useful helper to extract. No new budget or avoidable duplication is
 # accepted; see docs/dogfooding-history.md.
+# 28 -> 28 (#832 bounded same-unit windows): the separate same-unit candidate arm shifts the
+# reviewed Markdown/detect candidate-pair enumeration representative from `17e10a85fc7439bc`
+# to `8462d08908be9e8a`. The same two functions remain the only members; no new budget or
+# avoidable duplication is accepted.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 
