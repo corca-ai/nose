@@ -23,8 +23,9 @@ deterministic unmatched rank 11–30 sample for every repository with an eligibl
 held-out seal commits to 214
 selections without exposing members, source paths, votes, or judgments before #846. See
 [`docs/default-head-label-runway-840.md`](../../docs/default-head-label-runway-840.md).
-The seal and manifest use exact, fail-closed field and value schemas, the manifest is
-bound to frozen v6, and CI replays raw votes through arbitration, decisions, and the
+The seal and manifest use exact, fail-closed field and value schemas. Held-out repository
+identity and counts are derived from the hash-checked corpus and commitments, the manifest
+is bound to frozen v6, and CI replays raw votes through arbitration, decisions, and the
 generated component before checking the evaluation and its SHA sidecar.
 
 ### Frozen v6 base

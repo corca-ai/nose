@@ -18,10 +18,8 @@ from labelset import (
     COMPONENT_SCHEMA,
     HELDOUT_SEAL_SCHEMA,
     PRECISION_METRIC,
-    RUNWAY_COLLECTION_SOURCES,
     RUNWAY_DEV_ARTIFACT,
     RUNWAY_HELDOUT_SEAL,
-    RUNWAY_NOSE_BINARY,
     VOTE_NAMES,
     WORTHY_REASONS,
     LoadedLabelset,
@@ -1983,6 +1981,27 @@ def run_self_test() -> None:
 
     checked_dev_path = ROOT / RUNWAY_DEV_ARTIFACT
     checked_seal_path = ROOT / RUNWAY_HELDOUT_SEAL
+    checked_dev = load_schema_artifact(
+        checked_dev_path, RUNWAY_SCHEMA, "checked dev runway"
+    )
+    checked_seal = load_schema_artifact(
+        checked_seal_path, HELDOUT_SEAL_SCHEMA, "checked held-out seal"
+    )
+    custom_dev = json.loads(json.dumps(checked_dev))
+    custom_seal = json.loads(json.dumps(checked_seal))
+    custom_command = custom_dev["provenance"]["command"].replace(
+        RUNWAY_DEV_ARTIFACT, "/tmp/custom-dev.json"
+    ).replace(RUNWAY_HELDOUT_SEAL, "/tmp/custom-heldout.json")
+    custom_dev["provenance"]["command"] = custom_command
+    custom_seal["provenance"]["command"] = custom_command
+    custom_seal["commitment_sha256"] = canonical_sha256(
+        {
+            key: value
+            for key, value in custom_seal.items()
+            if key != "commitment_sha256"
+        }
+    )
+    validate_runway_pair(custom_dev, custom_seal)
     with tempfile.TemporaryDirectory(prefix="nose-runway-base-self-test-") as directory:
         wrong_base = ROOT / "bench/labels/refactoring_families.v5.json"
         manifest_path = Path(directory) / "wrong-base-v7.json"
@@ -2000,9 +2019,6 @@ def run_self_test() -> None:
                 }
             ),
             encoding="utf-8",
-        )
-        checked_dev = load_schema_artifact(
-            checked_dev_path, RUNWAY_SCHEMA, "checked dev runway"
         )
         try:
             validate_runway_labelset_bindings(
@@ -2133,90 +2149,18 @@ def run_self_test() -> None:
     else:
         raise AssertionError("runway selection-order drift must fail closed")
 
-    commitments = [
-        {
-            key: candidate[key]
-            for key in (
-                "candidate_key",
-                "candidate_sha256",
-                "repo",
-                "split",
-                "language",
-                "lane",
-                "rank",
-                "base_matched",
-                "selected",
-                "selection_reason",
-                "selection_order",
-            )
-        }
-        for candidate in runway_candidates
-    ]
-    for commitment in commitments:
-        commitment["split"] = "heldout"
-    heldout_keys = [
-        row["candidate_key"] for row in commitments if row["selected"]
-    ]
-    repositories = {
-        "runway": {
-            "commit": "0" * 40,
-            "language": "Python",
-            "split": "heldout",
-            "query_command": (
-                f"{RUNWAY_NOSE_BINARY} query bench/repos/runway top=30 --format json"
-            ),
-            "query_stdout_sha256": "0" * 64,
-            "top_10_reported": 10,
-            "top_30_reported": 12,
-            "base_matched_top_10": 9,
-            "unmatched_top_10": 1,
-        }
-    }
-    seal = {
-        "schema": HELDOUT_SEAL_SCHEMA,
-        "split": "heldout",
-        "judgment_status": "sealed-unjudged",
-        "query_schema_version": QUERY_SCHEMA_VERSION,
-        "provenance": {
-            "command": (
-                "python3 bench/labels/label_refresh.py collect-runway "
-                f"--nose {RUNWAY_NOSE_BINARY} --dev-output {RUNWAY_DEV_ARTIFACT} "
-                f"--heldout-seal-output {RUNWAY_HELDOUT_SEAL}"
-            ),
-            "git_sha": "0" * 40,
-            "working_tree_status_before_collection": "",
-            "nose_binary": RUNWAY_NOSE_BINARY,
-            "nose_binary_sha256": "0" * 64,
-            "nose_version": "nose 0.19.0",
-            "corpus_manifest": "bench/goldens/corpus.json",
-            "corpus_manifest_sha256": "0" * 64,
-            "corpus_commit_digest": "0" * 64,
-            "base_labelset": "bench/labels/refactoring_families.v6.json",
-            "base_labelset_sha256": "0" * 64,
-            "base_labelset_version": "v6",
-            "rubric": "bench/labels/RUBRIC.md",
-            "rubric_sha256": "0" * 64,
-            "collection_sources": [
-                {"path": path, "sha256": "0" * 64}
-                for path in sorted(RUNWAY_COLLECTION_SOURCES)
-            ],
-        },
-        "selection_contract": runway_selection_contract(),
-        "selection": {
-            "selected_candidate_keys": heldout_keys,
-            "selected_candidate_keys_sha256": canonical_sha256(heldout_keys),
-        },
-        "pool": runway_pool_summary(commitments, repositories),
-        "repositories": repositories,
-        "candidate_commitments": commitments,
-    }
-    seal["commitment_sha256"] = canonical_sha256(seal)
+    seal = load_schema_artifact(
+        checked_seal_path, HELDOUT_SEAL_SCHEMA, "checked held-out seal"
+    )
     validate_heldout_seal(seal)
+    seal = json.loads(json.dumps(seal))
     seal["candidate_commitments"][0]["private_payload"] = {
         "source_excerpt": "held-out source",
         "verdict": "worthy",
     }
-    seal["commitment_sha256"] = canonical_sha256(seal)
+    seal["commitment_sha256"] = canonical_sha256(
+        {key: value for key, value in seal.items() if key != "commitment_sha256"}
+    )
     try:
         validate_heldout_seal(seal)
     except SystemExit as error:

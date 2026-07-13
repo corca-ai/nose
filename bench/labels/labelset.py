@@ -8,11 +8,13 @@ from dataclasses import dataclass
 import hashlib
 import json
 import re
+import shlex
 import tempfile
 from pathlib import Path
 from typing import Any
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 COMPOSITE_SCHEMA = "nose.refactoring_family_labelset.v1"
 COMPONENT_SCHEMA = "nose.refactoring_family_labels.v1"
 HELDOUT_SEAL_SCHEMA = "nose.default_head_heldout_seal.v1"
@@ -46,10 +48,6 @@ RUNWAY_COLLECTION_SOURCES = {
     "bench/labels/labelset.py",
     "bench/labels/query_schema.py",
 }
-RUNWAY_NOSE_BINARY = (
-    "target/issue-839/official-v0.19.0/"
-    "nose-cli-aarch64-apple-darwin/nose"
-)
 RUNWAY_DEV_ARTIFACT = "bench/labels/default_head_label_runway_2026_07_13.dev.v1.json"
 RUNWAY_HELDOUT_SEAL = (
     "bench/labels/default_head_label_runway_2026_07_13.heldout.seal.v1.json"
@@ -108,6 +106,105 @@ def require_plain_int(value: object, label: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(f"{label}: expected an integer")
     return value
+
+
+def collection_command_options(provenance: dict[str, Any], label: str) -> dict[str, str]:
+    command = provenance.get("command")
+    if not isinstance(command, str) or any(character in command for character in "\r\n\0"):
+        raise ValueError(f"{label}.provenance.command: invalid value")
+    try:
+        tokens = shlex.split(command)
+    except ValueError as error:
+        raise ValueError(f"{label}.provenance.command: cannot parse: {error}") from error
+    if tokens[:3] != ["python3", "bench/labels/label_refresh.py", "collect-runway"]:
+        raise ValueError(f"{label}.provenance.command: unexpected command")
+    allowed = {
+        "--nose",
+        "--repos-root",
+        "--corpus",
+        "--base-labelset",
+        "--rubric",
+        "--dev-output",
+        "--heldout-seal-output",
+    }
+    options: dict[str, str] = {}
+    arguments = tokens[3:]
+    if len(arguments) % 2:
+        raise ValueError(f"{label}.provenance.command: option without value")
+    for index in range(0, len(arguments), 2):
+        option, value = arguments[index : index + 2]
+        if option not in allowed or option in options or not value:
+            raise ValueError(f"{label}.provenance.command: invalid option {option!r}")
+        options[option] = value
+    if not {"--dev-output", "--heldout-seal-output"}.issubset(options):
+        raise ValueError(f"{label}.provenance.command: output paths are required")
+    return options
+
+
+def command_repo_path(repos_root: str, repo: str) -> str:
+    root = Path(repos_root)
+    if not root.is_absolute():
+        root = PROJECT_ROOT / root
+    path = (root / repo).resolve()
+    try:
+        return path.relative_to(PROJECT_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def normalized_collection_path(value: str) -> str:
+    path = Path(value)
+    if not path.is_absolute():
+        path = PROJECT_ROOT / path
+    path = path.resolve()
+    try:
+        return path.relative_to(PROJECT_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def heldout_corpus_contract(
+    provenance: dict[str, Any], label: str
+) -> dict[str, dict[str, str]]:
+    raw_path = provenance.get("corpus_manifest")
+    if not isinstance(raw_path, str) or not raw_path or any(
+        character in raw_path for character in "\r\n\0"
+    ):
+        raise ValueError(f"{label}.provenance.corpus_manifest: invalid path")
+    path_value = Path(raw_path)
+    corpus_path = path_value if path_value.is_absolute() else PROJECT_ROOT / path_value
+    try:
+        corpus_bytes = corpus_path.read_bytes()
+        corpus = json.loads(corpus_bytes)
+        rows = corpus["repositories"]
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as error:
+        raise ValueError(f"cannot read pinned corpus contract {corpus_path}: {error}") from error
+    if hashlib.sha256(corpus_bytes).hexdigest() != provenance.get("corpus_manifest_sha256"):
+        raise ValueError(f"{label}.provenance.corpus_manifest_sha256: hash mismatch")
+    if not isinstance(rows, list):
+        raise ValueError("pinned corpus repositories must be an array")
+    commit_rows = []
+    contract: dict[str, dict[str, str]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("pinned corpus row is malformed")
+        repo = row.get("id")
+        commit = row.get("commit")
+        if not isinstance(repo, str) or not isinstance(commit, str):
+            raise ValueError("pinned corpus repository identity is malformed")
+        commit_rows.append({"id": repo, "commit": commit})
+        if row.get("split") != "heldout":
+            continue
+        language = row.get("primary_language")
+        if not all(isinstance(value, str) and value for value in (repo, language, commit)):
+            raise ValueError("pinned held-out corpus row is malformed")
+        contract[repo] = {"language": language, "commit": commit}
+    expected_digest = canonical_sha256(sorted(commit_rows, key=lambda row: row["id"]))
+    if provenance.get("corpus_commit_digest") != expected_digest:
+        raise ValueError(f"{label}.provenance.corpus_commit_digest: mismatch")
+    if not contract:
+        raise ValueError("pinned corpus must contain held-out repositories")
+    return contract
 
 
 def validate_heldout_seal_shape(seal: object, label: str) -> None:
@@ -181,23 +278,34 @@ def validate_heldout_seal_shape(seal: object, label: str) -> None:
         RUNWAY_COLLECTION_SOURCES
     ):
         raise ValueError(f"{label}.provenance.collection_sources: unexpected source set")
-    expected_provenance = {
-        "command": (
-            "python3 bench/labels/label_refresh.py collect-runway "
-            f"--nose {RUNWAY_NOSE_BINARY} --dev-output {RUNWAY_DEV_ARTIFACT} "
-            f"--heldout-seal-output {RUNWAY_HELDOUT_SEAL}"
+    for field in ("nose_binary", "nose_version", "base_labelset", "rubric"):
+        value = provenance[field]
+        if not isinstance(value, str) or not value or any(
+            character in value for character in "\r\n\0"
+        ):
+            raise ValueError(f"{label}.provenance.{field}: invalid value")
+    if provenance["working_tree_status_before_collection"] != "":
+        raise ValueError(f"{label}.provenance: collection tree must be clean")
+    if provenance["base_labelset_version"] != "v6":
+        raise ValueError(f"{label}.provenance.base_labelset_version: expected v6")
+    command_options = collection_command_options(provenance, label)
+    command_inputs = {
+        "nose_binary": normalized_collection_path(
+            command_options.get("--nose", "target/release/nose")
         ),
-        "working_tree_status_before_collection": "",
-        "nose_binary": RUNWAY_NOSE_BINARY,
-        "nose_version": "nose 0.19.0",
-        "corpus_manifest": "bench/goldens/corpus.json",
-        "base_labelset": "bench/labels/refactoring_families.v6.json",
-        "base_labelset_version": "v6",
-        "rubric": "bench/labels/RUBRIC.md",
+        "corpus_manifest": normalized_collection_path(
+            command_options.get("--corpus", "bench/goldens/corpus.json")
+        ),
+        "base_labelset": normalized_collection_path(
+            command_options.get("--base-labelset", "bench/labels/refactoring_families.v6.json")
+        ),
+        "rubric": normalized_collection_path(
+            command_options.get("--rubric", "bench/labels/RUBRIC.md")
+        ),
     }
-    for field, expected in expected_provenance.items():
+    for field, expected in command_inputs.items():
         if provenance[field] != expected:
-            raise ValueError(f"{label}.provenance.{field}: unexpected value")
+            raise ValueError(f"{label}.provenance.{field}: differs from collection command")
     require_hex(provenance["git_sha"], 40, f"{label}.provenance.git_sha")
     for field in (
         "nose_binary_sha256",
@@ -250,6 +358,9 @@ def validate_heldout_seal_shape(seal: object, label: str) -> None:
     repositories = payload["repositories"]
     if not isinstance(repositories, dict) or not repositories:
         raise ValueError(f"{label}.repositories: expected a non-empty object")
+    corpus_contract = heldout_corpus_contract(provenance, label)
+    if set(repositories) != set(corpus_contract):
+        raise ValueError(f"{label}.repositories: differs from the pinned held-out corpus")
     for repo, record in repositories.items():
         if not isinstance(repo, str) or re.fullmatch(r"[a-z0-9][a-z0-9._-]*", repo) is None:
             raise ValueError(f"{label}.repositories: invalid repository id {repo!r}")
@@ -271,14 +382,29 @@ def validate_heldout_seal_shape(seal: object, label: str) -> None:
         language = repository["language"]
         if language not in RUNWAY_LANGUAGES or repository["split"] != "heldout":
             raise ValueError(f"{label}.repositories.{repo}: language/split mismatch")
+        if (
+            language != corpus_contract[repo]["language"]
+            or repository["commit"] != corpus_contract[repo]["commit"]
+        ):
+            raise ValueError(f"{label}.repositories.{repo}: pinned language/commit mismatch")
         require_hex(repository["commit"], 40, f"{label}.repositories.{repo}.commit")
         require_hex(
             repository["query_stdout_sha256"],
             64,
             f"{label}.repositories.{repo}.query_stdout_sha256",
         )
-        expected_command = (
-            f"{RUNWAY_NOSE_BINARY} query bench/repos/{repo} top=30 --format json"
+        repo_path = command_repo_path(
+            command_options.get("--repos-root", "bench/repos"), repo
+        )
+        expected_command = shlex.join(
+            [
+                command_options.get("--nose", "target/release/nose"),
+                "query",
+                repo_path,
+                "top=30",
+                "--format",
+                "json",
+            ]
         )
         if repository["query_command"] != expected_command:
             raise ValueError(f"{label}.repositories.{repo}.query_command: unexpected value")
@@ -374,6 +500,17 @@ def validate_heldout_seal_shape(seal: object, label: str) -> None:
         expected_ranks = list(range(1, repositories[repo]["top_30_reported"] + 1))
         if ranks != expected_ranks:
             raise ValueError(f"{label}.candidate_commitments: {repo} ranks/order differ")
+        top_10 = [candidate for candidate in candidates if candidate["rank"] <= 10]
+        derived_base = sum(1 for candidate in top_10 if candidate["base_matched"])
+        derived_unmatched = len(top_10) - derived_base
+        if (
+            len(top_10) != repositories[repo]["top_10_reported"]
+            or derived_base != repositories[repo]["base_matched_top_10"]
+            or derived_unmatched != repositories[repo]["unmatched_top_10"]
+        ):
+            raise ValueError(
+                f"{label}.repositories.{repo}: top-10 match counts differ from commitments"
+            )
     ordered_selected = [key for _, key in sorted(recorded_selected)]
     if [order for order, _ in sorted(recorded_selected)] != list(
         range(1, len(recorded_selected) + 1)
@@ -731,86 +868,16 @@ def run_self_test() -> None:
         v7_component_path = root / "dev-v7.json"
         v7_component_path.write_text(json.dumps(component("dev", "family-v7-dev")))
         seal_path = root / "heldout-seal.json"
-        synthetic_seal = {
-            "schema": HELDOUT_SEAL_SCHEMA,
-            "split": "heldout",
-            "judgment_status": "sealed-unjudged",
-            "query_schema_version": 7,
-            "provenance": {
-                "command": (
-                    "python3 bench/labels/label_refresh.py collect-runway "
-                    f"--nose {RUNWAY_NOSE_BINARY} --dev-output {RUNWAY_DEV_ARTIFACT} "
-                    f"--heldout-seal-output {RUNWAY_HELDOUT_SEAL}"
-                ),
-                "git_sha": "0" * 40,
-                "working_tree_status_before_collection": "",
-                "nose_binary": RUNWAY_NOSE_BINARY,
-                "nose_binary_sha256": "0" * 64,
-                "nose_version": "nose 0.19.0",
-                "corpus_manifest": "bench/goldens/corpus.json",
-                "corpus_manifest_sha256": "0" * 64,
-                "corpus_commit_digest": "0" * 64,
-                "base_labelset": "bench/labels/refactoring_families.v6.json",
-                "base_labelset_sha256": "0" * 64,
-                "base_labelset_version": "v6",
-                "rubric": "bench/labels/RUBRIC.md",
-                "rubric_sha256": "0" * 64,
-                "collection_sources": [
-                    {"path": path, "sha256": "0" * 64}
-                    for path in sorted(RUNWAY_COLLECTION_SOURCES)
-                ],
-            },
-            "selection_contract": RUNWAY_SELECTION_CONTRACT,
-            "selection": {
-                "selected_candidate_keys": ["heldout:0000000000000000:rank-1"],
-                "selected_candidate_keys_sha256": canonical_sha256(
-                    ["heldout:0000000000000000:rank-1"]
-                ),
-            },
-            "pool": {
-                "repositories": 1,
-                "default_head_positions": 1,
-                "base_matched_default_head": 0,
-                "unmatched_default_head": 1,
-                "rank_11_30_candidates": 0,
-                "rank_11_30_unmatched": 0,
-                "selected_unmatched_default_head": 1,
-                "selected_rank_11_30": 0,
-                "selected_count": 1,
-            },
-            "repositories": {
-                "heldout": {
-                    "commit": "0" * 40,
-                    "language": "Python",
-                    "split": "heldout",
-                    "query_command": (
-                        f"{RUNWAY_NOSE_BINARY} query bench/repos/heldout "
-                        "top=30 --format json"
-                    ),
-                    "query_stdout_sha256": "0" * 64,
-                    "top_10_reported": 1,
-                    "top_30_reported": 1,
-                    "base_matched_top_10": 0,
-                    "unmatched_top_10": 1,
-                }
-            },
-            "candidate_commitments": [
-                {
-                    "candidate_key": "heldout:0000000000000000:rank-1",
-                    "candidate_sha256": "0" * 64,
-                    "repo": "heldout",
-                    "split": "heldout",
-                    "language": "Python",
-                    "lane": "unmatched-default-head",
-                    "rank": 1,
-                    "base_matched": False,
-                    "selected": True,
-                    "selection_reason": "unmatched-default-head",
-                    "selection_order": 1,
-                }
-            ],
-        }
-        synthetic_seal["commitment_sha256"] = canonical_sha256(synthetic_seal)
+        synthetic_seal = json.loads(
+            (PROJECT_ROOT / RUNWAY_HELDOUT_SEAL).read_text(encoding="utf-8")
+        )
+        synthetic_seal["commitment_sha256"] = canonical_sha256(
+            {
+                key: value
+                for key, value in synthetic_seal.items()
+                if key != "commitment_sha256"
+            }
+        )
         seal_path.write_text(
             json.dumps(synthetic_seal)
         )
@@ -874,6 +941,85 @@ def run_self_test() -> None:
             assert ".lane: unexpected value" in str(error)
         else:
             raise AssertionError("held-out seal value-domain leaks must fail closed")
+
+        renamed_repo_seal = json.loads(json.dumps(synthetic_seal))
+        old_repo = next(iter(renamed_repo_seal["repositories"]))
+        new_repo = "private-secret-verdict-worthy"
+        repository = renamed_repo_seal["repositories"].pop(old_repo)
+        repository["query_command"] = (
+            f"{renamed_repo_seal['provenance']['nose_binary']} query "
+            f"bench/repos/{new_repo} top=30 --format json"
+        )
+        renamed_repo_seal["repositories"][new_repo] = repository
+        for candidate in renamed_repo_seal["candidate_commitments"]:
+            if candidate["repo"] != old_repo:
+                continue
+            candidate["repo"] = new_repo
+            candidate["candidate_key"] = candidate["candidate_key"].replace(
+                f"{old_repo}:", f"{new_repo}:", 1
+            )
+            candidate["candidate_sha256"] = "1" * 64
+        renamed_repo_seal["selection"]["selected_candidate_keys"] = [
+            key.replace(f"{old_repo}:", f"{new_repo}:", 1)
+            for key in renamed_repo_seal["selection"]["selected_candidate_keys"]
+        ]
+        renamed_repo_seal["selection"]["selected_candidate_keys_sha256"] = canonical_sha256(
+            renamed_repo_seal["selection"]["selected_candidate_keys"]
+        )
+        renamed_repo_seal["commitment_sha256"] = canonical_sha256(
+            {
+                key: value
+                for key, value in renamed_repo_seal.items()
+                if key != "commitment_sha256"
+            }
+        )
+        try:
+            validate_heldout_seal_shape(renamed_repo_seal, "synthetic renamed repo seal")
+        except ValueError as error:
+            assert "differs from the pinned held-out corpus" in str(error)
+        else:
+            raise AssertionError("renamed held-out repositories must fail closed")
+
+        wrong_commit_seal = json.loads(json.dumps(synthetic_seal))
+        wrong_repo = next(iter(wrong_commit_seal["repositories"]))
+        wrong_commit_seal["repositories"][wrong_repo]["commit"] = "0" * 40
+        wrong_commit_seal["commitment_sha256"] = canonical_sha256(
+            {
+                key: value
+                for key, value in wrong_commit_seal.items()
+                if key != "commitment_sha256"
+            }
+        )
+        try:
+            validate_heldout_seal_shape(wrong_commit_seal, "synthetic wrong commit seal")
+        except ValueError as error:
+            assert "pinned language/commit mismatch" in str(error)
+        else:
+            raise AssertionError("held-out commit drift must fail closed")
+
+        wrong_counts_seal = json.loads(json.dumps(synthetic_seal))
+        count_repo = next(
+            repo
+            for repo, row in wrong_counts_seal["repositories"].items()
+            if row["unmatched_top_10"] > 0
+        )
+        wrong_counts_seal["repositories"][count_repo]["base_matched_top_10"] += 1
+        wrong_counts_seal["repositories"][count_repo]["unmatched_top_10"] -= 1
+        wrong_counts_seal["pool"]["base_matched_default_head"] += 1
+        wrong_counts_seal["pool"]["unmatched_default_head"] -= 1
+        wrong_counts_seal["commitment_sha256"] = canonical_sha256(
+            {
+                key: value
+                for key, value in wrong_counts_seal.items()
+                if key != "commitment_sha256"
+            }
+        )
+        try:
+            validate_heldout_seal_shape(wrong_counts_seal, "synthetic wrong counts seal")
+        except ValueError as error:
+            assert "top-10 match counts differ" in str(error)
+        else:
+            raise AssertionError("held-out match-count drift must fail closed")
 
         manifest_payload = json.loads(v7_manifest.read_text())
         manifest_payload["heldout_source_excerpt"] = "private/path.c:10 verdict=worthy"

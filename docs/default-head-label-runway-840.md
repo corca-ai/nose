@@ -84,8 +84,10 @@ P@10 interval is again `[54.13%, 64.00%]`, identical to the v6 result for the sa
 flags.
 
 The held-out seal uses an exact allowlist and closed, cross-checked value domains at every
-object level: repository/language/rank/lane/selection fields are derived from one another,
-while paths, commands, versions, and source lists are fixed to the collection protocol.
+object level: repository/language/commit identity is bound to the hash-checked corpus,
+rank/lane/selection and top-10 match counts are derived from the commitments, and
+provenance is shared exactly with the dev artifact. Collector path options remain usable;
+they cannot become a held-out-only covert channel.
 It rejects both unknown fields and attempts to hide source or judgments in an allowed
 string field. The manifest itself is exact-schema, accepts exactly one dev precision
 overlay plus the bound held-out seal, rejects any held-out judgment component, and binds
