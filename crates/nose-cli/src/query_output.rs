@@ -279,58 +279,16 @@ pub(super) fn enforce_query_fail_on(ctx: &QueryOutput<'_>) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::main_tests::query_family::fam_at;
     use crate::query_terms::{QFilter, QOp};
-    use nose_detect::{LineSpan, Loc, LocInit, RefactorFamily};
-    use nose_il::UnitKind;
-
-    fn family_at(spans: &[(&str, u32, u32)]) -> RefactorFamily {
-        let locations = spans
-            .iter()
-            .map(|(file, start, end)| {
-                Loc::new(LocInit {
-                    file: (*file).to_string(),
-                    source_span: LineSpan::new(*start, *end),
-                    lang: "html".into(),
-                    kind: UnitKind::Block,
-                    origin: Default::default(),
-                    name: None,
-                    sem: 50,
-                    span_tokens: 50,
-                })
-            })
-            .collect();
-        RefactorFamily {
-            value: 1.0,
-            members: spans.len(),
-            files: spans.len(),
-            modules: 1,
-            languages: 1,
-            mean_score: 0.9,
-            mean_lines: 10,
-            dup_lines: 10,
-            shared_lines: 0,
-            params: 0,
-            shared_weight: 0.0,
-            locations,
-            accepted_coverage: Vec::new(),
-            display_params: None,
-            mean_sem: 50.0,
-            scope: "prod",
-            discount: 1.0,
-            abstraction_witness: None,
-            witness: None,
-            varying_spots: Vec::new(),
-            semantic_laws: Vec::new(),
-        }
-    }
 
     #[test]
     fn surface_filters_keep_a_partial_default_slice_when_its_primary_is_filtered_out() {
-        let primary = family_at(&[
+        let primary = fam_at(&[
             ("docs/generated-a.html", 100, 130),
             ("docs/generated-b.html", 50, 70),
         ]);
-        let slice = family_at(&[
+        let slice = fam_at(&[
             ("docs/generated-a.html", 105, 128),
             ("docs/generated-b.html", 52, 66),
             ("docs/hand-written.html", 10, 20),
@@ -346,7 +304,7 @@ mod tests {
             .collect(),
             declaration_run_ids: Default::default(),
         };
-        let ranked: Vec<&RefactorFamily> = families.iter().collect();
+        let ranked: Vec<_> = families.iter().collect();
         let mut groups = OpportunityGroups::from_ranked(&ranked);
         let default_ids = families
             .iter()

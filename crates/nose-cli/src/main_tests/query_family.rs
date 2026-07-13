@@ -16,7 +16,7 @@ fn loc_at(file: &str, start: u32, end: u32, kind: nose_il::UnitKind) -> Loc {
     })
 }
 
-fn fam_at(spans: &[(&str, u32, u32)]) -> RefactorFamily {
+pub(crate) fn fam_at(spans: &[(&str, u32, u32)]) -> RefactorFamily {
     let mut f = fam_kind(1, 1, &vec![None; spans.len()], nose_il::UnitKind::Block);
     f.locations = spans
         .iter()

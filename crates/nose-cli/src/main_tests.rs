@@ -16,5 +16,5 @@ use crate::surfaces::{
 use nose_detect::{LineSpan, Loc, LocInit, RefactorFamily};
 
 mod declarations;
-mod query_family;
+pub(crate) mod query_family;
 mod surface_hints;
