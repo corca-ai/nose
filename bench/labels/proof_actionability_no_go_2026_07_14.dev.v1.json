@@ -2,7 +2,11 @@
   "schema": "nose.proof_actionability_no_go.v1",
   "issue": 844,
   "split": "dev",
-  "heldout_policy": "closed; no held-out component, source path, or judgment was read",
+  "heldout_policy": {
+    "opened": false,
+    "split": "dev",
+    "statement": "no held-out component, source path, or judgment was read"
+  },
   "inputs": {
     "taxonomy_core": {
       "path": "bench/labels/default_head_taxonomy_2026_07_13.dev.core.v1.json",
@@ -13,13 +17,37 @@
       "path": "bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json",
       "byte_sha256": "68eff466212f0322a45a16648c1fcfd51a301bd5351c93f0795147f2baa33969",
       "semantic_sha256": "206f7e6c2eb9e5bb3750dd6e12f6f920228d719868b2e4922395433a2315c71a"
+    },
+    "parent_closeout": {
+      "path": "bench/labels/declaration_type_contract_closeout_2026_07_14.dev.v1.json",
+      "byte_sha256": "1f393994f95e15a676f60eeee7f7594be65c31c646e573362aba0d3721ff3732",
+      "schema": "nose.declaration_type_contract_closeout.v1",
+      "split": "dev"
     }
   },
   "binary_identity": {
-    "closeout_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
-    "immediate_parent_commit": "1384e601957d60628cfce72cba4346ca0b6a4e43",
-    "immediate_parent_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
-    "published_v0_19_0_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
+    "algorithm": "sha256/mach-o-zero-uuid-signature-v1",
+    "candidate": {
+      "build_command": "CARGO_TARGET_DIR=/tmp/nose-844-review-target cargo build --release -p nose-cli",
+      "code_sha256": "03cc5827cdadc225478a34266de78805c6e495810f90e8642f2ae2807b3a4f5a",
+      "file_sha256": "c0a70c0d31739da42260c94f910ddd89d46ae5e6979542f9d88d82a9808a42b3",
+      "source_commit": "0b57bd183317b35ea082b1629391ac59f748cab4",
+      "source_tree": "b81480bcf0d8b99137c9a4862ec3ea3b7a9d6e28"
+    },
+    "full_file_equal": false,
+    "normalized_code_equal": true,
+    "parent": {
+      "checked_evidence_commit": "182881a8097ff14ecf513a4fb32f1ad22cc31394",
+      "checked_evidence_tree": "7b4b4734571af8206311aa8862315b680619e6db",
+      "code_sha256": "03cc5827cdadc225478a34266de78805c6e495810f90e8642f2ae2807b3a4f5a",
+      "file_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
+      "merge_commit": "1384e601957d60628cfce72cba4346ca0b6a4e43",
+      "merge_tree": "6aae853031752a26ed2f80d40b0e548514723dff"
+    },
+    "published_v0_19_0": {
+      "code_sha256": "e55d0e989993ff1d1d6b4e933dbd3f5ade38203368b8321d3a7842799a95aca6",
+      "file_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
+    }
   },
   "blanket_proof_cohort": {
     "combined": {
@@ -124,13 +152,59 @@
     ]
   },
   "independent_review": {
-    "reviewers": [
-      "evidence",
-      "product",
-      "soundness"
+    "protocol": {
+      "confidence_method": "one-sided Wilson 95% lower bound",
+      "minimum_confirmatory_reviewed": 25,
+      "minimum_non_action_point_precision": 0.9,
+      "minimum_non_action_wilson_lower_bound": 0.9,
+      "source_packet_sha256": "2bf3ef7a9b41ff36d7bdcc38855c47f4daf24d60cf92b5f002483c787a66aa85"
+    },
+    "reviews": [
+      {
+        "reviewer": "evidence",
+        "decision": "rejected-no-go",
+        "defensible_90_percent_subcohort": false,
+        "source_packet_sha256": "2bf3ef7a9b41ff36d7bdcc38855c47f4daf24d60cf92b5f002483c787a66aa85",
+        "judgments": [
+          {"position_key": "clap:b526f00d436e1689:rank-10", "truth_reason": "extract-helper", "worthy": true},
+          {"position_key": "delve:fdab89b0d9bf0735:rank-7", "truth_reason": "parallel-by-design", "worthy": false},
+          {"position_key": "swiftlint:d28f52ac94be71f1:rank-6", "truth_reason": "parameterize", "worthy": true},
+          {"position_key": "lua:b9746b4eeb10c562:rank-28", "truth_reason": "coincidental-shape", "worthy": false},
+          {"position_key": "thor:3a25b222efed5f0b:rank-27", "truth_reason": "trivial", "worthy": false}
+        ]
+      },
+      {
+        "reviewer": "product",
+        "decision": "rejected-no-go",
+        "defensible_90_percent_subcohort": false,
+        "source_packet_sha256": "2bf3ef7a9b41ff36d7bdcc38855c47f4daf24d60cf92b5f002483c787a66aa85",
+        "judgments": [
+          {"position_key": "clap:b526f00d436e1689:rank-10", "truth_reason": "extract-helper", "worthy": true},
+          {"position_key": "delve:fdab89b0d9bf0735:rank-7", "truth_reason": "parallel-by-design", "worthy": false},
+          {"position_key": "swiftlint:d28f52ac94be71f1:rank-6", "truth_reason": "parameterize", "worthy": true},
+          {"position_key": "lua:b9746b4eeb10c562:rank-28", "truth_reason": "coincidental-shape", "worthy": false},
+          {"position_key": "thor:3a25b222efed5f0b:rank-27", "truth_reason": "trivial", "worthy": false}
+        ]
+      },
+      {
+        "reviewer": "soundness",
+        "decision": "rejected-no-go",
+        "defensible_90_percent_subcohort": false,
+        "source_packet_sha256": "2bf3ef7a9b41ff36d7bdcc38855c47f4daf24d60cf92b5f002483c787a66aa85",
+        "judgments": [
+          {"position_key": "clap:b526f00d436e1689:rank-10", "truth_reason": "extract-helper", "worthy": true},
+          {"position_key": "delve:fdab89b0d9bf0735:rank-7", "truth_reason": "parallel-by-design", "worthy": false},
+          {"position_key": "swiftlint:d28f52ac94be71f1:rank-6", "truth_reason": "parameterize", "worthy": true},
+          {"position_key": "lua:b9746b4eeb10c562:rank-28", "truth_reason": "coincidental-shape", "worthy": false},
+          {"position_key": "thor:3a25b222efed5f0b:rank-27", "truth_reason": "trivial", "worthy": false}
+        ]
+      }
     ],
-    "all_five_source_labels_unanimous": true,
-    "no_defensible_90_percent_subcohort": true
+    "summary": {
+      "all_five_source_labels_unanimous": true,
+      "no_defensible_90_percent_subcohort": true,
+      "reviewer_count": 3
+    }
   },
   "decision": {
     "minimum_non_action_precision": 0.9,
@@ -139,13 +213,24 @@
     "result": "rejected-no-go"
   },
   "preservation": {
-    "accepted_pair_coverage_unchanged": true,
-    "canon_preservation_violations_zero": true,
-    "family_membership_and_fingerprint_unchanged": true,
-    "family_universe_recall_unchanged": true,
-    "false_merges_zero": true,
-    "fold_forest_unchanged": true,
-    "surface_and_reason_transitions_zero": true,
-    "witness_and_provenance_unchanged": true
+    "basis": "normalized executable-code identity with the checked #843 parent",
+    "incremental": {
+      "accepted_pair_coverage_delta": 0,
+      "canon_preservation_violations": 0,
+      "family_membership_or_fingerprint_changes": 0,
+      "false_merges": 0,
+      "fold_forest_changes": 0,
+      "surface_or_reason_transitions": 0,
+      "witness_or_provenance_changes": 0,
+      "worthy_recall_delta": 0
+    },
+    "parent_behavior": {
+      "evidence_digest": "84578ffbdf97eeaa7e66551fae3e69b1e8181322069e25bc4b09e5650af65084",
+      "sha256": "4722f772a98476ce7860409ff4a18c29ceb9d9e21981542c5390ab7aab7ebd93"
+    },
+    "parent_product_quality": {
+      "sha256": "d94b2cfcf9e144ea5e4016e71782d743c1526f68da4822c4469e73113bcf242f",
+      "worthy_recall": {"hits": 2716, "n": 2849}
+    }
   }
 }

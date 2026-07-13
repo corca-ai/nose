@@ -28,7 +28,9 @@ precision:
 | combined | 5 | 3 | 60% | 2 |
 
 The five direct boundary rows are source-hash bound and were independently reviewed by
-three agents. All three reviewers returned the same label and the same no-go decision:
+three agents. Their individual five-row judgments and no-go decisions are recorded
+separately against the same truth-free source-packet digest. All three reviewers returned
+the same label and the same no-go decision:
 
 - Clap's four identical four-line `build_help` functions are a worthy shared-helper
   extraction, so “small” is not mechanically equivalent to “not actionable.”
@@ -44,7 +46,9 @@ No post-hoc split by repository, language, scope, file relation, symbol, or extr
 shape is admitted. Such a split has no common mechanical cause, would be selected after
 reading the labels, and would violate the scope-blind actionability contract. The two
 deep non-action rows alone are not a confirmatory cohort; a perfect two-of-two result
-cannot establish a 90% boundary.
+cannot establish a 90% boundary. Future confirmatory admission requires both 90% point
+precision and a one-sided 95% Wilson lower bound of 90%, which needs at least 25/25
+unanimous non-action judgments before hard-negative checks.
 
 ## Frozen hard negatives
 
@@ -57,27 +61,31 @@ of making it noise.
 
 The checked [`proof_actionability_no_go_2026_07_14.dev.v1.json`
 artifact](../bench/labels/proof_actionability_no_go_2026_07_14.dev.v1.json) binds both #841
-artifact digests, all 64 proof-backed keys, all 37 worthy keys and reason
-counts, the five current-exemption rows and source-bound hashes, the named helper/table
-boundaries, and the unanimous three-review result. Its validator reconstructs every
-count and row from the frozen taxonomy and rejects truth, witness, predicate, source
-bound, cohort, input, decision, or preservation changes.
+artifact digests, all 64 proof-backed keys, all 37 worthy keys and reason counts, the five
+current-exemption rows and source-bound hashes, the named helper/table boundaries, each
+of the three independent reviews, and the checked #843 closeout. Its validator
+reconstructs every count, review summary, parent behavior/quality projection, and raw
+performance binding; it rejects truth, witness, predicate, source bound, cohort, input,
+held-out policy, decision, or preservation changes.
 
 ## Preservation and future admission bar
 
 Because no runtime product path changes, family membership and fingerprints, witnesses
 and provenance, accepted-pair coverage, fold forest, surfaces and reasons, default order,
 full-universe recall, false-merge and canon-preservation gates all remain identical to
-#843. The release binary is byte-identical to the immediate parent; consequently #844's
-incremental runtime and output cost is exactly zero. The required official-v0.19.0
-performance baseline remains the one already priced by #843, rather than a source-rebuilt
-substitute.
+#843. A clean isolated release build differs from the preserved parent binary only in the
+Mach-O UUID and ad-hoc signature bytes: both normalize to executable-code SHA-256
+`03cc5827…4f5a` under the checked `binary_identity.py` algorithm. The parent closeout and
+all eight raw performance artifacts are byte-bound, so #844's incremental runtime and
+output cost is zero. The required official-v0.19.0 performance baseline remains the
+published binary (`0f73ea…e0f3`) already priced by #843, not a source rebuild.
 
-A future rule must be pre-registered before its confirmatory source review, clear 90%
-non-action precision independently, match none of the frozen worthy hard negatives, and
-fail open on missing evidence. If admitted, it must be a presentation-only transition:
-families remain recoverable through `all top=0` and `id=`, while semantic membership,
-witnesses, fingerprints, and the pre-transition fold opportunity forest remain stable.
+A future rule must be pre-registered before its confirmatory source review, clear both
+the point and Wilson gates independently, match none of the frozen worthy hard negatives,
+and fail open on missing evidence. If admitted, it must be a presentation-only
+transition: families remain recoverable through `all top=0` and `id=`, while semantic
+membership, witnesses, fingerprints, and the pre-transition fold opportunity forest
+remain stable.
 
 ## Validation
 

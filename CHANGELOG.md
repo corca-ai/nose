@@ -11,9 +11,11 @@ break.
   agree that removing the proven-channel protection reaches only 60% non-action precision
   on its direct frozen boundary (0% for `trivial`, 75% for `shallow-extraction`), while
   the broader exact/subdag cohort reaches 42.19% and contains 37 worthy helper,
-  parameterization, data-table, and base-extraction hard negatives. The product behavior
-  remains byte-for-byte unchanged; CI reconstructs the result from the #841 taxonomy and
-  keeps witness, membership, fingerprint, fold, recall, and surface contracts fixed.
+  parameterization, data-table, and base-extraction hard negatives. Each reviewer's
+  five-judgment record is source-packet bound, and future admission requires a 90% point
+  precision and one-sided 95% Wilson lower-bound gate. CI reconstructs the no-go and zero
+  product drift from the #841 taxonomy, normalized executable-code identity, and the
+  checked #843 behavior, quality, and official-v0.19.0 performance evidence.
 - Classified strict declaration-only type contracts as reason-coded `declaration` output
   (#843). The all-member rule consumes existing language-neutral origin facets for Java,
   TypeScript, Rust, and Swift; incomplete, narrowed, runtime/data/implementation,
