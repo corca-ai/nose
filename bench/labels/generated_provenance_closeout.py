@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Validate the checked #842 generated-provenance closeout and its evidence chain."""
+"""Validate the checked #842 closeout from bound behavior and raw performance evidence."""
 
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
+import math
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +21,7 @@ TOP_KEYS = {
     "split",
     "heldout_policy",
     "implementation",
+    "behavior_evidence",
     "frozen_841_evidence",
     "expanded_default_behavior",
     "established_semantic_behavior",
@@ -25,6 +29,11 @@ TOP_KEYS = {
     "result",
 }
 OFFICIAL_SHA = "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
+OFFICIAL_SOURCE = "54f8a67436e39e24c777a85e14224273116add6b"
+CURRENT_SHA = "85de6187a384e24c70db6305b34d92109805afe555d2ffcf721e8f9e29df9ca5"
+CURRENT_SOURCE = "89b51d41c65c5c18ac78933b947aafd414599ac3"
+BEHAVIOR_DIGEST = "62f5de167b4e8e750861f38ae9ef35649565537efa146824151ba4a9fa381340"
+QUERY_COMMAND = "nose query <repo> all top=0 --mode semantic --format json"
 
 
 def fail(message: str) -> None:
@@ -49,6 +58,90 @@ def load(path: Path) -> dict[str, Any]:
     return value
 
 
+def close(actual: float, expected: float, label: str) -> None:
+    require(math.isclose(actual, expected, rel_tol=1e-12, abs_tol=1e-9), f"{label}: {actual} != {expected}")
+
+
+def stable_outputs(report: dict[str, Any], label: str) -> None:
+    for repo, row in report["summary"]["by_repo"].items():
+        for role in ("baseline", "current"):
+            require(len(row[role]["hashes"]) == 1, f"{label}:{repo}:{role}: unstable output")
+
+
+def validate_report_role(
+    report: dict[str, Any],
+    control: dict[str, Any],
+    *,
+    repos: int,
+    iterations: int,
+    warmups: int,
+    label: str,
+) -> None:
+    for value, role in ((report, "report"), (control, "control")):
+        require(value.get("schema") == "nose.query_regression_harness.v2", f"{label}:{role}: wrong schema")
+        require(value.get("command") == QUERY_COMMAND, f"{label}:{role}: wrong query command")
+        require(value.get("measurement") == {"iterations": iterations, "warmups": warmups}, f"{label}:{role}: wrong measurement")
+        require(len(value.get("repos", [])) == repos, f"{label}:{role}: wrong repository count")
+        stable_outputs(value, f"{label}:{role}")
+    require(report["repos"] == control["repos"], f"{label}: control repository set differs")
+    require(report["corpus"]["repositories"] == control["corpus"]["repositories"], f"{label}: control corpus differs")
+    provenance = report["provenance"]
+    require(provenance["baseline_binary_sha256"] == OFFICIAL_SHA, f"{label}: baseline is not official v0.19.0")
+    require(provenance["baseline_source_sha"] == OFFICIAL_SOURCE, f"{label}: wrong baseline source")
+    require(provenance["current_binary_sha256"] == CURRENT_SHA, f"{label}: wrong current binary")
+    require(provenance["current_source_sha"] == CURRENT_SOURCE, f"{label}: wrong current source")
+    control_provenance = control["provenance"]
+    for key in ("baseline_binary_sha256", "current_binary_sha256"):
+        require(control_provenance[key] == CURRENT_SHA, f"{label}: control is not current/current")
+    for key in ("baseline_source_sha", "current_source_sha"):
+        require(control_provenance[key] == CURRENT_SOURCE, f"{label}: control source is not current/current")
+
+
+def aggregate(report: dict[str, Any], control: dict[str, Any]) -> dict[str, float | bool]:
+    summary = report["summary"]
+    control_summary = control["summary"]
+    baseline = summary["aggregate_baseline_median_ms"]
+    current = summary["aggregate_current_median_ms"]
+    raw = current - baseline
+    control_delta = control_summary["aggregate_current_median_ms"] - control_summary["aggregate_baseline_median_ms"]
+    adjusted = raw - control_delta
+    adjusted_pct = adjusted / baseline * 100.0
+    return {
+        "baseline_median_ms": baseline,
+        "current_median_ms": current,
+        "raw_delta_ms": raw,
+        "raw_delta_percent": raw / baseline * 100.0,
+        "control_delta_ms": control_delta,
+        "control_delta_percent": control_delta / control_summary["aggregate_baseline_median_ms"] * 100.0,
+        "control_adjusted_delta_ms": adjusted,
+        "control_adjusted_delta_percent": adjusted_pct,
+        "material_regression": adjusted > 5.0 and adjusted_pct > 5.0,
+    }
+
+
+def query_surface_adjusted(report: dict[str, Any], control: dict[str, Any], repo: str) -> float:
+    row = report["summary"]["by_repo"][repo]
+    control_row = control["summary"]["by_repo"][repo]
+    raw = row["current"]["stages_median_ms"]["query_surface"] - row["baseline"]["stages_median_ms"]["query_surface"]
+    control_delta = control_row["current"]["stages_median_ms"]["query_surface"] - control_row["baseline"]["stages_median_ms"]["query_surface"]
+    return raw - control_delta
+
+
+def compare_metrics(actual: dict[str, Any], expected: dict[str, Any], label: str) -> None:
+    require(set(actual) == set(expected), f"{label}: metric keys differ")
+    for key, value in expected.items():
+        if isinstance(value, bool):
+            require(actual[key] is value, f"{label}:{key}: wrong verdict")
+        else:
+            close(float(actual[key]), float(value), f"{label}:{key}")
+
+
+def run_checked(command: list[str], label: str) -> str:
+    result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+    require(result.returncode == 0, f"{label} failed: {result.stdout}{result.stderr}")
+    return result.stdout.strip()
+
+
 def validate(path: Path) -> None:
     artifact = load(path)
     require(set(artifact) == TOP_KEYS, f"{path}: unexpected top-level schema")
@@ -58,68 +151,88 @@ def validate(path: Path) -> None:
     require("held-out" in artifact["heldout_policy"], "held-out policy is missing")
 
     implementation = artifact["implementation"]
+    require(implementation["commit"] == CURRENT_SOURCE, "implementation source binding changed")
+    require(implementation["binary_sha256"] == CURRENT_SHA, "implementation binary binding changed")
     predicate = implementation["predicate"]
     require(predicate["bounded_prefix_bytes"] == 65536, "wrong byte bound")
     require(predicate["op"] == "all_unique_member_files", "wrong family quantifier")
     require(predicate["suffix"] == ".html", "wrong source suffix")
-    require(
-        predicate["requires_any"]
-        == [["jazzy.css", "jazzy.js"], ['class="dashanchor"', "//apple_ref/"]],
-        "wrong Jazzy provenance classes",
-    )
+    require(predicate["requires_any"] == [["jazzy.css", "jazzy.js"], ['class="dashanchor"', "//apple_ref/"]], "wrong Jazzy signals")
     require(not implementation["repository_or_path_allowlist"], "allowlist must remain false")
     require(implementation["json_reason_code"] == {"field": "surface", "value": "generated"}, "wrong JSON reason")
     require(implementation["human_reason_code"] == "generated-code", "wrong human reason")
 
+    behavior_ref = artifact["behavior_evidence"]
+    behavior_path = ROOT / behavior_ref["path"]
+    require(sha256(behavior_path) == behavior_ref["sha256"], "behavior artifact SHA-256 mismatch")
+    behavior = load(behavior_path)
+    require(behavior["evidence_digest"] == behavior_ref["evidence_digest"] == BEHAVIOR_DIGEST, "behavior semantic binding changed")
+    run_checked(["python3", "bench/labels/generated_provenance_behavior.py", "validate", str(behavior_path)], "behavior validation")
+
     frozen = artifact["frozen_841_evidence"]
-    taxonomy = load(ROOT / frozen["taxonomy_artifact"])
-    require(taxonomy.get("artifact_sha256") == frozen["taxonomy_artifact_sha256"], "#841 taxonomy binding changed")
-    require(frozen["head_positives"] == {"expected": 10, "generated": 10, "missing": 0}, "head positives changed")
-    require(frozen["deep_audit_positives"] == {"expected": 20, "generated": 20, "missing": 0}, "deep positives changed")
-    require(frozen["html_hard_negatives"] == {"expected": 3, "default": 3, "false_demotions": 0}, "hard negatives changed")
+    taxonomy_path = ROOT / frozen["taxonomy_artifact"]
+    require(frozen["taxonomy_artifact"] == "bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json", "wrong #841 taxonomy path")
+    require(sha256(taxonomy_path) == frozen["taxonomy_file_sha256"], "#841 taxonomy file binding changed")
+    taxonomy = load(taxonomy_path)
+    require(taxonomy["artifact_sha256"] == frozen["taxonomy_artifact_sha256"], "#841 taxonomy semantic binding changed")
+    cohorts = behavior["cohorts"]
+    require(frozen["head_positives"] == {"expected": 10, "generated": sum(row["surface"] == "generated" for row in cohorts["head_positives"]), "missing": 0}, "head positives changed")
+    require(frozen["deep_audit_positives"] == {"expected": 20, "generated": sum(row["surface"] == "generated" for row in cohorts["deep_audit_positives"]), "missing": 0}, "deep positives changed")
+    require(frozen["html_hard_negatives"] == {"expected": 3, "default": sum(row["surface"] == "default" for row in cohorts["html_hard_negatives"]), "false_demotions": 0}, "hard negatives changed")
 
-    expanded = artifact["expanded_default_behavior"]
-    require(expanded["repositories"] == 66 and expanded["families"] == 54754, "expanded corpus totals changed")
-    require(expanded["byte_identical_repositories"] == 65, "expanded drift breadth changed")
-    require(expanded["changed_repositories"] == ["alamofire"], "unexpected expanded drift")
-    require(expanded["family_id_order_equal"] and expanded["non_surface_fields_equal"], "expanded identity invariant failed")
-    require(sum(expanded["alamofire"]["surface_transitions"].values()) == 507, "wrong expanded transition count")
-
-    semantic = artifact["established_semantic_behavior"]
-    require(semantic["repositories"] == 66, "wrong semantic repository count")
-    require(semantic["families_before"] == semantic["families_after"] == 9850, "semantic family total changed")
-    require(semantic["byte_identical_repositories"] == 65, "semantic drift breadth changed")
-    require(semantic["changed_repositories"] == ["alamofire"], "unexpected semantic drift")
-    require(semantic["family_id_order_equal"] and semantic["non_surface_fields_equal"], "semantic identity invariant failed")
+    require(artifact["expanded_default_behavior"] == behavior["expanded_summary"], "expanded behavior summary is not derived")
+    require(artifact["established_semantic_behavior"] == behavior["semantic_summary"], "semantic behavior summary is not derived")
 
     performance = artifact["performance"]
-    require(performance["published_baseline"]["binary_sha256"] == OFFICIAL_SHA, "official baseline changed")
-    expected_repo_counts = [66, 66, 13, 13, 1, 1]
-    for evidence, expected_repos in zip(performance["artifacts"], expected_repo_counts, strict=True):
-        evidence_path = ROOT / evidence["path"]
-        require(sha256(evidence_path) == evidence["sha256"], f"{evidence_path}: SHA-256 mismatch")
-        report = load(evidence_path)
-        require(report.get("schema") == "nose.query_regression_harness.v2", f"{evidence_path}: wrong schema")
-        require(len(report.get("repos", [])) == expected_repos, f"{evidence_path}: wrong repository count")
-        for repo in report["summary"]["by_repo"].values():
-            require(len(repo["baseline"]["hashes"]) == 1, f"{evidence_path}: unstable baseline output")
-            require(len(repo["current"]["hashes"]) == 1, f"{evidence_path}: unstable current output")
-    for key in (
-        "all_dev_three_iteration",
-        "thirteen_repo_nine_iteration_recheck",
-        "nginx_twenty_one_iteration_recheck",
-    ):
-        require(not performance[key]["material_regression"], f"{key}: material regression")
+    require(performance["published_baseline"] == {"version": "v0.19.0", "commit": OFFICIAL_SOURCE, "binary_sha256": OFFICIAL_SHA}, "official baseline changed")
+    require(performance["current"] == {"commit": CURRENT_SOURCE, "binary_sha256": CURRENT_SHA}, "current performance role changed")
+    evidence = performance["artifacts"]
+    require(len(evidence) == 6, "expected three primary/control report pairs")
+    reports = []
+    for item in evidence:
+        evidence_path = ROOT / item["path"]
+        require(sha256(evidence_path) == item["sha256"], f"{evidence_path}: SHA-256 mismatch")
+        reports.append(load(evidence_path))
+    pairs = [(reports[0], reports[1], 66, 3, 1, "all-dev"), (reports[2], reports[3], 4, 40, 2, "focused-40"), (reports[4], reports[5], 2, 80, 3, "final-80")]
+    for report, control, repos, iterations, warmups, label in pairs:
+        validate_report_role(report, control, repos=repos, iterations=iterations, warmups=warmups, label=label)
+    compare_metrics(performance["all_dev_three_iteration"], aggregate(reports[0], reports[1]), "all-dev aggregate")
+    compare_metrics(performance["final_eighty_iteration"], aggregate(reports[4], reports[5]), "final-80 aggregate")
+    expected_surface = {repo: query_surface_adjusted(reports[4], reports[5], repo) for repo in reports[4]["repos"]}
+    require(set(performance["final_query_surface_adjusted_delta_ms"]) == set(expected_surface), "query_surface repo set changed")
+    for repo, value in expected_surface.items():
+        close(performance["final_query_surface_adjusted_delta_ms"][repo], value, f"query_surface:{repo}")
+
+    drift = performance["expected_drift_manifest"]
+    drift_path = ROOT / drift["path"]
+    require(sha256(drift_path) == drift["sha256"], "expected-drift manifest SHA-256 mismatch")
+    checker_output = run_checked([
+        "python3", "scripts/check-query-regression.py", evidence[2]["path"],
+        "--same-binary-control", evidence[3]["path"],
+        "--expected-drift-manifest", drift["path"],
+        "--focused-report", evidence[4]["path"],
+        "--focused-same-binary-control", evidence[5]["path"],
+        "--require-same-binary-control", "--max-runtime-delta-pct", "5",
+        "--min-runtime-delta-ms", "5", "--min-focused-iterations", "80",
+    ], "official query regression checker")
+    require(checker_output == performance["official_checker_result"], "official checker result text changed")
 
     print(f"generated provenance closeout OK: {path.relative_to(ROOT)}")
 
 
 def self_test() -> None:
-    require(
-        hashlib.sha256(b"nose").hexdigest()
-        == "d77e22123e64d3d87f1f95d9cff7a0b6af6c32b9a81552cb90e991eb55cf63d4",
-        "SHA self-test failed",
-    )
+    report = load(ROOT / "bench/recall_loss/issue-842-official-v0.19.0-final-recheck-2026-07-13.v1.json")
+    control = load(ROOT / "bench/recall_loss/issue-842-current-control-final-recheck-2026-07-13.v1.json")
+    validate_report_role(report, control, repos=2, iterations=80, warmups=3, label="self-test-good")
+    tampered = copy.deepcopy(report)
+    tampered["provenance"]["current_binary_sha256"] = OFFICIAL_SHA
+    try:
+        validate_report_role(tampered, control, repos=2, iterations=80, warmups=3, label="self-test-tampered")
+    except SystemExit:
+        pass
+    else:
+        fail("role-substitution self-test was not rejected")
+    require(hashlib.sha256(b"nose").hexdigest() == "d77e22123e64d3d87f1f95d9cff7a0b6af6c32b9a81552cb90e991eb55cf63d4", "SHA self-test failed")
     print("generated provenance closeout self-test passed")
 
 

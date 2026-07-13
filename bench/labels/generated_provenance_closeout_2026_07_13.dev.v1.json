@@ -4,181 +4,129 @@
   "split": "dev",
   "heldout_policy": "closed; no held-out checkout or judgment was opened",
   "implementation": {
-    "commit": "20a528bb0171d574484fbfa48ec45c34c3f24073",
-    "binary_sha256": "40f7455ef0269f88c4dc50e439a0bb086b55298c79bee287f9f116a7ff1723ec",
+    "commit": "89b51d41c65c5c18ac78933b947aafd414599ac3",
+    "binary_sha256": "85de6187a384e24c70db6305b34d92109805afe555d2ffcf721e8f9e29df9ca5",
     "predicate": {
       "bounded_prefix_bytes": 65536,
       "normalization": "ascii-lowercase",
       "op": "all_unique_member_files",
       "requires_any": [
-        [
-          "jazzy.css",
-          "jazzy.js"
-        ],
-        [
-          "class=\"dashanchor\"",
-          "//apple_ref/"
-        ]
+        ["jazzy.css", "jazzy.js"],
+        ["class=\"dashanchor\"", "//apple_ref/"]
       ],
       "suffix": ".html"
     },
-    "missing_or_partial_policy": "fail-open to the ranked surface",
+    "missing_or_partial_policy": "fail-open to the ranked surface and remain visible when the generated primary leaves the default view",
     "repository_or_path_allowlist": false,
-    "json_reason_code": {
-      "field": "surface",
-      "value": "generated"
-    },
+    "json_reason_code": {"field": "surface", "value": "generated"},
     "human_reason_code": "generated-code"
+  },
+  "behavior_evidence": {
+    "path": "bench/labels/generated_provenance_behavior_2026_07_13.dev.v1.json",
+    "sha256": "11b4d8089ee4b703f9eb94d5c35b2473bf7599a7b59342afd922fc9b7c367838",
+    "evidence_digest": "62f5de167b4e8e750861f38ae9ef35649565537efa146824151ba4a9fa381340"
   },
   "frozen_841_evidence": {
     "taxonomy_artifact": "bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json",
+    "taxonomy_file_sha256": "68eff466212f0322a45a16648c1fcfd51a301bd5351c93f0795147f2baa33969",
     "taxonomy_artifact_sha256": "206f7e6c2eb9e5bb3750dd6e12f6f920228d719868b2e4922395433a2315c71a",
-    "head_positives": {
-      "expected": 10,
-      "generated": 10,
-      "missing": 0
-    },
-    "deep_audit_positives": {
-      "expected": 20,
-      "generated": 20,
-      "missing": 0
-    },
-    "html_hard_negatives": {
-      "expected": 3,
-      "default": 3,
-      "false_demotions": 0
-    }
+    "head_positives": {"expected": 10, "generated": 10, "missing": 0},
+    "deep_audit_positives": {"expected": 20, "generated": 20, "missing": 0},
+    "html_hard_negatives": {"expected": 3, "default": 3, "false_demotions": 0}
   },
   "expanded_default_behavior": {
-    "command": "nose query bench/repos/<repo> all top=0 --format json",
-    "parent": {
-      "commit": "bf6298ad",
-      "binary_sha256": "5424827feb55c997c2cabd8bdb1ea445747457f8f6f93c4b8889ce2593efe642"
-    },
     "repositories": 66,
-    "families": 54754,
+    "families_before": 54754,
+    "families_after": 54754,
     "byte_identical_repositories": 65,
-    "changed_repositories": [
-      "alamofire"
-    ],
+    "changed_repositories": ["alamofire"],
     "family_id_order_equal": true,
     "non_surface_fields_equal": true,
-    "alamofire": {
-      "families_before": 1115,
-      "families_after": 1115,
-      "surface_counts_before": {
-        "default": 755,
-        "generated": 77,
-        "hidden": 144,
-        "shallow": 139
-      },
-      "surface_counts_after": {
-        "default": 368,
-        "generated": 584,
-        "hidden": 55,
-        "shallow": 108
-      },
-      "surface_transitions": {
-        "default->generated": 387,
-        "hidden->generated": 89,
-        "shallow->generated": 31
-      },
-      "default_top_30_removed": 30,
-      "default_top_30_replacements": 30
+    "surface_transitions": {
+      "default->generated": 387,
+      "hidden->generated": 89,
+      "shallow->generated": 31
     }
   },
   "established_semantic_behavior": {
-    "command": "nose query <repo> all top=0 --mode semantic --format json",
     "repositories": 66,
     "families_before": 9850,
     "families_after": 9850,
     "byte_identical_repositories": 65,
-    "changed_repositories": [
-      "alamofire"
-    ],
+    "changed_repositories": ["alamofire"],
     "family_id_order_equal": true,
     "non_surface_fields_equal": true,
-    "alamofire": {
-      "families_before": 4063,
-      "families_after": 4063,
-      "surface_counts_before": {
-        "default": 3524,
-        "generated": 78,
-        "hidden": 461
-      },
-      "surface_counts_after": {
-        "default": 198,
-        "generated": 3830,
-        "hidden": 35
-      },
-      "surface_transitions": {
-        "default->generated": 3326,
-        "hidden->generated": 426
-      }
+    "surface_transitions": {
+      "default->generated": 3326,
+      "hidden->generated": 426
     }
   },
   "performance": {
-    "gate": "material only when control-adjusted increase exceeds both 5 percent and 5 milliseconds",
+    "gate": "material only when the control-adjusted increase exceeds both 5 percent and 5 milliseconds",
     "published_baseline": {
       "version": "v0.19.0",
       "commit": "54f8a67436e39e24c777a85e14224273116add6b",
       "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
     },
+    "current": {
+      "commit": "89b51d41c65c5c18ac78933b947aafd414599ac3",
+      "binary_sha256": "85de6187a384e24c70db6305b34d92109805afe555d2ffcf721e8f9e29df9ca5"
+    },
     "all_dev_three_iteration": {
-      "baseline_median_ms": 15841.490875871386,
-      "current_median_ms": 15769.214459054638,
-      "raw_delta_ms": -72.27641681674868,
-      "raw_delta_percent": -0.4562475677515611,
-      "control_delta_ms": 69.07378905452788,
-      "control_delta_percent": 0.4308624453485043,
-      "control_adjusted_delta_ms": -141.35020587127656,
-      "control_adjusted_delta_percent": -0.8871100131000654,
-      "query_surface_adjusted_delta_ms": 2.5,
+      "baseline_median_ms": 15762.10199581692,
+      "current_median_ms": 15893.216250115074,
+      "raw_delta_ms": 131.11425429815426,
+      "raw_delta_percent": 0.8318322919934821,
+      "control_delta_ms": -75.34870516974479,
+      "control_delta_percent": -0.47868743983631973,
+      "control_adjusted_delta_ms": 206.46295946789905,
+      "control_adjusted_delta_percent": 1.3098694547382825,
       "material_regression": false
     },
-    "thirteen_repo_nine_iteration_recheck": {
-      "primary_delta_ms": -10.267748089972883,
-      "primary_delta_percent": -0.31979193585714555,
-      "control_delta_ms": 25.57866496499628,
-      "control_delta_percent": 0.8327983826865764,
-      "control_adjusted_delta_ms": -35.84641305496916,
-      "control_adjusted_delta_percent": -1.1525903185437218,
-      "query_surface_adjusted_delta_ms": 0.6,
+    "final_eighty_iteration": {
+      "baseline_median_ms": 1779.073707992211,
+      "current_median_ms": 1765.4793539550155,
+      "raw_delta_ms": -13.594354037195444,
+      "raw_delta_percent": -0.7641253971729743,
+      "control_delta_ms": 3.4939575125463307,
+      "control_delta_percent": 0.19747281200470307,
+      "control_adjusted_delta_ms": -17.088311549741775,
+      "control_adjusted_delta_percent": -0.9605173452328142,
       "material_regression": false
     },
-    "nginx_twenty_one_iteration_recheck": {
-      "primary_delta_ms": -1.4209169894456863,
-      "primary_delta_percent": -0.7698879051555393,
-      "control_delta_ms": -0.6371670169755816,
-      "control_delta_percent": -0.38800140664876825,
-      "control_adjusted_delta_ms": -0.7837499724701047,
-      "control_adjusted_delta_percent": -0.38188649850677103,
-      "material_regression": false
+    "final_query_surface_adjusted_delta_ms": {
+      "alamofire": -0.5999999999999996,
+      "drizzle-orm": 0.0
     },
+    "expected_drift_manifest": {
+      "path": "bench/labels/generated_provenance_842.semantic.expected-drift.v1.json",
+      "sha256": "6901ca968b36b26d6e949c16c57c000a4249b255b25c7bd380f5406fce33c2c6"
+    },
+    "official_checker_result": "query regression check passed after focused rerun: 1 declared output drift(s); runtime within threshold",
     "artifacts": [
       {
         "path": "bench/recall_loss/issue-842-official-v0.19.0-dev-query-regression-2026-07-13.v1.json",
-        "sha256": "022faeb788bab4f42f31340b58da2a8442f76123dbb20e64e8a11f0e1229a185"
+        "sha256": "066e4aa09983e80b6b809abf441b0325f30ddd8cf62cb16f7014e7d46a69d272"
       },
       {
         "path": "bench/recall_loss/issue-842-current-control-dev-query-regression-2026-07-13.v1.json",
-        "sha256": "63b572f059a3dccda03b294ab6e6162394760632c6cd5a270abddc3e5e84a58d"
+        "sha256": "cfd856d7f7e286f8b214c5a677059dfea560d8b2ab26a2cdb3df1677942d1b0f"
       },
       {
-        "path": "bench/recall_loss/issue-842-official-v0.19.0-dev-outlier-recheck-2026-07-13.v1.json",
-        "sha256": "505519a96b0cb84e62a6b0772ee1b7cd46bd824f4478ca96c4b767787e9976cf"
+        "path": "bench/recall_loss/issue-842-official-v0.19.0-focused-recheck-2026-07-13.v1.json",
+        "sha256": "ba9b76fab6e851f124349eb1cf781a89b2cf9055f184118bfb5682592e9c06a8"
       },
       {
-        "path": "bench/recall_loss/issue-842-current-control-dev-outlier-recheck-2026-07-13.v1.json",
-        "sha256": "c4fa85aa311733346efd78d740e3a1a87f647e90437bf43e14f79cce059b957e"
+        "path": "bench/recall_loss/issue-842-current-control-focused-recheck-2026-07-13.v1.json",
+        "sha256": "e7d2fe7c8dddcbe99070a08817894c5030f68e5029bf67ca9211516d48fa5826"
       },
       {
-        "path": "bench/recall_loss/issue-842-official-v0.19.0-nginx-recheck-2026-07-13.v1.json",
-        "sha256": "dfb983aa4ec3de799ead243c9c4337c497d0dc54facfa1f9b4f5a8056656acb1"
+        "path": "bench/recall_loss/issue-842-official-v0.19.0-final-recheck-2026-07-13.v1.json",
+        "sha256": "ee9a279557dd310294b3221563869d716f796edbbf561f9b4f6f800653c7bd9b"
       },
       {
-        "path": "bench/recall_loss/issue-842-current-control-nginx-recheck-2026-07-13.v1.json",
-        "sha256": "c919eb94e0166b242521d343f209b33ba7583387e4dad854820e04b5a92c30a0"
+        "path": "bench/recall_loss/issue-842-current-control-final-recheck-2026-07-13.v1.json",
+        "sha256": "92b5b1b6fa8659b8b057e6dce2947485858f141ba952e4c7b8cae3253ae0adf7"
       }
     ]
   },

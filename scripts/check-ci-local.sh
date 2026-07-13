@@ -130,6 +130,8 @@ run_regression_checker_selftests() {
         --pragmatic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.pragmatic.v1.json \
         --dedupe bench/labels/default_head_taxonomy_votes_2026_07_13.dev.dedupe.v1.json \
         --skeptic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.skeptic.v1.json
+    python3 bench/labels/generated_provenance_behavior.py --self-test
+    python3 bench/labels/generated_provenance_behavior.py validate
     python3 bench/labels/generated_provenance_closeout.py --self-test
     python3 bench/labels/generated_provenance_closeout.py
     python3 bench/labels/recall_ceiling_probe.py --self-test

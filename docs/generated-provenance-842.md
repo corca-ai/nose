@@ -21,9 +21,11 @@ of generated and unproven members fails open to the family's existing ranked sur
 The existing first-eight-lines generated header, compiled CSS, and CSS
 source-plus-compiled pipeline rules are unchanged. The new evidence is stored separately
 from `Loc::looks_generated`: that field also affects helper recommendations and other
-semantic report fields. Overlap folding likewise uses the pre-transition opportunity set.
-This separation makes the change a surface classification only and preserves the family
-universe.
+semantic report fields. Overlap folding likewise uses the pre-transition opportunity set
+for the stable `all` universe, while the default view folds a slice only when its direct
+primary is also still `default`. Thus a partially generated family cannot disappear below
+a fully generated primary. This separation makes the change a surface classification only,
+preserves the family universe, and keeps fail-open families visible.
 
 ## Frozen evidence and hard negatives
 
@@ -67,8 +69,12 @@ Alamofire family IDs, order, and non-surface fields. It moves 3,326 `default` an
 `hidden` families to `generated`; the other 65 repositories are byte-identical. Across
 that 66-repository surface the family total remains 9,850.
 
-The [#842 closeout artifact](../bench/labels/generated_provenance_closeout_2026_07_13.dev.v1.json)
-binds the compact machine-readable evidence.
+The [corpus-wide behavior artifact](../bench/labels/generated_provenance_behavior_2026_07_13.dev.v1.json)
+records every repository's raw-output hash, ordered-ID hash, non-surface projection hash,
+surface transitions, default top-30 membership, and the 33 frozen cohort outcomes. Its
+canonical evidence digest is independently pinned in the validator. The machine-readable [#842
+closeout artifact](../bench/labels/generated_provenance_closeout_2026_07_13.dev.v1.json) derives
+its summaries from that evidence rather than trusting copied booleans or counts.
 
 ## Official-release performance
 
@@ -78,29 +84,33 @@ all 66 dev repositories measured:
 
 | run | baseline | current | delta |
 |---|---:|---:|---:|
-| official v0.19.0 comparison | 15,841.49 ms | 15,769.21 ms | -72.28 ms / -0.46% |
-| current/current control | 16,031.52 ms | 16,100.59 ms | +69.07 ms / +0.43% |
-| approximate control-adjusted | — | — | -141.35 ms / -0.89% |
+| official v0.19.0 comparison | 15,762.10 ms | 15,893.22 ms | +131.11 ms / +0.83% |
+| current/current control | — | — | -75.35 ms / -0.48% |
+| control-adjusted | — | — | +206.46 ms / +1.31% |
 
 The material-regression gate requires a control-adjusted increase greater than both 5%
-and 5 ms, so the all-dev result passes. The directly changed `query_surface` stage is
-control-adjusted +2.5 ms, below the absolute threshold.
+and 5 ms, so the all-dev aggregate passes. Short-run repository and stage noise was
+escalated rather than waived. A checked 40-iteration primary/control report retained four
+candidate repositories; an 80-iteration focused primary/control report resolved the last
+two. That final slice measured 1,779.07 -> 1,765.48 ms raw (-13.59 ms, -0.76%), with a
++3.49 ms control and -17.09 ms / -0.96% adjusted result. `query_surface` was -0.6 ms
+adjusted on Alamofire and unchanged on Drizzle ORM.
 
-The first noisy control produced 13 repository-level apparent outliers. A nine-iteration
-primary/control recheck of all 13 measured -35.85 ms / -1.15% adjusted, with +0.6 ms
-adjusted in `query_surface`. Nginx alone remained above the formal adjusted repository
-threshold even though its raw increase was below 5 ms; a final 21-iteration
-primary/control recheck measured -0.78 ms / -0.38% adjusted. Its output hash was identical
-throughout. No material aggregate, repository, or changed-stage regression remains.
-
-The six raw harness artifacts linked from the compact closeout contain binary identities,
-corpus commits, commands, alternating runs, stage medians, output hashes, family counts,
-and surface counts.
+The official regression checker passes the 40/80 evidence chain with exactly one declared
+product drift (Alamofire) and no material aggregate, repository, or stage regression. The
+six checked raw harness artifacts contain exact binary/source roles, corpus commits,
+commands, alternating runs, stage medians, output hashes, family counts, and surface
+counts. The closeout validator recomputes aggregate and stage deltas from those reports,
+role-checks official/current/current-control identities, and reruns the official checker.
 
 ## Validation
 
 ```sh
 cargo test -p nose-cli jazzy -- --nocapture
+python3 bench/labels/generated_provenance_behavior.py --self-test
+python3 bench/labels/generated_provenance_behavior.py validate
+python3 bench/labels/generated_provenance_closeout.py --self-test
+python3 bench/labels/generated_provenance_closeout.py
 python3 scripts/query-regression-harness.py --self-test
 ./scripts/check-ci-local.sh --fast
 ./scripts/check-docs.sh
