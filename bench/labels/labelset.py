@@ -51,6 +51,156 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def canonical_sha256(value: object) -> str:
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def require_exact_keys(value: object, expected: set[str], label: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError(f"{label}: expected an object")
+    actual = set(value)
+    if actual != expected:
+        raise ValueError(
+            f"{label}: fields differ; missing={sorted(expected - actual)}, "
+            f"unknown={sorted(actual - expected)}"
+        )
+    return value
+
+
+def validate_heldout_seal_shape(seal: object, label: str) -> None:
+    """Fail closed on every field that a source-free held-out seal may contain."""
+    payload = require_exact_keys(
+        seal,
+        {
+            "schema",
+            "split",
+            "judgment_status",
+            "query_schema_version",
+            "provenance",
+            "selection_contract",
+            "selection",
+            "pool",
+            "repositories",
+            "candidate_commitments",
+            "commitment_sha256",
+        },
+        label,
+    )
+    if (
+        payload["schema"] != HELDOUT_SEAL_SCHEMA
+        or payload["split"] != "heldout"
+        or payload["judgment_status"] != "sealed-unjudged"
+    ):
+        raise ValueError(f"{label}: held-out seal contract mismatch")
+    if isinstance(payload["query_schema_version"], bool) or not isinstance(
+        payload["query_schema_version"], int
+    ):
+        raise ValueError(f"{label}.query_schema_version: expected an integer")
+
+    provenance = require_exact_keys(
+        payload["provenance"],
+        {
+            "command",
+            "git_sha",
+            "working_tree_status_before_collection",
+            "nose_binary",
+            "nose_binary_sha256",
+            "nose_version",
+            "corpus_manifest",
+            "corpus_manifest_sha256",
+            "corpus_commit_digest",
+            "base_labelset",
+            "base_labelset_sha256",
+            "base_labelset_version",
+            "rubric",
+            "rubric_sha256",
+            "collection_sources",
+        },
+        f"{label}.provenance",
+    )
+    collection_sources = provenance["collection_sources"]
+    if not isinstance(collection_sources, list) or not collection_sources:
+        raise ValueError(f"{label}.provenance.collection_sources: expected a non-empty array")
+    for index, record in enumerate(collection_sources):
+        require_exact_keys(
+            record,
+            {"path", "sha256"},
+            f"{label}.provenance.collection_sources[{index}]",
+        )
+
+    require_exact_keys(
+        payload["selection_contract"],
+        {"seed", "head_rule", "deep_rule", "heldout_policy"},
+        f"{label}.selection_contract",
+    )
+    require_exact_keys(
+        payload["selection"],
+        {"selected_candidate_keys", "selected_candidate_keys_sha256"},
+        f"{label}.selection",
+    )
+    require_exact_keys(
+        payload["pool"],
+        {
+            "repositories",
+            "default_head_positions",
+            "base_matched_default_head",
+            "unmatched_default_head",
+            "rank_11_30_candidates",
+            "rank_11_30_unmatched",
+            "selected_unmatched_default_head",
+            "selected_rank_11_30",
+            "selected_count",
+        },
+        f"{label}.pool",
+    )
+    repositories = payload["repositories"]
+    if not isinstance(repositories, dict) or not repositories:
+        raise ValueError(f"{label}.repositories: expected a non-empty object")
+    for repo, record in repositories.items():
+        require_exact_keys(
+            record,
+            {
+                "commit",
+                "language",
+                "split",
+                "query_command",
+                "query_stdout_sha256",
+                "top_10_reported",
+                "top_30_reported",
+                "base_matched_top_10",
+                "unmatched_top_10",
+            },
+            f"{label}.repositories.{repo}",
+        )
+    commitments = payload["candidate_commitments"]
+    if not isinstance(commitments, list) or not commitments:
+        raise ValueError(f"{label}.candidate_commitments: expected a non-empty array")
+    for index, commitment in enumerate(commitments):
+        require_exact_keys(
+            commitment,
+            {
+                "candidate_key",
+                "candidate_sha256",
+                "repo",
+                "split",
+                "language",
+                "lane",
+                "rank",
+                "base_matched",
+                "selected",
+                "selection_reason",
+                "selection_order",
+            },
+            f"{label}.candidate_commitments[{index}]",
+        )
+    commitment = payload["commitment_sha256"]
+    content = dict(payload)
+    del content["commitment_sha256"]
+    if commitment != canonical_sha256(content):
+        raise ValueError(f"{label}: commitment mismatch")
+
+
 def load_object(path: Path, label: str) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -239,8 +389,8 @@ def _load_labelset(path: Path, stack: tuple[Path, ...]) -> LoadedLabelset:
         inputs.append({"path": component_path.as_posix(), "sha256": sha256_file(component_path)})
     if version == 6 and seen_splits != {"dev", "heldout"}:
         raise ValueError("labelset.components: both dev and heldout components are required")
-    if version == 7 and "dev" not in seen_splits:
-        raise ValueError("labelset.components: v7 requires a dev precision overlay")
+    if version == 7 and seen_splits != {"dev"}:
+        raise ValueError("labelset.components: v7 requires exactly one dev precision overlay")
 
     seals = payload.get("seals", [])
     if version == 6 and seals:
@@ -253,12 +403,7 @@ def _load_labelset(path: Path, stack: tuple[Path, ...]) -> LoadedLabelset:
             raise ValueError("labelset.seals[0].split: expected heldout")
         seal_path = resolve_checked_file(parent, seal_record, "labelset.seals[0]")
         seal = load_object(seal_path, "labelset.seals[0]")
-        if (
-            seal.get("schema") != HELDOUT_SEAL_SCHEMA
-            or seal.get("split") != "heldout"
-            or seal.get("judgment_status") != "sealed-unjudged"
-        ):
-            raise ValueError("labelset.seals[0]: held-out seal contract mismatch")
+        validate_heldout_seal_shape(seal, "labelset.seals[0]")
         inputs.append({"path": seal_path.as_posix(), "sha256": sha256_file(seal_path)})
 
     identities: set[tuple[str, str]] = set()
@@ -365,14 +510,81 @@ def run_self_test() -> None:
         v7_component_path = root / "dev-v7.json"
         v7_component_path.write_text(json.dumps(component("dev", "family-v7-dev")))
         seal_path = root / "heldout-seal.json"
-        seal_path.write_text(
-            json.dumps(
-                {
-                    "schema": HELDOUT_SEAL_SCHEMA,
+        synthetic_seal = {
+            "schema": HELDOUT_SEAL_SCHEMA,
+            "split": "heldout",
+            "judgment_status": "sealed-unjudged",
+            "query_schema_version": 7,
+            "provenance": {
+                "command": "synthetic",
+                "git_sha": "0" * 40,
+                "working_tree_status_before_collection": "",
+                "nose_binary": "nose",
+                "nose_binary_sha256": "0" * 64,
+                "nose_version": "nose test",
+                "corpus_manifest": "corpus.json",
+                "corpus_manifest_sha256": "0" * 64,
+                "corpus_commit_digest": "0" * 64,
+                "base_labelset": manifest.name,
+                "base_labelset_sha256": sha256_file(manifest),
+                "base_labelset_version": "v6",
+                "rubric": rubric.name,
+                "rubric_sha256": sha256_file(rubric),
+                "collection_sources": [{"path": "collector.py", "sha256": "0" * 64}],
+            },
+            "selection_contract": {
+                "seed": "synthetic",
+                "head_rule": "synthetic",
+                "deep_rule": "synthetic",
+                "heldout_policy": "selection commitments only",
+            },
+            "selection": {
+                "selected_candidate_keys": ["heldout:candidate"],
+                "selected_candidate_keys_sha256": "0" * 64,
+            },
+            "pool": {
+                "repositories": 1,
+                "default_head_positions": 1,
+                "base_matched_default_head": 0,
+                "unmatched_default_head": 1,
+                "rank_11_30_candidates": 0,
+                "rank_11_30_unmatched": 0,
+                "selected_unmatched_default_head": 1,
+                "selected_rank_11_30": 0,
+                "selected_count": 1,
+            },
+            "repositories": {
+                "heldout": {
+                    "commit": "0" * 40,
+                    "language": "Test",
                     "split": "heldout",
-                    "judgment_status": "sealed-unjudged",
+                    "query_command": "nose query heldout",
+                    "query_stdout_sha256": "0" * 64,
+                    "top_10_reported": 1,
+                    "top_30_reported": 1,
+                    "base_matched_top_10": 0,
+                    "unmatched_top_10": 1,
                 }
-            )
+            },
+            "candidate_commitments": [
+                {
+                    "candidate_key": "heldout:candidate",
+                    "candidate_sha256": "0" * 64,
+                    "repo": "heldout",
+                    "split": "heldout",
+                    "language": "Test",
+                    "lane": "synthetic",
+                    "rank": 1,
+                    "base_matched": False,
+                    "selected": True,
+                    "selection_reason": "unmatched-default-head",
+                    "selection_order": 1,
+                }
+            ],
+        }
+        synthetic_seal["commitment_sha256"] = canonical_sha256(synthetic_seal)
+        seal_path.write_text(
+            json.dumps(synthetic_seal)
         )
         v7_manifest = root / "v7.json"
         v7_manifest.write_text(
@@ -404,6 +616,60 @@ def run_self_test() -> None:
         assert len(loaded_v7.families) == 4
         assert len(loaded_v7.inputs) == 6
         assert not metric_eligible(loaded_v7.families[-1], RECALL_METRIC)
+
+        leaked_seal = dict(synthetic_seal)
+        leaked_seal["source_excerpt"] = "held-out source"
+        leaked_seal["commitment_sha256"] = canonical_sha256(
+            {key: value for key, value in leaked_seal.items() if key != "commitment_sha256"}
+        )
+        try:
+            validate_heldout_seal_shape(leaked_seal, "synthetic leaked seal")
+        except ValueError as error:
+            assert "unknown=['source_excerpt']" in str(error)
+        else:
+            raise AssertionError("unknown held-out seal fields must fail closed")
+
+        heldout_v7_component = root / "heldout-v7.json"
+        heldout_v7_component.write_text(
+            json.dumps(component("heldout", "family-v7-heldout"))
+        )
+        leaked_manifest = root / "v7-with-heldout-judgments.json"
+        leaked_manifest.write_text(
+            json.dumps(
+                {
+                    "schema": COMPOSITE_SCHEMA,
+                    "version": 7,
+                    "base": {"path": manifest.name, "sha256": sha256_file(manifest)},
+                    "components": [
+                        {
+                            "kind": "precision-overlay",
+                            "split": "dev",
+                            "path": v7_component_path.name,
+                            "sha256": sha256_file(v7_component_path),
+                        },
+                        {
+                            "kind": "precision-overlay",
+                            "split": "heldout",
+                            "path": heldout_v7_component.name,
+                            "sha256": sha256_file(heldout_v7_component),
+                        },
+                    ],
+                    "seals": [
+                        {
+                            "split": "heldout",
+                            "path": seal_path.name,
+                            "sha256": sha256_file(seal_path),
+                        }
+                    ],
+                }
+            )
+        )
+        try:
+            load_labelset(leaked_manifest)
+        except ValueError as error:
+            assert "exactly one dev precision overlay" in str(error)
+        else:
+            raise AssertionError("v7 held-out judgment components must fail closed")
 
         component_records[0]["sha256"] = "0" * 64
         manifest.write_text(

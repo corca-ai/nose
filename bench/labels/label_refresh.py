@@ -24,6 +24,7 @@ from labelset import (
     load_labelset,
     metric_eligible,
     sha256_file,
+    validate_heldout_seal_shape,
     validate_vote,
 )
 from query_schema import QUERY_SCHEMA_VERSION, member_locations, query_families
@@ -55,6 +56,18 @@ FROZEN_V6_FAMILIES_SHA256 = (
 RUNWAY_EVALUATION_SHA256 = (
     "5835044b0a4153bf6096dc919b460e229222b231e363000cc93b7d78a3a0ebc9"
 )
+
+
+def runway_selection_contract() -> dict[str, str]:
+    return {
+        "seed": RUNWAY_SELECTION_SEED,
+        "head_rule": "select every v6-unmatched default-surface rank 1-10 family",
+        "deep_rule": (
+            "select one v6-unmatched rank 11-30 family per repository with at least "
+            "one eligible family, by seeded hash"
+        ),
+        "heldout_policy": "selection commitments only; no source paths or judgments",
+    }
 
 
 def canonical_sha256(value: object) -> str:
@@ -692,14 +705,7 @@ def collect_runway(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, 
             {"path": rel(path), "sha256": sha256_file(path)} for path in sources
         ],
     }
-    selection_contract = {
-        "seed": RUNWAY_SELECTION_SEED,
-        "head_rule": "select every v6-unmatched default-surface rank 1-10 family",
-        "deep_rule": (
-            "select one v6-unmatched rank 11-30 family per repository by seeded hash"
-        ),
-        "heldout_policy": "selection commitments only; no source paths or judgments",
-    }
+    selection_contract = runway_selection_contract()
     dev_artifact = {
         "schema": RUNWAY_SCHEMA,
         "split": "dev",
@@ -856,6 +862,8 @@ def load_panel_vote(
     artifact: dict[str, Any],
 ) -> dict[str, dict[str, Any]]:
     payload = load_schema_artifact(path, PANEL_VOTE_SCHEMA, f"{persona} panel vote")
+    if set(payload) != {"schema", "persona", "source_artifact", "votes"}:
+        raise SystemExit(f"{path}: panel vote fields differ from the frozen schema")
     if payload.get("persona") != persona:
         raise SystemExit(f"{path}: expected {persona} persona")
     expected_source = {
@@ -879,6 +887,8 @@ def load_panel_vote(
     for index, vote in enumerate(votes):
         if not isinstance(vote, dict):
             raise SystemExit(f"{path}: votes[{index}] must be an object")
+        if set(vote) != {"candidate_key", "worthy", "reason", "rationale"}:
+            raise SystemExit(f"{path}: votes[{index}] fields differ from the frozen schema")
         key = vote.get("candidate_key")
         if not isinstance(key, str) or not key or key in by_key:
             raise SystemExit(f"{path}: votes[{index}] has an invalid/duplicate key")
@@ -993,6 +1003,14 @@ def freeze_panel_vote(
 def build_runway_decisions(
     merge: dict[str, Any], arbitration_path: Path, arbitration: dict[str, Any]
 ) -> dict[str, Any]:
+    if set(arbitration) != {
+        "schema",
+        "split",
+        "source_artifact",
+        "vote_inputs",
+        "arbitrations",
+    }:
+        raise SystemExit("runway arbitration fields differ from the frozen schema")
     if arbitration.get("split") != "dev":
         raise SystemExit("runway arbitration split must be dev")
     if arbitration.get("source_artifact") != merge.get("source_artifact"):
@@ -1007,6 +1025,14 @@ def build_runway_decisions(
     for index, record in enumerate(records):
         if not isinstance(record, dict):
             raise SystemExit(f"arbitrations[{index}] must be an object")
+        if set(record) != {
+            "candidate_key",
+            "worthy",
+            "reason",
+            "rationale",
+            "confidence",
+        }:
+            raise SystemExit(f"arbitrations[{index}] fields differ from the frozen schema")
         key = record.get("candidate_key")
         if not isinstance(key, str) or not key or key in by_key:
             raise SystemExit(f"arbitrations[{index}] has an invalid/duplicate key")
@@ -1085,6 +1111,22 @@ def validate_runway_selection(
             raise SystemExit(f"{label}: {key}: selection reason mismatch")
         if candidate.get("selection_order") != positions.get(key):
             raise SystemExit(f"{label}: {key}: selection order mismatch")
+    eligible_deep_repos = {
+        candidate["repo"]
+        for candidate in candidates
+        if 11 <= candidate["rank"] <= RUNWAY_TOP and not candidate["base_matched"]
+    }
+    selected_deep_counts: dict[str, int] = defaultdict(int)
+    for candidate in candidates:
+        if candidate["candidate_key"] in positions and candidate["rank"] > 10:
+            selected_deep_counts[candidate["repo"]] += 1
+    if set(selected_deep_counts) != eligible_deep_repos or any(
+        count != 1 for count in selected_deep_counts.values()
+    ):
+        raise SystemExit(
+            f"{label}: deep selection must contain exactly one candidate for every "
+            "repository with an eligible unmatched rank 11-30 family"
+        )
 
 
 def validate_runway_dev(
@@ -1092,6 +1134,8 @@ def validate_runway_dev(
 ) -> None:
     if artifact.get("split") != "dev" or artifact.get("query_schema_version") != QUERY_SCHEMA_VERSION:
         raise SystemExit("dev runway split/query schema mismatch")
+    if artifact.get("selection_contract") != runway_selection_contract():
+        raise SystemExit("dev runway selection contract changed")
     candidates = artifact.get("candidates")
     if not isinstance(candidates, list) or not candidates:
         raise SystemExit("dev runway needs a non-empty candidates array")
@@ -1194,50 +1238,19 @@ def validate_runway_dev(
                 raise SystemExit(f"dev runway source provenance mismatch: {path_text}")
 
 
-def contains_heldout_judgment_or_source(value: object) -> str | None:
-    forbidden = {
-        "family",
-        "families",
-        "members",
-        "source_files",
-        "worthy",
-        "reason",
-        "votes",
-        "arbiter",
-        "note",
-        "confidence",
-        "labeler",
-    }
-    if isinstance(value, dict):
-        for key, nested in value.items():
-            if key in forbidden:
-                return key
-            found = contains_heldout_judgment_or_source(nested)
-            if found is not None:
-                return found
-    elif isinstance(value, list):
-        for nested in value:
-            found = contains_heldout_judgment_or_source(nested)
-            if found is not None:
-                return found
-    return None
-
-
 def validate_heldout_seal(seal: dict[str, Any]) -> None:
+    try:
+        validate_heldout_seal_shape(seal, "held-out seal")
+    except ValueError as error:
+        raise SystemExit(str(error)) from error
     if (
         seal.get("split") != "heldout"
         or seal.get("judgment_status") != "sealed-unjudged"
         or seal.get("query_schema_version") != QUERY_SCHEMA_VERSION
     ):
         raise SystemExit("held-out seal split/status/query schema mismatch")
-    forbidden = contains_heldout_judgment_or_source(seal)
-    if forbidden is not None:
-        raise SystemExit(f"held-out seal leaks forbidden field: {forbidden}")
-    commitment = seal.get("commitment_sha256")
-    content = dict(seal)
-    content.pop("commitment_sha256", None)
-    if commitment != canonical_sha256(content):
-        raise SystemExit("held-out seal commitment mismatch")
+    if seal.get("selection_contract") != runway_selection_contract():
+        raise SystemExit("held-out seal selection contract changed")
     candidates = seal.get("candidate_commitments")
     if not isinstance(candidates, list) or not candidates:
         raise SystemExit("held-out seal needs candidate commitments")
@@ -1649,6 +1662,131 @@ def relative_file_record(path: Path, parent: Path) -> dict[str, str]:
     }
 
 
+def resolve_evidence_file(parent: Path, record: object, label: str) -> Path:
+    if not isinstance(record, dict) or set(record) != {"path", "sha256"}:
+        raise SystemExit(f"{label}: expected exactly a path/hash record")
+    raw_path = record["path"]
+    expected_hash = record["sha256"]
+    if not isinstance(raw_path, str) or not raw_path:
+        raise SystemExit(f"{label}.path: expected a non-empty string")
+    if not isinstance(expected_hash, str) or len(expected_hash) != 64:
+        raise SystemExit(f"{label}.sha256: expected a SHA-256 digest")
+    path_value = Path(raw_path)
+    if path_value.is_absolute():
+        path = path_value.resolve()
+    elif path_value.parts and path_value.parts[0] == "bench":
+        path = (ROOT / path_value).resolve()
+    else:
+        path = (parent / path_value).resolve()
+    if not path.is_file():
+        raise SystemExit(f"{label}: missing evidence file {path}")
+    actual_hash = sha256_file(path)
+    if actual_hash != expected_hash:
+        raise SystemExit(f"{label}: hash mismatch for {path}: {actual_hash} != {expected_hash}")
+    return path
+
+
+def replay_runway_judgment_chain(
+    dev_path: Path,
+    dev: dict[str, Any],
+    component_path: Path,
+    component: dict[str, Any],
+) -> None:
+    """Replay raw votes through arbitration, decisions, and the v7 component."""
+    decisions_path = resolve_evidence_file(
+        component_path.parent, component.get("decision_input"), "v7 decision input"
+    )
+    decisions = load_schema_artifact(
+        decisions_path, DECISIONS_SCHEMA, "v7 runway decisions"
+    )
+    if set(decisions) != {
+        "schema",
+        "split",
+        "source_artifact",
+        "vote_inputs",
+        "arbitration_input",
+        "decisions",
+    }:
+        raise SystemExit("v7 runway decision fields differ from the frozen schema")
+    vote_records = decisions.get("vote_inputs")
+    if not isinstance(vote_records, dict) or set(vote_records) != set(VOTE_NAMES):
+        raise SystemExit(f"v7 runway decisions require exactly these votes: {VOTE_NAMES}")
+    vote_paths = {
+        persona: resolve_evidence_file(
+            decisions_path.parent,
+            vote_records[persona],
+            f"v7 {persona} vote input",
+        )
+        for persona in VOTE_NAMES
+    }
+    arbitration_path = resolve_evidence_file(
+        decisions_path.parent,
+        decisions.get("arbitration_input"),
+        "v7 arbitration input",
+    )
+    arbitration = load_schema_artifact(
+        arbitration_path, PANEL_ARBITRATION_SCHEMA, "v7 runway arbitration"
+    )
+    merged = merge_runway_votes(dev_path, dev, vote_paths)
+    expected_decisions = build_runway_decisions(
+        merged, arbitration_path, arbitration
+    )
+    if decisions != expected_decisions:
+        raise SystemExit(
+            "v7 runway decisions differ from replayed raw votes and arbitration"
+        )
+    expected_component = build_component(
+        dev_path, dev, decisions_path, "dev", component_path
+    )
+    if component != expected_component:
+        raise SystemExit("v7 dev component differs from replayed runway decisions")
+
+
+def validate_runway_labelset_bindings(
+    labelset_path: Path,
+    dev_path: Path,
+    dev: dict[str, Any],
+    seal_path: Path,
+) -> None:
+    manifest = load_schema_artifact(
+        labelset_path,
+        "nose.refactoring_family_labelset.v1",
+        "v7 runway labelset",
+    )
+    components = manifest.get("components")
+    seals = manifest.get("seals")
+    if not isinstance(components, list) or len(components) != 1:
+        raise SystemExit("v7 runway labelset must bind exactly one dev component")
+    if not isinstance(seals, list) or len(seals) != 1:
+        raise SystemExit("v7 runway labelset must bind exactly one held-out seal")
+    if not isinstance(components[0], dict) or not isinstance(seals[0], dict):
+        raise SystemExit("v7 runway labelset component/seal records must be objects")
+    component_path = resolve_evidence_file(
+        labelset_path.parent,
+        {key: components[0].get(key) for key in ("path", "sha256")},
+        "v7 dev component",
+    )
+    manifest_seal_path = resolve_evidence_file(
+        labelset_path.parent,
+        {key: seals[0].get(key) for key in ("path", "sha256")},
+        "v7 held-out seal",
+    )
+    if dev_path.resolve() != resolve_evidence_file(
+        component_path.parent,
+        load_schema_artifact(
+            component_path, COMPONENT_SCHEMA, "v7 dev component"
+        ).get("source_artifact"),
+        "v7 dev source artifact",
+    ):
+        raise SystemExit("--dev-candidates differs from the v7 manifest binding")
+    if seal_path.resolve() != manifest_seal_path:
+        raise SystemExit("--heldout-seal differs from the v7 manifest binding")
+    component = load_schema_artifact(
+        component_path, COMPONENT_SCHEMA, "v7 dev component"
+    )
+    replay_runway_judgment_chain(dev_path, dev, component_path, component)
+
+
 def build_component(
     artifact_path: Path,
     artifact: dict[str, Any],
@@ -1861,7 +1999,11 @@ def run_self_test() -> None:
             "lane": "synthetic",
             "rank": rank,
             "base_matched": matched,
-            "family": {"members": []},
+            "family": {
+                "id": f"family-{rank}",
+                "scope": "prod",
+                "members": [],
+            },
             "raw_family_sha256": f"{rank:064x}",
         }
         candidate["candidate_sha256"] = canonical_sha256(
@@ -1917,7 +2059,10 @@ def run_self_test() -> None:
             "commit": "0" * 40,
             "language": "Test",
             "split": "heldout",
+            "query_command": "nose query synthetic",
+            "query_stdout_sha256": "0" * 64,
             "top_10_reported": 2,
+            "top_30_reported": 4,
             "base_matched_top_10": 1,
             "unmatched_top_10": 1,
         }
@@ -1927,8 +2072,26 @@ def run_self_test() -> None:
         "split": "heldout",
         "judgment_status": "sealed-unjudged",
         "query_schema_version": QUERY_SCHEMA_VERSION,
-        "provenance": {},
-        "selection_contract": {},
+        "provenance": {
+            "command": "synthetic",
+            "git_sha": "0" * 40,
+            "working_tree_status_before_collection": "",
+            "nose_binary": "nose",
+            "nose_binary_sha256": "0" * 64,
+            "nose_version": "nose test",
+            "corpus_manifest": "corpus.json",
+            "corpus_manifest_sha256": "0" * 64,
+            "corpus_commit_digest": "0" * 64,
+            "base_labelset": "base.json",
+            "base_labelset_sha256": "0" * 64,
+            "base_labelset_version": "v6",
+            "rubric": "RUBRIC.md",
+            "rubric_sha256": "0" * 64,
+            "collection_sources": [
+                {"path": "collector.py", "sha256": "0" * 64}
+            ],
+        },
+        "selection_contract": runway_selection_contract(),
         "selection": {
             "selected_candidate_keys": heldout_keys,
             "selected_candidate_keys_sha256": canonical_sha256(heldout_keys),
@@ -1939,19 +2102,31 @@ def run_self_test() -> None:
     }
     seal["commitment_sha256"] = canonical_sha256(seal)
     validate_heldout_seal(seal)
-    seal["candidate_commitments"][0]["worthy"] = True
+    seal["candidate_commitments"][0]["private_payload"] = {
+        "source_excerpt": "held-out source",
+        "verdict": "worthy",
+    }
     seal["commitment_sha256"] = canonical_sha256(seal)
     try:
         validate_heldout_seal(seal)
     except SystemExit as error:
-        assert "leaks forbidden field" in str(error)
+        assert "fields differ" in str(error)
     else:
-        raise AssertionError("held-out judgments must fail closed")
+        raise AssertionError("unknown held-out seal fields must fail closed")
 
     with tempfile.TemporaryDirectory(prefix="nose-runway-panel-self-test-") as directory:
         root = Path(directory)
         artifact_path = root / "dev.json"
-        artifact_path.write_text("{}\n", encoding="utf-8")
+        rubric_path = root / "RUBRIC.md"
+        rubric_path.write_text("synthetic rubric\n", encoding="utf-8")
+        synthetic_dev = {
+            "schema": RUNWAY_SCHEMA,
+            "candidates": runway_candidates,
+            "provenance": {"rubric": str(rubric_path)},
+        }
+        artifact_path.write_text(
+            json.dumps(synthetic_dev, sort_keys=True) + "\n", encoding="utf-8"
+        )
         panel_paths = {}
         selected = sorted(
             (row for row in runway_candidates if row["selected"]),
@@ -1983,7 +2158,7 @@ def run_self_test() -> None:
             )
             panel_paths[persona] = path
         merged = merge_runway_votes(
-            artifact_path, {"candidates": runway_candidates}, panel_paths
+            artifact_path, synthetic_dev, panel_paths
         )
         assert merged["summary"] == {
             "candidates": 2,
@@ -2002,6 +2177,34 @@ def run_self_test() -> None:
         decisions = build_runway_decisions(merged, arbitration_path, arbitration)
         assert len(decisions["decisions"]) == 2
         assert all(row["arbiter"] is None for row in decisions["decisions"])
+        decisions_path = root / "decisions.json"
+        decisions_path.write_text(
+            json.dumps(decisions, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        component_path = root / "component.json"
+        component = build_component(
+            artifact_path, synthetic_dev, decisions_path, "dev", component_path
+        )
+        component_path.write_text(
+            json.dumps(component, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        replay_runway_judgment_chain(
+            artifact_path, synthetic_dev, component_path, component
+        )
+        original_vote = panel_paths[VOTE_NAMES[0]].read_bytes()
+        panel_paths[VOTE_NAMES[0]].write_text(
+            original_vote.decode().replace("extract-helper", "parameterize", 1),
+            encoding="utf-8",
+        )
+        try:
+            replay_runway_judgment_chain(
+                artifact_path, synthetic_dev, component_path, component
+            )
+        except SystemExit as error:
+            assert "hash mismatch" in str(error)
+        else:
+            raise AssertionError("raw vote drift must fail the replayed evidence chain")
+        panel_paths[VOTE_NAMES[0]].write_bytes(original_vote)
         merged["rows"][0]["unanimous"] = False
         arbitration["arbitrations"] = [
             {
@@ -2142,6 +2345,9 @@ def main() -> None:
         validate_runway_pair(dev, seal, live_root=ROOT if args.live else None)
         if args.labelset:
             labels = load_labelset(args.labelset)
+            validate_runway_labelset_bindings(
+                args.labelset, args.dev_candidates, dev, args.heldout_seal
+            )
             report = runway_coverage(labels, dev, seal)
             if args.evaluation:
                 validate_runway_evaluation(args.evaluation, labels, dev)
