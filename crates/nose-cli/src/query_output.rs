@@ -12,7 +12,7 @@ use crate::query_markdown;
 use crate::query_opportunities::OpportunityGroups;
 use crate::query_options::{QueryScope, ReportFormat};
 use crate::query_sarif::refactor_sarif;
-use crate::query_terms::{family_at, Query};
+use crate::query_terms::{family_at, QOp, Query};
 use crate::surfaces::{is_default_report_family, SurfaceOverrides};
 use anyhow::Result;
 
@@ -58,20 +58,58 @@ fn query_selection<'a>(
             .collect());
     }
     let widen = q.all || q.filters.iter().any(|flt| flt.field == "surface");
+    let default_folds = query_uses_default_folds(q, widen);
     Ok(families
         .iter()
         .filter(|f| {
             (widen || is_default_surface(f, ov))
-                && !(if widen {
-                    opp.is_slice(f)
-                } else {
+                && !(if default_folds {
                     opp.is_default_slice(f)
+                } else {
+                    opp.is_slice(f)
                 })
                 && q.filters
                     .iter()
                     .all(|flt| family_matches(f, ov, flt, since))
         })
         .collect())
+}
+
+fn query_uses_default_folds(q: &Query, widen: bool) -> bool {
+    !widen
+        || q.filters.iter().any(|filter| {
+            filter.field == "surface"
+                && matches!(filter.op, QOp::Eq)
+                && !filter.negate
+                && filter.value == "default"
+        })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::query_terms::QFilter;
+
+    #[test]
+    fn explicit_default_surface_uses_default_only_folds() {
+        let query = Query {
+            filters: vec![QFilter {
+                field: "surface".into(),
+                op: QOp::Eq,
+                value: "default".into(),
+                negate: false,
+            }],
+            ..Query::default()
+        };
+        let widen = query.filters.iter().any(|filter| filter.field == "surface");
+        let default_folds = query_uses_default_folds(&query, widen);
+
+        assert!(widen, "surface filters still open the non-default universe");
+        assert!(
+            default_folds,
+            "an explicit default filter must not fold under a generated primary"
+        );
+    }
 }
 
 pub(super) fn render_query_output(ctx: &QueryOutput<'_>) -> Result<bool> {
