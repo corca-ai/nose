@@ -14,7 +14,7 @@ import generated_provenance_closeout as generated
 
 ROOT = generated.ROOT
 DEFAULT = ROOT / "bench/labels/declaration_type_contract_closeout_2026_07_14.dev.v1.json"
-EXPECTED_CLOSEOUT_SHA = "c8007b81e3fa6cea6d37263c1bdb41b1153928e826ba401cbe15a408ee249499"
+EXPECTED_CLOSEOUT_SHA = "1f393994f95e15a676f60eeee7f7594be65c31c646e573362aba0d3721ff3732"
 OFFICIAL_SHA = generated.OFFICIAL_SHA
 OFFICIAL_TAG_OBJECT = generated.OFFICIAL_TAG_OBJECT
 OFFICIAL_COMMIT = generated.OFFICIAL_COMMIT
@@ -149,9 +149,9 @@ def validate_performance(performance: dict[str, Any], corpus: dict[str, Any]) ->
         reports.append(generated.load(path))
     specs = [
         (66, 3, 1, "all-dev"),
-        (20, 9, 2, "focused-r9"),
-        (3, 21, 2, "focused-r21"),
-        (1, 40, 2, "focused-r40"),
+        (25, 9, 2, "focused-r9"),
+        (6, 21, 2, "focused-r21"),
+        (2, 40, 2, "focused-r40"),
     ]
     for index, (repositories, iterations, warmups, label) in enumerate(specs):
         validate_report_role(
@@ -178,7 +178,7 @@ def validate_performance(performance: dict[str, Any], corpus: dict[str, Any]) ->
         performance["escalation"]
         == {
             "iterations": [3, 9, 21, 40],
-            "repository_counts": [66, 20, 3, 1],
+            "repository_counts": [66, 25, 6, 2],
             "result": "pass",
         },
         "wrong escalation summary",

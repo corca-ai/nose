@@ -106,14 +106,15 @@ The baseline is the published Darwin arm64 v0.19.0 binary, SHA-256
 `54f8a674…` from peeled commit `0985e696…` and pairs every official/current report with a
 current/current control.
 
-The 66-repository r3 comparison is `15,690.47 -> 15,609.14 ms` (-81.32 ms, -0.52%).
-The control is -103.74 ms, so the adjusted result is +22.42 ms / +0.14%: below the
+The 66-repository r3 comparison is `15,143.67 -> 15,207.32 ms` (+63.66 ms, +0.42%).
+The control is +10.74 ms, so the adjusted result is +52.92 ms / +0.35%: below the
 material threshold of both 5% and 5 ms. Short-run repository/stage signals were not
-waived. The checker required exactly 20 repositories at r9, three at r21, and Git at r40.
-The final Git slice is `322.21 -> 326.05 ms` raw; its +9.05 ms control makes the adjusted
-result -5.20 ms / -1.61%. `normalize+extract` is -3.75 ms adjusted and `query_surface` is
-unchanged. The complete 3 -> 9 -> 21 -> 40 chain therefore passes with no material
-aggregate, repository, or stage regression.
+waived. The checker required exactly 25 repositories at r9, six at r21, and Delve plus
+Git at r40. The final two-repository slice is `529.75 -> 530.94 ms` raw; its +4.85 ms
+control makes the adjusted result -3.65 ms / -0.69%. At r40, Delve and Git
+`normalize+extract` are respectively -0.35 and -7.20 ms adjusted, while `query_surface`
+is +0.05 and -0.10 ms. The complete 3 -> 9 -> 21 -> 40 chain therefore passes with no
+material aggregate, repository, or stage regression.
 
 ## Validation
 

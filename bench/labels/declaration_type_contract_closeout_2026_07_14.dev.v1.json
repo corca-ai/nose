@@ -1,8 +1,8 @@
 {
   "behavior_evidence": {
-    "evidence_digest": "9cf10f01868d5f4c85a954a5591e5068ddfec170c6ee45b7763a5077dff869e1",
+    "evidence_digest": "84578ffbdf97eeaa7e66551fae3e69b1e8181322069e25bc4b09e5650af65084",
     "path": "bench/labels/declaration_type_contract_behavior_2026_07_14.dev.v1.json",
-    "sha256": "fb239a26810c6a3bf5cd7cce1a9d0c48d8b17e064ed2ba6d487a542924bb57f5"
+    "sha256": "4722f772a98476ce7860409ff4a18c29ceb9d9e21981542c5390ab7aab7ebd93"
   },
   "dogfood": {
     "accepted_default_families": 28,
@@ -12,8 +12,8 @@
   },
   "heldout_policy": "closed; no held-out checkout or judgment was opened",
   "implementation": {
-    "binary_sha256": "0a91b20a4160cac015e5d1cc5b5b865f33a7366710fda823a73565ed78800c09",
-    "commit": "dfba43a5808b2d181f57106a4d769aa819b31343",
+    "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
+    "commit": "182881a8097ff14ecf513a4fb32f1ad22cc31394",
     "human_reason_code": "declaration-only-type-contract",
     "json_reason_code": {
       "field": "surface",
@@ -45,53 +45,53 @@
   "issue": 843,
   "performance": {
     "all_dev_three_iteration": {
-      "baseline_median_ms": 15690.46516972594,
-      "control_adjusted_delta_ms": 22.419330314733088,
-      "control_adjusted_delta_percent": 0.14288505836009374,
-      "control_delta_ms": -103.7415043101646,
-      "control_delta_percent": -0.6036291237652359,
-      "current_median_ms": 15609.142995730508,
+      "baseline_median_ms": 15143.666118732654,
+      "control_adjusted_delta_ms": 52.91826213942841,
+      "control_adjusted_delta_percent": 0.34944155348201145,
+      "control_delta_ms": 10.738117271102965,
+      "control_delta_percent": 0.0689466029890773,
+      "current_median_ms": 15207.322498143185,
       "material_regression": false,
-      "raw_delta_ms": -81.32217399543151,
-      "raw_delta_percent": -0.5182903955730965
+      "raw_delta_ms": 63.65637941053137,
+      "raw_delta_percent": 0.4203498605386492
     },
     "artifacts": [
       {
         "path": "bench/recall_loss/issue-843-official-v0.19.0-dev-query-regression-2026-07-14.v2.json",
-        "sha256": "c4f996a07eb0a5949b75de3813b458d9627ad835a5ff5b2389e62a0f77e85a3f"
+        "sha256": "542a400bf1b7e4c0030dc83aac27535fc1b0184b228e3536e356bf65eefc280b"
       },
       {
         "path": "bench/recall_loss/issue-843-current-control-dev-query-regression-2026-07-14.v2.json",
-        "sha256": "56b85af30c92fab81d1921c44dfa29c590c626c5db25b58ac54920a591c92f84"
+        "sha256": "1c9fd122358800281fa02d354a3a7fc799c05bfd9536e294dccc1190c3c02756"
       },
       {
         "path": "bench/recall_loss/issue-843-official-v0.19.0-focused-r9-2026-07-14.v2.json",
-        "sha256": "fbcad7f6c828a1b1ed385500428c97981b9405a048790085e4a9ca57076cfad6"
+        "sha256": "bfb25c9ed3d5bce0a6eca2c429a06cd1639294eac934d26cd869278477b98e8d"
       },
       {
         "path": "bench/recall_loss/issue-843-current-control-focused-r9-2026-07-14.v2.json",
-        "sha256": "da713337e8bd585eb5af967fd6bc4e490f9f81aa80436363c4da82946166791f"
+        "sha256": "29e2f04ed598106ad599fe9dabd6dab5f7568bb1b0eead28e98c9c8719acd607"
       },
       {
         "path": "bench/recall_loss/issue-843-official-v0.19.0-focused-r21-2026-07-14.v2.json",
-        "sha256": "7bc3d1dd6aedaee810a166a1cf135968d4e1d4d5813e109ddbc0178da3260a89"
+        "sha256": "f4a0fe02c2b8cd3d87e319a18bdb790c23bd709d9f8ca067318dfd8d80780661"
       },
       {
         "path": "bench/recall_loss/issue-843-current-control-focused-r21-2026-07-14.v2.json",
-        "sha256": "60f22d1ef09655fc82001dc40feffa21a035b06b3a28039a7c04dff0cb7896bb"
+        "sha256": "23204d0f2f8e2f3590c97e70091ac45139a820ea1d2fcd5d7abb45ad1cc8750e"
       },
       {
         "path": "bench/recall_loss/issue-843-official-v0.19.0-focused-r40-2026-07-14.v2.json",
-        "sha256": "6a9ca7bfe266f457181a828ba1f32745dcd7348500171ad7ca2c020ba27071c8"
+        "sha256": "72e2723da81d89993f4c6866f17d5f08c67ae12f20f600a0dfdf800eaa7cc2f6"
       },
       {
         "path": "bench/recall_loss/issue-843-current-control-focused-r40-2026-07-14.v2.json",
-        "sha256": "9018e83fffdddcd162bc65ac938bd941cab53e29fab3283004ed04dfd873404c"
+        "sha256": "e7d0e92d7149650df7d1e8aeee52e077ed88fc3bf9966b7c54d02ef211033bfc"
       }
     ],
     "current": {
-      "binary_sha256": "0a91b20a4160cac015e5d1cc5b5b865f33a7366710fda823a73565ed78800c09",
-      "commit": "dfba43a5808b2d181f57106a4d769aa819b31343"
+      "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
+      "commit": "182881a8097ff14ecf513a4fb32f1ad22cc31394"
     },
     "escalation": {
       "iterations": [
@@ -102,9 +102,9 @@
       ],
       "repository_counts": [
         66,
-        20,
-        3,
-        1
+        25,
+        6,
+        2
       ],
       "result": "pass"
     },
@@ -113,15 +113,15 @@
       "sha256": "4f5542662046da7302c1f6be7dd7d4b3207af69b9a8f6caec1b1049ff6841887"
     },
     "final_forty_iteration": {
-      "baseline_median_ms": 322.2076664969791,
-      "control_adjusted_delta_ms": -5.200165964197367,
-      "control_adjusted_delta_percent": -1.6139175149782237,
-      "control_delta_ms": 9.045166458236054,
-      "control_delta_percent": 2.6899388271458147,
-      "current_median_ms": 326.05266699101776,
+      "baseline_median_ms": 529.748478991678,
+      "control_adjusted_delta_ms": -3.654958476545289,
+      "control_adjusted_delta_percent": -0.6899422313589514,
+      "control_delta_ms": 4.850041470490396,
+      "control_delta_percent": 0.892527293698336,
+      "current_median_ms": 530.9435619856231,
       "material_regression": false,
-      "raw_delta_ms": 3.845000494038686,
-      "raw_delta_percent": 1.1933299216127546
+      "raw_delta_ms": 1.1950829939451069,
+      "raw_delta_percent": 0.2255944172260438
     },
     "published_baseline": {
       "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3",
@@ -143,7 +143,7 @@
       "pct": 59.0417
     },
     "path": "bench/labels/declaration_type_contract_product_quality_2026_07_14.dev.v1.json",
-    "sha256": "ac1e799b5824f385e52caaeaa6903b2e2fc17aec3deba6aeca9aba543b64671a",
+    "sha256": "d94b2cfcf9e144ea5e4016e71782d743c1526f68da4822c4469e73113bcf242f",
     "worthy_recall": {
       "hits": 2716,
       "n": 2849,

@@ -741,7 +741,7 @@
         "sha256": "f2ad8a3635fc3e7b89243c08879b680edf32de0cd809d4c27332e344c6bdbc6f"
       }
     ],
-    "git_sha": "dfba43a5808b2d181f57106a4d769aa819b31343",
+    "git_sha": "182881a8097ff14ecf513a4fb32f1ad22cc31394",
     "labelset": "bench/labels/refactoring_families.v7.json",
     "labelset_inputs": [
       {
@@ -772,7 +772,7 @@
     "labelset_sha256": "9939315c2f20943dcd8bd6e4e58740cf844d72ed711d4022aff00e7ce3ed84e6",
     "labelset_version": "v7",
     "nose_binary": "/Users/ak/prjs/cc/nose/target/issue-843/current/nose",
-    "nose_binary_sha256": "0a91b20a4160cac015e5d1cc5b5b865f33a7366710fda823a73565ed78800c09",
+    "nose_binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
     "nose_release_distribution": null,
     "nose_version": "nose 0.19.0",
     "prune_manifest": "bench/labels/prune_manifest.json",
