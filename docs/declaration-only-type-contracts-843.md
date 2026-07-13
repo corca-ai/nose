@@ -46,7 +46,10 @@ claim `declaration-only`. The frontends now express those cases using existing f
 - Java interface or annotation fields with initializers carry `mixed` plus
   `runtime-value`; an annotation element's `default` value remains a declaration;
 - Rust trait const/type defaults, method bodies, macro invocations, and outer/inner
-  attributes carry the existing implementation/default-body evidence; and
+  attributes carry the existing implementation/default-body evidence. This deliberately
+  treats inert attributes such as `cfg`, `allow`, and `doc` as uncertainty too: excluding
+  a safe declaration is preferable to hiding a contract whose attribute may synthesize
+  behavior; and
 - a parser-recovered Swift protocol member body carries mixed implementation and
   reusable/default-body evidence.
 
@@ -80,11 +83,12 @@ described above changes in Netty. Every expanded result is byte-identical across
 and one/four Rayon threads.
 
 The uncached v7 dev evaluation keeps full-universe worthy recall exactly
-`2716/2849 = 95.33%`, with zero recovered or regressed worthy IDs against #842. Labeled
-default P@10 improves from `382/658 = 58.05%` to `382/647 = 59.04%`. Coverage becomes
-`647/658 = 98.33%` because 11 replacement positions are not yet in the precision overlay;
-closing that residual label gap belongs to #845/#846, not to broadening this mechanical
-predicate.
+`2716/2849 = 95.33%`, with zero recovered or regressed worthy IDs against #842. Among
+currently labeled default positions, measured P@10 rises from `382/658 = 58.05%` to
+`382/647 = 59.04%`; the worthy-hit count itself remains 382. Coverage becomes
+`647/658 = 98.33%` because 11 replacement positions are not yet in the precision overlay,
+so this is an interim dev measurement rather than a closed precision claim. Closing that
+residual label gap belongs to #845/#846, not to broadening this mechanical predicate.
 
 The checked [behavior
 artifact](../bench/labels/declaration_type_contract_behavior_2026_07_14.dev.v1.json) binds

@@ -216,6 +216,21 @@ def validate(path: Path) -> None:
     generated.require(not implementation["origin_vocabulary_expanded"], "origin vocabulary expanded")
     generated.require(not implementation["repository_or_language_allowlist"], "allowlist introduced")
     generated.require(
+        implementation["predicate"]
+        == {
+            "forbids_runtime_data_implementation_or_behavior_evidence": True,
+            "location_kind": "class",
+            "op": "all_locations",
+            "requires_body_kind": "declaration-only",
+            "requires_domains_exactly": ["type-contract"],
+            "requires_evidence": ["declaration-only", "type-only"],
+            "requires_non_fragment": True,
+            "requires_source_granularity": "whole-unit",
+            "subkinds": ["interface-trait-protocol", "type-alias", "defined-type"],
+        },
+        "declaration type-contract predicate changed",
+    )
+    generated.require(
         implementation["json_reason_code"] == {"field": "surface", "value": "declaration"},
         "JSON reason contract changed",
     )
@@ -246,10 +261,12 @@ def self_test() -> None:
     artifact = generated.load(DEFAULT)
     mutated = copy.deepcopy(artifact)
     mutated["product_quality"]["worthy_recall"]["hits"] -= 1
-    generated.require(
-        mutated["product_quality"] != artifact["product_quality"],
-        "quality mutation was not detected",
-    )
+    try:
+        validate_quality(mutated["product_quality"])
+    except SystemExit:
+        pass
+    else:
+        generated.fail("quality summary mutation was accepted")
     validate(DEFAULT)
     print("declaration type-contract closeout self-test passed")
 
