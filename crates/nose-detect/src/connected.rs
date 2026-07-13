@@ -9,11 +9,14 @@
 use crate::{model::ConnectedWitness, LineSpan};
 use nose_il::{Il, Interner, NodeId, NodeKind};
 use nose_normalize::node_tag_valued;
+use std::collections::BTreeMap;
 
 const MAX_TOKENS: usize = 2_000;
 const MIN_MAPPED_NODES: u32 = 20;
 const MIN_COMPLETE_EXIT_NODES: u32 = 18;
 const MAX_HOLES: usize = 8;
+const MIN_SAME_UNIT_LINES: u32 = 3;
+const MAX_SAME_UNIT_ROOT_PAIRS: usize = 256;
 
 /// Two words per normalized IL node. `tag` retains leaf values so variations count as mapped
 /// holes; `meta` packs the node kind, arity, preorder-subtree length, and source span. Keeping
@@ -174,6 +177,10 @@ fn parameter_leaf(token: MappedToken) -> bool {
         )
 }
 
+fn same_unit_named_role(token: MappedToken) -> bool {
+    token.kind() == kind(NodeKind::Field)
+}
+
 fn child_roots(tokens: &[MappedToken], root: usize) -> Option<Vec<usize>> {
     let token = *tokens.get(root)?;
     let end = root.checked_add(token.subtree_len())?;
@@ -223,6 +230,7 @@ fn match_tree(
     right: &[MappedToken],
     right_root: usize,
     state: &mut MatchState,
+    allow_named_role_holes: bool,
 ) -> bool {
     // `(left, right, parent kind, child position)`; the parent role prevents a direct
     // free-function callee from becoming a parameter hole. A method/constructor receiver may
@@ -243,10 +251,16 @@ fn match_tree(
         } else if observable_boundary(right, right_index) {
             return false;
         }
-        if left_token.kind() == right_token.kind()
-            && left_token.arity() == right_token.arity()
-            && left_token.tag == right_token.tag
-        {
+        let direct_callee = parent_kind == Some(kind(NodeKind::Call)) && child_position == 0;
+        let same_role =
+            left_token.kind() == right_token.kind() && left_token.arity() == right_token.arity();
+        let named_role_hole = allow_named_role_holes
+            && same_role
+            && left_token.tag != right_token.tag
+            && !direct_callee
+            && same_unit_named_role(left_token)
+            && state.add_hole(left_token, right_token);
+        if same_role && (left_token.tag == right_token.tag || named_role_hole) {
             let Some(left_end) = left_index.checked_add(left_token.subtree_len()) else {
                 return false;
             };
@@ -277,7 +291,6 @@ fn match_tree(
             stack[children_start..].reverse();
             continue;
         }
-        let direct_callee = parent_kind == Some(kind(NodeKind::Call)) && child_position == 0;
         if direct_callee
             || !parameter_leaf(left_token)
             || !parameter_leaf(right_token)
@@ -373,7 +386,7 @@ pub(crate) fn connected_witness(
 
             // A whole block is the strongest boundary: both entry and exit are explicit.
             let mut whole = MatchState::default();
-            if match_tree(left, left_block, right, right_block, &mut whole) {
+            if match_tree(left, left_block, right, right_block, &mut whole, false) {
                 if let Some(found) = candidate(
                     (left[left_block].start_line(), left[left_block].end_line()),
                     (
@@ -403,7 +416,7 @@ pub(crate) fn connected_witness(
                         let left_root = left_children[left_offset + step];
                         let right_root = right_children[right_offset + step];
                         let mut extended = state.clone();
-                        if !match_tree(left, left_root, right, right_root, &mut extended) {
+                        if !match_tree(left, left_root, right, right_root, &mut extended, false) {
                             break;
                         }
                         state = extended;
@@ -429,6 +442,114 @@ pub(crate) fn connected_witness(
         }
     }
     best
+}
+
+/// Find one pair of disjoint mapped regions owned by the same enclosing unit.
+///
+/// Unlike [`connected_witness`], this path has no cross-unit candidate seed. It therefore
+/// compares only whole normalized subtrees with an identical tree size/role envelope, then
+/// applies the same pair-local mapping proof. A value-varied proposal must expose consistent
+/// holes. An exact mapped subtree is retained only when it contains an observable call/effect;
+/// ordinary syntax output is ranked first and suppresses a co-located same-unit duplicate.
+pub(crate) fn same_unit_witness(tokens: &[MappedToken]) -> Option<ConnectedWitness> {
+    if tokens.is_empty() {
+        return None;
+    }
+
+    let mut roots: BTreeMap<(u64, usize, usize), Vec<usize>> = BTreeMap::new();
+    for (index, token) in tokens.iter().copied().enumerate() {
+        if token.subtree_len() < MIN_MAPPED_NODES as usize
+            // A bare block is only a scope container. Inside one unit, pairing two such
+            // containers can erase the construct that owns them (notably two switch arms)
+            // and report a parametric relationship that the frozen frontier did not
+            // establish. Concrete roots such as If, Call, Seq, and ExprStmt retain that
+            // ownership boundary and remain eligible.
+            || token.kind() == kind(NodeKind::Block)
+            || token.start_line() == 0
+            || token.start_line() > token.end_line()
+            || token.end_line() - token.start_line() + 1 < MIN_SAME_UNIT_LINES
+        {
+            continue;
+        }
+        roots
+            .entry((token.kind(), token.arity(), token.subtree_len()))
+            .or_default()
+            .push(index);
+    }
+
+    let mut pairs = roots
+        .into_iter()
+        .filter(|(_, roots)| roots.len() >= 2)
+        .flat_map(|((_, _, subtree_len), roots)| {
+            let mut pairs = Vec::new();
+            for (offset, &left) in roots.iter().enumerate() {
+                for &right in &roots[offset + 1..] {
+                    let left_span = (tokens[left].start_line(), tokens[left].end_line());
+                    let right_span = (tokens[right].start_line(), tokens[right].end_line());
+                    if spans_are_disjoint(left_span, right_span) {
+                        pairs.push((subtree_len, left, right));
+                    }
+                }
+            }
+            pairs
+        })
+        .collect::<Vec<_>>();
+    pairs.sort_unstable_by(|left, right| {
+        right
+            .0
+            .cmp(&left.0)
+            .then_with(|| {
+                tokens[left.1]
+                    .start_line()
+                    .cmp(&tokens[right.1].start_line())
+            })
+            .then_with(|| {
+                tokens[left.2]
+                    .start_line()
+                    .cmp(&tokens[right.2].start_line())
+            })
+    });
+    pairs.truncate(MAX_SAME_UNIT_ROOT_PAIRS);
+
+    let mut found = Vec::new();
+    for (_, raw_left, raw_right) in pairs {
+        let (left_root, right_root) =
+            if tokens[raw_left].start_line() <= tokens[raw_right].start_line() {
+                (raw_left, raw_right)
+            } else {
+                (raw_right, raw_left)
+            };
+        let mut state = MatchState::default();
+        let matched = match_tree(tokens, left_root, tokens, right_root, &mut state, true);
+        if !matched || (state.holes.is_empty() && state.observable == 0) {
+            continue;
+        }
+        let left_span = (tokens[left_root].start_line(), tokens[left_root].end_line());
+        let right_span = (
+            tokens[right_root].start_line(),
+            tokens[right_root].end_line(),
+        );
+        found.push(ConnectedWitness {
+            left_lines: left_span,
+            right_lines: right_span,
+            mapped_nodes: state.nodes,
+            holes: state.holes.len() as u32,
+            complete_exit: false,
+        });
+    }
+    found.sort_unstable_by(|left, right| {
+        right
+            .mapped_nodes
+            .cmp(&left.mapped_nodes)
+            .then_with(|| left.holes.cmp(&right.holes))
+            .then_with(|| left.left_lines.cmp(&right.left_lines))
+            .then_with(|| left.right_lines.cmp(&right.right_lines))
+    });
+    found.into_iter().next()
+}
+
+fn spans_are_disjoint(left: (u32, u32), right: (u32, u32)) -> bool {
+    left.1 < right.0 || right.1 < left.0
 }
 
 #[cfg(test)]

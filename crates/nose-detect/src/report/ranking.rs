@@ -219,6 +219,7 @@ pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
         fams.sort_by(|a, b| {
             total_span(b)
                 .cmp(&total_span(a))
+                .then_with(|| is_same_unit(a).cmp(&is_same_unit(b)))
                 .then(b.value.total_cmp(&a.value))
                 .then_with(|| family_min_loc(a).cmp(&family_min_loc(b)))
         })
@@ -239,7 +240,9 @@ pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
                     let mut seen = rustc_hash::FxHashSet::default();
                     spans.iter().find_map(|&(start, end, ki)| {
                         (seen.insert(ki)
+                            && !is_same_unit(&kept[ki])
                             && (!is_connected(&kept[ki]) || is_connected(&f))
+                            && (!is_same_unit(&f) || same_sites(&kept[ki], &f))
                             && overlap_frac_span(start, end, first) >= SUBSUME_COVER
                             && subsumes(&kept[ki], &f))
                         .then_some(ki)
@@ -267,7 +270,27 @@ pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
 }
 
 fn is_connected(family: &RefactorFamily) -> bool {
-    family.witness.as_ref().map(|witness| witness.kind) == Some("connected-mapped-sub-dag")
+    matches!(
+        family.witness.as_ref().map(|witness| witness.kind),
+        Some("connected-mapped-sub-dag" | "bounded-same-unit-window")
+    )
+}
+
+fn is_same_unit(family: &RefactorFamily) -> bool {
+    family.witness.as_ref().map(|witness| witness.kind) == Some("bounded-same-unit-window")
+}
+
+fn same_sites(left: &RefactorFamily, right: &RefactorFamily) -> bool {
+    if left.locations.len() != right.locations.len() {
+        return false;
+    }
+    left.locations.iter().all(|location| {
+        right.locations.iter().any(|candidate| {
+            candidate.file == location.file
+                && candidate.start_line == location.start_line
+                && candidate.end_line == location.end_line
+        })
+    })
 }
 
 fn merge_accepted_coverage(existing: &mut Vec<AcceptedCoverage>, incoming: Vec<AcceptedCoverage>) {

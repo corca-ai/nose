@@ -273,7 +273,9 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
             "surface": "nose detect --candidates",
             "interpretation": (
                 "A direct accepted pair is already admitted by the raw structural detector. "
-                "Because query adds syntax and shape-candidate arms, this is a conservative "
+                "A same-unit-window route can be accepted without an ordinary two-unit "
+                "candidate edge. Because query adds syntax and shape-candidate arms, this is "
+                "a conservative "
                 "accepted-pair witness, not a complete query simulation."
             ),
         },
@@ -337,7 +339,10 @@ def validate_stage_record(record: object, expected: dict[str, Any]) -> None:
     candidate = record.get("direct_candidate")
     accepted = record.get("direct_accepted")
     require(isinstance(candidate, bool) and isinstance(accepted, bool), f"{key}: bad flags")
-    require(not accepted or candidate, f"{key}: accepted pair was not a candidate")
+    require(
+        not accepted or candidate or expected["class"] == "same-unit-window",
+        f"{key}: accepted pair was not a candidate",
+    )
     require(record.get("stage") in STATES, f"{key}: invalid stage")
     require(
         record["stage"] == audit_state(counts, candidate, accepted),
@@ -477,6 +482,13 @@ def run_self_test() -> None:
         "stage": "accepted-pair",
     }
     validate_stage_record(valid_record, expected_record)
+    same_unit_expected = {**expected_record, "class": "same-unit-window"}
+    same_unit_record = {
+        **valid_record,
+        "probe_class": "same-unit-window",
+        "direct_candidate": False,
+    }
+    validate_stage_record(same_unit_record, same_unit_expected)
     invalid_record = {**valid_record, "direct_candidate": False, "direct_accepted": False}
     try:
         validate_stage_record(invalid_record, expected_record)

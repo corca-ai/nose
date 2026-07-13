@@ -195,7 +195,9 @@ its head is nose's one chance to demonstrate value. Two consequences:
   [post-#817 refresh](missed-worthy-frontier-820.md) confirms that accepted-pair loss is
   zero and selects a smaller six-positive/three-negative connected-witness cohort for
   #821. The optimistic multiset ceiling remains non-admission evidence; same-unit and
-  construct-specific extraction stay separate.***
+  construct-specific extraction stay separate. #821 then shipped that pair-local proof; the
+  2026-07-13 [bounded same-unit tranche](bounded-same-unit-windows-832.md) keeps its intra-unit
+  work/output budgets and non-exact witness contract separate from both #821 and exact fragments.***
 - **Extractability ranking** — a "good enough" deterministic triage signal; no need to chase
   more.
 

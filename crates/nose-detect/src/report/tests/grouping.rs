@@ -141,23 +141,69 @@ fn subsumed_family_is_dropped() {
 
 #[test]
 fn connected_family_does_not_subsume_existing_output() {
-    let connected = Group {
+    for kind in ["connected-mapped-sub-dag", "bounded-same-unit-window"] {
+        let connected = Group {
+            score: 0.8,
+            members: vec![loc("a.rs", 10, 40, "rust"), loc("b.rs", 10, 40, "rust")],
+            semantic_laws: Vec::new(),
+            abstraction_witness: None,
+            witness: Some(crate::EquivalenceWitness {
+                kind,
+                value_nodes: Some(60),
+                mean_value_jaccard: None,
+                mean_shape_jaccard: None,
+                graded: None,
+                graded_pair: None,
+            }),
+        };
+        let existing = Group {
+            score: 0.9,
+            members: vec![loc("a.rs", 15, 25, "rust"), loc("b.rs", 15, 25, "rust")],
+            semantic_laws: Vec::new(),
+            abstraction_witness: None,
+            witness: Some(crate::EquivalenceWitness {
+                kind: "structural-similarity",
+                value_nodes: None,
+                mean_value_jaccard: Some(0.8),
+                mean_shape_jaccard: Some(0.9),
+                graded: None,
+                graded_pair: None,
+            }),
+        };
+
+        assert_eq!(
+            rank_families(&report(vec![connected, existing])).len(),
+            2,
+            "witness kind {kind}"
+        );
+    }
+}
+
+#[test]
+fn existing_family_only_hides_a_same_unit_route_at_identical_sites() {
+    let same_unit = |start, end| Group {
         score: 0.8,
-        members: vec![loc("a.rs", 10, 40, "rust"), loc("b.rs", 10, 40, "rust")],
+        members: vec![
+            loc("a.rs", start, end, "rust"),
+            loc("b.rs", start, end, "rust"),
+        ],
         semantic_laws: Vec::new(),
         abstraction_witness: None,
         witness: Some(crate::EquivalenceWitness {
-            kind: "connected-mapped-sub-dag",
-            value_nodes: Some(60),
+            kind: "bounded-same-unit-window",
+            value_nodes: Some(30),
             mean_value_jaccard: None,
             mean_shape_jaccard: None,
             graded: None,
             graded_pair: None,
         }),
     };
-    let existing = Group {
+    let existing = |start, end| Group {
         score: 0.9,
-        members: vec![loc("a.rs", 15, 25, "rust"), loc("b.rs", 15, 25, "rust")],
+        members: vec![
+            loc("a.rs", start, end, "rust"),
+            loc("b.rs", start, end, "rust"),
+        ],
         semantic_laws: Vec::new(),
         abstraction_witness: None,
         witness: Some(crate::EquivalenceWitness {
@@ -170,7 +216,16 @@ fn connected_family_does_not_subsume_existing_output() {
         }),
     };
 
-    assert_eq!(rank_families(&report(vec![connected, existing])).len(), 2);
+    assert_eq!(
+        rank_families(&report(vec![existing(1, 40), same_unit(15, 25)])).len(),
+        2,
+        "an enclosing family must not replace the bounded locations"
+    );
+    assert_eq!(
+        rank_families(&report(vec![existing(15, 25), same_unit(15, 25)])).len(),
+        1,
+        "identical sites stay one product family"
+    );
 }
 
 #[test]

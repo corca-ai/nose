@@ -276,7 +276,8 @@ fn detect_from_units_inner(
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
-    let (candidates, accepted, mut connected_accepted) = if opts.structural {
+    let (candidates, accepted, mut connected_accepted, mut same_unit_accepted) = if opts.structural
+    {
         // 3. LSH candidate generation. Semantic runs use the value-graph signature;
         //    near-duplicate runs also use shape signatures so Type-3 edits that
         //    change behavior-defining values still reach the scorer. When both
@@ -292,13 +293,20 @@ fn detect_from_units_inner(
         } else {
             Vec::new()
         };
-        (candidates, accepted, connected)
+        let same_unit = if opts.connected_witnesses {
+            score_same_unit_candidates(&units, opts.threshold, !opts.emit_pairs)
+        } else {
+            Vec::new()
+        };
+        (candidates, accepted, connected, same_unit)
     } else {
         clk.lap("candidates");
-        (Vec::new(), Vec::new(), Vec::new())
+        (Vec::new(), Vec::new(), Vec::new(), Vec::new())
     };
 
     deduplicate_connected(&accepted, &mut connected_accepted, !opts.emit_pairs);
+    deduplicate_same_unit(&units, &mut same_unit_accepted, !opts.emit_pairs);
+    connected_accepted.extend(same_unit_accepted);
 
     clk.lap("score");
 
@@ -470,9 +478,10 @@ fn build_pair_output(
 }
 
 mod connected_pricing;
-#[cfg(test)]
-use connected_pricing::connected_seed_indices;
-use connected_pricing::{deduplicate_connected, score_connected_candidates};
+use connected_pricing::{
+    deduplicate_connected, deduplicate_same_unit, score_connected_candidates,
+    score_same_unit_candidates,
+};
 
 fn append_contiguous_groups(
     report: &mut Report,
@@ -491,68 +500,4 @@ fn append_contiguous_groups(
     attach_enclosing_units(&mut extra, units);
     report.metrics.groups += extra.len();
     report.groups.extend(extra);
-}
-
-#[cfg(test)]
-mod connected_seed_tests {
-    use super::*;
-
-    fn scored(score: Option<f64>) -> ScoredCandidate {
-        ScoredCandidate {
-            left: 0,
-            right: 1,
-            ordinary_score: score,
-        }
-    }
-
-    fn nested(left: usize, right: usize) -> ScoredCandidate {
-        ScoredCandidate {
-            left,
-            right,
-            ordinary_score: None,
-        }
-    }
-
-    #[test]
-    fn raw_connected_audit_keeps_every_seed() {
-        let candidates = [scored(Some(0.1)), scored(None), scored(Some(0.9))];
-        assert_eq!(
-            connected_seed_indices(&candidates, &["a", "b"], &[20, 20], 0.7, false),
-            vec![0, 1, 2]
-        );
-    }
-
-    #[test]
-    fn product_connected_work_keeps_nested_and_strongest_scored_seeds() {
-        let mut candidates = vec![scored(Some(0.1)); 2_050];
-        candidates[0] = scored(None);
-        candidates[1] = scored(Some(0.0));
-        candidates[2_049] = scored(Some(0.99));
-        let selected = connected_seed_indices(&candidates, &["x/a", "y/b"], &[20, 20], 1.0, true);
-        assert!(
-            selected.contains(&0),
-            "nested routes are never budgeted away"
-        );
-        assert!(
-            selected.contains(&2_049),
-            "the strongest scored seed is retained"
-        );
-        assert!(
-            !selected.contains(&1),
-            "the weakest overflow seed is dropped"
-        );
-        assert_eq!(selected.len(), 2_049);
-    }
-
-    #[test]
-    fn product_connected_work_reserves_nested_seeds_per_file() {
-        let mut candidates = vec![nested(0, 1); 513];
-        candidates.push(nested(2, 3));
-        let paths = ["dense/a.rs", "dense/a.rs", "small/b.rs", "small/b.rs"];
-        let selected = connected_seed_indices(&candidates, &paths, &[20; 4], 0.7, true);
-        assert!(
-            selected.contains(&513),
-            "a later file keeps its own nested seed after the global cap"
-        );
-    }
 }

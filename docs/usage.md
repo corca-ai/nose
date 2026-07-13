@@ -81,8 +81,9 @@ nose query --root <path> --root <path> [FILTER … | group=FIELD | id=FAM | at=F
 | `full` | on `id=` or a list, render the all-copies extraction skeletons inline (batched); each varying spot is `⟨param N: class⟩` — a coarse value-class hint (`literal`/`name`/`call`/`expr`/`block`) for the helper signature |
 | `all` | widen past the curated default surface to the full raw universe (demoted families labeled) |
 
-Fields: `scope` (prod\|test\|mixed), `witness` (exact\|shared-core\|copy-paste\|similar —
-`shared-core` is spelled `subdag` in `--format json`; both are accepted as filter values),
+Fields: `scope` (prod\|test\|mixed), `witness`
+(exact\|shared-core\|connected\|bounded-window\|copy-paste\|similar — `shared-core` is spelled
+`subdag` in `--format json`; `same-unit` is accepted as an alias for `bounded-window`),
 `same_symbol` (true\|false — every copy is the same named symbol, the parallel-variant
 signature), `spotclass` (leaf-only\|structural — for enriched near/shared-core
 families, whether the witness is clean equal-modulo-value-leaves or demoted by structural,

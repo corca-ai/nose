@@ -40,11 +40,20 @@ CHECKED_RECALL_PROFILES = {
         "dev": {"hits": 2691, "n": 2849},
         "heldout": {"hits": 1996, "n": 2091},
     },
+    "b59a9b1a93565ddfaa33ac26dd23d9d6107c7b791e513a7cbedb7be8685d2210": {
+        "dev": {"hits": 2711, "n": 2849},
+        "heldout": {"hits": 2000, "n": 2091},
+    },
 }
 CHECKED_COMPARISON_PROFILES = {
     "f7410ef73c1ab0ccd5ca23d938a032ee0a539ee57be662b4aa4d9045b93d6ce0": {
         "delta": 112,
         "recovered_count": 112,
+        "regressed_count": 0,
+    },
+    "b59a9b1a93565ddfaa33ac26dd23d9d6107c7b791e513a7cbedb7be8685d2210": {
+        "delta": 27,
+        "recovered_count": 27,
         "regressed_count": 0,
     },
 }
