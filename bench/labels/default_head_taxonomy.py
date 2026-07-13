@@ -668,8 +668,8 @@ def predicate_stat(rows: list[dict[str, Any]], predicate: Any) -> dict[str, Any]
     }
 
 
-def rejected_heuristics(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    rules = [
+def heuristic_rules() -> list[tuple[str, dict[str, Any], Any, str]]:
+    return [
         ("scope-test.v1", {"field": "scope", "eq": "test"}, lambda r: r["facets"]["scope"] == "test", "test scope contains many valuable refactorings"),
         ("same-symbol.v1", {"field": "same_symbol", "eq": True}, lambda r: r["facets"]["same_symbol"] is True, "symbol equality is not an actionability verdict"),
         ("same-file.v1", {"field": "path_relation", "eq": "same-file"}, lambda r: r["facets"]["path_relation"] == "same-file", "file proximity is not an actionability verdict"),
@@ -683,6 +683,9 @@ def rejected_heuristics(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         ("tightness-0.25.v1", {"field": "ranking_tightness", "lte": 0.25}, lambda r: r["facets"]["ranking_tightness"] is not None and r["facets"]["ranking_tightness"] <= 0.25, "ranking tightness has worthy hard negatives"),
         ("current-generated-evidence.v1", {"field": "surface", "eq": "generated"}, lambda r: r["facets"]["surface"] == "generated", "the current default head exposes no generated-surface positives"),
     ]
+
+
+def rejected_heuristics(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         {
             "heuristic_id": name,
@@ -691,8 +694,21 @@ def rejected_heuristics(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "reason": reason,
             "dev_head": predicate_stat(rows, predicate),
         }
-        for name, ast, predicate, reason in rules
+        for name, ast, predicate, reason in heuristic_rules()
     ]
+
+
+def split_rejected_heuristic_stats(artifact: dict[str, Any]) -> None:
+    """Separate head results from the frozen 65-row deep generalization sample."""
+
+    by_id = {name: predicate for name, _, predicate, _ in heuristic_rules()}
+    for record in artifact["rejected_heuristics"]:
+        predicate = by_id[record["heuristic_id"]]
+        record["frozen_labeled_pool"] = record.pop("dev_head")
+        record["dev_head"] = predicate_stat(artifact["head_rows"], predicate)
+        record["dev_deep_labeled"] = predicate_stat(
+            artifact["deep_labeled_rows"], predicate
+        )
 
 
 def audit_packet(row: dict[str, Any], lever: str) -> dict[str, Any]:
@@ -956,8 +972,38 @@ def validate_core(artifact: dict[str, Any]) -> None:
     if len(keys) != len(set(keys)):
         fail("head position keys must be unique")
     by_repo: dict[str, list[int]] = defaultdict(list)
-    for row in rows:
-        by_repo[row["repo"]].append(row["rank"])
+    for row in [*rows, *deep]:
+        if row["repo"] not in artifact["repositories"]:
+            fail(f"{row.get('position_key')}: repository is outside the dev allowlist")
+        bounds = row.get("source_bounds")
+        locations = row.get("raw_family", {}).get("locations")
+        if not isinstance(bounds, list) or not isinstance(locations, list):
+            fail(f"{row.get('position_key')}: source bounds or raw locations are absent")
+        projected = [
+            {
+                "id": location.get("id"),
+                "file": location["file"],
+                "start": location["start"],
+                "end": location["end"],
+                "name": location.get("name"),
+                "lang": location.get("lang"),
+            }
+            for location in locations
+        ]
+        recorded = [
+            {key: bound.get(key) for key in ("id", "file", "start", "end", "name", "lang")}
+            for bound in bounds
+        ]
+        if projected != recorded:
+            fail(f"{row.get('position_key')}: source bounds differ from raw family locations")
+        prefix = f"bench/repos/{row['repo']}/"
+        if any(
+            not bound["file"].startswith(prefix)
+            or not isinstance(bound.get("source_sha256"), str)
+            or len(bound["source_sha256"]) != 64
+            for bound in bounds
+        ):
+            fail(f"{row.get('position_key')}: source binding escapes its dev repository")
         raw_hash = canonical_sha256(row["raw_family"])
         if raw_hash != row.get("raw_family_sha256"):
             fail(f"{row.get('position_key')}: raw family digest mismatch")
@@ -968,6 +1014,8 @@ def validate_core(artifact: dict[str, Any]) -> None:
             ("worthy." if row["truth"]["worthy"] else "non_action.") + row["truth"]["reason"]
         ):
             fail(f"{row['position_key']}: truth bucket mismatch")
+    for row in rows:
+        by_repo[row["repo"]].append(row["rank"])
         selected = row.get("selected_lever")
         matches = row.get("matched_levers")
         if not isinstance(matches, list) or len(matches) > 1 or selected not in (*matches, None):
@@ -988,6 +1036,22 @@ def validate_core(artifact: dict[str, Any]) -> None:
         fail(f"truth distribution drift: {dict(reasons)}")
     if artifact.get("summary", {}).get("worthy") != 382:
         fail("worthy summary must remain 382/658")
+    expected_summary = {
+        "head_positions": len(rows),
+        "deep_labeled_audit_pool": len(deep),
+        "deep_mechanical_audit_positives": 24,
+        "worthy": sum(row["truth"]["worthy"] for row in rows),
+        "non_action": sum(not row["truth"]["worthy"] for row in rows),
+        "truth_reasons": dict(
+            sorted(Counter(row["truth"]["reason"] for row in rows).items())
+        ),
+    }
+    if artifact.get("summary") != expected_summary:
+        fail("taxonomy summary does not reproduce from its rows")
+    if artifact.get("cross_tabs") != build_cross_tabs(rows):
+        fail("taxonomy cross-tabs do not reproduce from the head rows")
+    if artifact.get("rejected_heuristics") != rejected_heuristics(rows + deep):
+        fail("rejected heuristic statistics do not reproduce from the labeled rows")
     generated = find_lever(artifact, "generated-provenance.v1")
     declaration = find_lever(artifact, "declaration-only-type.v1")
     proof = find_lever(artifact, "proof-actionability.v1")
@@ -995,7 +1059,18 @@ def validate_core(artifact: dict[str, Any]) -> None:
         fail("selected bounded cohort head movement drifted")
     if proof.get("status") != "rejected-no-go":
         fail("proof/actionability blanket removal must remain a no-go")
+    if proof.get("positive_position_keys") != [
+        row["position_key"] for row in rows if row["predicate_results"]["proof_backed"]
+    ]:
+        fail("proof/actionability cohort differs from the frozen witness predicate")
     for lever in (generated, declaration):
+        expected_positives = [
+            row["position_key"]
+            for row in rows
+            if row["selected_lever"] == lever["lever_id"]
+        ]
+        if lever.get("positive_position_keys") != expected_positives:
+            fail(f"{lever['lever_id']}: positive cohort differs from row predicates")
         if lever.get("worthy_false_demotions"):
             fail(f"{lever['lever_id']}: selected cohort contains a worthy row")
         packets = lever.get("audit_packets")
@@ -1005,6 +1080,9 @@ def validate_core(artifact: dict[str, Any]) -> None:
         if canonical_sha256(packets) != lever.get("audit_packet_set_sha256"):
             fail(f"{lever['lever_id']}: audit packet set digest mismatch")
         for packet in packets:
+            packet_text = json.dumps(packet, sort_keys=True)
+            if any(token in packet_text for token in ('"truth"', '"worthy"', '"reason"', '"label_')):
+                fail(f"{packet.get('audit_key')}: truth leaked into a blind audit packet")
             content = {key: value for key, value in packet.items() if key != "packet_sha256"}
             if canonical_sha256(content) != packet.get("packet_sha256"):
                 fail(f"{packet.get('audit_key')}: audit packet digest mismatch")
@@ -1064,7 +1142,83 @@ def validate_vote(core: dict[str, Any], vote: dict[str, Any], persona: str) -> N
             fail(f"{persona}/{item['audit_key']}: rationale is required")
 
 
-def finalize(core: dict[str, Any], vote_paths: dict[str, Path]) -> dict[str, Any]:
+def hard_negative_record(row: dict[str, Any], boundary: str) -> dict[str, Any]:
+    return {
+        "position_key": row["position_key"],
+        "truth_reason": row["truth"]["reason"],
+        "boundary": boundary,
+        "source_bounds_sha256": canonical_sha256(row["source_bounds"]),
+    }
+
+
+def bound_hard_negatives(artifact: dict[str, Any]) -> None:
+    """Attach deterministic worthy boundary rows to every proposed lever."""
+
+    head = artifact["head_rows"]
+    generated = find_lever(artifact, "generated-provenance.v1")
+    generated["hard_negatives"] = [
+        hard_negative_record(row, "HTML is not generator provenance")
+        for row in head
+        if row["truth"]["worthy"]
+        and any(
+            location["file"].lower().endswith(".html")
+            for location in row["raw_family"]["locations"]
+        )
+    ]
+
+    partial_origin = [
+        row
+        for row in head
+        if row["truth"]["worthy"] and row["facets"]["origin"]["coverage"] == "partial"
+    ]
+    missing_origin = [
+        row
+        for row in head
+        if row["truth"]["worthy"] and row["facets"]["origin"]["coverage"] == "none"
+    ][:3]
+    runtime_body = [
+        row
+        for row in head
+        if row["truth"]["worthy"]
+        and "has-reusable-body" in row["facets"]["origin"]["evidence_flags"]
+    ][:3]
+    declaration = find_lever(artifact, "declaration-only-type.v1")
+    declaration["hard_negatives"] = [
+        *(
+            hard_negative_record(row, "partial origin coverage must fail closed")
+            for row in partial_origin
+        ),
+        *(
+            hard_negative_record(row, "missing origin coverage must fail closed")
+            for row in missing_origin
+        ),
+        *(
+            hard_negative_record(row, "reusable implementation body must remain visible")
+            for row in runtime_body
+        ),
+    ]
+
+    proof = find_lever(artifact, "proof-actionability.v1")
+    proof["hard_negatives"] = [
+        hard_negative_record(row, "proof strength does not remove an actionable refactoring")
+        for row in head
+        if row["truth"]["worthy"] and row["predicate_results"]["proof_backed"]
+    ]
+    for lever in (generated, declaration, proof):
+        lever["hard_negative_position_keys"] = [
+            row["position_key"] for row in lever["hard_negatives"]
+        ]
+        lever["hard_negative_set_sha256"] = canonical_sha256(lever["hard_negatives"])
+        lever["head_non_action_precision"] = (
+            lever["head_non_action"] / lever["head_movement"]
+            if lever["head_movement"]
+            else None
+        )
+
+
+def build_final_overlay(
+    core: dict[str, Any], core_path: Path, vote_paths: dict[str, Path]
+) -> dict[str, Any]:
     validate_core(core)
     votes = {}
     for persona in AUDIT_PERSONAS:
@@ -1072,11 +1226,10 @@ def finalize(core: dict[str, Any], vote_paths: dict[str, Path]) -> dict[str, Any
         vote = load_json(path)
         validate_vote(core, vote, persona)
         votes[persona] = vote
-    artifact = copy.deepcopy(core)
-    artifact["schema"] = FINAL_SCHEMA
-    artifact.pop("core_sha256")
-    artifact["core_input_sha256"] = core["core_sha256"]
-    artifact["independent_audit"] = {
+    working = copy.deepcopy(core)
+    bound_hard_negatives(working)
+    split_rejected_heuristic_stats(working)
+    audit = {
         "policy": "three independent source reviews; existing truth labels hidden from packets",
         "threshold": 0.90,
         "votes": [
@@ -1089,34 +1242,58 @@ def finalize(core: dict[str, Any], vote_paths: dict[str, Path]) -> dict[str, Any
         persona: {item["audit_key"]: item for item in vote["items"]}
         for persona, vote in votes.items()
     }
-    for lever in artifact["levers"]:
+    decisions = []
+    for lever in working["levers"]:
         packets = lever.get("audit_packets", [])
-        if not packets:
-            continue
-        summaries = {}
-        for persona in AUDIT_PERSONAS:
-            reviewed = [by_persona[persona][packet["audit_key"]] for packet in packets]
-            non_action = sum(
-                item["premise_holds"] and item["verdict"] == "non-actionable"
-                for item in reviewed
-            )
-            precision = non_action / len(reviewed)
-            summaries[persona] = {
-                "reviewed": len(reviewed),
-                "premise_holds": sum(item["premise_holds"] for item in reviewed),
-                "non_actionable": non_action,
-                "precision": precision,
-                "passed": precision >= 0.90,
-            }
-        passed = all(summary["passed"] for summary in summaries.values())
-        lever["status"] = "selected-audit-passed" if passed else "rejected-audit-failed"
-        lever["independent_audit"] = summaries
-        artifact["independent_audit"]["levers"][lever["lever_id"]] = summaries
-        if not passed:
-            fail(f"{lever['lever_id']}: independent audit did not reach 90% for every reviewer")
+        if packets:
+            summaries = {}
+            for persona in AUDIT_PERSONAS:
+                reviewed = [by_persona[persona][packet["audit_key"]] for packet in packets]
+                non_action = sum(
+                    item["premise_holds"] and item["verdict"] == "non-actionable"
+                    for item in reviewed
+                )
+                precision = non_action / len(reviewed)
+                summaries[persona] = {
+                    "reviewed": len(reviewed),
+                    "premise_holds": sum(item["premise_holds"] for item in reviewed),
+                    "non_actionable": non_action,
+                    "precision": precision,
+                    "passed": precision >= 0.90,
+                }
+            passed = all(summary["passed"] for summary in summaries.values())
+            lever["status"] = "selected-audit-passed" if passed else "rejected-audit-failed"
+            lever["independent_audit"] = summaries
+            audit["levers"][lever["lever_id"]] = summaries
+            if not passed:
+                fail(f"{lever['lever_id']}: independent audit did not reach 90% for every reviewer")
+        decision = copy.deepcopy(lever)
+        decision.pop("audit_packets", None)
+        decisions.append(decision)
+    artifact = {
+        "schema": FINAL_SCHEMA,
+        "split": "dev",
+        "heldout_policy": core["heldout_policy"],
+        "core_input": {
+            "path": rel(core_path),
+            "file_sha256": file_sha256(core_path),
+            "core_sha256": core["core_sha256"],
+        },
+        "summary": core["summary"],
+        "lever_decisions": decisions,
+        "rejected_heuristics": working["rejected_heuristics"],
+        "independent_audit": audit,
+    }
     artifact["artifact_sha256"] = canonical_sha256(
         {key: value for key, value in artifact.items() if key != "artifact_sha256"}
     )
+    return artifact
+
+
+def finalize(
+    core: dict[str, Any], core_path: Path, vote_paths: dict[str, Path]
+) -> dict[str, Any]:
+    artifact = build_final_overlay(core, core_path, vote_paths)
     validate_final(artifact, vote_paths=vote_paths)
     return artifact
 
@@ -1127,10 +1304,23 @@ def validate_final(artifact: dict[str, Any], *, vote_paths: dict[str, Path] | No
     content = {key: value for key, value in artifact.items() if key != "artifact_sha256"}
     if canonical_sha256(content) != artifact.get("artifact_sha256"):
         fail("final taxonomy digest mismatch")
-    if artifact.get("core_input_sha256") is None:
+    core_input = artifact.get("core_input")
+    if not isinstance(core_input, dict) or not isinstance(core_input.get("path"), str):
         fail("final taxonomy is not bound to a core input")
+    core_path = (ROOT / core_input["path"]).resolve()
+    try:
+        core_path.relative_to(ROOT.resolve())
+    except ValueError:
+        fail("final taxonomy core path escapes the repository")
+    if file_sha256(core_path) != core_input.get("file_sha256"):
+        fail("final taxonomy core file digest mismatch")
+    core = load_json(core_path)
+    validate_core(core)
+    if core["core_sha256"] != core_input.get("core_sha256"):
+        fail("final taxonomy core semantic digest mismatch")
+    decisions = {row["lever_id"]: row for row in artifact.get("lever_decisions", [])}
     for lever_id in ("generated-provenance.v1", "declaration-only-type.v1"):
-        lever = find_lever(artifact, lever_id)
+        lever = decisions.get(lever_id, {})
         if lever.get("status") != "selected-audit-passed":
             fail(f"{lever_id}: selected classifier did not pass independent audit")
         summaries = lever.get("independent_audit", {})
@@ -1138,11 +1328,36 @@ def validate_final(artifact: dict[str, Any], *, vote_paths: dict[str, Path] | No
             summary.get("precision", 0) < 0.90 for summary in summaries.values()
         ):
             fail(f"{lever_id}: missing independent 90% precision evidence")
-    if vote_paths is not None:
-        recorded = {row["persona"]: row for row in artifact["independent_audit"]["votes"]}
-        for persona, path in vote_paths.items():
-            if file_sha256(path) != recorded[persona]["sha256"]:
-                fail(f"{persona}: live vote file digest mismatch")
+    if set(decisions) != {
+        "generated-provenance.v1",
+        "declaration-only-type.v1",
+        "proof-actionability.v1",
+    }:
+        fail("final taxonomy lever decision set mismatch")
+    for lever in decisions.values():
+        hard_negatives = lever.get("hard_negatives")
+        if not isinstance(hard_negatives, list) or not hard_negatives:
+            fail(f"{lever['lever_id']}: bound hard negatives are required")
+        if canonical_sha256(hard_negatives) != lever.get("hard_negative_set_sha256"):
+            fail(f"{lever['lever_id']}: hard-negative digest mismatch")
+        if [row["position_key"] for row in hard_negatives] != lever.get(
+            "hard_negative_position_keys"
+        ):
+            fail(f"{lever['lever_id']}: hard-negative key projection mismatch")
+    recorded = {row["persona"]: row for row in artifact["independent_audit"]["votes"]}
+    if set(recorded) != set(AUDIT_PERSONAS):
+        fail("final taxonomy vote set mismatch")
+    effective_paths = vote_paths or {
+        persona: (ROOT / recorded[persona]["path"]).resolve()
+        for persona in AUDIT_PERSONAS
+    }
+    for persona, path in effective_paths.items():
+        if file_sha256(path) != recorded[persona]["sha256"]:
+            fail(f"{persona}: live vote file digest mismatch")
+        validate_vote(core, load_json(path), persona)
+    expected = build_final_overlay(core, core_path, effective_paths)
+    if canonical_bytes(expected) != canonical_bytes(artifact):
+        fail("final taxonomy does not reproduce from its bound core and votes")
 
 
 def self_test() -> None:
@@ -1235,7 +1450,7 @@ def main() -> None:
             print(f"wrote {args.output}")
         elif args.command == "finalize":
             paths = {persona: getattr(args, persona) for persona in AUDIT_PERSONAS}
-            artifact = finalize(load_json(args.core), paths)
+            artifact = finalize(load_json(args.core), args.core.resolve(), paths)
             write_json(args.output, artifact)
             print(f"wrote {args.output}")
         elif args.command == "validate":

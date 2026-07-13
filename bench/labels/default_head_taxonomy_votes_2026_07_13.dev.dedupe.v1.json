@@ -1,0 +1,176 @@
+{
+  "audit_packet_set_sha256": "6fd104840e81236748a490c2b67b701b5b7f331298bd9a6fc800422ec57c70a9",
+  "core_sha256": "20dedce473cd7148fe367f64457bcd6934727b79b69fed7c6b8e5ceca1782e30",
+  "items": [
+    {
+      "audit_key": "generated-provenance.v1:alamofire:793e32805b42004a:rank-11",
+      "packet_sha256": "ab1f58305a642a426627c7491bfa5571d6f0be54fd52d15f688328e2798d025b",
+      "premise_holds": true,
+      "rationale": "All six bounds are static Jazzy declaration-card markup in six provenance-matched documentation files, including the mirrored docset copies. The repeated HTML is generated presentation of Swift declarations, so editing or extracting it directly would be inappropriate and moving it off the bare default hides no actionable source refactoring.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:cc33e4efac79a858:rank-12",
+      "packet_sha256": "a09ad995278978f68a75d683b6837432f0e2689a78b26cb2414ee113343aedcc",
+      "premise_holds": true,
+      "rationale": "All 286 bounds are Jazzy anchor-and-token entries across the exact 102 files covered by the frozen provenance, with many entries mechanically adding a Default implementation note. They are generated symbol-index fragments rather than maintainer-authored duplication, so a reason-coded generated surface is the actionable placement.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:bbdfc5887a659065:rank-13",
+      "packet_sha256": "21c718b7d15f841de80bfbf81fa74940f6977ae36c8454c5086d7f70784591c4",
+      "premise_holds": true,
+      "rationale": "The eight bounds in eight provenance-matched Jazzy pages are generated method documentation sections containing abstract text, declarations, and parameter rendering. The repeated page scaffolding is not a refactoring target in the generated HTML and can safely leave the bare default.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:e4f4185980849d4d:rank-14",
+      "packet_sha256": "79dfd856d274909b8b3c9ddf4277e8ded78d904a214ec493167689b7ad23060a",
+      "premise_holds": true,
+      "rationale": "All 72 members are static Jazzy parameter/abstract blocks in the same 50 files frozen by the provenance rule. Their shared graybox and documentation structure comes from the documentation renderer, not duplicated editable behavior, so demoting the generated output does not conceal a source-level extraction.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:05dcccc75367eb8a:rank-15",
+      "packet_sha256": "b80f21c6fe90942235531ca00b3a542fb7b93802ae131a66c7bb5bf0674e670e",
+      "premise_holds": true,
+      "rationale": "Every one of the 98 bounds is a generated Jazzy parameter table or description fragment, and the 42 member files exactly match the mechanically proven file set. Consolidating these rendered tables by hand is not a valid project refactoring; the source documentation remains the editable authority.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:032c742943984de3:rank-16",
+      "packet_sha256": "13196e918636474671e9743849e4d1f2a814a221f1210d885016137641aac273",
+      "premise_holds": true,
+      "rationale": "All 32 members are repeated parameter rows emitted into four provenance-matched Jazzy pages and contain only static documentation markup. This is renderer boilerplate in generated artifacts, not an actionable shared helper or data table in project source.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:840420de4c77e9b9:rank-17",
+      "packet_sha256": "324d7a447aa016e9c9f8fb50a746ca400071fb207897b966f4f445caab2d8121",
+      "premise_holds": true,
+      "rationale": "The 1,644 bounds are all small parameter-name table cells across exactly the 150 Jazzy files certified by the frozen evidence; the inspected bounds have one uniform static table-cell skeleton. Their volume is template expansion, so keeping the generated family in the bare default would only expose non-editable documentation output.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:cb45801499f64f75:rank-18",
+      "packet_sha256": "65ad6bc0718ded3924b63d600ddd6c14c54a3d16ccf023d6a205b74834414abf",
+      "premise_holds": true,
+      "rationale": "All 140 bounds are static Jazzy parameter rows or descriptions in the exact 14 provenance-matched pages. The repeated HTML documents generated API parameters and contains no independent implementation to extract, so a generated reason code preserves visibility without hiding an actionable refactoring.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:897da6f4ca56bb95:rank-19",
+      "packet_sha256": "0c24aff23ca24b32882957c8932fa1653c70bc140188e8cf009405b1604af211",
+      "premise_holds": true,
+      "rationale": "The 48 members are generated Jazzy initializer entries and declaration cards in 36 evidence-matched HTML files, including mirrored outputs. They render Swift API documentation rather than duplicate hand-written logic, making bare-default demotion appropriate.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:0783ee556e330d47:rank-20",
+      "packet_sha256": "719c9b481fcedc61a973c4ac12f0ebdc41ce5ca090c20f79288eb79ab32e3d70",
+      "premise_holds": true,
+      "rationale": "Every bound is a static parameter table emitted by Jazzy, and all 30 files are present in the frozen generated-provenance set. The repeated buffer, encoder, and related parameter descriptions are renderer structure, not a coherent source refactoring in these generated pages.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:5026297ac8fac46f:rank-21",
+      "packet_sha256": "2ec882575720e29bdf9a1c38c370442ebe20f437f6e553db9276d9d666cff35d",
+      "premise_holds": true,
+      "rationale": "All 72 members are Jazzy symbol anchor/token fragments marked as extension methods across the exact 30 proven generated files. The family is generated navigation metadata with no editable implementation boundary, so moving it off the bare default is safe.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:fae103cee993e819:rank-22",
+      "packet_sha256": "5c22deefc5a53bdfa5946adb95f8ae90aa019eecbc21f5397314520ee2ff0f9b",
+      "premise_holds": true,
+      "rationale": "The 24 bounds are generated Jazzy note and throws asides in 18 files whose provenance is fully matched. These repeated documentation callouts are template-rendered output; deduplicating the HTML would be both unstable and disconnected from the authoritative source comments.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:f678cf9a935c562e:rank-23",
+      "packet_sha256": "c39c6d323f065ae7ce7b2b5bfaabd710f449734fa62d54b32499b0c3100da6fb",
+      "premise_holds": true,
+      "rationale": "All six bounds are complete Jazzy task-group or initializer documentation blocks in six mechanically proven generated pages. The duplication is documentation layout produced by Jazzy rather than a maintainable source abstraction, so no actionable refactoring is hidden.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:d5648f8067f7f9c5:rank-24",
+      "packet_sha256": "ac05efb270f5e0ad0c471ce0262a54a379ccfddda702cc21801a26ba931ce1c6",
+      "premise_holds": true,
+      "rationale": "Every one of the 196 bounds is a generated Jazzy breadcrumb fragment, and each of the 196 files is independently present in the frozen provenance file set. Breadcrumb repetition is site-template output and should not compete with source refactorings in the bare default.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:07a29bed276c4a40:rank-25",
+      "packet_sha256": "98d613dcd627c173073c9d1038dd9c597f51f6c808ea3acc909e8da02bcb0384",
+      "premise_holds": true,
+      "rationale": "The six members are Jazzy method declaration/documentation fragments in six provenance-matched HTML pages. They are static renderings of Swift declarations, so extracting common HTML would edit generated artifacts rather than improve the project source.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:99c66e020602d1d7:rank-26",
+      "packet_sha256": "90419c4c16c274b10b79042e99912ab79d457648e7ec6feb9f2e915b049a9412",
+      "premise_holds": true,
+      "rationale": "All 16 bounds are generated abstract or parameter-description fragments in the same six files certified by the Jazzy rule. The repeated markup reflects API-documentation generation and offers no stable source-level extraction in these output files.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:c39e6f93d691a989:rank-27",
+      "packet_sha256": "457e272879c5fe4a069b171f937963fba9646dc277f7e4a8993e6769ded54266",
+      "premise_holds": true,
+      "rationale": "All eight bounds are identical Jazzy graybox parameter tables across the exact four provenance-matched pages. This is generated documentation scaffolding for a transform parameter, not actionable duplication in maintainer-authored implementation.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:880f155ebfd23d96:rank-28",
+      "packet_sha256": "48e5b2edeb9bbd8705153396b2b7aec608956e8828c50ced855982c683362672",
+      "premise_holds": true,
+      "rationale": "The ten members are generated Jazzy multi-parameter tables in ten evidence-matched pages. Their common table layout is renderer-owned and cannot be usefully extracted from the emitted HTML, so the generated surface is correct.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:dd040bfe91330528:rank-29",
+      "packet_sha256": "d5014e6f425e147e43d6f11d9155695fbe555e9c535b7665046f8ed3a406b8d1",
+      "premise_holds": true,
+      "rationale": "All 78 bounds are static Jazzy parameter rows in the exact 20 generated files listed by the frozen evidence. The repeated row structure and default-value prose are documentation output, not a shared runtime or source abstraction.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "generated-provenance.v1:alamofire:669908828b20050d:rank-30",
+      "packet_sha256": "a0b4567b47ff90147dd04cde84bee76e3e3e36b50a7832476af606b48761ba31",
+      "premise_holds": true,
+      "rationale": "Every one of the 16 bounds is an abstract upload-method description in four Jazzy pages and their mirrored docset outputs, with complete file-level provenance coverage. These generated descriptions should remain recoverable but do not represent actionable duplication in the HTML.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "declaration-only-type.v1:antlr4:ae4c8da2e1e24a84:rank-14",
+      "packet_sha256": "35005bd2823a17f26d2ee75656e2f53ec73fa5ee71e1df4af270b58a1d2352f8",
+      "premise_holds": true,
+      "rationale": "Both members are pure, body-free declarations of the same ANTLR error-strategy contract, one Swift protocol and one Java interface. Cross-language API parity cannot be consolidated into a shared source abstraction, so moving this declaration-only family out of the bare default hides no actionable refactoring.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "declaration-only-type.v1:prettier:28745f9b360ca305:rank-23",
+      "packet_sha256": "5aeed85ae5e21db66863ab355cc2a0fe38950acf00040276544b01f855c24aaf",
+      "premise_holds": true,
+      "rationale": "Both bounds are identical TypeScript UploadState aliases with no runtime body, embedded in two separate Prettier formatter-input fixtures. Sharing the alias would couple and alter self-contained formatting cases rather than improve product code, so this is non-actionable declaration-only duplication.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "declaration-only-type.v1:prettier:20080c8b31b01058:rank-25",
+      "packet_sha256": "a11997ccecae28499c84d3ecd8368c8ad155f409bba9b1b7bef00dcaea59da20",
+      "premise_holds": true,
+      "rationale": "All four members are body-free TypeScript constructor contracts in one Prettier fixture, deliberately varying interface versus type alias and generic formatting. Consolidation would erase the syntax variants under test, so the declaration-only family is not an actionable deduplication.",
+      "verdict": "non-actionable"
+    },
+    {
+      "audit_key": "declaration-only-type.v1:zustand:cdb6c513b5432417:rank-19",
+      "packet_sha256": "71ad36b87b8044cc25fd0f4f049788dbb1d6a0fbe3bd27400215003b17de6e7f",
+      "premise_holds": true,
+      "rationale": "Both members are short, body-free State aliases local to separate React and vanilla Zustand basic-test files. Although structurally identical, extracting a shared test type would add coupling and an import for fixture-local compile-time scaffolding without removing runtime duplication, so moving the family off the bare default is appropriate.",
+      "verdict": "non-actionable"
+    }
+  ],
+  "persona": "dedupe",
+  "schema": "nose.default_head_taxonomy_vote.v1"
+}
