@@ -39,10 +39,19 @@ ARTIFACT_SCHEMA = "nose.refactoring_label_refresh_candidates.v1"
 DECISIONS_SCHEMA = "nose.refactoring_label_decisions.v1"
 PANEL_VOTE_SCHEMA = "nose.refactoring_panel_vote.v1"
 PANEL_MERGE_SCHEMA = "nose.refactoring_panel_merge.v1"
+PANEL_ARBITRATION_SCHEMA = "nose.refactoring_panel_arbitration.v1"
 SELECTION_SEED = "nose-issue-812-existing-unmatched-v1"
 RUNWAY_SCHEMA = "nose.default_head_label_runway.v1"
 RUNWAY_SELECTION_SEED = "nose-issue-840-default-head-v7-rank-11-30"
 RUNWAY_TOP = 30
+FROZEN_V5_SHA256 = "e18b65543f4b6373d7eadbc93159adda69699eafe8f5f814d9ba53e245a6d9f9"
+FROZEN_V6_SHA256 = "6b72927d0e68e05406540016d3fa136029c52a406af0938b5a805d3fa199ac23"
+FROZEN_V5_FAMILIES_SHA256 = (
+    "a4364f09b21a9d08ed5d422b21ddcd14a93b7f37c7e814ddf1e52bc12002623a"
+)
+FROZEN_V6_FAMILIES_SHA256 = (
+    "d03de27f0d9bba54e4ee6c28292e4d0b5ac1291ade100809af89d4ea30af147f"
+)
 
 
 def canonical_sha256(value: object) -> str:
@@ -883,8 +892,8 @@ def load_panel_vote(
             "reason": vote["reason"],
             "rationale": rationale.strip(),
         }
-    if recorded_keys != selected_keys:
-        raise SystemExit(f"{path}: vote keys/order differ from the frozen selection")
+    if set(recorded_keys) != set(selected_keys):
+        raise SystemExit(f"{path}: vote keys differ from the frozen selection")
     return by_key
 
 
@@ -943,6 +952,115 @@ def merge_runway_votes(
             "disagreements": sum(1 for row in rows if not row["unanimous"]),
         },
         "rows": rows,
+    }
+
+
+def freeze_panel_vote(
+    artifact_path: Path,
+    artifact: dict[str, Any],
+    input_path: Path,
+    persona: str,
+) -> dict[str, Any]:
+    by_key = load_panel_vote(
+        input_path,
+        persona=persona,
+        artifact_path=artifact_path,
+        artifact=artifact,
+    )
+    selected_keys = [
+        candidate["candidate_key"]
+        for candidate in sorted(
+            (row for row in artifact["candidates"] if row["selected"]),
+            key=lambda row: row["selection_order"],
+        )
+    ]
+    return {
+        "schema": PANEL_VOTE_SCHEMA,
+        "persona": persona,
+        "source_artifact": {
+            "path": rel(artifact_path.resolve()),
+            "sha256": sha256_file(artifact_path),
+        },
+        "votes": [
+            {"candidate_key": key, **by_key[key]} for key in selected_keys
+        ],
+    }
+
+
+def build_runway_decisions(
+    merge: dict[str, Any], arbitration_path: Path, arbitration: dict[str, Any]
+) -> dict[str, Any]:
+    if arbitration.get("split") != "dev":
+        raise SystemExit("runway arbitration split must be dev")
+    if arbitration.get("source_artifact") != merge.get("source_artifact"):
+        raise SystemExit("runway arbitration source artifact mismatch")
+    if arbitration.get("vote_inputs") != merge.get("vote_inputs"):
+        raise SystemExit("runway arbitration vote inputs mismatch")
+    records = arbitration.get("arbitrations")
+    if not isinstance(records, list):
+        raise SystemExit("runway arbitration needs an arbitrations array")
+    by_key: dict[str, dict[str, Any]] = {}
+    recorded_keys = []
+    for index, record in enumerate(records):
+        if not isinstance(record, dict):
+            raise SystemExit(f"arbitrations[{index}] must be an object")
+        key = record.get("candidate_key")
+        if not isinstance(key, str) or not key or key in by_key:
+            raise SystemExit(f"arbitrations[{index}] has an invalid/duplicate key")
+        try:
+            validate_vote(record, f"arbitrations[{index}]")
+        except ValueError as error:
+            raise SystemExit(str(error)) from error
+        confidence = record.get("confidence")
+        if confidence not in {"high", "medium", "low"}:
+            raise SystemExit(f"arbitrations[{index}].confidence is invalid")
+        rationale = record.get("rationale")
+        if not isinstance(rationale, str) or not rationale.strip():
+            raise SystemExit(f"arbitrations[{index}].rationale is required")
+        recorded_keys.append(key)
+        by_key[key] = record
+    expected_keys = [row["candidate_key"] for row in merge["rows"] if not row["unanimous"]]
+    if recorded_keys != expected_keys:
+        raise SystemExit("arbitration keys/order differ from the panel disagreement queue")
+
+    decisions = []
+    for row in merge["rows"]:
+        if row["unanimous"]:
+            panel_decision = row["votes"][VOTE_NAMES[0]]
+            decision = {
+                "candidate_key": row["candidate_key"],
+                "votes": row["votes"],
+                "arbiter": None,
+                "confidence": "high",
+                "note": (
+                    "All three personas independently selected "
+                    f"{panel_decision['reason']}."
+                ),
+            }
+        else:
+            resolution = by_key[row["candidate_key"]]
+            decision = {
+                "candidate_key": row["candidate_key"],
+                "votes": row["votes"],
+                "arbiter": {
+                    "worthy": resolution["worthy"],
+                    "reason": resolution["reason"],
+                    "rationale": resolution["rationale"].strip(),
+                },
+                "confidence": resolution["confidence"],
+                "note": resolution["rationale"].strip(),
+            }
+        decisions.append(decision)
+    return {
+        "schema": DECISIONS_SCHEMA,
+        "split": "dev",
+        "source_artifact": merge["source_artifact"],
+        "vote_inputs": merge["vote_inputs"],
+        "arbitration_input": {
+            "path": rel(arbitration_path.resolve()),
+            "sha256": sha256_file(arbitration_path),
+        },
+        "decisions": decisions,
     }
 
 
@@ -1030,12 +1148,31 @@ def validate_runway_dev(
         seen_collection_sources.add(path)
         if git_file_sha256(revision, path) != digest:
             raise SystemExit(f"collection source provenance mismatch: {path}")
+    for path_key, hash_key in (
+        ("corpus_manifest", "corpus_manifest_sha256"),
+        ("base_labelset", "base_labelset_sha256"),
+        ("rubric", "rubric_sha256"),
+    ):
+        path = ROOT / provenance.get(path_key, "")
+        if not path.is_file() or sha256_file(path) != provenance.get(hash_key):
+            raise SystemExit(f"dev runway provenance mismatch for {path_key}")
+    base_path = ROOT / provenance["base_labelset"]
+    if provenance.get("base_labelset_sha256") != FROZEN_V6_SHA256:
+        raise SystemExit("dev runway does not extend the byte-frozen v6 manifest")
+    base = load_labelset(base_path)
+    if (
+        base.version != "v6"
+        or canonical_sha256(base.families) != FROZEN_V6_FAMILIES_SHA256
+        or not base.inputs
+        or base.inputs[0].get("sha256") != FROZEN_V5_SHA256
+    ):
+        raise SystemExit("byte-frozen v5/v6 label projection changed")
+    v5 = load_labelset(ROOT / "bench/labels/refactoring_families.v5.json")
+    if canonical_sha256(v5.families) != FROZEN_V5_FAMILIES_SHA256:
+        raise SystemExit("byte-frozen v5 label projection changed")
 
     if live_root is not None:
         for path_key, hash_key in (
-            ("corpus_manifest", "corpus_manifest_sha256"),
-            ("base_labelset", "base_labelset_sha256"),
-            ("rubric", "rubric_sha256"),
             ("nose_binary", "nose_binary_sha256"),
         ):
             path = live_root / provenance.get(path_key, "")
@@ -1763,6 +1900,18 @@ def run_self_test() -> None:
             "unanimous": 2,
             "disagreements": 0,
         }
+        arbitration_path = root / "arbitration.json"
+        arbitration = {
+            "schema": PANEL_ARBITRATION_SCHEMA,
+            "split": "dev",
+            "source_artifact": merged["source_artifact"],
+            "vote_inputs": merged["vote_inputs"],
+            "arbitrations": [],
+        }
+        arbitration_path.write_text(json.dumps(arbitration), encoding="utf-8")
+        decisions = build_runway_decisions(merged, arbitration_path, arbitration)
+        assert len(decisions["decisions"]) == 2
+        assert all(row["arbiter"] is None for row in decisions["decisions"])
     print("label refresh self-test passed")
 
 
@@ -1821,6 +1970,17 @@ def parse_args() -> argparse.Namespace:
     for persona in VOTE_NAMES:
         runway_votes_parser.add_argument(f"--{persona}", type=Path, required=True)
     runway_votes_parser.add_argument("--output", type=Path, required=True)
+    freeze_vote_parser = subparsers.add_parser("freeze-runway-vote")
+    freeze_vote_parser.add_argument("--dev-candidates", type=Path, required=True)
+    freeze_vote_parser.add_argument("--persona", choices=VOTE_NAMES, required=True)
+    freeze_vote_parser.add_argument("--input", type=Path, required=True)
+    freeze_vote_parser.add_argument("--output", type=Path, required=True)
+    runway_decisions_parser = subparsers.add_parser("build-runway-decisions")
+    runway_decisions_parser.add_argument("--dev-candidates", type=Path, required=True)
+    for persona in VOTE_NAMES:
+        runway_decisions_parser.add_argument(f"--{persona}", type=Path, required=True)
+    runway_decisions_parser.add_argument("--arbitrations", type=Path, required=True)
+    runway_decisions_parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
 
 
@@ -1928,6 +2088,36 @@ def main() -> None:
             f"wrote {args.output}: {merged['summary']['unanimous']} unanimous, "
             f"{merged['summary']['disagreements']} disagreements"
         )
+        return
+    if args.command == "freeze-runway-vote":
+        dev = load_schema_artifact(args.dev_candidates, RUNWAY_SCHEMA, "dev runway")
+        validate_runway_dev(dev)
+        frozen = freeze_panel_vote(
+            args.dev_candidates, dev, args.input, args.persona
+        )
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(
+            json.dumps(frozen, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        print(f"wrote {args.output}: {len(frozen['votes'])} {args.persona} votes")
+        return
+    if args.command == "build-runway-decisions":
+        dev = load_schema_artifact(args.dev_candidates, RUNWAY_SCHEMA, "dev runway")
+        validate_runway_dev(dev)
+        merged = merge_runway_votes(
+            args.dev_candidates,
+            dev,
+            {persona: getattr(args, persona) for persona in VOTE_NAMES},
+        )
+        arbitration = load_schema_artifact(
+            args.arbitrations, PANEL_ARBITRATION_SCHEMA, "runway arbitration"
+        )
+        decisions = build_runway_decisions(merged, args.arbitrations, arbitration)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(
+            json.dumps(decisions, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        print(f"wrote {args.output}: {len(decisions['decisions'])} decisions")
         return
     raise SystemExit("choose collect or validate, or pass --self-test")
 
