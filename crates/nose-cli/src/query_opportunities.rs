@@ -87,7 +87,11 @@ impl OpportunityGroups {
             // family because its source bounds are tighter. It can be folded under that
             // existing family when covered, but it must never become the presentation
             // root that hides previously visible product output.
-            .filter(|&(i, j)| !is_connected(families[i]) || is_connected(families[j]))
+            .filter(|&(i, j)| {
+                !is_same_unit(families[i])
+                    && !is_same_unit(families[j])
+                    && (!is_connected(families[i]) || is_connected(families[j]))
+            })
             .collect();
         // Presentation overlap is a graph, not an equivalence relation. A direct
         // spanning forest keeps syntax-only suppression edges navigable without
@@ -152,7 +156,14 @@ impl OpportunityGroups {
 }
 
 fn is_connected(family: &nose_detect::RefactorFamily) -> bool {
-    family.witness.as_ref().map(|witness| witness.kind) == Some("connected-mapped-sub-dag")
+    matches!(
+        family.witness.as_ref().map(|witness| witness.kind),
+        Some("connected-mapped-sub-dag" | "bounded-same-unit-window")
+    )
+}
+
+fn is_same_unit(family: &nose_detect::RefactorFamily) -> bool {
+    family.witness.as_ref().map(|witness| witness.kind) == Some("bounded-same-unit-window")
 }
 
 #[derive(Default)]

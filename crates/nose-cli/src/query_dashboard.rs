@@ -95,6 +95,7 @@ pub(super) fn render_query_dashboard(
                         "scanned_files": scope.files,
                         "families": def.len(),
                         "by_confidence": {"exact": count("exact"), "subdag": count("subdag"),
+                            "bounded_window": count("bounded-window"),
                             "copy_paste": count("copy-paste"), "similar": count("similar")},
                         "reinvented": reinvented_prod,
                         "shown": top.len(),
@@ -113,19 +114,21 @@ pub(super) fn render_query_dashboard(
         return;
     }
     println!("{}", scope.summary());
-    let n_proven = count("exact") + count("subdag");
+    let n_proven = count("exact") + count("subdag") + count("bounded-window");
     println!(
         "\n{} duplicated-code {}.",
         style::bold(&def.len().to_string()),
         plural(def.len(), "family", "families"),
     );
     println!(
-        "  {} {n_proven} ({} {} · {} {}) · {} {} · {} {}",
+        "  {} {n_proven} ({} {} · {} {} · {} {}) · {} {} · {} {}",
         style::bold_green("verified"),
         style::green("exact"),
         count("exact"),
         style::green("shared-core"),
         count("subdag"),
+        style::green("bounded-window"),
+        count("bounded-window"),
         style::yellow("copy-paste"),
         count("copy-paste"),
         style::blue("similar"),
@@ -133,7 +136,7 @@ pub(super) fn render_query_dashboard(
     );
     println!(
         "  {}",
-        style::dim("verified = machine-checked evidence · exact = same unit behavior · shared-core = shared computation")
+        style::dim("verified = machine-checked evidence · exact = same unit behavior · shared-core = shared computation · bounded-window = disjoint regions in one unit")
     );
     // The "best candidates" lead only makes sense when the default surface has
     // something on it. With an empty surface we skip it (a `sort=extractability` link into
@@ -156,6 +159,7 @@ pub(super) fn render_query_dashboard(
     };
     let n_exact = kind_of("exact-value-graph");
     let n_subdag = kind_of("shared-sub-dag") + kind_of("connected-mapped-sub-dag");
+    let n_bounded = kind_of("bounded-same-unit-window");
     let proven: Vec<_> = def
         .iter()
         .filter(|f| {
@@ -164,6 +168,7 @@ pub(super) fn render_query_dashboard(
                 Some("exact-value-graph")
                     | Some("shared-sub-dag")
                     | Some("connected-mapped-sub-dag")
+                    | Some("bounded-same-unit-window")
             )
         })
         .collect();
@@ -180,6 +185,15 @@ pub(super) fn render_query_dashboard(
                 style::dim(&format!(
                     "# the {n_exact} exact whole-unit {}",
                     plural(n_exact, "family", "families")
+                ))
+            );
+        }
+        if n_bounded > 0 {
+            println!(
+                "  nose query {path} witness=bounded-window    {}",
+                style::dim(&format!(
+                    "# the {n_bounded} bounded same-unit {}",
+                    plural(n_bounded, "family", "families")
                 ))
             );
         }

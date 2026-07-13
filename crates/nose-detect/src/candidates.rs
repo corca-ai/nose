@@ -12,11 +12,12 @@ use crate::{
 use nose_semantics::ValueLaw;
 use rustc_hash::FxHashMap;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ConnectedRoute {
     Mapped,
     CompleteExit,
     Nested,
+    SameUnit,
 }
 
 #[derive(Clone, Copy)]
@@ -194,13 +195,19 @@ pub(crate) fn build_connected_groups(
                 score: round3(pair.score),
                 members: vec![left, right],
                 semantic_laws: semantic_laws_for_members(&members, units),
-                abstraction_witness: if opts.abstraction_witnesses {
+                abstraction_witness: if opts.abstraction_witnesses
+                    && !matches!(pair.route, ConnectedRoute::SameUnit)
+                {
                     units::abstraction_family_witness(members.iter().map(|&m| &units[m]))
                 } else {
                     None
                 },
                 witness: Some(EquivalenceWitness {
-                    kind: "connected-mapped-sub-dag",
+                    kind: if matches!(pair.route, ConnectedRoute::SameUnit) {
+                        "bounded-same-unit-window"
+                    } else {
+                        "connected-mapped-sub-dag"
+                    },
                     value_nodes: Some(pair.witness.mapped_nodes as usize),
                     mean_value_jaccard: None,
                     mean_shape_jaccard: None,

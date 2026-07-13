@@ -245,3 +245,54 @@ int right(State *s) {
         "connected edges must remain two-member pair-local groups"
     );
 }
+
+#[test]
+fn same_unit_route_reports_two_bounded_non_exact_locations() {
+    let source = r#"
+int set_option(const char *name, const char *value) {
+  if (!strcmp(name, "progress")) {
+    if (!strcmp(value, "true")) options.progress = 1;
+    else if (!strcmp(value, "false")) options.progress = 0;
+    else return -1;
+    return 0;
+  }
+  if (!strcmp(name, "deepen-relative")) {
+    if (!strcmp(value, "true")) options.deepen_relative = 1;
+    else if (!strcmp(value, "false")) options.deepen_relative = 0;
+    else return -1;
+    return 0;
+  }
+  return 1;
+}
+"#;
+    let opts = candidate_options();
+    let (report, _) = detect_with_dump(
+        &corpus(&[("options.c", source, Lang::C)]),
+        &opts,
+        &StructuralDetector::candidates(opts.jaccard_weight).with_threshold(opts.threshold),
+    );
+
+    let family = report
+        .groups
+        .iter()
+        .find(|group| {
+            group.witness.as_ref().map(|witness| witness.kind) == Some("bounded-same-unit-window")
+        })
+        .expect("the two branches should be one bounded same-unit family");
+    assert_eq!(family.members.len(), 2);
+    let left = &family.members[0];
+    let right = &family.members[1];
+    assert_eq!(left.file, right.file);
+    assert!(left.end_line < right.start_line);
+    assert!(family.members.iter().all(|location| {
+        !location.is_fragment
+            && location.fragment_kind.is_none()
+            && location.reason_code.is_none()
+            && location.name.is_none()
+            && location
+                .enclosing_unit
+                .as_ref()
+                .and_then(|unit| unit.name.as_deref())
+                == Some("set_option")
+    }));
+}

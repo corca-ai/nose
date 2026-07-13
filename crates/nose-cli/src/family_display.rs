@@ -46,6 +46,7 @@ pub(super) fn family_summary(f: &nose_detect::RefactorFamily) -> String {
         Some("exact-value-graph") => " · exact behavior match",
         Some("shared-sub-dag") => " · shared core computation",
         Some("connected-mapped-sub-dag") => " · connected shared computation",
+        Some("bounded-same-unit-window") => " · bounded same-unit match",
         Some("copy-paste-run") => " · copy-paste",
         Some("structural-similarity") => " · near-duplicate",
         _ => "",

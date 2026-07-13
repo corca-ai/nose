@@ -54,6 +54,75 @@ pub(super) fn score_connected_candidates(
     connected
 }
 
+pub(super) fn score_same_unit_candidates(
+    units: &[UnitFeat],
+    threshold: f64,
+    bound_product_work: bool,
+) -> Vec<ConnectedAccepted> {
+    same_unit_seed_indices(units, bound_product_work)
+        .par_iter()
+        .filter_map(|&index| {
+            let witness = connected::same_unit_witness(&units[index].connected_tokens)?;
+            let score = connected_witness_score(witness);
+            (score >= threshold).then_some(ConnectedAccepted {
+                left: index,
+                right: index,
+                score,
+                witness,
+                route: ConnectedRoute::SameUnit,
+            })
+        })
+        .collect()
+}
+
+fn same_unit_seed_indices(units: &[UnitFeat], bound_product_work: bool) -> Vec<usize> {
+    const MIN_SELF_UNIT_NODES: usize = 20;
+    const PRODUCT_PER_FILE_CAP: usize = 2;
+    const PRODUCT_GLOBAL_CAP: usize = 4_096;
+
+    let eligible = units
+        .iter()
+        .enumerate()
+        .filter(|(_, unit)| {
+            unit.fragment_kind.is_none()
+                && matches!(
+                    unit.kind,
+                    nose_il::UnitKind::Function | nose_il::UnitKind::Method
+                )
+                && unit.connected_tokens.len() >= MIN_SELF_UNIT_NODES
+        })
+        .map(|(index, _)| index)
+        .collect::<Vec<_>>();
+    if !bound_product_work {
+        return eligible;
+    }
+
+    let mut by_file: HashMap<&str, Vec<usize>> = HashMap::new();
+    for index in eligible {
+        let best = by_file.entry(units[index].path.as_str()).or_default();
+        best.push(index);
+        best.sort_unstable_by(|&left, &right| {
+            units[right]
+                .connected_tokens
+                .len()
+                .cmp(&units[left].connected_tokens.len())
+                .then_with(|| left.cmp(&right))
+        });
+        best.truncate(PRODUCT_PER_FILE_CAP);
+    }
+    let mut selected = by_file.into_values().flatten().collect::<Vec<_>>();
+    selected.sort_unstable_by(|&left, &right| {
+        units[right]
+            .connected_tokens
+            .len()
+            .cmp(&units[left].connected_tokens.len())
+            .then_with(|| left.cmp(&right))
+    });
+    selected.truncate(PRODUCT_GLOBAL_CAP);
+    selected.sort_unstable();
+    selected
+}
+
 /// The raw audit interface evaluates every seed. Product queries instead price the
 /// expensive pair-local proof only for the strongest ordinary near misses, while always
 /// retaining nested seeds because they are the sole route to disjoint descendants.
@@ -271,6 +340,7 @@ fn retain_strongest_connected_routes(connected: &mut Vec<ConnectedAccepted>) {
     const MAPPED_CAP: usize = 32;
     const EXIT_CAP: usize = 32;
     const NESTED_CAP: usize = 32;
+    const SAME_UNIT_CAP: usize = 32;
     connected.sort_unstable_by(|left, right| {
         right
             .witness
@@ -279,16 +349,44 @@ fn retain_strongest_connected_routes(connected: &mut Vec<ConnectedAccepted>) {
             .then_with(|| left.witness.holes.cmp(&right.witness.holes))
             .then_with(|| (left.left, left.right).cmp(&(right.left, right.right)))
     });
-    let (mut mapped, mut exit, mut nested) = (0, 0, 0);
+    let (mut mapped, mut exit, mut nested, mut same_unit) = (0, 0, 0, 0);
     connected.retain(|pair| {
         let (count, cap) = match pair.route {
             ConnectedRoute::Mapped => (&mut mapped, MAPPED_CAP),
             ConnectedRoute::CompleteExit => (&mut exit, EXIT_CAP),
             ConnectedRoute::Nested => (&mut nested, NESTED_CAP),
+            ConnectedRoute::SameUnit => (&mut same_unit, SAME_UNIT_CAP),
         };
         *count += 1;
         *count <= cap
     });
+}
+
+pub(super) fn deduplicate_same_unit(
+    units: &[UnitFeat],
+    accepted: &mut Vec<ConnectedAccepted>,
+    bound_product_output: bool,
+) {
+    accepted.sort_unstable_by(|left, right| {
+        right
+            .witness
+            .mapped_nodes
+            .cmp(&left.witness.mapped_nodes)
+            .then_with(|| left.witness.holes.cmp(&right.witness.holes))
+            .then_with(|| left.left.cmp(&right.left))
+            .then_with(|| left.witness.left_lines.cmp(&right.witness.left_lines))
+            .then_with(|| left.witness.right_lines.cmp(&right.witness.right_lines))
+    });
+    accepted.dedup_by_key(|pair| (pair.left, pair.witness.left_lines, pair.witness.right_lines));
+    if bound_product_output {
+        let mut files = HashSet::new();
+        accepted.retain(|pair| {
+            units
+                .get(pair.left)
+                .is_none_or(|unit| files.insert(unit.path.as_str()))
+        });
+        accepted.truncate(32);
+    }
 }
 
 /// A nested raw candidate is never itself reportable. It may, however, be the only LSH
@@ -357,3 +455,6 @@ fn strictly_contains(parent: &UnitFeat, child: &UnitFeat) -> bool {
     contains_or_same(parent, child)
         && (parent.start_line < child.start_line || parent.end_line > child.end_line)
 }
+
+#[cfg(test)]
+mod tests;
