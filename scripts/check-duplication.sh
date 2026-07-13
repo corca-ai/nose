@@ -235,6 +235,10 @@ set -euo pipefail
 # reviewed Markdown/detect candidate-pair enumeration representative from `17e10a85fc7439bc`
 # to `8462d08908be9e8a`. The same two functions remain the only members; no new budget or
 # avoidable duplication is accepted.
+# 28 -> 29 (#842 generated provenance): source-aware CLI, fold, and evidence additions make the
+# pre-existing reviewed numeric-dispatch family `856ea94f585f0c67` cross the threshold again;
+# neither member changed. The new surface-selection test reuses existing scaffolding and adds no
+# further substantial family. See docs/dogfooding-history.md.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

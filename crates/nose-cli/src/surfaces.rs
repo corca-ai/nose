@@ -1,28 +1,40 @@
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 
-use crate::path_utils::relativize;
 use crate::source_lines::FileLineCache;
 
+mod generated;
+
+use generated::{generated_source_indexes, GeneratedSourceIndexes};
+#[cfg(test)]
+pub(crate) use generated::{
+    has_version_tag, head_has_jazzy_generated_provenance, looks_compiled_css,
+};
+
 /// Compute the surface overrides for every output format and flag generated
-/// locations. The generated index is one head-read per discovered file (#224
-/// — the #216 audit's re2c case) and the declaration analysis is one span-read
-/// per family; both run only when families exist.
+/// locations. The generated indexes are one head-read per discovered file
+/// (#224 — the #216 audit's re2c case) and the declaration analysis is one
+/// span-read per family; both run only when families exist.
 pub(crate) fn classify_surface_overrides(
     families: &mut [nose_detect::RefactorFamily],
 ) -> SurfaceOverrides {
-    let generated_sources = if families.is_empty() {
-        FxHashSet::default()
+    let generated = if families.is_empty() {
+        GeneratedSourceIndexes::default()
     } else {
-        generated_source_index(families)
+        generated_source_indexes(families)
     };
     for f in families.iter_mut() {
         for l in &mut f.locations {
-            l.looks_generated = generated_sources.contains(&l.file);
+            // `looks_generated` also participates in helper selection and other semantic
+            // report fields. Keep it on the established, source-local header/build-artifact
+            // contract; provenance that only changes the output surface must not alter the
+            // family records exposed by `all top=0` (#842).
+            l.looks_generated = generated.sources.contains(&l.file);
         }
     }
     SurfaceOverrides {
-        generated_sources,
+        generated_sources: generated.sources,
+        additional_generated_surface_sources: generated.additional_surface_sources,
         declaration_run_ids: declaration_run_ids(families),
     }
 }
@@ -34,6 +46,10 @@ pub(crate) fn classify_surface_overrides(
 pub(crate) struct SurfaceOverrides {
     /// Files whose head or stylesheet distribution markers classify them as generated (#224).
     pub(crate) generated_sources: FxHashSet<String>,
+    /// Additional source-coherent provenance used only to classify output surfaces. These
+    /// files deliberately do not set `Loc::looks_generated`, which has semantic effects on
+    /// helper selection and folding beyond presentation (#842).
+    pub(crate) additional_generated_surface_sources: FxHashSet<String>,
     /// Family ids whose every member span is provably only import/include/
     /// use/re-export declarations — duplication the language mandates per
     /// file, with no extraction action to take.
@@ -49,7 +65,7 @@ pub(crate) fn effective_surface(
     family: &nose_detect::RefactorFamily,
     overrides: &SurfaceOverrides,
 ) -> &'static str {
-    if family_generated_source(family, &overrides.generated_sources) {
+    if family_generated_source(family, overrides) {
         "generated"
     } else if family_declaration_run(family, overrides) {
         "declaration"
@@ -65,6 +81,23 @@ pub(crate) fn is_default_report_family(
     effective_surface(family, overrides) == "default"
 }
 
+/// The stable family set used to compute overlap folds. Additional provenance may move a
+/// whole opportunity from `default` to `generated`, but presentation classification must
+/// not dissolve its existing fold forest and expose new slice ids in `all top=0` (#842).
+/// Established generated/build-artifact and declaration rules retain their prior behavior.
+pub(crate) fn is_default_opportunity_family(
+    family: &nose_detect::RefactorFamily,
+    overrides: &SurfaceOverrides,
+) -> bool {
+    if family_established_generated_source(family, &overrides.generated_sources)
+        || family_declaration_run(family, overrides)
+    {
+        false
+    } else {
+        family.recommended_surface() == "default"
+    }
+}
+
 /// The decidable `actionability_reason` for the JSON contract (#11): the source-derived
 /// CLI-side non-action classes (`generated-source`, `declaration-run`) take precedence —
 /// mirroring [`effective_surface`] — then the detector's pure-shape codes (`trivial`,
@@ -74,7 +107,7 @@ pub(crate) fn family_actionability_reason(
     family: &nose_detect::RefactorFamily,
     overrides: &SurfaceOverrides,
 ) -> Option<&'static str> {
-    if family_generated_source(family, &overrides.generated_sources) {
+    if family_generated_source(family, overrides) {
         Some("generated-source")
     } else if family_declaration_run(family, overrides) {
         Some("declaration-run")
@@ -284,19 +317,35 @@ pub(crate) fn span_is_declarations(
 fn family_all_generated_source(
     family: &nose_detect::RefactorFamily,
     generated_sources: &FxHashSet<String>,
+    additional_generated_surface_sources: &FxHashSet<String>,
 ) -> bool {
     !family.locations.is_empty()
-        && family
-            .locations
-            .iter()
-            .all(|loc| generated_sources.contains(&loc.file))
+        && family.locations.iter().all(|loc| {
+            generated_sources.contains(&loc.file)
+                || additional_generated_surface_sources.contains(&loc.file)
+        })
 }
 
 fn family_generated_source(
     family: &nose_detect::RefactorFamily,
+    overrides: &SurfaceOverrides,
+) -> bool {
+    family_all_generated_source(
+        family,
+        &overrides.generated_sources,
+        &overrides.additional_generated_surface_sources,
+    ) || family_is_compiled_css_pipeline(family, &overrides.generated_sources)
+}
+
+fn family_established_generated_source(
+    family: &nose_detect::RefactorFamily,
     generated_sources: &FxHashSet<String>,
 ) -> bool {
-    family_all_generated_source(family, generated_sources)
+    (!family.locations.is_empty()
+        && family
+            .locations
+            .iter()
+            .all(|loc| generated_sources.contains(&loc.file)))
         || family_is_compiled_css_pipeline(family, generated_sources)
 }
 
@@ -383,134 +432,4 @@ pub(crate) fn surface_omission_note(
         "omitted {omitted} {family_word} from default output ({})",
         parts.join(", ")
     ))
-}
-
-fn generated_source_index(families: &[nose_detect::RefactorFamily]) -> FxHashSet<String> {
-    let cwd = std::env::current_dir().ok();
-    let mut generated = FxHashSet::default();
-    let files = families
-        .iter()
-        .flat_map(|f| f.locations.iter().map(|l| l.file.as_str()))
-        .collect::<std::collections::BTreeSet<_>>()
-        .into_iter()
-        .map(str::to_string)
-        .collect::<Vec<_>>();
-    let generated_files = files
-        .into_par_iter()
-        .filter(|path| source_has_generated_header(path))
-        .collect::<Vec<_>>();
-    for path in generated_files {
-        generated.insert(path.clone());
-        if let Some(cwd) = &cwd {
-            generated.insert(relativize(&path, cwd));
-        }
-    }
-    generated
-}
-
-fn source_has_generated_header(file: &str) -> bool {
-    if file.ends_with(".css") {
-        let Some(text) = std::fs::read_to_string(file).ok() else {
-            return false;
-        };
-        return text.lines().take(8).any(is_generated_header_line)
-            || looks_compiled_css(file, &text);
-    }
-    source_head_has_generated_header(file)
-}
-
-const GENERATED_HEADER_READ_BYTES: u64 = 64 * 1024;
-
-fn source_head_has_generated_header(file: &str) -> bool {
-    let Ok(mut f) = std::fs::File::open(file) else {
-        return false;
-    };
-    let mut head = String::new();
-    let mut limited = std::io::Read::take(&mut f, GENERATED_HEADER_READ_BYTES);
-    if std::io::Read::read_to_string(&mut limited, &mut head).is_err() {
-        return false;
-    }
-    head.lines().take(8).any(is_generated_header_line)
-}
-
-fn is_generated_header_line(line: &str) -> bool {
-    let line = line.trim().to_ascii_lowercase();
-    line.contains("@generated")
-        || line.contains("generated by")
-        || line.contains("code generated")
-        || line.contains("automatically generated")
-        || line.contains("auto-generated")
-        || line.contains("autogenerated")
-        || (line.contains("generated") && line.contains("do not edit"))
-}
-
-/// A compiled / distributed stylesheet (CSS built from SCSS/Less, or a shipped dist
-/// bundle) is a build artifact, not the maintainer's hand-edited source — like other
-/// generated code it is not theirs to dedupe, so it is kept off the default surface (its
-/// "duplication" is the expansion of preprocessor loops/mixins). Detected by distribution
-/// markers a hand-written app stylesheet does not carry: a preserved `/*!` license banner
-/// or a versioned header comment, a trailing `sourceMappingURL`, or a sibling `.css.map`.
-/// `.min.css` paths are also treated as compiled output here. Measured on the
-/// frontend gold set (`bench/labels/frontend_families.v1.json`): drops 147 generated
-/// families with 0 worthy — sound.
-pub(crate) fn looks_compiled_css(file: &str, text: &str) -> bool {
-    if !file.ends_with(".css") {
-        return false;
-    }
-    // A stylesheet under a preprocessor source dir is the INPUT, not compiled output.
-    if file
-        .split('/')
-        .any(|seg| matches!(seg, "scss" | "sass" | "less" | "styl"))
-    {
-        return false;
-    }
-    // Minified bundle (also caught path-side by `is_generated_loc`, but its content-index
-    // must agree so a family spanning min + non-min variants is uniformly generated).
-    if file.ends_with(".min.css") {
-        return true;
-    }
-    if std::path::Path::new(&format!("{file}.map")).exists() {
-        return true;
-    }
-    // A banner in the first few non-blank lines: `/*! … */` (preserved through minifiers)
-    // or a versioned header like `/* Sakura.css v1.5.1 */`. A minified file collapses the
-    // banner onto the first line behind an optional `@charset "…";`, so accept `/*!` that
-    // begins the line OR immediately follows a leading `@charset` declaration.
-    for line in text
-        .lines()
-        .map(str::trim)
-        .filter(|l| !l.is_empty())
-        .take(8)
-    {
-        if line.starts_with("/*!")
-            || (line.starts_with("@charset") && line.contains("/*!"))
-            || (line.starts_with("/*") && has_version_tag(line))
-        {
-            return true;
-        }
-    }
-    // A compiled bundle ends with a source-map reference.
-    text.lines()
-        .rev()
-        .filter(|l| !l.trim().is_empty())
-        .take(3)
-        .any(|l| l.contains("sourceMappingURL"))
-}
-
-/// A `vN.N`(.N) version token (e.g. `Sakura.css v1.5.1`) — a release marker of a
-/// distributed stylesheet.
-pub(crate) fn has_version_tag(s: &str) -> bool {
-    let b = s.as_bytes();
-    for i in 0..b.len().saturating_sub(2) {
-        if (b[i] | 0x20) == b'v' && b[i + 1].is_ascii_digit() {
-            let mut j = i + 1;
-            while j < b.len() && b[j].is_ascii_digit() {
-                j += 1;
-            }
-            if j + 1 < b.len() && b[j] == b'.' && b[j + 1].is_ascii_digit() {
-                return true;
-            }
-        }
-    }
-    false
 }

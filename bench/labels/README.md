@@ -309,6 +309,21 @@ python3 bench/labels/default_head_taxonomy.py validate \
   --skeptic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.skeptic.v1.json
 ```
 
+The [#842 generated-provenance closeout](generated_provenance_closeout_2026_07_13.dev.v1.json)
+records the implementation of the frozen Jazzy predicate: all 30 head/deep positives move
+to `surface: generated`, all three worthy HTML hard negatives remain `default`, family IDs
+and non-surface fields stay fixed, and only Alamofire changes across 66 dev repositories.
+The [bound behavior evidence](generated_provenance_behavior_2026_07_13.dev.v1.json)
+reconstructs those claims from per-repository output/ID/projection hashes and the exact
+#841 cohort keys. The closeout also role-checks and recomputes the published-v0.19.0 and
+same-binary-control artifacts across the exact 3 -> 9 -> 21 -> 40 escalation, verifies
+each checker-requested repository set, and reruns every official regression-checker edge
+through the r40 pass. It separately binds the annotated `v0.19.0` tag object and its
+peeled release commit; raw report `baseline_source_sha` values preserve the tag object
+passed to the historical harness command, while the closeout `commit` names the peeled
+commit. The readable decision record is
+[#842 generated provenance](../../docs/generated-provenance-842.md).
+
 The earlier [2026-07-11 nose 0.18.0 artifact](product_quality_evaluation_2026_07_11.v2.json)
 retains the historical full-universe definition:
 

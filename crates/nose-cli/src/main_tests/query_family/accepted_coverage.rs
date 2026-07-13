@@ -51,6 +51,25 @@ fn overlapping_slices_fold_under_their_primary() {
 }
 
 #[test]
+fn a_slice_stays_visible_when_its_primary_leaves_the_default_surface() {
+    let primary = fam_at(&[("docs/a.html", 100, 130), ("docs/b.html", 50, 70)]);
+    let slice = fam_at(&[("docs/a.html", 105, 128), ("docs/b.html", 52, 66)]);
+    let mut groups = OpportunityGroups::from_ranked(&[&primary, &slice]);
+    let default_ids = [baseline::family_id(&slice)].into_iter().collect();
+
+    groups.restrict_default_slices_to(&default_ids);
+
+    assert!(
+        groups.is_slice(&slice),
+        "the all-surface fold forest remains stable"
+    );
+    assert!(
+        !groups.is_default_slice(&slice),
+        "a default family cannot fold under a primary absent from that view"
+    );
+}
+
+#[test]
 fn dense_opportunity_bucket_stays_bounded() {
     let families: Vec<RefactorFamily> = (0..=200)
         .map(|offset| {

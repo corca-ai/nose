@@ -10,6 +10,8 @@ pub(crate) use support::*;
 mod commands;
 #[path = "cli/exact_fragments.rs"]
 mod exact_fragments;
+#[path = "cli/generated_surfaces.rs"]
+mod generated_surfaces;
 #[path = "cli/modes.rs"]
 mod modes;
 #[path = "cli/query_base.rs"]

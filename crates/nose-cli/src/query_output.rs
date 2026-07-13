@@ -15,6 +15,7 @@ use crate::query_sarif::refactor_sarif;
 use crate::query_terms::{family_at, Query};
 use crate::surfaces::{is_default_report_family, SurfaceOverrides};
 use anyhow::Result;
+use rustc_hash::FxHashSet;
 
 pub(super) struct QueryOutput<'a> {
     pub(super) args: &'a QueryArgs,
@@ -58,15 +59,41 @@ fn query_selection<'a>(
             .collect());
     }
     let widen = q.all || q.filters.iter().any(|flt| flt.field == "surface");
-    Ok(families
+    if q.filters.is_empty() {
+        return Ok(families
+            .iter()
+            .filter(|family| widen || is_default_surface(family, ov))
+            .filter(|family| {
+                !(if widen {
+                    opp.is_slice(family)
+                } else {
+                    opp.is_default_slice(family)
+                })
+            })
+            .collect());
+    }
+    let candidates: Vec<(&nose_detect::RefactorFamily, String)> = families
         .iter()
         .filter(|f| {
             (widen || is_default_surface(f, ov))
-                && !opp.is_slice(f)
                 && q.filters
                     .iter()
                     .all(|flt| family_matches(f, ov, flt, since))
         })
+        .map(|family| (family, baseline::family_id(family)))
+        .collect();
+    let candidate_ids: FxHashSet<&str> = candidates
+        .iter()
+        .map(|(_, family_id)| family_id.as_str())
+        .collect();
+    Ok(candidates
+        .iter()
+        .filter(|(_, family_id)| {
+            opp.primary_of
+                .get(family_id)
+                .is_none_or(|primary| !candidate_ids.contains(primary.as_str()))
+        })
+        .map(|(family, _)| *family)
         .collect())
 }
 
@@ -247,4 +274,73 @@ pub(super) fn enforce_query_fail_on(ctx: &QueryOutput<'_>) -> Result<()> {
         ctx.baseline_comparison,
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::main_tests::query_family::fam_at;
+    use crate::query_terms::{QFilter, QOp};
+
+    #[test]
+    fn surface_filters_keep_a_partial_default_slice_when_its_primary_is_filtered_out() {
+        let primary = fam_at(&[
+            ("docs/generated-a.html", 100, 130),
+            ("docs/generated-b.html", 50, 70),
+        ]);
+        let slice = fam_at(&[
+            ("docs/generated-a.html", 105, 128),
+            ("docs/generated-b.html", 52, 66),
+            ("docs/hand-written.html", 10, 20),
+        ]);
+        let families = vec![primary, slice];
+        let overrides = SurfaceOverrides {
+            generated_sources: Default::default(),
+            additional_generated_surface_sources: [
+                "docs/generated-a.html".to_string(),
+                "docs/generated-b.html".to_string(),
+            ]
+            .into_iter()
+            .collect(),
+            declaration_run_ids: Default::default(),
+        };
+        let ranked: Vec<_> = families.iter().collect();
+        let mut groups = OpportunityGroups::from_ranked(&ranked);
+        let default_ids = families
+            .iter()
+            .filter(|family| is_default_report_family(family, &overrides))
+            .map(baseline::family_id)
+            .collect();
+        groups.restrict_default_slices_to(&default_ids);
+        let filters = [
+            ("surface=default", QOp::Eq, "default", false),
+            ("surface~default", QOp::Has, "default", false),
+            ("surface!=generated", QOp::Eq, "generated", true),
+        ];
+        for (label, op, value, negate) in filters {
+            let query = Query {
+                filters: vec![QFilter {
+                    field: "surface".into(),
+                    op,
+                    value: value.into(),
+                    negate,
+                }],
+                ..Query::default()
+            };
+            let selected = query_selection(&families, &overrides, &groups, &query, ".", None)
+                .expect("selection succeeds");
+
+            assert_eq!(selected.len(), 1, "{label}");
+            assert_eq!(
+                baseline::family_id(selected[0]),
+                baseline::family_id(&families[1]),
+                "{label}"
+            );
+        }
+        assert!(groups.is_slice(&families[1]), "the all view keeps its fold");
+        assert!(
+            !groups.is_default_slice(&families[1]),
+            "the default view cannot fold under its generated primary"
+        );
+    }
 }

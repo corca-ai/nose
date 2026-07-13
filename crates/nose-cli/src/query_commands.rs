@@ -1,4 +1,4 @@
-use super::query_model::*;
+use crate::baseline;
 use crate::baseline_comparison::BaselineComparison;
 use crate::cli_args::{Cmd, QueryArgs, ScopeFilter};
 use crate::divergence;
@@ -15,7 +15,10 @@ use crate::query_terms::{parse_query, Query};
 use crate::query_views::render_query_base;
 use crate::query_witness::enrich_graded_witnesses;
 use crate::source_lines::family_anchor;
-use crate::surfaces::{classify_surface_overrides, SurfaceOverrides};
+use crate::surfaces::{
+    classify_surface_overrides, is_default_opportunity_family, is_default_report_family,
+    SurfaceOverrides,
+};
 use crate::timing::time_stage;
 use anyhow::Result;
 use std::path::PathBuf;
@@ -187,9 +190,16 @@ fn query_opportunities(
 ) -> OpportunityGroups {
     let default_fams: Vec<&nose_detect::RefactorFamily> = families
         .iter()
-        .filter(|f| is_default_surface(f, overrides))
+        .filter(|f| is_default_opportunity_family(f, overrides))
         .collect();
-    OpportunityGroups::from_ranked(&default_fams)
+    let mut groups = OpportunityGroups::from_ranked(&default_fams);
+    let default_ids = families
+        .iter()
+        .filter(|family| is_default_report_family(family, overrides))
+        .map(baseline::family_id)
+        .collect();
+    groups.restrict_default_slices_to(&default_ids);
+    groups
 }
 
 fn discard_accepted_coverage(families: &mut [nose_detect::RefactorFamily]) {

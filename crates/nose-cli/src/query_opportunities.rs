@@ -31,6 +31,11 @@ pub(crate) struct OpportunityGroups {
     pub(crate) primary_of: FxHashMap<String, String>,
     /// Direct suppressor family id → slice family ids, in rank order.
     pub(crate) slices_of: FxHashMap<String, Vec<String>>,
+    /// Slice ids folded in the default surface. The all-surface fold forest
+    /// remains stable when provenance moves a primary to another surface, but
+    /// a default slice must stay visible when its direct suppressor is no
+    /// longer present in the default view.
+    default_slices: FxHashSet<String>,
 }
 
 impl OpportunityGroups {
@@ -145,10 +150,30 @@ impl OpportunityGroups {
             }
         }
         groups
+            .default_slices
+            .extend(groups.primary_of.keys().cloned());
+        groups
+    }
+
+    /// Restrict default-view folds to edges whose slice and direct suppressor
+    /// both remain on the default surface. The unrestricted maps continue to
+    /// describe the stable `all` view and its JSON navigation.
+    pub(crate) fn restrict_default_slices_to(&mut self, default_ids: &FxHashSet<String>) {
+        self.default_slices.retain(|slice| {
+            default_ids.contains(slice)
+                && self
+                    .primary_of
+                    .get(slice)
+                    .is_some_and(|primary| default_ids.contains(primary))
+        });
     }
 
     pub(crate) fn is_slice(&self, family: &nose_detect::RefactorFamily) -> bool {
         self.primary_of.contains_key(&baseline::family_id(family))
+    }
+
+    pub(crate) fn is_default_slice(&self, family: &nose_detect::RefactorFamily) -> bool {
+        self.default_slices.contains(&baseline::family_id(family))
     }
 
     pub(crate) fn slices(&self, family: &nose_detect::RefactorFamily) -> Option<&[String]> {

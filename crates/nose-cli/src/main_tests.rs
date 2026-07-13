@@ -9,11 +9,12 @@ use crate::query_witness::{decorator_difference, decorator_prefix};
 use crate::source_lines::{classify_param, line_diff, shared_lines_of, FileLineCache};
 use crate::surfaces::{
     effective_surface, family_actionability_reason, family_is_compiled_css_pipeline,
-    has_version_tag, is_default_report_family, looks_compiled_css, span_is_declarations,
-    surface_omission_note, SurfaceOverrides,
+    has_version_tag, head_has_jazzy_generated_provenance, is_default_opportunity_family,
+    is_default_report_family, looks_compiled_css, span_is_declarations, surface_omission_note,
+    SurfaceOverrides,
 };
 use nose_detect::{LineSpan, Loc, LocInit, RefactorFamily};
 
 mod declarations;
-mod query_family;
+pub(crate) mod query_family;
 mod surface_hints;

@@ -1192,3 +1192,16 @@ remain exactly `fingerprint.rs::candidate_pairs` and
 `candidates.rs::anchor_candidates`; the replacement shares ten lines across
 roughly 50-line spans and still carries five presentation parameters. No new
 family, budget, or useful shared abstraction is accepted.
+
+The #842 generated-provenance slice moves the reviewed count from 28 to 29. Its
+only final delta is `856ea94f585f0c67`, the pre-existing
+`interp/ops.rs::int_bin` / `float_bin` dispatcher family; neither member changes
+in #842. The source-aware CLI, fold, and evidence additions shift nose's
+self-query fingerprints enough for this reviewed family to cross the value >=
+40 boundary again. Integer wrapping, division/modulo, floor, and bitwise
+semantics still differ materially from float IEEE behavior, so sharing the ten
+common dispatch lines would blur rather than clarify the numeric policy
+boundary. Reusing the existing `fam_at` helper keeps the new surface-selection
+test scaffolding small without introducing another substantial family. The
+accepted ID is restored and the budget is raised to 29; no new avoidable
+duplication is accepted.

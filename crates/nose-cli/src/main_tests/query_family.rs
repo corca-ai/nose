@@ -16,7 +16,7 @@ fn loc_at(file: &str, start: u32, end: u32, kind: nose_il::UnitKind) -> Loc {
     })
 }
 
-fn fam_at(spans: &[(&str, u32, u32)]) -> RefactorFamily {
+pub(crate) fn fam_at(spans: &[(&str, u32, u32)]) -> RefactorFamily {
     let mut f = fam_kind(1, 1, &vec![None; spans.len()], nose_il::UnitKind::Block);
     f.locations = spans
         .iter()
@@ -56,6 +56,7 @@ fn compiled_css_pipeline_demotes_source_plus_outputs_but_not_cross_source() {
     assert!(family_is_compiled_css_pipeline(&pipe, &gen));
     let ov = SurfaceOverrides {
         generated_sources: gen.clone(),
+        additional_generated_surface_sources: rustc_hash::FxHashSet::default(),
         declaration_run_ids: rustc_hash::FxHashSet::default(),
     };
     assert_eq!(effective_surface(&pipe, &ov), "generated");
@@ -87,6 +88,51 @@ fn compiled_css_pipeline_demotes_source_plus_outputs_but_not_cross_source() {
 }
 
 #[test]
+fn partial_jazzy_provenance_keeps_the_family_on_its_ranked_surface() {
+    let family = fam_at(&[
+        ("docs/generated-a.html", 10, 20),
+        ("docs/generated-b.html", 10, 20),
+        ("docs/hand-written.html", 10, 20),
+    ]);
+    let overrides = SurfaceOverrides {
+        generated_sources: rustc_hash::FxHashSet::default(),
+        additional_generated_surface_sources: [
+            "docs/generated-a.html".to_string(),
+            "docs/generated-b.html".to_string(),
+        ]
+        .into_iter()
+        .collect(),
+        declaration_run_ids: rustc_hash::FxHashSet::default(),
+    };
+    assert_eq!(effective_surface(&family, &overrides), "default");
+    assert!(is_default_report_family(&family, &overrides));
+    assert_eq!(family_actionability_reason(&family, &overrides), None);
+}
+
+#[test]
+fn jazzy_surface_classification_preserves_the_opportunity_fold_input() {
+    let family = fam_at(&[
+        ("docs/generated-a.html", 10, 20),
+        ("docs/generated-b.html", 10, 20),
+    ]);
+    let overrides = SurfaceOverrides {
+        generated_sources: rustc_hash::FxHashSet::default(),
+        additional_generated_surface_sources: [
+            "docs/generated-a.html".to_string(),
+            "docs/generated-b.html".to_string(),
+        ]
+        .into_iter()
+        .collect(),
+        declaration_run_ids: rustc_hash::FxHashSet::default(),
+    };
+    assert_eq!(effective_surface(&family, &overrides), "generated");
+    assert!(
+        is_default_opportunity_family(&family, &overrides),
+        "surface-only provenance must not dissolve established overlap folds"
+    );
+}
+
+#[test]
 fn query_family_json_carries_fold_navigation() {
     // a subsumes b (b's two members are shifted slices of a's regions).
     let a = fam_at(&[("t/a.go", 100, 130), ("t/b.go", 50, 70)]);
@@ -95,6 +141,7 @@ fn query_family_json_carries_fold_navigation() {
     let opp = OpportunityGroups::from_ranked(&ranked);
     let ov = SurfaceOverrides {
         generated_sources: rustc_hash::FxHashSet::default(),
+        additional_generated_surface_sources: rustc_hash::FxHashSet::default(),
         declaration_run_ids: rustc_hash::FxHashSet::default(),
     };
     // The primary lists the slice ids it subsumes (navigable id= handles).
@@ -142,6 +189,7 @@ fn line_diff_preserves_lcs_output_order() {
 fn query_family_json_carries_proof_depth() {
     let ov = SurfaceOverrides {
         generated_sources: rustc_hash::FxHashSet::default(),
+        additional_generated_surface_sources: rustc_hash::FxHashSet::default(),
         declaration_run_ids: rustc_hash::FxHashSet::default(),
     };
     let empty = OpportunityGroups::default();
@@ -175,6 +223,7 @@ fn query_family_json_carries_proof_depth() {
 fn query_family_json_carries_raw_detector_metrics() {
     let ov = SurfaceOverrides {
         generated_sources: rustc_hash::FxHashSet::default(),
+        additional_generated_surface_sources: rustc_hash::FxHashSet::default(),
         declaration_run_ids: rustc_hash::FxHashSet::default(),
     };
     let empty = OpportunityGroups::default();
