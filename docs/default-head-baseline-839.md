@@ -5,7 +5,8 @@ quality baseline before 0.20 behavior changes. Precision and recall deliberately
 use different query universes:
 
 - precision@10 uses the first ten `surface=default` families in the default list;
-- the literal bare dashboard is checked as the displayed prefix of that list;
+- the literal bare dashboard is checked as the complete top-five prefix of that
+  list, including `summary.families` and `summary.shown`;
 - worthy recall searches the explicit `all` universe, so hidden, shallow,
   generated, divergent, and declaration candidates remain measurable;
 - `--precision-surface all` retains the pre-#839 full-universe precision metric
@@ -14,7 +15,8 @@ use different query universes:
 The evaluator obtains the complete `all` response once, derives the raw default
 precision order from it, and requires a default-list query to return the same IDs
 in the same order before metric ranking. It then executes a literal selector-free
-bare query and requires the dashboard IDs to be that list's prefix. Any
+bare query and requires the dashboard IDs to be that list's complete top-five
+prefix. Any
 non-default family in either product response, missing repository, corpus revision
 mismatch, ID mismatch, prefix mismatch, or order mismatch fails the run.
 
@@ -26,7 +28,7 @@ rebuild or the release-candidate binary used by the earlier release closeout.
 | Input | SHA-256 |
 |---|---|
 | release commit | `0985e6963c58d5a97e523bc532b88aa5e34f2ef9` |
-| committed evaluator revision | `6946ea036dbe29e276a962fe10ebc89064984ec0` |
+| committed evaluator revision | `326537acf4d528f50bfbaa2a7cfbc0515a3287a3` |
 | `nose-cli-aarch64-apple-darwin.tar.xz` | `097c7e766e9ab756a32cec715897067d1360e145074715168a653962be409981` |
 | published `.sha256` asset | `f860777bc74bfe18b9be76d02cb1b53e4ea0c8db206ecdcfdc4f16a5f8af5274` |
 | extracted `nose 0.19.0` binary | `0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3` |
@@ -43,7 +45,8 @@ per-repository surface counts, denominators, and bootstrap intervals.
 ## Result
 
 All 120 pinned repositories passed both raw default-list ID-and-order parity and
-literal bare-dashboard prefix parity. Across the explicit full universe the
+literal bare-dashboard top-five, total-count, and shown-count parity. Across the
+explicit full universe the
 published binary reported 53,990 default, 14,989 hidden, 30,795 shallow, 973
 generated, 88 divergence, and 131 declaration families.
 
@@ -56,8 +59,9 @@ Two identical full evaluations from the committed evaluator produced
 byte-identical reports. The evaluator uses a fixed bootstrap seed and
 deterministic repository ordering; the equality check covered the complete
 report, not only the point estimates. CI checks the archived report's sidecar
-SHA-256, `626456b1744499105a144c668d040f64049449d6b4c9e008c5324510e40850a2`,
-and its source/input contracts.
+SHA-256, `4fa11e653d8d15541f4dda6585950e2e5efb734827c321321995034e3931a29e`,
+and its complete configuration, evaluator revision, source/input hashes, pinned
+repository commits, dashboard summaries, and aggregate contracts.
 
 The held-out result was computed mechanically from the frozen labels. No
 held-out source was opened or used to choose behavior.
@@ -92,8 +96,10 @@ python3 bench/labels/eval_by_language.py \
   --nose-release-checksum <official-v0.19.0-archive.sha256> \
   --rank extractability \
   --bootstrap 2000 \
-  --json-out <baseline-report>
+  --json-out target/reproduced-default-head.v3.json
 ```
 
 Use the same command plus `--precision-surface all` only when comparing with the
-old metric universe. Do not pass `--cache-dir` for a baseline.
+old metric universe. Do not pass `--cache-dir` for a baseline, and do not
+overwrite the checked artifact. Exact whole-file equality requires the recorded
+evaluator revision and command/output path because both are part of provenance.

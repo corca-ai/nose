@@ -49,7 +49,7 @@ python3 bench/labels/eval_by_language.py --nose <official-v0.19.0-nose> \
 ```
 
 The v3 metric measures default-surface P@10 and full-universe worthy recall,
-proves default-list raw order and literal bare-dashboard prefix parity, and
+proves default-list raw order and complete bare-dashboard top-five/summary parity, and
 rejects cached baselines. This is the metric the experiment log
 (`docs/experiments.md` §AU onward) reports.
 The checked artifact is immutable: write replays under `target/` and compare

@@ -65,7 +65,8 @@ path-specific error instead of silently dropping a result.
 uses the default surface users see, while worthy recall searches the explicit
 full `all` universe. On every repository the evaluator proves that the raw
 default list has the same IDs and order as the default families derived from
-`all`, and that the literal bare dashboard is the list's displayed prefix.
+`all`, and that the literal bare dashboard is the list's complete top-five
+prefix with consistent total/shown summary counts.
 
 | split | repos | default-surface labeled precision@10 | matched top-10 | all-surface worthy recall |
 |---|---:|---:|---:|---:|
