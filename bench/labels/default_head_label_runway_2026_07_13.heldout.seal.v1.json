@@ -20333,7 +20333,7 @@
       "split": "heldout"
     }
   ],
-  "commitment_sha256": "88958ad5abab01d23437aa3cca165a93c266c31d88ba7e3196e84e03b58cee91",
+  "commitment_sha256": "f8970b079fa0552c0e9843106ead0f6065e918a15834aa582265d457d734c97b",
   "judgment_status": "sealed-unjudged",
   "pool": {
     "base_matched_default_head": 375,
@@ -20353,11 +20353,11 @@
     "collection_sources": [
       {
         "path": "bench/labels/label_refresh.py",
-        "sha256": "6b6e1939c738e35bb5ae21280a31255c22268c2899952e5463109cb8676c84f6"
+        "sha256": "8f1996c089363f22827cb284c15462ffa3755558ede56cc94e39b3f424564d61"
       },
       {
         "path": "bench/labels/labelset.py",
-        "sha256": "83059748c26a04d95e4d1aaf2e712bef7023464a17a6ccd9757e94c82f7b5516"
+        "sha256": "0f4bd6a8f420c6ff6b4d62ee7cd76e4f0f42b0781094d117b86fc1057646a991"
       },
       {
         "path": "bench/labels/query_schema.py",
@@ -20368,7 +20368,7 @@
     "corpus_commit_digest": "a93fceb7afbb15d0cf29bfa7f8d57bd5ef2959f81ecbd3d5a6a7b7cd66c5de0d",
     "corpus_manifest": "bench/goldens/corpus.json",
     "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
-    "git_sha": "1b0ef98cff246fe2c1e3f9c153e05f11e85b446c",
+    "git_sha": "af3ea50c9d35452c89d3bb0e25636401eac928a7",
     "nose_binary": "target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose",
     "nose_binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3",
     "nose_version": "nose 0.19.0",
@@ -21194,7 +21194,7 @@
     "selected_candidate_keys_sha256": "ea94c8764a23c517497fb7e399832c11a69d3c2dd306197c1fbec75339d25d9b"
   },
   "selection_contract": {
-    "deep_rule": "select one v6-unmatched rank 11-30 family per repository by seeded hash",
+    "deep_rule": "select one v6-unmatched rank 11-30 family per repository with at least one eligible family, by seeded hash",
     "head_rule": "select every v6-unmatched default-surface rank 1-10 family",
     "heldout_policy": "selection commitments only; no source paths or judgments",
     "seed": "nose-issue-840-default-head-v7-rank-11-30"

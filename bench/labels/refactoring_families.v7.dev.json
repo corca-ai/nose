@@ -1,7 +1,7 @@
 {
   "decision_input": {
     "path": "default_head_label_decisions_2026_07_13.dev.v1.json",
-    "sha256": "0bbec34a146b96945a244c079bdc5ec7ca27aeb8b4d609b9df703f136bc26f24"
+    "sha256": "bc6c24f49b0075dbe55467c9501742708beef3d1286e83ca30ce656542a3ce01"
   },
   "families": [
     {
@@ -27178,7 +27178,7 @@
   "schema": "nose.refactoring_family_labels.v1",
   "source_artifact": {
     "path": "default_head_label_runway_2026_07_13.dev.v1.json",
-    "sha256": "38b6f211f841d0bf69d262d271b8d06c5f57c5c2a01237fc13c854c150e1e965"
+    "sha256": "2b9947bcc11a8ae46d65500b922e9fb6958d3536c5492c50565d674b01903d18"
   },
   "split": "dev"
 }

@@ -3,7 +3,7 @@
   "schema": "nose.refactoring_panel_vote.v1",
   "source_artifact": {
     "path": "bench/labels/default_head_label_runway_2026_07_13.dev.v1.json",
-    "sha256": "38b6f211f841d0bf69d262d271b8d06c5f57c5c2a01237fc13c854c150e1e965"
+    "sha256": "2b9947bcc11a8ae46d65500b922e9fb6958d3536c5492c50565d674b01903d18"
   },
   "votes": [
     {

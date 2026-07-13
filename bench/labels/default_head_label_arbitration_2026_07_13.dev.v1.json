@@ -1271,21 +1271,21 @@
   "schema": "nose.refactoring_panel_arbitration.v1",
   "source_artifact": {
     "path": "bench/labels/default_head_label_runway_2026_07_13.dev.v1.json",
-    "sha256": "38b6f211f841d0bf69d262d271b8d06c5f57c5c2a01237fc13c854c150e1e965"
+    "sha256": "2b9947bcc11a8ae46d65500b922e9fb6958d3536c5492c50565d674b01903d18"
   },
   "split": "dev",
   "vote_inputs": {
     "dedupe": {
       "path": "bench/labels/default_head_label_votes_2026_07_13.dev.dedupe.v1.json",
-      "sha256": "1f89b072da2a38af49a720936ac875e2f837cff945a7d966c6b1c8a4db05b7c0"
+      "sha256": "b4bec084a1bc3779a8137d1b95227bc337734181c1c911197c34321ddb4d061b"
     },
     "pragmatic": {
       "path": "bench/labels/default_head_label_votes_2026_07_13.dev.pragmatic.v1.json",
-      "sha256": "f5d94b07f1b402a1dd08ed3e4416b9f563f0b5c4f9dfca00cb35332eb0c34754"
+      "sha256": "9092b7c136dbfe08f71106d9644834b704548ed29c53b30ae07b746d2a661a40"
     },
     "skeptic": {
       "path": "bench/labels/default_head_label_votes_2026_07_13.dev.skeptic.v1.json",
-      "sha256": "4d6f84905126cb879d67e76848ba9d07218a2fb7d9636a15dce0157d0dfb4465"
+      "sha256": "bed27993354de54dd94d2eea92ae4ef907eefebb92131dff913b657bd2e1d20b"
     }
   }
 }
