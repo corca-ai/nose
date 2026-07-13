@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 from collections import defaultdict
+import contextlib
 import hashlib
+import io
 import json
 import shlex
 import subprocess
@@ -58,6 +60,23 @@ FROZEN_V6_FAMILIES_SHA256 = (
 RUNWAY_EVALUATION_SHA256 = (
     "771cf6c225afb936c0060a080f62c2bee9ffa44abd0dc639109598dbbaa4ef22"
 )
+
+
+class StoreUniquePath(argparse.Action):
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: object,
+        option_string: str | None = None,
+    ) -> None:
+        marker = "_unique_path_options"
+        seen = getattr(namespace, marker, set())
+        if self.dest in seen:
+            raise argparse.ArgumentError(self, f"{option_string} may not be repeated")
+        seen.add(self.dest)
+        setattr(namespace, marker, seen)
+        setattr(namespace, self.dest, values)
 
 
 def runway_selection_contract() -> dict[str, str]:
@@ -1957,6 +1976,37 @@ def build_component(
 
 
 def run_self_test() -> None:
+    invalid_collection_argv = (
+        [
+            "collect-runway",
+            "--dev-out=/tmp/dev.json",
+            "--heldout-seal-output=/tmp/seal.json",
+        ],
+        [
+            "collect-runway",
+            "--dev-output=/tmp/first.json",
+            "--dev-output",
+            "/tmp/final.json",
+            "--heldout-seal-output=/tmp/seal.json",
+        ],
+        [
+            "collect-runway",
+            "--nose=first",
+            "--nose",
+            "second",
+            "--dev-output=/tmp/dev.json",
+            "--heldout-seal-output=/tmp/seal.json",
+        ],
+    )
+    for argv in invalid_collection_argv:
+        with contextlib.redirect_stderr(io.StringIO()):
+            try:
+                parse_args(argv)
+            except SystemExit:
+                pass
+            else:
+                raise AssertionError(f"collector must reject ambiguous options: {argv}")
+
     with tempfile.TemporaryDirectory(prefix="nose-sidecar-self-test-") as directory:
         artifact_path = Path(directory) / "artifact.json"
         artifact_path.write_text("{}\n", encoding="utf-8")
@@ -2002,6 +2052,71 @@ def run_self_test() -> None:
         }
     )
     validate_runway_pair(custom_dev, custom_seal)
+
+    default_nose_dev = json.loads(json.dumps(checked_dev))
+    default_nose_seal = json.loads(json.dumps(checked_seal))
+    command_tokens = shlex.split(default_nose_dev["provenance"]["command"])
+    nose_option = command_tokens.index("--nose")
+    del command_tokens[nose_option : nose_option + 2]
+    default_nose_command = shlex.join(command_tokens)
+    for payload in (default_nose_dev, default_nose_seal):
+        payload["provenance"]["command"] = default_nose_command
+        payload["provenance"]["nose_binary"] = rel(DEFAULT_NOSE)
+        for repository in payload["repositories"].values():
+            query_tokens = shlex.split(repository["query_command"])
+            query_tokens[0] = str(DEFAULT_NOSE)
+            repository["query_command"] = shlex.join(query_tokens)
+    default_nose_seal["commitment_sha256"] = canonical_sha256(
+        {
+            key: value
+            for key, value in default_nose_seal.items()
+            if key != "commitment_sha256"
+        }
+    )
+    validate_runway_pair(default_nose_dev, default_nose_seal)
+
+    dotted_nose_dev = json.loads(json.dumps(default_nose_dev))
+    dotted_nose_seal = json.loads(json.dumps(default_nose_seal))
+    dotted_command_tokens = shlex.split(default_nose_command)
+    dotted_command_tokens[3:3] = ["--nose", "./target/release/nose"]
+    dotted_nose_command = shlex.join(dotted_command_tokens)
+    for payload in (dotted_nose_dev, dotted_nose_seal):
+        payload["provenance"]["command"] = dotted_nose_command
+        for repository in payload["repositories"].values():
+            query_tokens = shlex.split(repository["query_command"])
+            query_tokens[0] = str(Path("./target/release/nose"))
+            repository["query_command"] = shlex.join(query_tokens)
+    dotted_nose_seal["commitment_sha256"] = canonical_sha256(
+        {
+            key: value
+            for key, value in dotted_nose_seal.items()
+            if key != "commitment_sha256"
+        }
+    )
+    validate_runway_pair(dotted_nose_dev, dotted_nose_seal)
+
+    equals_dev = json.loads(json.dumps(dotted_nose_dev))
+    equals_seal = json.loads(json.dumps(dotted_nose_seal))
+    equals_source_tokens = shlex.split(dotted_nose_command)
+    equals_command_tokens = equals_source_tokens[:3]
+    equals_command_tokens.extend(
+        f"{option}={value}"
+        for option, value in zip(
+            equals_source_tokens[3::2], equals_source_tokens[4::2], strict=True
+        )
+    )
+    equals_command = shlex.join(equals_command_tokens)
+    for payload in (equals_dev, equals_seal):
+        payload["provenance"]["command"] = equals_command
+    equals_seal["commitment_sha256"] = canonical_sha256(
+        {
+            key: value
+            for key, value in equals_seal.items()
+            if key != "commitment_sha256"
+        }
+    )
+    validate_runway_pair(equals_dev, equals_seal)
+
     with tempfile.TemporaryDirectory(prefix="nose-runway-base-self-test-") as directory:
         wrong_base = ROOT / "bench/labels/refactoring_families.v5.json"
         manifest_path = Path(directory) / "wrong-base-v7.json"
@@ -2275,8 +2390,8 @@ def run_self_test() -> None:
     print("label refresh self-test passed")
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument("--self-test", action="store_true")
     subparsers = parser.add_subparsers(dest="command")
     collect_parser = subparsers.add_parser("collect")
@@ -2288,18 +2403,31 @@ def parse_args() -> argparse.Namespace:
     collect_parser.add_argument("--existing-per-stratum", type=int, default=5)
     collect_parser.add_argument("--swift-per-repo", type=int, default=3)
     collect_parser.add_argument("--output", type=Path, required=True)
-    runway_parser = subparsers.add_parser("collect-runway")
-    runway_parser.add_argument("--nose", type=Path, default=DEFAULT_NOSE)
-    runway_parser.add_argument("--repos-root", type=Path, default=DEFAULT_REPOS_ROOT)
-    runway_parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
+    runway_parser = subparsers.add_parser("collect-runway", allow_abbrev=False)
+    runway_parser.add_argument(
+        "--nose", type=Path, default=DEFAULT_NOSE, action=StoreUniquePath
+    )
+    runway_parser.add_argument(
+        "--repos-root", type=Path, default=DEFAULT_REPOS_ROOT, action=StoreUniquePath
+    )
+    runway_parser.add_argument(
+        "--corpus", type=Path, default=DEFAULT_CORPUS, action=StoreUniquePath
+    )
     runway_parser.add_argument(
         "--base-labelset",
         type=Path,
         default=ROOT / "bench/labels/refactoring_families.v6.json",
+        action=StoreUniquePath,
     )
-    runway_parser.add_argument("--rubric", type=Path, default=DEFAULT_RUBRIC)
-    runway_parser.add_argument("--dev-output", type=Path, required=True)
-    runway_parser.add_argument("--heldout-seal-output", type=Path, required=True)
+    runway_parser.add_argument(
+        "--rubric", type=Path, default=DEFAULT_RUBRIC, action=StoreUniquePath
+    )
+    runway_parser.add_argument(
+        "--dev-output", type=Path, required=True, action=StoreUniquePath
+    )
+    runway_parser.add_argument(
+        "--heldout-seal-output", type=Path, required=True, action=StoreUniquePath
+    )
     validate_parser = subparsers.add_parser("validate")
     validate_parser.add_argument("--candidates", type=Path, required=True)
     validate_parser.add_argument("--labelset", type=Path)
@@ -2348,7 +2476,10 @@ def parse_args() -> argparse.Namespace:
         freeze_arbitration_parser.add_argument(f"--{persona}", type=Path, required=True)
     freeze_arbitration_parser.add_argument("--input", type=Path, required=True)
     freeze_arbitration_parser.add_argument("--output", type=Path, required=True)
-    return parser.parse_args()
+    args = parser.parse_args(argv)
+    if hasattr(args, "_unique_path_options"):
+        delattr(args, "_unique_path_options")
+    return args
 
 
 def main() -> None:

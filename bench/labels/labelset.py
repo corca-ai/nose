@@ -129,10 +129,18 @@ def collection_command_options(provenance: dict[str, Any], label: str) -> dict[s
     }
     options: dict[str, str] = {}
     arguments = tokens[3:]
-    if len(arguments) % 2:
-        raise ValueError(f"{label}.provenance.command: option without value")
-    for index in range(0, len(arguments), 2):
-        option, value = arguments[index : index + 2]
+    index = 0
+    while index < len(arguments):
+        token = arguments[index]
+        if "=" in token:
+            option, value = token.split("=", 1)
+            index += 1
+        else:
+            option = token
+            if index + 1 == len(arguments) or arguments[index + 1].startswith("--"):
+                raise ValueError(f"{label}.provenance.command: option without value")
+            value = arguments[index + 1]
+            index += 2
         if option not in allowed or option in options or not value:
             raise ValueError(f"{label}.provenance.command: invalid option {option!r}")
         options[option] = value
@@ -150,6 +158,13 @@ def command_repo_path(repos_root: str, repo: str) -> str:
         return path.relative_to(PROJECT_ROOT).as_posix()
     except ValueError:
         return path.as_posix()
+
+
+def command_nose_path(options: dict[str, str]) -> str:
+    raw_path = options.get("--nose")
+    if raw_path is None:
+        return str(PROJECT_ROOT / "target" / "release" / "nose")
+    return str(Path(raw_path))
 
 
 def normalized_collection_path(value: str) -> str:
@@ -398,7 +413,7 @@ def validate_heldout_seal_shape(seal: object, label: str) -> None:
         )
         expected_command = shlex.join(
             [
-                command_options.get("--nose", "target/release/nose"),
+                command_nose_path(command_options),
                 "query",
                 repo_path,
                 "top=30",
@@ -787,6 +802,35 @@ def metric_eligible(family: dict[str, Any], metric: str) -> bool:
 
 
 def run_self_test() -> None:
+    command_prefix = "python3 bench/labels/label_refresh.py collect-runway"
+    mixed_options = collection_command_options(
+        {
+            "command": (
+                f"{command_prefix} --nose=./target/release/nose "
+                "--dev-output /tmp/dev.json --heldout-seal-output=/tmp/seal.json"
+            )
+        },
+        "synthetic mixed command",
+    )
+    assert mixed_options == {
+        "--nose": "./target/release/nose",
+        "--dev-output": "/tmp/dev.json",
+        "--heldout-seal-output": "/tmp/seal.json",
+    }
+    invalid_commands = (
+        f"{command_prefix} --unknown=value --dev-output d --heldout-seal-output s",
+        f"{command_prefix} --nose one --nose=two --dev-output d --heldout-seal-output s",
+        f"{command_prefix} --nose= --dev-output d --heldout-seal-output s",
+        f"{command_prefix} --nose --dev-output d --heldout-seal-output s",
+    )
+    for command in invalid_commands:
+        try:
+            collection_command_options({"command": command}, "synthetic invalid command")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"invalid collection command must fail closed: {command}")
+
     with tempfile.TemporaryDirectory(prefix="nose-labelset-self-test-") as directory:
         root = Path(directory)
         base = root / "base.json"
