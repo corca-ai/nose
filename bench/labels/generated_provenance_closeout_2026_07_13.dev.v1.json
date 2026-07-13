@@ -1,0 +1,186 @@
+{
+  "schema": "nose.generated_provenance_closeout.v1",
+  "issue": 842,
+  "split": "dev",
+  "heldout_policy": "closed; no held-out checkout or judgment was opened",
+  "implementation": {
+    "commit": "f582e64e9c6186a47d2b0b88d9deb8d52a08f752",
+    "binary_sha256": "d760c634c320dd2db73f295198d458240b0c5232e1813a0ef44367a1c16fa974",
+    "predicate": {
+      "bounded_prefix_bytes": 65536,
+      "normalization": "ascii-lowercase",
+      "op": "all_unique_member_files",
+      "requires_any": [
+        [
+          "jazzy.css",
+          "jazzy.js"
+        ],
+        [
+          "class=\"dashanchor\"",
+          "//apple_ref/"
+        ]
+      ],
+      "suffix": ".html"
+    },
+    "missing_or_partial_policy": "fail-open to the ranked surface",
+    "repository_or_path_allowlist": false,
+    "json_reason_code": {
+      "field": "surface",
+      "value": "generated"
+    },
+    "human_reason_code": "generated-code"
+  },
+  "frozen_841_evidence": {
+    "taxonomy_artifact": "bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json",
+    "taxonomy_artifact_sha256": "206f7e6c2eb9e5bb3750dd6e12f6f920228d719868b2e4922395433a2315c71a",
+    "head_positives": {
+      "expected": 10,
+      "generated": 10,
+      "missing": 0
+    },
+    "deep_audit_positives": {
+      "expected": 20,
+      "generated": 20,
+      "missing": 0
+    },
+    "html_hard_negatives": {
+      "expected": 3,
+      "default": 3,
+      "false_demotions": 0
+    }
+  },
+  "expanded_default_behavior": {
+    "command": "nose query bench/repos/<repo> all top=0 --format json",
+    "parent": {
+      "commit": "bf6298ad",
+      "binary_sha256": "5424827feb55c997c2cabd8bdb1ea445747457f8f6f93c4b8889ce2593efe642"
+    },
+    "repositories": 66,
+    "families": 54754,
+    "byte_identical_repositories": 65,
+    "changed_repositories": [
+      "alamofire"
+    ],
+    "family_id_order_equal": true,
+    "non_surface_fields_equal": true,
+    "alamofire": {
+      "families_before": 1115,
+      "families_after": 1115,
+      "surface_counts_before": {
+        "default": 755,
+        "generated": 77,
+        "hidden": 144,
+        "shallow": 139
+      },
+      "surface_counts_after": {
+        "default": 368,
+        "generated": 584,
+        "hidden": 55,
+        "shallow": 108
+      },
+      "surface_transitions": {
+        "default->generated": 387,
+        "hidden->generated": 89,
+        "shallow->generated": 31
+      },
+      "default_top_30_removed": 30,
+      "default_top_30_replacements": 30
+    }
+  },
+  "established_semantic_behavior": {
+    "command": "nose query <repo> all top=0 --mode semantic --format json",
+    "repositories": 66,
+    "families_before": 9850,
+    "families_after": 9850,
+    "byte_identical_repositories": 65,
+    "changed_repositories": [
+      "alamofire"
+    ],
+    "family_id_order_equal": true,
+    "non_surface_fields_equal": true,
+    "alamofire": {
+      "families_before": 4063,
+      "families_after": 4063,
+      "surface_counts_before": {
+        "default": 3524,
+        "generated": 78,
+        "hidden": 461
+      },
+      "surface_counts_after": {
+        "default": 198,
+        "generated": 3830,
+        "hidden": 35
+      },
+      "surface_transitions": {
+        "default->generated": 3326,
+        "hidden->generated": 426
+      }
+    }
+  },
+  "performance": {
+    "gate": "material only when control-adjusted increase exceeds both 5 percent and 5 milliseconds",
+    "published_baseline": {
+      "version": "v0.19.0",
+      "commit": "54f8a67436e39e24c777a85e14224273116add6b",
+      "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
+    },
+    "all_dev_three_iteration": {
+      "baseline_median_ms": 15685.886663093697,
+      "current_median_ms": 15729.596793360543,
+      "raw_delta_ms": 43.710130266845226,
+      "raw_delta_percent": 0.27865897035765247,
+      "control_delta_ms": -233.51254471344873,
+      "control_delta_percent": -1.3383794418251793,
+      "control_adjusted_delta_ms": 277.22267498029396,
+      "control_adjusted_delta_percent": 1.6170384121828318,
+      "query_surface_adjusted_delta_ms": -1.8,
+      "material_regression": false
+    },
+    "nineteen_repo_nine_iteration_recheck": {
+      "primary_delta_ms": -20.572833076585084,
+      "primary_delta_percent": -0.3224845606416088,
+      "control_delta_ms": 2.987495914567262,
+      "control_delta_percent": 0.04697762450022658,
+      "control_adjusted_delta_ms": -23.560328991152346,
+      "control_adjusted_delta_percent": -0.3694621851418354,
+      "query_surface_adjusted_delta_ms": 0.0,
+      "material_regression": false
+    },
+    "graphhopper_twenty_one_iteration_recheck": {
+      "primary_delta_ms": 3.2008750131353736,
+      "primary_delta_percent": 1.136155409504956,
+      "control_delta_ms": 4.974916053470224,
+      "control_delta_percent": 1.7523367086428405,
+      "control_adjusted_delta_ms": -1.7740410403348505,
+      "control_adjusted_delta_percent": -0.6161812991378846,
+      "material_regression": false
+    },
+    "artifacts": [
+      {
+        "path": "bench/recall_loss/issue-842-official-v0.19.0-dev-query-regression-2026-07-13.v1.json",
+        "sha256": "71438d471e22e2ff45d396ce7ee0819b5d0bfbcba6ec9be06eaf0fe41c595f39"
+      },
+      {
+        "path": "bench/recall_loss/issue-842-current-control-dev-query-regression-2026-07-13.v1.json",
+        "sha256": "dff4c792f61cee06184323b4993e25f086ed0f93140187df97e55cb96f749b20"
+      },
+      {
+        "path": "bench/recall_loss/issue-842-official-v0.19.0-dev-outlier-recheck-2026-07-13.v1.json",
+        "sha256": "73947c764c9f33736333a56e7ab43e60c9dce487d8f749ab9594df1e8e3d5f42"
+      },
+      {
+        "path": "bench/recall_loss/issue-842-current-control-dev-outlier-recheck-2026-07-13.v1.json",
+        "sha256": "e6bca7f493e169389638727f972b2361efef80ec73d5f9901b464fc0bc0a207e"
+      },
+      {
+        "path": "bench/recall_loss/issue-842-official-v0.19.0-graphhopper-recheck-2026-07-13.v1.json",
+        "sha256": "1ba055e4020ba5e90f21903b846be5295d15d6c4280d136a01ca5e911e0a9fe8"
+      },
+      {
+        "path": "bench/recall_loss/issue-842-current-control-graphhopper-recheck-2026-07-13.v1.json",
+        "sha256": "4c36f5cb339a796ca550e369c65087534d4dbd3c8c3f58e10c3909f2edc43f71"
+      }
+    ]
+  },
+  "result": "pass"
+}

@@ -194,9 +194,11 @@ such as `shared`, `rep_lines`, and `removable` are computed: `mean_sem`, `member
 `dup_lines`, and `shared_lines`.
 
 `surface` uses the default-surface curation policy. `generated` includes families wholly
-in generated/distributed output and CSS source-plus-compiled/minified build pipelines; a
-default family may still contain a generated-looking location when the hand-written copies
-remain actionable.
+in generated/distributed output and CSS source-plus-compiled/minified build pipelines.
+Bounded generator provenance includes source headers and source-coherent Jazzy HTML whose
+first 64 KiB carries both a Jazzy asset and an Apple/Dash symbol anchor. Missing or partial
+provenance fails open: a default family may still contain a generated-looking location when
+the hand-written or unproven copies remain actionable.
 
 Fragment proof metadata is intentionally scoped to views that need it. Dashboard/list/family
 `locations[]` stay compact and do not repeat `is_fragment`, `fragment_kind`, `reason_code`,

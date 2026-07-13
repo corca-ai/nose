@@ -141,6 +141,9 @@ fundamentals; the rest is grouped by area.
 - [0.20 default-head failure taxonomy](default-head-failure-taxonomy-841.md) — the
   complete dev-head cross-tabs, independently audited generated/declaration cohorts,
   source-bound hard negatives, and proof/actionability no-go.
+- [0.20 generated provenance](generated-provenance-842.md) — the bounded Jazzy
+  all-member classifier, reason-coded recovery contract, exact dev output drift, hard
+  negatives, and official-v0.19.0 runtime price.
 - [current missed-worthy frontier](missed-worthy-frontier-816.md) — the #816
   dev-first recall audit, accepted-pair coverage-loss result, route-tree protocol
   deviation, rejected alternatives, and #817 follow-up gates.
