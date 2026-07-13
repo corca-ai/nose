@@ -6,7 +6,22 @@ break.
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-07-13
+
 ### Added
+- Expanded proof-backed Type-4 equivalence coverage across common collection and
+  quantifier idioms: Python counterexample loops and `all`, JavaScript/TypeScript
+  `every`, Rust `Iterator::all`, Ruby `Enumerable#any?`/`all?`, and Swift
+  `allSatisfy`, membership, empty checks, and string prefix/suffix checks now
+  converge only when receiver identity, callback coordinates, effects, dispatch,
+  and language-specific safety obligations are proven.
+- Preserved every accepted pair endpoint through overlapping family-site folding
+  (#817), so a valid refactoring candidate is no longer lost merely because its
+  span collapses into a larger displayed site.
+- Added pair-local connected witnesses (#821) and bounded same-unit windows (#832)
+  as separate, budgeted near-match routes. They recover coherent refactoring
+  candidates that do not share one exact fragment while keeping ordinary accepted
+  pairs, work limits, deduplication, ranking, and output attribution explicit.
 - Added the durable #791/#799 blocked-surface closeout. The checked snapshot
   records all 7 frozen rows resolved, all 12 required neutral facts
   `modeled-controlled`, 358/358 executable expectations, the unchanged 29/29
@@ -110,6 +125,25 @@ break.
   indexing same-file method-redefinition facts, memoizing InstructionSequence
   resolution, and reusing first-party occurrence evidence without changing product
   output across the pinned 120-repository corpus.
+
+### Performance
+- Stabilized the semantic runtime regression smoke by pairing base and head
+  measurements back-to-back within each repository, while still reversing pair
+  order between iterations, using six focused samples for an exact 3:3 first-run
+  balance, and retaining the same-binary control. This prevents runner load or
+  temperature drift across the corpus from accumulating on only one binary
+  without relaxing the 5%/5ms thresholds.
+- Completed the 0.19.0 release pass against the published v0.18.0 Darwin arm64
+  binary. The established semantic-only surface measured `24,822.49ms ->
+  25,715.47ms` (`+3.60%`, approximately `+4.17%` after the same-binary control)
+  across all 120 pinned repositories. The expanded default surface measured
+  `34,204.68ms -> 36,433.48ms` (`+6.52%`) while returning 9.47% more families.
+  Profiling also removed an accepted-coverage reporting hot path: the focused
+  Alamofire/Raylib slice improved `6,787.93ms -> 3,591.61ms` (`-47.09%`) with
+  identical output, and Alamofire `rank_map` fell from 3,203.7ms to 22.0ms.
+  Product-quality metrics exactly reproduced the checked #832 result and the
+  recall-loss gate remained at 0 false merges and 0 canon-preservation violations.
+  See the [0.19.0 release evidence](docs/release-evidence-0.19.0.md).
 
 ## [0.18.0] - 2026-07-06
 

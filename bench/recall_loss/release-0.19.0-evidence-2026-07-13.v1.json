@@ -1,0 +1,183 @@
+{
+  "artifact_kind": "release-candidate-evidence",
+  "release_version": "0.19.0",
+  "generated_on": "2026-07-13",
+  "baseline": {
+    "version": "nose 0.18.0",
+    "git_ref": "v0.18.0",
+    "git_sha": "7cf9cd08c2a1c6f313f381c0bae31124ae152ef0",
+    "release_asset": "nose-cli-aarch64-apple-darwin.tar.xz",
+    "release_asset_sha256": "e4b1d073d83b87b645c2e2b616a0f70eff9ac2cbaefb7ea358b6cb8a79d01a46",
+    "binary": "target/release-0.19.0/baseline/nose-cli-aarch64-apple-darwin/nose",
+    "binary_sha256": "aa22823c4c3e0ef71d4c43961e9326d8ee425c3d90368a0cbb1573d87103a040",
+    "binary_code_sha256": "e83f922a3600bfb71167fa977a067c0b5232d26a0ea5fbd046a78a0dbbb6246f",
+    "binary_code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1"
+  },
+  "release_candidate": {
+    "source_ref": "release-candidate-rank-index",
+    "git_sha": "9da281d6f257a585bda0639af8f4996c24632f2b",
+    "binary": "target/release-0.19.0/optimized-target/release/nose",
+    "binary_sha256": "d62417a363777c512fe6335caaaca64a033f4a7a1adfb9de67fc440955579573",
+    "binary_code_sha256": "1d7a5d2a2274fb755deda1f22826a645d330d0080cda893c24e62b6d81d6a63f",
+    "binary_code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1",
+    "measured_version": "nose 0.18.0",
+    "working_tree_status_before_measurement": "",
+    "final_version_bump_binary": "target/release-0.19.0/final-target/release/nose",
+    "final_version_bump_binary_sha256": "96887e375a5d31738ef2e4877a9f8f6a41443d3b3a653be67974d5450d4aeb3c",
+    "final_version": "nose 0.19.0"
+  },
+  "performance": {
+    "initial_all_repo_regression": {
+      "artifact": "target/release-0.19.0/query-regression-v0.18.0-official-to-rc-default-allrepos-r3.json",
+      "artifact_sha256": "e618e11065d01d815e5fe857af36cee419d9c294c4b54a1eee3bc8a90b9c695f",
+      "aggregate_baseline_median_ms": 40160.33,
+      "aggregate_current_median_ms": 43404.30,
+      "aggregate_delta_pct": 8.08,
+      "diagnosis": "Alamofire exposed a real accepted-coverage ranking hot path: rank_map alone took about 3.2 seconds while an immediate same-binary control reproduced the cost."
+    },
+    "retained_patch": {
+      "git_sha": "9da281d6f257a585bda0639af8f4996c24632f2b",
+      "change": "Index collapsed accepted-coverage sites by file before mapping family members, instead of rescanning every collapsed site for every member.",
+      "focused_artifact": "target/release-0.19.0/query-regression-rank-index-focused-r5.json",
+      "focused_artifact_sha256": "4150728b58bb05a2c6aa5bc9893d5b55e53eb7e7401a0db1885414b79420cab2",
+      "repos": [
+        "alamofire",
+        "raylib"
+      ],
+      "iterations": 5,
+      "warmups": 1,
+      "aggregate_baseline_median_ms": 6787.92508400511,
+      "aggregate_current_median_ms": 3591.613457945641,
+      "aggregate_delta_pct": -47.08819833016682,
+      "alamofire_rank_map_median_ms": {
+        "baseline": 3203.7,
+        "current": 22.0
+      },
+      "hash_drift_repos": 0,
+      "family_drift_repos": 0,
+      "byte_drift_repos": 0
+    },
+    "same_binary_control": {
+      "artifact": "target/release-0.19.0/query-regression-optimized-rc-same-binary-control-default-allrepos-r3.json",
+      "artifact_sha256": "1fd7735034cbd1ee8df919a57658aca80e656db29e38225789e5ad0419dcc74b",
+      "repos": 120,
+      "iterations": 3,
+      "warmups": 1,
+      "aggregate_baseline_median_ms": 38954.3346609571,
+      "aggregate_current_median_ms": 38730.25733180111,
+      "aggregate_delta_pct": -0.5752307955103537,
+      "hash_drift_repos": 0,
+      "family_drift_repos": 0,
+      "byte_drift_repos": 0
+    },
+    "default_surface": {
+      "artifact": "target/release-0.19.0/query-regression-v0.18.0-official-to-optimized-rc-default-allrepos-r3.json",
+      "artifact_sha256": "679389f19286b2f81105a8450ff8bff5182a897d28a54d4a7d8e762e713c95ff",
+      "repos": 120,
+      "iterations": 3,
+      "warmups": 1,
+      "aggregate_baseline_median_ms": 34204.67984012794,
+      "aggregate_current_median_ms": 36433.483380882535,
+      "aggregate_delta_pct": 6.516077774070641,
+      "approximate_control_adjusted_delta_pct": 7.091308569580995,
+      "baseline_families": 92229,
+      "current_families": 100966,
+      "family_delta": 8737,
+      "family_delta_pct": 9.473159201552656,
+      "family_increase_repos": 120,
+      "family_decrease_repos": 0,
+      "decision": "The default surface does more deliberate scoring and returns 9.47% more families. The measured runtime cost is retained as capability-growth price after removing the confirmed rank_map hot path."
+    },
+    "established_semantic_surface": {
+      "artifact": "target/release-0.19.0/query-regression-v0.18.0-official-to-optimized-rc-semantic-allrepos-r3.json",
+      "artifact_sha256": "595db60f136e9e6d5a0abd1c5d2b1b05457fe19ccb8a6be2d03caa69e7789d82",
+      "query_args": "query {repo} all top=0 --mode semantic --format json",
+      "repos": 120,
+      "iterations": 3,
+      "warmups": 1,
+      "aggregate_baseline_median_ms": 24822.48829177115,
+      "aggregate_current_median_ms": 25715.468663838692,
+      "aggregate_delta_pct": 3.5974651758162812,
+      "approximate_control_adjusted_delta_pct": 4.172695971326635,
+      "baseline_families": 14884,
+      "current_families": 15815,
+      "family_drift_repos": 31,
+      "byte_drift_repos": 43,
+      "decision": "The established semantic-only release surface remains below the 5% regression threshold, including the directional same-binary adjustment."
+    }
+  },
+  "product_quality": {
+    "artifact": "target/release-0.19.0/product-quality-evaluation-0.19.0-rc.v1.json",
+    "artifact_sha256": "1aad008d4190123e0970cd7c398aff18318c63d05c7d582ebb92f250824d6210",
+    "labelset": "bench/labels/refactoring_families.v6.json",
+    "labelset_sha256": "6b72927d0e68e05406540016d3fa136029c52a406af0938b5a805d3fa199ac23",
+    "repositories": 120,
+    "dev": {
+      "worthy_recall": {
+        "hits": 2716,
+        "n": 2849,
+        "pct": 95.3317
+      },
+      "precision_at_10": {
+        "hits": 264,
+        "n": 444,
+        "pct": 59.4595
+      },
+      "label_match_coverage": {
+        "hits": 444,
+        "n": 660,
+        "pct": 67.2727
+      }
+    },
+    "heldout": {
+      "worthy_recall": {
+        "hits": 2005,
+        "n": 2091,
+        "pct": 95.8871
+      },
+      "precision_at_10": {
+        "hits": 213,
+        "n": 381,
+        "pct": 55.9055
+      },
+      "label_match_coverage": {
+        "hits": 381,
+        "n": 540,
+        "pct": 70.5556
+      }
+    },
+    "decision": "The clean release candidate exactly reproduces the checked #832 v6 product-quality result. Held-out source was not inspected during this release pass."
+  },
+  "recall_loss_gate": {
+    "artifact": "target/release-0.19.0/recall-loss.current.crates.json",
+    "artifact_sha256": "b3a3694ef7ca98295abb5b5e1397d9a485afff13f8c526c69670749eadd2f0b4",
+    "max_violations": 0,
+    "gate_passed": true,
+    "false_merges": 0,
+    "canon_preservation_violations": 0,
+    "advisory_disagreements": 6,
+    "summary": {
+      "total_units": 7835,
+      "interpretable_units": 1123,
+      "excluded_units": 6712,
+      "canon_checked": 117,
+      "admission_rejections": 930
+    },
+    "completeness": {
+      "behavior_groups": 5,
+      "behavior_equal_pairs": 180,
+      "fingerprint_equal_pairs": 63,
+      "completeness_percent": 35.0,
+      "under_merged_behavior_groups": 2,
+      "structurally_near_under_merged_groups": 0
+    }
+  },
+  "commands": [
+    "python3 scripts/query-regression-harness.py --baseline-binary target/release-0.19.0/baseline/nose-cli-aarch64-apple-darwin/nose --current-binary target/release-0.19.0/optimized-target/release/nose --all-repos --iterations 3 --warmups 1 --query-args 'query {repo} all top=0 --format json' --output target/release-0.19.0/query-regression-v0.18.0-official-to-optimized-rc-default-allrepos-r3.json",
+    "python3 scripts/query-regression-harness.py --baseline-binary target/release-0.19.0/optimized-target/release/nose --current-binary target/release-0.19.0/optimized-target/release/nose --all-repos --iterations 3 --warmups 1 --query-args 'query {repo} all top=0 --format json' --output target/release-0.19.0/query-regression-optimized-rc-same-binary-control-default-allrepos-r3.json",
+    "python3 scripts/query-regression-harness.py --baseline-binary target/release-0.19.0/baseline/nose-cli-aarch64-apple-darwin/nose --current-binary target/release-0.19.0/optimized-target/release/nose --all-repos --iterations 3 --warmups 1 --query-args 'query {repo} all top=0 --mode semantic --format json' --output target/release-0.19.0/query-regression-v0.18.0-official-to-optimized-rc-semantic-allrepos-r3.json",
+    "python3 bench/labels/eval_by_language.py --labelset bench/labels/refactoring_families.v6.json --nose target/release-0.19.0/optimized-target/release/nose --rank extractability --bootstrap 500 --cache-dir target/release-0.19.0/eval-cache --json-out target/release-0.19.0/product-quality-evaluation-0.19.0-rc.v1.json",
+    "target/release-0.19.0/optimized-target/release/nose verify crates --max-violations 0 --recall-loss-report target/release-0.19.0/recall-loss.current.crates.json",
+    "./scripts/check-ci-local.sh --full"
+  ]
+}

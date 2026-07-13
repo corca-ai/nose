@@ -74,10 +74,12 @@ declares its cost acceptable.
 
 ## Runtime policy
 
-The first pass takes two measurements with opposite base/head execution order and
-runs a base-vs-base same-binary control on the same corpus. It records wall time
-and every stage emitted by `NOSE_TIME=1`. A signal crosses the material threshold
-only when its
+The first pass takes two measurements, pairing base and head back-to-back within
+each repository and reversing that pair order on the next iteration. This prevents
+runner load or temperature changes across the corpus from accumulating on only one
+binary. It also runs a base-vs-base same-binary control with the same repo-local
+pairing. The harness records wall time and every stage emitted by `NOSE_TIME=1`.
+A signal crosses the material threshold only when its
 control-adjusted increase is both:
 
 - greater than 5%; and
@@ -89,9 +91,10 @@ aggregate.
 
 A first-pass threshold crossing is not yet a hard regression failure. It exits
 with the dedicated focused-rerun status, selects the affected repositories (or the
-whole slice for an aggregate signal), and repeats five alternating measurements
-after one warmup with another same-binary control. Only a material signal confirmed
-by that focused run fails the runtime comparison.
+whole slice for an aggregate signal), and repeats six measurements after one warmup
+with another same-binary control. Six samples give base and head exactly three
+first-in-pair measurements each. Only a material signal confirmed by that balanced
+focused run fails the runtime comparison.
 
 ## Deterministic Ruby scaling tripwire
 

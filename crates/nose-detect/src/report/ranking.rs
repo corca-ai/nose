@@ -147,15 +147,23 @@ fn collapsed_accepted_edges(
     collapsed_sites: &[Loc],
     group_edges: &[(u32, u32)],
 ) -> Vec<(u32, u32)> {
+    let mut sites_by_file: rustc_hash::FxHashMap<&str, Vec<(u32, &Loc)>> =
+        rustc_hash::FxHashMap::default();
+    for (index, site) in collapsed_sites.iter().enumerate() {
+        sites_by_file
+            .entry(site.file.as_str())
+            .or_default()
+            .push((index as u32, site));
+    }
     let site_of: Vec<Option<u32>> = group
         .members
         .iter()
         .map(|member| {
-            collapsed_sites
-                .iter()
-                .enumerate()
-                .filter(|(_, site)| site.file == member.file)
-                .map(|(index, site)| (index as u32, overlap_frac(site, member)))
+            sites_by_file
+                .get(member.file.as_str())
+                .into_iter()
+                .flatten()
+                .map(|&(index, site)| (index, overlap_frac(site, member)))
                 .filter(|(_, overlap)| *overlap >= 0.5)
                 .max_by(|a, b| a.1.total_cmp(&b.1))
                 .map(|(index, _)| index)

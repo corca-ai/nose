@@ -92,6 +92,35 @@ fn dedups_colocated_units() {
 }
 
 #[test]
+fn accepted_edges_follow_collapsed_sites_across_files() {
+    let g = Group {
+        score: 1.0,
+        members: vec![
+            loc("a.rs", 1, 20, "rust"),
+            loc("a.rs", 3, 18, "rust"),
+            loc("b.rs", 1, 20, "rust"),
+            loc("c.rs", 1, 20, "rust"),
+        ],
+        semantic_laws: Vec::new(),
+        abstraction_witness: None,
+        witness: None,
+    };
+    let mut report = report(vec![g]);
+    report.accepted_group_edges = vec![vec![(0, 2), (1, 2), (2, 3), (0, 1)]];
+
+    let families = rank_families(&report);
+    let [family] = families.as_slice() else {
+        panic!("the collapsed group must remain one family")
+    };
+    let [coverage] = family.accepted_coverage.as_slice() else {
+        panic!("the family must retain one accepted-edge obligation")
+    };
+
+    assert_eq!(coverage.sites.len(), 3);
+    assert_eq!(coverage.edges, vec![(0, 1), (1, 2)]);
+}
+
+#[test]
 fn subsumed_family_is_dropped() {
     // An outer family of two functions, and an inner family of blocks contained
     // within them (same regions, reported twice) — only the outer survives.

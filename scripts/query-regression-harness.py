@@ -188,6 +188,11 @@ def run_once(
     }
 
 
+def measurement_order(repo_names: list[str], iteration: int) -> list[tuple[str, str]]:
+    labels = ("baseline", "current") if iteration % 2 else ("current", "baseline")
+    return [(label, repo_name) for repo_name in repo_names for label in labels]
+
+
 def warmup(
     *,
     binaries: dict[str, Path],
@@ -197,17 +202,15 @@ def warmup(
     query_args: tuple[str, ...],
 ) -> None:
     for iteration in range(1, warmups + 1):
-        order = ("baseline", "current") if iteration % 2 else ("current", "baseline")
-        for label in order:
-            for repo_name, _ in repos:
-                run_once(
-                    binary=binaries[label],
-                    label=label,
-                    repo_name=repo_name,
-                    repos_root=repos_root,
-                    iteration=-iteration,
-                    query_args=query_args,
-                )
+        for label, repo_name in measurement_order([name for name, _ in repos], iteration):
+            run_once(
+                binary=binaries[label],
+                label=label,
+                repo_name=repo_name,
+                repos_root=repos_root,
+                iteration=-iteration,
+                query_args=query_args,
+            )
 
 
 def repo_git_sha(repo_path: Path) -> str:
@@ -316,6 +319,10 @@ def corpus_provenance(
 
 def run_self_test() -> None:
     run_binary_identity_self_test()
+    assert measurement_order(["a", "b"], 1) == [
+        ("baseline", "a"), ("current", "a"), ("baseline", "b"), ("current", "b")
+    ]
+    assert measurement_order(["a"], 2) == [("current", "a"), ("baseline", "a")]
 
     def row(repo: str, label: str, elapsed_ms: float, size: int, stage_ms: float) -> dict[str, Any]:
         return {
@@ -425,6 +432,7 @@ def main() -> int:
     working_tree_status_before_measurement = git_output(["status", "--short"])
 
     binaries = {"baseline": baseline_binary, "current": current_binary}
+    repo_names = [repo for repo, _ in repos]
     warmup(
         binaries=binaries,
         repos=repos,
@@ -435,21 +443,17 @@ def main() -> int:
 
     runs: list[dict[str, Any]] = []
     for iteration in range(1, args.iterations + 1):
-        order = ("baseline", "current") if iteration % 2 else ("current", "baseline")
-        for label in order:
-            for repo_name, _ in repos:
-                runs.append(
-                    run_once(
-                        binary=binaries[label],
-                        label=label,
-                        repo_name=repo_name,
-                        repos_root=repos_root,
-                        iteration=iteration,
-                        query_args=query_args,
-                    )
+        for label, repo_name in measurement_order(repo_names, iteration):
+            runs.append(
+                run_once(
+                    binary=binaries[label],
+                    label=label,
+                    repo_name=repo_name,
+                    repos_root=repos_root,
+                    iteration=iteration,
+                    query_args=query_args,
                 )
-
-    repo_names = [repo for repo, _ in repos]
+            )
     baseline_identity = binary_identity(baseline_binary)
     current_identity = binary_identity(current_binary)
     output = {
