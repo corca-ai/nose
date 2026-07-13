@@ -1,0 +1,29 @@
+{
+  "entries": [
+    {
+      "baseline_source_sha": "54f8a67436e39e24c777a85e14224273116add6b",
+      "changed": {
+        "bytes": {
+          "baseline": [27265632],
+          "current": [27273562]
+        },
+        "hashes": {
+          "baseline": ["a81888f48395a1e35e10badd409be1059ddba4695f8f7773336eacbd43d7be2c"],
+          "current": ["d034fccd150604b0a728e7ee31beac0988ece2bce62fbfc8dea532b1a7a4c67e"]
+        },
+        "surface_counts": {
+          "baseline": [
+            {"default": 3524, "generated": 78, "hidden": 461}
+          ],
+          "current": [
+            {"default": 198, "generated": 3830, "hidden": 35}
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/842",
+      "reason": "Jazzy-generated HTML families move to the generated surface without changing family identity or semantic fields",
+      "repo": "alamofire"
+    }
+  ],
+  "schema": "nose.semantic_regression_expected_drift.v1"
+}
