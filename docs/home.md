@@ -157,6 +157,7 @@ fundamentals; the rest is grouped by area.
 - [hazard-release-checklist](hazard-release-checklist.md) — what to do for the hazard ranking on every new nose release (one-page runbook: refresh the dataset, re-tune, re-validate).
 - [runtime triage](runtime-triage.md) — reproducible query-runtime regression triage: harness, classification policy, timing knobs, and when not to optimize.
 - [Ruby redefinition runtime triage](runtime-triage-ruby-redefinitions-2026-07-10.md) — #807 diagnosis, indexed same-file facts, focused noise control, and all-corpus output evidence.
+- [0.19.0 release evidence](release-evidence-0.19.0.md) — the official v0.18.0 baseline comparison, accepted-coverage reporting hot-path fix, v6 product-quality reproduction, and recall-loss gate for the 0.19.0 release candidate.
 - [0.18.0 release evidence](release-evidence-0.18.0.md) — the pre-release performance pass, all-corpus query-regression, and recall-loss gate for the 0.18.0 release candidate.
 - [0.17.0 release evidence](release-evidence-0.17.0.md) — the hazard refresh, all-corpus query-regression, recall-loss gate, and profiling notes for the 0.17.0 release candidate.
 - [0.17.0 post-release runtime triage](runtime-triage-0.17.0.md) — focused follow-up on the largest release-candidate query-runtime regressions, including the `arrow` hot-path fix and remaining no-family-growth follow-ups.
