@@ -34,9 +34,9 @@ fn looks_like_binary_source_artifact(src: &[u8]) -> bool {
 fn looks_like_ansi_highlight_output(src: &[u8]) -> bool {
     // Plain source can mention "\x1b[" textually; syntax-highlight output contains
     // repeated raw CSI escapes throughout the file.
-    sniff_bytes(src)
-        .windows(2)
-        .filter(|window| *window == b"\x1b[")
+    let sample = sniff_bytes(src);
+    memchr::memchr_iter(b'\x1b', sample)
+        .filter(|&offset| sample.get(offset + 1) == Some(&b'['))
         .take(3)
         .count()
         >= 3

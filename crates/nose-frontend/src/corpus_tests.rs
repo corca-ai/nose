@@ -74,6 +74,15 @@ fn lower_corpus_skips_ansi_highlight_artifacts() {
         b"\x1b[38;2;1;2;3mfunc\x1b[0m \x1b[38;2;4;5;6mnope\x1b[0m() {}\n",
     )
     .unwrap();
+    assert_eq!(
+        source_artifacts::skip_reason(&source, Lang::Go, b"one \x1b[0m two \x1b[0m"),
+        None,
+        "fewer than three raw CSI escapes must remain below the artifact threshold"
+    );
+    assert_eq!(
+        source_artifacts::skip_reason(&highlighted, Lang::Go, &fs::read(&highlighted).unwrap()),
+        Some("ansi-highlight-output")
+    );
 
     let corpus = lower_corpus_filtered(&[dir.as_path()], &[]);
     let paths: Vec<_> = corpus
