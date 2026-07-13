@@ -4,8 +4,8 @@
   "split": "dev",
   "heldout_policy": "closed; no held-out checkout or judgment was opened",
   "implementation": {
-    "commit": "89b51d41c65c5c18ac78933b947aafd414599ac3",
-    "binary_sha256": "85de6187a384e24c70db6305b34d92109805afe555d2ffcf721e8f9e29df9ca5",
+    "commit": "1f5d6b450a2a68b1382e6ce843843fe8f195c898",
+    "binary_sha256": "6d906e88270994a6ac2589977b2ce9b7616788c1bba67f9dc1b66791161de3dc",
     "predicate": {
       "bounded_prefix_bytes": 65536,
       "normalization": "ascii-lowercase",
@@ -23,8 +23,8 @@
   },
   "behavior_evidence": {
     "path": "bench/labels/generated_provenance_behavior_2026_07_13.dev.v1.json",
-    "sha256": "11b4d8089ee4b703f9eb94d5c35b2473bf7599a7b59342afd922fc9b7c367838",
-    "evidence_digest": "62f5de167b4e8e750861f38ae9ef35649565537efa146824151ba4a9fa381340"
+    "sha256": "a3571a1a41e760eaea9f245511abcde3b5a542d6c10c84b88fd41159c6cd65da",
+    "evidence_digest": "17158a23270a2ba902dfd58b916b0f0720f9bbaffbe9760cf52bf732cecef6a8"
   },
   "frozen_841_evidence": {
     "taxonomy_artifact": "bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json",
@@ -69,64 +69,121 @@
       "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
     },
     "current": {
-      "commit": "89b51d41c65c5c18ac78933b947aafd414599ac3",
-      "binary_sha256": "85de6187a384e24c70db6305b34d92109805afe555d2ffcf721e8f9e29df9ca5"
+      "commit": "1f5d6b450a2a68b1382e6ce843843fe8f195c898",
+      "binary_sha256": "6d906e88270994a6ac2589977b2ce9b7616788c1bba67f9dc1b66791161de3dc"
     },
     "all_dev_three_iteration": {
-      "baseline_median_ms": 15762.10199581692,
-      "current_median_ms": 15893.216250115074,
-      "raw_delta_ms": 131.11425429815426,
-      "raw_delta_percent": 0.8318322919934821,
-      "control_delta_ms": -75.34870516974479,
-      "control_delta_percent": -0.47868743983631973,
-      "control_adjusted_delta_ms": 206.46295946789905,
-      "control_adjusted_delta_percent": 1.3098694547382825,
+      "baseline_median_ms": 15850.15183489304,
+      "current_median_ms": 15651.231959636789,
+      "raw_delta_ms": -198.91987525625154,
+      "raw_delta_percent": -1.2550029635573765,
+      "control_delta_ms": 74.33141418732703,
+      "control_delta_percent": 0.4610558705629775,
+      "control_adjusted_delta_ms": -273.25128944357857,
+      "control_adjusted_delta_percent": -1.7239663839814727,
       "material_regression": false
     },
-    "final_eighty_iteration": {
-      "baseline_median_ms": 1779.073707992211,
-      "current_median_ms": 1765.4793539550155,
-      "raw_delta_ms": -13.594354037195444,
-      "raw_delta_percent": -0.7641253971729743,
-      "control_delta_ms": 3.4939575125463307,
-      "control_delta_percent": 0.19747281200470307,
-      "control_adjusted_delta_ms": -17.088311549741775,
-      "control_adjusted_delta_percent": -0.9605173452328142,
+    "final_forty_iteration": {
+      "baseline_median_ms": 1949.28545851144,
+      "current_median_ms": 1933.8398749823682,
+      "raw_delta_ms": -15.445583529071882,
+      "raw_delta_percent": -0.7923715565429195,
+      "control_delta_ms": 4.3536250304896384,
+      "control_delta_percent": 0.22601031549384742,
+      "control_adjusted_delta_ms": -19.79920855956152,
+      "control_adjusted_delta_percent": -1.0157162191463258,
       "material_regression": false
     },
     "final_query_surface_adjusted_delta_ms": {
-      "alamofire": -0.5999999999999996,
-      "drizzle-orm": 0.0
+      "alamofire": -0.3999999999999986,
+      "nats-server": 0.0
     },
     "expected_drift_manifest": {
       "path": "bench/labels/generated_provenance_842.semantic.expected-drift.v1.json",
       "sha256": "6901ca968b36b26d6e949c16c57c000a4249b255b25c7bd380f5406fce33c2c6"
     },
+    "escalation_chain": [
+      {
+        "primary_iterations": 3,
+        "focused_iterations": 9,
+        "focused_repositories": [
+          "alamofire",
+          "axios",
+          "clap",
+          "delve",
+          "guava",
+          "junit5",
+          "libsodium",
+          "nats-server",
+          "netty",
+          "nginx",
+          "sqlite",
+          "swift-composable-architecture",
+          "tmux",
+          "zap",
+          "zod"
+        ],
+        "request_result": "query regression check failed: runtime threshold crossed; focused rerun required for alamofire, axios, clap, delve, guava, junit5, libsodium, nats-server, netty, nginx, sqlite, swift-composable-architecture, tmux, zap, zod",
+        "focused_result": "query regression check failed: confirmed material runtime regression in alamofire:candidates, delve, guava:normalize+extract, nats-server:lower, nats-server:parse+lower, netty:normalize+extract, tmux, tmux:lower, tmux:parse+lower"
+      },
+      {
+        "primary_iterations": 9,
+        "focused_iterations": 21,
+        "focused_repositories": [
+          "alamofire",
+          "delve",
+          "guava",
+          "nats-server",
+          "netty",
+          "tmux"
+        ],
+        "request_result": "query regression check failed: runtime threshold crossed; focused rerun required for alamofire, delve, guava, nats-server, netty, tmux",
+        "focused_result": "query regression check failed: confirmed material runtime regression in alamofire:rank_families, nats-server:lower, nats-server:parse+lower"
+      },
+      {
+        "primary_iterations": 21,
+        "focused_iterations": 40,
+        "focused_repositories": [
+          "alamofire",
+          "nats-server"
+        ],
+        "request_result": "query regression check failed: runtime threshold crossed; focused rerun required for alamofire, nats-server",
+        "focused_result": "query regression check passed after focused rerun: 1 declared output drift(s); runtime within threshold"
+      }
+    ],
     "official_checker_result": "query regression check passed after focused rerun: 1 declared output drift(s); runtime within threshold",
     "artifacts": [
       {
-        "path": "bench/recall_loss/issue-842-official-v0.19.0-dev-query-regression-2026-07-13.v1.json",
-        "sha256": "066e4aa09983e80b6b809abf441b0325f30ddd8cf62cb16f7014e7d46a69d272"
+        "path": "bench/recall_loss/issue-842-official-v0.19.0-dev-query-regression-2026-07-14.v2.json",
+        "sha256": "f5e1cf0578ac6a6a15a8ecb977d6ee05cc290e3f8acc7025915380fe3398e277"
       },
       {
-        "path": "bench/recall_loss/issue-842-current-control-dev-query-regression-2026-07-13.v1.json",
-        "sha256": "cfd856d7f7e286f8b214c5a677059dfea560d8b2ab26a2cdb3df1677942d1b0f"
+        "path": "bench/recall_loss/issue-842-current-control-dev-query-regression-2026-07-14.v2.json",
+        "sha256": "688ac470c86a43d82067d9941ee9152dd7ce712bf651de8f9082b6739b09b61c"
       },
       {
-        "path": "bench/recall_loss/issue-842-official-v0.19.0-focused-recheck-2026-07-13.v1.json",
-        "sha256": "ba9b76fab6e851f124349eb1cf781a89b2cf9055f184118bfb5682592e9c06a8"
+        "path": "bench/recall_loss/issue-842-official-v0.19.0-focused-r9-2026-07-14.v2.json",
+        "sha256": "9c8508e59a2e19dfdb3c1d75d7673369e3e07ae8bf9b5354ab0623d6bf12fb93"
       },
       {
-        "path": "bench/recall_loss/issue-842-current-control-focused-recheck-2026-07-13.v1.json",
-        "sha256": "e7d2fe7c8dddcbe99070a08817894c5030f68e5029bf67ca9211516d48fa5826"
+        "path": "bench/recall_loss/issue-842-current-control-focused-r9-2026-07-14.v2.json",
+        "sha256": "1617ed1b9764cae0a7914b296fdb07fc9f59aa4270a5f94ed430e945c151fcb1"
       },
       {
-        "path": "bench/recall_loss/issue-842-official-v0.19.0-final-recheck-2026-07-13.v1.json",
-        "sha256": "ee9a279557dd310294b3221563869d716f796edbbf561f9b4f6f800653c7bd9b"
+        "path": "bench/recall_loss/issue-842-official-v0.19.0-focused-r21-2026-07-14.v2.json",
+        "sha256": "c3de54f156d970051cd2ca60176ac764f379e475e7dcf0b629845e5d90b9fffd"
       },
       {
-        "path": "bench/recall_loss/issue-842-current-control-final-recheck-2026-07-13.v1.json",
-        "sha256": "92b5b1b6fa8659b8b057e6dce2947485858f141ba952e4c7b8cae3253ae0adf7"
+        "path": "bench/recall_loss/issue-842-current-control-focused-r21-2026-07-14.v2.json",
+        "sha256": "735fa0b8049828102e4672cf1c1f51c790334b5678aa91c084ddfc490fde2fa5"
+      },
+      {
+        "path": "bench/recall_loss/issue-842-official-v0.19.0-focused-r40-2026-07-14.v2.json",
+        "sha256": "479b2a56e55cfbe2cbaa6f454a3a1d3401cac8652c5e0373ab03f75460c6713b"
+      },
+      {
+        "path": "bench/recall_loss/issue-842-current-control-focused-r40-2026-07-14.v2.json",
+        "sha256": "718e6ebf9942b66821f245fb174d23bc8a1b2266cfb025de104f49a01468d403"
       }
     ]
   },

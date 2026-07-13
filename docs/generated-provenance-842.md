@@ -24,8 +24,10 @@ from `Loc::looks_generated`: that field also affects helper recommendations and 
 semantic report fields. Overlap folding likewise uses the pre-transition opportunity set
 for the stable `all` universe, while the default view folds a slice only when its direct
 primary is also still `default`. Thus a partially generated family cannot disappear below
-a fully generated primary. This separation makes the change a surface classification only,
-preserves the family universe, and keeps fail-open families visible.
+a fully generated primary. Filtered views apply the same rule after filtering: a slice is
+folded only when its direct primary is in the selected result, including `surface=default`,
+`surface~default`, and `surface!=generated`. This separation makes the change a surface
+classification only, preserves the family universe, and keeps fail-open families visible.
 
 ## Frozen evidence and hard negatives
 
@@ -84,24 +86,27 @@ all 66 dev repositories measured:
 
 | run | baseline | current | delta |
 |---|---:|---:|---:|
-| official v0.19.0 comparison | 15,762.10 ms | 15,893.22 ms | +131.11 ms / +0.83% |
-| current/current control | — | — | -75.35 ms / -0.48% |
-| control-adjusted | — | — | +206.46 ms / +1.31% |
+| official v0.19.0 comparison | 15,850.15 ms | 15,651.23 ms | -198.92 ms / -1.26% |
+| current/current control | — | — | +74.33 ms / +0.46% |
+| control-adjusted | — | — | -273.25 ms / -1.72% |
 
 The material-regression gate requires a control-adjusted increase greater than both 5%
 and 5 ms, so the all-dev aggregate passes. Short-run repository and stage noise was
-escalated rather than waived. A checked 40-iteration primary/control report retained four
-candidate repositories; an 80-iteration focused primary/control report resolved the last
-two. That final slice measured 1,779.07 -> 1,765.48 ms raw (-13.59 ms, -0.76%), with a
-+3.49 ms control and -17.09 ms / -0.96% adjusted result. `query_surface` was -0.6 ms
-adjusted on Alamofire and unchanged on Drizzle ORM.
+escalated rather than waived. The official checker requested an exact 15-repository r9
+rerun from the broad r3 report, then six repositories at r21, then Alamofire and
+NATS Server at r40. The r40 pair passed, so the checked stop rule did not request or
+justify an r80 run. That final slice measured 1,949.29 -> 1,933.84 ms raw (-15.45 ms,
+-0.79%), with a +4.35 ms control and -19.80 ms / -1.02% adjusted result.
+`query_surface` was -0.4 ms adjusted on Alamofire and unchanged on NATS Server.
 
-The official regression checker passes the 40/80 evidence chain with exactly one declared
-product drift (Alamofire) and no material aggregate, repository, or stage regression. The
-six checked raw harness artifacts contain exact binary/source roles, corpus commits,
-commands, alternating runs, stage medians, output hashes, family counts, and surface
-counts. The closeout validator recomputes aggregate and stage deltas from those reports,
-role-checks official/current/current-control identities, and reruns the official checker.
+The official regression checker passes the complete 3 -> 9 -> 21 -> 40 evidence chain
+with exactly one declared product drift (Alamofire) and no material aggregate,
+repository, or stage regression. The eight checked raw harness artifacts contain exact
+binary/source roles, corpus commits, commands, alternating runs, stage medians, output
+hashes, family counts, and surface counts. The closeout validator recomputes aggregate
+and stage deltas, verifies that every next report contains exactly the repositories
+requested by the preceding checker run, role-checks official/current/current-control
+identities, and reruns all three checker edges through the final pass.
 
 ## Validation
 

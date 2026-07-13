@@ -415,13 +415,13 @@
     ]
   },
   "current": {
-    "binary_sha256": "85de6187a384e24c70db6305b34d92109805afe555d2ffcf721e8f9e29df9ca5",
-    "commit": "89b51d41c65c5c18ac78933b947aafd414599ac3"
+    "binary_sha256": "6d906e88270994a6ac2589977b2ce9b7616788c1bba67f9dc1b66791161de3dc",
+    "commit": "1f5d6b450a2a68b1382e6ce843843fe8f195c898"
   },
   "default_changed_repositories": [
     "alamofire"
   ],
-  "evidence_digest": "62f5de167b4e8e750861f38ae9ef35649565537efa146824151ba4a9fa381340",
+  "evidence_digest": "17158a23270a2ba902dfd58b916b0f0720f9bbaffbe9760cf52bf732cecef6a8",
   "expanded_summary": {
     "byte_identical_repositories": 65,
     "changed_repositories": [

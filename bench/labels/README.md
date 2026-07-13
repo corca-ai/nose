@@ -315,9 +315,10 @@ to `surface: generated`, all three worthy HTML hard negatives remain `default`, 
 and non-surface fields stay fixed, and only Alamofire changes across 66 dev repositories.
 The [bound behavior evidence](generated_provenance_behavior_2026_07_13.dev.v1.json)
 reconstructs those claims from per-repository output/ID/projection hashes and the exact
-#841 cohort keys. The closeout also role-checks and recomputes the published-v0.19.0,
-same-binary control, 40-iteration primary, and 80-iteration focused performance artifacts,
-then reruns the official regression checker. The readable decision record is
+#841 cohort keys. The closeout also role-checks and recomputes the published-v0.19.0 and
+same-binary-control artifacts across the exact 3 -> 9 -> 21 -> 40 escalation, verifies
+each checker-requested repository set, and reruns every official regression-checker edge
+through the r40 pass. The readable decision record is
 [#842 generated provenance](../../docs/generated-provenance-842.md).
 
 The earlier [2026-07-11 nose 0.18.0 artifact](product_quality_evaluation_2026_07_11.v2.json)

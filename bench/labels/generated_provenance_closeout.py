@@ -9,6 +9,7 @@ import hashlib
 import json
 import math
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -30,9 +31,9 @@ TOP_KEYS = {
 }
 OFFICIAL_SHA = "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
 OFFICIAL_SOURCE = "54f8a67436e39e24c777a85e14224273116add6b"
-CURRENT_SHA = "85de6187a384e24c70db6305b34d92109805afe555d2ffcf721e8f9e29df9ca5"
-CURRENT_SOURCE = "89b51d41c65c5c18ac78933b947aafd414599ac3"
-BEHAVIOR_DIGEST = "62f5de167b4e8e750861f38ae9ef35649565537efa146824151ba4a9fa381340"
+CURRENT_SHA = "6d906e88270994a6ac2589977b2ce9b7616788c1bba67f9dc1b66791161de3dc"
+CURRENT_SOURCE = "1f5d6b450a2a68b1382e6ce843843fe8f195c898"
+BEHAVIOR_DIGEST = "17158a23270a2ba902dfd58b916b0f0720f9bbaffbe9760cf52bf732cecef6a8"
 QUERY_COMMAND = "nose query <repo> all top=0 --mode semantic --format json"
 
 
@@ -142,6 +143,42 @@ def run_checked(command: list[str], label: str) -> str:
     return result.stdout.strip()
 
 
+def run_checker(command: list[str], label: str, expected_code: int) -> str:
+    result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+    output = (result.stdout + result.stderr).strip()
+    require(result.returncode == expected_code, f"{label}: exit {result.returncode}, expected {expected_code}: {output}")
+    return output
+
+
+def checker_base(report: str, control: str, drift: str) -> list[str]:
+    return [
+        "python3",
+        "scripts/check-query-regression.py",
+        report,
+        "--same-binary-control",
+        control,
+        "--expected-drift-manifest",
+        drift,
+        "--require-same-binary-control",
+        "--max-runtime-delta-pct",
+        "5",
+        "--min-runtime-delta-ms",
+        "5",
+    ]
+
+
+def requested_focused_repos(report: str, control: str, drift: str, label: str) -> tuple[list[str], str]:
+    with tempfile.TemporaryDirectory(prefix="nose-842-closeout-") as directory:
+        status_path = Path(directory) / "status.json"
+        command = checker_base(report, control, drift) + ["--status-output", str(status_path)]
+        output = run_checker(command, label, 3)
+        status = load(status_path)
+    require(status.get("status") == "focused-rerun-required", f"{label}: wrong checker status")
+    repos = status.get("focused_repos")
+    require(isinstance(repos, list) and all(isinstance(repo, str) for repo in repos), f"{label}: invalid focused repo set")
+    return repos, output
+
+
 def validate(path: Path) -> None:
     artifact = load(path)
     require(set(artifact) == TOP_KEYS, f"{path}: unexpected top-level schema")
@@ -187,18 +224,27 @@ def validate(path: Path) -> None:
     require(performance["published_baseline"] == {"version": "v0.19.0", "commit": OFFICIAL_SOURCE, "binary_sha256": OFFICIAL_SHA}, "official baseline changed")
     require(performance["current"] == {"commit": CURRENT_SOURCE, "binary_sha256": CURRENT_SHA}, "current performance role changed")
     evidence = performance["artifacts"]
-    require(len(evidence) == 6, "expected three primary/control report pairs")
+    require(len(evidence) == 8, "expected four primary/control report pairs")
     reports = []
     for item in evidence:
         evidence_path = ROOT / item["path"]
         require(sha256(evidence_path) == item["sha256"], f"{evidence_path}: SHA-256 mismatch")
         reports.append(load(evidence_path))
-    pairs = [(reports[0], reports[1], 66, 3, 1, "all-dev"), (reports[2], reports[3], 4, 40, 2, "focused-40"), (reports[4], reports[5], 2, 80, 3, "final-80")]
+    pair_specs = [
+        (66, 3, 1, "all-dev"),
+        (15, 9, 2, "focused-9"),
+        (6, 21, 2, "focused-21"),
+        (2, 40, 2, "final-40"),
+    ]
+    pairs = [
+        (reports[index], reports[index + 1], repos, iterations, warmups, label)
+        for index, (repos, iterations, warmups, label) in zip(range(0, 8, 2), pair_specs, strict=True)
+    ]
     for report, control, repos, iterations, warmups, label in pairs:
         validate_report_role(report, control, repos=repos, iterations=iterations, warmups=warmups, label=label)
     compare_metrics(performance["all_dev_three_iteration"], aggregate(reports[0], reports[1]), "all-dev aggregate")
-    compare_metrics(performance["final_eighty_iteration"], aggregate(reports[4], reports[5]), "final-80 aggregate")
-    expected_surface = {repo: query_surface_adjusted(reports[4], reports[5], repo) for repo in reports[4]["repos"]}
+    compare_metrics(performance["final_forty_iteration"], aggregate(reports[6], reports[7]), "final-40 aggregate")
+    expected_surface = {repo: query_surface_adjusted(reports[6], reports[7], repo) for repo in reports[6]["repos"]}
     require(set(performance["final_query_surface_adjusted_delta_ms"]) == set(expected_surface), "query_surface repo set changed")
     for repo, value in expected_surface.items():
         close(performance["final_query_surface_adjusted_delta_ms"][repo], value, f"query_surface:{repo}")
@@ -206,28 +252,52 @@ def validate(path: Path) -> None:
     drift = performance["expected_drift_manifest"]
     drift_path = ROOT / drift["path"]
     require(sha256(drift_path) == drift["sha256"], "expected-drift manifest SHA-256 mismatch")
-    checker_output = run_checked([
-        "python3", "scripts/check-query-regression.py", evidence[2]["path"],
-        "--same-binary-control", evidence[3]["path"],
-        "--expected-drift-manifest", drift["path"],
-        "--focused-report", evidence[4]["path"],
-        "--focused-same-binary-control", evidence[5]["path"],
-        "--require-same-binary-control", "--max-runtime-delta-pct", "5",
-        "--min-runtime-delta-ms", "5", "--min-focused-iterations", "80",
-    ], "official query regression checker")
-    require(checker_output == performance["official_checker_result"], "official checker result text changed")
+    chain = performance["escalation_chain"]
+    require(len(chain) == 3, "expected the complete 3 -> 9 -> 21 -> 40 escalation chain")
+    for edge in range(3):
+        primary = edge * 2
+        focused = primary + 2
+        requested, request_output = requested_focused_repos(
+            evidence[primary]["path"],
+            evidence[primary + 1]["path"],
+            drift["path"],
+            f"escalation request {pair_specs[edge][1]} -> {pair_specs[edge + 1][1]}",
+        )
+        require(requested == reports[focused]["repos"], f"escalation edge {edge}: focused repo set is not exact")
+        command = checker_base(evidence[primary]["path"], evidence[primary + 1]["path"], drift["path"]) + [
+            "--focused-report",
+            evidence[focused]["path"],
+            "--focused-same-binary-control",
+            evidence[focused + 1]["path"],
+            "--min-focused-iterations",
+            str(pair_specs[edge + 1][1]),
+        ]
+        expected_code = 0 if edge == 2 else 1
+        focused_output = run_checker(command, f"escalation edge {edge}", expected_code)
+        expected = {
+            "primary_iterations": pair_specs[edge][1],
+            "focused_iterations": pair_specs[edge + 1][1],
+            "focused_repositories": requested,
+            "request_result": request_output,
+            "focused_result": focused_output,
+        }
+        require(chain[edge] == expected, f"escalation edge {edge}: checked chain record changed")
+    require(
+        chain[-1]["focused_result"] == performance["official_checker_result"],
+        "official checker result text changed",
+    )
 
     print(f"generated provenance closeout OK: {path.relative_to(ROOT)}")
 
 
 def self_test() -> None:
-    report = load(ROOT / "bench/recall_loss/issue-842-official-v0.19.0-final-recheck-2026-07-13.v1.json")
-    control = load(ROOT / "bench/recall_loss/issue-842-current-control-final-recheck-2026-07-13.v1.json")
-    validate_report_role(report, control, repos=2, iterations=80, warmups=3, label="self-test-good")
+    report = load(ROOT / "bench/recall_loss/issue-842-official-v0.19.0-focused-r40-2026-07-14.v2.json")
+    control = load(ROOT / "bench/recall_loss/issue-842-current-control-focused-r40-2026-07-14.v2.json")
+    validate_report_role(report, control, repos=2, iterations=40, warmups=2, label="self-test-good")
     tampered = copy.deepcopy(report)
     tampered["provenance"]["current_binary_sha256"] = OFFICIAL_SHA
     try:
-        validate_report_role(tampered, control, repos=2, iterations=80, warmups=3, label="self-test-tampered")
+        validate_report_role(tampered, control, repos=2, iterations=40, warmups=2, label="self-test-tampered")
     except SystemExit:
         pass
     else:

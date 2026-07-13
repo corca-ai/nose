@@ -23,12 +23,12 @@ TAXONOMY_FILE_SHA = "68eff466212f0322a45a16648c1fcfd51a301bd5351c93f0795147f2baa
 TAXONOMY_SEMANTIC_SHA = "206f7e6c2eb9e5bb3750dd6e12f6f920228d719868b2e4922395433a2315c71a"
 PARENT_COMMIT = "bf6298ad"
 PARENT_BINARY_SHA = "5424827feb55c997c2cabd8bdb1ea445747457f8f6f93c4b8889ce2593efe642"
-CURRENT_COMMIT = "89b51d41c65c5c18ac78933b947aafd414599ac3"
-CURRENT_BINARY_SHA = "85de6187a384e24c70db6305b34d92109805afe555d2ffcf721e8f9e29df9ca5"
+CURRENT_COMMIT = "1f5d6b450a2a68b1382e6ce843843fe8f195c898"
+CURRENT_BINARY_SHA = "6d906e88270994a6ac2589977b2ce9b7616788c1bba67f9dc1b66791161de3dc"
 # A canonical digest over the entire artifact except this field. Updating the
 # evidence requires an explicit, reviewable rebind here; internally coherent
 # summary substitutions cannot silently pass validation.
-EXPECTED_EVIDENCE_DIGEST = "62f5de167b4e8e750861f38ae9ef35649565537efa146824151ba4a9fa381340"
+EXPECTED_EVIDENCE_DIGEST = "17158a23270a2ba902dfd58b916b0f0720f9bbaffbe9760cf52bf732cecef6a8"
 
 
 def fail(message: str) -> None:

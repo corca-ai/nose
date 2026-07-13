@@ -13,11 +13,12 @@ break.
   their ranked surface. All 30 frozen head/deep positives move to `generated`, the three
   worthy HTML hard negatives remain `default`, and `all top=0` preserves ordered family
   IDs and every non-surface field. Default-only slices also remain visible when a generated
-  primary leaves that view. Only Alamofire changes across 66 dev repositories. The
-  official-v0.19.0 all-dev comparison is +0.83% raw / +1.31% control-adjusted; the formal
-  40/80-run focused chain finishes -0.96% adjusted, with no material aggregate,
-  repository, or stage regression. CI reconstructs cohort/corpus summaries from bound
-  per-repository hashes and recomputes performance from raw reports.
+  primary leaves that view, including equivalent and negated surface filters. Only
+  Alamofire changes across 66 dev repositories. The official-v0.19.0 all-dev comparison
+  is -1.26% raw / -1.72% control-adjusted; the exact 3 -> 9 -> 21 -> 40 focused chain
+  finishes -1.02% adjusted, with no material aggregate, repository, or stage regression.
+  CI reconstructs cohort/corpus summaries from bound per-repository hashes and recomputes
+  every performance escalation edge from raw reports.
 - Added the complete #841 dev default-head failure taxonomy and bounded-lever contract.
   The published v0.19.0 output is re-bound at all 658 positions to full raw families,
   source bounds, truth and disjoint mechanical buckets, origin/generated/ranking/path
