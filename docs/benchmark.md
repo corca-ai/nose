@@ -41,10 +41,12 @@ raw family hashes, deterministic selection, votes, and arbitration. The earlier
 ```sh
 bench/setup_repos.sh                      # clone the pinned corpus into bench/repos
 python3 bench/prune_corpus.py --check-manifest  # verify the recorded prune digest
-cargo build --release -p nose-cli
-python3 bench/labels/query_schema.py --self-test --nose target/release/nose
-python3 bench/labels/eval_by_language.py --rank extractability --bootstrap 500 \
-  --json-out bench/labels/product_quality_evaluation_2026_07_11.v2.json
+python3 bench/labels/query_schema.py --self-test --nose <official-v0.19.0-nose>
+python3 bench/labels/eval_by_language.py --nose <official-v0.19.0-nose> \
+  --nose-release-archive <official-v0.19.0-archive> \
+  --nose-release-checksum <official-v0.19.0-archive.sha256> \
+  --rank extractability --bootstrap 2000 \
+  --json-out bench/labels/product_quality_evaluation_v0_19_0_default_head_2026_07_13.v3.json
 ```
 
 `--rank value` reproduces the historical volume order; `--rank extractability` keeps the
@@ -53,7 +55,23 @@ the historical anti-unification re-rank comparison. Query output passes through 
 schema-v7 adapter: a changed envelope, location key, surface, or scope fails with a
 path-specific error instead of silently dropping a result.
 
-**Reproducible snapshot (2026-07-11, nose 0.18.0):** the checked
+**Current product baseline (2026-07-13, published nose 0.19.0):** precision@10
+uses the default surface users see, while worthy recall searches the explicit
+full `all` universe. On every repository the evaluator proves that the raw
+default list has the same IDs and order as the default families derived from
+`all`, and that the literal bare dashboard is the list's displayed prefix.
+
+| split | repos | default-surface labeled precision@10 | matched top-10 | all-surface worthy recall |
+|---|---:|---:|---:|---:|
+| dev | 66 | 271/437 = 62.01% [57.44–66.59] | 437/658 = 66.41% | 2,716/2,849 = 95.33% [94.56–96.10] |
+| held-out | 54 | 222/375 = 59.20% [54.13–64.00] | 375/538 = 69.70% | 2,005/2,091 = 95.89% [95.03–96.70] |
+
+The [#839 baseline](default-head-baseline-839.md) records the published release
+asset and checksum, all input hashes, 120/120 parity, per-surface counts, and
+byte-identical repeated reports. Pass `--precision-surface all` explicitly when a
+comparison needs the pre-#839 full-universe precision definition.
+
+**Historical snapshot (2026-07-11, nose 0.18.0):** the checked
 [machine-readable artifact](../bench/labels/product_quality_evaluation_2026_07_11.v2.json) records
 the exact command and configuration, git SHA
 `52457d541af605a65281f2c8642e153d2fe80950`, release-binary SHA-256
@@ -76,7 +94,8 @@ source-independent Swift recall pool exists yet.
 
 The v5 labelset remains byte-frozen, and its historical results reproduce exactly.
 Running the evaluator with
-`--labelset bench/labels/refactoring_families.v5.json` produced a checked
+`--labelset bench/labels/refactoring_families.v5.json --precision-surface all`
+produced a checked
 [v5 reproduction report](../bench/labels/product_quality_evaluation_v5_reproduction_2026_07_11.v2.json) whose
 raw counts, point estimates, and bootstrap intervals leave the frozen
 [2026-07-10 v1 report](../bench/labels/product_quality_evaluation_2026_07_10.v1.json) exactly unchanged.

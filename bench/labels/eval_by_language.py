@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Evaluate product precision and worthy-family recall by language and split.
 
-The active default is the checked v6 composite labelset; an explicit flat v5
-path reproduces the historical metric. The base metric uses either historical
-value order or nose's native extractability order. The report also retains the
+The active default is the checked v6 composite labelset and the user-facing
+default surface in nose's native extractability order. The base metric can also
+use historical value order. The report retains the
 historical anti-unification re-rank as a comparison, with deterministic bootstrap
 confidence intervals.
 
@@ -28,7 +28,13 @@ from pathlib import Path
 from typing import Any
 
 from labelset import PRECISION_METRIC, RECALL_METRIC, load_labelset, metric_eligible
-from query_schema import QUERY_SCHEMA_VERSION, member_locations, query_families
+from query_schema import (
+    QUERY_SCHEMA_VERSION,
+    dashboard_families,
+    family_surface,
+    member_locations,
+    query_families,
+)
 
 
 sys.setrecursionlimit(100000)
@@ -38,6 +44,12 @@ HISTORICAL_LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v5.json"
 DEFAULT_LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v6.json"
 CORPUS = ROOT / "bench" / "goldens" / "corpus.json"
 PRUNE_MANIFEST = ROOT / "bench" / "labels" / "prune_manifest.json"
+EVALUATION_SOURCES = (
+    ROOT / "bench" / "labels" / "eval_by_language.py",
+    ROOT / "bench" / "labels" / "query_schema.py",
+    ROOT / "bench" / "labels" / "labelset.py",
+    ROOT / "bench" / "labels" / "antiunify_probe.py",
+)
 RNG_SEED = 1
 COMPAT_RNG = random.Random(RNG_SEED)
 
@@ -101,12 +113,20 @@ def query_repo(
     repo: Path,
     *,
     nose: Path = DEFAULT_NOSE,
+    universe: str = "all",
     mode: str | None = None,
     cache_dir: Path | None = None,
     top: int = 1000000,
     timeout: int = 300,
 ) -> list[dict[str, Any]]:
-    command = [str(nose), "query", str(repo), "all", f"top={top}", "--format", "json"]
+    if universe not in ("all", "default", "dashboard"):
+        raise ValueError(f"unsupported query universe: {universe}")
+    command = [str(nose), "query", str(repo)]
+    if universe == "all":
+        command.append("all")
+    if universe != "dashboard":
+        command.append(f"top={top}")
+    command += ["--format", "json"]
     modes = split_modes([mode] if mode else [])
     if modes:
         command += ["--mode", ",".join(modes)]
@@ -121,9 +141,119 @@ def query_repo(
     )
     if result.returncode != 0:
         raise SystemExit(
-            f"query failed for {repo}: exit {result.returncode}: {result.stderr.strip()}"
+            f"{universe} query failed for {repo}: "
+            f"exit {result.returncode}: {result.stderr.strip()}"
         )
-    return query_families(result.stdout, source=f"nose query {repo}")
+    source = f"nose query {repo} ({universe})"
+    if universe == "dashboard":
+        return dashboard_families(result.stdout, source=source)
+    return query_families(result.stdout, source=source)
+
+
+def rank_families(
+    families: list[dict[str, Any]], *, rank: str
+) -> list[dict[str, Any]]:
+    if rank == "value":
+        return sorted(families, key=lambda family: -family["value"])
+    if rank == "extractability":
+        return list(families)
+    raise ValueError(f"unsupported rank: {rank}")
+
+
+def precision_families(
+    families: list[dict[str, Any]], *, precision_surface: str
+) -> list[dict[str, Any]]:
+    if precision_surface == "all":
+        return list(families)
+    if precision_surface == "default":
+        return [
+            family
+            for family in families
+            if family_surface(family, source="precision surface family") == "default"
+        ]
+    raise ValueError(f"unsupported precision surface: {precision_surface}")
+
+
+def assert_default_list_parity(
+    derived: list[dict[str, Any]],
+    default_list: list[dict[str, Any]],
+    *,
+    repo_id: str,
+) -> None:
+    non_default = [
+        family["id"]
+        for family in default_list
+        if family_surface(family, source=f"{repo_id} default-list family")
+        != "default"
+    ]
+    if non_default:
+        raise SystemExit(
+            f"default-list parity failed for {repo_id}: default list returned "
+            f"non-default family IDs {', '.join(non_default[:5])}"
+        )
+
+    derived_ids = [family["id"] for family in derived]
+    default_ids = [family["id"] for family in default_list]
+    if derived_ids == default_ids:
+        return
+    first_difference = next(
+        (
+            index
+            for index, (derived_id, default_id) in enumerate(
+                zip(derived_ids, default_ids)
+            )
+            if derived_id != default_id
+        ),
+        min(len(derived_ids), len(default_ids)),
+    )
+    derived_id = (
+        derived_ids[first_difference]
+        if first_difference < len(derived_ids)
+        else "<end>"
+    )
+    default_id = (
+        default_ids[first_difference]
+        if first_difference < len(default_ids)
+        else "<end>"
+    )
+    raise SystemExit(
+        f"default-list parity failed for {repo_id}: first difference at "
+        f"index {first_difference}: derived={derived_id}, default={default_id}; "
+        f"counts derived={len(derived_ids)}, default={len(default_ids)}"
+    )
+
+
+def assert_dashboard_prefix(
+    default_families: list[dict[str, Any]],
+    dashboard: list[dict[str, Any]],
+    *,
+    repo_id: str,
+) -> None:
+    non_default = [
+        family["id"]
+        for family in dashboard
+        if family_surface(family, source=f"{repo_id} dashboard family") != "default"
+    ]
+    if non_default:
+        raise SystemExit(
+            f"bare-dashboard parity failed for {repo_id}: dashboard returned "
+            f"non-default family IDs {', '.join(non_default[:5])}"
+        )
+    default_ids = [family["id"] for family in default_families]
+    dashboard_ids = [family["id"] for family in dashboard]
+    expected = default_ids[: len(dashboard_ids)]
+    if dashboard_ids != expected:
+        raise SystemExit(
+            f"bare-dashboard parity failed for {repo_id}: dashboard IDs "
+            f"{dashboard_ids} are not the default-list prefix {expected}"
+        )
+
+
+def surface_counts(families: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = defaultdict(int)
+    for family in families:
+        counts[family_surface(family, source="surface count family")] += 1
+    return dict(sorted(counts.items()))
 
 
 def confidence_interval(
@@ -246,6 +376,58 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def release_distribution_provenance(
+    archive: Path | None, checksum: Path | None
+) -> dict[str, str] | None:
+    if (archive is None) != (checksum is None):
+        raise SystemExit(
+            "--nose-release-archive and --nose-release-checksum must be passed together"
+        )
+    if archive is None or checksum is None:
+        return None
+    if not archive.is_file():
+        raise SystemExit(f"nose release archive is missing: {archive}")
+    if not checksum.is_file():
+        raise SystemExit(f"nose release checksum is missing: {checksum}")
+
+    lines = [
+        line.strip()
+        for line in checksum.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    if len(lines) != 1:
+        raise SystemExit(
+            f"release checksum must contain exactly one non-empty line: {checksum}"
+        )
+    fields = lines[0].split(maxsplit=1)
+    if len(fields) != 2:
+        raise SystemExit(f"malformed release checksum: {checksum}")
+    declared_digest, declared_name = fields
+    declared_name = declared_name.lstrip("*")
+    if (
+        len(declared_digest) != 64
+        or any(character not in "0123456789abcdef" for character in declared_digest)
+    ):
+        raise SystemExit(f"malformed SHA-256 digest in {checksum}")
+    if declared_name != archive.name:
+        raise SystemExit(
+            f"release checksum names {declared_name}, expected {archive.name}"
+        )
+    archive_digest = sha256_file(archive)
+    if archive_digest != declared_digest:
+        raise SystemExit(
+            f"release archive checksum mismatch: expected {declared_digest}, "
+            f"got {archive_digest}"
+        )
+    return {
+        "archive": rel(archive.resolve().as_posix()),
+        "archive_sha256": archive_digest,
+        "checksum": rel(checksum.resolve().as_posix()),
+        "checksum_sha256": sha256_file(checksum),
+        "checksum_declared_archive_sha256": declared_digest,
+    }
+
+
 def git_output(args: list[str]) -> str:
     result = subprocess.run(
         ["git", *args],
@@ -350,8 +532,13 @@ def build_metrics(
 
 def evaluate(args: argparse.Namespace) -> dict[str, Any]:
     working_tree_status_before_measurement = git_output(["status", "--short"])
+    if not args.nose.is_file():
+        raise SystemExit(f"nose binary is missing: {args.nose}")
     if args.comparison_nose is not None and not args.comparison_nose.is_file():
         raise SystemExit(f"comparison nose binary is missing: {args.comparison_nose}")
+    distribution = release_distribution_provenance(
+        args.nose_release_archive, args.nose_release_checksum
+    )
     au.NOSE = args.nose
     au._cache.clear()
     loaded_labelset = load_labelset(args.labelset)
@@ -415,19 +602,56 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         metadata = corpus[repo_id]
         language = metadata["primary_language"]
         split = metadata["split"]
-        families = query_repo(
+        all_families = query_repo(
             args.repos_root / repo_id,
             nose=args.nose,
+            universe="all",
             mode=mode or None,
             cache_dir=args.cache_dir,
             top=args.top,
             timeout=args.timeout,
         )
-        ordered = (
-            sorted(families, key=lambda family: -family["value"])
-            if args.rank == "value"
-            else list(families)
+        precision_pool = precision_families(
+            all_families, precision_surface=args.precision_surface
         )
+        default_list_parity_checked = False
+        dashboard_prefix_checked = False
+        dashboard_reported_families: int | None = None
+        if (
+            args.precision_surface == "default"
+            and not args.no_check_bare_default_parity
+        ):
+            default_list = query_repo(
+                args.repos_root / repo_id,
+                nose=args.nose,
+                universe="default",
+                mode=mode or None,
+                cache_dir=args.cache_dir,
+                top=args.top,
+                timeout=args.timeout,
+            )
+            assert_default_list_parity(
+                precision_pool,
+                default_list,
+                repo_id=repo_id,
+            )
+            default_list_parity_checked = True
+            dashboard = query_repo(
+                args.repos_root / repo_id,
+                nose=args.nose,
+                universe="dashboard",
+                mode=mode or None,
+                cache_dir=args.cache_dir,
+                timeout=args.timeout,
+            )
+            assert_dashboard_prefix(
+                precision_pool,
+                dashboard,
+                repo_id=repo_id,
+            )
+            dashboard_prefix_checked = True
+            dashboard_reported_families = len(dashboard)
+        ordered = rank_families(precision_pool, rank=args.rank)
         top = ordered[:40]
         rerank_scores = {
             family["id"]: family["value"] * refactorability(family)
@@ -436,7 +660,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         reranked = sorted(top, key=lambda family: -rerank_scores[family["id"]]) + ordered[40:]
         base_flags = best_label_flags(ordered, precision_labels)
         rerank_flags = best_label_flags(reranked, precision_labels)
-        current_hit_ids = worthy_recall_hit_ids(ordered, repo_labels)
+        current_hit_ids = worthy_recall_hit_ids(all_families, repo_labels)
         recall_flags = [
             1 if label["family_id"] in current_hit_ids else 0
             for label in repo_labels
@@ -447,6 +671,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
             comparison_families = query_repo(
                 args.repos_root / repo_id,
                 nose=args.comparison_nose,
+                universe="all",
                 mode=mode or None,
                 cache_dir=args.cache_dir,
                 top=args.top,
@@ -494,7 +719,18 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
             "labels": len(repo_labels),
             "precision_labels": len(precision_labels),
             "worthy_labels": len(recall_flags),
-            "reported_families": len(families),
+            "reported_families": len(all_families),
+            "full_universe_reported_families": len(all_families),
+            "full_universe_surface_counts": surface_counts(all_families),
+            "precision_surface": args.precision_surface,
+            "precision_surface_reported_families": len(ordered),
+            "default_list_parity": (
+                "checked" if default_list_parity_checked else "not-checked"
+            ),
+            "bare_dashboard_prefix": (
+                "checked" if dashboard_prefix_checked else "not-checked"
+            ),
+            "bare_dashboard_reported_families": dashboard_reported_families,
             "top_10_reported": min(10, len(ordered)),
             "unmatched_top_10": min(10, len(ordered)) - len(base_flags),
             "label_match_coverage": {
@@ -512,7 +748,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
     metrics = build_metrics(accumulator, bootstrap=args.bootstrap, splits=args.splits)
     nose = args.nose.resolve()
     result = {
-        "schema": "nose.product_quality_evaluation.v2",
+        "schema": "nose.product_quality_evaluation.v3",
         "query_schema_version": QUERY_SCHEMA_VERSION,
         "provenance": {
             "command": shlex.join(["python3", *sys.argv]),
@@ -521,6 +757,11 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
             "nose_binary": nose.as_posix(),
             "nose_binary_sha256": sha256_file(nose),
             "nose_version": nose_version(nose),
+            "nose_release_distribution": distribution,
+            "evaluation_sources": [
+                {"path": rel(path), "sha256": sha256_file(path)}
+                for path in EVALUATION_SOURCES
+            ],
             "labelset": rel(args.labelset.resolve().as_posix()),
             "labelset_sha256": sha256_file(args.labelset),
             "labelset_version": loaded_labelset.version,
@@ -538,12 +779,37 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
             "bootstrap_resamples": args.bootstrap,
             "bootstrap_seed": RNG_SEED,
             "cache_dir": args.cache_dir.as_posix() if args.cache_dir else None,
+            "cache_policy": (
+                "disabled (baseline-safe)"
+                if args.cache_dir is None
+                else "explicit diagnostic opt-in; not baseline-safe"
+            ),
             "limit_repos": args.limit_repos,
             "mode": mode or "CLI default",
-            "precision_denominator": (
-                "reported top-10 families matching at least one active precision label"
+            "precision_surface": args.precision_surface,
+            "precision_query": (
+                "default-filtered all; raw-order parity against the default list; "
+                "literal bare dashboard prefix parity"
+                if args.precision_surface == "default"
+                and not args.no_check_bare_default_parity
+                else (
+                    "default-filtered all (product parity checks disabled)"
+                    if args.precision_surface == "default"
+                    else "all (historical compatibility mode)"
+                )
             ),
-            "recall_denominator": "worthy labels eligible for unbiased worthy-recall",
+            "default_product_parity_check": (
+                args.precision_surface == "default"
+                and not args.no_check_bare_default_parity
+            ),
+            "precision_denominator": (
+                f"top-10 {args.precision_surface}-surface families matching at least "
+                "one active precision label"
+            ),
+            "recall_denominator": (
+                "worthy labels eligible for unbiased worthy-recall; hits searched "
+                "across the explicit all-surface universe"
+            ),
             "rank": args.rank,
             "repos_root": rel(args.repos_root.resolve().as_posix()),
             "timeout_seconds_per_repo": args.timeout,
@@ -590,6 +856,11 @@ def format_metric(metric: dict[str, Any]) -> str:
 
 def print_report(result: dict[str, Any]) -> None:
     rank = result["configuration"]["rank"]
+    precision_surface = result["configuration"]["precision_surface"]
+    print(
+        f"precision surface: {precision_surface}; "
+        "worthy-recall search surface: all"
+    )
     for split in result["configuration"]["splits"]:
         print(f"\n=== {split} ===")
         print(
@@ -617,6 +888,78 @@ def print_report(result: dict[str, Any]) -> None:
             f"label-match coverage: {coverage['hits']}/{coverage['n']} "
             f"= {coverage['pct']:.2f}%"
         )
+
+
+def run_self_test() -> None:
+    def family(family_id: str, surface: str, value: float) -> dict[str, Any]:
+        return {
+            "id": family_id,
+            "scope": "prod",
+            "surface": surface,
+            "value": value,
+            "locations": [
+                {
+                    "file": f"{family_id}.py",
+                    "start": 1,
+                    "end": 2,
+                }
+            ],
+        }
+
+    low_default = family("low-default", "default", 1.0)
+    hidden = family("hidden", "hidden", 3.0)
+    high_default = family("high-default", "default", 2.0)
+    families = [low_default, hidden, high_default]
+
+    default_families = precision_families(
+        families, precision_surface="default"
+    )
+    assert [row["id"] for row in default_families] == [
+        "low-default",
+        "high-default",
+    ]
+    assert precision_families(families, precision_surface="all") == families
+    assert [row["id"] for row in rank_families(default_families, rank="value")] == [
+        "high-default",
+        "low-default",
+    ]
+    assert rank_families(default_families, rank="extractability") == default_families
+    assert_default_list_parity(
+        default_families, list(default_families), repo_id="self-test"
+    )
+    try:
+        assert_default_list_parity(
+            default_families,
+            list(reversed(default_families)),
+            repo_id="self-test-mismatch",
+        )
+    except SystemExit as error:
+        assert "first difference at index 0" in str(error)
+    else:
+        raise AssertionError("default-list raw order mismatch must fail")
+    try:
+        assert_default_list_parity(
+            default_families, [hidden], repo_id="self-test-surface"
+        )
+    except SystemExit as error:
+        assert "non-default family IDs hidden" in str(error)
+    else:
+        raise AssertionError("non-default list family must fail")
+    assert_dashboard_prefix(
+        default_families, default_families[:1], repo_id="self-test"
+    )
+    try:
+        assert_dashboard_prefix(
+            default_families,
+            [default_families[1]],
+            repo_id="self-test-dashboard",
+        )
+    except SystemExit as error:
+        assert "not the default-list prefix" in str(error)
+    else:
+        raise AssertionError("non-prefix dashboard order must fail")
+    assert surface_counts(families) == {"default": 2, "hidden": 1}
+    print("product-quality evaluator self-test passed")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -653,6 +996,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--nose", type=Path, default=DEFAULT_NOSE)
     parser.add_argument(
+        "--nose-release-archive",
+        type=Path,
+        help="published release archive used to obtain --nose (recorded and verified)",
+    )
+    parser.add_argument(
+        "--nose-release-checksum",
+        type=Path,
+        help="published SHA-256 file for --nose-release-archive",
+    )
+    parser.add_argument(
         "--comparison-nose",
         type=Path,
         help=(
@@ -660,19 +1013,53 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "regression IDs without changing the primary metrics"
         ),
     )
-    parser.add_argument("--cache-dir", type=Path, help="forwarded to nose query --cache-dir")
+    parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        help="diagnostic-only query cache; requires --allow-cache",
+    )
+    parser.add_argument(
+        "--allow-cache",
+        action="store_true",
+        help=(
+            "explicitly allow a caller-managed diagnostic cache; cached reports "
+            "are not eligible as release baselines"
+        ),
+    )
     parser.add_argument("--top", type=int, default=1000000, help="forwarded to query top=N")
     parser.add_argument("--timeout", type=int, default=300, help="per-repo query timeout in seconds")
     parser.add_argument("--bootstrap", type=int, default=2000, help="bootstrap resamples per CI")
     parser.add_argument("--limit-repos", type=int, help="evaluate the first N labeled repos")
     parser.add_argument("--json-out", type=Path, help="write a durable machine-readable report")
     parser.add_argument(
+        "--precision-surface",
+        choices=("default", "all"),
+        default="default",
+        help=(
+            "surface used for precision@10 (default: default); 'all' reproduces "
+            "the historical full-universe metric"
+        ),
+    )
+    parser.add_argument(
+        "--no-check-bare-default-parity",
+        action="store_true",
+        help=(
+            "skip default-list raw-order and literal bare-dashboard prefix parity "
+            "checks against the default-filtered all query"
+        ),
+    )
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="run deterministic evaluator unit checks without repositories or a nose binary",
+    )
+    parser.add_argument(
         "--rank",
         choices=("value", "extractability"),
-        default="value",
+        default="extractability",
         help=(
-            "base P@10 order. 'value' preserves the historical report; "
-            "'extractability' uses nose's native JSON order."
+            "base P@10 order (default: extractability, nose's native JSON order); "
+            "'value' is the historical volume ranking"
         ),
     )
     args = parser.parse_args(argv)
@@ -681,11 +1068,27 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("--bootstrap must be positive")
     if args.top < 0:
         parser.error("--top must be non-negative")
+    if args.cache_dir is not None and not args.allow_cache:
+        parser.error(
+            "--cache-dir may contain stale analysis; omit it for a baseline or "
+            "pass --allow-cache for a diagnostic-only run"
+        )
+    if args.cache_dir is not None and args.comparison_nose is not None:
+        parser.error("--comparison-nose cannot share one --cache-dir across binaries")
+    if args.allow_cache and args.cache_dir is None:
+        parser.error("--allow-cache requires --cache-dir")
+    if (args.nose_release_archive is None) != (args.nose_release_checksum is None):
+        parser.error(
+            "--nose-release-archive and --nose-release-checksum must be passed together"
+        )
     return args
 
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    if args.self_test:
+        run_self_test()
+        return
     result = evaluate(args)
     print_report(result)
     if args.json_out:

@@ -113,6 +113,8 @@ run_type4_executable_expectations() {
 run_regression_checker_selftests() {
     need_cmd python3
     python3 bench/labels/query_schema.py --self-test
+    python3 bench/labels/eval_by_language.py --self-test
+    python3 bench/labels/check_default_head_baseline.py
     python3 bench/labels/labelset.py --self-test
     python3 bench/labels/label_refresh.py --self-test
     python3 bench/labels/recall_ceiling_probe.py --self-test
