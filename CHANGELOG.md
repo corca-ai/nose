@@ -6,6 +6,15 @@ break.
 
 ## [Unreleased]
 
+### Added
+- Split the product-quality evaluator's user-facing default-head precision from
+  full-universe worthy recall (#839). The published v0.19.0 binary now anchors a
+  hash-identified 120-repository baseline; executable default-list ID-and-order
+  and complete bare-dashboard top-five/summary parity, uncached measurement,
+  per-surface counts, explicit
+  historical `all` compatibility mode, and deterministic reports prevent future
+  ranking work from measuring the wrong query surface.
+
 ## [0.19.0] - 2026-07-13
 
 ### Added

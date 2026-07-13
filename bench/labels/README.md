@@ -234,17 +234,42 @@ under-merge leads. Method and numbers in
 they tell you whether a per-language difference is real or noise.
 
 ```sh
-cargo build --release -p nose-cli
-python3 bench/labels/query_schema.py --self-test --nose target/release/nose
-python3 bench/labels/eval_by_language.py --rank extractability --bootstrap 500 \
-  --json-out bench/labels/product_quality_evaluation_2026_07_11.v2.json
+python3 bench/labels/query_schema.py --self-test --nose <official-v0.19.0-nose>
+python3 bench/labels/default_head_query_schema.py \
+  --self-test --nose <official-v0.19.0-nose>
+python3 bench/labels/eval_by_language.py --nose <official-v0.19.0-nose> \
+  --nose-release-archive <official-v0.19.0-archive> \
+  --nose-release-checksum <official-v0.19.0-archive.sha256> \
+  --rank extractability --bootstrap 2000 \
+  --json-out target/reproduced-default-head.v3.json
 ```
 
-The [2026-07-11 product-quality artifact](product_quality_evaluation_2026_07_11.v2.json)
-records the exact binary/source/input hashes, all composite input hashes, pinned corpus
-digest, configuration, per-repository counts, and current dev/held-out metrics. Precision
-remains conditional on a top-10 family matching an active precision label; coverage is
-reported beside it, never silently discarded.
+Schema v3 measures the product surface directly: precision uses the first ten
+`surface=default` families, while worthy recall searches the complete explicit
+`all` universe. Every default run fails unless its default-list raw IDs exactly
+match the default families derived from `all` and its literal bare dashboard is
+that list's complete product top-five prefix on every repository. Replay into
+`target/`; never overwrite the checked artifact. Exact whole-file equality also
+requires its recorded evaluator revision and command/output path because those
+values are part of provenance.
+Pass `--precision-surface all` to request the old full-universe precision definition.
+
+The [published-v0.19.0 default-head artifact](product_quality_evaluation_v0_19_0_default_head_2026_07_13.v3.json)
+records exact binary/input hashes, the pinned corpus digest, configuration,
+per-repository surface counts and denominators, and dev/held-out metrics. Precision
+remains conditional on a top-10 family matching an active precision label; coverage
+is reported beside it, never silently discarded.
+
+| split | repos | default-surface labeled precision@10 | matched top-10 | all-surface worthy recall |
+|---|---:|---:|---:|---:|
+| dev | 66 | 271/437 = 62.01% [57.44–66.59] | 437/658 = 66.41% | 2,716/2,849 = 95.33% [94.56–96.10] |
+| held-out | 54 | 222/375 = 59.20% [54.13–64.00] | 375/538 = 69.70% | 2,005/2,091 = 95.89% [95.03–96.70] |
+
+The full release-asset identity, 120/120 parity proof, surface totals, and
+determinism evidence are in the [#839 baseline](../../docs/default-head-baseline-839.md).
+
+The earlier [2026-07-11 nose 0.18.0 artifact](product_quality_evaluation_2026_07_11.v2.json)
+retains the historical full-universe definition:
 
 | split | repos | labeled precision@10 | matched top-10 | v5 worthy recall |
 |---|---:|---:|---:|---:|
@@ -262,13 +287,15 @@ To reproduce the historical v5 metric, pass the base explicitly:
 ```sh
 python3 bench/labels/eval_by_language.py \
   --labelset bench/labels/refactoring_families.v5.json \
+  --precision-surface all \
   --rank extractability --bootstrap 500 \
-  --json-out bench/labels/product_quality_evaluation_v5_reproduction_2026_07_11.v2.json
+  --json-out target/product_quality_evaluation_v5_reproduction.v3.json
 ```
 
 The [v5 reproduction artifact](product_quality_evaluation_v5_reproduction_2026_07_11.v2.json)
-has the same 105 repositories and exactly reproduces every metric field (raw counts, point
-estimates, and deterministic bootstrap intervals) in the frozen
+was produced by the pre-#839 schema-v2 evaluator and remains byte-frozen. It has
+the same 105 repositories and exactly reproduces every metric field (raw counts,
+point estimates, and deterministic bootstrap intervals) in the frozen
 [2026-07-10 v1 report](product_quality_evaluation_2026_07_10.v1.json). Schema v2 adds only
 coverage and metric-eligibility metadata.
 

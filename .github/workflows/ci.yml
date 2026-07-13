@@ -32,6 +32,10 @@ jobs:
       - name: regression checker self-tests
         run: |
           python3 bench/labels/query_schema.py --self-test
+          python3 bench/labels/default_head_query_schema.py --self-test
+          python3 bench/labels/eval_by_language.py --self-test
+          python3 bench/labels/check_default_head_baseline.py --self-test
+          python3 bench/labels/check_default_head_baseline.py
           python3 bench/labels/labelset.py --self-test
           python3 bench/labels/label_refresh.py --self-test
           python3 bench/labels/recall_ceiling_probe.py --self-test
@@ -161,7 +165,9 @@ jobs:
       - name: build
         run: cargo build --release
       - name: product query JSON schema
-        run: python3 bench/labels/query_schema.py --self-test --nose target/release/nose
+        run: |
+          python3 bench/labels/query_schema.py --self-test --nose target/release/nose
+          python3 bench/labels/default_head_query_schema.py --self-test --nose target/release/nose
       - name: semantic-pack example conformance
         run: target/release/nose semantic-pack check docs/examples/semantic-packs/v0 --format json
       - name: Type-4 executable focused expectations

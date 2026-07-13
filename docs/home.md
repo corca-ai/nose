@@ -132,6 +132,9 @@ fundamentals; the rest is grouped by area.
 ### Type-4, hazard & measurement
 
 - [benchmark](benchmark.md) — the gold set, methodology, and the headline precision/recall numbers.
+- [0.20 default-head baseline](default-head-baseline-839.md) — the published
+  v0.19.0 bare-default precision/full-universe recall baseline, parity proof,
+  and compatibility metric.
 - [current missed-worthy frontier](missed-worthy-frontier-816.md) — the #816
   dev-first recall audit, accepted-pair coverage-loss result, route-tree protocol
   deviation, rejected alternatives, and #817 follow-up gates.
