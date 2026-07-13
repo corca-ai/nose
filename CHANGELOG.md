@@ -13,11 +13,13 @@ break.
   default-body, extension, enum, schema, and unknown evidence stays fail-open. All five
   frozen positives move, eight worthy hard negatives stay `default`, 54,754 dev families
   and their order remain stable, and full-universe worthy recall remains 2716/2849 with
-  zero regressions. Default labeled P@10 improves from 58.05% to 59.04%; replacement-label
-  coverage is 98.33% for #845/#846 to close. Existing frontend facets now truthfully mark
-  Java field initializers, Rust defaults/macros/attributes, and parser-recovered Swift
-  bodies. The official-v0.19.0 all-dev result is -0.52% raw / +0.14% adjusted; the exact
-  3 -> 9 -> 21 -> 40 chain ends -1.61% adjusted with no material regression.
+  zero regressions. Among currently labeled default positions, interim dev P@10 rises
+  from 58.05% to 59.04% while the worthy-hit count stays 382; replacement-label coverage
+  is 98.33% for #845/#846 to close before a final precision claim. Existing frontend
+  facets now truthfully mark Java field initializers, Rust defaults/macros/attributes,
+  and parser-recovered Swift bodies. The official-v0.19.0 all-dev result is +0.42% raw /
+  +0.35% adjusted; the exact 66 -> 25 -> 6 -> 2 repository escalation across
+  3 -> 9 -> 21 -> 40 iterations ends -0.69% adjusted with no material regression.
 - Classified source-coherent Jazzy documentation as reason-coded generated output (#842).
   Every HTML member must carry both a Jazzy asset and an Apple/Dash symbol anchor within
   a bounded 64 KiB head; missing, partial, unreadable, and hand-written lookalikes stay on
