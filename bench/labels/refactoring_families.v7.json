@@ -1,0 +1,23 @@
+{
+  "base": {
+    "path": "refactoring_families.v6.json",
+    "sha256": "6b72927d0e68e05406540016d3fa136029c52a406af0938b5a805d3fa199ac23"
+  },
+  "components": [
+    {
+      "kind": "precision-overlay",
+      "path": "refactoring_families.v7.dev.json",
+      "sha256": "c95697eb1c16d814124cd5365b484c2da381fdbf1e2cf1a0c5971898d1dd623c",
+      "split": "dev"
+    }
+  ],
+  "schema": "nose.refactoring_family_labelset.v1",
+  "seals": [
+    {
+      "path": "default_head_label_runway_2026_07_13.heldout.seal.v1.json",
+      "sha256": "35cb6d2eaa61f56728768f3232715f7af50c178be2b37b6f906f4a7f3c2d3035",
+      "split": "heldout"
+    }
+  ],
+  "version": 7
+}

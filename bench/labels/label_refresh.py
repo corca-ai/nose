@@ -1912,6 +1912,19 @@ def run_self_test() -> None:
         decisions = build_runway_decisions(merged, arbitration_path, arbitration)
         assert len(decisions["decisions"]) == 2
         assert all(row["arbiter"] is None for row in decisions["decisions"])
+        merged["rows"][0]["unanimous"] = False
+        arbitration["arbitrations"] = [
+            {
+                "candidate_key": merged["rows"][0]["candidate_key"],
+                "worthy": False,
+                "reason": "trivial",
+                "rationale": "The repeated expression is too small to extract.",
+                "confidence": "medium",
+            }
+        ]
+        arbitration_path.write_text(json.dumps(arbitration), encoding="utf-8")
+        decisions = build_runway_decisions(merged, arbitration_path, arbitration)
+        assert decisions["decisions"][0]["arbiter"]["reason"] == "trivial"
     print("label refresh self-test passed")
 
 
@@ -1981,6 +1994,12 @@ def parse_args() -> argparse.Namespace:
         runway_decisions_parser.add_argument(f"--{persona}", type=Path, required=True)
     runway_decisions_parser.add_argument("--arbitrations", type=Path, required=True)
     runway_decisions_parser.add_argument("--output", type=Path, required=True)
+    freeze_arbitration_parser = subparsers.add_parser("freeze-runway-arbitration")
+    freeze_arbitration_parser.add_argument("--dev-candidates", type=Path, required=True)
+    for persona in VOTE_NAMES:
+        freeze_arbitration_parser.add_argument(f"--{persona}", type=Path, required=True)
+    freeze_arbitration_parser.add_argument("--input", type=Path, required=True)
+    freeze_arbitration_parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
 
 
@@ -2118,6 +2137,26 @@ def main() -> None:
             json.dumps(decisions, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
         print(f"wrote {args.output}: {len(decisions['decisions'])} decisions")
+        return
+    if args.command == "freeze-runway-arbitration":
+        dev = load_schema_artifact(args.dev_candidates, RUNWAY_SCHEMA, "dev runway")
+        validate_runway_dev(dev)
+        merged = merge_runway_votes(
+            args.dev_candidates,
+            dev,
+            {persona: getattr(args, persona) for persona in VOTE_NAMES},
+        )
+        arbitration = load_schema_artifact(
+            args.input, PANEL_ARBITRATION_SCHEMA, "runway arbitration"
+        )
+        build_runway_decisions(merged, args.input, arbitration)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(
+            json.dumps(arbitration, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        print(
+            f"wrote {args.output}: {len(arbitration['arbitrations'])} arbitrations"
+        )
         return
     raise SystemExit("choose collect or validate, or pass --self-test")
 

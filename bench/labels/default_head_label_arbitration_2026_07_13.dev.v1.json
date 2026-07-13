@@ -1,0 +1,1291 @@
+{
+  "arbitrations": [
+    {
+      "candidate_key": "jq:2f021158a2556d4d:rank-10",
+      "confidence": "high",
+      "rationale": "The repeated dtoa loop is a tiny local control-flow fragment whose extraction would obscure the surrounding numeric algorithm.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "lua:f1ca70e8bc1343e1:rank-1",
+      "confidence": "high",
+      "rationale": "The list helpers share only declarations and the short function-argument validation preamble.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "lua:f702f9377494c4b5:rank-2",
+      "confidence": "high",
+      "rationale": "The stack assignment, GC check, unlock, and return sequence is a small Lua API epilogue rather than a reusable operation.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "lua:180cf65f9f4fab14:rank-4",
+      "confidence": "high",
+      "rationale": "The call entry points intentionally preserve different continuation and error contracts despite sharing lock and validation setup.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "lua:897a1d6e6b801019:rank-7",
+      "confidence": "medium",
+      "rationale": "The test-library routines retrieve a Lua object similarly but inspect different GC properties with no stable shared responsibility.",
+      "reason": "coincidental-shape",
+      "worthy": false
+    },
+    {
+      "candidate_key": "lua:666932f4d27cea05:rank-8",
+      "confidence": "medium",
+      "rationale": "The raw table API operations have distinct observable stack semantics and only mirror required API mechanics.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "lua:bb43a5cd6dc386ed:rank-9",
+      "confidence": "high",
+      "rationale": "The pointer-chain loops belong to different table algorithms and do not form one coherent abstraction.",
+      "reason": "coincidental-shape",
+      "worthy": false
+    },
+    {
+      "candidate_key": "lua:80845aacef61455c:rank-10",
+      "confidence": "high",
+      "rationale": "Only function validation and prototype lookup are shared before the listing behaviors diverge.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "nginx:a60b044e9e187286:rank-4",
+      "confidence": "medium",
+      "rationale": "The SSL merge routines operate on independent upstream-module configuration types whose module-specific hooks and evolution would be coupled by extraction.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "raylib:5119f92dd83c03d1:rank-4",
+      "confidence": "high",
+      "rationale": "Most members are synchronized single-header raygui copies embedded for distribution, not separately maintained implementations.",
+      "reason": "generated",
+      "worthy": false
+    },
+    {
+      "candidate_key": "sqlite:8bc2aa227016c225:rank-2",
+      "confidence": "medium",
+      "rationale": "The six maintained WASM pages repeat a sizeable spinner and status fragment that a shared page partial can own.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "sqlite:24ed3825e4858cf5:rank-4",
+      "confidence": "medium",
+      "rationale": "Eleven WASM pages repeat a nontrivial head scaffold that can be emitted by one page-template helper while keeping titles variable.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "tmux:6192ac8615df839a:rank-3",
+      "confidence": "high",
+      "rationale": "The two rendering paths duplicate the full viewport, offset, arrow, and width-allocation algorithm.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "chi:d5c3a6e4a91f835c:rank-6",
+      "confidence": "high",
+      "rationale": "Three router tests repeat a substantial articles/users test fixture that can be constructed once.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "chi:7f859f20219f85e5:rank-9",
+      "confidence": "high",
+      "rationale": "Each Flush method is a tiny interface adapter that sets one flag and delegates to its wrapped writer.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "cobra:9e4934abb674ab3f:rank-6",
+      "confidence": "high",
+      "rationale": "The long- and short-flag completion cases repeat one execution and assertion flow with flag spelling as the parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "cobra:4a6bbe0b7ca8f925:rank-8",
+      "confidence": "medium",
+      "rationale": "The two test packages exactly duplicate meaningful contains and omits assertion helpers that can live in an internal test utility.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "gorm:1a22ecbca32312a5:rank-10",
+      "confidence": "high",
+      "rationale": "Seven preload cases repeat the same query and deep-equality contract with only preload path and expected graph varying.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "nats-server:d7b4d87d126230de:rank-7",
+      "confidence": "high",
+      "rationale": "The three BSD files contain the same complete ProcUsage implementation and can share one multi-platform build-tagged source.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "prometheus:524550adcecb8123:rank-2",
+      "confidence": "high",
+      "rationale": "Sixteen function entries copy one large JSX documentation value that should be referenced from canonical data.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "prometheus:c1601349e39f9af1:rank-3",
+      "confidence": "high",
+      "rationale": "Fifteen trigonometric aliases repeat the same documentation payload and can point to one descriptor.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "prometheus:da05104148794c90:rank-7",
+      "confidence": "high",
+      "rationale": "Twenty-nine tests repeat a large default scrape configuration suited to a named builder with explicit overrides.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "prometheus:65f3a717cb52d175:rank-8",
+      "confidence": "medium",
+      "rationale": "The provider mocks share only a few test-server setup lines, while a cross-package helper would add more coupling than behavior.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "prometheus:1d3817d9db5baeec:rank-10",
+      "confidence": "high",
+      "rationale": "Six parser cases copy a large histogram and exemplar fixture that can be a single canonical value or factory.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "zap:6970ff27e95cd0b3:rank-7",
+      "confidence": "high",
+      "rationale": "The repeated rows are explicit behavioral-matrix data for distinct panic-hook combinations.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "zap:cbad6413ee120e61:rank-9",
+      "confidence": "high",
+      "rationale": "Encoder tests repeat a nontrivial EncoderConfig literal whose canonical fixture should have one definition.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "commons-lang:8a6c71ba3af44bd9:rank-2",
+      "confidence": "high",
+      "rationale": "The Java-version at-most truth table is one input and expected-boolean matrix.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "commons-lang:24a241270355e0ad:rank-3",
+      "confidence": "high",
+      "rationale": "The at-least checks repeat the same ordered-version assertion flow across twenty branches.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "graphhopper:1f31883ffd4edc0c:rank-4",
+      "confidence": "high",
+      "rationale": "The public exception types already share GTFSError and contribute only constructors plus their distinct short messages.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:a8b367e7dd440ac1:rank-5",
+      "confidence": "high",
+      "rationale": "The Android and JRE test trees are synchronized source-translation mirrors rather than independent maintenance sites.",
+      "reason": "generated",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:2e2c813fa8314eb1:rank-6",
+      "confidence": "high",
+      "rationale": "The dominant duplication is Guava's generated Android/JRE testlib mirroring.",
+      "reason": "generated",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:d5c7a84f04d29413:rank-8",
+      "confidence": "high",
+      "rationale": "The repeated network test sources are maintained through Guava's Android source mirror workflow.",
+      "reason": "generated",
+      "worthy": false
+    },
+    {
+      "candidate_key": "junit5:74ab5317776f7efa:rank-10",
+      "confidence": "high",
+      "rationale": "Each result type has a short conventional toString whose type-local fields carry the useful meaning.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "netty:ea4c8d98c153b21a:rank-8",
+      "confidence": "medium",
+      "rationale": "Twenty-six io_uring tests repeat the same two capability assumptions, making one named suite-prerequisite helper valuable.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "black:57ad95106708fd25:rank-1",
+      "confidence": "high",
+      "rationale": "The duplication is the intentional input and expected-output pair in a formatter golden fixture.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "black:48874d58fc01b07f:rank-5",
+      "confidence": "high",
+      "rationale": "The import-spacing fixture deliberately retains identical regions across before and after representations.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "black:d540d67bf3ead78f:rank-9",
+      "confidence": "high",
+      "rationale": "The repeated source is an explicit formatter input and golden output for new syntax.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "click:227fcfc13219413c:rank-10",
+      "confidence": "medium",
+      "rationale": "The text and binary pager cases repeat stream setup, writing, and file assertions with stream mode as the test parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "packaging:7f5141645f2e0f2b:rank-9",
+      "confidence": "medium",
+      "rationale": "Adjacent CPython tag cases share the same execution and expected sequence structure with version as the natural parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "poetry:04a6d06901d0b239:rank-9",
+      "confidence": "high",
+      "rationale": "Three show tests repeat a large package and lock-data fixture that a shared builder can expose clearly.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "requests:bcb24f2d7d65b749:rank-9",
+      "confidence": "medium",
+      "rationale": "The two 307 POST cases repeat request and redirect assertions while varying body seekability.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rich:6a5a051dec25f72b:rank-2",
+      "confidence": "high",
+      "rationale": "The three __exit__ methods are one-call context-manager protocol delegations on distinct components.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "rich:45e531f13a2494a3:rank-4",
+      "confidence": "high",
+      "rationale": "The two demos copy a sizeable Syntax, table, and renderable showcase that can be built by one demo-fixture helper.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rich:8276eb9f59423924:rank-5",
+      "confidence": "high",
+      "rationale": "The large strings are independent Python-version-specific golden outputs whose differences are the contract under test.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "rich:f67218f903f01f40:rank-9",
+      "confidence": "medium",
+      "rationale": "The public left, center, and right constructors must retain separate signatures and documentation while already delegating to the core initializer.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "rich:dd834c5eb3c8b7ca:rank-10",
+      "confidence": "high",
+      "rationale": "Two demos repeat the exact Star Wars columns and rows, which form one reusable sample dataset.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "scrapy:8b62b2f542f2c7f9:rank-3",
+      "confidence": "high",
+      "rationale": "The match is only a shared import list and contains no duplicated behavior.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "devise:b9d9159b9e9ad94e:rank-4",
+      "confidence": "high",
+      "rationale": "Five failure tests repeat Warden and Devise environment construction that a focused fixture helper can own.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "devise:9fb21938be7d078d:rank-6",
+      "confidence": "medium",
+      "rationale": "The two return-to tests repeat one login and redirect journey with the destination as the parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "devise:19d21c4fdb218a14:rank-7",
+      "confidence": "high",
+      "rationale": "Credential-change cases share the same sign-in and form flow while configuration and changed field vary.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "devise:c5febfe893104571:rank-9",
+      "confidence": "high",
+      "rationale": "Two mailer suites duplicate a broad sender, defaults, reply-to, subject, and body contract suitable for shared examples.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "faraday:cbeadf12e611e59e:rank-8",
+      "confidence": "high",
+      "rationale": "Three contexts repeat an option-aware anonymous middleware fixture and handler lookup.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "fastlane:8a94e2c3532065ea:rank-6",
+      "confidence": "high",
+      "rationale": "The example carries a synchronized generated or template copy of the distributed SnapshotHelper asset.",
+      "reason": "generated",
+      "worthy": false
+    },
+    {
+      "candidate_key": "jekyll:41a6361acda56216:rank-1",
+      "confidence": "high",
+      "rationale": "Identical include files must exist at distinct lookup paths to exercise include-resolution behavior.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "jekyll:78b095b7c93085b1:rank-3",
+      "confidence": "high",
+      "rationale": "Three include syntax contexts repeat rendering and output assertions with markup layout as the parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "jekyll:df8f0c64578b5005:rank-6",
+      "confidence": "high",
+      "rationale": "The two theme contexts share only a short site-read setup and a few direct fixture assertions.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "jekyll:2bc8d3bfc54c759f:rank-10",
+      "confidence": "high",
+      "rationale": "This narrower overlap is only two setup calls already contained in the adjacent candidate.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "rspec-core:9f60ff40045b2c98:rank-1",
+      "confidence": "medium",
+      "rationale": "Ten benchmark cases repeat the same report and iteration harness, which can accept the measured expression as a block.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rspec-core:5f9e8d84ce84870b:rank-3",
+      "confidence": "high",
+      "rationale": "The hook-filtering cases repeat group execution and the same ordered filter expectation.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rspec-core:375f6c4314ac1277:rank-4",
+      "confidence": "high",
+      "rationale": "The cases duplicate one coherent run-and-verify hook-order contract around different metadata setup.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rspec-core:5c31f7d6e8f30ca7:rank-5",
+      "confidence": "high",
+      "rationale": "The pair repeats the complete example execution and hook-order assertion sequence.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rspec-core:4ea151bfc8470e29:rank-9",
+      "confidence": "high",
+      "rationale": "The matched contexts contain only a setting, one announcement, and one no-abort assertion.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "rubocop:79eeda8f67a06817:rank-3",
+      "confidence": "high",
+      "rationale": "Three related cops duplicate the same message formatter and can call one support-layer method.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rubocop:1a6685585a11accd:rank-5",
+      "confidence": "high",
+      "rationale": "The repeated report markup is literal expected HTML in a golden formatter artifact.",
+      "reason": "generated",
+      "worthy": false
+    },
+    {
+      "candidate_key": "rubocop:ce26efcc8886bf1d:rank-6",
+      "confidence": "high",
+      "rationale": "Two related cops duplicate the complete offense and style predicate behavior suitable for a shared mixin or base.",
+      "reason": "extract-base",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rubocop:abae4dba1f6d6b4d:rank-9",
+      "confidence": "high",
+      "rationale": "The two extension-suggestion cases repeat lockfile construction and assertion flow with gems and expectations varying.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "sinatra:5f7b4ff1b9785c81:rank-3",
+      "confidence": "high",
+      "rationale": "Builder, Sass, and SCSS tests duplicate the same mock-app fixture under renderer-specific method names.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "sinatra:1792031597be21ca:rank-4",
+      "confidence": "medium",
+      "rationale": "Four streaming examples repeat middleware and request scaffolding with transformation behavior as the parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "sinatra:4004440586849a0f:rank-6",
+      "confidence": "high",
+      "rationale": "Surround, precede, and succeed specs repeat one mock-app render and assertion skeleton.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "sinatra:e43a8c2bf2c52e4a:rank-7",
+      "confidence": "high",
+      "rationale": "The nested partial tests deliberately exercise independent template engines with backend-specific syntax and rendering rules.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "sinatra:e397b13ef78ae9b9:rank-9",
+      "confidence": "high",
+      "rationale": "The layout tests are parallel contracts for separate template backends whose syntax is the payload under test.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "thor:3bab738f852d6ecd:rank-7",
+      "confidence": "medium",
+      "rationale": "The two contexts share only a short list of direct status and help-output expectations.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "bat:15e14a345c55b37d:rank-6",
+      "confidence": "high",
+      "rationale": "Cache tests repeat substantial temporary paths, cache invocation, and generated-file verification.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "clap:1cda5ca53059a7ca:rank-2",
+      "confidence": "high",
+      "rationale": "The Display bodies are small trait obligations on unrelated enums across separate crates and examples.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "fd:23bc1015496ad089:rank-1",
+      "confidence": "medium",
+      "rationale": "Two invalid-UTF-8 tests repeat nontrivial platform imports, environment creation, and malformed-path construction.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "fd:7ec11a796cb8b268:rank-2",
+      "confidence": "high",
+      "rationale": "The no-ignore-parent tests duplicate repository and ignore-file setup with inner-repository presence as the parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "fd:4d918ebf0959f8cf:rank-4",
+      "confidence": "high",
+      "rationale": "Distinct search-feature tests merely use the same generic TestEnv and assertion syntax.",
+      "reason": "coincidental-shape",
+      "worthy": false
+    },
+    {
+      "candidate_key": "fd:7acd8006fe3c3aa4:rank-5",
+      "confidence": "high",
+      "rationale": "Extension and glob cases share default filesystem ceremony but no common behavioral responsibility.",
+      "reason": "coincidental-shape",
+      "worthy": false
+    },
+    {
+      "candidate_key": "fd:dfc2eb86d459f6d9:rank-7",
+      "confidence": "high",
+      "rationale": "The candidate joins unrelated search contracts through generic fixture and assertion shape.",
+      "reason": "coincidental-shape",
+      "worthy": false
+    },
+    {
+      "candidate_key": "image:534b6555f228f381:rank-7",
+      "confidence": "high",
+      "rationale": "The BMP decoders repeat the complete row pipeline and differ chiefly in source word width and conversion.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "ripgrep:ee7467f3def657b2:rank-10",
+      "confidence": "high",
+      "rationale": "Printer scenarios repeat builder, search, capture, and assertion flow with context settings and expected text varying.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "serde_json:46d4575b8c38223e:rank-5",
+      "confidence": "high",
+      "rationale": "These are small required Deserialize methods on distinct seed and value types with different associated results.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "serde_json:c009a6455349fd59:rank-6",
+      "confidence": "high",
+      "rationale": "Each Serializer implementation must provide its own typed serialize_some trait method.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "serde_json:3bb94fffe3281430:rank-7",
+      "confidence": "high",
+      "rationale": "Tuple-struct delegation is required separately on Deserializer implementations with different result types.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "serde_json:fb80146d336689f5:rank-8",
+      "confidence": "high",
+      "rationale": "The short character delegations are required methods across several distinct Deserializer implementations.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-algorithms:5742f738d01db939:rank-3",
+      "confidence": "medium",
+      "rationale": "Two partition tests repeat the same pivot and partitioned-sequence contract that a shared assertion can express.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-algorithms:d90183eb4f0bf3f7:rank-4",
+      "confidence": "high",
+      "rationale": "min(count:) and max(count:) duplicate one scan algorithm with ordering direction as the axis.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-algorithms:b7cf8fa6110e3f2f:rank-6",
+      "confidence": "medium",
+      "rationale": "The sequence and collection wrappers intentionally provide different protocol capabilities and index semantics.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-algorithms:3da906102b5af4a5:rank-7",
+      "confidence": "medium",
+      "rationale": "Joined tests repeat the same four erased, concrete, eager, and lazy sequence assertions.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-algorithms:644dfb602bf0f7cd:rank-8",
+      "confidence": "medium",
+      "rationale": "A second joined-test pair repeats that same four-representation assertion contract.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-argument-parser:4dd4855d0db12a9e:rank-1",
+      "confidence": "high",
+      "rationale": "Flag and ParentCommand duplicate the full parsed-value property-wrapper state transition suitable for shared protocol support.",
+      "reason": "extract-base",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-argument-parser:f7ef316e61b980e5:rank-2",
+      "confidence": "high",
+      "rationale": "Option and ParentCommand repeat the same wrapped-value state machine over common parsed storage.",
+      "reason": "extract-base",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-argument-parser:5c0596f17477a745:rank-5",
+      "confidence": "high",
+      "rationale": "The static type matrix explicitly tests property-wrapper spelling, optionality, defaults, and overload selection.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-argument-parser:8b7af1821f8af46d:rank-6",
+      "confidence": "high",
+      "rationale": "The AtOption declarations must remain separate compile-time forms because type checking is the behavior under test.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-argument-parser:7d14b520e1805cd3:rank-7",
+      "confidence": "high",
+      "rationale": "Argument, OptionGroup, and ParentCommand duplicate one parsed-value wrapper abstraction across three types.",
+      "reason": "extract-base",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-argument-parser:55e79fd544ed98d7:rank-8",
+      "confidence": "high",
+      "rationale": "Argument and Option fixtures intentionally spell out independent compile-time wrapper and overload matrices.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-argument-parser:49fa778917f7faac:rank-9",
+      "confidence": "high",
+      "rationale": "Four repeating-argument cases share parsing and property assertions while token layout and expected values vary.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-argument-parser:59e7e029617da5dc:rank-10",
+      "confidence": "medium",
+      "rationale": "Two shell-completion checks repeat command and environment setup with query and expected candidates varying.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-collections:6ec84107e182647f:rank-3",
+      "confidence": "high",
+      "rationale": "The minimal collections deliberately spell out different conformance levels so tests can observe protocol dispatch.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-collections:908fb212c058b2a1:rank-5",
+      "confidence": "high",
+      "rationale": "The Int-index operations are tiny Collection protocol witnesses on distinct public types.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-collections:e84ce5883e192744:rank-7",
+      "confidence": "medium",
+      "rationale": "Six equality implementations repeat count and zipped-element comparison that a predicate-based helper can centralize.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-collections:731258c01f5f0511:rank-8",
+      "confidence": "high",
+      "rationale": "Deprecated forwarding overloads must retain distinct public signatures and contain almost no implementation logic.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-collections:b705c918f95cda52:rank-9",
+      "confidence": "high",
+      "rationale": "Public insertion overloads intentionally mirror API surface while delegating into container-specific storage internals.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-collections:69945864619f5984:rank-10",
+      "confidence": "high",
+      "rationale": "RangeExpression consume wrappers are explicit public API on three containers and already delegate to their core methods.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-composable-architecture:db72917c044cfa43:rank-6",
+      "confidence": "high",
+      "rationale": "The copies are progressive tutorial snapshots whose independent evolving source is the educational artifact.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-composable-architecture:ee0624563a8685d4:rank-7",
+      "confidence": "high",
+      "rationale": "Preview blocks are embedded in successive self-contained tutorial stages and the finished example.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-composable-architecture:b463215c84d25290:rank-8",
+      "confidence": "high",
+      "rationale": "Fifteen files intentionally preserve chronological tutorial states rather than independent implementations.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-composable-architecture:e02e9d6a77c7bc8f:rank-9",
+      "confidence": "high",
+      "rationale": "The meeting-list view is repeated so each tutorial snapshot remains complete at its editing step.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-composable-architecture:827e71bf692a95b2:rank-10",
+      "confidence": "high",
+      "rationale": "The reducer copies document successive dependency and state changes and must remain standalone teaching states.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-log:c56282671b836b99:rank-5",
+      "confidence": "high",
+      "rationale": "The optional interpolation overloads are short API glue distinguished by generic constraints for overload resolution.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-log:c6d41d8887a1c757:rank-7",
+      "confidence": "medium",
+      "rationale": "Two metadata-provider tests repeat construction of the same pair of metadata-rich handlers.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-log:8dc6020008e5fe4b:rank-8",
+      "confidence": "medium",
+      "rationale": "Benchmark and test handlers duplicate sizeable instrumented LogHandler state that shared support storage can own.",
+      "reason": "extract-base",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-log:562d8e658ed48c1c:rank-9",
+      "confidence": "high",
+      "rationale": "Provider-precedence scenarios duplicate a substantial handler pair and outer-provider fixture.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swiftlint:d28f52ac94be71f1:rank-6",
+      "confidence": "high",
+      "rationale": "Five configuration tests repeat apply, sorting, and default assertions with ACL and severity inputs varying.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swiftlint:233f0ed34addfc63:rank-8",
+      "confidence": "medium",
+      "rationale": "Six visitor overrides need distinct node signatures and their shared skip predicate is only a few lines.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swiftlint:7ddcf7ed66dec025:rank-9",
+      "confidence": "high",
+      "rationale": "CG and NS geometry rules mirror a large systematic function-to-property example mapping.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swiftlint:8137bbfbeb791c82:rank-10",
+      "confidence": "high",
+      "rationale": "The related filter-performance rules repeat common examples and an operation-generated example matrix.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "vapor:c63f9f64459bbb63:rank-4",
+      "confidence": "high",
+      "rationale": "Ten HTTP method wrappers differ only in the method constant, matching the rubric's parameterized convenience-API case.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "vapor:443219eb18dacd13:rank-5",
+      "confidence": "medium",
+      "rationale": "The public initializers expose distinct body and certificate signatures and already converge on the designated initializer.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "vapor:25a422d0e2e7a571:rank-6",
+      "confidence": "high",
+      "rationale": "The Blowfish loops repeat byte packing, block transformation, unpacking, and advancement with cipher direction varying.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "vapor:2e68ae19a2204771:rank-8",
+      "confidence": "high",
+      "rationale": "The full ECB encrypt and decrypt functions duplicate one eight-byte walker with only encipher versus decipher changing.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "vapor:4a9b6700ce17b435:rank-9",
+      "confidence": "high",
+      "rationale": "Five macro diagnostics repeat expansion and failure plumbing with source and expected diagnostic as data.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "axios:e5672bbf4bb2dff9:rank-10",
+      "confidence": "high",
+      "rationale": "Nine adapter and query tests repeat a complete local-server start, request, and guaranteed cleanup lifecycle.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "drizzle-orm:17551ccc95a876fe:rank-2",
+      "confidence": "high",
+      "rationale": "Five database adapters repeat one backend-neutral relational result contract with adapter as the parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "drizzle-orm:75490f8dca5ef5ca:rank-3",
+      "confidence": "high",
+      "rationale": "Seven dialect suites duplicate a large relational query and result contract suitable for a shared backend suite.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "drizzle-orm:8025f908a90ca202:rank-8",
+      "confidence": "high",
+      "rationale": "Six adapters repeat a complete find-one fixture and assertion with the database adapter as the natural parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "execa:3e4e3c1e080d82c6:rank-2",
+      "confidence": "high",
+      "rationale": "The detected overlap is chiefly a verbose-helper import list rather than one duplicated executable workflow.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "jest:44c7b7081374c1ec:rank-1",
+      "confidence": "medium",
+      "rationale": "Six setup and teardown entry modules duplicate directory and marker-file creation that a shared fixture helper can perform.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "jest:56af7a81730d7f35:rank-2",
+      "confidence": "medium",
+      "rationale": "Six e2e modules repeat marker-directory reading and content assertions that can remain path-parameterized.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "jest:986f26b8fa3ebbf3:rank-10",
+      "confidence": "high",
+      "rationale": "Standalone resolver fixtures include intentionally consistent and inconsistent variants for module-loading behavior.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "prettier:ee4c96993174ce54:rank-1",
+      "confidence": "high",
+      "rationale": "Nine format suites copy the exact Babel-only parser-error configuration and can reference one canonical option value.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "prettier:423be4b085090fe0:rank-2",
+      "confidence": "high",
+      "rationale": "The malformed function is intentional standalone fixture input under different pragma headers and modes.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "prettier:4f0213e58868f884:rank-4",
+      "confidence": "high",
+      "rationale": "The copies encode successive filesystem states in a Flow recheck integration scenario.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "prettier:0e635c14a0ef4984:rank-5",
+      "confidence": "high",
+      "rationale": "The candidate consists of repeated structural fields in Flow AST type declarations, with no behavior to extract.",
+      "reason": "type-def",
+      "worthy": false
+    },
+    {
+      "candidate_key": "prettier:33ab0a71fb2e4b3e:rank-9",
+      "confidence": "high",
+      "rationale": "Standalone doctype fixtures intentionally hold the document body constant so only declaration formatting varies.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "prettier:a028abdfc45c6ccc:rank-10",
+      "confidence": "high",
+      "rationale": "Each integration fixture must export an independent loadable plugin whose printer behavior and option contract differ.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swr:be7aabdb1748c81e:rank-6",
+      "confidence": "medium",
+      "rationale": "Nine pages repeat the same client-only Suspense shell that can accept a Section and fallback.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swr:70b0cdeace18694c:rank-8",
+      "confidence": "medium",
+      "rationale": "Four retry examples and fixtures duplicate one ErrorBoundary, Suspense, and Demo composition despite small reset variations.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swr:a509219ffe75ad3c:rank-9",
+      "confidence": "medium",
+      "rationale": "Four fallback components repeat the alert and retry UI with retry behavior as the parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "zustand:fd170fba85e34e02:rank-4",
+      "confidence": "medium",
+      "rationale": "Sync and async persistence suites repeat store and rehydration setup that can be built from a storage fixture.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "zustand:c0f61893f81aa322:rank-5",
+      "confidence": "high",
+      "rationale": "Four connection-isolation cases duplicate a substantial three-store and subscriber fixture.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "zustand:81eb0b210f829836:rank-7",
+      "confidence": "medium",
+      "rationale": "Sync and async Map persistence tests repeat serialization, recreation, hydration, and recovered-state assertions.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "zustand:6173e2ccdc162d6f:rank-9",
+      "confidence": "high",
+      "rationale": "Skip-hydration tests duplicate the full persisted-store contract with storage timing as the parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "zustand:919ef7576dd96caf:rank-10",
+      "confidence": "high",
+      "rationale": "Custom-merge tests repeat persisted data, merge logic, and hydration assertions across sync and async storage.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "jq:9674390bf9cd2b6b:rank-19",
+      "confidence": "high",
+      "rationale": "Allocating the result string, freeing one buffer, and returning is too small and local to extract.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "lua:b9746b4eeb10c562:rank-28",
+      "confidence": "medium",
+      "rationale": "The similar expression-kind switches participate in different compiler state transitions and invariants.",
+      "reason": "coincidental-shape",
+      "worthy": false
+    },
+    {
+      "candidate_key": "nginx:da63b3ab07c591c5:rank-29",
+      "confidence": "high",
+      "rationale": "FastCGI, SCGI, and uWSGI duplicate a long generic request-header linking, filtering, allocation, and traversal algorithm.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "tmux:038f3c6423116d37:rank-26",
+      "confidence": "high",
+      "rationale": "Two copy-mode commands repeat substantial argument decoding, selection setup, and copy finalization mechanics.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "delve:4edec065e1facd12:rank-29",
+      "confidence": "low",
+      "rationale": "The lock must span each caller's distinct scope use, so a generic callback abstraction for the short conversion preamble would cost more than it removes.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "gorm:457724bf5876bf72:rank-25",
+      "confidence": "high",
+      "rationale": "The preload tests deliberately define different static relationship graphs and depths that cannot form one data-driven case.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "hugo:6f74bbe10b812649:rank-20",
+      "confidence": "high",
+      "rationale": "Two page-building tests repeat the same large publish, expiry, draft, and flag truth table.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "prometheus:93e897b24e6a25a1:rank-28",
+      "confidence": "high",
+      "rationale": "Four histogram tests copy the same distinctive FloatHistogram value that should be one fixture.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "zap:c1f12ffe24124311:rank-26",
+      "confidence": "high",
+      "rationale": "This candidate is only a short tail of an EncoderConfig literal already captured by a broader family.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "commons-lang:91651c50068b5d23:rank-21",
+      "confidence": "medium",
+      "rationale": "Primitive and object array overloads require distinct typed super calls, and a callback wrapper would add complexity and overhead.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "graphhopper:b558b1b35673b943:rank-21",
+      "confidence": "medium",
+      "rationale": "Two integration suites repeat the same cross-feed transfer request and assertions and can accept the router as a dependency.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "guava:6c18e11be935c7b7:rank-25",
+      "confidence": "high",
+      "rationale": "Covariant Builder.add overrides are tiny typed API obligations and include synchronized platform variants.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "netty:d72dfbe05dbc9da9:rank-30",
+      "confidence": "low",
+      "rationale": "Six server examples and testsuites share substantial bootstrap and shutdown mechanics that a configurable server utility can own, although protocol setup must remain local.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "click:d83cb5cd3addda8f:rank-21",
+      "confidence": "high",
+      "rationale": "The overlap is only a short formatted failure call inside two distinct path-type checks.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "poetry:bdaa165abf578278:rank-14",
+      "confidence": "medium",
+      "rationale": "Installer and solver tests duplicate a meaningful package, extras, and marker graph suited to one fixture factory.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "requests:8ab53958e59d4eae:rank-24",
+      "confidence": "high",
+      "rationale": "Redirect-header purge cases repeat request, response, resolution, and assertions with only the location form varying.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "scrapy:569abc7359fe0536:rank-26",
+      "confidence": "high",
+      "rationale": "The identical quote markup belongs to separate standalone pagination documents whose URLs and page boundaries are the fixture contract.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "devise:3709a68dfc94d389:rank-18",
+      "confidence": "medium",
+      "rationale": "The cancellation scenarios share only a short authentication preamble before different session-cleanup behavior.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "faraday:94e07799d43f1949:rank-14",
+      "confidence": "medium",
+      "rationale": "Middleware and adapter contexts duplicate anonymous option-aware component construction and built-instance lookup.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rack:1c1e73d15f9bedad:rank-30",
+      "confidence": "high",
+      "rationale": "Multipart-limit cases repeat large body and environment construction with the configured limit dimension varying.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rspec-core:279969494d5db2dd:rank-24",
+      "confidence": "high",
+      "rationale": "Execution-result cases share capture and attribute assertions while outcome and expected status details vary.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "alacritty:4804c518a5a683af:rank-25",
+      "confidence": "medium",
+      "rationale": "Both resize paths repeat the same subtle cursor-wrap normalization before reflow.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "clap:6d8a2a94551ce4a5:rank-29",
+      "confidence": "high",
+      "rationale": "Four multiple-value cases repeat result assertions with argv and expected collected values as data.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "nushell:f8525fbbf44095cf:rank-27",
+      "confidence": "high",
+      "rationale": "Seven completion tests repeat long platform-specific expected path lists that belong in shared fixture data.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "ripgrep:6df934b900e3e06b:rank-21",
+      "confidence": "high",
+      "rationale": "Two long printer tests repeat builder, search, capture, and assertion blocks while context limits and output vary.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "serde_json:cbac7da6e3339d6b:rank-21",
+      "confidence": "high",
+      "rationale": "The array and object separator hooks are two small formatter methods whose names preserve the relevant distinction.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-algorithms:3a8f1b60a2ec2d69:rank-30",
+      "confidence": "high",
+      "rationale": "Min-count and max-count tests mirror replacement and stability datasets with ordering direction and expected range varying.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-collections:b0d69523e12d80b9:rank-21",
+      "confidence": "high",
+      "rationale": "Rigid and unique deque prepend overloads intentionally mirror public API while delegating to different storage guarantees.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-composable-architecture:1f9e32d4209464cb:rank-13",
+      "confidence": "high",
+      "rationale": "The list previews are embedded in separate chronological tutorial snapshots that must compile and read independently.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swiftlint:9f3b09407c810f1d:rank-13",
+      "confidence": "high",
+      "rationale": "FirstWhereRule and LastWhereRule duplicate the complete ExprSyntax skip predicate, which can have one shared definition.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "vapor:4f109f230bd7bee8:rank-24",
+      "confidence": "medium",
+      "rationale": "Three form tests repeat the same encoded-person field assertion list that a named contract helper can own.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "drizzle-orm:8de54e332926b0a9:rank-11",
+      "confidence": "high",
+      "rationale": "Five workspace packages copy an entire import-rewriting program that belongs in one configurable build utility.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "execa:0e3ceb14a709f2c1:rank-30",
+      "confidence": "high",
+      "rationale": "The overlap is only three direct error-property assertions inside distinct IPC failure paths.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "jest:d3b0b9da094cc951:rank-26",
+      "confidence": "high",
+      "rationale": "Synchronous and asynchronous source-map tests repeat transformer configuration, mock return, execution, and emitted-file checks.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "prettier:d7f968babbddc89d:rank-30",
+      "confidence": "high",
+      "rationale": "The repeated blocks are structural fields in Flow AST type declarations, not executable behavior.",
+      "reason": "type-def",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swr:a662ee36bf757dad:rank-18",
+      "confidence": "high",
+      "rationale": "Four mutation tests repeat one render, click, pending, and outcome lifecycle with trigger and callback behavior varying.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "zustand:ce7d1d5701576035:rank-13",
+      "confidence": "high",
+      "rationale": "Two named-store isolation tests duplicate store setup and subscribers while dispatched action semantics vary.",
+      "reason": "parameterize",
+      "worthy": true
+    }
+  ],
+  "schema": "nose.refactoring_panel_arbitration.v1",
+  "source_artifact": {
+    "path": "bench/labels/default_head_label_runway_2026_07_13.dev.v1.json",
+    "sha256": "38b6f211f841d0bf69d262d271b8d06c5f57c5c2a01237fc13c854c150e1e965"
+  },
+  "split": "dev",
+  "vote_inputs": {
+    "dedupe": {
+      "path": "bench/labels/default_head_label_votes_2026_07_13.dev.dedupe.v1.json",
+      "sha256": "1f89b072da2a38af49a720936ac875e2f837cff945a7d966c6b1c8a4db05b7c0"
+    },
+    "pragmatic": {
+      "path": "bench/labels/default_head_label_votes_2026_07_13.dev.pragmatic.v1.json",
+      "sha256": "f5d94b07f1b402a1dd08ed3e4416b9f563f0b5c4f9dfca00cb35332eb0c34754"
+    },
+    "skeptic": {
+      "path": "bench/labels/default_head_label_votes_2026_07_13.dev.skeptic.v1.json",
+      "sha256": "4d6f84905126cb879d67e76848ba9d07218a2fb7d9636a15dce0157d0dfb4465"
+    }
+  }
+}

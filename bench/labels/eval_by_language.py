@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Evaluate product precision and worthy-family recall by language and split.
 
-The active default is the checked v6 composite labelset and the user-facing
+The active default is the checked v7 composite labelset and the user-facing
 default surface in nose's native extractability order. The base metric can also
 use historical value order. The report retains the
 historical anti-unification re-rank as a comparison, with deterministic bootstrap
@@ -41,7 +41,7 @@ sys.setrecursionlimit(100000)
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_NOSE = ROOT / "target" / "release" / "nose"
 HISTORICAL_LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v5.json"
-DEFAULT_LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v6.json"
+DEFAULT_LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v7.json"
 CORPUS = ROOT / "bench" / "goldens" / "corpus.json"
 PRUNE_MANIFEST = ROOT / "bench" / "labels" / "prune_manifest.json"
 EVALUATION_SOURCES = (
