@@ -14,17 +14,14 @@
     "binary_code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1"
   },
   "release_candidate": {
-    "source_ref": "release-candidate-rank-index",
-    "git_sha": "9da281d6f257a585bda0639af8f4996c24632f2b",
-    "binary": "target/release-0.19.0/optimized-target/release/nose",
-    "binary_sha256": "d62417a363777c512fe6335caaaca64a033f4a7a1adfb9de67fc440955579573",
-    "binary_code_sha256": "1d7a5d2a2274fb755deda1f22826a645d330d0080cda893c24e62b6d81d6a63f",
+    "source_ref": "v0.19.0-frontend-fastpath",
+    "git_sha": "bc4e9bc953ce3e2d11a13aebee33b5bced6258fe",
+    "binary": "target/release-0.19.0/frontend-perf-target/release/nose",
+    "binary_sha256": "559e1d565e231dda5ac7abacd749a5aac6337b63aef3bff008284e705096a25d",
+    "binary_code_sha256": "825a9c12c6ca260f500bb2dfa7a1d6ec9a9ed31160d8364e346b587c06500a8c",
     "binary_code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1",
-    "measured_version": "nose 0.18.0",
-    "working_tree_status_before_measurement": "",
-    "final_version_bump_binary": "target/release-0.19.0/final-target/release/nose",
-    "final_version_bump_binary_sha256": "96887e375a5d31738ef2e4877a9f8f6a41443d3b3a653be67974d5450d4aeb3c",
-    "final_version": "nose 0.19.0"
+    "measured_version": "nose 0.19.0",
+    "working_tree_status_before_measurement": ""
   },
   "performance": {
     "initial_all_repo_regression": {
@@ -57,48 +54,71 @@
       "family_drift_repos": 0,
       "byte_drift_repos": 0
     },
+    "frontend_ansi_fastpath": {
+      "git_sha": "bc4e9bc953ce3e2d11a13aebee33b5bced6258fe",
+      "change": "Prefilter ANSI-highlight artifact samples with memchr escape-byte offsets instead of scanning every adjacent byte in the 256 KiB sample.",
+      "focused_artifact": "target/release-0.19.0/query-regression-frontend-fastpath-r6.json",
+      "focused_artifact_sha256": "f82a971ad4040116be6f594549634a7067d25f078f9dcee6d4168d3c38d212aa",
+      "focused_control_artifact": "target/release-0.19.0/query-regression-frontend-fastpath-control-r6.json",
+      "focused_control_artifact_sha256": "be41fd85f8df5df4968a8e2878d41f133cc32ea67c966083a71c648bee5b8d7d",
+      "repos": [
+        "fastlane",
+        "prettier"
+      ],
+      "iterations": 6,
+      "warmups": 1,
+      "aggregate_baseline_median_ms": 944.9968130502384,
+      "aggregate_current_median_ms": 938.9689790259581,
+      "aggregate_delta_pct": -0.6378681854834842,
+      "control_adjusted_delta_ms": 2.2075429897118593,
+      "prettier_control_adjusted_lower_delta_ms": -26.6,
+      "prettier_control_adjusted_parse_lower_delta_ms": -24.55,
+      "hash_drift_repos": 0,
+      "family_drift_repos": 0,
+      "byte_drift_repos": 0
+    },
     "same_binary_control": {
-      "artifact": "target/release-0.19.0/query-regression-optimized-rc-same-binary-control-default-allrepos-r3.json",
-      "artifact_sha256": "1fd7735034cbd1ee8df919a57658aca80e656db29e38225789e5ad0419dcc74b",
+      "artifact": "target/release-0.19.0/query-regression-v0.19.0-final-rc-self-control-default-allrepos-r3.json",
+      "artifact_sha256": "a371497132fb4c593b12af79d23a4f111d9fe8acb5c68439ab104be49402e5e5",
       "repos": 120,
       "iterations": 3,
       "warmups": 1,
-      "aggregate_baseline_median_ms": 38954.3346609571,
-      "aggregate_current_median_ms": 38730.25733180111,
-      "aggregate_delta_pct": -0.5752307955103537,
+      "aggregate_baseline_median_ms": 37979.23579480266,
+      "aggregate_current_median_ms": 38092.00525016058,
+      "aggregate_delta_pct": 0.2969239717386639,
       "hash_drift_repos": 0,
       "family_drift_repos": 0,
       "byte_drift_repos": 0
     },
     "default_surface": {
-      "artifact": "target/release-0.19.0/query-regression-v0.18.0-official-to-optimized-rc-default-allrepos-r3.json",
-      "artifact_sha256": "679389f19286b2f81105a8450ff8bff5182a897d28a54d4a7d8e762e713c95ff",
+      "artifact": "target/release-0.19.0/query-regression-v0.18.0-official-to-final-rc-default-allrepos-r3.json",
+      "artifact_sha256": "c338538253c77340eec0d873854aecd552ccb267ceaeb9c7d816aaf17371b6d6",
       "repos": 120,
       "iterations": 3,
       "warmups": 1,
-      "aggregate_baseline_median_ms": 34204.67984012794,
-      "aggregate_current_median_ms": 36433.483380882535,
-      "aggregate_delta_pct": 6.516077774070641,
-      "approximate_control_adjusted_delta_pct": 7.091308569580995,
+      "aggregate_baseline_median_ms": 34322.87899765652,
+      "aggregate_current_median_ms": 36159.033919044305,
+      "aggregate_delta_pct": 5.349652986607436,
+      "approximate_control_adjusted_delta_pct": 5.052729014868772,
       "baseline_families": 92229,
       "current_families": 100966,
       "family_delta": 8737,
       "family_delta_pct": 9.473159201552656,
       "family_increase_repos": 120,
       "family_decrease_repos": 0,
-      "decision": "The default surface does more deliberate scoring and returns 9.47% more families. The measured runtime cost is retained as capability-growth price after removing the confirmed rank_map hot path."
+      "decision": "The default surface does more deliberate scoring and returns 9.47% more families. Its control-adjusted delta is 0.05 percentage points above the 5% threshold and is retained as capability-growth price after removing the confirmed rank_map and front-end hot paths."
     },
     "established_semantic_surface": {
-      "artifact": "target/release-0.19.0/query-regression-v0.18.0-official-to-optimized-rc-semantic-allrepos-r3.json",
-      "artifact_sha256": "595db60f136e9e6d5a0abd1c5d2b1b05457fe19ccb8a6be2d03caa69e7789d82",
+      "artifact": "target/release-0.19.0/query-regression-v0.18.0-official-to-final-rc-semantic-allrepos-r3.json",
+      "artifact_sha256": "444c279855e709de8d7b0885cb8abdc102d45da1b22b549a90bdf650a2828675",
       "query_args": "query {repo} all top=0 --mode semantic --format json",
       "repos": 120,
       "iterations": 3,
       "warmups": 1,
-      "aggregate_baseline_median_ms": 24822.48829177115,
-      "aggregate_current_median_ms": 25715.468663838692,
-      "aggregate_delta_pct": 3.5974651758162812,
-      "approximate_control_adjusted_delta_pct": 4.172695971326635,
+      "aggregate_baseline_median_ms": 28389.308418147266,
+      "aggregate_current_median_ms": 28964.5600427757,
+      "aggregate_delta_pct": 2.0262967176076696,
+      "approximate_control_adjusted_delta_pct": 1.7293727458690056,
       "baseline_families": 14884,
       "current_families": 15815,
       "family_drift_repos": 31,
@@ -107,8 +127,8 @@
     }
   },
   "product_quality": {
-    "artifact": "target/release-0.19.0/product-quality-evaluation-0.19.0-rc.v1.json",
-    "artifact_sha256": "1aad008d4190123e0970cd7c398aff18318c63d05c7d582ebb92f250824d6210",
+    "artifact": "target/release-0.19.0/product-quality-evaluation-0.19.0-final.v1.json",
+    "artifact_sha256": "57429f01d225abe10e37f3d5b510c3ac4f4e683ff1db330ffb0cbc9b27b82906",
     "labelset": "bench/labels/refactoring_families.v6.json",
     "labelset_sha256": "6b72927d0e68e05406540016d3fa136029c52a406af0938b5a805d3fa199ac23",
     "repositories": 120,
@@ -149,8 +169,8 @@
     "decision": "The clean release candidate exactly reproduces the checked #832 v6 product-quality result. Held-out source was not inspected during this release pass."
   },
   "recall_loss_gate": {
-    "artifact": "target/release-0.19.0/recall-loss.current.crates.json",
-    "artifact_sha256": "b3a3694ef7ca98295abb5b5e1397d9a485afff13f8c526c69670749eadd2f0b4",
+    "artifact": "target/release-0.19.0/recall-loss.final.crates.json",
+    "artifact_sha256": "149abb80c7ffb790d3fc0fbc2ad910add776d768ecf2961ee4321239f935d9c9",
     "max_violations": 0,
     "gate_passed": true,
     "false_merges": 0,
@@ -158,10 +178,10 @@
     "advisory_disagreements": 6,
     "summary": {
       "total_units": 7835,
-      "interpretable_units": 1123,
-      "excluded_units": 6712,
+      "interpretable_units": 1122,
+      "excluded_units": 6713,
       "canon_checked": 117,
-      "admission_rejections": 930
+      "admission_rejections": 929
     },
     "completeness": {
       "behavior_groups": 5,
@@ -173,11 +193,11 @@
     }
   },
   "commands": [
-    "python3 scripts/query-regression-harness.py --baseline-binary target/release-0.19.0/baseline/nose-cli-aarch64-apple-darwin/nose --current-binary target/release-0.19.0/optimized-target/release/nose --all-repos --iterations 3 --warmups 1 --query-args 'query {repo} all top=0 --format json' --output target/release-0.19.0/query-regression-v0.18.0-official-to-optimized-rc-default-allrepos-r3.json",
-    "python3 scripts/query-regression-harness.py --baseline-binary target/release-0.19.0/optimized-target/release/nose --current-binary target/release-0.19.0/optimized-target/release/nose --all-repos --iterations 3 --warmups 1 --query-args 'query {repo} all top=0 --format json' --output target/release-0.19.0/query-regression-optimized-rc-same-binary-control-default-allrepos-r3.json",
-    "python3 scripts/query-regression-harness.py --baseline-binary target/release-0.19.0/baseline/nose-cli-aarch64-apple-darwin/nose --current-binary target/release-0.19.0/optimized-target/release/nose --all-repos --iterations 3 --warmups 1 --query-args 'query {repo} all top=0 --mode semantic --format json' --output target/release-0.19.0/query-regression-v0.18.0-official-to-optimized-rc-semantic-allrepos-r3.json",
-    "python3 bench/labels/eval_by_language.py --labelset bench/labels/refactoring_families.v6.json --nose target/release-0.19.0/optimized-target/release/nose --rank extractability --bootstrap 500 --cache-dir target/release-0.19.0/eval-cache --json-out target/release-0.19.0/product-quality-evaluation-0.19.0-rc.v1.json",
-    "target/release-0.19.0/optimized-target/release/nose verify crates --max-violations 0 --recall-loss-report target/release-0.19.0/recall-loss.current.crates.json",
+    "python3 scripts/query-regression-harness.py --baseline-binary target/release-0.19.0/baseline/nose-cli-aarch64-apple-darwin/nose --current-binary target/release-0.19.0/frontend-perf-target/release/nose --all-repos --iterations 3 --warmups 1 --query-args 'query {repo} all top=0 --format json' --output target/release-0.19.0/query-regression-v0.18.0-official-to-final-rc-default-allrepos-r3.json",
+    "python3 scripts/query-regression-harness.py --baseline-binary target/release-0.19.0/frontend-perf-target/release/nose --current-binary target/release-0.19.0/frontend-perf-target/release/nose --all-repos --iterations 3 --warmups 1 --query-args 'query {repo} all top=0 --format json' --output target/release-0.19.0/query-regression-v0.19.0-final-rc-self-control-default-allrepos-r3.json",
+    "python3 scripts/query-regression-harness.py --baseline-binary target/release-0.19.0/baseline/nose-cli-aarch64-apple-darwin/nose --current-binary target/release-0.19.0/frontend-perf-target/release/nose --all-repos --iterations 3 --warmups 1 --query-args 'query {repo} all top=0 --mode semantic --format json' --output target/release-0.19.0/query-regression-v0.18.0-official-to-final-rc-semantic-allrepos-r3.json",
+    "python3 bench/labels/eval_by_language.py --labelset bench/labels/refactoring_families.v6.json --nose target/release-0.19.0/frontend-perf-target/release/nose --rank extractability --bootstrap 500 --cache-dir target/release-0.19.0/final-eval-cache --json-out target/release-0.19.0/product-quality-evaluation-0.19.0-final.v1.json",
+    "target/release-0.19.0/frontend-perf-target/release/nose verify crates --max-violations 0 --recall-loss-report target/release-0.19.0/recall-loss.final.crates.json",
     "./scripts/check-ci-local.sh --full"
   ]
 }
