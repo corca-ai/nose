@@ -62,7 +62,11 @@ fn query_selection<'a>(
         .iter()
         .filter(|f| {
             (widen || is_default_surface(f, ov))
-                && !opp.is_slice(f)
+                && !(if widen {
+                    opp.is_slice(f)
+                } else {
+                    opp.is_default_slice(f)
+                })
                 && q.filters
                     .iter()
                     .all(|flt| family_matches(f, ov, flt, since))

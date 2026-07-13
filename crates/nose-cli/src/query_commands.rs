@@ -1,3 +1,4 @@
+use crate::baseline;
 use crate::baseline_comparison::BaselineComparison;
 use crate::cli_args::{Cmd, QueryArgs, ScopeFilter};
 use crate::divergence;
@@ -15,7 +16,8 @@ use crate::query_views::render_query_base;
 use crate::query_witness::enrich_graded_witnesses;
 use crate::source_lines::family_anchor;
 use crate::surfaces::{
-    classify_surface_overrides, is_default_opportunity_family, SurfaceOverrides,
+    classify_surface_overrides, is_default_opportunity_family, is_default_report_family,
+    SurfaceOverrides,
 };
 use crate::timing::time_stage;
 use anyhow::Result;
@@ -190,7 +192,14 @@ fn query_opportunities(
         .iter()
         .filter(|f| is_default_opportunity_family(f, overrides))
         .collect();
-    OpportunityGroups::from_ranked(&default_fams)
+    let mut groups = OpportunityGroups::from_ranked(&default_fams);
+    let default_ids = families
+        .iter()
+        .filter(|family| is_default_report_family(family, overrides))
+        .map(baseline::family_id)
+        .collect();
+    groups.restrict_default_slices_to(&default_ids);
+    groups
 }
 
 fn discard_accepted_coverage(families: &mut [nose_detect::RefactorFamily]) {

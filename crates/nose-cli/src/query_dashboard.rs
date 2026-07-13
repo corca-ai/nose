@@ -67,7 +67,7 @@ pub(super) fn render_query_dashboard(
     // Default surface, slice-folds removed (shown under their primary) — matches analysis.
     let def: Vec<&nose_detect::RefactorFamily> = families
         .iter()
-        .filter(|f| is_default_surface(f, ov) && !opp.is_slice(f))
+        .filter(|f| is_default_surface(f, ov) && !opp.is_default_slice(f))
         .collect();
     // Scope-blind ranking: a family is ranked purely by extractability (the order it
     // arrives in), test and production treated alike — scope is a tag and an optional
