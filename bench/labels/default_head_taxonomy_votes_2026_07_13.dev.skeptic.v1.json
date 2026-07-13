@@ -1,171 +1,172 @@
 {
-  "audit_packet_set_sha256": "6fd104840e81236748a490c2b67b701b5b7f331298bd9a6fc800422ec57c70a9",
-  "core_sha256": "20dedce473cd7148fe367f64457bcd6934727b79b69fed7c6b8e5ceca1782e30",
+  "audit_artifact_sha256": "6352f61366b0888ef345e310c434b3d02131432ab574b88f5871ff75c0970b59",
+  "audit_packet_set_sha256": "ce9bfadb3fca20dac489e0e55b69d39ea9751ab9d2a0042045ad4f0827b5c61e",
+  "core_sha256": "d39648d0950c8680dbb821e1a823803d719591ee6f84717e483ccf8811aea036",
   "items": [
     {
       "audit_key": "generated-provenance.v1:alamofire:793e32805b42004a:rank-11",
-      "packet_sha256": "ab1f58305a642a426627c7491bfa5571d6f0be54fd52d15f688328e2798d025b",
+      "packet_sha256": "d85239ea46a293c8db4dd9d9eb028056d5fc719594aefca90a4648389f06663c",
       "premise_holds": true,
       "rationale": "All 6 member files match their frozen hashes and carry the Jazzy asset plus Apple dash-anchor signals. The bounded spans are generated declaration, abstract, and parameter markup, including byte-identical docset copies; changing this HTML would be overwritten rather than yield a source-level refactoring.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:cc33e4efac79a858:rank-12",
-      "packet_sha256": "a09ad995278978f68a75d683b6837432f0e2689a78b26cb2414ee113343aedcc",
+      "packet_sha256": "054d06d45dbb6f97eaf4879282723ae85be76fb7cd85f0257c63c8ce89756bec",
       "premise_holds": true,
       "rationale": "Every one of the 286 members is in one of 102 hash-verified Jazzy pages with the required asset and dash-anchor evidence. Each span is the generator's symbol-anchor, token-link, and optional default-implementation note markup, so centralizing the emitted HTML would hide no maintainable refactoring.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:bbdfc5887a659065:rank-13",
-      "packet_sha256": "21c718b7d15f841de80bfbf81fa74940f6977ae36c8454c5086d7f70784591c4",
+      "packet_sha256": "dcc491fbf17d3bad1d0719b7c24fc8112671d78257376bee7266313a6f6accd2",
       "premise_holds": true,
       "rationale": "All 8 member pages satisfy the frozen Jazzy marker rule and their source hashes. The spans are generated documentation sections combining prose, notes, highlighted Swift declarations, and parameter tables, mirrored into the docset; they are outputs of documentation generation, not reusable source units.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:e4f4185980849d4d:rank-14",
-      "packet_sha256": "79dfd856d274909b8b3c9ddf4277e8ded78d904a214ec493167689b7ad23060a",
+      "packet_sha256": "aabc7d12cc4af0be329b70591b2c28cd5769bfca7f7f3bb93daff579ba8191b5",
       "premise_holds": true,
       "rationale": "The 72 members across 50 files all have matching hashes and the frozen Jazzy provenance signals. Their bounds are emitted abstract or parameter-description table fragments and corresponding docset copies; extracting an HTML helper would edit generated output and provide no actionable project-source change.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:05dcccc75367eb8a:rank-15",
-      "packet_sha256": "b80f21c6fe90942235531ca00b3a542fb7b93802ae131a66c7bb5bf0674e670e",
+      "packet_sha256": "88d0aceebbb541845f72aee17256992c762c087bcfb731896c9962459829c0ba",
       "premise_holds": true,
       "rationale": "All 98 members in 42 files pass the exact file-hash and Jazzy marker checks. The repeated spans are generator-produced parameter sections and graybox table rows, with normal and docset renderings; deduplicating those rendered fragments would be overwritten and would not improve the authored Swift source.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:032c742943984de3:rank-16",
-      "packet_sha256": "13196e918636474671e9743849e4d1f2a814a221f1210d885016137641aac273",
+      "packet_sha256": "a8570921227f183942d6395589d6f3d167bdf7eaf9deb8ad601e67bbda94c937",
       "premise_holds": true,
       "rationale": "Each of the 32 members is drawn from 4 hash-verified Jazzy files carrying both frozen signals. Every bound is a generated parameter table row composed of `td`, `code`, and prose cells, duplicated in the docset; it has no independent maintenance or source-level extraction opportunity.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:840420de4c77e9b9:rank-17",
-      "packet_sha256": "324d7a447aa016e9c9f8fb50a746ca400071fb207897b966f4f445caab2d8121",
+      "packet_sha256": "a27b9268da8c129f1df08c7ae6ba10a07f9765dca6d50935e727105585a0d867",
       "premise_holds": true,
       "rationale": "All 1,644 member bounds across 150 files were checked against their hashes and every file satisfies the Jazzy asset and dash-anchor premise. The family consists solely of tiny emitted parameter-name cells (`td/code/em`) repeated by the documentation template, so keeping it on the bare default would surface generator scaffolding rather than an actionable refactoring.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:cb45801499f64f75:rank-18",
-      "packet_sha256": "65ad6bc0718ded3924b63d600ddd6c14c54a3d16ccf023d6a205b74834414abf",
+      "packet_sha256": "50a396b19a2dece525877a7163cb6055e4d8a06765c554e6973704b01aa62097",
       "premise_holds": true,
       "rationale": "The 140 members in 14 files all retain the frozen bytes and Jazzy provenance markers. Their spans are generated parameter and return-description blocks, including links and graybox rows repeated between documentation outputs; editing or extracting the rendered HTML is not a maintainable refactoring.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:897da6f4ca56bb95:rank-19",
-      "packet_sha256": "0c24aff23ca24b32882957c8932fa1653c70bc140188e8cf009405b1604af211",
+      "packet_sha256": "f945c2ff90d645fd494b5fe2880f8707c7b85ff12bed8184cd6fd9b119dd07ba",
       "premise_holds": true,
       "rationale": "All 48 bounds in 36 hash-matched files are under pages satisfying the exact Jazzy rule. The members are generated item containers with symbol anchors, highlighted Swift declarations, abstracts, and notes, mirrored into the docset; no hand-authored implementation is concealed by moving them off the bare default.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:0783ee556e330d47:rank-20",
-      "packet_sha256": "719c9b481fcedc61a973c4ac12f0ebdc41ce5ca090c20f79288eb79ab32e3d70",
+      "packet_sha256": "5cf93fd53caa3fc08433f91ff486bce6aca962d6160f82464053a05e370367d0",
       "premise_holds": true,
       "rationale": "Every one of the 52 members in 30 files matches its frozen source record and all files carry the required Jazzy signals. The bounded content is templated parameter-table markup and docset duplication, so an extraction would target generated presentation rather than authored behavior.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:5026297ac8fac46f:rank-21",
-      "packet_sha256": "2ec882575720e29bdf9a1c38c370442ebe20f437f6e553db9276d9d666cff35d",
+      "packet_sha256": "6fe6998a7c87f76b8e042d874f50a957017ced94b39662cf18da329da6fbe43e",
       "premise_holds": true,
       "rationale": "The 72 members across 30 pages are hash-correct and every page satisfies the Jazzy asset plus Apple symbol-anchor rule. All spans are generated anchor/token/declaration-note rows, not source declarations themselves; removing them from bare default cannot hide an actionable code refactoring.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:fae103cee993e819:rank-22",
-      "packet_sha256": "5c22deefc5a53bdfa5946adb95f8ae90aa019eecbc21f5397314520ee2ff0f9b",
+      "packet_sha256": "8094937f0f953357277ad6e635605f75b64ae671d0f323e1e18955b87b94f26b",
       "premise_holds": true,
       "rationale": "All 24 members in 18 files pass the frozen hash and Jazzy marker checks. Their bounds are generated note and throws-aside boxes emitted from API documentation and copied into the docset; factoring those HTML wrappers would not change or simplify the maintained source.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:f678cf9a935c562e:rank-23",
-      "packet_sha256": "c39c6d323f065ae7ce7b2b5bfaabd710f449734fa62d54b32499b0c3100da6fb",
+      "packet_sha256": "f29c6f5e9c234cdb934ff9013b8bced36f681a4c58fa618be431c02ec0d61d21",
       "premise_holds": true,
       "rationale": "Each of the 6 source pages is hash-verified and contains the two required Jazzy provenance signals. The six large spans are documentation task groups and member listings built from anchors, tokens, abstracts, and highlighted declarations, including docset copies; they are wholly generated navigation/presentation.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:d5648f8067f7f9c5:rank-24",
-      "packet_sha256": "ac05efb270f5e0ad0c471ce0262a54a379ccfddda702cc21801a26ba931ce1c6",
+      "packet_sha256": "425f8b527a7d131cec8e727ff3b8cdc3290eb6290984fd812976237b60f22d95",
       "premise_holds": true,
       "rationale": "All 196 one-per-file members match their source hashes and every file meets the frozen Jazzy rule. The bounds are the documentation generator's breadcrumb paragraphs, links, and carat images; this is site-template output with no meaningful source-level extraction to preserve on the default surface.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:07a29bed276c4a40:rank-25",
-      "packet_sha256": "98d613dcd627c173073c9d1038dd9c597f51f6c808ea3acc909e8da02bcb0384",
+      "packet_sha256": "b2bb1c14e587066f6a534dfd11dda442a15171aa9aee94f72132cf7c5b24236e",
       "premise_holds": true,
       "rationale": "The 6 member pages have the recorded bytes, Jazzy stylesheet reference, and Apple dash anchors. Their spans are generated API items with token links and highlighted protocol method declarations, duplicated in the docset; centralizing emitted markup would not be an actionable repository refactor.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:99c66e020602d1d7:rank-26",
-      "packet_sha256": "90419c4c16c274b10b79042e99912ab79d457648e7ec6feb9f2e915b049a9412",
+      "packet_sha256": "08b289aa43f641b7cf7abb19529d26a7dea6d5dae066939925739712a986ac91",
       "premise_holds": true,
       "rationale": "All 16 members in 6 files pass the hash, file-set, and case-insensitive Jazzy marker checks. The bounded fragments are generated parameter/abstract rows and their docset copies, so there is no independently maintained logic or reusable source abstraction being hidden.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:c39e6f93d691a989:rank-27",
-      "packet_sha256": "457e272879c5fe4a069b171f937963fba9646dc277f7e4a8993e6769ded54266",
+      "packet_sha256": "9fda6190548ea49c6e99ed2be5cc9b328db00d4fde988d2459b4a2e34473a48b",
       "premise_holds": true,
       "rationale": "The 8 members in 4 files are all hash-correct Jazzy outputs with the frozen signals. Each bound is the same generated graybox parameter table for transformation closures, repeated in normal and docset pages; deduplicating the rendered table is not a maintainable code refactoring.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:880f155ebfd23d96:rank-28",
-      "packet_sha256": "48e5b2edeb9bbd8705153396b2b7aec608956e8828c50ced855982c683362672",
+      "packet_sha256": "51a7ed1f0e5a2ed860342bfa948e435d5f58209cb8f0a15196800a31ab08f98e",
       "premise_holds": true,
       "rationale": "Every one of the 10 member files matches its frozen hash and exhibits both Jazzy provenance signals. The spans are emitted graybox parameter tables for trust/host-style API arguments and matching docset pages; no authored implementation duplication would disappear from review.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:dd040bfe91330528:rank-29",
-      "packet_sha256": "d5014e6f425e147e43d6f11d9155695fbe555e9c535b7665046f8ed3a406b8d1",
+      "packet_sha256": "28ff997476bbb5f07922db6e28bcd4c074e23b2536e48eda0b6cb98c31172604",
       "premise_holds": true,
       "rationale": "All 78 bounds across 20 source pages have valid source records, and every page satisfies the frozen Jazzy asset and dash-anchor premise. The members are generated API parameter rows with links and prose, mirrored into the docset, so the family represents template output rather than a refactoring target.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "generated-provenance.v1:alamofire:669908828b20050d:rank-30",
-      "packet_sha256": "a0b4567b47ff90147dd04cde84bee76e3e3e36b50a7832476af606b48761ba31",
+      "packet_sha256": "610b8ca8fc5d9b8ba05e23f91ac13b726146ed648c4ccbc1fb0c8aac340bc95f",
       "premise_holds": true,
       "rationale": "The 16 members in 4 files all match their frozen hashes and the files carry the exact Jazzy provenance markers. Each span is an emitted API abstract/prose block, with identical documentation and docset copies; editing or sharing this HTML would not improve the source API implementation.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "declaration-only-type.v1:antlr4:ae4c8da2e1e24a84:rank-14",
-      "packet_sha256": "35005bd2823a17f26d2ee75656e2f53ec73fa5ee71e1df4af270b58a1d2352f8",
+      "packet_sha256": "5564b29965884677ea2ff8ae3bd02a7086cce1bb1bacc1ab7465402bb7e6fae4",
       "premise_holds": true,
       "rationale": "Both complete bounds are declaration-only API contracts: a Swift protocol and its Java interface counterpart, containing documentation and method signatures but no implementation bodies. They belong to separate language runtimes and cannot be consolidated into one callable abstraction, so removing this cross-language contract parallelism from bare default hides no actionable extraction.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "declaration-only-type.v1:prettier:28745f9b360ca305:rank-23",
-      "packet_sha256": "5aeed85ae5e21db66863ab355cc2a0fe38950acf00040276544b01f855c24aaf",
+      "packet_sha256": "20065bd49ce67157313ea12716735d06df13116070bf8fa1676c013697ee7215",
       "premise_holds": true,
       "rationale": "Both 9-line bounds are identical `UploadState` union type aliases with comments and no executable body. They are inputs in two independent Prettier formatter fixtures; extracting a shared type would remove the syntax under test or couple fixtures, not refactor runtime behavior.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "declaration-only-type.v1:prettier:20080c8b31b01058:rank-25",
-      "packet_sha256": "a11997ccecae28499c84d3ecd8368c8ad155f409bba9b1b7bef00dcaea59da20",
+      "packet_sha256": "25dec004bcc76e452e0e116660b21c4eb92175e73774b494be1b8d651a49c87a",
       "premise_holds": true,
       "rationale": "All four whole-unit bounds are type-only constructor contracts in one formatter fixture: three interfaces and one type alias, deliberately varying generic and declaration syntax while sharing an eight-parameter `new` signature. There are no bodies to extract, and consolidating them would erase the test cases the file exists to exercise.",
       "verdict": "non-actionable"
     },
     {
       "audit_key": "declaration-only-type.v1:zustand:cdb6c513b5432417:rank-19",
-      "packet_sha256": "71ad36b87b8044cc25fd0f4f049788dbb1d6a0fbe3bd27400215003b17de6e7f",
+      "packet_sha256": "c1e243efe5eb61f78b27708512b9c0288e64327f25f007fb792865a49ec1149e",
       "premise_holds": true,
       "rationale": "Both bounds are identical five-line local `State` type aliases with only `value` and two `StoreApi<State>[setState]` type projections; neither contains executable behavior. They live in separate state-update tests, where a shared alias would merely couple local compile-time test setup, so demoting the declaration clone does not hide a worthwhile refactoring.",
       "verdict": "non-actionable"

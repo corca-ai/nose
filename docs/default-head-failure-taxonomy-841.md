@@ -9,11 +9,13 @@ output, ranking, detector threshold, or surface policy. Held-out source remains 
 The published nose 0.19.0 binary was replayed on the 66 dev repositories pinned by the
 corpus. All 66 query stdout hashes and all 658 first-ten family IDs, ranks, raw-family
 hashes, and source bounds match the split-safe [#840 runway](default-head-label-runway-840.md).
-The collector opens only the explicit v5 dev rows, `v6.dev`, and `v7.dev`; it never resolves
-the composite v7 manifest or a held-out component.
+The collector opens only the hash-bound `refactoring_families.v5.dev.json`, `v6.dev`, and
+`v7.dev` components; it never parses the v5 mixed-split file, resolves the composite v7
+manifest, or opens a held-out component. The v5 dev projection contains exactly 5,445 dev
+rows and rejects non-dev repositories, member paths, or line bounds.
 
 The checked core (`default_head_taxonomy_2026_07_13.dev.core.v1.json`, semantic SHA-256
-`20dedc…2e30`) gives every position one truth bucket and a separate mechanical bucket.
+`d39648…a036`) gives every position one truth bucket and a separate mechanical bucket.
 This separation prevents a label such as `generated` from masquerading as product proof,
 and prevents a strong `exact` or `subdag` witness from masquerading as an actionability
 verdict.
@@ -96,14 +98,22 @@ rejected heuristics.
 
 ## Independent audit and validation
 
-The audit packets contain source bounds and frozen mechanical evidence but no truth,
-worthy, reason, or label fields. Three subagents independently reviewed the same 24
-packets without reading one another's work or existing labels. Every reviewer returned
-24/24 `premise_holds=true` and `non-actionable`, so both selected classifiers clear the
-90% gate independently. The compact decision overlay
-`default_head_taxonomy_2026_07_13.dev.v1.json` has artifact SHA-256 `421810…9062` and
-binds the 9.9 MB core, three raw vote files, predicates, source-bound hard negatives,
-costs, rejected alternatives, and audit summaries without duplicating the core rows.
+The standalone `default_head_taxonomy_audit_packets_2026_07_13.dev.v1.json` contains
+source bounds and frozen mechanical evidence but no truth, worthy, reason, or label
+fields. Exact nested schemas reject aliases and unknown fields. The core stores only its
+24 unique keys and per-lever packet-set hashes, so reviewers do not need access to the
+truth-bearing core. Three subagents independently reviewed the packet artifact without
+reading one another's work or existing labels. Every reviewer returned 24/24
+`premise_holds=true` and `non-actionable`, so both selected classifiers clear the 90%
+gate independently.
+
+The validator-hardening pass changed only packet identity bindings; a checked rebind
+accepted the existing judgments only after proving every reviewer-visible packet
+projection unchanged. The compact decision overlay
+`default_head_taxonomy_2026_07_13.dev.v1.json` has artifact SHA-256 `45ac11…cddb` and
+binds the 8.1 MB core, 1.8 MB blind packet artifact, three raw vote files, predicates,
+source-bound hard negatives, costs, rejected alternatives, and audit summaries without
+duplicating the core rows.
 
 ```sh
 python3 bench/labels/default_head_taxonomy.py --self-test
@@ -113,14 +123,22 @@ python3 bench/labels/default_head_taxonomy.py validate \
   --pragmatic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.pragmatic.v1.json \
   --dedupe bench/labels/default_head_taxonomy_votes_2026_07_13.dev.dedupe.v1.json \
   --skeptic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.skeptic.v1.json
+
+# Optional local-source and pinned-commit verification:
+python3 bench/labels/default_head_taxonomy.py validate \
+  bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json --live-sources
 ```
 
-Validation reconstructs the final overlay from the bound core and votes, verifies all
-row/raw/source/audit hashes, exact 658-position coverage and truth counts, disjoint
-selected cohorts, cross-tabs, rejected-heuristic statistics, hard-negative projections,
-and independent per-reviewer precision. A worthy selected row, held-out reference,
-missing or changed vote, incomplete origin, cohort overlap, or sub-90% review fails
-closed.
+Validation reconstructs the final overlay from the bound core, blind packet artifact,
+and votes. It exact-schema checks nested packets/votes; binds every row to the #840
+candidate, raw-family, and source hashes; recomputes label truth, origin/ranking facets,
+predicates, mechanical buckets, selected cohorts, cross-tabs, rejected heuristics, hard
+negatives, and per-reviewer precision; and checks every provenance input against the
+current files. `--live-sources` additionally resolves every path beneath its exact dev
+repository and rechecks file bytes, hashes, commits, bounded generator evidence, and
+signal locations. Duplicate audit keys, a worthy selected row, held-out path, unknown
+packet field, missing or changed vote, incomplete origin, cohort overlap, or sub-90%
+review fails closed. Self-tests preserve the reviewed invalid-artifact reproductions.
 
 Next, #842 implements and prices the frozen generated-provenance transition, #843 handles
 the declaration-only contract, and #844 records the proof/actionability no-go. They may

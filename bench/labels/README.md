@@ -298,7 +298,8 @@ The [#841 default-head taxonomy](../../docs/default-head-failure-taxonomy-841.md
 all 658 labeled dev head positions to full raw query families, source bounds, orthogonal
 truth/mechanical buckets, cross-tabs, selected cohort predicates, hard negatives, and
 rejected heuristics. Its compact final decision overlay is reproduced from the checked
-core and three independent truth-blind source-audit vote files:
+dev-only v5 projection, core, standalone truth-blind audit packet artifact, and three
+independent source-audit vote files:
 
 ```sh
 python3 bench/labels/default_head_taxonomy.py validate \

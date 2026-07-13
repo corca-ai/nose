@@ -16,8 +16,11 @@ break.
   proof-backed refactorings remain hash-bound hard negatives. Generated provenance and
   strict declaration-only type contracts clear the 90% gate for #842/#843; blanket
   exact/subdag exemption removal is frozen as a #844 no-go. Held-out source remains
-  closed, and CI reconstructs the compact decision overlay from its checked 9.9 MB core
-  and all three raw vote files.
+  closed, and CI reconstructs the compact decision overlay from its checked dev-only
+  label projection, 8.1 MB core, standalone truth-free audit packets, and all three raw
+  vote files. Exact nested schemas and #840/live source bindings replay raw-derived
+  facets, predicates, buckets, and audit-key uniqueness rather than trusting dependent
+  hashes.
 - Added the split-safe v7 default-head label runway (#840): every v6-unmatched
   dev top-10 family plus deterministic rank 11–30 repository samples now have
   independent three-persona votes and explicit arbitration, while a pre-hashed

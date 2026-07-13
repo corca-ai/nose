@@ -1,8 +1,13 @@
 {
-  "artifact_sha256": "42181013b7eac3672b2ba7538a65846e46da540d81d09adb7419384902b89062",
+  "artifact_sha256": "45ac115ae40b3a708db0c6609e2795bfe8c4cb249cb9a8d73b82c02bb91cddb6",
+  "audit_input": {
+    "artifact_sha256": "6352f61366b0888ef345e310c434b3d02131432ab574b88f5871ff75c0970b59",
+    "file_sha256": "7e4c5b7baea4f4d803435d71fb008cf217c2cc70024909e974c84467314b8559",
+    "path": "bench/labels/default_head_taxonomy_audit_packets_2026_07_13.dev.v1.json"
+  },
   "core_input": {
-    "core_sha256": "20dedce473cd7148fe367f64457bcd6934727b79b69fed7c6b8e5ceca1782e30",
-    "file_sha256": "4f26f35ac455894e2c7541b20830d4f8a44a4b29e778a2d3b8b70ea9e81bcbbd",
+    "core_sha256": "d39648d0950c8680dbb821e1a823803d719591ee6f84717e483ccf8811aea036",
+    "file_sha256": "67ac67adcf4fa67a608cb30cb119cf9342245285c7f1eba0c777d9929ef98b05",
     "path": "bench/labels/default_head_taxonomy_2026_07_13.dev.core.v1.json"
   },
   "heldout_policy": "closed; no held-out component, source path, or judgment was read",
@@ -61,23 +66,46 @@
       {
         "path": "bench/labels/default_head_taxonomy_votes_2026_07_13.dev.pragmatic.v1.json",
         "persona": "pragmatic",
-        "sha256": "096c81147a59e8f79366df4042a9c859fd2b66268a9d900dda382792ee1e3cd6"
+        "sha256": "8a3a394d1fdacf87861c8651de98efa2be26ff1f98fee8a2473b0720b3f89e61"
       },
       {
         "path": "bench/labels/default_head_taxonomy_votes_2026_07_13.dev.dedupe.v1.json",
         "persona": "dedupe",
-        "sha256": "b70ec6fef663888e0e4a386f01f09ce563e629a56295a371ebab427bd7d338a0"
+        "sha256": "63116d15fc019910e1f6e5d08aaff73741e8249a37547038a40df277e7c85fba"
       },
       {
         "path": "bench/labels/default_head_taxonomy_votes_2026_07_13.dev.skeptic.v1.json",
         "persona": "skeptic",
-        "sha256": "27a4520e99ed48f5484b74c93417cf2b29ba938d8c28142903256250530e52e5"
+        "sha256": "fbe2e7ffa14c7a2b6b45894ee2c0fc930f82cd70c4fe0bcd441c86f99c73fc2c"
       }
     ]
   },
   "lever_decisions": [
     {
-      "audit_packet_set_sha256": "fd72a79efc29125c59cb412c6b9991ffa3f43b0edf5dbcf8e66425680f6ba553",
+      "audit_packet_count": 20,
+      "audit_packet_keys": [
+        "generated-provenance.v1:alamofire:793e32805b42004a:rank-11",
+        "generated-provenance.v1:alamofire:cc33e4efac79a858:rank-12",
+        "generated-provenance.v1:alamofire:bbdfc5887a659065:rank-13",
+        "generated-provenance.v1:alamofire:e4f4185980849d4d:rank-14",
+        "generated-provenance.v1:alamofire:05dcccc75367eb8a:rank-15",
+        "generated-provenance.v1:alamofire:032c742943984de3:rank-16",
+        "generated-provenance.v1:alamofire:840420de4c77e9b9:rank-17",
+        "generated-provenance.v1:alamofire:cb45801499f64f75:rank-18",
+        "generated-provenance.v1:alamofire:897da6f4ca56bb95:rank-19",
+        "generated-provenance.v1:alamofire:0783ee556e330d47:rank-20",
+        "generated-provenance.v1:alamofire:5026297ac8fac46f:rank-21",
+        "generated-provenance.v1:alamofire:fae103cee993e819:rank-22",
+        "generated-provenance.v1:alamofire:f678cf9a935c562e:rank-23",
+        "generated-provenance.v1:alamofire:d5648f8067f7f9c5:rank-24",
+        "generated-provenance.v1:alamofire:07a29bed276c4a40:rank-25",
+        "generated-provenance.v1:alamofire:99c66e020602d1d7:rank-26",
+        "generated-provenance.v1:alamofire:c39e6f93d691a989:rank-27",
+        "generated-provenance.v1:alamofire:880f155ebfd23d96:rank-28",
+        "generated-provenance.v1:alamofire:dd040bfe91330528:rank-29",
+        "generated-provenance.v1:alamofire:669908828b20050d:rank-30"
+      ],
+      "audit_packet_set_sha256": "7eefa33034ac9e85d1eba25063e6e75e204196cafa5305c6fef75c824d99196e",
       "hard_negative_position_keys": [
         "jekyll:ddbfd0caf686f27d:rank-2",
         "sqlite:8bc2aa227016c225:rank-2",
@@ -151,6 +179,7 @@
       ],
       "predicate_ast": {
         "bounded_prefix_bytes": 65536,
+        "normalization": "ascii-lowercase",
         "op": "all_unique_member_files",
         "requires_any": [
           [
@@ -158,7 +187,7 @@
             "jazzy.js"
           ],
           [
-            "class=\"dashAnchor\"",
+            "class=\"dashanchor\"",
             "//apple_ref/"
           ]
         ],
@@ -176,7 +205,14 @@
       "worthy_false_demotions": []
     },
     {
-      "audit_packet_set_sha256": "5240e442b7df3d00e8a2214a5ab18d4384b1b208c39155fbf3995e75f2e28870",
+      "audit_packet_count": 4,
+      "audit_packet_keys": [
+        "declaration-only-type.v1:antlr4:ae4c8da2e1e24a84:rank-14",
+        "declaration-only-type.v1:prettier:28745f9b360ca305:rank-23",
+        "declaration-only-type.v1:prettier:20080c8b31b01058:rank-25",
+        "declaration-only-type.v1:zustand:cdb6c513b5432417:rank-19"
+      ],
+      "audit_packet_set_sha256": "e7b9b5dddbc7766d2613188db81e80889664f1976f64e0f1eb1317c4042c5c4f",
       "hard_negative_position_keys": [
         "jest:133031f4facc0ea4:rank-3",
         "nushell:f57f0e0e161ae3d1:rank-4",
@@ -310,6 +346,8 @@
       "worthy_false_demotions": []
     },
     {
+      "audit_packet_count": 0,
+      "audit_packet_keys": [],
       "audit_packet_set_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "hard_negative_position_keys": [
         "alacritty:38253b48438577f9:rank-5",
