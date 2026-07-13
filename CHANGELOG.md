@@ -127,6 +127,11 @@ break.
   output across the pinned 120-repository corpus.
 
 ### Performance
+- Stabilized the semantic runtime regression smoke by pairing base and head
+  measurements back-to-back within each repository, while still reversing pair
+  order between iterations and retaining the same-binary control. This prevents
+  runner load or temperature drift across the corpus from accumulating on only
+  one binary without relaxing the 5%/5ms thresholds.
 - Completed the 0.19.0 release pass against the published v0.18.0 Darwin arm64
   binary. The established semantic-only surface measured `24,822.49ms ->
   25,715.47ms` (`+3.60%`, approximately `+4.17%` after the same-binary control)

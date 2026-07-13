@@ -74,10 +74,12 @@ declares its cost acceptable.
 
 ## Runtime policy
 
-The first pass takes two measurements with opposite base/head execution order and
-runs a base-vs-base same-binary control on the same corpus. It records wall time
-and every stage emitted by `NOSE_TIME=1`. A signal crosses the material threshold
-only when its
+The first pass takes two measurements, pairing base and head back-to-back within
+each repository and reversing that pair order on the next iteration. This prevents
+runner load or temperature changes across the corpus from accumulating on only one
+binary. It also runs a base-vs-base same-binary control with the same repo-local
+pairing. The harness records wall time and every stage emitted by `NOSE_TIME=1`.
+A signal crosses the material threshold only when its
 control-adjusted increase is both:
 
 - greater than 5%; and
