@@ -7,6 +7,24 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added the complete #841 dev default-head failure taxonomy and bounded-lever contract.
+  The published v0.19.0 output is re-bound at all 658 positions to full raw families,
+  source bounds, truth and disjoint mechanical buckets, origin/generated/ranking/path
+  cross-tabs, and rejected heuristics. Three independent source audits each confirmed
+  all 20 Jazzy-generated and four strict declaration-only deep positives as
+  non-actionable, while worthy HTML, incomplete/missing origin, reusable-body, and 35
+  proof-backed refactorings remain hash-bound hard negatives. Generated provenance and
+  strict declaration-only type contracts clear the 90% gate for #842/#843; blanket
+  exact/subdag exemption removal is frozen as a #844 no-go. Held-out source remains
+  closed, and CI reconstructs the compact decision overlay from its checked dev-only
+  label projection, 8.1 MB core, standalone truth-free audit packets, and all three raw
+  vote files. Exact nested schemas and #840/live source bindings replay raw-derived
+  facets, predicates, buckets, frozen deep/audit cohorts, bounded generator evidence,
+  and audit-key uniqueness rather than trusting dependent hashes. Frozen v5-dev and
+  generated-evidence/packet-set commitments, exact command provenance, and a
+  source-locked one-time vote rebind reject consistently rehashed substitutions and
+  synthetic prior judgments while keeping ordinary CI independent of ignored corpus
+  checkouts.
 - Added the split-safe v7 default-head label runway (#840): every v6-unmatched
   dev top-10 family plus deterministic rank 11–30 repository samples now have
   independent three-persona votes and explicit arbitration, while a pre-hashed
