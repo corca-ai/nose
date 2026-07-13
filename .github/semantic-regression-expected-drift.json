@@ -69,6 +69,118 @@
       "issue": "https://github.com/corca-ai/nose/issues/804",
       "reason": "Ruby core nil? proof metadata intentionally changed the serialized family witness",
       "repo": "sidekiq"
+    },
+    {
+      "baseline_source_sha": "2c30d1c9600cd97d9401344ee746b0e0a4c26370",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "0aa52023dca6602d810aad2329ba07c33562233e35624f21f71c51cd972698e7"
+          ],
+          "current": [
+            "60fa4483780df00b0edaccf4335833820dc43818fbc749dc8a64e56118851108"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/834",
+      "reason": "The 0.19.0 version metadata intentionally changes the serialized query header; family and byte counts are unchanged",
+      "repo": "alacritty"
+    },
+    {
+      "baseline_source_sha": "2c30d1c9600cd97d9401344ee746b0e0a4c26370",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "53a97c9197ff8f93682db261d41c5cdf3dd6a3fec2281ab2759db94a24706a9f"
+          ],
+          "current": [
+            "7a598367716e80f9dfde8dec53d65d97a768e5628c1c28d91137bd1f37e8ab3a"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/834",
+      "reason": "The 0.19.0 version metadata intentionally changes the serialized query header; family and byte counts are unchanged",
+      "repo": "asciidoctor"
+    },
+    {
+      "baseline_source_sha": "2c30d1c9600cd97d9401344ee746b0e0a4c26370",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "c15f32046cbd7a18f08da336f100ee256cb5d6cc788c9c3912611c3a431d310a"
+          ],
+          "current": [
+            "92778e916bfd64c0dbc0b0fb1da45a42d3fc6a234924b2157106c9ce0ed068c6"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/834",
+      "reason": "The 0.19.0 version metadata intentionally changes the serialized query header; family and byte counts are unchanged",
+      "repo": "fastlane"
+    },
+    {
+      "baseline_source_sha": "2c30d1c9600cd97d9401344ee746b0e0a4c26370",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "0816231857d0a66549cfc1c15766ebc57b85311435ea6bd958c35d9cfdada060"
+          ],
+          "current": [
+            "14b3e4eb6d27e6c73963471e90a886d564e929e8fbedd331bf7e3f26cc679944"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/834",
+      "reason": "The 0.19.0 version metadata intentionally changes the serialized query header; family and byte counts are unchanged",
+      "repo": "junit5"
+    },
+    {
+      "baseline_source_sha": "2c30d1c9600cd97d9401344ee746b0e0a4c26370",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "60d5fe8d153979e4c134c7db4ed320d00793cfb7cb75e32f2c57b148e902f0b5"
+          ],
+          "current": [
+            "519f2ff026ea1d7b51204891ab25d9034348c3d99ca8ea394c7b25058049be05"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/834",
+      "reason": "The 0.19.0 version metadata intentionally changes the serialized query header; family and byte counts are unchanged",
+      "repo": "prettier"
+    },
+    {
+      "baseline_source_sha": "2c30d1c9600cd97d9401344ee746b0e0a4c26370",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "6d200e5a97600518316c8eac9b28bc39f2c053052737a83972247cb89b04f769"
+          ],
+          "current": [
+            "0aa530a54b23f06611fa854a1a072dc1c78340c82e68da61ecd679ea5c0932de"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/834",
+      "reason": "The 0.19.0 version metadata intentionally changes the serialized query header; family and byte counts are unchanged",
+      "repo": "requests"
+    },
+    {
+      "baseline_source_sha": "2c30d1c9600cd97d9401344ee746b0e0a4c26370",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "5faace173bb7df105eb1b89339505b017431d5e6474658bc469b6b0d3efe0e4a"
+          ],
+          "current": [
+            "4979fbbb7c6a2d2009ec22cca5d3c987456faffa8b943ba9b1727bdc240591a8"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/834",
+      "reason": "The 0.19.0 version metadata intentionally changes the serialized query header; family and byte counts are unchanged",
+      "repo": "sidekiq"
     }
   ],
   "schema": "nose.semantic_regression_expected_drift.v1"
