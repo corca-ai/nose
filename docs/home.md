@@ -135,6 +135,9 @@ fundamentals; the rest is grouped by area.
 - [0.20 default-head baseline](default-head-baseline-839.md) — the published
   v0.19.0 bare-default precision/full-universe recall baseline, parity proof,
   and compatibility metric.
+- [0.20 default-head label runway](default-head-label-runway-840.md) — the
+  split-safe v7 dev overlay, sealed held-out selection, independent panel and
+  arbitration, and complete dev-head coverage.
 - [current missed-worthy frontier](missed-worthy-frontier-816.md) — the #816
   dev-first recall audit, accepted-pair coverage-loss result, route-tree protocol
   deviation, rejected alternatives, and #817 follow-up gates.

@@ -38,6 +38,11 @@ jobs:
           python3 bench/labels/check_default_head_baseline.py
           python3 bench/labels/labelset.py --self-test
           python3 bench/labels/label_refresh.py --self-test
+          python3 bench/labels/label_refresh.py validate-runway \
+            --dev-candidates bench/labels/default_head_label_runway_2026_07_13.dev.v1.json \
+            --heldout-seal bench/labels/default_head_label_runway_2026_07_13.heldout.seal.v1.json \
+            --labelset bench/labels/refactoring_families.v7.json \
+            --evaluation bench/labels/product_quality_evaluation_v7_dev_runway_2026_07_13.v1.json
           python3 bench/labels/recall_ceiling_probe.py --self-test
           python3 bench/labels/missed_worthy_stage_audit.py --self-test
           python3 bench/labels/missed_worthy_heldout_confirmation.py --self-test

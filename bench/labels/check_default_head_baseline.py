@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -44,12 +45,22 @@ EXPECTED_DISTRIBUTION = {
 EXPECTED_BINARY_SHA256 = (
     "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
 )
-EXPECTED_EVALUATION_SOURCES = {
-    "bench/labels/antiunify_probe.py",
-    "bench/labels/default_head_query_schema.py",
-    "bench/labels/eval_by_language.py",
-    "bench/labels/labelset.py",
-    "bench/labels/query_schema.py",
+EXPECTED_EVALUATION_SOURCE_DIGESTS = {
+    "bench/labels/antiunify_probe.py": (
+        "f2ad8a3635fc3e7b89243c08879b680edf32de0cd809d4c27332e344c6bdbc6f"
+    ),
+    "bench/labels/default_head_query_schema.py": (
+        "783915d8b01e473c2192f94202dc221380ff3f49291452c1628deeb236052eab"
+    ),
+    "bench/labels/eval_by_language.py": (
+        "a6f565105ff014e3b6cb9f318716dc6affb8c58a3ea223a2aa44ca226dc5e95d"
+    ),
+    "bench/labels/labelset.py": (
+        "23b3bd3b6e6783b17a1c6d3e05847bc884ee08b17ce1be63c1d8d660d7a40b22"
+    ),
+    "bench/labels/query_schema.py": (
+        "c7e7e94c74c09c33ee46fa2ab2092bb9b569dea915627f5bc4df39f2142d59e7"
+    ),
 }
 EXPECTED_LABELSET_INPUTS = {
     "bench/labels/refactoring_families.v5.json",
@@ -133,6 +144,19 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def historical_file_sha256(relative: str) -> str:
+    result = subprocess.run(
+        ["git", "show", f"{EXPECTED_EVALUATOR_GIT_SHA}:{relative}"],
+        cwd=ROOT,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if result.returncode != 0:
+        fail(f"cannot read historical input: {relative}")
+    return hashlib.sha256(result.stdout).hexdigest()
+
+
 def check_frozen_digest(digest: str, *, label: str) -> None:
     if digest != EXPECTED_ARTIFACT_SHA256:
         fail(
@@ -158,7 +182,11 @@ def metric_tuple(metric: dict[str, Any]) -> tuple[int, int, float]:
 
 
 def checked_file_records(
-    records: object, *, expected_paths: set[str], label: str
+    records: object,
+    *,
+    expected_paths: set[str],
+    label: str,
+    historical_digests: dict[str, str] | None = None,
 ) -> dict[str, str]:
     if not isinstance(records, list):
         fail(f"{label} must be a list")
@@ -171,6 +199,14 @@ def checked_file_records(
     }
     if len(mapped) != len(records) or set(mapped) != expected_paths:
         fail(f"{label} source set changed: {sorted(mapped)}")
+    if historical_digests is not None:
+        if mapped != historical_digests:
+            fail(f"{label} digests differ from the frozen evaluator revision")
+        for relative, expected_digest in historical_digests.items():
+            actual_digest = historical_file_sha256(relative)
+            if actual_digest != expected_digest:
+                fail(f"historical {label} drifted: {relative}")
+        return mapped
     for relative, recorded_digest in mapped.items():
         path = ROOT / relative
         if not path.is_file():
@@ -217,8 +253,9 @@ def check_provenance(provenance: dict[str, Any]) -> None:
 
     checked_file_records(
         provenance.get("evaluation_sources"),
-        expected_paths=EXPECTED_EVALUATION_SOURCES,
+        expected_paths=set(EXPECTED_EVALUATION_SOURCE_DIGESTS),
         label="evaluation source",
+        historical_digests=EXPECTED_EVALUATION_SOURCE_DIGESTS,
     )
     checked_file_records(
         provenance.get("labelset_inputs"),
@@ -231,7 +268,12 @@ def check_provenance(provenance: dict[str, Any]) -> None:
         digest_field = f"{field}_sha256"
         if provenance.get(digest_field) != expected_digest:
             fail(f"provenance.{digest_field} changed")
-        if sha256_file(ROOT / expected_path) != expected_digest:
+        actual_digest = (
+            historical_file_sha256(expected_path)
+            if field == "prune_manifest"
+            else sha256_file(ROOT / expected_path)
+        )
+        if actual_digest != expected_digest:
             fail(f"checked input drifted: {expected_path}")
 
 

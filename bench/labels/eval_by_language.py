@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Evaluate product precision and worthy-family recall by language and split.
 
-The active default is the checked v6 composite labelset and the user-facing
+The active default is the checked v7 composite labelset and the user-facing
 default surface in nose's native extractability order. The base metric can also
 use historical value order. The report retains the
 historical anti-unification re-rank as a comparison, with deterministic bootstrap
@@ -41,7 +41,7 @@ sys.setrecursionlimit(100000)
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_NOSE = ROOT / "target" / "release" / "nose"
 HISTORICAL_LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v5.json"
-DEFAULT_LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v6.json"
+DEFAULT_LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v7.json"
 CORPUS = ROOT / "bench" / "goldens" / "corpus.json"
 PRUNE_MANIFEST = ROOT / "bench" / "labels" / "prune_manifest.json"
 EVALUATION_SOURCES = (
@@ -300,6 +300,12 @@ def binary_metric(flags: list[int], *, bootstrap: int, rng: random.Random) -> di
     }
 
 
+def metric_rng(*, split: str, scope: str, metric: str) -> random.Random:
+    identity = f"{RNG_SEED}\0{split}\0{scope}\0{metric}".encode()
+    seed = int.from_bytes(hashlib.sha256(identity).digest(), "big")
+    return random.Random(seed)
+
+
 def ratio_metric(hits: int, count: int) -> dict[str, Any]:
     return {
         "hits": hits,
@@ -497,7 +503,6 @@ def build_metrics(
     bootstrap: int,
     splits: tuple[str, ...] = ("dev", "heldout"),
 ) -> dict[str, dict[str, dict[str, Any]]]:
-    rng = random.Random(RNG_SEED)
     report: dict[str, dict[str, dict[str, Any]]] = {}
     for split in splits:
         split_report: dict[str, dict[str, Any]] = {}
@@ -514,11 +519,29 @@ def build_metrics(
                 "label_match_coverage": ratio_metric(
                     data["matched_top_10"], data["reported_top_10"]
                 ),
-                "precision_at_10": binary_metric(data["base"], bootstrap=bootstrap, rng=rng),
-                "antiunification_rerank_precision_at_10": binary_metric(
-                    data["rerank"], bootstrap=bootstrap, rng=rng
+                "precision_at_10": binary_metric(
+                    data["base"],
+                    bootstrap=bootstrap,
+                    rng=metric_rng(
+                        split=split, scope=language, metric="precision_at_10"
+                    ),
                 ),
-                "worthy_recall": binary_metric(data["recall"], bootstrap=bootstrap, rng=rng),
+                "antiunification_rerank_precision_at_10": binary_metric(
+                    data["rerank"],
+                    bootstrap=bootstrap,
+                    rng=metric_rng(
+                        split=split,
+                        scope=language,
+                        metric="antiunification_rerank_precision_at_10",
+                    ),
+                ),
+                "worthy_recall": binary_metric(
+                    data["recall"],
+                    bootstrap=bootstrap,
+                    rng=metric_rng(
+                        split=split, scope=language, metric="worthy_recall"
+                    ),
+                ),
             }
         all_base = [flag for _, data in rows for flag in data["base"]]
         all_rerank = [flag for _, data in rows for flag in data["rerank"]]
@@ -532,11 +555,29 @@ def build_metrics(
                 sum(data["matched_top_10"] for _, data in rows),
                 sum(data["reported_top_10"] for _, data in rows),
             ),
-            "precision_at_10": binary_metric(all_base, bootstrap=bootstrap, rng=rng),
-            "antiunification_rerank_precision_at_10": binary_metric(
-                all_rerank, bootstrap=bootstrap, rng=rng
+            "precision_at_10": binary_metric(
+                all_base,
+                bootstrap=bootstrap,
+                rng=metric_rng(
+                    split=split, scope="OVERALL", metric="precision_at_10"
+                ),
             ),
-            "worthy_recall": binary_metric(all_recall, bootstrap=bootstrap, rng=rng),
+            "antiunification_rerank_precision_at_10": binary_metric(
+                all_rerank,
+                bootstrap=bootstrap,
+                rng=metric_rng(
+                    split=split,
+                    scope="OVERALL",
+                    metric="antiunification_rerank_precision_at_10",
+                ),
+            ),
+            "worthy_recall": binary_metric(
+                all_recall,
+                bootstrap=bootstrap,
+                rng=metric_rng(
+                    split=split, scope="OVERALL", metric="worthy_recall"
+                ),
+            ),
         }
         report[split] = split_report
     return report
@@ -1006,6 +1047,29 @@ def run_self_test() -> None:
     else:
         raise AssertionError("wrong dashboard total must fail")
     assert surface_counts(families) == {"default": 2, "hidden": 1}
+
+    def accumulator(dev_flags: list[int]) -> dict[tuple[str, str], dict[str, Any]]:
+        def row(flags: list[int]) -> dict[str, Any]:
+            return {
+                "repositories": 1,
+                "labels": len(flags),
+                "precision_labels": len(flags),
+                "worthy_labels": sum(flags),
+                "matched_top_10": len(flags),
+                "reported_top_10": len(flags),
+                "base": flags,
+                "rerank": list(reversed(flags)),
+                "recall": flags,
+            }
+
+        return {
+            ("Test", "dev"): row(dev_flags),
+            ("Test", "heldout"): row([1, 0, 1, 0, 1]),
+        }
+
+    short_dev = build_metrics(accumulator([1, 0]), bootstrap=100)
+    long_dev = build_metrics(accumulator([1, 0] * 20), bootstrap=100)
+    assert short_dev["heldout"] == long_dev["heldout"]
     print("product-quality evaluator self-test passed")
 
 

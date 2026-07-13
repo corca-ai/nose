@@ -7,7 +7,7 @@ There are two distinct questions, measured separately:
 
 | question | how | data |
 |---|---|---|
-| **Product quality** — does the query surface rank *genuine* refactoring candidates first? | precision@10 + worthy-recall, per language, dev/held-out, bootstrap 95% CIs | the checked v6 composite refactoring-family labelset |
+| **Product quality** — does the query surface rank *genuine* refactoring candidates first? | precision@10 + worthy-recall, per language, dev/held-out, bootstrap 95% CIs | the checked v7 composite refactoring-family labelset |
 | **Soundness** — does an equal fingerprint really mean equal behavior? | an interpreter oracle on a battery of inputs (`nose verify`) + Lean proofs | the pinned corpus |
 
 A third asset is the [Type-4 benchmark factory](type4-benchmark.md): an evidence-carrying
@@ -18,18 +18,19 @@ declared semantics, not whether a reported family is worth refactoring.
 ## Product quality — the refactoring-family labelset
 
 The active gold set is the hash-checked
-`bench/labels/refactoring_families.v6.json` composite: the byte-frozen v5 multi-source
-pool (9,461 families) plus separate dev and held-out current-top-10 components (115
-families). In total it has **9,576 worthy/not-worthy judgments over 120 pinned
-repositories and eight languages**, including 45 labels from all 15 real Swift
-repositories. Each judgment follows a three-persona LLM panel with explicit arbiter
+`bench/labels/refactoring_families.v7.json` composite: byte-frozen v6 plus a 286-label
+dev default-head precision overlay and a source-free held-out selection seal. In total it
+has **9,862 worthy/not-worthy judgments over 120 pinned repositories and eight
+languages**. Each new judgment follows a three-persona LLM panel with explicit arbiter
 resolution — see [bench/labels/README.md](../bench/labels/README.md) and the labeling
 contract in [RUBRIC.md](../bench/labels/RUBRIC.md).
 
 The corpus has a **dev / held-out** split (`bench/goldens/corpus.json`), so a change
 has to generalize, not just fit the dev repositories; tune only on dev. The dev
-component was committed before held-out judgment. The checked prune manifest protects
-the complete v6 labelset and records the unchanged 120-repository post-prune digest.
+selection and judgment are separate from the pre-hashed held-out seal. The checked prune
+manifest retains the byte-frozen v6 protection basis and records the unchanged
+120-repository post-prune digest. Every v7 member survives that same prune result; v7 adds
+no removal candidate or protected-skip drift.
 
 The refresh labels are explicitly **precision-only**: they were selected from current
 top-10 output, so adding them to worthy-recall would bias the recall denominator toward
@@ -61,7 +62,7 @@ the historical anti-unification re-rank comparison. Query output passes through 
 schema-v7 adapter: a changed envelope, location key, surface, or scope fails with a
 path-specific error instead of silently dropping a result.
 
-**Current product baseline (2026-07-13, published nose 0.19.0):** precision@10
+**Current product measurement (2026-07-13, v7 labels over published nose 0.19.0):** precision@10
 uses the default surface users see, while worthy recall searches the explicit
 full `all` universe. On every repository the evaluator proves that the raw
 default list has the same IDs and order as the default families derived from
@@ -70,10 +71,15 @@ prefix with consistent total/shown summary counts.
 
 | split | repos | default-surface labeled precision@10 | matched top-10 | all-surface worthy recall |
 |---|---:|---:|---:|---:|
-| dev | 66 | 271/437 = 62.01% [57.44–66.59] | 437/658 = 66.41% | 2,716/2,849 = 95.33% [94.56–96.10] |
+| dev | 66 | 382/658 = 58.05% [54.10–61.70] | 658/658 = 100.00% | 2,716/2,849 = 95.33% [94.56–96.10] |
 | held-out | 54 | 222/375 = 59.20% [54.13–64.00] | 375/538 = 69.70% | 2,005/2,091 = 95.89% [95.03–96.70] |
 
-The [#839 baseline](default-head-baseline-839.md) records the published release
+The v7 dev estimate is lower because it labels all 221 positions omitted from v6's
+conditional precision denominator; no query output changed. The
+[#840 runway](default-head-label-runway-840.md) records the split-safe selection, panel,
+arbitration, and checked report. Bootstrap streams are deterministic per split,
+language/overall scope, and metric, so dev changes cannot perturb an unchanged held-out
+interval. The [#839 baseline](default-head-baseline-839.md) records the published release
 asset and checksum, all input hashes, 120/120 parity, per-surface counts, and
 byte-identical repeated reports. Pass `--precision-surface all` explicitly when a
 comparison needs the pre-#839 full-universe precision definition.

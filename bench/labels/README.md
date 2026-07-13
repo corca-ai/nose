@@ -8,7 +8,27 @@ This is the most important asset in `bench/` — the metric that keeps ranking/
 detection changes honest (it has rejected several plausible-but-wrong ideas; see
 `docs/experiments.md` §U/§V/§X/§Z/§AB).
 
-## The active set — `refactoring_families.v6.json`
+## The active set — `refactoring_families.v7.json`
+
+v7 is a hash-checked, nested composite: the byte-frozen v6 labelset plus 286 dev-only
+precision judgments for the actual bare-default head and a source-free held-out selection
+seal. It contains **9,862 families** — 5,141 worthy / 4,721 not-worthy — over the same 120
+pinned repositories and eight languages. The split remains a hard generalization boundary:
+5,790 labels are dev and 4,072 remain held-out. Every v7 label is precision-only; worthy
+recall still uses the frozen v5 pool.
+
+The v7 runway covers every previously unmatched dev default rank 1–10 position and one
+deterministic unmatched rank 11–30 sample for every repository with an eligible family:
+286 dev labels in total. Dev top-10 match coverage is therefore 658/658 (100%). The
+held-out seal commits to 214
+selections without exposing members, source paths, votes, or judgments before #846. See
+[`docs/default-head-label-runway-840.md`](../../docs/default-head-label-runway-840.md).
+The seal and manifest use exact, fail-closed field and value schemas. Held-out repository
+identity and counts are derived from the hash-checked corpus and commitments, the manifest
+is bound to frozen v6, and CI replays raw votes through arbitration, decisions, and the
+generated component before checking the evaluation and its SHA sidecar.
+
+### Frozen v6 base
 
 v6 is a hash-checked composite manifest, not a rewrite of the historical pool:
 
@@ -136,8 +156,8 @@ The base evolved v1 (235) → v2 (576, +heldout) → v3 (3,092) → v4 (4,615, 6
 **v5 (9,461, 105 repos)**; adding repos per language is the lever for per-language
 *precision* CIs (bounded by #repos×10, not #labels). v5 (§AU) settled the anti-unification
 re-rank as small-sample overfit (+1pp dev / −1pp heldout, Rust-only — **not shipped**).
-v6 retains that pool byte-for-byte and adds only the split-safe, precision-eligible overlay
-described above.
+v6 retains that pool byte-for-byte and adds only its split-safe, precision-eligible overlay.
+v7 retains v5 and v6 byte-for-byte and adds only the dev runway described above.
 
 ## Adjacent audit artifacts
 
@@ -145,10 +165,11 @@ described above.
 file-level corpus prune. It lists generated/vendored source files removed after clone,
 label-referenced files that were protected from removal, and the post-prune corpus
 digest used to verify a reconstructed checkout. The checked-in manifest remains scoped to
-the active v6 composite and all 120 pinned repositories. Its labelset path and protected
-source counts are checked together with the post-prune corpus digest.
+the byte-frozen v6 protection basis and all 120 pinned repositories. v7 adds no removal
+candidate or protected-skip drift on that already-pruned corpus; the historical manifest
+and its post-prune corpus digest therefore remain unchanged.
 
-`fragment_quality_audit_2026_06_10.json` is not part of the active v6 product metric. It is a
+`fragment_quality_audit_2026_06_10.json` is not part of the active v7 product metric. It is a
 small, three-person audit of Java/Python hidden/divergence exact-fragment families used to
 validate surface policy after the semantic corpus pass. See
 [`docs/fragment-quality-audit-2026-06-10.md`](../../docs/fragment-quality-audit-2026-06-10.md).
@@ -254,19 +275,24 @@ requires its recorded evaluator revision and command/output path because those
 values are part of provenance.
 Pass `--precision-surface all` to request the old full-universe precision definition.
 
-The [published-v0.19.0 default-head artifact](product_quality_evaluation_v0_19_0_default_head_2026_07_13.v3.json)
-records exact binary/input hashes, the pinned corpus digest, configuration,
+The [v7 dev-runway artifact](product_quality_evaluation_v7_dev_runway_2026_07_13.v1.json)
+records the published-v0.19.0 binary/input hashes, pinned corpus digest, configuration,
 per-repository surface counts and denominators, and dev/held-out metrics. Precision
 remains conditional on a top-10 family matching an active precision label; coverage
 is reported beside it, never silently discarded.
 
 | split | repos | default-surface labeled precision@10 | matched top-10 | all-surface worthy recall |
 |---|---:|---:|---:|---:|
-| dev | 66 | 271/437 = 62.01% [57.44–66.59] | 437/658 = 66.41% | 2,716/2,849 = 95.33% [94.56–96.10] |
+| dev | 66 | 382/658 = 58.05% [54.10–61.70] | 658/658 = 100.00% | 2,716/2,849 = 95.33% [94.56–96.10] |
 | held-out | 54 | 222/375 = 59.20% [54.13–64.00] | 375/538 = 69.70% | 2,005/2,091 = 95.89% [95.03–96.70] |
 
-The full release-asset identity, 120/120 parity proof, surface totals, and
-determinism evidence are in the [#839 baseline](../../docs/default-head-baseline-839.md).
+The lower dev estimate is the result of labeling every formerly omitted position, not a
+query behavior change. The v7 protocol is in the [#840 runway](../../docs/default-head-label-runway-840.md).
+Bootstrap streams are deterministic per split, language/overall scope, and metric; dev
+sample changes therefore cannot perturb an unchanged held-out interval.
+The prior 271/437 conditional estimate, full release-asset identity, 120/120 parity proof,
+surface totals, and determinism evidence remain in the
+[#839 baseline](../../docs/default-head-baseline-839.md).
 
 The earlier [2026-07-11 nose 0.18.0 artifact](product_quality_evaluation_2026_07_11.v2.json)
 retains the historical full-universe definition:
