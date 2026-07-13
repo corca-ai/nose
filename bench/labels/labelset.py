@@ -14,6 +14,7 @@ from typing import Any
 
 COMPOSITE_SCHEMA = "nose.refactoring_family_labelset.v1"
 COMPONENT_SCHEMA = "nose.refactoring_family_labels.v1"
+HELDOUT_SEAL_SCHEMA = "nose.default_head_heldout_seal.v1"
 FLAT_SCHEMA_VERSION = "0.1.0"
 PRECISION_METRIC = "precision_at_10"
 RECALL_METRIC = "worthy_recall"
@@ -168,8 +169,17 @@ def load_flat(path: Path, payload: dict[str, Any], label: str) -> list[dict[str,
     return families
 
 
-def load_labelset(path: Path) -> LoadedLabelset:
+def composite_version(version: str) -> int:
+    if not version.startswith("v") or not version[1:].isdigit():
+        raise ValueError(f"invalid loaded labelset version: {version!r}")
+    return int(version[1:])
+
+
+def _load_labelset(path: Path, stack: tuple[Path, ...]) -> LoadedLabelset:
     path = path.resolve()
+    if path in stack:
+        chain = " -> ".join(row.name for row in (*stack, path))
+        raise ValueError(f"labelset base cycle: {chain}")
     payload = load_object(path, "labelset")
     if payload.get("schema") != COMPOSITE_SCHEMA:
         families = load_flat(path, payload, "labelset")
@@ -180,13 +190,25 @@ def load_labelset(path: Path) -> LoadedLabelset:
             inputs=[{"path": path.as_posix(), "sha256": sha256_file(path)}],
         )
 
-    if payload.get("version") != 6:
-        raise ValueError("labelset.version: expected 6")
+    version = payload.get("version")
+    if not isinstance(version, int) or isinstance(version, bool) or version not in {6, 7}:
+        raise ValueError("labelset.version: expected 6 or 7")
     parent = path.parent
     base_path = resolve_checked_file(parent, payload.get("base"), "labelset.base")
-    base_payload = load_object(base_path, "labelset.base")
-    families = list(load_flat(base_path, base_payload, "labelset.base"))
-    inputs = [{"path": base_path.as_posix(), "sha256": sha256_file(base_path)}]
+    base = _load_labelset(base_path, (*stack, path))
+    base_version = composite_version(base.version)
+    if base_version >= version:
+        raise ValueError(
+            f"labelset.base: expected a version older than v{version}, got {base.version}"
+        )
+    if version == 6 and base.version != "v5":
+        raise ValueError("labelset.base: v6 must extend the frozen v5 flat labelset")
+    if version == 7 and base.version != "v6":
+        raise ValueError("labelset.base: v7 must extend the frozen v6 composite")
+    families = list(base.families)
+    inputs = list(base.inputs)
+    if base_version >= 6:
+        inputs.append({"path": base_path.as_posix(), "sha256": sha256_file(base_path)})
     components = payload.get("components")
     if not isinstance(components, list) or not components:
         raise ValueError("labelset.components: expected a non-empty array")
@@ -195,6 +217,8 @@ def load_labelset(path: Path) -> LoadedLabelset:
         record_label = f"labelset.components[{index}]"
         if not isinstance(record, dict) or record.get("split") not in {"dev", "heldout"}:
             raise ValueError(f"{record_label}.split: expected dev or heldout")
+        if version == 7 and record.get("kind") != "precision-overlay":
+            raise ValueError(f"{record_label}.kind: expected precision-overlay")
         split = record["split"]
         if split in seen_splits:
             raise ValueError(f"{record_label}: duplicate split {split}")
@@ -213,8 +237,29 @@ def load_labelset(path: Path) -> LoadedLabelset:
             validate_component_family(family, split, f"{record_label}.families[{family_index}]")
         families.extend(component_families)
         inputs.append({"path": component_path.as_posix(), "sha256": sha256_file(component_path)})
-    if seen_splits != {"dev", "heldout"}:
+    if version == 6 and seen_splits != {"dev", "heldout"}:
         raise ValueError("labelset.components: both dev and heldout components are required")
+    if version == 7 and "dev" not in seen_splits:
+        raise ValueError("labelset.components: v7 requires a dev precision overlay")
+
+    seals = payload.get("seals", [])
+    if version == 6 and seals:
+        raise ValueError("labelset.seals: v6 does not support held-out seals")
+    if version == 7:
+        if not isinstance(seals, list) or len(seals) != 1:
+            raise ValueError("labelset.seals: v7 requires exactly one held-out seal")
+        seal_record = seals[0]
+        if not isinstance(seal_record, dict) or seal_record.get("split") != "heldout":
+            raise ValueError("labelset.seals[0].split: expected heldout")
+        seal_path = resolve_checked_file(parent, seal_record, "labelset.seals[0]")
+        seal = load_object(seal_path, "labelset.seals[0]")
+        if (
+            seal.get("schema") != HELDOUT_SEAL_SCHEMA
+            or seal.get("split") != "heldout"
+            or seal.get("judgment_status") != "sealed-unjudged"
+        ):
+            raise ValueError("labelset.seals[0]: held-out seal contract mismatch")
+        inputs.append({"path": seal_path.as_posix(), "sha256": sha256_file(seal_path)})
 
     identities: set[tuple[str, str]] = set()
     for index, family in enumerate(families):
@@ -224,7 +269,11 @@ def load_labelset(path: Path) -> LoadedLabelset:
         if identity in identities:
             raise ValueError(f"labelset family {index}: duplicate identity {identity}")
         identities.add(identity)
-    return LoadedLabelset(path=path, version="v6", families=families, inputs=inputs)
+    return LoadedLabelset(path=path, version=f"v{version}", families=families, inputs=inputs)
+
+
+def load_labelset(path: Path) -> LoadedLabelset:
+    return _load_labelset(path, ())
 
 
 def metric_eligible(family: dict[str, Any], metric: str) -> bool:
@@ -312,6 +361,50 @@ def run_self_test() -> None:
         assert len(loaded.families) == 3
         assert metric_eligible(loaded.families[0], RECALL_METRIC)
         assert not metric_eligible(loaded.families[-1], RECALL_METRIC)
+
+        v7_component_path = root / "dev-v7.json"
+        v7_component_path.write_text(json.dumps(component("dev", "family-v7-dev")))
+        seal_path = root / "heldout-seal.json"
+        seal_path.write_text(
+            json.dumps(
+                {
+                    "schema": HELDOUT_SEAL_SCHEMA,
+                    "split": "heldout",
+                    "judgment_status": "sealed-unjudged",
+                }
+            )
+        )
+        v7_manifest = root / "v7.json"
+        v7_manifest.write_text(
+            json.dumps(
+                {
+                    "schema": COMPOSITE_SCHEMA,
+                    "version": 7,
+                    "base": {"path": manifest.name, "sha256": sha256_file(manifest)},
+                    "components": [
+                        {
+                            "kind": "precision-overlay",
+                            "split": "dev",
+                            "path": v7_component_path.name,
+                            "sha256": sha256_file(v7_component_path),
+                        }
+                    ],
+                    "seals": [
+                        {
+                            "split": "heldout",
+                            "path": seal_path.name,
+                            "sha256": sha256_file(seal_path),
+                        }
+                    ],
+                }
+            )
+        )
+        loaded_v7 = load_labelset(v7_manifest)
+        assert loaded_v7.version == "v7"
+        assert len(loaded_v7.families) == 4
+        assert len(loaded_v7.inputs) == 6
+        assert not metric_eligible(loaded_v7.families[-1], RECALL_METRIC)
+
         component_records[0]["sha256"] = "0" * 64
         manifest.write_text(
             json.dumps(

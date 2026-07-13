@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect and validate the split-safe #812 product-label refresh evidence."""
+"""Collect and validate the split-safe #812/#840 product-label refresh evidence."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from typing import Any
 
 from labelset import (
     COMPONENT_SCHEMA,
+    HELDOUT_SEAL_SCHEMA,
     PRECISION_METRIC,
     VOTE_NAMES,
     WORTHY_REASONS,
@@ -37,6 +38,9 @@ DEFAULT_RUBRIC = ROOT / "bench" / "labels" / "RUBRIC.md"
 ARTIFACT_SCHEMA = "nose.refactoring_label_refresh_candidates.v1"
 DECISIONS_SCHEMA = "nose.refactoring_label_decisions.v1"
 SELECTION_SEED = "nose-issue-812-existing-unmatched-v1"
+RUNWAY_SCHEMA = "nose.default_head_label_runway.v1"
+RUNWAY_SELECTION_SEED = "nose-issue-840-default-head-v7-rank-11-30"
+RUNWAY_TOP = 30
 
 
 def canonical_sha256(value: object) -> str:
@@ -57,6 +61,21 @@ def git_output(args: list[str]) -> str:
     if result.returncode != 0:
         raise SystemExit(f"git {' '.join(args)} failed: {result.stderr.strip()}")
     return result.stdout.strip()
+
+
+def git_file_sha256(revision: str, path: str) -> str:
+    result = subprocess.run(
+        ["git", "show", f"{revision}:{path}"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        raise SystemExit(
+            f"cannot read collection source {path} at {revision}: "
+            f"{result.stderr.decode(errors='replace').strip()}"
+        )
+    return hashlib.sha256(result.stdout).hexdigest()
 
 
 def nose_version(nose: Path) -> str:
@@ -211,6 +230,92 @@ def query_repo(nose: Path, repo: Path) -> tuple[bytes, list[dict[str, Any]], lis
             f"{result.stderr.decode(errors='replace').strip()}"
         )
     return result.stdout, query_families(result.stdout, source=f"nose query {repo}"), command
+
+
+def query_default_runway_repo(
+    nose: Path, repo: Path
+) -> tuple[bytes, list[dict[str, Any]], list[str]]:
+    command = [
+        str(nose),
+        "query",
+        rel(repo),
+        f"top={RUNWAY_TOP}",
+        "--format",
+        "json",
+    ]
+    result = subprocess.run(command, cwd=ROOT, check=False, capture_output=True)
+    if result.returncode != 0:
+        raise SystemExit(
+            f"default-head query failed for {repo}: exit {result.returncode}: "
+            f"{result.stderr.decode(errors='replace').strip()}"
+        )
+    return (
+        result.stdout,
+        query_families(result.stdout, source=f"nose query {repo} default runway"),
+        command,
+    )
+
+
+def runway_candidate_content(candidate: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: candidate[key]
+        for key in (
+            "candidate_key",
+            "repo",
+            "split",
+            "language",
+            "lane",
+            "rank",
+            "base_matched",
+            "family",
+            "raw_family_sha256",
+        )
+    }
+
+
+def runway_selection_hash(candidate: dict[str, Any]) -> str:
+    identity = f"{RUNWAY_SELECTION_SEED}\0{candidate['candidate_key']}"
+    return hashlib.sha256(identity.encode()).hexdigest()
+
+
+def selected_runway_candidates(
+    candidates: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, str]]:
+    head = [
+        candidate
+        for candidate in candidates
+        if candidate["rank"] <= 10 and not candidate["base_matched"]
+    ]
+    deep_by_repo: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for candidate in candidates:
+        if 11 <= candidate["rank"] <= RUNWAY_TOP and not candidate["base_matched"]:
+            deep_by_repo[candidate["repo"]].append(candidate)
+    deep = [
+        min(rows, key=lambda row: (runway_selection_hash(row), row["candidate_key"]))
+        for _, rows in sorted(deep_by_repo.items())
+    ]
+    ordered = sorted(
+        head,
+        key=lambda row: (row["language"], row["repo"], row["rank"], row["candidate_key"]),
+    ) + sorted(
+        deep,
+        key=lambda row: (row["language"], row["repo"], row["rank"], row["candidate_key"]),
+    )
+    reasons = {candidate["candidate_key"]: "unmatched-default-head" for candidate in head}
+    reasons.update(
+        {candidate["candidate_key"]: "deterministic-rank-11-30" for candidate in deep}
+    )
+    return ordered, reasons
+
+
+def runway_selection_summary(
+    candidates: list[dict[str, Any]],
+) -> tuple[list[str], dict[str, str]]:
+    selected, reasons = selected_runway_candidates(candidates)
+    keys = [candidate["candidate_key"] for candidate in selected]
+    if len(keys) != len(set(keys)):
+        raise SystemExit("runway selection contains duplicate candidate keys")
+    return keys, reasons
 
 
 def source_file_record(path_text: str) -> dict[str, Any]:
@@ -377,6 +482,271 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def apply_runway_selection(candidates: list[dict[str, Any]]) -> list[str]:
+    keys, reasons = runway_selection_summary(candidates)
+    positions = {key: index for index, key in enumerate(keys, start=1)}
+    for candidate in candidates:
+        key = candidate["candidate_key"]
+        candidate["selected"] = key in positions
+        candidate["selection_reason"] = reasons.get(key)
+        candidate["selection_order"] = positions.get(key)
+    return keys
+
+
+def runway_pool_summary(
+    candidates: list[dict[str, Any]], repositories: dict[str, dict[str, Any]]
+) -> dict[str, Any]:
+    return {
+        "repositories": len(repositories),
+        "default_head_positions": sum(row["top_10_reported"] for row in repositories.values()),
+        "base_matched_default_head": sum(
+            row["base_matched_top_10"] for row in repositories.values()
+        ),
+        "unmatched_default_head": sum(
+            row["unmatched_top_10"] for row in repositories.values()
+        ),
+        "rank_11_30_candidates": sum(
+            1 for candidate in candidates if 11 <= candidate["rank"] <= RUNWAY_TOP
+        ),
+        "rank_11_30_unmatched": sum(
+            1
+            for candidate in candidates
+            if 11 <= candidate["rank"] <= RUNWAY_TOP
+            and not candidate["base_matched"]
+        ),
+        "selected_count": sum(1 for candidate in candidates if candidate["selected"]),
+        "selected_unmatched_default_head": sum(
+            1
+            for candidate in candidates
+            if candidate["selected"] and candidate["rank"] <= 10
+        ),
+        "selected_rank_11_30": sum(
+            1
+            for candidate in candidates
+            if candidate["selected"] and candidate["rank"] > 10
+        ),
+    }
+
+
+def collect_runway(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any]]:
+    working_tree_status = git_output(["status", "--short"])
+    corpus_payload = json.loads(args.corpus.read_text(encoding="utf-8"))
+    corpus_rows = corpus_payload["repositories"]
+    base = load_labelset(args.base_labelset)
+    if base.version != "v6":
+        raise SystemExit(f"v7 runway must extend v6, got {base.version}")
+    base_by_repo: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for family in base.families:
+        base_by_repo[family["repo"]].append(family)
+
+    candidates_by_split: dict[str, list[dict[str, Any]]] = {
+        "dev": [],
+        "heldout": [],
+    }
+    repositories_by_split: dict[str, dict[str, dict[str, Any]]] = {
+        "dev": {},
+        "heldout": {},
+    }
+    dev_source_files: dict[str, dict[str, Any]] = {}
+
+    for metadata in sorted(corpus_rows, key=lambda row: row["id"]):
+        repo_id = metadata["id"]
+        split = metadata["split"]
+        repo = args.repos_root / repo_id
+        if not repo.is_dir():
+            raise SystemExit(f"missing pinned repository: {repo_id}")
+        actual_commit = repository_head(repo)
+        if actual_commit != metadata["commit"]:
+            raise SystemExit(
+                f"{repo_id}: corpus revision {actual_commit} != {metadata['commit']}"
+            )
+        stdout, families, command = query_default_runway_repo(args.nose, repo)
+        base_matched_top_10 = 0
+        for rank, family in enumerate(families, start=1):
+            members = normalized_members(family)
+            match_id, match_overlap = best_label_match(
+                members, base_by_repo.get(repo_id, [])
+            )
+            base_matched = match_id is not None
+            if rank <= 10 and base_matched:
+                base_matched_top_10 += 1
+            lane = (
+                "base-matched-default-head"
+                if rank <= 10 and base_matched
+                else (
+                    "unmatched-default-head"
+                    if rank <= 10
+                    else (
+                        "base-matched-rank-11-30"
+                        if base_matched
+                        else "unmatched-rank-11-30"
+                    )
+                )
+            )
+            compact_family = {
+                "id": family["id"],
+                "members": members,
+                "member_count": len(members),
+                "scope": family.get("scope"),
+                "surface": family.get("surface"),
+                "witness": family.get("witness"),
+                "extraction_shape": family.get("extraction_shape"),
+                "value": family.get("value"),
+                "matched_v6_family_id": match_id,
+                "matched_v6_member_overlap": match_overlap,
+            }
+            candidate = {
+                "candidate_key": f"{repo_id}:{family['id']}:rank-{rank}",
+                "repo": repo_id,
+                "split": split,
+                "language": metadata["primary_language"],
+                "lane": lane,
+                "rank": rank,
+                "base_matched": base_matched,
+                "family": compact_family,
+                "raw_family_sha256": canonical_sha256(family),
+            }
+            candidate["candidate_sha256"] = canonical_sha256(
+                runway_candidate_content(candidate)
+            )
+            candidates_by_split[split].append(candidate)
+            if split == "dev":
+                for member in members:
+                    dev_source_files.setdefault(
+                        member["file"], source_file_record(member["file"])
+                    )
+        top_10_reported = min(10, len(families))
+        repositories_by_split[split][repo_id] = {
+            "commit": actual_commit,
+            "language": metadata["primary_language"],
+            "split": split,
+            "query_command": shlex.join(command),
+            "query_stdout_sha256": hashlib.sha256(stdout).hexdigest(),
+            "top_30_reported": len(families),
+            "top_10_reported": top_10_reported,
+            "base_matched_top_10": base_matched_top_10,
+            "unmatched_top_10": top_10_reported - base_matched_top_10,
+        }
+
+    dev_candidates = candidates_by_split["dev"]
+    heldout_candidates = candidates_by_split["heldout"]
+    dev_keys = apply_runway_selection(dev_candidates)
+    heldout_keys = apply_runway_selection(heldout_candidates)
+    swift_repos = {
+        row["id"]
+        for row in corpus_rows
+        if row["primary_language"].lower() == "swift"
+    }
+    selected_swift_repos = {
+        candidate["repo"]
+        for candidate in (*dev_candidates, *heldout_candidates)
+        if candidate["selected"] and candidate["language"].lower() == "swift"
+    }
+    if selected_swift_repos != swift_repos:
+        raise SystemExit(
+            "v7 runway must select every Swift repository; missing="
+            f"{sorted(swift_repos - selected_swift_repos)}"
+        )
+
+    nose = args.nose.resolve()
+    sources = (
+        ROOT / "bench/labels/label_refresh.py",
+        ROOT / "bench/labels/labelset.py",
+        ROOT / "bench/labels/query_schema.py",
+    )
+    provenance = {
+        "command": shlex.join(["python3", *sys.argv]),
+        "git_sha": git_output(["rev-parse", "HEAD"]),
+        "working_tree_status_before_collection": working_tree_status,
+        "nose_binary": rel(nose),
+        "nose_binary_sha256": sha256_file(nose),
+        "nose_version": nose_version(nose),
+        "corpus_manifest": rel(args.corpus.resolve()),
+        "corpus_manifest_sha256": sha256_file(args.corpus),
+        "corpus_commit_digest": canonical_sha256(
+            [
+                {"id": row["id"], "commit": row["commit"]}
+                for row in sorted(corpus_rows, key=lambda row: row["id"])
+            ]
+        ),
+        "base_labelset": rel(args.base_labelset.resolve()),
+        "base_labelset_sha256": sha256_file(args.base_labelset),
+        "base_labelset_version": base.version,
+        "rubric": rel(args.rubric.resolve()),
+        "rubric_sha256": sha256_file(args.rubric),
+        "collection_sources": [
+            {"path": rel(path), "sha256": sha256_file(path)} for path in sources
+        ],
+    }
+    selection_contract = {
+        "seed": RUNWAY_SELECTION_SEED,
+        "head_rule": "select every v6-unmatched default-surface rank 1-10 family",
+        "deep_rule": (
+            "select one v6-unmatched rank 11-30 family per repository by seeded hash"
+        ),
+        "heldout_policy": "selection commitments only; no source paths or judgments",
+    }
+    dev_artifact = {
+        "schema": RUNWAY_SCHEMA,
+        "split": "dev",
+        "query_schema_version": QUERY_SCHEMA_VERSION,
+        "provenance": provenance,
+        "selection_contract": selection_contract,
+        "selection": {
+            "selected_candidate_keys": dev_keys,
+            "selected_candidate_keys_sha256": canonical_sha256(dev_keys),
+        },
+        "pool": runway_pool_summary(
+            dev_candidates, repositories_by_split["dev"]
+        ),
+        "repositories": repositories_by_split["dev"],
+        "source_files": dict(sorted(dev_source_files.items())),
+        "candidates": sorted(
+            dev_candidates, key=lambda row: (row["repo"], row["rank"])
+        ),
+    }
+    commitments = [
+        {
+            key: candidate[key]
+            for key in (
+                "candidate_key",
+                "candidate_sha256",
+                "repo",
+                "split",
+                "language",
+                "lane",
+                "rank",
+                "base_matched",
+                "selected",
+                "selection_reason",
+                "selection_order",
+            )
+        }
+        for candidate in sorted(
+            heldout_candidates, key=lambda row: (row["repo"], row["rank"])
+        )
+    ]
+    heldout_seal = {
+        "schema": HELDOUT_SEAL_SCHEMA,
+        "split": "heldout",
+        "judgment_status": "sealed-unjudged",
+        "query_schema_version": QUERY_SCHEMA_VERSION,
+        "provenance": provenance,
+        "selection_contract": selection_contract,
+        "selection": {
+            "selected_candidate_keys": heldout_keys,
+            "selected_candidate_keys_sha256": canonical_sha256(heldout_keys),
+        },
+        "pool": runway_pool_summary(
+            heldout_candidates, repositories_by_split["heldout"]
+        ),
+        "repositories": repositories_by_split["heldout"],
+        "candidate_commitments": commitments,
+    }
+    heldout_seal["commitment_sha256"] = canonical_sha256(heldout_seal)
+    return dev_artifact, heldout_seal
+
+
 def load_artifact(path: Path) -> dict[str, Any]:
     try:
         artifact = json.loads(path.read_text(encoding="utf-8"))
@@ -452,6 +822,221 @@ def validate_candidate_artifact(
                 or sha256_file(path) != record.get("sha256")
             ):
                 raise SystemExit(f"source provenance mismatch: {path_text}")
+
+
+def load_schema_artifact(path: Path, schema: str, label: str) -> dict[str, Any]:
+    try:
+        artifact = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SystemExit(f"cannot read {label} {path}: {error}") from error
+    if not isinstance(artifact, dict) or artifact.get("schema") != schema:
+        raise SystemExit(f"{path}: unsupported {label} schema")
+    return artifact
+
+
+def validate_runway_selection(
+    candidates: list[dict[str, Any]], selection: dict[str, Any], *, label: str
+) -> None:
+    expected_keys, expected_reasons = runway_selection_summary(candidates)
+    recorded_keys = selection.get("selected_candidate_keys")
+    if recorded_keys != expected_keys:
+        raise SystemExit(f"{label}: selected candidate order differs from the rule")
+    if selection.get("selected_candidate_keys_sha256") != canonical_sha256(expected_keys):
+        raise SystemExit(f"{label}: selected candidate digest mismatch")
+    positions = {key: index for index, key in enumerate(expected_keys, start=1)}
+    for candidate in candidates:
+        key = candidate["candidate_key"]
+        if candidate.get("selected") != (key in positions):
+            raise SystemExit(f"{label}: {key}: selected flag mismatch")
+        if candidate.get("selection_reason") != expected_reasons.get(key):
+            raise SystemExit(f"{label}: {key}: selection reason mismatch")
+        if candidate.get("selection_order") != positions.get(key):
+            raise SystemExit(f"{label}: {key}: selection order mismatch")
+
+
+def validate_runway_dev(
+    artifact: dict[str, Any], *, live_root: Path | None = None
+) -> None:
+    if artifact.get("split") != "dev" or artifact.get("query_schema_version") != QUERY_SCHEMA_VERSION:
+        raise SystemExit("dev runway split/query schema mismatch")
+    candidates = artifact.get("candidates")
+    if not isinstance(candidates, list) or not candidates:
+        raise SystemExit("dev runway needs a non-empty candidates array")
+    seen: set[str] = set()
+    referenced_sources: set[str] = set()
+    for index, candidate in enumerate(candidates):
+        if not isinstance(candidate, dict):
+            raise SystemExit(f"dev candidates[{index}] must be an object")
+        key = candidate.get("candidate_key")
+        if not isinstance(key, str) or not key or key in seen:
+            raise SystemExit(f"dev candidates[{index}] has an invalid/duplicate key")
+        seen.add(key)
+        if candidate.get("split") != "dev":
+            raise SystemExit(f"{key}: held-out candidate leaked into dev runway")
+        if candidate.get("candidate_sha256") != canonical_sha256(
+            runway_candidate_content(candidate)
+        ):
+            raise SystemExit(f"{key}: candidate content digest mismatch")
+        family = candidate.get("family")
+        if not isinstance(family, dict) or not isinstance(family.get("members"), list):
+            raise SystemExit(f"{key}: candidate family/members missing")
+        referenced_sources.update(member["file"] for member in family["members"])
+    validate_runway_selection(candidates, artifact.get("selection", {}), label="dev runway")
+    repositories = artifact.get("repositories")
+    if not isinstance(repositories, dict) or not repositories:
+        raise SystemExit("dev runway repositories missing")
+    if artifact.get("pool") != runway_pool_summary(candidates, repositories):
+        raise SystemExit("dev runway pool summary mismatch")
+    source_files = artifact.get("source_files")
+    if not isinstance(source_files, dict) or set(source_files) != referenced_sources:
+        raise SystemExit("dev runway source-file inventory mismatch")
+    provenance = artifact.get("provenance")
+    if not isinstance(provenance, dict):
+        raise SystemExit("dev runway provenance missing")
+    if provenance.get("working_tree_status_before_collection"):
+        raise SystemExit("dev runway must be collected from a clean working tree")
+    revision = provenance.get("git_sha")
+    collection_sources = provenance.get("collection_sources")
+    if not isinstance(revision, str) or not revision:
+        raise SystemExit("dev runway collection revision missing")
+    if not isinstance(collection_sources, list) or not collection_sources:
+        raise SystemExit("dev runway collection source provenance missing")
+    seen_collection_sources: set[str] = set()
+    for index, record in enumerate(collection_sources):
+        if not isinstance(record, dict):
+            raise SystemExit(f"collection_sources[{index}] must be an object")
+        path = record.get("path")
+        digest = record.get("sha256")
+        if (
+            not isinstance(path, str)
+            or not path
+            or path in seen_collection_sources
+            or not isinstance(digest, str)
+            or len(digest) != 64
+        ):
+            raise SystemExit(f"collection_sources[{index}] is invalid")
+        seen_collection_sources.add(path)
+        if git_file_sha256(revision, path) != digest:
+            raise SystemExit(f"collection source provenance mismatch: {path}")
+
+    if live_root is not None:
+        for path_key, hash_key in (
+            ("corpus_manifest", "corpus_manifest_sha256"),
+            ("base_labelset", "base_labelset_sha256"),
+            ("rubric", "rubric_sha256"),
+            ("nose_binary", "nose_binary_sha256"),
+        ):
+            path = live_root / provenance.get(path_key, "")
+            if not path.is_file() or sha256_file(path) != provenance.get(hash_key):
+                raise SystemExit(f"dev runway provenance mismatch for {path_key}")
+        for repo, row in repositories.items():
+            if repository_head(live_root / "bench/repos" / repo) != row["commit"]:
+                raise SystemExit(f"{repo}: live corpus revision mismatch")
+        for path_text, record in source_files.items():
+            path = live_root / path_text
+            if (
+                not path.is_file()
+                or path.stat().st_size != record.get("bytes")
+                or sha256_file(path) != record.get("sha256")
+            ):
+                raise SystemExit(f"dev runway source provenance mismatch: {path_text}")
+
+
+def contains_heldout_judgment_or_source(value: object) -> str | None:
+    forbidden = {
+        "family",
+        "families",
+        "members",
+        "source_files",
+        "worthy",
+        "reason",
+        "votes",
+        "arbiter",
+        "note",
+        "confidence",
+        "labeler",
+    }
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            if key in forbidden:
+                return key
+            found = contains_heldout_judgment_or_source(nested)
+            if found is not None:
+                return found
+    elif isinstance(value, list):
+        for nested in value:
+            found = contains_heldout_judgment_or_source(nested)
+            if found is not None:
+                return found
+    return None
+
+
+def validate_heldout_seal(seal: dict[str, Any]) -> None:
+    if (
+        seal.get("split") != "heldout"
+        or seal.get("judgment_status") != "sealed-unjudged"
+        or seal.get("query_schema_version") != QUERY_SCHEMA_VERSION
+    ):
+        raise SystemExit("held-out seal split/status/query schema mismatch")
+    forbidden = contains_heldout_judgment_or_source(seal)
+    if forbidden is not None:
+        raise SystemExit(f"held-out seal leaks forbidden field: {forbidden}")
+    commitment = seal.get("commitment_sha256")
+    content = dict(seal)
+    content.pop("commitment_sha256", None)
+    if commitment != canonical_sha256(content):
+        raise SystemExit("held-out seal commitment mismatch")
+    candidates = seal.get("candidate_commitments")
+    if not isinstance(candidates, list) or not candidates:
+        raise SystemExit("held-out seal needs candidate commitments")
+    seen: set[str] = set()
+    for index, candidate in enumerate(candidates):
+        if not isinstance(candidate, dict):
+            raise SystemExit(f"held-out commitments[{index}] must be an object")
+        key = candidate.get("candidate_key")
+        if not isinstance(key, str) or not key or key in seen:
+            raise SystemExit(f"held-out commitments[{index}] has an invalid/duplicate key")
+        seen.add(key)
+        if candidate.get("split") != "heldout":
+            raise SystemExit(f"{key}: non-held-out candidate in seal")
+        digest = candidate.get("candidate_sha256")
+        if not isinstance(digest, str) or len(digest) != 64:
+            raise SystemExit(f"{key}: candidate commitment digest missing")
+    validate_runway_selection(candidates, seal.get("selection", {}), label="held-out seal")
+    repositories = seal.get("repositories")
+    if not isinstance(repositories, dict) or not repositories:
+        raise SystemExit("held-out seal repositories missing")
+    if seal.get("pool") != runway_pool_summary(candidates, repositories):
+        raise SystemExit("held-out seal pool summary mismatch")
+
+
+def validate_runway_pair(
+    dev: dict[str, Any], seal: dict[str, Any], *, live_root: Path | None = None
+) -> None:
+    validate_runway_dev(dev, live_root=live_root)
+    validate_heldout_seal(seal)
+    if dev.get("provenance") != seal.get("provenance"):
+        raise SystemExit("dev and held-out provenance differs")
+    if dev.get("selection_contract") != seal.get("selection_contract"):
+        raise SystemExit("dev and held-out selection contracts differ")
+    selected_swift = {
+        candidate["repo"]
+        for candidate in [
+            *dev["candidates"],
+            *seal["candidate_commitments"],
+        ]
+        if candidate["selected"] and candidate["language"].lower() == "swift"
+    }
+    all_swift = {
+        repo
+        for repo, row in {
+            **dev["repositories"],
+            **seal["repositories"],
+        }.items()
+        if row["language"].lower() == "swift"
+    }
+    if selected_swift != all_swift or len(all_swift) != 15:
+        raise SystemExit("v7 runway selection must cover all 15 Swift repositories")
 
 
 def coverage(labels: LoadedLabelset, artifact: dict[str, Any]) -> dict[str, Any]:
@@ -547,6 +1132,99 @@ def coverage(labels: LoadedLabelset, artifact: dict[str, Any]) -> dict[str, Any]
     }
 
 
+def runway_coverage(
+    labels: LoadedLabelset, dev: dict[str, Any], seal: dict[str, Any]
+) -> dict[str, Any]:
+    if labels.version != "v7":
+        raise SystemExit(f"runway coverage requires v7 labelset, got {labels.version}")
+    selected = {
+        candidate["candidate_key"]: candidate
+        for candidate in dev["candidates"]
+        if candidate["selected"]
+    }
+    runway_labels = [
+        family
+        for family in labels.families
+        if family.get("selection", {}).get("runway") == "v7-default-head"
+    ]
+    if any(family.get("split") != "dev" for family in runway_labels):
+        raise SystemExit("held-out v7 judgments must remain unavailable before closeout")
+    by_key = {family["candidate_key"]: family for family in runway_labels}
+    if len(by_key) != len(runway_labels) or set(by_key) != set(selected):
+        raise SystemExit(
+            "v7 runway labels do not match dev selection; "
+            f"missing={sorted(set(selected) - set(by_key))}, "
+            f"extra={sorted(set(by_key) - set(selected))}"
+        )
+    for key, family in by_key.items():
+        candidate = selected[key]
+        source_family = candidate["family"]
+        checks = {
+            "candidate_sha256": candidate["candidate_sha256"],
+            "repo": candidate["repo"],
+            "split": "dev",
+            "language": candidate["language"],
+            "scope": source_family["scope"],
+            "family_id": source_family["id"],
+            "members": source_family["members"],
+        }
+        for field, expected in checks.items():
+            if family.get(field) != expected:
+                raise SystemExit(f"{key}: v7 label field {field} differs from source")
+        if family.get("metric_eligibility") != [PRECISION_METRIC]:
+            raise SystemExit(f"{key}: v7 label is not precision-only")
+        if metric_eligible(family, "worthy_recall"):
+            raise SystemExit(f"{key}: v7 label contaminated worthy recall")
+
+    head = [candidate for candidate in dev["candidates"] if candidate["rank"] <= 10]
+    unmatched_head = [candidate for candidate in head if not candidate["base_matched"]]
+    missing_head = [
+        candidate["candidate_key"]
+        for candidate in unmatched_head
+        if candidate["candidate_key"] not in by_key
+    ]
+    if missing_head:
+        raise SystemExit(f"v7 misses unmatched dev default-head candidates: {missing_head}")
+    matched = sum(1 for candidate in head if candidate["base_matched"]) + len(
+        unmatched_head
+    )
+    pct = round(100 * matched / len(head), 4) if head else 0.0
+    if pct < 90.0:
+        raise SystemExit(f"v7 dev default-head coverage {pct}% is below 90%")
+
+    swift_labels = [
+        family for family in runway_labels if family["language"].lower() == "swift"
+    ]
+    if {family["worthy"] for family in swift_labels} != {False, True}:
+        raise SystemExit("v7 dev Swift runway must contain both worthiness classes")
+    selected_swift_repos = {
+        candidate["repo"]
+        for candidate in [
+            *dev["candidates"],
+            *seal["candidate_commitments"],
+        ]
+        if candidate["selected"] and candidate["language"].lower() == "swift"
+    }
+    return {
+        "labelset_version": labels.version,
+        "dev": {
+            "top_10": len(head),
+            "v6_matched": sum(1 for candidate in head if candidate["base_matched"]),
+            "v7_matched": matched,
+            "v7_pct": pct,
+            "new_unmatched_head_labels": len(unmatched_head),
+            "rank_11_30_labels": sum(
+                1 for candidate in selected.values() if candidate["rank"] > 10
+            ),
+        },
+        "runway_labels": len(runway_labels),
+        "runway_worthy": sum(1 for family in runway_labels if family["worthy"]),
+        "runway_not_worthy": sum(1 for family in runway_labels if not family["worthy"]),
+        "swift_selected_repositories": sorted(selected_swift_repos),
+        "heldout_judgments": 0,
+    }
+
+
 def representative_members(
     members: list[dict[str, Any]], limit: int = 3
 ) -> list[dict[str, Any]]:
@@ -582,8 +1260,9 @@ def render_context(artifact: dict[str, Any], split: str) -> str:
         ),
         key=lambda row: row["selection_order"],
     )
+    issue = "#840" if artifact.get("schema") == RUNWAY_SCHEMA else "#812"
     lines = [
-        f"# #812 {split} label context",
+        f"# {issue} {split} label context",
         "",
         "Generated from the frozen candidate artifact; excerpts are local review aids only.",
         "",
@@ -710,6 +1389,18 @@ def build_component(
         if not isinstance(note, str) or not note.strip():
             raise SystemExit(f"{candidate['candidate_key']}: a non-empty note is required")
         family = candidate["family"]
+        selection = {
+            "lane": candidate["lane"],
+            "product_rank": candidate["rank"],
+            "selection_order": candidate["selection_order"],
+        }
+        if artifact.get("schema") == RUNWAY_SCHEMA:
+            selection.update(
+                {
+                    "runway": "v7-default-head",
+                    "selection_reason": candidate["selection_reason"],
+                }
+            )
         families.append(
             {
                 "family_id": family["id"],
@@ -729,11 +1420,7 @@ def build_component(
                 "votes": normalized_votes,
                 "arbiter": arbiter,
                 "note": note,
-                "selection": {
-                    "lane": candidate["lane"],
-                    "product_rank": candidate["rank"],
-                    "selection_order": candidate["selection_order"],
-                },
+                "selection": selection,
             }
         )
     rubric = ROOT / artifact["provenance"]["rubric"]
@@ -824,6 +1511,103 @@ def run_self_test() -> None:
         path = Path(directory) / "artifact.json"
         path.write_text(json.dumps({"schema": ARTIFACT_SCHEMA, "candidates": []}))
         assert load_artifact(path)["schema"] == ARTIFACT_SCHEMA
+
+    runway_candidates = []
+    for rank, matched in ((1, False), (2, True), (11, False), (12, False)):
+        candidate = {
+            "candidate_key": f"runway:family-{rank}:rank-{rank}",
+            "repo": "runway",
+            "split": "dev",
+            "language": "Test",
+            "lane": "synthetic",
+            "rank": rank,
+            "base_matched": matched,
+            "family": {"members": []},
+            "raw_family_sha256": f"{rank:064x}",
+        }
+        candidate["candidate_sha256"] = canonical_sha256(
+            runway_candidate_content(candidate)
+        )
+        runway_candidates.append(candidate)
+    runway_keys = apply_runway_selection(runway_candidates)
+    assert runway_keys[0] == "runway:family-1:rank-1"
+    assert len(runway_keys) == 2
+    runway_selection = {
+        "selected_candidate_keys": runway_keys,
+        "selected_candidate_keys_sha256": canonical_sha256(runway_keys),
+    }
+    validate_runway_selection(
+        runway_candidates, runway_selection, label="synthetic runway"
+    )
+    runway_selection["selected_candidate_keys"] = list(reversed(runway_keys))
+    try:
+        validate_runway_selection(
+            runway_candidates, runway_selection, label="synthetic runway"
+        )
+    except SystemExit as error:
+        assert "selected candidate order" in str(error)
+    else:
+        raise AssertionError("runway selection-order drift must fail closed")
+
+    commitments = [
+        {
+            key: candidate[key]
+            for key in (
+                "candidate_key",
+                "candidate_sha256",
+                "repo",
+                "split",
+                "language",
+                "lane",
+                "rank",
+                "base_matched",
+                "selected",
+                "selection_reason",
+                "selection_order",
+            )
+        }
+        for candidate in runway_candidates
+    ]
+    for commitment in commitments:
+        commitment["split"] = "heldout"
+    heldout_keys = [
+        row["candidate_key"] for row in commitments if row["selected"]
+    ]
+    repositories = {
+        "runway": {
+            "commit": "0" * 40,
+            "language": "Test",
+            "split": "heldout",
+            "top_10_reported": 2,
+            "base_matched_top_10": 1,
+            "unmatched_top_10": 1,
+        }
+    }
+    seal = {
+        "schema": HELDOUT_SEAL_SCHEMA,
+        "split": "heldout",
+        "judgment_status": "sealed-unjudged",
+        "query_schema_version": QUERY_SCHEMA_VERSION,
+        "provenance": {},
+        "selection_contract": {},
+        "selection": {
+            "selected_candidate_keys": heldout_keys,
+            "selected_candidate_keys_sha256": canonical_sha256(heldout_keys),
+        },
+        "pool": runway_pool_summary(commitments, repositories),
+        "repositories": repositories,
+        "candidate_commitments": commitments,
+    }
+    seal["commitment_sha256"] = canonical_sha256(seal)
+    validate_heldout_seal(seal)
+    seal["candidate_commitments"][0]["worthy"] = True
+    seal["commitment_sha256"] = canonical_sha256(seal)
+    try:
+        validate_heldout_seal(seal)
+    except SystemExit as error:
+        assert "leaks forbidden field" in str(error)
+    else:
+        raise AssertionError("held-out judgments must fail closed")
     print("label refresh self-test passed")
 
 
@@ -840,19 +1624,43 @@ def parse_args() -> argparse.Namespace:
     collect_parser.add_argument("--existing-per-stratum", type=int, default=5)
     collect_parser.add_argument("--swift-per-repo", type=int, default=3)
     collect_parser.add_argument("--output", type=Path, required=True)
+    runway_parser = subparsers.add_parser("collect-runway")
+    runway_parser.add_argument("--nose", type=Path, default=DEFAULT_NOSE)
+    runway_parser.add_argument("--repos-root", type=Path, default=DEFAULT_REPOS_ROOT)
+    runway_parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
+    runway_parser.add_argument(
+        "--base-labelset",
+        type=Path,
+        default=ROOT / "bench/labels/refactoring_families.v6.json",
+    )
+    runway_parser.add_argument("--rubric", type=Path, default=DEFAULT_RUBRIC)
+    runway_parser.add_argument("--dev-output", type=Path, required=True)
+    runway_parser.add_argument("--heldout-seal-output", type=Path, required=True)
     validate_parser = subparsers.add_parser("validate")
     validate_parser.add_argument("--candidates", type=Path, required=True)
     validate_parser.add_argument("--labelset", type=Path)
     validate_parser.add_argument("--live", action="store_true")
+    validate_runway_parser = subparsers.add_parser("validate-runway")
+    validate_runway_parser.add_argument("--dev-candidates", type=Path, required=True)
+    validate_runway_parser.add_argument("--heldout-seal", type=Path, required=True)
+    validate_runway_parser.add_argument("--labelset", type=Path)
+    validate_runway_parser.add_argument("--live", action="store_true")
     context_parser = subparsers.add_parser("context")
     context_parser.add_argument("--candidates", type=Path, required=True)
     context_parser.add_argument("--split", choices=("dev", "heldout"), required=True)
     context_parser.add_argument("--output", type=Path, required=True)
+    runway_context_parser = subparsers.add_parser("runway-context")
+    runway_context_parser.add_argument("--dev-candidates", type=Path, required=True)
+    runway_context_parser.add_argument("--output", type=Path, required=True)
     component_parser = subparsers.add_parser("build-component")
     component_parser.add_argument("--candidates", type=Path, required=True)
     component_parser.add_argument("--decisions", type=Path, required=True)
     component_parser.add_argument("--split", choices=("dev", "heldout"), required=True)
     component_parser.add_argument("--output", type=Path, required=True)
+    runway_component_parser = subparsers.add_parser("build-runway-component")
+    runway_component_parser.add_argument("--dev-candidates", type=Path, required=True)
+    runway_component_parser.add_argument("--decisions", type=Path, required=True)
+    runway_component_parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
 
 
@@ -872,6 +1680,21 @@ def main() -> None:
             f"{artifact['pool']['selected_count']} selected"
         )
         return
+    if args.command == "collect-runway":
+        dev, seal = collect_runway(args)
+        args.dev_output.parent.mkdir(parents=True, exist_ok=True)
+        args.heldout_seal_output.parent.mkdir(parents=True, exist_ok=True)
+        args.dev_output.write_text(
+            json.dumps(dev, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        args.heldout_seal_output.write_text(
+            json.dumps(seal, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        print(
+            f"wrote {args.dev_output}: {dev['pool']['selected_count']} dev selected; "
+            f"{args.heldout_seal_output}: {seal['pool']['selected_count']} held-out sealed"
+        )
+        return
     if args.command == "validate":
         artifact = load_artifact(args.candidates)
         validate_candidate_artifact(artifact, live_root=ROOT if args.live else None)
@@ -881,11 +1704,30 @@ def main() -> None:
         else:
             print("candidate artifact validation passed")
         return
+    if args.command == "validate-runway":
+        dev = load_schema_artifact(args.dev_candidates, RUNWAY_SCHEMA, "dev runway")
+        seal = load_schema_artifact(
+            args.heldout_seal, HELDOUT_SEAL_SCHEMA, "held-out seal"
+        )
+        validate_runway_pair(dev, seal, live_root=ROOT if args.live else None)
+        if args.labelset:
+            report = runway_coverage(load_labelset(args.labelset), dev, seal)
+            print(json.dumps(report, indent=2, sort_keys=True))
+        else:
+            print("default-head v7 runway validation passed")
+        return
     if args.command == "context":
         artifact = load_artifact(args.candidates)
         validate_candidate_artifact(artifact)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(render_context(artifact, args.split), encoding="utf-8")
+        print(f"wrote {args.output}")
+        return
+    if args.command == "runway-context":
+        dev = load_schema_artifact(args.dev_candidates, RUNWAY_SCHEMA, "dev runway")
+        validate_runway_dev(dev)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(render_context(dev, "dev"), encoding="utf-8")
         print(f"wrote {args.output}")
         return
     if args.command == "build-component":
@@ -896,6 +1738,18 @@ def main() -> None:
         )
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(component, indent=2, sort_keys=True) + "\n")
+        print(f"wrote {args.output}: {len(component['families'])} labels")
+        return
+    if args.command == "build-runway-component":
+        dev = load_schema_artifact(args.dev_candidates, RUNWAY_SCHEMA, "dev runway")
+        validate_runway_dev(dev)
+        component = build_component(
+            args.dev_candidates, dev, args.decisions, "dev", args.output
+        )
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(
+            json.dumps(component, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
         print(f"wrote {args.output}: {len(component['families'])} labels")
         return
     raise SystemExit("choose collect or validate, or pass --self-test")
