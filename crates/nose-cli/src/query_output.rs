@@ -12,9 +12,10 @@ use crate::query_markdown;
 use crate::query_opportunities::OpportunityGroups;
 use crate::query_options::{QueryScope, ReportFormat};
 use crate::query_sarif::refactor_sarif;
-use crate::query_terms::{family_at, QOp, Query};
+use crate::query_terms::{family_at, Query};
 use crate::surfaces::{is_default_report_family, SurfaceOverrides};
 use anyhow::Result;
+use rustc_hash::FxHashSet;
 
 pub(super) struct QueryOutput<'a> {
     pub(super) args: &'a QueryArgs,
@@ -58,31 +59,42 @@ fn query_selection<'a>(
             .collect());
     }
     let widen = q.all || q.filters.iter().any(|flt| flt.field == "surface");
-    let default_folds = query_uses_default_folds(q, widen);
-    Ok(families
+    if q.filters.is_empty() {
+        return Ok(families
+            .iter()
+            .filter(|family| widen || is_default_surface(family, ov))
+            .filter(|family| {
+                !(if widen {
+                    opp.is_slice(family)
+                } else {
+                    opp.is_default_slice(family)
+                })
+            })
+            .collect());
+    }
+    let candidates: Vec<(&nose_detect::RefactorFamily, String)> = families
         .iter()
         .filter(|f| {
             (widen || is_default_surface(f, ov))
-                && !(if default_folds {
-                    opp.is_default_slice(f)
-                } else {
-                    opp.is_slice(f)
-                })
                 && q.filters
                     .iter()
                     .all(|flt| family_matches(f, ov, flt, since))
         })
-        .collect())
-}
-
-fn query_uses_default_folds(q: &Query, widen: bool) -> bool {
-    !widen
-        || q.filters.iter().any(|filter| {
-            filter.field == "surface"
-                && matches!(filter.op, QOp::Eq)
-                && !filter.negate
-                && filter.value == "default"
+        .map(|family| (family, baseline::family_id(family)))
+        .collect();
+    let candidate_ids: FxHashSet<&str> = candidates
+        .iter()
+        .map(|(_, family_id)| family_id.as_str())
+        .collect();
+    Ok(candidates
+        .iter()
+        .filter(|(_, family_id)| {
+            opp.primary_of
+                .get(family_id)
+                .is_none_or(|primary| !candidate_ids.contains(primary.as_str()))
         })
+        .map(|(family, _)| *family)
+        .collect())
 }
 
 pub(super) fn render_query_output(ctx: &QueryOutput<'_>) -> Result<bool> {
@@ -267,7 +279,7 @@ pub(super) fn enforce_query_fail_on(ctx: &QueryOutput<'_>) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::query_terms::QFilter;
+    use crate::query_terms::{QFilter, QOp};
     use nose_detect::{LineSpan, Loc, LocInit, RefactorFamily};
     use nose_il::UnitKind;
 
@@ -313,28 +325,7 @@ mod tests {
     }
 
     #[test]
-    fn explicit_default_surface_uses_default_only_folds() {
-        let query = Query {
-            filters: vec![QFilter {
-                field: "surface".into(),
-                op: QOp::Eq,
-                value: "default".into(),
-                negate: false,
-            }],
-            ..Query::default()
-        };
-        let widen = query.filters.iter().any(|filter| filter.field == "surface");
-        let default_folds = query_uses_default_folds(&query, widen);
-
-        assert!(widen, "surface filters still open the non-default universe");
-        assert!(
-            default_folds,
-            "an explicit default filter must not fold under a generated primary"
-        );
-    }
-
-    #[test]
-    fn explicit_default_surface_keeps_a_partial_default_slice() {
+    fn surface_filters_keep_a_partial_default_slice_when_its_primary_is_filtered_out() {
         let primary = family_at(&[
             ("docs/generated-a.html", 100, 130),
             ("docs/generated-b.html", 50, 70),
@@ -363,24 +354,31 @@ mod tests {
             .map(baseline::family_id)
             .collect();
         groups.restrict_default_slices_to(&default_ids);
-        let query = Query {
-            filters: vec![QFilter {
-                field: "surface".into(),
-                op: QOp::Eq,
-                value: "default".into(),
-                negate: false,
-            }],
-            ..Query::default()
-        };
+        let filters = [
+            ("surface=default", QOp::Eq, "default", false),
+            ("surface~default", QOp::Has, "default", false),
+            ("surface!=generated", QOp::Eq, "generated", true),
+        ];
+        for (label, op, value, negate) in filters {
+            let query = Query {
+                filters: vec![QFilter {
+                    field: "surface".into(),
+                    op,
+                    value: value.into(),
+                    negate,
+                }],
+                ..Query::default()
+            };
+            let selected = query_selection(&families, &overrides, &groups, &query, ".", None)
+                .expect("selection succeeds");
 
-        let selected = query_selection(&families, &overrides, &groups, &query, ".", None)
-            .expect("selection succeeds");
-
-        assert_eq!(selected.len(), 1);
-        assert_eq!(
-            baseline::family_id(selected[0]),
-            baseline::family_id(&families[1])
-        );
+            assert_eq!(selected.len(), 1, "{label}");
+            assert_eq!(
+                baseline::family_id(selected[0]),
+                baseline::family_id(&families[1]),
+                "{label}"
+            );
+        }
         assert!(groups.is_slice(&families[1]), "the all view keeps its fold");
         assert!(
             !groups.is_default_slice(&families[1]),
