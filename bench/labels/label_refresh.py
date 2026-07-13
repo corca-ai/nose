@@ -18,6 +18,10 @@ from labelset import (
     COMPONENT_SCHEMA,
     HELDOUT_SEAL_SCHEMA,
     PRECISION_METRIC,
+    RUNWAY_COLLECTION_SOURCES,
+    RUNWAY_DEV_ARTIFACT,
+    RUNWAY_HELDOUT_SEAL,
+    RUNWAY_NOSE_BINARY,
     VOTE_NAMES,
     WORTHY_REASONS,
     LoadedLabelset,
@@ -1490,11 +1494,27 @@ def runway_coverage(
     }
 
 
+def validate_sha256_sidecar(path: Path, expected_digest: str, label: str) -> None:
+    sidecar = Path(f"{path}.sha256")
+    try:
+        fields = sidecar.read_text(encoding="utf-8").strip().split(maxsplit=1)
+    except OSError as error:
+        raise SystemExit(f"cannot read {label} sidecar {sidecar}: {error}") from error
+    if len(fields) != 2:
+        raise SystemExit(f"malformed {label} sidecar: {sidecar}")
+    sidecar_digest, sidecar_name = fields
+    if sidecar_name.lstrip("*") != path.name:
+        raise SystemExit(f"{label} sidecar names {sidecar_name}, expected {path.name}")
+    if sidecar_digest != expected_digest:
+        raise SystemExit(f"{label} sidecar digest changed")
+
+
 def validate_runway_evaluation(
     path: Path,
     labels: LoadedLabelset,
     dev: dict[str, Any],
 ) -> None:
+    validate_sha256_sidecar(path, RUNWAY_EVALUATION_SHA256, "v7 runway evaluation")
     if sha256_file(path) != RUNWAY_EVALUATION_SHA256:
         raise SystemExit("checked v7 runway evaluation digest changed")
     report = load_schema_artifact(
@@ -1753,6 +1773,27 @@ def validate_runway_labelset_bindings(
         "nose.refactoring_family_labelset.v1",
         "v7 runway labelset",
     )
+    if set(manifest) != {"schema", "version", "base", "components", "seals"}:
+        raise SystemExit("v7 runway labelset fields differ from the frozen schema")
+    if manifest.get("version") != 7:
+        raise SystemExit("v7 runway labelset version changed")
+    base_path = resolve_evidence_file(
+        labelset_path.parent, manifest.get("base"), "v7 frozen base"
+    )
+    expected_base_path = (ROOT / dev["provenance"]["base_labelset"]).resolve()
+    expected_base_hash = dev["provenance"]["base_labelset_sha256"]
+    if (
+        base_path != expected_base_path
+        or expected_base_hash != FROZEN_V6_SHA256
+        or sha256_file(base_path) != FROZEN_V6_SHA256
+    ):
+        raise SystemExit("v7 labelset base differs from the dev runway's frozen v6")
+    loaded_base = load_labelset(base_path)
+    if (
+        loaded_base.version != "v6"
+        or canonical_sha256(loaded_base.families) != FROZEN_V6_FAMILIES_SHA256
+    ):
+        raise SystemExit("v7 labelset base family projection differs from frozen v6")
     components = manifest.get("components")
     seals = manifest.get("seals")
     if not isinstance(components, list) or len(components) != 1:
@@ -1918,6 +1959,60 @@ def build_component(
 
 
 def run_self_test() -> None:
+    with tempfile.TemporaryDirectory(prefix="nose-sidecar-self-test-") as directory:
+        artifact_path = Path(directory) / "artifact.json"
+        artifact_path.write_text("{}\n", encoding="utf-8")
+        digest = sha256_file(artifact_path)
+        sidecar_path = Path(f"{artifact_path}.sha256")
+        sidecar_path.write_text(f"{digest} *{artifact_path.name}\n", encoding="utf-8")
+        validate_sha256_sidecar(artifact_path, digest, "synthetic artifact")
+        sidecar_path.write_text(f"{'0' * 64} *wrong.json\n", encoding="utf-8")
+        try:
+            validate_sha256_sidecar(artifact_path, digest, "synthetic artifact")
+        except SystemExit as error:
+            assert "sidecar names" in str(error)
+        else:
+            raise AssertionError("sidecar name/digest drift must fail closed")
+        sidecar_path.write_text(f"{'0' * 64} *{artifact_path.name}\n", encoding="utf-8")
+        try:
+            validate_sha256_sidecar(artifact_path, digest, "synthetic artifact")
+        except SystemExit as error:
+            assert "sidecar digest changed" in str(error)
+        else:
+            raise AssertionError("sidecar digest drift must fail closed")
+
+    checked_dev_path = ROOT / RUNWAY_DEV_ARTIFACT
+    checked_seal_path = ROOT / RUNWAY_HELDOUT_SEAL
+    with tempfile.TemporaryDirectory(prefix="nose-runway-base-self-test-") as directory:
+        wrong_base = ROOT / "bench/labels/refactoring_families.v5.json"
+        manifest_path = Path(directory) / "wrong-base-v7.json"
+        manifest_path.write_text(
+            json.dumps(
+                {
+                    "schema": "nose.refactoring_family_labelset.v1",
+                    "version": 7,
+                    "base": {
+                        "path": str(wrong_base),
+                        "sha256": sha256_file(wrong_base),
+                    },
+                    "components": [],
+                    "seals": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        checked_dev = load_schema_artifact(
+            checked_dev_path, RUNWAY_SCHEMA, "checked dev runway"
+        )
+        try:
+            validate_runway_labelset_bindings(
+                manifest_path, checked_dev_path, checked_dev, checked_seal_path
+            )
+        except SystemExit as error:
+            assert "base differs" in str(error)
+        else:
+            raise AssertionError("alternate v7 base must fail closed")
+
     candidates = []
     for split in ("dev", "heldout"):
         for index in range(7):
@@ -1990,13 +2085,21 @@ def run_self_test() -> None:
         assert load_artifact(path)["schema"] == ARTIFACT_SCHEMA
 
     runway_candidates = []
-    for rank, matched in ((1, False), (2, True), (11, False), (12, False)):
+    for rank, matched in (
+        (1, False),
+        *((rank, True) for rank in range(2, 11)),
+        (11, False),
+        (12, False),
+    ):
         candidate = {
-            "candidate_key": f"runway:family-{rank}:rank-{rank}",
+            "candidate_key": f"runway:{rank:016x}:rank-{rank}",
             "repo": "runway",
             "split": "dev",
-            "language": "Test",
-            "lane": "synthetic",
+            "language": "Python",
+            "lane": (
+                ("base-matched" if matched else "unmatched")
+                + ("-default-head" if rank <= 10 else "-rank-11-30")
+            ),
             "rank": rank,
             "base_matched": matched,
             "family": {
@@ -2011,7 +2114,7 @@ def run_self_test() -> None:
         )
         runway_candidates.append(candidate)
     runway_keys = apply_runway_selection(runway_candidates)
-    assert runway_keys[0] == "runway:family-1:rank-1"
+    assert runway_keys[0] == "runway:0000000000000001:rank-1"
     assert len(runway_keys) == 2
     runway_selection = {
         "selected_candidate_keys": runway_keys,
@@ -2057,13 +2160,15 @@ def run_self_test() -> None:
     repositories = {
         "runway": {
             "commit": "0" * 40,
-            "language": "Test",
+            "language": "Python",
             "split": "heldout",
-            "query_command": "nose query synthetic",
+            "query_command": (
+                f"{RUNWAY_NOSE_BINARY} query bench/repos/runway top=30 --format json"
+            ),
             "query_stdout_sha256": "0" * 64,
-            "top_10_reported": 2,
-            "top_30_reported": 4,
-            "base_matched_top_10": 1,
+            "top_10_reported": 10,
+            "top_30_reported": 12,
+            "base_matched_top_10": 9,
             "unmatched_top_10": 1,
         }
     }
@@ -2073,22 +2178,27 @@ def run_self_test() -> None:
         "judgment_status": "sealed-unjudged",
         "query_schema_version": QUERY_SCHEMA_VERSION,
         "provenance": {
-            "command": "synthetic",
+            "command": (
+                "python3 bench/labels/label_refresh.py collect-runway "
+                f"--nose {RUNWAY_NOSE_BINARY} --dev-output {RUNWAY_DEV_ARTIFACT} "
+                f"--heldout-seal-output {RUNWAY_HELDOUT_SEAL}"
+            ),
             "git_sha": "0" * 40,
             "working_tree_status_before_collection": "",
-            "nose_binary": "nose",
+            "nose_binary": RUNWAY_NOSE_BINARY,
             "nose_binary_sha256": "0" * 64,
-            "nose_version": "nose test",
-            "corpus_manifest": "corpus.json",
+            "nose_version": "nose 0.19.0",
+            "corpus_manifest": "bench/goldens/corpus.json",
             "corpus_manifest_sha256": "0" * 64,
             "corpus_commit_digest": "0" * 64,
-            "base_labelset": "base.json",
+            "base_labelset": "bench/labels/refactoring_families.v6.json",
             "base_labelset_sha256": "0" * 64,
             "base_labelset_version": "v6",
-            "rubric": "RUBRIC.md",
+            "rubric": "bench/labels/RUBRIC.md",
             "rubric_sha256": "0" * 64,
             "collection_sources": [
-                {"path": "collector.py", "sha256": "0" * 64}
+                {"path": path, "sha256": "0" * 64}
+                for path in sorted(RUNWAY_COLLECTION_SOURCES)
             ],
         },
         "selection_contract": runway_selection_contract(),

@@ -83,10 +83,14 @@ dev sample growth cannot perturb an unchanged held-out interval. The corrected h
 P@10 interval is again `[54.13%, 64.00%]`, identical to the v6 result for the same 222/375
 flags.
 
-The held-out seal uses an exact allowlist at every object level, rejects unknown fields,
-and is validated by both the labelset loader and the runway gate. The v7 loader accepts
-exactly one dev precision overlay plus the bound held-out seal; it rejects any held-out
-judgment component.
+The held-out seal uses an exact allowlist and closed, cross-checked value domains at every
+object level: repository/language/rank/lane/selection fields are derived from one another,
+while paths, commands, versions, and source lists are fixed to the collection protocol.
+It rejects both unknown fields and attempts to hide source or judgments in an allowed
+string field. The manifest itself is exact-schema, accepts exactly one dev precision
+overlay plus the bound held-out seal, rejects any held-out judgment component, and binds
+its base path, byte hash, and flattened projection to frozen v6. The runway gate also
+checks the evaluation sidecar's digest and target filename.
 
 ## Validation and next step
 

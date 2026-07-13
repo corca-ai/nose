@@ -7,6 +7,7 @@ import argparse
 from dataclasses import dataclass
 import hashlib
 import json
+import re
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -33,6 +34,35 @@ NOT_WORTHY_REASONS = {
     "trivial",
 }
 REASONS = WORTHY_REASONS | NOT_WORTHY_REASONS
+RUNWAY_LANGUAGES = {"C", "Go", "Java", "Python", "Ruby", "Rust", "Swift", "TypeScript"}
+RUNWAY_LANES = {
+    "base-matched-default-head",
+    "unmatched-default-head",
+    "base-matched-rank-11-30",
+    "unmatched-rank-11-30",
+}
+RUNWAY_COLLECTION_SOURCES = {
+    "bench/labels/label_refresh.py",
+    "bench/labels/labelset.py",
+    "bench/labels/query_schema.py",
+}
+RUNWAY_NOSE_BINARY = (
+    "target/issue-839/official-v0.19.0/"
+    "nose-cli-aarch64-apple-darwin/nose"
+)
+RUNWAY_DEV_ARTIFACT = "bench/labels/default_head_label_runway_2026_07_13.dev.v1.json"
+RUNWAY_HELDOUT_SEAL = (
+    "bench/labels/default_head_label_runway_2026_07_13.heldout.seal.v1.json"
+)
+RUNWAY_SELECTION_CONTRACT = {
+    "seed": "nose-issue-840-default-head-v7-rank-11-30",
+    "head_rule": "select every v6-unmatched default-surface rank 1-10 family",
+    "deep_rule": (
+        "select one v6-unmatched rank 11-30 family per repository with at least "
+        "one eligible family, by seeded hash"
+    ),
+    "heldout_policy": "selection commitments only; no source paths or judgments",
+}
 
 
 @dataclass(frozen=True)
@@ -68,6 +98,18 @@ def require_exact_keys(value: object, expected: set[str], label: str) -> dict[st
     return value
 
 
+def require_hex(value: object, length: int, label: str) -> str:
+    if not isinstance(value, str) or re.fullmatch(f"[0-9a-f]{{{length}}}", value) is None:
+        raise ValueError(f"{label}: expected {length} lowercase hexadecimal characters")
+    return value
+
+
+def require_plain_int(value: object, label: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{label}: expected an integer")
+    return value
+
+
 def validate_heldout_seal_shape(seal: object, label: str) -> None:
     """Fail closed on every field that a source-free held-out seal may contain."""
     payload = require_exact_keys(
@@ -93,10 +135,8 @@ def validate_heldout_seal_shape(seal: object, label: str) -> None:
         or payload["judgment_status"] != "sealed-unjudged"
     ):
         raise ValueError(f"{label}: held-out seal contract mismatch")
-    if isinstance(payload["query_schema_version"], bool) or not isinstance(
-        payload["query_schema_version"], int
-    ):
-        raise ValueError(f"{label}.query_schema_version: expected an integer")
+    if payload["query_schema_version"] != 7:
+        raise ValueError(f"{label}.query_schema_version: expected 7")
 
     provenance = require_exact_keys(
         payload["provenance"],
@@ -122,24 +162,77 @@ def validate_heldout_seal_shape(seal: object, label: str) -> None:
     collection_sources = provenance["collection_sources"]
     if not isinstance(collection_sources, list) or not collection_sources:
         raise ValueError(f"{label}.provenance.collection_sources: expected a non-empty array")
+    source_paths: set[str] = set()
     for index, record in enumerate(collection_sources):
-        require_exact_keys(
+        source = require_exact_keys(
             record,
             {"path", "sha256"},
             f"{label}.provenance.collection_sources[{index}]",
         )
+        if not isinstance(source["path"], str):
+            raise ValueError(f"{label}.provenance.collection_sources[{index}].path: invalid")
+        source_paths.add(source["path"])
+        require_hex(
+            source["sha256"],
+            64,
+            f"{label}.provenance.collection_sources[{index}].sha256",
+        )
+    if source_paths != RUNWAY_COLLECTION_SOURCES or len(collection_sources) != len(
+        RUNWAY_COLLECTION_SOURCES
+    ):
+        raise ValueError(f"{label}.provenance.collection_sources: unexpected source set")
+    expected_provenance = {
+        "command": (
+            "python3 bench/labels/label_refresh.py collect-runway "
+            f"--nose {RUNWAY_NOSE_BINARY} --dev-output {RUNWAY_DEV_ARTIFACT} "
+            f"--heldout-seal-output {RUNWAY_HELDOUT_SEAL}"
+        ),
+        "working_tree_status_before_collection": "",
+        "nose_binary": RUNWAY_NOSE_BINARY,
+        "nose_version": "nose 0.19.0",
+        "corpus_manifest": "bench/goldens/corpus.json",
+        "base_labelset": "bench/labels/refactoring_families.v6.json",
+        "base_labelset_version": "v6",
+        "rubric": "bench/labels/RUBRIC.md",
+    }
+    for field, expected in expected_provenance.items():
+        if provenance[field] != expected:
+            raise ValueError(f"{label}.provenance.{field}: unexpected value")
+    require_hex(provenance["git_sha"], 40, f"{label}.provenance.git_sha")
+    for field in (
+        "nose_binary_sha256",
+        "corpus_manifest_sha256",
+        "corpus_commit_digest",
+        "base_labelset_sha256",
+        "rubric_sha256",
+    ):
+        require_hex(provenance[field], 64, f"{label}.provenance.{field}")
 
-    require_exact_keys(
+    selection_contract = require_exact_keys(
         payload["selection_contract"],
         {"seed", "head_rule", "deep_rule", "heldout_policy"},
         f"{label}.selection_contract",
     )
-    require_exact_keys(
+    if selection_contract != RUNWAY_SELECTION_CONTRACT:
+        raise ValueError(f"{label}.selection_contract: unexpected value")
+    selection = require_exact_keys(
         payload["selection"],
         {"selected_candidate_keys", "selected_candidate_keys_sha256"},
         f"{label}.selection",
     )
-    require_exact_keys(
+    selected_keys = selection["selected_candidate_keys"]
+    if not isinstance(selected_keys, list) or not all(
+        isinstance(key, str) for key in selected_keys
+    ):
+        raise ValueError(f"{label}.selection.selected_candidate_keys: invalid")
+    require_hex(
+        selection["selected_candidate_keys_sha256"],
+        64,
+        f"{label}.selection.selected_candidate_keys_sha256",
+    )
+    if selection["selected_candidate_keys_sha256"] != canonical_sha256(selected_keys):
+        raise ValueError(f"{label}.selection: selected candidate digest mismatch")
+    pool = require_exact_keys(
         payload["pool"],
         {
             "repositories",
@@ -158,7 +251,9 @@ def validate_heldout_seal_shape(seal: object, label: str) -> None:
     if not isinstance(repositories, dict) or not repositories:
         raise ValueError(f"{label}.repositories: expected a non-empty object")
     for repo, record in repositories.items():
-        require_exact_keys(
+        if not isinstance(repo, str) or re.fullmatch(r"[a-z0-9][a-z0-9._-]*", repo) is None:
+            raise ValueError(f"{label}.repositories: invalid repository id {repo!r}")
+        repository = require_exact_keys(
             record,
             {
                 "commit",
@@ -173,11 +268,45 @@ def validate_heldout_seal_shape(seal: object, label: str) -> None:
             },
             f"{label}.repositories.{repo}",
         )
+        language = repository["language"]
+        if language not in RUNWAY_LANGUAGES or repository["split"] != "heldout":
+            raise ValueError(f"{label}.repositories.{repo}: language/split mismatch")
+        require_hex(repository["commit"], 40, f"{label}.repositories.{repo}.commit")
+        require_hex(
+            repository["query_stdout_sha256"],
+            64,
+            f"{label}.repositories.{repo}.query_stdout_sha256",
+        )
+        expected_command = (
+            f"{RUNWAY_NOSE_BINARY} query bench/repos/{repo} top=30 --format json"
+        )
+        if repository["query_command"] != expected_command:
+            raise ValueError(f"{label}.repositories.{repo}.query_command: unexpected value")
+        top_10 = require_plain_int(
+            repository["top_10_reported"], f"{label}.repositories.{repo}.top_10_reported"
+        )
+        top_30 = require_plain_int(
+            repository["top_30_reported"], f"{label}.repositories.{repo}.top_30_reported"
+        )
+        base_10 = require_plain_int(
+            repository["base_matched_top_10"],
+            f"{label}.repositories.{repo}.base_matched_top_10",
+        )
+        unmatched_10 = require_plain_int(
+            repository["unmatched_top_10"],
+            f"{label}.repositories.{repo}.unmatched_top_10",
+        )
+        if not (0 <= top_10 <= 10 and top_10 <= top_30 <= 30) or (
+            base_10 + unmatched_10 != top_10
+        ):
+            raise ValueError(f"{label}.repositories.{repo}: count invariants failed")
     commitments = payload["candidate_commitments"]
     if not isinstance(commitments, list) or not commitments:
         raise ValueError(f"{label}.candidate_commitments: expected a non-empty array")
+    by_repo: dict[str, list[dict[str, Any]]] = {repo: [] for repo in repositories}
+    recorded_selected: list[tuple[int, str]] = []
     for index, commitment in enumerate(commitments):
-        require_exact_keys(
+        candidate = require_exact_keys(
             commitment,
             {
                 "candidate_key",
@@ -194,6 +323,86 @@ def validate_heldout_seal_shape(seal: object, label: str) -> None:
             },
             f"{label}.candidate_commitments[{index}]",
         )
+        repo = candidate["repo"]
+        if repo not in repositories:
+            raise ValueError(f"{label}.candidate_commitments[{index}].repo: unknown repository")
+        rank = require_plain_int(candidate["rank"], f"{label}.candidate_commitments[{index}].rank")
+        if not 1 <= rank <= repositories[repo]["top_30_reported"]:
+            raise ValueError(f"{label}.candidate_commitments[{index}].rank: out of range")
+        match = re.fullmatch(
+            rf"{re.escape(repo)}:([0-9a-f]{{16}}):rank-([0-9]+)",
+            candidate["candidate_key"] if isinstance(candidate["candidate_key"], str) else "",
+        )
+        if match is None or int(match.group(2)) != rank:
+            raise ValueError(f"{label}.candidate_commitments[{index}].candidate_key: invalid")
+        require_hex(
+            candidate["candidate_sha256"],
+            64,
+            f"{label}.candidate_commitments[{index}].candidate_sha256",
+        )
+        if candidate["split"] != "heldout" or candidate["language"] != repositories[repo]["language"]:
+            raise ValueError(f"{label}.candidate_commitments[{index}]: language/split mismatch")
+        if not isinstance(candidate["base_matched"], bool) or not isinstance(
+            candidate["selected"], bool
+        ):
+            raise ValueError(f"{label}.candidate_commitments[{index}]: boolean fields invalid")
+        expected_lane = (
+            ("base-matched" if candidate["base_matched"] else "unmatched")
+            + ("-default-head" if rank <= 10 else "-rank-11-30")
+        )
+        if candidate["lane"] not in RUNWAY_LANES or candidate["lane"] != expected_lane:
+            raise ValueError(f"{label}.candidate_commitments[{index}].lane: unexpected value")
+        expected_reason = None
+        if candidate["selected"]:
+            expected_reason = (
+                "unmatched-default-head" if rank <= 10 else "deterministic-rank-11-30"
+            )
+            if candidate["base_matched"]:
+                raise ValueError(f"{label}.candidate_commitments[{index}]: selected base match")
+            order = require_plain_int(
+                candidate["selection_order"],
+                f"{label}.candidate_commitments[{index}].selection_order",
+            )
+            recorded_selected.append((order, candidate["candidate_key"]))
+        elif candidate["selection_order"] is not None:
+            raise ValueError(f"{label}.candidate_commitments[{index}].selection_order: expected null")
+        if candidate["selection_reason"] != expected_reason:
+            raise ValueError(f"{label}.candidate_commitments[{index}].selection_reason: unexpected")
+        by_repo[repo].append(candidate)
+    for repo, candidates in by_repo.items():
+        ranks = [candidate["rank"] for candidate in candidates]
+        expected_ranks = list(range(1, repositories[repo]["top_30_reported"] + 1))
+        if ranks != expected_ranks:
+            raise ValueError(f"{label}.candidate_commitments: {repo} ranks/order differ")
+    ordered_selected = [key for _, key in sorted(recorded_selected)]
+    if [order for order, _ in sorted(recorded_selected)] != list(
+        range(1, len(recorded_selected) + 1)
+    ) or ordered_selected != selected_keys:
+        raise ValueError(f"{label}.selection: selected candidate order differs")
+
+    expected_pool = {
+        "repositories": len(repositories),
+        "default_head_positions": sum(row["top_10_reported"] for row in repositories.values()),
+        "base_matched_default_head": sum(
+            row["base_matched_top_10"] for row in repositories.values()
+        ),
+        "unmatched_default_head": sum(row["unmatched_top_10"] for row in repositories.values()),
+        "rank_11_30_candidates": sum(
+            row["top_30_reported"] - row["top_10_reported"] for row in repositories.values()
+        ),
+        "rank_11_30_unmatched": sum(
+            1 for candidate in commitments if candidate["rank"] > 10 and not candidate["base_matched"]
+        ),
+        "selected_unmatched_default_head": sum(
+            1 for candidate in commitments if candidate["selected"] and candidate["rank"] <= 10
+        ),
+        "selected_rank_11_30": sum(
+            1 for candidate in commitments if candidate["selected"] and candidate["rank"] > 10
+        ),
+        "selected_count": len(recorded_selected),
+    }
+    if pool != expected_pool:
+        raise ValueError(f"{label}.pool: derived summary mismatch")
     commitment = payload["commitment_sha256"]
     content = dict(payload)
     del content["commitment_sha256"]
@@ -343,6 +552,11 @@ def _load_labelset(path: Path, stack: tuple[Path, ...]) -> LoadedLabelset:
     version = payload.get("version")
     if not isinstance(version, int) or isinstance(version, bool) or version not in {6, 7}:
         raise ValueError("labelset.version: expected 6 or 7")
+    expected_manifest_keys = {"schema", "version", "base", "components"}
+    if version == 7:
+        expected_manifest_keys.add("seals")
+    require_exact_keys(payload, expected_manifest_keys, "labelset")
+    require_exact_keys(payload["base"], {"path", "sha256"}, "labelset.base")
     parent = path.parent
     base_path = resolve_checked_file(parent, payload.get("base"), "labelset.base")
     base = _load_labelset(base_path, (*stack, path))
@@ -365,6 +579,10 @@ def _load_labelset(path: Path, stack: tuple[Path, ...]) -> LoadedLabelset:
     seen_splits: set[str] = set()
     for index, record in enumerate(components):
         record_label = f"labelset.components[{index}]"
+        expected_component_keys = {"split", "path", "sha256"}
+        if version == 7:
+            expected_component_keys.add("kind")
+        require_exact_keys(record, expected_component_keys, record_label)
         if not isinstance(record, dict) or record.get("split") not in {"dev", "heldout"}:
             raise ValueError(f"{record_label}.split: expected dev or heldout")
         if version == 7 and record.get("kind") != "precision-overlay":
@@ -399,6 +617,9 @@ def _load_labelset(path: Path, stack: tuple[Path, ...]) -> LoadedLabelset:
         if not isinstance(seals, list) or len(seals) != 1:
             raise ValueError("labelset.seals: v7 requires exactly one held-out seal")
         seal_record = seals[0]
+        require_exact_keys(
+            seal_record, {"split", "path", "sha256"}, "labelset.seals[0]"
+        )
         if not isinstance(seal_record, dict) or seal_record.get("split") != "heldout":
             raise ValueError("labelset.seals[0].split: expected heldout")
         seal_path = resolve_checked_file(parent, seal_record, "labelset.seals[0]")
@@ -516,31 +737,35 @@ def run_self_test() -> None:
             "judgment_status": "sealed-unjudged",
             "query_schema_version": 7,
             "provenance": {
-                "command": "synthetic",
+                "command": (
+                    "python3 bench/labels/label_refresh.py collect-runway "
+                    f"--nose {RUNWAY_NOSE_BINARY} --dev-output {RUNWAY_DEV_ARTIFACT} "
+                    f"--heldout-seal-output {RUNWAY_HELDOUT_SEAL}"
+                ),
                 "git_sha": "0" * 40,
                 "working_tree_status_before_collection": "",
-                "nose_binary": "nose",
+                "nose_binary": RUNWAY_NOSE_BINARY,
                 "nose_binary_sha256": "0" * 64,
-                "nose_version": "nose test",
-                "corpus_manifest": "corpus.json",
+                "nose_version": "nose 0.19.0",
+                "corpus_manifest": "bench/goldens/corpus.json",
                 "corpus_manifest_sha256": "0" * 64,
                 "corpus_commit_digest": "0" * 64,
-                "base_labelset": manifest.name,
-                "base_labelset_sha256": sha256_file(manifest),
+                "base_labelset": "bench/labels/refactoring_families.v6.json",
+                "base_labelset_sha256": "0" * 64,
                 "base_labelset_version": "v6",
-                "rubric": rubric.name,
-                "rubric_sha256": sha256_file(rubric),
-                "collection_sources": [{"path": "collector.py", "sha256": "0" * 64}],
+                "rubric": "bench/labels/RUBRIC.md",
+                "rubric_sha256": "0" * 64,
+                "collection_sources": [
+                    {"path": path, "sha256": "0" * 64}
+                    for path in sorted(RUNWAY_COLLECTION_SOURCES)
+                ],
             },
-            "selection_contract": {
-                "seed": "synthetic",
-                "head_rule": "synthetic",
-                "deep_rule": "synthetic",
-                "heldout_policy": "selection commitments only",
-            },
+            "selection_contract": RUNWAY_SELECTION_CONTRACT,
             "selection": {
-                "selected_candidate_keys": ["heldout:candidate"],
-                "selected_candidate_keys_sha256": "0" * 64,
+                "selected_candidate_keys": ["heldout:0000000000000000:rank-1"],
+                "selected_candidate_keys_sha256": canonical_sha256(
+                    ["heldout:0000000000000000:rank-1"]
+                ),
             },
             "pool": {
                 "repositories": 1,
@@ -556,9 +781,12 @@ def run_self_test() -> None:
             "repositories": {
                 "heldout": {
                     "commit": "0" * 40,
-                    "language": "Test",
+                    "language": "Python",
                     "split": "heldout",
-                    "query_command": "nose query heldout",
+                    "query_command": (
+                        f"{RUNWAY_NOSE_BINARY} query bench/repos/heldout "
+                        "top=30 --format json"
+                    ),
                     "query_stdout_sha256": "0" * 64,
                     "top_10_reported": 1,
                     "top_30_reported": 1,
@@ -568,12 +796,12 @@ def run_self_test() -> None:
             },
             "candidate_commitments": [
                 {
-                    "candidate_key": "heldout:candidate",
+                    "candidate_key": "heldout:0000000000000000:rank-1",
                     "candidate_sha256": "0" * 64,
                     "repo": "heldout",
                     "split": "heldout",
-                    "language": "Test",
-                    "lane": "synthetic",
+                    "language": "Python",
+                    "lane": "unmatched-default-head",
                     "rank": 1,
                     "base_matched": False,
                     "selected": True,
@@ -628,6 +856,35 @@ def run_self_test() -> None:
             assert "unknown=['source_excerpt']" in str(error)
         else:
             raise AssertionError("unknown held-out seal fields must fail closed")
+
+        value_leak_seal = json.loads(json.dumps(synthetic_seal))
+        value_leak_seal["candidate_commitments"][0]["lane"] = (
+            "bench/repos/private/secret.c:10 worthy SOURCE_EXCERPT"
+        )
+        value_leak_seal["commitment_sha256"] = canonical_sha256(
+            {
+                key: value
+                for key, value in value_leak_seal.items()
+                if key != "commitment_sha256"
+            }
+        )
+        try:
+            validate_heldout_seal_shape(value_leak_seal, "synthetic value leak seal")
+        except ValueError as error:
+            assert ".lane: unexpected value" in str(error)
+        else:
+            raise AssertionError("held-out seal value-domain leaks must fail closed")
+
+        manifest_payload = json.loads(v7_manifest.read_text())
+        manifest_payload["heldout_source_excerpt"] = "private/path.c:10 verdict=worthy"
+        unknown_manifest = root / "v7-unknown-field.json"
+        unknown_manifest.write_text(json.dumps(manifest_payload))
+        try:
+            load_labelset(unknown_manifest)
+        except ValueError as error:
+            assert "unknown=['heldout_source_excerpt']" in str(error)
+        else:
+            raise AssertionError("unknown v7 manifest fields must fail closed")
 
         heldout_v7_component = root / "heldout-v7.json"
         heldout_v7_component.write_text(
