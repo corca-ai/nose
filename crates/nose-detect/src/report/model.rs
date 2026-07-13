@@ -227,8 +227,10 @@ impl RefactorFamily {
     ///
     /// Measured 2026-06-14
     /// ([default-surface-noise-audit](../../../docs/default-surface-noise-audit-2026-06-14.md)).
-    /// A **proven** channel (exact value-graph / shared-sub-dag) is never demoted on a
-    /// shape/size heuristic. Returns `None` for a clean candidate.
+    /// A **proven** channel (exact value-graph / shared-sub-dag) is never demoted on these
+    /// shape/size heuristics. The #844 dev re-audit found actionable small-helper and
+    /// high-parameter hard negatives, so proof strength remains separate from extraction
+    /// actionability and the exemption fails open. Returns `None` for a clean candidate.
     pub fn actionability_reason(&self) -> Option<&'static str> {
         // Size floor below which a clone is too small to be an extraction target. Measured
         // 2026-06-14 (default-surface-noise-audit): `trivial` labels at 0.95 precision.

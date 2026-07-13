@@ -37,21 +37,24 @@ fn clean_low_param_match_stays_default() {
 }
 
 #[test]
-fn proven_channel_is_never_shallow() {
-    // Same shallow shape (shared=9, params=4) but on the exact value-graph channel:
-    // a proof of equal behavior is never demoted on a parameter-ratio heuristic.
-    let proven = witnessed(
-        fam(
-            500.0,
-            30,
-            9,
-            4,
-            vec![loc("a.go", 1, 30, "go"), loc("b.go", 1, 30, "go")],
-        ),
-        "exact-value-graph",
-    );
-    assert_eq!(proven.actionability_reason(), None);
-    assert_eq!(proven.recommended_surface(), "default");
+fn proven_channels_are_never_shallow() {
+    // Same boundary-shallow shape (shared=9, params=3), but proof strength is not an
+    // actionability verdict. #844's source-backed dev audit found worthy parameterized
+    // extractions at this boundary, so both proven channels fail open to default.
+    for kind in ["exact-value-graph", "shared-sub-dag"] {
+        let proven = witnessed(
+            fam(
+                500.0,
+                30,
+                9,
+                3,
+                vec![loc("a.go", 1, 30, "go"), loc("b.go", 1, 30, "go")],
+            ),
+            kind,
+        );
+        assert_eq!(proven.actionability_reason(), None, "{kind}");
+        assert_eq!(proven.recommended_surface(), "default", "{kind}");
+    }
 }
 
 #[test]
@@ -92,20 +95,24 @@ fn trivial_family_is_demoted_to_hidden() {
 }
 
 #[test]
-fn proven_tiny_family_is_not_trivial() {
-    // Same tiny shape on the exact value-graph channel: never demoted on size.
-    let proven = witnessed(
-        fam(
-            500.0,
-            3,
-            3,
-            0,
-            vec![loc("a.go", 1, 3, "go"), loc("b.go", 1, 3, "go")],
-        ),
-        "exact-value-graph",
-    );
-    assert_eq!(proven.actionability_reason(), None);
-    assert_eq!(proven.recommended_surface(), "default");
+fn proven_tiny_families_are_not_trivial() {
+    // #844 froze a worthy four-line helper as the size-floor hard negative. Protect
+    // both proven channels: proof of equal behavior does not make a small extraction
+    // worthless, and size alone did not clear the measured non-action precision gate.
+    for kind in ["exact-value-graph", "shared-sub-dag"] {
+        let proven = witnessed(
+            fam(
+                500.0,
+                4,
+                4,
+                0,
+                vec![loc("a.go", 1, 4, "go"), loc("b.go", 1, 4, "go")],
+            ),
+            kind,
+        );
+        assert_eq!(proven.actionability_reason(), None, "{kind}");
+        assert_eq!(proven.recommended_surface(), "default", "{kind}");
+    }
 }
 
 #[test]

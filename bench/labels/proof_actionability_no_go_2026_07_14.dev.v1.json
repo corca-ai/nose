@@ -1,0 +1,151 @@
+{
+  "schema": "nose.proof_actionability_no_go.v1",
+  "issue": 844,
+  "split": "dev",
+  "heldout_policy": "closed; no held-out component, source path, or judgment was read",
+  "inputs": {
+    "taxonomy_core": {
+      "path": "bench/labels/default_head_taxonomy_2026_07_13.dev.core.v1.json",
+      "byte_sha256": "98422f418b63745e51ee2dc0970b3d06ef308a0eb27e8829df9356aae5d2608e",
+      "semantic_sha256": "e3e4d63aba1065bf37a2e5460decfd417c1f76d315405fce941801809d1fb0a2"
+    },
+    "taxonomy_overlay": {
+      "path": "bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json",
+      "byte_sha256": "68eff466212f0322a45a16648c1fcfd51a301bd5351c93f0795147f2baa33969",
+      "semantic_sha256": "206f7e6c2eb9e5bb3750dd6e12f6f920228d719868b2e4922395433a2315c71a"
+    }
+  },
+  "binary_identity": {
+    "closeout_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
+    "immediate_parent_commit": "1384e601957d60628cfce72cba4346ca0b6a4e43",
+    "immediate_parent_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
+    "published_v0_19_0_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
+  },
+  "blanket_proof_cohort": {
+    "combined": {
+      "non_action": 27,
+      "non_action_precision": 0.421875,
+      "reviewed": 64,
+      "worthy": 37
+    },
+    "deep": {
+      "non_action": 5,
+      "non_action_precision": 0.7142857142857143,
+      "reviewed": 7,
+      "worthy": 2
+    },
+    "head": {
+      "non_action": 22,
+      "non_action_precision": 0.38596491228070173,
+      "reviewed": 57,
+      "worthy": 35
+    },
+    "position_key_set_sha256": "b713b19df827a838ab38b3faf29b7e9939610940cbf0c64443876a441875e593",
+    "worthy_hard_negative_reasons": {
+      "extract-base": 2,
+      "extract-data-table": 3,
+      "extract-helper": 23,
+      "parameterize": 9
+    },
+    "worthy_position_key_set_sha256": "0609a3cdcae1975577ad018c75da9c10c7948b03c0dfed4654e2f68238a26e1e"
+  },
+  "current_exemption_cohort": {
+    "combined": {
+      "non_action": 3,
+      "non_action_precision": 0.6,
+      "reviewed": 5,
+      "worthy": 2
+    },
+    "predicate_summaries": {
+      "shallow-extraction": {
+        "non_action": 3,
+        "non_action_precision": 0.75,
+        "reviewed": 4,
+        "worthy": 1
+      },
+      "trivial": {
+        "non_action": 0,
+        "non_action_precision": 0.0,
+        "reviewed": 1,
+        "worthy": 1
+      }
+    },
+    "rows": [
+      {
+        "position_key": "clap:b526f00d436e1689:rank-10",
+        "predicate": "trivial",
+        "source_bounds_sha256": "4a7a32e1feaa7420fec1fab3cd92380fa5d92a666ba29b7d2e6c5c80f512f900",
+        "truth_reason": "extract-helper",
+        "witness": "exact",
+        "worthy": true
+      },
+      {
+        "position_key": "delve:fdab89b0d9bf0735:rank-7",
+        "predicate": "shallow-extraction",
+        "source_bounds_sha256": "9308f333f22f504e91d1cbccaf2d2c87e8130520752e82ccf28fc3163313b5c0",
+        "truth_reason": "parallel-by-design",
+        "witness": "subdag",
+        "worthy": false
+      },
+      {
+        "position_key": "swiftlint:d28f52ac94be71f1:rank-6",
+        "predicate": "shallow-extraction",
+        "source_bounds_sha256": "a08280b9c27920ea9cee628aad16d39bc3744bf1882ecf2f9b4c2e708d4f9ebb",
+        "truth_reason": "parameterize",
+        "witness": "subdag",
+        "worthy": true
+      },
+      {
+        "position_key": "lua:b9746b4eeb10c562:rank-28",
+        "predicate": "shallow-extraction",
+        "source_bounds_sha256": "cda1205a6a1efeb0a7e108820d196420f12db72a66d9ff34b10fc77c8792f80d",
+        "truth_reason": "coincidental-shape",
+        "witness": "subdag",
+        "worthy": false
+      },
+      {
+        "position_key": "thor:3a25b222efed5f0b:rank-27",
+        "predicate": "shallow-extraction",
+        "source_bounds_sha256": "47671fdc1c87ae683ca0630c35cc1276ebe707bc39784858e7414ada4d67b495",
+        "truth_reason": "trivial",
+        "witness": "subdag",
+        "worthy": false
+      }
+    ]
+  },
+  "hard_negative_boundaries": {
+    "small_helper": [
+      "clap:b526f00d436e1689:rank-10"
+    ],
+    "data_tables": [
+      "prometheus:524550adcecb8123:rank-2",
+      "prometheus:c1601349e39f9af1:rank-3",
+      "zap:b85ddcf733f2377d:rank-8"
+    ]
+  },
+  "independent_review": {
+    "reviewers": [
+      "evidence",
+      "product",
+      "soundness"
+    ],
+    "all_five_source_labels_unanimous": true,
+    "no_defensible_90_percent_subcohort": true
+  },
+  "decision": {
+    "minimum_non_action_precision": 0.9,
+    "product_behavior_change": false,
+    "reason": "no audited proof/actionability predicate reaches the precision gate",
+    "result": "rejected-no-go"
+  },
+  "preservation": {
+    "accepted_pair_coverage_unchanged": true,
+    "canon_preservation_violations_zero": true,
+    "family_membership_and_fingerprint_unchanged": true,
+    "family_universe_recall_unchanged": true,
+    "false_merges_zero": true,
+    "fold_forest_unchanged": true,
+    "surface_and_reason_transitions_zero": true,
+    "witness_and_provenance_unchanged": true
+  }
+}
