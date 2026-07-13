@@ -78,21 +78,20 @@ all 66 dev repositories measured:
 
 | run | baseline | current | delta |
 |---|---:|---:|---:|
-| official v0.19.0 comparison | 15,685.89 ms | 15,729.60 ms | +43.71 ms / +0.28% |
-| current/current control | 17,447.41 ms | 17,213.90 ms | -233.51 ms / -1.34% |
-| approximate control-adjusted | — | — | +277.22 ms / +1.62% |
+| official v0.19.0 comparison | 15,841.49 ms | 15,769.21 ms | -72.28 ms / -0.46% |
+| current/current control | 16,031.52 ms | 16,100.59 ms | +69.07 ms / +0.43% |
+| approximate control-adjusted | — | — | -141.35 ms / -0.89% |
 
 The material-regression gate requires a control-adjusted increase greater than both 5%
 and 5 ms, so the all-dev result passes. The directly changed `query_surface` stage is
-control-adjusted -1.8 ms.
+control-adjusted +2.5 ms, below the absolute threshold.
 
-The first noisy control produced 19 repository-level apparent outliers. A nine-iteration
-primary/control recheck of all 19 measured -23.56 ms / -0.37% adjusted, with exactly 0.0
-ms adjusted in `query_surface`. GraphHopper alone remained above the formal repository
-threshold because an unchanged pre-surface `normalize+extract` stage fluctuated; a final
-21-iteration primary/control recheck measured -1.77 ms / -0.62% adjusted. Its output hash
-was identical throughout. No material aggregate, repository, or changed-stage regression
-remains.
+The first noisy control produced 13 repository-level apparent outliers. A nine-iteration
+primary/control recheck of all 13 measured -35.85 ms / -1.15% adjusted, with +0.6 ms
+adjusted in `query_surface`. Nginx alone remained above the formal adjusted repository
+threshold even though its raw increase was below 5 ms; a final 21-iteration
+primary/control recheck measured -0.78 ms / -0.38% adjusted. Its output hash was identical
+throughout. No material aggregate, repository, or changed-stage regression remains.
 
 The six raw harness artifacts linked from the compact closeout contain binary identities,
 corpus commits, commands, alternating runs, stage medians, output hashes, family counts,

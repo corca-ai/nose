@@ -13,9 +13,9 @@ break.
   their ranked surface. All 30 frozen head/deep positives move to `generated`, the three
   worthy HTML hard negatives remain `default`, and `all top=0` preserves ordered family
   IDs and every non-surface field. Only Alamofire changes across 66 dev repositories. The
-  official-v0.19.0 comparison is +0.28% raw / +1.62% approximately control-adjusted; a
-  19-repository 9-run recheck is -0.37% adjusted and the final 21-run outlier recheck is
-  -0.62% adjusted, with no material regression.
+  official-v0.19.0 comparison is -0.46% raw / -0.89% approximately control-adjusted; a
+  13-repository 9-run recheck is -1.15% adjusted and the final 21-run outlier recheck is
+  -0.38% adjusted, with no material regression.
 - Added the complete #841 dev default-head failure taxonomy and bounded-lever contract.
   The published v0.19.0 output is re-bound at all 658 positions to full raw families,
   source bounds, truth and disjoint mechanical buckets, origin/generated/ranking/path

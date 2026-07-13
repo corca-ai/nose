@@ -94,7 +94,7 @@ def validate(path: Path) -> None:
 
     performance = artifact["performance"]
     require(performance["published_baseline"]["binary_sha256"] == OFFICIAL_SHA, "official baseline changed")
-    expected_repo_counts = [66, 66, 19, 19, 1, 1]
+    expected_repo_counts = [66, 66, 13, 13, 1, 1]
     for evidence, expected_repos in zip(performance["artifacts"], expected_repo_counts, strict=True):
         evidence_path = ROOT / evidence["path"]
         require(sha256(evidence_path) == evidence["sha256"], f"{evidence_path}: SHA-256 mismatch")
@@ -106,8 +106,8 @@ def validate(path: Path) -> None:
             require(len(repo["current"]["hashes"]) == 1, f"{evidence_path}: unstable current output")
     for key in (
         "all_dev_three_iteration",
-        "nineteen_repo_nine_iteration_recheck",
-        "graphhopper_twenty_one_iteration_recheck",
+        "thirteen_repo_nine_iteration_recheck",
+        "nginx_twenty_one_iteration_recheck",
     ):
         require(not performance[key]["material_regression"], f"{key}: material regression")
 

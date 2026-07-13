@@ -313,8 +313,8 @@ The [#842 generated-provenance closeout](generated_provenance_closeout_2026_07_1
 records the implementation of the frozen Jazzy predicate: all 30 head/deep positives move
 to `surface: generated`, all three worthy HTML hard negatives remain `default`, family IDs
 and non-surface fields stay fixed, and only Alamofire changes across 66 dev repositories.
-It also binds the published-v0.19.0 primary, same-binary control, 19-repository recheck,
-and final GraphHopper noise recheck artifacts. The readable decision record is
+It also binds the published-v0.19.0 primary, same-binary control, 13-repository recheck,
+and final Nginx noise recheck artifacts. The readable decision record is
 [#842 generated provenance](../../docs/generated-provenance-842.md).
 
 The earlier [2026-07-11 nose 0.18.0 artifact](product_quality_evaluation_2026_07_11.v2.json)
