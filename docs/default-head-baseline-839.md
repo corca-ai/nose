@@ -26,7 +26,7 @@ rebuild or the release-candidate binary used by the earlier release closeout.
 | Input | SHA-256 |
 |---|---|
 | release commit | `0985e6963c58d5a97e523bc532b88aa5e34f2ef9` |
-| committed evaluator revision | `ed61a865af67d5b6b490e1c6be17190366d9ea6a` |
+| committed evaluator revision | `6946ea036dbe29e276a962fe10ebc89064984ec0` |
 | `nose-cli-aarch64-apple-darwin.tar.xz` | `097c7e766e9ab756a32cec715897067d1360e145074715168a653962be409981` |
 | published `.sha256` asset | `f860777bc74bfe18b9be76d02cb1b53e4ea0c8db206ecdcfdc4f16a5f8af5274` |
 | extracted `nose 0.19.0` binary | `0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3` |
@@ -56,7 +56,7 @@ Two identical full evaluations from the committed evaluator produced
 byte-identical reports. The evaluator uses a fixed bootstrap seed and
 deterministic repository ordering; the equality check covered the complete
 report, not only the point estimates. CI checks the archived report's sidecar
-SHA-256, `c73d148d3307673e4adaedc6a1e81474e7abd2c48c98ea02fcda9ddb3f6143dd`,
+SHA-256, `626456b1744499105a144c668d040f64049449d6b4c9e008c5324510e40850a2`,
 and its source/input contracts.
 
 The held-out result was computed mechanically from the frozen labels. No

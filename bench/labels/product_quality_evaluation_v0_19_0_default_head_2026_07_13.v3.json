@@ -711,18 +711,22 @@
     }
   },
   "provenance": {
-    "command": "python3 bench/labels/eval_by_language.py --nose target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose --nose-release-archive target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin.tar.xz --nose-release-checksum target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin.tar.xz.sha256 --rank extractability --bootstrap 2000 --json-out target/issue-839/final-clean.v3.json",
+    "command": "python3 bench/labels/eval_by_language.py --nose target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose --nose-release-archive target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin.tar.xz --nose-release-checksum target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin.tar.xz.sha256 --rank extractability --bootstrap 2000 --json-out target/issue-839/final-isolated.v3.json",
     "corpus_commit_digest": "366c977c096a91d50095253cce77a3ec8468d3147ecbd819353dc01196281083",
     "corpus_manifest": "bench/goldens/corpus.json",
     "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
     "evaluation_sources": [
       {
         "path": "bench/labels/eval_by_language.py",
-        "sha256": "372bb685536f062c0e4f3de14348e5b1879f177114088cd468bd9564141ab92a"
+        "sha256": "20faa6e7dc2c94496c815c7c327170f15784bc6187c8312f5d14e140d7a604bc"
+      },
+      {
+        "path": "bench/labels/default_head_query_schema.py",
+        "sha256": "992ccf972b0dea38de01170af0ac1bce3edfdfcfb2ef9244cc35a5a136bad77f"
       },
       {
         "path": "bench/labels/query_schema.py",
-        "sha256": "16e5f139985a644f95ea56f48e14c728e01c880be19dc9e1fd9b1237b718bcd9"
+        "sha256": "c7e7e94c74c09c33ee46fa2ab2092bb9b569dea915627f5bc4df39f2142d59e7"
       },
       {
         "path": "bench/labels/labelset.py",
@@ -733,7 +737,7 @@
         "sha256": "f2ad8a3635fc3e7b89243c08879b680edf32de0cd809d4c27332e344c6bdbc6f"
       }
     ],
-    "git_sha": "ed61a865af67d5b6b490e1c6be17190366d9ea6a",
+    "git_sha": "6946ea036dbe29e276a962fe10ebc89064984ec0",
     "labelset": "bench/labels/refactoring_families.v6.json",
     "labelset_inputs": [
       {
