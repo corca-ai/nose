@@ -5,24 +5,29 @@ use crate::path_utils::relativize;
 use crate::source_lines::FileLineCache;
 
 /// Compute the surface overrides for every output format and flag generated
-/// locations. The generated index is one head-read per discovered file (#224
-/// — the #216 audit's re2c case) and the declaration analysis is one span-read
-/// per family; both run only when families exist.
+/// locations. The generated indexes are one head-read per discovered file
+/// (#224 — the #216 audit's re2c case) and the declaration analysis is one
+/// span-read per family; both run only when families exist.
 pub(crate) fn classify_surface_overrides(
     families: &mut [nose_detect::RefactorFamily],
 ) -> SurfaceOverrides {
-    let generated_sources = if families.is_empty() {
-        FxHashSet::default()
+    let generated = if families.is_empty() {
+        GeneratedSourceIndexes::default()
     } else {
-        generated_source_index(families)
+        generated_source_indexes(families)
     };
     for f in families.iter_mut() {
         for l in &mut f.locations {
-            l.looks_generated = generated_sources.contains(&l.file);
+            // `looks_generated` also participates in helper selection and other semantic
+            // report fields. Keep it on the established, source-local header/build-artifact
+            // contract; provenance that only changes the output surface must not alter the
+            // family records exposed by `all top=0` (#842).
+            l.looks_generated = generated.sources.contains(&l.file);
         }
     }
     SurfaceOverrides {
-        generated_sources,
+        generated_sources: generated.sources,
+        additional_generated_surface_sources: generated.additional_surface_sources,
         declaration_run_ids: declaration_run_ids(families),
     }
 }
@@ -34,6 +39,10 @@ pub(crate) fn classify_surface_overrides(
 pub(crate) struct SurfaceOverrides {
     /// Files whose head or stylesheet distribution markers classify them as generated (#224).
     pub(crate) generated_sources: FxHashSet<String>,
+    /// Additional source-coherent provenance used only to classify output surfaces. These
+    /// files deliberately do not set `Loc::looks_generated`, which has semantic effects on
+    /// helper selection and folding beyond presentation (#842).
+    pub(crate) additional_generated_surface_sources: FxHashSet<String>,
     /// Family ids whose every member span is provably only import/include/
     /// use/re-export declarations — duplication the language mandates per
     /// file, with no extraction action to take.
@@ -49,7 +58,7 @@ pub(crate) fn effective_surface(
     family: &nose_detect::RefactorFamily,
     overrides: &SurfaceOverrides,
 ) -> &'static str {
-    if family_generated_source(family, &overrides.generated_sources) {
+    if family_generated_source(family, overrides) {
         "generated"
     } else if family_declaration_run(family, overrides) {
         "declaration"
@@ -65,6 +74,23 @@ pub(crate) fn is_default_report_family(
     effective_surface(family, overrides) == "default"
 }
 
+/// The stable family set used to compute overlap folds. Additional provenance may move a
+/// whole opportunity from `default` to `generated`, but presentation classification must
+/// not dissolve its existing fold forest and expose new slice ids in `all top=0` (#842).
+/// Established generated/build-artifact and declaration rules retain their prior behavior.
+pub(crate) fn is_default_opportunity_family(
+    family: &nose_detect::RefactorFamily,
+    overrides: &SurfaceOverrides,
+) -> bool {
+    if family_established_generated_source(family, &overrides.generated_sources)
+        || family_declaration_run(family, overrides)
+    {
+        false
+    } else {
+        family.recommended_surface() == "default"
+    }
+}
+
 /// The decidable `actionability_reason` for the JSON contract (#11): the source-derived
 /// CLI-side non-action classes (`generated-source`, `declaration-run`) take precedence —
 /// mirroring [`effective_surface`] — then the detector's pure-shape codes (`trivial`,
@@ -74,7 +100,7 @@ pub(crate) fn family_actionability_reason(
     family: &nose_detect::RefactorFamily,
     overrides: &SurfaceOverrides,
 ) -> Option<&'static str> {
-    if family_generated_source(family, &overrides.generated_sources) {
+    if family_generated_source(family, overrides) {
         Some("generated-source")
     } else if family_declaration_run(family, overrides) {
         Some("declaration-run")
@@ -284,19 +310,35 @@ pub(crate) fn span_is_declarations(
 fn family_all_generated_source(
     family: &nose_detect::RefactorFamily,
     generated_sources: &FxHashSet<String>,
+    additional_generated_surface_sources: &FxHashSet<String>,
 ) -> bool {
     !family.locations.is_empty()
-        && family
-            .locations
-            .iter()
-            .all(|loc| generated_sources.contains(&loc.file))
+        && family.locations.iter().all(|loc| {
+            generated_sources.contains(&loc.file)
+                || additional_generated_surface_sources.contains(&loc.file)
+        })
 }
 
 fn family_generated_source(
     family: &nose_detect::RefactorFamily,
+    overrides: &SurfaceOverrides,
+) -> bool {
+    family_all_generated_source(
+        family,
+        &overrides.generated_sources,
+        &overrides.additional_generated_surface_sources,
+    ) || family_is_compiled_css_pipeline(family, &overrides.generated_sources)
+}
+
+fn family_established_generated_source(
+    family: &nose_detect::RefactorFamily,
     generated_sources: &FxHashSet<String>,
 ) -> bool {
-    family_all_generated_source(family, generated_sources)
+    (!family.locations.is_empty()
+        && family
+            .locations
+            .iter()
+            .all(|loc| generated_sources.contains(&loc.file)))
         || family_is_compiled_css_pipeline(family, generated_sources)
 }
 
@@ -385,9 +427,21 @@ pub(crate) fn surface_omission_note(
     ))
 }
 
-fn generated_source_index(families: &[nose_detect::RefactorFamily]) -> FxHashSet<String> {
+#[derive(Default)]
+struct GeneratedSourceIndexes {
+    sources: FxHashSet<String>,
+    additional_surface_sources: FxHashSet<String>,
+}
+
+#[derive(Clone, Copy)]
+enum GeneratedSourceKind {
+    Established,
+    AdditionalSurface,
+}
+
+fn generated_source_indexes(families: &[nose_detect::RefactorFamily]) -> GeneratedSourceIndexes {
     let cwd = std::env::current_dir().ok();
-    let mut generated = FxHashSet::default();
+    let mut generated = GeneratedSourceIndexes::default();
     let files = families
         .iter()
         .flat_map(|f| f.locations.iter().map(|l| l.file.as_str()))
@@ -397,40 +451,75 @@ fn generated_source_index(families: &[nose_detect::RefactorFamily]) -> FxHashSet
         .collect::<Vec<_>>();
     let generated_files = files
         .into_par_iter()
-        .filter(|path| source_has_generated_header(path))
+        .filter_map(|path| generated_source_kind(&path).map(|kind| (path, kind)))
         .collect::<Vec<_>>();
-    for path in generated_files {
-        generated.insert(path.clone());
+    for (path, kind) in generated_files {
+        let index = match kind {
+            GeneratedSourceKind::Established => &mut generated.sources,
+            GeneratedSourceKind::AdditionalSurface => &mut generated.additional_surface_sources,
+        };
+        index.insert(path.clone());
         if let Some(cwd) = &cwd {
-            generated.insert(relativize(&path, cwd));
+            index.insert(relativize(&path, cwd));
         }
     }
     generated
 }
 
-fn source_has_generated_header(file: &str) -> bool {
+fn generated_source_kind(file: &str) -> Option<GeneratedSourceKind> {
     if file.ends_with(".css") {
-        let Some(text) = std::fs::read_to_string(file).ok() else {
-            return false;
-        };
-        return text.lines().take(8).any(is_generated_header_line)
-            || looks_compiled_css(file, &text);
+        let text = std::fs::read_to_string(file).ok()?;
+        return (text.lines().take(8).any(is_generated_header_line)
+            || looks_compiled_css(file, &text))
+        .then_some(GeneratedSourceKind::Established);
     }
-    source_head_has_generated_header(file)
+    let head = bounded_source_head(file)?;
+    if source_head_has_generated_header(&head) {
+        Some(GeneratedSourceKind::Established)
+    } else if head_has_jazzy_generated_provenance(file, &head) {
+        Some(GeneratedSourceKind::AdditionalSurface)
+    } else {
+        None
+    }
 }
 
 const GENERATED_HEADER_READ_BYTES: u64 = 64 * 1024;
 
-fn source_head_has_generated_header(file: &str) -> bool {
+fn bounded_source_head(file: &str) -> Option<Vec<u8>> {
     let Ok(mut f) = std::fs::File::open(file) else {
-        return false;
+        return None;
     };
-    let mut head = String::new();
+    let mut head = Vec::new();
     let mut limited = std::io::Read::take(&mut f, GENERATED_HEADER_READ_BYTES);
-    if std::io::Read::read_to_string(&mut limited, &mut head).is_err() {
+    std::io::Read::read_to_end(&mut limited, &mut head)
+        .ok()
+        .map(|_| head)
+}
+
+fn source_head_has_generated_header(head: &[u8]) -> bool {
+    std::str::from_utf8(head)
+        .ok()
+        .is_some_and(|text| text.lines().take(8).any(is_generated_header_line))
+}
+
+/// Jazzy's generated documentation carries two independent provenance classes in the
+/// bounded file head: its `jazzy.css`/`jazzy.js` asset and an Apple symbol anchor. The
+/// #841 dev audit found this source-coherent gap in the existing first-eight-lines header
+/// rule. Requiring both classes in every HTML member keeps partial generation and ordinary
+/// hand-written HTML fail-open; [`family_all_generated_source`] supplies the all-members
+/// quantifier.
+pub(crate) fn head_has_jazzy_generated_provenance(file: &str, head: &[u8]) -> bool {
+    if !std::path::Path::new(file)
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("html"))
+    {
         return false;
     }
-    head.lines().take(8).any(is_generated_header_line)
+    let mut lower = head.to_vec();
+    lower.make_ascii_lowercase();
+    let has = |token: &[u8]| lower.windows(token.len()).any(|window| window == token);
+    (has(b"jazzy.css") || has(b"jazzy.js"))
+        && (has(b"class=\"dashanchor\"") || has(b"//apple_ref/"))
 }
 
 fn is_generated_header_line(line: &str) -> bool {

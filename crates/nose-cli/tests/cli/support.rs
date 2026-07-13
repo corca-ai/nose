@@ -128,6 +128,26 @@ def {name}(items):\n    {acc} = 0\n    for {it} in items:\n        if {it} > 0:\
     dir
 }
 
+pub(crate) fn make_jazzy_generated_project(tag: &str) -> PathBuf {
+    let dir = make_temp_dir(tag);
+    let body = |title: &str, name: &str, acc: &str, item: &str| {
+        format!(
+            "<!doctype html>\n<html><head>\n{}\n<link rel=\"stylesheet\" href=\"../css/jazzy.css\">\n</head><body>\n<a class=\"dashAnchor\" name=\"//apple_ref/swift/cl/{title}\"></a>\n<section class=\"content\"><div class=\"task-group\"><h2>Methods</h2></div></section>\n<script>\nfunction {name}(items) {{\n  let {acc} = 0;\n  for (const {item} of items) {{\n    if ({item} > 0) {{\n      {acc} = {acc} + {item} * {item};\n    }}\n  }}\n  return {acc};\n}}\n</script>\n</body></html>\n",
+            "<meta name=\"generator-padding\" content=\"ordinary\">\n".repeat(10)
+        )
+    };
+    for (sub, src) in [
+        ("a", body("First", "first", "total", "value")),
+        ("b", body("Second", "second", "sum", "item")),
+        ("c", body("Third", "third", "acc", "entry")),
+    ] {
+        let child = dir.join(sub);
+        fs::create_dir_all(&child).unwrap();
+        fs::write(child.join("index.html"), src).unwrap();
+    }
+    dir
+}
+
 pub(crate) struct TempProject {
     dir: PathBuf,
 }

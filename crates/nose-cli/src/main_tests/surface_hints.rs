@@ -44,6 +44,41 @@ fn compiled_css_is_detected_but_hand_written_is_not() {
 }
 
 #[test]
+fn jazzy_provenance_requires_both_bounded_html_signal_classes() {
+    let beyond_header_lines = format!(
+        "{}<link href=\"css/JAZZY.CSS\"><a class=\"dashAnchor\"></a>",
+        "ordinary documentation\n".repeat(12)
+    );
+    assert!(head_has_jazzy_generated_provenance(
+        "docs/Types/Foo.HTML",
+        beyond_header_lines.as_bytes(),
+    ));
+    assert!(head_has_jazzy_generated_provenance(
+        "docs/Foo.html",
+        b"<script src=\"jazzy.js\"></script><!-- //apple_ref/swift/cl/Foo -->",
+    ));
+    assert!(!head_has_jazzy_generated_provenance(
+        "docs/Foo.html",
+        b"<link href=\"jazzy.css\"><main>hand written</main>",
+    ));
+    assert!(!head_has_jazzy_generated_provenance(
+        "docs/Foo.html",
+        b"<a class=\"dashanchor\">hand written</a>",
+    ));
+    assert!(!head_has_jazzy_generated_provenance(
+        "docs/Foo.md",
+        b"jazzy.css class=\"dashanchor\"",
+    ));
+
+    let mut outside_bound = vec![b' '; 64 * 1024];
+    outside_bound.extend_from_slice(b"jazzy.css class=\"dashanchor\"");
+    assert!(!head_has_jazzy_generated_provenance(
+        "docs/Foo.html",
+        &outside_bound[..64 * 1024],
+    ));
+}
+
+#[test]
 fn decorator_prefix_is_language_aware() {
     // `@` is a decorator in these languages...
     assert_eq!(decorator_prefix("python"), Some("@"));
