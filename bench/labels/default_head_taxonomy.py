@@ -88,6 +88,9 @@ FROZEN_V5_DEV_FAMILIES_SHA256 = (
 FROZEN_DEEP_LABELED_KEYS_SHA256 = (
     "5662e63d1cf3d1589ea6043ceb38a5f601861110ae11f87c0b7dcc7c339833aa"
 )
+FROZEN_GENERATED_EVIDENCE_SHA256 = (
+    "f01687be8ae0e8c15211dbab30f223962ee6b060dcdd0062b76ccbccd2aa9dc9"
+)
 FROZEN_AUDIT_PACKET_SET_SHA256 = (
     "ce9bfadb3fca20dac489e0e55b69d39ea9751ab9d2a0042045ad4f0827b5c61e"
 )
@@ -1423,8 +1426,7 @@ def validate_core(artifact: dict[str, Any], *, live_sources: bool = False) -> No
             runway_sources=runway_sources,
             live_sources=live_sources,
         )
-        expected_generated = generated_provenance(row["raw_family"], repo)
-        if stored_generated != expected_generated:
+        if live_sources and stored_generated != generated_provenance(row["raw_family"], repo):
             fail(f"{row['position_key']}: generated evidence differs from bounded source evidence")
         expected_facets = {
             "witness": row["raw_family"].get("witness"),
@@ -1472,6 +1474,15 @@ def validate_core(artifact: dict[str, Any], *, live_sources: bool = False) -> No
     for repo, ranks in by_repo.items():
         if sorted(ranks) != list(range(1, artifact["repositories"][repo]["top_10_reported"] + 1)):
             fail(f"{repo}: incomplete or duplicate head ranks")
+    generated_projection = [
+        {
+            "position_key": row["position_key"],
+            "generated_provenance": row["facets"]["generated_provenance"],
+        }
+        for row in [*rows, *deep]
+    ]
+    if canonical_sha256(generated_projection) != FROZEN_GENERATED_EVIDENCE_SHA256:
+        fail("generated evidence differs from the frozen bounded-source projection")
     reasons = Counter(row["truth"]["reason"] for row in rows)
     if dict(reasons) != EXPECTED_TRUTH:
         fail(f"truth distribution drift: {dict(reasons)}")
@@ -2245,9 +2256,12 @@ def self_test() -> None:
         signal["digest"] = hashlib.sha256(
             signal["kind"].encode() + b"\0" + str(signal["line"]).encode()
         ).hexdigest()
+        generated_row["row_sha256"] = canonical_sha256(
+            {key: value for key, value in generated_row.items() if key != "row_sha256"}
+        )
         expect_error(
             lambda: validate_core(generated_drift),
-            "generated evidence differs from bounded source evidence",
+            "generated evidence differs from the frozen bounded-source projection",
         )
 
         packet_extra = copy.deepcopy(checked_audit)

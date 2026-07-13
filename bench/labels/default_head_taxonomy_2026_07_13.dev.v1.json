@@ -1,13 +1,13 @@
 {
-  "artifact_sha256": "424c5de44feb05f05f228540faa2380e2b9c5470eced26c44fbdd00f7fc445ad",
+  "artifact_sha256": "206f7e6c2eb9e5bb3750dd6e12f6f920228d719868b2e4922395433a2315c71a",
   "audit_input": {
-    "artifact_sha256": "128edbb9917ab6e88ed0bb412efb4a2e40783ba3d7ba31a518fcf0db9ac20f0e",
-    "file_sha256": "93defdaba5d467447577a8af606a6d0338bac89303f1e702ea08aec23824e7da",
+    "artifact_sha256": "cb2aa5aa2fd7f758ec07def0fe8d309215d38c85cf0cd00d5c5447741585067c",
+    "file_sha256": "d1902eafdd8a09d8ff4ada5a4caee3da43c28241dd7b3d39839db7a96e911f63",
     "path": "bench/labels/default_head_taxonomy_audit_packets_2026_07_13.dev.v1.json"
   },
   "core_input": {
-    "core_sha256": "438b939e458832796306882409be50741803d76012bd4b02d89f41ea8550ce84",
-    "file_sha256": "01d0efc64232b35fda1fa9e1c373a8c230afa6e5dc2b726545a946811841c9c8",
+    "core_sha256": "e3e4d63aba1065bf37a2e5460decfd417c1f76d315405fce941801809d1fb0a2",
+    "file_sha256": "98422f418b63745e51ee2dc0970b3d06ef308a0eb27e8829df9356aae5d2608e",
     "path": "bench/labels/default_head_taxonomy_2026_07_13.dev.core.v1.json"
   },
   "heldout_policy": "closed; no held-out component, source path, or judgment was read",
@@ -66,17 +66,17 @@
       {
         "path": "bench/labels/default_head_taxonomy_votes_2026_07_13.dev.pragmatic.v1.json",
         "persona": "pragmatic",
-        "sha256": "795d7ac2b3778c2bf5e1632cb97a56ba6efa89034464101fe8841ddf0b7201f2"
+        "sha256": "c40da922a1cc3e8924f661063a6e53debaee385e0fe54bc4d8e142e3f65720ca"
       },
       {
         "path": "bench/labels/default_head_taxonomy_votes_2026_07_13.dev.dedupe.v1.json",
         "persona": "dedupe",
-        "sha256": "0ce12448a7ab2ef923831d486bb969737d99af129f26716bdaf646c09d94c699"
+        "sha256": "1b35446038237c35075168ada9c53b7681064d953e069d64977235676f4409ab"
       },
       {
         "path": "bench/labels/default_head_taxonomy_votes_2026_07_13.dev.skeptic.v1.json",
         "persona": "skeptic",
-        "sha256": "b8a6539105e78018ea5f542c123f9c2534fcb74c2c9fb59b39e720499789dc94"
+        "sha256": "7c4ee6ba47d099c13e6afad3ea2c03ff96c0f846530ef72f8013dc614e90eda3"
       }
     ]
   },

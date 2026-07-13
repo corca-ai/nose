@@ -21,8 +21,10 @@ break.
   vote files. Exact nested schemas and #840/live source bindings replay raw-derived
   facets, predicates, buckets, frozen deep/audit cohorts, bounded generator evidence,
   and audit-key uniqueness rather than trusting dependent hashes. Frozen v5-dev and
-  packet-set commitments, exact command provenance, and a source-locked one-time vote
-  rebind reject consistently rehashed substitutions and synthetic prior judgments.
+  generated-evidence/packet-set commitments, exact command provenance, and a
+  source-locked one-time vote rebind reject consistently rehashed substitutions and
+  synthetic prior judgments while keeping ordinary CI independent of ignored corpus
+  checkouts.
 - Added the split-safe v7 default-head label runway (#840): every v6-unmatched
   dev top-10 family plus deterministic rank 11–30 repository samples now have
   independent three-persona votes and explicit arbitration, while a pre-hashed
