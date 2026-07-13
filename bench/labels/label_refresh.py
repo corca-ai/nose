@@ -37,6 +37,8 @@ DEFAULT_BASE_LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v5.jso
 DEFAULT_RUBRIC = ROOT / "bench" / "labels" / "RUBRIC.md"
 ARTIFACT_SCHEMA = "nose.refactoring_label_refresh_candidates.v1"
 DECISIONS_SCHEMA = "nose.refactoring_label_decisions.v1"
+PANEL_VOTE_SCHEMA = "nose.refactoring_panel_vote.v1"
+PANEL_MERGE_SCHEMA = "nose.refactoring_panel_merge.v1"
 SELECTION_SEED = "nose-issue-812-existing-unmatched-v1"
 RUNWAY_SCHEMA = "nose.default_head_label_runway.v1"
 RUNWAY_SELECTION_SEED = "nose-issue-840-default-head-v7-rank-11-30"
@@ -834,6 +836,116 @@ def load_schema_artifact(path: Path, schema: str, label: str) -> dict[str, Any]:
     return artifact
 
 
+def load_panel_vote(
+    path: Path,
+    *,
+    persona: str,
+    artifact_path: Path,
+    artifact: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    payload = load_schema_artifact(path, PANEL_VOTE_SCHEMA, f"{persona} panel vote")
+    if payload.get("persona") != persona:
+        raise SystemExit(f"{path}: expected {persona} persona")
+    expected_source = {
+        "path": rel(artifact_path.resolve()),
+        "sha256": sha256_file(artifact_path),
+    }
+    if payload.get("source_artifact") != expected_source:
+        raise SystemExit(f"{path}: panel vote source artifact mismatch")
+    votes = payload.get("votes")
+    if not isinstance(votes, list):
+        raise SystemExit(f"{path}: votes must be an array")
+    selected_keys = [
+        candidate["candidate_key"]
+        for candidate in sorted(
+            (row for row in artifact["candidates"] if row["selected"]),
+            key=lambda row: row["selection_order"],
+        )
+    ]
+    recorded_keys: list[str] = []
+    by_key: dict[str, dict[str, Any]] = {}
+    for index, vote in enumerate(votes):
+        if not isinstance(vote, dict):
+            raise SystemExit(f"{path}: votes[{index}] must be an object")
+        key = vote.get("candidate_key")
+        if not isinstance(key, str) or not key or key in by_key:
+            raise SystemExit(f"{path}: votes[{index}] has an invalid/duplicate key")
+        try:
+            validate_vote(vote, f"{path}:votes[{index}]")
+        except ValueError as error:
+            raise SystemExit(str(error)) from error
+        rationale = vote.get("rationale")
+        if not isinstance(rationale, str) or not rationale.strip():
+            raise SystemExit(f"{path}: {key}: rationale is required")
+        recorded_keys.append(key)
+        by_key[key] = {
+            "worthy": vote["worthy"],
+            "reason": vote["reason"],
+            "rationale": rationale.strip(),
+        }
+    if recorded_keys != selected_keys:
+        raise SystemExit(f"{path}: vote keys/order differ from the frozen selection")
+    return by_key
+
+
+def merge_runway_votes(
+    artifact_path: Path,
+    artifact: dict[str, Any],
+    vote_paths: dict[str, Path],
+) -> dict[str, Any]:
+    votes = {
+        persona: load_panel_vote(
+            vote_paths[persona],
+            persona=persona,
+            artifact_path=artifact_path,
+            artifact=artifact,
+        )
+        for persona in VOTE_NAMES
+    }
+    selected = sorted(
+        (candidate for candidate in artifact["candidates"] if candidate["selected"]),
+        key=lambda row: row["selection_order"],
+    )
+    rows = []
+    for candidate in selected:
+        key = candidate["candidate_key"]
+        panel = {persona: votes[persona][key] for persona in VOTE_NAMES}
+        decisions = {
+            (vote["worthy"], vote["reason"]) for vote in panel.values()
+        }
+        rows.append(
+            {
+                "candidate_key": key,
+                "repo": candidate["repo"],
+                "language": candidate["language"],
+                "rank": candidate["rank"],
+                "votes": panel,
+                "unanimous": len(decisions) == 1,
+            }
+        )
+    return {
+        "schema": PANEL_MERGE_SCHEMA,
+        "split": "dev",
+        "source_artifact": {
+            "path": rel(artifact_path.resolve()),
+            "sha256": sha256_file(artifact_path),
+        },
+        "vote_inputs": {
+            persona: {
+                "path": rel(path.resolve()),
+                "sha256": sha256_file(path),
+            }
+            for persona, path in vote_paths.items()
+        },
+        "summary": {
+            "candidates": len(rows),
+            "unanimous": sum(1 for row in rows if row["unanimous"]),
+            "disagreements": sum(1 for row in rows if not row["unanimous"]),
+        },
+        "rows": rows,
+    }
+
+
 def validate_runway_selection(
     candidates: list[dict[str, Any]], selection: dict[str, Any], *, label: str
 ) -> None:
@@ -1608,6 +1720,49 @@ def run_self_test() -> None:
         assert "leaks forbidden field" in str(error)
     else:
         raise AssertionError("held-out judgments must fail closed")
+
+    with tempfile.TemporaryDirectory(prefix="nose-runway-panel-self-test-") as directory:
+        root = Path(directory)
+        artifact_path = root / "dev.json"
+        artifact_path.write_text("{}\n", encoding="utf-8")
+        panel_paths = {}
+        selected = sorted(
+            (row for row in runway_candidates if row["selected"]),
+            key=lambda row: row["selection_order"],
+        )
+        for persona in VOTE_NAMES:
+            path = root / f"{persona}.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "schema": PANEL_VOTE_SCHEMA,
+                        "persona": persona,
+                        "source_artifact": {
+                            "path": rel(artifact_path.resolve()),
+                            "sha256": sha256_file(artifact_path),
+                        },
+                        "votes": [
+                            {
+                                "candidate_key": candidate["candidate_key"],
+                                "worthy": True,
+                                "reason": "extract-helper",
+                                "rationale": "The repeated body has one helper boundary.",
+                            }
+                            for candidate in selected
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            panel_paths[persona] = path
+        merged = merge_runway_votes(
+            artifact_path, {"candidates": runway_candidates}, panel_paths
+        )
+        assert merged["summary"] == {
+            "candidates": 2,
+            "unanimous": 2,
+            "disagreements": 0,
+        }
     print("label refresh self-test passed")
 
 
@@ -1661,6 +1816,11 @@ def parse_args() -> argparse.Namespace:
     runway_component_parser.add_argument("--dev-candidates", type=Path, required=True)
     runway_component_parser.add_argument("--decisions", type=Path, required=True)
     runway_component_parser.add_argument("--output", type=Path, required=True)
+    runway_votes_parser = subparsers.add_parser("merge-runway-votes")
+    runway_votes_parser.add_argument("--dev-candidates", type=Path, required=True)
+    for persona in VOTE_NAMES:
+        runway_votes_parser.add_argument(f"--{persona}", type=Path, required=True)
+    runway_votes_parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
 
 
@@ -1751,6 +1911,23 @@ def main() -> None:
             json.dumps(component, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
         print(f"wrote {args.output}: {len(component['families'])} labels")
+        return
+    if args.command == "merge-runway-votes":
+        dev = load_schema_artifact(args.dev_candidates, RUNWAY_SCHEMA, "dev runway")
+        validate_runway_dev(dev)
+        merged = merge_runway_votes(
+            args.dev_candidates,
+            dev,
+            {persona: getattr(args, persona) for persona in VOTE_NAMES},
+        )
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(
+            json.dumps(merged, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        print(
+            f"wrote {args.output}: {merged['summary']['unanimous']} unanimous, "
+            f"{merged['summary']['disagreements']} disagreements"
+        )
         return
     raise SystemExit("choose collect or validate, or pass --self-test")
 
