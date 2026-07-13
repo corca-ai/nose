@@ -133,11 +133,16 @@ break.
   balance, and retaining the same-binary control. This prevents runner load or
   temperature drift across the corpus from accumulating on only one binary
   without relaxing the 5%/5ms thresholds.
+- Replaced the front-end ANSI artifact detector's repeated 256 KiB adjacent-byte
+  scan with an escape-byte prefilter. Exact output is preserved; on the focused
+  control-paired Fastlane/Prettier slice, Prettier `lower` improved by about 8%
+  and `parse+lower` by about 13.5%, removing the Linux release-smoke outlier.
 - Completed the 0.19.0 release pass against the published v0.18.0 Darwin arm64
-  binary. The established semantic-only surface measured `24,822.49ms ->
-  25,715.47ms` (`+3.60%`, approximately `+4.17%` after the same-binary control)
-  across all 120 pinned repositories. The expanded default surface measured
-  `34,204.68ms -> 36,433.48ms` (`+6.52%`) while returning 9.47% more families.
+  binary using the final versioned candidate. The established semantic-only
+  surface measured `28,389.31ms -> 28,964.56ms` (`+2.03%`) across all 120 pinned
+  repositories. The expanded default surface measured `34,322.88ms ->
+  36,159.03ms` (`+5.35%`, approximately `+5.05%` after the same-binary control)
+  while returning 9.47% more families.
   Profiling also removed an accepted-coverage reporting hot path: the focused
   Alamofire/Raylib slice improved `6,787.93ms -> 3,591.61ms` (`-47.09%`) with
   identical output, and Alamofire `rank_map` fell from 3,203.7ms to 22.0ms.

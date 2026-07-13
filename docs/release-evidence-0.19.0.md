@@ -9,11 +9,10 @@ records the exact commands, artifact hashes, and measurements.
 
 - The baseline is the published `v0.18.0` Darwin arm64 binary, verified against
   its release checksum, rather than a local rebuild of the old source.
-- The established semantic-only query surface measured `24,822.49ms ->
-  25,715.47ms` (`+3.60%`) across all `120` pinned repositories. Applying the
-  directional `-0.58%` same-binary control gives approximately `+4.17%`, below
-  the `5%` release threshold.
-- The expanded default surface measured `34,204.68ms -> 36,433.48ms` (`+6.52%`)
+- The final `nose 0.19.0` binary's established semantic-only query surface
+  measured `28,389.31ms -> 28,964.56ms` (`+2.03%`) across all `120` pinned
+  repositories, below the `5%` release threshold without adjustment.
+- The expanded default surface measured `34,322.88ms -> 36,159.03ms` (`+5.35%`)
   while returning `92,229 -> 100,966` families (`+9.47%`). Every repository
   gained families and none lost them, so this is retained as the measured price
   of deliberate capability growth rather than a same-output regression.
@@ -21,6 +20,12 @@ records the exact commands, artifact hashes, and measurements.
   endpoint coverage. On the focused Alamofire/Raylib slice, indexing collapsed
   sites by file reduced runtime `6,787.93ms -> 3,591.61ms` (`-47.09%`) with
   identical output; Alamofire `rank_map` fell from `3,203.7ms` to `22.0ms`.
+- The tag smoke exposed a second, front-end-only Linux outlier. Replacing the
+  per-file 256 KiB byte-window scan used to recognize ANSI-highlight artifacts
+  with an escape-byte prefilter preserved exact output. On the focused
+  Fastlane/Prettier control-paired slice, Prettier `lower` improved by an adjusted
+  `26.6ms` (about `8.0%`) and `parse+lower` by `24.55ms` (about `13.5%`); the
+  aggregate adjusted difference was a neutral `+2.21ms`.
 - The clean candidate exactly reproduced the checked v6 product-quality result:
   worthy recall is `95.33%` on dev and `95.89%` on held-out, with labeled P@10
   of `59.46%` and `55.91%` respectively.
@@ -40,27 +45,28 @@ then filtered by file. The retained patch builds a same-file index once and keep
 the exact collapse, overlap, deduplication, and edge semantics. A behavior-level
 test covers overlapping sites in one file plus a linked site in another file.
 
-The optimized candidate's all-repository same-binary control measured
-`38,954.33ms -> 38,730.26ms` (`-0.58%`) with `120/120` identical hashes,
+The final candidate's all-repository same-binary control measured
+`37,979.24ms -> 38,092.01ms` (`+0.30%`) with `120/120` identical hashes,
 family counts, and byte counts. The remaining default-surface time is concentrated
 in intended scoring and front-end work, while aggregate `rank_map` contributes
-only `23.5ms` more than 0.18.0 across the entire corpus.
+only `24.0ms` more than 0.18.0 across the entire corpus.
 
 ## Release comparison
 
-The official-release comparison was measured before the mechanical version bump:
+The official-release comparison uses the final versioned `nose 0.19.0` binary:
 
 | Surface | Families | Runtime | Raw delta | Approx. control-adjusted |
 | --- | ---: | ---: | ---: | ---: |
-| established semantic | `14,884 -> 15,815` | `24,822.49ms -> 25,715.47ms` | `+3.60%` | `+4.17%` |
-| expanded default | `92,229 -> 100,966` | `34,204.68ms -> 36,433.48ms` | `+6.52%` | `+7.09%` |
+| established semantic | `14,884 -> 15,815` | `28,389.31ms -> 28,964.56ms` | `+2.03%` | `+1.73%` |
+| expanded default | `92,229 -> 100,966` | `34,322.88ms -> 36,159.03ms` | `+5.35%` | `+5.05%` |
 
-The control adjustment is directional subtraction of the same-binary default
-surface result, not a claim of deterministic timing. The semantic surface remains
-inside the release gate under either view. The default surface exceeds it, but
-also returns `8,737` additional families (`+9.47%`) across all `120` repos; this
-is explicitly accepted capability-growth cost. The confirmed superlinear
-reporting hot path was fixed before release.
+The approximate control adjustment directionally subtracts the `+0.30%`
+same-binary default-surface result; it is context, not a claim of deterministic
+timing. The semantic surface remains inside the release gate under either view.
+The default surface is `0.05` percentage points above the adjusted threshold but
+returns `8,737` additional families (`+9.47%`) across all `120` repos; this is
+explicitly accepted capability-growth cost. Both confirmed implementation hot
+paths were fixed before release.
 
 ## Product quality
 
@@ -80,15 +86,15 @@ did not change the evaluated product-quality result.
 The release candidate passed:
 
 ```sh
-target/release-0.19.0/optimized-target/release/nose verify crates \
+target/release-0.19.0/frontend-perf-target/release/nose verify crates \
   --max-violations 0 \
-  --recall-loss-report target/release-0.19.0/recall-loss.current.crates.json
+  --recall-loss-report target/release-0.19.0/recall-loss.final.crates.json
 ```
 
 | Metric | Value |
 | --- | ---: |
 | total units | `7,835` |
-| interpretable units | `1,123` |
+| interpretable units | `1,122` |
 | canon checked | `117` |
 | false merges | `0` |
 | canon-preservation violations | `0` |
