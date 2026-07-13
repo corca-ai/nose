@@ -36,11 +36,12 @@ pub(crate) fn classify_surface_overrides(
         generated_sources: generated.sources,
         additional_generated_surface_sources: generated.additional_surface_sources,
         declaration_run_ids: declaration_run_ids(families),
+        declaration_only_type_contract_ids: declaration_only_type_contract_ids(families),
     }
 }
 
 /// The mechanically-decidable non-actionable classes (design.md §2b: the
-/// decidability boundary). Both are *classifications, not deletions*: the
+/// decidability boundary). These are *classifications, not deletions*: the
 /// families stay in `--format json --top 0` under an honest surface name; only
 /// the action-oriented surfaces (human/markdown/SARIF/`--fail-on`) omit them.
 pub(crate) struct SurfaceOverrides {
@@ -54,20 +55,26 @@ pub(crate) struct SurfaceOverrides {
     /// use/re-export declarations — duplication the language mandates per
     /// file, with no extraction action to take.
     pub(crate) declaration_run_ids: FxHashSet<String>,
+    /// Family ids whose every member carries the complete, already-lowered
+    /// declaration-only type-contract proof frozen by #841. This consumes only
+    /// language-neutral `UnitOrigin` facets; missing or mixed evidence fails open.
+    pub(crate) declaration_only_type_contract_ids: FxHashSet<String>,
 }
 
 /// The surface an integration should treat this family as: the ranked
-/// `recommended_surface`, except that generated-header families and CSS build
-/// pipelines report as `generated`, and a family whose every member is a declaration
-/// run reports as `declaration` — the same families the human report omits from
-/// default output.
+/// `recommended_surface`, except that generated families report as `generated`,
+/// and mechanically non-actionable declaration runs or declaration-only type
+/// contracts report as `declaration` — the same families the human report omits
+/// from default output.
 pub(crate) fn effective_surface(
     family: &nose_detect::RefactorFamily,
     overrides: &SurfaceOverrides,
 ) -> &'static str {
     if family_generated_source(family, overrides) {
         "generated"
-    } else if family_declaration_run(family, overrides) {
+    } else if family_declaration_run(family, overrides)
+        || family_declaration_only_type_contract(family, overrides)
+    {
         "declaration"
     } else {
         family.recommended_surface()
@@ -99,7 +106,7 @@ pub(crate) fn is_default_opportunity_family(
 }
 
 /// The decidable `actionability_reason` for the JSON contract (#11): the source-derived
-/// CLI-side non-action classes (`generated-source`, `declaration-run`) take precedence —
+/// CLI-side non-action classes take precedence —
 /// mirroring [`effective_surface`] — then the detector's pure-shape codes (`trivial`,
 /// `shallow-extraction`). `None` for a clean candidate. A reason, not a verdict.
 #[cfg(test)]
@@ -111,6 +118,8 @@ pub(crate) fn family_actionability_reason(
         Some("generated-source")
     } else if family_declaration_run(family, overrides) {
         Some("declaration-run")
+    } else if family_declaration_only_type_contract(family, overrides) {
+        Some("declaration-only-type-contract")
     } else {
         family.actionability_reason()
     }
@@ -123,6 +132,81 @@ fn family_declaration_run(
     overrides
         .declaration_run_ids
         .contains(&crate::baseline::family_id(family))
+}
+
+fn family_declaration_only_type_contract(
+    family: &nose_detect::RefactorFamily,
+    overrides: &SurfaceOverrides,
+) -> bool {
+    overrides
+        .declaration_only_type_contract_ids
+        .contains(&crate::baseline::family_id(family))
+}
+
+/// Apply the typed product form of `declaration-only-type.v1` frozen by #841.
+///
+/// Every member needs an un-sliced type-unit location plus positive whole-unit,
+/// type-only, declaration-only proof. The location-kind check prevents a
+/// pair-local connected witness from reusing its enclosing unit's origin after
+/// the actionable span has been narrowed to a block.
+/// The taxonomy's abstract `runtime` domain maps to the IL's `Imperative`
+/// domain and explicit runtime-value/validation flags. Data/implementation
+/// domains and every reusable/default/extension body signal are also defensive
+/// disqualifiers. Because every condition is positive and all-member, unknown,
+/// partial, mixed, default-body, extension, enum, and schema origins remain on
+/// their ranked surface.
+fn declaration_only_type_contract_ids(
+    families: &[nose_detect::RefactorFamily],
+) -> FxHashSet<String> {
+    families
+        .iter()
+        .filter(|family| is_declaration_only_type_contract(family))
+        .map(crate::baseline::family_id)
+        .collect()
+}
+
+fn is_declaration_only_type_contract(family: &nose_detect::RefactorFamily) -> bool {
+    use nose_il::{
+        SourceGranularity, UnitBodyKind, UnitDomain, UnitEvidenceFlag, UnitKind, UnitSubkind,
+    };
+
+    !family.locations.is_empty()
+        && family.locations.iter().all(|location| {
+            let origin = location.origin;
+            location.kind == UnitKind::Class
+                && !location.is_fragment
+                && origin.has_domain(UnitDomain::TypeContract)
+                && origin
+                    .domains
+                    .iter()
+                    .all(|domain| domain == UnitDomain::TypeContract)
+                && matches!(
+                    origin.subkind,
+                    UnitSubkind::InterfaceTraitProtocol
+                        | UnitSubkind::TypeAlias
+                        | UnitSubkind::DefinedType
+                )
+                && origin.body_kind == UnitBodyKind::DeclarationOnly
+                && origin.source_granularity == SourceGranularity::WholeUnit
+                && origin.has_evidence(UnitEvidenceFlag::DeclarationOnly)
+                && origin.has_evidence(UnitEvidenceFlag::TypeOnly)
+                && !origin.evidence_flags.iter().any(|flag| {
+                    matches!(
+                        flag,
+                        UnitEvidenceFlag::HasRuntimeBody
+                            | UnitEvidenceFlag::HasReusableBody
+                            | UnitEvidenceFlag::RuntimeValue
+                            | UnitEvidenceFlag::RuntimeValidation
+                            | UnitEvidenceFlag::HasDefaultBody
+                            | UnitEvidenceFlag::ProtocolExtension
+                            | UnitEvidenceFlag::ConcreteTypeExtension
+                            | UnitEvidenceFlag::ConstrainedExtension
+                            | UnitEvidenceFlag::InterfaceDefaultMethod
+                            | UnitEvidenceFlag::InterfaceStaticMethod
+                            | UnitEvidenceFlag::InterfacePrivateMethod
+                    )
+                })
+        })
 }
 
 /// Classify the mechanically-decidable declaration runs in `families`.
@@ -380,6 +464,7 @@ pub(crate) fn surface_omission_note(
 ) -> Option<String> {
     let mut generated = 0;
     let mut declaration = 0;
+    let mut type_contract = 0;
     let mut shallow = 0;
     let mut divergence = 0;
     let mut hidden = 0;
@@ -387,6 +472,10 @@ pub(crate) fn surface_omission_note(
     for family in families {
         match effective_surface(family, overrides) {
             "generated" => generated += 1,
+            "declaration" if family_declaration_run(family, overrides) => declaration += 1,
+            "declaration" if family_declaration_only_type_contract(family, overrides) => {
+                type_contract += 1
+            }
             "declaration" => declaration += 1,
             "shallow" => shallow += 1,
             "divergence" => divergence += 1,
@@ -395,12 +484,13 @@ pub(crate) fn surface_omission_note(
             _ => {}
         }
     }
-    let omitted = generated + declaration + shallow + divergence + hidden + debug;
+    let omitted = generated + declaration + type_contract + shallow + divergence + hidden + debug;
     if omitted == 0 {
         return None;
     }
     if generated == 0
         && declaration == 0
+        && type_contract == 0
         && shallow == 0
         && divergence == 0
         && hidden == 1
@@ -414,6 +504,9 @@ pub(crate) fn surface_omission_note(
     }
     if declaration > 0 {
         parts.push(format!("{declaration} declaration-run"));
+    }
+    if type_contract > 0 {
+        parts.push(format!("{type_contract} declaration-only-type-contract"));
     }
     if shallow > 0 {
         parts.push(format!("{shallow} shallow-extraction"));

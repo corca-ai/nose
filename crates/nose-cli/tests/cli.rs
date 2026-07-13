@@ -8,6 +8,8 @@ pub(crate) use support::*;
 
 #[path = "cli/commands.rs"]
 mod commands;
+#[path = "cli/declaration_surfaces.rs"]
+mod declaration_surfaces;
 #[path = "cli/exact_fragments.rs"]
 mod exact_fragments;
 #[path = "cli/generated_surfaces.rs"]

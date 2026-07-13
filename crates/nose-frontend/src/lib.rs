@@ -222,6 +222,8 @@ mod tests {
         UnitBodyKind, UnitContainerKind, UnitDomain, UnitEvidenceFlag, UnitKind, UnitSubkind,
     };
 
+    mod type_contracts;
+
     fn unit_named<'a>(
         il: &'a Il,
         interner: &Interner,

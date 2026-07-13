@@ -1,7 +1,6 @@
 {
   "accepted_family_ids": [
     "8462d08908be9e8a",
-    "856ea94f585f0c67",
     "149bb759833d2d51",
     "1c3ae05377f90f1c",
     "1e76918c4878bab0",
@@ -30,7 +29,7 @@
     "f918559454acf9c4",
     "fc4edd8f87a8a8f0"
   ],
-  "budget": 29,
+  "budget": 28,
   "generated_by": "target/release/nose query crates all top=0 --mode near --min-value 40 --format json",
   "min_value": 40,
   "mode": "near",

@@ -255,16 +255,7 @@ pub(super) fn swift_callable_origin(node: TsNode, method: bool, has_body: bool) 
 }
 pub(super) fn swift_type_origin(node: TsNode) -> UnitOrigin {
     match node.kind() {
-        "protocol_declaration" => UnitOrigin::new(
-            UnitDomains::of(UnitDomain::TypeContract),
-            UnitSubkind::InterfaceTraitProtocol,
-            UnitBodyKind::DeclarationOnly,
-            SourceGranularity::WholeUnit,
-            RegionKind::Code,
-        )
-        .with_evidence(UnitEvidenceFlag::ProtocolRequirement)
-        .with_evidence(UnitEvidenceFlag::DeclarationOnly)
-        .with_evidence(UnitEvidenceFlag::TypeOnly),
+        "protocol_declaration" => swift_protocol_origin(node),
         "class_declaration" => UnitOrigin::new(
             UnitDomains::of(UnitDomain::ImplementationType),
             UnitSubkind::Class,
@@ -347,6 +338,35 @@ pub(super) fn swift_type_origin(node: TsNode) -> UnitOrigin {
             })
         }
         _ => UnitOrigin::unknown(),
+    }
+}
+fn swift_protocol_origin(node: TsNode) -> UnitOrigin {
+    let has_body = swift_node_has_reusable_body(node);
+    let origin = UnitOrigin::new(
+        UnitDomains::of(UnitDomain::TypeContract).union(if has_body {
+            UnitDomains::of(UnitDomain::ImplementationType)
+        } else {
+            UnitDomains::empty()
+        }),
+        UnitSubkind::InterfaceTraitProtocol,
+        if has_body {
+            UnitBodyKind::Mixed
+        } else {
+            UnitBodyKind::DeclarationOnly
+        },
+        SourceGranularity::WholeUnit,
+        RegionKind::Code,
+    )
+    .with_evidence(if has_body {
+        UnitEvidenceFlag::HasDefaultBody
+    } else {
+        UnitEvidenceFlag::ProtocolRequirement
+    })
+    .with_evidence(UnitEvidenceFlag::TypeOnly);
+    if has_body {
+        origin.with_evidence(UnitEvidenceFlag::HasReusableBody)
+    } else {
+        origin.with_evidence(UnitEvidenceFlag::DeclarationOnly)
     }
 }
 pub(super) fn swift_extension_origin(node: TsNode) -> UnitOrigin {

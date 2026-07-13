@@ -324,6 +324,18 @@ passed to the historical harness command, while the closeout `commit` names the 
 commit. The readable decision record is
 [#842 generated provenance](../../docs/generated-provenance-842.md).
 
+The [#843 declaration-only type-contract closeout](declaration_type_contract_closeout_2026_07_14.dev.v1.json)
+binds the existing-facet all-member predicate, five frozen positives, eight hard negatives,
+all 66 dev repositories, the uncached v7 quality report, and the official-v0.19.0
+performance chain. Its [behavior evidence](declaration_type_contract_behavior_2026_07_14.dev.v1.json)
+preserves 54,754 ordered family IDs while deriving 135 `declaration` transitions, exact
+Java producer-truthfulness origin corrections, five default-head replacements, and
+repeat/one-thread/four-thread identity from per-repository hashes. The quality report
+keeps worthy recall at 2716/2849 with zero regressions. The closeout role-checks and
+replays the exact 3 -> 9 -> 21 -> 40 performance escalation against the published
+v0.19.0 binary and current/current controls. The readable record is
+[#843 declaration-only type contracts](../../docs/declaration-only-type-contracts-843.md).
+
 The earlier [2026-07-11 nose 0.18.0 artifact](product_quality_evaluation_2026_07_11.v2.json)
 retains the historical full-universe definition:
 

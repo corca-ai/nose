@@ -144,6 +144,9 @@ fundamentals; the rest is grouped by area.
 - [0.20 generated provenance](generated-provenance-842.md) — the bounded Jazzy
   all-member classifier, reason-coded recovery contract, exact dev output drift, hard
   negatives, and official-v0.19.0 runtime price.
+- [0.20 declaration-only type contracts](declaration-only-type-contracts-843.md) — the
+  all-member `UnitOrigin` classifier, cross-language fail-open boundaries, exact dev
+  surface/origin drift, worthy-recall preservation, and official-v0.19.0 runtime price.
 - [current missed-worthy frontier](missed-worthy-frontier-816.md) — the #816
   dev-first recall audit, accepted-pair coverage-loss result, route-tree protocol
   deviation, rejected alternatives, and #817 follow-up gates.
