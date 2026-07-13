@@ -91,9 +91,10 @@ aggregate.
 
 A first-pass threshold crossing is not yet a hard regression failure. It exits
 with the dedicated focused-rerun status, selects the affected repositories (or the
-whole slice for an aggregate signal), and repeats five alternating measurements
-after one warmup with another same-binary control. Only a material signal confirmed
-by that focused run fails the runtime comparison.
+whole slice for an aggregate signal), and repeats six measurements after one warmup
+with another same-binary control. Six samples give base and head exactly three
+first-in-pair measurements each. Only a material signal confirmed by that balanced
+focused run fails the runtime comparison.
 
 ## Deterministic Ruby scaling tripwire
 

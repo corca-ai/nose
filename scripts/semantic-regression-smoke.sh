@@ -275,6 +275,7 @@ checker_args=(
   --require-corpus-provenance
   --max-runtime-delta-pct 5
   --min-runtime-delta-ms 5
+  --min-focused-iterations 6
   --status-output "$artifact_dir/check-status.json"
   --markdown-output "$artifact_dir/summary.md"
 )
@@ -301,11 +302,11 @@ PY
     focused_repo_args+=(--repo "$repo")
   done
   run_harness \
-    "$artifact_dir/focused.json" "$baseline_binary" "$current_binary" 5 1 \
+    "$artifact_dir/focused.json" "$baseline_binary" "$current_binary" 6 1 \
     "$base_ref" "$head_ref" "$base_sha" "$head_sha" \
     "${focused_repo_args[@]}"
   run_harness \
-    "$artifact_dir/focused-control.json" "$baseline_binary" "$baseline_binary" 5 1 \
+    "$artifact_dir/focused-control.json" "$baseline_binary" "$baseline_binary" 6 1 \
     "$base_ref" "$base_ref" "$base_sha" "$base_sha" \
     "${focused_repo_args[@]}"
   set +e
