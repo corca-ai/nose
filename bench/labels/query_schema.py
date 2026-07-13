@@ -64,10 +64,8 @@ def _validate_location(location: object, *, source: str, path: str) -> None:
         raise _fail(source, path, f"invalid inclusive line range {start}-{end}")
 
 
-def _validate_family(
-    family: object, *, source: str, index: int, field: str = "families"
-) -> None:
-    path = f"{field}[{index}]"
+def _validate_family(family: object, *, source: str, index: int) -> None:
+    path = f"families[{index}]"
     if not isinstance(family, dict):
         raise _fail(source, path, "expected an object")
     family_id = family.get("id")
@@ -103,7 +101,9 @@ def _validate_family(
         raise _fail(source, f"{path}.value", "expected a numeric ranking value")
 
 
-def _decode_query_payload(stdout: str, *, source: str) -> dict[str, Any]:
+def decode_query_payload(stdout: str, *, source: str = "nose query") -> dict[str, Any]:
+    """Decode and validate the schema-v7 list envelope used by evaluators."""
+
     try:
         payload = json.loads(stdout)
     except json.JSONDecodeError as error:
@@ -118,57 +118,18 @@ def _decode_query_payload(stdout: str, *, source: str) -> dict[str, Any]:
         )
     if payload.get("tool") != "nose":
         raise _fail(source, "tool", f"expected 'nose', got {payload.get('tool')!r}")
-    return payload
-
-
-def _validate_families_field(
-    payload: dict[str, Any], *, field: str, source: str
-) -> list[dict[str, Any]]:
-    families = payload.get(field)
-    if not isinstance(families, list):
-        raise _fail(source, field, "expected an array")
-    for index, family in enumerate(families):
-        _validate_family(family, source=source, index=index, field=field)
-    return families
-
-
-def decode_query_payload(stdout: str, *, source: str = "nose query") -> dict[str, Any]:
-    """Decode and validate the schema-v7 list envelope used by evaluators."""
-
-    payload = _decode_query_payload(stdout, source=source)
     if payload.get("view") != "list":
         raise _fail(source, "view", f"expected 'list', got {payload.get('view')!r}")
-    _validate_families_field(payload, field="families", source=source)
+    families = payload.get("families")
+    if not isinstance(families, list):
+        raise _fail(source, "families", "expected an array")
+    for index, family in enumerate(families):
+        _validate_family(family, source=source, index=index)
     return payload
 
 
 def query_families(stdout: str, *, source: str = "nose query") -> list[dict[str, Any]]:
     return decode_query_payload(stdout, source=source)["families"]
-
-
-def dashboard_families(
-    stdout: str, *, source: str = "nose query dashboard"
-) -> list[dict[str, Any]]:
-    payload = _decode_query_payload(stdout, source=source)
-    if payload.get("view") != "dashboard":
-        raise _fail(
-            source, "view", f"expected 'dashboard', got {payload.get('view')!r}"
-        )
-    families = _validate_families_field(
-        payload, field="families", source=source
-    )
-    top_candidates = _validate_families_field(
-        payload, field="top_candidates", source=source
-    )
-    family_ids = [family["id"] for family in families]
-    candidate_ids = [family["id"] for family in top_candidates]
-    if family_ids != candidate_ids:
-        raise _fail(
-            source,
-            "top_candidates",
-            "expected the dashboard compatibility alias to match families IDs/order",
-        )
-    return families
 
 
 def member_locations(family: dict[str, Any], *, source: str = "query family") -> list[dict[str, Any]]:
@@ -253,80 +214,20 @@ def second(values):
     with tempfile.TemporaryDirectory(prefix="nose-query-schema-") as directory:
         fixture = Path(directory) / "duplicate.py"
         fixture.write_text(source, encoding="utf-8")
-
-        def run_list_query(*selectors: str) -> list[dict[str, Any]]:
-            result = subprocess.run(
-                [
-                    str(nose),
-                    "query",
-                    directory,
-                    *selectors,
-                    "top=0",
-                    "--format",
-                    "json",
-                ],
-                check=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=60,
-            )
-            if result.returncode != 0:
-                selector = " ".join(selectors) or "<bare default>"
-                raise AssertionError(
-                    f"live query {selector} failed: {result.stderr.strip()}"
-                )
-            return query_families(
-                result.stdout, source=f"live nose query self-test {selectors}"
-            )
-
-        dashboard_result = subprocess.run(
-            [str(nose), "query", directory, "--format", "json"],
+        result = subprocess.run(
+            [str(nose), "query", directory, "all", "top=0", "--format", "json"],
             check=False,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
             timeout=60,
         )
-        if dashboard_result.returncode != 0:
-            raise AssertionError(
-                f"live bare dashboard query failed: {dashboard_result.stderr.strip()}"
-            )
-
-        all_families = run_list_query("all")
-        default_families = run_list_query()
-        dashboard = dashboard_families(
-            dashboard_result.stdout, source="live bare dashboard query self-test"
-        )
-        assert all_families, "live query fixture must produce at least one family"
-        locations = member_locations(
-            all_families[0], source="live nose query self-test"
-        )
-        assert all(
-            {"file", "start_line", "end_line"} == set(location)
-            for location in locations
-        )
-        derived_default_ids = [
-            family["id"]
-            for family in all_families
-            if family_surface(family, source="live all query family") == "default"
-        ]
-        default_ids = [family["id"] for family in default_families]
-        assert all(
-            family_surface(family, source="live default-list family") == "default"
-            for family in default_families
-        ), "default list must only return default-surface families"
-        assert derived_default_ids == default_ids, (
-            "default-list IDs/order must match default-filtered all query",
-            derived_default_ids,
-            default_ids,
-        )
-        dashboard_ids = [family["id"] for family in dashboard]
-        assert dashboard_ids == default_ids[: len(dashboard_ids)], (
-            "literal bare dashboard must be a prefix of the default list",
-            dashboard_ids,
-            default_ids,
-        )
+        if result.returncode != 0:
+            raise AssertionError(f"live query failed: {result.stderr.strip()}")
+        families = query_families(result.stdout, source="live nose query self-test")
+        assert families, "live query fixture must produce at least one family"
+        locations = member_locations(families[0], source="live nose query self-test")
+        assert all({"file", "start_line", "end_line"} == set(location) for location in locations)
 
 
 def run_self_test(nose: Path | None = None) -> None:
@@ -357,19 +258,6 @@ def run_self_test(nose: Path | None = None) -> None:
     missing_scope = json.loads(json.dumps(example))
     del missing_scope["families"][0]["scope"]
     _expect_error(missing_scope, "families[0].scope")
-
-    dashboard = json.loads(json.dumps(example))
-    dashboard["view"] = "dashboard"
-    dashboard["top_candidates"] = json.loads(json.dumps(dashboard["families"]))
-    assert dashboard_families(json.dumps(dashboard))[0]["id"] == "0123456789abcdef"
-    mismatched_alias = json.loads(json.dumps(dashboard))
-    mismatched_alias["top_candidates"][0]["id"] = "different"
-    try:
-        dashboard_families(json.dumps(mismatched_alias), source="self-test dashboard")
-    except QuerySchemaError as error:
-        assert "compatibility alias" in str(error)
-    else:
-        raise AssertionError("mismatched dashboard alias must fail")
 
     if nose is not None:
         _check_live_binary(nose.resolve())

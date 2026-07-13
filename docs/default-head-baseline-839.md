@@ -84,6 +84,8 @@ After downloading and checksum-verifying the published asset:
 
 ```sh
 python3 bench/labels/query_schema.py --self-test --nose <official-v0.19.0-nose>
+python3 bench/labels/default_head_query_schema.py \
+  --self-test --nose <official-v0.19.0-nose>
 python3 bench/labels/eval_by_language.py \
   --nose <official-v0.19.0-nose> \
   --nose-release-archive <official-v0.19.0-archive> \

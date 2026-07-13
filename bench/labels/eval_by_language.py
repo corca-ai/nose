@@ -27,10 +27,10 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from default_head_query_schema import dashboard_families
 from labelset import PRECISION_METRIC, RECALL_METRIC, load_labelset, metric_eligible
 from query_schema import (
     QUERY_SCHEMA_VERSION,
-    dashboard_families,
     family_surface,
     member_locations,
     query_families,
@@ -46,6 +46,7 @@ CORPUS = ROOT / "bench" / "goldens" / "corpus.json"
 PRUNE_MANIFEST = ROOT / "bench" / "labels" / "prune_manifest.json"
 EVALUATION_SOURCES = (
     ROOT / "bench" / "labels" / "eval_by_language.py",
+    ROOT / "bench" / "labels" / "default_head_query_schema.py",
     ROOT / "bench" / "labels" / "query_schema.py",
     ROOT / "bench" / "labels" / "labelset.py",
     ROOT / "bench" / "labels" / "antiunify_probe.py",

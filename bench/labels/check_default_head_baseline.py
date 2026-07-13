@@ -30,6 +30,7 @@ EXPECTED_BINARY_SHA256 = (
 )
 EXPECTED_EVALUATION_SOURCES = {
     "bench/labels/antiunify_probe.py",
+    "bench/labels/default_head_query_schema.py",
     "bench/labels/eval_by_language.py",
     "bench/labels/labelset.py",
     "bench/labels/query_schema.py",
