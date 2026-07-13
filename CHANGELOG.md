@@ -7,6 +7,17 @@ break.
 ## [Unreleased]
 
 ### Added
+- Classified strict declaration-only type contracts as reason-coded `declaration` output
+  (#843). The all-member rule consumes existing language-neutral origin facets for Java,
+  TypeScript, Rust, and Swift; incomplete, narrowed, runtime/data/implementation,
+  default-body, extension, enum, schema, and unknown evidence stays fail-open. All five
+  frozen positives move, eight worthy hard negatives stay `default`, 54,754 dev families
+  and their order remain stable, and full-universe worthy recall remains 2716/2849 with
+  zero regressions. Default labeled P@10 improves from 58.05% to 59.04%; replacement-label
+  coverage is 98.33% for #845/#846 to close. Existing frontend facets now truthfully mark
+  Java field initializers, Rust defaults/macros/attributes, and parser-recovered Swift
+  bodies. The official-v0.19.0 all-dev result is -0.52% raw / +0.14% adjusted; the exact
+  3 -> 9 -> 21 -> 40 chain ends -1.61% adjusted with no material regression.
 - Classified source-coherent Jazzy documentation as reason-coded generated output (#842).
   Every HTML member must carry both a Jazzy asset and an Apple/Dash symbol anchor within
   a bounded 64 KiB head; missing, partial, unreadable, and hand-written lookalikes stay on

@@ -1,0 +1,156 @@
+{
+  "behavior_evidence": {
+    "evidence_digest": "9cf10f01868d5f4c85a954a5591e5068ddfec170c6ee45b7763a5077dff869e1",
+    "path": "bench/labels/declaration_type_contract_behavior_2026_07_14.dev.v1.json",
+    "sha256": "fb239a26810c6a3bf5cd7cce1a9d0c48d8b17e064ed2ba6d487a542924bb57f5"
+  },
+  "dogfood": {
+    "accepted_default_families": 28,
+    "budget": 28,
+    "new_accepted_families": 0,
+    "stale_removed_family": "856ea94f585f0c67"
+  },
+  "heldout_policy": "closed; no held-out checkout or judgment was opened",
+  "implementation": {
+    "binary_sha256": "0a91b20a4160cac015e5d1cc5b5b865f33a7366710fda823a73565ed78800c09",
+    "commit": "dfba43a5808b2d181f57106a4d769aa819b31343",
+    "human_reason_code": "declaration-only-type-contract",
+    "json_reason_code": {
+      "field": "surface",
+      "value": "declaration"
+    },
+    "origin_vocabulary_expanded": false,
+    "predicate": {
+      "forbids_runtime_data_implementation_or_behavior_evidence": true,
+      "location_kind": "class",
+      "op": "all_locations",
+      "requires_body_kind": "declaration-only",
+      "requires_domains_exactly": [
+        "type-contract"
+      ],
+      "requires_evidence": [
+        "declaration-only",
+        "type-only"
+      ],
+      "requires_non_fragment": true,
+      "requires_source_granularity": "whole-unit",
+      "subkinds": [
+        "interface-trait-protocol",
+        "type-alias",
+        "defined-type"
+      ]
+    },
+    "repository_or_language_allowlist": false
+  },
+  "issue": 843,
+  "performance": {
+    "all_dev_three_iteration": {
+      "baseline_median_ms": 15690.46516972594,
+      "control_adjusted_delta_ms": 22.419330314733088,
+      "control_adjusted_delta_percent": 0.14288505836009374,
+      "control_delta_ms": -103.7415043101646,
+      "control_delta_percent": -0.6036291237652359,
+      "current_median_ms": 15609.142995730508,
+      "material_regression": false,
+      "raw_delta_ms": -81.32217399543151,
+      "raw_delta_percent": -0.5182903955730965
+    },
+    "artifacts": [
+      {
+        "path": "bench/recall_loss/issue-843-official-v0.19.0-dev-query-regression-2026-07-14.v2.json",
+        "sha256": "c4f996a07eb0a5949b75de3813b458d9627ad835a5ff5b2389e62a0f77e85a3f"
+      },
+      {
+        "path": "bench/recall_loss/issue-843-current-control-dev-query-regression-2026-07-14.v2.json",
+        "sha256": "56b85af30c92fab81d1921c44dfa29c590c626c5db25b58ac54920a591c92f84"
+      },
+      {
+        "path": "bench/recall_loss/issue-843-official-v0.19.0-focused-r9-2026-07-14.v2.json",
+        "sha256": "fbcad7f6c828a1b1ed385500428c97981b9405a048790085e4a9ca57076cfad6"
+      },
+      {
+        "path": "bench/recall_loss/issue-843-current-control-focused-r9-2026-07-14.v2.json",
+        "sha256": "da713337e8bd585eb5af967fd6bc4e490f9f81aa80436363c4da82946166791f"
+      },
+      {
+        "path": "bench/recall_loss/issue-843-official-v0.19.0-focused-r21-2026-07-14.v2.json",
+        "sha256": "7bc3d1dd6aedaee810a166a1cf135968d4e1d4d5813e109ddbc0178da3260a89"
+      },
+      {
+        "path": "bench/recall_loss/issue-843-current-control-focused-r21-2026-07-14.v2.json",
+        "sha256": "60f22d1ef09655fc82001dc40feffa21a035b06b3a28039a7c04dff0cb7896bb"
+      },
+      {
+        "path": "bench/recall_loss/issue-843-official-v0.19.0-focused-r40-2026-07-14.v2.json",
+        "sha256": "6a9ca7bfe266f457181a828ba1f32745dcd7348500171ad7ca2c020ba27071c8"
+      },
+      {
+        "path": "bench/recall_loss/issue-843-current-control-focused-r40-2026-07-14.v2.json",
+        "sha256": "9018e83fffdddcd162bc65ac938bd941cab53e29fab3283004ed04dfd873404c"
+      }
+    ],
+    "current": {
+      "binary_sha256": "0a91b20a4160cac015e5d1cc5b5b865f33a7366710fda823a73565ed78800c09",
+      "commit": "dfba43a5808b2d181f57106a4d769aa819b31343"
+    },
+    "escalation": {
+      "iterations": [
+        3,
+        9,
+        21,
+        40
+      ],
+      "repository_counts": [
+        66,
+        20,
+        3,
+        1
+      ],
+      "result": "pass"
+    },
+    "expected_drift_manifest": {
+      "path": "bench/labels/declaration_type_contract_843.semantic.expected-drift.v1.json",
+      "sha256": "4f5542662046da7302c1f6be7dd7d4b3207af69b9a8f6caec1b1049ff6841887"
+    },
+    "final_forty_iteration": {
+      "baseline_median_ms": 322.2076664969791,
+      "control_adjusted_delta_ms": -5.200165964197367,
+      "control_adjusted_delta_percent": -1.6139175149782237,
+      "control_delta_ms": 9.045166458236054,
+      "control_delta_percent": 2.6899388271458147,
+      "current_median_ms": 326.05266699101776,
+      "material_regression": false,
+      "raw_delta_ms": 3.845000494038686,
+      "raw_delta_percent": 1.1933299216127546
+    },
+    "published_baseline": {
+      "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3",
+      "commit": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "tag_object_sha": "54f8a67436e39e24c777a85e14224273116add6b",
+      "version": "v0.19.0"
+    }
+  },
+  "product_quality": {
+    "comparison_worthy_recall_delta": 0,
+    "default_label_coverage": {
+      "hits": 647,
+      "n": 658,
+      "pct": 98.3283
+    },
+    "default_precision_at_10": {
+      "hits": 382,
+      "n": 647,
+      "pct": 59.0417
+    },
+    "path": "bench/labels/declaration_type_contract_product_quality_2026_07_14.dev.v1.json",
+    "sha256": "ac1e799b5824f385e52caaeaa6903b2e2fc17aec3deba6aeca9aba543b64671a",
+    "worthy_recall": {
+      "hits": 2716,
+      "n": 2849,
+      "pct": 95.3317
+    }
+  },
+  "result": "pass",
+  "schema": "nose.declaration_type_contract_closeout.v1",
+  "split": "dev"
+}

@@ -200,6 +200,16 @@ first 64 KiB carries both a Jazzy asset and an Apple/Dash symbol anchor. Missing
 provenance fails open: a default family may still contain a generated-looking location when
 the hand-written or unproven copies remain actionable.
 
+`declaration` includes both declaration runs and strict declaration-only type contracts.
+The latter requires every location to be one non-fragment, whole type unit whose existing
+origin facets prove type-only/declaration-only and carry no runtime, data, implementation,
+default-body, extension, enum, schema, partial, or unknown evidence. Java interfaces and
+annotation types, TypeScript interfaces and aliases, Rust traits, and Swift protocols use
+the same language-neutral rule. Missing or contradictory evidence fails open to the
+family's ranked surface. The human omission subtype `declaration-only-type-contract` maps
+to JSON `surface: "declaration"`; it is not a separate JSON field. Use `all top=0`,
+`surface=declaration`, or `id=` to recover the family.
+
 Fragment proof metadata is intentionally scoped to views that need it. Dashboard/list/family
 `locations[]` stay compact and do not repeat `is_fragment`, `fragment_kind`, `reason_code`,
 or `enclosing_unit`; the divergent-edit `base` view serializes those fields on

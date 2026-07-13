@@ -134,6 +134,10 @@ run_regression_checker_selftests() {
     python3 bench/labels/generated_provenance_behavior.py validate
     python3 bench/labels/generated_provenance_closeout.py --self-test
     python3 bench/labels/generated_provenance_closeout.py
+    python3 bench/labels/declaration_type_contract_behavior.py --self-test
+    python3 bench/labels/declaration_type_contract_behavior.py validate
+    python3 bench/labels/declaration_type_contract_closeout.py --self-test
+    python3 bench/labels/declaration_type_contract_closeout.py
     python3 bench/labels/recall_ceiling_probe.py --self-test
     python3 bench/labels/missed_worthy_stage_audit.py --self-test
     python3 bench/labels/missed_worthy_heldout_confirmation.py --self-test

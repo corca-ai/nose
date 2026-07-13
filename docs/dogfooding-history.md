@@ -1205,3 +1205,13 @@ boundary. Reusing the existing `fam_at` helper keeps the new surface-selection
 test scaffolding small without introducing another substantial family. The
 accepted ID is restored and the budget is raised to 29; no new avoidable
 duplication is accepted.
+
+The #843 declaration-only type-contract slice tightens the reviewed count from
+29 to 28. The only gate delta is again `856ea94f585f0c67`, the existing
+`interp/ops.rs::int_bin` / `float_bin` dispatcher family; neither numeric
+member changes in #843. The language-neutral surface classifier, focused
+frontend boundary corrections, and their tests shift nose's self-query
+fingerprints enough for this representative to fall below value 40. All other
+28 accepted IDs remain exact, and no new substantial default-surface family is
+introduced. The stale ID is therefore removed and the budget tightens without
+accepting new duplication.

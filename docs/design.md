@@ -134,6 +134,10 @@ is held to proof discipline (§1). Actionability splits by **decidability, not c
   [#842](generated-provenance-842.md) requires two independent Jazzy provenance classes
   within 64 KiB in every HTML member, fails open on partial/unknown evidence, and keeps
   family identity and non-surface fields unchanged.
+- Declaration-only type-contract evidence is likewise positive, all-member, and
+  language-neutral. [#843](declaration-only-type-contracts-843.md) requires complete
+  whole-unit `UnitOrigin` proof, fails open on partial/runtime/default/extension evidence,
+  and keeps every family recoverable on the `declaration` surface.
 
 ### 2c. The bare default is the product
 
