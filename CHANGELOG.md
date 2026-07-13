@@ -13,7 +13,10 @@ break.
   held-out selection exposes neither source nor judgment. The precision-only
   overlay raises dev label coverage from 66.41% to 100%, preserves byte-frozen
   v5/v6 and worthy recall, and reveals the complete 58.05% dev default-head
-  baseline for the bounded #841 failure taxonomy.
+  baseline for the bounded #841 failure taxonomy. Exact held-out schemas reject
+  unknown source/judgment fields and held-out overlays, CI replays the complete
+  raw-vote-to-component evidence chain, and split-local bootstrap streams keep
+  unchanged held-out intervals independent from dev label growth.
 - Split the product-quality evaluator's user-facing default-head precision from
   full-universe worthy recall (#839). The published v0.19.0 binary now anchors a
   hash-identified 120-repository baseline; executable default-list ID-and-order

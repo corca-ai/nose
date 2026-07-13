@@ -41,7 +41,7 @@
         "precision_at_10": {
           "ci95": [
             34.4444,
-            54.4444
+            55.5556
           ],
           "hits": 40,
           "n": 90,
@@ -78,7 +78,7 @@
         "labels": 833,
         "precision_at_10": {
           "ci95": [
-            56.25,
+            55.0,
             76.25
           ],
           "hits": 53,
@@ -91,7 +91,7 @@
         "worthy_recall": {
           "ci95": [
             95.7895,
-            98.5263
+            98.7368
           ],
           "hits": 462,
           "n": 475,
@@ -102,7 +102,7 @@
         "antiunification_rerank_precision_at_10": {
           "ci95": [
             39.7436,
-            61.5385
+            62.8205
           ],
           "hits": 40,
           "n": 78,
@@ -116,7 +116,7 @@
         "labels": 1199,
         "precision_at_10": {
           "ci95": [
-            23.3333,
+            24.4444,
             43.3333
           ],
           "hits": 30,
@@ -139,8 +139,8 @@
       "OVERALL": {
         "antiunification_rerank_precision_at_10": {
           "ci95": [
-            55.1985,
-            63.7051
+            55.3875,
+            63.5161
           ],
           "hits": 314,
           "n": 529,
@@ -154,8 +154,8 @@
         "labels": 5790,
         "precision_at_10": {
           "ci95": [
-            54.4073,
-            62.0061
+            54.1033,
+            61.7021
           ],
           "hits": 382,
           "n": 658,
@@ -178,7 +178,7 @@
         "antiunification_rerank_precision_at_10": {
           "ci95": [
             57.6271,
-            79.661
+            81.3559
           ],
           "hits": 41,
           "n": 59,
@@ -306,8 +306,8 @@
         "labels": 87,
         "precision_at_10": {
           "ci95": [
-            32.5,
-            52.5
+            31.25,
+            53.75
           ],
           "hits": 34,
           "n": 80,
@@ -385,7 +385,7 @@
         "precision_at_10": {
           "ci95": [
             33.3333,
-            64.2857
+            61.9048
           ],
           "hits": 20,
           "n": 42,
@@ -396,7 +396,7 @@
         "worthy_labels": 231,
         "worthy_recall": {
           "ci95": [
-            93.9394,
+            94.3723,
             98.7013
           ],
           "hits": 223,
@@ -434,7 +434,7 @@
         "worthy_labels": 426,
         "worthy_recall": {
           "ci95": [
-            93.662,
+            93.8967,
             97.6526
           ],
           "hits": 408,
@@ -483,8 +483,8 @@
       "OVERALL": {
         "antiunification_rerank_precision_at_10": {
           "ci95": [
-            49.6104,
-            60.0
+            50.1299,
+            59.7403
           ],
           "hits": 211,
           "n": 385,
@@ -499,7 +499,7 @@
         "precision_at_10": {
           "ci95": [
             54.1333,
-            64.2667
+            64.0
           ],
           "hits": 222,
           "n": 375,
@@ -549,7 +549,7 @@
         "worthy_recall": {
           "ci95": [
             94.2222,
-            99.1111
+            98.6667
           ],
           "hits": 218,
           "n": 225,
@@ -587,7 +587,7 @@
         "worthy_recall": {
           "ci95": [
             87.6,
-            94.8
+            94.4
           ],
           "hits": 228,
           "n": 250,
@@ -597,7 +597,7 @@
       "Rust": {
         "antiunification_rerank_precision_at_10": {
           "ci95": [
-            53.2258,
+            51.6129,
             75.8065
           ],
           "hits": 40,
@@ -688,7 +688,7 @@
         "labels": 653,
         "precision_at_10": {
           "ci95": [
-            25.0,
+            23.0769,
             50.0
           ],
           "hits": 19,
@@ -700,8 +700,8 @@
         "worthy_labels": 247,
         "worthy_recall": {
           "ci95": [
-            93.5223,
-            98.3806
+            93.1174,
+            97.9757
           ],
           "hits": 237,
           "n": 247,
@@ -718,7 +718,7 @@
     "evaluation_sources": [
       {
         "path": "bench/labels/eval_by_language.py",
-        "sha256": "a39b378f22c1dfb2e3f8a0e435b288cebfb7b830460caeb5c2a33ef800f0276c"
+        "sha256": "a57c3979410a1b25d84f3c7368440e9f423f13a4959e584cdca5d0eebd198f3c"
       },
       {
         "path": "bench/labels/default_head_query_schema.py",
@@ -730,14 +730,14 @@
       },
       {
         "path": "bench/labels/labelset.py",
-        "sha256": "83059748c26a04d95e4d1aaf2e712bef7023464a17a6ccd9757e94c82f7b5516"
+        "sha256": "0f4bd6a8f420c6ff6b4d62ee7cd76e4f0f42b0781094d117b86fc1057646a991"
       },
       {
         "path": "bench/labels/antiunify_probe.py",
         "sha256": "f2ad8a3635fc3e7b89243c08879b680edf32de0cd809d4c27332e344c6bdbc6f"
       }
     ],
-    "git_sha": "091bbe13297dc6e4ccf81cd6a99d58a6649d19ec",
+    "git_sha": "f945053520506c92c0dc72fe09c7fdb685d29e77",
     "labelset": "bench/labels/refactoring_families.v7.json",
     "labelset_inputs": [
       {
@@ -758,14 +758,14 @@
       },
       {
         "path": "bench/labels/refactoring_families.v7.dev.json",
-        "sha256": "c95697eb1c16d814124cd5365b484c2da381fdbf1e2cf1a0c5971898d1dd623c"
+        "sha256": "8b8ab7b4877499fc1a793e7861e4ee0ebed2034957830dbdff52395a30980c6e"
       },
       {
         "path": "bench/labels/default_head_label_runway_2026_07_13.heldout.seal.v1.json",
-        "sha256": "35cb6d2eaa61f56728768f3232715f7af50c178be2b37b6f906f4a7f3c2d3035"
+        "sha256": "b99c396544848af84a522d5b023c0304bef835ac5dafc6dbc744c2aab6843004"
       }
     ],
-    "labelset_sha256": "b54320fc0a2d9ffbdcb5553d2678ee0e89311b37d1539312825ffc0679b62312",
+    "labelset_sha256": "9939315c2f20943dcd8bd6e4e58740cf844d72ed711d4022aff00e7ce3ed84e6",
     "labelset_version": "v7",
     "nose_binary": "/Users/ak/prjs/cc/nose/target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose",
     "nose_binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3",

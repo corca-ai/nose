@@ -7,19 +7,23 @@ ranking, detection, or surface policy.
 ## Frozen inputs and selection
 
 The published nose 0.19.0 binary (`0f73ea…0f3`) queried the 120 repositories pinned by
-`bench/goldens/corpus.json` at their recorded commits. The collector was committed first,
-then run from clean commit `1b0ef98c`; two ignored-path collections were byte-identical.
+`bench/goldens/corpus.json` at their recorded commits. The initial collector was run twice
+with byte-identical candidate content. After independent review tightened the deep-sample
+wording and fail-closed validators, the same selection was re-frozen from clean commit
+`af3ea50c`; only contract/provenance records and their dependent hashes changed.
 The checked artifacts are:
 
-- `default_head_label_runway_2026_07_13.dev.v1.json` (`38b6f2…e965`), with dev
+- `default_head_label_runway_2026_07_13.dev.v1.json` (`2b9947…3d18`), with dev
   candidates, member locations, source hashes, query hashes, and repository revisions;
-- `default_head_label_runway_2026_07_13.heldout.seal.v1.json` (`35cb6d…3035`), with
+- `default_head_label_runway_2026_07_13.heldout.seal.v1.json` (`b99c39…3004`), with
   candidate commitments and selection metadata but no members, source paths, votes, or
   judgments.
 
 Selection was frozen independently in each split. It includes every v6-unmatched current
-default rank 1–10 family plus one v6-unmatched rank 11–30 family per repository, chosen by
-the seed `nose-issue-840-default-head-v7-rank-11-30`.
+default rank 1–10 family plus one v6-unmatched rank 11–30 family for every repository
+that has at least one eligible family, chosen by the seed
+`nose-issue-840-default-head-v7-rank-11-30`. Repositories without an eligible unmatched
+rank 11–30 family contribute no deep sample.
 
 | split | default positions | v6 matched | unmatched selected | rank 11–30 selected | total selected |
 |---|---:|---:|---:|---:|---:|
@@ -47,7 +51,9 @@ dev context for all 181 disagreements rather than applying majority vote mechani
 low-confidence arbitration decisions. The final 286-label component contains 146 worthy
 and 140 not-worthy judgments; its 63 Swift labels cover every dev Swift repository and
 both worthiness classes. Raw votes, arbitration, decisions, and the resulting component
-are separately hash-checked artifacts.
+are separately hash-checked artifacts. CI replays all three raw vote files through the
+disagreement queue, arbitration, decisions, and generated component; deletion,
+mutation, missing or extra votes, and queue drift fail closed.
 
 Every v7 label is eligible only for `precision_at_10`. The v5 worthy-recall denominator is
 unchanged, and the v7 loader fails closed if the frozen v5/v6 bytes or flattened family
@@ -71,9 +77,16 @@ the frozen v6 judgments until #846.
 
 An explicit v6 replay reproduced the #839 configuration, all 120 repository results, and
 all metrics exactly (stable core SHA-256 `17c013…a9`). The checked v7 report is
-`product_quality_evaluation_v7_dev_runway_2026_07_13.v1.json` (`583504…ebc9`). Two full
-runs had the same measurement payload; only the second run's expected untracked-output
-status differed before that status field was removed for comparison.
+`product_quality_evaluation_v7_dev_runway_2026_07_13.v1.json` (`771cf6…ef22`). Bootstrap
+streams are derived independently for each split, language/overall scope, and metric, so
+dev sample growth cannot perturb an unchanged held-out interval. The corrected held-out
+P@10 interval is again `[54.13%, 64.00%]`, identical to the v6 result for the same 222/375
+flags.
+
+The held-out seal uses an exact allowlist at every object level, rejects unknown fields,
+and is validated by both the labelset loader and the runway gate. The v7 loader accepts
+exactly one dev precision overlay plus the bound held-out seal; it rejects any held-out
+judgment component.
 
 ## Validation and next step
 

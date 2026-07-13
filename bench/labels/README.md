@@ -18,10 +18,13 @@ pinned repositories and eight languages. The split remains a hard generalization
 recall still uses the frozen v5 pool.
 
 The v7 runway covers every previously unmatched dev default rank 1–10 position and one
-deterministic unmatched rank 11–30 sample per repository: 286 dev labels in total. Dev
-top-10 match coverage is therefore 658/658 (100%). The held-out seal commits to 214
+deterministic unmatched rank 11–30 sample for every repository with an eligible family:
+286 dev labels in total. Dev top-10 match coverage is therefore 658/658 (100%). The
+held-out seal commits to 214
 selections without exposing members, source paths, votes, or judgments before #846. See
 [`docs/default-head-label-runway-840.md`](../../docs/default-head-label-runway-840.md).
+The seal and manifest use exact, fail-closed schemas, and CI replays raw votes through
+arbitration, decisions, and the generated component.
 
 ### Frozen v6 base
 
@@ -278,11 +281,13 @@ is reported beside it, never silently discarded.
 
 | split | repos | default-surface labeled precision@10 | matched top-10 | all-surface worthy recall |
 |---|---:|---:|---:|---:|
-| dev | 66 | 382/658 = 58.05% [54.41–62.01] | 658/658 = 100.00% | 2,716/2,849 = 95.33% [94.56–96.10] |
-| held-out | 54 | 222/375 = 59.20% [54.13–64.27] | 375/538 = 69.70% | 2,005/2,091 = 95.89% [95.03–96.70] |
+| dev | 66 | 382/658 = 58.05% [54.10–61.70] | 658/658 = 100.00% | 2,716/2,849 = 95.33% [94.56–96.10] |
+| held-out | 54 | 222/375 = 59.20% [54.13–64.00] | 375/538 = 69.70% | 2,005/2,091 = 95.89% [95.03–96.70] |
 
 The lower dev estimate is the result of labeling every formerly omitted position, not a
 query behavior change. The v7 protocol is in the [#840 runway](../../docs/default-head-label-runway-840.md).
+Bootstrap streams are deterministic per split, language/overall scope, and metric; dev
+sample changes therefore cannot perturb an unchanged held-out interval.
 The prior 271/437 conditional estimate, full release-asset identity, 120/120 parity proof,
 surface totals, and determinism evidence remain in the
 [#839 baseline](../../docs/default-head-baseline-839.md).

@@ -71,13 +71,15 @@ prefix with consistent total/shown summary counts.
 
 | split | repos | default-surface labeled precision@10 | matched top-10 | all-surface worthy recall |
 |---|---:|---:|---:|---:|
-| dev | 66 | 382/658 = 58.05% [54.41–62.01] | 658/658 = 100.00% | 2,716/2,849 = 95.33% [94.56–96.10] |
-| held-out | 54 | 222/375 = 59.20% [54.13–64.27] | 375/538 = 69.70% | 2,005/2,091 = 95.89% [95.03–96.70] |
+| dev | 66 | 382/658 = 58.05% [54.10–61.70] | 658/658 = 100.00% | 2,716/2,849 = 95.33% [94.56–96.10] |
+| held-out | 54 | 222/375 = 59.20% [54.13–64.00] | 375/538 = 69.70% | 2,005/2,091 = 95.89% [95.03–96.70] |
 
 The v7 dev estimate is lower because it labels all 221 positions omitted from v6's
 conditional precision denominator; no query output changed. The
 [#840 runway](default-head-label-runway-840.md) records the split-safe selection, panel,
-arbitration, and checked report. The [#839 baseline](default-head-baseline-839.md) records the published release
+arbitration, and checked report. Bootstrap streams are deterministic per split,
+language/overall scope, and metric, so dev changes cannot perturb an unchanged held-out
+interval. The [#839 baseline](default-head-baseline-839.md) records the published release
 asset and checksum, all input hashes, 120/120 parity, per-surface counts, and
 byte-identical repeated reports. Pass `--precision-surface all` explicitly when a
 comparison needs the pre-#839 full-universe precision definition.
