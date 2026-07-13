@@ -7,6 +7,13 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added the split-safe v7 default-head label runway (#840): every v6-unmatched
+  dev top-10 family plus deterministic rank 11–30 repository samples now have
+  independent three-persona votes and explicit arbitration, while a pre-hashed
+  held-out selection exposes neither source nor judgment. The precision-only
+  overlay raises dev label coverage from 66.41% to 100%, preserves byte-frozen
+  v5/v6 and worthy recall, and reveals the complete 58.05% dev default-head
+  baseline for the bounded #841 failure taxonomy.
 - Split the product-quality evaluator's user-facing default-head precision from
   full-universe worthy recall (#839). The published v0.19.0 binary now anchors a
   hash-identified 120-repository baseline; executable default-list ID-and-order

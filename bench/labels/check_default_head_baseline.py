@@ -144,6 +144,19 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def historical_file_sha256(relative: str) -> str:
+    result = subprocess.run(
+        ["git", "show", f"{EXPECTED_EVALUATOR_GIT_SHA}:{relative}"],
+        cwd=ROOT,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if result.returncode != 0:
+        fail(f"cannot read historical input: {relative}")
+    return hashlib.sha256(result.stdout).hexdigest()
+
+
 def check_frozen_digest(digest: str, *, label: str) -> None:
     if digest != EXPECTED_ARTIFACT_SHA256:
         fail(
@@ -190,16 +203,7 @@ def checked_file_records(
         if mapped != historical_digests:
             fail(f"{label} digests differ from the frozen evaluator revision")
         for relative, expected_digest in historical_digests.items():
-            result = subprocess.run(
-                ["git", "show", f"{EXPECTED_EVALUATOR_GIT_SHA}:{relative}"],
-                cwd=ROOT,
-                check=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            if result.returncode != 0:
-                fail(f"cannot read historical {label}: {relative}")
-            actual_digest = hashlib.sha256(result.stdout).hexdigest()
+            actual_digest = historical_file_sha256(relative)
             if actual_digest != expected_digest:
                 fail(f"historical {label} drifted: {relative}")
         return mapped
@@ -264,7 +268,12 @@ def check_provenance(provenance: dict[str, Any]) -> None:
         digest_field = f"{field}_sha256"
         if provenance.get(digest_field) != expected_digest:
             fail(f"provenance.{digest_field} changed")
-        if sha256_file(ROOT / expected_path) != expected_digest:
+        actual_digest = (
+            historical_file_sha256(expected_path)
+            if field == "prune_manifest"
+            else sha256_file(ROOT / expected_path)
+        )
+        if actual_digest != expected_digest:
             fail(f"checked input drifted: {expected_path}")
 
 

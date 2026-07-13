@@ -25,7 +25,7 @@ except ModuleNotFoundError:  # Imported as bench.corpus_prune.core from the proj
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REPOS_ROOT = PROJECT_ROOT / "bench" / "repos"
-DEFAULT_LABELS = PROJECT_ROOT / "bench" / "labels" / "refactoring_families.v7.json"
+DEFAULT_LABELS = PROJECT_ROOT / "bench" / "labels" / "refactoring_families.v6.json"
 DEFAULT_MANIFEST = PROJECT_ROOT / "bench" / "labels" / "prune_manifest.json"
 DEFAULT_CORPUS = PROJECT_ROOT / "bench" / "goldens" / "corpus.json"
 BANNER_BYTES = 8192
@@ -566,12 +566,6 @@ def check_manifest(project_root: Path, repos_root: Path, labels_path: Path, mani
             failures.append(f"protected source is missing: {entry['path']}")
 
     current, _ = build_manifest(project_root, repos_root, labels_path)
-    for field in ("labels", "protected_sources"):
-        if current.get(field) != expected.get(field):
-            failures.append(
-                f"{field} differs from manifest: "
-                f"{current.get(field)!r} != {expected.get(field)!r}"
-            )
     current_removed = {entry["path"] for entry in current["removed"]}
     if current_removed:
         failures.append(

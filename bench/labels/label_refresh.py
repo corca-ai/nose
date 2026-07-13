@@ -52,6 +52,9 @@ FROZEN_V5_FAMILIES_SHA256 = (
 FROZEN_V6_FAMILIES_SHA256 = (
     "d03de27f0d9bba54e4ee6c28292e4d0b5ac1291ade100809af89d4ea30af147f"
 )
+RUNWAY_EVALUATION_SHA256 = (
+    "bdc99a74bb2b58fe06ddf2eab1c01ea108e0aeaaa34e55fecb5ee4998f8f3443"
+)
 
 
 def canonical_sha256(value: object) -> str:
@@ -1474,6 +1477,93 @@ def runway_coverage(
     }
 
 
+def validate_runway_evaluation(
+    path: Path,
+    labels: LoadedLabelset,
+    dev: dict[str, Any],
+) -> None:
+    if sha256_file(path) != RUNWAY_EVALUATION_SHA256:
+        raise SystemExit("checked v7 runway evaluation digest changed")
+    report = load_schema_artifact(
+        path, "nose.product_quality_evaluation.v3", "v7 runway evaluation"
+    )
+    if report.get("query_schema_version") != QUERY_SCHEMA_VERSION:
+        raise SystemExit("v7 runway evaluation query schema changed")
+    if report.get("repository_count") != 120:
+        raise SystemExit("v7 runway evaluation must cover all 120 repositories")
+    configuration = report.get("configuration", {})
+    expected_configuration = {
+        "bootstrap_resamples": 2000,
+        "bootstrap_seed": 1,
+        "cache_policy": "disabled (baseline-safe)",
+        "default_product_parity_check": True,
+        "precision_surface": "default",
+        "rank": "extractability",
+        "splits": ["dev", "heldout"],
+    }
+    for field, expected in expected_configuration.items():
+        if configuration.get(field) != expected:
+            raise SystemExit(f"v7 runway evaluation configuration changed: {field}")
+    provenance = report.get("provenance", {})
+    if provenance.get("working_tree_status_before_measurement"):
+        raise SystemExit("v7 runway evaluation was not measured from a clean tree")
+    if provenance.get("nose_binary_sha256") != dev["provenance"]["nose_binary_sha256"]:
+        raise SystemExit("v7 runway evaluation binary differs from the frozen runway")
+    if (
+        provenance.get("labelset_version") != labels.version
+        or provenance.get("labelset_sha256") != sha256_file(labels.path)
+    ):
+        raise SystemExit("v7 runway evaluation labelset provenance changed")
+    expected_inputs = [
+        {"path": rel(record["path"]), "sha256": record["sha256"]}
+        for record in labels.inputs
+    ]
+    if provenance.get("labelset_inputs") != expected_inputs:
+        raise SystemExit("v7 runway evaluation labelset inputs changed")
+    if provenance.get("corpus_manifest_sha256") != dev["provenance"][
+        "corpus_manifest_sha256"
+    ]:
+        raise SystemExit("v7 runway evaluation corpus manifest changed")
+    revision = provenance.get("git_sha")
+    sources = provenance.get("evaluation_sources")
+    if not isinstance(revision, str) or not isinstance(sources, list) or not sources:
+        raise SystemExit("v7 runway evaluation source provenance missing")
+    for index, record in enumerate(sources):
+        if not isinstance(record, dict):
+            raise SystemExit(f"evaluation_sources[{index}] must be an object")
+        source_path = record.get("path")
+        digest = record.get("sha256")
+        if not isinstance(source_path, str) or not isinstance(digest, str):
+            raise SystemExit(f"evaluation_sources[{index}] is invalid")
+        if git_file_sha256(revision, source_path) != digest:
+            raise SystemExit(f"evaluation source provenance mismatch: {source_path}")
+
+    overall = report.get("metrics", {})
+    expected_metrics = {
+        "dev": {
+            "precision_at_10": (382, 658, 58.0547),
+            "label_match_coverage": (658, 658, 100.0),
+            "worthy_recall": (2716, 2849, 95.3317),
+            "labels": 5790,
+        },
+        "heldout": {
+            "precision_at_10": (222, 375, 59.2),
+            "label_match_coverage": (375, 538, 69.7026),
+            "worthy_recall": (2005, 2091, 95.8871),
+            "labels": 4072,
+        },
+    }
+    for split, expected in expected_metrics.items():
+        metrics = overall.get(split, {}).get("OVERALL", {})
+        if metrics.get("labels") != expected["labels"]:
+            raise SystemExit(f"v7 runway evaluation {split} label count changed")
+        for name in ("precision_at_10", "label_match_coverage", "worthy_recall"):
+            metric = metrics.get(name, {})
+            observed = (metric.get("hits"), metric.get("n"), metric.get("pct"))
+            if observed != expected[name]:
+                raise SystemExit(f"v7 runway evaluation {split} {name} changed")
+
+
 def representative_members(
     members: list[dict[str, Any]], limit: int = 3
 ) -> list[dict[str, Any]]:
@@ -1961,6 +2051,7 @@ def parse_args() -> argparse.Namespace:
     validate_runway_parser.add_argument("--dev-candidates", type=Path, required=True)
     validate_runway_parser.add_argument("--heldout-seal", type=Path, required=True)
     validate_runway_parser.add_argument("--labelset", type=Path)
+    validate_runway_parser.add_argument("--evaluation", type=Path)
     validate_runway_parser.add_argument("--live", action="store_true")
     context_parser = subparsers.add_parser("context")
     context_parser.add_argument("--candidates", type=Path, required=True)
@@ -2050,8 +2141,13 @@ def main() -> None:
         )
         validate_runway_pair(dev, seal, live_root=ROOT if args.live else None)
         if args.labelset:
-            report = runway_coverage(load_labelset(args.labelset), dev, seal)
+            labels = load_labelset(args.labelset)
+            report = runway_coverage(labels, dev, seal)
+            if args.evaluation:
+                validate_runway_evaluation(args.evaluation, labels, dev)
             print(json.dumps(report, indent=2, sort_keys=True))
+        elif args.evaluation:
+            raise SystemExit("--evaluation requires --labelset")
         else:
             print("default-head v7 runway validation passed")
         return
