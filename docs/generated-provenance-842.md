@@ -82,7 +82,11 @@ its summaries from that evidence rather than trusting copied booleans or counts.
 
 Performance uses the published Darwin arm64 v0.19.0 binary (SHA-256
 `0f73ea…e0f3`), not a source rebuild. Three alternating iterations after one warmup over
-all 66 dev repositories measured:
+all 66 dev repositories measured. The closeout distinguishes the annotated
+`v0.19.0` tag object (`54f8a674…`) from its peeled source commit
+(`0985e696…`); the raw harness reports retain the tag object originally passed
+as `baseline_source_sha`, while the release `commit` is always the peeled
+commit:
 
 | run | baseline | current | delta |
 |---|---:|---:|---:|

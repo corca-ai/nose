@@ -65,7 +65,8 @@
     "gate": "material only when the control-adjusted increase exceeds both 5 percent and 5 milliseconds",
     "published_baseline": {
       "version": "v0.19.0",
-      "commit": "54f8a67436e39e24c777a85e14224273116add6b",
+      "tag_object_sha": "54f8a67436e39e24c777a85e14224273116add6b",
+      "commit": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
       "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
     },
     "current": {

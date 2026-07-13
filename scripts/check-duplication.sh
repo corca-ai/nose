@@ -237,8 +237,8 @@ set -euo pipefail
 # avoidable duplication is accepted.
 # 28 -> 29 (#842 generated provenance): source-aware CLI, fold, and evidence additions make the
 # pre-existing reviewed numeric-dispatch family `856ea94f585f0c67` cross the threshold again;
-# neither member changed. The new surface-selection test reuses existing scaffolding, so no new
-# avoidable duplication is accepted. See docs/dogfooding-history.md.
+# neither member changed. The new surface-selection test reuses existing scaffolding and adds no
+# further substantial family. See docs/dogfooding-history.md.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

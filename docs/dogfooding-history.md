@@ -1201,6 +1201,7 @@ self-query fingerprints enough for this reviewed family to cross the value >=
 40 boundary again. Integer wrapping, division/modulo, floor, and bitwise
 semantics still differ materially from float IEEE behavior, so sharing the ten
 common dispatch lines would blur rather than clarify the numeric policy
-boundary. Reusing the existing `fam_at` helper also removes the avoidable test
-scaffolding family from the first CI pass. The accepted ID is restored and the
-budget is raised to 29; no new avoidable duplication is accepted.
+boundary. Reusing the existing `fam_at` helper keeps the new surface-selection
+test scaffolding small without introducing another substantial family. The
+accepted ID is restored and the budget is raised to 29; no new avoidable
+duplication is accepted.

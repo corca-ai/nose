@@ -30,7 +30,8 @@ TOP_KEYS = {
     "result",
 }
 OFFICIAL_SHA = "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
-OFFICIAL_SOURCE = "54f8a67436e39e24c777a85e14224273116add6b"
+OFFICIAL_TAG_OBJECT = "54f8a67436e39e24c777a85e14224273116add6b"
+OFFICIAL_COMMIT = "0985e6963c58d5a97e523bc532b88aa5e34f2ef9"
 CURRENT_SHA = "6d906e88270994a6ac2589977b2ce9b7616788c1bba67f9dc1b66791161de3dc"
 CURRENT_SOURCE = "1f5d6b450a2a68b1382e6ce843843fe8f195c898"
 BEHAVIOR_DIGEST = "17158a23270a2ba902dfd58b916b0f0720f9bbaffbe9760cf52bf732cecef6a8"
@@ -121,7 +122,8 @@ def validate_report_role(
     require(report["corpus"]["repositories"] == control["corpus"]["repositories"], f"{label}: control corpus differs")
     provenance = report["provenance"]
     require(provenance["baseline_binary_sha256"] == OFFICIAL_SHA, f"{label}: baseline is not official v0.19.0")
-    require(provenance["baseline_source_sha"] == OFFICIAL_SOURCE, f"{label}: wrong baseline source")
+    require(provenance["baseline_source_ref"] == "v0.19.0", f"{label}: wrong baseline source ref")
+    require(provenance["baseline_source_sha"] == OFFICIAL_TAG_OBJECT, f"{label}: wrong baseline tag object")
     require(provenance["current_binary_sha256"] == CURRENT_SHA, f"{label}: wrong current binary")
     require(provenance["current_source_sha"] == CURRENT_SOURCE, f"{label}: wrong current source")
     control_provenance = control["provenance"]
@@ -129,6 +131,31 @@ def validate_report_role(
         require(control_provenance[key] == CURRENT_SHA, f"{label}: control is not current/current")
     for key in ("baseline_source_sha", "current_source_sha"):
         require(control_provenance[key] == CURRENT_SOURCE, f"{label}: control source is not current/current")
+
+
+def validate_published_baseline(value: dict[str, Any]) -> None:
+    require(
+        value
+        == {
+            "version": "v0.19.0",
+            "tag_object_sha": OFFICIAL_TAG_OBJECT,
+            "commit": OFFICIAL_COMMIT,
+            "binary_sha256": OFFICIAL_SHA,
+        },
+        "official baseline changed",
+    )
+    require(
+        run_checked(["git", "cat-file", "-t", OFFICIAL_TAG_OBJECT], "official tag object type") == "tag",
+        "v0.19.0 object is not an annotated tag",
+    )
+    require(
+        run_checked(["git", "rev-parse", "v0.19.0"], "official tag identity") == OFFICIAL_TAG_OBJECT,
+        "v0.19.0 tag object changed",
+    )
+    require(
+        run_checked(["git", "rev-parse", "v0.19.0^{commit}"], "official peeled commit") == OFFICIAL_COMMIT,
+        "v0.19.0 peeled commit changed",
+    )
 
 
 def aggregate(report: dict[str, Any], control: dict[str, Any]) -> dict[str, float | bool]:
@@ -254,7 +281,7 @@ def validate(path: Path) -> None:
     require(artifact["established_semantic_behavior"] == behavior["semantic_summary"], "semantic behavior summary is not derived")
 
     performance = artifact["performance"]
-    require(performance["published_baseline"] == {"version": "v0.19.0", "commit": OFFICIAL_SOURCE, "binary_sha256": OFFICIAL_SHA}, "official baseline changed")
+    validate_published_baseline(performance["published_baseline"])
     require(performance["current"] == {"commit": CURRENT_SOURCE, "binary_sha256": CURRENT_SHA}, "current performance role changed")
     evidence = performance["artifacts"]
     require(len(evidence) == 8, "expected four primary/control report pairs")
@@ -355,6 +382,14 @@ def self_test() -> None:
     else:
         fail("role-substitution self-test was not rejected")
     tampered = copy.deepcopy(report)
+    tampered["provenance"]["baseline_source_sha"] = OFFICIAL_COMMIT
+    try:
+        validate_report_role(tampered, control, repos=2, iterations=40, warmups=2, label="self-test-tag-as-commit")
+    except SystemExit:
+        pass
+    else:
+        fail("raw tag-object/commit substitution self-test was not rejected")
+    tampered = copy.deepcopy(report)
     tampered["corpus"]["repositories"][0]["commit"] = "0" * 40
     try:
         validate_bound_corpus(
@@ -367,6 +402,16 @@ def self_test() -> None:
         pass
     else:
         fail("coherent corpus-revision substitution self-test was not rejected")
+    baseline = load(DEFAULT)["performance"]["published_baseline"]
+    validate_published_baseline(baseline)
+    tampered_baseline = copy.deepcopy(baseline)
+    tampered_baseline["commit"] = OFFICIAL_TAG_OBJECT
+    try:
+        validate_published_baseline(tampered_baseline)
+    except SystemExit:
+        pass
+    else:
+        fail("closeout tag-object/commit substitution self-test was not rejected")
     require(hashlib.sha256(b"nose").hexdigest() == "d77e22123e64d3d87f1f95d9cff7a0b6af6c32b9a81552cb90e991eb55cf63d4", "SHA self-test failed")
     print("generated provenance closeout self-test passed")
 
