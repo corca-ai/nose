@@ -34,7 +34,7 @@ impl Detector for CopyPasteDetector {
 /// structural similarity.
 pub struct ExactBehaviorDetector;
 
-/// Strict exact-safety by source-line span for known roots.
+/// Strict exact-safety by source-byte span for known roots.
 ///
 /// `verify` already computes value fingerprints for the normalized functions it can
 /// afford to interpret. This helper lets it reuse those fingerprints and ask only for
@@ -51,7 +51,7 @@ pub fn exact_safe_roots_by_span(
         .map(|&root| {
             let span = il.node(root).span;
             (
-                (span.start_line, span.end_line),
+                (span.start_byte, span.end_byte),
                 strict_exact::strict_exact_safe_tree(il, interner, &facts, root),
             )
         })
@@ -319,4 +319,41 @@ where
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(default)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nose_il::{FileId, FileMeta, IlBuilder, Lang, NodeKind, Payload, Span};
+
+    #[test]
+    fn exact_safety_keeps_same_line_functions_separate_by_byte_span() {
+        let file = FileId(0);
+        let mut builder = IlBuilder::new(file);
+        let safe_span = Span::new(file, 0, 8, 1, 1);
+        let unsafe_span = Span::new(file, 9, 18, 1, 1);
+        let value = builder.add(NodeKind::Lit, Payload::LitInt(1), safe_span, &[]);
+        let safe = builder.add(NodeKind::Func, Payload::None, safe_span, &[value]);
+        let raw = builder.add(NodeKind::Raw, Payload::None, unsafe_span, &[]);
+        let unsafe_root = builder.add(NodeKind::Func, Payload::None, unsafe_span, &[raw]);
+        let root = builder.add(
+            NodeKind::Seq,
+            Payload::None,
+            safe_span.merge(unsafe_span),
+            &[],
+        );
+        let il = builder.finish(
+            root,
+            FileMeta {
+                path: "same-line.js".to_string(),
+                lang: Lang::JavaScript,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        let safety = exact_safe_roots_by_span(&il, &Interner::new(), &[safe, unsafe_root]);
+        assert_eq!(safety.len(), 2);
+        assert!(safety[&(0, 8)]);
+        assert!(!safety[&(9, 18)]);
+    }
 }

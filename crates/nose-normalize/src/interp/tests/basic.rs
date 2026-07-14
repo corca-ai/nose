@@ -80,6 +80,70 @@ fn unadmitted_builtin_calls_become_identified_symbolic_effects() {
     );
 }
 
+#[test]
+fn diagnostic_reports_first_unretained_literal_without_changing_fail_closed_api() {
+    let sp = Span::synthetic(FileId(0));
+    let mut b = IlBuilder::new(FileId(0));
+    let value = b.add(NodeKind::Lit, Payload::Lit(LitClass::Other), sp, &[]);
+    let ret = b.add(NodeKind::Return, Payload::None, sp, &[value]);
+    let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+    let il = b.finish(
+        func,
+        FileMeta {
+            path: "diagnostic.py".into(),
+            lang: Lang::Python,
+        },
+        Vec::new(),
+        Vec::new(),
+    );
+    let interner = Interner::new();
+    let blocker = run_unit_paths_diagnostic(&il, &interner, func, &[]).unwrap_err();
+    assert_eq!(blocker.category, "value");
+    assert_eq!(blocker.capability_id, "value.literal-not-retained");
+    assert_eq!(blocker.blocker_stack[0].role, "eval");
+    assert_eq!(blocker.blocker_stack[0].construct, "literal:Other");
+    assert_eq!(blocker.blocker_stack[1].construct, "kind:Return");
+
+    let mut path_cap = false;
+    assert!(run_unit_paths(&il, &interner, func, &[], &mut path_cap).is_none());
+    assert!(!path_cap);
+}
+
+#[test]
+fn diagnostic_is_deterministic_for_symbolic_loop_truthiness() {
+    let sp = Span::synthetic(FileId(0));
+    let mut b = IlBuilder::new(FileId(0));
+    let param = b.add(NodeKind::Param, Payload::Cid(1), sp, &[]);
+    let cond = b.add(NodeKind::Var, Payload::Cid(1), sp, &[]);
+    let loop_body = b.add(NodeKind::Block, Payload::None, sp, &[]);
+    let loop_node = b.add(
+        NodeKind::Loop,
+        Payload::Loop(LoopKind::While),
+        sp,
+        &[cond, loop_body],
+    );
+    let body = b.add(NodeKind::Block, Payload::None, sp, &[loop_node]);
+    let func = b.add(NodeKind::Func, Payload::None, sp, &[param, body]);
+    let il = b.finish(
+        func,
+        FileMeta {
+            path: "diagnostic.py".into(),
+            lang: Lang::Python,
+        },
+        Vec::new(),
+        Vec::new(),
+    );
+    let interner = Interner::new();
+    let run = || run_unit_paths_diagnostic(&il, &interner, func, &[Value::Sym(7)]).unwrap_err();
+    let first = run();
+    let second = run();
+    assert_eq!(first, second);
+    assert_eq!(first.category, "value");
+    assert_eq!(first.capability_id, "value.loop-condition-truthiness");
+    assert_eq!(first.blocker_stack[0].construct, "loop:While");
+    assert_eq!(first.blocker_stack[1].construct, "kind:Block");
+}
+
 fn run_value_or_default(value: NodeId, default: NodeId, mut b: IlBuilder, sp: Span) -> Value {
     let call = b.add(
         NodeKind::Call,

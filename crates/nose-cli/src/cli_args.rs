@@ -297,10 +297,9 @@ pub(crate) enum Cmd {
         /// and omits raw source snippets by default.
         #[arg(long)]
         recall_loss_report: Option<PathBuf>,
-        /// Write a JSON census of the units the oracle could NOT interpret — exclusion
-        /// reasons, the construct tags they carry, and how much fingerprint-merge mass
-        /// is unverified per construct. The instrument for ranking oracle-coverage work
-        /// by unverified-merge mass instead of by guess.
+        /// Write a JSON census of every oracle unit. Exclusions carry a stable first
+        /// unsupported capability and blocker stack; exact-claim eligibility keeps
+        /// unsafe fingerprint mass out of the implementation priority queue.
         #[arg(long)]
         exclusion_census: Option<PathBuf>,
         /// Run the falsification-driven distinguishing-input SEARCH (#317) IN ADDITION to the

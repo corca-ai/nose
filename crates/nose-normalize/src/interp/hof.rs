@@ -4,11 +4,11 @@ impl<'a> Interp<'a> {
     pub(super) fn eval_hof(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
         let kind = match self.il.node(node).payload {
             Payload::HoF(h) => h,
-            _ => return Err(Unsupported),
+            _ => return Err(Unsupported::il("il.hof-kind-missing")),
         };
         let kids = self.il.children(node).to_vec();
         if kids.len() < 2 {
-            return Err(Unsupported);
+            return Err(Unsupported::protocol("protocol.hof-shape"));
         }
         let coll = match self.eval(kids[0], env)? {
             Value::List(xs) => xs,
@@ -65,7 +65,8 @@ impl<'a> Interp<'a> {
                     if matches!(keep, Value::Err) {
                         return Ok(Value::Err);
                     }
-                    let keep = truthy(&keep).ok_or(Unsupported)?;
+                    let keep = truthy(&keep)
+                        .ok_or_else(|| Unsupported::value("value.hof-predicate-truthiness"))?;
                     let keep = if kind == HoFKind::Reject { !keep } else { keep };
                     if keep {
                         out.push(x);
@@ -99,7 +100,7 @@ impl<'a> Interp<'a> {
         env: &mut FxHashMap<u32, Value>,
     ) -> R<Value> {
         if self.il.kind(lambda) != NodeKind::Lambda {
-            return Err(Unsupported);
+            return Err(Unsupported::protocol("protocol.hof-callback-shape"));
         }
         let kids = self.il.children(lambda).to_vec();
         let mut local = env.clone();
@@ -126,15 +127,17 @@ impl<'a> Interp<'a> {
                         }
                     }
                 } else {
-                    return Err(Unsupported);
+                    return Err(Unsupported::value("value.lambda-destructure-shape"));
                 }
             } else {
-                return Err(Unsupported);
+                return Err(Unsupported::value("value.lambda-destructure-domain"));
             }
         } else {
-            return Err(Unsupported);
+            return Err(Unsupported::protocol("protocol.hof-callback-arity"));
         }
-        let body = *kids.last().ok_or(Unsupported)?;
+        let body = *kids
+            .last()
+            .ok_or_else(|| Unsupported::il("il.lambda-body-missing"))?;
         match self.il.kind(body) {
             NodeKind::Block
             | NodeKind::Assign
@@ -148,7 +151,9 @@ impl<'a> Interp<'a> {
                 Flow::Ret(v) => Ok(v),
                 Flow::Err => Ok(Value::Err),
                 Flow::Normal => Ok(Value::Null),
-                Flow::Break | Flow::Continue => Err(Unsupported),
+                Flow::Break | Flow::Continue => {
+                    Err(Unsupported::protocol("protocol.lambda-nonlocal-control"))
+                }
             },
             _ => self.eval(body, &mut local),
         }

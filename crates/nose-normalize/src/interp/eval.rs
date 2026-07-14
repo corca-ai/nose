@@ -2,31 +2,31 @@ use super::*;
 
 impl<'a> Interp<'a> {
     pub(super) fn eval(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
+        self.eval_inner(node, env)
+            .map_err(|blocker| blocker.with_frame(self.il, node, "eval"))
+    }
+
+    fn eval_inner(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
         self.tick()?;
         let n = *self.il.node(node);
         match n.kind {
             NodeKind::Var => match n.payload {
-                Payload::Cid(c) => env.get(&c).cloned().ok_or(Unsupported),
-                _ => Err(Unsupported),
+                Payload::Cid(c) => env
+                    .get(&c)
+                    .cloned()
+                    .ok_or_else(|| Unsupported::value("value.binding-missing")),
+                _ => Err(Unsupported::il("il.variable-identity-missing")),
             },
-            NodeKind::Lit => match n.payload {
-                Payload::LitInt(v) => Ok(Value::Int(v)),
-                Payload::LitBool(b) => Ok(Value::Bool(b)),
-                Payload::LitStr(h) => Ok(Value::Str(vec![h])),
-                Payload::Lit(c) => match c {
-                    // A bool literal whose value wasn't retained — unknown, can't model.
-                    // (Retained bools take the `LitBool` arm above.)
-                    nose_il::LitClass::Bool => Err(Unsupported),
-                    nose_il::LitClass::Null => Ok(Value::Null),
-                    // Non-retained numeric/string literal: value unknown → can't model.
-                    _ => Err(Unsupported),
-                },
-                _ => Err(Unsupported),
-            },
+            NodeKind::Lit => eval_literal(n.payload),
             NodeKind::BinOp => self.eval_bin_op(node, n.payload, env),
             NodeKind::UnOp => {
                 let kids = self.il.children(node).to_vec();
-                let a = self.eval(*kids.first().ok_or(Unsupported)?, env)?;
+                let a = self.eval(
+                    *kids
+                        .first()
+                        .ok_or_else(|| Unsupported::il("il.unary-operand-missing"))?,
+                    env,
+                )?;
                 let op = op_of(n.payload);
                 // int32 oracle execution (#344): JS-family `~x` is `~ToInt32(x)`, an int32.
                 let a = if matches!(op, Op::BitNot) && self.bitwise_result_is_int32() {
@@ -50,7 +50,7 @@ impl<'a> Interp<'a> {
             }
             NodeKind::Field => {
                 let Some(&receiver) = self.il.children(node).first() else {
-                    return Err(Unsupported);
+                    return Err(Unsupported::il("il.field-receiver-missing"));
                 };
                 // Proven self-field reads keep their concrete store semantics; an
                 // UNWRITTEN self-field reads its (symbolic) initial state.
@@ -67,7 +67,7 @@ impl<'a> Interp<'a> {
                 // name and the receiver VALUE (pure-read convention, applied to both
                 // sides of a merge alike).
                 let Payload::Name(field) = n.payload else {
-                    return Err(Unsupported);
+                    return Err(Unsupported::il("il.field-name-missing"));
                 };
                 let rv = self.eval(receiver, env)?;
                 if matches!(rv, Value::Err) {
@@ -82,7 +82,7 @@ impl<'a> Interp<'a> {
                 // ternary expression
                 let kids = self.il.children(node).to_vec();
                 if kids.len() < 3 {
-                    return Err(Unsupported);
+                    return Err(Unsupported::il("il.conditional-shape"));
                 }
                 let c = self.eval(kids[0], env)?;
                 // A type error in the test is itself the result (matches the strict
@@ -107,7 +107,7 @@ impl<'a> Interp<'a> {
                 .il
                 .children(node)
                 .first()
-                .ok_or(Unsupported)
+                .ok_or_else(|| Unsupported::il("il.keyword-value-missing"))
                 .and_then(|&v| self.eval(v, env)),
             // A spread argument reached in an opaque/library call: evaluate its inner
             // value. A spread to a PROVEN target already bailed (`keyword_arg_binding_plan`
@@ -118,9 +118,9 @@ impl<'a> Interp<'a> {
                 .il
                 .children(node)
                 .first()
-                .ok_or(Unsupported)
+                .ok_or_else(|| Unsupported::il("il.spread-value-missing"))
                 .and_then(|&v| self.eval(v, env)),
-            _ => Err(Unsupported),
+            _ => Err(Unsupported::il("il.expression-node-unsupported")),
         }
     }
 
@@ -132,7 +132,7 @@ impl<'a> Interp<'a> {
     ) -> R<Value> {
         let kids = self.il.children(node).to_vec();
         if kids.len() != 2 {
-            return Err(Unsupported);
+            return Err(Unsupported::il("il.binary-shape"));
         }
         let op = op_of(payload);
         // SHORT-CIRCUIT `and`/`or` — real Python/JS/Go/C semantics: the right
@@ -146,7 +146,9 @@ impl<'a> Interp<'a> {
         let a = self.eval(kids[0], env)?;
         if matches!(op, Op::Or) {
             return Ok(
-                if matches!(a, Value::Err) || truthy(&a).ok_or(Unsupported)? {
+                if matches!(a, Value::Err)
+                    || truthy(&a).ok_or_else(|| Unsupported::value("value.condition-truthiness"))?
+                {
                     a
                 } else {
                     self.eval(kids[1], env)?
@@ -155,7 +157,10 @@ impl<'a> Interp<'a> {
         }
         if matches!(op, Op::And) {
             return Ok(
-                if matches!(a, Value::Err) || !truthy(&a).ok_or(Unsupported)? {
+                if matches!(a, Value::Err)
+                    || !truthy(&a)
+                        .ok_or_else(|| Unsupported::value("value.condition-truthiness"))?
+                {
                     a
                 } else {
                     self.eval(kids[1], env)?
@@ -192,7 +197,7 @@ impl<'a> Interp<'a> {
     pub(super) fn eval_index(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
         let kids = self.il.children(node).to_vec();
         if kids.len() != 2 {
-            return Err(Unsupported);
+            return Err(Unsupported::il("il.index-base-missing"));
         }
         let base = self.eval(kids[0], env)?;
         if matches!(base, Value::Err) {
@@ -215,5 +220,17 @@ impl<'a> Interp<'a> {
             }
             _ => Ok(Value::Err),
         }
+    }
+}
+
+fn eval_literal(payload: Payload) -> R<Value> {
+    match payload {
+        Payload::LitInt(value) => Ok(Value::Int(value)),
+        Payload::LitBool(value) => Ok(Value::Bool(value)),
+        Payload::LitStr(value) => Ok(Value::Str(vec![value])),
+        // Retained values take the arms above. Unknown values stay fail-closed.
+        Payload::Lit(nose_il::LitClass::Null) => Ok(Value::Null),
+        Payload::Lit(_) => Err(Unsupported::value("value.literal-not-retained")),
+        _ => Err(Unsupported::il("il.literal-payload-missing")),
     }
 }

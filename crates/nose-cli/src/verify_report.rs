@@ -18,7 +18,7 @@ pub(super) fn print_verify_json(oracle: &VerifyOracle) -> Result<()> {
         .census
         .iter()
         .filter(|unit| unit.reason == "interpretable")
-        .map(|unit| (unit.loc.as_str(), unit.tags.as_slice()))
+        .map(|unit| (unit.verify_loc.as_str(), unit.tags.as_slice()))
         .collect();
     let recs_json: Vec<_> = oracle
         .recs

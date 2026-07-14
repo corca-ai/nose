@@ -592,6 +592,22 @@ def verify_manifest(base: Path, manifest: dict[str, Any]) -> None:
         path = base / name
         if not path.is_file() or sha256_file(path) != expected:
             raise ValueError(f"baseline artifact hash mismatch: {name}")
+    expected_attribution = {
+        "schema": "nose-oracle-exclusion-census/v2",
+        "instrument_binary_sha256": "ff5bfa3a712b991d83b44289f8b92f5f5077e69e9830dfbecc091373bf0f5ec2",
+        "release_tree_census_sha256": "4bcd481946c9521b2582464569bff65900b4fb81a9048ffbaba5bb304de88fa0",
+        "threads": [1, 4],
+        "generic_unattributed_exclusions": 0,
+        "semantic_boundaries_closed": 652,
+        "corpus_units": 639516,
+        "corpus_interpretable_units": 197369,
+        "corpus_excluded_units": 442147,
+        "claimable_families": 704,
+        "claimable_pair_mass": 3677,
+        "capped_claimable_pair_mass": 1352,
+    }
+    if manifest.get("exclusion_attribution") != expected_attribution:
+        raise ValueError("exclusion attribution evidence identity changed")
     report_path = base / "crates-report.v1.json"
     report = load(report_path)
     if (

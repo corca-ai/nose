@@ -118,6 +118,8 @@ jobs:
           python3 scripts/check-recall-loss-baselines.py --self-test
           python3 scripts/check-soundness-scorecard.py --self-test
           python3 scripts/check-soundness-scorecard.py
+          python3 scripts/soundness_exclusions.py --self-test
+          python3 scripts/soundness_exclusions.py
       - name: current missed-worthy frontier artifacts
         run: |
           python3 bench/labels/recall_ceiling_probe.py \

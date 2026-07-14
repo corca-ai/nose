@@ -1,4 +1,4 @@
-pub(super) fn rejection_obligation(
+pub(crate) fn rejection_obligation(
     reason: &'static str,
     missing_evidence: &[&'static str],
 ) -> (&'static str, &'static str) {

@@ -277,14 +277,35 @@ pub(super) fn run_battery(
     contracts: &[(u32, u32)],
     path_cap: &mut bool,
 ) -> Option<Vec<nose_normalize::Behavior>> {
+    match run_battery_diagnostic(il, interner, root, battery, contracts) {
+        Ok(behaviors) => Some(behaviors),
+        Err(blocker) => {
+            if blocker.capability_id == "budget.symbolic-branch-sites" {
+                *path_cap = true;
+            }
+            None
+        }
+    }
+}
+
+/// Diagnostic twin of [`run_battery`]. Execution and failure order are
+/// identical; the error only makes the first fail-closed capability available
+/// to offline exclusion reports.
+pub(super) fn run_battery_diagnostic(
+    il: &nose_il::Il,
+    interner: &Interner,
+    root: nose_il::NodeId,
+    battery: &[Vec<nose_normalize::Value>],
+    contracts: &[(u32, u32)],
+) -> Result<Vec<nose_normalize::Behavior>, nose_normalize::InterpreterBlocker> {
     let mut beh = Vec::with_capacity(battery.len());
     for inputs in battery {
         let row = apply_contracts(inputs, contracts);
-        beh.extend(nose_normalize::run_unit_paths(
-            il, interner, root, &row, path_cap,
+        beh.extend(nose_normalize::run_unit_paths_diagnostic(
+            il, interner, root, &row,
         )?);
     }
-    Some(beh)
+    Ok(beh)
 }
 
 /// Trivial behavior (constant / all-Err) is coincidental, never evidence of a

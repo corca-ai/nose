@@ -20,9 +20,16 @@ use nose_il::{Il, NodeId, NodeKind, Payload};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
 
+const CLAIMABLE_FAMILY_CAP: usize = 8;
+
 /// One counted function unit's census record.
+#[derive(serde::Serialize)]
 pub(crate) struct CensusUnit {
     pub(crate) loc: String,
+    /// Legacy human location used to join the ordinary `verify --json` rows.
+    #[serde(skip)]
+    pub(crate) verify_loc: String,
+    pub(crate) language: &'static str,
     /// `"interpretable"`, or the exclusion reason: `"battery-bail"`,
     /// `"empty-fp"`, `"no-core-span"`.
     pub(crate) reason: &'static str,
@@ -30,6 +37,22 @@ pub(crate) struct CensusUnit {
     pub(crate) fp: Vec<u64>,
     /// Sorted construct tags present in the interpreted subtree.
     pub(crate) tags: Vec<String>,
+    pub(crate) exact_safe: bool,
+    pub(crate) claimable: bool,
+    pub(crate) classification: &'static str,
+    pub(crate) obligation_family: String,
+    pub(crate) obligation_subreason: String,
+    pub(crate) first_blocker: Option<nose_normalize::InterpreterBlocker>,
+}
+
+pub(crate) struct CensusOutcome {
+    pub(crate) reason: &'static str,
+    pub(crate) exact_safe: bool,
+    pub(crate) claimable: bool,
+    pub(crate) classification: &'static str,
+    pub(crate) obligation_family: String,
+    pub(crate) obligation_subreason: String,
+    pub(crate) first_blocker: Option<nose_normalize::InterpreterBlocker>,
 }
 
 impl CensusUnit {
@@ -94,14 +117,21 @@ struct TagRow {
 
 #[derive(serde::Serialize)]
 struct CensusReport {
+    schema: &'static str,
     units_total: usize,
     interpretable_units: usize,
     excluded_by_reason: BTreeMap<String, usize>,
     /// Fingerprint-equal pair mass: `verified` pairs had both sides interpreted
     /// by the oracle; `unverified` pairs carry no behavioral check at all.
     merge_pairs: MergePairs,
+    claimable_merge_pairs: MergePairs,
+    generic_unattributed_exclusions: usize,
+    claimable_family_cap: usize,
+    priority_rows_multi_attributed: bool,
+    priority: Vec<PriorityRow>,
     /// Per-construct rows, sorted by unverified mass (the campaign order).
     tags: Vec<TagRow>,
+    units: Vec<CensusUnitRow>,
 }
 
 #[derive(serde::Serialize)]
@@ -111,8 +141,201 @@ struct MergePairs {
     unverified: usize,
 }
 
+#[derive(Debug, Eq, PartialEq, serde::Serialize)]
+struct PriorityRow {
+    language: String,
+    obligation_family: String,
+    construct: String,
+    blocker_category: &'static str,
+    capability_id: &'static str,
+    risk_tier: &'static str,
+    risk_weight: usize,
+    excluded_units: usize,
+    claimable_pair_mass: usize,
+    capped_claimable_pair_mass: usize,
+    priority_score: usize,
+    example_excluded: Vec<String>,
+}
+
+#[derive(serde::Serialize)]
+struct CensusUnitRow {
+    loc: String,
+    language: &'static str,
+    reason: &'static str,
+    exact_safe: bool,
+    claimable: bool,
+    classification: &'static str,
+    obligation_family: String,
+    obligation_subreason: String,
+    value_fingerprint: Vec<u64>,
+    constructs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    first_blocker: Option<nose_normalize::InterpreterBlocker>,
+}
+
+#[derive(Clone, Eq, Hash, PartialEq)]
+struct PriorityKey {
+    language: &'static str,
+    obligation_family: String,
+    construct: String,
+    blocker_category: &'static str,
+    capability_id: &'static str,
+}
+
+#[derive(Default)]
+struct PriorityCount {
+    excluded_units: usize,
+    claimable_pair_mass: usize,
+    capped_claimable_pair_mass: usize,
+    examples: Vec<String>,
+}
+
 fn pairs(n: usize) -> usize {
-    n * (n - 1) / 2
+    n * n.saturating_sub(1) / 2
+}
+
+fn priority_key(unit: &CensusUnit) -> Option<PriorityKey> {
+    let blocker = unit.first_blocker.as_ref()?;
+    Some(PriorityKey {
+        language: unit.language,
+        obligation_family: unit.obligation_family.clone(),
+        construct: blocker
+            .blocker_stack
+            .first()
+            .map_or_else(|| "kind:Func".to_string(), |frame| frame.construct.clone()),
+        blocker_category: blocker.category,
+        capability_id: blocker.capability_id,
+    })
+}
+
+fn count_merge_pairs<'a>(units: impl Iterator<Item = &'a CensusUnit>) -> MergePairs {
+    let mut by_fp: HashMap<&[u64], Vec<&CensusUnit>> = HashMap::new();
+    for unit in units.filter(|unit| !unit.fp.is_empty()) {
+        by_fp.entry(&unit.fp).or_default().push(unit);
+    }
+    let mut merge = MergePairs {
+        total: 0,
+        verified: 0,
+        unverified: 0,
+    };
+    for group in by_fp.values().filter(|group| group.len() >= 2) {
+        let interpreted = group.iter().filter(|unit| !unit.excluded()).count();
+        let total = pairs(group.len());
+        let verified = pairs(interpreted);
+        merge.total += total;
+        merge.verified += verified;
+        merge.unverified += total - verified;
+    }
+    merge
+}
+
+fn build_priority(units: &[CensusUnit]) -> Vec<PriorityRow> {
+    let mut counts: HashMap<PriorityKey, PriorityCount> = HashMap::new();
+    for unit in units
+        .iter()
+        .filter(|unit| unit.excluded() && unit.claimable)
+    {
+        if let Some(key) = priority_key(unit) {
+            let count = counts.entry(key).or_default();
+            count.excluded_units += 1;
+            count.examples.push(unit.loc.clone());
+        }
+    }
+
+    let mut by_fp: HashMap<&[u64], Vec<&CensusUnit>> = HashMap::new();
+    for unit in units
+        .iter()
+        .filter(|unit| unit.claimable && !unit.fp.is_empty())
+    {
+        by_fp.entry(&unit.fp).or_default().push(unit);
+    }
+    for group in by_fp.values().filter(|group| group.len() >= 2) {
+        let total = pairs(group.len());
+        let interpreted = group.iter().filter(|unit| !unit.excluded()).count();
+        let unverified = total - pairs(interpreted);
+        if unverified == 0 {
+            continue;
+        }
+        let keys: HashSet<PriorityKey> = group
+            .iter()
+            .filter(|unit| unit.excluded())
+            .filter_map(|unit| priority_key(unit))
+            .collect();
+        for key in keys {
+            let count = counts.entry(key).or_default();
+            count.claimable_pair_mass += unverified;
+            count.capped_claimable_pair_mass += unverified.min(CLAIMABLE_FAMILY_CAP);
+        }
+    }
+
+    let mut rows: Vec<_> = counts
+        .into_iter()
+        .map(|(key, mut count)| {
+            count.examples.sort_unstable();
+            count.examples.dedup();
+            count.examples.truncate(3);
+            let risk_weight = 3;
+            PriorityRow {
+                language: key.language.to_string(),
+                obligation_family: key.obligation_family,
+                construct: key.construct,
+                blocker_category: key.blocker_category,
+                capability_id: key.capability_id,
+                risk_tier: "A",
+                risk_weight,
+                excluded_units: count.excluded_units,
+                claimable_pair_mass: count.claimable_pair_mass,
+                capped_claimable_pair_mass: count.capped_claimable_pair_mass,
+                priority_score: risk_weight * count.capped_claimable_pair_mass,
+                example_excluded: count.examples,
+            }
+        })
+        .filter(|row| row.capped_claimable_pair_mass > 0)
+        .collect();
+    rows.sort_by(|left, right| {
+        right
+            .priority_score
+            .cmp(&left.priority_score)
+            .then(right.claimable_pair_mass.cmp(&left.claimable_pair_mass))
+            .then(left.language.cmp(&right.language))
+            .then(left.obligation_family.cmp(&right.obligation_family))
+            .then(left.construct.cmp(&right.construct))
+            .then(left.capability_id.cmp(right.capability_id))
+    });
+    rows
+}
+
+fn build_unit_rows(units: &[CensusUnit]) -> Vec<CensusUnitRow> {
+    let mut rows: Vec<_> = units
+        .iter()
+        .map(|unit| CensusUnitRow {
+            loc: unit.loc.clone(),
+            language: unit.language,
+            reason: unit.reason,
+            exact_safe: unit.exact_safe,
+            claimable: unit.claimable,
+            classification: unit.classification,
+            obligation_family: unit.obligation_family.clone(),
+            obligation_subreason: unit.obligation_subreason.clone(),
+            value_fingerprint: unit.fp.clone(),
+            constructs: unit.tags.clone(),
+            first_blocker: unit.first_blocker.clone(),
+        })
+        .collect();
+    rows.sort_by(|left, right| {
+        left.loc
+            .cmp(&right.loc)
+            .then(left.reason.cmp(right.reason))
+            .then_with(|| {
+                let capability = |row: &CensusUnitRow| {
+                    row.first_blocker
+                        .as_ref()
+                        .map(|blocker| blocker.capability_id)
+                };
+                capability(left).cmp(&capability(right))
+            })
+    });
+    rows
 }
 
 fn build_report(units: &[CensusUnit]) -> CensusReport {
@@ -191,12 +414,30 @@ fn build_report(units: &[CensusUnit]) -> CensusReport {
             .then(a.tag.cmp(&b.tag))
     });
 
+    let claimable_merge_pairs = count_merge_pairs(units.iter().filter(|unit| unit.claimable));
+    let generic_unattributed_exclusions = units
+        .iter()
+        .filter(|unit| {
+            unit.excluded()
+                && (unit.first_blocker.is_none()
+                    || unit.obligation_family.is_empty()
+                    || unit.obligation_subreason.is_empty())
+        })
+        .count();
+    let priority = build_priority(units);
     CensusReport {
+        schema: "nose-oracle-exclusion-census/v2",
         units_total: units.len(),
         interpretable_units: units.iter().filter(|u| !u.excluded()).count(),
         excluded_by_reason,
         merge_pairs: merge,
+        claimable_merge_pairs,
+        generic_unattributed_exclusions,
+        claimable_family_cap: CLAIMABLE_FAMILY_CAP,
+        priority_rows_multi_attributed: true,
+        priority,
         tags: rows,
+        units: build_unit_rows(units),
     }
 }
 
@@ -209,79 +450,4 @@ pub(crate) fn write_report(path: &Path, units: &[CensusUnit]) -> Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use nose_il::{Builtin, FileId, FileMeta, IlBuilder, Lang, Span};
-
-    fn unit(loc: &str, reason: &'static str, fp: Vec<u64>, tags: &[&str]) -> CensusUnit {
-        CensusUnit {
-            loc: loc.to_string(),
-            reason,
-            fp,
-            tags: tags.iter().map(|t| t.to_string()).collect(),
-        }
-    }
-
-    #[test]
-    fn report_counts_unverified_merge_mass_per_tag() {
-        // fp group {a,b,c}: a interpretable, b/c excluded → 3 pairs, 0 verified.
-        // fp group {d,e}: both interpretable → 1 pair, verified.
-        let units = vec![
-            unit("a.py:1", "interpretable", vec![1, 2], &["kind:Loop"]),
-            unit(
-                "b.py:1",
-                "battery-bail",
-                vec![1, 2],
-                &["kind:Loop", "call:named"],
-            ),
-            unit("c.py:9", "battery-bail", vec![1, 2], &["builtin:Len"]),
-            unit("d.py:1", "interpretable", vec![3], &["kind:Loop"]),
-            unit("e.py:1", "interpretable", vec![3], &["kind:Loop"]),
-            unit("f.py:1", "empty-fp", vec![], &["kind:Raw"]),
-        ];
-        let r = build_report(&units);
-        assert_eq!(r.units_total, 6);
-        assert_eq!(r.interpretable_units, 3);
-        assert_eq!(r.excluded_by_reason["battery-bail"], 2);
-        assert_eq!(r.excluded_by_reason["empty-fp"], 1);
-        assert_eq!(r.merge_pairs.total, 4);
-        assert_eq!(r.merge_pairs.verified, 1);
-        assert_eq!(r.merge_pairs.unverified, 3);
-        let row = |tag: &str| r.tags.iter().find(|t| t.tag == tag).unwrap();
-        // All 3 unverified pairs touch an excluded member carrying each tag.
-        assert_eq!(row("call:named").unverified_pairs, 3);
-        assert_eq!(row("builtin:Len").unverified_pairs, 3);
-        assert_eq!(row("kind:Loop").unverified_pairs, 3);
-        assert_eq!(row("kind:Loop").interpretable_units, 3);
-        assert_eq!(row("kind:Loop").excluded_units, 1);
-        assert_eq!(row("kind:Raw").unverified_pairs, 0);
-        assert_eq!(row("call:named").example_excluded, vec!["b.py:1"]);
-    }
-
-    #[test]
-    fn census_tags_refine_calls_and_skip_retained_literals() {
-        let sp = Span::synthetic(FileId(0));
-        let mut b = IlBuilder::new(FileId(0));
-        let s = b.add(NodeKind::Lit, Payload::LitStr(0xABCD), sp, &[]);
-        let call = b.add(NodeKind::Call, Payload::Builtin(Builtin::Len), sp, &[s]);
-        let ret = b.add(NodeKind::Return, Payload::None, sp, &[call]);
-        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
-        let il = b.finish(
-            func,
-            FileMeta {
-                path: "census.rs".into(),
-                lang: Lang::Rust,
-            },
-            Vec::new(),
-            Vec::new(),
-        );
-        let tags = census_tags(&il, func);
-        assert!(tags.contains(&"builtin:Len".to_string()));
-        assert!(tags.contains(&"kind:Return".to_string()));
-        assert!(tags.contains(&"kind:Func".to_string()));
-        // The retained string literal contributes no tag.
-        assert!(!tags.iter().any(|t| t.starts_with("lit:")));
-        // The call node is refined, never a bare kind tag.
-        assert!(!tags.contains(&"kind:Call".to_string()));
-    }
-}
+mod tests;

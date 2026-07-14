@@ -13,7 +13,7 @@ mod obligations;
 mod oracle_exclusions;
 use location::verify_rec_location;
 use model::*;
-use obligations::rejection_obligation;
+pub(crate) use obligations::rejection_obligation;
 use oracle_exclusions::oracle_exclusions;
 
 const SCHEMA_VERSION: u32 = 1;

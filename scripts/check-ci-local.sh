@@ -179,6 +179,8 @@ run_regression_checker_selftests() {
     python3 scripts/check-recall-loss-baselines.py --self-test
     python3 scripts/check-soundness-scorecard.py --self-test
     python3 scripts/check-soundness-scorecard.py
+    python3 scripts/soundness_exclusions.py --self-test
+    python3 scripts/soundness_exclusions.py
 }
 
 run_accepted_pair_coverage_checks() {
