@@ -1571,24 +1571,41 @@ def validate_runway_evaluation(
         raise SystemExit("v7 runway evaluation was not measured from a clean tree")
     if provenance.get("nose_binary_sha256") != dev["provenance"]["nose_binary_sha256"]:
         raise SystemExit("v7 runway evaluation binary differs from the frozen runway")
-    if (
-        provenance.get("labelset_version") != labels.version
-        or provenance.get("labelset_sha256") != sha256_file(labels.path)
-    ):
+    revision = provenance.get("git_sha")
+    if not isinstance(revision, str):
+        raise SystemExit("v7 runway evaluation source revision missing")
+    if provenance.get("labelset_version") != labels.version:
         raise SystemExit("v7 runway evaluation labelset provenance changed")
-    expected_inputs = [
-        {"path": rel(record["path"]), "sha256": record["sha256"]}
-        for record in labels.inputs
-    ]
-    if provenance.get("labelset_inputs") != expected_inputs:
-        raise SystemExit("v7 runway evaluation labelset inputs changed")
+    labelset_path = provenance.get("labelset")
+    labelset_digest = provenance.get("labelset_sha256")
+    if (
+        labelset_path != rel(labels.path)
+        or not isinstance(labelset_digest, str)
+        or git_file_sha256(revision, labelset_path) != labelset_digest
+    ):
+        raise SystemExit("v7 runway evaluation historical labelset changed")
+    historical_inputs = provenance.get("labelset_inputs")
+    if not isinstance(historical_inputs, list) or not historical_inputs:
+        raise SystemExit("v7 runway evaluation labelset inputs missing")
+    for index, record in enumerate(historical_inputs):
+        if (
+            not isinstance(record, dict)
+            or set(record) != {"path", "sha256"}
+            or not isinstance(record["path"], str)
+            or not isinstance(record["sha256"], str)
+        ):
+            raise SystemExit(f"v7 runway evaluation labelset_inputs[{index}] is invalid")
+        if git_file_sha256(revision, record["path"]) != record["sha256"]:
+            raise SystemExit(
+                f"v7 runway evaluation historical labelset input changed: "
+                f"{record['path']}"
+            )
     if provenance.get("corpus_manifest_sha256") != dev["provenance"][
         "corpus_manifest_sha256"
     ]:
         raise SystemExit("v7 runway evaluation corpus manifest changed")
-    revision = provenance.get("git_sha")
     sources = provenance.get("evaluation_sources")
-    if not isinstance(revision, str) or not isinstance(sources, list) or not sources:
+    if not isinstance(sources, list) or not sources:
         raise SystemExit("v7 runway evaluation source provenance missing")
     for index, record in enumerate(sources):
         if not isinstance(record, dict):
