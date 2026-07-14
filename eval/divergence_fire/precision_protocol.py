@@ -9,24 +9,27 @@ in a private directory outside the repository until the one-shot evaluation.
 from __future__ import annotations
 
 import argparse
+import base64
 import copy
 import hashlib
 import hmac
 import json
 import math
+import os
 from pathlib import Path
 import re
 import secrets
 import stat
 import subprocess
 import sys
+import tempfile
 from typing import Any
 
 import replay as replay_harness
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PUBLIC_PATH = ROOT / "eval/divergence_fire/precision_protocol_2026_07_14.v1.json"
+PUBLIC_PATH = ROOT / "eval/divergence_fire/precision_protocol_2026_07_14.v2.json"
 SIDECAR_PATH = PUBLIC_PATH.with_suffix(PUBLIC_PATH.suffix + ".sha256")
 CORPUS_PATH = ROOT / "bench/goldens/corpus.json"
 PRUNE_PATH = ROOT / "bench/labels/prune_manifest.json"
@@ -37,24 +40,50 @@ FINAL_REPLAY = (
     ROOT / "eval/divergence_fire/replay_summary_final_head_a38ecb8b_2026_07_06.json"
 )
 
-SCHEMA = "nose.divergent_precision_protocol.v1"
-PRIVATE_SCHEMA = "nose.divergent_precision_private_population.v1"
-PRIVATE_MANIFEST_SCHEMA = "nose.divergent_precision_private_manifest.v1"
-VERDICT_SCHEMA = "nose.divergent_precision_verdict.v1"
-SEALED_AT = "2026-07-14T14:10:00Z"
+SCHEMA = "nose.divergent_precision_protocol.v2"
+PRIVATE_SCHEMA = "nose.divergent_precision_private_population.v2"
+PRIVATE_MANIFEST_SCHEMA = "nose.divergent_precision_private_manifest.v2"
+VERDICT_SCHEMA = "nose.divergent_precision_verdict.v2"
+SEALED_AT = "2026-07-14T14:50:00Z"
 SUPPORTED_LANGUAGES = ("C", "Go", "Java", "Python", "Ruby", "Rust", "TypeScript")
 BLIND_REPOS_PER_LANGUAGE = 4
 TEMPORAL_REPOS_PER_LANGUAGE = 4
 BLIND_CHANGES_PER_REPO = 40
-TARGET_STRICT_MINIMUM = 100
-CANARY_CHANGES = 1000
+BLIND_STRICT_FINDING_MINIMUM = 100
+BLIND_STRICT_TARGET_MINIMUM = 100
+BLIND_REPOSITORY_MINIMUM = 20
+TEMPORAL_CHANGES_PER_REPO_CAP = 40
+TEMPORAL_TARGET_CHANGES = 1000
+TEMPORAL_CHECKPOINT_DAYS = (30, 60, 90, 120, 150, 180)
 ONE_SIDED_CONFIDENCE = 0.95
 ONE_SIDED_Z = 1.6448536269514722
 
 OFFICIAL_BINARY_SHA256 = "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
 OFFICIAL_BINARY_VERSION = "nose 0.19.0"
 OFFICIAL_RELEASE_TAG = "v0.19.0"
-OFFICIAL_RELEASE_ASSET = "nose-cli-aarch64-apple-darwin.tar.gz"
+OFFICIAL_RELEASE_ASSET = "nose-cli-aarch64-apple-darwin.tar.xz"
+OFFICIAL_RELEASE_ASSET_SHA256 = (
+    "097c7e766e9ab756a32cec715897067d1360e145074715168a653962be409981"
+)
+
+GIT_CONFIG_OVERRIDES = (
+    "-c", "core.quotepath=false",
+    "-c", "core.attributesFile=/dev/null",
+    "-c", "diff.renames=false",
+    "-c", "diff.algorithm=myers",
+    "-c", "color.ui=false",
+    "-c", "log.showSignature=false",
+)
+GIT_ENVIRONMENT = {
+    "GIT_CONFIG_NOSYSTEM": "1",
+    "GIT_CONFIG_GLOBAL": "/dev/null",
+    "LC_ALL": "C",
+    "TZ": "UTC",
+}
+DIFF_FLAGS = (
+    "--no-ext-diff", "--no-textconv", "--no-renames", "--diff-algorithm=myers",
+    "--no-color",
+)
 
 DEV_REPOSITORIES = (
     "git", "redis", "curl", "hugo", "minio", "cobra", "prometheus",
@@ -64,8 +93,8 @@ DEV_REPOSITORIES = (
 )
 
 PRIVATE_SEED = "root-seed.hex"
-PRIVATE_PACKET = "blind-population.private.jsonl"
-PRIVATE_MANIFEST = "private-manifest.json"
+PRIVATE_PACKET = "blind-population-v2.private.jsonl"
+PRIVATE_MANIFEST = "private-manifest-v2.json"
 
 FORBIDDEN_PUBLIC_KEYS = {
     "repo", "repository", "commit", "parent", "subject", "diff", "source",
@@ -97,13 +126,48 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def git(*args: str, cwd: Path = ROOT, check: bool = True) -> subprocess.CompletedProcess[str]:
+def git_bytes(
+    *args: str | bytes, cwd: Path = ROOT, check: bool = True
+) -> subprocess.CompletedProcess[bytes]:
+    command = [
+        os.fsencode(item) if isinstance(item, str) else item
+        for item in ("git", *GIT_CONFIG_OVERRIDES, *args)
+    ]
     result = subprocess.run(
-        ["git", *args], cwd=cwd, capture_output=True, text=True, errors="replace"
+        command,
+        cwd=cwd,
+        capture_output=True,
+        env={**os.environ, **GIT_ENVIRONMENT},
     )
     if check and result.returncode != 0:
-        raise AssertionError(f"git {' '.join(args)}: {result.stderr.strip()}")
+        rendered = " ".join(os.fsdecode(item) for item in args)
+        stderr = result.stderr.decode("utf-8", "backslashreplace").strip()
+        raise AssertionError(f"git {rendered}: {stderr}")
     return result
+
+
+def git(
+    *args: str, cwd: Path = ROOT, check: bool = True
+) -> subprocess.CompletedProcess[str]:
+    raw = git_bytes(*args, cwd=cwd, check=check)
+    try:
+        stdout = raw.stdout.decode("utf-8", "strict")
+        stderr = raw.stderr.decode("utf-8", "strict")
+    except UnicodeDecodeError as error:
+        raise AssertionError(f"non-UTF-8 Git control output: {' '.join(args)}") from error
+    return subprocess.CompletedProcess(raw.args, raw.returncode, stdout, stderr)
+
+
+def git_environment() -> dict[str, Any]:
+    return {
+        "version": git("version").stdout.strip(),
+        "environment": dict(sorted(GIT_ENVIRONMENT.items())),
+        "config_overrides": list(GIT_CONFIG_OVERRIDES),
+        "diff_flags": list(DIFF_FLAGS),
+        "control_output_encoding": "strict UTF-8",
+        "path_and_diff_encoding": "raw bytes encoded as base64 in the private packet",
+        "repository_view": "fresh local bare --shared mirror; source local config and info attributes are not inherited",
+    }
 
 
 def hmac_hex(key: bytes, label: str, value: Any) -> str:
@@ -201,6 +265,7 @@ def protocol_contract() -> dict[str, Any]:
             "confidence": ONE_SIDED_CONFIDENCE,
             "z": ONE_SIDED_Z,
             "zero_denominator": None,
+            "reported_for": ["target", "finding", "change"],
         },
         "primary_arm": {
             "mode": "syntax,semantic",
@@ -227,17 +292,42 @@ def protocol_contract() -> dict[str, Any]:
 
 def stop_rule() -> dict[str, Any]:
     return {
-        "minimum_strict_targets": TARGET_STRICT_MINIMUM,
+        "minimum_strict_findings": BLIND_STRICT_FINDING_MINIMUM,
+        "minimum_strict_targets": BLIND_STRICT_TARGET_MINIMUM,
+        "minimum_complete_repositories": BLIND_REPOSITORY_MINIMUM,
         "ordering": "secret HMAC repository order, then secret HMAC change order",
         "repository_atomic": True,
         "procedure": [
             "run the frozen binary and primary arm over every change of the next repository",
-            "adjudicate every emitted strict target from that complete repository",
-            "stop after the first complete repository whose cumulative strict-target count is at least 100",
+            "adjudicate every emitted strict finding and target from that complete repository",
+            "stop only after a complete repository brings cumulative support to at least 100 strict findings, 100 strict targets, and 20 complete repositories",
             "never select, discard, or stop within a repository, change, finding, or target",
         ],
-        "exhaustion": "If every sealed blind repository yields fewer than 100 strict targets, verdict is insufficient-evidence.",
+        "exhaustion": "If all 28 sealed blind repositories are exhausted before every support minimum is met, verdict is insufficient-evidence.",
         "errors": "A failed replay remains in its repository and cannot be replaced by another change.",
+    }
+
+
+def temporal_sampling_rule() -> dict[str, Any]:
+    return {
+        "unit": "one first-parent PR/change after the sealed repository head",
+        "remote_head": "at each checkpoint, resolve the repository URL's advertised default HEAD; require the sealed head to be its ancestor",
+        "eligibility": {
+            "range": "sealed pinned_head_at_seal exclusive through checkpoint default HEAD inclusive",
+            "history": "first-parent only",
+            "source_files": "at least one supported-language path",
+            "changed_source_lines_min": replay_harness.MIN_CHANGED_SRC_LINES,
+            "changed_source_lines_max": replay_harness.MAX_CHANGED_SRC_LINES,
+        },
+        "checkpoint_days_after_seal": list(TEMPORAL_CHECKPOINT_DAYS),
+        "checkpoint_receipt": "atomically seal all 28 advertised default refs, heads, capture times, command provenance, and errors before any nose replay or verdict",
+        "selection": "at each checkpoint, take up to 40 eligible changes per repository by secret HMAC order; include every selected change from every reserve repository",
+        "changes_per_repository_cap": TEMPORAL_CHANGES_PER_REPO_CAP,
+        "target_change_count": TEMPORAL_TARGET_CHANGES,
+        "cutoff": "the earliest fixed checkpoint whose complete selected population reaches at least 1000 changes",
+        "errors": "selection, ancestry, identity, or checkpoint errors invalidate evaluation; query errors remain counted and are never replaced",
+        "exhaustion": "if no fixed checkpoint through day 180 reaches 1000 selected changes, verdict is insufficient-evidence",
+        "no_post_blind_choice": True,
     }
 
 
@@ -250,17 +340,20 @@ def decision_matrix() -> dict[str, Any]:
         "blind_policy_gate": {
             "strict_target_precision_min": 0.95,
             "strict_target_wilson_lower_min": 0.90,
-            "strict_target_support_min": TARGET_STRICT_MINIMUM,
+            "strict_target_support_min": BLIND_STRICT_TARGET_MINIMUM,
+            "strict_finding_support_min": BLIND_STRICT_FINDING_MINIMUM,
+            "repository_support_min": BLIND_REPOSITORY_MINIMUM,
             "finding_and_change_precision_reported": True,
             "no_post_reveal_tuning": True,
         },
         "default_on_gate": {
             "change_block_precision_min": 0.99,
             "change_block_wilson_lower_min": 0.95,
-            "strict_target_support_min": TARGET_STRICT_MINIMUM,
-            "repository_support_min": 20,
+            "strict_target_support_min": BLIND_STRICT_TARGET_MINIMUM,
+            "strict_finding_support_min": BLIND_STRICT_FINDING_MINIMUM,
+            "repository_support_min": BLIND_REPOSITORY_MINIMUM,
             "per_language_claim_requires_preregistered_support": True,
-            "temporal_canary_changes": CANARY_CHANGES,
+            "temporal_canary_changes": TEMPORAL_TARGET_CHANGES,
             "confirmed_false_required_check_blocks_max": 0,
         },
         "classification": {
@@ -335,19 +428,93 @@ def repository_partitions(root_seed: bytes) -> tuple[list[dict[str, Any]], list[
     return blind, temporal
 
 
-def supported_changed_paths(repo: Path, parent: str, commit: str) -> list[str]:
-    result = git("diff", "--name-only", "--diff-filter=ACDMRT", parent, commit,
-                 cwd=repo)
-    return sorted({
-        line for line in result.stdout.splitlines()
-        if Path(line).suffix.lower() in replay_harness.SUPPORTED_EXTS
-    })
+def supported_extension(path: bytes) -> bool:
+    suffix = path.rsplit(b"/", 1)[-1].rsplit(b".", 1)
+    if len(suffix) != 2:
+        return False
+    extension = b"." + suffix[1].lower()
+    return extension.decode("ascii", "strict") in replay_harness.SUPPORTED_EXTS
 
 
-def source_diff(repo: Path, parent: str, commit: str, paths: list[str]) -> str:
+def source_change(repo: Path, parent: str, commit: str) -> tuple[int, int]:
+    result = git_bytes(
+        "diff", *DIFF_FLAGS, "--numstat", "-z", parent, commit, cwd=repo
+    )
+    files = 0
+    lines = 0
+    for record in result.stdout.split(b"\0"):
+        if not record:
+            continue
+        parts = record.split(b"\t", 2)
+        require(len(parts) == 3, "malformed Git numstat record")
+        added, deleted, path = parts
+        if added == b"-" or deleted == b"-" or not supported_extension(path):
+            continue
+        try:
+            changed = int(added) + int(deleted)
+        except ValueError as error:
+            raise AssertionError("malformed Git numstat count") from error
+        files += 1
+        lines += changed
+    return files, lines
+
+
+def eligible_commits(repo: Path) -> list[dict[str, Any]]:
+    result = git_bytes(
+        "log",
+        "--first-parent",
+        f"--max-count={replay_harness.QUERY_DEPTH}",
+        "--format=%H %P",
+        cwd=repo,
+    )
+    eligible = []
+    for raw_line in result.stdout.splitlines():
+        fields = raw_line.split()
+        require(len(fields) >= 1, "malformed Git log record")
+        commit = fields[0].decode("ascii", "strict")
+        require(re.fullmatch(r"[0-9a-f]{40}", commit) is not None,
+                "malformed Git commit identity")
+        if len(fields) == 1:
+            continue
+        parent = fields[1].decode("ascii", "strict")
+        require(re.fullmatch(r"[0-9a-f]{40}", parent) is not None,
+                "malformed Git parent identity")
+        files, lines = source_change(repo, parent, commit)
+        if files >= 1 and (
+            replay_harness.MIN_CHANGED_SRC_LINES
+            <= lines
+            <= replay_harness.MAX_CHANGED_SRC_LINES
+        ):
+            eligible.append({
+                "commit": commit,
+                "parent": parent,
+                "src_files": files,
+                "src_lines": lines,
+            })
+            if len(eligible) >= replay_harness.ELIGIBLE_POOL_CAP:
+                break
+    return eligible
+
+
+def supported_changed_paths(repo: Path, parent: str, commit: str) -> list[bytes]:
+    result = git_bytes(
+        "diff",
+        *DIFF_FLAGS,
+        "--name-only",
+        "-z",
+        "--diff-filter=ACDMRT",
+        parent,
+        commit,
+        cwd=repo,
+    )
+    return sorted({path for path in result.stdout.split(b"\0")
+                   if path and supported_extension(path)})
+
+
+def source_diff(repo: Path, parent: str, commit: str, paths: list[bytes]) -> bytes:
     require(paths, "source diff paths")
-    return git(
-        "diff", "--no-ext-diff", "--no-color", "--binary", parent, commit,
+    return git_bytes(
+        "diff", *DIFF_FLAGS, "--binary", "--full-index", parent, commit,
         "--", *paths, cwd=repo,
     ).stdout
 
@@ -355,6 +522,10 @@ def source_diff(repo: Path, parent: str, commit: str, paths: list[str]) -> str:
 def timestamp(repo: Path, commit: str, field: str) -> str:
     fmt = "%aI" if field == "author" else "%cI"
     return git("show", "-s", f"--format={fmt}", commit, cwd=repo).stdout.strip()
+
+
+def encode_bytes(value: bytes) -> str:
+    return base64.b64encode(value).decode("ascii")
 
 
 def collect_private_population(
@@ -366,12 +537,21 @@ def collect_private_population(
     repository_key = derive_key(root_seed, "repository-order")
     private_repositories = []
     changes = []
-    for row in blind:
-        repo = repos_root / row["id"]
-        require(repo.is_dir(), f"missing repository {row['id']}")
+    mirrors = tempfile.TemporaryDirectory(prefix="nose-848-sanitized-mirrors-")
+    mirror_root = Path(mirrors.name)
+    for index, row in enumerate(blind):
+        source_repo = repos_root / row["id"]
+        require(source_repo.is_dir(), f"missing repository {row['id']}")
+        repo = mirror_root / f"repo-{index:02d}.git"
+        git(
+            "clone", "--bare", "--shared", os.fspath(source_repo), os.fspath(repo),
+            cwd=ROOT,
+        )
+        require(not (repo / "info/attributes").exists(),
+                "sanitized mirror attributes")
         head = git("rev-parse", "HEAD", cwd=repo).stdout.strip()
         require(head == row["commit"], f"repository head {row['id']}")
-        eligible = replay_harness.eligible_commits(repo)
+        eligible = eligible_commits(repo)
         selected = replay_harness.even_sample(eligible, BLIND_CHANGES_PER_REPO)
         require(selected, f"no eligible changes {row['id']}")
         opaque_repo = hmac_hex(identity_key, "repository", row["id"])
@@ -402,15 +582,14 @@ def collect_private_population(
                 "pinned_head": head,
                 "commit": candidate["commit"],
                 "parent": candidate["parent"],
-                "subject": candidate["subject"],
                 "author_time": timestamp(repo, candidate["commit"], "author"),
                 "commit_time": timestamp(repo, candidate["commit"], "commit"),
                 "source_files": candidate["src_files"],
                 "source_lines": candidate["src_lines"],
-                "paths": paths,
-                "source_diff": diff,
-                "source_diff_bytes": len(diff.encode("utf-8")),
-                "source_diff_sha256": sha256_bytes(diff.encode("utf-8")),
+                "paths_base64": [encode_bytes(path) for path in paths],
+                "source_diff_base64": encode_bytes(diff),
+                "source_diff_bytes": len(diff),
+                "source_diff_sha256": sha256_bytes(diff),
             }
             private["commitment"] = hmac_hex(commitment_key, "private-row", private)
             private["order_key"] = hmac_hex(order_key, "change-order", identity)
@@ -420,14 +599,22 @@ def collect_private_population(
     }
     changes.sort(key=lambda row: (repo_order[row["opaque_repository_id"]], row["order_key"]))
     private_repositories.sort(key=lambda row: row["order_key"])
+    mirrors.cleanup()
     return private_repositories, changes
 
 
 def write_private_packet(path: Path, header: dict[str, Any], changes: list[dict[str, Any]]) -> None:
-    with path.open("wb") as handle:
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "wb") as handle:
         handle.write(canonical({"record_type": "header", **header}) + b"\n")
         for row in changes:
             handle.write(canonical(row) + b"\n")
+
+
+def write_private_bytes(path: Path, payload: bytes) -> None:
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "wb") as handle:
+        handle.write(payload)
 
 
 def public_rows(changes: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -470,16 +657,24 @@ def count_by_language(rows: list[dict[str, Any]]) -> dict[str, int]:
 
 
 def freeze(args: argparse.Namespace) -> None:
+    require(not args.private_dir.is_symlink(), "private directory symlink")
     private_dir = args.private_dir.resolve()
     require(private_dir != ROOT and ROOT not in private_dir.parents,
             "private directory must be outside repository")
     private_dir.mkdir(parents=True, exist_ok=True)
     require(not any(private_dir.iterdir()), "private directory must start empty")
-    require(not git("status", "--short").stdout.strip(), "working tree must be clean")
+    private_dir.chmod(stat.S_IRWXU)
+    require(not git_bytes("status", "--short", "-z").stdout,
+            "working tree must be clean")
 
     binary = args.nose.resolve()
     require(binary.is_file(), "official binary missing")
     require(sha256_file(binary) == OFFICIAL_BINARY_SHA256, "official binary sha256")
+    asset = args.asset.resolve()
+    require(asset.is_file() and asset.name == OFFICIAL_RELEASE_ASSET,
+            "official release asset")
+    require(sha256_file(asset) == OFFICIAL_RELEASE_ASSET_SHA256,
+            "official release asset sha256")
     version = subprocess.run(
         [str(binary), "--version"], capture_output=True, text=True, check=True
     ).stdout.strip()
@@ -487,8 +682,7 @@ def freeze(args: argparse.Namespace) -> None:
 
     root_seed = secrets.token_bytes(32)
     seed_path = private_dir / PRIVATE_SEED
-    seed_path.write_text(root_seed.hex() + "\n")
-    seed_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
+    write_private_bytes(seed_path, (root_seed.hex() + "\n").encode("ascii"))
     blind, temporal = repository_partitions(root_seed)
     private_repos, changes = collect_private_population(root_seed, args.repos_root, blind)
     require(len(private_repos) == len(SUPPORTED_LANGUAGES) * BLIND_REPOS_PER_LANGUAGE,
@@ -521,9 +715,12 @@ def freeze(args: argparse.Namespace) -> None:
             "bytes": packet_path.stat().st_size,
             "sha256": sha256_file(packet_path),
         },
+        "selection_errors": [],
     }
-    (private_dir / PRIVATE_MANIFEST).write_text(
-        json.dumps(private_manifest, indent=2, sort_keys=True) + "\n"
+    manifest_path = private_dir / PRIVATE_MANIFEST
+    write_private_bytes(
+        manifest_path,
+        (json.dumps(private_manifest, indent=2, sort_keys=True) + "\n").encode("utf-8"),
     )
 
     public = {
@@ -550,13 +747,14 @@ def freeze(args: argparse.Namespace) -> None:
                 "eligible_pool_cap": replay_harness.ELIGIBLE_POOL_CAP,
                 "min_changed_source_lines": replay_harness.MIN_CHANGED_SRC_LINES,
                 "max_changed_source_lines": replay_harness.MAX_CHANGED_SRC_LINES,
+                "selection_errors": [],
                 "rows": public_rows(changes),
             },
             "temporal_canary_reserve": {
                 "repository_count": len(temporal),
                 "repositories_per_language": count_by_language(temporal),
                 "eligible_after": SEALED_AT,
-                "target_change_count": CANARY_CHANGES,
+                "sampling": temporal_sampling_rule(),
                 "rows": public_temporal_rows(root_seed, temporal),
             },
         },
@@ -573,13 +771,16 @@ def freeze(args: argparse.Namespace) -> None:
             "official_binary": {
                 "release_tag": OFFICIAL_RELEASE_TAG,
                 "asset": OFFICIAL_RELEASE_ASSET,
+                "asset_sha256": OFFICIAL_RELEASE_ASSET_SHA256,
                 "version": version,
-                "sha256": sha256_file(binary),
+                "binary_sha256": sha256_file(binary),
             },
             "corpus": checked_file(CORPUS_PATH),
             "prune_manifest": checked_file(PRUNE_PATH),
             "collector": checked_file(Path(__file__).resolve()),
             "replay_harness": checked_file(ROOT / "eval/divergence_fire/replay.py"),
+            "git_environment": git_environment(),
+            "freeze_command": "python3 eval/divergence_fire/precision_protocol.py freeze --private-dir <external-private-dir> --repos-root bench/repos --nose <verified-v0.19.0-binary> --asset <official-v0.19.0-archive>",
             "freeze_parent": git("rev-parse", "HEAD").stdout.strip(),
             "working_tree_clean_before_freeze": True,
         },
@@ -626,11 +827,21 @@ def validate_document(document: dict[str, Any]) -> None:
     require(document.get("verdict_protocol") == verdict_protocol(), "verdict protocol drift")
 
     population = document.get("population") or {}
+    exact_keys(population, {
+        "split_rule", "development_repository_count", "blind",
+        "temporal_canary_reserve",
+    }, "population")
     require(population.get("split_rule") ==
             "repository-disjoint only; no finding-level split", "split rule")
     require(population.get("development_repository_count") == len(DEV_REPOSITORIES),
             "development repository count")
     blind = population.get("blind") or {}
+    exact_keys(blind, {
+        "repository_count", "repositories_per_language",
+        "changes_per_repository_cap", "selected_change_count", "query_depth",
+        "eligible_pool_cap", "min_changed_source_lines",
+        "max_changed_source_lines", "selection_errors", "rows",
+    }, "blind population")
     expected_blind_repos = len(SUPPORTED_LANGUAGES) * BLIND_REPOS_PER_LANGUAGE
     require(blind.get("repository_count") == expected_blind_repos,
             "blind repository count")
@@ -639,11 +850,13 @@ def validate_document(document: dict[str, Any]) -> None:
     }, "blind language balance")
     require(blind.get("changes_per_repository_cap") == BLIND_CHANGES_PER_REPO,
             "blind change cap")
+    require(blind.get("selection_errors") == [], "blind selection errors")
     rows = blind.get("rows") or []
     require(len(rows) == blind.get("selected_change_count"), "blind row count")
     require(rows and len(rows) <= expected_blind_repos * BLIND_CHANGES_PER_REPO,
             "blind population size")
-    require(len(rows) >= TARGET_STRICT_MINIMUM, "blind population support")
+    require(len(rows) >= BLIND_STRICT_FINDING_MINIMUM,
+            "blind population candidate support")
     require([row.get("ordinal") for row in rows] == list(range(len(rows))),
             "blind row order")
     require(len({row.get("opaque_change_id") for row in rows}) == len(rows),
@@ -660,6 +873,10 @@ def validate_document(document: dict[str, Any]) -> None:
     assert_no_public_source(rows, "blind rows")
 
     temporal = population.get("temporal_canary_reserve") or {}
+    exact_keys(temporal, {
+        "repository_count", "repositories_per_language", "eligible_after",
+        "sampling", "rows",
+    }, "temporal population")
     expected_temporal = len(SUPPORTED_LANGUAGES) * TEMPORAL_REPOS_PER_LANGUAGE
     require(temporal.get("repository_count") == expected_temporal,
             "temporal repository count")
@@ -667,8 +884,8 @@ def validate_document(document: dict[str, Any]) -> None:
         language: TEMPORAL_REPOS_PER_LANGUAGE for language in SUPPORTED_LANGUAGES
     }, "temporal language balance")
     require(temporal.get("eligible_after") == SEALED_AT, "temporal cutoff")
-    require(temporal.get("target_change_count") == CANARY_CHANGES,
-            "temporal change target")
+    require(temporal.get("sampling") == temporal_sampling_rule(),
+            "temporal sampling rule")
     temporal_rows = temporal.get("rows") or []
     require(len(temporal_rows) == expected_temporal, "temporal rows")
     require(len({row.get("opaque_repository_id") for row in temporal_rows})
@@ -683,6 +900,11 @@ def validate_document(document: dict[str, Any]) -> None:
     assert_no_public_source(temporal_rows, "temporal rows")
 
     privacy = document.get("privacy") or {}
+    exact_keys(privacy, {
+        "root_seed_commitment", "private_packet_bytes", "private_packet_sha256",
+        "private_packet_location", "public_identity",
+        "quality_labels_available_to_implementation", "source_available_in_git",
+    }, "privacy")
     require(privacy.get("quality_labels_available_to_implementation") is False,
             "quality data privacy")
     require(privacy.get("source_available_in_git") is False, "source privacy")
@@ -695,13 +917,15 @@ def validate_document(document: dict[str, Any]) -> None:
     provenance = document.get("provenance") or {}
     exact_keys(provenance, {
         "official_binary", "corpus", "prune_manifest", "collector",
-        "replay_harness", "freeze_parent", "working_tree_clean_before_freeze",
+        "replay_harness", "git_environment", "freeze_command", "freeze_parent",
+        "working_tree_clean_before_freeze",
     }, "provenance")
     require(provenance.get("official_binary") == {
         "release_tag": OFFICIAL_RELEASE_TAG,
         "asset": OFFICIAL_RELEASE_ASSET,
+        "asset_sha256": OFFICIAL_RELEASE_ASSET_SHA256,
         "version": OFFICIAL_BINARY_VERSION,
-        "sha256": OFFICIAL_BINARY_SHA256,
+        "binary_sha256": OFFICIAL_BINARY_SHA256,
     }, "official binary provenance")
     require(provenance.get("corpus") == checked_file(CORPUS_PATH), "corpus provenance")
     require(provenance.get("prune_manifest") == checked_file(PRUNE_PATH),
@@ -711,6 +935,11 @@ def validate_document(document: dict[str, Any]) -> None:
     require(provenance.get("replay_harness") ==
             checked_file(ROOT / "eval/divergence_fire/replay.py"),
             "replay provenance")
+    require(provenance.get("git_environment") == git_environment(),
+            "Git environment provenance")
+    require(provenance.get("freeze_command") ==
+            "python3 eval/divergence_fire/precision_protocol.py freeze --private-dir <external-private-dir> --repos-root bench/repos --nose <verified-v0.19.0-binary> --asset <official-v0.19.0-archive>",
+            "freeze command provenance")
     require(provenance.get("working_tree_clean_before_freeze") is True,
             "freeze cleanliness")
     freeze_parent = provenance.get("freeze_parent", "")
@@ -738,8 +967,13 @@ def validate_public() -> None:
 def read_seed(private_dir: Path) -> bytes:
     path = private_dir / PRIVATE_SEED
     require(path.is_file() and not path.is_symlink(), "private seed")
-    require(stat.S_IMODE(path.stat().st_mode) & 0o077 == 0, "private seed permissions")
-    return bytes.fromhex(path.read_text().strip())
+    require(stat.S_IMODE(path.stat().st_mode) == 0o600, "private seed permissions")
+    try:
+        seed = bytes.fromhex(path.read_text(encoding="ascii").strip())
+    except (UnicodeDecodeError, ValueError) as error:
+        raise AssertionError("private seed encoding") from error
+    require(len(seed) == 32, "private seed length")
+    return seed
 
 
 def load_private_packet(path: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -750,18 +984,47 @@ def load_private_packet(path: Path) -> tuple[dict[str, Any], list[dict[str, Any]
 
 def validate_private(args: argparse.Namespace) -> None:
     validate_public()
+    require(not args.private_dir.is_symlink(), "private directory symlink")
     private_dir = args.private_dir.resolve()
     require(private_dir != ROOT and ROOT not in private_dir.parents,
             "private directory must be outside repository")
+    require(private_dir.is_dir(), "private directory")
+    require(stat.S_IMODE(private_dir.stat().st_mode) == 0o700,
+            "private directory permissions")
     seed = read_seed(private_dir)
     public = json.loads(PUBLIC_PATH.read_text())
     packet_path = private_dir / PRIVATE_PACKET
     private_manifest_path = private_dir / PRIVATE_MANIFEST
-    require(packet_path.is_file() and private_manifest_path.is_file(), "private files")
+    for path, label in (
+        (packet_path, "private packet"),
+        (private_manifest_path, "private manifest"),
+    ):
+        require(path.is_file() and not path.is_symlink(), label)
+        require(stat.S_IMODE(path.stat().st_mode) == 0o600,
+                f"{label} permissions")
     header, changes = load_private_packet(packet_path)
     manifest = json.loads(private_manifest_path.read_text())
+    exact_keys(header, {
+        "record_type", "schema", "sealed_at", "protocol_schema",
+        "root_seed_commitment", "blind_repository_count", "change_count",
+    }, "private header")
     require(header.get("schema") == PRIVATE_SCHEMA, "private schema")
-    require(manifest.get("schema") == PRIVATE_MANIFEST_SCHEMA, "private manifest schema")
+    require(header.get("sealed_at") == SEALED_AT, "private sealed timestamp")
+    require(header.get("protocol_schema") == SCHEMA, "private protocol schema")
+    require(header.get("blind_repository_count") ==
+            len(SUPPORTED_LANGUAGES) * BLIND_REPOS_PER_LANGUAGE,
+            "private blind repository count")
+    require(header.get("change_count") == len(changes), "private change count")
+    exact_keys(manifest, {
+        "schema", "sealed_at", "blind_repositories", "temporal_reserve",
+        "packet", "selection_errors",
+    }, "private manifest")
+    require(manifest.get("schema") == PRIVATE_MANIFEST_SCHEMA,
+            "private manifest schema")
+    require(manifest.get("sealed_at") == SEALED_AT,
+            "private manifest timestamp")
+    require(manifest.get("selection_errors") == [],
+            "private selection errors")
     root_commitment = sha256_bytes(b"nose-848-root\0" + seed)
     require(header.get("root_seed_commitment") == root_commitment,
             "private root commitment")
@@ -778,8 +1041,17 @@ def validate_private(args: argparse.Namespace) -> None:
     }, "private manifest packet")
 
     blind, temporal = repository_partitions(seed)
-    require([row["repository"] for row in manifest["temporal_reserve"]]
-            == [row["id"] for row in temporal], "temporal selection")
+    expected_temporal = [
+        {
+            "repository": row["id"],
+            "language": row["primary_language"],
+            "pinned_head_at_seal": row["commit"],
+            "eligible_after": SEALED_AT,
+        }
+        for row in temporal
+    ]
+    require(manifest.get("temporal_reserve") == expected_temporal,
+            "temporal selection")
     private_repos, reproduced = collect_private_population(seed, args.repos_root, blind)
     require(private_repos == manifest.get("blind_repositories"),
             "blind repository replay")
@@ -811,8 +1083,16 @@ def selftest_embedded() -> None:
     validate_document(document)
     mutations = []
     mutated = copy.deepcopy(document)
-    mutated["sampling_stop_rule"]["minimum_strict_targets"] = 99
-    mutations.append((mutated, "stop rule"))
+    mutated["sampling_stop_rule"]["minimum_strict_findings"] = 99
+    mutations.append((mutated, "finding stop rule"))
+    mutated = copy.deepcopy(document)
+    mutated["sampling_stop_rule"]["minimum_complete_repositories"] = 19
+    mutations.append((mutated, "repository stop rule"))
+    mutated = copy.deepcopy(document)
+    mutated["population"]["temporal_canary_reserve"]["sampling"][
+        "checkpoint_days_after_seal"
+    ] = [30, 60]
+    mutations.append((mutated, "temporal sampling rule"))
     mutated = copy.deepcopy(document)
     mutated["decision_matrix"]["blind_policy_gate"]["strict_target_precision_min"] = 0.94
     mutations.append((mutated, "target threshold"))
@@ -823,8 +1103,11 @@ def selftest_embedded() -> None:
     mutated["privacy"]["quality_labels_available_to_implementation"] = True
     mutations.append((mutated, "quality leak"))
     mutated = copy.deepcopy(document)
-    mutated["provenance"]["official_binary"]["sha256"] = "0" * 64
+    mutated["provenance"]["official_binary"]["binary_sha256"] = "0" * 64
     mutations.append((mutated, "binary identity"))
+    mutated = copy.deepcopy(document)
+    mutated["provenance"]["git_environment"]["version"] = "git version 0"
+    mutations.append((mutated, "Git environment"))
     for mutated, label in mutations:
         expect_failure(mutated, label)
 
@@ -846,6 +1129,7 @@ def main() -> None:
     freeze_parser.add_argument("--private-dir", type=Path, required=True)
     freeze_parser.add_argument("--repos-root", type=Path, default=ROOT / "bench/repos")
     freeze_parser.add_argument("--nose", type=Path, required=True)
+    freeze_parser.add_argument("--asset", type=Path, required=True)
     freeze_parser.set_defaults(function=freeze)
 
     validate_parser = sub.add_parser("validate")

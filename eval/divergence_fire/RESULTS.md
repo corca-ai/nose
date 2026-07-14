@@ -65,20 +65,24 @@ python3 eval/divergence_fire/replay.py policy-eval --samples eval/divergence_fir
 ## Sealed precision-first protocol (2026-07-14, #848)
 
 Further gate changes use the checked
-[`precision_protocol_2026_07_14.v1.json`](precision_protocol_2026_07_14.v1.json).
+[`precision_protocol_2026_07_14.v2.json`](precision_protocol_2026_07_14.v2.json).
 It freezes measurement and population before implementation work can inspect any new
 quality result. The 28 repositories and 179 labels from the 2026-07-06 refresh are
 **development-only**. They reproduce the v2 baseline at 80 strict findings, 45 true
 positives, 35 false positives, precision 45/80 = 0.5625 (reported 0.562), and a
 one-sided 95% Wilson lower bound of 0.4707.
 
-The fresh blind population is repository-disjoint from development data: four
+The corrected v2 seal supersedes the unused v1 draft after three independent reviews
+found a support-unit mismatch, an incomplete temporal rule, lossy Git collection, weak
+private-file permissions, and an incorrect release-asset suffix. No v1 quality verdict
+was created or revealed. The fresh v2 blind population is repository-disjoint from
+development data: four
 repositories for each of C, Go, Java, Python, Ruby, Rust, and TypeScript, or 28
 repositories total. Up to 40 eligible first-parent changes were frozen per repository,
 yielding 1,120 changes. A separate 28-repository temporal-canary reserve, also four per
-language, becomes eligible only after the seal and targets 1,000 changes. The primary
-arm remains `syntax,semantic`; `syntax,semantic,near` is advisory and cannot decide the
-gate.
+language, becomes eligible only after the seal. Its 1,000 changes follow a sealed future
+selection rule described below. The primary arm remains `syntax,semantic`;
+`syntax,semantic,near` is advisory and cannot decide the gate.
 
 The evaluation reports three precision units:
 
@@ -89,31 +93,50 @@ The evaluation reports three precision units:
 - change precision: changes with at least one `should_propagate` strict target divided
   by changes with at least one strict target.
 
-All lower confidence bounds are one-sided 95% Wilson score bounds (`z = 1.6448536269`).
+All three units report one-sided 95% Wilson score bounds (`z = 1.6448536269`).
 For the blind policy gate, strict-target precision must be at least 0.95, its Wilson
-lower bound at least 0.90, and support at least 100 targets. A default-on claim further
+lower bound at least 0.90, with at least 100 distinct strict findings, at least 100
+targets, and 20 complete repositories. A default-on claim further
 requires change-block precision at least 0.99, its Wilson lower bound at least 0.95,
 at least 20 repositories and 1,000 temporal changes, and zero confirmed false required
 blocks. Finding and change precision are always reported.
 
-Sampling is repository-atomic. In secret HMAC order, replay and adjudicate every
-selected change and every emitted strict target from the next complete repository;
-stop only after the first complete repository that brings cumulative support to at
-least 100 strict targets. A replay error remains counted and is never replaced. If all
-28 blind repositories are exhausted below 100 strict targets, the result is
+Blind sampling is repository-atomic. In secret HMAC order, replay and adjudicate every
+selected change and every emitted strict finding and target from the next complete
+repository. Stop only after a complete repository brings cumulative support to at
+least 100 distinct strict findings, 100 targets, and 20 complete repositories. A replay
+error remains counted and is never replaced. If all 28 blind repositories are exhausted
+before all three support minima are met, the result is
 `insufficient-evidence`, not a relaxed sample. The allowed final classifications are
 `default-on-ready`, `improved-opt-in-only`, `failed`, and `insufficient-evidence`.
 
+Temporal selection is also fixed before blind results exist. At days 30, 60, 90, 120,
+150, and 180 after the seal, a checkpoint must atomically commit all 28 repositories'
+advertised default refs and heads, capture times, command provenance, and errors before
+any nose replay or verdict. Each head must descend from its sealed head. From that
+first-parent range, apply the same supported-path and 3–600 changed-source-line bounds,
+then take at most 40 changes per repository in secret HMAC order. The temporal sample is
+every selected change from every reserve repository at the earliest checkpoint totaling
+at least 1,000; no checkpoint through day 180 means `insufficient-evidence`. Identity,
+ancestry, selection, or checkpoint errors invalidate the evaluation; query errors remain
+counted and cannot be replaced.
+
 No held-out quality labels exist at this stage. Raw repository/commit identities,
-source-bearing diffs, and the HMAC seed remain in an external private packet. Git stores
+source-bearing diffs, and the HMAC seed remain in an external `0700` directory whose
+seed, packet, and manifest are each created as `0600`. Git stores
 only opaque repository/change IDs, row commitments, source-free provenance, population
 counts, and the private packet's byte length and SHA-256. Two independent reviewers per
 opaque target and a resolver for disagreement must seal verdicts before identities can
 be revealed. This keeps implementation issues from tuning against blind outcomes.
 
 The public validator freezes the v0.19.0 release binary identity, corpus and prune
-manifest, replay harness, collector, source-redaction boundary, stop rule, verdict
-rubric, thresholds, and opaque population. The history-bound receipt additionally pins
+manifest, replay harness, collector, exact freeze command, Git version/config/locale,
+raw-byte diff encoding, source-redaction boundary, stop rule, temporal sampling, verdict
+rubric, thresholds, and opaque population. The `.tar.xz` release archive and extracted
+binary have separate SHA-256 identities. Collection disables ambient system/global Git
+config and pins rename, diff, text-conversion, locale, and path-byte handling; a Git
+selection failure aborts the freeze instead of silently choosing a replacement. The
+history-bound receipt additionally pins
 the exact artifact commit, parent, tree, Git blobs, file bytes, public checksum, seed
 commitment, private-packet commitment, and population counts. Consequently the #848
 branch must be integrated with a true Git merge commit; squash or rebase would remove
