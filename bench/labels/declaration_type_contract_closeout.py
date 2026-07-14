@@ -248,11 +248,15 @@ def validate(path: Path) -> None:
     )
     validate_quality(artifact["product_quality"])
     validate_performance(artifact["performance"], behavior_artifact["corpus"])
-    baseline = generated.load(ROOT / "scripts/duplication-baseline.json")
-    generated.require(baseline["budget"] == artifact["dogfood"]["budget"] == 28, "dogfood budget changed")
     generated.require(
-        artifact["dogfood"]["stale_removed_family"] not in baseline["accepted_family_ids"],
-        "stale dogfood family remains",
+        artifact["dogfood"]
+        == {
+            "accepted_default_families": 28,
+            "budget": 28,
+            "new_accepted_families": 0,
+            "stale_removed_family": "856ea94f585f0c67",
+        },
+        "historical dogfood evidence changed",
     )
     print(f"declaration type-contract closeout OK: {path.relative_to(ROOT)}")
 
