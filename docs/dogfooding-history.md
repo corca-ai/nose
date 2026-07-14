@@ -1215,3 +1215,24 @@ fingerprints enough for this representative to fall below value 40. All other
 28 accepted IDs remain exact, and no new substantial default-surface family is
 introduced. The stale ID is therefore removed and the budget tightens without
 accepting new duplication.
+
+The #857 exclusion-attribution slice moves the reviewed default-surface count
+from 28 to 29. Structured first-blocker propagation changes the oracle
+interpreter evaluator and statement-walker spans, so the two existing
+whole-implementation span-noise representatives move without changing their
+members: `149bb759833d2d51` becomes `20d66ad9ef0c1f42` for
+`interp/eval.rs` and `value_graph/eval/core.rs`, while `d9eaf862103c02a7`
+becomes `30ae71e90215f0cc` for `interp/exec.rs` and
+`value_graph/control/statements.rs`. These remain intentionally independent
+execution models; sharing their 9- and 16-line dispatch skeletons would couple
+oracle interpretation to exact-fingerprint construction.
+
+The only count increase is `856ea94f585f0c67`, the pre-existing
+`interp/ops.rs::int_bin` / `float_bin` dispatcher family already reviewed in
+the Python loop/De Morgan and generated-provenance slices. Capability-specific
+unsupported outcomes shift the self-query fingerprints enough for it to cross
+value 40 again. Integer wrapping, division/modulo, floor, and bitwise semantics
+remain deliberately separate from float IEEE behavior, so extracting the ten
+shared dispatch lines would blur the soundness boundary. No new avoidable
+duplication is accepted; the two representative IDs are replaced and the
+budget is raised to 29 for the returning reviewed family.

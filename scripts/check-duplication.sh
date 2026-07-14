@@ -244,6 +244,10 @@ set -euo pipefail
 # boundary tests shift self-query fingerprints; neither numeric member changed. No new default
 # family is accepted, so the stale ID is removed and the budget tightens. See
 # docs/dogfooding-history.md.
+# 28 -> 29 (#857 exclusion attribution): structured oracle diagnostics move the two reviewed
+# interpreter/value-graph whole-impl span-noise representatives without changing their members.
+# The same changes make the pre-existing int/float dispatcher family cross value 40 again. No new
+# extractable family is accepted; see docs/dogfooding-history.md.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 
