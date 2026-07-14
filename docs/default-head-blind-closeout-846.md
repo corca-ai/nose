@@ -137,6 +137,16 @@ keyed only by arbiter blind IDs. Source, root seed, persona identities, candidat
 keys, and mappings remain private until this result and its external receipt are
 merged, after which reveal is a mechanical replay rather than a new judgment.
 
+The post-result reveal replayed the official binary and all 214 sealed candidates,
+then reproduced the three 214-case packets and the 90-case arbitration packet byte
+for byte. It compiled 147 worthy and 67 not-worthy final decisions; 124 cases were
+exact panel agreements and 90 used the frozen arbiter result. The seven plaintext,
+mapping, decision, and precision-only component artifacts were added together by
+commit `e1bafefe` / tree `cdce9053`, whose exact parent is the independently reviewed
+collector `3558f6f6`. The reveal receipt checks the exact commit, parent, tree, path
+set, Git modes, blob hashes and lengths, current bytes, full seed/HMAC mapping, all
+three raw-vote alignments, arbitration coverage, and final decision/component replay.
+
 ## Closeout gates
 
 Only after the judgment component is frozen may the closeout report final dev and
@@ -182,6 +192,8 @@ python3 bench/labels/default_head_heldout_reveal.py freeze \
   --private-arbiter-packet <outside-repository>/arbiter.json
 python3 bench/labels/default_head_heldout_reveal.py validate
 python3 bench/labels/default_head_heldout_reveal.py self-test
+python3 bench/labels/default_head_heldout_reveal_receipt.py validate
+python3 bench/labels/default_head_heldout_reveal_receipt.py self-test
 ```
 
 Ordinary CI validates only public commitments and receipts until the post-arbiter
@@ -196,7 +208,6 @@ retry. Promotion is no-clobber, rollback never deletes a byte-mismatched path, a
 all reserved entries must be regular files rather than symlinks. Public validation
 rejects an outstanding marker. Live rollback additionally requires the original
 device/inode identity, so an equal-byte replacement is never mistaken for an owned
-entry. Git publication remains one
-atomic artifact commit. The
-plaintext packets and root seed remain deliberately unavailable to CI during the
-blind phase and become public only after the blind arbitration result is merged.
+entry. Git publication remains one atomic artifact commit. The plaintext packets
+and root seed remain deliberately unavailable to CI during the blind phase and
+become public only after the blind arbitration result is merged.

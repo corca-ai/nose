@@ -71,6 +71,8 @@ jobs:
           reveal=bench/labels/default_head_heldout_reveal_2026_07_14.heldout.v3.json
           if [[ -e "$reveal" || -L "$reveal" ]]; then
             python3 bench/labels/default_head_heldout_reveal.py validate
+            python3 bench/labels/default_head_heldout_reveal_receipt.py validate
+            python3 bench/labels/default_head_heldout_reveal_receipt.py self-test
           fi
           python3 bench/labels/proof_actionability_no_go.py --self-test
           python3 bench/labels/residual_ranking.py validate
