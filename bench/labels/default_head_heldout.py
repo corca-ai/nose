@@ -273,8 +273,8 @@ def collect_blind(args: argparse.Namespace) -> dict[str, Any]:
     status = git_text(["status", "--short"])
     if status:
         raise ValueError("held-out unseal requires a clean working tree")
-    command = shlex.join(["python3", *sys.argv])
-    require_equal(command, FREEZE_COMMAND, "unseal command")
+    unseal_command = shlex.join(["python3", *sys.argv])
+    require_equal(unseal_command, FREEZE_COMMAND, "unseal command")
     seal = validate_seal_receipt(live_binary=args.nose)
     nose_command = Path(relative(args.nose))
     corpus_payload = read_json(args.corpus)
@@ -298,7 +298,9 @@ def collect_blind(args: argparse.Namespace) -> dict[str, Any]:
             raise ValueError(f"missing pinned repository: {repo_id}")
         actual_commit = runway.repository_head(repo)
         require_equal(actual_commit, metadata["commit"], f"{repo_id} commit")
-        stdout, families, command = runway.query_default_runway_repo(nose_command, repo)
+        stdout, families, query_command = runway.query_default_runway_repo(
+            nose_command, repo
+        )
         repo_candidates = [
             compact_candidate(repo_id, metadata, rank, family, base_by_repo)
             for rank, family in enumerate(families, start=1)
@@ -309,7 +311,7 @@ def collect_blind(args: argparse.Namespace) -> dict[str, Any]:
             "commit": actual_commit,
             "language": metadata["primary_language"],
             "split": "heldout",
-            "query_command": shlex.join(command),
+            "query_command": shlex.join(query_command),
             "query_stdout_sha256": hashlib.sha256(stdout).hexdigest(),
             "top_30_reported": len(repo_candidates),
             "top_10_reported": len(top_10),
@@ -359,7 +361,7 @@ def collect_blind(args: argparse.Namespace) -> dict[str, Any]:
             "visible_fields": sorted(VISIBLE_CANDIDATE_KEYS),
         },
         "provenance": {
-            "command": command,
+            "command": unseal_command,
             "unseal_commit": git_text(["rev-parse", "HEAD"]),
             "unseal_tree": git_text(["rev-parse", "HEAD^{tree}"]),
             "working_tree_status_before_unseal": status,
