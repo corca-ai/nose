@@ -1,0 +1,56 @@
+{
+  "schema": "nose.default_head_measurement_provenance.v1",
+  "issue": 846,
+  "tracker": 838,
+  "binding_kind": "post-hoc artifact binding; clean reproducibility is established separately by the checked replay receipt",
+  "product": {
+    "source_commit": "cdab416706c32ea94bf808ec7ebb36781e483e65",
+    "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
+    "binary_code_sha256": "03cc5827cdadc225478a34266de78805c6e495810f90e8642f2ae2807b3a4f5a",
+    "binary_code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1"
+  },
+  "inputs": {
+    "source_tree": {
+      "path": "crates",
+      "git_tree_sha1": "0f42757629a79ce7be0cd0cd5cd90c2d5b78c3da"
+    },
+    "corpus": {
+      "manifest": "bench/goldens/corpus.json",
+      "manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
+      "prune_manifest": "bench/labels/prune_manifest.json",
+      "prune_manifest_sha256": "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980",
+      "state_contract": "bench/default_head_closeout_corpus.v1.json",
+      "state_contract_sha256": "b28d7245aa34d7e0320d0c80ef988803ba6acb65b63eaf1bae6d7ac840b168e0",
+      "subset_digest_after_prune": "7247d64112bc20749de43d91fb86c6f288ae09271a08d67b68aa252d5abb5804"
+    }
+  },
+  "measurements": {
+    "soundness": {
+      "artifact": "bench/recall_loss/issue-846-crates-verify-2026-07-14.v1.json",
+      "artifact_sha256": "b31d040498be5f34f2f519ced3c0dc7d20796b4ac6dd55eb6bb2e5583b111a07",
+      "command": "target/release/nose verify crates --max-violations 0 --recall-loss-report target/issue-846-closeout/recall-loss.crates.v1.json",
+      "source_commit": "cdab416706c32ea94bf808ec7ebb36781e483e65",
+      "source_tree_sha1": "0f42757629a79ce7be0cd0cd5cd90c2d5b78c3da",
+      "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0"
+    },
+    "heldout_thread_determinism": {
+      "artifact": "bench/recall_loss/issue-846-heldout-thread-determinism-2026-07-14.v1.tsv",
+      "artifact_sha256": "6e270c2e2956832a85cd52f90b406725d68454c770b1546cd6606ec0a8ce6d4c",
+      "command": "for each heldout corpus repository: RAYON_NUM_THREADS={1,4} target/release/nose query bench/repos/<repo> all top=0 --format json",
+      "source_commit": "cdab416706c32ea94bf808ec7ebb36781e483e65",
+      "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
+      "split": "heldout",
+      "repositories": 54,
+      "thread_counts": [1, 4],
+      "corpus_state_contract_sha256": "b28d7245aa34d7e0320d0c80ef988803ba6acb65b63eaf1bae6d7ac840b168e0",
+      "subset_digest_after_prune": "7247d64112bc20749de43d91fb86c6f288ae09271a08d67b68aa252d5abb5804"
+    },
+    "ruby_redefinition_scaling": {
+      "artifact": "bench/recall_loss/issue-846-ruby-scaling-2026-07-14.v1.json",
+      "artifact_sha256": "dde0017440e4195fc7fc3f278c7677665e5e2b91cdf685bf2bbd50ecd6f34203",
+      "command": "python3 scripts/ruby-redefinition-scaling.py --binary target/release/nose --output target/issue-846-semantic-smoke-artifacts/ruby-scaling.json",
+      "source_commit": "cdab416706c32ea94bf808ec7ebb36781e483e65",
+      "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0"
+    }
+  }
+}

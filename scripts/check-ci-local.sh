@@ -145,6 +145,12 @@ run_regression_checker_selftests() {
     python3 bench/labels/residual_ranking_panel.py self-test
     python3 bench/labels/residual_ranking_closeout.py validate
     python3 bench/labels/residual_ranking_closeout.py self-test
+    python3 bench/labels/default_head_fresh_repository_audit.py
+    python3 bench/labels/default_head_fresh_repository_audit.py --self-test
+    python3 bench/labels/default_head_measurement_replay.py validate
+    python3 bench/labels/default_head_measurement_replay.py self-test
+    python3 bench/labels/default_head_closeout.py
+    python3 bench/labels/default_head_closeout.py --self-test
     python3 bench/labels/generated_provenance_behavior.py --self-test
     python3 bench/labels/generated_provenance_behavior.py validate
     python3 bench/labels/generated_provenance_closeout.py --self-test

@@ -174,6 +174,33 @@ small, three-person audit of Java/Python hidden/divergence exact-fragment famili
 validate surface policy after the semantic corpus pass. See
 [`docs/fragment-quality-audit-2026-06-10.md`](../../docs/fragment-quality-audit-2026-06-10.md).
 
+`default_head_fresh_repository_audit_2026_07_14.v1.json` is the frozen #846 field
+audit of the first ten bare-default families from eight repositories selected before
+clone or query, one per evaluated language and all outside the 120-repository corpus.
+All 80 judgments follow `RUBRIC.md`; the checked validator binds the repository commits,
+ordered family IDs, raw query hashes, summaries, and the rule that field findings cannot
+retune the already-revealed product.
+
+`default_head_closeout_2026_07_14.v1.json` is the final #846 / #838 decision
+artifact. It distinguishes #845's completely judged 387/658 dev result from the
+standard evaluator's coverage-limited 382/647 cross-check, records the 334/526
+held-out result, and binds recall, field, soundness, determinism, exact output-drift,
+and official-v0.19.0 performance evidence. Its conclusion is a checked no-go, not a
+relaxed success: aggregate precision, five language-floor cells, and material runtime
+stage signals fail while worthy recall and soundness remain preserved.
+
+`default_head_measurement_provenance_2026_07_14.v1.json` is the explicit post-hoc
+path/hash/source binding for the raw soundness, held-out determinism, and Ruby scaling
+artifacts; it does not claim a contemporaneously clean original checkout.
+`default_head_measurement_replay_2026_07_14.v2.json` is the independently generated
+clean-tree receipt. Its already-committed generator first verified all 120 pinned commits
+and the complete 1.5 GB post-prune corpus digest, then reran the exact frozen binary,
+reproduced the soundness artifact byte-for-byte and all 54 held-out thread hashes, and
+confirmed the same Ruby fixtures remain within the scaling threshold. Its sidecar and
+the closeout's fixed path/hash binding prevent a caller from substituting another receipt;
+the validator also recomputes the Ruby medians, exponent, delta, and verdict from the
+embedded runs before joining the replay to the exact evidence paths and hashes consumed.
+
 `lawpack_provenance_audit_2026_06_10.json` is also adjacent evidence, not part of
 the active metric. It records the full-corpus and targeted real-repo pass for the
 first-party `nose.value_graph.laws` LawPack pilot. See

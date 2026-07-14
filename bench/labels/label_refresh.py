@@ -1433,10 +1433,14 @@ def runway_coverage(
         for family in labels.families
         if family.get("selection", {}).get("runway") == "v7-default-head"
     ]
-    if any(family.get("split") != "dev" for family in runway_labels):
-        raise SystemExit("held-out v7 judgments must remain unavailable before closeout")
-    by_key = {family["candidate_key"]: family for family in runway_labels}
-    if len(by_key) != len(runway_labels) or set(by_key) != set(selected):
+    dev_labels = [family for family in runway_labels if family.get("split") == "dev"]
+    heldout_labels = [
+        family for family in runway_labels if family.get("split") == "heldout"
+    ]
+    if len(dev_labels) + len(heldout_labels) != len(runway_labels):
+        raise SystemExit("v7 runway labels contain an unsupported split")
+    by_key = {family["candidate_key"]: family for family in dev_labels}
+    if len(by_key) != len(dev_labels) or set(by_key) != set(selected):
         raise SystemExit(
             "v7 runway labels do not match dev selection; "
             f"missing={sorted(set(selected) - set(by_key))}, "
@@ -1479,7 +1483,7 @@ def runway_coverage(
         raise SystemExit(f"v7 dev default-head coverage {pct}% is below 90%")
 
     swift_labels = [
-        family for family in runway_labels if family["language"].lower() == "swift"
+        family for family in dev_labels if family["language"].lower() == "swift"
     ]
     if {family["worthy"] for family in swift_labels} != {False, True}:
         raise SystemExit("v7 dev Swift runway must contain both worthiness classes")
@@ -1491,6 +1495,14 @@ def runway_coverage(
         ]
         if candidate["selected"] and candidate["language"].lower() == "swift"
     }
+    sealed_keys = {
+        row["candidate_key"]
+        for row in seal["candidate_commitments"]
+        if row["selected"]
+    }
+    heldout_by_key = {family["candidate_key"]: family for family in heldout_labels}
+    if len(heldout_by_key) != len(heldout_labels) or set(heldout_by_key) != sealed_keys:
+        raise SystemExit("v7 held-out labels do not match the sealed selection")
     return {
         "labelset_version": labels.version,
         "dev": {
@@ -1507,7 +1519,7 @@ def runway_coverage(
         "runway_worthy": sum(1 for family in runway_labels if family["worthy"]),
         "runway_not_worthy": sum(1 for family in runway_labels if not family["worthy"]),
         "swift_selected_repositories": sorted(selected_swift_repos),
-        "heldout_judgments": 0,
+        "heldout_judgments": len(heldout_labels),
     }
 
 
@@ -1559,24 +1571,41 @@ def validate_runway_evaluation(
         raise SystemExit("v7 runway evaluation was not measured from a clean tree")
     if provenance.get("nose_binary_sha256") != dev["provenance"]["nose_binary_sha256"]:
         raise SystemExit("v7 runway evaluation binary differs from the frozen runway")
-    if (
-        provenance.get("labelset_version") != labels.version
-        or provenance.get("labelset_sha256") != sha256_file(labels.path)
-    ):
+    revision = provenance.get("git_sha")
+    if not isinstance(revision, str):
+        raise SystemExit("v7 runway evaluation source revision missing")
+    if provenance.get("labelset_version") != labels.version:
         raise SystemExit("v7 runway evaluation labelset provenance changed")
-    expected_inputs = [
-        {"path": rel(record["path"]), "sha256": record["sha256"]}
-        for record in labels.inputs
-    ]
-    if provenance.get("labelset_inputs") != expected_inputs:
-        raise SystemExit("v7 runway evaluation labelset inputs changed")
+    labelset_path = provenance.get("labelset")
+    labelset_digest = provenance.get("labelset_sha256")
+    if (
+        labelset_path != rel(labels.path)
+        or not isinstance(labelset_digest, str)
+        or git_file_sha256(revision, labelset_path) != labelset_digest
+    ):
+        raise SystemExit("v7 runway evaluation historical labelset changed")
+    historical_inputs = provenance.get("labelset_inputs")
+    if not isinstance(historical_inputs, list) or not historical_inputs:
+        raise SystemExit("v7 runway evaluation labelset inputs missing")
+    for index, record in enumerate(historical_inputs):
+        if (
+            not isinstance(record, dict)
+            or set(record) != {"path", "sha256"}
+            or not isinstance(record["path"], str)
+            or not isinstance(record["sha256"], str)
+        ):
+            raise SystemExit(f"v7 runway evaluation labelset_inputs[{index}] is invalid")
+        if git_file_sha256(revision, record["path"]) != record["sha256"]:
+            raise SystemExit(
+                f"v7 runway evaluation historical labelset input changed: "
+                f"{record['path']}"
+            )
     if provenance.get("corpus_manifest_sha256") != dev["provenance"][
         "corpus_manifest_sha256"
     ]:
         raise SystemExit("v7 runway evaluation corpus manifest changed")
-    revision = provenance.get("git_sha")
     sources = provenance.get("evaluation_sources")
-    if not isinstance(revision, str) or not isinstance(sources, list) or not sources:
+    if not isinstance(sources, list) or not sources:
         raise SystemExit("v7 runway evaluation source provenance missing")
     for index, record in enumerate(sources):
         if not isinstance(record, dict):
@@ -1813,16 +1842,24 @@ def validate_runway_labelset_bindings(
         raise SystemExit("v7 labelset base family projection differs from frozen v6")
     components = manifest.get("components")
     seals = manifest.get("seals")
-    if not isinstance(components, list) or len(components) != 1:
-        raise SystemExit("v7 runway labelset must bind exactly one dev component")
+    if not isinstance(components, list) or len(components) != 2:
+        raise SystemExit("v7 runway labelset must bind dev and held-out components")
     if not isinstance(seals, list) or len(seals) != 1:
         raise SystemExit("v7 runway labelset must bind exactly one held-out seal")
-    if not isinstance(components[0], dict) or not isinstance(seals[0], dict):
+    if not all(isinstance(record, dict) for record in components) or not isinstance(seals[0], dict):
         raise SystemExit("v7 runway labelset component/seal records must be objects")
+    component_records = {record.get("split"): record for record in components}
+    if set(component_records) != {"dev", "heldout"}:
+        raise SystemExit("v7 runway labelset component splits changed")
     component_path = resolve_evidence_file(
         labelset_path.parent,
-        {key: components[0].get(key) for key in ("path", "sha256")},
+        {key: component_records["dev"].get(key) for key in ("path", "sha256")},
         "v7 dev component",
+    )
+    heldout_component_path = resolve_evidence_file(
+        labelset_path.parent,
+        {key: component_records["heldout"].get(key) for key in ("path", "sha256")},
+        "v7 held-out component",
     )
     manifest_seal_path = resolve_evidence_file(
         labelset_path.parent,
@@ -1843,6 +1880,14 @@ def validate_runway_labelset_bindings(
         component_path, COMPONENT_SCHEMA, "v7 dev component"
     )
     replay_runway_judgment_chain(dev_path, dev, component_path, component)
+    import default_head_heldout_reveal as heldout_reveal
+    import default_head_heldout_reveal_receipt as heldout_receipt
+
+    if heldout_component_path.resolve() != heldout_reveal.COMPONENT.resolve():
+        raise SystemExit("v7 held-out component differs from the frozen reveal")
+    heldout_receipt.validate_git_receipt()
+    heldout_reveal.validate_checked()
+    heldout_receipt.validate_summary()
 
 
 def build_component(

@@ -1,0 +1,193 @@
+{
+  "schema": "nose.default_head_fresh_repository_audit.v1",
+  "issue": 846,
+  "audited_on": "2026-07-14",
+  "contract": {
+    "selection_path": "bench/labels/default_head_fresh_repository_selection_2026_07_14.v1.json",
+    "selection_sha256": "791db11158d018400bea5485a146cc882044da2d2169755b5655a2234119cd3b",
+    "rubric_path": "bench/labels/RUBRIC.md",
+    "rubric_sha256": "bbef42b67533921864126ce3445275090fe53526e3997eab2e995787db4c83e6",
+    "query": "nose query <repository> --format json",
+    "reviewed_positions_per_repository": 10,
+    "mutation_policy": "Field findings may create follow-up issues but cannot change the frozen #846 product, ranking, surface, or labels."
+  },
+  "product": {
+    "source_commit": "cdab416706c32ea94bf808ec7ebb36781e483e65",
+    "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
+    "version_output": "nose 0.19.0"
+  },
+  "summary": {
+    "repositories": 8,
+    "reported": 80,
+    "reviewed": 80,
+    "worthy": 40,
+    "not_worthy": 40,
+    "precision_at_10": 0.5,
+    "follow_up_findings": [
+      "Checked-in static documentation and generated analysis snapshots can dominate the bare default head.",
+      "The field sample varies from 0/10 to 10/10, so aggregate corpus precision does not describe a new repository's first-run experience."
+    ]
+  },
+  "repositories": [
+    {
+      "id": "check-fresh",
+      "repository": "libcheck/check",
+      "language": "C",
+      "commit": "35d9cc011faa0545bf56d5062ae90bbc2688eba7",
+      "raw_query_sha256": "44ce503dda41aa2422da061fdabc73e6233566e2255fe6860b6c5314f6155997",
+      "summary": {"reported": 10, "worthy": 2, "precision_at_10": 0.2},
+      "candidates": [
+        {"rank": 1, "family_id": "e1a9308c4b6d272b", "worthy": false, "reason": "parallel-by-design", "confidence": "high", "note": "Progressive tutorial and usage-fixture mains are intentionally self-contained variants."},
+        {"rank": 2, "family_id": "e30ffec71bad2fc6", "worthy": false, "reason": "parallel-by-design", "confidence": "high", "note": "The suite builders are progressive copies of the same tutorial, not a shared production abstraction."},
+        {"rank": 3, "family_id": "ce08511dcea5a72a", "worthy": false, "reason": "parallel-by-design", "confidence": "high", "note": "Whole-file tutorial snapshots are deliberately parallel stages."},
+        {"rank": 4, "family_id": "11d67a282d349f53", "worthy": false, "reason": "parallel-by-design", "confidence": "high", "note": "The repeated test is carried across progressive tutorial snapshots."},
+        {"rank": 5, "family_id": "0fc7d04fd357c4d9", "worthy": false, "reason": "parallel-by-design", "confidence": "high", "note": "The repeated test is carried across progressive tutorial snapshots."},
+        {"rank": 6, "family_id": "b13a5475b743408e", "worthy": false, "reason": "generated", "confidence": "high", "note": "Generated Autoconf Archive HTML pages are not maintained source to refactor."},
+        {"rank": 7, "family_id": "1d923aa30860687c", "worthy": false, "reason": "parallel-by-design", "confidence": "medium", "note": "The small destructor is repeated only because the tutorial ships several standalone source stages."},
+        {"rank": 8, "family_id": "414cb1e684aec80d", "worthy": true, "reason": "extract-helper", "confidence": "medium", "note": "The same maintained site footer appears in three pages and can be one include or template partial."},
+        {"rank": 9, "family_id": "b206b4af47cadd68", "worthy": false, "reason": "parallel-by-design", "confidence": "high", "note": "The assertion test is repeated across progressive tutorial snapshots."},
+        {"rank": 10, "family_id": "61025c00223009f9", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Twelve assertion tests repeat the same harness while varying the checked operator and expectation."}
+      ]
+    },
+    {
+      "id": "lipgloss-fresh",
+      "repository": "charmbracelet/lipgloss",
+      "language": "Go",
+      "commit": "d19c46c689ccc266b6f72e4fdfd22af7540226c8",
+      "raw_query_sha256": "5558e1a5cc84b90c36455ff947bf2404304e771d5400027d7952d8c64c6adea2",
+      "summary": {"reported": 10, "worthy": 6, "precision_at_10": 0.6},
+      "candidates": [
+        {"rank": 1, "family_id": "8967c9cdfd7d874b", "worthy": false, "reason": "parallel-by-design", "confidence": "high", "note": "Color and compatibility examples intentionally demonstrate different APIs with shared presentation scaffolding."},
+        {"rank": 2, "family_id": "3be6eb7bbb6595a5", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Three border benchmarks duplicate the dimension and benchmark harness."},
+        {"rank": 3, "family_id": "ee3bc9dc62c76118", "worthy": false, "reason": "parallel-by-design", "confidence": "high", "note": "The standalone color and compatibility examples intentionally compare distinct APIs."},
+        {"rank": 4, "family_id": "0f2149b01b7e24d5", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Three style tests repeat the same assertion loop and can share a test helper."},
+        {"rank": 5, "family_id": "00d83c9a6d3bc61e", "worthy": false, "reason": "trivial", "confidence": "high", "note": "Only a short terminal-program tail is shared between otherwise distinct examples."},
+        {"rank": 6, "family_id": "e2a18bdfeeeee17e", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Two list tests repeat a substantial render-and-compare driver."},
+        {"rank": 7, "family_id": "026eec909a11b765", "worthy": true, "reason": "extract-helper", "confidence": "medium", "note": "Four color-operation tests duplicate the same subtest runner; a callable operation parameter keeps the cases independent."},
+        {"rank": 8, "family_id": "7e039c7377b7876c", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Two table tests repeat the same setup and assertions with one option axis."},
+        {"rank": 9, "family_id": "fabbdf020845041e", "worthy": false, "reason": "parallel-by-design", "confidence": "medium", "note": "An API example test and the makeup demo share presentation setup but serve different executable purposes."},
+        {"rank": 10, "family_id": "40f029f3b8f81f35", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Two style tests duplicate the same style construction and expectation sequence."}
+      ]
+    },
+    {
+      "id": "picocli-fresh",
+      "repository": "remkop/picocli",
+      "language": "Java",
+      "commit": "a89996315c3fe26b457e89443e3034e3e5967c49",
+      "raw_query_sha256": "7045ddb89d5fcf9a1b5187f34ff80648685b02b61175a3cc22965fc3fd49ee91",
+      "summary": {"reported": 10, "worthy": 0, "precision_at_10": 0.0},
+      "candidates": [
+        {"rank": 1, "family_id": "3f108864e50bfb20", "worthy": false, "reason": "generated", "confidence": "high", "note": "The family is generated static documentation HTML."},
+        {"rank": 2, "family_id": "dd3cedb4a2634bbf", "worthy": false, "reason": "generated", "confidence": "high", "note": "The family is generated static documentation HTML."},
+        {"rank": 3, "family_id": "59f4b0546356f041", "worthy": false, "reason": "generated", "confidence": "high", "note": "The family is generated static documentation HTML."},
+        {"rank": 4, "family_id": "f6929ccb527e6201", "worthy": false, "reason": "generated", "confidence": "high", "note": "The family is generated static documentation HTML."},
+        {"rank": 5, "family_id": "6fdbad83ac65f6d7", "worthy": false, "reason": "generated", "confidence": "high", "note": "The family is generated static documentation HTML."},
+        {"rank": 6, "family_id": "68207808f17036b8", "worthy": false, "reason": "generated", "confidence": "high", "note": "The family is generated static documentation HTML."},
+        {"rank": 7, "family_id": "798fdda539036da9", "worthy": false, "reason": "generated", "confidence": "high", "note": "The family is generated static documentation HTML."},
+        {"rank": 8, "family_id": "4c563c860f36f863", "worthy": false, "reason": "generated", "confidence": "high", "note": "The family is generated static documentation HTML."},
+        {"rank": 9, "family_id": "8684f0e42a0624bf", "worthy": false, "reason": "generated", "confidence": "high", "note": "The family is generated static documentation HTML."},
+        {"rank": 10, "family_id": "38032fa92228722e", "worthy": false, "reason": "generated", "confidence": "high", "note": "The family is generated static documentation HTML."}
+      ]
+    },
+    {
+      "id": "pydantic-fresh",
+      "repository": "pydantic/pydantic",
+      "language": "Python",
+      "commit": "c47bba2cde81aa7d9374119bebea48e435e98627",
+      "raw_query_sha256": "9c9ef570c3e79192215b30f5370a19c58f82314cbb1d7d16379b2240dcb67d21",
+      "summary": {"reported": 10, "worthy": 1, "precision_at_10": 0.1},
+      "candidates": [
+        {"rank": 1, "family_id": "4cb6ec72bbe98a29", "worthy": false, "reason": "generated", "confidence": "high", "note": "Generated mypy output snapshots dominate the family members."},
+        {"rank": 2, "family_id": "1f127396e6e5a0a9", "worthy": false, "reason": "generated", "confidence": "high", "note": "Generated mypy output snapshots dominate the family members."},
+        {"rank": 3, "family_id": "5b3ac9f0d1c0fa0e", "worthy": false, "reason": "generated", "confidence": "high", "note": "Whole generated mypy output snapshots form the family."},
+        {"rank": 4, "family_id": "ee5989e2fc5c8a11", "worthy": false, "reason": "generated", "confidence": "high", "note": "Generated mypy output snapshots dominate the family members."},
+        {"rank": 5, "family_id": "b3fe0113c37a45b1", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Eight validator tests repeat the same success-or-error assertion driver, varying only value and result type."},
+        {"rank": 6, "family_id": "d2b17aff2150a987", "worthy": false, "reason": "generated", "confidence": "high", "note": "Generated mypy output snapshots dominate the family members."},
+        {"rank": 7, "family_id": "d89a99e649afd37b", "worthy": false, "reason": "parallel-by-design", "confidence": "high", "note": "The six Field overloads intentionally repeat a public type-checking signature while changing overload semantics; runtime extraction is inapplicable."},
+        {"rank": 8, "family_id": "555c51eb6cf885f9", "worthy": false, "reason": "generated", "confidence": "high", "note": "Generated mypy output snapshots dominate the family members."},
+        {"rank": 9, "family_id": "d736d270e5eea337", "worthy": false, "reason": "generated", "confidence": "high", "note": "Generated mypy output snapshots dominate the family members."},
+        {"rank": 10, "family_id": "457e3aca2a03322a", "worthy": false, "reason": "generated", "confidence": "high", "note": "Generated mypy output snapshots dominate the family members."}
+      ]
+    },
+    {
+      "id": "dry-monads-fresh",
+      "repository": "dry-rb/dry-monads",
+      "language": "Ruby",
+      "commit": "9039d58b1c0fb82a27410e1bb5b9a5e20303f86f",
+      "raw_query_sha256": "9b6ac7854b1cc23bcc5b3ddb26a3eed88dddd73994cd86e3580c589e9388234f",
+      "summary": {"reported": 10, "worthy": 9, "precision_at_10": 0.9},
+      "candidates": [
+        {"rank": 1, "family_id": "a16578e897995305", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Three monad specs duplicate the negative fmap contract and can use shared examples."},
+        {"rank": 2, "family_id": "6c2fb0c95cc2cfe6", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Maybe, Result, and Try repeat the fallback dispatch; the optional yielded value is a clean parameter."},
+        {"rank": 3, "family_id": "5e4d862b66dcebfa", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Three monad specs duplicate the negative bind contract and can use shared examples."},
+        {"rank": 4, "family_id": "0fad7243a01498e6", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Maybe and Result repeat the positive fmap contract with only constructor terminology changing."},
+        {"rank": 5, "family_id": "7a7151b9ba09f65d", "worthy": true, "reason": "parameterize", "confidence": "medium", "note": "Maybe and Result repeat the same tee behavior contract and can share an example group."},
+        {"rank": 6, "family_id": "fe01cd52e9df7865", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Four pattern-matching constructor cases repeat one test driver."},
+        {"rank": 7, "family_id": "a57e459e20a4e770", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Maybe and Result repeat the same proc-argument behavior contract."},
+        {"rank": 8, "family_id": "843331b74c4e86af", "worthy": true, "reason": "parameterize", "confidence": "medium", "note": "Try, Maybe, and Result repeat a substantial right-biased bind contract suitable for shared examples."},
+        {"rank": 9, "family_id": "158cb60b95819746", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Maybe and Result repeat the same value_or contract."},
+        {"rank": 10, "family_id": "f12aff93eb175d7f", "worthy": false, "reason": "trivial", "confidence": "high", "note": "Only a short expectation tail is shared by otherwise distinct Result examples."}
+      ]
+    },
+    {
+      "id": "console-fresh",
+      "repository": "console-rs/console",
+      "language": "Rust",
+      "commit": "598eca9fe9e3f9b93d2b49fdccf2d395d809bd94",
+      "raw_query_sha256": "be012aab39d1005ed514e3ebd5aa1b451e257f567ca8fa9d21a8a0672c5e9631",
+      "summary": {"reported": 10, "worthy": 6, "precision_at_10": 0.6},
+      "candidates": [
+        {"rank": 1, "family_id": "3fd36c0f2115770d", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Term and borrowed Term repeat the same Write delegation block."},
+        {"rank": 2, "family_id": "4b0d645d8fb77351", "worthy": false, "reason": "parallel-by-design", "confidence": "high", "note": "Adjacent ANSI state-machine ranges differ in a meaningful transition and are clearer as separate cases."},
+        {"rank": 3, "family_id": "18dafc466fe9acc9", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Two Windows terminal paths duplicate the same fill-console sequence."},
+        {"rank": 4, "family_id": "18a3ee185c5a62dc", "worthy": false, "reason": "trivial", "confidence": "high", "note": "Two tiny unsupported-Wasm stubs differ in return type and have no useful shared abstraction."},
+        {"rank": 5, "family_id": "b6a367e95a5db37c", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Cursor-left and cursor-right routines differ only in direction and coordinate adjustment."},
+        {"rank": 6, "family_id": "88c0a065ceaeb82d", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Foreground and background color loops differ only in the styling operation."},
+        {"rank": 7, "family_id": "39f173ed5fe0836e", "worthy": false, "reason": "trivial", "confidence": "high", "note": "The one-byte prefix and suffix parsers are already the smallest readable abstractions."},
+        {"rank": 8, "family_id": "55c0d2e0d8ba2680", "worthy": true, "reason": "extract-helper", "confidence": "medium", "note": "Overlapping clear-screen paths repeat the same coordinate and fill-console sequence."},
+        {"rank": 9, "family_id": "d57a630c63156ca0", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Style and StyledObject repeat the same large fluent attribute API and can share macro-generated definitions."},
+        {"rank": 10, "family_id": "9ecd5d8f5f61afcb", "worthy": false, "reason": "coincidental-shape", "confidence": "medium", "note": "The overlapping spans cover different cursor visibility and clear operations rather than one coherent reusable unit."}
+      ]
+    },
+    {
+      "id": "nuke-fresh",
+      "repository": "kean/Nuke",
+      "language": "Swift",
+      "commit": "63a8fcbd6621340a2410bc3e9575ac97058615f4",
+      "raw_query_sha256": "cd4c186cea994283d74d49bfac56529a25f0b64e91bf8ab491ff20097c6763c5",
+      "summary": {"reported": 10, "worthy": 10, "precision_at_10": 1.0},
+      "candidates": [
+        {"rank": 1, "family_id": "e500f37c286dee74", "worthy": true, "reason": "extract-base", "confidence": "high", "note": "Eight test classes repeat the same pipeline fixture initialization."},
+        {"rank": 2, "family_id": "d8389034acac3f80", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Four resumable-data factories repeat one response builder while varying header or status."},
+        {"rank": 3, "family_id": "094df44a6e13e4c7", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Two progressive-decoding tests differ only in the expected transition."},
+        {"rank": 4, "family_id": "352e634a286f2c21", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Two data-cache tests duplicate the same substantial assertion sequence."},
+        {"rank": 5, "family_id": "f2ee5f18a8530d25", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Two resumable-storage cases repeat one driver while varying the storage condition."},
+        {"rank": 6, "family_id": "f0545f4e0135af24", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Three load-data policy tests repeat setup, request, and assertions with a policy axis."},
+        {"rank": 7, "family_id": "f00cff7bfcf00c12", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Two processor tests duplicate the same platform-color assertion helper."},
+        {"rank": 8, "family_id": "b340a76e3ab7dbb5", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Two data-cache tests duplicate the same cache assertion block."},
+        {"rank": 9, "family_id": "dc7b0d71987608ed", "worthy": true, "reason": "parameterize", "confidence": "medium", "note": "Two public async-resource initializers repeat Container construction; the resource constructor is the sole semantic axis."},
+        {"rank": 10, "family_id": "96c9ebb491e639fb", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Two load-data tests duplicate the same request and result assertion block."}
+      ]
+    },
+    {
+      "id": "hono-fresh",
+      "repository": "honojs/hono",
+      "language": "TypeScript",
+      "commit": "b2ae3a2204a48ce15a26448fd746d39745eb1837",
+      "raw_query_sha256": "a6b2c13ab7209605debb3c184e96cca21d37c49080d5032cb711a59eda764739",
+      "summary": {"reported": 10, "worthy": 6, "precision_at_10": 0.6},
+      "candidates": [
+        {"rank": 1, "family_id": "8726d27e7a1b0ecd", "worthy": false, "reason": "parallel-by-design", "confidence": "high", "note": "Six JSX benchmark pages deliberately hold workload constant across competing runtimes."},
+        {"rank": 2, "family_id": "5d240841fe91cb8f", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Hono, quick, and tiny presets duplicate the same generic behavior suite."},
+        {"rank": 3, "family_id": "1415e3cc82acc8f1", "worthy": false, "reason": "parallel-by-design", "confidence": "medium", "note": "Two benchmark entrypoints intentionally isolate different JSX transforms with identical workload code."},
+        {"rank": 4, "family_id": "bf3c0f33efa8909a", "worthy": false, "reason": "parallel-by-design", "confidence": "medium", "note": "Deno and Node router benchmark tools are parallel package entrypoints whose isolation is part of the benchmark."},
+        {"rank": 5, "family_id": "480b66d90ee3069a", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Three DOM tests repeat the same App component fixture."},
+        {"rank": 6, "family_id": "d1599d485d7ae7a7", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Eight status typing assertions repeat one type-test driver."},
+        {"rank": 7, "family_id": "a2d230c0538f13b6", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Four intrinsic-element cases repeat the same App component fixture in one file."},
+        {"rank": 8, "family_id": "5b63dd7f78dc64da", "worthy": false, "reason": "parallel-by-design", "confidence": "medium", "note": "Deno and Node router benchmark implementations are intentionally isolated runtime variants."},
+        {"rank": 9, "family_id": "3c7963e7fd3467f6", "worthy": true, "reason": "parameterize", "confidence": "high", "note": "Ten middleware-count type tests repeat one setup and assertion pattern."},
+        {"rank": 10, "family_id": "e2088bf766495b2a", "worthy": true, "reason": "extract-helper", "confidence": "high", "note": "Three DOM suites duplicate the same JSDOM setup block."}
+      ]
+    }
+  ]
+}

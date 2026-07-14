@@ -759,8 +759,11 @@ def _load_labelset(path: Path, stack: tuple[Path, ...]) -> LoadedLabelset:
         inputs.append({"path": component_path.as_posix(), "sha256": sha256_file(component_path)})
     if version == 6 and seen_splits != {"dev", "heldout"}:
         raise ValueError("labelset.components: both dev and heldout components are required")
-    if version == 7 and seen_splits != {"dev"}:
-        raise ValueError("labelset.components: v7 requires exactly one dev precision overlay")
+    if version == 7 and seen_splits not in ({"dev"}, {"dev", "heldout"}):
+        raise ValueError(
+            "labelset.components: v7 requires the dev overlay and optionally the "
+            "post-reveal heldout overlay"
+        )
 
     seals = payload.get("seals", [])
     if version == 6 and seals:
@@ -1111,12 +1114,22 @@ def run_self_test() -> None:
                 }
             )
         )
+        revealed_v7 = load_labelset(leaked_manifest)
+        assert revealed_v7.version == "v7"
+        assert any(
+            row.get("family_id") == "family-v7-heldout"
+            for row in revealed_v7.families
+        )
+        duplicate_split = json.loads(leaked_manifest.read_text())
+        duplicate_split["components"][1]["split"] = "dev"
+        duplicate_manifest = root / "v7-duplicate-split.json"
+        duplicate_manifest.write_text(json.dumps(duplicate_split))
         try:
-            load_labelset(leaked_manifest)
+            load_labelset(duplicate_manifest)
         except ValueError as error:
-            assert "exactly one dev precision overlay" in str(error)
+            assert "duplicate split dev" in str(error)
         else:
-            raise AssertionError("v7 held-out judgment components must fail closed")
+            raise AssertionError("duplicate v7 component splits must fail closed")
 
         component_records[0]["sha256"] = "0" * 64
         manifest.write_text(

@@ -1,0 +1,144 @@
+{
+  "schema": "nose.default_head_closeout.v1",
+  "issue": 846,
+  "tracker": 838,
+  "evaluated_on": "2026-07-14",
+  "product": {
+    "source_commit": "cdab416706c32ea94bf808ec7ebb36781e483e65",
+    "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
+    "version_output": "nose 0.19.0",
+    "product_changed_after_heldout_reveal": false
+  },
+  "published_baseline": {
+    "version": "v0.19.0",
+    "tag_object_sha": "54f8a67436e39e24c777a85e14224273116add6b",
+    "commit": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+    "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
+  },
+  "contract": {
+    "precision_at_10_min_pct": 70.0,
+    "label_coverage_min_pct": 85.0,
+    "language_floor_min_positions": 30,
+    "language_precision_floor_pct": 50.0,
+    "dev_worthy_recall_min": "2716/2849",
+    "heldout_worthy_recall_min": "2005/2091",
+    "max_worthy_regressions": 0,
+    "max_false_merges": 0,
+    "max_canon_preservation_violations": 0,
+    "material_runtime_regression": "control-adjusted increase greater than both 5 percent and 5 milliseconds",
+    "decision": "Every gate must pass; thresholds are not relaxed after held-out reveal."
+  },
+  "evidence": {
+    "quality_evaluation": {"path": "bench/labels/product_quality_evaluation_v7_blind_closeout_2026_07_14.v1.json", "sha256": "054883c646497de4289993a1b70bb51ebd18fab1421e0a8d4b85afad957738bf"},
+    "authoritative_dev_exact_overlay": {"path": "bench/labels/residual_ranking_closeout_2026_07_14.dev.v1.json", "sha256": "48b1ccf23723cc8b893970a660317cd792fc5593e213a78b9e2a4976f57f9d0a"},
+    "fresh_repository_audit": {"path": "bench/labels/default_head_fresh_repository_audit_2026_07_14.v1.json", "sha256": "3b687dec5ca2251f78c5448875ff0da2fd82407c347937575642b2dbe32def4c"},
+    "all_corpus_contract": {"path": "bench/default_head_closeout_corpus.v1.json", "sha256": "b28d7245aa34d7e0320d0c80ef988803ba6acb65b63eaf1bae6d7ac840b168e0"},
+    "expected_output_drift": {"path": "bench/labels/default_head_closeout_v0_19_0.expected-drift.v1.json", "sha256": "ac8e57e20f8272c3b3b352d02bbef62fa97a0d3f0ba966e2cde06fbc29762bd9"},
+    "measurement_provenance": {"path": "bench/labels/default_head_measurement_provenance_2026_07_14.v1.json", "sha256": "809b3475f1c3242a326adb072adf3782b32d58676eb48438e4028db9f5430f4f"},
+    "measurement_replay": {"path": "bench/labels/default_head_measurement_replay_2026_07_14.v2.json", "sha256": "72921e791aaae08d7a73662bbb3bfb03db543a238c32d8d077efd69b02339bd5"},
+    "soundness": {"path": "bench/recall_loss/issue-846-crates-verify-2026-07-14.v1.json", "sha256": "b31d040498be5f34f2f519ced3c0dc7d20796b4ac6dd55eb6bb2e5583b111a07"},
+    "dev_thread_determinism": {"path": "bench/labels/declaration_type_contract_behavior_2026_07_14.dev.v1.json", "sha256": "4722f772a98476ce7860409ff4a18c29ceb9d9e21981542c5390ab7aab7ebd93"},
+    "heldout_thread_determinism": {"path": "bench/recall_loss/issue-846-heldout-thread-determinism-2026-07-14.v1.tsv", "sha256": "6e270c2e2956832a85cd52f90b406725d68454c770b1546cd6606ec0a8ce6d4c"},
+    "performance": [
+      {"path": "bench/recall_loss/issue-846-official-v0.19.0-default-all120-r3-2026-07-14.v1.json", "sha256": "c14939dc486bf59c1c66e2724de71993aeb7210ad91f5bc43de6e56c96839283"},
+      {"path": "bench/recall_loss/issue-846-official-self-control-default-all120-r3-2026-07-14.v1.json", "sha256": "19b0da1d7879f0958016b33826252f0b297366f69399d60faa8fbf6a7a3791a0"},
+      {"path": "bench/recall_loss/issue-846-official-v0.19.0-default-focused-r6-2026-07-14.v1.json", "sha256": "b4653d5772288d9f51ebefae6c2174bc06905dba6e7b3d39f3157cc81572ac54"},
+      {"path": "bench/recall_loss/issue-846-official-self-control-default-focused-r6-2026-07-14.v1.json", "sha256": "2943affc9164d918a877acbfcae062d0be961f9327de53c5bf43e6478211df08"},
+      {"path": "bench/recall_loss/issue-846-official-v0.19.0-default-focused-r9-2026-07-14.v1.json", "sha256": "0ec9aa2de2db763270afbcdabb48b7c6047d99302aa15aa5906a87ad2b376494"},
+      {"path": "bench/recall_loss/issue-846-official-self-control-default-focused-r9-2026-07-14.v1.json", "sha256": "79606dd21839fc5a87e9ae5729da7e563a1a7e63499c86bcc1805e8cc839203f"},
+      {"path": "bench/recall_loss/issue-846-official-v0.19.0-default-focused-r21-2026-07-14.v1.json", "sha256": "a2be0c3790f67a92d764dec445059134c40dc1d1927ee884ae27e4cfecab6dad"},
+      {"path": "bench/recall_loss/issue-846-official-self-control-default-focused-r21-2026-07-14.v1.json", "sha256": "44c9df6319c3aa1fee99d990cff2fc7413548afb8645fd757e7ef53fcd1f3811"},
+      {"path": "bench/recall_loss/issue-846-official-v0.19.0-default-focused-r40-2026-07-14.v1.json", "sha256": "a3a7c6ddda7c7c7664e6197b7539984cdd4cf567528f91c19e0cb2e31dd92b0b"},
+      {"path": "bench/recall_loss/issue-846-official-self-control-default-focused-r40-2026-07-14.v1.json", "sha256": "cc2b9af70ce1c99aba9483b39935a62862c42968494ea46d8d5fd135a241372d"},
+      {"path": "bench/recall_loss/issue-846-official-v0.19.0-semantic-smoke-primary-2026-07-14.v1.json", "sha256": "f9945c1d6bb127155100ade70a2985d4e82cda96518c1492db1815718d7bfa7c"},
+      {"path": "bench/recall_loss/issue-846-official-self-control-semantic-smoke-primary-2026-07-14.v1.json", "sha256": "8a8b8095b49dd5da9c5d12feddb262fd38901a507137a1446b3235336a2f3023"},
+      {"path": "bench/recall_loss/issue-846-official-v0.19.0-semantic-smoke-focused-2026-07-14.v1.json", "sha256": "abda1417c102f49853955db8b9aba4adab2f42db0971f2a4dcd5121fb04dfd88"},
+      {"path": "bench/recall_loss/issue-846-official-self-control-semantic-smoke-focused-2026-07-14.v1.json", "sha256": "a36d897a594cbb85749249ea755822ea5cf68d7a989979d93408527219998de7"},
+      {"path": "bench/recall_loss/issue-846-ruby-scaling-2026-07-14.v1.json", "sha256": "dde0017440e4195fc7fc3f278c7677665e5e2b91cdf685bf2bbd50ecd6f34203"}
+    ]
+  },
+  "quality": {
+    "dev": {
+      "authority": "The exact-key #845 overlay fully judges all reported positions; the standard evaluator row is retained only as an independently reproducible coverage-limited cross-check.",
+      "precision_at_10": {"hits": 387, "n": 658, "pct": 58.8146, "ci95": [55.0152, 62.462]},
+      "label_match_coverage": {"hits": 658, "n": 658, "pct": 100.0},
+      "standard_evaluator_cross_check": {"hits": 382, "n": 647, "pct": 59.0417, "ci95": [55.3323, 63.0603], "unmatched_positions": 11},
+      "worthy_recall": {"hits": 2716, "n": 2849, "pct": 95.3317, "ci95": [94.5595, 96.1039]},
+      "languages": {
+        "C": {"hits": 40, "n": 90, "pct": 44.4444, "ci95": [34.4444, 55.5556]},
+        "Go": {"hits": 53, "n": 80, "pct": 66.25, "ci95": [55.0, 76.25]},
+        "Java": {"hits": 30, "n": 90, "pct": 33.3333, "ci95": [24.4444, 43.3333]},
+        "Python": {"hits": 49, "n": 70, "pct": 70.0, "ci95": [58.5714, 80.0]},
+        "Ruby": {"hits": 73, "n": 90, "pct": 81.1111, "ci95": [73.3333, 88.8889]},
+        "Rust": {"hits": 48, "n": 78, "pct": 61.5385, "ci95": [51.2821, 71.7949]},
+        "Swift": {"hits": 39, "n": 80, "pct": 48.75, "ci95": [37.5, 61.25]},
+        "TypeScript": {"hits": 55, "n": 80, "pct": 68.75, "ci95": [58.75, 78.75]}
+      }
+    },
+    "heldout": {
+      "precision_at_10": {"hits": 334, "n": 526, "pct": 63.4981, "ci95": [59.3156, 67.4905]},
+      "label_match_coverage": {"hits": 526, "n": 538, "pct": 97.7695},
+      "worthy_recall": {"hits": 2005, "n": 2091, "pct": 95.8871, "ci95": [95.0263, 96.7001]},
+      "languages": {
+        "C": {"hits": 28, "n": 58, "pct": 48.2759, "ci95": [36.2069, 60.3448]},
+        "Go": {"hits": 60, "n": 70, "pct": 85.7143, "ci95": [77.1429, 92.8571]},
+        "Java": {"hits": 37, "n": 60, "pct": 61.6667, "ci95": [50.0, 73.3333]},
+        "Python": {"hits": 49, "n": 80, "pct": 61.25, "ci95": [50.0, 72.5]},
+        "Ruby": {"hits": 46, "n": 60, "pct": 76.6667, "ci95": [65.0, 86.6667]},
+        "Rust": {"hits": 44, "n": 70, "pct": 62.8571, "ci95": [51.4286, 74.2857]},
+        "Swift": {"hits": 38, "n": 58, "pct": 65.5172, "ci95": [53.4483, 77.5862]},
+        "TypeScript": {"hits": 32, "n": 70, "pct": 45.7143, "ci95": [34.2857, 57.1429]}
+      }
+    },
+    "worthy_recall_comparison_to_v0_19_0": {"current_hits": 4721, "comparison_hits": 4721, "delta": 0, "regressed": 0, "recovered": 0}
+  },
+  "fresh_repository_field_audit": {
+    "repositories": 8,
+    "reviewed": 80,
+    "worthy": 40,
+    "precision_at_10": 50.0,
+    "range_by_repository": [0.0, 100.0],
+    "product_mutation_after_audit": false,
+    "follow_up_issues": [891, 892]
+  },
+  "soundness": {
+    "total_units": 7869,
+    "interpretable_units": 1128,
+    "false_merges": 0,
+    "canon_checked": 117,
+    "canon_preservation_violations": 0,
+    "completeness": "63/180",
+    "advisory_disagreements": 6,
+    "gate_passed": true
+  },
+  "determinism": {
+    "all_120_repeated_runs": {"repositories": 120, "iterations": 3, "all_single_hash": true},
+    "dev_thread_counts": {"repositories": 66, "thread_counts": [1, 4], "all_byte_identical": true},
+    "heldout_thread_counts": {"repositories": 54, "thread_counts": [1, 4], "all_byte_identical": true}
+  },
+  "performance": {
+    "all_120_primary": {"repositories": 120, "iterations": 3, "warmups": 1, "baseline_median_ms": 41819.306918245275, "current_median_ms": 42221.93216095911, "raw_delta_ms": 402.6252427138388, "raw_delta_pct": 0.9627735904398218, "control_delta_ms": -112.50862042652443, "control_adjusted_delta_ms": 515.1338631403632, "control_adjusted_delta_pct": 1.2318087053604811, "aggregate_material_regression": false, "authorized_output_drifts": 26, "unexpected_output_drifts": 0},
+    "escalation": [{"iterations": 3, "repositories": 120}, {"iterations": 6, "repositories": 52}, {"iterations": 9, "repositories": 21}, {"iterations": 21, "repositories": 16}, {"iterations": 40, "repositories": 7}],
+    "final_focused": {"aggregate_baseline_ms": 8604.282041953411, "aggregate_current_ms": 8662.633040512446, "aggregate_control_adjusted_delta_ms": 39.35112355975434, "aggregate_control_adjusted_delta_pct": 0.4573434874389653, "aggregate_material_regression": false, "material_stage_signals": ["alamofire:lower", "alamofire:parse+lower", "alamofire:query_gate", "alamofire:query_opp", "guava:query_opp", "netty:query_opp", "rxjava:query_opp", "sqlalchemy:query_opp", "sympy:query_opp"], "gate_passed": false},
+    "semantic_smoke": {"aggregate_baseline_ms": 1058.8271869928576, "aggregate_current_ms": 1083.725124510238, "aggregate_control_adjusted_delta_ms": 23.656604025745764, "aggregate_control_adjusted_delta_pct": 2.234227106779545, "aggregate_material_regression": false, "material_stage_signals": ["prettier:discover", "prettier:parse+lower"], "ruby_scaling_growth_exponent": 0.6791258377083085, "gate_passed": false}
+  },
+  "gates": [
+    {"id": "dev-precision", "passed": false, "observed": "387/658 = 58.8146%", "required": ">= 70%; 461 hits", "shortfall": "74 hits"},
+    {"id": "heldout-precision", "passed": false, "observed": "334/526 = 63.4981%", "required": ">= 70%; 369 hits", "shortfall": "35 hits"},
+    {"id": "coverage", "passed": true, "observed": "dev 658/658; heldout 526/538", "required": ">= 85% on both splits"},
+    {"id": "language-floor", "passed": false, "observed": "dev C 44.4444%, Java 33.3333%, Swift 48.75%; heldout C 48.2759%, TypeScript 45.7143%", "required": ">= 50% when n >= 30"},
+    {"id": "worthy-recall", "passed": true, "observed": "dev 2716/2849; heldout 2005/2091; zero regressions", "required": "minimums preserved and zero regressions"},
+    {"id": "mechanical-recovery", "passed": true, "observed": "all changed families remain in all top=0 with exact generated/declaration reasons", "required": "reason-coded and recoverable"},
+    {"id": "soundness", "passed": true, "observed": "0 false merges; 0 canon-preservation violations", "required": "both zero"},
+    {"id": "determinism", "passed": true, "observed": "120 repeated-run and 120 split-complete thread checks byte-identical", "required": "byte-identical"},
+    {"id": "performance", "passed": false, "observed": "aggregate safe; nine all-120 r40 stage signals and two semantic-smoke stage signals remain", "required": "no material repository/stage regression"},
+    {"id": "output-ledger", "passed": true, "observed": "26 authorized; 0 unexpected; family counts unchanged", "required": "exact declared drift only"}
+  ],
+  "outcome": {
+    "status": "no-go",
+    "all_tracker_gates_passed": false,
+    "product_frozen_unchanged": true,
+    "epic_disposition": "Close the bounded #838 experiment with exact residuals; do not claim the 70% goal or reuse revealed held-out evidence for tuning.",
+    "follow_up_issues": [891, 892]
+  }
+}
