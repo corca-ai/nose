@@ -174,6 +174,13 @@ small, three-person audit of Java/Python hidden/divergence exact-fragment famili
 validate surface policy after the semantic corpus pass. See
 [`docs/fragment-quality-audit-2026-06-10.md`](../../docs/fragment-quality-audit-2026-06-10.md).
 
+`default_head_fresh_repository_audit_2026_07_14.v1.json` is the frozen #846 field
+audit of the first ten bare-default families from eight repositories selected before
+clone or query, one per evaluated language and all outside the 120-repository corpus.
+All 80 judgments follow `RUBRIC.md`; the checked validator binds the repository commits,
+ordered family IDs, raw query hashes, summaries, and the rule that field findings cannot
+retune the already-revealed product.
+
 `lawpack_provenance_audit_2026_06_10.json` is also adjacent evidence, not part of
 the active metric. It records the full-corpus and targeted real-repo pass for the
 first-party `nose.value_graph.laws` LawPack pilot. See
