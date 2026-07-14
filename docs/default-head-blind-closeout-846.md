@@ -81,6 +81,13 @@ held-out seal
 → exact-key decisions, metrics, and closeout
 ```
 
+The frozen v3 commitment is commit `6ec0e95f`, tree `2a7887ae`, and byte
+SHA-256 `747b1049…57d6`; its exact parent is the clean collector commit
+`37319a18` / tree `03ee6e9c`. The three committed private-packet receipts are
+`57d4ddf5…3de3` (dedupe), `5375c63a…6e92` (pragmatic), and
+`32db34ec…d3b1` (skeptic). Each binds 214 candidates while revealing no packet
+plaintext or opaque IDs.
+
 No partial vote enters Git while another reviewer is working. Mapping release is
 after arbitration—not merely after panel voting—so the arbiter also remains blind
 to product rank and provenance. Reveal validation must reproduce packet hashes,

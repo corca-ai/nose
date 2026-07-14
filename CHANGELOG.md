@@ -7,6 +7,14 @@ break.
 ## [Unreleased]
 
 ### Added
+- Committed the #846 held-out review inputs without publishing their source. The
+  official v0.19.0 replay reproduces 54 queries, 1,564 candidate commitments, and the
+  exact 214-family sealed selection, then creates three persona-specific packets outside
+  Git. Only secret-nonce whole-packet hashes are public before voting. Three independent
+  reviews rejected two earlier drafts—the second was still source-fingerprintable
+  214/214—so the accepted contract explicitly promises procedural product-metadata
+  blindness, not identity hiding from a reviewer who searches public source. All three
+  votes must freeze together and blind-ID arbitration must freeze before reveal.
 - Closed the #845 dev-only residual-ranking experiment with a fully judged no-go. Three
   independent blind reviewers labeled all 219 frozen frontier families; exact tuple
   agreement covered 129 and an independent arbiter resolved all 90 worthiness-or-reason

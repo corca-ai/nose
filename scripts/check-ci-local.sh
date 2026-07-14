@@ -130,6 +130,10 @@ run_regression_checker_selftests() {
         --pragmatic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.pragmatic.v1.json \
         --dedupe bench/labels/default_head_taxonomy_votes_2026_07_13.dev.dedupe.v1.json \
         --skeptic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.skeptic.v1.json
+    python3 bench/labels/default_head_heldout.py validate
+    python3 bench/labels/default_head_heldout.py self-test
+    python3 bench/labels/default_head_heldout_commitment_receipt.py validate
+    python3 bench/labels/default_head_heldout_commitment_receipt.py self-test
     python3 bench/labels/proof_actionability_no_go.py --self-test
     python3 bench/labels/residual_ranking.py validate
     python3 bench/labels/residual_ranking.py self-test
