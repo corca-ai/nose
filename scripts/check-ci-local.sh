@@ -155,6 +155,8 @@ run_regression_checker_selftests() {
     python3 eval/divergence_fire/replay.py check-artifacts
     python3 eval/divergence_fire/precision_protocol.py validate
     python3 eval/divergence_fire/precision_protocol.py self-test
+    python3 eval/divergence_fire/precision_protocol_receipt.py validate
+    python3 eval/divergence_fire/precision_protocol_receipt.py self-test
     python3 bench/labels/generated_provenance_behavior.py --self-test
     python3 bench/labels/generated_provenance_behavior.py validate
     python3 bench/labels/generated_provenance_closeout.py --self-test
