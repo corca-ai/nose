@@ -190,5 +190,8 @@ seed and opaque-ID mapping, and reconstructs exact-key decisions without rerunni
 judgment. Its public validator binds those bytes to the pre-judgment commitments,
 replays every HMAC nonce, permutation, ID, and anonymous vote order, and requires
 all three panels and the arbiter to have seen the same source excerpts. The
+local publication stages all seven outputs and uses a checked transaction marker
+to roll back ordinary failures or recover an interrupted partial write before a
+retry. Git publication remains one atomic artifact commit. The
 plaintext packets and root seed remain deliberately unavailable to CI during the
 blind phase and become public only after the blind arbitration result is merged.

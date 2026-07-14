@@ -7,7 +7,10 @@ import argparse
 import copy
 import hashlib
 import json
+import os
 import subprocess
+import tempfile
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +47,22 @@ FREEZE_COMMAND = (
     "--private-panel-dir <outside-repository> "
     "--private-arbiter-packet <outside-repository>"
 )
+TRANSACTION = LABELS / ".default_head_heldout_reveal.transaction.json"
+REVEALED_CANDIDATE_KEYS = {
+    "candidate_key",
+    "repo",
+    "split",
+    "language",
+    "lane",
+    "rank",
+    "base_matched",
+    "family",
+    "raw_family_sha256",
+    "candidate_sha256",
+    "selected",
+    "selection_reason",
+    "selection_order",
+}
 
 
 def require_equal(actual: object, expected: object, label: str) -> None:
@@ -58,8 +77,28 @@ def file_record(path: Path) -> dict[str, Any]:
     }
 
 
-def evidence_record(path: Path) -> dict[str, str]:
-    return {"path": path.name, "sha256": heldout.sha256_file(path)}
+def evidence_record(path: Path, content: bytes | None = None) -> dict[str, str]:
+    digest = (
+        heldout.sha256_file(path)
+        if content is None
+        else hashlib.sha256(content).hexdigest()
+    )
+    return {"path": path.name, "sha256": digest}
+
+
+def require_ancestor(ancestor: str, descendant: str, label: str) -> None:
+    completed = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+    )
+    if completed.returncode != 0:
+        raise ValueError(f"{label}: mismatch")
+
+
+def validate_revealed_candidate(candidate: object, label: str) -> dict[str, Any]:
+    return heldout.require_exact_keys(candidate, REVEALED_CANDIDATE_KEYS, label)
 
 
 def ordered_keys(
@@ -263,11 +302,12 @@ def final_decisions(
 def decisions_payload(
     reveal_path: Path,
     decisions: list[dict[str, Any]],
+    reveal_content: bytes | None = None,
 ) -> dict[str, Any]:
     return {
         "schema": DECISIONS_SCHEMA,
         "split": "heldout",
-        "source_artifact": evidence_record(reveal_path),
+        "source_artifact": evidence_record(reveal_path, reveal_content),
         "vote_inputs": {
             record["persona"]: {
                 "path": Path(record["path"]).name,
@@ -285,6 +325,8 @@ def component_payload(
     candidates: list[dict[str, Any]],
     decisions_path: Path,
     decisions: list[dict[str, Any]],
+    reveal_content: bytes | None = None,
+    decisions_content: bytes | None = None,
 ) -> dict[str, Any]:
     by_key = {row["candidate_key"]: row for row in decisions}
     families = []
@@ -334,9 +376,9 @@ def component_payload(
     return {
         "schema": COMPONENT_SCHEMA,
         "split": "heldout",
-        "source_artifact": evidence_record(reveal_path),
+        "source_artifact": evidence_record(reveal_path, reveal_content),
         "rubric": evidence_record(heldout.RUBRIC),
-        "decision_input": evidence_record(decisions_path),
+        "decision_input": evidence_record(decisions_path, decisions_content),
         "protocol": {
             "panel": list(PERSONA_ORDER),
             "split_votes_escalate_to": "llm-arbiter",
@@ -531,14 +573,12 @@ def validate_provenance(payload: dict[str, Any], seal: dict[str, Any]) -> None:
         "reveal collector SHA",
     )
     require_equal(Path(__file__).read_bytes(), frozen, "current reveal collector")
-    completed = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", result_receipt.RESULT_COMMIT, commit],
-        cwd=ROOT,
-        check=False,
-        capture_output=True,
+    require_ancestor(
+        result_receipt.RESULT_COMMIT,
+        commit,
+        "result-before-reveal-collector chronology",
     )
-    if completed.returncode != 0:
-        raise ValueError("result-before-reveal-collector chronology: mismatch")
+    require_ancestor(commit, "HEAD", "reveal collector ancestry")
 
 
 def load_revealed_packets() -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
@@ -553,12 +593,98 @@ def load_revealed_packets() -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
     return packets, arbiter
 
 
-def write_payload(path: Path, payload: dict[str, Any]) -> None:
-    heldout.write_exclusive(path, heldout.packet_bytes(payload), 0o644)
+def transaction_payload(contents: dict[Path, bytes]) -> dict[str, Any]:
+    return {
+        "schema": "nose.default_head_heldout_reveal_transaction.v1",
+        "outputs": [
+            {
+                "path": path.name,
+                "sha256": hashlib.sha256(content).hexdigest(),
+                "byte_length": len(content),
+            }
+            for path, content in contents.items()
+        ],
+    }
+
+
+def recover_interrupted_publish(
+    outputs: list[Path], transaction: Path = TRANSACTION
+) -> None:
+    if not transaction.exists():
+        return
+    payload = heldout.read_json(transaction)
+    expected_names = [path.name for path in outputs]
+    if set(payload) != {"schema", "outputs"} or payload["schema"] != (
+        "nose.default_head_heldout_reveal_transaction.v1"
+    ):
+        raise ValueError("invalid held-out reveal transaction marker")
+    records = payload["outputs"]
+    if not isinstance(records, list) or len(records) != len(outputs):
+        raise ValueError("held-out reveal transaction outputs mismatch")
+    for index, (path, record) in enumerate(zip(outputs, records, strict=True)):
+        if not isinstance(record, dict) or set(record) != {
+            "path",
+            "sha256",
+            "byte_length",
+        }:
+            raise ValueError("invalid held-out reveal transaction output")
+        require_equal(record["path"], expected_names[index], "transaction path")
+        heldout.require_hex(record["sha256"], 64, "transaction SHA")
+        if (
+            isinstance(record["byte_length"], bool)
+            or not isinstance(record["byte_length"], int)
+            or record["byte_length"] < 1
+        ):
+            raise ValueError("invalid held-out reveal transaction byte length")
+        if not path.exists():
+            continue
+        if (
+            heldout.sha256_file(path) != record["sha256"]
+            or path.stat().st_size != record["byte_length"]
+        ):
+            raise ValueError(f"refusing to remove mismatched interrupted output: {path}")
+        path.unlink()
+    transaction.unlink()
+
+
+def publish_outputs(
+    contents: dict[Path, bytes],
+    *,
+    transaction: Path = TRANSACTION,
+    validator: Callable[[], None] | None = None,
+    staging_parent: Path = ROOT / "target",
+) -> None:
+    marker = heldout.packet_bytes(transaction_payload(contents))
+    heldout.write_exclusive(transaction, marker, 0o600)
+    published: list[Path] = []
+    try:
+        with tempfile.TemporaryDirectory(
+            prefix=".heldout-reveal-staging-", dir=staging_parent
+        ) as directory:
+            staging = Path(directory)
+            staged: list[tuple[Path, Path]] = []
+            for target, content in contents.items():
+                source = staging / target.name
+                heldout.write_exclusive(source, content, 0o644)
+                staged.append((source, target))
+            for source, target in staged:
+                published.append(target)
+                os.replace(source, target)
+        if validator is None:
+            validate_checked()
+        else:
+            validator()
+    except BaseException:
+        for path in reversed(published):
+            path.unlink(missing_ok=True)
+        transaction.unlink(missing_ok=True)
+        raise
+    transaction.unlink()
 
 
 def freeze(args: argparse.Namespace) -> None:
     outputs = [REVEAL, DECISIONS, COMPONENT, ARBITER_PACKET, *PANEL_PACKET_PATHS.values()]
+    recover_interrupted_publish(outputs)
     existing = [path for path in outputs if path.exists()]
     if existing:
         raise ValueError(f"refusing to replace reveal output: {existing[0]}")
@@ -610,17 +736,33 @@ def freeze(args: argparse.Namespace) -> None:
         collector_commit,
         collector_tree,
     )
-    for persona in heldout.PERSONAS:
-        heldout.write_exclusive(
-            PANEL_PACKET_PATHS[persona], panel_sources[persona].read_bytes(), 0o644
-        )
-    heldout.write_exclusive(ARBITER_PACKET, arbiter_source.read_bytes(), 0o644)
-    write_payload(REVEAL, reveal)
-    decisions_value = decisions_payload(REVEAL, decisions)
-    write_payload(DECISIONS, decisions_value)
-    component = component_payload(REVEAL, candidates, DECISIONS, decisions)
-    write_payload(COMPONENT, component)
-    validate_checked()
+    validate_packet_receipts(reveal, panel_commitment, arbitration_commitment)
+    checked_seed, checked_candidates = validate_reveal_payload(reveal)
+    require_equal(checked_seed, root_seed, "pre-publish revealed root seed")
+    require_equal(checked_candidates, candidates, "pre-publish revealed candidates")
+    reveal_content = heldout.packet_bytes(reveal)
+    decisions_value = decisions_payload(REVEAL, decisions, reveal_content)
+    decisions_content = heldout.packet_bytes(decisions_value)
+    component = component_payload(
+        REVEAL,
+        candidates,
+        DECISIONS,
+        decisions,
+        reveal_content,
+        decisions_content,
+    )
+    contents = {
+        REVEAL: reveal_content,
+        DECISIONS: decisions_content,
+        COMPONENT: heldout.packet_bytes(component),
+        ARBITER_PACKET: arbiter_source.read_bytes(),
+        **{
+            PANEL_PACKET_PATHS[persona]: panel_sources[persona].read_bytes()
+            for persona in heldout.PERSONAS
+        },
+    }
+    require_equal(list(contents), outputs, "reveal publication order")
+    publish_outputs(contents)
     print(
         f"revealed {len(candidates)} candidates with {len(resolutions)} "
         f"arbitrations and {sum(row['worthy'] for row in component['families'])} worthy"
@@ -684,7 +826,9 @@ def validate_reveal_payload(payload: dict[str, Any]) -> tuple[bytes, list[dict[s
     for index, record in enumerate(records, start=1):
         if not isinstance(record, dict) or set(record) != {"candidate", "blind_ids"}:
             raise ValueError(f"reveal candidates[{index}]: fields mismatch")
-        candidate = record["candidate"]
+        candidate = validate_revealed_candidate(
+            record["candidate"], f"reveal candidates[{index}].candidate"
+        )
         key = candidate["candidate_key"]
         if key in seen:
             raise ValueError(f"duplicate reveal candidate {key}")
@@ -852,6 +996,54 @@ def self_test(_: argparse.Namespace) -> None:
         pass
     else:
         raise AssertionError("missing arbitration was accepted")
+    synthetic_candidate = {key: None for key in REVEALED_CANDIDATE_KEYS}
+    validate_revealed_candidate(synthetic_candidate, "synthetic candidate")
+    synthetic_candidate["uncommitted_final_worthy"] = True
+    try:
+        validate_revealed_candidate(synthetic_candidate, "synthetic candidate")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("uncommitted reveal candidate field was accepted")
+    head = heldout.git_text(["rev-parse", "HEAD"])
+    try:
+        require_ancestor(head, result_receipt.RESULT_COMMIT, "synthetic reverse ancestry")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("reverse reveal ancestry was accepted")
+    with tempfile.TemporaryDirectory(prefix="nose-reveal-publish-self-test-") as directory:
+        root = Path(directory)
+        outputs = [root / "first.json", root / "second.json"]
+        contents = {outputs[0]: b"first\n", outputs[1]: b"second\n"}
+        transaction = root / "transaction.json"
+
+        def reject_publish() -> None:
+            raise RuntimeError("synthetic post-publish validation failure")
+
+        try:
+            publish_outputs(
+                contents,
+                transaction=transaction,
+                validator=reject_publish,
+                staging_parent=root,
+            )
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("synthetic failed publication was accepted")
+        if transaction.exists() or any(path.exists() for path in outputs):
+            raise AssertionError("failed publication was not rolled back")
+        heldout.write_exclusive(
+            transaction,
+            heldout.packet_bytes(transaction_payload(contents)),
+            0o600,
+        )
+        for path, content in contents.items():
+            heldout.write_exclusive(path, content, 0o644)
+        recover_interrupted_publish(outputs, transaction)
+        if transaction.exists() or any(path.exists() for path in outputs):
+            raise AssertionError("interrupted publication was not recovered")
     print("default-head held-out reveal self-test passed")
 
 
