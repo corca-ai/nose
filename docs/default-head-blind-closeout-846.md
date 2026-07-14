@@ -177,8 +177,18 @@ python3 bench/labels/default_head_heldout_arbitration_result.py validate-public 
   bench/labels/default_head_heldout_arbitration_result_2026_07_14.heldout.v3.json
 python3 bench/labels/default_head_heldout_arbitration_result_receipt.py validate
 python3 bench/labels/default_head_heldout_arbitration_result_receipt.py self-test
+python3 bench/labels/default_head_heldout_reveal.py freeze \
+  --private-panel-dir <outside-repository> \
+  --private-arbiter-packet <outside-repository>/arbiter.json
+python3 bench/labels/default_head_heldout_reveal.py validate
+python3 bench/labels/default_head_heldout_reveal.py self-test
 ```
 
 Ordinary CI validates only public commitments and receipts until the post-arbiter
-reveal. The plaintext packet and root seed remain deliberately unavailable to CI
-during the blind phase.
+reveal. The reveal copies the exact precommitted packet bytes, publishes the root
+seed and opaque-ID mapping, and reconstructs exact-key decisions without rerunning
+judgment. Its public validator binds those bytes to the pre-judgment commitments,
+replays every HMAC nonce, permutation, ID, and anonymous vote order, and requires
+all three panels and the arbiter to have seen the same source excerpts. The
+plaintext packets and root seed remain deliberately unavailable to CI during the
+blind phase and become public only after the blind arbitration result is merged.

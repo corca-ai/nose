@@ -65,6 +65,7 @@ jobs:
             bench/labels/default_head_heldout_arbitration_result_2026_07_14.heldout.v3.json
           python3 bench/labels/default_head_heldout_arbitration_result_receipt.py validate
           python3 bench/labels/default_head_heldout_arbitration_result_receipt.py self-test
+          python3 bench/labels/default_head_heldout_reveal.py self-test
           python3 bench/labels/proof_actionability_no_go.py --self-test
           python3 bench/labels/residual_ranking.py validate
           python3 bench/labels/residual_ranking.py self-test
