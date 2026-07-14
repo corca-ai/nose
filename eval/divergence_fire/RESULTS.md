@@ -121,6 +121,13 @@ at least 1,000; no checkpoint through day 180 means `insufficient-evidence`. Ide
 ancestry, selection, or checkpoint errors invalidate the evaluation; query errors remain
 counted and cannot be replaced.
 
+The temporal cutoff is the actual advertised default ref and HEAD resolved from each
+selected repository URL during the freeze, not the older commit recorded in the corpus.
+The private commitment covers that URL, ref, head, language, repository identity, seal
+time, and per-resolution UTC capture time. Change order is the lexicographic tuple of an exact HMAC-SHA256 digest,
+commit, and parent; the artifact freezes its canonical JSON input, key derivation,
+domain separator, and a test vector.
+
 No held-out quality labels exist at this stage. Raw repository/commit identities,
 source-bearing diffs, and the HMAC seed remain in an external `0700` directory whose
 seed, packet, and manifest are each created as `0600`. Git stores
@@ -134,9 +141,11 @@ manifest, replay harness, collector, exact freeze command, Git version/config/lo
 raw-byte diff encoding, source-redaction boundary, stop rule, temporal sampling, verdict
 rubric, thresholds, and opaque population. The `.tar.xz` release archive and extracted
 binary have separate SHA-256 identities. Collection disables ambient system/global Git
-config and pins rename, diff, text-conversion, locale, and path-byte handling; a Git
-selection failure aborts the freeze instead of silently choosing a replacement. The
-history-bound receipt additionally pins
+config, removes every inherited `GIT_*` variable, and pins rename, diff,
+text-conversion, locale, and path-byte handling; a Git selection failure aborts the
+freeze instead of silently choosing a replacement. Public CI validates this contract
+across platforms, while private byte-for-byte replay additionally requires the exact Git
+version recorded at freeze. The history-bound receipt additionally pins
 the exact artifact commit, parent, tree, Git blobs, file bytes, public checksum, seed
 commitment, private-packet commitment, and population counts. Consequently the #848
 branch must be integrated with a true Git merge commit; squash or rebase would remove
