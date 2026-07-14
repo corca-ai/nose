@@ -150,6 +150,26 @@ def validate_vote_payload(
     packet: dict[str, Any],
     commitment: dict[str, Any],
 ) -> None:
+    validate_public_vote_payload(payload, persona, commitment)
+    votes = payload["votes"]
+    expected_ids = [candidate["blind_id"] for candidate in packet["candidates"]]
+    for index, (vote, expected_id) in enumerate(
+        zip(votes, expected_ids, strict=True)
+    ):
+        require_equal(
+            vote["blind_id"], expected_id, f"{persona}.votes[{index}].blind_id"
+        )
+
+
+def validate_public_vote_payload(
+    payload: dict[str, Any], persona: str, commitment: dict[str, Any]
+) -> None:
+    """Validate everything that does not require the private packet plaintext.
+
+    The packet commitment fixes the expected persona, schema, byte receipt, and
+    candidate count. Exact blind-ID order is intentionally checked only by
+    ``validate_vote_payload`` until the post-arbitration reveal.
+    """
     require_equal(
         set(payload),
         {
@@ -176,21 +196,32 @@ def validate_vote_payload(
         payload["attestation"], heldout.REVIEWER_ATTESTATION, "reviewer attestation"
     )
     votes = payload["votes"]
-    expected_ids = [candidate["blind_id"] for candidate in packet["candidates"]]
-    if not isinstance(votes, list) or len(votes) != len(expected_ids):
+    expected_count = packet_record(commitment, persona)["candidate_count"]
+    if not isinstance(votes, list) or len(votes) != expected_count:
         raise ValueError(f"{persona}: vote count mismatch")
-    for index, (vote, expected_id) in enumerate(
-        zip(votes, expected_ids, strict=True)
-    ):
+    blind_ids: set[str] = set()
+    for index, vote in enumerate(votes):
         if not isinstance(vote, dict) or set(vote) != set(TSV_FIELDS):
             raise ValueError(f"{persona}.votes[{index}]: fields mismatch")
-        require_equal(
-            vote["blind_id"], expected_id, f"{persona}.votes[{index}].blind_id"
+        blind_id = vote["blind_id"]
+        if (
+            not isinstance(blind_id, str)
+            or not blind_id.startswith("case-")
+            or len(blind_id) != 29
+        ):
+            raise ValueError(f"{persona}.votes[{index}].blind_id: invalid")
+        heldout.require_hex(
+            blind_id.removeprefix("case-"),
+            24,
+            f"{persona}.votes[{index}].blind_id",
         )
+        blind_ids.add(blind_id)
         validate_vote(vote, f"{persona}.votes[{index}]")
         rationale = vote["rationale"]
         if not isinstance(rationale, str) or not rationale.strip():
             raise ValueError(f"{persona}.votes[{index}].rationale: required")
+    if len(blind_ids) != expected_count:
+        raise ValueError(f"{persona}: blind IDs must be unique")
 
 
 def compile_vote(args: argparse.Namespace) -> None:
@@ -218,6 +249,16 @@ def validate_vote_file(args: argparse.Namespace) -> None:
     payload = heldout.read_json(args.vote)
     validate_vote_payload(payload, args.persona, packet, commitment)
     print(f"validated {len(payload['votes'])} {args.persona} votes: {args.vote}")
+
+
+def validate_public_vote_file(args: argparse.Namespace) -> None:
+    commitment = read_commitment()
+    payload = heldout.read_json(args.vote)
+    validate_public_vote_payload(payload, args.persona, commitment)
+    print(
+        f"publicly validated {len(payload['votes'])} {args.persona} votes: "
+        f"{args.vote}"
+    )
 
 
 def self_test(_: argparse.Namespace) -> None:
@@ -256,6 +297,53 @@ def self_test(_: argparse.Namespace) -> None:
         approved.update(heldout.REVIEWER_ATTESTATION)
         path.write_text(json.dumps(approved), encoding="utf-8")
         read_attestation(path)
+    source_packet = {
+        "persona": "dedupe",
+        "schema": heldout.PRIVATE_PACKET_SCHEMA,
+        "sha256": "1" * 64,
+        "byte_length": 100,
+        "candidate_count": 2,
+    }
+    commitment = {
+        "rubric": {"path": "RUBRIC.md", "sha256": "2" * 64},
+        "packets": [source_packet],
+    }
+    packet = {"candidates": [{"blind_id": value} for value in expected_ids]}
+    payload = build_vote(
+        "dedupe", packet, commitment, votes, heldout.REVIEWER_ATTESTATION
+    )
+    validate_public_vote_payload(payload, "dedupe", commitment)
+    public_mutations: list[dict[str, Any]] = []
+    changed = copy.deepcopy(payload)
+    changed["votes"][1]["blind_id"] = changed["votes"][0]["blind_id"]
+    public_mutations.append(changed)
+    changed = copy.deepcopy(payload)
+    changed["votes"][0]["blind_id"] = "case-invalid"
+    public_mutations.append(changed)
+    changed = copy.deepcopy(payload)
+    changed["source_packet"]["sha256"] = "0" * 64
+    public_mutations.append(changed)
+    changed = copy.deepcopy(payload)
+    changed["attestation"]["assigned_material_only"] = False
+    public_mutations.append(changed)
+    changed = copy.deepcopy(payload)
+    changed["votes"][0]["reason"] = "trivial"
+    public_mutations.append(changed)
+    changed = copy.deepcopy(payload)
+    changed["votes"][0]["rationale"] = " "
+    public_mutations.append(changed)
+    changed = copy.deepcopy(payload)
+    changed["votes"].pop()
+    public_mutations.append(changed)
+    changed = copy.deepcopy(payload)
+    changed["unexpected"] = True
+    public_mutations.append(changed)
+    for mutation in public_mutations:
+        try:
+            validate_public_vote_payload(mutation, "dedupe", commitment)
+        except ValueError:
+            continue
+        raise AssertionError("invalid public held-out vote mutation was accepted")
     print("default-head held-out panel self-test passed")
 
 
@@ -279,6 +367,10 @@ def parser() -> argparse.ArgumentParser:
     validate_parser.add_argument("--persona", choices=heldout.PERSONAS, required=True)
     validate_parser.add_argument("vote", type=Path)
     validate_parser.set_defaults(run=validate_vote_file)
+    public_parser = commands.add_parser("validate-public", allow_abbrev=False)
+    public_parser.add_argument("--persona", choices=heldout.PERSONAS, required=True)
+    public_parser.add_argument("vote", type=Path)
+    public_parser.set_defaults(run=validate_public_vote_file)
     self_parser = commands.add_parser("self-test")
     self_parser.set_defaults(run=self_test)
     return root
