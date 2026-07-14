@@ -1,0 +1,1324 @@
+{
+  "schema": "nose.residual_ranking_panel_vote.v1",
+  "persona": "pragmatic",
+  "source_artifact": {
+    "path": "bench/labels/residual_ranking_topup_blind_2026_07_14.dev.v1.json",
+    "sha256": "66f058195f0ed42224bf42698c67a7d88e769f2633f44c4e5fc08f94c3f7849c"
+  },
+  "votes": [
+    {
+      "candidate_key": "alamofire:0798f4dcb8a24c09@bench/repos/alamofire/Tests/SessionTests.swift:346#rank-11",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The OS and version construction is duplicated across production and tests, so one helper would prevent the two representations from drifting."
+    },
+    {
+      "candidate_key": "alamofire:0927ca177b3c86a8@bench/repos/alamofire/Tests/DataStreamTests.swift:999#rank-10",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The stream-event completion path repeats the same state handling with only the success payload varying, making a focused helper worthwhile."
+    },
+    {
+      "candidate_key": "alamofire:1c004eccacf64f82@bench/repos/alamofire/docs/docsets/Alamofire.docset/Contents/Resources/Documents/js/jazzy.search.js:1#rank-3",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "These are Jazzy-generated JavaScript assets, so consolidating them in handwritten source would target generated output rather than maintainable code."
+    },
+    {
+      "candidate_key": "alamofire:257b5ae67013dbac@bench/repos/alamofire/Tests/ResponseSerializationTests.swift:416#rank-12",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The serializer, status, and method assertions form a clear behavioral test matrix whose axes can be parameterized without coupling unrelated behavior."
+    },
+    {
+      "candidate_key": "alamofire:35f500632b8e95a2@bench/repos/alamofire/docs/docsets/Alamofire.docset/Contents/Resources/Documents/js/jazzy.js:1#rank-4",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The identical Jazzy JavaScript copies are generated documentation assets and should be addressed at their generator, not by a shared abstraction here."
+    },
+    {
+      "candidate_key": "alamofire:579b568f29b45879@bench/repos/alamofire/Tests/RequestTests.swift:424#rank-13",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The event monitor setup and expectation handling recur across related tests and can be centralized in a test helper with explicit inputs."
+    },
+    {
+      "candidate_key": "alamofire:77cb58ce790dc192@bench/repos/alamofire/Tests/UploadTests.swift:418#rank-2",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "Twenty-four response tests repeat the same wait and assertion scaffolding, so a response-check helper would remove substantial test noise."
+    },
+    {
+      "candidate_key": "alamofire:8896db21598f7421@bench/repos/alamofire/Tests/UploadTests.swift:854#rank-15",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The request, upload, and download lifecycle tests exercise the same event contract with transport-specific parameters."
+    },
+    {
+      "candidate_key": "alamofire:8af1e183df0b5d8c@bench/repos/alamofire/Package.swift:1#rank-1",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The versioned Swift Package manifests are separate compatibility entry points, and sharing their tiny copyright and tool-version differences would undermine that purpose."
+    },
+    {
+      "candidate_key": "alamofire:a478d9519dc4bb3f@bench/repos/alamofire/Tests/MultipartFormDataTests.swift:217#rank-14",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The multipart expected-data construction and assertion block is identical and belongs in one test helper."
+    },
+    {
+      "candidate_key": "alamofire:a5fc38d1ea44e960@bench/repos/alamofire/docs/docsets/Alamofire.docset/Contents/Resources/Documents/index.html:664#rank-9",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The repeated HTML belongs to generated documentation and docset output, not independent handwritten implementations."
+    },
+    {
+      "candidate_key": "alamofire:b1600bdeab5c267c@bench/repos/alamofire/Tests/DataStreamTests.swift:603#rank-5",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The stream tests share one setup and event pipeline while queue and size are the meaningful test dimensions."
+    },
+    {
+      "candidate_key": "alamofire:c610768d8afdf081@bench/repos/alamofire/Tests/MultipartFormDataTests.swift:179#rank-19",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The multipart encoding and assertion sequence is an exact repeated unit that can be named once."
+    },
+    {
+      "candidate_key": "alamofire:d58e6f124431e122@bench/repos/alamofire/docs/docsets/Alamofire.docset/Contents/Resources/Documents/index.html:613#rank-6",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "These copies are generated documentation HTML, so extraction in the output would not improve maintainability."
+    },
+    {
+      "candidate_key": "alamofire:dd73d6a64de94f85@bench/repos/alamofire/Tests/OfflineRetrierTests.swift:95#rank-7",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The offline retrier tests duplicate a multi-request setup that can be expressed once with case-specific expectations."
+    },
+    {
+      "candidate_key": "alamofire:fdef86e1d681e2ea@bench/repos/alamofire/Tests/ResponseTests.swift:54#rank-8",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "Seven serializer-failure tests repeat the same response and failure scaffolding, which a helper can isolate from the failure-specific assertion."
+    },
+    {
+      "candidate_key": "antlr4:84bf33010b8a2b2f@bench/repos/antlr4/runtime/Swift/Sources/Antlr4/atn/ParserATNSimulator.swift:468#rank-10",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The Java and Swift ANTLR ports intentionally provide equivalent implementations in different languages and cannot share a practical source abstraction."
+    },
+    {
+      "candidate_key": "antlr4:aee7d32c196943eb@bench/repos/antlr4/tool-testsuite/test/org/antlr/v4/test/tool/TestBufferedTokenStream.java:27#rank-21",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The lexer grammar and token-stream setup is repeated within the same test area and can be factored without hiding the asserted behavior."
+    },
+    {
+      "candidate_key": "antlr4:c828f896d6f0a8e2@bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/atn/LexerATNSimulator.java:614#rank-12",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The Java and Swift runtime implementations are language-specific ports, so their similarity does not imply a useful shared code abstraction."
+    },
+    {
+      "candidate_key": "axios:58271fb4eba54175@bench/repos/axios/tests/unit/prototypePollution.test.js:864#rank-14",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The prototype-pollution tests repeat the same server request and finally assertion sequence, which is stable test infrastructure."
+    },
+    {
+      "candidate_key": "axios:718bafd3b1442a7f@bench/repos/axios/tests/smoke/cjs/tests/progress.smoke.test.cjs:6#rank-6",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The CommonJS and ESM smoke suites share a large transport and assertion body; a shared suite with a small module adapter would reduce drift."
+    },
+    {
+      "candidate_key": "black:bc6b419becc6a86f@bench/repos/black/tests/test_black.py:2648#rank-11",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The gitignore cases differ primarily in pattern and expected result, making them natural table-driven tests."
+    },
+    {
+      "candidate_key": "black:f9daf17a6f2d9855@bench/repos/black/tests/data/cases/fstring.py:4#rank-13",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The formatter input and output fixtures intentionally preserve repeated f-string text; abstraction would defeat the fixture's role."
+    },
+    {
+      "candidate_key": "chi:a054772e286a79a8@bench/repos/chi/tree_test.go:549#rank-13",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The router cases vary only middleware placement around an otherwise identical setup and expectation."
+    },
+    {
+      "candidate_key": "clap:0bbd903775b37131@bench/repos/clap/examples/tutorial_builder/04_02_validate.rs:21#rank-11",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The same port validator appears in separate tutorial builders, and a shared validator would keep the example behavior consistent."
+    },
+    {
+      "candidate_key": "clap:4d646fd729839694@bench/repos/clap/clap_builder/src/parser/parser.rs:1208#rank-16",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The parser conflict handling block repeats across three branches and represents one reusable operation."
+    },
+    {
+      "candidate_key": "clap:8f8d062c18b1d173@bench/repos/clap/tests/builder/multiple_values.rs:1287#rank-14",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The same multi-value assertion sequence appears in three tests and can be named as one domain-specific assertion."
+    },
+    {
+      "candidate_key": "click:9f07e1bddbc99c42@bench/repos/click/src/click/_termui_impl.py:580#rank-11",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The command-resolution and pager/editor preamble is shared workflow, not case-specific behavior."
+    },
+    {
+      "candidate_key": "cobra:50c0386cc80ee3f2@bench/repos/cobra/command_test.go:2550#rank-13",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The Cobra command construction is identical and can be centralized while callers supply the command-specific inputs."
+    },
+    {
+      "candidate_key": "cobra:7ff2ae7a4655ef51@bench/repos/cobra/command_test.go:275#rank-14",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The command-tree tests differ by alias or prefix input while exercising the same resolution contract."
+    },
+    {
+      "candidate_key": "commons-lang:0ae0e79f834c76ca@bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/SystemUtilsTest.java:1520#rank-12",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The many Java version assertions are a stable mapping from inputs to expected versions and belong in a data table."
+    },
+    {
+      "candidate_key": "commons-lang:796b8c3b4acc2b10@bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/SystemUtilsTest.java:1524#rank-15",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "This repeated version expectation matrix can be represented once as cases rather than duplicated assertion code."
+    },
+    {
+      "candidate_key": "curl:9cb3326a535f22c9@bench/repos/curl/tests/http/testenv/mod_curltest/mod_curltest.c:455#rank-57",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The brigade flush and error block is repeated four times and is cohesive enough for a small helper."
+    },
+    {
+      "candidate_key": "delve:17b738b7244473f8@bench/repos/delve/service/dap/server_test.go:541#rank-22",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The long DAP protocol scenario is duplicated and can be shared while retaining scenario-specific inputs."
+    },
+    {
+      "candidate_key": "delve:664308da89db728f@bench/repos/delve/service/dap/server_test.go:411#rank-24",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The repeated DAP state sequence is test scaffolding that a helper can encapsulate without weakening assertions."
+    },
+    {
+      "candidate_key": "delve:a3c78d426ca5c079@bench/repos/delve/pkg/dwarf/godwarf/type.go:664#rank-25",
+      "worthy": false,
+      "reason": "trivial",
+      "rationale": "The six-line cache assignment targets different fields, and a new abstraction would add indirection for negligible duplication."
+    },
+    {
+      "candidate_key": "delve:a93973bcb8bc280a@bench/repos/delve/pkg/proc/stepping_test.go:522#rank-27",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The reverse-stepping tests repeat the same expected state sequence and can source it from a shared table."
+    },
+    {
+      "candidate_key": "delve:b4d9eb50d0530f50@bench/repos/delve/pkg/terminal/command_test.go:1276#rank-20",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The terminal-value assertion is an exact domain assertion that deserves one helper."
+    },
+    {
+      "candidate_key": "delve:d556fbf360dee0bd@bench/repos/delve/service/test/integration2_test.go:350#rank-18",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The Continue call and error check recur seven times and form a clear reusable test operation."
+    },
+    {
+      "candidate_key": "delve:e0abf58fd40992fd@bench/repos/delve/pkg/proc/native/exc.h:6#rank-15",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The Mach exception headers are MIG-generated interfaces and should not be refactored as handwritten duplication."
+    },
+    {
+      "candidate_key": "delve:f0db7f7d3774bbac@bench/repos/delve/pkg/proc/native/threads_linux_riscv64.go:267#rank-12",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The hardware single-step wait and signal loop is duplicated with only a small signal variation, suitable for a parameterized helper."
+    },
+    {
+      "candidate_key": "devise:82d1306664ccf40c@bench/repos/devise/test/integration/timeoutable_test.rb:177#rank-12",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The redirect timeout tests share one flow and vary only timeout-related inputs and outcomes."
+    },
+    {
+      "candidate_key": "devise:9f8ac553ab46ed84@bench/repos/devise/test/integration/recoverable_test.rb:266#rank-13",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The unlock tests exercise the same contract with the strategy as the meaningful parameter."
+    },
+    {
+      "candidate_key": "devise:ade68f155c58013b@bench/repos/devise/test/models/lockable_test.rb:20#rank-17",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The lockable-user construction and setup recur unchanged and can be moved to a focused fixture helper."
+    },
+    {
+      "candidate_key": "devise:fb8935da565a86a3@bench/repos/devise/test/integration/lockable_test.rb:106#rank-11",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The locked-login cases differ in password input while the setup and expected behavior remain the same."
+    },
+    {
+      "candidate_key": "drizzle-orm:2e722bece239e70e@bench/repos/drizzle-orm/drizzle-kit/tests/mysql-generated.test.ts:217#rank-30",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The generated-column migration tests span a clear combination of column definitions and expected results that should be table-driven."
+    },
+    {
+      "candidate_key": "drizzle-orm:360dd745fbe00c94@bench/repos/drizzle-orm/integration-tests/tests/relational/vercel.test.ts:236#rank-66",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The Vercel relational tests repeat the same user and post seed setup in one test domain."
+    },
+    {
+      "candidate_key": "drizzle-orm:5bbe41808b5c4238@bench/repos/drizzle-orm/drizzle-arktype/src/constants.ts:1#rank-12",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The identical numeric limit constants across four adapters are shared compatibility data and should have one source of truth."
+    },
+    {
+      "candidate_key": "drizzle-orm:879a9a7e5a60a0a6@bench/repos/drizzle-orm/drizzle-kit/tests/sqlite-generated.test.ts:309#rank-127",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The SQLite generated-column cases are a large regular matrix of definitions and expected migration behavior."
+    },
+    {
+      "candidate_key": "drizzle-orm:9a0dcd7e8136b557@bench/repos/drizzle-orm/drizzle-kit/src/cli/commands/migrate.ts:820#rank-114",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The custom migration write-result branch is repeated across five flows and can be centralized around its varying callback."
+    },
+    {
+      "candidate_key": "drizzle-orm:aa9408d6def9b25f@bench/repos/drizzle-orm/integration-tests/tests/relational/mysql.test.ts:2354#rank-17",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The same relational contract is tested across database drivers with small synchronization and type variations."
+    },
+    {
+      "candidate_key": "drizzle-orm:bcc2128ccaef47cd@bench/repos/drizzle-orm/integration-tests/tests/relational/mysql.test.ts:2951#rank-14",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "This cross-driver relational test has one behavior and backend-specific parameters rather than independent concerns."
+    },
+    {
+      "candidate_key": "drizzle-orm:c1e471c32ba3f15f@bench/repos/drizzle-orm/integration-tests/tests/relational/bettersqlite.test.ts:2947#rank-145",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The repeated database seed sequence is stable setup that can be shared across the related tests."
+    },
+    {
+      "candidate_key": "drizzle-orm:d2a15a58c1c1197f@bench/repos/drizzle-orm/integration-tests/tests/relational/pg.test.ts:260#rank-65",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The PostgreSQL seed setup is duplicated verbatim and can be factored into a fixture helper."
+    },
+    {
+      "candidate_key": "drizzle-orm:e8e9d171d9a13163@bench/repos/drizzle-orm/integration-tests/tests/relational/mysql.test.ts:2525#rank-24",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The long backend tests exercise the same behavior and should use a common suite parameterized by backend capabilities."
+    },
+    {
+      "candidate_key": "drizzle-orm:ecc6f8b3bfe75e9a@bench/repos/drizzle-orm/integration-tests/tests/relational/mysql.test.ts:5203#rank-15",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The many-to-many contract is repeated across backends with backend choice as the principal axis."
+    },
+    {
+      "candidate_key": "drizzle-orm:f18fa13ec39cad06@bench/repos/drizzle-orm/integration-tests/tests/relational/mysql.test.ts:2699#rank-22",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The order-by tests share setup and assertions and differ mainly by backend."
+    },
+    {
+      "candidate_key": "drizzle-orm:f9f758ab09df64fa@bench/repos/drizzle-orm/integration-tests/tests/mysql/mysql-common.ts:5666#rank-78",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The table and index setup block is exact across four tests and should be one fixture operation."
+    },
+    {
+      "candidate_key": "execa:5d7548fe63c28082@bench/repos/execa/test-d/stdio/option/duplex-object.test-d.ts:1#rank-11",
+      "worthy": false,
+      "reason": "trivial",
+      "rationale": "The shared material is mostly imports and one constant in independent type-test fixtures, too little to justify an abstraction."
+    },
+    {
+      "candidate_key": "faraday:b4365a2651fed419@bench/repos/faraday/spec/faraday/response/json_spec.rb:32#rank-11",
+      "worthy": false,
+      "reason": "trivial",
+      "rationale": "Two five-line assertions differ in the raw-body expectation, and extracting them would be more ceremony than clarity."
+    },
+    {
+      "candidate_key": "fastlane:6df6812aaaeee81a@bench/repos/fastlane/fastlane/swift/Fastlane.swift:5163#rank-15",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "Fastlane.swift action wrappers and aliases are generated integration code, so direct extraction would be overwritten or misplaced."
+    },
+    {
+      "candidate_key": "fastlane:7d0a7582e80b3ff5@bench/repos/fastlane/fastlane/lib/fastlane/actions/create_pull_request.rb:26#rank-16",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The GitHub error-handling sequence is exact in four call paths and can be shared with the operation-specific context passed in."
+    },
+    {
+      "candidate_key": "fastlane:c2641cf28ec06dda@bench/repos/fastlane/spaceship/spec/client_spec.rb:181#rank-11",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The large identical HTML error fixture should be a single named test datum rather than copied twice."
+    },
+    {
+      "candidate_key": "git:07c18460b59cd12b@bench/repos/git/compat/obstack.c:145#rank-15",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The GNU obstack compatibility implementation is vendored source and should remain aligned with upstream."
+    },
+    {
+      "candidate_key": "git:0827c73c42e0beb6@bench/repos/git/commit-graph.c:923#rank-18",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The identical static inline setter in three C locations has a natural shared header-level home."
+    },
+    {
+      "candidate_key": "git:0f7a49469bec2f61@bench/repos/git/git-zlib.c:139#rank-29",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The inflate and deflate loops share one control structure and differ by operation and label."
+    },
+    {
+      "candidate_key": "git:209484be960415b1@bench/repos/git/refs/reftable-backend.c:1956#rank-38",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The reftable backend transaction tail is exact duplicated transaction handling and can be centralized."
+    },
+    {
+      "candidate_key": "git:37a7e7adf4f54ed3@bench/repos/git/builtin/fast-import.c:2385#rank-17",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The fast-import data-reference parser is copied and can be expressed as one parsing helper."
+    },
+    {
+      "candidate_key": "git:b3895a14d6701a35@bench/repos/git/builtin/update-ref.c:97#rank-25",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The update-ref delimiter parser repeats the same tokenization logic and warrants a shared parser routine."
+    },
+    {
+      "candidate_key": "graphhopper:0ddc237f28703379@bench/repos/graphhopper/web/src/test/java/com/graphhopper/application/resources/PtIsochroneTest.java:74#rank-39",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The isochrone tests exercise one contract with alternative point representations as inputs."
+    },
+    {
+      "candidate_key": "graphhopper:bf2c581db1129af6@bench/repos/graphhopper/web-bundle/src/main/resources/com/graphhopper/maps/pt/view/sidebar/TripDisplay.css:76#rank-16",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The CSS circle geometry is shared while color is the small variant, so a common selector or class would reduce drift."
+    },
+    {
+      "candidate_key": "graphhopper:cc4179cbeac84cd1@bench/repos/graphhopper/core/src/test/java/com/graphhopper/routing/PathTest.java:241#rank-19",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The roundabout angle assertion is an exact domain-specific check repeated in related tests."
+    },
+    {
+      "candidate_key": "gson:7c9430c0b26bf149@bench/repos/gson/gson/src/test/java/com/google/gson/stream/JsonReaderTest.java:568#rank-18",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The malformed JSON Unicode inputs and expected diagnostics form a direct test case table."
+    },
+    {
+      "candidate_key": "gson:a15b117e64fafe65@bench/repos/gson/gson/src/main/java/com/google/gson/Gson.java:652#rank-30",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The writer strictness configuration is identical and can be set through one helper."
+    },
+    {
+      "candidate_key": "gson:a32c2fb55cb7b837@bench/repos/gson/gson/src/main/java/com/google/gson/internal/bind/MapTypeAdapterFactory.java:189#rank-31",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The map-entry read and duplicate guard is copied across two branches and represents one reusable operation."
+    },
+    {
+      "candidate_key": "gson:c2ee2f9230fbf291@bench/repos/gson/gson/src/main/java/com/google/gson/stream/JsonReader.java:331#rank-13",
+      "worthy": false,
+      "reason": "trivial",
+      "rationale": "The deprecated reader and writer leniency methods are tiny public delegation boilerplate whose separate signatures are clearer than another layer."
+    },
+    {
+      "candidate_key": "gson:c716da037456ae08@bench/repos/gson/gson/src/test/java/com/google/gson/stream/JsonWriterTest.java:893#rank-24",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The closed-writer tests repeat one assertion flow for different operations."
+    },
+    {
+      "candidate_key": "gson:ccda9f982194d383@bench/repos/gson/gson/src/test/java/com/google/gson/functional/NamingPolicyTest.java:70#rank-32",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The naming-policy JSON assertion repeats a complete test operation that can take policy and expected text."
+    },
+    {
+      "candidate_key": "gson:d320722a30d6f82c@bench/repos/gson/gson/src/main/java/com/google/gson/stream/JsonReader.java:1288#rank-16",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The JsonReader delimiter scan and classification logic is substantial shared parsing behavior that should have one implementation."
+    },
+    {
+      "candidate_key": "guava:0c83565f3b1f8ea1@bench/repos/guava/android/guava/src/com/google/common/collect/ForwardingBlockingDeque.java:49#rank-13",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The Guava Android and main source flavors are mirrored/generated variants, so editing the copies is not the right abstraction boundary."
+    },
+    {
+      "candidate_key": "guava:203cb5d1fd6fa769@bench/repos/guava/android/guava-tests/test/com/google/common/collect/HashingTest.java:1#rank-16",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The HashingTest copies are exact Android/main mirrors maintained as generated flavor output."
+    },
+    {
+      "candidate_key": "guava:63bb443b30036bf9@bench/repos/guava/android/guava-tests/test/com/google/common/collect/AbstractImmutableBiMapMapInterfaceTest.java:1#rank-18",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The family is dominated by Android/main mirrored copies, while the genuine map variants already share an appropriate base."
+    },
+    {
+      "candidate_key": "guava:9628064abaabde11@bench/repos/guava/android/guava-tests/test/com/google/common/io/SourceSinkTester.java:17#rank-35",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "SourceSinkTester is duplicated as an Android/main generated mirror rather than as independent handwritten logic."
+    },
+    {
+      "candidate_key": "guava:9baa17bfc4f00d25@bench/repos/guava/android/guava-tests/benchmark/com/google/common/io/ByteSourceAsCharSourceReadBenchmark.java:18#rank-31",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The benchmark copies are Android/main flavor mirrors and should remain generator-controlled."
+    },
+    {
+      "candidate_key": "guava:a1cf552a743ceccb@bench/repos/guava/android/guava-tests/test/com/google/common/cache/CacheStatsTest.java:17#rank-26",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "CacheStatsTest is an exact Android/main mirror, not a candidate for local source extraction."
+    },
+    {
+      "candidate_key": "guava:a74d53c83857bba1@bench/repos/guava/android/guava-tests/test/com/google/common/collect/WriteReplaceOverridesTest.java:1#rank-24",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "This test family is another exact Android/main generated mirror."
+    },
+    {
+      "candidate_key": "guava:c7730fe26c9d809d@bench/repos/guava/android/guava-tests/test/com/google/common/xml/XmlEscapersTest.java:1#rank-28",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The duplicate tests come from Guava's Android/main mirroring process."
+    },
+    {
+      "candidate_key": "guava:d55d9a6b13e13bab@bench/repos/guava/android/guava-tests/test/com/google/common/base/FinalizableReferenceQueueClassLoaderUnloadingTest.java:19#rank-33",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "These exact test copies are generated flavor mirrors and should not be consolidated manually."
+    },
+    {
+      "candidate_key": "guava:de8f533401cecd23@bench/repos/guava/android/guava-tests/test/com/google/common/collect/TreeBasedTableRowMapSubMapTest.java:19#rank-15",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The Android/main mirrored test subclasses dominate this family, making the generator the correct maintenance point."
+    },
+    {
+      "candidate_key": "guava:e36126bb91c0d773@bench/repos/guava/android/guava-tests/test/com/google/common/base/AbstractIteratorTest.java:45#rank-14",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The family combines Android/main mirrors with already structured base and collect variants, so another abstraction would target generated copies."
+    },
+    {
+      "candidate_key": "hugo:2c5c09d150cccdc0@bench/repos/hugo/tpl/internal/go_templates/htmltemplate/exec_test.go:710#rank-11",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "Hugo's internal Go template implementations are vendored upstream copies and should track their source rather than share local abstractions."
+    },
+    {
+      "candidate_key": "hugo:58a45ee6f5536204@bench/repos/hugo/hugolib/resource_chain_test.go:869#rank-24",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The large virtual-site fixture is common data for distinct resource-chain cases and should be defined once."
+    },
+    {
+      "candidate_key": "image:1c2bdb43e8989e55@bench/repos/image/src/codecs/bmp/decoder.rs:1364#rank-16",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The BMP parsed-header assignment and validation block is identical and represents one decoding step."
+    },
+    {
+      "candidate_key": "jekyll:0604f470b139d6a8@bench/repos/jekyll/test/test_document.rb:337#rank-11",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The Jekyll document setup varies index and destination while the tested workflow is otherwise the same."
+    },
+    {
+      "candidate_key": "jekyll:24d984543970063f@bench/repos/jekyll/test/test_document.rb:240#rank-12",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The Jekyll defaults cases differ by scope and value and fit a single table-driven setup."
+    },
+    {
+      "candidate_key": "jest:8b69c059f98cb458@bench/repos/jest/packages/jest-fake-timers/src/__tests__/modernFakeTimers.test.ts:706#rank-14",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The fake global and timer setup is repeated test infrastructure that can be centralized."
+    },
+    {
+      "candidate_key": "jest:c7e5304d9b56a7ed@bench/repos/jest/packages/jest-fake-timers/src/__tests__/modernFakeTimers.test.ts:17#rank-12",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "This second fake global and timer family likewise repeats the same harness setup."
+    },
+    {
+      "candidate_key": "jest:dced26a20aeb7014@bench/repos/jest/packages/jest-message-util/src/__tests__/messages.test.ts:468#rank-23",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The formatStackTrace configurations are inputs to one behavior and can be enumerated as cases."
+    },
+    {
+      "candidate_key": "jest:e786c59defca5953@bench/repos/jest/packages/jest-snapshot/src/__tests__/InlineSnapshots.test.ts:67#rank-22",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The inline snapshot cases share setup and assertions while only the Prettier selection changes."
+    },
+    {
+      "candidate_key": "jq:e1f2bd0c0191af7b@bench/repos/jq/src/jv.c:1000#rank-14",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The copied-slot retrieval and release logic is duplicated across value containers and should be one storage primitive."
+    },
+    {
+      "candidate_key": "junit5:4d462f168836ba05@bench/repos/junit5/platform-tests/src/test/java/org/junit/platform/suite/engine/SuiteEngineTests.java:386#rank-49",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The UniqueId builder is exact repeated construction with a clear shared name."
+    },
+    {
+      "candidate_key": "junit5:4ec155a74d4951c7@bench/repos/junit5/junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/IgnoredParameterizedTestCase.java:28#rank-13",
+      "worthy": false,
+      "reason": "trivial",
+      "rationale": "The four-line static JUnit parameter provider is framework-shaped fixture boilerplate and too small to improve through extraction."
+    },
+    {
+      "candidate_key": "junit5:efd7ec49bbd20235@bench/repos/junit5/platform-tooling-support-tests/src/test/java/platform/tooling/support/tests/StandaloneTests.java:405#rank-56",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The standalone CLI launch arguments and assertions form an exact reusable smoke-test operation."
+    },
+    {
+      "candidate_key": "libsodium:0de15b6dcdd8d198@bench/repos/libsodium/src/libsodium/include/sodium/private/ed25519_ref10_fe_25_5.h:177#rank-28",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The duplicated Ed25519 arithmetic sits in specialized constant-time routines where extraction could alter performance and auditability."
+    },
+    {
+      "candidate_key": "libsodium:817f9f5ff5c2db41@bench/repos/libsodium/src/libsodium/include/sodium/private/ed25519_ref10_fe_51.h:317#rank-43",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "This cryptographic arithmetic is deliberately repeated across specialized constant-time paths, so coupling them is not a pragmatic refactor."
+    },
+    {
+      "candidate_key": "libsodium:949a2f4e7e8b24eb@bench/repos/libsodium/src/libsodium/include/sodium/private/ed25519_ref10_fe_25_5.h:803#rank-21",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The sq and sq2 field operations are separately hand-optimized primitives whose similar arithmetic serves distinct performance contracts."
+    },
+    {
+      "candidate_key": "libsodium:a948b1a74d0a5b8d@bench/repos/libsodium/src/libsodium/crypto_core/ed25519/ref10/ed25519_ref10.c:1228#rank-27",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "Scalar multiplication and multiply-add use intentionally unrolled cryptographic math that should remain separately auditable."
+    },
+    {
+      "candidate_key": "libsodium:bc3bc08986b95d81@bench/repos/libsodium/src/libsodium/include/sodium/private/ed25519_ref10_fe_51.h:317#rank-42",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The repeated reduction belongs to hand-optimized field operations where explicit duplication preserves constant-time and performance properties."
+    },
+    {
+      "candidate_key": "libsodium:d86203590cf6c2a9@bench/repos/libsodium/src/libsodium/crypto_hash/sha3/hash_sha3.c:54#rank-13",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The Keccak absorb loops share structure and vary by rate and round function, which are explicit algorithm parameters."
+    },
+    {
+      "candidate_key": "mockito:a407b75d0c21d19b@bench/repos/mockito/mockito-core/src/test/java/org/mockitousage/annotation/WrongSetOfAnnotationsTest.java:20#rank-16",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The invalid Mockito annotation pairs are a regular compatibility matrix suited to data-driven testing."
+    },
+    {
+      "candidate_key": "nats-server:34249fd8bbae1703@bench/repos/nats-server/server/filestore_test.go:1134#rank-22",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The filestore reopen and state verification sequence is repeated and can become one assertion helper."
+    },
+    {
+      "candidate_key": "nats-server:59475c31867a39c6@bench/repos/nats-server/server/filestore_test.go:8763#rank-15",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The filestore initialization and population sequence is stable shared test setup."
+    },
+    {
+      "candidate_key": "nats-server:7a9918bf1fc72853@bench/repos/nats-server/server/jetstream_consumer_test.go:5260#rank-1",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The JetStream server and client setup appears across 166 tests, making a shared harness a high-value reduction."
+    },
+    {
+      "candidate_key": "nats-server:9d0ee609510d5da5@bench/repos/nats-server/server/norace_1_test.go:7686#rank-11",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The cluster and stream initialization repeats across consumer tests and can be isolated as fixture setup."
+    },
+    {
+      "candidate_key": "nats-server:d644c32d8c0c935c@bench/repos/nats-server/test/ocsp_peer_test.go:191#rank-12",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The OCSP server connection and result-check loop is duplicated across table cases and can be one runner helper."
+    },
+    {
+      "candidate_key": "nats-server:e1c7c77b6dc47b98@bench/repos/nats-server/test/ocsp_peer_test.go:1778#rank-17",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The identical OCSP TLS configuration and option payload is shared fixture data with one appropriate definition."
+    },
+    {
+      "candidate_key": "netty:19241b84e39bfb14@bench/repos/netty/codec-haproxy/src/test/java/io/netty/handler/codec/haproxy/HAProxyMessageDecoderTest.java:325#rank-96",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The HAProxy binary-header cases exercise the same protocol parser with case-specific byte inputs and expectations."
+    },
+    {
+      "candidate_key": "netty:23c7de40e933a403@bench/repos/netty/codec-native-quic/src/main/c/netty_quic_quiche.c:786#rank-178",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The JNI path-event wrappers repeat address and result-array construction around a varying operation."
+    },
+    {
+      "candidate_key": "netty:39cb4f588dcd85c5@bench/repos/netty/handler/src/test/java/io/netty/handler/ssl/OpenSslEngineTest.java:1621#rank-52",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The SSL context builder chain is repeated throughout related tests and can be one configurable builder helper."
+    },
+    {
+      "candidate_key": "netty:503a614540222c0e@bench/repos/netty/handler/src/main/java/io/netty/handler/ssl/OpenSslSessionStats.java:43#rank-174",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The sixteen statistics accessors share the same locked-read operation and can delegate through one internal helper while retaining public methods."
+    },
+    {
+      "candidate_key": "netty:694c0d77648313aa@bench/repos/netty/example/src/main/java/io/netty/example/localecho/LocalEcho.java:23#rank-15",
+      "worthy": false,
+      "reason": "trivial",
+      "rationale": "The only duplicated material is an import block, which carries no behavior worth abstracting."
+    },
+    {
+      "candidate_key": "netty:7adbb300be9617fb@bench/repos/netty/buffer/src/test/java/io/netty/buffer/ByteBufUtilTest.java:518#rank-107",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The UTF-8 surrogate inputs and expected results form a direct encoding case matrix."
+    },
+    {
+      "candidate_key": "netty:7cb8407a3c996cf7@bench/repos/netty/codec-marshalling/src/test/java/io/netty/handler/codec/marshalling/RiverCompatibleMarshallingDecoderTest.java:1#rank-47",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The marshalling fixture subclasses intentionally provide separate encoder and decoder factories, with their small hooks already shaped by a common framework."
+    },
+    {
+      "candidate_key": "netty:8687c02b57635201@bench/repos/netty/buffer/src/main/java/io/netty/buffer/CompositeByteBuf.java:1444#rank-179",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The CompositeByteBuf overloads duplicate a traversal loop that can invoke an operation-specific callback."
+    },
+    {
+      "candidate_key": "netty:8aa7c38277823a3b@bench/repos/netty/transport/src/test/java/io/netty/channel/DefaultChannelPipelineTailTest.java:99#rank-151",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The inbound event tests share pipeline, bootstrap, and latch infrastructure that belongs in a reusable harness."
+    },
+    {
+      "candidate_key": "netty:da0d247b5dfcdbd9@bench/repos/netty/transport-native-unix-common/src/main/c/netty_unix_filedescriptor.c:134#rank-92",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The JNI iovec loops have one algorithm with field-versus-method access as the explicit strategy parameter."
+    },
+    {
+      "candidate_key": "netty:f105c07ed9552d85@bench/repos/netty/common/src/main/java/io/netty/util/internal/logging/MessageFormatter.java:307#rank-136",
+      "worthy": false,
+      "reason": "trivial",
+      "rationale": "The primitive-array overload loops are type-specific Java boilerplate, and a generic helper would introduce boxing or unsafe complexity for little gain."
+    },
+    {
+      "candidate_key": "nginx:351d93f93846f6e9@bench/repos/nginx/src/http/ngx_http_upstream_round_robin.c:176#rank-20",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The primary and backup branches repeat the same upstream peer initialization and should call one initializer."
+    },
+    {
+      "candidate_key": "nginx:3d92286d1bfddbbb@bench/repos/nginx/src/http/ngx_http_write_filter_module.c:83#rank-35",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The zero-buffer validation is an exact reusable guard repeated in related write paths."
+    },
+    {
+      "candidate_key": "nginx:5ff4895dd58ee9ab@bench/repos/nginx/src/stream/ngx_stream_upstream_round_robin.c:177#rank-28",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The stream module repeats the same peer initialization and can use a common setup primitive."
+    },
+    {
+      "candidate_key": "nginx:85f5811a2d2b2ef0@bench/repos/nginx/src/http/modules/ngx_http_grpc_module.c:3533#rank-14",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The gRPC and proxy-v2 frame parsers duplicate a substantial HTTP/2 state machine that merits a shared parsing core."
+    },
+    {
+      "candidate_key": "nginx:cc9343f3cd695664@bench/repos/nginx/src/event/modules/ngx_win32_select_module.c:33#rank-12",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The Win32 and POSIX select modules are platform-specific event-loop implementations whose separate system interactions should remain explicit."
+    },
+    {
+      "candidate_key": "nginx:d02e1f15259314db@bench/repos/nginx/src/stream/ngx_stream_write_filter_module.c:107#rank-36",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The stream write paths repeat the exact zero-buffer validation and can share the guard."
+    },
+    {
+      "candidate_key": "nushell:01ee4f8869413b0d@bench/repos/nushell/crates/nu-protocol/src/value/mod.rs:3420#rank-53",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The comparison operator guards have one type-checking structure with the operator enum as the changing input."
+    },
+    {
+      "candidate_key": "nushell:57257ccbcbcedde4@bench/repos/nushell/crates/nu-cli/tests/completions/mod.rs:1474#rank-64",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The path suggestion normalization and assertion sequence is identical test behavior that can be named once."
+    },
+    {
+      "candidate_key": "nushell:c5e5b6bcf3e1b2cd@bench/repos/nushell/crates/nu_plugin_polars/src/dataframe/values/nu_dataframe/conversion.rs:815#rank-65",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The dataframe conversions share slice, map, and collect structure with only the element conversion varying."
+    },
+    {
+      "candidate_key": "nushell:f01a7d67e852847c@bench/repos/nushell/crates/nu-parser/tests/test_parser.rs:2783#rank-63",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The repeated dummy command implementation is parser-test scaffolding and can be supplied by one fixture."
+    },
+    {
+      "candidate_key": "poetry:b281205486278c49@bench/repos/poetry/tests/installation/test_executor.py:313#rank-13",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The Poetry tests exercise one build path with configuration settings and constraints as case parameters."
+    },
+    {
+      "candidate_key": "poetry:b605ea0cb40bdc4c@bench/repos/poetry/tests/console/commands/test_config.py:426#rank-12",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The repository configuration tests differ only in the expected list entry and fit a case table."
+    },
+    {
+      "candidate_key": "poetry:e98d8546bfdcae05@bench/repos/poetry/tests/console/commands/test_init.py:1168#rank-15",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The initialization tests share inputs and assertions with mode as the sole meaningful dimension."
+    },
+    {
+      "candidate_key": "prettier:2e3c622cdfad9c5b@bench/repos/prettier/tests/format/jsx/optional-chaining/optional-chaining.jsx:15#rank-14",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "Prettier format fixtures intentionally enumerate source syntax forms, and extracting their repeated text would invalidate their purpose."
+    },
+    {
+      "candidate_key": "prettier:389a57e365d1eab6@bench/repos/prettier/tests/format/flow/flow-repo/type-printer/types.js:38#rank-23",
+      "worthy": false,
+      "reason": "type-def",
+      "rationale": "The repeated Flow AST material is declarative type and data structure definition rather than executable behavior to abstract."
+    },
+    {
+      "candidate_key": "prettier:4e2f271d1fd30dc9@bench/repos/prettier/tests/format/flow/flow-repo/refi/null_tests.js:20#rank-16",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The files are vendored Flow repository fixtures, so local extraction would sever them from their upstream source."
+    },
+    {
+      "candidate_key": "prettier:efabb6338bc00796@bench/repos/prettier/tests/format/flow/flow-repo/type-printer/types.js:585#rank-26",
+      "worthy": false,
+      "reason": "type-def",
+      "rationale": "The Flow AST union declarations are type definitions whose repetition encodes separate schema alternatives."
+    },
+    {
+      "candidate_key": "prometheus:0fb9900e69d53535@bench/repos/prometheus/model/histogram/float_histogram_test.go:617#rank-15",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The identical histogram literal appears across eight cases and should be a single named fixture."
+    },
+    {
+      "candidate_key": "prometheus:866679f336b746f8@bench/repos/prometheus/model/histogram/float_histogram_test.go:112#rank-13",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The repeated histogram record is common test data shared by five cases."
+    },
+    {
+      "candidate_key": "prometheus:a2648c32f2d278cc@bench/repos/prometheus/discovery/consul/consul_test.go:395#rank-22",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The fake Consul handler is exact repeated server behavior and can be one fixture helper."
+    },
+    {
+      "candidate_key": "prometheus:ae12c8adeba0f1fd@bench/repos/prometheus/web/ui/mantine-ui/src/promql/functionDocs.tsx:124#rank-14",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The same PromQL documentation list is copied fifteen times and should have one data definition."
+    },
+    {
+      "candidate_key": "prometheus:fc55f0649a188f85@bench/repos/prometheus/web/api/v1/openapi_schemas.go:165#rank-17",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The OpenAPI response-schema tail repeats across ten builders and can be applied by one response configuration helper."
+    },
+    {
+      "candidate_key": "rack:0fe85920900e9b21@bench/repos/rack/test/spec_request.rb:979#rank-12",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The multipart request and form-pair tests share the request flow and vary only the payload case."
+    },
+    {
+      "candidate_key": "raylib:000b7c6b1e4d9397@bench/repos/raylib/src/external/stb_image_resize2.h:10408#rank-28",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The candidate is inside the vendored stb_image_resize2 external header and should remain upstream-controlled."
+    },
+    {
+      "candidate_key": "raylib:29d1357bcb4040dd@bench/repos/raylib/src/external/miniaudio.h:90195#rank-41",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The miniaudio external header is vendored source, not locally maintainable duplicate code."
+    },
+    {
+      "candidate_key": "raylib:33ff46afd9b2d749@bench/repos/raylib/src/external/miniaudio.h:90458#rank-14",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "This family is part of the vendored miniaudio header and should not be refactored independently."
+    },
+    {
+      "candidate_key": "raylib:8cea81c8268549c5@bench/repos/raylib/src/external/miniaudio.h:84540#rank-32",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "The repeated code comes from the external miniaudio distribution."
+    },
+    {
+      "candidate_key": "raylib:bc502e798cf6963b@bench/repos/raylib/src/external/miniaudio.h:90458#rank-15",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "This miniaudio duplication is vendored upstream implementation and belongs to the imported artifact."
+    },
+    {
+      "candidate_key": "raylib:d2d96c75281e7ad9@bench/repos/raylib/examples/models/rlights.h:1#rank-12",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The identical rlights implementation appears in two examples and can be shared without hiding the examples' distinct usage."
+    },
+    {
+      "candidate_key": "raylib:f442faae614ea758@bench/repos/raylib/src/raymath.h:1574#rank-19",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "Matrix inversion is duplicated in raymath and rlgl headers and should have a single math implementation or shared primitive."
+    },
+    {
+      "candidate_key": "requests:32e5f7fa5694586c@bench/repos/requests/src/requests/models.py:813#rank-11",
+      "worthy": false,
+      "reason": "trivial",
+      "rationale": "The two-line context-manager exit delegation is idiomatic protocol boilerplate and not worth another abstraction."
+    },
+    {
+      "candidate_key": "retrofit:5b74861ffb11d1d9@bench/repos/retrofit/retrofit-converters/jaxb/src/main/java/retrofit2/converter/jaxb/JaxbRequestConverter.java:22#rank-27",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The JAXB and JAXB3 converters intentionally support separate dependency namespaces, so their parallel modules need independent surfaces."
+    },
+    {
+      "candidate_key": "rich:08a131cad83b0965@bench/repos/rich/tests/test_progress.py:593#rank-14",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The progress tests repeat console and temporary-file setup that can be centralized as a fixture."
+    },
+    {
+      "candidate_key": "rich:28e042cac03ee5db@bench/repos/rich/rich/text.py:889#rank-12",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The span clipping comprehension is copied across Text methods and represents one reusable range transformation."
+    },
+    {
+      "candidate_key": "rich:48ea964254d4eb35@bench/repos/rich/rich/progress.py:430#rank-15",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The progress open and wrap_file paths share column and Progress construction that can be moved to one builder."
+    },
+    {
+      "candidate_key": "rich:975f205525d61e6e@bench/repos/rich/rich/style.py:634#rank-16",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The Style cloning methods have the same copy operation with link value as the changing parameter."
+    },
+    {
+      "candidate_key": "rich:d992117c38a71499@bench/repos/rich/rich/bar.py:86#rank-11",
+      "worthy": true,
+      "reason": "extract-base",
+      "rationale": "Bar and ProgressBar implement the same measurement behavior and can share a small base or mixin abstraction."
+    },
+    {
+      "candidate_key": "ripgrep:850a453d4b4b3545@bench/repos/ripgrep/crates/printer/src/standard.rs:3962#rank-12",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The ripgrep printer tests repeat the same search and assertion body and can invoke one case runner."
+    },
+    {
+      "candidate_key": "rspec-core:c5c513e58f145772@bench/repos/rspec-core/spec/rspec/core/aggregate_failures_spec.rb:108#rank-12",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The aggregate-failure cases repeat an expected exception list with one varying element, which should be assembled from shared data."
+    },
+    {
+      "candidate_key": "rubocop:3e011d8419257a44@bench/repos/rubocop/spec/rubocop/cop/generator/require_file_injector_spec.rb:209#rank-14",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The injector tests share a large expected file and output while injected path is the clear case axis."
+    },
+    {
+      "candidate_key": "rubocop:50b473dd74e7e294@bench/repos/rubocop/spec/rubocop/cop/variable_force/assignment_spec.rb:237#rank-11",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The assignment meta-node tests exercise one parser contract with source syntax as the input."
+    },
+    {
+      "candidate_key": "rubocop:7a5f9f642f6f6f1b@bench/repos/rubocop/spec/rubocop/target_finder_spec.rb:443#rank-12",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The target-finder tests share configuration and expectations while the special path is the case parameter."
+    },
+    {
+      "candidate_key": "rubocop:994575bee7c71c07@bench/repos/rubocop/spec/rubocop/cop/lint/unused_method_argument_spec.rb:490#rank-13",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The RuboCop offense and correction expectation block is exact repeated domain assertion."
+    },
+    {
+      "candidate_key": "rubocop:d9f33bc0bb59a6e1@bench/repos/rubocop/spec/rubocop/server/cli_spec.rb:119#rank-18",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The server CLI smoke sequence is duplicated and can be one launch-and-check helper."
+    },
+    {
+      "candidate_key": "scrapy:2095a29998e73065@bench/repos/scrapy/tests/AsyncCrawlerProcess/asyncio_enabled_no_reactor.py:7#rank-11",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The Scrapy reactor fixtures repeat the same AsyncCrawlerProcess program and can share that test program."
+    },
+    {
+      "candidate_key": "scrapy:3e0bbbaa002e3eae@bench/repos/scrapy/tests/test_downloadermiddleware_redirect_base.py:503#rank-15",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The proxy redirect tests form an HTTP versus HTTPS and absolute versus relative matrix."
+    },
+    {
+      "candidate_key": "sinatra:3b230f4049ff7b67@bench/repos/sinatra/test/filter_test.rb:124#rank-11",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The Sinatra before and after filter tests mirror one behavior with filter phase as the parameter."
+    },
+    {
+      "candidate_key": "sqlite:4495ddc4b2cfcad7@bench/repos/sqlite/test/speedtest1.c:878#rank-25",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The SQLite speed loops use one execution skeleton and vary only the binding strategy."
+    },
+    {
+      "candidate_key": "sqlite:5c45ebfd54887a6f@bench/repos/sqlite/src/test_osinst.c:277#rank-33",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The VFS timing and logging wrapper repeats across thirteen operations and should be a shared instrumentation helper or macro."
+    },
+    {
+      "candidate_key": "sqlite:cba3957604c6877c@bench/repos/sqlite/ext/misc/series.c:301#rank-11",
+      "worthy": false,
+      "reason": "generated",
+      "rationale": "One copy is in an amalgamated wasm extension source and the family follows embedded external copies, so the generated or vendored boundary should be preserved."
+    },
+    {
+      "candidate_key": "swift-algorithms:44ed7c299da960d8@bench/repos/swift-algorithms/Sources/Algorithms/Joined.swift:18#rank-14",
+      "worthy": true,
+      "reason": "extract-base",
+      "rationale": "JoinedBySequence and JoinedByCollection share the same stored-wrapper structure and can conform through a common generic wrapper abstraction."
+    },
+    {
+      "candidate_key": "swift-algorithms:4bc536666a31d48f@bench/repos/swift-algorithms/Tests/SwiftAlgorithmsTests/GroupedTests.swift:36#rank-12",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The grouped and keyed throwing-callback tests share one contract with the API call as the varying case."
+    },
+    {
+      "candidate_key": "swift-argument-parser:64f1d7e1f28a0c26@bench/repos/swift-argument-parser/Tests/ArgumentParserUnitTests/CompletionScriptTests.swift:246#rank-11",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The completion failure tests repeat the same try and catch assertion around different failing inputs."
+    },
+    {
+      "candidate_key": "swift-argument-parser:7100b74cf93d2a9e@bench/repos/swift-argument-parser/Tests/ArgumentParserUnitTests/SplitArgumentTests.swift:398#rank-13",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The SplitArguments removal tests run the same count transition sequence with long, valued, and short argument forms as cases."
+    },
+    {
+      "candidate_key": "swift-argument-parser:8033131fa18dc6f0@bench/repos/swift-argument-parser/Tools/generate-manual/Extensions/Process+SimpleAPI.swift:1#rank-12",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The two documentation tools duplicate a full subprocess error and execution API, which belongs in one shared tool support module."
+    },
+    {
+      "candidate_key": "swift-argument-parser:fcb90c79bc31d631@bench/repos/swift-argument-parser/Tools/generate-docc-reference/GenerateDoccReference.swift:67#rank-15",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The manual and DocC generators repeat output validation, dump-help decoding, and error translation that can share a workflow helper."
+    },
+    {
+      "candidate_key": "swift-collections:0df50004a453ac05@bench/repos/swift-collections/Benchmarks/Sources/Benchmarks/OrderedSetBenchmarks.swift:303#rank-43",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The OrderedSet benchmark blocks are a matrix of set operation and counterpart collection type."
+    },
+    {
+      "candidate_key": "swift-collections:1f41d00a0a22accd@bench/repos/swift-collections/Benchmarks/Sources/Benchmarks/BigStringBenchmarks.swift:329#rank-36",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The BigString distance benchmarks share one loop and vary only the string view used for distance calculation."
+    },
+    {
+      "candidate_key": "swift-collections:4cb7fc66c7de190d@bench/repos/swift-collections/Benchmarks/Sources/Benchmarks/SetBenchmarks.swift:339#rank-26",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The Set mutation benchmarks repeat one timed skeleton across operation and counterpart type."
+    },
+    {
+      "candidate_key": "swift-collections:6768fb2798791b11@bench/repos/swift-collections/Sources/BasicContainers/RigidArray/RigidArray+Insertions.swift:168#rank-11",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The InputSpan and OutputSpan insert overloads are copied across three containers and can delegate through a common span-extraction helper."
+    },
+    {
+      "candidate_key": "swift-collections:7320146e22166e06@bench/repos/swift-collections/Benchmarks/Sources/Benchmarks/OrderedSetBenchmarks.swift:421#rank-27",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The OrderedSet mutating benchmarks are the same timed operation matrix over operation and counterpart type."
+    },
+    {
+      "candidate_key": "swift-collections:97e080152216474c@bench/repos/swift-collections/Tests/OrderedCollectionsTests/OrderedSet/OrderedSetTests.swift:1384#rank-45",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The OrderedSet relation tests share setup and differ only by the relation predicate under test."
+    },
+    {
+      "candidate_key": "swift-collections:9d4847b47e13451d@bench/repos/swift-collections/Sources/BasicContainers/UniqueArray/UniqueArray+Replacements.swift:525#rank-25",
+      "worthy": false,
+      "reason": "trivial",
+      "rationale": "The apparent clone is dominated by public overload documentation around a tiny required body, so extraction would add little practical value."
+    },
+    {
+      "candidate_key": "swift-collections:a09c2a33e09d2652@bench/repos/swift-collections/Benchmarks/Sources/Benchmarks/SetBenchmarks.swift:221#rank-42",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The nonmutating Set benchmarks form the same operation-by-counterpart matrix as one parameterized benchmark family."
+    },
+    {
+      "candidate_key": "swift-collections:b15c5d77e75ad505@bench/repos/swift-collections/Sources/BasicContainers/RigidArray/RigidArray+Replacements.swift:277#rank-12",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The InputSpan and OutputSpan replacement overloads repeat the same buffer extraction and delegation across three containers."
+    },
+    {
+      "candidate_key": "swift-collections:d881b0b19a3985e1@bench/repos/swift-collections/Tests/_CollectionsTestSupport/MinimalTypes/MinimalEncoder.swift:205#rank-50",
+      "worthy": false,
+      "reason": "trivial",
+      "rationale": "The four-line initializer is conventional storage assignment in distinct minimal encoder containers and is too small to justify a hierarchy."
+    },
+    {
+      "candidate_key": "swift-collections:e9ef68002c95fd21@bench/repos/swift-collections/Tests/_CollectionsTestSupport/MinimalTypes/MinimalMutableRandomAccessCollection.swift:70#rank-14",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The minimal collection fixtures intentionally model different protocol capability combinations, and merging them would obscure those independent test types."
+    },
+    {
+      "candidate_key": "swift-collections:f7910814ec501ca3@bench/repos/swift-collections/Sources/HashTreeCollections/TreeDictionary/TreeDictionary+Merge.swift:217#rank-55",
+      "worthy": false,
+      "reason": "trivial",
+      "rationale": "The duplicate is mostly overload documentation around a four-line copy-and-merge body, leaving too little executable duplication for a useful helper."
+    },
+    {
+      "candidate_key": "swift-composable-architecture:16408a51f517d8ed@bench/repos/swift-composable-architecture/Sources/ComposableArchitecture/Documentation.docc/Tutorials/BuildingSyncUps/06-SyncUpDetail/EditingAndDeletingSyncUp-02-code-0002.swift:35#rank-14",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "These copies are progressive tutorial snapshots that must remain self-contained at each instructional step."
+    },
+    {
+      "candidate_key": "swift-composable-architecture:1fea8e0d2ad2d8c5@bench/repos/swift-composable-architecture/Tests/ComposableArchitectureTests/Reducers/PresentationReducerTests.swift:84#rank-61",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The presentation reducer tests repeat a sizeable Parent reducer fixture that can be produced by one test helper."
+    },
+    {
+      "candidate_key": "swift-composable-architecture:429f5922d1b90ec4@bench/repos/swift-composable-architecture/Sources/ComposableArchitecture/Documentation.docc/Tutorials/BuildingSyncUps/08-RecordMeeting/ImplementingTimer-01-code-0010.swift:29#rank-35",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The identical full program appears in adjacent tutorial snapshots so each step can compile and display independently."
+    },
+    {
+      "candidate_key": "swift-composable-architecture:4373c989efd54fda@bench/repos/swift-composable-architecture/Sources/ComposableArchitecture/Documentation.docc/Tutorials/BuildingSyncUps/02-ListsOfSyncUps/ListsOfSyncUps-02-code-0008.swift:2#rank-23",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The complete SyncUps list sample is intentionally repeated across self-contained tutorial stages."
+    },
+    {
+      "candidate_key": "swift-composable-architecture:5c662298f4dcd5a7@bench/repos/swift-composable-architecture/Tests/ComposableArchitectureTests/EffectOperationTests.swift:19#rank-50",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The Effect operation tests repeat the same run-case extraction and send assertion, with expected payload as the only variant."
+    },
+    {
+      "candidate_key": "swift-composable-architecture:f50404bf1da4a3ac@bench/repos/swift-composable-architecture/Sources/ComposableArchitecture/Documentation.docc/Tutorials/BuildingSyncUps/06-SyncUpDetail/EditingAndDeletingSyncUp-02-code-0006.swift:4#rank-17",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The SyncUpDetail implementations are successive tutorial stages whose duplication communicates incremental changes and cannot share runtime code."
+    },
+    {
+      "candidate_key": "swift-composable-architecture:fce86ed0941a0a23@bench/repos/swift-composable-architecture/Examples/SyncUps/SyncUps/SyncUpsList.swift:146#rank-12",
+      "worthy": false,
+      "reason": "parallel-by-design",
+      "rationale": "The label-style body is repeated between a real example and many self-contained tutorial snapshots; linking those instructional files would defeat their independence."
+    },
+    {
+      "candidate_key": "swift-log:76d2adfd685c1261@bench/repos/swift-log/Tests/LoggingTests/MetadataAttributesTest.swift:364#rank-12",
+      "worthy": true,
+      "reason": "extract-base",
+      "rationale": "The enriching and stripping test handlers duplicate all LogHandler forwarding and differ only in event metadata transformation, suitable for a shared wrapper base."
+    },
+    {
+      "candidate_key": "swift-log:c21c0cd10ddc3f81@bench/repos/swift-log/Tests/LoggingTests/GlobalLoggingTest.swift:36#rank-11",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The seven logging-history assertions are an exact expected transcript used by two tests and can be one domain assertion helper."
+    },
+    {
+      "candidate_key": "swiftlint:3b2d8ad4007c0915@bench/repos/swiftlint/Tests/CoreTests/DisableAllTests.swift:78#rank-12",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The disable and enable directive tests share one loop and differ by directive placement, which is a clear case parameter."
+    },
+    {
+      "candidate_key": "swiftlint:5ea8608c04a96797@bench/repos/swiftlint/Tests/FrameworkTests/CustomRulesTests.swift:22#rank-11",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The custom-rule configuration tests exercise the same parsing flow with included versus excluded match kinds."
+    },
+    {
+      "candidate_key": "swiftlint:aebb703b0736fc61@bench/repos/swiftlint/Tests/BuiltInRulesTests/IndentationWidthRuleTests.swift:360#rank-16",
+      "worthy": false,
+      "reason": "trivial",
+      "rationale": "The two convenience methods only forward the same arguments to an existing general assertion with count zero or one, so another abstraction adds no value."
+    },
+    {
+      "candidate_key": "swiftlint:b2a6349c8b6d2ba2@bench/repos/swiftlint/Source/SwiftLintCore/Visitors/LegacyFunctionVisitor+Rewriter.swift:14#rank-15",
+      "worthy": false,
+      "reason": "trivial",
+      "rationale": "The visitor initializers are short superclass setup with unrelated field types, making their shape coincidental and too small to share."
+    },
+    {
+      "candidate_key": "swiftlint:b9fca1e88df2494d@bench/repos/swiftlint/Source/SwiftLintBuiltInRules/Rules/Style/TrailingWhitespaceRule.swift:226#rank-18",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The block-comment position update and marking loop is duplicated verbatim in the same trailing-whitespace implementation."
+    },
+    {
+      "candidate_key": "swr:043d32cd66fdfe7b@bench/repos/swr/test/use-swr-middlewares.test.tsx:16#rank-22",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The middleware tests share key, logger, page, render, and call assertions while key, fetcher, and configuration placement define the cases."
+    },
+    {
+      "candidate_key": "swr:0b3d9833e2352310@bench/repos/swr/e2e/site/app/render-suspense-keep-previous/page.tsx:1#rank-13",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The suspense E2E pages repeat the same delayed fetch utility and imports within one app, which can live in shared E2E support."
+    },
+    {
+      "candidate_key": "thor:039241c4c1e5dc1f@bench/repos/thor/spec/sort_spec.rb:27#rank-13",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The Thor sorting specs share one command fixture and help assertion with sorting strategy and expected order as parameters."
+    },
+    {
+      "candidate_key": "tmux:2d2f0ba01313e249@bench/repos/tmux/screen-write.c:1770#rank-21",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The three tmux screen-clear paths repeat cursor and floating-window setup and can call one clear-region helper with the terminal command."
+    },
+    {
+      "candidate_key": "tmux:351184802a23077d@bench/repos/tmux/cmd-new-window.c:131#rank-11",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "The tmux window and pane commands duplicate the same failure cleanup, with only the error message varying."
+    },
+    {
+      "candidate_key": "vapor:0000f1a7de5772a3@bench/repos/vapor/Sources/Vapor/Client/ClientResponse.swift:49#rank-11",
+      "worthy": true,
+      "reason": "extract-helper",
+      "rationale": "ClientRequest and ClientResponse duplicate content container encoding, decoding, and property plumbing that should share an internal implementation."
+    },
+    {
+      "candidate_key": "vapor:3db5b0b486038711@bench/repos/vapor/Tests/VaporTests/MiddlewareTests.swift:280#rank-13",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The request and response metric checks repeat the same telemetry attribute list, which should be one expected-attributes fixture plus the body-size metric."
+    },
+    {
+      "candidate_key": "vapor:b28b8ad384b9e8ec@bench/repos/vapor/Tests/VaporTests/AuthenticationTests.swift:49#rank-12",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The Vapor basic-auth tests share authenticator, route, credential, and response scaffolding while password and guard behavior define the cases."
+    },
+    {
+      "candidate_key": "zap:4c34dcbea6f236ad@bench/repos/zap/zapcore/encoder_test.go:104#rank-11",
+      "worthy": true,
+      "reason": "extract-data-table",
+      "rationale": "The zap encoder cases duplicate the complete encoder-key configuration and differ in expected JSON, so the base configuration should be shared test data."
+    },
+    {
+      "candidate_key": "zustand:c7d74735477d4b71@bench/repos/zustand/tests/devtools.test.tsx:926#rank-16",
+      "worthy": true,
+      "reason": "parameterize",
+      "rationale": "The Zustand devtools tests repeat four connection options and initial states while the middleware constructor is the meaningful variant."
+    }
+  ]
+}
