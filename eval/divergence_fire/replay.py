@@ -900,6 +900,8 @@ def cmd_selftest(_args):
             "policy positive retention")
     require(policy["confusion"]["tier_by_verdict"]["strict"]["should_propagate"] == 1,
             "policy tier confusion")
+    import precision_protocol
+    precision_protocol.selftest_embedded()
     print("selftest OK")
 
 
@@ -1027,6 +1029,15 @@ def cmd_check_artifacts(_args):
     require(final_policy.get("positives") == refresh_policy.get("positives"),
             "final policy positives")
     require_policy_report_matches(final_policy, expected_policy, "final")
+    import precision_protocol
+    if precision_protocol.PUBLIC_PATH.exists():
+        precision_protocol.validate_public()
+        try:
+            import precision_protocol_receipt
+        except ModuleNotFoundError:
+            pass
+        else:
+            precision_protocol_receipt.validate_receipt()
     print("artifact check OK")
 
 
