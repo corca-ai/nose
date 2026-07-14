@@ -710,7 +710,11 @@ def rollback_publish(
     contents: dict[Path, bytes],
     transaction: Path,
     marker: bytes,
+    *,
+    marker_owned: bool,
 ) -> None:
+    if not marker_owned:
+        return
     if transaction.exists() and not content_matches(transaction, marker):
         return
     if any(path.exists() and not content_matches(path, contents[path]) for path in published):
@@ -728,38 +732,49 @@ def publish_outputs(
     validator: Callable[[], None] | None = None,
     staging_parent: Path = ROOT / "target",
     marker_writer: Callable[[Path, bytes], None] | None = None,
+    source_unlinker: Callable[[Path], None] | None = None,
 ) -> None:
     marker = heldout.packet_bytes(transaction_payload(contents))
     published: list[Path] = []
+    marker_owned = False
     try:
         with tempfile.TemporaryDirectory(
             prefix=".heldout-reveal-staging-", dir=staging_parent
         ) as directory:
             staging = Path(directory)
-            staged: list[tuple[Path, Path]] = []
-            for target, content in contents.items():
-                source = staging / target.name
-                heldout.write_exclusive(source, content, 0o644)
-                staged.append((source, target))
             staged_marker = staging / transaction.name
             if marker_writer is None:
                 heldout.write_exclusive(staged_marker, marker, 0o600)
             else:
                 marker_writer(staged_marker, marker)
             os.link(staged_marker, transaction)
+            marker_owned = True
             staged_marker.unlink()
-            for source, target in staged:
+            for target, content in contents.items():
+                source = staging / target.name
+                heldout.write_exclusive(source, content, 0o644)
                 os.link(source, target)
-                source.unlink()
                 published.append(target)
+                if source_unlinker is None:
+                    source.unlink()
+                else:
+                    source_unlinker(source)
         if validator is None:
             validate_checked(allow_transaction=True)
         else:
             validator()
+        if not content_matches(transaction, marker):
+            raise ValueError("held-out reveal transaction marker changed")
+        transaction.unlink()
     except BaseException:
-        rollback_publish(published, contents, transaction, marker)
+        rollback_publish(
+            published,
+            contents,
+            transaction,
+            marker,
+            marker_owned=marker_owned,
+        )
         raise
-    transaction.unlink()
 
 
 def freeze(args: argparse.Namespace) -> None:
@@ -1169,6 +1184,23 @@ def self_test(_: argparse.Namespace) -> None:
         if transaction.exists() or any(path.exists() for path in outputs):
             raise AssertionError("partial marker publication was not rolled back")
 
+        marker = heldout.packet_bytes(transaction_payload(contents))
+        heldout.write_exclusive(transaction, marker, 0o600)
+        try:
+            publish_outputs(
+                contents, transaction=transaction, staging_parent=root
+            )
+        except FileExistsError:
+            pass
+        else:
+            raise AssertionError("identical foreign transaction was accepted")
+        require_equal(
+            transaction.read_bytes(), marker, "identical foreign transaction"
+        )
+        if any(path.exists() for path in outputs):
+            raise AssertionError("foreign transaction published outputs")
+        transaction.unlink()
+
         heldout.write_exclusive(outputs[0], b"foreign\n", 0o644)
         try:
             publish_outputs(
@@ -1182,6 +1214,40 @@ def self_test(_: argparse.Namespace) -> None:
         if transaction.exists() or outputs[1].exists():
             raise AssertionError("no-clobber publication was not rolled back")
         outputs[0].unlink()
+
+        def reject_staged_unlink(_: Path) -> None:
+            raise OSError("synthetic staged unlink failure")
+
+        try:
+            publish_outputs(
+                contents,
+                transaction=transaction,
+                staging_parent=root,
+                source_unlinker=reject_staged_unlink,
+            )
+        except OSError:
+            pass
+        else:
+            raise AssertionError("mid-promotion unlink failure was accepted")
+        if transaction.exists() or any(path.exists() for path in outputs):
+            raise AssertionError("mid-promotion unlink failure was not rolled back")
+
+        def remove_marker() -> None:
+            transaction.unlink()
+
+        try:
+            publish_outputs(
+                contents,
+                transaction=transaction,
+                validator=remove_marker,
+                staging_parent=root,
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("missing success marker was accepted")
+        if transaction.exists() or any(path.exists() for path in outputs):
+            raise AssertionError("missing success marker was not rolled back")
 
         def mutate_publish() -> None:
             outputs[0].write_bytes(b"mutated\n")
