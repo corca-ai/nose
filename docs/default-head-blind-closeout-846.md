@@ -251,7 +251,7 @@ committed generator recorded a clean tree before measurement and again immediate
 before creating the receipt. Before measurement it verified all 120 repository commits,
 the runtime prune-state receipt, and the complete 1.5 GB post-prune corpus digest. It
 reproduced the soundness JSON byte-for-byte, all 54 held-out hashes at both thread
-counts, and the Ruby fixture hashes with a passing 0.69 growth exponent. The closeout
+counts, and the Ruby fixture hashes with a passing 0.68 growth exponent. The closeout
 pins the receipt's path and hash, while the receipt validator resolves the generator
 commit, re-hashes every bound artifact and input, checks every held-out commit, and
 recomputes the Ruby medians, exponent, delta, and verdict from the embedded runs.

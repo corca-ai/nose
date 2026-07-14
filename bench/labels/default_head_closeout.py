@@ -36,7 +36,7 @@ MEASUREMENT_REPLAY_PATH = (
     "bench/labels/default_head_measurement_replay_2026_07_14.v2.json"
 )
 MEASUREMENT_REPLAY_SHA = (
-    "ca701768cad42cef50950c036072bf5285bd405d672f60d00717b50c05af8cc3"
+    "72921e791aaae08d7a73662bbb3bfb03db543a238c32d8d077efd69b02339bd5"
 )
 
 DEFAULT_REPORTS = {
