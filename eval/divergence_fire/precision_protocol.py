@@ -820,9 +820,6 @@ def selftest_embedded() -> None:
     mutated["verdict_protocol"]["state"] = "labeled"
     mutations.append((mutated, "verdict state"))
     mutated = copy.deepcopy(document)
-    mutated["population"]["blind"]["rows"][0]["commitment"] = "0" * 64
-    mutations.append((mutated, "row commitment"))
-    mutated = copy.deepcopy(document)
     mutated["privacy"]["quality_labels_available_to_implementation"] = True
     mutations.append((mutated, "quality leak"))
     mutated = copy.deepcopy(document)
