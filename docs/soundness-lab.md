@@ -10,7 +10,7 @@ The 0.19.0 baseline is frozen under
 adversarial batteries, and proof work may satisfy more of this cohort, but may
 not add easy fixtures to change its numerator or denominator.
 
-## Two release records, kept separate
+## Two binary identities, one release-tree report
 
 The preserved clean release-candidate binary and raw report reproduce the
 historical release gate:
@@ -25,12 +25,11 @@ historical release gate:
 | semantic-boundary attributed | `652` |
 
 The subsequently published GitHub v0.19.0 macOS arm64 asset has a different
-binary identity. Replaying it on the same `crates` tree yields
-`7,869 / 1,128 / 6,741`, with the same 117 canon checks, zero hard violations,
-and 63/180 completeness. This discrepancy is not normalized away: the
-historical report remains the frozen denominator, while the published asset is
-the required deployment replay. The
-[`manifest.v1.json` evidence manifest](../bench/soundness/0.19.0/manifest.v1.json) records both hashes and both metric records.
+binary identity, but replaying it on the exact v0.19.0 `f57b078` `crates` tree
+produces the byte-identical report above. A previously observed
+`7,869 / 1,128 / 6,741` result belongs to a later, post-release `crates` tree
+and is not baseline evidence. The
+[`manifest.v1.json` evidence manifest](../bench/soundness/0.19.0/manifest.v1.json) records both binary hashes, the shared tree, and the shared report hash.
 
 ## Stable cohort identity
 
@@ -49,7 +48,10 @@ SHA-256 of the canonical core-IL value fingerprint
 claim id
 ```
 
-The 1-thread and 4-thread raw artifacts are byte-identical. The checked
+The instrumented binary is built in a patched worktree but analyzes a separate,
+clean v0.19.0 source tree. The checker compares every recorded source span with
+that Git commit, so reporting-code line shifts cannot be mislabeled as release
+source. The 1-thread and 4-thread raw artifacts are byte-identical. The checked
 [`cohort.v1.json`](../bench/soundness/0.19.0/cohort.v1.json) contains 1,122
 interpretable units, 193 claimable units, and 117 individually identified canon
 exposures.
@@ -57,7 +59,7 @@ exposures.
 ## Non-gameable score
 
 The published 0.19 semantic query contributes 215 exact pairs. A fixed cap of
-eight pairs per product family leaves 97 baseline pairs in nine cells keyed by
+eight pairs per product family leaves 97 baseline pairs in eight cells keyed by
 claim, obligation, language, and construct family. Cells have fixed Tier A/B/C
 risk weights and a capped log-scaled prevalence weight.
 
@@ -73,8 +75,8 @@ The frozen result is:
 | verified / capped baseline pairs | `17 / 97` |
 | exact-unsafe capped pairs | `80` |
 | pair-micro coverage | `17.53%` |
-| risk/prevalence-weighted macro coverage | `22.00%` |
-| 0.20 target | `41.50%` |
+| risk/prevalence-weighted macro coverage | `23.33%` |
+| 0.20 target | `42.50%` |
 
 The target is `C0 + max(10 percentage points, 25% of the remaining gap)`. The
 scorecard also reports each language independently; aggregate gain cannot make
@@ -83,17 +85,26 @@ cells; it may not reuse the frozen denominator to avoid new proof work.
 
 ## Reproduce and validate
 
-Use the published binary for the deployment replay and all pinned repositories:
+Use the published binary, the exact release source tree, and all pinned
+repositories. The expected binary SHA-256 is intentionally supplied to the
+corpus runner rather than inferred from its filename:
 
 ```sh
 mkdir -p target/soundness-lab/v0.19.0
+git worktree add --detach target/soundness-lab/source-v0.19.0 v0.19.0
 
-RAYON_NUM_THREADS=1 <published-v0.19.0-nose> verify crates \
-  --max-violations 0 \
-  --recall-loss-report target/soundness-lab/crates.json
+repo_root="$(pwd)"
+published_nose="/absolute/path/to/published-v0.19.0-nose"
+(
+  cd target/soundness-lab/source-v0.19.0
+  RAYON_NUM_THREADS=1 "$published_nose" verify crates \
+    --max-violations 0 \
+    --recall-loss-report "$repo_root/target/soundness-lab/crates.json"
+)
 
 RAYON_NUM_THREADS=1 ./scripts/corpus-verify-nightly.sh \
-  --nose <published-v0.19.0-nose> \
+  --nose "$published_nose" \
+  --expected-nose-sha256 0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3 \
   --repos-root bench/repos \
   --logs-dir target/soundness-lab/v0.19.0
 
@@ -103,15 +114,19 @@ python3 scripts/check-soundness-scorecard.py \
   --reproduce target/soundness-lab/v0.19.0
 ```
 
-Missing repositories, changed pins, hard false merges, canon violations,
-artifact drift, or a report matching neither recorded release identity fail the
-check. Timing is omitted from the canonical 120-repository result; statuses,
-hard counts, and advisory counts are retained. The measured 1-thread and
-4-thread corpus results have the same canonical hash, zero hard failures, and
-4,756 advisory disagreements.
+The runner checks each repository HEAD, validates the checked pruned-corpus
+digest, and writes `evidence.json` binding those identities and `summary.tsv`
+to the actual binary hash. Missing repositories, changed pins or source bytes,
+the wrong binary, hard false merges, canon violations, artifact drift, or a
+non-release-tree report fail the check. Timing is omitted from the canonical
+120-repository result; statuses, hard counts, and advisory counts are retained.
+The measured 1-thread and 4-thread corpus results have the same canonical hash,
+zero hard failures, and 4,756 advisory disagreements.
 
-To audit the historical per-unit instrument from scratch, create a detached
-v0.19.0 worktree, apply `reporting.patch`, build `nose-cli`, and run `verify
---json crates` at `RAYON_NUM_THREADS=1` and `4`. Then use the checker's
-`--freeze --units ... --query ... --source-root ...` mode in a scratch baseline
-directory; never overwrite the checked official baseline during an experiment.
+To audit the historical per-unit instrument from scratch, create one detached
+v0.19.0 worktree for building, apply `reporting.patch`, and build `nose-cli`.
+Run that binary against a second, clean v0.19.0 worktree with `verify --json
+crates` at `RAYON_NUM_THREADS=1` and `4`. Then use the checker's `--freeze
+--units ... --query ... --source-root <clean-worktree>` mode in a scratch
+baseline directory; never overwrite the checked official baseline during an
+experiment.

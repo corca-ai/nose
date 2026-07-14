@@ -387,7 +387,7 @@ def iter_all_files(root: Path) -> Iterable[Path]:
         except OSError:
             continue
         for entry in entries:
-            if entry.name == ".DS_Store":
+            if entry.name in {".DS_Store", ".nose-corpus-state.json"}:
                 continue
             if entry.is_symlink():
                 yield entry
