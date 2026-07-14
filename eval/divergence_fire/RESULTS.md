@@ -96,37 +96,42 @@ The evaluation reports three precision units:
 All three units report one-sided 95% Wilson score bounds (`z = 1.6448536269`).
 For the blind policy gate, strict-target precision must be at least 0.95, its Wilson
 lower bound at least 0.90, with at least 100 distinct strict findings, at least 100
-targets, and 20 complete repositories. A default-on claim further
+targets, 20 complete repositories, and at least two complete repositories in every
+supported language. A default-on claim further
 requires change-block precision at least 0.99, its Wilson lower bound at least 0.95,
 at least 20 repositories and 1,000 temporal changes, and zero confirmed false required
-blocks. Finding and change precision are always reported.
+blocks. Finding and change precision are always reported. This seal permits only an
+aggregate seven-language readiness claim; it does not permit a post-hoc per-language
+readiness claim.
 
 Blind sampling is repository-atomic. In secret HMAC order, replay and adjudicate every
 selected change and every emitted strict finding and target from the next complete
 repository. Stop only after a complete repository brings cumulative support to at
-least 100 distinct strict findings, 100 targets, and 20 complete repositories. A replay
-error remains counted and is never replaced. If all 28 blind repositories are exhausted
-before all three support minima are met, the result is
+least 100 distinct strict findings, 100 targets, 20 complete repositories, and two
+complete repositories per language. A replay error remains counted and is never
+replaced. If all 28 blind repositories are exhausted before every aggregate and
+per-language support minimum is met, the result is
 `insufficient-evidence`, not a relaxed sample. The allowed final classifications are
 `default-on-ready`, `improved-opt-in-only`, `failed`, and `insufficient-evidence`.
 
 Temporal selection is also fixed before blind results exist. At days 30, 60, 90, 120,
 150, and 180 after the seal, a checkpoint must atomically commit all 28 repositories'
 advertised default refs and heads, capture times, command provenance, and errors before
-any nose replay or verdict. Each head must descend from its sealed head. From that
-first-parent range, apply the same supported-path and 3–600 changed-source-line bounds,
-then take at most 40 changes per repository in secret HMAC order. The temporal sample is
-every selected change from every reserve repository at the earliest checkpoint totaling
-at least 1,000; no checkpoint through day 180 means `insufficient-evidence`. Identity,
-ancestry, selection, or checkpoint errors invalidate the evaluation; query errors remain
-counted and cannot be replaced.
+any nose replay or verdict. Each sealed head must appear on the checkpoint head's exact
+first-parent chain; ordinary graph ancestry through a second parent is insufficient.
+From that first-parent range, apply the same supported-path and 3–600
+changed-source-line bounds, then take at most 40 changes per repository in secret HMAC
+order. The temporal sample is every selected change from every reserve repository at
+the earliest checkpoint totaling at least 1,000; no checkpoint through day 180 means
+`insufficient-evidence`. Identity, ancestry, selection, or checkpoint errors force the
+single `failed` verdict; query errors remain counted and cannot be replaced.
 
 The temporal cutoff is the actual advertised default ref and HEAD resolved from each
 selected repository URL during the freeze, not the older commit recorded in the corpus.
 The private commitment covers that URL, ref, head, language, repository identity, seal
-time, and per-resolution UTC capture time. Change order is the lexicographic tuple of an exact HMAC-SHA256 digest,
-commit, and parent; the artifact freezes its canonical JSON input, key derivation,
-domain separator, and a test vector.
+time, and per-resolution UTC capture time. Change order is the lexicographic tuple of
+an exact HMAC-SHA256 digest, commit, and parent; the artifact freezes its canonical JSON
+input, key derivation, domain separator, and a test vector.
 
 No held-out quality labels exist at this stage. Raw repository/commit identities,
 source-bearing diffs, and the HMAC seed remain in an external `0700` directory whose
@@ -142,8 +147,10 @@ raw-byte diff encoding, source-redaction boundary, stop rule, temporal sampling,
 rubric, thresholds, and opaque population. The `.tar.xz` release archive and extracted
 binary have separate SHA-256 identities. Collection disables ambient system/global Git
 config, removes every inherited `GIT_*` variable, and pins rename, diff,
-text-conversion, locale, and path-byte handling; a Git selection failure aborts the
-freeze instead of silently choosing a replacement. Public CI validates this contract
+text-conversion, locale, literal pathspec, and raw path-byte handling. Unsupported
+non-ASCII suffixes are ignored rather than decoded, while supported filenames that look
+like pathspec magic remain literal. A Git selection failure aborts the freeze instead
+of silently choosing a replacement. Public CI validates this contract
 across platforms, while private byte-for-byte replay additionally requires the exact Git
 version recorded at freeze. The history-bound receipt additionally pins
 the exact artifact commit, parent, tree, Git blobs, file bytes, public checksum, seed

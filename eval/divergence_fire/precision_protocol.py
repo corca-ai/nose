@@ -45,7 +45,7 @@ SCHEMA = "nose.divergent_precision_protocol.v2"
 PRIVATE_SCHEMA = "nose.divergent_precision_private_population.v2"
 PRIVATE_MANIFEST_SCHEMA = "nose.divergent_precision_private_manifest.v2"
 VERDICT_SCHEMA = "nose.divergent_precision_verdict.v2"
-SEALED_AT = "2026-07-14T15:33:00Z"
+SEALED_AT = "2026-07-14T16:01:00Z"
 SUPPORTED_LANGUAGES = ("C", "Go", "Java", "Python", "Ruby", "Rust", "TypeScript")
 BLIND_REPOS_PER_LANGUAGE = 4
 TEMPORAL_REPOS_PER_LANGUAGE = 4
@@ -53,6 +53,7 @@ BLIND_CHANGES_PER_REPO = 40
 BLIND_STRICT_FINDING_MINIMUM = 100
 BLIND_STRICT_TARGET_MINIMUM = 100
 BLIND_REPOSITORY_MINIMUM = 20
+BLIND_REPOSITORY_PER_LANGUAGE_MINIMUM = 2
 TEMPORAL_CHANGES_PER_REPO_CAP = 40
 TEMPORAL_TARGET_CHANGES = 1000
 TEMPORAL_CHECKPOINT_DAYS = (30, 60, 90, 120, 150, 180)
@@ -60,6 +61,7 @@ TEMPORAL_ORDER_KEY_LABEL = "temporal-change-order-key"
 TEMPORAL_ORDER_DOMAIN = "temporal-change-order"
 ONE_SIDED_CONFIDENCE = 0.95
 ONE_SIDED_Z = 1.6448536269514722
+INTEGRITY_ERROR_VERDICT = "failed"
 
 OFFICIAL_BINARY_SHA256 = "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
 OFFICIAL_BINARY_VERSION = "nose 0.19.0"
@@ -81,6 +83,7 @@ GIT_ENVIRONMENT = {
     "GIT_ATTR_NOSYSTEM": "1",
     "GIT_CONFIG_NOSYSTEM": "1",
     "GIT_CONFIG_GLOBAL": "/dev/null",
+    "GIT_LITERAL_PATHSPECS": "1",
     "LANG": "C",
     "LANGUAGE": "C",
     "LC_ALL": "C",
@@ -225,6 +228,19 @@ def temporal_change_order(
     return digest, commit, parent
 
 
+def temporal_first_parent_descends(
+    repo: Path, sealed_head: str, checkpoint_head: str,
+) -> bool:
+    require(FULL_HEX40.fullmatch(sealed_head) is not None,
+            "temporal sealed head identity")
+    require(FULL_HEX40.fullmatch(checkpoint_head) is not None,
+            "temporal checkpoint head identity")
+    history = git_bytes(
+        "rev-list", "--first-parent", checkpoint_head, cwd=repo
+    ).stdout.splitlines()
+    return sealed_head.encode("ascii") in history
+
+
 def wilson_lower(successes: int, total: int, z: float = ONE_SIDED_Z) -> float | None:
     if total == 0:
         return None
@@ -328,7 +344,7 @@ def protocol_contract() -> dict[str, Any]:
             "evidence caveat", "finding", "target", "change",
         ],
         "error_policy": {
-            "integrity_or_identity_error": "invalid-evaluation",
+            "integrity_or_identity_error": INTEGRITY_ERROR_VERDICT,
             "query_timeout_parse_or_lossy_error": "count and retain; never resample",
             "missing_or_incomplete_evidence": "review; cannot promote to strict",
             "pool_exhausted_below_support": "insufficient-evidence",
@@ -341,15 +357,18 @@ def stop_rule() -> dict[str, Any]:
         "minimum_strict_findings": BLIND_STRICT_FINDING_MINIMUM,
         "minimum_strict_targets": BLIND_STRICT_TARGET_MINIMUM,
         "minimum_complete_repositories": BLIND_REPOSITORY_MINIMUM,
+        "minimum_complete_repositories_per_language": (
+            BLIND_REPOSITORY_PER_LANGUAGE_MINIMUM
+        ),
         "ordering": "secret HMAC repository order, then secret HMAC change order",
         "repository_atomic": True,
         "procedure": [
             "run the frozen binary and primary arm over every change of the next repository",
             "adjudicate every emitted strict finding and target from that complete repository",
-            "stop only after a complete repository brings cumulative support to at least 100 strict findings, 100 strict targets, and 20 complete repositories",
+            "stop only after a complete repository brings cumulative support to at least 100 strict findings, 100 strict targets, 20 complete repositories, and 2 complete repositories in every supported language",
             "never select, discard, or stop within a repository, change, finding, or target",
         ],
-        "exhaustion": "If all 28 sealed blind repositories are exhausted before every support minimum is met, verdict is insufficient-evidence.",
+        "exhaustion": "If all 28 sealed blind repositories are exhausted before every aggregate and per-language support minimum is met, verdict is insufficient-evidence.",
         "errors": "A failed replay remains in its repository and cannot be replaced by another change.",
     }
 
@@ -362,7 +381,12 @@ def temporal_sampling_rule() -> dict[str, Any]:
     return {
         "unit": "one first-parent PR/change after the sealed repository head",
         "sealed_head": "during freeze, resolve and privately commit the repository URL's actual advertised default ref and HEAD; the corpus commit is not used as the temporal cutoff",
-        "remote_head": "at each checkpoint, resolve the same repository URL's advertised default HEAD; require the sealed head to be its ancestor",
+        "remote_head": "at each checkpoint, resolve the same repository URL's advertised default HEAD; require the sealed head to occur on the checkpoint head's first-parent chain",
+        "first_parent_ancestry": {
+            "command": "git rev-list --first-parent <checkpoint_head>",
+            "requirement": "pinned_head_at_seal must appear as an exact output line; ordinary graph ancestry or a second-parent-only merge is insufficient",
+            "failure": INTEGRITY_ERROR_VERDICT,
+        },
         "eligibility": {
             "range": "sealed pinned_head_at_seal exclusive through checkpoint default HEAD inclusive",
             "history": "first-parent only",
@@ -399,7 +423,7 @@ def temporal_sampling_rule() -> dict[str, Any]:
         "changes_per_repository_cap": TEMPORAL_CHANGES_PER_REPO_CAP,
         "target_change_count": TEMPORAL_TARGET_CHANGES,
         "cutoff": "the earliest fixed checkpoint whose complete selected population reaches at least 1000 changes",
-        "errors": "selection, ancestry, identity, or checkpoint errors invalidate evaluation; query errors remain counted and are never replaced",
+        "errors": "selection, ancestry, identity, or checkpoint errors force the failed verdict; query errors remain counted and are never replaced",
         "exhaustion": "if no fixed checkpoint through day 180 reaches 1000 selected changes, verdict is insufficient-evidence",
         "no_post_blind_choice": True,
     }
@@ -417,6 +441,9 @@ def decision_matrix() -> dict[str, Any]:
             "strict_target_support_min": BLIND_STRICT_TARGET_MINIMUM,
             "strict_finding_support_min": BLIND_STRICT_FINDING_MINIMUM,
             "repository_support_min": BLIND_REPOSITORY_MINIMUM,
+            "repository_support_per_language_min": (
+                BLIND_REPOSITORY_PER_LANGUAGE_MINIMUM
+            ),
             "finding_and_change_precision_reported": True,
             "no_post_reveal_tuning": True,
         },
@@ -426,13 +453,17 @@ def decision_matrix() -> dict[str, Any]:
             "strict_target_support_min": BLIND_STRICT_TARGET_MINIMUM,
             "strict_finding_support_min": BLIND_STRICT_FINDING_MINIMUM,
             "repository_support_min": BLIND_REPOSITORY_MINIMUM,
-            "per_language_claim_requires_preregistered_support": True,
+            "repository_support_per_language_min": (
+                BLIND_REPOSITORY_PER_LANGUAGE_MINIMUM
+            ),
+            "claim_scope": "aggregate seven-language population only",
+            "per_language_readiness_claims_allowed": False,
             "temporal_canary_changes": TEMPORAL_TARGET_CHANGES,
             "confirmed_false_required_check_blocks_max": 0,
         },
         "classification": {
             "insufficient-evidence": "population exhausted below support or temporal canary cannot complete",
-            "failed": "blind target gate fails or integrity is invalid",
+            INTEGRITY_ERROR_VERDICT: "blind target gate fails or an integrity error occurs",
             "improved-opt-in-only": "blind target gate passes but any default-on gate fails",
             "default-on-ready": "every blind and temporal default-on gate passes",
         },
@@ -614,7 +645,11 @@ def supported_extension(path: bytes) -> bool:
     if len(suffix) != 2:
         return False
     extension = b"." + suffix[1].lower()
-    return extension.decode("ascii", "strict") in replay_harness.SUPPORTED_EXTS
+    try:
+        decoded = extension.decode("ascii", "strict")
+    except UnicodeDecodeError:
+        return False
+    return decoded in replay_harness.SUPPORTED_EXTS
 
 
 def source_change(repo: Path, parent: str, commit: str) -> tuple[int, int]:
@@ -1003,6 +1038,25 @@ def validate_document(document: dict[str, Any]) -> None:
     require(document.get("sampling_stop_rule") == stop_rule(), "stop rule drift")
     require(document.get("decision_matrix") == decision_matrix(), "decision matrix drift")
     require(document.get("verdict_protocol") == verdict_protocol(), "verdict protocol drift")
+    protocol = document["protocol"]
+    stop = document["sampling_stop_rule"]
+    matrix = document["decision_matrix"]
+    integrity_verdict = protocol["error_policy"]["integrity_or_identity_error"]
+    require(integrity_verdict in matrix["allowed_verdicts"],
+            "integrity verdict must be allowed")
+    require(integrity_verdict in matrix["classification"],
+            "integrity verdict must be classified")
+    for gate_name in ("blind_policy_gate", "default_on_gate"):
+        require(
+            matrix[gate_name]["repository_support_per_language_min"]
+            == stop["minimum_complete_repositories_per_language"],
+            f"{gate_name} per-language support consistency",
+        )
+    require(
+        matrix["default_on_gate"]["per_language_readiness_claims_allowed"]
+        is False,
+        "per-language readiness claims",
+    )
 
     population = document.get("population") or {}
     exact_keys(population, {
@@ -1265,11 +1319,14 @@ def selftest_git_collection() -> None:
         git("config", "user.email", "nose-self-test@example.invalid", cwd=source)
         old_path = source / "old.py"
         old_path.write_bytes(b"one\ntwo\nthree\nfour\n")
-        git("add", "old.py", cwd=source)
+        literal_magic_path = source / ":(literal)magic.py"
+        literal_magic_path.write_bytes(b"alpha\n")
+        git("add", "old.py", ":(literal)magic.py", cwd=source)
         git("commit", "-q", "-m", "base", cwd=source)
         parent = git("rev-parse", "HEAD", cwd=source).stdout.strip()
         old_path.rename(source / "new.py")
         (source / "new.py").write_bytes(b"one\ntwo changed\nthree\nfour\n")
+        literal_magic_path.write_bytes(b"beta\n")
         git("add", "-A", cwd=source)
         git("commit", "-q", "-m", "rename", cwd=source)
         commit = git("rev-parse", "HEAD", cwd=source).stdout.strip()
@@ -1285,10 +1342,13 @@ def selftest_git_collection() -> None:
             source_diff(mirror, parent, commit,
                         supported_changed_paths(mirror, parent, commit)),
         )
-        require(observed[0] == (2, 8), "sanitized numstat fixture")
+        require(observed[0] == (3, 10), "sanitized numstat fixture")
         require(all(isinstance(path, bytes) for path in observed[1]),
                 "raw path bytes")
         require(isinstance(observed[2], bytes) and observed[2], "raw diff bytes")
+        require(b":(literal)magic.py" in observed[1], "literal pathspec fixture path")
+        require(b"-alpha" in observed[2] and b"+beta" in observed[2],
+                "literal pathspec fixture diff")
         hostile = {
             "GIT_DIFF_OPTS": "-u0",
             "GIT_CONFIG_COUNT": "1",
@@ -1320,6 +1380,45 @@ def selftest_git_collection() -> None:
             raise AssertionError("Git selection error was silently accepted")
 
 
+def selftest_temporal_first_parent() -> None:
+    with tempfile.TemporaryDirectory(prefix="nose-848-first-parent-") as directory:
+        repo = Path(directory)
+        git("init", "-q", cwd=repo)
+        git("config", "user.name", "nose self-test", cwd=repo)
+        git("config", "user.email", "nose-self-test@example.invalid", cwd=repo)
+        fixture = repo / "fixture.txt"
+        fixture.write_text("base\n")
+        git("add", "fixture.txt", cwd=repo)
+        git("commit", "-q", "-m", "base", cwd=repo)
+        base = git("rev-parse", "HEAD", cwd=repo).stdout.strip()
+        fixture.write_text("sealed\n")
+        git("commit", "-q", "-am", "sealed", cwd=repo)
+        sealed = git("rev-parse", "HEAD", cwd=repo).stdout.strip()
+        fixture.write_text("descendant\n")
+        git("commit", "-q", "-am", "descendant", cwd=repo)
+        descendant = git("rev-parse", "HEAD", cwd=repo).stdout.strip()
+        require(temporal_first_parent_descends(repo, sealed, descendant),
+                "first-parent descendant fixture")
+
+        git("checkout", "-q", "-b", "alternate", base, cwd=repo)
+        alternate = repo / "alternate.txt"
+        alternate.write_text("old branch\n")
+        git("add", "alternate.txt", cwd=repo)
+        git("commit", "-q", "-m", "alternate", cwd=repo)
+        git("merge", "-q", "--no-ff", "-m", "second-parent seal", sealed,
+            cwd=repo)
+        second_parent_only = git("rev-parse", "HEAD", cwd=repo).stdout.strip()
+        require(
+            git("merge-base", "--is-ancestor", sealed, second_parent_only,
+                cwd=repo, check=False).returncode == 0,
+            "ordinary ancestry fixture",
+        )
+        require(
+            not temporal_first_parent_descends(repo, sealed, second_parent_only),
+            "second-parent-only seal accepted",
+        )
+
+
 def selftest_private_permissions() -> None:
     with tempfile.TemporaryDirectory(prefix="nose-848-mode-selftest-") as directory:
         root = Path(directory)
@@ -1339,7 +1438,10 @@ def selftest_private_permissions() -> None:
 
 def selftest_embedded() -> None:
     selftest_git_collection()
+    selftest_temporal_first_parent()
     selftest_private_permissions()
+    require(not supported_extension("notes.雪".encode("utf-8")),
+            "non-ASCII unsupported extension")
     require(
         parse_advertised_default_head(
             f"ref: refs/heads/main\tHEAD\n{'a' * 40}\tHEAD\n", 0
@@ -1411,6 +1513,16 @@ def selftest_embedded() -> None:
     mutated["sampling_stop_rule"]["minimum_complete_repositories"] = 19
     mutations.append((mutated, "repository stop rule"))
     mutated = copy.deepcopy(document)
+    mutated["sampling_stop_rule"][
+        "minimum_complete_repositories_per_language"
+    ] = 1
+    mutations.append((mutated, "per-language repository stop rule"))
+    mutated = copy.deepcopy(document)
+    mutated["protocol"]["error_policy"]["integrity_or_identity_error"] = (
+        "invalid-evaluation"
+    )
+    mutations.append((mutated, "integrity verdict"))
+    mutated = copy.deepcopy(document)
     mutated["population"]["temporal_canary_reserve"]["sampling"][
         "checkpoint_days_after_seal"
     ] = [30, 60]
@@ -1418,6 +1530,11 @@ def selftest_embedded() -> None:
     mutated = copy.deepcopy(document)
     mutated["decision_matrix"]["blind_policy_gate"]["strict_target_precision_min"] = 0.94
     mutations.append((mutated, "target threshold"))
+    mutated = copy.deepcopy(document)
+    mutated["decision_matrix"]["default_on_gate"][
+        "per_language_readiness_claims_allowed"
+    ] = True
+    mutations.append((mutated, "per-language readiness claim"))
     mutated = copy.deepcopy(document)
     mutated["verdict_protocol"]["state"] = "labeled"
     mutations.append((mutated, "verdict state"))

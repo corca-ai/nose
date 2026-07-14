@@ -86,10 +86,13 @@ The existing 28-repository, 179-label set is now development-only. Blind decisio
 a fresh repository-disjoint, source-redacted population; a separate post-seal temporal
 reserve is required before any default-on claim. The protocol fixes target, finding,
 and change precision, one-sided 95% Wilson bounds, and repository-atomic stopping with
-at least 100 distinct strict findings across 20 complete repositories. The temporal
-1,000-change selection uses fixed future checkpoints and secret ordering, so it cannot
-be chosen after seeing blind quality. Until both the blind target gate and the stricter
-temporal default-on gate pass, `--fail-on any` remains an opt-in review gate.
+at least 100 distinct strict findings across 20 complete repositories, including two
+complete repositories per supported language. It permits only an aggregate
+seven-language readiness claim, not post-hoc per-language claims. The temporal
+1,000-change selection uses fixed future checkpoints, exact first-parent ancestry, and
+secret ordering, so it cannot be chosen after seeing blind quality. Until both the blind
+target gate and the stricter temporal default-on gate pass, `--fail-on any` remains an
+opt-in review gate.
 
 Each JSON finding carries legacy `fire_eligible`, the v2 `tier` and `gate.fail_default`,
 `witness_kind`, `scope`, per-changed-site `touches_shared`, and — for near families —
