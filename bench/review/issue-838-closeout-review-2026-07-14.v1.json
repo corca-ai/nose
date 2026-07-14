@@ -1,0 +1,267 @@
+{
+  "schema": "nose.closeout_review.v1",
+  "generated_on": "2026-07-14",
+  "scope": {
+    "tracker": 838,
+    "reviewed_head": "bfb5f01f796faffc22296b312ae4affb045e9fd2",
+    "reviewed_tree": "aae511e736340b3995ec1fa8d4850dcc44f2799c",
+    "merged_main_ci_run": "29334394161",
+    "issues": [
+      {
+        "number": 839,
+        "pull_requests": [879],
+        "final_head": "ad9eaf3bc081a1c64d7ca5e14ec769fe6154afa8",
+        "merge_commit": "a7345f248628e22a406d63bb101ad73700e310e0"
+      },
+      {
+        "number": 840,
+        "pull_requests": [880],
+        "final_head": "2b6868fd793b3a358a5200eff04f88e87b3b7170",
+        "merge_commit": "21290e3d9509f0d67ef47555071a32d1b567b829"
+      },
+      {
+        "number": 841,
+        "pull_requests": [881],
+        "final_head": "7fa6e96d0063f87daeb8cca28b7ba93c53441b1a",
+        "merge_commit": "bf6298adbc569b533f4f0832015e5de2c9f49c7d"
+      },
+      {
+        "number": 842,
+        "pull_requests": [882],
+        "final_head": "d6c9a503b8e75eb3dde7e3c93fad5bd08cffa521",
+        "merge_commit": "6d0575176020738978bd3d1fffe68509cd6b57b9"
+      },
+      {
+        "number": 843,
+        "pull_requests": [883],
+        "final_head": "e692dca7d432e9c5b198bc720e3bce3cedb34861",
+        "merge_commit": "1384e601957d60628cfce72cba4346ca0b6a4e43"
+      },
+      {
+        "number": 844,
+        "pull_requests": [884],
+        "final_head": "443dcdb99a5709b9afeb53afac9698d625f1e86e",
+        "merge_commit": "a0b2730d4ee1f5393cc5a37ddd2b6c8b7a22b928"
+      },
+      {
+        "number": 845,
+        "pull_requests": [885, 886],
+        "selection_head": "461daab2d2fa7810b0c66dadfb82d75745d83e6f",
+        "selection_merge": "6e9a2d08903b34f35ef6e5e6f007b9185378dbc1",
+        "final_head": "b3eb15ba6259b371e3ee326a7f442372e80f9719",
+        "merge_commit": "45018a24d9f6587678fd6c353456019775101477"
+      },
+      {
+        "number": 846,
+        "pull_requests": [887, 888, 889, 890, 893, 894],
+        "closeout_head": "47908d309f2bedba173f4fed9b7a9bf28fa24db4",
+        "squash_commit": "a760524d7adece867e90a136b484aebb041a8a8f",
+        "repair_head": "2ce1345be539fd86238005dc0bbc2c0b40449c51",
+        "merge_commit": "bfb5f01f796faffc22296b312ae4affb045e9fd2"
+      }
+    ],
+    "process_note": "This artifact records post-implementation independent review evidence for tracker #838 and each subissue #839-#846. It does not relabel unsupported PR-body claims as durable pre-merge review. The original pre-merge reviewer conversations were not retained as checked artifacts; that process gap remains explicit."
+  },
+  "prompt_boundary": "Three independent read-only subagents were each required to inspect the current #838 tracker and every subissue #839-#846 individually at exact merged main bfb5f01f796faffc22296b312ae4affb045e9fd2. Each had to report an eight-row PASS/FAIL matrix covering exact PR/head/merge identity, acceptance evidence and metrics, dependency order, held-out boundary, validation evidence, and support for the three-review requirement; then separately audit tracker checkmarks, the no-go/product-unchanged conclusion, follow-ups #891/#892, #894 ancestry repair, and merged-main CI run 29334394161. Reviewers were read-only and instructed not to coordinate.",
+  "reviewers": [
+    {
+      "canonical_task": "/root/review_vote_freeze_a",
+      "lane": "A",
+      "disposition": "REQUEST_CHANGES",
+      "blocking_findings": [],
+      "major_findings": [
+        "The implementation PRs contain author assertions of three independent reviews but no durable reviewer-authored or checked record with reviewer identity, exact reviewed state, prompt boundary, findings, dispositions, and validation summary."
+      ],
+      "technical_findings": [],
+      "checks_summary": "Independently reran the exact-main validators for #839-#846, checked the complete dependency chronology and held-out boundary, reconciled every tracker metric and checkbox, verified the unchanged crates tree and bounded #891/#892 follow-ups, and verified successful push CI run 29334394161. No technical P1 or P3 defect remained.",
+      "per_issue": [
+        {
+          "number": 839,
+          "technical_result": "PASS",
+          "review_evidence_result": "GAP",
+          "evidence": "120-repository parity and deterministic v0.19.0 baseline; dev 271/437 and heldout 222/375; coverage 437/658 and 375/538; recall 2716/2849 and 2005/2091."
+        },
+        {
+          "number": 840,
+          "technical_result": "PASS",
+          "review_evidence_result": "GAP",
+          "evidence": "Dev coverage 658/658; 286 dev judgments; 214 source-free heldout selections; all 15 Swift repositories represented; runway validation passed."
+        },
+        {
+          "number": 841,
+          "technical_result": "PASS",
+          "review_evidence_result": "GAP",
+          "evidence": "All 658 positions classified; generated and declaration cohorts survived deep audits; proof/actionability rejected; heldout remained closed."
+        },
+        {
+          "number": 842,
+          "technical_result": "PASS",
+          "review_evidence_result": "GAP",
+          "evidence": "Generated positives 10/10 and 20/20 moved; hard negatives 3/3 preserved; identity/recall preserved; adjusted runtime -1.72% and r40 -1.02%."
+        },
+        {
+          "number": 843,
+          "technical_result": "PASS",
+          "review_evidence_result": "GAP",
+          "evidence": "Declaration positives 5/5 moved; hard negatives 8/8 preserved; recall 2716/2849 with zero regression; controlled performance passed."
+        },
+        {
+          "number": 844,
+          "technical_result": "PASS",
+          "review_evidence_result": "GAP",
+          "evidence": "Direct cohort 3/5 and broad cohort 27/64 missed the 90% gate; correct no-go with product and heldout unchanged."
+        },
+        {
+          "number": 845,
+          "technical_result": "PASS",
+          "review_evidence_result": "GAP",
+          "evidence": "Selection and judgment were separate; 219 exact-key labels covered all 46 formulas; best 449/658, CV 416/658, C 48.89%; correct no-go with heldout unopened."
+        },
+        {
+          "number": 846,
+          "technical_result": "PASS",
+          "review_evidence_result": "GAP",
+          "evidence": "Ancestry repaired by #894; dev 387/658 and heldout 334/526; coverage/recall pass while precision/language/performance fail honestly; no retuning; exact-main validators and CI passed."
+        }
+      ]
+    },
+    {
+      "canonical_task": "/root/review_vote_freeze_c",
+      "lane": "C",
+      "disposition": "APPROVE",
+      "blocking_findings": [],
+      "major_findings": [],
+      "technical_findings": [],
+      "checks_summary": "Validated current main tree aae511e7, every #839-#846 checker and mutation self-test, exact PR/head identities, dependency and blind-state chronology, #894 two-parent ancestry repair, push CI 29334394161, tracker checkmarks, and the independent scopes of #891/#892. Noted that GitHub formal-review arrays are empty and existing review statements live in PR bodies and issue comments.",
+      "per_issue": [
+        {
+          "number": 839,
+          "result": "PASS",
+          "evidence": "Official v0.19.0 identities and baseline metrics reproduce; measurement was first and did not tune heldout."
+        },
+        {
+          "number": 840,
+          "result": "PASS",
+          "evidence": "Dev reaches 658/658 coverage and the new 214-case heldout runway remains sealed and unjudged."
+        },
+        {
+          "number": 841,
+          "result": "PASS",
+          "evidence": "Taxonomy covers all 658 positions, bounded levers and hard negatives validate, and heldout remains closed."
+        },
+        {
+          "number": 842,
+          "result": "PASS",
+          "evidence": "Jazzy generated behavior, hard negatives, family identity, recall, and v0.19.0 performance evidence validate."
+        },
+        {
+          "number": 843,
+          "result": "PASS",
+          "evidence": "Declaration-only behavior, hard negatives, 54,754-family ordering, recall, determinism, and performance validate."
+        },
+        {
+          "number": 844,
+          "result": "PASS",
+          "evidence": "The 3/5 direct and 27/64 broad results correctly force a no-go with zero product drift."
+        },
+        {
+          "number": 845,
+          "result": "PASS",
+          "evidence": "All 46 formulas and 219 decisions validate; best 449/658 and C 44/90 remain below gates; no proposal or heldout use."
+        },
+        {
+          "number": 846,
+          "result": "PASS",
+          "evidence": "Blind sequence, reveal, quality, fresh audit, replay, soundness, determinism, performance no-go, and repaired ancestry all validate."
+        }
+      ]
+    },
+    {
+      "canonical_task": "/root/review_vote_freeze_e",
+      "lane": "E",
+      "disposition": "APPROVE",
+      "blocking_findings": [],
+      "major_findings": [],
+      "technical_findings": [],
+      "checks_summary": "Confirmed clean exact main, successful checks for PRs #879-#890/#893/#894, all seven jobs in push CI 29334394161, and independently reran every public issue-specific validator and mutation self-test. Audited each subissue, the #894 repair, tracker checkmarks, no-go boundary, and follow-ups.",
+      "per_issue": [
+        {
+          "number": 839,
+          "result": "PASS",
+          "evidence": "Frozen official baseline and two uncached byte-identical runs; dev 271/437 and heldout 222/375."
+        },
+        {
+          "number": 840,
+          "result": "PASS",
+          "evidence": "286 dev labels plus 214 source-free heldout seals; dev coverage 658/658; historical bases replay unchanged."
+        },
+        {
+          "number": 841,
+          "result": "PASS",
+          "evidence": "Every dev position has a disjoint taxonomy; selected levers and hard negatives are frozen; heldout unopened."
+        },
+        {
+          "number": 842,
+          "result": "PASS",
+          "evidence": "Generated positives 10/10 plus 20/20 moved and hard negatives 3/3 stayed default; identity, recall, and performance pass."
+        },
+        {
+          "number": 843,
+          "result": "PASS",
+          "evidence": "Declaration positives 5/5 moved and hard negatives 8/8 remained; family identity, recall, and performance pass."
+        },
+        {
+          "number": 844,
+          "result": "PASS",
+          "evidence": "Measured 60% direct and 42.19% broad actionability reject the lever; product stays unchanged."
+        },
+        {
+          "number": 845,
+          "result": "PASS",
+          "evidence": "219 truth-free decisions and every formula validate; 68.24% best result remains a no-go; heldout stays sealed."
+        },
+        {
+          "number": 846,
+          "result": "PASS",
+          "evidence": "One-shot closeout records dev 58.81%, heldout 63.50%, preserved invariants, failed performance stages, and true-merge ancestry repair."
+        }
+      ]
+    }
+  ],
+  "accepted_feedback": [
+    {
+      "finding": "Squash-merging #893 removed history-bound evidence commits, so the first main-push CI failed even though pre-merge checks passed.",
+      "resolution": "Reopened #846, reverted #838 completion checkmarks, merged #894 with a true two-parent merge commit, verified every required commit as an ancestor, reran three independent repair reviews, and required successful merged-main push CI run 29334394161 before restoring the checkmarks."
+    },
+    {
+      "finding": "Existing PR prose did not durably identify the independent whole-work reviews required for each #838 subissue.",
+      "resolution": "Added this post-implementation artifact with exact reviewed state, prompt boundary, canonical reviewer task identities, dispositions, findings, check summaries, and independent per-subissue results. This explicitly records the earlier durability gap rather than representing these reviews as pre-merge evidence."
+    }
+  ],
+  "rejected_feedback": [],
+  "tracker_result": {
+    "decision": "bounded-experiment-complete-product-no-go",
+    "passed": [
+      "coverage",
+      "per-language reporting",
+      "worthy recall",
+      "surface recoverability",
+      "soundness",
+      "determinism",
+      "family/surface ledger",
+      "local and merged-main CI"
+    ],
+    "failed": [
+      "dev and heldout precision >= 70%",
+      "per-language precision floor >= 50%",
+      "stage-level performance gate"
+    ],
+    "product_changed_after_heldout_reveal": false,
+    "revealed_heldout_reused_for_tuning": false,
+    "follow_ups": [891, 892]
+  },
+  "follow_up_review": {
+    "status": "pending",
+    "requirement": "Three independent reviewers must verify this artifact accurately represents their reviews, that the accepted process finding is resolved without rewriting history, and that no new technical or evidence defect was introduced."
+  }
+}
