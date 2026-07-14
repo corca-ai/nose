@@ -38,6 +38,9 @@ MEASUREMENT_REPLAY_PATH = (
 MEASUREMENT_REPLAY_SHA = (
     "72921e791aaae08d7a73662bbb3bfb03db543a238c32d8d077efd69b02339bd5"
 )
+DEV_DETERMINISM_HISTORICAL_SOURCE = "182881a8097ff14ecf513a4fb32f1ad22cc31394"
+DEV_DETERMINISM_REACHABLE_SOURCE = "1384e601957d60628cfce72cba4346ca0b6a4e43"
+DEV_DETERMINISM_SOURCE_TREE = "573f71706dec560dd4d0d3df1c95ad8d60a0ce98"
 
 DEFAULT_REPORTS = {
     "all120": (
@@ -447,6 +450,19 @@ def validate_soundness(value: dict[str, Any]) -> None:
     require(value["soundness"] == expected, "soundness summary changed")
 
 
+def validate_dev_determinism_source(recorded_source: str) -> None:
+    require(
+        recorded_source == DEV_DETERMINISM_HISTORICAL_SOURCE,
+        "wrong historical dev determinism source",
+    )
+    require_source_commit(DEV_DETERMINISM_REACHABLE_SOURCE)
+    require(
+        git_output("rev-parse", f"{DEV_DETERMINISM_REACHABLE_SOURCE}:crates")
+        == DEV_DETERMINISM_SOURCE_TREE,
+        "reachable dev determinism source tree changed",
+    )
+
+
 def validate_determinism(value: dict[str, Any]) -> None:
     primary = load(ROOT / DEFAULT_REPORTS["all120"][0])
     require(len(primary["repos"]) == 120, "all-120 determinism corpus changed")
@@ -457,7 +473,7 @@ def validate_determinism(value: dict[str, Any]) -> None:
     dev = load(ROOT / value["evidence"]["dev_thread_determinism"]["path"])
     require(dev["current"]["binary_sha256"] == CURRENT_SHA, "wrong dev determinism binary")
     dev_source = dev["current"]["commit"]
-    require_commit(dev_source)
+    validate_dev_determinism_source(dev_source)
     require(
         dev["corpus"]["manifest_sha256"] == sha256(ROOT / "bench/goldens/corpus.json"),
         "wrong dev determinism corpus",
@@ -783,6 +799,12 @@ def self_test() -> None:
         except ValueError:
             continue
         raise AssertionError(f"self-test mutation {index} was accepted")
+    try:
+        validate_dev_determinism_source("0" * 40)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("wrong historical dev determinism source was accepted")
 
 
 def main() -> None:

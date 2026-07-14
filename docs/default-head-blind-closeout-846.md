@@ -239,6 +239,13 @@ and completeness 63/180. Six trace disagreements remain advisory. All 120
 repositories produce one repeated-run hash; the 66 dev and 54 held-out repositories
 are byte-identical at `RAYON_NUM_THREADS=1` and `4`.
 
+The 66-repository dev artifact records pre-squash source commit `182881a8…`; GitHub
+retained its identical `crates` tree as squash commit `1384e601…`, not as an ancestor
+object. The validator therefore pins the historical identifier and verifies tree
+`573f7170…` through that reachable mainline commit, while the exact measured binary is
+bound independently by SHA-256. This keeps clean GitHub checkouts reproducible without
+rewriting the historical measurement provenance.
+
 The checked [measurement provenance
 manifest](../bench/labels/default_head_measurement_provenance_2026_07_14.v1.json) binds
 the raw soundness report, held-out thread matrix, and Ruby scaling report to
