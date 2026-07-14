@@ -9,6 +9,12 @@
       "path": "refactoring_families.v7.dev.json",
       "sha256": "8b8ab7b4877499fc1a793e7861e4ee0ebed2034957830dbdff52395a30980c6e",
       "split": "dev"
+    },
+    {
+      "kind": "precision-overlay",
+      "path": "refactoring_families.v7.heldout.json",
+      "sha256": "a80a2bea6fb60c78be1f619f6f2067d51f0583fc71ee6520722580027070b93d",
+      "split": "heldout"
     }
   ],
   "schema": "nose.refactoring_family_labelset.v1",
