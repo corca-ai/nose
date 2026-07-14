@@ -1,4 +1,6 @@
-use crate::oracle_gate::{func_span_index, run_battery, verify_battery_over_budget};
+use crate::oracle_gate::{
+    func_span_index, run_battery, run_battery_diagnostic, verify_battery_over_budget,
+};
 use crate::verify_admission::{
     exact_admission_rejection_with_context, runtime_boundary_rejection_diagnostic_with_context,
     AdmissionContext, ExactAdmissionRejectionDiagnostic,
@@ -6,6 +8,9 @@ use crate::verify_admission::{
 use crate::verify_census;
 use nose_il::{Corpus, Interner, Lang};
 use rayon::prelude::*;
+
+mod census;
+use census::{census_outcome, push_verify_census, synthetic_blocker, CensusLocation};
 
 /// One record per interpretable unit.
 pub(super) struct VerifyRec {
@@ -204,7 +209,11 @@ pub(super) fn collect_verify_recs(
                 .filter_map(|unit| {
                     let root = unit.root;
                     (n.kind(root) == nose_il::NodeKind::Func
-                        && !verify_battery_over_budget(subtree_node_count(&n, root), battery.len()))
+                        && (census
+                            || !verify_battery_over_budget(
+                                subtree_node_count(&n, root),
+                                battery.len(),
+                            )))
                     .then_some(root)
                 })
                 .collect();
@@ -251,29 +260,6 @@ pub(super) fn collect_verify_recs(
     oracle
 }
 
-/// Record one unit's oracle outcome in the exclusion census (no-op unless the
-/// `--exclusion-census` instrument is on). `tag_il`/`tag_root` name the subtree
-/// the oracle would have interpreted (the core IL when span-matched, else the
-/// fully-normalized unit).
-fn push_verify_census(
-    oracle: &mut VerifyOracle,
-    loc: String,
-    tag_il: &nose_il::Il,
-    tag_root: nose_il::NodeId,
-    fp: &[u64],
-    reason: &'static str,
-) {
-    if !oracle.census_enabled {
-        return;
-    }
-    oracle.census.push(verify_census::CensusUnit {
-        loc,
-        reason,
-        fp: fp.to_vec(),
-        tags: verify_census::census_tags(tag_il, tag_root),
-    });
-}
-
 /// Did a canon pass change a unit's behavior? True iff some battery row's full-IL behavior
 /// is not equivalent to the core-IL behavior. Equivalence (`behavior_equiv`) treats two
 /// ABORTING runs (both `ret == Err`) as equal regardless of the effects recorded before the
@@ -317,7 +303,18 @@ fn collect_file_verify_recs(
             continue;
         }
         oracle.total += 1;
-        let loc = format!("{}:{}", file_path, n.node(root).span.start_line);
+        let root_span = n.node(root).span;
+        let census_location = CensusLocation {
+            unique: format!(
+                "{}:{}-{}@{}-{}",
+                file_path,
+                root_span.start_line,
+                root_span.end_line,
+                root_span.start_byte,
+                root_span.end_byte
+            ),
+            verify: format!("{}:{}", file_path, root_span.start_line),
+        };
         // The same function in the core IL (by span) — interpret THAT, not `n`.
         let span0 = n.node(root).span;
         let tokens = subtree_node_count(n, root);
@@ -325,8 +322,21 @@ fn collect_file_verify_recs(
             il: raw,
             root: raw_func.get(&(span0.start_byte, span0.end_byte)).copied(),
         };
+        // Compute the product fingerprint and exact-claim eligibility before
+        // oracle admission so the census can distinguish valuable fail-closed
+        // mass from units the exact channel could never claim.
+        let (fp, contracts) =
+            unit_value_fingerprint_and_contracts(value_context, n, root, interner);
+        let exact_safe = exact_safe_by_span
+            .get(&(span0.start_byte, span0.end_byte))
+            .copied()
+            .unwrap_or(true);
+        let claimable = nose_detect::exact_claim_eligible_parts(exact_safe, fp.len());
         let Some(&core_root) = core_func.get(&(span0.start_byte, span0.end_byte)) else {
-            push_verify_census(oracle, loc, n, root, &[], "no-core-span");
+            let blocker = synthetic_blocker("il", "il.core-span", "kind:Func");
+            let outcome =
+                census_outcome("no-core-span", exact_safe, claimable, None, Some(blocker));
+            push_verify_census(oracle, &census_location, n, root, &fp, outcome);
             oracle
                 .exclusions
                 .record_core_missing(file_path, span0, tokens);
@@ -336,7 +346,10 @@ fn collect_file_verify_recs(
             oracle
                 .exclusions
                 .record_battery_bail(file_path, span0, tokens);
-            push_verify_census(oracle, loc, core, core_root, &[], "battery-bail");
+            let blocker = synthetic_blocker("budget", "budget.oracle-cost", "kind:Func");
+            let outcome =
+                census_outcome("battery-bail", exact_safe, claimable, None, Some(blocker));
+            push_verify_census(oracle, &census_location, core, core_root, &fp, outcome);
             continue;
         }
         // Soundness is about merges on the VALUE fingerprint. A unit whose value
@@ -350,45 +363,49 @@ fn collect_file_verify_recs(
         // binds n = len(array) so the oracle interprets `f(xs,n)` under the same
         // convention the value graph used to merge it; gated on the contract actually
         // firing, so a non-contract false merge is still exposed by the free battery.
-        let (fp, contracts) =
-            unit_value_fingerprint_and_contracts(value_context, n, root, interner);
         if fp.is_empty() {
-            push_verify_census(oracle, loc, n, root, &[], "empty-fp");
+            let blocker = synthetic_blocker("value", "value.empty-fingerprint", "kind:Func");
+            let outcome = census_outcome("empty-fp", exact_safe, claimable, None, Some(blocker));
+            push_verify_census(oracle, &census_location, n, root, &fp, outcome);
             oracle
                 .exclusions
                 .record_empty_fingerprint(file_path, span0, tokens);
             continue;
         }
         // Run the battery; the unit is interpretable only if every input runs.
-        let mut path_cap = false;
-        let Some(beh) = run_battery(
-            core,
-            interner,
-            core_root,
-            battery,
-            &contracts,
-            &mut path_cap,
-        ) else {
-            let (census_reason, reason) = if path_cap {
-                ("path-bail", VerifyExclusionReason::PathBail)
-            } else {
-                ("battery-bail", VerifyExclusionReason::Uninterpretable)
-            };
-            push_verify_census(oracle, loc, core, core_root, &fp, census_reason);
-            let diagnostic = oracle_exclusion_diagnostic(
-                reason,
-                raw_source,
-                n,
-                interner,
-                root,
-                admission_context,
-            );
-            oracle
-                .exclusions
-                .record(reason, file_path, span0, tokens, diagnostic);
-            continue;
+        let beh = match run_battery_diagnostic(core, interner, core_root, battery, &contracts) {
+            Ok(behaviors) => behaviors,
+            Err(blocker) => {
+                let path_cap = blocker.capability_id == "budget.symbolic-branch-sites";
+                let (census_reason, reason) = if path_cap {
+                    ("path-bail", VerifyExclusionReason::PathBail)
+                } else {
+                    ("battery-bail", VerifyExclusionReason::Uninterpretable)
+                };
+                let diagnostic = oracle_exclusion_diagnostic(
+                    reason,
+                    raw_source,
+                    n,
+                    interner,
+                    root,
+                    admission_context,
+                );
+                let outcome = census_outcome(
+                    census_reason,
+                    exact_safe,
+                    claimable,
+                    diagnostic.as_ref(),
+                    Some(blocker),
+                );
+                push_verify_census(oracle, &census_location, core, core_root, &fp, outcome);
+                oracle
+                    .exclusions
+                    .record(reason, file_path, span0, tokens, diagnostic);
+                continue;
+            }
         };
-        push_verify_census(oracle, loc, core, core_root, &fp, "interpretable");
+        let outcome = census_outcome("interpretable", exact_safe, claimable, None, None);
+        push_verify_census(oracle, &census_location, core, core_root, &fp, outcome);
         // Stricter canon check: the SAME function interpreted on the fully-normalized
         // IL must agree with the core IL on every input — else a canon pass changed
         // behavior. (Only when the full IL is itself fully interpretable on the battery.)
@@ -418,11 +435,6 @@ fn collect_file_verify_recs(
             }
         }
         let span = n.node(root).span;
-        let exact_safe = exact_safe_by_span
-            .get(&(span.start_line, span.end_line))
-            .copied()
-            .unwrap_or(true);
-        let claimable = nose_detect::exact_claim_eligible_parts(exact_safe, fp.len());
         let admission_rejection = admission_rejection_for_rec(
             n,
             interner,
@@ -439,7 +451,7 @@ fn collect_file_verify_recs(
             start: span.start_line,
             end: span.end_line,
             tokens,
-            loc: format!("{}:{}", file_path, span.start_line),
+            loc: census_location.verify,
             claimable,
             canon_exposed,
             admission_rejection,

@@ -998,6 +998,13 @@ survives lowering drift (§BC–BF). (2) Statement coverage that rides on it (Th
 (3) Deprioritize unretained-literal units: their merges are already outside the exact
 channel.
 
+The original census above predates exact-claim eligibility and is retained as
+historical evidence. The 0.20 campaign replaces its stated upper-bound
+limitation with the [Soundness Lab capability-level census](soundness-lab.md):
+schema v2 attributes the first unsupported capability, records its blocker
+stack, and computes the Pareto queue only from product-claimable fingerprint
+families across the full pinned 120-repository corpus.
+
 Side product (modality A for the detection campaign): the per-repo `--leads` pass
 merged into `bench/labels/oracle_under_merge_leads_2026_06_10.json` — **179
 behavior-equal fingerprint-split groups, 5 structurally near (vj ≥ 0.7)**, e.g.

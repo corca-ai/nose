@@ -141,7 +141,12 @@ impl<'a> Interp<'a> {
         kids: &[NodeId],
         env: &mut FxHashMap<u32, Value>,
     ) -> R<Value> {
-        let value = self.eval(*kids.first().ok_or(Unsupported)?, env)?;
+        let value = self.eval(
+            *kids
+                .first()
+                .ok_or_else(|| Unsupported::il("il.default-value-argument-missing"))?,
+            env,
+        )?;
         if matches!(value, Value::Err) {
             return Ok(Value::Err);
         }
@@ -203,7 +208,9 @@ impl<'a> Interp<'a> {
         env: &mut FxHashMap<u32, Value>,
     ) -> R<Value> {
         let kids = self.il.children(node).to_vec();
-        let &callee = kids.first().ok_or(Unsupported)?;
+        let &callee = kids
+            .first()
+            .ok_or_else(|| Unsupported::il("il.call-target-missing"))?;
         let Some(target) = self.proven_call_target(node) else {
             // Unproven/ambiguous target: an opaque call identified by the callee's
             // structural signature (pre-canon syntax — fingerprint-equal units have
@@ -225,7 +232,7 @@ impl<'a> Interp<'a> {
             })
             .collect();
         let plan = crate::call_args::keyword_arg_binding_plan(self.il, &param_cids, &kids[1..])
-            .ok_or(Unsupported)?;
+            .ok_or_else(|| Unsupported::protocol("protocol.call-argument-binding"))?;
         let mut fenv: FxHashMap<u32, Value> = FxHashMap::default();
         for (cid, value_node) in plan {
             let value = self.eval(value_node, env)?;
@@ -234,7 +241,9 @@ impl<'a> Interp<'a> {
             }
             fenv.insert(cid, value);
         }
-        let body = *params.last().ok_or(Unsupported)?;
+        let body = *params
+            .last()
+            .ok_or_else(|| Unsupported::il("il.callee-body-missing"))?;
         let result = self.exec(body, &mut fenv);
         match result? {
             Flow::Ret(v) => Ok(v),
@@ -375,7 +384,12 @@ impl<'a> Interp<'a> {
         kids: &[NodeId],
         env: &mut FxHashMap<u32, Value>,
     ) -> R<Value> {
-        let coll = match self.eval(*kids.first().ok_or(Unsupported)?, env)? {
+        let coll = match self.eval(
+            *kids
+                .first()
+                .ok_or_else(|| Unsupported::il("il.quantifier-input-missing"))?,
+            env,
+        )? {
             Value::List(xs) => xs,
             v if contains_sym(&v) => {
                 let mut parts = vec![u64::from(all), vhash(&v)];
@@ -399,7 +413,7 @@ impl<'a> Interp<'a> {
             if matches!(v, Value::Err) {
                 return Ok(Value::Err);
             }
-            let t = truthy(&v).ok_or(Unsupported)?;
+            let t = truthy(&v).ok_or_else(|| Unsupported::value("value.quantifier-truthiness"))?;
             // short-circuit: `any` stops at the first truthy, `all` at the first falsy.
             if all != t {
                 return Ok(Value::Bool(t));
@@ -415,7 +429,7 @@ impl<'a> Interp<'a> {
         env: &mut FxHashMap<u32, Value>,
     ) -> R<Value> {
         if kids.len() < 2 {
-            return Err(Unsupported);
+            return Err(Unsupported::protocol("protocol.callback-shape"));
         }
         let lambda = kids[0];
         let seq = match self.eval(kids[1], env)? {

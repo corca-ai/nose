@@ -3,6 +3,11 @@ use super::*;
 impl<'a> Interp<'a> {
     /// Execute a statement (or block), threading control flow.
     pub(super) fn exec(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Flow> {
+        self.exec_inner(node, env)
+            .map_err(|blocker| blocker.with_frame(self.il, node, "exec"))
+    }
+
+    fn exec_inner(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Flow> {
         self.tick()?;
         match self.il.kind(node) {
             NodeKind::Block => {
@@ -17,7 +22,7 @@ impl<'a> Interp<'a> {
             NodeKind::Assign => {
                 let kids = self.il.children(node).to_vec();
                 if kids.len() != 2 {
-                    return Err(Unsupported);
+                    return Err(Unsupported::il("il.assignment-shape"));
                 }
                 let rhs = self.eval(kids[1], env)?;
                 if matches!(rhs, Value::Err) {
@@ -80,7 +85,7 @@ impl<'a> Interp<'a> {
             // Empty block / no-op pass lowers to an empty Block (handled above) or a
             // Seq with no children; anything else as a statement we don't model.
             NodeKind::Seq if self.il.children(node).is_empty() => Ok(Flow::Normal),
-            _ => Err(Unsupported),
+            _ => Err(Unsupported::il("il.statement-node-unsupported")),
         }
     }
 
@@ -98,7 +103,9 @@ impl<'a> Interp<'a> {
                     if matches!(c, Value::Err) {
                         return Ok(Flow::Err); // type error in the loop test → Err behavior
                     }
-                    if !truthy(&c).ok_or(Unsupported)? {
+                    if !truthy(&c)
+                        .ok_or_else(|| Unsupported::value("value.loop-condition-truthiness"))?
+                    {
                         break;
                     }
                     match self.exec(kids[1], env)? {
@@ -146,7 +153,9 @@ impl<'a> Interp<'a> {
                     if matches!(c, Value::Err) {
                         return Ok(Flow::Err);
                     }
-                    if !truthy(&c).ok_or(Unsupported)? {
+                    if !truthy(&c)
+                        .ok_or_else(|| Unsupported::value("value.loop-condition-truthiness"))?
+                    {
                         break;
                     }
                     match self.exec(kids[3], env)? {
@@ -161,14 +170,14 @@ impl<'a> Interp<'a> {
                 }
                 Ok(Flow::Normal)
             }
-            _ => Err(Unsupported),
+            _ => Err(Unsupported::protocol("protocol.loop-shape")),
         }
     }
 
     pub(super) fn exec_try(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Flow> {
         let kids = self.il.children(node).to_vec();
         if kids.len() != 2 || self.il.children(kids[1]).is_empty() {
-            return Err(Unsupported);
+            return Err(Unsupported::protocol("protocol.exception-handler-shape"));
         }
         match self.exec(kids[0], env)? {
             Flow::Err => self.exec(kids[1], env),
@@ -191,7 +200,7 @@ impl<'a> Interp<'a> {
                     env.insert(c, val);
                     Ok(false)
                 } else {
-                    Err(Unsupported)
+                    Err(Unsupported::il("il.assignment-target-identity"))
                 }
             }
             NodeKind::Seq => {
@@ -199,7 +208,9 @@ impl<'a> Interp<'a> {
                 let names = self.il.children(target).to_vec();
                 let vals = match val {
                     Value::List(vs) if vs.len() == names.len() => vs,
-                    _ => return Err(Unsupported),
+                    _ => {
+                        return Err(Unsupported::value("value.destructure-shape"));
+                    }
                 };
                 for (t, v) in names.into_iter().zip(vals) {
                     if self.bind(t, v, env, None)? {
@@ -213,25 +224,25 @@ impl<'a> Interp<'a> {
             // commutes; same-place overwrites keep the last value.
             NodeKind::Field => {
                 let Some(&receiver) = self.il.children(target).first() else {
-                    return Err(Unsupported);
+                    return Err(Unsupported::il("il.field-receiver-missing"));
                 };
                 if self.field_receiver_errored(receiver, env)? {
                     return Ok(true);
                 }
                 if let Some(assign) = assignment {
                     let Some(key) = self.exact_field_write_key(assign, target) else {
-                        return Err(Unsupported);
+                        return Err(Unsupported::protocol("protocol.field-write-proof"));
                     };
                     self.fields.insert(key, val);
                     Ok(false)
                 } else {
-                    Err(Unsupported)
+                    Err(Unsupported::protocol("protocol.field-write-context"))
                 }
             }
             NodeKind::Index => {
                 let kids = self.il.children(target).to_vec();
                 let Some(&base) = kids.first() else {
-                    return Err(Unsupported);
+                    return Err(Unsupported::il("il.index-base-missing"));
                 };
                 let base_value = self.eval(base, env)?;
                 if matches!(base_value, Value::Err) {
@@ -267,7 +278,7 @@ impl<'a> Interp<'a> {
                 }
                 Ok(false)
             }
-            _ => Err(Unsupported),
+            _ => Err(Unsupported::protocol("protocol.assignment-target")),
         }
     }
 }

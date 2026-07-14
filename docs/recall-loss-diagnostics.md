@@ -32,6 +32,30 @@ deltas, completeness and under-merge deltas, oracle exclusion deltas by reason
 and obligation, admission rejection deltas by reason, and top opportunities
 added or removed.
 
+## Capability-level exclusion census
+
+`--recall-loss-report` deliberately preserves its v1 schema and coarse exclusion
+counts. For implementation planning, add `--exclusion-census`:
+
+```sh
+nose verify <path> --max-violations 0 \
+  --recall-loss-report recall-loss.json \
+  --exclusion-census exclusions.json
+```
+
+The `nose-oracle-exclusion-census/v2` artifact records every oracle unit, not
+only failures. Each excluded row has a stable `il.*`, `protocol.*`, `value.*`,
+or `budget.*` first-blocker capability plus a leaf-first execution stack. It
+also records the product's exact-safety decision and non-degenerate fingerprint
+floor. Therefore its implementation priority is computed only from merge
+families that the exact channel could actually claim; large lossy or otherwise
+exact-unsafe clusters cannot move the queue.
+
+This is still diagnostics-only. The diagnostic interpreter follows the same
+execution order and returns the same fail-closed result as the ordinary API.
+Enabling the census does not widen admission, change a query, or turn an
+excluded semantic boundary into oracle evidence.
+
 ## Report shape
 
 The current schema is `recall_loss_report.v1.json`:

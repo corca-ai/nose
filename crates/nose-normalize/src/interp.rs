@@ -77,9 +77,82 @@ fn sym_id(tag: u64, parts: &[u64]) -> u64 {
     h.finish()
 }
 
+/// Stable diagnostics for the first capability that kept a unit out of the
+/// behavioral oracle. These records are reporting-only: the public interpreter
+/// entry points still fail closed with `None` exactly as before.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub struct InterpreterBlocker {
+    pub category: &'static str,
+    pub capability_id: &'static str,
+    pub blocker_stack: Vec<InterpreterBlockerFrame>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub struct InterpreterBlockerFrame {
+    pub role: &'static str,
+    pub construct: String,
+}
+
 /// Marker: the unit hit a construct the interpreter does not model. The whole unit is
 /// then excluded from the soundness check (we never guess at behavior).
-struct Unsupported;
+struct Unsupported {
+    category: &'static str,
+    capability_id: &'static str,
+    blocker_stack: Vec<InterpreterBlockerFrame>,
+}
+
+impl Unsupported {
+    fn new(category: &'static str, capability_id: &'static str) -> Self {
+        Self {
+            category,
+            capability_id,
+            blocker_stack: Vec::new(),
+        }
+    }
+
+    fn il(capability_id: &'static str) -> Self {
+        Self::new("il", capability_id)
+    }
+
+    fn protocol(capability_id: &'static str) -> Self {
+        Self::new("protocol", capability_id)
+    }
+
+    fn value(capability_id: &'static str) -> Self {
+        Self::new("value", capability_id)
+    }
+
+    fn budget(capability_id: &'static str) -> Self {
+        Self::new("budget", capability_id)
+    }
+
+    fn with_frame(mut self, il: &Il, node: NodeId, role: &'static str) -> Self {
+        self.blocker_stack.push(InterpreterBlockerFrame {
+            role,
+            construct: blocker_construct(il, node),
+        });
+        self
+    }
+
+    fn into_report(self) -> InterpreterBlocker {
+        InterpreterBlocker {
+            category: self.category,
+            capability_id: self.capability_id,
+            blocker_stack: self.blocker_stack,
+        }
+    }
+}
+
+fn blocker_construct(il: &Il, node: NodeId) -> String {
+    match il.node(node).payload {
+        Payload::Builtin(builtin) => format!("builtin:{builtin:?}"),
+        Payload::HoF(kind) => format!("hof:{kind:?}"),
+        Payload::Loop(kind) => format!("loop:{kind:?}"),
+        Payload::Op(op) => format!("op:{op:?}"),
+        Payload::Lit(class) => format!("literal:{class:?}"),
+        _ => format!("kind:{:?}", il.kind(node)),
+    }
+}
 
 type R<T> = Result<T, Unsupported>;
 
@@ -158,7 +231,9 @@ fn callable_roots(il: &Il) -> Vec<NodeId> {
 /// branch condition bails (strict contract; see [`run_unit_paths`] for the
 /// exploring variant).
 pub fn run_unit(il: &Il, interner: &Interner, root: NodeId, args: &[Value]) -> Option<Behavior> {
-    run_unit_once(il, interner, root, args, callable_roots(il), None).0
+    run_unit_once(il, interner, root, args, callable_roots(il), None)
+        .0
+        .ok()
 }
 
 /// Every behavior of the unit on `args`, one per explored symbolic-condition path
@@ -175,6 +250,26 @@ pub fn run_unit_paths(
     args: &[Value],
     path_cap: &mut bool,
 ) -> Option<Vec<Behavior>> {
+    match run_unit_paths_diagnostic(il, interner, root, args) {
+        Ok(behaviors) => Some(behaviors),
+        Err(blocker) => {
+            if blocker.capability_id == "budget.symbolic-branch-sites" {
+                *path_cap = true;
+            }
+            None
+        }
+    }
+}
+
+/// Diagnostic twin of [`run_unit_paths`]. It follows the same execution order
+/// and fail-closed rules, but returns the first unsupported capability and its
+/// leaf-first execution stack for offline coverage planning.
+pub fn run_unit_paths_diagnostic(
+    il: &Il,
+    interner: &Interner,
+    root: NodeId,
+    args: &[Value],
+) -> Result<Vec<Behavior>, InterpreterBlocker> {
     let roots = callable_roots(il);
     let mut out = Vec::new();
     let mut prescribed: Vec<bool> = Vec::new();
@@ -185,11 +280,7 @@ pub fn run_unit_paths(
         };
         let (beh, ex) = run_unit_once(il, interner, root, args, roots.clone(), Some(explore));
         let ex = ex.expect("explore state survives the run");
-        if ex.cap_hit {
-            *path_cap = true;
-            return None;
-        }
-        out.push(beh?);
+        out.push(beh.map_err(Unsupported::into_report)?);
         // Advance depth-first: flip the deepest `true` decision to `false`,
         // dropping exhausted (`false`) tails — a binary counter over sites.
         let mut next = ex.taken;
@@ -202,7 +293,7 @@ pub fn run_unit_paths(
         }
         prescribed = next;
     }
-    Some(out)
+    Ok(out)
 }
 
 fn run_unit_once(
@@ -212,9 +303,12 @@ fn run_unit_once(
     args: &[Value],
     callable_roots: Vec<NodeId>,
     explore: Option<Explore>,
-) -> (Option<Behavior>, Option<Explore>) {
+) -> (R<Behavior>, Option<Explore>) {
     if il.kind(root) != NodeKind::Func {
-        return (None, explore);
+        return (
+            Err(Unsupported::il("il.root-not-function").with_frame(il, root, "root")),
+            explore,
+        );
     }
     let mut it = Interp {
         il,
@@ -251,13 +345,16 @@ fn run_unit_once(
         }
     }
     let Some(&body) = kids.last() else {
-        return (None, it.explore);
+        return (
+            Err(Unsupported::il("il.function-body-missing").with_frame(il, root, "root")),
+            it.explore,
+        );
     };
     let ret = match it.exec(body, &mut env) {
         Ok(Flow::Ret(v)) => v,
         Ok(Flow::Err) => Value::Err,
         Ok(_) => Value::Null,
-        Err(_) => return (None, it.explore),
+        Err(blocker) => return (Err(blocker), it.explore),
     };
     let mut fields: Vec<(FieldKey, Value)> = it.fields.into_iter().collect();
     fields.sort_by(|(left, _), (right, _)| left.cmp(right));
@@ -266,14 +363,14 @@ fn run_unit_once(
         effects: it.effects,
         fields,
     };
-    (Some(behavior), it.explore)
+    (Ok(behavior), it.explore)
 }
 
 impl<'a> Interp<'a> {
     fn tick(&mut self) -> R<()> {
         self.steps += 1;
         if self.steps > STEP_BUDGET {
-            Err(Unsupported)
+            Err(Unsupported::budget("budget.interpreter-steps"))
         } else {
             Ok(())
         }
@@ -292,15 +389,15 @@ impl<'a> Interp<'a> {
             return Ok(t);
         }
         let Value::Sym(h) = v else {
-            return Err(Unsupported);
+            return Err(Unsupported::value("value.condition-truthiness"));
         };
         let h = *h;
         let Some(ex) = self.explore.as_mut() else {
-            return Err(Unsupported);
+            return Err(Unsupported::value("value.symbolic-condition"));
         };
         if ex.taken.len() >= MAX_SYM_BRANCH_SITES {
             ex.cap_hit = true;
-            return Err(Unsupported);
+            return Err(Unsupported::budget("budget.symbolic-branch-sites"));
         }
         let taken = ex.prescribed.get(ex.taken.len()).copied().unwrap_or(true);
         ex.taken.push(taken);

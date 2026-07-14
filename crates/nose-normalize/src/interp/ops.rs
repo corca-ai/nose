@@ -101,7 +101,7 @@ pub(super) fn string_contains(value: Option<&Value>, needle: Option<&Value>) -> 
     // String chunks are opaque literal/builder pieces, not characters. A chunk
     // mismatch only proves "not the same piece sequence"; it does not prove
     // substring absence inside a literal or across piece boundaries.
-    Err(Unsupported)
+    Err(Unsupported::value("value.string-chunk-containment"))
 }
 
 pub(super) fn join_strings(separator: Option<&Value>, collection: Option<&Value>) -> Value {
@@ -136,11 +136,11 @@ pub(super) fn range_values(args: &[Value]) -> R<Value> {
     let mut cur = start;
     while if step > 0 { cur < stop } else { cur > stop } {
         if out.len() as u64 > STEP_BUDGET {
-            return Err(Unsupported);
+            return Err(Unsupported::budget("budget.range-materialization"));
         }
         out.push(Value::Int(cur));
         let Some(next) = cur.checked_add(step) else {
-            return Err(Unsupported);
+            return Err(Unsupported::value("value.range-overflow"));
         };
         cur = next;
     }

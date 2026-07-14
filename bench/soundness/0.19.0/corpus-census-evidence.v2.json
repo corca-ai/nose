@@ -1,0 +1,613 @@
+{
+  "complete": true,
+  "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
+  "nose": {
+    "sha256": "ff5bfa3a712b991d83b44289f8b92f5f5077e69e9830dfbecc091373bf0f5ec2",
+    "version": "nose 0.19.0"
+  },
+  "prune_manifest_sha256": "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980",
+  "pruned_corpus_digest_sha256": "7247d64112bc20749de43d91fb86c6f288ae09271a08d67b68aa252d5abb5804",
+  "repositories": [
+    {
+      "census_sha256": "1ad44159034d82f98366f11146220f618c6f84b1b612029341da246ad2114550",
+      "commit": "aaf3bd744a4f7608fe7d7168fb12b62a2155d311",
+      "id": "alacritty"
+    },
+    {
+      "census_sha256": "3f98a02560e3f22166ece66fb37c2c2fd38fa01857f81257eff593cf02a911d5",
+      "commit": "7595cbcf59809f9977c5f6378500de2ad73b7ddb",
+      "id": "alamofire"
+    },
+    {
+      "census_sha256": "66d665b29afb9d9bb186a191bb0a114c6b96493f2f35a0aafff7da2695438b9c",
+      "commit": "7d5770395bb7b02eb56e7c62662cb1d7c08f42a3",
+      "id": "antlr4"
+    },
+    {
+      "census_sha256": "257b573ba8a5d2c164bccbccdb9b211fedb547f6eaae8ef26466bbbb1d0e9b04",
+      "commit": "2224255c4acc594d734cef0bbc83360452a67983",
+      "id": "arrow"
+    },
+    {
+      "census_sha256": "db4b16e6587470372058af2699921a13a1cbd547ac5651703982294f809aa71b",
+      "commit": "07fbd12b0cb51cef76a4cf624436b0a241aaa397",
+      "id": "asciidoctor"
+    },
+    {
+      "census_sha256": "b69e0ee6df944ecd8174906676b848bd8db9f9a4fe1cfd703549b6b6fdbc2c85",
+      "commit": "4306df21e84332fc576e98c2de549347c06bfb76",
+      "id": "axios"
+    },
+    {
+      "census_sha256": "72daf2fa418d7294f38a3c87f3cfc819d43c375e64d20294e243d994ec5a7ccf",
+      "commit": "897f12fdb4631a9bf2aea347bde0a93d930d3001",
+      "id": "badger"
+    },
+    {
+      "census_sha256": "c8cee93c7a9638af010cc8a26e4834eccf677edb48545325fcb92d145b3b2520",
+      "commit": "af1f53d9a977154216d01435991fe33631b74713",
+      "id": "bat"
+    },
+    {
+      "census_sha256": "dd1a67b8387de461ce9e43e879665a29eb496e327aa74c3fff31af85bdfc7916",
+      "commit": "d246367ab471cd56298407858661d475c33b3e36",
+      "id": "black"
+    },
+    {
+      "census_sha256": "a46c02dab6e01b1914f976baee80b7c2e9c94e023324f589df31ebc97121205e",
+      "commit": "207651ee6055aabd0d9cdeac2e00140cdc208d44",
+      "id": "boltons"
+    },
+    {
+      "census_sha256": "434a773d02052a455be5e1a6f1d111c62aef72238091a4546a6f36a60b14a2cd",
+      "commit": "3b171578ca44dfd75ca3c5cbddc7b44c600a7b49",
+      "id": "chi"
+    },
+    {
+      "census_sha256": "b518e5aa699488f611a7add82cf1318954a19c8678d66707dcf5d4127c343276",
+      "commit": "8387c812c4b9726474b8407f81ec97f0acf570ed",
+      "id": "clap"
+    },
+    {
+      "census_sha256": "d13fcb9a600aafd9ecca58458c4bec95817ac49c037ff4ba62821938094a60f4",
+      "commit": "c48021040a50c659b74e24ac2b11c9c9c6620a21",
+      "id": "click"
+    },
+    {
+      "census_sha256": "bb008675fd7019ea4473e2b4dad42a1eedf7afa7c5f2ab365d073af8693dbd1a",
+      "commit": "b6232e95c028eee78cdbc84a608815d6a945909c",
+      "id": "cmark"
+    },
+    {
+      "census_sha256": "8a818fb8de857023443be0eeda312c8c029b6a978a3ea673c588af6b8d007338",
+      "commit": "ad460ea8f249db69c943a365fb84f3a59042d54e",
+      "id": "cobra"
+    },
+    {
+      "census_sha256": "bd79d0bc3ec6ec86edd4a9553812b5a51e2d250d487d85385732a1cf9eac834e",
+      "commit": "62ea4b620be45462ace4247df34ca938aa29a4da",
+      "id": "commons-lang"
+    },
+    {
+      "census_sha256": "a432f1e7726abb50df81759a24813fd6b43665068e64db0d5e7e1154048652fc",
+      "commit": "ba600296d2a1d8a4e53a36eb4bd30c1f0d0152cc",
+      "id": "curl"
+    },
+    {
+      "census_sha256": "2aee2f5649b1a401f90a32e7c5fdef3c9aabc614590f1b9235ecee08b9af981c",
+      "commit": "cd53d2538cfa318404eff7ade6449b49bf34562e",
+      "id": "date-fns"
+    },
+    {
+      "census_sha256": "7875d8123a083d3806d0a40646ded3acccaf7bc096e3ba64420049119bd8b39b",
+      "commit": "b17af91dec79ddb2d1fcc08fa13c10d13de77b83",
+      "id": "delve"
+    },
+    {
+      "census_sha256": "a6eea33cdc5be919dc356e77f2eaa26c279b32ed61a63bc5328ac8c3ec49d116",
+      "commit": "9ea459de9aec5f1217ad738c58e0d23fb9f5beaa",
+      "id": "devise"
+    },
+    {
+      "census_sha256": "8efedc7236372b24fbf5e0c7f473c846c6881954a12b41939fb5081d9e981edf",
+      "commit": "48e5406027103a9fca6eb66417187c4a8b5c6aa3",
+      "id": "drizzle-orm"
+    },
+    {
+      "census_sha256": "6fdd707aa9adae2fb1ecffb3f05f3b168aa4ad75082aa0d08062281d42b70ca8",
+      "commit": "6a794dff68e6a43539f6da671e3080efdf11ca70",
+      "id": "esbuild"
+    },
+    {
+      "census_sha256": "fb5f25f5995deb71bee3d1895166f435950303e6d14a566a1c13ec03c4410669",
+      "commit": "9ed485d3e37bbdddff471f5c6d6d7f62048c07d1",
+      "id": "etcd"
+    },
+    {
+      "census_sha256": "265f077b8b7582eeec705884f7f488bc6b650391e2f9cede8eda4c5d1cc0e2e4",
+      "commit": "f3a2e8481a1e9138de3895827895c834078b9456",
+      "id": "execa"
+    },
+    {
+      "census_sha256": "174f5af80fbdbbce015deeb9fa6e47ae6fd432236c1a3aa5cd9e2c329479dec4",
+      "commit": "59334e0e9b1918bd26b143f4a7bbc8c765de3ac4",
+      "id": "faraday"
+    },
+    {
+      "census_sha256": "d9950716b7b3cbe83840099996d6eb13f8e0d8d95b8f5c37b2b4057f66846279",
+      "commit": "c30e449d26dc99fa3841f94f3a2a505a676aedbf",
+      "id": "fastlane"
+    },
+    {
+      "census_sha256": "0831cce0c745df179e83f471b5b80cbbd1be1db8aae159a331a1096dfecc4f5c",
+      "commit": "42b2ab8a84ddedf80eeed9079128c60161f64658",
+      "id": "fd"
+    },
+    {
+      "census_sha256": "8991514392805620c3bf9acaeb64ad1d3ddb6e7ffca37546dd2480ba061fbcc2",
+      "commit": "36e4a824f340fdee7ed50937ba8e7f6bc7d17f81",
+      "id": "flask"
+    },
+    {
+      "census_sha256": "32108c17f9f8f20f7b527f902d2044631b79a27cc5dea839649ea4b1276fd822",
+      "commit": "7d647c70c286720c225ebb8ab75896e5dbee6af6",
+      "id": "fzf"
+    },
+    {
+      "census_sha256": "e0bccc6565864de92ad7d420d8873fc78739f382711a2a49a3477819ac6ef268",
+      "commit": "5f4f9643258dc2a65e684b63f12c8d543c936c67",
+      "id": "gin"
+    },
+    {
+      "census_sha256": "55d7f9c69306b9531e5792558eff05f6d0229bb05bdd9a0988ada4060ea3e937",
+      "commit": "9ac3f193c05c2237e2b14ebaa1149e9fc8a1abe0",
+      "id": "git"
+    },
+    {
+      "census_sha256": "c7a1e8b63cf9297ad821fe8bb2e21d36a5f4770c7fd1cf52efa272e031d02b6a",
+      "commit": "d0ee5e2296150d691364c5f4f7f2b32abde04545",
+      "id": "gorm"
+    },
+    {
+      "census_sha256": "f395289cc5a9ecd19065f4d79a4cfa3e3855dc9adf7d660087ab8f49c9a09265",
+      "commit": "2d63716da2e1981fff64d52ee46a0a011202af02",
+      "id": "graphhopper"
+    },
+    {
+      "census_sha256": "b425f97e2e3ddf20013d79162114325bc1a114313d566c97c4fe70bf794d4fcc",
+      "commit": "ed2397502708ebaba53643e5c3d60e0974d7045f",
+      "id": "gson"
+    },
+    {
+      "census_sha256": "90c2d1253d2b250fe86126030451d45b2b533f433b4035b8d0331c8474169adf",
+      "commit": "8ee72dc2b4f14a0d10ba434a2453262899a1ca0b",
+      "id": "guava"
+    },
+    {
+      "census_sha256": "d04dc284999f17e3cd66a5a3f03a380d2f398b6f346edb8c1468376a0e42adbb",
+      "commit": "c39970fff5fbda13cf3d16df88426c36d98e5c39",
+      "id": "h2database"
+    },
+    {
+      "census_sha256": "fe023d9bc68ae18f25690dd9b827333374f069ff6b5bce8265bebdbb877f27b6",
+      "commit": "5b604c37c6c67e18e7c3e9aee6c88a8c22b98345",
+      "id": "httpie"
+    },
+    {
+      "census_sha256": "d31ad83e17d7631eb2c20ca0b8fcea9d3e29f33ba77374f28dcf779f4100677b",
+      "commit": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
+      "id": "httpx"
+    },
+    {
+      "census_sha256": "f353fea4d65203f252849b928445059567cad4caa224f0992dd5a7c00afa76d2",
+      "commit": "b01ecd4cd4377921efe427fed8a16326b85f2ace",
+      "id": "hugo"
+    },
+    {
+      "census_sha256": "aab6d7c2b594158f139b43befd6817175f7136e85c5d219d77c29196852d2531",
+      "commit": "f12f3d9f86f3643b3b7deace5e160b1f0f44d2b7",
+      "id": "hyperfine"
+    },
+    {
+      "census_sha256": "f78371ce043e9b40d2f6879dcbec68048c2059bd5667b330fe63d813bb98fd85",
+      "commit": "1063f55cef361fc55ab2e805030d07d11337dad3",
+      "id": "image"
+    },
+    {
+      "census_sha256": "f84f43827d568447893e0a87eaa60c5d093be01c38bfe339bd1277492a0caa19",
+      "commit": "7df7f1f24fdde585d6a35aa53f2b14d55cd8c734",
+      "id": "jackson-core"
+    },
+    {
+      "census_sha256": "2d82ee4d45ebb5d2dd2d3b7253fdad29e51fd94c8254b6bbcf109bce0264f663",
+      "commit": "2ec0938d621aa324680490c7c20a09c27563d272",
+      "id": "jedis"
+    },
+    {
+      "census_sha256": "0f4b2da1e21a1898bd5183beeea9ee3ee07873a7895684238fb58602ca22418b",
+      "commit": "202df571314ba1d18e9fccd81d12aaad4a703c38",
+      "id": "jekyll"
+    },
+    {
+      "census_sha256": "704e09ac36dd792bbab1009d882b33c4e0ce0106feee8a3052b3cd8a4accdd61",
+      "commit": "4c3091b4204d703f4ebe343b8ac9d8a28ac4388e",
+      "id": "jest"
+    },
+    {
+      "census_sha256": "6775da034ed65d7cad4b4d0297c5d226e16ced9beb59d90a603bf86691d4574b",
+      "commit": "985abe534fdd48186015e169da7786c05fd7f868",
+      "id": "jq"
+    },
+    {
+      "census_sha256": "476e63433b54c6296410d1b667e8f5d2cdf10c94638cec8a029df3edf1c53898",
+      "commit": "8fb8eb5633901f535b8867a1c5a6fcc07df266c3",
+      "id": "jsoup"
+    },
+    {
+      "census_sha256": "7482607ecc15e843f5c6c228c201d90e150df6a3c431da5506a68dff36167fd0",
+      "commit": "9a7a266fdd22cbe62d0d06e69fe8aab0dd2649cd",
+      "id": "junit5"
+    },
+    {
+      "census_sha256": "5e6944091a4d5bb83ea97a2deb1f0f1712c2f83665ab95b0682019ea7133fa85",
+      "commit": "072c31174e9f481882e6c3ec8ddc74384d395789",
+      "id": "kingfisher"
+    },
+    {
+      "census_sha256": "312ac32803d948918f5b318f4dec688d212d6b345a0875d730afee26dccec679",
+      "commit": "12b3d2e752793d4128b6355c338b23fefa674ee0",
+      "id": "kramdown"
+    },
+    {
+      "census_sha256": "e5b8e6e630154e045c4371ad3c12b6e8e37f99af0b22c26be49fdd4a639793a7",
+      "commit": "61d6d66d27911001b9b4d57ab93139f9ad61384b",
+      "id": "ky"
+    },
+    {
+      "census_sha256": "7aa16b1ccabed32459acf2e1141cf95babd27ce7c826c90b74ec081aec51a593",
+      "commit": "f9af1f6273e04da84eaffebbb782d083441634b0",
+      "id": "libgdx"
+    },
+    {
+      "census_sha256": "e6407532522ec6a6f6f2201b9397432d91f2da26fdad5e182fd1026972613545",
+      "commit": "3591adef1c26061b3cce43366ec32e03f1df8a5e",
+      "id": "libsodium"
+    },
+    {
+      "census_sha256": "ee1cb8ae9a5d8e400dbe57ac49fe23e13f84ad3a83bde58cc1415f6db1248f57",
+      "commit": "ea493f19895bc0cc90b28b48a4e204bc139c48d3",
+      "id": "libuv"
+    },
+    {
+      "census_sha256": "abe327b377dc247a158652cab3ff43a72fc211ef0967517de4806d4968dd741b",
+      "commit": "742ac3dbf5432c6c2689ea00da604d7379f73799",
+      "id": "liquid"
+    },
+    {
+      "census_sha256": "3e7165d161514454120d6b65b152eee75df0b84d968eb929f50a017ca60fe587",
+      "commit": "53b41d0cddd80bf33fdc631bdd32e3ba53842b89",
+      "id": "lua"
+    },
+    {
+      "census_sha256": "8146ce00829dbd80ac42f25c2309636c4d9dd05c6bd6943bb9c47e529b0b4fab",
+      "commit": "c1a86f00ccd81144422f1a4194756bd48111c531",
+      "id": "marked"
+    },
+    {
+      "census_sha256": "8202c218a877627d731020a1c01b52339d877f7c938291058673a51b70ea0b69",
+      "commit": "db4aa4d00b0fa073e31c4d4ce2d05e4ea9e90d52",
+      "id": "marshmallow"
+    },
+    {
+      "census_sha256": "b380036e4446ca02501fbc3ac6a991edece8900f382f57bfd5f67e3b0f1cc93e",
+      "commit": "ded427cf58d75f5da740297a7eb8581444cb7b30",
+      "id": "meilisearch"
+    },
+    {
+      "census_sha256": "bc404608cfa93d406251567ddc65d98a5cd0ea703640658473473b67008fdf49",
+      "commit": "7aac2a2c5b7c882e68c1ce017d8256be2feea27f",
+      "id": "minio"
+    },
+    {
+      "census_sha256": "b4fb52de26439c83be92eb07733688347a72c2028eed529eb016c62ad07db095",
+      "commit": "70a97b057b36b4c0c165318826e3b12b49dbd970",
+      "id": "mockito"
+    },
+    {
+      "census_sha256": "7370969d345162429ffe37ab86aa392dcf8b4095e69128562d1ad50b023fd779",
+      "commit": "050df88d3fb7e968ef8acf02b3ea092d439881c3",
+      "id": "nats-server"
+    },
+    {
+      "census_sha256": "662acfd944db7f284ee404bc56abd6f1855dc565c1c85ff71805b14e1dc80ead",
+      "commit": "e90eee9f556e3c770dda5ee171276e886266ae71",
+      "id": "netty"
+    },
+    {
+      "census_sha256": "1169131238ef4fd503e1259a3d665e41d3393dbf2bdf3d3d966638b5d9fb0104",
+      "commit": "d44205284fa41662da803b796d6056fc1e59b1f3",
+      "id": "nginx"
+    },
+    {
+      "census_sha256": "891cfa7095d2f645ebd6ea96488eaf810d43089b15fe81f36c9f2d58ec524ff7",
+      "commit": "727f75d91a0f7501d08d938966d17e6728b76a2a",
+      "id": "nimble"
+    },
+    {
+      "census_sha256": "a5f7cba1e697d4d3c659f893a9187ee7af99ef8fb0cacbbfed7c02193e861f22",
+      "commit": "779e2473aa28092760fe91ceefb288f36f0670e7",
+      "id": "nushell"
+    },
+    {
+      "census_sha256": "8ff5c9a617ef4bfbc6f7bcd3f7b10a6a613bea168241bdecbbee6e26c74b26dc",
+      "commit": "cf5dc921b4e1e85b50e3146f94e69d0268d5543d",
+      "id": "packaging"
+    },
+    {
+      "census_sha256": "3ecac0e398def78898551b9b06c9d6b13ddfc616cc99b4c33676414080d84562",
+      "commit": "b2f8668c2c3c3d8b4aa7dcd1906424a9bbf75241",
+      "id": "pixijs"
+    },
+    {
+      "census_sha256": "36dc7d64fa0adad414629ae5f95557b2b70ec7872e89203f88d81f3b3190611b",
+      "commit": "aab3194f200e52198101d0f303b0f6423897829c",
+      "id": "poetry"
+    },
+    {
+      "census_sha256": "a894e35a7b80b375f4b3a4ef755c86bb75deb79b0cdeaf9d7aebb83e1a4e536a",
+      "commit": "a5e7b7c3bd1e783ce33d8b0e335530317fe85bab",
+      "id": "prettier"
+    },
+    {
+      "census_sha256": "f91b08f75fe61706867ecc4f118c8136cb5e5fab730f24e13dc04e82e55dbb96",
+      "commit": "f3d653fb5cee5e503356eef531b5da7e578cf22f",
+      "id": "prometheus"
+    },
+    {
+      "census_sha256": "c5216dd1871adf71f9e00cba7b7e0325e7ce6cb92ba707ad5b334c7d1ffe47f0",
+      "commit": "135640262879544c6bfecbf3e78511289bfe956c",
+      "id": "pry"
+    },
+    {
+      "census_sha256": "557a152f847ed0d8e8c5c645cba2caa9dec8432c486e547ffe8cf0e4afab5a4f",
+      "commit": "c981c010f438596d958932c08d123d079033b7fa",
+      "id": "puma"
+    },
+    {
+      "census_sha256": "dae22e1a06c82c95e7f48d8c114579497c875dbf134b029014f8423af92e7395",
+      "commit": "2b4547b230e94d84320724fd6df65e418b058be2",
+      "id": "quick"
+    },
+    {
+      "census_sha256": "fcdebfc51a44ffb3aea5e641c7080e0f44f3e0ce501c3ec60d730064039dea3e",
+      "commit": "1551230b9868c5981d8614e487646dd634a0eb41",
+      "id": "rack"
+    },
+    {
+      "census_sha256": "4ef907876d39a70bbc2f41714f032de4f7f995f87b5ddc64d8ea2087c9825943",
+      "commit": "4cab1900d08e0997abc4f17aec3cbfe18958d766",
+      "id": "radash"
+    },
+    {
+      "census_sha256": "9fde38d67a595a412b92b0b5b5154f57a5737ffcf5f86b396a87584222367cc7",
+      "commit": "895154bcb2c55540cee9e2aa2de95c0e5ba9b729",
+      "id": "raylib"
+    },
+    {
+      "census_sha256": "98481cc1331e13113450f59cbbe6b6b8cdacf5a4360610b3c663bce90ada3b92",
+      "commit": "2df35f9fb0ac21fbc57e3b3d784c65d6928e6ef3",
+      "id": "redis"
+    },
+    {
+      "census_sha256": "69a3b512448659e0e0b19ebaaa9b011102c003110ae013d25a1c328f0a3bb24d",
+      "commit": "839d16bc65b60e2006d3599d20bfa6efc14049d8",
+      "id": "regex"
+    },
+    {
+      "census_sha256": "bf6dde699d88beebc4474d2efff78eaad3d508b7ff97a327e563cbedbae45183",
+      "commit": "cd90742ed94d901759e26766197d0ce7c7bd9c8e",
+      "id": "requests"
+    },
+    {
+      "census_sha256": "605e81c0baeaaef5f6544a967ac9a0ac942af1addc99ac2e036d17ffd656b024",
+      "commit": "8e83a242eac1afc22a13c52098eddb27421353ff",
+      "id": "retrofit"
+    },
+    {
+      "census_sha256": "00564caac0ed5c5ecb7715a0bcea0f82bb8ba890c1259b8dea42fd8bf05d962f",
+      "commit": "46cebbb032f920eb096efbaf23cdc6fe9dd541f7",
+      "id": "rich"
+    },
+    {
+      "census_sha256": "b2b57bd15769e54a9888c1972e55b116141f5237d2aaad118149cb258a69f109",
+      "commit": "4857d6fa67db69a95cd4b6f2adda5d807d4d0119",
+      "id": "ripgrep"
+    },
+    {
+      "census_sha256": "b4acbb09fcf85abcbf43a4c755ca9bbd44b1cd5b9dc1c0748e29d2d7c26a75bb",
+      "commit": "aec5f49485d97908183dbe790a7fefb8baaa8091",
+      "id": "rspec-core"
+    },
+    {
+      "census_sha256": "216efeaff561bd02c46190c1745b49f33f2e725b80520f80b678371c16fd332d",
+      "commit": "43942e260071e869bccc7497bbba82d5d458530e",
+      "id": "rubocop"
+    },
+    {
+      "census_sha256": "43b2d957d4d155d23f9c9cbc63532235a3c99000acc4e4dc0dd1a29f1c4a8a63",
+      "commit": "22a546cfa1f24130514411be7c99295c093ec575",
+      "id": "rustls"
+    },
+    {
+      "census_sha256": "4e55c04c16190ae6905170b6d2e72b4da184fdff2781519f3f7b0ac0917101ba",
+      "commit": "17e6f21c87f5d75b832b6f6fc0448603ae959b58",
+      "id": "rxjava"
+    },
+    {
+      "census_sha256": "1dcd39296731739057549da8d5246041de6efd0ff7124a11f54bd5150215101c",
+      "commit": "c15b37f81ba5f5abea8c872b0189a70b150df4cb",
+      "id": "rxjs"
+    },
+    {
+      "census_sha256": "1e56df0623060bc11f658c353b8f51ca07a0f7315bbc713ce7f12d7dff0bc5c1",
+      "commit": "132aea4f236ccadc51590b38af0357a331d51fa2",
+      "id": "rxswift"
+    },
+    {
+      "census_sha256": "7a24ca92eecf4435ab2d455705b9e762f0d2f5debab7c9f48c66c1b423c6bf9e",
+      "commit": "44406806f819b0e5230ed0dbe619a31defeb7afc",
+      "id": "scrapy"
+    },
+    {
+      "census_sha256": "3a2c9b67cd1413ef3d7cae52c4897c4ffa56430018551647f498ec1223e88f3a",
+      "commit": "a1ae73ac6a6940a4a57c673aebaa13ed4dfe3e8c",
+      "id": "serde_json"
+    },
+    {
+      "census_sha256": "6aa1e719b0c9ecc5329ba61349d54b9ae53884a13cbe5d15ae657523dc82030b",
+      "commit": "ae2fcadb06147fc23e70ce8085443c845c737186",
+      "id": "sidekiq"
+    },
+    {
+      "census_sha256": "aa6152b2ad3d412deeea6a2fe99ab1796ad71089e1a7559ce8bd5e1ad6a19571",
+      "commit": "5236d3459b8b9015e5ce21ddd0c6beb0db4081d4",
+      "id": "sinatra"
+    },
+    {
+      "census_sha256": "bab9f5eb0554b693d0fbe8aadc3404a7d1997ccade79050804b2cb124d39b561",
+      "commit": "e449d17111f4a097e1c66b6db241962ccb6a4136",
+      "id": "sled"
+    },
+    {
+      "census_sha256": "afc3d758967dcee86d95acdbe0d8520079a99b15f2a8f60d5e90abf6a2f5c74f",
+      "commit": "4fb459aaf05dd9c31ce3ece57c1bbf81ca9855de",
+      "id": "sqlalchemy"
+    },
+    {
+      "census_sha256": "5c4ca1c087b283e0667e412f2b103bb794d262b180d2d5391b34849006c6a9c0",
+      "commit": "2acb57c1be48b34129b2d91b33d7b5fdbaac7d07",
+      "id": "sqlite"
+    },
+    {
+      "census_sha256": "f4c1857aca70d90b033f797ad26df7d5e5d70c5905f77013e154a41d4420e764",
+      "commit": "0b4376902cfc3901c496a79f2cb70f1ffd583fff",
+      "id": "swift-algorithms"
+    },
+    {
+      "census_sha256": "e546b9f17974ca2b64695f6178e3bbda984076e62acbf0687833201c16339a2d",
+      "commit": "6a52f3251125d74daf04fcbd5e6f08a75d074382",
+      "id": "swift-argument-parser"
+    },
+    {
+      "census_sha256": "0e4d5ffca2c5d8aabd2a1a7114b226010b76f796c295e63448761ce504d7665d",
+      "commit": "f5b320c29f5af4087bc8f527ed52e0930f4f9fb4",
+      "id": "swift-collections"
+    },
+    {
+      "census_sha256": "975e8a5374777ba98ec0b9aa87d93ec6978771feae8c0cce8776b0d2abda2e33",
+      "commit": "a28ddfada0ec31d726e5c8e525318c3745ad97d9",
+      "id": "swift-composable-architecture"
+    },
+    {
+      "census_sha256": "f57eb4eda1257af2906d62a234cb89e628a351d5d6e32e232fb60fcdd46c4584",
+      "commit": "ca6118469893201380f29a4d67feb68bcb44fa25",
+      "id": "swift-log"
+    },
+    {
+      "census_sha256": "0ff6a7b18cee64a96d7f7853ca8886b7821a2aa31f92ba01812aae8a0f6f4fc0",
+      "commit": "4d99a2ec9735d7738c642189a09a77ccbb117aeb",
+      "id": "swift-metrics"
+    },
+    {
+      "census_sha256": "1fc132b7ea5d8088b20bef148c17d559ee7d24335c60e949d51f6d9f01fad1c2",
+      "commit": "eb8ac41afd91195d1095de61803402c27ecde293",
+      "id": "swift-nio"
+    },
+    {
+      "census_sha256": "70ff9cc3fa4688f01900a93e4483939751747bb6ba31020108c2a4ac622ba7de",
+      "commit": "2fd7a348e9d0333979108c2da83642a64df6cb2c",
+      "id": "swift-service-lifecycle"
+    },
+    {
+      "census_sha256": "4ec4582d7b0e85fcc78feac652f48461c2c2f0248f3c31b75b78073b98297982",
+      "commit": "64b731e35cda419025868a9c5248a3bdf1b57631",
+      "id": "swiftlint"
+    },
+    {
+      "census_sha256": "60be85d61bb873977e9f4cf583ca5b8416ba65a5705c767e6d07281016b26017",
+      "commit": "e384af7f0d3e8620e4ec10c5b7c2b0e9bb9466be",
+      "id": "swr"
+    },
+    {
+      "census_sha256": "7223615cd8ea63d2817094939f829374765c3058eeb20700d984b528e87270cb",
+      "commit": "da4a5fa52418ae593a941d4ba585cfef87a31870",
+      "id": "sympy"
+    },
+    {
+      "census_sha256": "de6cb98322fd16987cf75da691436b010eaa5b91fe0985398073add662d55d2c",
+      "commit": "036cb4ddd5ccecc3a61c16186d2810addb7d42f3",
+      "id": "thor"
+    },
+    {
+      "census_sha256": "9b3d3d5e28e808cd200393c47c9964caff5d4aa8a2c9c2115cc83dc3a615c416",
+      "commit": "0759030ee8c44def03158bcbeac33338fd2b719e",
+      "id": "tmux"
+    },
+    {
+      "census_sha256": "af5f7bdf901c799031651ef9126c00a79222035e6cd63f92bfd2c6dd9af1ad7c",
+      "commit": "fa44e5194060305576514d59b850353643afbfc8",
+      "id": "tokei"
+    },
+    {
+      "census_sha256": "71e4e7108cf78e4e79a516f7d84722d45d1eb3a7c4764bbab69a1d706fb64632",
+      "commit": "2de86e557c576a74be7136e6fc2e21ccdf22da10",
+      "id": "tokio"
+    },
+    {
+      "census_sha256": "76ce2789526c0655b922b5917c25e871899d4ad9e537c14d0afcbcdb958391e9",
+      "commit": "c7360d4eb3c89c336468809a293e5cda4b302d4b",
+      "id": "trpc"
+    },
+    {
+      "census_sha256": "852a8edd5cbadaa3e960a4ee0db9848350bfca19cdc688423b2d2989d986a934",
+      "commit": "be8b79d0c8de1a03812914c9c511c961e5ed6ecc",
+      "id": "urfave-cli"
+    },
+    {
+      "census_sha256": "399d0f0294c77a13583ba82dc8259e911018a2e29dff2ae2c4079bbc892e3e8e",
+      "commit": "fff4892930e69b49ea2612699bed9583721723dc",
+      "id": "vapor"
+    },
+    {
+      "census_sha256": "62fa27923c2e4c710cf5e97d551471f7c3891d91f8422939c1af24ff81a170db",
+      "commit": "f1ed84158ab80240c42c9f2356767cad448ca151",
+      "id": "vim"
+    },
+    {
+      "census_sha256": "461a3f22317be4776cbacce402374e656f3f4a6cdf8dad9f6df54e311b4d12ae",
+      "commit": "a211dd5a7050b1f9e8a9870b95513060e72ac4a0",
+      "id": "wrk"
+    },
+    {
+      "census_sha256": "6e36b9334297424724f95968b525847e6d0a75477c302e7b65d6f1c52958a084",
+      "commit": "5b81b37b81b8e2ed447a6f57991e372ee4fa5c8f",
+      "id": "zap"
+    },
+    {
+      "census_sha256": "18d1297a721dd6e2f7cfc04323db6eb8defae7c5d325c119f201f41d0752cc7f",
+      "commit": "bbc68f990c7e6a5e3f506c56fb04bd0279b9c9b5",
+      "id": "zod"
+    },
+    {
+      "census_sha256": "75c2ddfc3d3e3682ef7b2c3d244aeb93acf75167e36173b070aa1850548d3114",
+      "commit": "5233c58e6ca0b1c4c6b353ad79649191ed195bdc",
+      "id": "zstd"
+    },
+    {
+      "census_sha256": "05fe20b75cb7c9958ff06a5c6deca97a23053c908819615559f4590bfa7d61e8",
+      "commit": "04a8487aea075b13e71a327cc99b16fb68352c1a",
+      "id": "zustand"
+    }
+  ],
+  "schema": "nose-soundness-census-run/v2"
+}

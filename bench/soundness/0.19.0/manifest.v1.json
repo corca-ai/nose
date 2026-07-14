@@ -33,6 +33,20 @@
     "canon_exposed": 117,
     "claimable_units": 193
   },
+  "exclusion_attribution": {
+    "schema": "nose-oracle-exclusion-census/v2",
+    "instrument_binary_sha256": "ff5bfa3a712b991d83b44289f8b92f5f5077e69e9830dfbecc091373bf0f5ec2",
+    "release_tree_census_sha256": "4bcd481946c9521b2582464569bff65900b4fb81a9048ffbaba5bb304de88fa0",
+    "threads": [1, 4],
+    "generic_unattributed_exclusions": 0,
+    "semantic_boundaries_closed": 652,
+    "corpus_units": 639516,
+    "corpus_interpretable_units": 197369,
+    "corpus_excluded_units": 442147,
+    "claimable_families": 704,
+    "claimable_pair_mass": 3677,
+    "capped_claimable_pair_mass": 1352
+  },
   "corpus": {
     "manifest": "bench/goldens/corpus.json",
     "prune_manifest": "bench/labels/prune_manifest.json",
@@ -51,8 +65,12 @@
     "bench/recall_loss/release-0.19.0-evidence-2026-07-13.v1.json": "7d0330a578d15f28c864ff8e4fe7dcb48ac8a6e8033d76f058003696276e0ab5"
   },
   "baseline_artifacts": {
+    "claimable-mass-census.v2.json": "59c604b8ed5e060ded0c1db13942a0014a92ec23722e7c36287e81f0ef37d0a7",
     "cohort.v1.json": "01a0cc8fec06ed9058e2fbe03524f1bd1237aa74b331229c0cced20e6b63f12c",
+    "corpus-census-evidence.v2.json": "2fc9b79bead358ed6e0b418c93e0cdd21dc61ba943e76d8d5b80fe01826e5d3b",
     "crates-report.v1.json": "149abb80c7ffb790d3fc0fbc2ad910add776d768ecf2961ee4321239f935d9c9",
+    "exclusion-ledger.v2.json": "94662e1a4462eac17196b94ddb82e3da501459d592c3b8bf326268fd07307e92",
+    "interpreter-priority.v2.json": "ba5d19403a1d0655a434788d872d1e4a255bb0b55b6146a92f8c3d69f54d3d20",
     "reporting.patch": "34f8a63357d044798a9acf1d458cfe12c73a2b1c7d0fecbadf91fe9b0bc92f69",
     "scorecard.v1.json": "b5edb7340a7a9c7b45bb6ba8c561c77315955059016f971cf25332cf8e2f60f2",
     "semantic-query.v1.json": "576e051be17a858f5353d5d1255bee5ca0fa7f0cf6803037f8b5260127d9a003"
