@@ -160,14 +160,11 @@ def validate_corpus_digest(actual: Any, expected: Any) -> None:
     require(actual == expected, "corpus bytes differ from the frozen post-prune digest")
 
 
-def validate_repository_state(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    state = load(ROOT / CORPUS_STATE)
-    state_repositories = state.get("repositories")
-    require(isinstance(state_repositories, list), "corpus state repositories missing")
-    expected_ids = {row["id"] for row in rows}
-    require(set(state_repositories) == expected_ids, "corpus state repository set drift")
+def validate_runtime_corpus_state(
+    value: Any, expected_ids: set[str], expected_digest: Any
+) -> None:
     runtime_state = require_exact_keys(
-        load(ROOT / RUNTIME_CORPUS_STATE),
+        value,
         {
             "schema",
             "manifest",
@@ -177,16 +174,36 @@ def validate_repository_state(rows: list[dict[str, Any]]) -> dict[str, Any]:
         },
         "runtime corpus state",
     )
-    require(runtime_state["schema"] == "nose.pinned_corpus_subset.v1", "wrong runtime corpus state schema")
-    require(runtime_state["manifest"] == PRUNE_MANIFEST, "wrong runtime prune manifest path")
+    require(
+        runtime_state["schema"] == "nose.pinned_corpus_subset.v1",
+        "wrong runtime corpus state schema",
+    )
+    require(
+        runtime_state["manifest"] == PRUNE_MANIFEST,
+        "wrong runtime prune manifest path",
+    )
     require(
         runtime_state["manifest_sha256"] == sha256(ROOT / PRUNE_MANIFEST),
         "wrong runtime prune manifest",
     )
+    repositories = runtime_state["repositories"]
     require(
-        set(runtime_state["repositories"]) == expected_ids,
-        "runtime corpus repository set drift",
+        isinstance(repositories, list)
+        and len(repositories) == len(expected_ids)
+        and all(isinstance(repository, str) for repository in repositories),
+        "malformed runtime corpus repository set",
     )
+    require(set(repositories) == expected_ids, "runtime corpus repository set drift")
+    validate_corpus_digest(runtime_state["subset_digest_after_prune"], expected_digest)
+
+
+def validate_repository_state(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    state = load(ROOT / CORPUS_STATE)
+    state_repositories = state.get("repositories")
+    require(isinstance(state_repositories, list), "corpus state repositories missing")
+    expected_ids = {row["id"] for row in rows}
+    require(set(state_repositories) == expected_ids, "corpus state repository set drift")
+    runtime_state = load(ROOT / RUNTIME_CORPUS_STATE)
     for row in rows:
         repository = row["id"]
         expected = row.get("commit")
@@ -200,7 +217,7 @@ def validate_repository_state(rows: list[dict[str, Any]]) -> dict[str, Any]:
         require(actual.stdout.strip() == expected, f"checkout drift: {repository}")
 
     expected_digest = state.get("subset_digest_after_prune")
-    validate_corpus_digest(runtime_state["subset_digest_after_prune"], expected_digest)
+    validate_runtime_corpus_state(runtime_state, expected_ids, expected_digest)
     actual_digest = corpus_digest(
         ROOT / "bench/repos", {ROOT / RUNTIME_CORPUS_STATE}
     )
@@ -363,6 +380,7 @@ def freeze(binary: Path, output: Path) -> None:
                 "corpus_state_sha256": sha256(ROOT / CORPUS_STATE),
                 "runtime_corpus_state": RUNTIME_CORPUS_STATE,
                 "runtime_corpus_state_sha256": sha256(ROOT / RUNTIME_CORPUS_STATE),
+                "runtime_corpus_state_payload": load(ROOT / RUNTIME_CORPUS_STATE),
                 "corpus_subset_digest_after_prune": corpus_state_digest,
             },
             "soundness": {
@@ -442,6 +460,7 @@ def validate_context(value: Any) -> None:
             "corpus_state_sha256",
             "runtime_corpus_state",
             "runtime_corpus_state_sha256",
+            "runtime_corpus_state_payload",
             "corpus_subset_digest_after_prune",
         },
         "replay context",
@@ -465,10 +484,23 @@ def validate_context(value: Any) -> None:
         "wrong runtime corpus state path",
     )
     require(
-        context["runtime_corpus_state_sha256"] == sha256(ROOT / RUNTIME_CORPUS_STATE),
-        "wrong runtime corpus state",
+        context["runtime_corpus_state_sha256"]
+        == sha256_bytes(
+            (
+                json.dumps(
+                    context["runtime_corpus_state_payload"], indent=2, sort_keys=True
+                )
+                + "\n"
+            ).encode()
+        ),
+        "runtime corpus state payload hash changed",
     )
     state = load(ROOT / CORPUS_STATE)
+    validate_runtime_corpus_state(
+        context["runtime_corpus_state_payload"],
+        {row["id"] for row in all_corpus_rows()},
+        state.get("subset_digest_after_prune"),
+    )
     validate_corpus_digest(
         context["corpus_subset_digest_after_prune"],
         state.get("subset_digest_after_prune"),
@@ -778,6 +810,11 @@ def self_test() -> None:
             "corpus digest",
             ("replay_context", "corpus_subset_digest_after_prune", "hex"),
             "0" * 64,
+        ),
+        (
+            "runtime corpus state",
+            ("replay_context", "runtime_corpus_state_payload", "repositories", 0),
+            "wrong-repository",
         ),
         ("soundness command", ("soundness", "command"), "true"),
         ("heldout command", ("heldout_thread_determinism", "command"), "true"),

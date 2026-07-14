@@ -192,11 +192,14 @@ stage signals fail while worthy recall and soundness remain preserved.
 `default_head_measurement_provenance_2026_07_14.v1.json` is the explicit post-hoc
 path/hash/source binding for the raw soundness, held-out determinism, and Ruby scaling
 artifacts; it does not claim a contemporaneously clean original checkout.
-`default_head_measurement_replay_2026_07_14.v1.json` is the independently generated
-clean-tree receipt. Its already-committed generator reran the exact frozen binary,
+`default_head_measurement_replay_2026_07_14.v2.json` is the independently generated
+clean-tree receipt. Its already-committed generator first verified all 120 pinned commits
+and the complete 1.5 GB post-prune corpus digest, then reran the exact frozen binary,
 reproduced the soundness artifact byte-for-byte and all 54 held-out thread hashes, and
-confirmed the same Ruby fixtures remain within the scaling threshold. The closeout
-validator joins both records to the exact evidence paths and hashes it consumes.
+confirmed the same Ruby fixtures remain within the scaling threshold. Its sidecar and
+the closeout's fixed path/hash binding prevent a caller from substituting another receipt;
+the validator also recomputes the Ruby medians, exponent, delta, and verdict from the
+embedded runs before joining the replay to the exact evidence paths and hashes consumed.
 
 `lawpack_provenance_audit_2026_06_10.json` is also adjacent evidence, not part of
 the active metric. It records the full-corpus and targeted real-repo pass for the

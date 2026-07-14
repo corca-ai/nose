@@ -32,6 +32,12 @@ CURRENT_SOURCE_TREE = "0f42757629a79ce7be0cd0cd5cd90c2d5b78c3da"
 BASELINE_SOURCE = "0985e6963c58d5a97e523bc532b88aa5e34f2ef9"
 DEFAULT_DRIFT = ROOT / "bench/labels/default_head_closeout_v0_19_0.expected-drift.v1.json"
 SEMANTIC_DRIFT = ROOT / ".github/semantic-regression-expected-drift.json"
+MEASUREMENT_REPLAY_PATH = (
+    "bench/labels/default_head_measurement_replay_2026_07_14.v2.json"
+)
+MEASUREMENT_REPLAY_SHA = (
+    "ca701768cad42cef50950c036072bf5285bd405d672f60d00717b50c05af8cc3"
+)
 
 DEFAULT_REPORTS = {
     "all120": (
@@ -290,9 +296,16 @@ def validate_measurement_manifest(manifest: dict[str, Any]) -> None:
 
 def validate_measurement_replay(value: dict[str, Any]) -> None:
     record = value["evidence"].get("measurement_replay")
-    require(isinstance(record, dict), "missing measurement replay")
+    require(
+        record
+        == {
+            "path": MEASUREMENT_REPLAY_PATH,
+            "sha256": MEASUREMENT_REPLAY_SHA,
+        },
+        "measurement replay identity changed",
+    )
     path = ROOT / record["path"]
-    measurement_replay.validate(path)
+    measurement_replay.validate(path, expected_sha256=MEASUREMENT_REPLAY_SHA)
     receipt = load(path)
     joins = (
         ("soundness", "soundness"),
@@ -757,6 +770,12 @@ def self_test() -> None:
     changed["evidence"]["measurement_replay"] = changed["evidence"][
         "fresh_repository_audit"
     ]
+    mutations.append((changed, validate_measurement_replay))
+    changed = copy.deepcopy(original)
+    changed["evidence"]["measurement_replay"] = {
+        "path": str(ROOT / MEASUREMENT_REPLAY_PATH),
+        "sha256": MEASUREMENT_REPLAY_SHA,
+    }
     mutations.append((changed, validate_measurement_replay))
     for index, (mutation, validator) in enumerate(mutations, 1):
         try:

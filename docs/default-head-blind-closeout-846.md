@@ -246,14 +246,15 @@ the frozen product source and binary, the exact `crates` Git tree, and the froze
 corpus/prune/state digests. This is explicitly a post-hoc artifact binding and does
 not claim that the original raw-report checkout was clean. Clean reproducibility is
 established separately by the checked [exact-binary replay
-receipt](../bench/labels/default_head_measurement_replay_2026_07_14.v1.json). Its
+receipt](../bench/labels/default_head_measurement_replay_2026_07_14.v2.json). Its
 committed generator recorded a clean tree before measurement and again immediately
-before creating the receipt. It reproduced the soundness JSON byte-for-byte, all 54
-held-out hashes at both thread counts, and the Ruby fixture hashes with a passing
-0.70 growth exponent. The closeout validator resolves the recorded commits, requires
-them to be ancestors of the reviewed checkout, re-hashes every bound artifact and
-input, and derives the held-out repository IDs from the corpus manifest rather than
-trusting the TSV alone.
+before creating the receipt. Before measurement it verified all 120 repository commits,
+the runtime prune-state receipt, and the complete 1.5 GB post-prune corpus digest. It
+reproduced the soundness JSON byte-for-byte, all 54 held-out hashes at both thread
+counts, and the Ruby fixture hashes with a passing 0.69 growth exponent. The closeout
+pins the receipt's path and hash, while the receipt validator resolves the generator
+commit, re-hashes every bound artifact and input, checks every held-out commit, and
+recomputes the Ruby medians, exponent, delta, and verdict from the embedded runs.
 
 Performance uses the published v0.19.0 binary and an official/official same-binary
 control. The all-120 primary aggregate is safe: 41,819.31 ms → 42,221.93 ms,
