@@ -7,6 +7,15 @@ break.
 ## [Unreleased]
 
 ### Added
+- Closed the #845 dev-only residual-ranking experiment with a fully judged no-go. Three
+  independent blind reviewers labeled all 219 frozen frontier families; exact tuple
+  agreement covered 129 and an independent arbiter resolved all 90 worthiness-or-reason
+  disagreements. The exact-key-only overlay gives every one of 46 formulas 100% top-10
+  truth coverage on every repository. Current is 387/658 (58.81%); the best
+  coverage-guarded formula is 449/658 (68.24%), 12 hits short of 70%, and leaves C at
+  44/90 (48.89%), one hit below the language floor. Repository-CV out-of-fold is
+  416/658 (63.22%). No proposal or signal is retained, held-out stays closed, and product
+  code, ranking, surfaces, family membership, and worthy recall remain unchanged.
 - Froze the judgment-blind #845 residual-ranking calibration and complete dev top-up
   frontier. The full 29,348-family universe evaluates 46 unique transparent formulas,
   rejects ambiguous overlap labels, uses exact reported-position gates and deterministic

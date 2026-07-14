@@ -1,0 +1,655 @@
+{
+  "arbitrations": [
+    {
+      "candidate_key": "alamofire:8896db21598f7421@bench/repos/alamofire/Tests/UploadTests.swift:854#rank-15",
+      "confidence": "high",
+      "rationale": "The cancellation tests repeat a substantial lifecycle-event harness; a helper can accept only the transport-specific request action.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "alamofire:b1600bdeab5c267c@bench/repos/alamofire/Tests/DataStreamTests.swift:603#rank-5",
+      "confidence": "high",
+      "rationale": "Four stream tests repeat response capture, queue handling, and completion assertions that form one reusable test harness.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "alamofire:fdef86e1d681e2ea@bench/repos/alamofire/Tests/ResponseTests.swift:54#rank-8",
+      "confidence": "high",
+      "rationale": "Seven invalid-URL serializer tests repeat one asynchronous failure harness around the serializer-specific call.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "axios:718bafd3b1442a7f@bench/repos/axios/tests/smoke/cjs/tests/progress.smoke.test.cjs:6#rank-6",
+      "confidence": "high",
+      "rationale": "The CJS and ESM progress smoke suites duplicate a large behavior contract that can share a harness with a module adapter.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "chi:a054772e286a79a8@bench/repos/chi/tree_test.go:549#rank-13",
+      "confidence": "high",
+      "rationale": "These short table cases already expose the router variation directly, and another abstraction would obscure it.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "cobra:7ff2ae7a4655ef51@bench/repos/cobra/command_test.go:275#rank-14",
+      "confidence": "high",
+      "rationale": "The Cobra tests build the same command tree and vary only the alias or prefix supplied to execution.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "commons-lang:0ae0e79f834c76ca@bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/SystemUtilsTest.java:1520#rank-12",
+      "confidence": "high",
+      "rationale": "The Java-version expectation matrix is repeated literal mapping data and belongs in one table.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "commons-lang:796b8c3b4acc2b10@bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/SystemUtilsTest.java:1524#rank-15",
+      "confidence": "high",
+      "rationale": "The adjacent Java-version matrix repeats the same literal mapping structure and can use the same table-driven contract.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "curl:9cb3326a535f22c9@bench/repos/curl/tests/http/testenv/mod_curltest/mod_curltest.c:455#rank-57",
+      "confidence": "high",
+      "rationale": "The matched APR flush fragment is only a few cleanup-sensitive lines, including local goto control flow.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "delve:a3c78d426ca5c079@bench/repos/delve/pkg/dwarf/godwarf/type.go:664#rank-25",
+      "confidence": "high",
+      "rationale": "The cache initialization is a short field-assignment idiom on distinct DWARF type structures.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "delve:a93973bcb8bc280a@bench/repos/delve/pkg/proc/stepping_test.go:522#rank-27",
+      "confidence": "medium",
+      "rationale": "The reverse-step sequences encode compiler-version-specific expectations whose explicit branches preserve the compatibility contract.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "delve:b4d9eb50d0530f50@bench/repos/delve/pkg/terminal/command_test.go:1276#rank-20",
+      "confidence": "high",
+      "rationale": "The terminal command tests repeat a coherent command-test scaffold while only the scenario action changes.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "delve:f0db7f7d3774bbac@bench/repos/delve/pkg/proc/native/threads_linux_riscv64.go:267#rank-12",
+      "confidence": "high",
+      "rationale": "The signal-stepping loops belong to architecture-specific native implementations with distinct execution contracts.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "devise:ade68f155c58013b@bench/repos/devise/test/models/lockable_test.rb:20#rank-17",
+      "confidence": "high",
+      "rationale": "The two lockable tests share only a small local setup block that is clearer inline.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "drizzle-orm:2e722bece239e70e@bench/repos/drizzle-orm/drizzle-kit/tests/mysql-generated.test.ts:217#rank-30",
+      "confidence": "high",
+      "rationale": "The generated-column tests repeat schema and expectation matrices that should be defined as scenario data.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "drizzle-orm:360dd745fbe00c94@bench/repos/drizzle-orm/integration-tests/tests/relational/vercel.test.ts:236#rank-66",
+      "confidence": "high",
+      "rationale": "The Vercel relational tests repeat a substantial database fixture workflow that can be a suite helper.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "drizzle-orm:879a9a7e5a60a0a6@bench/repos/drizzle-orm/drizzle-kit/tests/sqlite-generated.test.ts:309#rank-127",
+      "confidence": "high",
+      "rationale": "The SQLite generated-column cases repeat the same schema matrix across expression representations.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "drizzle-orm:aa9408d6def9b25f@bench/repos/drizzle-orm/integration-tests/tests/relational/mysql.test.ts:2354#rank-17",
+      "confidence": "medium",
+      "rationale": "The large MySQL-family relational suites exercise one backend contract and can share it through an explicit backend adapter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "drizzle-orm:bcc2128ccaef47cd@bench/repos/drizzle-orm/integration-tests/tests/relational/mysql.test.ts:2951#rank-14",
+      "confidence": "medium",
+      "rationale": "The invitee-query suites repeat the same behavioral contract across backends with backend setup as the meaningful parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "drizzle-orm:c1e471c32ba3f15f@bench/repos/drizzle-orm/integration-tests/tests/relational/bettersqlite.test.ts:2947#rank-145",
+      "confidence": "high",
+      "rationale": "The BetterSQLite tests repeat the same post-seeding workflow many times within one suite.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "drizzle-orm:d2a15a58c1c1197f@bench/repos/drizzle-orm/integration-tests/tests/relational/pg.test.ts:260#rank-65",
+      "confidence": "high",
+      "rationale": "The PostgreSQL tests repeat the same users-and-posts seed workflow across many cases.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "drizzle-orm:e8e9d171d9a13163@bench/repos/drizzle-orm/integration-tests/tests/relational/mysql.test.ts:2525#rank-24",
+      "confidence": "medium",
+      "rationale": "The custom-field suites repeat one relational contract across backends and can parameterize the backend adapter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "drizzle-orm:ecc6f8b3bfe75e9a@bench/repos/drizzle-orm/integration-tests/tests/relational/mysql.test.ts:5203#rank-15",
+      "confidence": "medium",
+      "rationale": "The many-to-many suites duplicate a large cross-backend contract whose differences are backend capabilities and setup.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "drizzle-orm:f18fa13ec39cad06@bench/repos/drizzle-orm/integration-tests/tests/relational/mysql.test.ts:2699#rank-22",
+      "confidence": "medium",
+      "rationale": "The order-by suites repeat the same assertions across backend implementations and can make backend differences explicit parameters.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "execa:5d7548fe63c28082@bench/repos/execa/test-d/stdio/option/duplex-object.test-d.ts:1#rank-11",
+      "confidence": "high",
+      "rationale": "The type-test files share imports and a tiny constant declaration, not a meaningful reusable behavior.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "faraday:b4365a2651fed419@bench/repos/faraday/spec/faraday/response/json_spec.rb:32#rank-11",
+      "confidence": "high",
+      "rationale": "The two JSON response examples share only a short parsing and raw-body assertion sequence.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "git:0827c73c42e0beb6@bench/repos/git/commit-graph.c:923#rank-18",
+      "confidence": "high",
+      "rationale": "The inline commit-graph setter is only four lines and is local to separate translation units.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "git:0f7a49469bec2f61@bench/repos/git/git-zlib.c:139#rank-29",
+      "confidence": "high",
+      "rationale": "The inflate and deflate wrappers share control flow and status handling while the zlib operation is the parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "git:209484be960415b1@bench/repos/git/refs/reftable-backend.c:1956#rank-38",
+      "confidence": "high",
+      "rationale": "The reftable copy and rename paths share one transaction body and differ by the delete-old policy.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "graphhopper:bf2c581db1129af6@bench/repos/graphhopper/web-bundle/src/main/resources/com/graphhopper/maps/pt/view/sidebar/TripDisplay.css:76#rank-16",
+      "confidence": "high",
+      "rationale": "The repeated circle geometry can be centralized in one shared CSS selector while colors remain overrides.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "graphhopper:cc4179cbeac84cd1@bench/repos/graphhopper/core/src/test/java/com/graphhopper/routing/PathTest.java:241#rank-19",
+      "confidence": "high",
+      "rationale": "The roundabout assertions repeat only a small local angle-check sequence.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "gson:c2ee2f9230fbf291@bench/repos/gson/gson/src/main/java/com/google/gson/stream/JsonReader.java:331#rank-13",
+      "confidence": "high",
+      "rationale": "The deprecated reader and writer compatibility methods are tiny delegating wrappers on separate public types.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "gson:ccda9f982194d383@bench/repos/gson/gson/src/test/java/com/google/gson/functional/NamingPolicyTest.java:70#rank-32",
+      "confidence": "high",
+      "rationale": "The naming-policy tests duplicate only a few serialization assertions, too little for another layer.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "gson:d320722a30d6f82c@bench/repos/gson/gson/src/main/java/com/google/gson/stream/JsonReader.java:1288#rank-16",
+      "confidence": "medium",
+      "rationale": "The reader scan and skip loops preserve different hot-path output and position semantics despite sharing delimiter logic.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:0c83565f3b1f8ea1@bench/repos/guava/android/guava/src/com/google/common/collect/ForwardingBlockingDeque.java:49#rank-13",
+      "confidence": "high",
+      "rationale": "The forwarding classes are compatibility variants across Guava packages and Android/JRE surfaces.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:203cb5d1fd6fa769@bench/repos/guava/android/guava-tests/test/com/google/common/collect/HashingTest.java:1#rank-16",
+      "confidence": "high",
+      "rationale": "The identical Hashing tests intentionally validate separate Android and JRE artifacts.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:63bb443b30036bf9@bench/repos/guava/android/guava-tests/test/com/google/common/collect/AbstractImmutableBiMapMapInterfaceTest.java:1#rank-18",
+      "confidence": "high",
+      "rationale": "The map tests combine API-specific invariants with deliberate Android/JRE compatibility mirrors.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:9628064abaabde11@bench/repos/guava/android/guava-tests/test/com/google/common/io/SourceSinkTester.java:17#rank-35",
+      "confidence": "high",
+      "rationale": "SourceSinkTester is intentionally mirrored between the Android and JRE source sets.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:9baa17bfc4f00d25@bench/repos/guava/android/guava-tests/benchmark/com/google/common/io/ByteSourceAsCharSourceReadBenchmark.java:18#rank-31",
+      "confidence": "high",
+      "rationale": "The benchmark is a deliberate Android/JRE source-set mirror rather than a missing local abstraction.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:a1cf552a743ceccb@bench/repos/guava/android/guava-tests/test/com/google/common/cache/CacheStatsTest.java:17#rank-26",
+      "confidence": "high",
+      "rationale": "CacheStatsTest is duplicated to validate independent Android and JRE build artifacts.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:a74d53c83857bba1@bench/repos/guava/android/guava-tests/test/com/google/common/collect/WriteReplaceOverridesTest.java:1#rank-24",
+      "confidence": "high",
+      "rationale": "WriteReplaceOverridesTest is an intentional test mirror across the two platform flavors.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:c7730fe26c9d809d@bench/repos/guava/android/guava-tests/test/com/google/common/xml/XmlEscapersTest.java:1#rank-28",
+      "confidence": "high",
+      "rationale": "XmlEscapersTest is mirrored so both platform artifacts exercise the same public contract.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:d55d9a6b13e13bab@bench/repos/guava/android/guava-tests/test/com/google/common/base/FinalizableReferenceQueueClassLoaderUnloadingTest.java:19#rank-33",
+      "confidence": "high",
+      "rationale": "The unloading test is a target-specific Android/JRE mirror maintained with the parallel artifacts.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:de8f533401cecd23@bench/repos/guava/android/guava-tests/test/com/google/common/collect/TreeBasedTableRowMapSubMapTest.java:19#rank-15",
+      "confidence": "high",
+      "rationale": "The table tests combine distinct view contracts with intentional platform-source mirrors.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "guava:e36126bb91c0d773@bench/repos/guava/android/guava-tests/test/com/google/common/base/AbstractIteratorTest.java:45#rank-14",
+      "confidence": "high",
+      "rationale": "The iterator tests cover separate packages and platform flavors whose symmetry is part of the compatibility layout.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "jq:e1f2bd0c0191af7b@bench/repos/jq/src/jv.c:1000#rank-14",
+      "confidence": "high",
+      "rationale": "The optional slot copy/free fragment is a short local ownership idiom without a useful standalone abstraction.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "junit5:4d462f168836ba05@bench/repos/junit5/platform-tests/src/test/java/org/junit/platform/suite/engine/SuiteEngineTests.java:386#rank-49",
+      "confidence": "high",
+      "rationale": "The suite-engine tests repeat a coherent discovery-and-assertion scaffold that can be expressed by one helper.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "junit5:4ec155a74d4951c7@bench/repos/junit5/junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/IgnoredParameterizedTestCase.java:28#rank-13",
+      "confidence": "high",
+      "rationale": "The parameterized fixture methods are four-line scenario bodies whose separate declarations carry the test meaning.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "libsodium:d86203590cf6c2a9@bench/repos/libsodium/src/libsodium/crypto_hash/sha3/hash_sha3.c:54#rank-13",
+      "confidence": "medium",
+      "rationale": "The Keccak absorb loops are substantial copies whose rate and permutation function can be explicit algorithm parameters.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "mockito:a407b75d0c21d19b@bench/repos/mockito/mockito-core/src/test/java/org/mockitousage/annotation/WrongSetOfAnnotationsTest.java:20#rank-16",
+      "confidence": "high",
+      "rationale": "The invalid annotation-pair tests repeat the same exception and message assertion harness.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "nats-server:59475c31867a39c6@bench/repos/nats-server/server/filestore_test.go:8763#rank-15",
+      "confidence": "high",
+      "rationale": "The file-store tests repeat creation, population, and cleanup as a coherent reusable fixture.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "netty:23c7de40e933a403@bench/repos/netty/codec-native-quic/src/main/c/netty_quic_quiche.c:786#rank-178",
+      "confidence": "high",
+      "rationale": "Five QUIC JNI wrappers share address conversion and array construction while only the native extractor changes.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "netty:39cb4f588dcd85c5@bench/repos/netty/handler/src/test/java/io/netty/handler/ssl/OpenSslEngineTest.java:1621#rank-52",
+      "confidence": "high",
+      "rationale": "The OpenSSL tests repeat the same configurable builder prefix ten times, making a test helper worthwhile.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "netty:8687c02b57635201@bench/repos/netty/buffer/src/main/java/io/netty/buffer/CompositeByteBuf.java:1444#rank-179",
+      "confidence": "medium",
+      "rationale": "The CompositeByteBuf overload loops retain distinct input APIs, edge cases, and hot-path behavior.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "netty:da0d247b5dfcdbd9@bench/repos/netty/transport-native-unix-common/src/main/c/netty_unix_filedescriptor.c:134#rank-92",
+      "confidence": "high",
+      "rationale": "The native JNI loops implement deliberate field/method and position/limit access variants with performance-sensitive signatures.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "nginx:85f5811a2d2b2ef0@bench/repos/nginx/src/http/modules/ngx_http_grpc_module.c:3533#rank-14",
+      "confidence": "high",
+      "rationale": "The gRPC and proxy frame parsers belong to separate modules with distinct state machines and context types.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "nushell:c5e5b6bcf3e1b2cd@bench/repos/nushell/crates/nu_plugin_polars/src/dataframe/values/nu_dataframe/conversion.rs:815#rank-65",
+      "confidence": "high",
+      "rationale": "The typed Polars branches repeat iterator slicing, null handling, and collection around only the value mapper.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "nushell:f01a7d67e852847c@bench/repos/nushell/crates/nu-parser/tests/test_parser.rs:2783#rank-63",
+      "confidence": "high",
+      "rationale": "The dummy command implementations repeat only mandatory trait boilerplate with todo bodies.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "poetry:e98d8546bfdcae05@bench/repos/poetry/tests/console/commands/test_init.py:1168#rank-15",
+      "confidence": "high",
+      "rationale": "The Poetry init tests duplicate one interactive input and generated-layout assertion workflow.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "prettier:4e2f271d1fd30dc9@bench/repos/prettier/tests/format/flow/flow-repo/refi/null_tests.js:20#rank-16",
+      "confidence": "high",
+      "rationale": "The Flow repository fixture is synchronized from upstream and explicitly documented as not hand-edited.",
+      "reason": "generated",
+      "worthy": false
+    },
+    {
+      "candidate_key": "prometheus:ae12c8adeba0f1fd@bench/repos/prometheus/web/ui/mantine-ui/src/promql/functionDocs.tsx:124#rank-14",
+      "confidence": "high",
+      "rationale": "Fifteen documentation entries repeat one JSX fragment that can be rendered by a shared component.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rack:0fe85920900e9b21@bench/repos/rack/test/spec_request.rb:979#rank-12",
+      "confidence": "high",
+      "rationale": "The multipart tests share one request-parsing flow and vary the payload and expected form pairs.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "raylib:f442faae614ea758@bench/repos/raylib/src/raymath.h:1574#rank-19",
+      "confidence": "high",
+      "rationale": "The identical inversion code lives in intentionally self-contained public headers whose independence is part of their contract.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "rich:975f205525d61e6e@bench/repos/rich/rich/style.py:634#rank-16",
+      "confidence": "high",
+      "rationale": "The Style cloning methods repeat full internal-field copying and can use one private clone helper with overrides.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rich:d992117c38a71499@bench/repos/rich/rich/bar.py:86#rank-11",
+      "confidence": "high",
+      "rationale": "The two rendering types implement a tiny measurement protocol method whose extraction would over-couple them.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "ripgrep:850a453d4b4b3545@bench/repos/ripgrep/crates/printer/src/standard.rs:3962#rank-12",
+      "confidence": "high",
+      "rationale": "The printer test repeats one search-and-output assertion sequence before and after a mode change.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rspec-core:c5c513e58f145772@bench/repos/rspec-core/spec/rspec/core/aggregate_failures_spec.rb:108#rank-12",
+      "confidence": "high",
+      "rationale": "The aggregate-failure cases share execution and assertion structure while the expected exception list is the scenario parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rubocop:7a5f9f642f6f6f1b@bench/repos/rubocop/spec/rubocop/target_finder_spec.rb:443#rank-12",
+      "confidence": "high",
+      "rationale": "The target-finder specs repeat setup and assertions while only the special path case changes.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "rubocop:d9f33bc0bb59a6e1@bench/repos/rubocop/spec/rubocop/server/cli_spec.rb:119#rank-18",
+      "confidence": "high",
+      "rationale": "The server CLI contexts duplicate file creation, invocation, and output assertions as one reusable shared example.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "scrapy:2095a29998e73065@bench/repos/scrapy/tests/AsyncCrawlerProcess/asyncio_enabled_no_reactor.py:7#rank-11",
+      "confidence": "high",
+      "rationale": "The subprocess fixtures intentionally preserve different reactor installation order and must remain standalone entry points.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "sqlite:4495ddc4b2cfcad7@bench/repos/sqlite/test/speedtest1.c:878#rank-25",
+      "confidence": "high",
+      "rationale": "The explicit speed-test loops are benchmark kernels where helper calls would change clarity and potentially measurement behavior.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "sqlite:5c45ebfd54887a6f@bench/repos/sqlite/src/test_osinst.c:277#rank-33",
+      "confidence": "medium",
+      "rationale": "The VFS wrappers repeat timing, dispatch, and logging mechanics across many operations; a small instrumentation macro or helper can centralize them.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-algorithms:44ed7c299da960d8@bench/repos/swift-algorithms/Sources/Algorithms/Joined.swift:18#rank-14",
+      "confidence": "high",
+      "rationale": "The Sequence and Collection joined wrappers preserve distinct protocol capabilities and performance conformances.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-algorithms:4bc536666a31d48f@bench/repos/swift-algorithms/Tests/SwiftAlgorithmsTests/GroupedTests.swift:36#rank-12",
+      "confidence": "high",
+      "rationale": "The grouped and keyed tests exercise the same thrown-callback contract with the API operation as the parameter.",
+      "reason": "parameterize",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-argument-parser:64f1d7e1f28a0c26@bench/repos/swift-argument-parser/Tests/ArgumentParserUnitTests/CompletionScriptTests.swift:246#rank-11",
+      "confidence": "high",
+      "rationale": "The two completion cases repeat a complete asynchronous expected-failure workflow suited to an assertion helper.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-argument-parser:fcb90c79bc31d631@bench/repos/swift-argument-parser/Tools/generate-docc-reference/GenerateDoccReference.swift:67#rank-15",
+      "confidence": "high",
+      "rationale": "The DocC and manual generators duplicate validation, decoding, version checks, and output routing as one shared pipeline.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-collections:6768fb2798791b11@bench/repos/swift-collections/Sources/BasicContainers/RigidArray/RigidArray+Insertions.swift:168#rank-11",
+      "confidence": "high",
+      "rationale": "The insertion overloads are ABI- and ownership-specific public surfaces across distinct container types.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-collections:9d4847b47e13451d@bench/repos/swift-collections/Sources/BasicContainers/UniqueArray/UniqueArray+Replacements.swift:525#rank-25",
+      "confidence": "high",
+      "rationale": "The replacement overload clone is dominated by required API documentation around a short delegation body.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-collections:b15c5d77e75ad505@bench/repos/swift-collections/Sources/BasicContainers/RigidArray/RigidArray+Replacements.swift:277#rank-12",
+      "confidence": "high",
+      "rationale": "The replacement overloads intentionally preserve container and ownership-specific public APIs.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-collections:f7910814ec501ca3@bench/repos/swift-collections/Sources/HashTreeCollections/TreeDictionary/TreeDictionary+Merge.swift:217#rank-55",
+      "confidence": "high",
+      "rationale": "The merge overloads contain only a four-line copy-and-delegate body beneath duplicated public documentation.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swift-composable-architecture:1fea8e0d2ad2d8c5@bench/repos/swift-composable-architecture/Tests/ComposableArchitectureTests/Reducers/PresentationReducerTests.swift:84#rank-61",
+      "confidence": "medium",
+      "rationale": "Four presentation tests repeat a sizeable Parent reducer and TestStore fixture that can accept the child behavior as input.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swift-log:c21c0cd10ddc3f81@bench/repos/swift-log/Tests/LoggingTests/GlobalLoggingTest.swift:36#rank-11",
+      "confidence": "high",
+      "rationale": "The logging tests repeat the same seven-record transcript assertion, which belongs in one domain assertion helper.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swiftlint:aebb703b0736fc61@bench/repos/swiftlint/Tests/BuiltInRulesTests/IndentationWidthRuleTests.swift:360#rank-16",
+      "confidence": "high",
+      "rationale": "The zero- and one-violation methods are already tiny convenience wrappers over the shared general assertion.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swiftlint:b2a6349c8b6d2ba2@bench/repos/swiftlint/Source/SwiftLintCore/Visitors/LegacyFunctionVisitor+Rewriter.swift:14#rank-15",
+      "confidence": "high",
+      "rationale": "The visitor constructors only assign one type-specific field and call the superclass initializer.",
+      "reason": "trivial",
+      "worthy": false
+    },
+    {
+      "candidate_key": "swr:043d32cd66fdfe7b@bench/repos/swr/test/use-swr-middlewares.test.tsx:16#rank-22",
+      "confidence": "high",
+      "rationale": "The middleware tests repeat logger, component, render, and common assertion scaffolding around scenario-specific inputs.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "swr:0b3d9833e2352310@bench/repos/swr/e2e/site/app/render-suspense-keep-previous/page.tsx:1#rank-13",
+      "confidence": "high",
+      "rationale": "The route files are separate suspense scenarios whose timing and returned data are the behavior under test.",
+      "reason": "parallel-by-design",
+      "worthy": false
+    },
+    {
+      "candidate_key": "vapor:0000f1a7de5772a3@bench/repos/vapor/Sources/Vapor/Client/ClientResponse.swift:49#rank-11",
+      "confidence": "high",
+      "rationale": "ClientRequest and ClientResponse duplicate content encode/decode and container synchronization behind the same contract.",
+      "reason": "extract-helper",
+      "worthy": true
+    },
+    {
+      "candidate_key": "vapor:3db5b0b486038711@bench/repos/vapor/Tests/VaporTests/MiddlewareTests.swift:280#rank-13",
+      "confidence": "high",
+      "rationale": "The request and response metric checks repeat the same telemetry attribute list, which should be one fixture.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "zap:4c34dcbea6f236ad@bench/repos/zap/zapcore/encoder_test.go:104#rank-11",
+      "confidence": "high",
+      "rationale": "The encoder cases duplicate a complete configuration record that should be shared test data with small overrides.",
+      "reason": "extract-data-table",
+      "worthy": true
+    },
+    {
+      "candidate_key": "zustand:c7d74735477d4b71@bench/repos/zustand/tests/devtools.test.tsx:926#rank-16",
+      "confidence": "high",
+      "rationale": "The devtools tests repeat one grouped-connection setup while only the middleware constructor varies.",
+      "reason": "parameterize",
+      "worthy": true
+    }
+  ],
+  "issue": 845,
+  "schema": "nose.residual_ranking_panel_arbitration.v1",
+  "source_artifact": {
+    "path": "bench/labels/residual_ranking_topup_blind_2026_07_14.dev.v1.json",
+    "sha256": "66f058195f0ed42224bf42698c67a7d88e769f2633f44c4e5fc08f94c3f7849c"
+  },
+  "split": "dev",
+  "vote_inputs": {
+    "dedupe": {
+      "path": "bench/labels/residual_ranking_topup_votes_2026_07_14.dev.dedupe.v1.json",
+      "sha256": "afa7f8c67e12260ec2cc9144d314b5e972690112eab59196d8cf4584f0ad614b"
+    },
+    "pragmatic": {
+      "path": "bench/labels/residual_ranking_topup_votes_2026_07_14.dev.pragmatic.v1.json",
+      "sha256": "f1b3027eafc77c893fab0e5c83991596b1a4607f97bf60307f51afa06b4b4cb0"
+    },
+    "skeptic": {
+      "path": "bench/labels/residual_ranking_topup_votes_2026_07_14.dev.skeptic.v1.json",
+      "sha256": "3df87189189700f226656232b6a1f37ccbafcd2cb00d30bf334d440589db8d67"
+    }
+  }
+}

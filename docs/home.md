@@ -151,7 +151,8 @@ fundamentals; the rest is grouped by area.
   reviewed small/shallow proven-channel boundary, worthy helper/table hard negatives,
   checked 90%-gate failure, and zero-product-change preservation contract.
 - [0.20 residual ranking calibration](residual-ranking-calibration-845.md) — frozen
-  complete dev universe and judgment-blind top-up before the one-time closeout.
+  complete dev universe, blind three-persona panel and arbitration, exact-key overlay,
+  and the fully judged 68.24%/language-floor no-go.
 - [current missed-worthy frontier](missed-worthy-frontier-816.md) — the #816
   dev-first recall audit, accepted-pair coverage-loss result, route-tree protocol
   deviation, rejected alternatives, and #817 follow-up gates.

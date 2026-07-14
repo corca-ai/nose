@@ -2,8 +2,8 @@
 
 Issue #845 asks whether a transparent, deterministic ranking can make the residual
 default head reach 70% precision without sacrificing coverage or a language for an
-aggregate gain. This first phase freezes the complete dev experiment and its judgment
-frontier. It does not change product ranking or declare go/no-go yet.
+aggregate gain. The complete dev experiment now closes as a fully judged **no-go**:
+none of the 46 pre-registered formulas passes every gate. Product ranking is unchanged.
 
 ## Why the first result is evidence-incomplete
 
@@ -56,16 +56,46 @@ candidates.
 
 ## Split-safe judgment protocol
 
-Selection and judgment are separate merges. This merge contains only the unjudged packet.
-The next merge must bind this exact selection commit and byte hash, then record three
-independent rubric-based votes for all 219 candidates. Unanimous votes become panel
-decisions; disagreements require a separate arbiter. The final precision-only overlay
-maps by exact candidate key and must never propagate through fuzzy overlap.
+Selection and judgment were separate merges. The blind projection binds selection commit
+`6e9a2d08…dbc1`, tree `17468036…aee3`, and selection byte hash `f3b4ec65…058f`.
+It hides current rank, formula membership, and prior truth status while exposing the
+complete raw family and hash-bound source files. Three subagents then independently read
+all 219 families under the same rubric:
 
-After the panel is frozen, the evaluator will rerun the same 46 formulas and the same
-eight repository folds. A passing formula must reach 70% P@10, preserve the coverage and
-language gates, and be frozen before #846 opens held-out. If none passes, #845 can close
-with a genuine fully judged no-go rather than a missing-label proxy.
+| persona | worthy | not worthy |
+|---|---:|---:|
+| pragmatic | 159 | 60 |
+| dedupe | 142 | 77 |
+| skeptic | 131 | 88 |
+
+Exact `(worthy, reason)` agreement covered 129 candidates. The independent arbiter
+re-read all 90 disagreements, including 34 worthiness splits and 56 reason-only splits;
+no majority vote was applied mechanically. The final component contains 137 worthy and
+82 not-worthy labels. Raw votes, arbitration, decisions, and component are independently
+hash-bound and CI replays their exact ordering. The precision overlay maps only by frozen
+candidate key, rejects replacement of known truth, and never propagates through fuzzy
+overlap.
+
+## Fully judged result
+
+All 46 formulas now have 100% top-10 truth coverage for every repository and language.
+The current order measures `387/658 = 58.81%`. The best formula that preserves coverage
+and the five-point regression guard is `grid-s-1.00-same0.65-conn1.00`:
+
+| result | hits / positions | P@10 | status |
+|---|---:|---:|---|
+| current full dev | 387 / 658 | 58.81% | baseline |
+| best coverage-guarded full dev | 449 / 658 | 68.24% | 12 hits short of 70% |
+| repository-CV out of fold | 416 / 658 | 63.22% | no generalizing pass |
+
+The best full-dev formula also leaves C at `44/90 = 48.89%`, one hit below the 50%
+language floor. Java and Swift rise above 50%, and no language regresses, but aggregate
+improvement cannot waive the remaining C failure or the overall 12-hit shortfall. No
+formula is eligible, no signal or proposal is retained, and held-out remains unopened.
+
+This is a real no-go rather than a missing-label proxy. Issue #846 may measure and close
+the unchanged product, including its frozen held-out and fresh-repository audit, but it
+must not turn held-out evidence into another ranking-tuning round.
 
 ## Reproduction
 
@@ -74,6 +104,12 @@ python3 bench/labels/residual_ranking.py validate
 python3 bench/labels/residual_ranking.py self-test
 python3 bench/labels/residual_ranking_topup.py validate
 python3 bench/labels/residual_ranking_topup.py self-test
+python3 bench/labels/residual_ranking_panel.py validate-arbitration
+python3 bench/labels/residual_ranking_panel.py validate-decisions
+python3 bench/labels/residual_ranking_panel.py validate-component
+python3 bench/labels/residual_ranking_panel.py self-test
+python3 bench/labels/residual_ranking_closeout.py validate
+python3 bench/labels/residual_ranking_closeout.py self-test
 
 # With pinned dev repositories and the frozen #843 binary present:
 python3 bench/labels/residual_ranking.py collect \
@@ -86,4 +122,4 @@ python3 bench/labels/residual_ranking_topup.py freeze \
 ```
 
 Product code, surfaces, family membership, worthy recall (`2716/2849`), determinism,
-and the official-v0.19.0 performance contract are unchanged in this phase.
+and the official-v0.19.0 performance contract are unchanged.
