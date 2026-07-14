@@ -149,6 +149,10 @@ python3 bench/labels/default_head_heldout_panel.py self-test
 python3 bench/labels/default_head_heldout_vote_receipt.py validate
 python3 bench/labels/default_head_heldout_vote_receipt.py self-test
 python3 bench/labels/default_head_heldout_arbitration.py self-test
+python3 bench/labels/default_head_heldout_arbitration.py validate-private \
+  --private-panel-dir <outside-repository> \
+  --private-packet <outside-repository>/arbiter.json
+python3 bench/labels/default_head_heldout_arbitration_result.py self-test
 ```
 
 Ordinary CI validates only public commitments and receipts until the post-arbiter
