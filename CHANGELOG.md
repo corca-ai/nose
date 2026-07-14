@@ -7,6 +7,14 @@ break.
 ## [Unreleased]
 
 ### Added
+- Froze the judgment-blind #845 residual-ranking calibration and complete dev top-up
+  frontier. The full 29,348-family universe evaluates 46 unique transparent formulas,
+  rejects ambiguous overlap labels, uses exact reported-position gates and deterministic
+  total orders, and remains explicitly evidence-incomplete rather than treating missing
+  labels as product failures. A non-adaptive 219-family panel packet covers every
+  unresolved top-10 position of every formula and therefore every repository CV fold.
+  The packet contains no judgments; held-out remains closed and product behavior is
+  unchanged until the separately committed panel result decides go or no-go.
 - Recorded the checked #844 proof/actionability no-go. Three independent source reviews
   agree that removing the proven-channel protection reaches only 60% non-action precision
   on its direct frozen boundary (0% for `trivial`, 75% for `shallow-extraction`), while
