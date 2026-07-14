@@ -150,6 +150,9 @@ fundamentals; the rest is grouped by area.
 - [0.20 proof/actionability no-go](proof-actionability-no-go-844.md) — the independently
   reviewed small/shallow proven-channel boundary, worthy helper/table hard negatives,
   checked 90%-gate failure, and zero-product-change preservation contract.
+- [0.20 residual ranking no-go](residual-ranking-no-go-845.md) — complete dev-universe
+  deterministic ranking calibration, three independent reviews, repository-level CV,
+  coverage/missingness guards, and the checked zero-product-change result.
 - [current missed-worthy frontier](missed-worthy-frontier-816.md) — the #816
   dev-first recall audit, accepted-pair coverage-loss result, route-tree protocol
   deviation, rejected alternatives, and #817 follow-up gates.
