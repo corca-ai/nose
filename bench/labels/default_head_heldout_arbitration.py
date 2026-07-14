@@ -260,6 +260,8 @@ def validate_arbiter_packet(payload: dict[str, Any]) -> None:
             f"arbiter candidates[{index}].blind_id",
         )
         ids.add(blind_id)
+        if not isinstance(candidate["language"], str) or not candidate["language"]:
+            raise ValueError(f"arbiter candidates[{index}].language: invalid")
         family = candidate["family"]
         if not isinstance(family, dict) or set(family) != heldout.VISIBLE_FAMILY_KEYS:
             raise ValueError(f"arbiter candidates[{index}].family: fields mismatch")
@@ -294,6 +296,7 @@ def validate_arbiter_packet(payload: dict[str, Any]) -> None:
         votes = candidate["panel_votes"]
         if not isinstance(votes, list) or len(votes) != 3:
             raise ValueError(f"arbiter candidates[{index}]: needs three panel votes")
+        vote_pairs: set[tuple[bool, str]] = set()
         for vote_index, vote in enumerate(votes, start=1):
             if not isinstance(vote, dict) or set(vote) != {
                 "reviewer",
@@ -310,6 +313,9 @@ def validate_arbiter_packet(payload: dict[str, Any]) -> None:
                 f"arbiter candidates[{index}] reviewer order",
             )
             validate_vote(vote, f"arbiter candidates[{index}].panel_votes[{vote_index}]")
+            vote_pairs.add((vote["worthy"], vote["reason"]))
+        if len(vote_pairs) < 2:
+            raise ValueError(f"arbiter candidates[{index}]: not a disagreement")
     if len(ids) != len(candidates):
         raise ValueError("arbiter blind IDs must be unique")
 
@@ -614,6 +620,27 @@ def self_test(_: argparse.Namespace) -> None:
         except ValueError:
             continue
         raise AssertionError("non-integer arbitration member count was accepted")
+    invalid_packets: list[dict[str, Any]] = []
+    changed_packet = copy.deepcopy(valid_private_packet)
+    changed_packet["candidates"][0]["language"] = True
+    invalid_packets.append(changed_packet)
+    changed_packet = copy.deepcopy(valid_private_packet)
+    changed_packet["candidates"][0]["panel_votes"] = [
+        {
+            "reviewer": f"reviewer-{index}",
+            "worthy": True,
+            "reason": "extract-helper",
+            "rationale": "same",
+        }
+        for index in range(1, 4)
+    ]
+    invalid_packets.append(changed_packet)
+    for invalid_packet in invalid_packets:
+        try:
+            validate_arbiter_packet(invalid_packet)
+        except ValueError:
+            continue
+        raise AssertionError("invalid arbitration disagreement packet was accepted")
     panel_commitment = panel.read_commitment()
     collector_commit = heldout.git_text(["rev-parse", "HEAD"])
     collector_tree = heldout.git_text(["rev-parse", "HEAD^{tree}"])
