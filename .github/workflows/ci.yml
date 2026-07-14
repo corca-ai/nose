@@ -57,6 +57,10 @@ jobs:
           python3 bench/labels/default_head_heldout_vote_receipt.py validate
           python3 bench/labels/default_head_heldout_vote_receipt.py self-test
           python3 bench/labels/default_head_heldout_arbitration.py self-test
+          python3 bench/labels/default_head_heldout_arbitration.py validate
+          python3 bench/labels/default_head_heldout_arbitration_receipt.py validate
+          python3 bench/labels/default_head_heldout_arbitration_receipt.py self-test
+          python3 bench/labels/default_head_heldout_arbitration_result.py self-test
           python3 bench/labels/proof_actionability_no_go.py --self-test
           python3 bench/labels/residual_ranking.py validate
           python3 bench/labels/residual_ranking.py self-test

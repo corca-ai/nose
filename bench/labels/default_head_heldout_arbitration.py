@@ -555,6 +555,58 @@ def validate(args: argparse.Namespace) -> None:
     print(f"validated {args.commitment}")
 
 
+def private_packet_receipt(
+    path: Path, commitment: dict[str, Any]
+) -> tuple[Path, dict[str, Any]]:
+    resolved = path.expanduser().resolve()
+    heldout.require_private_directory(resolved.parent, empty=False)
+    payload = heldout.read_json(resolved)
+    validate_arbiter_packet(payload)
+    receipt_record = commitment["arbitration_packet"]
+    require_equal(
+        heldout.sha256_file(resolved), receipt_record["sha256"], "arbiter packet SHA"
+    )
+    require_equal(
+        resolved.stat().st_size,
+        receipt_record["byte_length"],
+        "arbiter packet bytes",
+    )
+    require_equal(
+        len(payload["candidates"]),
+        receipt_record["candidate_count"],
+        "arbiter packet candidate count",
+    )
+    return resolved, payload
+
+
+def validate_private(args: argparse.Namespace) -> None:
+    commitment = heldout.read_json(args.commitment)
+    validate_commitment(commitment)
+    _, actual = private_packet_receipt(args.private_packet, commitment)
+    root_seed = heldout.read_root_seed()
+    panel_commitment = panel.read_commitment()
+    require_equal(
+        hashlib.sha256(root_seed).hexdigest(),
+        panel_commitment["protocol"]["root_seed_commitment_sha256"],
+        "root seed commitment",
+    )
+    vote_payloads, _ = load_panel_votes(args.private_panel_dir, panel_commitment)
+    _, selected = heldout.replay(args)
+    aligned = align_votes(
+        selected,
+        root_seed,
+        args.private_panel_dir,
+        panel_commitment,
+        vote_payloads,
+    )
+    expected = arbiter_packet(selected, aligned, root_seed)
+    require_equal(actual, expected, "private arbitration packet replay")
+    print(
+        f"validated private arbitration replay with "
+        f"{len(actual['candidates'])} disagreements"
+    )
+
+
 def self_test(_: argparse.Namespace) -> None:
     votes = {
         "dedupe": {"worthy": True, "reason": "extract-helper", "rationale": "a"},
@@ -763,6 +815,12 @@ def parser() -> argparse.ArgumentParser:
         "commitment", type=Path, nargs="?", default=COMMITMENT
     )
     validate_parser.set_defaults(run=validate)
+    private_parser = commands.add_parser("validate-private", allow_abbrev=False)
+    add_live_arguments(private_parser)
+    private_parser.add_argument("--private-panel-dir", type=Path, required=True)
+    private_parser.add_argument("--private-packet", type=Path, required=True)
+    private_parser.add_argument("--commitment", type=Path, default=COMMITMENT)
+    private_parser.set_defaults(run=validate_private)
     self_parser = commands.add_parser("self-test")
     self_parser.set_defaults(run=self_test)
     return root

@@ -120,6 +120,15 @@ commit to precede the collector commit and the frozen collector bytes to equal t
 reviewed current tool, so a self-consistent pre-vote collector cannot assert the
 opposite chronology.
 
+The blind arbitration packet was then frozen from clean collector commit
+`30aa2d86` and added alone by commit `bf4b54f5` / tree `f7811e8d`. Exactly 90 of
+214 cases disagree on `(worthy, reason)`. The private packet is 599,244 bytes with
+SHA-256 `b0426488…4005`; the public commitment is 2,175 bytes with SHA-256
+`cc891ab8…3b8c`. A full private replay reproduced the official 54-repository
+queries, 1,564 candidate commitments, exact 214 selection, all three packet
+permutations and votes, and the same 90-case arbiter packet. Source, opaque IDs,
+root seed, and mappings remain outside Git until the arbiter result is frozen.
+
 ## Closeout gates
 
 Only after the judgment component is frozen may the closeout report final dev and
@@ -149,6 +158,13 @@ python3 bench/labels/default_head_heldout_panel.py self-test
 python3 bench/labels/default_head_heldout_vote_receipt.py validate
 python3 bench/labels/default_head_heldout_vote_receipt.py self-test
 python3 bench/labels/default_head_heldout_arbitration.py self-test
+python3 bench/labels/default_head_heldout_arbitration.py validate
+python3 bench/labels/default_head_heldout_arbitration_receipt.py validate
+python3 bench/labels/default_head_heldout_arbitration_receipt.py self-test
+python3 bench/labels/default_head_heldout_arbitration.py validate-private \
+  --private-panel-dir <outside-repository> \
+  --private-packet <outside-repository>/arbiter.json
+python3 bench/labels/default_head_heldout_arbitration_result.py self-test
 ```
 
 Ordinary CI validates only public commitments and receipts until the post-arbiter
