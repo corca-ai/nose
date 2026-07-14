@@ -1,0 +1,1099 @@
+{
+  "schema": "nose.semantic_regression_expected_drift.v1",
+  "entries": [
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "alamofire",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "8a651d7983d8b4e262188b041aab934e444fa5fadf1884a55ac272aa76a5f26c"
+          ],
+          "current": [
+            "26f502dda15b5e74a5718f2b53fee5f7ae617cdc65bf9c56ee791b9ada4541db"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            28501873
+          ],
+          "current": [
+            28502976
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 755,
+              "generated": 77,
+              "hidden": 144,
+              "shallow": 139
+            }
+          ],
+          "current": [
+            {
+              "default": 368,
+              "generated": 584,
+              "hidden": 55,
+              "shallow": 108
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/842",
+      "reason": "Generated or build-artifact families move to the generated surface without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "antlr4",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "1d6967d86d509f39d6248965db4dc2987b9cfb0bc8ef866c02844e75e3692545"
+          ],
+          "current": [
+            "3ce5a7aef5060bb79dc909c46b2d60ce55b781b6c29439d90d5d6d417e2c643c"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            1272947
+          ],
+          "current": [
+            1272955
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 395,
+              "hidden": 288,
+              "shallow": 305
+            }
+          ],
+          "current": [
+            {
+              "declaration": 2,
+              "default": 393,
+              "hidden": 288,
+              "shallow": 305
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "commons-lang",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "8bddaced0a90a39b5b69d21b5e057dd262a1591a557658a1d9eb39280b97699d"
+          ],
+          "current": [
+            "d9b66f6a634fd86b806ea790439c159b91dec773fb92d2c39fb3846e36168595"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            1792205
+          ],
+          "current": [
+            1792369
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 566,
+              "hidden": 306,
+              "shallow": 475
+            }
+          ],
+          "current": [
+            {
+              "declaration": 1,
+              "default": 565,
+              "hidden": 306,
+              "shallow": 475
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "date-fns",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "7e5f7b48e519e7ea4c9887a04277131864a9ff3180cba69ca8654d6a75a53169"
+          ],
+          "current": [
+            "0e9b5e9baef37bc8811734c9b2724f86b583b560b476bc3fb4a3a077a8f46ec0"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            655245
+          ],
+          "current": [
+            655257
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "declaration": 1,
+              "default": 342,
+              "divergence": 2,
+              "hidden": 19,
+              "shallow": 133
+            }
+          ],
+          "current": [
+            {
+              "declaration": 4,
+              "default": 339,
+              "divergence": 2,
+              "hidden": 19,
+              "shallow": 133
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "drizzle-orm",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "7f403c5665ea4ae035e4163181c7b3010bf0970e96c079259fbc00459fb8893e"
+          ],
+          "current": [
+            "dc2f3d49e83e5368241cc62f0eed61cb4dfcf6f1cf2cb2589151427a06c41b6d"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            3776469
+          ],
+          "current": [
+            3776817
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "declaration": 73,
+              "default": 2145,
+              "divergence": 1,
+              "hidden": 118,
+              "shallow": 1126
+            }
+          ],
+          "current": [
+            {
+              "declaration": 160,
+              "default": 2084,
+              "divergence": 1,
+              "hidden": 118,
+              "shallow": 1100
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "esbuild",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "30d24fabaa186c0a3bcf52760f85671ef5865e933bd44c894544f51d52d3b494"
+          ],
+          "current": [
+            "db6dd97594b9968f00454563d332be98ae5909b2de91943aa91be8ca25e24d43"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            1396975
+          ],
+          "current": [
+            1396987
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 670,
+              "generated": 3,
+              "hidden": 90,
+              "shallow": 396
+            }
+          ],
+          "current": [
+            {
+              "declaration": 3,
+              "default": 668,
+              "generated": 3,
+              "hidden": 90,
+              "shallow": 395
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "fastlane",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "6c8f27999be227a09c998554d26ae316217ea0aba461e45206374a39533a78dc"
+          ],
+          "current": [
+            "e029b9704ebe47557ec5f610c11ef8075a0d8173a4e4f4b7d98f1c183875da7b"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            1564218
+          ],
+          "current": [
+            1564222
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 691,
+              "generated": 1,
+              "hidden": 167,
+              "shallow": 661
+            }
+          ],
+          "current": [
+            {
+              "declaration": 1,
+              "default": 691,
+              "generated": 1,
+              "hidden": 167,
+              "shallow": 660
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "graphhopper",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "65e66f576fb1d384239b489bf5046562826c3ba04b2365a173258fe30f208c75"
+          ],
+          "current": [
+            "b02b631f649facc1e1d2e6bbd0c9c87fb78846671780a6364e21006c19fb3bd0"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            1424920
+          ],
+          "current": [
+            1424956
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 473,
+              "hidden": 339,
+              "shallow": 399
+            }
+          ],
+          "current": [
+            {
+              "declaration": 1,
+              "default": 473,
+              "hidden": 339,
+              "shallow": 398
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "guava",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "d8e73f1343d0f6ccdaaf43f95cb4e14b246f5c5dbfc97104692267b19167adaa"
+          ],
+          "current": [
+            "fe9259e496891f8b880fce330af755e89bdadcc828c10948e76324c66f9e832e"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            5895559
+          ],
+          "current": [
+            5895567
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 2242,
+              "divergence": 3,
+              "generated": 1,
+              "hidden": 747,
+              "shallow": 289
+            }
+          ],
+          "current": [
+            {
+              "declaration": 2,
+              "default": 2241,
+              "divergence": 3,
+              "generated": 1,
+              "hidden": 747,
+              "shallow": 288
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "jedis",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "81aa31b41ed0c636234a71af84d0692d56aaefe2de24799b4ebee9a670e3f1ec"
+          ],
+          "current": [
+            "623a66be33a5fbc16d6831fd57b419ed583fb119f615ff38588873f05d655c79"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            3594437
+          ],
+          "current": [
+            3594457
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 1134,
+              "hidden": 785,
+              "shallow": 801
+            }
+          ],
+          "current": [
+            {
+              "declaration": 5,
+              "default": 1134,
+              "hidden": 785,
+              "shallow": 796
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "jest",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "21b4fbd7b8d7303f845e337890e9cd07cfa9e8c912a18a189158439d301bb6ac"
+          ],
+          "current": [
+            "4b0d8347211118135e08a66e168a25b1f14a0bafd0b304efa73da9bd8c34208b"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            1061161
+          ],
+          "current": [
+            1061173
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "declaration": 6,
+              "default": 749,
+              "divergence": 1,
+              "hidden": 85,
+              "shallow": 280
+            }
+          ],
+          "current": [
+            {
+              "declaration": 9,
+              "default": 748,
+              "divergence": 1,
+              "hidden": 85,
+              "shallow": 278
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "junit5",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "ad8353cc7a75296900038eab993c5e5d015e457b7b21fccb927ebfc10a6885f6"
+          ],
+          "current": [
+            "9bf31247fb39d21ac7fec7a3d199e495b396a75f2b4d10d816e95eca06455994"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            2628114
+          ],
+          "current": [
+            2628146
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "libgdx",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "bfb1ef6dcfd52fa9e40e36613d01844eaac9d26c09c591f7bab8aefe3081b95c"
+          ],
+          "current": [
+            "ed9b12b4cf55d02da3238a1891b6d162ac95bcd6f32d3c5c95fe5b31fc013478"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            5894553
+          ],
+          "current": [
+            5894515
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 1160,
+              "generated": 214,
+              "hidden": 769,
+              "shallow": 626
+            }
+          ],
+          "current": [
+            {
+              "declaration": 1,
+              "default": 1160,
+              "generated": 214,
+              "hidden": 769,
+              "shallow": 625
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "mockito",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "4b24c8a83cd527077b216553fae3bc520b05fa36fc9a479c6d9efcc4a59ed187"
+          ],
+          "current": [
+            "e413a6266dffba63c58a0febe793c79fa23226162261bbdfc5c3b297928e5668"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            920027
+          ],
+          "current": [
+            920031
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 306,
+              "hidden": 183,
+              "shallow": 194
+            }
+          ],
+          "current": [
+            {
+              "declaration": 1,
+              "default": 306,
+              "hidden": 183,
+              "shallow": 193
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "netty",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "023136381a507a5a52b26bfbe92e5f4c14868a2db1c006d227bb11c023534292"
+          ],
+          "current": [
+            "7ee72d03cf491080312dd2af748c93cdf29486dec31d7596055af9fdbf8c3f76"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            7209661
+          ],
+          "current": [
+            7209681
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 2491,
+              "divergence": 6,
+              "hidden": 1311,
+              "shallow": 1136
+            }
+          ],
+          "current": [
+            {
+              "declaration": 1,
+              "default": 2491,
+              "divergence": 6,
+              "hidden": 1311,
+              "shallow": 1135
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "pixijs",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "dc4aba3874ec720c61b3cab9b4254c3a09d4be5c20371bee19dc24ccf1bc3bdc"
+          ],
+          "current": [
+            "eaef65247a83b93dc9ec7ce564605cc0345d585f47662fc978dee32edb81a186"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            937033
+          ],
+          "current": [
+            937041
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "declaration": 4,
+              "default": 548,
+              "divergence": 4,
+              "generated": 13,
+              "hidden": 62,
+              "shallow": 267
+            }
+          ],
+          "current": [
+            {
+              "declaration": 6,
+              "default": 547,
+              "divergence": 4,
+              "generated": 13,
+              "hidden": 62,
+              "shallow": 266
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "prettier",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "ecca439322f9a41ba4905de253cda1529b5e434f4abcdcc4921cd964ed224b0f"
+          ],
+          "current": [
+            "45d218a2585f0bbb8964de416f39fbf856072c77d810c66816bf56622dd118d4"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            846446
+          ],
+          "current": [
+            846482
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "declaration": 13,
+              "default": 344,
+              "divergence": 6,
+              "generated": 1,
+              "hidden": 164,
+              "shallow": 186
+            }
+          ],
+          "current": [
+            {
+              "declaration": 22,
+              "default": 338,
+              "divergence": 6,
+              "generated": 1,
+              "hidden": 164,
+              "shallow": 183
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "prometheus",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "82f7c73dd48b3e3da80907c0202bf71ec903fb213c16cc06b0083833a40847cf"
+          ],
+          "current": [
+            "bdc10ae0fb949b9bc8419584de282a7b25fae01de0039a3ffde0fe2f229e9c22"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            2707606
+          ],
+          "current": [
+            2707634
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "declaration": 8,
+              "default": 1645,
+              "hidden": 192,
+              "shallow": 834
+            }
+          ],
+          "current": [
+            {
+              "declaration": 15,
+              "default": 1639,
+              "hidden": 192,
+              "shallow": 833
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "quick",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "d3d12204ae7279cab04186faf0d5baa4d0f54ddcbabffe92ebeebf60018de44c"
+          ],
+          "current": [
+            "58dd6ba69b766d86227171c3cbd75039a49612d458e41015859ceb51283ce427"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            2052630
+          ],
+          "current": [
+            2052778
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 122,
+              "generated": 75,
+              "hidden": 33,
+              "shallow": 37
+            }
+          ],
+          "current": [
+            {
+              "default": 73,
+              "generated": 143,
+              "hidden": 21,
+              "shallow": 30
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/842",
+      "reason": "Generated or build-artifact families move to the generated surface without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "rxjs",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "d35df174fef566494c72f61388974a00830de998313b034a66a203ea950935de"
+          ],
+          "current": [
+            "9b2165dd5ccefc60d41f586c1790902e9ad3df9554a9ecefe8e8a8bfc512ce37"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            1006050
+          ],
+          "current": [
+            1006066
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "declaration": 1,
+              "default": 723,
+              "hidden": 56,
+              "shallow": 242
+            }
+          ],
+          "current": [
+            {
+              "declaration": 5,
+              "default": 720,
+              "hidden": 56,
+              "shallow": 241
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "rxswift",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "4dd97cb6f23d81ad57dca00119d8c07127194a250c7e7ba3219fd29b3700ac14"
+          ],
+          "current": [
+            "bd9744bfd5e05dfbc6da4644e1bcd5e61f69985f0e4d01096a2ed6cde1192bc5"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            5557745
+          ],
+          "current": [
+            5558061
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 667,
+              "generated": 139,
+              "hidden": 136,
+              "shallow": 216
+            }
+          ],
+          "current": [
+            {
+              "declaration": 1,
+              "default": 584,
+              "generated": 277,
+              "hidden": 100,
+              "shallow": 196
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/838",
+      "reason": "The checked #842 generated-source classification and #843 declaration-only classification compose without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "swift-nio",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "346234328988416d58571ad3c2a2204b074b5b7c54b33d6895c661239f4d0158"
+          ],
+          "current": [
+            "e243643ff0f72efbbf8b9d07597a8172ebe0eeba1a892e5957b12f03a77e964f"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            1746517
+          ],
+          "current": [
+            1746521
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 1065,
+              "hidden": 139,
+              "shallow": 502
+            }
+          ],
+          "current": [
+            {
+              "declaration": 1,
+              "default": 1064,
+              "hidden": 139,
+              "shallow": 502
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "swr",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "4d4305daf801418b14f6b4b4723129bab00e7d9660dc32bc70d603bd614bd17f"
+          ],
+          "current": [
+            "e1d7b48ceb64a6c9e6da757204185d46df5cb6e4712e587231a2ecbafca5b95a"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            345267
+          ],
+          "current": [
+            345271
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 127,
+              "hidden": 50,
+              "shallow": 63
+            }
+          ],
+          "current": [
+            {
+              "declaration": 1,
+              "default": 127,
+              "hidden": 50,
+              "shallow": 62
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "trpc",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "764f1476f9ceaa4d4033098d8bddf4dd9dd5aa7ff8e9424b25897a09678d647b"
+          ],
+          "current": [
+            "d52dc10e8fcac0b9925966e1f64d4c95e9b9b7d257199ebd08e1b5662d9b844c"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            884219
+          ],
+          "current": [
+            884279
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "declaration": 5,
+              "default": 437,
+              "divergence": 1,
+              "generated": 49,
+              "hidden": 56,
+              "shallow": 176
+            }
+          ],
+          "current": [
+            {
+              "declaration": 20,
+              "default": 426,
+              "divergence": 1,
+              "generated": 49,
+              "hidden": 56,
+              "shallow": 172
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "zod",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "084cf7705a1307252ba04ed3455bc695467c8e817790fcff38b4de36b5d0aafa"
+          ],
+          "current": [
+            "795593b91b8dc9293c5952a32a2403800f5601eccac21d3f5b5d8b2ba748d5f8"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            668335
+          ],
+          "current": [
+            668395
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "declaration": 1,
+              "default": 411,
+              "divergence": 1,
+              "hidden": 43,
+              "shallow": 187
+            }
+          ],
+          "current": [
+            {
+              "declaration": 16,
+              "default": 401,
+              "divergence": 1,
+              "hidden": 43,
+              "shallow": 182
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "repo": "zustand",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "46f7603eb14145876af0a5acacb124f6d0617ff023fa69aa64a9ed30499eaee9"
+          ],
+          "current": [
+            "6f1e46e7c905ba55b251a0c2ed1f01d82faa31f80c3e34e7a66f350fa3f578b5"
+          ]
+        },
+        "bytes": {
+          "baseline": [
+            138527
+          ],
+          "current": [
+            138543
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 89,
+              "hidden": 3,
+              "shallow": 27
+            }
+          ],
+          "current": [
+            {
+              "declaration": 4,
+              "default": 86,
+              "hidden": 3,
+              "shallow": 26
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/843",
+      "reason": "Declaration-only type-contract families move to the declaration surface, or gain checked declaration-origin metadata, without changing family identity or count."
+    }
+  ]
+}

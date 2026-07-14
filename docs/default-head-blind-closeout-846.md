@@ -165,6 +165,12 @@ The field audit reviews the first ten bare-default families in product order;
 its discoveries may open follow-up issues but cannot alter this closeout's product or
 evidence.
 
+The [v0.19.0 output-drift ledger](../bench/labels/default_head_closeout_v0_19_0.expected-drift.v1.json)
+authorizes only the exact all-120 serialization and surface changes already justified
+by #842 and #843. Family counts are unchanged. The query-regression checker rejects an
+extra, missing, or byte-different declaration, and evaluates runtime independently of
+that authorization.
+
 If any #838 threshold fails, #846 records the exact shortfall and preserves the
 unchanged product. It does not weaken the threshold or reuse held-out evidence for
 ranking, surface, or detector tuning.
