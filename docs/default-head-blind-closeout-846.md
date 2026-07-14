@@ -192,6 +192,8 @@ replays every HMAC nonce, permutation, ID, and anonymous vote order, and require
 all three panels and the arbiter to have seen the same source excerpts. The
 local publication stages all seven outputs and uses a checked transaction marker
 to roll back ordinary failures or recover an interrupted partial write before a
-retry. Git publication remains one atomic artifact commit. The
+retry. Promotion is no-clobber, rollback never deletes a byte-mismatched path, and
+public validation rejects an outstanding marker. Git publication remains one
+atomic artifact commit. The
 plaintext packets and root seed remain deliberately unavailable to CI during the
 blind phase and become public only after the blind arbitration result is merged.

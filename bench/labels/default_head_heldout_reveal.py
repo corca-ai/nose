@@ -63,6 +63,19 @@ REVEALED_CANDIDATE_KEYS = {
     "selection_reason",
     "selection_order",
 }
+REVEALED_FAMILY_KEYS = {
+    "id",
+    "members",
+    "member_count",
+    "scope",
+    "surface",
+    "witness",
+    "extraction_shape",
+    "value",
+    "matched_v6_family_id",
+    "matched_v6_member_overlap",
+}
+REVEALED_MEMBER_KEYS = {"file", "start_line", "end_line", "name"}
 
 
 def require_equal(actual: object, expected: object, label: str) -> None:
@@ -98,7 +111,38 @@ def require_ancestor(ancestor: str, descendant: str, label: str) -> None:
 
 
 def validate_revealed_candidate(candidate: object, label: str) -> dict[str, Any]:
-    return heldout.require_exact_keys(candidate, REVEALED_CANDIDATE_KEYS, label)
+    row = heldout.require_exact_keys(candidate, REVEALED_CANDIDATE_KEYS, label)
+    family = heldout.require_exact_keys(
+        row["family"], REVEALED_FAMILY_KEYS, f"{label}.family"
+    )
+    members = family["members"]
+    if not isinstance(members, list) or len(members) < 2:
+        raise ValueError(f"{label}.family.members: expected at least two members")
+    if (
+        isinstance(family["member_count"], bool)
+        or not isinstance(family["member_count"], int)
+        or family["member_count"] != len(members)
+    ):
+        raise ValueError(f"{label}.family.member_count: mismatch")
+    for index, member in enumerate(members):
+        member_label = f"{label}.family.members[{index}]"
+        member_row = heldout.require_exact_keys(
+            member, REVEALED_MEMBER_KEYS, member_label
+        )
+        if not isinstance(member_row["file"], str) or not member_row["file"]:
+            raise ValueError(f"{member_label}.file: invalid")
+        for field in ("start_line", "end_line"):
+            value = member_row[field]
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise ValueError(f"{member_label}.{field}: invalid")
+        if (
+            member_row["start_line"] < 1
+            or member_row["end_line"] < member_row["start_line"]
+        ):
+            raise ValueError(f"{member_label}: invalid line interval")
+        if member_row["name"] is not None and not isinstance(member_row["name"], str):
+            raise ValueError(f"{member_label}.name: invalid")
+    return row
 
 
 def ordered_keys(
@@ -621,6 +665,7 @@ def recover_interrupted_publish(
     records = payload["outputs"]
     if not isinstance(records, list) or len(records) != len(outputs):
         raise ValueError("held-out reveal transaction outputs mismatch")
+    checked: list[tuple[Path, dict[str, Any]]] = []
     for index, (path, record) in enumerate(zip(outputs, records, strict=True)):
         if not isinstance(record, dict) or set(record) != {
             "path",
@@ -636,6 +681,8 @@ def recover_interrupted_publish(
             or record["byte_length"] < 1
         ):
             raise ValueError("invalid held-out reveal transaction byte length")
+        checked.append((path, record))
+    for path, record in checked:
         if not path.exists():
             continue
         if (
@@ -643,8 +690,35 @@ def recover_interrupted_publish(
             or path.stat().st_size != record["byte_length"]
         ):
             raise ValueError(f"refusing to remove mismatched interrupted output: {path}")
+    for path, _ in checked:
+        if not path.exists():
+            continue
         path.unlink()
     transaction.unlink()
+
+
+def content_matches(path: Path, content: bytes) -> bool:
+    return (
+        path.is_file()
+        and path.stat().st_size == len(content)
+        and heldout.sha256_file(path) == hashlib.sha256(content).hexdigest()
+    )
+
+
+def rollback_publish(
+    published: list[Path],
+    contents: dict[Path, bytes],
+    transaction: Path,
+    marker: bytes,
+) -> None:
+    if transaction.exists() and not content_matches(transaction, marker):
+        return
+    if any(path.exists() and not content_matches(path, contents[path]) for path in published):
+        return
+    for path in reversed(published):
+        path.unlink(missing_ok=True)
+    if transaction.exists():
+        transaction.unlink()
 
 
 def publish_outputs(
@@ -653,9 +727,9 @@ def publish_outputs(
     transaction: Path = TRANSACTION,
     validator: Callable[[], None] | None = None,
     staging_parent: Path = ROOT / "target",
+    marker_writer: Callable[[Path, bytes], None] | None = None,
 ) -> None:
     marker = heldout.packet_bytes(transaction_payload(contents))
-    heldout.write_exclusive(transaction, marker, 0o600)
     published: list[Path] = []
     try:
         with tempfile.TemporaryDirectory(
@@ -667,17 +741,23 @@ def publish_outputs(
                 source = staging / target.name
                 heldout.write_exclusive(source, content, 0o644)
                 staged.append((source, target))
+            staged_marker = staging / transaction.name
+            if marker_writer is None:
+                heldout.write_exclusive(staged_marker, marker, 0o600)
+            else:
+                marker_writer(staged_marker, marker)
+            os.link(staged_marker, transaction)
+            staged_marker.unlink()
             for source, target in staged:
+                os.link(source, target)
+                source.unlink()
                 published.append(target)
-                os.replace(source, target)
         if validator is None:
-            validate_checked()
+            validate_checked(allow_transaction=True)
         else:
             validator()
     except BaseException:
-        for path in reversed(published):
-            path.unlink(missing_ok=True)
-        transaction.unlink(missing_ok=True)
+        rollback_publish(published, contents, transaction, marker)
         raise
     transaction.unlink()
 
@@ -880,7 +960,14 @@ def validate_reveal_payload(payload: dict[str, Any]) -> tuple[bytes, list[dict[s
     return root_seed, candidates
 
 
-def validate_checked() -> None:
+def require_completed_publish(transaction: Path = TRANSACTION) -> None:
+    if transaction.exists():
+        raise ValueError("held-out reveal transaction is still in progress")
+
+
+def validate_checked(*, allow_transaction: bool = False) -> None:
+    if not allow_transaction:
+        require_completed_publish()
     vote_payloads = read_frozen_votes()
     arbitration_receipt.validate(None)
     result_receipt.validate(None)
@@ -996,15 +1083,44 @@ def self_test(_: argparse.Namespace) -> None:
         pass
     else:
         raise AssertionError("missing arbitration was accepted")
+    synthetic_member = {
+        "file": "bench/repos/example/source.py",
+        "start_line": 1,
+        "end_line": 2,
+        "name": None,
+    }
+    synthetic_family = {
+        key: None for key in REVEALED_FAMILY_KEYS
+    }
+    synthetic_family["members"] = [synthetic_member, copy.deepcopy(synthetic_member)]
+    synthetic_family["member_count"] = 2
     synthetic_candidate = {key: None for key in REVEALED_CANDIDATE_KEYS}
+    synthetic_candidate["family"] = synthetic_family
     validate_revealed_candidate(synthetic_candidate, "synthetic candidate")
-    synthetic_candidate["uncommitted_final_worthy"] = True
+    changed_candidate = copy.deepcopy(synthetic_candidate)
+    changed_candidate["uncommitted_final_worthy"] = True
     try:
-        validate_revealed_candidate(synthetic_candidate, "synthetic candidate")
+        validate_revealed_candidate(changed_candidate, "synthetic candidate")
     except ValueError:
         pass
     else:
         raise AssertionError("uncommitted reveal candidate field was accepted")
+    changed_candidate = copy.deepcopy(synthetic_candidate)
+    changed_candidate["family"]["uncommitted_final_worthy"] = True
+    try:
+        validate_revealed_candidate(changed_candidate, "synthetic candidate")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("uncommitted reveal family field was accepted")
+    changed_candidate = copy.deepcopy(synthetic_candidate)
+    changed_candidate["family"]["members"][0]["source_identity"] = "hidden"
+    try:
+        validate_revealed_candidate(changed_candidate, "synthetic candidate")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("uncommitted reveal member field was accepted")
     head = heldout.git_text(["rev-parse", "HEAD"])
     try:
         require_ancestor(head, result_receipt.RESULT_COMMIT, "synthetic reverse ancestry")
@@ -1034,6 +1150,67 @@ def self_test(_: argparse.Namespace) -> None:
             raise AssertionError("synthetic failed publication was accepted")
         if transaction.exists() or any(path.exists() for path in outputs):
             raise AssertionError("failed publication was not rolled back")
+
+        def partial_marker(path: Path, content: bytes) -> None:
+            heldout.write_exclusive(path, content[:1], 0o600)
+            raise OSError("synthetic partial marker write")
+
+        try:
+            publish_outputs(
+                contents,
+                transaction=transaction,
+                staging_parent=root,
+                marker_writer=partial_marker,
+            )
+        except OSError:
+            pass
+        else:
+            raise AssertionError("partial marker publication was accepted")
+        if transaction.exists() or any(path.exists() for path in outputs):
+            raise AssertionError("partial marker publication was not rolled back")
+
+        heldout.write_exclusive(outputs[0], b"foreign\n", 0o644)
+        try:
+            publish_outputs(
+                contents, transaction=transaction, staging_parent=root
+            )
+        except FileExistsError:
+            pass
+        else:
+            raise AssertionError("foreign reveal output was overwritten")
+        require_equal(outputs[0].read_bytes(), b"foreign\n", "foreign reveal output")
+        if transaction.exists() or outputs[1].exists():
+            raise AssertionError("no-clobber publication was not rolled back")
+        outputs[0].unlink()
+
+        def mutate_publish() -> None:
+            outputs[0].write_bytes(b"mutated\n")
+            raise RuntimeError("synthetic mutated publication")
+
+        try:
+            publish_outputs(
+                contents,
+                transaction=transaction,
+                validator=mutate_publish,
+                staging_parent=root,
+            )
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("mutated failed publication was accepted")
+        require_equal(outputs[0].read_bytes(), b"mutated\n", "mutated reveal output")
+        if not transaction.exists() or not outputs[1].exists():
+            raise AssertionError("mismatched rollback did not preserve transaction")
+        try:
+            require_completed_publish(transaction)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("outstanding reveal transaction was accepted")
+        for path in outputs:
+            path.unlink(missing_ok=True)
+        transaction.unlink()
+
         heldout.write_exclusive(
             transaction,
             heldout.packet_bytes(transaction_payload(contents)),
