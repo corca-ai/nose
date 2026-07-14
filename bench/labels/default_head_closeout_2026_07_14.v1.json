@@ -35,6 +35,7 @@
     "all_corpus_contract": {"path": "bench/default_head_closeout_corpus.v1.json", "sha256": "b28d7245aa34d7e0320d0c80ef988803ba6acb65b63eaf1bae6d7ac840b168e0"},
     "expected_output_drift": {"path": "bench/labels/default_head_closeout_v0_19_0.expected-drift.v1.json", "sha256": "ac8e57e20f8272c3b3b352d02bbef62fa97a0d3f0ba966e2cde06fbc29762bd9"},
     "measurement_provenance": {"path": "bench/labels/default_head_measurement_provenance_2026_07_14.v1.json", "sha256": "809b3475f1c3242a326adb072adf3782b32d58676eb48438e4028db9f5430f4f"},
+    "measurement_replay": {"path": "bench/labels/default_head_measurement_replay_2026_07_14.v1.json", "sha256": "81ec46933bcd5be12a8010c6933ddd3bcb930a229b5928a6d2ad30d3c7cd5b48"},
     "soundness": {"path": "bench/recall_loss/issue-846-crates-verify-2026-07-14.v1.json", "sha256": "b31d040498be5f34f2f519ced3c0dc7d20796b4ac6dd55eb6bb2e5583b111a07"},
     "dev_thread_determinism": {"path": "bench/labels/declaration_type_contract_behavior_2026_07_14.dev.v1.json", "sha256": "4722f772a98476ce7860409ff4a18c29ceb9d9e21981542c5390ab7aab7ebd93"},
     "heldout_thread_determinism": {"path": "bench/recall_loss/issue-846-heldout-thread-determinism-2026-07-14.v1.tsv", "sha256": "6e270c2e2956832a85cd52f90b406725d68454c770b1546cd6606ec0a8ce6d4c"},

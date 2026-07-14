@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import default_head_fresh_repository_audit as fresh
+import default_head_measurement_replay as measurement_replay
 import eval_by_language as evaluator
 import residual_ranking_closeout as residual
 
@@ -284,6 +285,45 @@ def validate_measurement_manifest(manifest: dict[str, Any]) -> None:
             "--output target/issue-846-semantic-smoke-artifacts/ruby-scaling.json"
         ),
         "wrong Ruby scaling command",
+    )
+
+
+def validate_measurement_replay(value: dict[str, Any]) -> None:
+    record = value["evidence"].get("measurement_replay")
+    require(isinstance(record, dict), "missing measurement replay")
+    path = ROOT / record["path"]
+    measurement_replay.validate(path)
+    receipt = load(path)
+    joins = (
+        ("soundness", "soundness"),
+        ("heldout_thread_determinism", "heldout_thread_determinism"),
+    )
+    for evidence_name, receipt_name in joins:
+        evidence = value["evidence"][evidence_name]
+        replayed = receipt[receipt_name]
+        require(
+            evidence
+            == {
+                "path": replayed["checked_artifact"],
+                "sha256": replayed["checked_artifact_sha256"],
+            },
+            f"replay/evidence join changed: {evidence_name}",
+        )
+    scaling = receipt["ruby_redefinition_scaling"]
+    scaling_records = [
+        evidence
+        for evidence in value["evidence"]["performance"]
+        if evidence["path"] == scaling["checked_artifact"]
+    ]
+    require(
+        scaling_records
+        == [
+            {
+                "path": scaling["checked_artifact"],
+                "sha256": scaling["checked_artifact_sha256"],
+            }
+        ],
+        "replay/evidence join changed: ruby_redefinition_scaling",
     )
 
 
@@ -662,6 +702,7 @@ def validate_value(value: dict[str, Any]) -> None:
     require(value.get("published_baseline", {}).get("binary_sha256") == OFFICIAL_SHA, "wrong published baseline")
     checked_evidence(value)
     validate_measurement_provenance(value)
+    validate_measurement_replay(value)
     residual.validate_payload(residual.read_json(residual.DEFAULT_ARTIFACT))
     fresh.validate(ROOT / value["evidence"]["fresh_repository_audit"]["path"])
     validate_quality(value)
@@ -712,6 +753,11 @@ def self_test() -> None:
     changed = copy.deepcopy(original)
     changed["evidence"]["performance"][-1]["sha256"] = "0" * 64
     mutations.append((changed, validate_measurement_provenance))
+    changed = copy.deepcopy(original)
+    changed["evidence"]["measurement_replay"] = changed["evidence"][
+        "fresh_repository_audit"
+    ]
+    mutations.append((changed, validate_measurement_replay))
     for index, (mutation, validator) in enumerate(mutations, 1):
         try:
             validator(mutation)

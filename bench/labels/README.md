@@ -189,6 +189,15 @@ and official-v0.19.0 performance evidence. Its conclusion is a checked no-go, no
 relaxed success: aggregate precision, five language-floor cells, and material runtime
 stage signals fail while worthy recall and soundness remain preserved.
 
+`default_head_measurement_provenance_2026_07_14.v1.json` is the explicit post-hoc
+path/hash/source binding for the raw soundness, held-out determinism, and Ruby scaling
+artifacts; it does not claim a contemporaneously clean original checkout.
+`default_head_measurement_replay_2026_07_14.v1.json` is the independently generated
+clean-tree receipt. Its already-committed generator reran the exact frozen binary,
+reproduced the soundness artifact byte-for-byte and all 54 held-out thread hashes, and
+confirmed the same Ruby fixtures remain within the scaling threshold. The closeout
+validator joins both records to the exact evidence paths and hashes it consumes.
+
 `lawpack_provenance_audit_2026_06_10.json` is also adjacent evidence, not part of
 the active metric. It records the full-corpus and targeted real-repo pass for the
 first-party `nose.value_graph.laws` LawPack pilot. See
