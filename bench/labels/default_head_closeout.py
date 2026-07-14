@@ -146,6 +146,31 @@ def validate_measurement_provenance(value: dict[str, Any]) -> None:
     require(isinstance(record, dict), "missing measurement provenance")
     manifest = load(ROOT / record["path"])
     validate_measurement_manifest(manifest)
+    measurements = manifest["measurements"]
+    for evidence_name, measurement_name in (
+        ("soundness", "soundness"),
+        ("heldout_thread_determinism", "heldout_thread_determinism"),
+    ):
+        measurement = measurements[measurement_name]
+        require(
+            value["evidence"][evidence_name]
+            == {
+                "path": measurement["artifact"],
+                "sha256": measurement["artifact_sha256"],
+            },
+            f"measurement/evidence join changed: {evidence_name}",
+        )
+    scaling = measurements["ruby_redefinition_scaling"]
+    scaling_records = [
+        record
+        for record in value["evidence"]["performance"]
+        if record["path"] == scaling["artifact"]
+    ]
+    require(
+        scaling_records
+        == [{"path": scaling["artifact"], "sha256": scaling["artifact_sha256"]}],
+        "measurement/evidence join changed: ruby_redefinition_scaling",
+    )
 
 
 def validate_measurement_manifest(manifest: dict[str, Any]) -> None:
@@ -156,6 +181,14 @@ def validate_measurement_manifest(manifest: dict[str, Any]) -> None:
     require(
         manifest.get("issue") == 846 and manifest.get("tracker") == 838,
         "wrong measurement-provenance issue binding",
+    )
+    require(
+        manifest.get("binding_kind")
+        == (
+            "post-hoc artifact binding; clean reproducibility is established "
+            "separately by the checked replay receipt"
+        ),
+        "wrong measurement binding kind",
     )
 
     require_source_commit(CURRENT_SOURCE)
@@ -173,11 +206,6 @@ def validate_measurement_manifest(manifest: dict[str, Any]) -> None:
         == "sha256/mach-o-zero-uuid-signature-v1",
         "wrong measurement product code-hash algorithm",
     )
-    require(
-        product.get("working_tree_status_before_measurement") == "",
-        "measurement product tree was dirty",
-    )
-
     inputs = manifest.get("inputs", {})
     source_tree = inputs.get("source_tree", {})
     require(
@@ -213,10 +241,6 @@ def validate_measurement_manifest(manifest: dict[str, Any]) -> None:
         )
         require(measurement.get("source_commit") == CURRENT_SOURCE, f"wrong source: {name}")
         require(measurement.get("binary_sha256") == CURRENT_SHA, f"wrong binary: {name}")
-        require(
-            measurement.get("working_tree_status_before_measurement") == "",
-            f"dirty measurement: {name}",
-        )
 
     soundness = measurements["soundness"]
     require(soundness["source_tree_sha1"] == CURRENT_SOURCE_TREE, "wrong soundness tree")
@@ -677,6 +701,17 @@ def self_test() -> None:
     changed = copy.deepcopy(provenance)
     changed["product"]["source_commit"] = BASELINE_SOURCE
     mutations.append((changed, validate_measurement_manifest))
+    changed = copy.deepcopy(original)
+    changed["evidence"]["soundness"] = changed["evidence"]["fresh_repository_audit"]
+    mutations.append((changed, validate_measurement_provenance))
+    changed = copy.deepcopy(original)
+    changed["evidence"]["heldout_thread_determinism"] = changed["evidence"][
+        "dev_thread_determinism"
+    ]
+    mutations.append((changed, validate_measurement_provenance))
+    changed = copy.deepcopy(original)
+    changed["evidence"]["performance"][-1]["sha256"] = "0" * 64
+    mutations.append((changed, validate_measurement_provenance))
     for index, (mutation, validator) in enumerate(mutations, 1):
         try:
             validator(mutation)

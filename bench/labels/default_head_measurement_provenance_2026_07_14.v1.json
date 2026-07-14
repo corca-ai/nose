@@ -2,12 +2,12 @@
   "schema": "nose.default_head_measurement_provenance.v1",
   "issue": 846,
   "tracker": 838,
+  "binding_kind": "post-hoc artifact binding; clean reproducibility is established separately by the checked replay receipt",
   "product": {
     "source_commit": "cdab416706c32ea94bf808ec7ebb36781e483e65",
     "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
     "binary_code_sha256": "03cc5827cdadc225478a34266de78805c6e495810f90e8642f2ae2807b3a4f5a",
-    "binary_code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1",
-    "working_tree_status_before_measurement": ""
+    "binary_code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1"
   },
   "inputs": {
     "source_tree": {
@@ -31,8 +31,7 @@
       "command": "target/release/nose verify crates --max-violations 0 --recall-loss-report target/issue-846-closeout/recall-loss.crates.v1.json",
       "source_commit": "cdab416706c32ea94bf808ec7ebb36781e483e65",
       "source_tree_sha1": "0f42757629a79ce7be0cd0cd5cd90c2d5b78c3da",
-      "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
-      "working_tree_status_before_measurement": ""
+      "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0"
     },
     "heldout_thread_determinism": {
       "artifact": "bench/recall_loss/issue-846-heldout-thread-determinism-2026-07-14.v1.tsv",
@@ -40,7 +39,6 @@
       "command": "for each heldout corpus repository: RAYON_NUM_THREADS={1,4} target/release/nose query bench/repos/<repo> all top=0 --format json",
       "source_commit": "cdab416706c32ea94bf808ec7ebb36781e483e65",
       "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
-      "working_tree_status_before_measurement": "",
       "split": "heldout",
       "repositories": 54,
       "thread_counts": [1, 4],
@@ -52,8 +50,7 @@
       "artifact_sha256": "dde0017440e4195fc7fc3f278c7677665e5e2b91cdf685bf2bbd50ecd6f34203",
       "command": "python3 scripts/ruby-redefinition-scaling.py --binary target/release/nose --output target/issue-846-semantic-smoke-artifacts/ruby-scaling.json",
       "source_commit": "cdab416706c32ea94bf808ec7ebb36781e483e65",
-      "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
-      "working_tree_status_before_measurement": ""
+      "binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0"
     }
   }
 }

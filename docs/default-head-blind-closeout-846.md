@@ -242,8 +242,10 @@ are byte-identical at `RAYON_NUM_THREADS=1` and `4`.
 The checked [measurement provenance
 manifest](../bench/labels/default_head_measurement_provenance_2026_07_14.v1.json) binds
 the raw soundness report, held-out thread matrix, and Ruby scaling report to
-the frozen product source and binary, a clean measurement tree, the exact `crates`
-Git tree, and the frozen corpus/prune/state digests. The closeout validator resolves
+the frozen product source and binary, the exact `crates` Git tree, and the frozen
+corpus/prune/state digests. This is explicitly a post-hoc artifact binding and does
+not claim that the original raw-report checkout was clean. Clean reproducibility is
+established separately by the exact-binary replay receipt. The closeout validator resolves
 the recorded commits, requires them to be ancestors of the reviewed checkout,
 re-hashes every bound artifact and input, and derives the 54 held-out repository IDs
 from the corpus manifest rather than trusting the TSV alone.
