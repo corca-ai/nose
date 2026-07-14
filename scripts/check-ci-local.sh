@@ -133,6 +133,8 @@ run_regression_checker_selftests() {
     python3 bench/labels/proof_actionability_no_go.py --self-test
     python3 bench/labels/residual_ranking.py validate
     python3 bench/labels/residual_ranking.py self-test
+    python3 bench/labels/residual_ranking_topup.py validate
+    python3 bench/labels/residual_ranking_topup.py self-test
     python3 bench/labels/generated_provenance_behavior.py --self-test
     python3 bench/labels/generated_provenance_behavior.py validate
     python3 bench/labels/generated_provenance_closeout.py --self-test

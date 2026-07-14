@@ -30,7 +30,7 @@ DEV_LABELS = (
 )
 CORPUS = ROOT / "bench/goldens/corpus.json"
 DEFAULT_ARTIFACT = (
-    ROOT / "bench/labels/residual_ranking_no_go_2026_07_14.dev.v1.json"
+    ROOT / "bench/labels/residual_ranking_calibration_2026_07_14.dev.v1.json"
 )
 PARENT_QUALITY = (
     ROOT / "bench/labels/declaration_type_contract_product_quality_2026_07_14.dev.v1.json"
@@ -38,7 +38,12 @@ PARENT_QUALITY = (
 EXPECTED_BASE_COMMIT = "a0b2730d4ee1f5393cc5a37ddd2b6c8b7a22b928"
 EXPECTED_BASE_TREE = "399b5b816c4c19a61b549445111356921d69c3cb"
 EXPECTED_BINARY_SHA256 = "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0"
-EXPECTED_DATASET_SHA256 = "f569d474354e2f982dc90b04b42a34f944e9fae8ae8d446b82ebebc24373a3fb"
+EXPECTED_BINARY_VERSION = "nose 0.19.0"
+EXPECTED_DATASET_SHA256 = "dd8832fe094f97d85ab34a09af5adc7d7db3e763b53a562eb463465cd0de0299"
+EXPECTED_NEXT_STEP = (
+    "Freeze and independently panel-label the complete unresolved top-10 union of the "
+    "46 pre-registered formulas before deciding go or no-go; keep held-out closed."
+)
 LANGUAGES = ("C", "Go", "Java", "Python", "Ruby", "Rust", "Swift", "TypeScript")
 FOLD_COUNT = 8
 
@@ -98,6 +103,9 @@ def proposal_family() -> tuple[Proposal, ...]:
     for spread in (-1.0, -0.5, 0.0, 0.5, 1.0):
         for same in (0.65, 0.80, 1.0):
             for connected in (1.0, 1.15):
+                if spread == 1.0 and same == 1.0 and connected == 1.0:
+                    # This is exactly BASELINE; a second ID would not be a second formula.
+                    continue
                 proposals.append(
                     Proposal(
                         id=f"grid-s{spread:+.2f}-same{same:.2f}-conn{connected:.2f}",
@@ -148,6 +156,19 @@ def proposal_family() -> tuple[Proposal, ...]:
 
 
 PROPOSALS = proposal_family()
+
+
+def assert_unique_proposals() -> None:
+    ids = [proposal.id for proposal in PROPOSALS]
+    formulas = [
+        tuple(value for key, value in asdict(proposal).items() if key != "id")
+        for proposal in PROPOSALS
+    ]
+    if len(ids) != 46 or len(set(ids)) != len(ids) or len(set(formulas)) != len(formulas):
+        raise AssertionError("expected 46 unique proposal IDs and formulas")
+
+
+assert_unique_proposals()
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -299,9 +320,11 @@ def locations(family: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def truth(family: dict[str, Any], labels: list[dict[str, Any]]) -> bool | None:
+def truth_resolution(
+    family: dict[str, Any], labels: list[dict[str, Any]]
+) -> tuple[bool | None, str]:
     sites = locations(family)
-    best: dict[str, Any] | None = None
+    best: list[dict[str, Any]] = []
     best_overlap = 0
     for label in labels:
         count = sum(
@@ -311,9 +334,16 @@ def truth(family: dict[str, Any], labels: list[dict[str, Any]]) -> bool | None:
             if overlaps(site, member)
         )
         if count > best_overlap:
-            best = label
+            best = [label]
             best_overlap = count
-    return None if best is None else bool(best["worthy"])
+        elif count == best_overlap and count:
+            best.append(label)
+    if not best:
+        return None, "unmatched"
+    judgments = {bool(label["worthy"]) for label in best}
+    if len(judgments) != 1:
+        return None, "conflicting-best-overlap"
+    return judgments.pop(), "matched"
 
 
 def effective_copies(members: int) -> float:
@@ -366,6 +396,7 @@ def compact_family(
     )
     anchor = family["locations"][0] if family["locations"] else {"file": "", "start": 0}
     family_key = f"{family['id']}@{anchor['file']}:{anchor['start']}#rank-{current_rank}"
+    resolved_truth, truth_status = truth_resolution(family, labels)
     return {
         "anchor": [anchor["file"], anchor["start"]],
         "base_core": extract_lines * effective_copies(metrics["members"]) * discount,
@@ -381,7 +412,8 @@ def compact_family(
         "current_rank": current_rank,
         "same_symbol": family["same_symbol"],
         "tightness": tightness,
-        "truth": truth(family, labels),
+        "truth": resolved_truth,
+        "truth_status": truth_status,
         "value": family["value"],
         "witness": family.get("witness"),
     }
@@ -436,15 +468,7 @@ def metrics_for(
     per_repository: dict[str, dict[str, Any]] = {}
     for repo in sorted(selected):
         row = dataset["repositories"][repo]
-        ordered = sorted(
-            row["families"],
-            key=lambda family: (
-                -proposal_score(family, proposal),
-                -family["value"],
-                family["anchor"][0],
-                family["anchor"][1],
-            ),
-        )
+        ordered = order_families(row["families"], proposal)
         top = ordered[:10]
         counts = {
             "hits": sum(family["truth"] is True for family in top),
@@ -465,6 +489,25 @@ def metrics_for(
     }
 
 
+def order_families(
+    families: Iterable[dict[str, Any]], proposal: Proposal
+) -> list[dict[str, Any]]:
+    """Reproduce current exactly and give every experimental score a strict order."""
+    if proposal.id == BASELINE.id:
+        return sorted(families, key=lambda family: family["current_rank"])
+    return sorted(
+        families,
+        key=lambda family: (
+            -proposal_score(family, proposal),
+            -family["value"],
+            family["anchor"][0],
+            family["anchor"][1],
+            family["current_rank"],
+            family["key"],
+        ),
+    )
+
+
 def metric_record(counts: dict[str, int]) -> dict[str, Any]:
     hits, matched, reported = counts["hits"], counts["matched"], counts["reported"]
     return {
@@ -483,26 +526,57 @@ def candidate_eligible(result: dict[str, Any], baseline: dict[str, Any]) -> bool
         return False
     for record in result["languages"].values():
         if (
-            record["matched"] >= CONTRACT["language_floor_min_positions"]
-            and record["precision_pct"] < CONTRACT["language_precision_floor_pct"]
+            record["reported"] >= CONTRACT["language_floor_min_positions"]
+            and not ratio_at_least(
+                record["hits"],
+                record["matched"],
+                int(CONTRACT["language_precision_floor_pct"]),
+            )
         ):
             return False
     return True
 
 
 def coverage_regression_eligible(result: dict[str, Any], baseline: dict[str, Any]) -> bool:
-    if result["overall"]["coverage_pct"] < CONTRACT["label_coverage_min_pct"]:
+    if result["overall"]["reported"] != baseline["overall"]["reported"]:
+        return False
+    if set(result["languages"]) != set(baseline["languages"]):
+        return False
+    if not ratio_at_least(
+        result["overall"]["matched"],
+        result["overall"]["reported"],
+        int(CONTRACT["label_coverage_min_pct"]),
+    ):
         return False
     for language, record in result["languages"].items():
-        if record["matched"] < CONTRACT["language_floor_min_positions"]:
+        baseline_record = baseline["languages"][language]
+        if record["reported"] != baseline_record["reported"]:
+            return False
+        if record["reported"] < CONTRACT["language_floor_min_positions"]:
             continue
-        if (
-            record["precision_pct"]
-            < baseline["languages"][language]["precision_pct"]
-            - CONTRACT["max_language_regression_pp"]
+        if not regression_within_limit(
+            record["hits"],
+            record["matched"],
+            baseline_record["hits"],
+            baseline_record["matched"],
+            int(CONTRACT["max_language_regression_pp"]),
         ):
             return False
     return True
+
+
+def ratio_at_least(hits: int, count: int, threshold_pct: int) -> bool:
+    return count > 0 and 100 * hits >= threshold_pct * count
+
+
+def regression_within_limit(
+    hits: int, count: int, baseline_hits: int, baseline_count: int, limit_pp: int
+) -> bool:
+    if count <= 0 or baseline_count <= 0:
+        return False
+    return 100 * (hits * baseline_count - baseline_hits * count) >= (
+        -limit_pp * count * baseline_count
+    )
 
 
 def public_metrics(result: dict[str, Any]) -> dict[str, Any]:
@@ -610,8 +684,27 @@ def evaluate_dataset(dataset: dict[str, Any]) -> dict[str, Any]:
     successes = [
         (proposal, result)
         for proposal, result in eligible
-        if result["overall"]["precision_pct"] >= CONTRACT["precision_at_10_min_pct"]
+        if ratio_at_least(
+            result["overall"]["hits"],
+            result["overall"]["matched"],
+            int(CONTRACT["precision_at_10_min_pct"]),
+        )
     ]
+    optimistically_possible = [
+        (proposal, result)
+        for proposal, result in all_results
+        if ratio_at_least(
+            result["overall"]["hits"]
+            + result["overall"]["reported"]
+            - result["overall"]["matched"],
+            result["overall"]["reported"],
+            int(CONTRACT["precision_at_10_min_pct"]),
+        )
+    ]
+    formulas = {
+        canonical_sha256({key: value for key, value in asdict(proposal).items() if key != "id"})
+        for proposal in PROPOSALS
+    }
     return {
         "baseline": public_metrics(baseline),
         "best_any": {
@@ -631,7 +724,17 @@ def evaluate_dataset(dataset: dict[str, Any]) -> dict[str, Any]:
             if eligible
             else None
         ),
-        "decision": "go" if successes else "no-go",
+        "decision": (
+            "go"
+            if successes
+            else "evidence-incomplete"
+            if optimistically_possible
+            else "no-go"
+        ),
+        "optimistically_possible_proposals": [
+            proposal.id for proposal, _ in optimistically_possible
+        ],
+        "proposal_formula_count": len(formulas),
         "proposal_definitions": [asdict(proposal) for proposal in PROPOSALS],
         "proposal_results": {
             proposal_id: public_metrics(result) for proposal_id, result in results.items()
@@ -707,17 +810,17 @@ def freeze(args: argparse.Namespace) -> None:
     dataset_sha = canonical_sha256(dataset)
     evaluation = evaluate_dataset(dataset)
     if evaluation["baseline"]["overall"] != {
-        "hits": 382,
-        "matched": 647,
+        "hits": 380,
+        "matched": 645,
         "reported": 658,
-        "precision_pct": 59.0417,
-        "coverage_pct": 98.3283,
-        "slot_yield_pct": 58.0547,
+        "precision_pct": 58.9147,
+        "coverage_pct": 98.0243,
+        "slot_yield_pct": 57.7508,
         "best_case_slot_precision_pct": 59.7264,
     }:
         raise ValueError("current baseline did not reproduce exactly")
     artifact = {
-        "schema": "nose.residual_ranking_no_go.v1",
+        "schema": "nose.residual_ranking_calibration.v1",
         "issue": 845,
         "split": "dev",
         "decision": evaluation["decision"],
@@ -753,10 +856,7 @@ def freeze(args: argparse.Namespace) -> None:
             "full_universe_worthy_recall": "2716/2849",
             "worthy_recall_delta": 0,
         },
-        "next_step": (
-            "Issue #846 may perform the single blind closeout against the unchanged "
-            "ranking; do not tune any coefficient from held-out results."
-        ),
+        "next_step": EXPECTED_NEXT_STEP,
     }
     args.output.write_text(
         json.dumps(artifact, sort_keys=True, separators=(",", ":")) + "\n",
@@ -771,23 +871,93 @@ def require_equal(actual: object, expected: object, label: str) -> None:
         raise ValueError(f"{label}: mismatch")
 
 
+def require_exact_keys(value: object, expected: set[str], label: str) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != expected:
+        raise ValueError(f"{label}: expected exact keys {sorted(expected)}")
+    return value
+
+
+def expected_path_record(path: Path) -> dict[str, str]:
+    return {"path": path.relative_to(ROOT).as_posix(), "sha256": sha256_file(path)}
+
+
+def validate_current_order(dataset: dict[str, Any]) -> None:
+    for repo, row in dataset["repositories"].items():
+        families = row["families"]
+        ranks = [family["current_rank"] for family in families]
+        if ranks != list(range(1, len(families) + 1)):
+            raise ValueError(f"{repo}: current ranks are not the collected total order")
+        for family in families:
+            anchor_path = Path(family["anchor"][0])
+            expected_prefix = Path("bench/repos") / repo
+            if anchor_path.is_absolute() or ".." in anchor_path.parts or not anchor_path.is_relative_to(expected_prefix):
+                raise ValueError(f"{repo}: family anchor escapes its pinned dev checkout")
+            expected_key = (
+                f"{family['id']}@{family['anchor'][0]}:{family['anchor'][1]}"
+                f"#rank-{family['current_rank']}"
+            )
+            require_equal(family["key"], expected_key, f"{repo}: family key")
+
+
 def validate_payload(artifact: dict[str, Any]) -> None:
-    require_equal(artifact.get("schema"), "nose.residual_ranking_no_go.v1", "schema")
+    require_exact_keys(
+        artifact,
+        {
+            "schema",
+            "issue",
+            "split",
+            "decision",
+            "heldout_policy",
+            "contract",
+            "provenance",
+            "dataset_sha256",
+            "dataset",
+            "evaluation",
+            "independent_preimplementation_reviews",
+            "preservation",
+            "next_step",
+        },
+        "artifact",
+    )
+    require_equal(artifact.get("schema"), "nose.residual_ranking_calibration.v1", "schema")
     require_equal(artifact.get("issue"), 845, "issue")
     require_equal(artifact.get("split"), "dev", "split")
     require_equal(artifact.get("heldout_policy"), HELDOUT_POLICY, "heldout_policy")
     require_equal(artifact.get("contract"), CONTRACT, "contract")
-    provenance = artifact["provenance"]
+    provenance = require_exact_keys(
+        artifact["provenance"],
+        {
+            "base_commit",
+            "base_tree",
+            "binary_sha256",
+            "binary_version",
+            "corpus",
+            "dev_labels",
+            "parent_quality",
+            "collector",
+        },
+        "provenance",
+    )
     require_equal(provenance["base_commit"], EXPECTED_BASE_COMMIT, "base commit")
     require_equal(provenance["base_tree"], EXPECTED_BASE_TREE, "base tree")
     require_equal(provenance["binary_sha256"], EXPECTED_BINARY_SHA256, "binary")
-    for record in [provenance["corpus"], provenance["parent_quality"], *provenance["dev_labels"]]:
-        require_equal(sha256_file(ROOT / record["path"]), record["sha256"], record["path"])
-    require_equal(
-        sha256_file(ROOT / provenance["collector"]["path"]),
-        provenance["collector"]["sha256"],
-        "collector",
-    )
+    require_equal(provenance["binary_version"], EXPECTED_BINARY_VERSION, "binary version")
+    expected_corpus = expected_path_record(CORPUS)
+    expected_parent = expected_path_record(PARENT_QUALITY)
+    expected_labels = [expected_path_record(path) for path in DEV_LABELS]
+    expected_collector = expected_path_record(Path(__file__))
+    require_equal(provenance["corpus"], expected_corpus, "corpus provenance")
+    require_equal(provenance["parent_quality"], expected_parent, "parent provenance")
+    require_equal(provenance["dev_labels"], expected_labels, "dev-label provenance")
+    require_equal(provenance["collector"], expected_collector, "collector provenance")
+    for label, record in (
+        ("corpus", expected_corpus),
+        ("parent quality", expected_parent),
+        *[(f"dev label {index}", record) for index, record in enumerate(expected_labels)],
+        ("collector", expected_collector),
+    ):
+        require_exact_keys(record, {"path", "sha256"}, label)
+        require_equal(sha256_file(ROOT / record["path"]), record["sha256"], label)
     dataset_sha = canonical_sha256(artifact["dataset"])
     require_equal(dataset_sha, artifact["dataset_sha256"], "dataset digest")
     if EXPECTED_DATASET_SHA256:
@@ -800,10 +970,13 @@ def validate_payload(artifact: dict[str, Any]) -> None:
         sum(len(row["families"]) for row in artifact["dataset"]["repositories"].values()),
         "family count",
     )
+    validate_current_order(artifact["dataset"])
     reproduced = evaluate_dataset(artifact["dataset"])
     require_equal(reproduced, artifact["evaluation"], "evaluation")
-    require_equal(artifact["decision"], "no-go", "decision")
-    require_equal(artifact["evaluation"]["decision"], "no-go", "evaluated decision")
+    require_equal(artifact["decision"], "evidence-incomplete", "decision")
+    require_equal(
+        artifact["evaluation"]["decision"], "evidence-incomplete", "evaluated decision"
+    )
     require_equal(artifact["evaluation"]["successful_proposals"], [], "successful proposals")
     reviews = artifact["independent_preimplementation_reviews"]
     require_equal(reviews, reviewer_records(), "independent reviews")
@@ -820,6 +993,7 @@ def validate_payload(artifact: dict[str, Any]) -> None:
         },
         "preservation",
     )
+    require_equal(artifact["next_step"], EXPECTED_NEXT_STEP, "next step")
 
 
 def validate(args: argparse.Namespace) -> None:
@@ -844,6 +1018,21 @@ def self_test(args: argparse.Namespace) -> None:
     changed = copy.deepcopy(artifact)
     changed["independent_preimplementation_reviews"][0]["heldout_opened"] = True
     mutations.append(changed)
+    changed = copy.deepcopy(artifact)
+    changed["heldout_evaluation"] = {"precision_at_10": 99}
+    mutations.append(changed)
+    changed = copy.deepcopy(artifact)
+    changed["provenance"]["heldout_result"] = {"path": "secret-heldout.json"}
+    mutations.append(changed)
+    changed = copy.deepcopy(artifact)
+    changed["provenance"]["dev_labels"] = []
+    mutations.append(changed)
+    changed = copy.deepcopy(artifact)
+    changed["provenance"]["binary_version"] = "nose 999.0.0"
+    mutations.append(changed)
+    changed = copy.deepcopy(artifact)
+    changed["next_step"] = "Open held-out now"
+    mutations.append(changed)
     for mutation in mutations:
         try:
             validate_payload(mutation)
@@ -851,6 +1040,44 @@ def self_test(args: argparse.Namespace) -> None:
             pass
         else:
             raise AssertionError("invalid mutation was accepted")
+    assert not candidate_eligible(
+        {
+            "overall": metric_record({"hits": 400, "matched": 600, "reported": 658}),
+            "languages": {
+                "C": metric_record({"hits": 0, "matched": 29, "reported": 90})
+            },
+        },
+        {
+            "overall": metric_record({"hits": 380, "matched": 645, "reported": 658}),
+            "languages": {
+                "C": metric_record({"hits": 40, "matched": 90, "reported": 90})
+            },
+        },
+    ), "reported-position language floor must reject missingness evasion"
+    synthetic = [
+        {
+            "current_rank": rank,
+            "key": key,
+            "id": key,
+            "value": 1.0,
+            "anchor": ["same.rs", 1],
+            "base_core": 1.0,
+            "file_bonus": 0.0,
+            "module_bonus": 0.0,
+            "language_bonus": 0.0,
+            "params": 0,
+            "tightness": 1.0,
+            "homogeneity": 1.0,
+            "same_symbol": False,
+            "modules": 1,
+            "witness": None,
+            "implementation_type": False,
+        }
+        for rank, key in ((2, "b"), (1, "a"))
+    ]
+    experimental = next(proposal for proposal in PROPOSALS if proposal.id != "current")
+    assert [family["key"] for family in order_families(synthetic, experimental)] == ["a", "b"]
+    assert [family["key"] for family in order_families(reversed(synthetic), experimental)] == ["a", "b"]
     print("residual-ranking self-test passed")
 
 

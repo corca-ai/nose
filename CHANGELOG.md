@@ -7,17 +7,14 @@ break.
 ## [Unreleased]
 
 ### Added
-- Recorded the checked #845 residual deterministic-ranking no-go. Three independent
-  dev-only reviews converged on spread relaxation as the strongest transparent lever,
-  then a complete 29,348-family calibration evaluated 47 pre-registered proposals with
-  repository-level eight-fold CV. The best raw precision reaches 67.12% only by dropping
-  coverage to 77.66% and losing 39 known worthy slots; the best coverage/regression-
-  guarded proposal reaches 62.50%, loses 22 known worthy slots, and cannot exceed 67.17%
-  even if every unmatched slot is worthy. No proposal also clears the C/Java/Swift
-  language floor, so all folds retain the current score and held-out remains closed for
-  #846. CI reconstructs the frozen dev projection, proposal grid, gates, and no-go;
-  product ranking, surfaces, recall, determinism, and official-v0.19.0 runtime price are
-  unchanged.
+- Froze the judgment-blind #845 residual-ranking calibration and complete dev top-up
+  frontier. The full 29,348-family universe evaluates 46 unique transparent formulas,
+  rejects ambiguous overlap labels, uses exact reported-position gates and deterministic
+  total orders, and remains explicitly evidence-incomplete rather than treating missing
+  labels as product failures. A non-adaptive 219-family panel packet covers every
+  unresolved top-10 position of every formula and therefore every repository CV fold.
+  The packet contains no judgments; held-out remains closed and product behavior is
+  unchanged until the separately committed panel result decides go or no-go.
 - Recorded the checked #844 proof/actionability no-go. Three independent source reviews
   agree that removing the proven-channel protection reaches only 60% non-action precision
   on its direct frozen boundary (0% for `trivial`, 75% for `shallow-extraction`), while
