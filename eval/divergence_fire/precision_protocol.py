@@ -528,6 +528,15 @@ def encode_bytes(value: bytes) -> str:
     return base64.b64encode(value).decode("ascii")
 
 
+def create_sanitized_mirror(source: Path, destination: Path) -> None:
+    git(
+        "clone", "--bare", "--shared", os.fspath(source), os.fspath(destination),
+        cwd=ROOT,
+    )
+    require(not (destination / "info/attributes").exists(),
+            "sanitized mirror attributes")
+
+
 def collect_private_population(
     root_seed: bytes, repos_root: Path, blind: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -543,12 +552,7 @@ def collect_private_population(
         source_repo = repos_root / row["id"]
         require(source_repo.is_dir(), f"missing repository {row['id']}")
         repo = mirror_root / f"repo-{index:02d}.git"
-        git(
-            "clone", "--bare", "--shared", os.fspath(source_repo), os.fspath(repo),
-            cwd=ROOT,
-        )
-        require(not (repo / "info/attributes").exists(),
-                "sanitized mirror attributes")
+        create_sanitized_mirror(source_repo, repo)
         head = git("rev-parse", "HEAD", cwd=repo).stdout.strip()
         require(head == row["commit"], f"repository head {row['id']}")
         eligible = eligible_commits(repo)
@@ -1072,7 +1076,50 @@ def expect_failure(document: dict[str, Any], label: str) -> None:
     raise AssertionError(f"mutation accepted: {label}")
 
 
+def selftest_git_collection() -> None:
+    with tempfile.TemporaryDirectory(prefix="nose-848-git-selftest-") as directory:
+        root = Path(directory)
+        source = root / "source"
+        source.mkdir()
+        git("init", "-q", cwd=source)
+        git("config", "user.name", "nose self-test", cwd=source)
+        git("config", "user.email", "nose-self-test@example.invalid", cwd=source)
+        old_path = source / "old.py"
+        old_path.write_bytes(b"one\ntwo\nthree\nfour\n")
+        git("add", "old.py", cwd=source)
+        git("commit", "-q", "-m", "base", cwd=source)
+        parent = git("rev-parse", "HEAD", cwd=source).stdout.strip()
+        old_path.rename(source / "new.py")
+        (source / "new.py").write_bytes(b"one\ntwo changed\nthree\nfour\n")
+        git("add", "-A", cwd=source)
+        git("commit", "-q", "-m", "rename", cwd=source)
+        commit = git("rev-parse", "HEAD", cwd=source).stdout.strip()
+        git("config", "diff.renames", "true", cwd=source)
+        info_attributes = source / ".git/info/attributes"
+        info_attributes.write_text("*.py binary\n")
+
+        mirror = root / "mirror.git"
+        create_sanitized_mirror(source, mirror)
+        observed = (
+            source_change(mirror, parent, commit),
+            supported_changed_paths(mirror, parent, commit),
+            source_diff(mirror, parent, commit,
+                        supported_changed_paths(mirror, parent, commit)),
+        )
+        require(observed[0] == (2, 8), "sanitized numstat fixture")
+        require(all(isinstance(path, bytes) for path in observed[1]),
+                "raw path bytes")
+        require(isinstance(observed[2], bytes) and observed[2], "raw diff bytes")
+        try:
+            source_change(mirror, "f" * 40, commit)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("Git selection error was silently accepted")
+
+
 def selftest_embedded() -> None:
+    selftest_git_collection()
     require(abs(wilson_lower(45, 80) - 0.4707078148504071) < 1e-12,
             "Wilson development fixture")
     require(wilson_lower(0, 0) is None, "Wilson zero denominator")
