@@ -267,6 +267,7 @@ def validate_arbiter_packet(payload: dict[str, Any]) -> None:
         if (
             not isinstance(members, list)
             or not members
+            or type(family["member_count"]) is not int
             or family["member_count"] != len(members)
         ):
             raise ValueError(f"arbiter candidates[{index}].members: invalid")
@@ -504,11 +505,23 @@ def validate_commitment(payload: dict[str, Any]) -> None:
         collector["byte_length"],
         "arbitration collector bytes",
     )
-    subprocess.run(
-        ["git", "merge-base", "--is-ancestor", collector_commit, "HEAD"],
-        cwd=ROOT,
-        check=True,
+    require_equal(
+        collector_blob,
+        Path(__file__).resolve().read_bytes(),
+        "reviewed current arbitration collector",
     )
+    for ancestor, descendant, label in (
+        (vote_receipt.VOTE_COMMIT, collector_commit, "vote-before-collector chronology"),
+        (collector_commit, "HEAD", "collector ancestry"),
+    ):
+        result = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            raise ValueError(f"{label}: mismatch")
 
 
 def freeze(args: argparse.Namespace) -> None:
@@ -552,6 +565,55 @@ def self_test(_: argparse.Namespace) -> None:
     changed["skeptic"]["reason"] = "coincidental-shape"
     if first == anonymous_panel_votes("candidate", changed, seed):
         raise AssertionError("vote content mutation was ignored")
+    valid_private_packet = {
+        "schema": ARBITER_PACKET_SCHEMA,
+        "issue": 846,
+        "split": "heldout",
+        "persona": "arbiter",
+        "judgment_status": "procedurally-blind-unjudged-disagreements",
+        "packet_nonce": "1" * 64,
+        "rubric_sha256": heldout.sha256_file(heldout.RUBRIC),
+        "reviewer_protocol": {
+            "guarantee": "procedural-product-metadata-blindness",
+            "not_guaranteed": (
+                "identity hiding from a reviewer who searches remembered or public source"
+            ),
+            "allowed_material": ["assigned arbitration packet", "bound rubric"],
+            "prohibited_actions": [
+                "inspect Git, the corpus, repositories, or unassigned files",
+                "use network access or search for source identity",
+                "read raw persona vote files or contact a reviewer",
+            ],
+            "required_vote_attestation": ARBITER_ATTESTATION,
+        },
+        "candidates": [
+            {
+                "blind_id": "case-" + "2" * 24,
+                "language": "Python",
+                "family": {
+                    "member_count": 1,
+                    "members": [
+                        {
+                            "source_id": "source-" + "3" * 24,
+                            "context_before": "before",
+                            "source": "source",
+                            "context_after": "after",
+                        }
+                    ],
+                },
+                "panel_votes": first,
+            }
+        ],
+    }
+    validate_arbiter_packet(valid_private_packet)
+    for invalid_count in (True, 1.0):
+        changed_packet = copy.deepcopy(valid_private_packet)
+        changed_packet["candidates"][0]["family"]["member_count"] = invalid_count
+        try:
+            validate_arbiter_packet(changed_packet)
+        except ValueError:
+            continue
+        raise AssertionError("non-integer arbitration member count was accepted")
     panel_commitment = panel.read_commitment()
     collector_commit = heldout.git_text(["rev-parse", "HEAD"])
     collector_tree = heldout.git_text(["rev-parse", "HEAD^{tree}"])
@@ -622,6 +684,24 @@ def self_test(_: argparse.Namespace) -> None:
     commitment_mutations.append(changed_commitment)
     changed_commitment = copy.deepcopy(valid_commitment)
     changed_commitment["provenance"]["collector_commit"] = "0" * 40
+    commitment_mutations.append(changed_commitment)
+    changed_commitment = copy.deepcopy(valid_commitment)
+    pre_vote_commit = vote_receipt.VOTE_PARENT
+    pre_vote_tree = heldout.git_text(["rev-parse", f"{pre_vote_commit}^{{tree}}"])
+    pre_vote_blob = heldout.git_bytes(
+        ["show", f"{pre_vote_commit}:{collector_path}"]
+    )
+    changed_commitment["provenance"].update(
+        {
+            "collector": {
+                "path": collector_path,
+                "sha256": hashlib.sha256(pre_vote_blob).hexdigest(),
+                "byte_length": len(pre_vote_blob),
+            },
+            "collector_commit": pre_vote_commit,
+            "collector_tree": pre_vote_tree,
+        }
+    )
     commitment_mutations.append(changed_commitment)
     changed_commitment = copy.deepcopy(valid_commitment)
     changed_commitment["arbitration_packet"]["candidate_count"] = 1.0

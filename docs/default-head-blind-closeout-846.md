@@ -115,7 +115,10 @@ commit—not from the working tree or its current `HEAD`—then privately rechec
 their ID order against the original packets. Its public commitment validator binds
 the panel commitment, atomic vote commit/tree/parent and file receipts, root-seed
 commitment, collector commit/tree/blob, clean freeze state, and private arbitration
-packet hash, length, schema, and disagreement count.
+packet hash, length, schema, and disagreement count. It also requires the vote
+commit to precede the collector commit and the frozen collector bytes to equal the
+reviewed current tool, so a self-consistent pre-vote collector cannot assert the
+opposite chronology.
 
 ## Closeout gates
 
