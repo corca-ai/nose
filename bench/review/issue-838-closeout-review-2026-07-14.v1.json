@@ -54,71 +54,117 @@
       {
         "number": 846,
         "pull_requests": [887, 888, 889, 890, 893, 894],
-        "closeout_head": "47908d309f2bedba173f4fed9b7a9bf28fa24db4",
-        "squash_commit": "a760524d7adece867e90a136b484aebb041a8a8f",
-        "repair_head": "2ce1345be539fd86238005dc0bbc2c0b40449c51",
-        "merge_commit": "bfb5f01f796faffc22296b312ae4affb045e9fd2"
+        "stages": [
+          {
+            "pull_request": 887,
+            "head": "71fbfe07ac785651c4ef39079e4cc237a6b3ef85",
+            "merge_commit": "81809ea36d13daab33d7e05ec20e787186a2aec7"
+          },
+          {
+            "pull_request": 888,
+            "head": "d0e7c1b3d0a37952d53c75e61071d0b32939f8a8",
+            "merge_commit": "a7a510f41100c0efac077dbf5b221a517523ec7b"
+          },
+          {
+            "pull_request": 889,
+            "head": "fd1b6fc2efc77035f75de5aeb0dc958c9d175cfb",
+            "merge_commit": "b0f60803afa65794480c9ffdb364ecd19999d4a6"
+          },
+          {
+            "pull_request": 890,
+            "head": "768c052f4b4a619c84687858c45449b6df75cf9c",
+            "merge_commit": "1341bad16d12e4062cd556d2c8e553cb2042d011"
+          },
+          {
+            "pull_request": 893,
+            "head": "47908d309f2bedba173f4fed9b7a9bf28fa24db4",
+            "merge_commit": "a760524d7adece867e90a136b484aebb041a8a8f",
+            "integration": "squash; receipt ancestry broken"
+          },
+          {
+            "pull_request": 894,
+            "head": "2ce1345be539fd86238005dc0bbc2c0b40449c51",
+            "merge_commit": "bfb5f01f796faffc22296b312ae4affb045e9fd2",
+            "integration": "true merge; receipt ancestry restored"
+          }
+        ]
       }
     ],
     "process_note": "This artifact records post-implementation independent review evidence for tracker #838 and each subissue #839-#846. It does not relabel unsupported PR-body claims as durable pre-merge review. The original pre-merge reviewer conversations were not retained as checked artifacts; that process gap remains explicit."
   },
-  "prompt_boundary": "Three independent read-only subagents were each required to inspect the current #838 tracker and every subissue #839-#846 individually at exact merged main bfb5f01f796faffc22296b312ae4affb045e9fd2. Each had to report an eight-row PASS/FAIL matrix covering exact PR/head/merge identity, acceptance evidence and metrics, dependency order, held-out boundary, validation evidence, and support for the three-review requirement; then separately audit tracker checkmarks, the no-go/product-unchanged conclusion, follow-ups #891/#892, #894 ancestry repair, and merged-main CI run 29334394161. Reviewers were read-only and instructed not to coordinate.",
-  "reviewers": [
+  "rounds": [
     {
+      "round": 1,
+      "prompt_boundary": "Three independent read-only subagents were each required to inspect the current #838 tracker and every subissue #839-#846 individually at exact merged main bfb5f01f796faffc22296b312ae4affb045e9fd2. Each had to report an eight-row PASS/FAIL matrix covering exact PR/head/merge identity, acceptance evidence and metrics, dependency order, held-out boundary, validation evidence, and support for the three-review requirement; then separately audit tracker checkmarks, the no-go/product-unchanged conclusion, follow-ups #891/#892, #894 ancestry repair, and merged-main CI run 29334394161. Reviewers were read-only and instructed not to coordinate.",
+      "reviewed_state": {
+        "commit": "bfb5f01f796faffc22296b312ae4affb045e9fd2",
+        "tree": "aae511e736340b3995ec1fa8d4850dcc44f2799c",
+        "working_tree": "clean"
+      },
+      "reviewers": [
+        {
       "canonical_task": "/root/review_vote_freeze_a",
       "lane": "A",
       "disposition": "REQUEST_CHANGES",
-      "blocking_findings": [],
-      "major_findings": [
-        "The implementation PRs contain author assertions of three independent reviews but no durable reviewer-authored or checked record with reviewer identity, exact reviewed state, prompt boundary, findings, dispositions, and validation summary."
+      "blocking_findings": [
+        "[P2] The implementation PRs contain author assertions of three independent reviews but no durable reviewer-authored or checked record with reviewer identity, exact reviewed state, prompt boundary, findings, dispositions, and validation summary."
       ],
+      "major_findings": [],
       "technical_findings": [],
       "checks_summary": "Independently reran the exact-main validators for #839-#846, checked the complete dependency chronology and held-out boundary, reconciled every tracker metric and checkbox, verified the unchanged crates tree and bounded #891/#892 follow-ups, and verified successful push CI run 29334394161. No technical P1 or P3 defect remained.",
       "per_issue": [
         {
           "number": 839,
+          "result": "FAIL",
           "technical_result": "PASS",
           "review_evidence_result": "GAP",
           "evidence": "120-repository parity and deterministic v0.19.0 baseline; dev 271/437 and heldout 222/375; coverage 437/658 and 375/538; recall 2716/2849 and 2005/2091."
         },
         {
           "number": 840,
+          "result": "FAIL",
           "technical_result": "PASS",
           "review_evidence_result": "GAP",
           "evidence": "Dev coverage 658/658; 286 dev judgments; 214 source-free heldout selections; all 15 Swift repositories represented; runway validation passed."
         },
         {
           "number": 841,
+          "result": "FAIL",
           "technical_result": "PASS",
           "review_evidence_result": "GAP",
           "evidence": "All 658 positions classified; generated and declaration cohorts survived deep audits; proof/actionability rejected; heldout remained closed."
         },
         {
           "number": 842,
+          "result": "FAIL",
           "technical_result": "PASS",
           "review_evidence_result": "GAP",
           "evidence": "Generated positives 10/10 and 20/20 moved; hard negatives 3/3 preserved; identity/recall preserved; adjusted runtime -1.72% and r40 -1.02%."
         },
         {
           "number": 843,
+          "result": "FAIL",
           "technical_result": "PASS",
           "review_evidence_result": "GAP",
           "evidence": "Declaration positives 5/5 moved; hard negatives 8/8 preserved; recall 2716/2849 with zero regression; controlled performance passed."
         },
         {
           "number": 844,
+          "result": "FAIL",
           "technical_result": "PASS",
           "review_evidence_result": "GAP",
           "evidence": "Direct cohort 3/5 and broad cohort 27/64 missed the 90% gate; correct no-go with product and heldout unchanged."
         },
         {
           "number": 845,
+          "result": "FAIL",
           "technical_result": "PASS",
           "review_evidence_result": "GAP",
           "evidence": "Selection and judgment were separate; 219 exact-key labels covered all 46 formulas; best 449/658, CV 416/658, C 48.89%; correct no-go with heldout unopened."
         },
         {
           "number": 846,
+          "result": "FAIL",
           "technical_result": "PASS",
           "review_evidence_result": "GAP",
           "evidence": "Ancestry repaired by #894; dev 387/658 and heldout 334/526; coverage/recall pass while precision/language/performance fail honestly; no retuning; exact-main validators and CI passed."
@@ -226,6 +272,46 @@
           "evidence": "One-shot closeout records dev 58.81%, heldout 63.50%, preserved invariants, failed performance stages, and true-merge ancestry repair."
         }
       ]
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "prompt_boundary": "The same three independent read-only subagents reviewed exact artifact commit e68b9bd624f848f5ad9174c30893cbeb14cc448e against their own round-1 reports, exact main and GitHub identities, the issue-676-679 v1 precedent, and the repository evidence. They were required to check transcription fidelity, schema coherence, process-gap honesty, accepted-feedback disposition, and omission or overstatement of any finding.",
+      "reviewed_state": {
+        "commit": "e68b9bd624f848f5ad9174c30893cbeb14cc448e",
+        "parent": "bfb5f01f796faffc22296b312ae4affb045e9fd2",
+        "working_tree": "clean"
+      },
+      "reviewers": [
+        {
+          "canonical_task": "/root/review_vote_freeze_a",
+          "lane": "A",
+          "disposition": "REQUEST_CHANGES",
+          "blocking_findings": [
+            "[P2] Lane A returned FAIL for every #839-#846 review gate, but the first artifact version recorded only technical PASS and review-evidence GAP without the overall FAIL.",
+            "[P2] The artifact declared nose.closeout_review.v1 without the precedent's rounds and final_review_status structure.",
+            "[P2] #846 named PRs #887-#890 without their exact head-to-merge mappings."
+          ],
+          "checks_summary": "Everything else reconciled: reviewed head/tree, CI run, other PR identities, metrics, prompt boundary, lane-A disposition and P2 substance, process-gap language, tracker result, and technical conclusions."
+        },
+        {
+          "canonical_task": "/root/review_vote_freeze_c",
+          "lane": "C",
+          "disposition": "REQUEST_CHANGES",
+          "blocking_findings": [
+            "[P2] The durable #846 identity record omitted exact head-to-merge mappings for intermediate PRs #887-#890."
+          ],
+          "checks_summary": "No other defect found; all recorded identifiers and metrics, ancestry incident, failed and successful CI runs, tracker result, follow-up boundaries, and process-gap wording were accurate."
+        },
+        {
+          "canonical_task": "/root/review_vote_freeze_e",
+          "lane": "E",
+          "disposition": "APPROVE",
+          "blocking_findings": [],
+          "checks_summary": "Validated JSON, all three eight-row records, exact main/tree/CI and PR identities, metrics, ancestry repair, tracker result, process-gap language, accepted feedback, diff, docs, file length, and duplication gate. Noted that pending follow-up status was honest for the reviewed commit."
+        }
+      ]
     }
   ],
   "accepted_feedback": [
@@ -236,6 +322,18 @@
     {
       "finding": "Existing PR prose did not durably identify the independent whole-work reviews required for each #838 subissue.",
       "resolution": "Added this post-implementation artifact with exact reviewed state, prompt boundary, canonical reviewer task identities, dispositions, findings, check summaries, and independent per-subissue results. This explicitly records the earlier durability gap rather than representing these reviews as pre-merge evidence."
+    },
+    {
+      "finding": "The first artifact version softened lane A's explicit per-subissue FAIL results into technical PASS plus review-evidence GAP and placed a blocking P2 outside blocking_findings.",
+      "resolution": "Each lane-A row now records overall FAIL alongside technical PASS and review-evidence GAP, and the P2 is preserved as blocking to that reviewer's approval."
+    },
+    {
+      "finding": "The first artifact version declared nose.closeout_review.v1 without the precedent's rounds and final_review_status structure.",
+      "resolution": "Normalized the artifact to explicit review rounds with exact reviewed states and added final_review_status; round 2 records all three artifact-review dispositions and remains pending a committed-state follow-up."
+    },
+    {
+      "finding": "The #846 scope named PRs #887-#890 without exact head-to-merge mappings.",
+      "resolution": "Added exact head and merge commits for every #887-#890 blind-state transition, plus explicit #893 squash-failure and #894 true-merge-repair integration notes."
     }
   ],
   "rejected_feedback": [],
@@ -260,8 +358,13 @@
     "revealed_heldout_reused_for_tuning": false,
     "follow_ups": [891, 892]
   },
-  "follow_up_review": {
-    "status": "pending",
-    "requirement": "Three independent reviewers must verify this artifact accurately represents their reviews, that the accepted process finding is resolved without rewriting history, and that no new technical or evidence defect was introduced."
+  "final_review_status": {
+    "required_rounds_completed": false,
+    "rounds_completed": 2,
+    "whole_work_reviewers_per_round": 3,
+    "remaining_blocking_findings": 0,
+    "remaining_major_findings": 0,
+    "remaining_minor_findings": 0,
+    "pending_follow_up": "Three independent reviewers must verify the round-2 corrections on an exact committed state before this artifact and tracker can close."
   }
 }
