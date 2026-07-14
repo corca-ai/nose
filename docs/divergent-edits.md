@@ -79,6 +79,16 @@ positives while demoting mixed/test evidence from default-failing output. The
 remaining strict false positives split into 17 `no_propagation_needed`, 13
 `intentional_divergence`, and 5 `not_a_clone` findings. This supports an opt-in
 review gate; it is not a default-on blocking readiness claim.
+
+The next gate-policy cycle is governed by the [sealed #848 precision
+protocol](../eval/divergence_fire/RESULTS.md#sealed-precision-first-protocol-2026-07-14-848).
+The existing 28-repository, 179-label set is now development-only. Blind decisions use
+a fresh repository-disjoint, source-redacted population; a separate post-seal temporal
+reserve is required before any default-on claim. The protocol fixes target, finding,
+and change precision, one-sided 95% Wilson bounds, repository-atomic stopping, and four
+possible outcomes before a held-out verdict exists. Until both the blind target gate and
+the stricter temporal default-on gate pass, `--fail-on any` remains an opt-in review gate.
+
 Each JSON finding carries legacy `fire_eligible`, the v2 `tier` and `gate.fail_default`,
 `witness_kind`, `scope`, per-changed-site `touches_shared`, and — for near families —
 the family's [graded witness](graded-witness.md) (`graded`: `equal_modulo_holes`,

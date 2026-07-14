@@ -62,6 +62,86 @@ python3 eval/divergence_fire/replay.py redact-sample --samples sample.labeled.js
 python3 eval/divergence_fire/replay.py policy-eval --samples eval/divergence_fire/sampled_findings_2026_07_06.jsonl --verdicts eval/divergence_fire/verdicts_2026_07_06.jsonl --out eval/divergence_fire/policy_eval_2026_07_06.json
 ```
 
+## Sealed precision-first protocol (2026-07-14, #848)
+
+Further gate changes use the checked
+[`precision_protocol_2026_07_14.v1.json`](precision_protocol_2026_07_14.v1.json).
+It freezes measurement and population before implementation work can inspect any new
+quality result. The 28 repositories and 179 labels from the 2026-07-06 refresh are
+**development-only**. They reproduce the v2 baseline at 80 strict findings, 45 true
+positives, 35 false positives, precision 45/80 = 0.5625 (reported 0.562), and a
+one-sided 95% Wilson lower bound of 0.4707.
+
+The fresh blind population is repository-disjoint from development data: four
+repositories for each of C, Go, Java, Python, Ruby, Rust, and TypeScript, or 28
+repositories total. Up to 40 eligible first-parent changes were frozen per repository,
+yielding 1,120 changes. A separate 28-repository temporal-canary reserve, also four per
+language, becomes eligible only after the seal and targets 1,000 changes. The primary
+arm remains `syntax,semantic`; `syntax,semantic,near` is advisory and cannot decide the
+gate.
+
+The evaluation reports three precision units:
+
+- target precision: `should_propagate` direct changed-member-to-skipped-sibling targets
+  divided by all adjudicated strict targets;
+- finding precision: positive strict family findings divided by all adjudicated strict
+  findings; and
+- change precision: changes with at least one `should_propagate` strict target divided
+  by changes with at least one strict target.
+
+All lower confidence bounds are one-sided 95% Wilson score bounds (`z = 1.6448536269`).
+For the blind policy gate, strict-target precision must be at least 0.95, its Wilson
+lower bound at least 0.90, and support at least 100 targets. A default-on claim further
+requires change-block precision at least 0.99, its Wilson lower bound at least 0.95,
+at least 20 repositories and 1,000 temporal changes, and zero confirmed false required
+blocks. Finding and change precision are always reported.
+
+Sampling is repository-atomic. In secret HMAC order, replay and adjudicate every
+selected change and every emitted strict target from the next complete repository;
+stop only after the first complete repository that brings cumulative support to at
+least 100 strict targets. A replay error remains counted and is never replaced. If all
+28 blind repositories are exhausted below 100 strict targets, the result is
+`insufficient-evidence`, not a relaxed sample. The allowed final classifications are
+`default-on-ready`, `improved-opt-in-only`, `failed`, and `insufficient-evidence`.
+
+No held-out quality labels exist at this stage. Raw repository/commit identities,
+source-bearing diffs, and the HMAC seed remain in an external private packet. Git stores
+only opaque repository/change IDs, row commitments, source-free provenance, population
+counts, and the private packet's byte length and SHA-256. Two independent reviewers per
+opaque target and a resolver for disagreement must seal verdicts before identities can
+be revealed. This keeps implementation issues from tuning against blind outcomes.
+
+The public validator freezes the v0.19.0 release binary identity, corpus and prune
+manifest, replay harness, collector, source-redaction boundary, stop rule, verdict
+rubric, thresholds, and opaque population. The history-bound receipt additionally pins
+the exact artifact commit, parent, tree, Git blobs, file bytes, public checksum, seed
+commitment, private-packet commitment, and population counts. Consequently the #848
+branch must be integrated with a true Git merge commit; squash or rebase would remove
+the frozen artifact commit from ancestry and deliberately fail validation.
+
+Reproduce the public protocol and the development baseline:
+
+```sh
+python3 eval/divergence_fire/precision_protocol.py validate
+python3 eval/divergence_fire/precision_protocol.py self-test
+python3 eval/divergence_fire/precision_protocol_receipt.py validate
+python3 eval/divergence_fire/precision_protocol_receipt.py self-test
+python3 eval/divergence_fire/replay.py selftest
+python3 eval/divergence_fire/replay.py check-artifacts
+python3 eval/divergence_fire/replay.py policy-eval \
+  --samples eval/divergence_fire/sampled_findings_2026_07_06.jsonl \
+  --verdicts eval/divergence_fire/verdicts_2026_07_06.jsonl \
+  --out /tmp/divergent-v2-development-policy.json
+```
+
+An authorized custodian can also reproduce the private projection without exposing it
+in Git:
+
+```sh
+python3 eval/divergence_fire/precision_protocol.py validate-private \
+  --private-dir <external-private-dir> --repos-root bench/repos
+```
+
 ## Refresh run (2026-07-06, #670-#675)
 
 The first v2 replay refresh broadened the corpus sample to 28 repos and 10 commits
