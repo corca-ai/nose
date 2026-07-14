@@ -239,6 +239,15 @@ and completeness 63/180. Six trace disagreements remain advisory. All 120
 repositories produce one repeated-run hash; the 66 dev and 54 held-out repositories
 are byte-identical at `RAYON_NUM_THREADS=1` and `4`.
 
+The checked [measurement provenance
+manifest](../bench/labels/default_head_measurement_provenance_2026_07_14.v1.json) binds
+the raw soundness report, held-out thread matrix, and Ruby scaling report to
+the frozen product source and binary, a clean measurement tree, the exact `crates`
+Git tree, and the frozen corpus/prune/state digests. The closeout validator resolves
+the recorded commits, requires them to be ancestors of the reviewed checkout,
+re-hashes every bound artifact and input, and derives the 54 held-out repository IDs
+from the corpus manifest rather than trusting the TSV alone.
+
 Performance uses the published v0.19.0 binary and an official/official same-binary
 control. The all-120 primary aggregate is safe: 41,819.31 ms → 42,221.93 ms,
 raw +0.96%, control-adjusted +515.13 ms / +1.23%. The exact output ledger reports

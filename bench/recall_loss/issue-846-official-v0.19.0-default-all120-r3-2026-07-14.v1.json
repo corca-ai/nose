@@ -529,9 +529,9 @@
     "current_binary_code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1",
     "current_binary_sha256": "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0",
     "current_source_ref": "HEAD",
-    "current_source_sha": "cdab4167c279e87a236055a8f972ed712018e155",
+    "current_source_sha": "cdab416706c32ea94bf808ec7ebb36781e483e65",
     "harness": "scripts/query-regression-harness.py",
-    "harness_command": "python3 scripts/query-regression-harness.py --baseline-binary target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose --current-binary target/release/nose --baseline-source-ref v0.19.0 --current-source-ref HEAD --baseline-source-sha 0985e6963c58d5a97e523bc532b88aa5e34f2ef9 --current-source-sha cdab4167c279e87a236055a8f972ed712018e155 --repos-root bench/repos --all-repos --iterations 3 --warmups 1 --query-args 'query {repo} all top=0 --format json' --corpus-manifest bench/goldens/corpus.json --prune-manifest bench/labels/prune_manifest.json --corpus-state bench/repos/.nose-corpus-state.json --expected-corpus-state bench/default_head_closeout_corpus.v1.json --output target/issue-846-closeout/query-regression-v0.19.0-to-head-default-all120-r3.v1.json",
+    "harness_command": "python3 scripts/query-regression-harness.py --baseline-binary target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose --current-binary target/release/nose --baseline-source-ref v0.19.0 --current-source-ref HEAD --baseline-source-sha 0985e6963c58d5a97e523bc532b88aa5e34f2ef9 --current-source-sha cdab416706c32ea94bf808ec7ebb36781e483e65 --repos-root bench/repos --all-repos --iterations 3 --warmups 1 --query-args 'query {repo} all top=0 --format json' --corpus-manifest bench/goldens/corpus.json --prune-manifest bench/labels/prune_manifest.json --corpus-state bench/repos/.nose-corpus-state.json --expected-corpus-state bench/default_head_closeout_corpus.v1.json --output target/issue-846-closeout/query-regression-v0.19.0-to-head-default-all120-r3.v1.json",
     "working_tree_status_before_measurement": ""
   },
   "repos": [

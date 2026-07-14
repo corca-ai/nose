@@ -42,7 +42,8 @@ jobs:
           python3 bench/labels/label_refresh.py validate-runway \
             --dev-candidates bench/labels/default_head_label_runway_2026_07_13.dev.v1.json \
             --heldout-seal bench/labels/default_head_label_runway_2026_07_13.heldout.seal.v1.json \
-            --labelset bench/labels/refactoring_families.v7.json
+            --labelset bench/labels/refactoring_families.v7.json \
+            --evaluation bench/labels/product_quality_evaluation_v7_dev_runway_2026_07_13.v1.json
           python3 bench/labels/default_head_taxonomy.py validate \
             bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json \
             --pragmatic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.pragmatic.v1.json \

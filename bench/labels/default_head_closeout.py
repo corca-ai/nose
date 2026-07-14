@@ -23,8 +23,12 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT = ROOT / "bench/labels/default_head_closeout_2026_07_14.v1.json"
 SIDECAR = ROOT / "bench/labels/default_head_closeout_2026_07_14.v1.json.sha256"
 OFFICIAL_SHA = "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
+OFFICIAL_CODE_SHA = "e55d0e989993ff1d1d6b4e933dbd3f5ade38203368b8321d3a7842799a95aca6"
 CURRENT_SHA = "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0"
+CURRENT_CODE_SHA = "03cc5827cdadc225478a34266de78805c6e495810f90e8642f2ae2807b3a4f5a"
 CURRENT_SOURCE = "cdab416706c32ea94bf808ec7ebb36781e483e65"
+CURRENT_SOURCE_TREE = "0f42757629a79ce7be0cd0cd5cd90c2d5b78c3da"
+BASELINE_SOURCE = "0985e6963c58d5a97e523bc532b88aa5e34f2ef9"
 DEFAULT_DRIFT = ROOT / "bench/labels/default_head_closeout_v0_19_0.expected-drift.v1.json"
 SEMANTIC_DRIFT = ROOT / ".github/semantic-regression-expected-drift.json"
 
@@ -36,6 +40,10 @@ DEFAULT_REPORTS = {
     "r6": (
         "bench/recall_loss/issue-846-official-v0.19.0-default-focused-r6-2026-07-14.v1.json",
         "bench/recall_loss/issue-846-official-self-control-default-focused-r6-2026-07-14.v1.json",
+    ),
+    "r9": (
+        "bench/recall_loss/issue-846-official-v0.19.0-default-focused-r9-2026-07-14.v1.json",
+        "bench/recall_loss/issue-846-official-self-control-default-focused-r9-2026-07-14.v1.json",
     ),
     "r21": (
         "bench/recall_loss/issue-846-official-v0.19.0-default-focused-r21-2026-07-14.v1.json",
@@ -92,6 +100,29 @@ def load(path: Path) -> dict[str, Any]:
     return value
 
 
+def git_output(*args: str) -> str:
+    result = subprocess.run(
+        ["git", *args], cwd=ROOT, capture_output=True, text=True
+    )
+    require(
+        result.returncode == 0,
+        f"git {' '.join(args)} failed: {result.stderr.strip()}",
+    )
+    return result.stdout.strip()
+
+
+def require_commit(commit: str) -> None:
+    require(git_output("cat-file", "-t", commit) == "commit", f"not a commit: {commit}")
+
+
+def require_source_commit(commit: str) -> None:
+    require_commit(commit)
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", commit, "HEAD"], cwd=ROOT
+    )
+    require(result.returncode == 0, f"source commit is not an ancestor of HEAD: {commit}")
+
+
 def checked_evidence(value: dict[str, Any]) -> None:
     evidence = value.get("evidence")
     require(isinstance(evidence, dict), "missing evidence")
@@ -108,6 +139,128 @@ def checked_evidence(value: dict[str, Any]) -> None:
         absolute = ROOT / path
         require(absolute.is_file(), f"missing evidence: {path}")
         require(sha256(absolute) == record["sha256"], f"evidence hash changed: {path}")
+
+
+def validate_measurement_provenance(value: dict[str, Any]) -> None:
+    record = value["evidence"].get("measurement_provenance")
+    require(isinstance(record, dict), "missing measurement provenance")
+    manifest = load(ROOT / record["path"])
+    validate_measurement_manifest(manifest)
+
+
+def validate_measurement_manifest(manifest: dict[str, Any]) -> None:
+    require(
+        manifest.get("schema") == "nose.default_head_measurement_provenance.v1",
+        "wrong measurement-provenance schema",
+    )
+    require(
+        manifest.get("issue") == 846 and manifest.get("tracker") == 838,
+        "wrong measurement-provenance issue binding",
+    )
+
+    require_source_commit(CURRENT_SOURCE)
+    require_source_commit(BASELINE_SOURCE)
+    require(
+        git_output("rev-parse", f"{CURRENT_SOURCE}:crates") == CURRENT_SOURCE_TREE,
+        "frozen product source tree changed",
+    )
+    product = manifest.get("product", {})
+    require(product.get("source_commit") == CURRENT_SOURCE, "wrong measurement product source")
+    require(product.get("binary_sha256") == CURRENT_SHA, "wrong measurement product binary")
+    require(product.get("binary_code_sha256") == CURRENT_CODE_SHA, "wrong measurement product code")
+    require(
+        product.get("binary_code_sha256_algorithm")
+        == "sha256/mach-o-zero-uuid-signature-v1",
+        "wrong measurement product code-hash algorithm",
+    )
+    require(
+        product.get("working_tree_status_before_measurement") == "",
+        "measurement product tree was dirty",
+    )
+
+    inputs = manifest.get("inputs", {})
+    source_tree = inputs.get("source_tree", {})
+    require(
+        source_tree == {"path": "crates", "git_tree_sha1": CURRENT_SOURCE_TREE},
+        "wrong soundness input tree",
+    )
+    corpus = inputs.get("corpus", {})
+    expected_corpus = {
+        "manifest": "bench/goldens/corpus.json",
+        "manifest_sha256": sha256(ROOT / "bench/goldens/corpus.json"),
+        "prune_manifest": "bench/labels/prune_manifest.json",
+        "prune_manifest_sha256": sha256(ROOT / "bench/labels/prune_manifest.json"),
+        "state_contract": "bench/default_head_closeout_corpus.v1.json",
+        "state_contract_sha256": sha256(ROOT / "bench/default_head_closeout_corpus.v1.json"),
+        "subset_digest_after_prune": load(
+            ROOT / "bench/default_head_closeout_corpus.v1.json"
+        )["subset_digest_after_prune"]["hex"],
+    }
+    require(corpus == expected_corpus, "measurement corpus contract changed")
+
+    measurements = manifest.get("measurements", {})
+    require(
+        set(measurements)
+        == {"soundness", "heldout_thread_determinism", "ruby_redefinition_scaling"},
+        "wrong bound measurement set",
+    )
+    for name, measurement in measurements.items():
+        artifact = ROOT / measurement["artifact"]
+        require(artifact.is_file(), f"missing bound measurement: {name}")
+        require(
+            sha256(artifact) == measurement["artifact_sha256"],
+            f"bound measurement changed: {name}",
+        )
+        require(measurement.get("source_commit") == CURRENT_SOURCE, f"wrong source: {name}")
+        require(measurement.get("binary_sha256") == CURRENT_SHA, f"wrong binary: {name}")
+        require(
+            measurement.get("working_tree_status_before_measurement") == "",
+            f"dirty measurement: {name}",
+        )
+
+    soundness = measurements["soundness"]
+    require(soundness["source_tree_sha1"] == CURRENT_SOURCE_TREE, "wrong soundness tree")
+    require(
+        soundness["command"]
+        == (
+            "target/release/nose verify crates --max-violations 0 "
+            "--recall-loss-report target/issue-846-closeout/recall-loss.crates.v1.json"
+        ),
+        "wrong soundness command",
+    )
+
+    heldout = measurements["heldout_thread_determinism"]
+    require(heldout["split"] == "heldout", "wrong determinism split")
+    require(heldout["repositories"] == 54, "wrong heldout repository count")
+    require(heldout["thread_counts"] == [1, 4], "wrong determinism thread counts")
+    require(
+        heldout["corpus_state_contract_sha256"]
+        == expected_corpus["state_contract_sha256"],
+        "wrong determinism corpus state",
+    )
+    require(
+        heldout["subset_digest_after_prune"]
+        == expected_corpus["subset_digest_after_prune"],
+        "wrong determinism corpus digest",
+    )
+    require(
+        heldout["command"]
+        == (
+            "for each heldout corpus repository: RAYON_NUM_THREADS={1,4} "
+            "target/release/nose query bench/repos/<repo> all top=0 --format json"
+        ),
+        "wrong heldout determinism command",
+    )
+
+    scaling = measurements["ruby_redefinition_scaling"]
+    require(
+        scaling["command"]
+        == (
+            "python3 scripts/ruby-redefinition-scaling.py --binary target/release/nose "
+            "--output target/issue-846-semantic-smoke-artifacts/ruby-scaling.json"
+        ),
+        "wrong Ruby scaling command",
+    )
 
 
 def exact_dev_metrics() -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
@@ -225,6 +378,13 @@ def validate_determinism(value: dict[str, Any]) -> None:
         "repeated all-120 output changed",
     )
     dev = load(ROOT / value["evidence"]["dev_thread_determinism"]["path"])
+    require(dev["current"]["binary_sha256"] == CURRENT_SHA, "wrong dev determinism binary")
+    dev_source = dev["current"]["commit"]
+    require_commit(dev_source)
+    require(
+        dev["corpus"]["manifest_sha256"] == sha256(ROOT / "bench/goldens/corpus.json"),
+        "wrong dev determinism corpus",
+    )
     require(len(dev["rows"]) == 66, "dev determinism repository count changed")
     require(
         all(len(set(row["determinism"].values())) == 1 for row in dev["rows"]),
@@ -237,6 +397,12 @@ def validate_determinism(value: dict[str, Any]) -> None:
         all(len(row) == 4 and row[1] == row[2] and row[3] == "pass" for row in heldout_rows),
         "heldout thread determinism failed",
     )
+    corpus = load(ROOT / "bench/goldens/corpus.json")
+    expected_heldout = sorted(
+        row["id"] for row in corpus["repositories"] if row["split"] == "heldout"
+    )
+    observed_heldout = sorted(row[0] for row in heldout_rows)
+    require(observed_heldout == expected_heldout, "heldout determinism corpus changed")
     expected = {
         "all_120_repeated_runs": {
             "repositories": 120,
@@ -304,7 +470,70 @@ def aggregate(status: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+def validate_query_report_provenance(
+    report_path: str, expected_current_binary: str, expected_current_source: str
+) -> None:
+    report = load(ROOT / report_path)
+    provenance = report.get("provenance", {})
+    require(
+        provenance.get("baseline_binary_sha256") == OFFICIAL_SHA,
+        f"wrong performance baseline binary: {report_path}",
+    )
+    require(
+        provenance.get("baseline_binary_code_sha256") == OFFICIAL_CODE_SHA,
+        f"wrong performance baseline code: {report_path}",
+    )
+    require(
+        provenance.get("baseline_source_sha") == BASELINE_SOURCE,
+        f"wrong performance baseline source: {report_path}",
+    )
+    require(
+        provenance.get("current_binary_sha256") == expected_current_binary,
+        f"wrong performance current binary: {report_path}",
+    )
+    expected_current_code = (
+        CURRENT_CODE_SHA if expected_current_binary == CURRENT_SHA else OFFICIAL_CODE_SHA
+    )
+    require(
+        provenance.get("current_binary_code_sha256") == expected_current_code,
+        f"wrong performance current code: {report_path}",
+    )
+    require(
+        provenance.get("baseline_binary_code_sha256_algorithm")
+        == "sha256/mach-o-zero-uuid-signature-v1"
+        and provenance.get("current_binary_code_sha256_algorithm")
+        == "sha256/mach-o-zero-uuid-signature-v1",
+        f"wrong performance code-hash algorithm: {report_path}",
+    )
+    require(
+        provenance.get("current_source_sha") == expected_current_source,
+        f"wrong performance current source: {report_path}",
+    )
+    require(
+        provenance.get("working_tree_status_before_measurement") == "",
+        f"performance run was dirty: {report_path}",
+    )
+    command = provenance.get("harness_command", "")
+    require(
+        f"--baseline-source-sha {BASELINE_SOURCE}" in command,
+        f"baseline source missing from command: {report_path}",
+    )
+    require(
+        f"--current-source-sha {expected_current_source}" in command,
+        f"current source missing from command: {report_path}",
+    )
+    require_source_commit(provenance["baseline_source_sha"])
+    require_source_commit(provenance["current_source_sha"])
+
+
 def validate_performance(value: dict[str, Any]) -> None:
+    for primary_path, control_path in [
+        *DEFAULT_REPORTS.values(),
+        *SEMANTIC_REPORTS.values(),
+    ]:
+        validate_query_report_provenance(primary_path, CURRENT_SHA, CURRENT_SOURCE)
+        validate_query_report_provenance(control_path, OFFICIAL_SHA, BASELINE_SOURCE)
+
     primary = load(ROOT / DEFAULT_REPORTS["all120"][0])
     control = load(ROOT / DEFAULT_REPORTS["all120"][1])
     for report, expected_baseline, expected_current in (
@@ -408,6 +637,7 @@ def validate_value(value: dict[str, Any]) -> None:
     require(product.get("product_changed_after_heldout_reveal") is False, "post-reveal mutation")
     require(value.get("published_baseline", {}).get("binary_sha256") == OFFICIAL_SHA, "wrong published baseline")
     checked_evidence(value)
+    validate_measurement_provenance(value)
     residual.validate_payload(residual.read_json(residual.DEFAULT_ARTIFACT))
     fresh.validate(ROOT / value["evidence"]["fresh_repository_audit"]["path"])
     validate_quality(value)
@@ -441,6 +671,12 @@ def self_test() -> None:
     changed = copy.deepcopy(original)
     changed["performance"]["final_focused"]["material_stage_signals"].pop()
     mutations.append((changed, validate_performance))
+    provenance = load(
+        ROOT / original["evidence"]["measurement_provenance"]["path"]
+    )
+    changed = copy.deepcopy(provenance)
+    changed["product"]["source_commit"] = BASELINE_SOURCE
+    mutations.append((changed, validate_measurement_manifest))
     for index, (mutation, validator) in enumerate(mutations, 1):
         try:
             validator(mutation)
