@@ -153,6 +153,9 @@ fundamentals; the rest is grouped by area.
 - [0.20 residual ranking calibration](residual-ranking-calibration-845.md) — frozen
   complete dev universe, blind three-persona panel and arbitration, exact-key overlay,
   and the fully judged 68.24%/language-floor no-go.
+- [0.20 default-head blind closeout](default-head-blind-closeout-846.md) — the
+  one-shot held-out unseal, opaque-ID panel, fresh-repository audit, and final #838
+  threshold decision against the published v0.19.0 binary.
 - [current missed-worthy frontier](missed-worthy-frontier-816.md) — the #816
   dev-first recall audit, accepted-pair coverage-loss result, route-tree protocol
   deviation, rejected alternatives, and #817 follow-up gates.
