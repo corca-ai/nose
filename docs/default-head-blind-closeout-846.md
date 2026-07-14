@@ -21,28 +21,72 @@ The unseal tool fails closed unless all of the following reproduce:
 - every repository query hash, all 1,564 candidate commitments, the pool totals,
   and the exact 214-key selection order.
 
-The tool must run from a clean commit. Its output records that commit and tree,
-the collector blob, inputs, source inventory, and the original seal receipt.
+Repository-query replay is repeatable mechanical commitment verification; the
+one-shot rule applies to judgments and the final decision.
 
-## Blind judgment protocol
+## Rejected packet designs
 
-The panel packet uses a 256-bit secret to permute the sealed selection and derive
-opaque candidate and source IDs with domain-separated HMAC-SHA256. The secret and
-mapping stay outside Git until all three raw vote artifacts are frozen. Reviewers
-see language, non-identifying family facts, and bounded inline source excerpts;
-they do not see repository/path, family ID, candidate/selection digest, product
-rank, lane, prior-match state, selection reason/order, or exact source line.
+Two drafts were rejected before voting and were never pushed or merged. They
+received no worthiness judgment and produced no metric or product decision.
 
-The packet records only a one-way seed commitment. After votes freeze, the mapping
-reveal must reproduce that commitment, every blind ID, the secret permutation, and
-the full 1,564-commitment replay before decisions can map back to exact candidate
-keys. A separate post-freeze Git receipt binds the entire public packet and the
-exact clean unseal commit/tree, preventing coordinated source or provenance rehash.
+The first draft exposed a candidate digest, family ID, and seal order that mapped
+all 214 rows directly back to the seal. Its self-referential validator also
+accepted coordinated source-root and commit/tree rewrites.
 
-After this packet is separately committed, three personas independently apply
-[`RUBRIC.md`](../bench/labels/RUBRIC.md). Exact `(worthy, reason)` disagreements
-go to a fresh arbiter. The final component maps blind IDs back to the frozen seal
-order by exact key only; no fuzzy overlap propagation is permitted.
+The second draft removed those joins, used secret HMAC identifiers and a secret
+permutation, and bound the packet to an external Git receipt. Three independent
+reviews confirmed that the permutation and receipt worked, then independently
+replayed the public candidate universe and joined the exact source excerpts back
+to **214/214** candidate keys, repositories, ranks, seal positions, and all 584
+source paths without the secret. Exact public source is itself an identifier;
+cryptographic IDs cannot make it anonymous.
+
+## Procedurally blind protocol
+
+The accepted design makes a narrower, honest guarantee: reviewers are kept blind
+to undisclosed product metadata by procedure. It does **not** claim to hide source
+identity from a reviewer who searches remembered or public source. Strong identity
+blinding would require a tool-disabled, corpus-inaccessible, network-isolated
+review environment that the current shared agent workspace does not provide.
+
+Before any judgment, the coordinator replays the seal once and creates three
+persona-specific packets outside both Git and the project workspace. Each persona
+gets a separately derived seed, secret permutation, case IDs, source IDs, and
+packet nonce. A packet contains only:
+
+- its persona and bound rubric digest;
+- language, member count, bounded exact source, and bounded surrounding context;
+- an explicit no-lookup/no-contact protocol and required attestation.
+
+It omits candidate keys, repository/path/line, rank, lane, seal order, prior-match
+state, selection reason, detector value, witness, surface, scope, extraction shape,
+family ID, and all other product-derived signals. Before votes, Git receives only
+the seal/input receipts, root-seed commitment, and salted whole-packet byte hashes,
+lengths, schemas, and counts. It never receives plaintext packet bytes, per-source
+digests, IDs, seeds, or mappings.
+
+Fresh `fork_turns=none` reviewers may read only their assigned packet and the bound
+rubric. They attest that they did not inspect Git, corpus repositories, unassigned
+files, the network, source identity, another packet, or another vote. This is a
+trusted-reviewer policy, not a technical sandbox guarantee.
+
+The checked state transition is:
+
+```text
+held-out seal
+→ three private packet commitments
+→ three raw persona votes frozen together
+→ blind-ID arbitration frozen
+→ packet, seeds, and exact-key mapping revealed
+→ exact-key decisions, metrics, and closeout
+```
+
+No partial vote enters Git while another reviewer is working. Mapping release is
+after arbitration—not merely after panel voting—so the arbiter also remains blind
+to product rank and provenance. Reveal validation must reproduce packet hashes,
+persona seeds and permutations, the complete official-binary replay, all 1,564
+commitments, exact 214-key selection, and exact-key mapping. Fuzzy overlap
+propagation is forbidden.
 
 ## Closeout gates
 
@@ -56,3 +100,21 @@ and full CI.
 If any #838 threshold fails, #846 records the exact shortfall and preserves the
 unchanged product. It does not weaken the threshold or reuse held-out evidence for
 ranking, surface, or detector tuning.
+
+## Reproduction
+
+The private directory must already exist, be empty, and be outside the repository.
+The root seed is read without echo from a terminal.
+
+```sh
+python3 bench/labels/default_head_heldout.py freeze \
+  --private-dir <outside-repository>
+python3 bench/labels/default_head_heldout.py validate
+python3 bench/labels/default_head_heldout.py self-test
+python3 bench/labels/default_head_heldout.py validate-private \
+  --private-dir <outside-repository>
+```
+
+Ordinary CI validates only public commitments and receipts until the post-arbiter
+reveal. The plaintext packet and root seed remain deliberately unavailable to CI
+during the blind phase.

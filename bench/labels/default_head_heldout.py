@@ -9,9 +9,9 @@ import getpass
 import hashlib
 import hmac
 import json
+import os
 import shlex
 import subprocess
-import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -21,7 +21,9 @@ import label_refresh as runway
 
 ROOT = Path(__file__).resolve().parents[2]
 SEAL = ROOT / "bench/labels/default_head_label_runway_2026_07_13.heldout.seal.v1.json"
-BLIND = ROOT / "bench/labels/default_head_heldout_blind_2026_07_14.v2.json"
+COMMITMENT = (
+    ROOT / "bench/labels/default_head_heldout_commitment_2026_07_14.v3.json"
+)
 CORPUS = ROOT / "bench/goldens/corpus.json"
 BASE_LABELSET = ROOT / "bench/labels/refactoring_families.v6.json"
 RUBRIC = ROOT / "bench/labels/RUBRIC.md"
@@ -32,8 +34,12 @@ OFFICIAL_NOSE = (
 )
 REPOS_ROOT = ROOT / "bench/repos"
 
-SCHEMA = "nose.default_head_heldout_blind.v2"
-FREEZE_COMMAND = "python3 bench/labels/default_head_heldout.py freeze"
+COMMITMENT_SCHEMA = "nose.default_head_heldout_commitment.v3"
+PRIVATE_PACKET_SCHEMA = "nose.default_head_heldout_private_packet.v3"
+FREEZE_COMMAND = (
+    "python3 bench/labels/default_head_heldout.py freeze "
+    "--private-dir <outside-repository>"
+)
 SEAL_COMMIT = "f945053520506c92c0dc72fe09c7fdb685d29e77"
 SEAL_TREE = "78797deeaaa2aef346bad051ef96f33424352364"
 SEAL_SHA256 = "b99c396544848af84a522d5b023c0304bef835ac5dafc6dbc744c2aab6843004"
@@ -57,24 +63,20 @@ HIDDEN_FIELDS = [
     "matched_v6_family_id",
     "matched_v6_member_overlap",
 ]
+PERSONAS = ("dedupe", "pragmatic", "skeptic")
 VISIBLE_CANDIDATE_KEYS = {"blind_id", "language", "family"}
-VISIBLE_FAMILY_KEYS = {
-    "members",
-    "member_count",
-    "scope",
-    "surface",
-    "witness",
-    "extraction_shape",
-    "value",
-}
+VISIBLE_FAMILY_KEYS = {"members", "member_count"}
 VISIBLE_MEMBER_KEYS = {
     "source_id",
-    "name",
-    "span_lines",
     "context_before",
     "source",
     "context_after",
-    "excerpt_sha256",
+}
+REVIEWER_ATTESTATION = {
+    "assigned_material_only": True,
+    "no_git_or_corpus_lookup": True,
+    "no_network_or_source_identity_lookup": True,
+    "no_other_votes_or_reviewer_contact": True,
 }
 
 
@@ -324,6 +326,12 @@ def hmac_hex(seed: bytes, domain: str, value: str) -> str:
     return hmac.new(seed, f"{domain}\0{value}".encode(), hashlib.sha256).hexdigest()
 
 
+def persona_seed(root_seed: bytes, persona: str) -> bytes:
+    return hmac.new(
+        root_seed, f"persona\0{persona}".encode(), hashlib.sha256
+    ).digest()
+
+
 def bounded_text(text: str) -> str:
     if len(text) <= MAX_TEXT_CHARS:
         return text
@@ -341,15 +349,12 @@ def opaque_member(member: dict[str, Any], seed: bytes) -> dict[str, Any]:
         raise ValueError(f"invalid source span in {path_text}")
     record: dict[str, Any] = {
         "source_id": f"source-{hmac_hex(seed, 'source', path_text)[:24]}",
-        "name": member.get("name"),
-        "span_lines": end - start + 1,
         "context_before": bounded_text(
             "\n".join(lines[max(0, start - 1 - CONTEXT_LINES) : start - 1])
         ),
         "source": bounded_text("\n".join(lines[start - 1 : end])),
         "context_after": bounded_text("\n".join(lines[end : end + CONTEXT_LINES])),
     }
-    record["excerpt_sha256"] = canonical_sha256(record)
     return record
 
 
@@ -361,11 +366,6 @@ def blind_candidate(candidate: dict[str, Any], seed: bytes) -> dict[str, Any]:
         "family": {
             "members": [opaque_member(member, seed) for member in family["members"]],
             "member_count": family["member_count"],
-            "scope": family["scope"],
-            "surface": family["surface"],
-            "witness": family["witness"],
-            "extraction_shape": family["extraction_shape"],
-            "value": family["value"],
         },
     }
 
@@ -380,57 +380,106 @@ def blind_projection(
     return [blind_candidate(candidate, seed) for candidate in ordered]
 
 
-def source_ids(candidates: list[dict[str, Any]]) -> list[str]:
-    return sorted(
-        {
-            member["source_id"]
-            for candidate in candidates
-            for member in candidate["family"]["members"]
-        }
-    )
+def private_packet(
+    persona: str,
+    selected: list[dict[str, Any]],
+    root_seed: bytes,
+    rubric: Path,
+) -> dict[str, Any]:
+    seed = persona_seed(root_seed, persona)
+    return {
+        "schema": PRIVATE_PACKET_SCHEMA,
+        "issue": 846,
+        "split": "heldout",
+        "persona": persona,
+        "judgment_status": "procedurally-blind-unjudged",
+        "packet_nonce": hmac_hex(seed, "packet-nonce", persona),
+        "rubric_sha256": sha256_file(rubric),
+        "reviewer_protocol": {
+            "guarantee": "procedural-product-metadata-blindness",
+            "not_guaranteed": (
+                "identity hiding from a reviewer who searches remembered or public source"
+            ),
+            "allowed_material": ["assigned packet", "bound rubric"],
+            "prohibited_actions": [
+                "inspect Git, the corpus, repositories, or unassigned files",
+                "use network access or search for source identity",
+                "read another reviewer's packet or vote",
+                "contact another reviewer",
+            ],
+            "required_vote_attestation": REVIEWER_ATTESTATION,
+        },
+        "candidates": blind_projection(selected, seed),
+    }
 
 
-def collect_blind(args: argparse.Namespace, seed: bytes) -> dict[str, Any]:
+def packet_bytes(payload: dict[str, Any]) -> bytes:
+    return canonical_bytes(payload) + b"\n"
+
+
+def packet_commitment(persona: str, payload: dict[str, Any]) -> dict[str, Any]:
+    content = packet_bytes(payload)
+    return {
+        "persona": persona,
+        "schema": PRIVATE_PACKET_SCHEMA,
+        "sha256": hashlib.sha256(content).hexdigest(),
+        "byte_length": len(content),
+        "candidate_count": len(payload["candidates"]),
+    }
+
+
+def collect_commitment(
+    args: argparse.Namespace, root_seed: bytes
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     status = git_text(["status", "--short"])
     if status:
         raise ValueError("held-out unseal requires a clean working tree")
-    command = shlex.join(["python3", *sys.argv])
-    require_equal(command, FREEZE_COMMAND, "unseal command")
-    if len(seed) != 32:
-        raise ValueError("blind seed must contain exactly 32 bytes")
+    if len(root_seed) != 32:
+        raise ValueError("blind root seed must contain exactly 32 bytes")
     seal, selected = replay(args)
-    visible = blind_projection(selected, seed)
-    ids = source_ids(visible)
+    packets = {
+        persona: private_packet(persona, selected, root_seed, args.rubric)
+        for persona in PERSONAS
+    }
     collector = Path(__file__).resolve()
-    return {
-        "schema": SCHEMA,
+    commitment = {
+        "schema": COMMITMENT_SCHEMA,
         "issue": 846,
         "split": "heldout",
-        "judgment_status": "unsealed-blind-unjudged",
+        "state": "private-packets-committed",
         "seal_receipt": seal_receipt(),
         "selection": {
             "count": len(selected),
             "sealed_candidate_keys_sha256": seal["selection"][
                 "selected_candidate_keys_sha256"
             ],
-            "blind_ids_sha256": canonical_sha256(
-                [candidate["blind_id"] for candidate in visible]
-            ),
-            "source_count": len(ids),
-            "source_ids_sha256": canonical_sha256(ids),
         },
         "rubric": path_record(args.rubric),
-        "blinding": {
+        "protocol": {
+            "guarantee": "procedural-product-metadata-blindness",
+            "not_guaranteed": (
+                "identity hiding from a reviewer who searches remembered or public source"
+            ),
             "hidden_fields": HIDDEN_FIELDS,
             "visible_fields": sorted(VISIBLE_CANDIDATE_KEYS),
-            "seed_commitment_sha256": hashlib.sha256(seed).hexdigest(),
-            "permutation": "HMAC-SHA256(secret, order\\0candidate_key)",
-            "blind_id": "case- + first 24 hex of HMAC-SHA256(secret, blind-id\\0candidate_key)",
-            "source_id": "source- + first 24 hex of HMAC-SHA256(secret, source\\0path)",
-            "mapping_release": "after all three raw vote artifacts are frozen",
+            "root_seed_commitment_sha256": hashlib.sha256(root_seed).hexdigest(),
+            "persona_isolation": "independent derived seed, permutation, case IDs, and source IDs",
+            "private_packet_location": "outside Git and the project workspace",
+            "raw_vote_freeze": "all three persona votes in one commit",
+            "mapping_release": "after blind-ID arbitration is frozen",
+            "release_order": [
+                "private packet commitments",
+                "three raw votes frozen atomically",
+                "blind-ID arbitration frozen",
+                "packet, seeds, and exact-key mapping revealed",
+                "decisions and metrics",
+            ],
         },
+        "packets": [
+            packet_commitment(persona, packets[persona]) for persona in PERSONAS
+        ],
         "provenance": {
-            "command": command,
+            "command": FREEZE_COMMAND,
             "unseal_commit": git_text(["rev-parse", "HEAD"]),
             "unseal_tree": git_text(["rev-parse", "HEAD^{tree}"]),
             "working_tree_status_before_unseal": status,
@@ -441,33 +490,31 @@ def collect_blind(args: argparse.Namespace, seed: bytes) -> dict[str, Any]:
             "corpus": path_record(args.corpus),
             "base_labelset": path_record(args.base_labelset),
         },
-        "candidates": visible,
     }
+    return commitment, packets
 
 
-def validate_public(payload: dict[str, Any]) -> None:
+def validate_commitment(payload: dict[str, Any]) -> None:
     require_exact_keys(
         payload,
         {
             "schema",
             "issue",
             "split",
-            "judgment_status",
+            "state",
             "seal_receipt",
             "selection",
             "rubric",
-            "blinding",
+            "protocol",
+            "packets",
             "provenance",
-            "candidates",
         },
-        "blind artifact",
+        "commitment artifact",
     )
-    require_equal(payload["schema"], SCHEMA, "schema")
+    require_equal(payload["schema"], COMMITMENT_SCHEMA, "schema")
     require_equal(payload["issue"], 846, "issue")
     require_equal(payload["split"], "heldout", "split")
-    require_equal(
-        payload["judgment_status"], "unsealed-blind-unjudged", "judgment status"
-    )
+    require_equal(payload["state"], "private-packets-committed", "state")
     seal = validate_seal_receipt()
     require_equal(payload["seal_receipt"], seal_receipt(), "seal receipt")
     require_equal(payload["rubric"], path_record(RUBRIC), "rubric")
@@ -476,9 +523,6 @@ def validate_public(payload: dict[str, Any]) -> None:
         {
             "count",
             "sealed_candidate_keys_sha256",
-            "blind_ids_sha256",
-            "source_count",
-            "source_ids_sha256",
         },
         "selection",
     )
@@ -488,91 +532,85 @@ def validate_public(payload: dict[str, Any]) -> None:
         seal["selection"]["selected_candidate_keys_sha256"],
         "sealed selection digest",
     )
-    blinding = require_exact_keys(
-        payload["blinding"],
+    protocol = require_exact_keys(
+        payload["protocol"],
         {
+            "guarantee",
+            "not_guaranteed",
             "hidden_fields",
             "visible_fields",
-            "seed_commitment_sha256",
-            "permutation",
-            "blind_id",
-            "source_id",
+            "root_seed_commitment_sha256",
+            "persona_isolation",
+            "private_packet_location",
+            "raw_vote_freeze",
             "mapping_release",
+            "release_order",
         },
-        "blinding",
+        "protocol",
     )
-    require_equal(blinding["hidden_fields"], HIDDEN_FIELDS, "hidden fields")
     require_equal(
-        blinding["visible_fields"], sorted(VISIBLE_CANDIDATE_KEYS), "visible fields"
+        protocol["guarantee"],
+        "procedural-product-metadata-blindness",
+        "protocol guarantee",
     )
-    require_hex(blinding["seed_commitment_sha256"], 64, "seed commitment")
     require_equal(
-        blinding["mapping_release"],
-        "after all three raw vote artifacts are frozen",
+        protocol["not_guaranteed"],
+        "identity hiding from a reviewer who searches remembered or public source",
+        "protocol limitation",
+    )
+    require_equal(protocol["hidden_fields"], HIDDEN_FIELDS, "hidden fields")
+    require_equal(
+        protocol["visible_fields"], sorted(VISIBLE_CANDIDATE_KEYS), "visible fields"
+    )
+    require_hex(
+        protocol["root_seed_commitment_sha256"], 64, "root seed commitment"
+    )
+    require_equal(
+        protocol["mapping_release"],
+        "after blind-ID arbitration is frozen",
         "mapping release",
     )
-    candidates = payload["candidates"]
-    if not isinstance(candidates, list) or len(candidates) != selection["count"]:
-        raise ValueError("blind candidate count mismatch")
-    blind_ids: list[str] = []
-    observed_sources: set[str] = set()
-    for index, candidate in enumerate(candidates):
-        row = require_exact_keys(candidate, VISIBLE_CANDIDATE_KEYS, f"candidates[{index}]")
-        blind_id = row["blind_id"]
-        if (
-            not isinstance(blind_id, str)
-            or not blind_id.startswith("case-")
-            or len(blind_id) != 29
-        ):
-            raise ValueError(f"candidates[{index}].blind_id: invalid")
-        require_hex(blind_id.removeprefix("case-"), 24, f"candidates[{index}].blind_id")
-        blind_ids.append(blind_id)
-        if not isinstance(row["language"], str) or not row["language"]:
-            raise ValueError(f"candidates[{index}].language: invalid")
-        family = require_exact_keys(
-            row["family"], VISIBLE_FAMILY_KEYS, f"candidates[{index}].family"
-        )
-        members = family["members"]
-        if (
-            not isinstance(members, list)
-            or not members
-            or family["member_count"] != len(members)
-        ):
-            raise ValueError(f"candidates[{index}].members: invalid")
-        for member_index, member in enumerate(members):
-            label = f"candidates[{index}].members[{member_index}]"
-            record = require_exact_keys(member, VISIBLE_MEMBER_KEYS, label)
-            source_id = record["source_id"]
-            if (
-                not isinstance(source_id, str)
-                or not source_id.startswith("source-")
-                or len(source_id) != 31
-            ):
-                raise ValueError(f"{label}.source_id: invalid")
-            require_hex(source_id.removeprefix("source-"), 24, f"{label}.source_id")
-            observed_sources.add(source_id)
-            if not isinstance(record["span_lines"], int) or record["span_lines"] < 1:
-                raise ValueError(f"{label}.span_lines: invalid")
-            for field in ("context_before", "source", "context_after"):
-                if not isinstance(record[field], str):
-                    raise ValueError(f"{label}.{field}: invalid")
-            digest_payload = {
-                key: value
-                for key, value in record.items()
-                if key != "excerpt_sha256"
-            }
-            require_equal(
-                record["excerpt_sha256"], canonical_sha256(digest_payload), f"{label}.digest"
-            )
-    if len(blind_ids) != len(set(blind_ids)):
-        raise ValueError("blind IDs must be unique")
-    require_equal(selection["blind_ids_sha256"], canonical_sha256(blind_ids), "blind IDs")
-    require_equal(selection["source_count"], len(observed_sources), "source count")
     require_equal(
-        selection["source_ids_sha256"],
-        canonical_sha256(sorted(observed_sources)),
-        "source IDs",
+        protocol["persona_isolation"],
+        "independent derived seed, permutation, case IDs, and source IDs",
+        "persona isolation",
     )
+    require_equal(
+        protocol["private_packet_location"],
+        "outside Git and the project workspace",
+        "private packet location",
+    )
+    require_equal(
+        protocol["raw_vote_freeze"],
+        "all three persona votes in one commit",
+        "raw vote freeze",
+    )
+    require_equal(
+        protocol["release_order"],
+        [
+            "private packet commitments",
+            "three raw votes frozen atomically",
+            "blind-ID arbitration frozen",
+            "packet, seeds, and exact-key mapping revealed",
+            "decisions and metrics",
+        ],
+        "release order",
+    )
+    packets = payload["packets"]
+    if not isinstance(packets, list) or len(packets) != len(PERSONAS):
+        raise ValueError("expected exactly three private packet commitments")
+    for index, (record, persona) in enumerate(zip(packets, PERSONAS, strict=True)):
+        row = require_exact_keys(
+            record,
+            {"persona", "schema", "sha256", "byte_length", "candidate_count"},
+            f"packets[{index}]",
+        )
+        require_equal(row["persona"], persona, f"packets[{index}].persona")
+        require_equal(row["schema"], PRIVATE_PACKET_SCHEMA, f"packets[{index}].schema")
+        require_hex(row["sha256"], 64, f"packets[{index}].sha256")
+        if not isinstance(row["byte_length"], int) or row["byte_length"] < 1:
+            raise ValueError(f"packets[{index}].byte_length: invalid")
+        require_equal(row["candidate_count"], 214, f"packets[{index}].candidate_count")
     provenance = require_exact_keys(
         payload["provenance"],
         {
@@ -625,80 +663,235 @@ def validate_public(payload: dict[str, Any]) -> None:
     )
 
 
-def validate_revealed(
-    payload: dict[str, Any], args: argparse.Namespace, seed: bytes
-) -> None:
-    validate_public(payload)
-    if len(seed) != 32:
-        raise ValueError("blind seed must contain exactly 32 bytes")
-    require_equal(
-        hashlib.sha256(seed).hexdigest(),
-        payload["blinding"]["seed_commitment_sha256"],
-        "blind seed commitment",
+def validate_private_packet(payload: dict[str, Any], persona: str) -> None:
+    require_exact_keys(
+        payload,
+        {
+            "schema",
+            "issue",
+            "split",
+            "persona",
+            "judgment_status",
+            "packet_nonce",
+            "rubric_sha256",
+            "reviewer_protocol",
+            "candidates",
+        },
+        f"{persona} private packet",
     )
-    _, selected = replay(args)
-    require_equal(payload["candidates"], blind_projection(selected, seed), "blind projection")
+    require_equal(payload["schema"], PRIVATE_PACKET_SCHEMA, f"{persona} schema")
+    require_equal(payload["issue"], 846, f"{persona} issue")
+    require_equal(payload["split"], "heldout", f"{persona} split")
+    require_equal(payload["persona"], persona, f"{persona} persona")
+    require_equal(
+        payload["judgment_status"],
+        "procedurally-blind-unjudged",
+        f"{persona} judgment status",
+    )
+    require_hex(payload["packet_nonce"], 64, f"{persona} packet nonce")
+    require_equal(payload["rubric_sha256"], sha256_file(RUBRIC), f"{persona} rubric")
+    reviewer_protocol = require_exact_keys(
+        payload["reviewer_protocol"],
+        {
+            "guarantee",
+            "not_guaranteed",
+            "allowed_material",
+            "prohibited_actions",
+            "required_vote_attestation",
+        },
+        f"{persona} reviewer protocol",
+    )
+    require_equal(
+        reviewer_protocol["guarantee"],
+        "procedural-product-metadata-blindness",
+        f"{persona} protocol guarantee",
+    )
+    require_equal(
+        reviewer_protocol["not_guaranteed"],
+        "identity hiding from a reviewer who searches remembered or public source",
+        f"{persona} protocol limitation",
+    )
+    require_equal(
+        reviewer_protocol["allowed_material"],
+        ["assigned packet", "bound rubric"],
+        f"{persona} allowed material",
+    )
+    require_equal(
+        reviewer_protocol["prohibited_actions"],
+        [
+            "inspect Git, the corpus, repositories, or unassigned files",
+            "use network access or search for source identity",
+            "read another reviewer's packet or vote",
+            "contact another reviewer",
+        ],
+        f"{persona} prohibited actions",
+    )
+    require_equal(
+        reviewer_protocol["required_vote_attestation"],
+        REVIEWER_ATTESTATION,
+        f"{persona} vote attestation",
+    )
+    candidates = payload["candidates"]
+    if not isinstance(candidates, list) or len(candidates) != 214:
+        raise ValueError(f"{persona}: private candidate count mismatch")
+    blind_ids: set[str] = set()
+    for index, candidate in enumerate(candidates):
+        row = require_exact_keys(
+            candidate, VISIBLE_CANDIDATE_KEYS, f"{persona}.candidates[{index}]"
+        )
+        blind_id = row["blind_id"]
+        if (
+            not isinstance(blind_id, str)
+            or not blind_id.startswith("case-")
+            or len(blind_id) != 29
+        ):
+            raise ValueError(f"{persona}.candidates[{index}].blind_id: invalid")
+        require_hex(
+            blind_id.removeprefix("case-"),
+            24,
+            f"{persona}.candidates[{index}].blind_id",
+        )
+        blind_ids.add(blind_id)
+        if not isinstance(row["language"], str) or not row["language"]:
+            raise ValueError(f"{persona}.candidates[{index}].language: invalid")
+        family = require_exact_keys(
+            row["family"],
+            VISIBLE_FAMILY_KEYS,
+            f"{persona}.candidates[{index}].family",
+        )
+        members = family["members"]
+        if (
+            not isinstance(members, list)
+            or not members
+            or family["member_count"] != len(members)
+        ):
+            raise ValueError(f"{persona}.candidates[{index}].members: invalid")
+        for member_index, member in enumerate(members):
+            label = f"{persona}.candidates[{index}].members[{member_index}]"
+            record = require_exact_keys(member, VISIBLE_MEMBER_KEYS, label)
+            source_id = record["source_id"]
+            if (
+                not isinstance(source_id, str)
+                or not source_id.startswith("source-")
+                or len(source_id) != 31
+            ):
+                raise ValueError(f"{label}.source_id: invalid")
+            require_hex(source_id.removeprefix("source-"), 24, f"{label}.source_id")
+            for field in ("context_before", "source", "context_after"):
+                if not isinstance(record[field], str):
+                    raise ValueError(f"{label}.{field}: invalid")
+    if len(blind_ids) != 214:
+        raise ValueError(f"{persona}: blind IDs must be unique")
 
 
-def read_seed() -> bytes:
-    value = getpass.getpass("held-out blind seed (64 hex): ").strip()
+def read_root_seed() -> bytes:
+    value = getpass.getpass("held-out blind root seed (64 hex): ").strip()
     try:
         seed = bytes.fromhex(value)
     except ValueError as error:
-        raise ValueError("blind seed must be hexadecimal") from error
+        raise ValueError("blind root seed must be hexadecimal") from error
     if len(seed) != 32:
-        raise ValueError("blind seed must contain exactly 32 bytes")
+        raise ValueError("blind root seed must contain exactly 32 bytes")
     return seed
 
 
+def require_private_directory(path: Path, *, empty: bool) -> Path:
+    resolved = path.expanduser().resolve()
+    try:
+        resolved.relative_to(ROOT)
+    except ValueError:
+        pass
+    else:
+        raise ValueError("private packet directory must be outside the project workspace")
+    if not resolved.is_dir():
+        raise ValueError(f"private packet directory does not exist: {resolved}")
+    if empty and any(resolved.iterdir()):
+        raise ValueError(f"private packet directory must be empty: {resolved}")
+    return resolved
+
+
+def write_exclusive(path: Path, content: bytes, mode: int) -> None:
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
+    with os.fdopen(descriptor, "wb") as output:
+        output.write(content)
+
+
 def freeze(args: argparse.Namespace) -> None:
-    seed = read_seed()
-    payload = collect_blind(args, seed)
-    args.output.write_text(
-        json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n",
-        encoding="utf-8",
-    )
+    if args.output.resolve() != COMMITMENT.resolve():
+        raise ValueError(f"commitment output must be {relative(COMMITMENT)}")
+    private_dir = require_private_directory(args.private_dir, empty=True)
+    root_seed = read_root_seed()
+    commitment, packets = collect_commitment(args, root_seed)
+    for persona in PERSONAS:
+        write_exclusive(private_dir / f"{persona}.json", packet_bytes(packets[persona]), 0o600)
+    write_exclusive(args.output, packet_bytes(commitment), 0o644)
     print(
         f"unsealed commitments={len(read_json(SEAL)['candidate_commitments'])} "
-        f"blind candidates={len(payload['candidates'])} "
-        f"opaque sources={payload['selection']['source_count']}"
+        f"private packets={len(packets)} candidates={commitment['selection']['count']}"
     )
 
 
 def validate(args: argparse.Namespace) -> None:
-    payload = read_json(args.blind)
-    validate_public(payload)
-    if args.reveal:
-        validate_revealed(payload, args, read_seed())
-    print(f"validated {args.blind}")
+    payload = read_json(args.commitment)
+    validate_commitment(payload)
+    print(f"validated {args.commitment}")
+
+
+def validate_private(args: argparse.Namespace) -> None:
+    payload = read_json(args.commitment)
+    validate_commitment(payload)
+    private_dir = require_private_directory(args.private_dir, empty=False)
+    root_seed = read_root_seed()
+    require_equal(
+        hashlib.sha256(root_seed).hexdigest(),
+        payload["protocol"]["root_seed_commitment_sha256"],
+        "root seed commitment",
+    )
+    _, selected = replay(args)
+    records = {record["persona"]: record for record in payload["packets"]}
+    for persona in PERSONAS:
+        path = private_dir / f"{persona}.json"
+        private = read_json(path)
+        validate_private_packet(private, persona)
+        expected = private_packet(persona, selected, root_seed, args.rubric)
+        require_equal(private, expected, f"{persona} private packet replay")
+        require_equal(
+            sha256_file(path), records[persona]["sha256"], f"{persona} packet SHA-256"
+        )
+        require_equal(
+            path.stat().st_size,
+            records[persona]["byte_length"],
+            f"{persona} packet byte length",
+        )
+    print(f"validated private packets in {private_dir}")
 
 
 def self_test(args: argparse.Namespace) -> None:
-    payload = read_json(args.blind)
-    validate_public(payload)
+    payload = read_json(args.commitment)
+    validate_commitment(payload)
     mutations: list[dict[str, Any]] = []
     changed = copy.deepcopy(payload)
-    changed["candidates"][0]["rank"] = 1
+    changed["state"] = "votes-frozen"
     mutations.append(changed)
     changed = copy.deepcopy(payload)
-    changed["candidates"].reverse()
+    changed["packets"].reverse()
     mutations.append(changed)
     changed = copy.deepcopy(payload)
-    changed["candidates"][0]["family"]["members"][0]["source"] += "tamper"
+    changed["packets"][0]["sha256"] = "x" * 64
     mutations.append(changed)
     changed = copy.deepcopy(payload)
-    changed["candidates"][0]["family"]["members"][0]["source_id"] = "source-" + "0" * 24
+    changed["selection"]["count"] = 213
     mutations.append(changed)
     changed = copy.deepcopy(payload)
     changed["seal_receipt"]["commit"] = "0" * 40
     mutations.append(changed)
     for mutation in mutations:
         try:
-            validate_public(mutation)
+            validate_commitment(mutation)
         except (ValueError, subprocess.CalledProcessError):
             continue
-        raise AssertionError("invalid held-out blind mutation was accepted")
-    print("default-head held-out public-packet self-test passed")
+        raise AssertionError("invalid held-out commitment mutation was accepted")
+    print("default-head held-out commitment self-test passed")
 
 
 def add_live_arguments(parser: argparse.ArgumentParser) -> None:
@@ -714,15 +907,23 @@ def parser() -> argparse.ArgumentParser:
     commands = root.add_subparsers(dest="command", required=True)
     freeze_parser = commands.add_parser("freeze", allow_abbrev=False)
     add_live_arguments(freeze_parser)
-    freeze_parser.add_argument("--output", type=Path, default=BLIND)
+    freeze_parser.add_argument("--private-dir", type=Path, required=True)
+    freeze_parser.add_argument("--output", type=Path, default=COMMITMENT)
     freeze_parser.set_defaults(run=freeze)
     validate_parser = commands.add_parser("validate")
-    add_live_arguments(validate_parser)
-    validate_parser.add_argument("blind", type=Path, nargs="?", default=BLIND)
-    validate_parser.add_argument("--reveal", action="store_true")
+    validate_parser.add_argument(
+        "commitment", type=Path, nargs="?", default=COMMITMENT
+    )
     validate_parser.set_defaults(run=validate)
+    private_parser = commands.add_parser("validate-private", allow_abbrev=False)
+    add_live_arguments(private_parser)
+    private_parser.add_argument("--private-dir", type=Path, required=True)
+    private_parser.add_argument(
+        "--commitment", type=Path, default=COMMITMENT
+    )
+    private_parser.set_defaults(run=validate_private)
     self_parser = commands.add_parser("self-test")
-    self_parser.add_argument("--blind", type=Path, default=BLIND)
+    self_parser.add_argument("--commitment", type=Path, default=COMMITMENT)
     self_parser.set_defaults(run=self_test)
     return root
 
