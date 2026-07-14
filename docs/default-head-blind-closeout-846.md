@@ -156,6 +156,15 @@ all-120 regression and performance against the published v0.19.0 binary,
 same-binary controls, `verify --max-violations 0`, thread/run determinism, docs,
 and full CI.
 
+Before either field result or all-corpus runtime is observed, two additional inputs
+are frozen. The [all-corpus contract](../bench/default_head_closeout_corpus.v1.json) binds
+all 120 repository ids and their checked post-prune content digest. The
+[fresh-repository selection](../bench/labels/default_head_fresh_repository_selection_2026_07_14.v1.json) binds
+one repository and commit for each evaluated language, all outside the pinned corpus.
+The field audit reviews the first ten bare-default families in product order;
+its discoveries may open follow-up issues but cannot alter this closeout's product or
+evidence.
+
 If any #838 threshold fails, #846 records the exact shortfall and preserves the
 unchanged product. It does not weaken the threshold or reuse held-out evidence for
 ranking, surface, or detector tuning.
