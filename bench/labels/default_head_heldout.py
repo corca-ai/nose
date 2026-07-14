@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""One-shot unsealing and blind projection for issue #846."""
+"""One-shot, secretly permuted held-out packet builder for issue #846."""
 
 from __future__ import annotations
 
 import argparse
 import copy
+import getpass
 import hashlib
+import hmac
 import json
 import shlex
 import subprocess
@@ -19,7 +21,7 @@ import label_refresh as runway
 
 ROOT = Path(__file__).resolve().parents[2]
 SEAL = ROOT / "bench/labels/default_head_label_runway_2026_07_13.heldout.seal.v1.json"
-BLIND = ROOT / "bench/labels/default_head_heldout_blind_2026_07_14.v1.json"
+BLIND = ROOT / "bench/labels/default_head_heldout_blind_2026_07_14.v2.json"
 CORPUS = ROOT / "bench/goldens/corpus.json"
 BASE_LABELSET = ROOT / "bench/labels/refactoring_families.v6.json"
 RUBRIC = ROOT / "bench/labels/RUBRIC.md"
@@ -30,23 +32,33 @@ OFFICIAL_NOSE = (
 )
 REPOS_ROOT = ROOT / "bench/repos"
 
-SCHEMA = "nose.default_head_heldout_blind.v1"
+SCHEMA = "nose.default_head_heldout_blind.v2"
 FREEZE_COMMAND = "python3 bench/labels/default_head_heldout.py freeze"
 SEAL_COMMIT = "f945053520506c92c0dc72fe09c7fdb685d29e77"
 SEAL_TREE = "78797deeaaa2aef346bad051ef96f33424352364"
 SEAL_SHA256 = "b99c396544848af84a522d5b023c0304bef835ac5dafc6dbc744c2aab6843004"
 SEAL_PATH = SEAL.relative_to(ROOT).as_posix()
-VISIBLE_CANDIDATE_KEYS = {
-    "blind_id",
-    "repo",
-    "split",
-    "language",
-    "sealed_candidate_sha256",
+CONTEXT_LINES = 12
+MAX_TEXT_CHARS = 20_000
+HIDDEN_FIELDS = [
+    "candidate_key",
+    "candidate_sha256",
     "raw_family_sha256",
-    "family",
-}
+    "repo",
+    "rank",
+    "lane",
+    "base_matched",
+    "selection_reason",
+    "selection_order",
+    "family.id",
+    "member.file",
+    "member.start_line",
+    "member.end_line",
+    "matched_v6_family_id",
+    "matched_v6_member_overlap",
+]
+VISIBLE_CANDIDATE_KEYS = {"blind_id", "language", "family"}
 VISIBLE_FAMILY_KEYS = {
-    "id",
     "members",
     "member_count",
     "scope",
@@ -55,16 +67,15 @@ VISIBLE_FAMILY_KEYS = {
     "extraction_shape",
     "value",
 }
-HIDDEN_FIELDS = [
-    "candidate_key",
-    "rank",
-    "lane",
-    "base_matched",
-    "selection_reason",
-    "selection_order",
-    "matched_v6_family_id",
-    "matched_v6_member_overlap",
-]
+VISIBLE_MEMBER_KEYS = {
+    "source_id",
+    "name",
+    "span_lines",
+    "context_before",
+    "source",
+    "context_after",
+    "excerpt_sha256",
+}
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -108,6 +119,16 @@ def require_exact_keys(value: object, expected: set[str], label: str) -> dict[st
     return value
 
 
+def require_hex(value: object, size: int, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) != size
+        or any(character not in "0123456789abcdef" for character in value)
+    ):
+        raise ValueError(f"{label}: expected {size} lowercase hex characters")
+    return value
+
+
 def git_bytes(args: list[str]) -> bytes:
     result = subprocess.run(
         ["git", *args], cwd=ROOT, check=False, capture_output=True
@@ -135,9 +156,7 @@ def seal_receipt() -> dict[str, str]:
 
 def validate_seal_receipt(*, live_binary: Path | None = None) -> dict[str, Any]:
     require_equal(
-        git_text(["rev-parse", f"{SEAL_COMMIT}^{{tree}}"]),
-        SEAL_TREE,
-        "seal tree",
+        git_text(["rev-parse", f"{SEAL_COMMIT}^{{tree}}"]), SEAL_TREE, "seal tree"
     )
     frozen = git_bytes(["show", f"{SEAL_COMMIT}:{SEAL_PATH}"])
     require_equal(hashlib.sha256(frozen).hexdigest(), SEAL_SHA256, "seal blob")
@@ -149,7 +168,6 @@ def validate_seal_receipt(*, live_binary: Path | None = None) -> dict[str, Any]:
     )
     seal = read_json(SEAL)
     runway.validate_heldout_seal(seal)
-
     provenance = seal["provenance"]
     revision = provenance["git_sha"]
     for record in provenance["collection_sources"]:
@@ -242,41 +260,8 @@ def commitment(candidate: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def blind_family(family: dict[str, Any]) -> dict[str, Any]:
-    return {key: family[key] for key in VISIBLE_FAMILY_KEYS}
-
-
-def blind_candidate(
-    candidate: dict[str, Any], commitment_row: dict[str, Any], index: int
-) -> dict[str, Any]:
-    return {
-        "blind_id": f"heldout-{index:04d}",
-        "repo": candidate["repo"],
-        "split": candidate["split"],
-        "language": candidate["language"],
-        "sealed_candidate_sha256": commitment_row["candidate_sha256"],
-        "raw_family_sha256": candidate["raw_family_sha256"],
-        "family": blind_family(candidate["family"]),
-    }
-
-
-def source_inventory(candidates: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    paths = {
-        member["file"]
-        for candidate in candidates
-        for member in candidate["family"]["members"]
-    }
-    return {path: runway.source_file_record(path) for path in sorted(paths)}
-
-
-def collect_blind(args: argparse.Namespace) -> dict[str, Any]:
-    status = git_text(["status", "--short"])
-    if status:
-        raise ValueError("held-out unseal requires a clean working tree")
-    unseal_command = shlex.join(["python3", *sys.argv])
-    require_equal(unseal_command, FREEZE_COMMAND, "unseal command")
+def replay(args: argparse.Namespace) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     seal = validate_seal_receipt(live_binary=args.nose)
-    nose_command = Path(relative(args.nose))
     corpus_payload = read_json(args.corpus)
     corpus_rows = corpus_payload.get("repositories")
     if not isinstance(corpus_rows, list):
@@ -288,6 +273,7 @@ def collect_blind(args: argparse.Namespace) -> dict[str, Any]:
     for family in base.families:
         base_by_repo[family["repo"]].append(family)
 
+    nose_command = Path(relative(args.nose))
     candidates: list[dict[str, Any]] = []
     repositories: dict[str, dict[str, Any]] = {}
     for repo_id in sorted(seal["repositories"]):
@@ -319,26 +305,102 @@ def collect_blind(args: argparse.Namespace) -> dict[str, Any]:
             "unmatched_top_10": sum(not row["base_matched"] for row in top_10),
         }
     require_equal(repositories, seal["repositories"], "repository replay")
-
     selected_keys = runway.apply_runway_selection(candidates)
     require_equal(selected_keys, seal["selection"]["selected_candidate_keys"], "selection")
     require_equal(
         runway.runway_pool_summary(candidates, repositories), seal["pool"], "pool replay"
     )
-    ordered_candidates = sorted(candidates, key=lambda row: (row["repo"], row["rank"]))
-    commitments = [commitment(candidate) for candidate in ordered_candidates]
-    require_equal(commitments, seal["candidate_commitments"], "candidate commitments")
-
+    ordered = sorted(candidates, key=lambda row: (row["repo"], row["rank"]))
+    require_equal(
+        [commitment(candidate) for candidate in ordered],
+        seal["candidate_commitments"],
+        "candidate commitments",
+    )
     by_key = {candidate["candidate_key"]: candidate for candidate in candidates}
-    commitment_by_key = {
-        row["candidate_key"]: row for row in seal["candidate_commitments"]
+    return seal, [by_key[key] for key in selected_keys]
+
+
+def hmac_hex(seed: bytes, domain: str, value: str) -> str:
+    return hmac.new(seed, f"{domain}\0{value}".encode(), hashlib.sha256).hexdigest()
+
+
+def bounded_text(text: str) -> str:
+    if len(text) <= MAX_TEXT_CHARS:
+        return text
+    half = MAX_TEXT_CHARS // 2
+    return text[:half] + "\n… <blind excerpt truncated> …\n" + text[-half:]
+
+
+def opaque_member(member: dict[str, Any], seed: bytes) -> dict[str, Any]:
+    path_text = member["file"]
+    path = ROOT / path_text
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    start = member["start_line"]
+    end = member["end_line"]
+    if start < 1 or end < start or end > len(lines):
+        raise ValueError(f"invalid source span in {path_text}")
+    record: dict[str, Any] = {
+        "source_id": f"source-{hmac_hex(seed, 'source', path_text)[:24]}",
+        "name": member.get("name"),
+        "span_lines": end - start + 1,
+        "context_before": bounded_text(
+            "\n".join(lines[max(0, start - 1 - CONTEXT_LINES) : start - 1])
+        ),
+        "source": bounded_text("\n".join(lines[start - 1 : end])),
+        "context_after": bounded_text("\n".join(lines[end : end + CONTEXT_LINES])),
     }
-    selected = [by_key[key] for key in selected_keys]
-    visible = [
-        blind_candidate(candidate, commitment_by_key[candidate["candidate_key"]], index)
-        for index, candidate in enumerate(selected, start=1)
-    ]
-    sources = source_inventory(selected)
+    record["excerpt_sha256"] = canonical_sha256(record)
+    return record
+
+
+def blind_candidate(candidate: dict[str, Any], seed: bytes) -> dict[str, Any]:
+    family = candidate["family"]
+    return {
+        "blind_id": f"case-{hmac_hex(seed, 'blind-id', candidate['candidate_key'])[:24]}",
+        "language": candidate["language"],
+        "family": {
+            "members": [opaque_member(member, seed) for member in family["members"]],
+            "member_count": family["member_count"],
+            "scope": family["scope"],
+            "surface": family["surface"],
+            "witness": family["witness"],
+            "extraction_shape": family["extraction_shape"],
+            "value": family["value"],
+        },
+    }
+
+
+def blind_projection(
+    selected: list[dict[str, Any]], seed: bytes
+) -> list[dict[str, Any]]:
+    ordered = sorted(
+        selected,
+        key=lambda candidate: hmac_hex(seed, "order", candidate["candidate_key"]),
+    )
+    return [blind_candidate(candidate, seed) for candidate in ordered]
+
+
+def source_ids(candidates: list[dict[str, Any]]) -> list[str]:
+    return sorted(
+        {
+            member["source_id"]
+            for candidate in candidates
+            for member in candidate["family"]["members"]
+        }
+    )
+
+
+def collect_blind(args: argparse.Namespace, seed: bytes) -> dict[str, Any]:
+    status = git_text(["status", "--short"])
+    if status:
+        raise ValueError("held-out unseal requires a clean working tree")
+    command = shlex.join(["python3", *sys.argv])
+    require_equal(command, FREEZE_COMMAND, "unseal command")
+    if len(seed) != 32:
+        raise ValueError("blind seed must contain exactly 32 bytes")
+    seal, selected = replay(args)
+    visible = blind_projection(selected, seed)
+    ids = source_ids(visible)
     collector = Path(__file__).resolve()
     return {
         "schema": SCHEMA,
@@ -347,21 +409,28 @@ def collect_blind(args: argparse.Namespace) -> dict[str, Any]:
         "judgment_status": "unsealed-blind-unjudged",
         "seal_receipt": seal_receipt(),
         "selection": {
-            "count": len(selected_keys),
+            "count": len(selected),
             "sealed_candidate_keys_sha256": seal["selection"][
                 "selected_candidate_keys_sha256"
             ],
             "blind_ids_sha256": canonical_sha256(
                 [candidate["blind_id"] for candidate in visible]
             ),
+            "source_count": len(ids),
+            "source_ids_sha256": canonical_sha256(ids),
         },
         "rubric": path_record(args.rubric),
         "blinding": {
             "hidden_fields": HIDDEN_FIELDS,
             "visible_fields": sorted(VISIBLE_CANDIDATE_KEYS),
+            "seed_commitment_sha256": hashlib.sha256(seed).hexdigest(),
+            "permutation": "HMAC-SHA256(secret, order\\0candidate_key)",
+            "blind_id": "case- + first 24 hex of HMAC-SHA256(secret, blind-id\\0candidate_key)",
+            "source_id": "source- + first 24 hex of HMAC-SHA256(secret, source\\0path)",
+            "mapping_release": "after all three raw vote artifacts are frozen",
         },
         "provenance": {
-            "command": unseal_command,
+            "command": command,
             "unseal_commit": git_text(["rev-parse", "HEAD"]),
             "unseal_tree": git_text(["rev-parse", "HEAD^{tree}"]),
             "working_tree_status_before_unseal": status,
@@ -371,35 +440,12 @@ def collect_blind(args: argparse.Namespace) -> dict[str, Any]:
             "nose_version": runway.nose_version(args.nose),
             "corpus": path_record(args.corpus),
             "base_labelset": path_record(args.base_labelset),
-            "source_files_sha256": canonical_sha256(sources),
         },
-        "source_files": sources,
         "candidates": visible,
     }
 
 
-def reconstruct_candidate(
-    visible: dict[str, Any], commitment_row: dict[str, Any]
-) -> dict[str, Any]:
-    family = {
-        **visible["family"],
-        "matched_v6_family_id": None,
-        "matched_v6_member_overlap": 0,
-    }
-    return {
-        "candidate_key": commitment_row["candidate_key"],
-        "repo": commitment_row["repo"],
-        "split": commitment_row["split"],
-        "language": commitment_row["language"],
-        "lane": commitment_row["lane"],
-        "rank": commitment_row["rank"],
-        "base_matched": commitment_row["base_matched"],
-        "family": family,
-        "raw_family_sha256": visible["raw_family_sha256"],
-    }
-
-
-def validate_payload(payload: dict[str, Any], *, live_sources: bool = False) -> None:
+def validate_public(payload: dict[str, Any]) -> None:
     require_exact_keys(
         payload,
         {
@@ -412,7 +458,6 @@ def validate_payload(payload: dict[str, Any], *, live_sources: bool = False) -> 
             "rubric",
             "blinding",
             "provenance",
-            "source_files",
             "candidates",
         },
         "blind artifact",
@@ -426,93 +471,107 @@ def validate_payload(payload: dict[str, Any], *, live_sources: bool = False) -> 
     seal = validate_seal_receipt()
     require_equal(payload["seal_receipt"], seal_receipt(), "seal receipt")
     require_equal(payload["rubric"], path_record(RUBRIC), "rubric")
-    require_exact_keys(
+    selection = require_exact_keys(
         payload["selection"],
-        {"count", "sealed_candidate_keys_sha256", "blind_ids_sha256"},
+        {
+            "count",
+            "sealed_candidate_keys_sha256",
+            "blind_ids_sha256",
+            "source_count",
+            "source_ids_sha256",
+        },
         "selection",
     )
-    require_exact_keys(
-        payload["blinding"], {"hidden_fields", "visible_fields"}, "blinding"
-    )
-    require_equal(payload["blinding"]["hidden_fields"], HIDDEN_FIELDS, "hidden fields")
+    require_equal(selection["count"], 214, "selection count")
     require_equal(
-        payload["blinding"]["visible_fields"], sorted(VISIBLE_CANDIDATE_KEYS), "visible fields"
+        selection["sealed_candidate_keys_sha256"],
+        seal["selection"]["selected_candidate_keys_sha256"],
+        "sealed selection digest",
+    )
+    blinding = require_exact_keys(
+        payload["blinding"],
+        {
+            "hidden_fields",
+            "visible_fields",
+            "seed_commitment_sha256",
+            "permutation",
+            "blind_id",
+            "source_id",
+            "mapping_release",
+        },
+        "blinding",
+    )
+    require_equal(blinding["hidden_fields"], HIDDEN_FIELDS, "hidden fields")
+    require_equal(
+        blinding["visible_fields"], sorted(VISIBLE_CANDIDATE_KEYS), "visible fields"
+    )
+    require_hex(blinding["seed_commitment_sha256"], 64, "seed commitment")
+    require_equal(
+        blinding["mapping_release"],
+        "after all three raw vote artifacts are frozen",
+        "mapping release",
     )
     candidates = payload["candidates"]
-    selected_keys = seal["selection"]["selected_candidate_keys"]
-    require_equal(payload["selection"]["count"], len(selected_keys), "selection count")
-    require_equal(
-        payload["selection"]["sealed_candidate_keys_sha256"],
-        seal["selection"]["selected_candidate_keys_sha256"],
-        "selection digest",
-    )
-    if not isinstance(candidates, list) or len(candidates) != len(selected_keys):
+    if not isinstance(candidates, list) or len(candidates) != selection["count"]:
         raise ValueError("blind candidate count mismatch")
-    commitments = {
-        row["candidate_key"]: row for row in seal["candidate_commitments"]
-    }
-    sources = payload["source_files"]
-    if not isinstance(sources, dict):
-        raise ValueError("source_files: expected an object")
-    for path, record in sources.items():
+    blind_ids: list[str] = []
+    observed_sources: set[str] = set()
+    for index, candidate in enumerate(candidates):
+        row = require_exact_keys(candidate, VISIBLE_CANDIDATE_KEYS, f"candidates[{index}]")
+        blind_id = row["blind_id"]
         if (
-            not isinstance(path, str)
-            or not path.startswith("bench/repos/")
-            or "/../" in f"/{path}/"
+            not isinstance(blind_id, str)
+            or not blind_id.startswith("case-")
+            or len(blind_id) != 29
         ):
-            raise ValueError("source_files: invalid path")
-        source_record = require_exact_keys(record, {"bytes", "sha256"}, f"source_files[{path}]")
-        if not isinstance(source_record["bytes"], int) or source_record["bytes"] < 0:
-            raise ValueError(f"source_files[{path}].bytes: invalid")
-        digest = source_record["sha256"]
+            raise ValueError(f"candidates[{index}].blind_id: invalid")
+        require_hex(blind_id.removeprefix("case-"), 24, f"candidates[{index}].blind_id")
+        blind_ids.append(blind_id)
+        if not isinstance(row["language"], str) or not row["language"]:
+            raise ValueError(f"candidates[{index}].language: invalid")
+        family = require_exact_keys(
+            row["family"], VISIBLE_FAMILY_KEYS, f"candidates[{index}].family"
+        )
+        members = family["members"]
         if (
-            not isinstance(digest, str)
-            or len(digest) != 64
-            or any(character not in "0123456789abcdef" for character in digest)
+            not isinstance(members, list)
+            or not members
+            or family["member_count"] != len(members)
         ):
-            raise ValueError(f"source_files[{path}].sha256: invalid")
-    seen_files: set[str] = set()
-    blind_ids = []
-    for index, (visible, key) in enumerate(zip(candidates, selected_keys, strict=True), start=1):
-        row = require_exact_keys(visible, VISIBLE_CANDIDATE_KEYS, f"candidates[{index - 1}]")
-        expected_id = f"heldout-{index:04d}"
-        require_equal(row["blind_id"], expected_id, f"{expected_id}.blind_id")
-        blind_ids.append(expected_id)
-        for digest_field in ("sealed_candidate_sha256", "raw_family_sha256"):
-            digest = row[digest_field]
+            raise ValueError(f"candidates[{index}].members: invalid")
+        for member_index, member in enumerate(members):
+            label = f"candidates[{index}].members[{member_index}]"
+            record = require_exact_keys(member, VISIBLE_MEMBER_KEYS, label)
+            source_id = record["source_id"]
             if (
-                not isinstance(digest, str)
-                or len(digest) != 64
-                or any(character not in "0123456789abcdef" for character in digest)
+                not isinstance(source_id, str)
+                or not source_id.startswith("source-")
+                or len(source_id) != 31
             ):
-                raise ValueError(f"{expected_id}.{digest_field}: invalid")
-        family = require_exact_keys(row["family"], VISIBLE_FAMILY_KEYS, f"{expected_id}.family")
-        commitment_row = commitments[key]
-        for field in ("repo", "split", "language"):
-            require_equal(row[field], commitment_row[field], f"{expected_id}.{field}")
-        require_equal(
-            row["sealed_candidate_sha256"],
-            commitment_row["candidate_sha256"],
-            f"{expected_id}.sealed digest",
-        )
-        if commitment_row["base_matched"] or commitment_row["selected"] is not True:
-            raise ValueError(f"{expected_id}: selected candidate must be v6-unmatched")
-        reconstructed = reconstruct_candidate(row, commitment_row)
-        require_equal(
-            canonical_sha256(runway.runway_candidate_content(reconstructed)),
-            commitment_row["candidate_sha256"],
-            f"{expected_id}.candidate commitment",
-        )
-        if family["member_count"] != len(family["members"]):
-            raise ValueError(f"{expected_id}: member count mismatch")
-        for member in family["members"]:
-            path = member.get("file") if isinstance(member, dict) else None
-            if not isinstance(path, str) or path not in sources:
-                raise ValueError(f"{expected_id}: unbound member source")
-            seen_files.add(path)
-    require_equal(set(sources), seen_files, "source inventory")
+                raise ValueError(f"{label}.source_id: invalid")
+            require_hex(source_id.removeprefix("source-"), 24, f"{label}.source_id")
+            observed_sources.add(source_id)
+            if not isinstance(record["span_lines"], int) or record["span_lines"] < 1:
+                raise ValueError(f"{label}.span_lines: invalid")
+            for field in ("context_before", "source", "context_after"):
+                if not isinstance(record[field], str):
+                    raise ValueError(f"{label}.{field}: invalid")
+            digest_payload = {
+                key: value
+                for key, value in record.items()
+                if key != "excerpt_sha256"
+            }
+            require_equal(
+                record["excerpt_sha256"], canonical_sha256(digest_payload), f"{label}.digest"
+            )
+    if len(blind_ids) != len(set(blind_ids)):
+        raise ValueError("blind IDs must be unique")
+    require_equal(selection["blind_ids_sha256"], canonical_sha256(blind_ids), "blind IDs")
+    require_equal(selection["source_count"], len(observed_sources), "source count")
     require_equal(
-        payload["selection"]["blind_ids_sha256"], canonical_sha256(blind_ids), "blind IDs"
+        selection["source_ids_sha256"],
+        canonical_sha256(sorted(observed_sources)),
+        "source IDs",
     )
     provenance = require_exact_keys(
         payload["provenance"],
@@ -527,16 +586,24 @@ def validate_payload(payload: dict[str, Any], *, live_sources: bool = False) -> 
             "nose_version",
             "corpus",
             "base_labelset",
-            "source_files_sha256",
         },
         "provenance",
     )
-    require_equal(provenance["working_tree_status_before_unseal"], "", "clean unseal")
     require_equal(provenance["command"], FREEZE_COMMAND, "unseal command")
-    require_equal(provenance["collector"], path_record(Path(__file__)), "collector")
+    require_equal(provenance["working_tree_status_before_unseal"], "", "clean unseal")
     require_equal(provenance["corpus"], path_record(CORPUS), "corpus")
     require_equal(provenance["base_labelset"], path_record(BASE_LABELSET), "base labelset")
-    require_equal(provenance["source_files_sha256"], canonical_sha256(sources), "sources")
+    require_equal(
+        provenance["nose_binary_sha256"],
+        seal["provenance"]["nose_binary_sha256"],
+        "nose binary",
+    )
+    require_equal(
+        provenance["nose_binary"], seal["provenance"]["nose_binary"], "nose path"
+    )
+    require_equal(
+        provenance["nose_version"], seal["provenance"]["nose_version"], "nose version"
+    )
     require_equal(
         git_text(["rev-parse", f"{provenance['unseal_commit']}^{{tree}}"]),
         provenance["unseal_tree"],
@@ -547,54 +614,68 @@ def validate_payload(payload: dict[str, Any], *, live_sources: bool = False) -> 
         cwd=ROOT,
         check=True,
     )
+    collector = require_exact_keys(
+        provenance["collector"], {"path", "sha256"}, "collector"
+    )
     collector_blob = git_bytes(
-        ["show", f"{provenance['unseal_commit']}:{provenance['collector']['path']}"]
+        ["show", f"{provenance['unseal_commit']}:{collector['path']}"]
     )
     require_equal(
-        hashlib.sha256(collector_blob).hexdigest(),
-        provenance["collector"]["sha256"],
-        "collector blob",
+        hashlib.sha256(collector_blob).hexdigest(), collector["sha256"], "collector blob"
     )
+
+
+def validate_revealed(
+    payload: dict[str, Any], args: argparse.Namespace, seed: bytes
+) -> None:
+    validate_public(payload)
+    if len(seed) != 32:
+        raise ValueError("blind seed must contain exactly 32 bytes")
     require_equal(
-        provenance["nose_binary_sha256"],
-        seal["provenance"]["nose_binary_sha256"],
-        "nose binary",
+        hashlib.sha256(seed).hexdigest(),
+        payload["blinding"]["seed_commitment_sha256"],
+        "blind seed commitment",
     )
-    require_equal(
-        provenance["nose_binary"], seal["provenance"]["nose_binary"], "nose path"
-    )
-    require_equal(
-        provenance["nose_version"],
-        seal["provenance"]["nose_version"],
-        "nose version",
-    )
-    if live_sources:
-        for path, record in sources.items():
-            source = ROOT / path
-            require_equal(source.stat().st_size, record["bytes"], f"{path} bytes")
-            require_equal(sha256_file(source), record["sha256"], f"{path} sha256")
+    _, selected = replay(args)
+    require_equal(payload["candidates"], blind_projection(selected, seed), "blind projection")
+
+
+def read_seed() -> bytes:
+    value = getpass.getpass("held-out blind seed (64 hex): ").strip()
+    try:
+        seed = bytes.fromhex(value)
+    except ValueError as error:
+        raise ValueError("blind seed must be hexadecimal") from error
+    if len(seed) != 32:
+        raise ValueError("blind seed must contain exactly 32 bytes")
+    return seed
 
 
 def freeze(args: argparse.Namespace) -> None:
-    payload = collect_blind(args)
+    seed = read_seed()
+    payload = collect_blind(args, seed)
     args.output.write_text(
         json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n",
         encoding="utf-8",
     )
     print(
         f"unsealed commitments={len(read_json(SEAL)['candidate_commitments'])} "
-        f"blind candidates={len(payload['candidates'])} sources={len(payload['source_files'])}"
+        f"blind candidates={len(payload['candidates'])} "
+        f"opaque sources={payload['selection']['source_count']}"
     )
 
 
 def validate(args: argparse.Namespace) -> None:
-    validate_payload(read_json(args.blind), live_sources=args.live_sources)
+    payload = read_json(args.blind)
+    validate_public(payload)
+    if args.reveal:
+        validate_revealed(payload, args, read_seed())
     print(f"validated {args.blind}")
 
 
 def self_test(args: argparse.Namespace) -> None:
     payload = read_json(args.blind)
-    validate_payload(payload)
+    validate_public(payload)
     mutations: list[dict[str, Any]] = []
     changed = copy.deepcopy(payload)
     changed["candidates"][0]["rank"] = 1
@@ -603,43 +684,42 @@ def self_test(args: argparse.Namespace) -> None:
     changed["candidates"].reverse()
     mutations.append(changed)
     changed = copy.deepcopy(payload)
-    changed["candidates"][0]["family"]["value"] = 999
+    changed["candidates"][0]["family"]["members"][0]["source"] += "tamper"
     mutations.append(changed)
     changed = copy.deepcopy(payload)
-    changed["source_files"].pop(next(iter(changed["source_files"])))
-    changed["provenance"]["source_files_sha256"] = canonical_sha256(
-        changed["source_files"]
-    )
+    changed["candidates"][0]["family"]["members"][0]["source_id"] = "source-" + "0" * 24
     mutations.append(changed)
     changed = copy.deepcopy(payload)
     changed["seal_receipt"]["commit"] = "0" * 40
     mutations.append(changed)
-    changed = copy.deepcopy(payload)
-    changed["provenance"]["unseal_commit"] = SEAL_COMMIT
-    mutations.append(changed)
     for mutation in mutations:
         try:
-            validate_payload(mutation)
+            validate_public(mutation)
         except (ValueError, subprocess.CalledProcessError):
             continue
         raise AssertionError("invalid held-out blind mutation was accepted")
-    print("default-head held-out blind self-test passed")
+    print("default-head held-out public-packet self-test passed")
+
+
+def add_live_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--nose", type=Path, default=OFFICIAL_NOSE)
+    parser.add_argument("--repos-root", type=Path, default=REPOS_ROOT)
+    parser.add_argument("--corpus", type=Path, default=CORPUS)
+    parser.add_argument("--base-labelset", type=Path, default=BASE_LABELSET)
+    parser.add_argument("--rubric", type=Path, default=RUBRIC)
 
 
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser()
     commands = root.add_subparsers(dest="command", required=True)
     freeze_parser = commands.add_parser("freeze", allow_abbrev=False)
-    freeze_parser.add_argument("--nose", type=Path, default=OFFICIAL_NOSE)
-    freeze_parser.add_argument("--repos-root", type=Path, default=REPOS_ROOT)
-    freeze_parser.add_argument("--corpus", type=Path, default=CORPUS)
-    freeze_parser.add_argument("--base-labelset", type=Path, default=BASE_LABELSET)
-    freeze_parser.add_argument("--rubric", type=Path, default=RUBRIC)
+    add_live_arguments(freeze_parser)
     freeze_parser.add_argument("--output", type=Path, default=BLIND)
     freeze_parser.set_defaults(run=freeze)
     validate_parser = commands.add_parser("validate")
+    add_live_arguments(validate_parser)
     validate_parser.add_argument("blind", type=Path, nargs="?", default=BLIND)
-    validate_parser.add_argument("--live-sources", action="store_true")
+    validate_parser.add_argument("--reveal", action="store_true")
     validate_parser.set_defaults(run=validate)
     self_parser = commands.add_parser("self-test")
     self_parser.add_argument("--blind", type=Path, default=BLIND)

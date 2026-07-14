@@ -26,11 +26,18 @@ the collector blob, inputs, source inventory, and the original seal receipt.
 
 ## Blind judgment protocol
 
-The panel packet exposes each selected family and hash-bound source files under an
-opaque ID such as `heldout-0001`. Candidate key, product rank, lane, prior-match
-state, selection reason/order, and v6-match fields stay hidden. Validation rebuilds
-the hidden candidate from the seal commitment and visible family, so changing a
-member, value, language, order, or blind ID breaks the original commitment.
+The panel packet uses a 256-bit secret to permute the sealed selection and derive
+opaque candidate and source IDs with domain-separated HMAC-SHA256. The secret and
+mapping stay outside Git until all three raw vote artifacts are frozen. Reviewers
+see language, non-identifying family facts, and bounded inline source excerpts;
+they do not see repository/path, family ID, candidate/selection digest, product
+rank, lane, prior-match state, selection reason/order, or exact source line.
+
+The packet records only a one-way seed commitment. After votes freeze, the mapping
+reveal must reproduce that commitment, every blind ID, the secret permutation, and
+the full 1,564-commitment replay before decisions can map back to exact candidate
+keys. A separate post-freeze Git receipt binds the entire public packet and the
+exact clean unseal commit/tree, preventing coordinated source or provenance rehash.
 
 After this packet is separately committed, three personas independently apply
 [`RUBRIC.md`](../bench/labels/RUBRIC.md). Exact `(worthy, reason)` disagreements
