@@ -797,42 +797,46 @@ def publish_outputs(
                 heldout.write_exclusive(staged_marker, marker, 0o600)
             else:
                 marker_writer(staged_marker, marker)
+            staged_marker_identity = file_identity(
+                staged_marker, "staged transaction marker"
+            )
             try:
                 marker_linker(staged_marker, transaction)
+                target_identity = file_identity(
+                    transaction, "published transaction marker"
+                )
+                if target_identity != staged_marker_identity:
+                    raise ValueError("published transaction marker identity changed")
+                marker_identity = staged_marker_identity
             except BaseException:
                 if entry_exists(transaction):
-                    source_identity = file_identity(
-                        staged_marker, "staged transaction marker"
-                    )
                     target_identity = file_identity(
                         transaction, "published transaction marker"
                     )
-                    if source_identity == target_identity:
+                    if staged_marker_identity == target_identity:
                         marker_identity = target_identity
                 raise
-            marker_identity = file_identity(
-                transaction, "published transaction marker"
-            )
             staged_marker.unlink()
             for target, content in contents.items():
                 source = staging / target.name
                 heldout.write_exclusive(source, content, 0o644)
+                source_identity = file_identity(source, f"staged output {target.name}")
                 try:
                     output_linker(source, target)
+                    target_identity = file_identity(
+                        target, f"published output {target.name}"
+                    )
+                    if target_identity != source_identity:
+                        raise ValueError(f"published output identity changed: {target}")
+                    published[target] = source_identity
                 except BaseException:
                     if entry_exists(target):
-                        source_identity = file_identity(
-                            source, f"staged output {target.name}"
-                        )
                         target_identity = file_identity(
                             target, f"published output {target.name}"
                         )
                         if source_identity == target_identity:
                             published[target] = target_identity
                     raise
-                published[target] = file_identity(
-                    target, f"published output {target.name}"
-                )
                 if source_unlinker is None:
                     source.unlink()
                 else:
@@ -1287,6 +1291,27 @@ def self_test(_: argparse.Namespace) -> None:
         if transaction.exists() or any(path.exists() for path in outputs):
             raise AssertionError("post-marker-link interruption was not rolled back")
 
+        def marker_link_then_replace(source: Path, target: Path) -> None:
+            os.link(source, target)
+            replacement = root / "linker-marker-replacement"
+            heldout.write_exclusive(replacement, source.read_bytes(), 0o600)
+            os.replace(replacement, target)
+
+        try:
+            publish_outputs(
+                contents,
+                transaction=transaction,
+                staging_parent=root,
+                marker_linker=marker_link_then_replace,
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("link-time marker replacement was accepted")
+        if not transaction.exists() or any(path.exists() for path in outputs):
+            raise AssertionError("link-time marker replacement was deleted")
+        transaction.unlink()
+
         marker = heldout.packet_bytes(transaction_payload(contents))
         heldout.write_exclusive(transaction, marker, 0o600)
         try:
@@ -1352,6 +1377,27 @@ def self_test(_: argparse.Namespace) -> None:
             raise AssertionError("post-output-link interruption was accepted")
         if transaction.exists() or any(path.exists() for path in outputs):
             raise AssertionError("post-output-link interruption was not rolled back")
+
+        def output_link_then_replace(source: Path, target: Path) -> None:
+            os.link(source, target)
+            replacement = root / "linker-output-replacement"
+            heldout.write_exclusive(replacement, source.read_bytes(), 0o644)
+            os.replace(replacement, target)
+
+        try:
+            publish_outputs(
+                contents,
+                transaction=transaction,
+                staging_parent=root,
+                output_linker=output_link_then_replace,
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("link-time output replacement was accepted")
+        if transaction.exists() or not outputs[0].exists() or outputs[1].exists():
+            raise AssertionError("link-time output replacement ownership was wrong")
+        outputs[0].unlink()
 
         def remove_marker() -> None:
             transaction.unlink()
