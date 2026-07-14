@@ -84,6 +84,7 @@ REVEALED_FAMILY_KEYS = {
     "matched_v6_member_overlap",
 }
 REVEALED_MEMBER_KEYS = {"file", "start_line", "end_line", "name"}
+FileIdentity = tuple[int, int]
 
 
 def require_equal(actual: object, expected: object, label: str) -> None:
@@ -129,6 +130,12 @@ def require_regular_file(path: Path, label: str) -> None:
         raise ValueError(f"{label}: missing") from error
     if not stat.S_ISREG(mode):
         raise ValueError(f"{label}: expected a regular file")
+
+
+def file_identity(path: Path, label: str) -> FileIdentity:
+    require_regular_file(path, label)
+    metadata = path.lstat()
+    return metadata.st_dev, metadata.st_ino
 
 
 def validate_revealed_candidate(candidate: object, label: str) -> dict[str, Any]:
@@ -735,20 +742,29 @@ def content_matches(path: Path, content: bytes) -> bool:
 
 
 def rollback_publish(
-    published: list[Path],
+    published: dict[Path, FileIdentity],
     contents: dict[Path, bytes],
     transaction: Path,
     marker: bytes,
     *,
-    marker_owned: bool,
+    marker_identity: FileIdentity | None,
 ) -> None:
-    if not marker_owned:
+    if marker_identity is None:
         return
-    if entry_exists(transaction) and not content_matches(transaction, marker):
-        return
+    if entry_exists(transaction):
+        if (
+            file_identity(transaction, "rollback transaction marker")
+            != marker_identity
+            or not content_matches(transaction, marker)
+        ):
+            return
     if any(
-        entry_exists(path) and not content_matches(path, contents[path])
-        for path in published
+        entry_exists(path)
+        and (
+            file_identity(path, f"rollback output {path.name}") != identity
+            or not content_matches(path, contents[path])
+        )
+        for path, identity in published.items()
     ):
         return
     for path in reversed(published):
@@ -765,10 +781,12 @@ def publish_outputs(
     staging_parent: Path = ROOT / "target",
     marker_writer: Callable[[Path, bytes], None] | None = None,
     source_unlinker: Callable[[Path], None] | None = None,
+    marker_linker: Callable[[Path, Path], None] = os.link,
+    output_linker: Callable[[Path, Path], None] = os.link,
 ) -> None:
     marker = heldout.packet_bytes(transaction_payload(contents))
-    published: list[Path] = []
-    marker_owned = False
+    published: dict[Path, FileIdentity] = {}
+    marker_identity: FileIdentity | None = None
     try:
         with tempfile.TemporaryDirectory(
             prefix=".heldout-reveal-staging-", dir=staging_parent
@@ -779,14 +797,42 @@ def publish_outputs(
                 heldout.write_exclusive(staged_marker, marker, 0o600)
             else:
                 marker_writer(staged_marker, marker)
-            os.link(staged_marker, transaction)
-            marker_owned = True
+            try:
+                marker_linker(staged_marker, transaction)
+            except BaseException:
+                if entry_exists(transaction):
+                    source_identity = file_identity(
+                        staged_marker, "staged transaction marker"
+                    )
+                    target_identity = file_identity(
+                        transaction, "published transaction marker"
+                    )
+                    if source_identity == target_identity:
+                        marker_identity = target_identity
+                raise
+            marker_identity = file_identity(
+                transaction, "published transaction marker"
+            )
             staged_marker.unlink()
             for target, content in contents.items():
                 source = staging / target.name
                 heldout.write_exclusive(source, content, 0o644)
-                os.link(source, target)
-                published.append(target)
+                try:
+                    output_linker(source, target)
+                except BaseException:
+                    if entry_exists(target):
+                        source_identity = file_identity(
+                            source, f"staged output {target.name}"
+                        )
+                        target_identity = file_identity(
+                            target, f"published output {target.name}"
+                        )
+                        if source_identity == target_identity:
+                            published[target] = target_identity
+                    raise
+                published[target] = file_identity(
+                    target, f"published output {target.name}"
+                )
                 if source_unlinker is None:
                     source.unlink()
                 else:
@@ -795,7 +841,12 @@ def publish_outputs(
             validate_checked(allow_transaction=True)
         else:
             validator()
-        if not content_matches(transaction, marker):
+        if (
+            marker_identity is None
+            or file_identity(transaction, "completed transaction marker")
+            != marker_identity
+            or not content_matches(transaction, marker)
+        ):
             raise ValueError("held-out reveal transaction marker changed")
         transaction.unlink()
     except BaseException:
@@ -804,7 +855,7 @@ def publish_outputs(
             contents,
             transaction,
             marker,
-            marker_owned=marker_owned,
+            marker_identity=marker_identity,
         )
         raise
 
@@ -1218,6 +1269,24 @@ def self_test(_: argparse.Namespace) -> None:
         if transaction.exists() or any(path.exists() for path in outputs):
             raise AssertionError("partial marker publication was not rolled back")
 
+        def marker_link_then_raise(source: Path, target: Path) -> None:
+            os.link(source, target)
+            raise InterruptedError("synthetic post-marker-link interruption")
+
+        try:
+            publish_outputs(
+                contents,
+                transaction=transaction,
+                staging_parent=root,
+                marker_linker=marker_link_then_raise,
+            )
+        except InterruptedError:
+            pass
+        else:
+            raise AssertionError("post-marker-link interruption was accepted")
+        if transaction.exists() or any(path.exists() for path in outputs):
+            raise AssertionError("post-marker-link interruption was not rolled back")
+
         marker = heldout.packet_bytes(transaction_payload(contents))
         heldout.write_exclusive(transaction, marker, 0o600)
         try:
@@ -1266,6 +1335,24 @@ def self_test(_: argparse.Namespace) -> None:
         if transaction.exists() or any(path.exists() for path in outputs):
             raise AssertionError("mid-promotion unlink failure was not rolled back")
 
+        def output_link_then_raise(source: Path, target: Path) -> None:
+            os.link(source, target)
+            raise InterruptedError("synthetic post-output-link interruption")
+
+        try:
+            publish_outputs(
+                contents,
+                transaction=transaction,
+                staging_parent=root,
+                output_linker=output_link_then_raise,
+            )
+        except InterruptedError:
+            pass
+        else:
+            raise AssertionError("post-output-link interruption was accepted")
+        if transaction.exists() or any(path.exists() for path in outputs):
+            raise AssertionError("post-output-link interruption was not rolled back")
+
         def remove_marker() -> None:
             transaction.unlink()
 
@@ -1282,6 +1369,54 @@ def self_test(_: argparse.Namespace) -> None:
             raise AssertionError("missing success marker was accepted")
         if transaction.exists() or any(path.exists() for path in outputs):
             raise AssertionError("missing success marker was not rolled back")
+
+        marker = heldout.packet_bytes(transaction_payload(contents))
+
+        def replace_marker() -> None:
+            replacement = root / "replacement-marker"
+            heldout.write_exclusive(replacement, marker, 0o600)
+            os.replace(replacement, transaction)
+            raise RuntimeError("synthetic marker replacement")
+
+        try:
+            publish_outputs(
+                contents,
+                transaction=transaction,
+                validator=replace_marker,
+                staging_parent=root,
+            )
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("identical marker replacement was accepted")
+        if not transaction.exists() or not all(path.exists() for path in outputs):
+            raise AssertionError("identical marker replacement was deleted")
+        for path in outputs:
+            path.unlink()
+        transaction.unlink()
+
+        def replace_output() -> None:
+            replacement = root / "replacement-output"
+            heldout.write_exclusive(replacement, contents[outputs[0]], 0o644)
+            os.replace(replacement, outputs[0])
+            raise RuntimeError("synthetic output replacement")
+
+        try:
+            publish_outputs(
+                contents,
+                transaction=transaction,
+                validator=replace_output,
+                staging_parent=root,
+            )
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("identical output replacement was accepted")
+        if not transaction.exists() or not all(path.exists() for path in outputs):
+            raise AssertionError("identical output replacement was deleted")
+        for path in outputs:
+            path.unlink()
+        transaction.unlink()
 
         def mutate_publish() -> None:
             outputs[0].write_bytes(b"mutated\n")
