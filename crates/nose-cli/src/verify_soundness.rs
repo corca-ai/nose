@@ -175,6 +175,7 @@ mod tests {
             tokens: 1,
             loc: loc.to_string(),
             claimable,
+            canon_exposed: false,
             admission_rejection: None,
             domain_sig,
             file_idx: 0,

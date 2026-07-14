@@ -1,0 +1,70 @@
+{
+  "schema": "nose-soundness-baseline-manifest/v1",
+  "baseline": "0.19.0",
+  "purpose": "Freeze the historical 0.19.0 soundness anchor, the published asset replay, the exact-claim cohort, and the non-gameable score contract.",
+  "source": {
+    "release_tag": "v0.19.0",
+    "release_commit": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+    "measured_release_candidate_commit": "bc4e9bc953ce3e2d11a13aebee33b5bced6258fe",
+    "crates_tree": "f57b078517fcd114657dfb90a2b72f44bfb6cafb"
+  },
+  "historical_anchor_identity": {
+    "binary_sha256": "559e1d565e231dda5ac7abacd749a5aac6337b63aef3bff008284e705096a25d",
+    "binary_code_sha256": "825a9c12c6ca260f500bb2dfa7a1d6ec9a9ed31160d8364e346b587c06500a8c",
+    "binary_code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1",
+    "report_sha256": "149abb80c7ffb790d3fc0fbc2ad910add776d768ecf2961ee4321239f935d9c9"
+  },
+  "published_asset_identity": {
+    "asset": "nose-cli-aarch64-apple-darwin.tar.xz",
+    "asset_sha256": "097c7e766e9ab756a32cec715897067d1360e145074715168a653962be409981",
+    "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
+  },
+  "known_release_discrepancy": {
+    "status": "recorded-not-normalized-away",
+    "explanation": "The preserved clean release-candidate report is the 7,835-unit historical anchor. The published v0.19.0 asset replays the identical crates tree as 7,869 units. Both identities and both outcomes are mandatory evidence; the published replay does not rewrite the frozen denominator."
+  },
+  "instrumentation": {
+    "kind": "additive-json-reporting-only",
+    "threads": [1, 4],
+    "artifact_sha256": "cff942d4d3b9ece901b1855f092f43649224b48f80a7ca6fff173dfa4d3fa142",
+    "unit_count": 1122,
+    "canon_exposed": 117,
+    "claimable_units": 193
+  },
+  "corpus": {
+    "manifest": "bench/goldens/corpus.json",
+    "repository_count": 120,
+    "selection_sha256": "ece26b22cf7662592cfc1e051f778b4dc73c3eb9899e3f47749464dc6c5ce9ac",
+    "canonical_gate_result_sha256": "0b79e40d7de019cfee9d5f6606d607665c89ed66437d812ef5c91b76eded11ab",
+    "canonical_gate_result_algorithm": "sha256(sorted repo,status,exit,false-merges,canon,advisory; timing omitted)",
+    "advisory_disagreements": 4756
+  },
+  "tracked_artifacts": {
+    "bench/default_head_closeout_corpus.v1.json": "b28d7245aa34d7e0320d0c80ef988803ba6acb65b63eaf1bae6d7ac840b168e0",
+    "bench/goldens/corpus.json": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
+    "bench/labels/prune_manifest.json": "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980",
+    "bench/recall_loss/issue-846-crates-verify-2026-07-14.v1.json": "b31d040498be5f34f2f519ced3c0dc7d20796b4ac6dd55eb6bb2e5583b111a07",
+    "bench/recall_loss/release-0.19.0-evidence-2026-07-13.v1.json": "7d0330a578d15f28c864ff8e4fe7dcb48ac8a6e8033d76f058003696276e0ab5"
+  },
+  "baseline_artifacts": {
+    "cohort.v1.json": "96ee179bd5598e571c5e10b9e11fb3c822b1a5de9a9b4a85b394c36e5d1f0aea",
+    "crates-report.v1.json": "149abb80c7ffb790d3fc0fbc2ad910add776d768ecf2961ee4321239f935d9c9",
+    "reporting.patch": "34f8a63357d044798a9acf1d458cfe12c73a2b1c7d0fecbadf91fe9b0bc92f69",
+    "scorecard.v1.json": "2d006ffbb37b2484ff66b9d1c5b7812ba3013e1a3ae23399dfe11e48754bdc5e",
+    "semantic-query.v1.json": "93bc2fb538f07a747e3ebb82e56fe9126bec62a8469004c1edef20649d48c0d6"
+  },
+  "continuity": {
+    "historical_anchor": {
+      "summary": {"total_units": 7835, "interpretable_units": 1122, "excluded_units": 6713, "canon_checked": 117, "canon_preservation_violations": 0, "admission_rejections": 929},
+      "soundness_gate": {"fingerprint_groups": 46, "false_merges": 0, "lossy_fingerprint_collisions": 0, "advisory_disagreements": 6, "canon_preservation_violations": 0, "max_violations": 0, "gate_passed": true},
+      "completeness": {"behavior_groups": 5, "behavior_equal_pairs": 180, "fingerprint_equal_pairs": 63, "completeness_percent": 35.0, "under_merged_behavior_groups": 2, "structurally_near_under_merged_groups": 0},
+      "exclusion_classification": {"missing-oracle-support": 6054, "semantic-boundary-attributed": 652, "path-exploration-budget": 5, "oracle-cost-budget": 1, "empty-value-fingerprint": 1}
+    },
+    "published_asset_replay": {
+      "summary": {"total_units": 7869, "interpretable_units": 1128, "excluded_units": 6741, "canon_checked": 117, "canon_preservation_violations": 0, "admission_rejections": 935},
+      "soundness_gate": {"fingerprint_groups": 46, "false_merges": 0, "lossy_fingerprint_collisions": 0, "advisory_disagreements": 6, "canon_preservation_violations": 0, "max_violations": 0, "gate_passed": true},
+      "completeness": {"behavior_groups": 5, "behavior_equal_pairs": 180, "fingerprint_equal_pairs": 63, "completeness_percent": 35.0, "under_merged_behavior_groups": 2, "structurally_near_under_merged_groups": 0},
+      "exclusion_classification": {"missing-oracle-support": 6078, "semantic-boundary-attributed": 656, "path-exploration-budget": 5, "oracle-cost-budget": 1, "empty-value-fingerprint": 1}
+    }
+  }
+}
