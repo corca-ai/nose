@@ -95,11 +95,11 @@ def corpus_rows() -> list[dict[str, Any]]:
 
 def validate_repository_state(rows: list[dict[str, Any]]) -> None:
     state = load(ROOT / CORPUS_STATE)
-    state_commits = {row["repo"]: row["commit"] for row in state["repositories"]}
+    state_repositories = set(state["repositories"])
     for row in rows:
         repository = row["id"]
         expected = row["commit"]
-        require(state_commits.get(repository) == expected, f"state mismatch: {repository}")
+        require(repository in state_repositories, f"state missing repository: {repository}")
         actual = subprocess.run(
             ["git", "-C", str(ROOT / "bench/repos" / repository), "rev-parse", "HEAD"],
             capture_output=True,
