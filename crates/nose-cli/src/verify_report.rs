@@ -14,6 +14,12 @@ use nose_il::Corpus;
 /// not evidence of a real clone). The evaluator groups by behavior to form gold clone
 /// pairs, then scores jscpd and nose against them on equal footing.
 pub(super) fn print_verify_json(oracle: &VerifyOracle) -> Result<()> {
+    let constructs: std::collections::HashMap<_, _> = oracle
+        .census
+        .iter()
+        .filter(|unit| unit.reason == "interpretable")
+        .map(|unit| (unit.loc.as_str(), unit.tags.as_slice()))
+        .collect();
     let recs_json: Vec<_> = oracle
         .recs
         .iter()
@@ -25,6 +31,12 @@ pub(super) fn print_verify_json(oracle: &VerifyOracle) -> Result<()> {
                 "tokens": r.tokens,
                 "behavior": format!("{:016x}", behavior_hash(&r.beh)),
                 "trivial": is_trivial_behavior(&r.beh),
+                "symbolic": r.beh.iter().any(nose_normalize::behavior_has_sym),
+                "claimable": r.claimable,
+                "canon_exposed": r.canon_exposed,
+                "domain_signature": format!("{:016x}", r.domain_sig),
+                "value_fingerprint": r.fp,
+                "constructs": constructs.get(r.loc.as_str()).copied().unwrap_or_default(),
             })
         })
         .collect();

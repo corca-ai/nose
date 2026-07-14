@@ -272,10 +272,10 @@ pub(crate) enum Cmd {
         /// Disable control-flow normalization (ablation).
         #[arg(long)]
         no_cfg_norm: bool,
-        /// Emit interpretable units as JSON `{units:[{file,start_line,end_line,
-        /// behavior,trivial}], exclusions:{...}}` (the oracle's behavioral ground truth
-        /// plus fail-closed exclusion counts) instead of the soundness/completeness report.
-        /// Used by the value-add evaluator.
+        /// Emit interpretable units as JSON. In addition to location and behavior, each
+        /// unit records exact-claim eligibility, domain signature, value fingerprint,
+        /// construct tags, symbolic/trivial status, and canon-check exposure. The output
+        /// is the deterministic source for offline Soundness Lab cohort identities.
         #[arg(long)]
         json: bool,
         /// CI soundness gate: exit non-zero if the false-merge count EXCEEDS this budget.

@@ -132,6 +132,8 @@ def run_self_test() -> None:
         assert (src / "protected.py").exists()
 
         (repos / ".DS_Store").write_text("metadata\n")
+        corpus_state = repos / ".nose-corpus-state.json"
+        corpus_state.write_text('{"schema":"nose.pinned_corpus_subset.v1"}\n')
         check_manifest(root, repos, labels_path, manifest_path)
 
         _, removed_count, verified_only = apply_prune(root, repos, labels_path, manifest_path)
@@ -150,6 +152,7 @@ def run_self_test() -> None:
         assert manifest["totals"]["removed"] == 2, manifest["totals"]
         check_manifest(root, repos, labels_path, manifest_path)
 
+        corpus_state.unlink()
         extra = repos / "extra"
         extra.mkdir()
         (extra / "stray.py").write_text("VALUE = 5\n")

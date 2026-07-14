@@ -1,5 +1,21 @@
 use super::*;
 
+#[test]
+fn verify_json_exposes_deterministic_soundness_cohort_fields() {
+    let project = TempProject::new("verify-json-soundness-cohort");
+    project.write("sample.py", "def increment(x):\n    return x + 1\n");
+    let output = run_raw(&["verify", project.path().to_str().unwrap(), "--json"]);
+    let report: serde_json::Value = serde_json::from_str(&output).expect("verify JSON");
+    let unit = report["units"].as_array().unwrap().first().unwrap();
+
+    assert!(unit["claimable"].is_boolean());
+    assert!(unit["canon_exposed"].is_boolean());
+    assert!(unit["symbolic"].is_boolean());
+    assert_eq!(unit["domain_signature"].as_str().unwrap().len(), 16);
+    assert!(!unit["value_fingerprint"].as_array().unwrap().is_empty());
+    assert!(!unit["constructs"].as_array().unwrap().is_empty());
+}
+
 fn await_oracle_exclusion_report(project_name: &str) -> serde_json::Value {
     let project = TempProject::new(project_name);
     project.write(

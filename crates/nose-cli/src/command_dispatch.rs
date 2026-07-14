@@ -161,7 +161,7 @@ fn cmd_verify(args: VerifyArgs) -> Result<()> {
     // battery is identical for every unit (a function uses only its first `arity`
     // inputs), so behavior vectors are always length-comparable.
     let battery = verify_battery(&verify_probes(&corpus));
-    let oracle = collect_verify_recs(&corpus, &opts, &battery, exclusion_census.is_some());
+    let oracle = collect_verify_recs(&corpus, &opts, &battery, exclusion_census.is_some() || json);
     if let Some(path) = &exclusion_census {
         verify_census::write_report(path, &oracle.census)?;
         println!("exclusion census written to {}", path.display());

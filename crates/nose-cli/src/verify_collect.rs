@@ -19,6 +19,8 @@ pub(super) struct VerifyRec {
     /// Can the exact `semantic` channel ever claim this unit (strict-exact-safe
     /// and above the degenerate-fingerprint floor)? Scopes the HARD gate.
     pub(super) claimable: bool,
+    /// Whether this unit participated in the concrete core-vs-canonical behavior check.
+    pub(super) canon_exposed: bool,
     /// Diagnostics-only reason for a unit that cannot enter the exact semantic
     /// claim surface. This does not participate in the product admission gate.
     pub(super) admission_rejection: Option<ExactAdmissionRejectionDiagnostic>,
@@ -394,6 +396,7 @@ fn collect_file_verify_recs(
         // is keyed on syntax, and canonicalization legitimately rewrites syntax, so a
         // Sym-bearing mismatch here is expected, not a behavior change.
         let mut full_path_cap = false;
+        let mut canon_exposed = false;
         if let Some(full_beh) =
             run_battery(n, interner, root, battery, &contracts, &mut full_path_cap)
         {
@@ -404,6 +407,7 @@ fn collect_file_verify_recs(
             let concrete = !beh.iter().any(nose_normalize::behavior_has_sym)
                 && !full_beh.iter().any(nose_normalize::behavior_has_sym);
             if concrete {
+                canon_exposed = true;
                 oracle.canon_checked += 1;
                 if canon_changed_behavior(&beh, &full_beh) && oracle.canon_violations.len() < 20 {
                     let s = n.node(root).span;
@@ -437,6 +441,7 @@ fn collect_file_verify_recs(
             tokens,
             loc: format!("{}:{}", file_path, span.start_line),
             claimable,
+            canon_exposed,
             admission_rejection,
             domain_sig: param_domain_signature(n, root),
             file_idx,

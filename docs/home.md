@@ -82,6 +82,9 @@ fundamentals; the rest is grouped by area.
 - [recall-loss-diagnostics](recall-loss-diagnostics.md) — the local `nose verify --recall-loss-report` artifact for keeping exact semantic admission strict while measuring under-merges, oracle exclusions, and structured admission rejections.
 - [value-float-kind-design](value-float-kind-design.md) — the IEEE-754 `Value::Float` kind (#342, SHIPPED): how fully-untyped float associativity was closed in both the oracle and the analyzer, with the full-corpus recall measurement (delta 0).
 - [formal-soundness](formal-soundness.md) — Lean 4 proof-obligation registry for proof-sensitive IL, normalization, fragment, and oracle contracts.
+- [Soundness Lab](soundness-lab.md) — the frozen v0.19.0 exact-claim cohort,
+  risk-weighted non-gameable scorecard, published-asset replay discrepancy, and
+  reproduction gate for 0.20 soundness work.
 
 ### Semantic kernel & packs
 
