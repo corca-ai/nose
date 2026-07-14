@@ -110,6 +110,12 @@ byte hash and length, all schemas and packet receipts, four true attestations pe
 reviewer, 214 unique cases per persona, valid worthy/reason pairs, non-empty
 rationales, and zero cross-persona blind-ID overlap. Public CI still cannot prove
 the secret permutation; exact ID order remains a private-packet check until reveal.
+The arbitration builder consumes the three JSON blobs from that exact atomic Git
+commit—not from the working tree or its current `HEAD`—then privately rechecks
+their ID order against the original packets. Its public commitment validator binds
+the panel commitment, atomic vote commit/tree/parent and file receipts, root-seed
+commitment, collector commit/tree/blob, clean freeze state, and private arbitration
+packet hash, length, schema, and disagreement count.
 
 ## Closeout gates
 

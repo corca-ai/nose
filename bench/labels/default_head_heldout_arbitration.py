@@ -7,12 +7,14 @@ import argparse
 import copy
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
 import default_head_heldout as heldout
 import default_head_heldout_commitment_receipt as receipt
 import default_head_heldout_panel as panel
+import default_head_heldout_vote_receipt as vote_receipt
 from labelset import validate_vote
 
 
@@ -25,11 +27,6 @@ ARBITER_PACKET_SCHEMA = "nose.default_head_heldout_private_arbitration.v3"
 ARBITRATION_COMMITMENT_SCHEMA = (
     "nose.default_head_heldout_arbitration_commitment.v3"
 )
-VOTE_PATHS = {
-    persona: ROOT
-    / f"bench/labels/default_head_heldout_votes_2026_07_14.heldout.{persona}.v3.json"
-    for persona in heldout.PERSONAS
-}
 FREEZE_COMMAND = (
     "python3 bench/labels/default_head_heldout_arbitration.py freeze "
     "--private-panel-dir <outside-repository> "
@@ -44,8 +41,7 @@ ARBITER_ATTESTATION = {
 
 
 def require_equal(actual: object, expected: object, label: str) -> None:
-    if actual != expected:
-        raise ValueError(f"{label}: mismatch")
+    panel.require_equal(actual, expected, label)
 
 
 def relative(path: Path) -> str:
@@ -60,29 +56,18 @@ def file_record(path: Path) -> dict[str, Any]:
     }
 
 
-def frozen_file_record(path: Path, revision: str) -> dict[str, Any]:
-    path_text = relative(path)
-    frozen = heldout.git_bytes(["show", f"{revision}:{path_text}"])
-    require_equal(frozen, path.read_bytes(), f"frozen file {path_text}")
-    return {
-        "path": path_text,
-        "sha256": hashlib.sha256(frozen).hexdigest(),
-        "byte_length": len(frozen),
-    }
-
-
 def load_panel_votes(
     private_dir: Path, commitment: dict[str, Any]
 ) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
+    frozen_payloads = vote_receipt.validate_git_receipt()
+    vote_receipt.validate_vote_set(frozen_payloads)
     vote_payloads: dict[str, dict[str, Any]] = {}
-    receipts: list[dict[str, Any]] = []
+    receipts = copy.deepcopy(vote_receipt.VOTE_RECEIPTS)
     for persona in heldout.PERSONAS:
         _, packet = panel.private_packet(private_dir, persona, commitment)
-        path = VOTE_PATHS[persona]
-        payload = heldout.read_json(path)
+        payload = frozen_payloads[persona]
         panel.validate_vote_payload(payload, persona, packet, commitment)
         vote_payloads[persona] = payload
-        receipts.append({"persona": persona, **file_record(path)})
     return vote_payloads, receipts
 
 
@@ -342,13 +327,11 @@ def collect_commitment(
         panel_commitment["protocol"]["root_seed_commitment_sha256"],
         "root seed commitment",
     )
-    vote_commit = heldout.git_text(["rev-parse", "HEAD"])
-    vote_tree = heldout.git_text(["rev-parse", "HEAD^{tree}"])
-    vote_payloads, _ = load_panel_votes(args.private_panel_dir, panel_commitment)
-    vote_receipts = [
-        {"persona": persona, **frozen_file_record(VOTE_PATHS[persona], vote_commit)}
-        for persona in heldout.PERSONAS
-    ]
+    vote_commit = vote_receipt.VOTE_COMMIT
+    vote_tree = vote_receipt.VOTE_TREE
+    vote_payloads, vote_receipts = load_panel_votes(
+        args.private_panel_dir, panel_commitment
+    )
     _, selected = heldout.replay(args)
     aligned = align_votes(
         selected,
@@ -374,6 +357,7 @@ def collect_commitment(
         "raw_votes": {
             "commit": vote_commit,
             "tree": vote_tree,
+            "parent": vote_receipt.VOTE_PARENT,
             "count": len(vote_receipts),
             "files": vote_receipts,
         },
@@ -393,6 +377,8 @@ def collect_commitment(
         "provenance": {
             "command": FREEZE_COMMAND,
             "collector": file_record(collector),
+            "collector_commit": heldout.git_text(["rev-parse", "HEAD"]),
+            "collector_tree": heldout.git_text(["rev-parse", "HEAD^{tree}"]),
             "vote_commit": vote_commit,
             "vote_tree": vote_tree,
             "working_tree_status_before_freeze": status,
@@ -421,29 +407,108 @@ def validate_commitment(payload: dict[str, Any]) -> None:
     require_equal(payload["state"], "blind-arbitration-packet-committed", "state")
     require_equal(payload["issue"], 846, "issue")
     require_equal(payload["split"], "heldout", "split")
-    require_equal(payload["raw_votes"]["count"], 3, "raw vote count")
-    packet = payload["arbitration_packet"]
+    panel_commitment = panel.read_commitment()
+    require_equal(
+        payload["panel_commitment"],
+        {
+            "path": relative(panel.COMMITMENT),
+            "sha256": heldout.sha256_file(panel.COMMITMENT),
+            "commit": receipt.COMMITMENT_COMMIT,
+        },
+        "panel commitment",
+    )
+    frozen_payloads = vote_receipt.validate_git_receipt()
+    vote_receipt.validate_vote_set(frozen_payloads)
+    require_equal(
+        payload["raw_votes"],
+        {
+            "commit": vote_receipt.VOTE_COMMIT,
+            "tree": vote_receipt.VOTE_TREE,
+            "parent": vote_receipt.VOTE_PARENT,
+            "count": len(vote_receipt.VOTE_RECEIPTS),
+            "files": vote_receipt.VOTE_RECEIPTS,
+        },
+        "raw vote receipt",
+    )
+    packet = heldout.require_exact_keys(
+        payload["arbitration_packet"],
+        {"schema", "sha256", "byte_length", "candidate_count"},
+        "arbiter packet fields",
+    )
     require_equal(packet["schema"], ARBITER_PACKET_SCHEMA, "arbiter packet schema")
     heldout.require_hex(packet["sha256"], 64, "arbiter packet SHA")
-    if not isinstance(packet["byte_length"], int) or packet["byte_length"] < 1:
+    if type(packet["byte_length"]) is not int or packet["byte_length"] < 1:
         raise ValueError("arbiter packet byte length is invalid")
-    if not isinstance(packet["candidate_count"], int) or packet["candidate_count"] < 1:
+    if (
+        type(packet["candidate_count"]) is not int
+        or not 1 <= packet["candidate_count"] <= 214
+    ):
         raise ValueError("arbiter candidate count is invalid")
     require_equal(
-        payload["protocol"]["mapping_release"],
-        "after blind-ID arbitration is frozen",
-        "mapping release",
+        payload["protocol"],
+        {
+            "root_seed_commitment_sha256": panel_commitment["protocol"][
+                "root_seed_commitment_sha256"
+            ],
+            "raw_votes_frozen_before_packet": True,
+            "mapping_release": "after blind-ID arbitration is frozen",
+        },
+        "arbitration protocol",
     )
-    require_equal(
-        payload["protocol"]["raw_votes_frozen_before_packet"],
-        True,
-        "raw vote chronology",
+    provenance = heldout.require_exact_keys(
+        payload["provenance"],
+        {
+            "command",
+            "collector",
+            "collector_commit",
+            "collector_tree",
+            "vote_commit",
+            "vote_tree",
+            "working_tree_status_before_freeze",
+        },
+        "arbitration provenance fields",
     )
-    provenance = payload["provenance"]
     require_equal(provenance["command"], FREEZE_COMMAND, "freeze command")
     require_equal(provenance["working_tree_status_before_freeze"], "", "clean freeze")
-    require_equal(provenance["vote_commit"], payload["raw_votes"]["commit"], "vote commit")
-    require_equal(provenance["vote_tree"], payload["raw_votes"]["tree"], "vote tree")
+    require_equal(provenance["vote_commit"], vote_receipt.VOTE_COMMIT, "vote commit")
+    require_equal(provenance["vote_tree"], vote_receipt.VOTE_TREE, "vote tree")
+    collector_commit = provenance["collector_commit"]
+    collector_tree = provenance["collector_tree"]
+    heldout.require_hex(collector_commit, 40, "collector commit")
+    heldout.require_hex(collector_tree, 40, "collector tree")
+    require_equal(
+        heldout.git_text(["rev-parse", f"{collector_commit}^{{tree}}"]),
+        collector_tree,
+        "collector tree",
+    )
+    collector = heldout.require_exact_keys(
+        provenance["collector"],
+        {"path", "sha256", "byte_length"},
+        "arbitration collector fields",
+    )
+    require_equal(
+        collector["path"],
+        relative(Path(__file__).resolve()),
+        "arbitration collector path",
+    )
+    collector_blob = heldout.git_bytes(
+        ["show", f"{collector_commit}:{collector['path']}"]
+    )
+    require_equal(
+        hashlib.sha256(collector_blob).hexdigest(),
+        collector["sha256"],
+        "arbitration collector blob",
+    )
+    require_equal(
+        len(collector_blob),
+        collector["byte_length"],
+        "arbitration collector bytes",
+    )
+    subprocess.run(
+        ["git", "merge-base", "--is-ancestor", collector_commit, "HEAD"],
+        cwd=ROOT,
+        check=True,
+    )
 
 
 def freeze(args: argparse.Namespace) -> None:
@@ -487,6 +552,89 @@ def self_test(_: argparse.Namespace) -> None:
     changed["skeptic"]["reason"] = "coincidental-shape"
     if first == anonymous_panel_votes("candidate", changed, seed):
         raise AssertionError("vote content mutation was ignored")
+    panel_commitment = panel.read_commitment()
+    collector_commit = heldout.git_text(["rev-parse", "HEAD"])
+    collector_tree = heldout.git_text(["rev-parse", "HEAD^{tree}"])
+    collector_path = relative(Path(__file__).resolve())
+    collector_blob = heldout.git_bytes(
+        ["show", f"{collector_commit}:{collector_path}"]
+    )
+    valid_commitment = {
+        "schema": ARBITRATION_COMMITMENT_SCHEMA,
+        "issue": 846,
+        "split": "heldout",
+        "state": "blind-arbitration-packet-committed",
+        "panel_commitment": {
+            "path": relative(panel.COMMITMENT),
+            "sha256": heldout.sha256_file(panel.COMMITMENT),
+            "commit": receipt.COMMITMENT_COMMIT,
+        },
+        "raw_votes": {
+            "commit": vote_receipt.VOTE_COMMIT,
+            "tree": vote_receipt.VOTE_TREE,
+            "parent": vote_receipt.VOTE_PARENT,
+            "count": len(vote_receipt.VOTE_RECEIPTS),
+            "files": vote_receipt.VOTE_RECEIPTS,
+        },
+        "arbitration_packet": {
+            "schema": ARBITER_PACKET_SCHEMA,
+            "sha256": "1" * 64,
+            "byte_length": 1,
+            "candidate_count": 1,
+        },
+        "protocol": {
+            "root_seed_commitment_sha256": panel_commitment["protocol"][
+                "root_seed_commitment_sha256"
+            ],
+            "raw_votes_frozen_before_packet": True,
+            "mapping_release": "after blind-ID arbitration is frozen",
+        },
+        "provenance": {
+            "command": FREEZE_COMMAND,
+            "collector": {
+                "path": collector_path,
+                "sha256": hashlib.sha256(collector_blob).hexdigest(),
+                "byte_length": len(collector_blob),
+            },
+            "collector_commit": collector_commit,
+            "collector_tree": collector_tree,
+            "vote_commit": vote_receipt.VOTE_COMMIT,
+            "vote_tree": vote_receipt.VOTE_TREE,
+            "working_tree_status_before_freeze": "",
+        },
+    }
+    validate_commitment(valid_commitment)
+    commitment_mutations: list[dict[str, Any]] = []
+    changed_commitment = copy.deepcopy(valid_commitment)
+    changed_commitment["panel_commitment"] = "unbound"
+    commitment_mutations.append(changed_commitment)
+    changed_commitment = copy.deepcopy(valid_commitment)
+    changed_commitment["raw_votes"]["commit"] = "0" * 40
+    commitment_mutations.append(changed_commitment)
+    changed_commitment = copy.deepcopy(valid_commitment)
+    changed_commitment["raw_votes"]["files"] = []
+    commitment_mutations.append(changed_commitment)
+    changed_commitment = copy.deepcopy(valid_commitment)
+    changed_commitment["protocol"]["root_seed_commitment_sha256"] = "0" * 64
+    commitment_mutations.append(changed_commitment)
+    changed_commitment = copy.deepcopy(valid_commitment)
+    changed_commitment["provenance"]["collector"]["sha256"] = "0" * 64
+    commitment_mutations.append(changed_commitment)
+    changed_commitment = copy.deepcopy(valid_commitment)
+    changed_commitment["provenance"]["collector_commit"] = "0" * 40
+    commitment_mutations.append(changed_commitment)
+    changed_commitment = copy.deepcopy(valid_commitment)
+    changed_commitment["arbitration_packet"]["candidate_count"] = 1.0
+    commitment_mutations.append(changed_commitment)
+    changed_commitment = copy.deepcopy(valid_commitment)
+    changed_commitment["protocol"]["raw_votes_frozen_before_packet"] = 1
+    commitment_mutations.append(changed_commitment)
+    for mutation in commitment_mutations:
+        try:
+            validate_commitment(mutation)
+        except (subprocess.CalledProcessError, ValueError):
+            continue
+        raise AssertionError("invalid arbitration commitment mutation was accepted")
     print("default-head held-out arbitration self-test passed")
 
 

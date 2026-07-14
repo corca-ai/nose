@@ -24,8 +24,23 @@ TSV_FIELDS = ("blind_id", "worthy", "reason", "rationale")
 
 
 def require_equal(actual: object, expected: object, label: str) -> None:
-    if actual != expected:
+    if not strictly_equal(actual, expected):
         raise ValueError(f"{label}: mismatch")
+
+
+def strictly_equal(actual: object, expected: object) -> bool:
+    if type(actual) is not type(expected):
+        return False
+    if isinstance(actual, dict) and isinstance(expected, dict):
+        return actual.keys() == expected.keys() and all(
+            strictly_equal(actual[key], expected[key]) for key in actual
+        )
+    if isinstance(actual, (list, tuple)) and isinstance(expected, (list, tuple)):
+        return len(actual) == len(expected) and all(
+            strictly_equal(left, right)
+            for left, right in zip(actual, expected, strict=True)
+        )
+    return actual == expected
 
 
 def read_commitment() -> dict[str, Any]:
@@ -325,6 +340,14 @@ def self_test(_: argparse.Namespace) -> None:
     public_mutations.append(changed)
     changed = copy.deepcopy(payload)
     changed["attestation"]["assigned_material_only"] = False
+    public_mutations.append(changed)
+    changed = copy.deepcopy(payload)
+    changed["attestation"] = {
+        key: 1 for key in heldout.REVIEWER_ATTESTATION
+    }
+    public_mutations.append(changed)
+    changed = copy.deepcopy(payload)
+    changed["issue"] = 846.0
     public_mutations.append(changed)
     changed = copy.deepcopy(payload)
     changed["votes"][0]["reason"] = "trivial"
