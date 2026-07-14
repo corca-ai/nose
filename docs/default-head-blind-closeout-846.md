@@ -95,6 +95,22 @@ persona seeds and permutations, the complete official-binary replay, all 1,564
 commitments, exact 214-key selection, and exact-key mapping. Fuzzy overlap
 propagation is forbidden.
 
+All three fresh reviewers completed all 214 cases under those attestations before
+any vote was opened or copied into the repository. Their raw votes were added
+together—and were the only paths added—by commit `1d3add50` / tree `f675ed94`.
+The byte receipts are `c3159dd5…97fc` (dedupe), `9abe8c3f…b62`
+(pragmatic), and `cfdd7da6…e2d` (skeptic). The panels marked respectively
+159, 138, and 143 cases worthy; these are independent raw votes, not final labels.
+Exact source identity and candidate mapping remain private until the separate
+blind-ID arbitration result is frozen.
+
+The external vote receipt checks the exact commit parent and tree, that exactly
+the three vote paths were newly added in the same commit, every frozen and current
+byte hash and length, all schemas and packet receipts, four true attestations per
+reviewer, 214 unique cases per persona, valid worthy/reason pairs, non-empty
+rationales, and zero cross-persona blind-ID overlap. Public CI still cannot prove
+the secret permutation; exact ID order remains a private-packet check until reveal.
+
 ## Closeout gates
 
 Only after the judgment component is frozen may the closeout report final dev and
@@ -120,6 +136,10 @@ python3 bench/labels/default_head_heldout.py validate
 python3 bench/labels/default_head_heldout.py self-test
 python3 bench/labels/default_head_heldout.py validate-private \
   --private-dir <outside-repository>
+python3 bench/labels/default_head_heldout_panel.py self-test
+python3 bench/labels/default_head_heldout_vote_receipt.py validate
+python3 bench/labels/default_head_heldout_vote_receipt.py self-test
+python3 bench/labels/default_head_heldout_arbitration.py self-test
 ```
 
 Ordinary CI validates only public commitments and receipts until the post-arbiter
