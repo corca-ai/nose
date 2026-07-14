@@ -181,6 +181,14 @@ All 80 judgments follow `RUBRIC.md`; the checked validator binds the repository 
 ordered family IDs, raw query hashes, summaries, and the rule that field findings cannot
 retune the already-revealed product.
 
+`default_head_closeout_2026_07_14.v1.json` is the final #846 / #838 decision
+artifact. It distinguishes #845's completely judged 387/658 dev result from the
+standard evaluator's coverage-limited 382/647 cross-check, records the 334/526
+held-out result, and binds recall, field, soundness, determinism, exact output-drift,
+and official-v0.19.0 performance evidence. Its conclusion is a checked no-go, not a
+relaxed success: aggregate precision, five language-floor cells, and material runtime
+stage signals fail while worthy recall and soundness remain preserved.
+
 `lawpack_provenance_audit_2026_06_10.json` is also adjacent evidence, not part of
 the active metric. It records the full-corpus and targeted real-repo pass for the
 first-party `nose.value_graph.laws` LawPack pilot. See
