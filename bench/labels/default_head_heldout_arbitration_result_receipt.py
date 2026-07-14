@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import copy
 import hashlib
+import json
 import subprocess
 from collections import Counter
 from pathlib import Path
@@ -71,6 +72,11 @@ def result_summary(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def payload_sha256(payload: dict[str, Any]) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def validate_git_receipt() -> None:
     require_equal(
         git_text(["rev-parse", f"{RESULT_COMMIT}^{{tree}}"]),
@@ -130,6 +136,7 @@ def validate_git_receipt() -> None:
 
 
 def validate_payload(payload: dict[str, Any]) -> None:
+    require_equal(payload_sha256(payload), RESULT_SHA256, "arbitration result payload")
     commitment = result.read_commitment()
     result.validate_public_result_payload(payload, commitment)
     require_equal(result_summary(payload), EXPECTED_SUMMARY, "arbitration summary")
@@ -161,6 +168,15 @@ def self_test(_: argparse.Namespace) -> None:
     mutations.append(changed)
     changed = copy.deepcopy(payload)
     changed["votes"].pop()
+    mutations.append(changed)
+    changed = copy.deepcopy(payload)
+    changed["votes"][0]["blind_id"] = "case-" + "0" * 24
+    mutations.append(changed)
+    changed = copy.deepcopy(payload)
+    changed["votes"].reverse()
+    mutations.append(changed)
+    changed = copy.deepcopy(payload)
+    changed["votes"][0]["rationale"] += " Altered."
     mutations.append(changed)
     for mutation in mutations:
         try:
