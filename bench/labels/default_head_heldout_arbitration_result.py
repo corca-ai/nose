@@ -11,6 +11,7 @@ from typing import Any
 
 import default_head_heldout as heldout
 import default_head_heldout_arbitration as arbitration
+import default_head_heldout_arbitration_receipt as arbitration_receipt
 import default_head_heldout_panel as panel
 from labelset import validate_vote
 
@@ -29,7 +30,8 @@ def require_equal(actual: object, expected: object, label: str) -> None:
 
 def read_commitment() -> dict[str, Any]:
     payload = heldout.read_json(arbitration.COMMITMENT)
-    arbitration.validate_commitment(payload)
+    arbitration_receipt.validate_git_receipt()
+    arbitration_receipt.validate_payload(payload)
     return payload
 
 
@@ -201,6 +203,15 @@ def validate_public_result_file(args: argparse.Namespace) -> None:
 
 
 def self_test(_: argparse.Namespace) -> None:
+    frozen_commitment = read_commitment()
+    changed_commitment = copy.deepcopy(frozen_commitment)
+    changed_commitment["arbitration_packet"]["candidate_count"] = 1
+    try:
+        arbitration_receipt.validate_payload(changed_commitment)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("altered arbitration commitment receipt was accepted")
     expected_ids = ["case-" + "1" * 24, "case-" + "2" * 24]
     packet = {"candidates": [{"blind_id": value} for value in expected_ids]}
     source_packet = {
