@@ -246,6 +246,12 @@ object. The validator therefore pins the historical identifier and verifies tree
 bound independently by SHA-256. This keeps clean GitHub checkouts reproducible without
 rewriting the historical measurement provenance.
 
+The #846 reveal, frozen-product, and replay-generator commits are stronger history-bound
+receipts rather than replaceable product-source identifiers. The integration that lands
+this closeout must therefore retain the reviewed branch as real Git ancestry with a merge
+commit. Squashing or rebasing the evidence chain makes those receipts correctly fail on
+main, even when the resulting file tree is byte-identical.
+
 The checked [measurement provenance
 manifest](../bench/labels/default_head_measurement_provenance_2026_07_14.v1.json) binds
 the raw soundness report, held-out thread matrix, and Ruby scaling report to
