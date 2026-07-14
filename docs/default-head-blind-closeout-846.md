@@ -129,6 +129,14 @@ queries, 1,564 candidate commitments, exact 214 selection, all three packet
 permutations and votes, and the same 90-case arbiter packet. Source, opaque IDs,
 root seed, and mappings remain outside Git until the arbiter result is frozen.
 
+A fresh arbiter then resolved all 90 cases using only that packet and the bound
+rubric, with all four required attestations true. The blind result records 55
+worthy and 35 not-worthy decisions. It was added alone by commit `e419e48b` /
+tree `bdb531d6`; its 17,700 bytes have SHA-256 `1458a26f…7865`. The result remains
+keyed only by arbiter blind IDs. Source, root seed, persona identities, candidate
+keys, and mappings remain private until this result and its external receipt are
+merged, after which reveal is a mechanical replay rather than a new judgment.
+
 ## Closeout gates
 
 Only after the judgment component is frozen may the closeout report final dev and
@@ -165,6 +173,10 @@ python3 bench/labels/default_head_heldout_arbitration.py validate-private \
   --private-panel-dir <outside-repository> \
   --private-packet <outside-repository>/arbiter.json
 python3 bench/labels/default_head_heldout_arbitration_result.py self-test
+python3 bench/labels/default_head_heldout_arbitration_result.py validate-public \
+  bench/labels/default_head_heldout_arbitration_result_2026_07_14.heldout.v3.json
+python3 bench/labels/default_head_heldout_arbitration_result_receipt.py validate
+python3 bench/labels/default_head_heldout_arbitration_result_receipt.py self-test
 ```
 
 Ordinary CI validates only public commitments and receipts until the post-arbiter
