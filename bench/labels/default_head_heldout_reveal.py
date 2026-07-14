@@ -8,6 +8,7 @@ import copy
 import hashlib
 import json
 import os
+import stat
 import subprocess
 import tempfile
 from collections.abc import Callable
@@ -48,6 +49,13 @@ FREEZE_COMMAND = (
     "--private-arbiter-packet <outside-repository>"
 )
 TRANSACTION = LABELS / ".default_head_heldout_reveal.transaction.json"
+OUTPUTS = (
+    REVEAL,
+    DECISIONS,
+    COMPONENT,
+    ARBITER_PACKET,
+    *PANEL_PACKET_PATHS.values(),
+)
 REVEALED_CANDIDATE_KEYS = {
     "candidate_key",
     "repo",
@@ -108,6 +116,19 @@ def require_ancestor(ancestor: str, descendant: str, label: str) -> None:
     )
     if completed.returncode != 0:
         raise ValueError(f"{label}: mismatch")
+
+
+def entry_exists(path: Path) -> bool:
+    return os.path.lexists(path)
+
+
+def require_regular_file(path: Path, label: str) -> None:
+    try:
+        mode = path.lstat().st_mode
+    except FileNotFoundError as error:
+        raise ValueError(f"{label}: missing") from error
+    if not stat.S_ISREG(mode):
+        raise ValueError(f"{label}: expected a regular file")
 
 
 def validate_revealed_candidate(candidate: object, label: str) -> dict[str, Any]:
@@ -654,8 +675,9 @@ def transaction_payload(contents: dict[Path, bytes]) -> dict[str, Any]:
 def recover_interrupted_publish(
     outputs: list[Path], transaction: Path = TRANSACTION
 ) -> None:
-    if not transaction.exists():
+    if not entry_exists(transaction):
         return
+    require_regular_file(transaction, "held-out reveal transaction marker")
     payload = heldout.read_json(transaction)
     expected_names = [path.name for path in outputs]
     if set(payload) != {"schema", "outputs"} or payload["schema"] != (
@@ -683,23 +705,30 @@ def recover_interrupted_publish(
             raise ValueError("invalid held-out reveal transaction byte length")
         checked.append((path, record))
     for path, record in checked:
-        if not path.exists():
+        if not entry_exists(path):
             continue
+        require_regular_file(path, f"interrupted reveal output {path.name}")
         if (
             heldout.sha256_file(path) != record["sha256"]
             or path.stat().st_size != record["byte_length"]
         ):
             raise ValueError(f"refusing to remove mismatched interrupted output: {path}")
     for path, _ in checked:
-        if not path.exists():
+        if not entry_exists(path):
             continue
         path.unlink()
     transaction.unlink()
 
 
 def content_matches(path: Path, content: bytes) -> bool:
+    if not entry_exists(path):
+        return False
+    try:
+        mode = path.lstat().st_mode
+    except FileNotFoundError:
+        return False
     return (
-        path.is_file()
+        stat.S_ISREG(mode)
         and path.stat().st_size == len(content)
         and heldout.sha256_file(path) == hashlib.sha256(content).hexdigest()
     )
@@ -715,13 +744,16 @@ def rollback_publish(
 ) -> None:
     if not marker_owned:
         return
-    if transaction.exists() and not content_matches(transaction, marker):
+    if entry_exists(transaction) and not content_matches(transaction, marker):
         return
-    if any(path.exists() and not content_matches(path, contents[path]) for path in published):
+    if any(
+        entry_exists(path) and not content_matches(path, contents[path])
+        for path in published
+    ):
         return
     for path in reversed(published):
         path.unlink(missing_ok=True)
-    if transaction.exists():
+    if entry_exists(transaction):
         transaction.unlink()
 
 
@@ -778,9 +810,9 @@ def publish_outputs(
 
 
 def freeze(args: argparse.Namespace) -> None:
-    outputs = [REVEAL, DECISIONS, COMPONENT, ARBITER_PACKET, *PANEL_PACKET_PATHS.values()]
+    outputs = list(OUTPUTS)
     recover_interrupted_publish(outputs)
-    existing = [path for path in outputs if path.exists()]
+    existing = [path for path in outputs if entry_exists(path)]
     if existing:
         raise ValueError(f"refusing to replace reveal output: {existing[0]}")
     status = heldout.git_text(["status", "--short"])
@@ -976,13 +1008,15 @@ def validate_reveal_payload(payload: dict[str, Any]) -> tuple[bytes, list[dict[s
 
 
 def require_completed_publish(transaction: Path = TRANSACTION) -> None:
-    if transaction.exists():
+    if entry_exists(transaction):
         raise ValueError("held-out reveal transaction is still in progress")
 
 
 def validate_checked(*, allow_transaction: bool = False) -> None:
     if not allow_transaction:
         require_completed_publish()
+    for path in OUTPUTS:
+        require_regular_file(path, f"held-out reveal output {path.name}")
     vote_payloads = read_frozen_votes()
     arbitration_receipt.validate(None)
     result_receipt.validate(None)
@@ -1287,6 +1321,47 @@ def self_test(_: argparse.Namespace) -> None:
         recover_interrupted_publish(outputs, transaction)
         if transaction.exists() or any(path.exists() for path in outputs):
             raise AssertionError("interrupted publication was not recovered")
+
+        transaction.symlink_to(root / "missing-transaction")
+        try:
+            require_completed_publish(transaction)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("dangling transaction symlink was accepted")
+        try:
+            recover_interrupted_publish(outputs, transaction)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("dangling transaction symlink was recovered")
+        if not transaction.is_symlink():
+            raise AssertionError("dangling transaction symlink was removed")
+        transaction.unlink()
+
+        heldout.write_exclusive(
+            transaction,
+            heldout.packet_bytes(transaction_payload(contents)),
+            0o600,
+        )
+        outputs[0].symlink_to(root / "missing-output")
+        try:
+            recover_interrupted_publish(outputs, transaction)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("dangling reveal output symlink was recovered")
+        if not transaction.exists() or not outputs[0].is_symlink():
+            raise AssertionError("dangling reveal output or marker was removed")
+        outputs[0].unlink()
+        transaction.unlink()
+
+        regular = root / "regular"
+        heldout.write_exclusive(regular, b"regular\n", 0o644)
+        linked = root / "linked"
+        linked.symlink_to(regular)
+        if content_matches(linked, b"regular\n"):
+            raise AssertionError("symlink was accepted as owned regular content")
     print("default-head held-out reveal self-test passed")
 
 
