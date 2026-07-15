@@ -5,6 +5,41 @@ use super::{
 };
 use nose_il::{Il, Interner, NodeId, NodeKind, UnitKind, UnitOrigin};
 
+/// Keep whole function/method/class units for cross-file matches, but do not expand
+/// every nested `if`/loop into extra block units inside dependency code or very
+/// large files. The syntax channel still covers exact copy-paste spans there.
+const LARGE_FILE_BLOCK_NODE_CUTOFF: usize = 5_000;
+
+pub(crate) fn block_units_for_file(il: &Il, opts: &crate::DetectOptions) -> bool {
+    opts.block_units
+        && !is_bulk_dependency_path(&il.meta.path)
+        && il.nodes.len() <= LARGE_FILE_BLOCK_NODE_CUTOFF
+}
+
+fn is_bulk_dependency_path(path: &str) -> bool {
+    let p = path.to_ascii_lowercase();
+    [
+        "vendor/",
+        "third_party/",
+        "third-party/",
+        "/deps/",
+        "node_modules/",
+        "/dist/",
+        "/build/",
+        "/external/",
+        ".min.",
+        ".pb.",
+        "_pb2",
+        ".g.dart",
+        ".d.ts",
+        "generated/",
+        "/gen/",
+        ".generated.",
+    ]
+    .iter()
+    .any(|m| p.contains(m))
+}
+
 /// Per-unit facts needed to ask whether the default product detector would admit an
 /// ordinary frontend-tagged unit to semantic extraction.
 #[derive(Clone, Copy)]
@@ -26,7 +61,8 @@ pub fn default_product_value_fingerprint_context(
     il: &Il,
     interner: &Interner,
 ) -> Option<nose_normalize::ValueFingerprintContext> {
-    let block_units = crate::DetectOptions::default().block_units;
+    let opts = crate::DetectOptions::default();
+    let block_units = block_units_for_file(il, &opts);
     let (roots, _) = collect_unit_roots(il, interner, block_units);
     value_fingerprint_context_for_roots(il, interner, roots.len())
 }

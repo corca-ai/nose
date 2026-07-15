@@ -30,6 +30,7 @@ pub(crate) use model::abstraction_family_witness;
 pub use model::UnitFeat;
 use nose_il::{Il, Interner, NodeId, NodeKind, Payload, Span, Symbol, UnitKind, UnitOrigin};
 use nose_semantics::ValueLaw;
+pub(crate) use product::block_units_for_file;
 pub use product::{
     default_product_unit_admission, default_product_value_fingerprint_context,
     ProductUnitAdmissionInput,

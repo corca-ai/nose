@@ -1,9 +1,63 @@
 use super::super::{
-    abstraction_family_witness, default_product_value_fingerprint_context, extract,
-    ExtractFeatures, UnitFeat, EXACT_VALUE_MIN,
+    abstraction_family_witness, block_units_for_file, default_product_value_fingerprint_context,
+    extract, ExtractFeatures, UnitFeat, EXACT_VALUE_MIN,
 };
 use crate::fragment::FragmentKind;
 use nose_il::{FileId, Interner, Lang, UnitKind};
+
+fn assert_default_value_context_matches_product(path: &str, src: &str, lang: Lang) {
+    let interner = Interner::new();
+    let raw = nose_frontend::lower_source(FileId(0), path, src.as_bytes(), lang, &interner)
+        .expect("lower source");
+    let opts = crate::DetectOptions::default();
+    let product = crate::units_of_file(&raw, &interner, &opts)
+        .into_iter()
+        .find(|unit| unit.kind == UnitKind::Function && unit.name.as_deref() == Some("check"))
+        .expect("product function unit");
+    let il = nose_normalize::normalize(
+        &raw,
+        &interner,
+        &nose_normalize::NormalizeOptions {
+            cfg_norm: opts.cfg_norm,
+            dce: opts.dce,
+            ..Default::default()
+        },
+    );
+    assert_context_fingerprint_matches_product_unit(&il, &interner, &product);
+}
+
+fn assert_context_fingerprint_matches_product_unit(
+    il: &nose_il::Il,
+    interner: &Interner,
+    product: &UnitFeat,
+) {
+    let root = il
+        .units
+        .iter()
+        .find(|unit| {
+            unit.kind == UnitKind::Function
+                && unit
+                    .name
+                    .is_some_and(|name| interner.resolve(name) == "check")
+        })
+        .expect("normalized function unit")
+        .root;
+    let context = default_product_value_fingerprint_context(il, interner);
+    assert!(
+        context.is_none(),
+        "product block suppression must keep a single frontend unit context-free"
+    );
+    let (census_value, _) = match context.as_ref() {
+        Some(context) => nose_normalize::value_fingerprint_and_contracts_with_context(
+            il, root, interner, context,
+        ),
+        None => nose_normalize::value_fingerprint_and_contracts(il, root, interner),
+    };
+    assert_eq!(
+        census_value, product.value,
+        "offline census must use the exact product fingerprint context"
+    );
+}
 
 fn lowered_java_unit_with_features(
     src: &str,
@@ -96,6 +150,76 @@ fn default_product_value_context_counts_default_block_roots() {
     );
 
     assert!(default_product_value_fingerprint_context(&il, &interner).is_some());
+}
+
+#[test]
+fn default_product_value_context_matches_vendor_suppression() {
+    assert_default_value_context_matches_product(
+        "vendor/checks.js",
+        r#"const shared = 41;
+function check(input) {
+    const first = input + 1;
+    const second = first * 2;
+    if (second > 20) {
+        return second + shared;
+    }
+    return second - shared;
+}
+"#,
+        Lang::JavaScript,
+    );
+}
+
+#[test]
+fn default_product_value_context_matches_large_file_suppression() {
+    let interner = Interner::new();
+    let raw = nose_frontend::lower_source(
+        FileId(0),
+        "src/large.js",
+        r#"const shared = 41;
+function check(input) {
+    const first = input + 1;
+    const second = first * 2;
+    if (second > 20) {
+        return second + shared;
+    }
+    return second - shared;
+}
+"#
+        .as_bytes(),
+        Lang::JavaScript,
+        &interner,
+    )
+    .expect("lower JavaScript source");
+    let mut il = nose_normalize::normalize(
+        &raw,
+        &interner,
+        &nose_normalize::NormalizeOptions::default(),
+    );
+    let padding = il.nodes[0];
+    il.nodes.resize(5_001, padding);
+
+    let opts = crate::DetectOptions::default();
+    let block_units = block_units_for_file(&il, &opts);
+    assert!(!block_units, "large files must suppress block extraction");
+    let seeds = crate::minhash::seeds(opts.minhash_k);
+    let product = extract(
+        &il,
+        &interner,
+        &seeds,
+        opts.min_lines,
+        opts.min_tokens,
+        block_units,
+        ExtractFeatures {
+            shape_features: opts.shape_features,
+            abstraction_witnesses: opts.abstraction_witnesses,
+            connected_witnesses: opts.connected_witnesses,
+        },
+    )
+    .into_iter()
+    .find(|unit| unit.kind == UnitKind::Function && unit.name.as_deref() == Some("check"))
+    .expect("product function unit");
+    assert_context_fingerprint_matches_product_unit(&il, &interner, &product);
 }
 
 #[test]
