@@ -23,8 +23,19 @@ const TS_ZERO_DIV_ZERO: &str = "function f(): number { return 0 / 0; }\n";
 const TS_NAN_TRUTHY: &str = "function f(x: number): number { return x ? 1 : 2; }\n";
 const TS_NAN_NOT_EQUAL_ZERO: &str = "function f(x: number): number { return x !== 0 ? 1 : 2; }\n";
 const JS_ARRAY_TRUTHY: &str = "function f(x) { return x ? 1 : 2; }\n";
+const JS_ARRAY_NOT: &str = "function f() { return ![]; }\n";
 const TS_SHIFT_LEFT: &str = "function f(a: number, b: number): number { return a << b; }\n";
 const TS_SHIFT_RIGHT: &str = "function f(a: number, b: number): number { return a >> b; }\n";
+const TS_LITERAL_LEFT: &str =
+    "function f(): number { return (100000000*100000000 + -100000000*100000000) + 1; }\n";
+const TS_LITERAL_RIGHT: &str =
+    "function f(): number { return 100000000*100000000 + (-100000000*100000000 + 1); }\n";
+const TS_BITWISE_LEFT: &str = "function f(): number { return ((3|0)*(3|0))*4503599627370495; }\n";
+const TS_BITWISE_RIGHT: &str = "function f(): number { return (3|0)*((3|0)*4503599627370495); }\n";
+const JS_BITWISE_COERCIONS: &str = "function f() { return (true & 3) | (null | 0); }\n";
+const TS_OVERFLOW_PRODUCT: &str = "function f(): number { return 4611686018427387904 * 4; }\n";
+const TS_ZERO_PRODUCT: &str = "function f(): number { return 0 * 4; }\n";
+const JS_COERCIVE_POW: &str = "function f() { return \"2\" ** \"3\"; }\n";
 const PYTHON_BITAND: &str = "def bitand(a, b):\n    return a & b\n";
 const JS_BITAND: &str = "function bitand(a, b) { return a & b; }\n";
 const MUTATE_ZERO: &str = "def mutate(a, value):\n    a[0] = value\n    return a\n";
@@ -34,7 +45,12 @@ const MUTATE_ONE: &str = "def mutate(a, value):\n    a[1] = value\n    return a\
 struct JsNumberEdges {
     division_pair_left: String,
     division_pair_right: String,
+    bitwise_assoc_bits: (String, String),
+    bitwise_coercions: i64,
+    empty_array_not: bool,
     empty_array_truthy: bool,
+    literal_assoc_bits: (String, String),
+    overflow_product_bits: (String, String),
     positive_div_zero: String,
     negative_div_zero: String,
     zero_div_zero_nan: bool,
@@ -53,15 +69,21 @@ struct CalibrationReceipt {
     float_interpreter_bits: ((String, String), (String, String)),
     derived_float_frontend_distinct: bool,
     derived_float_interpreter_bits: (String, String),
-    js_number_frontend_distinct: (bool, bool),
+    js_number_frontend_distinct: [bool; 5],
     js_number_interpreter: JsNumberEdges,
+    js_pow_fail_closed: bool,
     integer_frontend_distinct: bool,
     integer_interpreter: (String, String),
     mutation_frontend_distinct: bool,
     mutation_interpreter: (Value, Value),
 }
 
-fn lowered_behavior(interner: &Interner, source: &str, lang: Lang, args: &[Value]) -> Behavior {
+fn maybe_lowered_behavior(
+    interner: &Interner,
+    source: &str,
+    lang: Lang,
+    args: &[Value],
+) -> Option<Behavior> {
     let il =
         nose_frontend::lower_source(FileId(0), "calibration", source.as_bytes(), lang, interner)
             .expect("calibration source must lower");
@@ -74,6 +96,10 @@ fn lowered_behavior(interner: &Interner, source: &str, lang: Lang, args: &[Value
         },
     );
     run_unit(&core, interner, first_func(&core), args)
+}
+
+fn lowered_behavior(interner: &Interner, source: &str, lang: Lang, args: &[Value]) -> Behavior {
+    maybe_lowered_behavior(interner, source, lang, args)
         .expect("calibration source must interpret through the production IL")
 }
 
@@ -108,7 +134,14 @@ fn is_nan(value: Value) -> bool {
     matches!(value, Value::Float(F64(value)) if value.is_nan())
 }
 
-fn actual_js_number(interner: &Interner) -> ((bool, bool), JsNumberEdges) {
+fn boolean(value: Value) -> bool {
+    match value {
+        Value::Bool(value) => value,
+        other => panic!("expected calibrated boolean, got {other:?}"),
+    }
+}
+
+fn actual_js_number(interner: &Interner) -> ([bool; 5], JsNumberEdges, bool) {
     let shift = |source: &str, count: f64| {
         integer_string(returned(
             interner,
@@ -121,12 +154,18 @@ fn actual_js_number(interner: &Interner) -> ((bool, bool), JsNumberEdges) {
     };
     let nan_arg = [Value::Float(F64(f64::NAN))];
     (
-        (
+        [
             value_fp(interner, TS_DIV_PAIR_LEFT, Lang::TypeScript)
                 != value_fp(interner, TS_DIV_PAIR_RIGHT, Lang::TypeScript),
             value_fp(interner, TS_SHIFT_LEFT, Lang::TypeScript)
                 != value_fp(interner, TS_SHIFT_RIGHT, Lang::TypeScript),
-        ),
+            value_fp(interner, TS_LITERAL_LEFT, Lang::TypeScript)
+                != value_fp(interner, TS_LITERAL_RIGHT, Lang::TypeScript),
+            value_fp(interner, TS_BITWISE_LEFT, Lang::TypeScript)
+                != value_fp(interner, TS_BITWISE_RIGHT, Lang::TypeScript),
+            value_fp(interner, TS_OVERFLOW_PRODUCT, Lang::TypeScript)
+                != value_fp(interner, TS_ZERO_PRODUCT, Lang::TypeScript),
+        ],
         JsNumberEdges {
             division_pair_left: float_string(returned(
                 interner,
@@ -140,12 +179,38 @@ fn actual_js_number(interner: &Interner) -> ((bool, bool), JsNumberEdges) {
                 Lang::TypeScript,
                 &[Value::Float(F64(1.0))],
             )),
+            bitwise_assoc_bits: (
+                float_bits(returned(interner, TS_BITWISE_LEFT, Lang::TypeScript, &[])),
+                float_bits(returned(interner, TS_BITWISE_RIGHT, Lang::TypeScript, &[])),
+            ),
+            bitwise_coercions: integer_string(returned(
+                interner,
+                JS_BITWISE_COERCIONS,
+                Lang::JavaScript,
+                &[],
+            ))
+            .parse()
+            .expect("bitwise coercion integer"),
+            empty_array_not: boolean(returned(interner, JS_ARRAY_NOT, Lang::JavaScript, &[])),
             empty_array_truthy: returned(
                 interner,
                 JS_ARRAY_TRUTHY,
                 Lang::JavaScript,
                 &[Value::List(Vec::new())],
             ) == Value::Int(1),
+            literal_assoc_bits: (
+                float_bits(returned(interner, TS_LITERAL_LEFT, Lang::TypeScript, &[])),
+                float_bits(returned(interner, TS_LITERAL_RIGHT, Lang::TypeScript, &[])),
+            ),
+            overflow_product_bits: (
+                float_bits(returned(
+                    interner,
+                    TS_OVERFLOW_PRODUCT,
+                    Lang::TypeScript,
+                    &[],
+                )),
+                float_bits(returned(interner, TS_ZERO_PRODUCT, Lang::TypeScript, &[])),
+            ),
             positive_div_zero: float_string(returned(
                 interner,
                 TS_POSITIVE_DIV_ZERO,
@@ -171,6 +236,7 @@ fn actual_js_number(interner: &Interner) -> ((bool, bool), JsNumberEdges) {
             shift_right: shift(TS_SHIFT_RIGHT, 1.0),
             shift_masked: shift(TS_SHIFT_LEFT, 33.0),
         },
+        maybe_lowered_behavior(interner, JS_COERCIVE_POW, Lang::JavaScript, &[]).is_none(),
     )
 }
 
@@ -195,7 +261,8 @@ fn actual_receipt() -> CalibrationReceipt {
         Value::List(vec![Value::Int(1), Value::Int(2)]),
         Value::Int(9),
     ];
-    let (js_number_frontend_distinct, js_number_interpreter) = actual_js_number(&interner);
+    let (js_number_frontend_distinct, js_number_interpreter, js_pow_fail_closed) =
+        actual_js_number(&interner);
 
     CalibrationReceipt {
         string_frontend: (
@@ -250,6 +317,7 @@ fn actual_receipt() -> CalibrationReceipt {
         ),
         js_number_frontend_distinct,
         js_number_interpreter,
+        js_pow_fail_closed,
         integer_frontend_distinct: value_fp(&interner, JS_BITAND, Lang::JavaScript)
             != value_fp(&interner, PYTHON_BITAND, Lang::Python),
         integer_interpreter: (
@@ -285,9 +353,18 @@ fn expected_js_number(number_edges: &serde_json::Value) -> JsNumberEdges {
             .as_str()
             .expect("division pair right")
             .to_string(),
+        bitwise_assoc_bits: calibrated_bits(number_edges, "bitwise_assoc"),
+        bitwise_coercions: number_edges["bitwise_coercions"]
+            .as_i64()
+            .expect("bitwise coercions"),
+        empty_array_not: number_edges["empty_array_not"]
+            .as_bool()
+            .expect("empty array negation"),
         empty_array_truthy: number_edges["empty_array_truthy"]
             .as_bool()
             .expect("empty array truthiness"),
+        literal_assoc_bits: calibrated_bits(number_edges, "literal_assoc"),
+        overflow_product_bits: calibrated_bits(number_edges, "overflow_product"),
         positive_div_zero: number_edges["positive_div_zero"]
             .as_str()
             .expect("positive division by zero")
@@ -309,6 +386,14 @@ fn expected_js_number(number_edges: &serde_json::Value) -> JsNumberEdges {
         shift_right: number_edges["shift_right"].as_i64().expect("right shift"),
         shift_masked: number_edges["shift_masked"].as_i64().expect("masked shift"),
     }
+}
+
+fn calibrated_bits(edges: &serde_json::Value, name: &str) -> (String, String) {
+    let pair = &edges[name];
+    (
+        pair["left_bits"].as_str().expect("left bits").to_string(),
+        pair["right_bits"].as_str().expect("right bits").to_string(),
+    )
 }
 
 fn validate_receipt(
@@ -366,9 +451,13 @@ fn validate_receipt(
     }
 
     let expected_number = expected_js_number(&observations["node"]["number_edges"]);
-    if !receipt.js_number_frontend_distinct.0
-        || !receipt.js_number_frontend_distinct.1
+    if !receipt
+        .js_number_frontend_distinct
+        .iter()
+        .all(|&value| value)
         || receipt.js_number_interpreter != expected_number
+        || !receipt.js_pow_fail_closed
+        || observations["node"]["number_edges"]["coercive_pow"].as_str() != Some("8")
     {
         failures.push("javascript_number_edges");
     }
@@ -435,7 +524,8 @@ fn json_list(value: &serde_json::Value) -> Value {
 #[test]
 fn production_frontend_and_interpreter_match_independent_source_runtimes() {
     let artifact: serde_json::Value = serde_json::from_str(ARTIFACT).expect("calibration JSON");
-    validate_receipt(&artifact, &actual_receipt()).expect("all independent channels must agree");
+    let receipt = actual_receipt();
+    validate_receipt(&artifact, &receipt).expect("all independent channels must agree");
 }
 
 #[test]
@@ -481,7 +571,7 @@ fn derived_typescript_number_shared_mutant_is_rejected() {
 fn javascript_number_edges_shared_mutant_is_rejected() {
     let artifact: serde_json::Value = serde_json::from_str(ARTIFACT).expect("calibration JSON");
     let mut mutant = actual_receipt();
-    mutant.js_number_frontend_distinct = (false, false);
+    mutant.js_number_frontend_distinct = [false; 5];
     mutant.js_number_interpreter.shift_right = mutant.js_number_interpreter.shift_left;
 
     assert_eq!(

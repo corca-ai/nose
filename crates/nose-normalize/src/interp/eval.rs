@@ -122,17 +122,24 @@ impl<'a> Interp<'a> {
             .ok_or_else(|| Unsupported::il("il.unary-operand-missing"))?;
         let value = self.eval(operand, env)?;
         let op = op_of(payload);
-        // JS `~x` is `~ToInt32(x)`, while JS `!NaN` uses its source-specific falsiness.
-        let value = if matches!(op, Op::BitNot) && self.bitwise_result_is_int32() {
-            to_int32(value)
+        // JS `~x` is `~ToInt32(x)`. Preserve an operand error/symbol, but fail closed when
+        // the concrete coercion is not represented by the oracle.
+        let value = if matches!(op, Op::BitNot)
+            && self.bitwise_result_is_int32()
+            && !matches!(value, Value::Err | Value::Sym(_))
+        {
+            let coerced = to_int32(value);
+            if !matches!(coerced, Value::Int(_)) {
+                return Err(Unsupported::value("value.js-to-int32"));
+            }
+            coerced
         } else {
             value
         };
-        if matches!(op, Op::Not)
-            && self.bitwise_result_is_int32()
-            && matches!(value, Value::Float(number) if number.0.is_nan())
-        {
-            return Ok(Value::Bool(true));
+        if matches!(op, Op::Not) && !matches!(value, Value::Err | Value::Sym(_)) {
+            return Ok(self
+                .value_truthy(&value)
+                .map_or(Value::Err, |truthy| Value::Bool(!truthy)));
         }
         Ok(un(op, &value))
     }
@@ -190,12 +197,20 @@ impl<'a> Interp<'a> {
             return Ok(Value::Err);
         }
         let b = self.eval(kids[1], env)?;
+        if matches!(b, Value::Err) {
+            return Ok(Value::Err);
+        }
+        // JavaScript exponentiation also coerces non-number operands and has infinity edge
+        // rules not captured by Rust powf. No operand shape is calibrated yet, so exclude it.
+        if matches!(op, Op::Pow) && self.bitwise_result_is_int32() {
+            return Err(Unsupported::value("value.js-number-binary"));
+        }
         // Every JS-family bitwise op narrows both operands to int32; shifts additionally mask
         // the rhs to five bits. Other languages retain the shared wide-integer model.
         if matches!(op, Op::BitAnd | Op::BitOr | Op::BitXor | Op::Shl | Op::Shr)
             && self.bitwise_result_is_int32()
         {
-            return Ok(js_bitwise_bin(op, a, b));
+            return js_bitwise_bin(op, a, b).ok_or_else(|| Unsupported::value("value.js-to-int32"));
         }
         if self.bitwise_result_is_int32()
             && matches!(a, Value::Int(_) | Value::Float(_))

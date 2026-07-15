@@ -58,6 +58,10 @@ const left = (1e16 + -1e16) + 1.0;
 const right = 1e16 + (-1e16 + 1.0);
 const derivedLeft = (1e16 * 1.0 + -1e16 * 1.0) + 1.0 * 1.0;
 const derivedRight = 1e16 * 1.0 + (-1e16 * 1.0 + 1.0 * 1.0);
+const literalLeft = (100000000 * 100000000 + -100000000 * 100000000) + 1;
+const literalRight = 100000000 * 100000000 + (-100000000 * 100000000 + 1);
+const bitwiseLeft = ((3 | 0) * (3 | 0)) * 4503599627370495;
+const bitwiseRight = (3 | 0) * ((3 | 0) * 4503599627370495);
 const first = [1, 2];
 const second = [1, 2];
 first[0] = 9;
@@ -68,9 +72,17 @@ console.log(JSON.stringify({
   integer_width: {bitand: String(0xF00000003 & 0xF00000005)},
   mutation_coordinate: {index_0: first, index_1: second},
   number_edges: {
+    bitwise_assoc: {left_bits: bits(bitwiseLeft), right_bits: bits(bitwiseRight)},
+    bitwise_coercions: (true & 3) | (null | 0),
+    coercive_pow: String("2" ** "3"),
     division_pair_left: String((1 / 0) + 1),
     division_pair_right: String((0 / 0) + (1 * 0)),
+    empty_array_not: ![],
     empty_array_truthy: Boolean([]),
+    literal_assoc: {left_bits: bits(literalLeft), right_bits: bits(literalRight)},
+    overflow_product: {
+      left_bits: bits(4611686018427387904 * 4), right_bits: bits(0 * 4)
+    },
     positive_div_zero: String(1 / 0),
     negative_div_zero: String(-1 / 0),
     zero_div_zero_nan: Number.isNaN(0 / 0),

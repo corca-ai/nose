@@ -172,6 +172,16 @@ impl<'a> Builder<'a> {
         }
         let op = self.nodes[v as usize].op.clone();
         let args = self.nodes[v as usize].args.clone();
+        let js_number = js_like_lang(self.il.meta.lang)
+            && match &op {
+                ValOp::Const { kind, .. } => matches!(kind, ConstKind::Int | ConstKind::Float),
+                ValOp::Bin(code) => is_float_arithmetic_code(*code),
+                _ => false,
+            };
+        if js_number {
+            self.possibly_float_cache.insert(v, true);
+            return true;
+        }
         if let ValOp::Input(cid) = &op {
             if self
                 .param_domain
@@ -186,22 +196,7 @@ impl<'a> Builder<'a> {
             // Number/Float possibility propagates through arithmetic results. This is a
             // grouping HOLD only, so conservatively retaining a mixed-coercion chain costs
             // recall but cannot create a merge.
-            ValOp::Bin(code)
-                if matches!(
-                    op_from_code(code),
-                    Some(
-                        Op::Add
-                            | Op::Sub
-                            | Op::Mul
-                            | Op::Div
-                            | Op::TrueDiv
-                            | Op::FloorDiv
-                            | Op::Mod
-                            | Op::FloorMod
-                            | Op::Pow
-                    )
-                ) =>
-            {
+            ValOp::Bin(code) if is_float_arithmetic_code(code) => {
                 args.iter().any(|&arg| self.possibly_float(arg))
             }
             ValOp::Un(code) if matches!(op_from_code(code), Some(Op::Neg | Op::Pos)) => {

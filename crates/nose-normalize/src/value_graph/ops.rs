@@ -251,6 +251,23 @@ pub(super) fn is_assoc_comm_code(opc: u32) -> bool {
         || opc == MAX_CODE
 }
 
+pub(super) fn is_float_arithmetic_code(code: u32) -> bool {
+    matches!(
+        op_from_code(code),
+        Some(
+            Op::Add
+                | Op::Sub
+                | Op::Mul
+                | Op::Div
+                | Op::TrueDiv
+                | Op::FloorDiv
+                | Op::Mod
+                | Op::FloorMod
+                | Op::Pow
+        )
+    )
+}
+
 /// `Reduce` op codes for the selection reductions (min/max). Kept clear of the small
 /// `Op` discriminants (used for `+`/`*` folds) and of the `Const` int range.
 pub(super) const REDUCE_MAX: u32 = 0xFF00;

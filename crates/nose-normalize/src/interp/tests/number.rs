@@ -53,7 +53,7 @@ fn run_conditional(lang: Lang, input: Value) -> Value {
         .ret
 }
 
-fn run_unary(lang: Lang, op: Op, input: Value) -> Value {
+fn maybe_run_unary(lang: Lang, op: Op, input: Value) -> Option<Value> {
     let sp = Span::synthetic(FileId(0));
     let mut b = IlBuilder::new(FileId(0));
     let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
@@ -70,9 +70,11 @@ fn run_unary(lang: Lang, op: Op, input: Value) -> Value {
         Vec::new(),
         Vec::new(),
     );
-    run_admitted_unit(il, root, &[input])
-        .expect("unary expression must interpret")
-        .ret
+    run_admitted_unit(il, root, &[input]).map(|behavior| behavior.ret)
+}
+
+fn run_unary(lang: Lang, op: Op, input: Value) -> Value {
+    maybe_run_unary(lang, op, input).expect("unary expression must interpret")
 }
 
 #[test]
@@ -129,7 +131,12 @@ fn javascript_empty_array_is_truthy_without_changing_python() {
         run_conditional(Lang::TypeScript, empty.clone()),
         Value::Int(1)
     );
-    assert_eq!(run_conditional(Lang::Python, empty), Value::Int(2));
+    assert_eq!(
+        run_unary(Lang::TypeScript, Op::Not, empty.clone()),
+        Value::Bool(false)
+    );
+    assert_eq!(run_conditional(Lang::Python, empty.clone()), Value::Int(2));
+    assert_eq!(run_unary(Lang::Python, Op::Not, empty), Value::Bool(true));
 }
 
 #[test]
@@ -148,6 +155,42 @@ fn javascript_shifts_coerce_both_operands_and_mask_the_count() {
         Some(Value::Int(-16)),
         "JavaScript masks the shift count to five bits"
     );
+    assert_eq!(
+        run_binary(
+            Lang::TypeScript,
+            Op::BitAnd,
+            Value::Bool(true),
+            Value::Int(3)
+        ),
+        Some(Value::Int(1))
+    );
+    assert_eq!(
+        run_binary(Lang::TypeScript, Op::BitOr, Value::Null, Value::Int(0)),
+        Some(Value::Int(0))
+    );
+    assert_eq!(
+        run_unary(Lang::TypeScript, Op::BitNot, Value::Bool(true)),
+        Value::Int(-2)
+    );
+    assert_eq!(
+        run_unary(Lang::TypeScript, Op::BitNot, Value::Null),
+        Value::Int(-1)
+    );
+    assert_eq!(
+        run_binary(
+            Lang::TypeScript,
+            Op::BitAnd,
+            Value::Str(vec![1]),
+            Value::Int(1)
+        ),
+        None,
+        "unrepresented JavaScript string coercion must fail closed"
+    );
+    assert_eq!(
+        maybe_run_unary(Lang::TypeScript, Op::BitNot, Value::Str(vec![1])),
+        None,
+        "unrepresented JavaScript unary coercion must also fail closed"
+    );
 }
 
 #[test]
@@ -161,5 +204,15 @@ fn uncalibrated_javascript_number_operator_fails_closed() {
         ),
         None,
         "JS exponent edge rules must not enter the hard lane through generic powf"
+    );
+    assert_eq!(
+        run_binary(
+            Lang::TypeScript,
+            Op::Pow,
+            Value::Str(vec![1]),
+            Value::Str(vec![2])
+        ),
+        None,
+        "coercive JS exponentiation must not fall through to a concrete Err"
     );
 }

@@ -177,6 +177,40 @@ fn js_mixed_string_addition_keeps_grouping_ordered() {
         "float possibility must survive a multi-use local binding"
     );
 
+    let literal_left =
+        "function f(): number { return (100000000*100000000 + -100000000*100000000) + 1; }";
+    let literal_right =
+        "function g(): number { return 100000000*100000000 + (-100000000*100000000 + 1); }";
+    assert_ne!(
+        value_fp(&i, literal_left, Lang::TypeScript),
+        value_fp(&i, literal_right, Lang::TypeScript),
+        "JavaScript integer literals still produce non-associative IEEE-754 Number arithmetic"
+    );
+
+    let bitwise_left = "function f(): number { return ((3|0)*(3|0))*4503599627370495; }";
+    let bitwise_right = "function g(): number { return (3|0)*((3|0)*4503599627370495); }";
+    assert_ne!(
+        value_fp(&i, bitwise_left, Lang::TypeScript),
+        value_fp(&i, bitwise_right, Lang::TypeScript),
+        "int32 results still enter non-associative JavaScript Number arithmetic"
+    );
+
+    let call_left = "declare function a(): number; declare function b(): number; declare function c(): number; function f(): number { return (a()*b())*c(); }";
+    let call_right = "declare function a(): number; declare function b(): number; declare function c(): number; function g(): number { return a()*(b()*c()); }";
+    assert_ne!(
+        value_fp(&i, call_left, Lang::TypeScript),
+        value_fp(&i, call_right, Lang::TypeScript),
+        "opaque number-returning calls must not license JavaScript multiplication reassociation"
+    );
+
+    let overflow = "function f(): number { return 4611686018427387904 * 4; }";
+    let zero = "function g(): number { return 0 * 4; }";
+    assert_ne!(
+        value_fp(&i, overflow, Lang::TypeScript),
+        value_fp(&i, zero, Lang::TypeScript),
+        "JavaScript Number constant folding must not use wrapping i64 multiplication"
+    );
+
     let sub = "function f(x) { return x - 3; }";
     let add_neg = "function g(x) { return x + (-3); }";
     assert_ne!(

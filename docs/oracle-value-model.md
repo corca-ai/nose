@@ -246,6 +246,12 @@ first; promote to the full model only if the priced recall loss justifies it.
   below. **Recall delta 0 on the full
   105-repo pinned corpus** (4309 → 4309; the design doc's gate, measured), verify clean across
   type4/coevo and 15 dynamic-language repos. See [value-float-kind-design](value-float-kind-design.md).
+- **JS-family Number closure (#858).** JavaScript and TypeScript arithmetic is IEEE-754 even when
+  every source literal looks integral, an operand came from a bitwise expression, or a call's
+  declared return type is no longer visible at a value-graph leaf. The IL and value-graph layers
+  therefore hold JS-family `+`/`*` association by source language and operator, not only by a
+  recovered float leaf; subtraction likewise remains a literal `Sub`. This prevents i64 constant
+  folding and leaf flattening from erasing observable Number grouping.
 - **Cost:** floor + syntactic + float-typed-param + fully-untyped non-associativity all paid
   (0 recall on the full pinned corpus). The remaining float work is breadth, not a gap: a
   full Int↔Float coercion lattice (mixed-type comparison, float literals — `LitFloat` stores
@@ -390,19 +396,21 @@ evidence is a mixed runtime domain only for dynamically typed languages. Missing
 and domains whose invariants the interpreter cannot faithfully host (set, byte array, iterator,
 map, record, result, and future-like values) fail closed to the advisory lane. TypeScript
 `Number` promotes every input into IEEE-754 (including integer-valued inputs) without narrowing
-to the integer interpreter. Float possibility propagates through derived arithmetic such as
-`a*b`, conditionals, and sign operations, so an enclosing `+`/`*` chain preserves its source
-grouping rather than hiding Number inputs behind intermediate nodes.
+to the integer interpreter. The JS-family association hold covers derived arithmetic such as
+`a*b`, integer-shaped literals, bitwise-derived values, and opaque call results, so an enclosing
+`+`/`*` chain preserves its source grouping even when leaf type evidence has disappeared.
 Static `Integer`/`Float` evidence also fails closed while it erases width and signedness, as do
 array/collection/iterable/option domains while their element or payload type is erased. This
 prevents values valid for `i64` or `Vec<String>` from becoming hard witnesses for `u8` or
 `Vec<i32>`. Swift `String` also fails closed while source recovery erases `Character` into the
 same domain. Every hosted scalar is coerced faithfully in the fixed battery as well as the
 domain-aware search. The interpreter uses source-gated JS Number semantics for zero division,
-remainder, comparisons, and NaN truthiness. JS `& | ^ << >>` applies `ToInt32` to both operands;
-shifts additionally mask the count to five bits and return a signed int32. Number operators whose
-edge semantics are not independently calibrated, currently exponentiation, make the unit
-uninterpretable instead of falling back to the generic float convention.
+remainder, comparisons, and NaN/array truthiness, including unary `!`. JS `& | ^ << >>` applies
+`ToInt32` to both operands; represented boolean and null coercions produce `1`/`0`, while
+unrepresented string or array coercions fail closed. Shifts additionally mask the count to five
+bits and return a signed int32. Number operators whose edge semantics are not independently
+calibrated, currently exponentiation, make the unit uninterpretable for every operand shape
+instead of falling back to the generic float convention.
 
 Falsification compares float results bitwise so `+0.0` and `-0.0` are distinguishable, including
 when nested in effects, fields, or collections. This is narrower than the oracle's stable
@@ -418,9 +426,10 @@ default `verify` gate are untouched.
 
 The checked [source-runtime calibration](../bench/soundness/0.20.0/source-runtime-calibration.v1.json)
 is an independent boundary outside the Rust binary. `scripts/check-domain-calibration.py` runs
-Python and Node directly and compares their string, direct and derived float-bit, integer-width,
-mutation, signed-zero, NaN/empty-array truthiness, division-by-zero, and signed-shift facts with
-that artifact.
+Python and Node directly and compares their string, direct, derived, literal, bitwise-derived,
+and overflow-sensitive float-bit facts, integer width, mutation, signed zero, NaN/empty-array
+truthiness and negation, division by zero, coercive exponentiation, and signed shifts with that
+artifact.
 Integration tests lower real source fixtures
 through the production frontend, normalization, and interpreter paths, then compare both
 internal channels with those checked facts. A mutation test gives both internal receipts the

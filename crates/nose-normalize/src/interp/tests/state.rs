@@ -187,6 +187,8 @@ fn js_bitwise_and_wraps_to_int32_in_the_oracle() {
     );
     assert_eq!(to_int32(Value::Float(F64(-1.9))), Value::Int(-1));
     assert_eq!(to_int32(Value::Float(F64(f64::NAN))), Value::Int(0));
+    assert_eq!(to_int32(Value::Bool(true)), Value::Int(1));
+    assert_eq!(to_int32(Value::Null), Value::Int(0));
 }
 
 fn run_foreach_with_iterable_err() -> Option<Value> {

@@ -24,9 +24,12 @@ So do width-erased static integers/floats and element/payload-erased arrays, col
 iterables, and options. Swift strings also stay advisory while `Character` is erased into the
 same evidence. Hosted scalar domains are enforced in both the fixed battery and falsifier;
 TypeScript `number` includes IEEE-754 inputs and keeps non-associative source grouping.
-That possibility propagates through derived arithmetic, and the source-gated interpreter models
-JS zero division, remainder, NaN truthiness, and signed int32 shifts. Operators without an
-independently calibrated JS edge model fail closed rather than using the generic float convention.
+The JS-family hold also covers integer-shaped literals, bitwise-derived values, and opaque call
+results, so grouping does not depend on leaf type recovery. The source-gated interpreter models
+JS zero division, remainder, NaN and array truthiness, and signed int32 shifts; represented
+`ToInt32` coercions include booleans and null. Operators without an independently calibrated JS
+edge model, and coercions the oracle cannot represent, fail closed rather than using the generic
+float convention.
 
 The independent [source-runtime calibration](../bench/soundness/0.20.0/source-runtime-calibration.v1.json)
 is checked with:
@@ -39,9 +42,10 @@ python3 scripts/check-domain-calibration.py --self-test
 Both commands run in the required GitHub `build · test · lint · dup-gate` job as well as the
 local fast gate.
 
-It executes Python and Node directly for string order, direct and derived float association,
-JS-vs-Python integer width, division-by-zero, NaN and empty-array truthiness, signed shifts,
-mutation coordinates, signed zero, and NaN. The script self-test mutation-checks the
+It executes Python and Node directly for string order, direct, derived, literal, bitwise-derived,
+and overflow-sensitive float association, JS-vs-Python integer width, division-by-zero, NaN and
+empty-array truthiness/negation, coercive exponentiation, signed shifts, mutation coordinates,
+signed zero, and NaN. The script self-test mutation-checks the
 independent comparison boundary. The Rust `domain_runtime_calibration` integration tests then
 lower real Python and typed-TypeScript source fixtures through the production frontend, normalize
 and interpret them, and compare both internal channels with the checked runtime artifact. Mutant

@@ -277,9 +277,12 @@ impl<'a> Builder<'a> {
         let b = self.eval(kids[1], env);
         // Routing `a - b` through the AC `+` chain (`a + (-b)`) reassociates it; that is
         // unsound for a string-coercion `+` (JS/TS/Java) and for float arithmetic
-        // (`(x + a) - x != a` when x is a large float). Keep the literal `Sub` in those
-        // cases so it is not flattened into a reassociated sum (#283 C-float).
-        if (self.plus_has_mixed_string_coercion() && !self.proven_non_concat(a))
+        // (`(x + a) - x != a` when x is a large float). JS/TS subtraction always produces
+        // an IEEE-754 Number, including when its operands are calls whose return type is no
+        // longer visible at this layer. Keep the literal `Sub` in those cases so it is not
+        // flattened into a reassociated sum (#283 C-float, #858).
+        if self.is_js_like_lang()
+            || (self.plus_has_mixed_string_coercion() && !self.proven_non_concat(a))
             || self.possibly_float(a)
             || self.possibly_float(b)
         {
@@ -331,7 +334,7 @@ impl<'a> Builder<'a> {
             // C-float). Hold the SOURCE grouping by rebuilding from the original binop kids,
             // exactly as the general (non-coercion) path does. Each kid was recursively
             // eval'd, so any nested float subchain already preserved its own grouping.
-            if leaves.iter().any(|&v| self.possibly_float(v)) {
+            if self.is_js_like_lang() || leaves.iter().any(|&v| self.possibly_float(v)) {
                 let mut acc = direct[0];
                 for &v in &direct[1..] {
                     acc = self.mk(ValOp::Bin(op), vec![acc, v]);
@@ -360,6 +363,13 @@ impl<'a> Builder<'a> {
                 let v = self.eval(k, env);
                 self.flatten_into(v, op, &mut operands);
             }
+            if (op == Op::Add as u32 || op == Op::Mul as u32)
+                && (self.is_js_like_lang() || operands.iter().any(|&v| self.possibly_float(v)))
+            {
+                let commutable = self.ac_chain_commutes(op, &operands, ValueLaw::AddAssociativity)
+                    && operands.iter().all(|&v| self.reorder_safe(v));
+                return self.rebuild_grouped_float_chain(op, kids, env, commutable);
+            }
             if let Some(v) = self.c_u32_be_byte_pack_pattern(&operands) {
                 return v;
             }
@@ -383,12 +393,14 @@ impl<'a> Builder<'a> {
         // Float `+`/`*` is NON-ASSOCIATIVE (`(a+b)+c != a+(b+c)`, #283 C-float). When the chain
         // bears a POSSIBLY-float operand — proven float, OR (in a dynamically-typed language) a
         // truly-untyped param that could be float at runtime (#342) — do NOT flatten/reassociate
-        // it; rebuild the SOURCE grouping so the two groupings fingerprint distinctly
+        // it; rebuild the SOURCE grouping so the two groupings fingerprint distinctly. JS/TS
+        // `+`/`*` always receive the same hold because integer-shaped literals and opaque call
+        // results still participate in IEEE-754 Number arithmetic (#858).
         // (`ac_chain_canon` is gated to not re-flatten such a chain either). Commutativity is
         // preserved (the rebuild below sorts non-concat operands), and `: int`-typed chains stay
         // associative — only their float-possible siblings are held.
         if (op == Op::Add as u32 || op == Op::Mul as u32)
-            && operands.iter().any(|&v| self.possibly_float(v))
+            && (self.is_js_like_lang() || operands.iter().any(|&v| self.possibly_float(v)))
         {
             // Rebuild the SOURCE grouping (no reassociation), but still COMMUTE operands at each
             // binary node when the whole chain is commutable — float `+`/`*` is commutative, so

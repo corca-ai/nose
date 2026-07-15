@@ -25,7 +25,7 @@
 
 use crate::combine;
 use nose_il::{Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload, Span};
-use nose_semantics::{semantics, ComparisonLaw};
+use nose_semantics::{js_like_lang, semantics, ComparisonLaw};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il, interner: &Interner) -> Il {
@@ -110,6 +110,27 @@ fn is_assoc_comm(op: Op) -> bool {
 }
 
 fn il_node_may_be_float(il: &Il, node: NodeId, float_cids: &FxHashSet<u32>) -> bool {
+    if js_like_lang(il.meta.lang)
+        && (matches!(
+            il.node(node).payload,
+            Payload::LitInt(_) | Payload::LitFloat(_)
+        ) || matches!(
+            il.node(node).payload,
+            Payload::Op(
+                Op::Add
+                    | Op::Sub
+                    | Op::Mul
+                    | Op::Div
+                    | Op::TrueDiv
+                    | Op::FloorDiv
+                    | Op::Mod
+                    | Op::FloorMod
+                    | Op::Pow
+            )
+        ))
+    {
+        return true;
+    }
     match il.node(node).payload {
         Payload::LitFloat(_) | Payload::Op(Op::TrueDiv) => true,
         Payload::Cid(cid) if il.kind(node) == NodeKind::Var => float_cids.contains(&cid),
@@ -234,7 +255,9 @@ impl Rewriter<'_> {
             // the source tree intact (like the mixed-coercion `+` above) so the grouping survives
             // into the value graph, which keeps it (`possibly_float`). Folding/reassociating here
             // would erase the grouping the float result depends on.
-            if matches!(op, Op::Add | Op::Mul) && self.chain_has_float(&leaves) {
+            if matches!(op, Op::Add | Op::Mul)
+                && (js_like_lang(self.old.meta.lang) || self.chain_has_float(&leaves))
+            {
                 return self.generic(old_id, span);
             }
             // Constant folding + identity elimination (now that C retains literal values):

@@ -56,11 +56,17 @@ pub(super) fn js_number_bin(op: Op, a: &Value, b: &Value) -> Option<Value> {
 }
 
 /// JavaScript bitwise execution after ToInt32/ToUint32 coercion.
-pub(super) fn js_bitwise_bin(op: Op, a: Value, b: Value) -> Value {
+pub(super) fn js_bitwise_bin(op: Op, a: Value, b: Value) -> Option<Value> {
+    if contains_sym(&a) || contains_sym(&b) {
+        return Some(bin(op, &a, &b));
+    }
+    if matches!(a, Value::Err) || matches!(b, Value::Err) {
+        return Some(Value::Err);
+    }
     let (Value::Int(x), Value::Int(y)) = (to_int32(a), to_int32(b)) else {
-        return Value::Err;
+        return None;
     };
-    match op {
+    Some(match op {
         Op::BitAnd => Value::Int(x & y),
         Op::BitOr => Value::Int(x | y),
         Op::BitXor => Value::Int(x ^ y),
@@ -68,8 +74,8 @@ pub(super) fn js_bitwise_bin(op: Op, a: Value, b: Value) -> Value {
         // ToInt32, while the lhs and result are signed int32 values.
         Op::Shl => Value::Int((x as i32).wrapping_shl((y as u32) & 31) as i64),
         Op::Shr => Value::Int(((x as i32) >> ((y as u32) & 31)) as i64),
-        _ => Value::Err,
-    }
+        _ => return None,
+    })
 }
 
 pub(super) fn fold_ints(v: Option<&Value>, init: i64, f: impl Fn(i64, i64) -> i64) -> Value {
@@ -203,6 +209,8 @@ pub(super) fn range_values(args: &[Value]) -> R<Value> {
 pub(super) fn to_int32(v: Value) -> Value {
     match v {
         Value::Int(i) => Value::Int(i as i32 as i64),
+        Value::Bool(value) => Value::Int(i64::from(value)),
+        Value::Null => Value::Int(0),
         Value::Float(F64(value)) => {
             if !value.is_finite() || value == 0.0 {
                 return Value::Int(0);
