@@ -171,13 +171,13 @@ pub(super) fn contains_sym(v: &Value) -> bool {
 /// form already represents `+0` as `Int(0)`; doing the same for external inputs keeps identity
 /// and double-negation observations aligned. Negative zero remains a Float because source
 /// runtimes can distinguish it and the falsifier deliberately exercises that boundary.
-pub(super) fn canonicalize_javascript_input(value: Value) -> Value {
+pub(super) fn compact_javascript_positive_zero(value: Value) -> Value {
     match value {
         Value::Float(F64(value)) if value == 0.0 && !value.is_sign_negative() => Value::Int(0),
         Value::List(values) => Value::List(
             values
                 .into_iter()
-                .map(canonicalize_javascript_input)
+                .map(compact_javascript_positive_zero)
                 .collect(),
         ),
         other => other,

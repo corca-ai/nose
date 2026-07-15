@@ -40,7 +40,7 @@ mod value;
 use ops::*;
 pub use value::{behavior_equiv, behavior_has_sym, Behavior, Value, F64};
 use value::{
-    canonicalize_javascript_input, coerce_to_declared_domain, contains_sym, hashed, vhash,
+    coerce_to_declared_domain, compact_javascript_positive_zero, contains_sym, hashed, vhash,
     FieldKey, FieldPlace,
 };
 
@@ -342,7 +342,7 @@ fn run_unit_once(
                     None => raw,
                 };
                 let v = if it.bitwise_result_is_int32() {
-                    canonicalize_javascript_input(v)
+                    compact_javascript_positive_zero(v)
                 } else {
                     v
                 };

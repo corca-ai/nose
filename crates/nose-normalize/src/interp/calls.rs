@@ -240,7 +240,7 @@ impl<'a> Interp<'a> {
                 return Ok(Value::Err);
             }
             if self.bitwise_result_is_int32() {
-                value = canonicalize_javascript_input(value);
+                value = compact_javascript_positive_zero(value);
             }
             fenv.insert(cid, value);
         }
