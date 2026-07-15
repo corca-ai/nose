@@ -20,6 +20,9 @@ generation away from the core-vs-canonical global battery, where type-incoherent
 misleading. A missing domain is treated as runtime `Any` only for dynamically typed languages;
 missing static evidence and domains without a faithful interpreter representation (including
 set, byte-array, iterator, map, record, result, and future-like values) fail closed to advisory.
+So do width-erased static integers/floats and element/payload-erased arrays, collections,
+iterables, and options. Dynamic scalar domains, TypeScript `number`, boolean, and string retain
+concrete pools; parameterized domains reopen only when their exact constraints are preserved.
 
 The independent [source-runtime calibration](../bench/soundness/0.20.0/source-runtime-calibration.v1.json)
 is checked with:
@@ -28,6 +31,9 @@ is checked with:
 python3 scripts/check-domain-calibration.py
 python3 scripts/check-domain-calibration.py --self-test
 ```
+
+Both commands run in the required GitHub `build · test · lint · dup-gate` job as well as the
+local fast gate.
 
 It executes Python and Node directly for string order, float association, JS-vs-Python integer
 width, mutation coordinates, signed zero, and NaN. The script self-test mutation-checks the

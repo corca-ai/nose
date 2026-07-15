@@ -16,7 +16,7 @@ const MUTATE_ONE: &str = "def mutate(a, value):\n    a[1] = value\n    return a\
 
 #[derive(Clone)]
 struct CalibrationReceipt {
-    string_frontend_distinct: bool,
+    string_frontend: (Vec<u64>, Vec<u64>),
     string_interpreter: (Value, Value),
     float_frontend_distinct: bool,
     float_interpreter_bits: (String, String),
@@ -75,8 +75,10 @@ fn actual_receipt() -> CalibrationReceipt {
     ];
 
     CalibrationReceipt {
-        string_frontend_distinct: value_fp(&interner, STRING_FORWARD, Lang::Python)
-            != value_fp(&interner, STRING_REVERSE, Lang::Python),
+        string_frontend: (
+            value_fp(&interner, STRING_FORWARD, Lang::Python),
+            value_fp(&interner, STRING_REVERSE, Lang::Python),
+        ),
         string_interpreter: (
             returned(&interner, STRING_FORWARD, Lang::Python, &string_args),
             returned(&interner, STRING_REVERSE, Lang::Python, &string_args),
@@ -119,11 +121,12 @@ fn validate_receipt(
     let mut failures = Vec::new();
     let observations = &artifact["observations"];
 
-    let source_string_distinct = observations["python"]["string_order"]["forward"]
-        != observations["python"]["string_order"]["reverse"];
-    if !source_string_distinct
-        || !receipt.string_frontend_distinct
-        || receipt.string_interpreter.0 == receipt.string_interpreter.1
+    let expected_string = (
+        calibrated_string(&observations["python"]["string_order"]["forward"]),
+        calibrated_string(&observations["python"]["string_order"]["reverse"]),
+    );
+    if receipt.string_frontend.0 == receipt.string_frontend.1
+        || receipt.string_interpreter != expected_string
     {
         failures.push("string_order");
     }
@@ -176,6 +179,21 @@ fn validate_receipt(
     }
 }
 
+fn calibrated_string(value: &serde_json::Value) -> Value {
+    Value::Str(
+        value
+            .as_str()
+            .expect("calibrated string")
+            .chars()
+            .map(|character| match character {
+                'a' => 0x5eed_0001,
+                'b' => 0x5eed_0002,
+                other => panic!("unexpected calibration character: {other}"),
+            })
+            .collect(),
+    )
+}
+
 fn json_list(value: &serde_json::Value) -> Value {
     Value::List(
         value
@@ -203,5 +221,21 @@ fn shared_frontend_and_interpreter_mutant_is_rejected() {
     assert_eq!(
         validate_receipt(&artifact, &mutant),
         Err(vec!["float_associativity"])
+    );
+}
+
+#[test]
+fn shared_string_order_mutant_is_rejected() {
+    let artifact: serde_json::Value = serde_json::from_str(ARTIFACT).expect("calibration JSON");
+    let mut mutant = actual_receipt();
+    std::mem::swap(&mut mutant.string_frontend.0, &mut mutant.string_frontend.1);
+    std::mem::swap(
+        &mut mutant.string_interpreter.0,
+        &mut mutant.string_interpreter.1,
+    );
+
+    assert_eq!(
+        validate_receipt(&artifact, &mutant),
+        Err(vec!["string_order"])
     );
 }

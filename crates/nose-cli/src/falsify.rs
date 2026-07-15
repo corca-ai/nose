@@ -94,20 +94,16 @@ fn domain_pool(domain: Option<DomainEvidence>, probes: &[Value]) -> Vec<Value> {
         Some(D::Number) => integer_values(),
         Some(D::Boolean) => vec![Value::Bool(false), Value::Bool(true)],
         Some(D::String) => string_values(),
-        Some(D::Array | D::Collection | D::Iterable) => collection_values(),
-        Some(D::Option) => {
-            let mut values = vec![Value::Null];
-            values.extend(integer_values().into_iter().take(3));
-            values.extend(string_values().into_iter().take(3));
-            values.extend(collection_values().into_iter().take(2));
-            values
-        }
         Some(
-            D::ByteArray
+            D::Array
+            | D::ByteArray
+            | D::Collection
             | D::FutureLike
+            | D::Iterable
             | D::Iterator
             | D::Map
             | D::Nominal { .. }
+            | D::Option
             | D::PromiseLike
             | D::Record
             | D::Result
@@ -133,21 +129,22 @@ fn domain_pool(domain: Option<DomainEvidence>, probes: &[Value]) -> Vec<Value> {
 fn value_conforms(value: &Value, domain: Option<DomainEvidence>) -> bool {
     use DomainEvidence as D;
     match domain {
-        None | Some(D::Option) => true,
+        None => true,
         Some(D::Integer) => matches!(value, Value::Int(_)),
         Some(D::Float) => matches!(value, Value::Float(_)),
         Some(D::Number) => matches!(value, Value::Int(_)),
         Some(D::Boolean) => matches!(value, Value::Bool(_)),
         Some(D::String) => matches!(value, Value::Str(_)),
-        Some(D::Array | D::Collection | D::Iterable) => {
-            matches!(value, Value::List(_))
-        }
         Some(
-            D::ByteArray
+            D::Array
+            | D::ByteArray
+            | D::Collection
             | D::FutureLike
+            | D::Iterable
             | D::Iterator
             | D::Map
             | D::Nominal { .. }
+            | D::Option
             | D::PromiseLike
             | D::Record
             | D::Result
@@ -158,25 +155,36 @@ fn value_conforms(value: &Value, domain: Option<DomainEvidence>) -> bool {
 
 /// Whether every declared input domain has a concrete representation in the current oracle.
 /// `None` is a mixed runtime domain only for a dynamically typed language; elsewhere it is
-/// missing evidence. Explicit Set/byte/iterator/map/record/future-like domains also stay out of
-/// the hard lane until the interpreter has a faithful representation for their invariants.
+/// missing evidence. Parameterized containers/options and explicit Set/byte/iterator/map/record/
+/// future-like domains also stay out until their erased element/payload invariants are retained.
+/// Integer/float evidence is hosted only for languages whose runtime scalar has no erased static
+/// width/sign; treating Rust `u8` and `i64` as one domain would manufacture impossible inputs.
 pub(crate) fn domains_are_hosted(lang: Lang, domains: &[Option<DomainEvidence>]) -> bool {
     use DomainEvidence as D;
-    domains.iter().all(|domain| {
-        matches!(
-            domain,
-            Some(
-                D::Array
-                    | D::Boolean
-                    | D::Collection
-                    | D::Float
-                    | D::Integer
-                    | D::Iterable
-                    | D::Number
-                    | D::Option
-                    | D::String
-            )
-        ) || (domain.is_none() && nose_semantics::semantics(lang).is_dynamically_typed())
+    domains.iter().all(|domain| match domain {
+        None => nose_semantics::semantics(lang).is_dynamically_typed(),
+        Some(D::Boolean | D::String) => true,
+        Some(D::Integer | D::Float) => matches!(
+            lang,
+            Lang::Python | Lang::Ruby | Lang::JavaScript | Lang::Vue | Lang::Svelte | Lang::Html
+        ),
+        // Source type recovery emits `Number` only for TypeScript's IEEE-754 runtime number.
+        Some(D::Number) => lang == Lang::TypeScript,
+        Some(
+            D::Array
+            | D::ByteArray
+            | D::Collection
+            | D::FutureLike
+            | D::Iterable
+            | D::Iterator
+            | D::Map
+            | D::Nominal { .. }
+            | D::Option
+            | D::PromiseLike
+            | D::Record
+            | D::Result
+            | D::Set,
+        ) => false,
     })
 }
 
