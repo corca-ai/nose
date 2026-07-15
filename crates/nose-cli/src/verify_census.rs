@@ -38,6 +38,7 @@ pub(crate) struct CensusUnit {
     /// Sorted construct tags present in the interpreted subtree.
     pub(crate) tags: Vec<String>,
     pub(crate) exact_safe: bool,
+    pub(crate) product_admission: &'static str,
     pub(crate) claimable: bool,
     pub(crate) classification: &'static str,
     pub(crate) obligation_family: String,
@@ -48,6 +49,7 @@ pub(crate) struct CensusUnit {
 pub(crate) struct CensusOutcome {
     pub(crate) reason: &'static str,
     pub(crate) exact_safe: bool,
+    pub(crate) product_admission: &'static str,
     pub(crate) claimable: bool,
     pub(crate) classification: &'static str,
     pub(crate) obligation_family: String,
@@ -163,6 +165,7 @@ struct CensusUnitRow {
     language: &'static str,
     reason: &'static str,
     exact_safe: bool,
+    product_admission: &'static str,
     claimable: bool,
     classification: &'static str,
     obligation_family: String,
@@ -313,6 +316,7 @@ fn build_unit_rows(units: &[CensusUnit]) -> Vec<CensusUnitRow> {
             language: unit.language,
             reason: unit.reason,
             exact_safe: unit.exact_safe,
+            product_admission: unit.product_admission,
             claimable: unit.claimable,
             classification: unit.classification,
             obligation_family: unit.obligation_family.clone(),

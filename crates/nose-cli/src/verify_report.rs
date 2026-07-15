@@ -33,6 +33,7 @@ pub(super) fn print_verify_json(oracle: &VerifyOracle) -> Result<()> {
                 "trivial": is_trivial_behavior(&r.beh),
                 "symbolic": r.beh.iter().any(nose_normalize::behavior_has_sym),
                 "claimable": r.claimable,
+                "product_admission": r.product_admission,
                 "canon_exposed": r.canon_exposed,
                 "domain_signature": format!("{:016x}", r.domain_sig),
                 "value_fingerprint": r.fp,

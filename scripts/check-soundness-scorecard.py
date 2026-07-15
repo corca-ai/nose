@@ -594,17 +594,17 @@ def verify_manifest(base: Path, manifest: dict[str, Any]) -> None:
             raise ValueError(f"baseline artifact hash mismatch: {name}")
     expected_attribution = {
         "schema": "nose-oracle-exclusion-census/v2",
-        "instrument_binary_sha256": "ff5bfa3a712b991d83b44289f8b92f5f5077e69e9830dfbecc091373bf0f5ec2",
-        "release_tree_census_sha256": "4bcd481946c9521b2582464569bff65900b4fb81a9048ffbaba5bb304de88fa0",
+        "instrument_binary_sha256": "2cad61facdd795d72f50b4926fc86e5fa73022a68694577d0f1adbf9798cfbcb",
+        "release_tree_census_sha256": "e3136ef3fb4165315b4b7fdd31ef281812c973d057139debe22d31e8026da36f",
         "threads": [1, 4],
         "generic_unattributed_exclusions": 0,
         "semantic_boundaries_closed": 652,
         "corpus_units": 639516,
         "corpus_interpretable_units": 197369,
         "corpus_excluded_units": 442147,
-        "claimable_families": 704,
-        "claimable_pair_mass": 3677,
-        "capped_claimable_pair_mass": 1352,
+        "claimable_families": 659,
+        "claimable_pair_mass": 2522,
+        "capped_claimable_pair_mass": 1256,
     }
     if manifest.get("exclusion_attribution") != expected_attribution:
         raise ValueError("exclusion attribution evidence identity changed")

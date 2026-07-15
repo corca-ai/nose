@@ -7,7 +7,9 @@ import argparse
 import copy
 import hashlib
 import json
+import shutil
 import subprocess
+import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Iterable
@@ -56,6 +58,14 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def require_byte_identical(primary: Path, peer: Path, label: str) -> str:
+    primary_hash = sha256_file(primary)
+    peer_hash = sha256_file(peer)
+    if primary_hash != peer_hash or primary.read_bytes() != peer.read_bytes():
+        raise ValueError(f"{label} is not byte-identical across 1/4 threads")
+    return primary_hash
 
 
 def identity(*parts: object) -> str:
@@ -162,7 +172,14 @@ def validate_raw(raw: dict[str, Any]) -> None:
         raise ValueError("census interpretable count does not match unit rows")
     generic = 0
     for unit in units:
-        expected_claimable = unit["exact_safe"] and len(unit["value_fingerprint"]) >= 4
+        admission = unit.get("product_admission")
+        if not isinstance(admission, str) or not admission:
+            raise ValueError(f"missing product admission at {unit['loc']}")
+        expected_claimable = (
+            admission == "admitted"
+            and unit["exact_safe"]
+            and len(unit["value_fingerprint"]) >= 4
+        )
         if unit["claimable"] != expected_claimable:
             raise ValueError(f"claim eligibility drift at {unit['loc']}")
         excluded = unit["reason"] != "interpretable"
@@ -191,6 +208,13 @@ def parse_loc(loc: str) -> tuple[str, int]:
     return path, int(span.split("@", 1)[0].split("-", 1)[0])
 
 
+def parse_loc_span(loc: str) -> tuple[str, int, int]:
+    path, span = loc.rsplit(":", 1)
+    lines = span.split("@", 1)[0]
+    start, end = lines.split("-", 1)
+    return path, int(start), int(end)
+
+
 def source_slice(root: Path, path: str, start: int, end: int) -> bytes:
     candidate = (root / path).resolve()
     candidate.relative_to(root.resolve())
@@ -204,10 +228,18 @@ def source_slice_bytes(data: bytes, path: str, start: int, end: int) -> bytes:
     return b"".join(lines[start - 1:end])
 
 
-def freeze_baseline(census_path: Path, report_path: Path, source_root: Path) -> dict[str, Any]:
+def freeze_baseline(
+    census_path: Path,
+    census_peer_path: Path,
+    report_path: Path,
+    report_peer_path: Path,
+    source_root: Path,
+) -> dict[str, Any]:
+    census_hash = require_byte_identical(census_path, census_peer_path, "raw census")
+    report_hash = require_byte_identical(report_path, report_peer_path, "recall-loss report")
     raw = load(census_path)
     validate_raw(raw)
-    if sha256_file(report_path) != REPORT_SHA256:
+    if report_hash != REPORT_SHA256:
         raise ValueError("recall-loss report is not the frozen v0.19.0 report")
     commit = subprocess.check_output(
         ["git", "-C", str(source_root), "rev-parse", "HEAD"], text=True,
@@ -239,6 +271,7 @@ def freeze_baseline(census_path: Path, report_path: Path, source_root: Path) -> 
         row = {
             "status": "excluded",
             "release_commit": RELEASE_COMMIT,
+            "raw_loc": unit["loc"],
             "path": path,
             "start_line": start,
             "end_line": end,
@@ -248,6 +281,7 @@ def freeze_baseline(census_path: Path, report_path: Path, source_root: Path) -> 
             "value_fingerprint_sha256": fp_hash,
             "value_fingerprint": unit["value_fingerprint"],
             "exact_safe": unit["exact_safe"],
+            "product_admission": unit["product_admission"],
             "claimable": unit["claimable"],
             "report_reason": report_unit["reason"],
             "classification": unit["classification"],
@@ -257,7 +291,7 @@ def freeze_baseline(census_path: Path, report_path: Path, source_root: Path) -> 
             "first_blocker": unit["first_blocker"],
         }
         row["unit_id"] = identity(
-            "nose-soundness-exclusion-v2", RELEASE_COMMIT, path, start, end,
+            "nose-soundness-exclusion-v2", RELEASE_COMMIT, unit["loc"], path, start, end,
             source_hash, fp_hash, capability,
         )
         units.append(row)
@@ -273,9 +307,11 @@ def freeze_baseline(census_path: Path, report_path: Path, source_root: Path) -> 
         "release": {"version": "0.19.0", "commit": RELEASE_COMMIT, "crates_tree": CRATES_TREE},
         "instrument": {
             "raw_schema": RAW_SCHEMA,
-            "raw_census_sha256": sha256_file(census_path),
-            "unchanged_recall_report_sha256": sha256_file(report_path),
-            "threads_reproduced": [1, 4],
+            "raw_census_sha256": census_hash,
+            "raw_census_peer_sha256": sha256_file(census_peer_path),
+            "unchanged_recall_report_sha256": report_hash,
+            "unchanged_recall_report_peer_sha256": sha256_file(report_peer_path),
+            "threads_compared": [1, 4],
         },
         "identity_algorithm": "sha256-nul-v2",
         "summary": {
@@ -331,6 +367,26 @@ def family_rows(repo: str, units: list[dict[str, Any]], cap: int) -> list[dict[s
     return result
 
 
+def claimable_unit_commitment(units: list[dict[str, Any]]) -> tuple[int, str]:
+    rows = [
+        {
+            "loc": unit["loc"],
+            "reason": unit["reason"],
+            "language": unit["language"],
+            "value_fingerprint": unit["value_fingerprint"],
+            "product_admission": unit["product_admission"],
+            "exact_safe": unit["exact_safe"],
+            "classification": unit["classification"],
+            "obligation_family": unit["obligation_family"],
+            "first_blocker": unit.get("first_blocker"),
+        }
+        for unit in units
+        if unit["claimable"]
+    ]
+    rows.sort(key=lambda row: row["loc"])
+    return len(rows), sha256_bytes(pretty(rows))
+
+
 def aggregate_corpus(raw_dir: Path, evidence_path: Path) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     evidence = load(evidence_path)
     for repository in evidence.get("repositories", []):
@@ -356,6 +412,24 @@ def aggregate_corpus(raw_dir: Path, evidence_path: Path) -> tuple[dict[str, Any]
         capabilities.update(capability_counts)
         totals.update(total=len(units), interpreted=raw["interpretable_units"], excluded=len(excluded))
         families = family_rows(repo["id"], units, PAIR_CAP)
+        claimable_count, claimable_sha = claimable_unit_commitment(units)
+        family_sha = sha256_bytes(pretty(families))
+        family_mass = sum(row["claimable_pair_mass"] for row in families)
+        family_capped = sum(row["capped_claimable_pair_mass"] for row in families)
+        repo.update({
+            "units": len(units),
+            "interpretable_units": raw["interpretable_units"],
+            "excluded_units": len(excluded),
+            "generic_unattributed_exclusions": 0,
+            "by_classification": dict(sorted(class_counts.items())),
+            "by_capability": dict(sorted(capability_counts.items())),
+            "claimable_units": claimable_count,
+            "claimable_units_sha256": claimable_sha,
+            "claimable_families": len(families),
+            "claimable_families_sha256": family_sha,
+            "claimable_pair_mass": family_mass,
+            "capped_claimable_pair_mass": family_capped,
+        })
         all_families.extend(families)
         repositories.append({
             "id": repo["id"], "commit": repo["commit"],
@@ -364,14 +438,27 @@ def aggregate_corpus(raw_dir: Path, evidence_path: Path) -> tuple[dict[str, Any]
             "excluded_units": len(excluded),
             "generic_unattributed_exclusions": 0,
             "claimable_families": len(families),
+            "claimable_units": claimable_count,
+            "claimable_units_sha256": claimable_sha,
+            "claimable_families_sha256": family_sha,
+            "claimable_pair_mass": family_mass,
+            "capped_claimable_pair_mass": family_capped,
             "by_classification": dict(sorted(class_counts.items())),
+            "by_capability": dict(sorted(capability_counts.items())),
         })
     repositories.sort(key=lambda row: row["id"])
     all_families.sort(key=lambda row: (row["repository"], row["fingerprint_sha256"]))
     census = {
         "schema": CORPUS_SCHEMA,
         "scope": "120-pinned-pruned-repositories",
-        "eligibility": "exact_safe && value_fingerprint.len >= 4",
+        "eligibility": (
+            "default_product_admission == admitted && exact_safe "
+            "&& value_fingerprint.len >= 4"
+        ),
+        "validation": {
+            "checked_commitments": "per-repository claimable-unit and family SHA-256",
+            "source_completeness_requires_raw_replay": True,
+        },
         "claimable_family_cap": PAIR_CAP,
         "evidence_sha256": sha256_bytes(pretty(evidence)),
         "corpus_manifest_sha256": evidence["corpus_manifest_sha256"],
@@ -441,9 +528,46 @@ def priority_from_families(census: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def validate_ledger(ledger: dict[str, Any]) -> None:
+def validate_ledger_raw_fields(row: dict[str, Any], raw_row: dict[str, Any]) -> None:
+    raw_path, raw_start, raw_end = parse_loc_span(row["raw_loc"])
+    expected = {
+        "path": raw_path,
+        "start_line": raw_start,
+        "end_line": raw_end,
+        "language": raw_row["language"],
+        "value_fingerprint": raw_row["value_fingerprint"],
+        "exact_safe": raw_row["exact_safe"],
+        "product_admission": raw_row["product_admission"],
+        "claimable": raw_row["claimable"],
+        "classification": raw_row["classification"],
+        "obligation_family": raw_row["obligation_family"],
+        "obligation_subreason": raw_row["obligation_subreason"],
+        "constructs": raw_row["constructs"],
+        "first_blocker": raw_row["first_blocker"],
+    }
+    for key, value in expected.items():
+        if row[key] != value:
+            raise ValueError(f"ledger/raw {key} drift: {row['raw_loc']}")
+
+
+def validate_ledger(ledger: dict[str, Any], raw: dict[str, Any], raw_sha256: str) -> None:
     if ledger.get("schema") != LEDGER_SCHEMA or ledger["release"]["commit"] != RELEASE_COMMIT:
         raise ValueError("invalid exclusion ledger identity")
+    instrument = ledger.get("instrument", {})
+    if (
+        instrument.get("threads_compared") != [1, 4]
+        or instrument.get("raw_census_sha256")
+        != instrument.get("raw_census_peer_sha256")
+        or instrument.get("unchanged_recall_report_sha256") != REPORT_SHA256
+        or instrument.get("unchanged_recall_report_peer_sha256") != REPORT_SHA256
+    ):
+        raise ValueError("exclusion ledger lacks verified 1/4-thread reproduction")
+    validate_raw(raw)
+    if raw_sha256 != instrument["raw_census_sha256"]:
+        raise ValueError("checked baseline raw census does not match ledger evidence")
+    raw_excluded = {
+        row["loc"]: row for row in raw["units"] if row["reason"] != "interpretable"
+    }
     units = ledger["units"]
     if len(units) != 6713 or len({row["unit_id"] for row in units}) != len(units):
         raise ValueError("exclusion ledger cardinality or identity mismatch")
@@ -460,7 +584,7 @@ def validate_ledger(ledger: dict[str, Any]) -> None:
     }
     for row in units:
         expected = identity(
-            "nose-soundness-exclusion-v2", RELEASE_COMMIT, row["path"],
+            "nose-soundness-exclusion-v2", RELEASE_COMMIT, row["raw_loc"], row["path"],
             row["start_line"], row["end_line"], row["source_sha256"],
             row["value_fingerprint_sha256"], row["first_blocker"]["capability_id"],
         )
@@ -470,6 +594,10 @@ def validate_ledger(ledger: dict[str, Any]) -> None:
             raise ValueError(f"fingerprint hash mismatch: {row['unit_id']}")
         if row["report_reason"] != reasons[row["classification"]]:
             raise ValueError(f"release exclusion reason drift: {row['unit_id']}")
+        raw_row = raw_excluded.get(row["raw_loc"])
+        if raw_row is None:
+            raise ValueError(f"ledger unit missing from raw census: {row['raw_loc']}")
+        validate_ledger_raw_fields(row, raw_row)
         if row["path"] not in files:
             files[row["path"]] = subprocess.check_output(
                 ["git", "show", f"{RELEASE_COMMIT}:{row['path']}"], cwd=ROOT,
@@ -479,9 +607,40 @@ def validate_ledger(ledger: dict[str, Any]) -> None:
         )
         if sha256_bytes(source) != row["source_sha256"]:
             raise ValueError(f"release source hash mismatch: {row['unit_id']}")
+    if set(raw_excluded) != {row["raw_loc"] for row in units}:
+        raise ValueError("ledger/raw exclusion membership drift")
     boundaries = [row for row in units if row["classification"] == "semantic-boundary-attributed"]
     if len(boundaries) != 652 or any(row["claimable"] for row in boundaries):
         raise ValueError("semantic boundary closure drift")
+
+
+def validate_repository_commitments(
+    repo_id: str,
+    repository: dict[str, Any],
+    source: dict[str, Any],
+    repo_families: list[dict[str, Any]],
+) -> None:
+    expected_fields = {
+        "commit": source["commit"],
+        "census_sha256": source["census_sha256"],
+        "units": source["units"],
+        "interpretable_units": source["interpretable_units"],
+        "excluded_units": source["excluded_units"],
+        "generic_unattributed_exclusions": source["generic_unattributed_exclusions"],
+        "by_classification": source["by_classification"],
+        "by_capability": source["by_capability"],
+        "claimable_units": source["claimable_units"],
+        "claimable_units_sha256": source["claimable_units_sha256"],
+        "claimable_families": len(repo_families),
+        "claimable_families_sha256": sha256_bytes(pretty(repo_families)),
+        "claimable_pair_mass": sum(row["claimable_pair_mass"] for row in repo_families),
+        "capped_claimable_pair_mass": sum(
+            row["capped_claimable_pair_mass"] for row in repo_families
+        ),
+    }
+    for key, value in expected_fields.items():
+        if repository.get(key) != value or source.get(key) != value:
+            raise ValueError(f"claimable-mass {repo_id} {key} drift")
 
 
 def validate_corpus(
@@ -489,6 +648,14 @@ def validate_corpus(
 ) -> None:
     if census.get("schema") != CORPUS_SCHEMA or census["summary"]["repositories"] != 120:
         raise ValueError("claimable-mass census is not the complete 120-repository artifact")
+    if census.get("validation", {}).get("source_completeness_requires_raw_replay") is not True:
+        raise ValueError("claimable-mass validation scope is not explicit")
+    if census.get("corpus_manifest_sha256") != sha256_file(ROOT / "bench/goldens/corpus.json"):
+        raise ValueError("claimable-mass corpus manifest hash drift")
+    if census.get("prune_manifest_sha256") != sha256_file(
+        ROOT / "bench/labels/prune_manifest.json"
+    ):
+        raise ValueError("claimable-mass prune manifest hash drift")
     if (
         evidence.get("schema") != "nose-soundness-census-run/v2"
         or not evidence.get("complete")
@@ -497,23 +664,59 @@ def validate_corpus(
         or census["nose"] != evidence["nose"]
     ):
         raise ValueError("claimable-mass census provenance drift")
-    expected_repos = {
-        (row["id"], row["commit"], row["census_sha256"])
-        for row in evidence["repositories"]
-    }
-    observed_repos = {
-        (row["id"], row["commit"], row["census_sha256"])
-        for row in census["repositories"]
-    }
-    if observed_repos != expected_repos:
+    evidence_repos = {row["id"]: row for row in evidence["repositories"]}
+    observed_repos = {row["id"]: row for row in census["repositories"]}
+    if len(observed_repos) != 120 or set(observed_repos) != set(evidence_repos):
         raise ValueError("claimable-mass repository evidence drift")
     families = census["claimable_families"]
-    if any(row["excluded_units"] < 1 or not row["blockers"] for row in families):
-        raise ValueError("claimable family lacks an attributed exclusion")
-    if census["summary"]["claimable_pair_mass"] != sum(
-        row["claimable_pair_mass"] for row in families
-    ):
-        raise ValueError("claimable family mass drift")
+    by_repo: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for family in families:
+        if (
+            family["excluded_units"] < 1
+            or not family["blockers"]
+            or family["units"] != family["interpretable_units"] + family["excluded_units"]
+        ):
+            raise ValueError("claimable family lacks valid attributed membership")
+        expected_mass = pairs(family["units"]) - pairs(family["interpretable_units"])
+        if (
+            family["claimable_pair_mass"] != expected_mass
+            or family["capped_claimable_pair_mass"] != min(PAIR_CAP, expected_mass)
+            or sum(row["excluded_units"] for row in family["blockers"])
+            != family["excluded_units"]
+        ):
+            raise ValueError("claimable family aggregate drift")
+        by_repo[family["repository"]].append(family)
+    total_classifications: Counter[str] = Counter()
+    total_capabilities: Counter[str] = Counter()
+    total_units: Counter[str] = Counter()
+    for repo_id, repository in observed_repos.items():
+        source = evidence_repos[repo_id]
+        repo_families = sorted(
+            by_repo.get(repo_id, []),
+            key=lambda row: (row["repository"], row["fingerprint_sha256"]),
+        )
+        validate_repository_commitments(repo_id, repository, source, repo_families)
+        total_units.update(
+            total=repository["units"],
+            interpreted=repository["interpretable_units"],
+            excluded=repository["excluded_units"],
+        )
+        total_classifications.update(repository["by_classification"])
+        total_capabilities.update(repository["by_capability"])
+    expected_summary = {
+        "repositories": len(observed_repos),
+        **dict(total_units),
+        "generic_unattributed_exclusions": 0,
+        "claimable_families": len(families),
+        "claimable_pair_mass": sum(row["claimable_pair_mass"] for row in families),
+        "capped_claimable_pair_mass": sum(
+            row["capped_claimable_pair_mass"] for row in families
+        ),
+        "by_classification": dict(sorted(total_classifications.items())),
+        "by_capability": dict(sorted(total_capabilities.items())),
+    }
+    if census["summary"] != expected_summary:
+        raise ValueError("claimable-mass summary drift")
     expected = priority_from_families(census)
     if priority != expected:
         raise ValueError("interpreter priority does not match claimable families")
@@ -526,11 +729,13 @@ def self_test() -> None:
     }
     units = [
         {"loc": "a:1", "language": "rust", "reason": "interpretable",
-         "exact_safe": True, "claimable": True, "classification": "interpretable",
+         "exact_safe": True, "product_admission": "admitted", "claimable": True,
+         "classification": "interpretable",
          "obligation_family": "interpretable", "obligation_subreason": "interpretable",
          "value_fingerprint": [1, 2, 3, 4], "constructs": []},
         {"loc": "a:2", "language": "rust", "reason": "battery-bail",
-         "exact_safe": True, "claimable": True, "classification": "missing-oracle-support",
+         "exact_safe": True, "product_admission": "admitted", "claimable": True,
+         "classification": "missing-oracle-support",
          "obligation_family": "oracle-capability", "obligation_subreason": "il.test",
          "value_fingerprint": [1, 2, 3, 4], "constructs": [], "first_blocker": blocker},
     ]
@@ -543,6 +748,18 @@ def self_test() -> None:
         poisoned.append(row)
     if priority_rows(poisoned, PAIR_CAP) != before:
         raise AssertionError("exact-unsafe cluster changed implementation priority")
+    product_ineligible = copy.deepcopy(units)
+    for index in range(100):
+        row = copy.deepcopy(units[1])
+        row.update(
+            loc=f"large-test:{index}",
+            product_admission="large-test-file",
+            claimable=False,
+            value_fingerprint=[8, 8, 8, 8],
+        )
+        product_ineligible.append(row)
+    if priority_rows(product_ineligible, PAIR_CAP) != before:
+        raise AssertionError("product-ineligible cluster changed implementation priority")
     broken = copy.deepcopy(units)
     del broken[1]["first_blocker"]
     raw = {
@@ -557,6 +774,74 @@ def self_test() -> None:
         pass
     else:
         raise AssertionError("missing blocker was accepted")
+    with tempfile.TemporaryDirectory() as tmp:
+        first = Path(tmp) / "first"
+        peer = Path(tmp) / "peer"
+        first.write_bytes(b"same\n")
+        peer.write_bytes(b"different\n")
+        try:
+            require_byte_identical(first, peer, "self-test evidence")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("mismatched 1/4-thread evidence was accepted")
+        peer.write_bytes(b"same\n")
+        require_byte_identical(first, peer, "self-test evidence")
+    family = {
+        "repository": "fixture",
+        "fingerprint_sha256": "a",
+        "claimable_pair_mass": 1,
+        "capped_claimable_pair_mass": 1,
+    }
+    source = {
+        "commit": "pin",
+        "census_sha256": "raw",
+        "units": 2,
+        "interpretable_units": 1,
+        "excluded_units": 1,
+        "generic_unattributed_exclusions": 0,
+        "by_classification": {"missing-oracle-support": 1},
+        "by_capability": {"il.test": 1},
+        "claimable_units": 2,
+        "claimable_units_sha256": "units",
+        "claimable_families": 1,
+        "claimable_families_sha256": sha256_bytes(pretty([family])),
+        "claimable_pair_mass": 1,
+        "capped_claimable_pair_mass": 1,
+    }
+    validate_repository_commitments("fixture", copy.deepcopy(source), source, [family])
+    try:
+        validate_repository_commitments("fixture", copy.deepcopy(source), source, [])
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("deleted claimable family passed commitment validation")
+    raw_row = copy.deepcopy(units[1])
+    raw_row["loc"] = "fixture.rs:2-3@10-20"
+    ledger_row = {
+        "raw_loc": raw_row["loc"],
+        "path": "fixture.rs",
+        "start_line": 2,
+        "end_line": 3,
+        **{
+            key: raw_row[key]
+            for key in (
+                "language", "value_fingerprint", "exact_safe", "product_admission",
+                "claimable", "classification", "obligation_family",
+                "obligation_subreason", "constructs", "first_blocker",
+            )
+        },
+    }
+    validate_ledger_raw_fields(ledger_row, raw_row)
+    ledger_row["first_blocker"] = {
+        "category": "il", "capability_id": "il.forged", "blocker_stack": []
+    }
+    try:
+        validate_ledger_raw_fields(ledger_row, raw_row)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("forged blocker passed raw-ledger validation")
     print("ok soundness exclusion attribution self-test")
 
 
@@ -566,7 +851,9 @@ def main() -> None:
     parser.add_argument("--freeze-baseline", action="store_true")
     parser.add_argument("--freeze-corpus", action="store_true")
     parser.add_argument("--census", type=Path)
+    parser.add_argument("--census-peer", type=Path)
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--report-peer", type=Path)
     parser.add_argument("--source-root", type=Path)
     parser.add_argument("--raw-dir", type=Path)
     parser.add_argument("--evidence", type=Path)
@@ -576,10 +863,22 @@ def main() -> None:
         self_test()
         return
     if args.freeze_baseline:
-        if not all((args.census, args.report, args.source_root)):
-            parser.error("--freeze-baseline requires --census, --report, and --source-root")
-        ledger = freeze_baseline(args.census, args.report, args.source_root)
+        if not all((
+            args.census, args.census_peer, args.report, args.report_peer, args.source_root
+        )):
+            parser.error(
+                "--freeze-baseline requires --census, --census-peer, --report, "
+                "--report-peer, and --source-root"
+            )
+        ledger = freeze_baseline(
+            args.census,
+            args.census_peer,
+            args.report,
+            args.report_peer,
+            args.source_root,
+        )
         write(args.baseline / "exclusion-ledger.v2.json", ledger)
+        shutil.copyfile(args.census, args.baseline / "exclusion-census.v2.json")
     elif args.freeze_corpus:
         if not all((args.raw_dir, args.evidence)):
             parser.error("--freeze-corpus requires --raw-dir and --evidence")
@@ -588,12 +887,31 @@ def main() -> None:
         write(args.baseline / "interpreter-priority.v2.json", priority)
         write(args.baseline / "corpus-census-evidence.v2.json", evidence)
     else:
-        validate_ledger(load(args.baseline / "exclusion-ledger.v2.json"))
-        validate_corpus(
-            load(args.baseline / "claimable-mass-census.v2.json"),
-            load(args.baseline / "interpreter-priority.v2.json"),
-            load(args.baseline / "corpus-census-evidence.v2.json"),
-        )
-        print("ok soundness exclusion attribution evidence")
+        checked_ledger = load(args.baseline / "exclusion-ledger.v2.json")
+        checked_raw_path = args.baseline / "exclusion-census.v2.json"
+        checked_raw = load(checked_raw_path)
+        checked_census = load(args.baseline / "claimable-mass-census.v2.json")
+        checked_priority = load(args.baseline / "interpreter-priority.v2.json")
+        checked_evidence = load(args.baseline / "corpus-census-evidence.v2.json")
+        validate_ledger(checked_ledger, checked_raw, sha256_file(checked_raw_path))
+        validate_corpus(checked_census, checked_priority, checked_evidence)
+        if args.raw_dir or args.evidence:
+            if not all((args.raw_dir, args.evidence)):
+                parser.error("raw replay requires both --raw-dir and --evidence")
+            replay_census, replay_priority, replay_evidence = aggregate_corpus(
+                args.raw_dir, args.evidence
+            )
+            if (
+                replay_census != checked_census
+                or replay_priority != checked_priority
+                or replay_evidence != checked_evidence
+            ):
+                raise ValueError("raw corpus replay does not match checked artifacts")
+            print("ok soundness exclusion attribution evidence (raw replay complete)")
+        else:
+            print(
+                "ok soundness exclusion attribution evidence "
+                "(commitments verified; source completeness requires --raw-dir replay)"
+            )
 if __name__ == "__main__":
     main()

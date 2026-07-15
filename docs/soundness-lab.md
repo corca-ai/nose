@@ -67,6 +67,12 @@ are no generic or unattributed rows. The original classification is unchanged:
 exclusions, one cost exclusion, and one empty fingerprint. All 652 semantic
 boundaries remain explicitly closed and non-claimable.
 
+The checked [raw exclusion
+census](../bench/soundness/0.19.0/exclusion-census.v2.json) binds every ledger
+attribution and blocker stack back to the reporting run. Baseline freezing now
+requires both the 1-thread and 4-thread census/report peers and rejects either
+pair unless it is byte-identical.
+
 Census locations include line and byte spans. Line ranges alone are not unique:
 minified JavaScript in the pinned corpus contains hundreds of distinct function
 units on one line. Exact-safety lookup uses the same byte-span key, preventing a
@@ -77,7 +83,9 @@ Most baseline failures reach one of two IL gaps: missing variable identity
 implementation order, however. The [claimable-mass
 census](../bench/soundness/0.19.0/claimable-mass-census.v2.json) recomputes
 fingerprint families within each of the 120 pinned repositories and admits only
-units that pass the product's exact-safety and fingerprint-size gate. The
+units that survive the product's default extraction gates (including
+declaration-only, data-like-function, and large-test-file rejection) and then
+pass its exact-safety and fingerprint-size gate. The
 separate [interpreter
 priority](../bench/soundness/0.19.0/interpreter-priority.v2.json) then caps each
 family at eight pairs and multi-attributes its remaining
@@ -86,24 +94,24 @@ Every such row is Tier A because it represents an already product-claimable
 merge family with an oracle-excluded member.
 
 The full pinned corpus contains 639,516 function units: 197,369 interpretable
-and 442,147 fail-closed. Eligibility reduces the actionable surface to 704
-claimable families carrying 3,677 unverified pairs, or 1,352 pairs after the
+and 442,147 fail-closed. Eligibility reduces the actionable surface to 659
+claimable families carrying 2,522 unverified pairs, or 1,256 pairs after the
 per-family cap. The first two investment cells are:
 
 | language / leaf construct / capability | families | raw / capped pair mass |
 | --- | ---: | ---: |
 | Java / `kind:Var` / `il.variable-identity-missing` | 105 | `696 / 220` |
-| Python / `kind:Assign` / `protocol.field-write-proof` | 94 | `1,433 / 214` |
+| Python / `kind:Assign` / `protocol.field-write-proof` | 68 | `319 / 147` |
 
 This makes the next decision concrete: close Java variable identity first for
 the broadest capped reach, then Python field-write proof for the largest raw
 claimable mass. Each implementation must still pass the frozen soundness gate;
 the ranking is value evidence, not permission to widen admission.
 
-The checked policy test injects a 100-unit exact-unsafe fingerprint cluster and
-requires the priority artifact to remain byte-equivalent. Thus generated or
-lossy mass may remain visible in exclusion totals but cannot steer interpreter
-investment.
+The checked policy tests inject both a 100-unit exact-unsafe fingerprint cluster
+and a 100-unit product-ineligible large-test cluster, and require the priority
+artifact to remain byte-equivalent. Thus generated, lossy, or non-product mass
+may remain visible in exclusion totals but cannot steer interpreter investment.
 
 ## Non-gameable score
 
@@ -181,29 +189,63 @@ baseline directory; never overwrite the checked official baseline during an
 experiment.
 
 To reproduce the v2 attribution artifacts, build the current reporting
-instrument, but point it at the separate clean release worktree. Confirm that
-the 1-thread and 4-thread census files match and that both recall-loss reports
-still hash to the frozen `149abb80…` value. Then collect and freeze the pinned
-corpus evidence:
+instrument, but point it at a separate clean release worktree. The commands
+below create every referenced path, run both thread counts, and make the freeze
+command verify both byte-identical peers. The clean worktree is input only; the
+instrument binary always comes from the current checkout.
 
 ```sh
+repo_root="$(pwd)"
+scratch="$repo_root/target/soundness-lab"
+clean_root="$scratch/clean-v0.19.0"
+outputs="$scratch/exclusions"
+mkdir -p "$outputs"
+
+git worktree add --detach "$clean_root" v0.19.0
 cargo build --release -p nose-cli
+
+(
+  cd "$clean_root"
+  RAYON_NUM_THREADS=1 "$repo_root/target/release/nose" verify crates \
+    --max-violations 0 \
+    --exclusion-census "$outputs/crates-t1.json" \
+    --recall-loss-report "$outputs/recall-t1.json"
+  RAYON_NUM_THREADS=4 "$repo_root/target/release/nose" verify crates \
+    --max-violations 0 \
+    --exclusion-census "$outputs/crates-t4.json" \
+    --recall-loss-report "$outputs/recall-t4.json"
+)
+
+cmp "$outputs/crates-t1.json" "$outputs/crates-t4.json"
+cmp "$outputs/recall-t1.json" "$outputs/recall-t4.json"
+test "$(python3 -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$outputs/recall-t1.json")" = \
+  149abb80c7ffb790d3fc0fbc2ad910add776d768ecf2961ee4321239f935d9c9
+
 python3 scripts/collect-soundness-census.py \
   --nose target/release/nose \
-  --output target/soundness-lab/corpus-exclusions
+  --output "$scratch/corpus-exclusions"
 python3 scripts/soundness_exclusions.py --freeze-baseline \
-  --census target/soundness-lab/exclusions/crates-t1.json \
-  --report target/soundness-lab/exclusions/recall-t1.json \
-  --source-root target/soundness-lab/clean-v0.19.0
+  --census "$outputs/crates-t1.json" \
+  --census-peer "$outputs/crates-t4.json" \
+  --report "$outputs/recall-t1.json" \
+  --report-peer "$outputs/recall-t4.json" \
+  --source-root "$clean_root"
 python3 scripts/soundness_exclusions.py --freeze-corpus \
-  --raw-dir target/soundness-lab/corpus-exclusions/raw \
-  --evidence target/soundness-lab/corpus-exclusions/evidence.json
+  --raw-dir "$scratch/corpus-exclusions/raw" \
+  --evidence "$scratch/corpus-exclusions/evidence.json"
 python3 scripts/soundness_exclusions.py --self-test
-python3 scripts/soundness_exclusions.py
+python3 scripts/soundness_exclusions.py \
+  --raw-dir "$scratch/corpus-exclusions/raw" \
+  --evidence "$scratch/corpus-exclusions/evidence.json"
 ```
 
 The collector refuses changed repository pins, verifies the prune digest before
 and after the run, fixes interpreter threads to one inside each repository, and
 binds every raw census hash to the exact binary and corpus identities. The
-checker independently rebuilds pair mass and priority from unit or family rows;
-stored aggregate counters are never accepted on trust.
+baseline freeze refuses missing or byte-different 1/4-thread peers. The checker
+independently rebuilds pair mass and priority from product-admitted unit or
+family rows; stored aggregate counters are never accepted on trust. The
+checked per-repository commitments catch derived-artifact drift without the
+1.3 GB raw corpus. A source-completeness claim additionally requires the
+explicit `--raw-dir` replay shown above; the validator says so when only
+commitments were available.

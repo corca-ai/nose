@@ -10,7 +10,6 @@ mod model;
 mod timing;
 mod tree;
 
-use crate::exact_policy::dense_unit_admitted;
 #[cfg(test)]
 pub(crate) use crate::exact_policy::EXACT_VALUE_MIN;
 use crate::fragment::{FragmentKind, ProofFacts};
@@ -21,7 +20,11 @@ pub(crate) use fragments::exact_statement_fragment_root;
 pub(crate) use fragments::top_level_statement_fragment_context_safe;
 use fragments::{collect_extra_unit_roots, strict_exact_self_field_fragment_safe};
 pub(crate) use gates::large_test_file;
-use gates::{skip_before_value_fingerprint, PreValueFingerprintGate};
+pub use gates::ProductUnitAdmission;
+use gates::{
+    post_value_fingerprint_rejection, pre_value_fingerprint_rejection,
+    skip_before_value_fingerprint, PreValueFingerprintGate,
+};
 pub(crate) use model::abstraction_family_witness;
 pub use model::UnitFeat;
 use nose_il::{Il, Interner, NodeId, NodeKind, Payload, Span, Symbol, UnitKind, UnitOrigin};
@@ -30,6 +33,18 @@ use std::time::Instant;
 use timing::{UnitTimer, UnitTimingSample, UnitTimingSkipSample};
 use tree::collect_pre;
 pub(crate) use tree::{build_parent_index, subtree_spans_within};
+
+/// Per-unit facts needed to ask whether the default product detector would admit an
+/// ordinary frontend-tagged unit to semantic extraction.
+#[derive(Clone, Copy)]
+pub struct ProductUnitAdmissionInput {
+    pub root: NodeId,
+    pub kind: UnitKind,
+    pub origin: UnitOrigin,
+    pub tokens: usize,
+    pub exact_safe: bool,
+    pub value_len: usize,
+}
 
 #[derive(Clone, Copy)]
 struct UnitRoot {
@@ -49,6 +64,46 @@ pub(crate) struct ExtractFeatures {
     pub(crate) shape_features: bool,
     pub(crate) abstraction_witnesses: bool,
     pub(crate) connected_witnesses: bool,
+}
+
+/// Whether an ordinary frontend-tagged unit can enter the product's default semantic
+/// extraction surface. This is the shared owner for offline soundness censuses: a unit that
+/// the default detector drops must not contribute "product-claimable" merge mass merely
+/// because its value fingerprint is exact-safe and non-trivial.
+pub fn default_product_unit_admission(
+    raw_il: &Il,
+    normalized_il: &Il,
+    input: ProductUnitAdmissionInput,
+) -> ProductUnitAdmission {
+    let opts = crate::DetectOptions::default();
+    let span = normalized_il.node(input.root).span;
+    let syntactically_small = span.line_count() < opts.min_lines || input.tokens < opts.min_tokens;
+    let declarative = matches!(
+        normalized_il.kind(input.root),
+        NodeKind::CssRule | NodeKind::HtmlElement
+    );
+    let gate = PreValueFingerprintGate {
+        kind: input.kind,
+        origin: input.origin,
+        tokens: input.tokens,
+        lines: span.line_count(),
+        syntactically_small,
+        declarative,
+        exact_fragment: false,
+        large_test_file: large_test_file(raw_il) || large_test_file(normalized_il),
+    };
+    if let Some(rejection) = pre_value_fingerprint_rejection(gate) {
+        return rejection;
+    }
+    post_value_fingerprint_rejection(
+        input.kind,
+        false,
+        declarative,
+        syntactically_small,
+        input.exact_safe,
+        input.value_len,
+    )
+    .unwrap_or(ProductUnitAdmission::Admitted)
 }
 
 /// Per-file inputs shared by every unit extraction in [`extract`].
@@ -405,9 +460,16 @@ fn gate_unit(
     // fingerprint floor prove that the fragment itself is a usable semantic unit.
     // A declarative unit is admitted on the same `value.len() >= EXACT_VALUE_MIN` floor
     // as a dense functional one-liner (a 1-declaration rule stays below it — intended).
-    let dense_exact_unit =
-        dense_unit_admitted(kind, exact_fragment, declarative, exact_safe, value.len());
-    if (syntactically_small || exact_fragment) && !dense_exact_unit {
+    if post_value_fingerprint_rejection(
+        kind,
+        exact_fragment,
+        declarative,
+        syntactically_small,
+        exact_safe,
+        value.len(),
+    )
+    .is_some()
+    {
         skip(unit_timer, safe_ms, value_ms);
         return None;
     }

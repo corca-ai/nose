@@ -11,6 +11,11 @@ use rayon::prelude::*;
 
 mod census;
 use census::{census_outcome, push_verify_census, synthetic_blocker, CensusLocation};
+mod support;
+use support::{
+    admission_rejection_for_rec, oracle_exclusion_diagnostic, param_domain_signature,
+    subtree_node_count, unit_value_fingerprint_and_contracts,
+};
 
 /// One record per interpretable unit.
 pub(super) struct VerifyRec {
@@ -22,8 +27,12 @@ pub(super) struct VerifyRec {
     pub(super) tokens: usize,
     pub(super) loc: String,
     /// Can the exact `semantic` channel ever claim this unit (strict-exact-safe
-    /// and above the degenerate-fingerprint floor)? Scopes the HARD gate.
+    /// and above the degenerate-fingerprint floor, after the product's default
+    /// extraction gates)? Scopes the HARD gate.
     pub(super) claimable: bool,
+    /// Product extraction admission, recorded separately from exact eligibility so
+    /// offline reports can explain why a safe, rich fingerprint is still out of scope.
+    pub(super) product_admission: &'static str,
     /// Whether this unit participated in the concrete core-vs-canonical behavior check.
     pub(super) canon_exposed: bool,
     /// Diagnostics-only reason for a unit that cannot enter the exact semantic
@@ -331,11 +340,30 @@ fn collect_file_verify_recs(
             .get(&(span0.start_byte, span0.end_byte))
             .copied()
             .unwrap_or(true);
-        let claimable = nose_detect::exact_claim_eligible_parts(exact_safe, fp.len());
+        let product_admission = nose_detect::default_product_unit_admission(
+            raw,
+            n,
+            nose_detect::ProductUnitAdmissionInput {
+                root,
+                kind: u.kind,
+                origin: u.origin,
+                tokens,
+                exact_safe,
+                value_len: fp.len(),
+            },
+        );
+        let claimable = product_admission.admitted()
+            && nose_detect::exact_claim_eligible_parts(exact_safe, fp.len());
         let Some(&core_root) = core_func.get(&(span0.start_byte, span0.end_byte)) else {
             let blocker = synthetic_blocker("il", "il.core-span", "kind:Func");
-            let outcome =
-                census_outcome("no-core-span", exact_safe, claimable, None, Some(blocker));
+            let outcome = census_outcome(
+                "no-core-span",
+                exact_safe,
+                product_admission.label(),
+                claimable,
+                None,
+                Some(blocker),
+            );
             push_verify_census(oracle, &census_location, n, root, &fp, outcome);
             oracle
                 .exclusions
@@ -347,8 +375,14 @@ fn collect_file_verify_recs(
                 .exclusions
                 .record_battery_bail(file_path, span0, tokens);
             let blocker = synthetic_blocker("budget", "budget.oracle-cost", "kind:Func");
-            let outcome =
-                census_outcome("battery-bail", exact_safe, claimable, None, Some(blocker));
+            let outcome = census_outcome(
+                "battery-bail",
+                exact_safe,
+                product_admission.label(),
+                claimable,
+                None,
+                Some(blocker),
+            );
             push_verify_census(oracle, &census_location, core, core_root, &fp, outcome);
             continue;
         }
@@ -365,7 +399,14 @@ fn collect_file_verify_recs(
         // firing, so a non-contract false merge is still exposed by the free battery.
         if fp.is_empty() {
             let blocker = synthetic_blocker("value", "value.empty-fingerprint", "kind:Func");
-            let outcome = census_outcome("empty-fp", exact_safe, claimable, None, Some(blocker));
+            let outcome = census_outcome(
+                "empty-fp",
+                exact_safe,
+                product_admission.label(),
+                claimable,
+                None,
+                Some(blocker),
+            );
             push_verify_census(oracle, &census_location, n, root, &fp, outcome);
             oracle
                 .exclusions
@@ -393,6 +434,7 @@ fn collect_file_verify_recs(
                 let outcome = census_outcome(
                     census_reason,
                     exact_safe,
+                    product_admission.label(),
                     claimable,
                     diagnostic.as_ref(),
                     Some(blocker),
@@ -404,7 +446,14 @@ fn collect_file_verify_recs(
                 continue;
             }
         };
-        let outcome = census_outcome("interpretable", exact_safe, claimable, None, None);
+        let outcome = census_outcome(
+            "interpretable",
+            exact_safe,
+            product_admission.label(),
+            claimable,
+            None,
+            None,
+        );
         push_verify_census(oracle, &census_location, core, core_root, &fp, outcome);
         // Stricter canon check: the SAME function interpreted on the fully-normalized
         // IL must agree with the core IL on every input — else a canon pass changed
@@ -453,6 +502,7 @@ fn collect_file_verify_recs(
             tokens,
             loc: census_location.verify,
             claimable,
+            product_admission: product_admission.label(),
             canon_exposed,
             admission_rejection,
             domain_sig: param_domain_signature(n, root),
@@ -460,134 +510,4 @@ fn collect_file_verify_recs(
             core_root,
         });
     }
-}
-
-fn unit_value_fingerprint_and_contracts(
-    value_context: Option<&nose_normalize::ValueFingerprintContext>,
-    il: &nose_il::Il,
-    root: nose_il::NodeId,
-    interner: &Interner,
-) -> (Vec<u64>, Vec<(u32, u32)>) {
-    match value_context {
-        Some(context) => nose_normalize::value_fingerprint_and_contracts_with_context(
-            il, root, interner, context,
-        ),
-        None => nose_normalize::value_fingerprint_and_contracts(il, root, interner),
-    }
-}
-
-fn admission_rejection_for_rec(
-    il: &nose_il::Il,
-    interner: &Interner,
-    root: nose_il::NodeId,
-    exact_safe: bool,
-    fingerprint_len: usize,
-    admission_context: &AdmissionContext,
-    raw_source: RuntimeDiagnosticSource<'_>,
-) -> Option<ExactAdmissionRejectionDiagnostic> {
-    if !exact_safe {
-        if let Some(diagnostic) =
-            runtime_boundary_diagnostic_from_source(raw_source, interner, admission_context)
-        {
-            return Some(diagnostic);
-        }
-    }
-    exact_admission_rejection_with_context(
-        il,
-        interner,
-        root,
-        exact_safe,
-        fingerprint_len,
-        admission_context,
-    )
-}
-
-fn oracle_exclusion_diagnostic(
-    reason: VerifyExclusionReason,
-    raw_source: RuntimeDiagnosticSource<'_>,
-    il: &nose_il::Il,
-    interner: &Interner,
-    root: nose_il::NodeId,
-    admission_context: &AdmissionContext,
-) -> Option<ExactAdmissionRejectionDiagnostic> {
-    match reason {
-        VerifyExclusionReason::Uninterpretable => runtime_boundary_diagnostic_with_fallback(
-            raw_source,
-            il,
-            root,
-            interner,
-            admission_context,
-        ),
-        VerifyExclusionReason::CoreMissing
-        | VerifyExclusionReason::BatteryBail
-        | VerifyExclusionReason::EmptyFingerprint
-        | VerifyExclusionReason::PathBail => None,
-    }
-}
-
-fn runtime_boundary_diagnostic_with_fallback(
-    raw_source: RuntimeDiagnosticSource<'_>,
-    normalized: &nose_il::Il,
-    normalized_root: nose_il::NodeId,
-    interner: &Interner,
-    admission_context: &AdmissionContext,
-) -> Option<ExactAdmissionRejectionDiagnostic> {
-    runtime_boundary_diagnostic_from_source(raw_source, interner, admission_context).or_else(|| {
-        runtime_boundary_rejection_diagnostic_with_context(
-            normalized,
-            interner,
-            normalized_root,
-            admission_context,
-        )
-    })
-}
-
-fn runtime_boundary_diagnostic_from_source(
-    raw_source: RuntimeDiagnosticSource<'_>,
-    interner: &Interner,
-    admission_context: &AdmissionContext,
-) -> Option<ExactAdmissionRejectionDiagnostic> {
-    if !matches!(raw_source.il.meta.lang, Lang::Python | Lang::Rust) {
-        return None;
-    }
-    // Python/Rust async-runtime labels rely on source-level import/shadow facts.
-    // Compute them from the raw span-matched unit first so alpha normalization
-    // cannot erase alias shadowing evidence.
-    raw_source.root.and_then(|root| {
-        runtime_boundary_rejection_diagnostic_with_context(
-            raw_source.il,
-            interner,
-            root,
-            admission_context,
-        )
-    })
-}
-
-/// Stable hash of a unit's declared parameter domains (position-sensitive).
-/// Units whose declarations differ are interpreted under different battery
-/// coercions and are not behavior-comparable row-for-row.
-fn param_domain_signature(il: &nose_il::Il, root: nose_il::NodeId) -> u64 {
-    use std::hash::{Hash, Hasher};
-    let mut h = std::collections::hash_map::DefaultHasher::new();
-    for &k in il.children(root) {
-        if il.kind(k) == nose_il::NodeKind::Param {
-            match nose_semantics::domain_evidence_for_param(il, k) {
-                Some(d) => d.hash(&mut h),
-                None => 0xD07Fu16.hash(&mut h),
-            }
-        }
-    }
-    h.finish()
-}
-
-/// Subtree node count — the same size signal the detector gates on, so the
-/// value-add evaluator can restrict its gold to meaningful-size units.
-fn subtree_node_count(il: &nose_il::Il, root: nose_il::NodeId) -> usize {
-    let mut tokens = 0usize;
-    let mut stack = vec![root];
-    while let Some(x) = stack.pop() {
-        tokens += 1;
-        stack.extend(il.children(x).iter().copied());
-    }
-    tokens
 }

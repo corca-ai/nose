@@ -11,6 +11,7 @@ fn unit(loc: &str, reason: &'static str, fp: Vec<u64>, tags: &[&str]) -> CensusU
         fp,
         tags: tags.iter().map(|tag| tag.to_string()).collect(),
         exact_safe: true,
+        product_admission: "admitted",
         claimable: true,
         classification: if excluded {
             "missing-oracle-support"
@@ -119,6 +120,28 @@ fn exact_unsafe_cluster_cannot_change_priority() {
         unsafe_unit.exact_safe = false;
         unsafe_unit.claimable = false;
         poisoned.push(unsafe_unit);
+    }
+    assert_eq!(build_report(&poisoned).priority, expected);
+}
+
+#[test]
+fn product_ineligible_cluster_cannot_change_priority() {
+    let baseline = vec![
+        unit("safe.py:1", "interpretable", vec![1, 2, 3, 4], &[]),
+        unit("gap.py:1", "battery-bail", vec![1, 2, 3, 4], &[]),
+    ];
+    let expected = build_report(&baseline).priority;
+    let mut poisoned = baseline;
+    for index in 0..100 {
+        let mut ineligible = unit(
+            &format!("large-test.py:{index}"),
+            "battery-bail",
+            vec![9, 9, 9, 9],
+            &[],
+        );
+        ineligible.product_admission = "large-test-file";
+        ineligible.claimable = false;
+        poisoned.push(ineligible);
     }
     assert_eq!(build_report(&poisoned).priority, expected);
 }

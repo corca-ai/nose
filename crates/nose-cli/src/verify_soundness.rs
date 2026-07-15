@@ -175,6 +175,7 @@ mod tests {
             tokens: 1,
             loc: loc.to_string(),
             claimable,
+            product_admission: "admitted",
             canon_exposed: false,
             admission_rejection: None,
             domain_sig,
