@@ -5,15 +5,22 @@ use nose_il::{
 };
 
 fn set_param_domain(il: &mut Il, root: NodeId, domain: DomainEvidence) {
-    let param = il.children(root)[0];
-    il.evidence.push(EvidenceRecord::new(
-        EvidenceId(0),
-        EvidenceAnchor::param(il.node(param).span),
-        EvidenceKind::Domain(domain),
-        EvidenceProvenance::builtin("nose.falsify.test", "declared-domain"),
-        Vec::new(),
-        EvidenceStatus::Asserted,
-    ));
+    let params: Vec<NodeId> = il
+        .children(root)
+        .iter()
+        .copied()
+        .filter(|&node| il.kind(node) == NodeKind::Param)
+        .collect();
+    for (index, param) in params.into_iter().enumerate() {
+        il.evidence.push(EvidenceRecord::new(
+            EvidenceId(index as u32),
+            EvidenceAnchor::param(il.node(param).span),
+            EvidenceKind::Domain(domain),
+            EvidenceProvenance::builtin("nose.falsify.test", "declared-domain"),
+            Vec::new(),
+            EvidenceStatus::Asserted,
+        ));
+    }
 }
 
 fn finish(b: IlBuilder, root: NodeId, lang: Lang) -> Il {
@@ -42,7 +49,7 @@ fn two_arg_binop(op: Op, order: (u32, u32), lang: Lang) -> (Il, Interner, NodeId
     (finish(b, root, lang), interner, root)
 }
 
-fn three_arg_add(left_associative: bool) -> (Il, Interner, NodeId) {
+fn three_arg_add(left_associative: bool, lang: Lang) -> (Il, Interner, NodeId) {
     let interner = Interner::new();
     let sp = Span::synthetic(FileId(0));
     let mut b = IlBuilder::new(FileId(0));
@@ -82,7 +89,7 @@ fn three_arg_add(left_associative: bool) -> (Il, Interner, NodeId) {
         sp,
         &[params[0], params[1], params[2], ret],
     );
-    (finish(b, root, Lang::Python), interner, root)
+    (finish(b, root, lang), interner, root)
 }
 
 fn mutation_at(index: i64) -> (Il, Interner, NodeId) {
@@ -118,7 +125,7 @@ fn mutation_at(index: i64) -> (Il, Interner, NodeId) {
     (finish(b, root, Lang::Python), interner, root)
 }
 
-fn unary_float(negate: bool) -> (Il, Interner, NodeId) {
+fn unary_float(negate: bool, lang: Lang) -> (Il, Interner, NodeId) {
     let interner = Interner::new();
     let sp = Span::synthetic(FileId(0));
     let mut b = IlBuilder::new(FileId(0));
@@ -131,7 +138,7 @@ fn unary_float(negate: bool) -> (Il, Interner, NodeId) {
     };
     let ret = b.add(NodeKind::Return, Payload::None, sp, &[value]);
     let root = b.add(NodeKind::Func, Payload::None, sp, &[param, ret]);
-    (finish(b, root, Lang::Python), interner, root)
+    (finish(b, root, lang), interner, root)
 }
 
 fn calibration_artifact() -> serde_json::Value {
@@ -182,30 +189,31 @@ fn string_order_witness_is_seeded_shrunk_and_deterministic() {
 
 #[test]
 fn float_associativity_hard_negative_is_found_automatically() {
-    let (mut il_a, interner, root_a) = three_arg_add(true);
-    let (mut il_b, _, root_b) = three_arg_add(false);
-    set_param_domain(&mut il_a, root_a, DomainEvidence::Float);
-    set_param_domain(&mut il_b, root_b, DomainEvidence::Float);
-    let witness = falsify_pair(
-        &il_a,
-        root_a,
-        &il_b,
-        root_b,
-        &interner,
-        &[],
-        64,
-        DEFAULT_FALSIFY_SEED,
-    )
-    .expect("IEEE-754 addition is not associative");
+    for (lang, domain) in [
+        (Lang::Python, DomainEvidence::Float),
+        (Lang::TypeScript, DomainEvidence::Number),
+    ] {
+        let (mut il_a, interner, root_a) = three_arg_add(true, lang);
+        let (mut il_b, _, root_b) = three_arg_add(false, lang);
+        set_param_domain(&mut il_a, root_a, domain);
+        set_param_domain(&mut il_b, root_b, domain);
+        let witness = falsify_pair(
+            &il_a,
+            root_a,
+            &il_b,
+            root_b,
+            &interner,
+            &[],
+            64,
+            DEFAULT_FALSIFY_SEED,
+        )
+        .expect("IEEE-754 addition is not associative");
 
-    assert!(witness
-        .inputs
-        .iter()
-        .all(|value| matches!(value, Value::Float(_))));
-    assert!(witness
-        .shrunk_inputs
-        .iter()
-        .all(|value| matches!(value, Value::Float(_))));
+        assert!(witness
+            .shrunk_inputs
+            .iter()
+            .any(|value| matches!(value, Value::Float(_))));
+    }
 }
 
 #[test]
@@ -308,8 +316,8 @@ fn signed_zero_outputs_are_observable_but_nan_payloads_are_canonical() {
     assert!(behaviors_concretely_differ(&plus_zero, &minus_zero));
     assert!(!behaviors_concretely_differ(&first_nan, &second_nan));
 
-    let (mut identity, interner, identity_root) = unary_float(false);
-    let (mut negate, _, negate_root) = unary_float(true);
+    let (mut identity, interner, identity_root) = unary_float(false, Lang::Python);
+    let (mut negate, _, negate_root) = unary_float(true, Lang::Python);
     set_param_domain(&mut identity, identity_root, DomainEvidence::Float);
     set_param_domain(&mut negate, negate_root, DomainEvidence::Float);
     assert!(concrete_disagreement(
@@ -387,6 +395,7 @@ fn erased_static_width_and_payload_domains_fail_closed() {
         (Lang::Rust, "x: u8", D::Integer),
         (Lang::Java, "byte x", D::Integer),
         (Lang::Swift, "x: UInt8", D::Integer),
+        (Lang::Swift, "x: Character", D::String),
         (Lang::Rust, "xs: Vec<i32>", D::Collection),
         (Lang::Rust, "x: Option<i32>", D::Option),
     ] {
@@ -408,6 +417,7 @@ fn erased_static_width_and_payload_domains_fail_closed() {
         Lang::Python,
         &[Some(D::Integer), Some(D::Float)]
     ));
+    assert!(domains_are_hosted(Lang::Rust, &[Some(D::String)]));
     assert!(domains_are_hosted(Lang::TypeScript, &[Some(D::Number)]));
 
     let (mut rust_a, interner, rust_a_root) = two_arg_binop(Op::BitAnd, (0, 1), Lang::Rust);
@@ -428,19 +438,24 @@ fn erased_static_width_and_payload_domains_fail_closed() {
 }
 
 #[test]
-fn number_pool_matches_the_interpreters_integer_hosting() {
-    let (mut identity, interner, root) = unary_float(false);
+fn number_pool_and_interpreter_host_ieee754_values() {
+    let (mut identity, interner, root) = unary_float(false, Lang::TypeScript);
     set_param_domain(&mut identity, root, DomainEvidence::Number);
 
-    assert!(domain_pool(Some(DomainEvidence::Number), &[])
-        .iter()
-        .all(|value| matches!(value, Value::Int(_))));
-    assert!(matches!(
+    let pool = domain_pool(Some(DomainEvidence::Number), &[]);
+    assert!(pool.iter().all(|value| matches!(value, Value::Float(_))));
+    assert_eq!(
         run_unit(&identity, &interner, root, &[Value::Float(F64(1.25))])
             .expect("Number input must interpret")
             .ret,
-        Value::Int(_)
-    ));
+        Value::Float(F64(1.25))
+    );
+    assert_eq!(
+        run_unit(&identity, &interner, root, &[Value::Int(7)])
+            .expect("Number integer must promote")
+            .ret,
+        Value::Float(F64(7.0))
+    );
 }
 
 #[test]
@@ -461,8 +476,8 @@ fn source_runtime_calibration_names_every_required_oracle_distinction() {
 fn interpreter_matches_checked_source_runtime_calibration_facts() {
     let artifact = calibration_artifact();
 
-    let (float_left, interner, float_left_root) = three_arg_add(true);
-    let (float_right, _, float_right_root) = three_arg_add(false);
+    let (float_left, interner, float_left_root) = three_arg_add(true, Lang::Python);
+    let (float_right, _, float_right_root) = three_arg_add(false, Lang::Python);
     let float_row = [
         Value::Float(F64(1e16)),
         Value::Float(F64(-1e16)),

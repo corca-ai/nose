@@ -154,11 +154,11 @@ impl<'a> Builder<'a> {
     }
 
     /// Whether `v` COULD be a float — `proven_float`, OR a bare parameter in a dynamically-typed
-    /// language (Python/JS/TS/Ruby), where an untyped param carries no static type and so may be
-    /// a float at runtime (#342). Used ONLY by the grouping HOLDS (associativity / `eval_sub_chain`
-    /// / `ac_chain_canon`), never by a value-creating rewrite: holding a chain is split-only, so a
-    /// false positive here costs recall, never soundness (corpus family delta measured 0). The
-    /// statically-typed languages decide float-ness by proven domain (`proven_float`) instead.
+    /// language (Python/JS/Ruby), where an untyped param carries no static type and so may be a
+    /// float at runtime (#342), OR a TypeScript `number` param (IEEE-754). Used ONLY by the
+    /// grouping HOLDS (associativity / `eval_sub_chain` / `ac_chain_canon`), never by a
+    /// value-creating rewrite: holding a chain is split-only, so a false positive costs recall,
+    /// never soundness (corpus family delta measured 0).
     pub(super) fn possibly_float(&mut self, v: ValueId) -> bool {
         if let Some(&possible) = self.possibly_float_cache.get(&v) {
             return possible;
@@ -167,17 +167,24 @@ impl<'a> Builder<'a> {
             self.possibly_float_cache.insert(v, true);
             return true;
         }
+        if let ValOp::Input(cid) = self.nodes[v as usize].op {
+            if self
+                .param_domain
+                .get(&cid)
+                .is_some_and(|&domain| domain == DomainEvidence::Number)
+            {
+                self.possibly_float_cache.insert(v, true);
+                return true;
+            }
+        }
         if !semantics(self.il.meta.lang).is_dynamically_typed() {
             self.possibly_float_cache.insert(v, false);
             return false;
         }
         let possible = match self.nodes[v as usize].op {
             // A TRULY-UNTYPED param (no domain evidence) could be a float at runtime → hold; the
-            // float battery feeds it directly, so the oracle witnesses the non-associativity. Any
-            // param WITH a domain (`a: int`, inferred `Number`, `str`, …) is fed a coerced
-            // concrete value by `coerce_to_declared_domain` (a `Number` becomes an `Int`), so the
-            // oracle cannot witness float there — holding it would only cost recall (it would
-            // split int/`number` clones, including across languages) with no soundness gain.
+            // float battery feeds it directly, so the oracle witnesses the non-associativity.
+            // Typed `Number` was handled above because its runtime domain includes IEEE-754.
             ValOp::Input(cid) => !self.param_domain.contains_key(&cid),
             _ => false,
         };

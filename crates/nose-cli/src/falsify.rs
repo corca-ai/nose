@@ -50,6 +50,7 @@ fn float_values() -> Vec<Value> {
         Value::Float(F64(-0.0)),
         Value::Float(F64(1.0)),
         Value::Float(F64(-1.0)),
+        Value::Float(F64(4_503_599_627_370_495.5)),
         Value::Float(F64(1e16)),
         Value::Float(F64(-1e16)),
         Value::Float(F64(f64::NAN)),
@@ -89,9 +90,16 @@ fn domain_pool(domain: Option<DomainEvidence>, probes: &[Value]) -> Vec<Value> {
     let mut values = match domain {
         Some(D::Integer) => integer_values(),
         Some(D::Float) => float_values(),
-        // The current interpreter hosts `Number` through its established integer coercion.
-        // Do not claim float coverage until that coercion model itself is widened.
-        Some(D::Number) => integer_values(),
+        Some(D::Number) => {
+            let mut values = float_values();
+            for integer in integer_values() {
+                let Value::Int(integer) = integer else {
+                    unreachable!("integer pool contains only integers")
+                };
+                push_unique(&mut values, Value::Float(F64(integer as f64)));
+            }
+            values
+        }
         Some(D::Boolean) => vec![Value::Bool(false), Value::Bool(true)],
         Some(D::String) => string_values(),
         Some(
@@ -132,7 +140,7 @@ fn value_conforms(value: &Value, domain: Option<DomainEvidence>) -> bool {
         None => true,
         Some(D::Integer) => matches!(value, Value::Int(_)),
         Some(D::Float) => matches!(value, Value::Float(_)),
-        Some(D::Number) => matches!(value, Value::Int(_)),
+        Some(D::Number) => matches!(value, Value::Float(_)),
         Some(D::Boolean) => matches!(value, Value::Bool(_)),
         Some(D::String) => matches!(value, Value::Str(_)),
         Some(
@@ -159,16 +167,19 @@ fn value_conforms(value: &Value, domain: Option<DomainEvidence>) -> bool {
 /// future-like domains also stay out until their erased element/payload invariants are retained.
 /// Integer/float evidence is hosted only for languages whose runtime scalar has no erased static
 /// width/sign; treating Rust `u8` and `i64` as one domain would manufacture impossible inputs.
+/// Swift strings also stay out because source recovery currently erases `Character` into String.
 pub(crate) fn domains_are_hosted(lang: Lang, domains: &[Option<DomainEvidence>]) -> bool {
     use DomainEvidence as D;
     domains.iter().all(|domain| match domain {
         None => nose_semantics::semantics(lang).is_dynamically_typed(),
-        Some(D::Boolean | D::String) => true,
+        Some(D::Boolean) => true,
+        Some(D::String) => lang != Lang::Swift,
         Some(D::Integer | D::Float) => matches!(
             lang,
             Lang::Python | Lang::Ruby | Lang::JavaScript | Lang::Vue | Lang::Svelte | Lang::Html
         ),
-        // Source type recovery emits `Number` only for TypeScript's IEEE-754 runtime number.
+        // Source type recovery emits `Number` only for TypeScript's IEEE-754 runtime number;
+        // even integer-valued rows are promoted to Float before execution.
         Some(D::Number) => lang == Lang::TypeScript,
         Some(
             D::Array

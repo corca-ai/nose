@@ -41,9 +41,9 @@ pub(crate) fn run(old: &Il, interner: &Interner) -> Il {
     // so it must not be reassociated, and the grouping is lost HERE (IL reassociation) unless
     // this pass is float-aware too (the value graph mirror is `possibly_float`). A param is
     // possibly-float if it has FLOAT type evidence (`double`/`f64`/…), OR — in a dynamically-
-    // typed language (Python/JS/TS/Ruby) — if it is TRULY UNTYPED (no domain evidence: an
-    // untyped param can be a float at runtime, #342). A param with any other domain (`a: int`,
-    // inferred `Number`) is decided by the oracle's coerced value, so it is not held here.
+    // typed language (Python/JS/Ruby) — if it is TRULY UNTYPED (no domain evidence: an untyped
+    // param can be a float at runtime, #342), OR if it has TypeScript's IEEE-754 `Number`
+    // evidence. Integer-only annotated params remain associative.
     // Holding is split-only, so this costs recall, not soundness (corpus family delta 0).
     let dynamic = semantics(old.meta.lang).is_dynamically_typed();
     let possibly_float_param_cids: FxHashSet<u32> = old
@@ -54,7 +54,9 @@ pub(crate) fn run(old: &Il, interner: &Interner) -> Il {
         .filter_map(|(i, node)| match node.payload {
             Payload::Cid(c) => {
                 let ev = nose_semantics::domain_evidence_for_param(old, NodeId(i as u32));
-                ((dynamic && ev.is_none()) || ev.is_some_and(|d| d.is_float())).then_some(c)
+                ((dynamic && ev.is_none())
+                    || ev.is_some_and(|d| d.is_float() || d == nose_il::DomainEvidence::Number))
+                .then_some(c)
             }
             _ => None,
         })
@@ -86,9 +88,9 @@ struct Rewriter<'a> {
     hashes: Vec<u64>,
     remap: FxHashMap<u32, NodeId>,
     unit_root_set: FxHashSet<u32>,
-    /// Canonical ids of params that could be float (#283 C-float, #342) — float-typed, or any
-    /// untyped param in a dynamically-typed language. A `+`/`*` chain touching one is treated as
-    /// non-associative and must keep its source grouping.
+    /// Canonical ids of params that could be float (#283 C-float, #342) — float-typed,
+    /// TypeScript `number`, or any untyped param in a dynamically-typed language. A `+`/`*`
+    /// chain touching one is non-associative and must keep its source grouping.
     possibly_float_param_cids: FxHashSet<u32>,
     interner: &'a Interner,
 }

@@ -147,12 +147,24 @@ pub(super) fn range_values(args: &[Value]) -> R<Value> {
     Ok(Value::List(out))
 }
 
-/// Coerce an integer `Value` to int32 (`x & 0xFFFF_FFFF`, sign-extended), the operand coercion
-/// every JS-family bitwise operator applies (#344). Non-`Int` values pass through (a bitwise op
-/// on them already `Err`s / stays symbolic in `bin`).
+/// Coerce a numeric `Value` to int32, the operand coercion every JS-family bitwise operator
+/// applies (#344). IEEE-754 inputs follow ECMAScript ToInt32: non-finite/zero becomes zero,
+/// otherwise truncate and reduce modulo 2^32 before sign extension.
 pub(super) fn to_int32(v: Value) -> Value {
     match v {
         Value::Int(i) => Value::Int(i as i32 as i64),
+        Value::Float(F64(value)) => {
+            if !value.is_finite() || value == 0.0 {
+                return Value::Int(0);
+            }
+            let unsigned = value.trunc().rem_euclid(4_294_967_296.0);
+            let signed = if unsigned >= 2_147_483_648.0 {
+                unsigned - 4_294_967_296.0
+            } else {
+                unsigned
+            };
+            Value::Int(signed as i64)
+        }
         other => other,
     }
 }

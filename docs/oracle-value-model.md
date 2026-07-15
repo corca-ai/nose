@@ -387,13 +387,15 @@ remains a reporting identifier and is not treated as proof of compatibility. Sym
 is excluded from both the hard representative set and distinguishing witnesses. Missing domain
 evidence is a mixed runtime domain only for dynamically typed languages. Missing static evidence
 and domains whose invariants the interpreter cannot faithfully host (set, byte array, iterator,
-map, record, result, and future-like values) fail closed to the advisory lane. `Number` currently
-receives only the integer values the interpreter really hosts; float coverage comes from explicit
-`Float` or dynamic runtime domains rather than a misleading pre-coercion receipt.
+map, record, result, and future-like values) fail closed to the advisory lane. TypeScript
+`Number` promotes every input into IEEE-754 (including integer-valued inputs) without narrowing
+to the integer interpreter; its `+`/`*` grouping is therefore preserved.
 Static `Integer`/`Float` evidence also fails closed while it erases width and signedness, as do
 array/collection/iterable/option domains while their element or payload type is erased. This
 prevents values valid for `i64` or `Vec<String>` from becoming hard witnesses for `u8` or
-`Vec<i32>`. Dynamic scalar domains, TypeScript `number`, boolean, and string remain hosted.
+`Vec<i32>`. Swift `String` also fails closed while source recovery erases `Character` into the
+same domain. Every hosted scalar is coerced faithfully in the fixed battery as well as the
+domain-aware search.
 
 Falsification compares float results bitwise so `+0.0` and `-0.0` are distinguishable, including
 when nested in effects, fields, or collections. This is narrower than the oracle's stable

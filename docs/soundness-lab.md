@@ -21,8 +21,9 @@ misleading. A missing domain is treated as runtime `Any` only for dynamically ty
 missing static evidence and domains without a faithful interpreter representation (including
 set, byte-array, iterator, map, record, result, and future-like values) fail closed to advisory.
 So do width-erased static integers/floats and element/payload-erased arrays, collections,
-iterables, and options. Dynamic scalar domains, TypeScript `number`, boolean, and string retain
-concrete pools; parameterized domains reopen only when their exact constraints are preserved.
+iterables, and options. Swift strings also stay advisory while `Character` is erased into the
+same evidence. Hosted scalar domains are enforced in both the fixed battery and falsifier;
+TypeScript `number` includes IEEE-754 inputs and keeps non-associative source grouping.
 
 The independent [source-runtime calibration](../bench/soundness/0.20.0/source-runtime-calibration.v1.json)
 is checked with:
@@ -38,10 +39,10 @@ local fast gate.
 It executes Python and Node directly for string order, float association, JS-vs-Python integer
 width, mutation coordinates, signed zero, and NaN. The script self-test mutation-checks the
 independent comparison boundary. The Rust `domain_runtime_calibration` integration tests then
-lower real source fixtures through the production frontend, normalize and interpret them, and
-compare both internal channels with the checked runtime artifact. A second integration test
-injects the same wrong float fact into both actual-channel receipts and requires rejection, so
-frontend/interpreter agreement cannot overrule the source runtimes. The calibration code and
+lower real Python and typed-TypeScript source fixtures through the production frontend, normalize
+and interpret them, and compare both internal channels with the checked runtime artifact. Mutant
+tests inject the same wrong float fact into both channels for each runtime and require rejection,
+so frontend/interpreter agreement cannot overrule the source runtimes. The calibration code and
 artifact remain offline and are not linked into the shipped `nose` binary.
 
 ## Two binary identities, one release-tree report

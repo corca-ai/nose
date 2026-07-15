@@ -101,6 +101,36 @@ fn float_addition_is_non_associative_in_the_oracle() {
     assert_eq!(bin(Op::Add, &Value::Int(2), &f(0.5)), f(2.5));
 }
 
+#[test]
+fn declared_scalar_domains_reject_mixed_battery_values() {
+    let float = Value::Float(F64(1.25));
+    let string = Value::Str(vec![0x5eed]);
+    assert_eq!(
+        coerce_to_declared_domain(float.clone(), DomainEvidence::Float),
+        float.clone()
+    );
+    assert_eq!(
+        coerce_to_declared_domain(float.clone(), DomainEvidence::Number),
+        float
+    );
+    assert_eq!(
+        coerce_to_declared_domain(string.clone(), DomainEvidence::String),
+        string
+    );
+    assert!(matches!(
+        coerce_to_declared_domain(Value::Int(7), DomainEvidence::Float),
+        Value::Float(_)
+    ));
+    assert!(matches!(
+        coerce_to_declared_domain(Value::List(vec![]), DomainEvidence::Number),
+        Value::Float(_)
+    ));
+    assert!(matches!(
+        coerce_to_declared_domain(Value::Int(7), DomainEvidence::String),
+        Value::Str(_)
+    ));
+}
+
 // #342: `F64`'s behavior-comparison `Eq` canonicalizes the float corners — all NaNs are
 // equal (two units returning NaN ARE behavior-equal) and `+0.0 == -0.0`.
 #[test]
@@ -151,6 +181,12 @@ fn js_bitwise_and_wraps_to_int32_in_the_oracle() {
     );
     // Small ints are identical either way (int32(x) == x).
     assert_eq!(run_bitand(Lang::JavaScript, 6, 3), Value::Int(2));
+    assert_eq!(
+        to_int32(Value::Float(F64(0xF_0000_0003_u64 as f64))),
+        Value::Int(3)
+    );
+    assert_eq!(to_int32(Value::Float(F64(-1.9))), Value::Int(-1));
+    assert_eq!(to_int32(Value::Float(F64(f64::NAN))), Value::Int(0));
 }
 
 fn run_foreach_with_iterable_err() -> Option<Value> {

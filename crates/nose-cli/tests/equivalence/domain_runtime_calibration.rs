@@ -9,6 +9,10 @@ const STRING_FORWARD: &str = "def forward(a, b):\n    return a + b\n";
 const STRING_REVERSE: &str = "def reverse(a, b):\n    return b + a\n";
 const FLOAT_LEFT: &str = "def left(a, b, c):\n    return (a + b) + c\n";
 const FLOAT_RIGHT: &str = "def right(a, b, c):\n    return a + (b + c)\n";
+const TS_FLOAT_LEFT: &str =
+    "function left(a: number, b: number, c: number): number { return (a + b) + c; }\n";
+const TS_FLOAT_RIGHT: &str =
+    "function right(a: number, b: number, c: number): number { return a + (b + c); }\n";
 const PYTHON_BITAND: &str = "def bitand(a, b):\n    return a & b\n";
 const JS_BITAND: &str = "function bitand(a, b) { return a & b; }\n";
 const MUTATE_ZERO: &str = "def mutate(a, value):\n    a[0] = value\n    return a\n";
@@ -18,8 +22,8 @@ const MUTATE_ONE: &str = "def mutate(a, value):\n    a[1] = value\n    return a\
 struct CalibrationReceipt {
     string_frontend: (Vec<u64>, Vec<u64>),
     string_interpreter: (Value, Value),
-    float_frontend_distinct: bool,
-    float_interpreter_bits: (String, String),
+    float_frontend_distinct: (bool, bool),
+    float_interpreter_bits: ((String, String), (String, String)),
     integer_frontend_distinct: bool,
     integer_interpreter: (String, String),
     mutation_frontend_distinct: bool,
@@ -83,11 +87,31 @@ fn actual_receipt() -> CalibrationReceipt {
             returned(&interner, STRING_FORWARD, Lang::Python, &string_args),
             returned(&interner, STRING_REVERSE, Lang::Python, &string_args),
         ),
-        float_frontend_distinct: value_fp(&interner, FLOAT_LEFT, Lang::Python)
-            != value_fp(&interner, FLOAT_RIGHT, Lang::Python),
+        float_frontend_distinct: (
+            value_fp(&interner, FLOAT_LEFT, Lang::Python)
+                != value_fp(&interner, FLOAT_RIGHT, Lang::Python),
+            value_fp(&interner, TS_FLOAT_LEFT, Lang::TypeScript)
+                != value_fp(&interner, TS_FLOAT_RIGHT, Lang::TypeScript),
+        ),
         float_interpreter_bits: (
-            float_bits(returned(&interner, FLOAT_LEFT, Lang::Python, &float_args)),
-            float_bits(returned(&interner, FLOAT_RIGHT, Lang::Python, &float_args)),
+            (
+                float_bits(returned(&interner, FLOAT_LEFT, Lang::Python, &float_args)),
+                float_bits(returned(&interner, FLOAT_RIGHT, Lang::Python, &float_args)),
+            ),
+            (
+                float_bits(returned(
+                    &interner,
+                    TS_FLOAT_LEFT,
+                    Lang::TypeScript,
+                    &float_args,
+                )),
+                float_bits(returned(
+                    &interner,
+                    TS_FLOAT_RIGHT,
+                    Lang::TypeScript,
+                    &float_args,
+                )),
+            ),
         ),
         integer_frontend_distinct: value_fp(&interner, JS_BITAND, Lang::JavaScript)
             != value_fp(&interner, PYTHON_BITAND, Lang::Python),
@@ -131,17 +155,24 @@ fn validate_receipt(
         failures.push("string_order");
     }
 
-    let expected_float = (
-        observations["python"]["float_associativity"]["left_bits"]
-            .as_str()
-            .expect("left float bits"),
-        observations["python"]["float_associativity"]["right_bits"]
-            .as_str()
-            .expect("right float bits"),
-    );
-    if !receipt.float_frontend_distinct
-        || receipt.float_interpreter_bits.0 != expected_float.0
-        || receipt.float_interpreter_bits.1 != expected_float.1
+    let expected_float = |runtime: &str| {
+        (
+            observations[runtime]["float_associativity"]["left_bits"]
+                .as_str()
+                .expect("left float bits"),
+            observations[runtime]["float_associativity"]["right_bits"]
+                .as_str()
+                .expect("right float bits"),
+        )
+    };
+    let python_float = expected_float("python");
+    let node_float = expected_float("node");
+    if !receipt.float_frontend_distinct.0
+        || !receipt.float_frontend_distinct.1
+        || receipt.float_interpreter_bits.0 .0 != python_float.0
+        || receipt.float_interpreter_bits.0 .1 != python_float.1
+        || receipt.float_interpreter_bits.1 .0 != node_float.0
+        || receipt.float_interpreter_bits.1 .1 != node_float.1
     {
         failures.push("float_associativity");
     }
@@ -215,8 +246,21 @@ fn production_frontend_and_interpreter_match_independent_source_runtimes() {
 fn shared_frontend_and_interpreter_mutant_is_rejected() {
     let artifact: serde_json::Value = serde_json::from_str(ARTIFACT).expect("calibration JSON");
     let mut mutant = actual_receipt();
-    mutant.float_frontend_distinct = false;
-    mutant.float_interpreter_bits.1 = mutant.float_interpreter_bits.0.clone();
+    mutant.float_frontend_distinct.0 = false;
+    mutant.float_interpreter_bits.0 .1 = mutant.float_interpreter_bits.0 .0.clone();
+
+    assert_eq!(
+        validate_receipt(&artifact, &mutant),
+        Err(vec!["float_associativity"])
+    );
+}
+
+#[test]
+fn typescript_number_shared_mutant_is_rejected() {
+    let artifact: serde_json::Value = serde_json::from_str(ARTIFACT).expect("calibration JSON");
+    let mut mutant = actual_receipt();
+    mutant.float_frontend_distinct.1 = false;
+    mutant.float_interpreter_bits.1 .1 = mutant.float_interpreter_bits.1 .0.clone();
 
     assert_eq!(
         validate_receipt(&artifact, &mutant),

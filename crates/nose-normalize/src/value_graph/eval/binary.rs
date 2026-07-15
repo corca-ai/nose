@@ -182,6 +182,23 @@ impl<'a> Builder<'a> {
                 return self.compact_add_sub_formula(operands, env);
             }
         }
+        // A direct numeric `a + (-b)` is exactly `a - b` even for IEEE-754; canonicalize only
+        // this binary shape, without flattening either surrounding chain. The genuine numeric
+        // proof is essential in string-coercion languages (`"a" + (-3)` is not `"a" - 3`).
+        if op == Op::Add as u32 && kids.len() == 2 {
+            let negated = kids[1];
+            if self.il.kind(negated) == NodeKind::UnOp
+                && self.il.node(negated).payload == Payload::Op(Op::Neg)
+                && self.il.children(negated).len() == 1
+            {
+                let a = self.eval(kids[0], env);
+                let b_node = self.il.children(negated)[0];
+                let b = self.eval(b_node, env);
+                if self.proven_numeric(a) && self.proven_numeric(b) {
+                    return self.mk(ValOp::Bin(Op::Sub as u32), vec![a, b]);
+                }
+            }
+        }
         // Canonicalize subtraction to addition-of-negation: `a - b ≡ a + (-b)`
         // (sound for the two's-complement Int model: a.wrapping_sub(b) ==
         // a.wrapping_add(-b)). Routing it through the AC `+` normalization unifies

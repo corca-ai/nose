@@ -155,10 +155,10 @@ fn js_mixed_string_addition_keeps_grouping_ordered() {
 
     let typed_left = "function f(x: number): number { return x + 2 + 3; }";
     let typed_grouped = "function g(x: number): number { return x + (2 + 3); }";
-    assert_eq!(
+    assert_ne!(
         value_fp(&i, typed_left, Lang::TypeScript),
         value_fp(&i, typed_grouped, Lang::TypeScript),
-        "TypeScript number evidence should preserve numeric associativity recall"
+        "TypeScript number is IEEE-754 and must preserve source association"
     );
 
     let sub = "function f(x) { return x - 3; }";
