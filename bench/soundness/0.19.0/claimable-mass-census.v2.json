@@ -15367,9 +15367,9 @@
   "claimable_family_cap": 8,
   "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
   "eligibility": "default_product_admission == admitted && exact_safe && value_fingerprint.len >= 4",
-  "evidence_sha256": "51cba82f8f3bdf97a1d95564214da07f7a417d363d072e43f8beaee61a42a8b7",
+  "evidence_sha256": "9f3adff828aae7b2077263f8e85ae86e4a488c86c2476b28a8f924d58c4e0eff",
   "nose": {
-    "sha256": "322d374994d15297c95a69264978d6704159c6ad3148d29c7d01167bc8ecba34",
+    "sha256": "b2c4770f724d1e194ebe47b84eaa60fb550142a20842f35e0e0691aeb5f029f5",
     "version": "nose 0.19.0"
   },
   "prune_manifest_sha256": "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980",

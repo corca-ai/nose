@@ -2,7 +2,7 @@
   "complete": true,
   "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
   "nose": {
-    "sha256": "322d374994d15297c95a69264978d6704159c6ad3148d29c7d01167bc8ecba34",
+    "sha256": "b2c4770f724d1e194ebe47b84eaa60fb550142a20842f35e0e0691aeb5f029f5",
     "version": "nose 0.19.0"
   },
   "prune_manifest_sha256": "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980",
