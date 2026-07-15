@@ -105,7 +105,7 @@ fn extract_units_of_file(
         return Vec::new();
     }
     let n = nose_normalize::normalize(il, interner, norm_opts);
-    let block_units = block_units_for_file(&n, opts);
+    let block_units = units::block_units_for_file(&n, opts);
     units::extract(
         &n,
         interner,
@@ -203,41 +203,6 @@ fn detect_with_dump_inner(
 
 fn raw_il_is_empty_module(il: &Il) -> bool {
     il.units.is_empty() && il.kind(il.root) == NodeKind::Module && il.children(il.root).is_empty()
-}
-
-/// Keep whole function/method/class units for cross-file matches, but do not expand
-/// every nested `if`/loop into extra block units inside dependency code or very
-/// large files. The syntax channel still covers exact copy-paste spans there.
-const LARGE_FILE_BLOCK_NODE_CUTOFF: usize = 5_000;
-
-fn block_units_for_file(il: &Il, opts: &DetectOptions) -> bool {
-    opts.block_units
-        && !is_bulk_dependency_path(&il.meta.path)
-        && il.nodes.len() <= LARGE_FILE_BLOCK_NODE_CUTOFF
-}
-
-fn is_bulk_dependency_path(path: &str) -> bool {
-    let p = path.to_ascii_lowercase();
-    [
-        "vendor/",
-        "third_party/",
-        "third-party/",
-        "/deps/",
-        "node_modules/",
-        "/dist/",
-        "/build/",
-        "/external/",
-        ".min.",
-        ".pb.",
-        "_pb2",
-        ".g.dart",
-        ".d.ts",
-        "generated/",
-        "/gen/",
-        ".generated.",
-    ]
-    .iter()
-    .any(|m| p.contains(m))
 }
 
 /// Run candidate-generation → scoring → clustering over already-built `units` (the

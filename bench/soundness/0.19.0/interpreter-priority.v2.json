@@ -29,38 +29,38 @@
     {
       "blocker_category": "protocol",
       "capability_id": "protocol.field-write-proof",
-      "capped_claimable_pair_mass": 214,
-      "claimable_families": 94,
-      "claimable_pair_mass": 1433,
+      "capped_claimable_pair_mass": 147,
+      "claimable_families": 68,
+      "claimable_pair_mass": 319,
       "construct": "kind:Assign",
       "example_excluded": [
         "bench/repos/antlr4/runtime/Python3/src/antlr4/BufferedTokenStream.py:194-198@6570-6734",
         "bench/repos/antlr4/runtime/Python3/src/antlr4/BufferedTokenStream.py:32-63@1040-2653",
         "bench/repos/antlr4/runtime/Python3/src/antlr4/atn/LexerATNSimulator.py:42-46@1842-1958"
       ],
-      "excluded_units": 315,
+      "excluded_units": 190,
       "language": "python",
       "obligation_family": "oracle-capability",
-      "priority_score": 642,
+      "priority_score": 441,
       "risk_tier": "A",
       "risk_weight": 3
     },
     {
       "blocker_category": "value",
       "capability_id": "value.binding-missing",
-      "capped_claimable_pair_mass": 134,
-      "claimable_families": 38,
-      "claimable_pair_mass": 479,
+      "capped_claimable_pair_mass": 130,
+      "claimable_families": 37,
+      "claimable_pair_mass": 463,
       "construct": "kind:Var",
       "example_excluded": [
         "bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/UnbufferedCharStream.java:237-246@6786-6951",
         "bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/UnbufferedTokenStream.java:205-214@5330-5491",
         "bench/repos/antlr4/tool/src/org/antlr/v4/codegen/model/LL1Loop.java:34-37@891-1014"
       ],
-      "excluded_units": 120,
+      "excluded_units": 117,
       "language": "java",
       "obligation_family": "oracle-capability",
-      "priority_score": 402,
+      "priority_score": 390,
       "risk_tier": "A",
       "risk_weight": 3
     },
@@ -86,19 +86,19 @@
     {
       "blocker_category": "il",
       "capability_id": "il.expression-node-unsupported",
-      "capped_claimable_pair_mass": 66,
-      "claimable_families": 50,
-      "claimable_pair_mass": 66,
+      "capped_claimable_pair_mass": 63,
+      "claimable_families": 47,
+      "claimable_pair_mass": 63,
       "construct": "kind:Assign",
       "example_excluded": [
         "bench/repos/curl/lib/asyn-ares.c:352-366@10149-10451",
         "bench/repos/curl/lib/asyn-thrdd.c:767-780@21017-21318",
         "bench/repos/curl/lib/curl_ntlm_core.c:396-404@11380-11619"
       ],
-      "excluded_units": 107,
+      "excluded_units": 101,
       "language": "c",
       "obligation_family": "oracle-capability",
-      "priority_score": 198,
+      "priority_score": 189,
       "risk_tier": "A",
       "risk_weight": 3
     },
@@ -199,25 +199,6 @@
     },
     {
       "blocker_category": "il",
-      "capability_id": "il.expression-node-unsupported",
-      "capped_claimable_pair_mass": 24,
-      "claimable_families": 17,
-      "claimable_pair_mass": 26,
-      "construct": "kind:Lambda",
-      "example_excluded": [
-        "bench/repos/sqlalchemy/test/orm/test_syntax_extensions.py:109-113@3252-3415",
-        "bench/repos/sqlalchemy/test/orm/test_syntax_extensions.py:54-57@1595-1763",
-        "bench/repos/sqlalchemy/test/orm/test_syntax_extensions.py:59-62@1769-1937"
-      ],
-      "excluded_units": 37,
-      "language": "python",
-      "obligation_family": "oracle-capability",
-      "priority_score": 72,
-      "risk_tier": "A",
-      "risk_weight": 3
-    },
-    {
-      "blocker_category": "il",
       "capability_id": "il.variable-identity-missing",
       "capped_claimable_pair_mass": 23,
       "claimable_families": 14,
@@ -255,20 +236,20 @@
       "risk_weight": 3
     },
     {
-      "blocker_category": "protocol",
-      "capability_id": "protocol.exception-handler-shape",
+      "blocker_category": "il",
+      "capability_id": "il.expression-node-unsupported",
       "capped_claimable_pair_mass": 21,
-      "claimable_families": 7,
-      "claimable_pair_mass": 28,
-      "construct": "kind:Try",
+      "claimable_families": 14,
+      "claimable_pair_mass": 23,
+      "construct": "kind:Lambda",
       "example_excluded": [
-        "bench/repos/h2database/h2/src/main/org/h2/store/fs/retry/FileRetryOnInterrupt.java:76-83@2166-2346",
-        "bench/repos/h2database/h2/src/main/org/h2/util/JdbcUtils.java:221-229@7886-8107",
-        "bench/repos/h2database/h2/src/main/org/h2/util/JdbcUtils.java:236-244@8235-8457"
+        "bench/repos/sqlalchemy/test/orm/test_syntax_extensions.py:109-113@3252-3415",
+        "bench/repos/sqlalchemy/test/orm/test_syntax_extensions.py:54-57@1595-1763",
+        "bench/repos/sqlalchemy/test/orm/test_syntax_extensions.py:59-62@1769-1937"
       ],
-      "excluded_units": 12,
-      "language": "java",
-      "obligation_family": "exception-channel",
+      "excluded_units": 31,
+      "language": "python",
+      "obligation_family": "oracle-capability",
       "priority_score": 63,
       "risk_tier": "A",
       "risk_weight": 3
@@ -296,25 +277,6 @@
       "blocker_category": "value",
       "capability_id": "value.condition-truthiness",
       "capped_claimable_pair_mass": 19,
-      "claimable_families": 12,
-      "claimable_pair_mass": 26,
-      "construct": "op:And",
-      "example_excluded": [
-        "bench/repos/sqlalchemy/lib/sqlalchemy/testing/pickleable.py:107-112@1894-2059",
-        "bench/repos/sqlalchemy/lib/sqlalchemy/testing/pickleable.py:91-96@1564-1729",
-        "bench/repos/sqlalchemy/test/orm/inheritance/test_basic.py:3141-3142@94708-94799"
-      ],
-      "excluded_units": 28,
-      "language": "python",
-      "obligation_family": "oracle-capability",
-      "priority_score": 57,
-      "risk_tier": "A",
-      "risk_weight": 3
-    },
-    {
-      "blocker_category": "value",
-      "capability_id": "value.condition-truthiness",
-      "capped_claimable_pair_mass": 19,
       "claimable_families": 8,
       "claimable_pair_mass": 21,
       "construct": "op:And",
@@ -327,6 +289,25 @@
       "language": "ruby",
       "obligation_family": "oracle-capability",
       "priority_score": 57,
+      "risk_tier": "A",
+      "risk_weight": 3
+    },
+    {
+      "blocker_category": "protocol",
+      "capability_id": "protocol.exception-handler-shape",
+      "capped_claimable_pair_mass": 18,
+      "claimable_families": 7,
+      "claimable_pair_mass": 25,
+      "construct": "kind:Try",
+      "example_excluded": [
+        "bench/repos/h2database/h2/src/main/org/h2/store/fs/retry/FileRetryOnInterrupt.java:76-83@2166-2346",
+        "bench/repos/h2database/h2/src/main/org/h2/util/JdbcUtils.java:221-229@7886-8107",
+        "bench/repos/h2database/h2/src/main/org/h2/util/JdbcUtils.java:236-244@8235-8457"
+      ],
+      "excluded_units": 12,
+      "language": "java",
+      "obligation_family": "exception-channel",
+      "priority_score": 54,
       "risk_tier": "A",
       "risk_weight": 3
     },
@@ -369,19 +350,19 @@
       "risk_weight": 3
     },
     {
-      "blocker_category": "il",
-      "capability_id": "il.expression-node-unsupported",
+      "blocker_category": "value",
+      "capability_id": "value.condition-truthiness",
       "capped_claimable_pair_mass": 16,
-      "claimable_families": 14,
-      "claimable_pair_mass": 16,
-      "construct": "kind:Assign",
+      "claimable_families": 9,
+      "claimable_pair_mass": 23,
+      "construct": "op:And",
       "example_excluded": [
-        "bench/repos/guava/android/guava/src/com/google/common/collect/Iterators.java:930-940@34248-34575",
-        "bench/repos/guava/android/guava/src/com/google/common/collect/ObjectArrays.java:204-211@8358-8584",
-        "bench/repos/guava/android/guava/src/com/google/common/io/CharStreams.java:204-212@7284-7568"
+        "bench/repos/sqlalchemy/lib/sqlalchemy/testing/pickleable.py:107-112@1894-2059",
+        "bench/repos/sqlalchemy/lib/sqlalchemy/testing/pickleable.py:91-96@1564-1729",
+        "bench/repos/sympy/sympy/combinatorics/homomorphisms.py:298-303@11099-11252"
       ],
-      "excluded_units": 27,
-      "language": "java",
+      "excluded_units": 22,
+      "language": "python",
       "obligation_family": "oracle-capability",
       "priority_score": 48,
       "risk_tier": "A",
@@ -420,6 +401,25 @@
       ],
       "excluded_units": 7,
       "language": "c",
+      "obligation_family": "oracle-capability",
+      "priority_score": 45,
+      "risk_tier": "A",
+      "risk_weight": 3
+    },
+    {
+      "blocker_category": "il",
+      "capability_id": "il.expression-node-unsupported",
+      "capped_claimable_pair_mass": 15,
+      "claimable_families": 13,
+      "claimable_pair_mass": 15,
+      "construct": "kind:Assign",
+      "example_excluded": [
+        "bench/repos/guava/android/guava/src/com/google/common/collect/Iterators.java:930-940@34248-34575",
+        "bench/repos/guava/android/guava/src/com/google/common/collect/ObjectArrays.java:204-211@8358-8584",
+        "bench/repos/guava/android/guava/src/com/google/common/io/CharStreams.java:204-212@7284-7568"
+      ],
+      "excluded_units": 25,
+      "language": "java",
       "obligation_family": "oracle-capability",
       "priority_score": 45,
       "risk_tier": "A",
@@ -521,44 +521,6 @@
       "risk_weight": 3
     },
     {
-      "blocker_category": "il",
-      "capability_id": "il.expression-node-unsupported",
-      "capped_claimable_pair_mass": 11,
-      "claimable_families": 5,
-      "claimable_pair_mass": 11,
-      "construct": "kind:Lambda",
-      "example_excluded": [
-        "bench/repos/sqlalchemy/test/orm/test_syntax_extensions.py:28-32@877-1051",
-        "bench/repos/sqlalchemy/test/orm/test_syntax_extensions.py:38-42@1144-1318",
-        "bench/repos/sqlalchemy/test/orm/test_syntax_extensions.py:48-52@1413-1589"
-      ],
-      "excluded_units": 13,
-      "language": "python",
-      "obligation_family": "source-protocol-boundary",
-      "priority_score": 33,
-      "risk_tier": "A",
-      "risk_weight": 3
-    },
-    {
-      "blocker_category": "budget",
-      "capability_id": "budget.symbolic-branch-sites",
-      "capped_claimable_pair_mass": 10,
-      "claimable_families": 10,
-      "claimable_pair_mass": 10,
-      "construct": "kind:If",
-      "example_excluded": [
-        "bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/atn/PredictionMode.java:452-459@19465-19651",
-        "bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/atn/PredictionMode.java:469-476@19980-20162",
-        "bench/repos/guava/android/guava/src/com/google/common/collect/Iterators.java:899-907@33210-33437"
-      ],
-      "excluded_units": 17,
-      "language": "java",
-      "obligation_family": "oracle-capability",
-      "priority_score": 30,
-      "risk_tier": "A",
-      "risk_weight": 3
-    },
-    {
       "blocker_category": "protocol",
       "capability_id": "protocol.field-write-proof",
       "capped_claimable_pair_mass": 9,
@@ -578,18 +540,37 @@
       "risk_weight": 3
     },
     {
-      "blocker_category": "il",
-      "capability_id": "il.literal-payload-missing",
+      "blocker_category": "budget",
+      "capability_id": "budget.symbolic-branch-sites",
       "capped_claimable_pair_mass": 8,
-      "claimable_families": 3,
+      "claimable_families": 8,
       "claimable_pair_mass": 8,
-      "construct": "kind:Lit",
+      "construct": "kind:If",
       "example_excluded": [
-        "bench/repos/requests/tests/test_requests.py:2903-2909@101786-102058",
-        "bench/repos/requests/tests/test_requests.py:2936-2942@102931-103203",
-        "bench/repos/requests/tests/test_requests.py:2969-2975@104128-104400"
+        "bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/atn/PredictionMode.java:452-459@19465-19651",
+        "bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/atn/PredictionMode.java:469-476@19980-20162",
+        "bench/repos/guava/android/guava/src/com/google/common/collect/Iterators.java:899-907@33210-33437"
       ],
-      "excluded_units": 8,
+      "excluded_units": 13,
+      "language": "java",
+      "obligation_family": "oracle-capability",
+      "priority_score": 24,
+      "risk_tier": "A",
+      "risk_weight": 3
+    },
+    {
+      "blocker_category": "il",
+      "capability_id": "il.expression-node-unsupported",
+      "capped_claimable_pair_mass": 8,
+      "claimable_families": 4,
+      "claimable_pair_mass": 8,
+      "construct": "kind:Lambda",
+      "example_excluded": [
+        "bench/repos/sqlalchemy/test/orm/test_syntax_extensions.py:28-32@877-1051",
+        "bench/repos/sqlalchemy/test/orm/test_syntax_extensions.py:38-42@1144-1318",
+        "bench/repos/sqlalchemy/test/orm/test_syntax_extensions.py:48-52@1413-1589"
+      ],
+      "excluded_units": 10,
       "language": "python",
       "obligation_family": "source-protocol-boundary",
       "priority_score": 24,
@@ -843,25 +824,6 @@
     },
     {
       "blocker_category": "budget",
-      "capability_id": "budget.symbolic-branch-sites",
-      "capped_claimable_pair_mass": 4,
-      "claimable_families": 4,
-      "claimable_pair_mass": 4,
-      "construct": "kind:If",
-      "example_excluded": [
-        "bench/repos/esbuild/internal/css_ast/css_ast.go:1133-1143@31894-32133",
-        "bench/repos/esbuild/internal/css_ast/css_ast.go:218-228@7782-7991",
-        "bench/repos/esbuild/internal/css_ast/css_ast.go:461-471@13762-13978"
-      ],
-      "excluded_units": 8,
-      "language": "go",
-      "obligation_family": "oracle-capability",
-      "priority_score": 12,
-      "risk_tier": "A",
-      "risk_weight": 3
-    },
-    {
-      "blocker_category": "budget",
       "capability_id": "budget.interpreter-steps",
       "capped_claimable_pair_mass": 4,
       "claimable_families": 4,
@@ -947,6 +909,25 @@
         "bench/repos/antlr4/runtime/Go/antlr/v4/lexer_atn_simulator.go:655-660@21693-21797"
       ],
       "excluded_units": 1,
+      "language": "go",
+      "obligation_family": "oracle-capability",
+      "priority_score": 9,
+      "risk_tier": "A",
+      "risk_weight": 3
+    },
+    {
+      "blocker_category": "budget",
+      "capability_id": "budget.symbolic-branch-sites",
+      "capped_claimable_pair_mass": 3,
+      "claimable_families": 3,
+      "claimable_pair_mass": 3,
+      "construct": "kind:If",
+      "example_excluded": [
+        "bench/repos/esbuild/internal/css_ast/css_ast.go:1133-1143@31894-32133",
+        "bench/repos/esbuild/internal/css_ast/css_ast.go:218-228@7782-7991",
+        "bench/repos/esbuild/internal/css_ast/css_ast.go:461-471@13762-13978"
+      ],
+      "excluded_units": 6,
       "language": "go",
       "obligation_family": "oracle-capability",
       "priority_score": 9,
@@ -1432,23 +1413,6 @@
     },
     {
       "blocker_category": "value",
-      "capability_id": "value.binding-missing",
-      "capped_claimable_pair_mass": 1,
-      "claimable_families": 1,
-      "claimable_pair_mass": 1,
-      "construct": "kind:Var",
-      "example_excluded": [
-        "bench/repos/sqlalchemy/test/orm/test_cycles.py:1602-1605@46698-46788"
-      ],
-      "excluded_units": 1,
-      "language": "python",
-      "obligation_family": "oracle-capability",
-      "priority_score": 3,
-      "risk_tier": "A",
-      "risk_weight": 3
-    },
-    {
-      "blocker_category": "value",
       "capability_id": "value.condition-truthiness",
       "capped_claimable_pair_mass": 1,
       "claimable_families": 1,
@@ -1628,5 +1592,5 @@
     }
   ],
   "schema": "nose-interpreter-priority/v2",
-  "source_census_sha256": "59c604b8ed5e060ded0c1db13942a0014a92ec23722e7c36287e81f0ef37d0a7"
+  "source_census_sha256": "1201ad1bd5c4c2a69823c824bcee656108dc9af82b90d1e5fe815e4c5dc9422c"
 }

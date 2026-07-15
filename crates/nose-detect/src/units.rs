@@ -7,10 +7,10 @@ mod features;
 mod fragments;
 mod gates;
 mod model;
+mod product;
 mod timing;
 mod tree;
 
-use crate::exact_policy::dense_unit_admitted;
 #[cfg(test)]
 pub(crate) use crate::exact_policy::EXACT_VALUE_MIN;
 use crate::fragment::{FragmentKind, ProofFacts};
@@ -21,11 +21,20 @@ pub(crate) use fragments::exact_statement_fragment_root;
 pub(crate) use fragments::top_level_statement_fragment_context_safe;
 use fragments::{collect_extra_unit_roots, strict_exact_self_field_fragment_safe};
 pub(crate) use gates::large_test_file;
-use gates::{skip_before_value_fingerprint, PreValueFingerprintGate};
+pub use gates::ProductUnitAdmission;
+use gates::{
+    post_value_fingerprint_rejection, pre_value_fingerprint_rejection,
+    skip_before_value_fingerprint, PreValueFingerprintGate,
+};
 pub(crate) use model::abstraction_family_witness;
 pub use model::UnitFeat;
 use nose_il::{Il, Interner, NodeId, NodeKind, Payload, Span, Symbol, UnitKind, UnitOrigin};
 use nose_semantics::ValueLaw;
+pub(crate) use product::block_units_for_file;
+pub use product::{
+    default_product_unit_admission, default_product_value_fingerprint_context,
+    ProductUnitAdmissionInput,
+};
 use std::time::Instant;
 use timing::{UnitTimer, UnitTimingSample, UnitTimingSkipSample};
 use tree::collect_pre;
@@ -42,6 +51,40 @@ struct UnitRoot {
     /// `Some(_)` is the authoritative "this is an exact fragment" signal; the boolean
     /// `fragment_kind.is_some()` replaces the previous standalone `exact_fragment` flag.
     fragment_kind: Option<FragmentKind>,
+}
+
+fn collect_unit_roots(
+    il: &Il,
+    interner: &Interner,
+    block_units: bool,
+) -> (Vec<UnitRoot>, Option<Vec<Option<NodeId>>>) {
+    let mut roots: Vec<UnitRoot> = il
+        .units
+        .iter()
+        .map(|u| UnitRoot {
+            root: u.root,
+            kind: u.kind,
+            name: u.name,
+            origin: u.origin,
+            fragment_kind: None,
+        })
+        .collect();
+    let parents = if block_units {
+        let parents = build_parent_index(il);
+        collect_extra_unit_roots(il, il.root, &parents, interner, &mut roots);
+        Some(parents)
+    } else {
+        None
+    };
+    (roots, parents)
+}
+
+fn value_fingerprint_context_for_roots(
+    il: &Il,
+    interner: &Interner,
+    root_count: usize,
+) -> Option<nose_normalize::ValueFingerprintContext> {
+    (root_count > 1).then(|| nose_normalize::ValueFingerprintContext::new(il, interner))
 }
 
 #[derive(Clone, Copy)]
@@ -102,28 +145,10 @@ pub(crate) fn extract(
     // fragments stay stricter: they must satisfy the exact semantic gate before they
     // are kept, so opaque surrounding code can no longer hide a provable return/effect
     // expression without expanding the fuzzy surface.
-    let mut roots: Vec<UnitRoot> = il
-        .units
-        .iter()
-        .map(|u| UnitRoot {
-            root: u.root,
-            kind: u.kind,
-            name: u.name,
-            origin: u.origin,
-            fragment_kind: None,
-        })
-        .collect();
-    let parents = if block_units {
-        let parents = build_parent_index(il);
-        collect_extra_unit_roots(il, il.root, &parents, interner, &mut roots);
-        Some(parents)
-    } else {
-        None
-    };
+    let (roots, parents) = collect_unit_roots(il, interner, block_units);
 
     let facts = StrictFacts::collect(il, interner);
-    let value_context =
-        (roots.len() > 1).then(|| nose_normalize::ValueFingerprintContext::new(il, interner));
+    let value_context = value_fingerprint_context_for_roots(il, interner, roots.len());
     let ctx = UnitExtractCtx {
         il,
         interner,
@@ -184,24 +209,9 @@ pub fn unit_dags_at(
     if n.nodes.len() > WITNESS_MAX_FILE_NODES {
         return vec![None; wanted.len()];
     }
-    let mut roots: Vec<UnitRoot> = n
-        .units
-        .iter()
-        .map(|u| UnitRoot {
-            root: u.root,
-            kind: u.kind,
-            name: u.name,
-            origin: u.origin,
-            fragment_kind: None,
-        })
-        .collect();
-    if opts.block_units {
-        let parents = build_parent_index(&n);
-        collect_extra_unit_roots(&n, n.root, &parents, interner, &mut roots);
-    }
+    let (roots, _) = collect_unit_roots(&n, interner, opts.block_units);
     let facts = StrictFacts::collect(&n, interner);
-    let context =
-        (roots.len() > 1).then(|| nose_normalize::ValueFingerprintContext::new(&n, interner));
+    let context = value_fingerprint_context_for_roots(&n, interner, roots.len());
     let referents = nose_normalize::FileReferents::new(&n, interner);
     // Span -> root (first wins, matching extraction order).
     let mut by_lines: rustc_hash::FxHashMap<(u32, u32), NodeId> = rustc_hash::FxHashMap::default();
@@ -405,9 +415,16 @@ fn gate_unit(
     // fingerprint floor prove that the fragment itself is a usable semantic unit.
     // A declarative unit is admitted on the same `value.len() >= EXACT_VALUE_MIN` floor
     // as a dense functional one-liner (a 1-declaration rule stays below it — intended).
-    let dense_exact_unit =
-        dense_unit_admitted(kind, exact_fragment, declarative, exact_safe, value.len());
-    if (syntactically_small || exact_fragment) && !dense_exact_unit {
+    if post_value_fingerprint_rejection(
+        kind,
+        exact_fragment,
+        declarative,
+        syntactically_small,
+        exact_safe,
+        value.len(),
+    )
+    .is_some()
+    {
         skip(unit_timer, safe_ms, value_ms);
         return None;
     }

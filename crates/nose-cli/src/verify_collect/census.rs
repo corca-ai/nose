@@ -30,6 +30,7 @@ pub(super) fn push_verify_census(
         fp: fp.to_vec(),
         tags: verify_census::census_tags(tag_il, tag_root),
         exact_safe: outcome.exact_safe,
+        product_admission: outcome.product_admission,
         claimable: outcome.claimable,
         classification: outcome.classification,
         obligation_family: outcome.obligation_family,
@@ -56,6 +57,7 @@ pub(super) fn synthetic_blocker(
 pub(super) fn census_outcome(
     reason: &'static str,
     exact_safe: bool,
+    product_admission: &'static str,
     claimable: bool,
     diagnostic: Option<&ExactAdmissionRejectionDiagnostic>,
     first_blocker: Option<nose_normalize::InterpreterBlocker>,
@@ -119,6 +121,7 @@ pub(super) fn census_outcome(
     verify_census::CensusOutcome {
         reason,
         exact_safe,
+        product_admission,
         claimable,
         classification,
         obligation_family,
