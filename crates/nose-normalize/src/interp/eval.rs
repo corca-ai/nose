@@ -290,7 +290,14 @@ impl<'a> Interp<'a> {
 
 fn eval_literal(payload: Payload, javascript_number: bool) -> R<Value> {
     match payload {
-        Payload::LitInt(value) if javascript_number => Ok(Value::Float(F64(value as f64))),
+        Payload::LitInt(value)
+            if javascript_number && (value as f64) as i128 != i128::from(value) =>
+        {
+            // Keep exactly representable integers in the oracle's shared compact form, but
+            // round an inexact JS integer literal before any later ToInt32 coercion or
+            // arithmetic. The i128 round-trip avoids i64's saturating float-cast boundary.
+            Ok(Value::Float(F64(value as f64)))
+        }
         Payload::LitInt(value) => Ok(Value::Int(value)),
         Payload::LitBool(value) => Ok(Value::Bool(value)),
         Payload::LitStr(value) => Ok(Value::Str(vec![value])),

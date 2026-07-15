@@ -111,7 +111,7 @@ fn javascript_nan_is_falsy_without_changing_python() {
     let nan = Value::Float(F64(f64::NAN));
     assert_eq!(
         run_conditional(Lang::TypeScript, nan.clone()),
-        Value::Float(F64(2.0))
+        Value::Int(2)
     );
     assert_eq!(
         run_unary(Lang::TypeScript, Op::Not, nan.clone()),
@@ -129,7 +129,7 @@ fn javascript_empty_array_is_truthy_without_changing_python() {
     let empty = Value::List(Vec::new());
     assert_eq!(
         run_conditional(Lang::TypeScript, empty.clone()),
-        Value::Float(F64(1.0))
+        Value::Int(1)
     );
     assert_eq!(
         run_unary(Lang::TypeScript, Op::Not, empty.clone()),

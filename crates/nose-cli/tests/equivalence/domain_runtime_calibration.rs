@@ -197,7 +197,7 @@ fn actual_js_number(interner: &Interner) -> ([bool; 5], JsNumberEdges, bool) {
                 JS_ARRAY_TRUTHY,
                 Lang::JavaScript,
                 &[Value::List(Vec::new())],
-            ) == Value::Float(F64(1.0)),
+            ) == Value::Int(1),
             literal_assoc_bits: (
                 float_bits(returned(interner, TS_LITERAL_LEFT, Lang::TypeScript, &[])),
                 float_bits(returned(interner, TS_LITERAL_RIGHT, Lang::TypeScript, &[])),
@@ -225,13 +225,13 @@ fn actual_js_number(interner: &Interner) -> ([bool; 5], JsNumberEdges, bool) {
             )),
             zero_div_zero_nan: is_nan(returned(interner, TS_ZERO_DIV_ZERO, Lang::TypeScript, &[])),
             nan_truthy: returned(interner, TS_NAN_TRUTHY, Lang::TypeScript, &nan_arg)
-                == Value::Float(F64(1.0)),
+                == Value::Int(1),
             nan_not_equal_zero: returned(
                 interner,
                 TS_NAN_NOT_EQUAL_ZERO,
                 Lang::TypeScript,
                 &nan_arg,
-            ) == Value::Float(F64(1.0)),
+            ) == Value::Int(1),
             shift_left: shift(TS_SHIFT_LEFT, 1.0),
             shift_right: shift(TS_SHIFT_RIGHT, 1.0),
             shift_masked: shift(TS_SHIFT_LEFT, 33.0),
