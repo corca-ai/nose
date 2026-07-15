@@ -34,6 +34,7 @@
         "division_pair_right": "NaN",
         "empty_array_not": false,
         "empty_array_truthy": true,
+        "exact_integer_equivalence": true,
         "factor_distribution": {
           "left_nan": true,
           "right": "Infinity"

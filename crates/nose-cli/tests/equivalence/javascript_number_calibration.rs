@@ -10,6 +10,10 @@ const LARGE_BITAND: &str = "function f() { return 9223372036854775807 & 1; }";
 const LARGE_BITNOT: &str = "function f() { return ~9223372036854775807; }";
 const NESTED_BITWISE: &str = "function f() { return (\"1\" - 0) & 1; }";
 const NESTED_POW: &str = "function f() { return 2 ** (\"a\" - \"b\"); }";
+const EXACT_INTEGER_LEFT: &str =
+    "function f(a:number,b:number,c:number):number[] { return [-(-1),a,b,c]; }";
+const EXACT_INTEGER_RIGHT: &str =
+    "function f(a:number,b:number,c:number):number[] { return [1,a,b,c]; }";
 const FACTOR_LEFT: &str = "function f(x:number,y:number,k:number):number { return x*k + y*k; }";
 const FACTOR_RIGHT: &str = "function f(x:number,y:number,k:number):number { return (x+y)*k; }";
 const REDUCE_LEFT: &str = "function f(xs:number[],a:number,b:number):number { let total=0; for(const x of xs){ total += (x+a)+b; } return total; }";
@@ -51,8 +55,30 @@ fn integer(value: Value) -> i64 {
 fn float_bits(value: Value) -> String {
     match value {
         Value::Float(F64(value)) => format!("{:016x}", value.to_bits()),
-        other => panic!("expected calibrated float, got {other:?}"),
+        Value::Int(value) => format!("{:016x}", (value as f64).to_bits()),
+        other => panic!("expected calibrated Number, got {other:?}"),
     }
+}
+
+fn assert_exact_integer_equivalence(interner: &Interner, edges: &serde_json::Value) {
+    let exact_left = value_fp(interner, EXACT_INTEGER_LEFT, Lang::TypeScript);
+    let exact_right = value_fp(interner, EXACT_INTEGER_RIGHT, Lang::TypeScript);
+    assert_eq!(exact_left, exact_right);
+    assert!(
+        exact_left.len() >= 4,
+        "regression pair must remain above the product exact-value floor"
+    );
+    let exact_args = [
+        Value::Float(F64(2.0)),
+        Value::Float(F64(3.5)),
+        Value::Float(F64(-4.0)),
+    ];
+    assert_eq!(
+        behavior(interner, EXACT_INTEGER_LEFT, &exact_args),
+        behavior(interner, EXACT_INTEGER_RIGHT, &exact_args),
+        "equivalent JavaScript Numbers must not manufacture a hard false-merge"
+    );
+    assert_eq!(edges["exact_integer_equivalence"].as_bool(), Some(true));
 }
 
 #[test]
@@ -79,6 +105,8 @@ fn production_javascript_number_boundaries_match_independent_node_runtime() {
     assert_eq!(edges["nested_pow_nan"].as_bool(), Some(true));
     assert!(behavior(&interner, NESTED_BITWISE, &[]).is_none());
     assert!(behavior(&interner, NESTED_POW, &[]).is_none());
+
+    assert_exact_integer_equivalence(&interner, edges);
 
     assert_ne!(
         value_fp(&interner, FACTOR_LEFT, Lang::TypeScript),

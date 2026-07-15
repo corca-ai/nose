@@ -110,7 +110,8 @@ fn returned(interner: &Interner, source: &str, lang: Lang, args: &[Value]) -> Va
 fn float_bits(value: Value) -> String {
     match value {
         Value::Float(F64(value)) => format!("{:016x}", value.to_bits()),
-        other => panic!("expected calibrated float, got {other:?}"),
+        Value::Int(value) => format!("{:016x}", (value as f64).to_bits()),
+        other => panic!("expected calibrated Number, got {other:?}"),
     }
 }
 

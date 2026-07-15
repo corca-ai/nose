@@ -39,15 +39,34 @@ pub(super) fn js_to_number(value: &Value) -> Option<f64> {
     }
 }
 
+/// Keep an exact JavaScript Number in the oracle's compact integer representation when the
+/// operation started from compact operands. A Float operand keeps the IEEE-754 lane even when
+/// this particular result happens to be integral, so later operations still witness Number
+/// grouping. Negative zero is never compacted because falsification observes its sign.
+pub(super) fn js_number_result(value: f64, preserve_float: bool) -> Value {
+    if !preserve_float && value.is_finite() && !(value == 0.0 && value.is_sign_negative()) {
+        let integer = value as i128;
+        if value.fract() == 0.0 {
+            if let Ok(integer) = i64::try_from(integer) {
+                if integer as f64 == value {
+                    return Value::Int(integer);
+                }
+            }
+        }
+    }
+    Value::Float(F64(value))
+}
+
 pub(super) fn js_number_bin(op: Op, a: &Value, b: &Value) -> Option<Value> {
-    use Value::{Bool, Float};
+    use Value::Bool;
     let (x, y) = (js_to_number(a)?, js_to_number(b)?);
+    let preserve_float = matches!(a, Value::Float(_)) || matches!(b, Value::Float(_));
     Some(match op {
-        Op::Add => Float(F64(x + y)),
-        Op::Sub => Float(F64(x - y)),
-        Op::Mul => Float(F64(x * y)),
-        Op::Div | Op::TrueDiv => Float(F64(x / y)),
-        Op::Mod => Float(F64(x % y)),
+        Op::Add => js_number_result(x + y, preserve_float),
+        Op::Sub => js_number_result(x - y, preserve_float),
+        Op::Mul => js_number_result(x * y, preserve_float),
+        Op::Div | Op::TrueDiv => js_number_result(x / y, preserve_float),
+        Op::Mod => js_number_result(x % y, preserve_float),
         Op::Eq => Bool(x == y),
         Op::Ne => Bool(x != y),
         Op::Lt => Bool(x < y),

@@ -107,6 +107,34 @@ fn javascript_number_uses_ieee_zero_division_and_remainder() {
 }
 
 #[test]
+fn javascript_exact_number_results_use_one_compact_representation() {
+    assert_eq!(
+        run_unary(Lang::TypeScript, Op::Neg, Value::Int(-1)),
+        Value::Int(1),
+        "double-negation's outer operation must agree with the exact literal `1`"
+    );
+    assert_eq!(
+        js_number_bin(Op::Add, &Value::Int(1), &Value::Int(1)),
+        Some(Value::Int(2)),
+        "literal-derived exact arithmetic must remain compact"
+    );
+    assert_eq!(
+        js_number_bin(Op::Add, &Value::Float(F64(1.0)), &Value::Int(1)),
+        Some(Value::Float(F64(2.0))),
+        "a Float operand keeps the internal IEEE-754 lane until observation"
+    );
+    assert_eq!(
+        js_number_result(9_223_372_036_854_775_808.0, false),
+        Value::Float(F64(9_223_372_036_854_775_808.0)),
+        "the first value above i64::MAX must not saturate into a compact integer"
+    );
+    assert!(matches!(
+        run_unary(Lang::TypeScript, Op::Neg, Value::Int(0)),
+        Value::Float(F64(value)) if value.to_bits() == (-0.0f64).to_bits()
+    ));
+}
+
+#[test]
 fn javascript_nan_is_falsy_without_changing_python() {
     let nan = Value::Float(F64(f64::NAN));
     assert_eq!(

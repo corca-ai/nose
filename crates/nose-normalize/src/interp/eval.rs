@@ -126,13 +126,15 @@ impl<'a> Interp<'a> {
             && matches!(op, Op::Neg | Op::Pos)
             && !matches!(value, Value::Err | Value::Sym(_))
         {
+            let preserve_float = matches!(value, Value::Float(_));
             let number =
                 js_to_number(&value).ok_or_else(|| Unsupported::value("value.js-to-number"))?;
-            return Ok(Value::Float(F64(if matches!(op, Op::Neg) {
+            let result = if matches!(op, Op::Neg) {
                 -number
             } else {
                 number
-            })));
+            };
+            return Ok(js_number_result(result, preserve_float));
         }
         // JS `~x` is `~ToInt32(x)`. Preserve an operand error/symbol, but fail closed when
         // the concrete coercion is not represented by the oracle.

@@ -251,7 +251,10 @@ first; promote to the full model only if the priced recall loss justifies it.
   declared return type is no longer visible at a value-graph leaf. The IL and value-graph layers
   therefore hold JS-family `+`/`*` association by source language and operator, not only by a
   recovered float leaf; subtraction likewise remains a literal `Sub`. This prevents i64 constant
-  folding and leaf flattening from erasing observable Number grouping.
+  folding and leaf flattening from erasing observable Number grouping. Exact operations whose
+  inputs are already in the shared compact integer form keep exact integer results in that same
+  form; a Float input keeps the IEEE-754 lane. Thus `1` and `-(-1)` compare alike without losing
+  NaN, infinity, fractional, signed-negative-zero, or grouping witnesses.
 - **Cost:** floor + syntactic + float-typed-param + fully-untyped non-associativity all paid
   (0 recall on the full pinned corpus). The remaining float work is breadth, not a gap: a
   full Int↔Float coercion lattice (mixed-type comparison, float literals — `LitFloat` stores

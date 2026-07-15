@@ -248,6 +248,11 @@ set -euo pipefail
 # interpreter/value-graph whole-impl span-noise representatives without changing their members.
 # The same changes make the pre-existing int/float dispatcher family cross value 40 again. No new
 # extractable family is accepted; see docs/dogfooding-history.md.
+# 29 -> 27 (#858 final Number review): shared `this.field` IL construction removes the accepted
+# field-state test fixture family `90809d0e27461ac4`. The numeric int/float dispatcher also falls
+# below the threshold, while the two oracle/value-graph whole-impl representatives churn without
+# changing members. The stale IDs are removed and the ratchet tightens; see
+# docs/dogfooding-history.md.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 
