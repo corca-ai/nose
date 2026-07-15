@@ -126,7 +126,12 @@ impl<'a> Interp<'a> {
             && matches!(op, Op::Neg | Op::Pos)
             && !matches!(value, Value::Err | Value::Sym(_))
         {
-            let preserve_float = matches!(value, Value::Float(_));
+            let preserve_float = match &value {
+                Value::Float(F64(value)) => {
+                    !(matches!(op, Op::Neg) && *value == 0.0 && value.is_sign_negative())
+                }
+                _ => false,
+            };
             let number =
                 js_to_number(&value).ok_or_else(|| Unsupported::value("value.js-to-number"))?;
             let result = if matches!(op, Op::Neg) {

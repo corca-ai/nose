@@ -1248,7 +1248,7 @@ stale ID is removed without accepting a replacement.
 
 The remaining two deltas are representative churn for the same independent
 oracle/value-graph implementation pairs reviewed in #857:
-`20d66ad9ef0c1f42` becomes `00cbc302665e1f2e` for `interp/eval.rs` and
+`20d66ad9ef0c1f42` becomes `1a27aef1c8aa5d25` for `interp/eval.rs` and
 `value_graph/eval/core.rs`, while `30ae71e90215f0cc` becomes
 `0028e1c168824352` for `interp/exec.rs` and
 `value_graph/control/statements.rs`. Their members and rationale are unchanged;

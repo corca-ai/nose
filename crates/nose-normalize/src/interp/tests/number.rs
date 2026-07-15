@@ -132,6 +132,28 @@ fn javascript_exact_number_results_use_one_compact_representation() {
         run_unary(Lang::TypeScript, Op::Neg, Value::Int(0)),
         Value::Float(F64(value)) if value.to_bits() == (-0.0f64).to_bits()
     ));
+    let negative_zero = run_unary(Lang::TypeScript, Op::Neg, Value::Int(0));
+    assert_eq!(
+        run_unary(Lang::TypeScript, Op::Neg, negative_zero),
+        Value::Int(0),
+        "double-negated literal zero must agree with compact positive zero"
+    );
+
+    let from_positive_zero = run_unary(
+        Lang::TypeScript,
+        Op::Neg,
+        run_unary(Lang::TypeScript, Op::Neg, Value::Float(F64(0.0))),
+    );
+    assert_eq!(from_positive_zero, Value::Int(0));
+    let from_negative_zero = run_unary(
+        Lang::TypeScript,
+        Op::Neg,
+        run_unary(Lang::TypeScript, Op::Neg, Value::Float(F64(-0.0))),
+    );
+    assert!(matches!(
+        from_negative_zero,
+        Value::Float(F64(value)) if value.to_bits() == (-0.0f64).to_bits()
+    ));
 }
 
 #[test]

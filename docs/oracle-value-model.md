@@ -254,7 +254,9 @@ first; promote to the full model only if the priced recall loss justifies it.
   folding and leaf flattening from erasing observable Number grouping. Exact operations whose
   inputs are already in the shared compact integer form keep exact integer results in that same
   form; a Float input keeps the IEEE-754 lane. Thus `1` and `-(-1)` compare alike without losing
-  NaN, infinity, fractional, signed-negative-zero, or grouping witnesses.
+  NaN, infinity, fractional, signed-negative-zero, or grouping witnesses. Function boundaries
+  compact positive-zero inputs while retaining negative zero, and negating negative zero produces
+  the compact positive form; this makes both `-(-0) ≡ 0` and signed-zero falsification hold.
 - **Cost:** floor + syntactic + float-typed-param + fully-untyped non-associativity all paid
   (0 recall on the full pinned corpus). The remaining float work is breadth, not a gap: a
   full Int↔Float coercion lattice (mixed-type comparison, float literals — `LitFloat` stores

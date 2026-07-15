@@ -84,6 +84,7 @@ console.log(JSON.stringify({
     empty_array_not: ![],
     empty_array_truthy: Boolean([]),
     exact_integer_equivalence: JSON.stringify([-(-1), 2, 3.5, -4]) === JSON.stringify([1, 2, 3.5, -4]),
+    exact_zero_equivalence: Object.is(-(-0), 0),
     factor_distribution: {left_nan: Number.isNaN(factorLeft), right: String(factorRight)},
     large_literal_bitwise: {
       shift_right: 9223372036854775807 >> 0,

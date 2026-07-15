@@ -14,6 +14,10 @@ const EXACT_INTEGER_LEFT: &str =
     "function f(a:number,b:number,c:number):number[] { return [-(-1),a,b,c]; }";
 const EXACT_INTEGER_RIGHT: &str =
     "function f(a:number,b:number,c:number):number[] { return [1,a,b,c]; }";
+const EXACT_ZERO_LEFT: &str =
+    "function f(a:number,b:number,c:number):number[] { return [-(-0),a,b,c]; }";
+const EXACT_ZERO_RIGHT: &str =
+    "function f(a:number,b:number,c:number):number[] { return [0,a,b,c]; }";
 const FACTOR_LEFT: &str = "function f(x:number,y:number,k:number):number { return x*k + y*k; }";
 const FACTOR_RIGHT: &str = "function f(x:number,y:number,k:number):number { return (x+y)*k; }";
 const REDUCE_LEFT: &str = "function f(xs:number[],a:number,b:number):number { let total=0; for(const x of xs){ total += (x+a)+b; } return total; }";
@@ -79,6 +83,17 @@ fn assert_exact_integer_equivalence(interner: &Interner, edges: &serde_json::Val
         "equivalent JavaScript Numbers must not manufacture a hard false-merge"
     );
     assert_eq!(edges["exact_integer_equivalence"].as_bool(), Some(true));
+
+    let zero_left = value_fp(interner, EXACT_ZERO_LEFT, Lang::TypeScript);
+    let zero_right = value_fp(interner, EXACT_ZERO_RIGHT, Lang::TypeScript);
+    assert_eq!(zero_left, zero_right);
+    assert!(zero_left.len() >= 4);
+    assert_eq!(
+        behavior(interner, EXACT_ZERO_LEFT, &exact_args),
+        behavior(interner, EXACT_ZERO_RIGHT, &exact_args),
+        "double-negated positive zero must not manufacture a hard false-merge"
+    );
+    assert_eq!(edges["exact_zero_equivalence"].as_bool(), Some(true));
 }
 
 #[test]

@@ -235,9 +235,12 @@ impl<'a> Interp<'a> {
             .ok_or_else(|| Unsupported::protocol("protocol.call-argument-binding"))?;
         let mut fenv: FxHashMap<u32, Value> = FxHashMap::default();
         for (cid, value_node) in plan {
-            let value = self.eval(value_node, env)?;
+            let mut value = self.eval(value_node, env)?;
             if matches!(value, Value::Err) {
                 return Ok(Value::Err);
+            }
+            if self.bitwise_result_is_int32() {
+                value = canonicalize_javascript_input(value);
             }
             fenv.insert(cid, value);
         }

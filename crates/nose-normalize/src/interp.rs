@@ -39,7 +39,10 @@ mod ops;
 mod value;
 use ops::*;
 pub use value::{behavior_equiv, behavior_has_sym, Behavior, Value, F64};
-use value::{coerce_to_declared_domain, contains_sym, hashed, vhash, FieldKey, FieldPlace};
+use value::{
+    canonicalize_javascript_input, coerce_to_declared_domain, contains_sym, hashed, vhash,
+    FieldKey, FieldPlace,
+};
 
 /// Stable structural signature of an IL subtree: pre-order over (kind, payload,
 /// child count), with `Name` symbols resolved through the interner so the signature
@@ -337,6 +340,11 @@ fn run_unit_once(
                 let v = match nose_semantics::domain_evidence_for_param(il, k) {
                     Some(d) => coerce_to_declared_domain(raw, d),
                     None => raw,
+                };
+                let v = if it.bitwise_result_is_int32() {
+                    canonicalize_javascript_input(v)
+                } else {
+                    v
                 };
                 env.insert(c, v);
                 it.params.insert(c);
