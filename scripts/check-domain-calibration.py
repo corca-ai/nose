@@ -25,11 +25,16 @@ def bits(value):
 
 left = (1e16 + -1e16) + 1.0
 right = 1e16 + (-1e16 + 1.0)
+derived_left = (1e16 * 1.0 + -1e16 * 1.0) + 1.0 * 1.0
+derived_right = 1e16 * 1.0 + (-1e16 * 1.0 + 1.0 * 1.0)
 first = [1, 2]
 second = [1, 2]
 first[0] = 9
 second[1] = 9
 print(json.dumps({
+    "derived_float_associativity": {
+        "left_bits": bits(derived_left), "right_bits": bits(derived_right)
+    },
     "float_associativity": {"left_bits": bits(left), "right_bits": bits(right)},
     "integer_width": {"bitand": str(0xF00000003 & 0xF00000005)},
     "mutation_coordinate": {"index_0": first, "index_1": second},
@@ -51,14 +56,30 @@ function bits(value) {
 }
 const left = (1e16 + -1e16) + 1.0;
 const right = 1e16 + (-1e16 + 1.0);
+const derivedLeft = (1e16 * 1.0 + -1e16 * 1.0) + 1.0 * 1.0;
+const derivedRight = 1e16 * 1.0 + (-1e16 * 1.0 + 1.0 * 1.0);
 const first = [1, 2];
 const second = [1, 2];
 first[0] = 9;
 second[1] = 9;
 console.log(JSON.stringify({
+  derived_float_associativity: {left_bits: bits(derivedLeft), right_bits: bits(derivedRight)},
   float_associativity: {left_bits: bits(left), right_bits: bits(right)},
   integer_width: {bitand: String(0xF00000003 & 0xF00000005)},
   mutation_coordinate: {index_0: first, index_1: second},
+  number_edges: {
+    division_pair_left: String((1 / 0) + 1),
+    division_pair_right: String((0 / 0) + (1 * 0)),
+    empty_array_truthy: Boolean([]),
+    positive_div_zero: String(1 / 0),
+    negative_div_zero: String(-1 / 0),
+    zero_div_zero_nan: Number.isNaN(0 / 0),
+    nan_truthy: Boolean(NaN),
+    nan_not_equal_zero: NaN !== 0,
+    shift_left: -8 << 1,
+    shift_right: -8 >> 1,
+    shift_masked: -8 << 33,
+  },
   signed_zero_nan: {negative_zero: Object.is(-0, -0) && !Object.is(-0, 0), nan: Number.isNaN(NaN)},
   string_order: {forward: "a" + "b", reverse: "b" + "a"},
 }));
@@ -96,7 +117,9 @@ def observe() -> dict[str, Any]:
         "schema": "nose.source_runtime_calibration.v1",
         "issue": 858,
         "required_oracle_distinctions": [
+            "derived_float_associativity",
             "float_associativity",
+            "javascript_number_edges",
             "javascript_int32_width",
             "mutation_coordinate",
             "string_order",

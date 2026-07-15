@@ -464,7 +464,9 @@ fn source_runtime_calibration_names_every_required_oracle_distinction() {
     assert_eq!(
         artifact["required_oracle_distinctions"],
         serde_json::json!([
+            "derived_float_associativity",
             "float_associativity",
+            "javascript_number_edges",
             "javascript_int32_width",
             "mutation_coordinate",
             "string_order"

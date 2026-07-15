@@ -22,6 +22,56 @@ pub(super) fn truthy(v: &Value) -> Option<bool> {
     })
 }
 
+/// JavaScript/TypeScript numeric binary semantics for values already known to be numbers.
+///
+/// The general float oracle deliberately uses a cross-language convention for exceptional
+/// arithmetic. That convention is not strong enough once TypeScript `number` participates in
+/// the hard soundness lane: JavaScript division by zero produces infinities/NaN, and remainder
+/// by zero produces NaN. Keep those source semantics behind the same JS-family gate as the
+/// value graph rather than changing Python's distinct truthiness and error behavior.
+pub(super) fn js_number_bin(op: Op, a: &Value, b: &Value) -> Option<Value> {
+    use Value::{Bool, Float, Int};
+    let number = |value: &Value| match value {
+        Float(value) => Some(value.0),
+        Int(value) => Some(*value as f64),
+        _ => None,
+    };
+    let (x, y) = (number(a)?, number(b)?);
+    Some(match op {
+        Op::Add => Float(F64(x + y)),
+        Op::Sub => Float(F64(x - y)),
+        Op::Mul => Float(F64(x * y)),
+        Op::Div | Op::TrueDiv => Float(F64(x / y)),
+        Op::Mod => Float(F64(x % y)),
+        Op::Eq => Bool(x == y),
+        Op::Ne => Bool(x != y),
+        Op::Lt => Bool(x < y),
+        Op::Le => Bool(x <= y),
+        Op::Gt => Bool(x > y),
+        Op::Ge => Bool(x >= y),
+        // JS exponentiation has additional edge rules beyond Rust `powf` (notably infinities
+        // around |base| == 1). Fail closed until those rules have independent calibration.
+        _ => return None,
+    })
+}
+
+/// JavaScript bitwise execution after ToInt32/ToUint32 coercion.
+pub(super) fn js_bitwise_bin(op: Op, a: Value, b: Value) -> Value {
+    let (Value::Int(x), Value::Int(y)) = (to_int32(a), to_int32(b)) else {
+        return Value::Err;
+    };
+    match op {
+        Op::BitAnd => Value::Int(x & y),
+        Op::BitOr => Value::Int(x | y),
+        Op::BitXor => Value::Int(x ^ y),
+        // Shift counts use ToUint32(rhs) & 31. The low five bits are identical after
+        // ToInt32, while the lhs and result are signed int32 values.
+        Op::Shl => Value::Int((x as i32).wrapping_shl((y as u32) & 31) as i64),
+        Op::Shr => Value::Int(((x as i32) >> ((y as u32) & 31)) as i64),
+        _ => Value::Err,
+    }
+}
+
 pub(super) fn fold_ints(v: Option<&Value>, init: i64, f: impl Fn(i64, i64) -> i64) -> Value {
     match v {
         Some(Value::List(xs)) => {

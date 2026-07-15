@@ -2,6 +2,10 @@
   "issue": 858,
   "observations": {
     "node": {
+      "derived_float_associativity": {
+        "left_bits": "3ff0000000000000",
+        "right_bits": "0000000000000000"
+      },
       "float_associativity": {
         "left_bits": "3ff0000000000000",
         "right_bits": "0000000000000000"
@@ -19,6 +23,19 @@
           9
         ]
       },
+      "number_edges": {
+        "division_pair_left": "Infinity",
+        "division_pair_right": "NaN",
+        "empty_array_truthy": true,
+        "nan_not_equal_zero": true,
+        "nan_truthy": false,
+        "negative_div_zero": "-Infinity",
+        "positive_div_zero": "Infinity",
+        "shift_left": -16,
+        "shift_masked": -16,
+        "shift_right": -4,
+        "zero_div_zero_nan": true
+      },
       "signed_zero_nan": {
         "nan": true,
         "negative_zero": true
@@ -29,6 +46,10 @@
       }
     },
     "python": {
+      "derived_float_associativity": {
+        "left_bits": "3ff0000000000000",
+        "right_bits": "0000000000000000"
+      },
       "float_associativity": {
         "left_bits": "3ff0000000000000",
         "right_bits": "0000000000000000"
@@ -57,7 +78,9 @@
     }
   },
   "required_oracle_distinctions": [
+    "derived_float_associativity",
     "float_associativity",
+    "javascript_number_edges",
     "javascript_int32_width",
     "mutation_coordinate",
     "string_order"

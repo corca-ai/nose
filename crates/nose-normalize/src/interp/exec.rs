@@ -103,7 +103,8 @@ impl<'a> Interp<'a> {
                     if matches!(c, Value::Err) {
                         return Ok(Flow::Err); // type error in the loop test → Err behavior
                     }
-                    if !truthy(&c)
+                    if !self
+                        .value_truthy(&c)
                         .ok_or_else(|| Unsupported::value("value.loop-condition-truthiness"))?
                     {
                         break;
@@ -153,7 +154,8 @@ impl<'a> Interp<'a> {
                     if matches!(c, Value::Err) {
                         return Ok(Flow::Err);
                     }
-                    if !truthy(&c)
+                    if !self
+                        .value_truthy(&c)
                         .ok_or_else(|| Unsupported::value("value.loop-condition-truthiness"))?
                     {
                         break;

@@ -161,6 +161,22 @@ fn js_mixed_string_addition_keeps_grouping_ordered() {
         "TypeScript number is IEEE-754 and must preserve source association"
     );
 
+    let derived_left = "function f(a:number,b:number,c:number,d:number,e:number,f:number): number { return (a*b + c*d) + e*f; }";
+    let derived_right = "function g(a:number,b:number,c:number,d:number,e:number,f:number): number { return a*b + (c*d + e*f); }";
+    assert_ne!(
+        value_fp(&i, derived_left, Lang::TypeScript),
+        value_fp(&i, derived_right, Lang::TypeScript),
+        "float possibility must propagate through derived Number expressions"
+    );
+
+    let bound_left = "function f(a:number,b:number,c:number,d:number,e:number,f:number): number { const x = a*b; return ((x + c*d) + e*f) + x; }";
+    let bound_right = "function g(a:number,b:number,c:number,d:number,e:number,f:number): number { const x = a*b; return (x + (c*d + e*f)) + x; }";
+    assert_ne!(
+        value_fp(&i, bound_left, Lang::TypeScript),
+        value_fp(&i, bound_right, Lang::TypeScript),
+        "float possibility must survive a multi-use local binding"
+    );
+
     let sub = "function f(x) { return x - 3; }";
     let add_neg = "function g(x) { return x + (-3); }";
     assert_ne!(

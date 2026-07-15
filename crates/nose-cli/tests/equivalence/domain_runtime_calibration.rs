@@ -13,10 +13,37 @@ const TS_FLOAT_LEFT: &str =
     "function left(a: number, b: number, c: number): number { return (a + b) + c; }\n";
 const TS_FLOAT_RIGHT: &str =
     "function right(a: number, b: number, c: number): number { return a + (b + c); }\n";
+const TS_DERIVED_LEFT: &str = "function left(a:number,b:number,c:number,d:number,e:number,f:number): number { return (a*b + c*d) + e*f; }\n";
+const TS_DERIVED_RIGHT: &str = "function right(a:number,b:number,c:number,d:number,e:number,f:number): number { return a*b + (c*d + e*f); }\n";
+const TS_DIV_PAIR_LEFT: &str = "function left(x: number): number { return (x / 0) + 1; }\n";
+const TS_DIV_PAIR_RIGHT: &str = "function right(x: number): number { return (0 / 0) + (x * 0); }\n";
+const TS_POSITIVE_DIV_ZERO: &str = "function f(): number { return 1 / 0; }\n";
+const TS_NEGATIVE_DIV_ZERO: &str = "function f(): number { return -1 / 0; }\n";
+const TS_ZERO_DIV_ZERO: &str = "function f(): number { return 0 / 0; }\n";
+const TS_NAN_TRUTHY: &str = "function f(x: number): number { return x ? 1 : 2; }\n";
+const TS_NAN_NOT_EQUAL_ZERO: &str = "function f(x: number): number { return x !== 0 ? 1 : 2; }\n";
+const JS_ARRAY_TRUTHY: &str = "function f(x) { return x ? 1 : 2; }\n";
+const TS_SHIFT_LEFT: &str = "function f(a: number, b: number): number { return a << b; }\n";
+const TS_SHIFT_RIGHT: &str = "function f(a: number, b: number): number { return a >> b; }\n";
 const PYTHON_BITAND: &str = "def bitand(a, b):\n    return a & b\n";
 const JS_BITAND: &str = "function bitand(a, b) { return a & b; }\n";
 const MUTATE_ZERO: &str = "def mutate(a, value):\n    a[0] = value\n    return a\n";
 const MUTATE_ONE: &str = "def mutate(a, value):\n    a[1] = value\n    return a\n";
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct JsNumberEdges {
+    division_pair_left: String,
+    division_pair_right: String,
+    empty_array_truthy: bool,
+    positive_div_zero: String,
+    negative_div_zero: String,
+    zero_div_zero_nan: bool,
+    nan_truthy: bool,
+    nan_not_equal_zero: bool,
+    shift_left: i64,
+    shift_right: i64,
+    shift_masked: i64,
+}
 
 #[derive(Clone)]
 struct CalibrationReceipt {
@@ -24,6 +51,10 @@ struct CalibrationReceipt {
     string_interpreter: (Value, Value),
     float_frontend_distinct: (bool, bool),
     float_interpreter_bits: ((String, String), (String, String)),
+    derived_float_frontend_distinct: bool,
+    derived_float_interpreter_bits: (String, String),
+    js_number_frontend_distinct: (bool, bool),
+    js_number_interpreter: JsNumberEdges,
     integer_frontend_distinct: bool,
     integer_interpreter: (String, String),
     mutation_frontend_distinct: bool,
@@ -64,6 +95,85 @@ fn integer_string(value: Value) -> String {
     }
 }
 
+fn float_string(value: Value) -> String {
+    match value {
+        Value::Float(F64(value)) if value == f64::INFINITY => "Infinity".to_string(),
+        Value::Float(F64(value)) if value == f64::NEG_INFINITY => "-Infinity".to_string(),
+        Value::Float(F64(value)) => value.to_string(),
+        other => panic!("expected calibrated float, got {other:?}"),
+    }
+}
+
+fn is_nan(value: Value) -> bool {
+    matches!(value, Value::Float(F64(value)) if value.is_nan())
+}
+
+fn actual_js_number(interner: &Interner) -> ((bool, bool), JsNumberEdges) {
+    let shift = |source: &str, count: f64| {
+        integer_string(returned(
+            interner,
+            source,
+            Lang::TypeScript,
+            &[Value::Float(F64(-8.0)), Value::Float(F64(count))],
+        ))
+        .parse()
+        .expect("shift integer")
+    };
+    let nan_arg = [Value::Float(F64(f64::NAN))];
+    (
+        (
+            value_fp(interner, TS_DIV_PAIR_LEFT, Lang::TypeScript)
+                != value_fp(interner, TS_DIV_PAIR_RIGHT, Lang::TypeScript),
+            value_fp(interner, TS_SHIFT_LEFT, Lang::TypeScript)
+                != value_fp(interner, TS_SHIFT_RIGHT, Lang::TypeScript),
+        ),
+        JsNumberEdges {
+            division_pair_left: float_string(returned(
+                interner,
+                TS_DIV_PAIR_LEFT,
+                Lang::TypeScript,
+                &[Value::Float(F64(1.0))],
+            )),
+            division_pair_right: float_string(returned(
+                interner,
+                TS_DIV_PAIR_RIGHT,
+                Lang::TypeScript,
+                &[Value::Float(F64(1.0))],
+            )),
+            empty_array_truthy: returned(
+                interner,
+                JS_ARRAY_TRUTHY,
+                Lang::JavaScript,
+                &[Value::List(Vec::new())],
+            ) == Value::Int(1),
+            positive_div_zero: float_string(returned(
+                interner,
+                TS_POSITIVE_DIV_ZERO,
+                Lang::TypeScript,
+                &[],
+            )),
+            negative_div_zero: float_string(returned(
+                interner,
+                TS_NEGATIVE_DIV_ZERO,
+                Lang::TypeScript,
+                &[],
+            )),
+            zero_div_zero_nan: is_nan(returned(interner, TS_ZERO_DIV_ZERO, Lang::TypeScript, &[])),
+            nan_truthy: returned(interner, TS_NAN_TRUTHY, Lang::TypeScript, &nan_arg)
+                == Value::Int(1),
+            nan_not_equal_zero: returned(
+                interner,
+                TS_NAN_NOT_EQUAL_ZERO,
+                Lang::TypeScript,
+                &nan_arg,
+            ) == Value::Int(1),
+            shift_left: shift(TS_SHIFT_LEFT, 1.0),
+            shift_right: shift(TS_SHIFT_RIGHT, 1.0),
+            shift_masked: shift(TS_SHIFT_LEFT, 33.0),
+        },
+    )
+}
+
 fn actual_receipt() -> CalibrationReceipt {
     let interner = Interner::new();
     let string_args = [Value::Str(vec![0x5eed_0001]), Value::Str(vec![0x5eed_0002])];
@@ -73,10 +183,19 @@ fn actual_receipt() -> CalibrationReceipt {
         Value::Float(F64(1.0)),
     ];
     let integer_args = [Value::Int(0xF_0000_0003), Value::Int(0xF_0000_0005)];
+    let derived_args = [
+        Value::Float(F64(1e16)),
+        Value::Float(F64(1.0)),
+        Value::Float(F64(-1e16)),
+        Value::Float(F64(1.0)),
+        Value::Float(F64(1.0)),
+        Value::Float(F64(1.0)),
+    ];
     let mutation_args = [
         Value::List(vec![Value::Int(1), Value::Int(2)]),
         Value::Int(9),
     ];
+    let (js_number_frontend_distinct, js_number_interpreter) = actual_js_number(&interner);
 
     CalibrationReceipt {
         string_frontend: (
@@ -113,6 +232,24 @@ fn actual_receipt() -> CalibrationReceipt {
                 )),
             ),
         ),
+        derived_float_frontend_distinct: value_fp(&interner, TS_DERIVED_LEFT, Lang::TypeScript)
+            != value_fp(&interner, TS_DERIVED_RIGHT, Lang::TypeScript),
+        derived_float_interpreter_bits: (
+            float_bits(returned(
+                &interner,
+                TS_DERIVED_LEFT,
+                Lang::TypeScript,
+                &derived_args,
+            )),
+            float_bits(returned(
+                &interner,
+                TS_DERIVED_RIGHT,
+                Lang::TypeScript,
+                &derived_args,
+            )),
+        ),
+        js_number_frontend_distinct,
+        js_number_interpreter,
         integer_frontend_distinct: value_fp(&interner, JS_BITAND, Lang::JavaScript)
             != value_fp(&interner, PYTHON_BITAND, Lang::Python),
         integer_interpreter: (
@@ -135,6 +272,42 @@ fn actual_receipt() -> CalibrationReceipt {
             returned(&interner, MUTATE_ZERO, Lang::Python, &mutation_args),
             returned(&interner, MUTATE_ONE, Lang::Python, &mutation_args),
         ),
+    }
+}
+
+fn expected_js_number(number_edges: &serde_json::Value) -> JsNumberEdges {
+    JsNumberEdges {
+        division_pair_left: number_edges["division_pair_left"]
+            .as_str()
+            .expect("division pair left")
+            .to_string(),
+        division_pair_right: number_edges["division_pair_right"]
+            .as_str()
+            .expect("division pair right")
+            .to_string(),
+        empty_array_truthy: number_edges["empty_array_truthy"]
+            .as_bool()
+            .expect("empty array truthiness"),
+        positive_div_zero: number_edges["positive_div_zero"]
+            .as_str()
+            .expect("positive division by zero")
+            .to_string(),
+        negative_div_zero: number_edges["negative_div_zero"]
+            .as_str()
+            .expect("negative division by zero")
+            .to_string(),
+        zero_div_zero_nan: number_edges["zero_div_zero_nan"]
+            .as_bool()
+            .expect("zero division NaN"),
+        nan_truthy: number_edges["nan_truthy"]
+            .as_bool()
+            .expect("NaN truthiness"),
+        nan_not_equal_zero: number_edges["nan_not_equal_zero"]
+            .as_bool()
+            .expect("NaN inequality"),
+        shift_left: number_edges["shift_left"].as_i64().expect("left shift"),
+        shift_right: number_edges["shift_right"].as_i64().expect("right shift"),
+        shift_masked: number_edges["shift_masked"].as_i64().expect("masked shift"),
     }
 }
 
@@ -175,6 +348,29 @@ fn validate_receipt(
         || receipt.float_interpreter_bits.1 .1 != node_float.1
     {
         failures.push("float_associativity");
+    }
+
+    let expected_derived = (
+        observations["node"]["derived_float_associativity"]["left_bits"]
+            .as_str()
+            .expect("derived left float bits"),
+        observations["node"]["derived_float_associativity"]["right_bits"]
+            .as_str()
+            .expect("derived right float bits"),
+    );
+    if !receipt.derived_float_frontend_distinct
+        || receipt.derived_float_interpreter_bits.0 != expected_derived.0
+        || receipt.derived_float_interpreter_bits.1 != expected_derived.1
+    {
+        failures.push("derived_float_associativity");
+    }
+
+    let expected_number = expected_js_number(&observations["node"]["number_edges"]);
+    if !receipt.js_number_frontend_distinct.0
+        || !receipt.js_number_frontend_distinct.1
+        || receipt.js_number_interpreter != expected_number
+    {
+        failures.push("javascript_number_edges");
     }
 
     let expected_integer = (
@@ -265,6 +461,32 @@ fn typescript_number_shared_mutant_is_rejected() {
     assert_eq!(
         validate_receipt(&artifact, &mutant),
         Err(vec!["float_associativity"])
+    );
+}
+
+#[test]
+fn derived_typescript_number_shared_mutant_is_rejected() {
+    let artifact: serde_json::Value = serde_json::from_str(ARTIFACT).expect("calibration JSON");
+    let mut mutant = actual_receipt();
+    mutant.derived_float_frontend_distinct = false;
+    mutant.derived_float_interpreter_bits.1 = mutant.derived_float_interpreter_bits.0.clone();
+
+    assert_eq!(
+        validate_receipt(&artifact, &mutant),
+        Err(vec!["derived_float_associativity"])
+    );
+}
+
+#[test]
+fn javascript_number_edges_shared_mutant_is_rejected() {
+    let artifact: serde_json::Value = serde_json::from_str(ARTIFACT).expect("calibration JSON");
+    let mut mutant = actual_receipt();
+    mutant.js_number_frontend_distinct = (false, false);
+    mutant.js_number_interpreter.shift_right = mutant.js_number_interpreter.shift_left;
+
+    assert_eq!(
+        validate_receipt(&artifact, &mutant),
+        Err(vec!["javascript_number_edges"])
     );
 }
 

@@ -163,29 +163,61 @@ impl<'a> Builder<'a> {
         if let Some(&possible) = self.possibly_float_cache.get(&v) {
             return possible;
         }
+        // Guard recursive predicates against any future cyclic value node. Normal expression
+        // nodes are a DAG, but Phi/loop growth should fail conservative rather than recurse.
+        self.possibly_float_cache.insert(v, false);
         if self.proven_float(v) {
             self.possibly_float_cache.insert(v, true);
             return true;
         }
-        if let ValOp::Input(cid) = self.nodes[v as usize].op {
+        let op = self.nodes[v as usize].op.clone();
+        let args = self.nodes[v as usize].args.clone();
+        if let ValOp::Input(cid) = &op {
             if self
                 .param_domain
-                .get(&cid)
+                .get(cid)
                 .is_some_and(|&domain| domain == DomainEvidence::Number)
             {
                 self.possibly_float_cache.insert(v, true);
                 return true;
             }
         }
-        if !semantics(self.il.meta.lang).is_dynamically_typed() {
-            self.possibly_float_cache.insert(v, false);
-            return false;
-        }
-        let possible = match self.nodes[v as usize].op {
+        let possible = match op {
+            // Number/Float possibility propagates through arithmetic results. This is a
+            // grouping HOLD only, so conservatively retaining a mixed-coercion chain costs
+            // recall but cannot create a merge.
+            ValOp::Bin(code)
+                if matches!(
+                    op_from_code(code),
+                    Some(
+                        Op::Add
+                            | Op::Sub
+                            | Op::Mul
+                            | Op::Div
+                            | Op::TrueDiv
+                            | Op::FloorDiv
+                            | Op::Mod
+                            | Op::FloorMod
+                            | Op::Pow
+                    )
+                ) =>
+            {
+                args.iter().any(|&arg| self.possibly_float(arg))
+            }
+            ValOp::Un(code) if matches!(op_from_code(code), Some(Op::Neg | Op::Pos)) => {
+                args.first().is_some_and(|&arg| self.possibly_float(arg))
+            }
+            // Phi args are [condition, then, else]; only result arms determine the value kind.
+            ValOp::Phi => args
+                .get(1..)
+                .is_some_and(|arms| arms.iter().any(|&arg| self.possibly_float(arg))),
             // A TRULY-UNTYPED param (no domain evidence) could be a float at runtime → hold; the
             // float battery feeds it directly, so the oracle witnesses the non-associativity.
             // Typed `Number` was handled above because its runtime domain includes IEEE-754.
-            ValOp::Input(cid) => !self.param_domain.contains_key(&cid),
+            ValOp::Input(cid) => {
+                semantics(self.il.meta.lang).is_dynamically_typed()
+                    && !self.param_domain.contains_key(&cid)
+            }
             _ => false,
         };
         self.possibly_float_cache.insert(v, possible);

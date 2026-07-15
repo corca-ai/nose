@@ -413,7 +413,9 @@ impl<'a> Interp<'a> {
             if matches!(v, Value::Err) {
                 return Ok(Value::Err);
             }
-            let t = truthy(&v).ok_or_else(|| Unsupported::value("value.quantifier-truthiness"))?;
+            let t = self
+                .value_truthy(&v)
+                .ok_or_else(|| Unsupported::value("value.quantifier-truthiness"))?;
             // short-circuit: `any` stops at the first truthy, `all` at the first falsy.
             if all != t {
                 return Ok(Value::Bool(t));

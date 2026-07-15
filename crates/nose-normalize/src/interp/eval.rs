@@ -19,23 +19,7 @@ impl<'a> Interp<'a> {
             },
             NodeKind::Lit => eval_literal(n.payload),
             NodeKind::BinOp => self.eval_bin_op(node, n.payload, env),
-            NodeKind::UnOp => {
-                let kids = self.il.children(node).to_vec();
-                let a = self.eval(
-                    *kids
-                        .first()
-                        .ok_or_else(|| Unsupported::il("il.unary-operand-missing"))?,
-                    env,
-                )?;
-                let op = op_of(n.payload);
-                // int32 oracle execution (#344): JS-family `~x` is `~ToInt32(x)`, an int32.
-                let a = if matches!(op, Op::BitNot) && self.bitwise_result_is_int32() {
-                    to_int32(a)
-                } else {
-                    a
-                };
-                Ok(un(op, &a))
-            }
+            NodeKind::UnOp => self.eval_unary(node, n.payload, env),
             NodeKind::Index => self.eval_index(node, env),
             NodeKind::Seq => {
                 let mut out = Vec::new();
@@ -124,6 +108,35 @@ impl<'a> Interp<'a> {
         }
     }
 
+    fn eval_unary(
+        &mut self,
+        node: NodeId,
+        payload: Payload,
+        env: &mut FxHashMap<u32, Value>,
+    ) -> R<Value> {
+        let operand = self
+            .il
+            .children(node)
+            .first()
+            .copied()
+            .ok_or_else(|| Unsupported::il("il.unary-operand-missing"))?;
+        let value = self.eval(operand, env)?;
+        let op = op_of(payload);
+        // JS `~x` is `~ToInt32(x)`, while JS `!NaN` uses its source-specific falsiness.
+        let value = if matches!(op, Op::BitNot) && self.bitwise_result_is_int32() {
+            to_int32(value)
+        } else {
+            value
+        };
+        if matches!(op, Op::Not)
+            && self.bitwise_result_is_int32()
+            && matches!(value, Value::Float(number) if number.0.is_nan())
+        {
+            return Ok(Value::Bool(true));
+        }
+        Ok(un(op, &value))
+    }
+
     pub(super) fn eval_bin_op(
         &mut self,
         node: NodeId,
@@ -147,7 +160,9 @@ impl<'a> Interp<'a> {
         if matches!(op, Op::Or) {
             return Ok(
                 if matches!(a, Value::Err)
-                    || truthy(&a).ok_or_else(|| Unsupported::value("value.condition-truthiness"))?
+                    || self
+                        .value_truthy(&a)
+                        .ok_or_else(|| Unsupported::value("value.condition-truthiness"))?
                 {
                     a
                 } else {
@@ -158,7 +173,8 @@ impl<'a> Interp<'a> {
         if matches!(op, Op::And) {
             return Ok(
                 if matches!(a, Value::Err)
-                    || !truthy(&a)
+                    || !self
+                        .value_truthy(&a)
                         .ok_or_else(|| Unsupported::value("value.condition-truthiness"))?
                 {
                     a
@@ -174,13 +190,19 @@ impl<'a> Interp<'a> {
             return Ok(Value::Err);
         }
         let b = self.eval(kids[1], env)?;
-        // int32 oracle execution (#344): a JS-family bitwise `& | ^` coerces both operands to
-        // int32, so the result is int32 — `(2**40 & 1)` is `0`, not the bigint `2**40 & 1`.
-        // This makes the oracle WITNESS the int32-vs-bigint difference the value graph's
-        // `ToInt32` narrowing fingerprints (it narrows exactly these ops' operands), instead of
-        // computing them as arbitrary-precision i64. Other languages' bitwise stays i64.
-        if matches!(op, Op::BitAnd | Op::BitOr | Op::BitXor) && self.bitwise_result_is_int32() {
-            return Ok(bin(op, &to_int32(a), &to_int32(b)));
+        // Every JS-family bitwise op narrows both operands to int32; shifts additionally mask
+        // the rhs to five bits. Other languages retain the shared wide-integer model.
+        if matches!(op, Op::BitAnd | Op::BitOr | Op::BitXor | Op::Shl | Op::Shr)
+            && self.bitwise_result_is_int32()
+        {
+            return Ok(js_bitwise_bin(op, a, b));
+        }
+        if self.bitwise_result_is_int32()
+            && matches!(a, Value::Int(_) | Value::Float(_))
+            && matches!(b, Value::Int(_) | Value::Float(_))
+        {
+            return js_number_bin(op, &a, &b)
+                .ok_or_else(|| Unsupported::value("value.js-number-binary"));
         }
         Ok(bin(op, &a, &b))
     }

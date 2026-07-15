@@ -37,7 +37,7 @@ pub(crate) fn run(old: &Il, interner: &Interner) -> Il {
         return old.clone();
     }
     let unit_root_set: FxHashSet<u32> = old.units.iter().map(|u| u.root.0).collect();
-    // Params that could be FLOAT: a `+`/`*` chain over them is non-associative (#283 C-float),
+    // Values that could be FLOAT: a `+`/`*` chain over them is non-associative (#283 C-float),
     // so it must not be reassociated, and the grouping is lost HERE (IL reassociation) unless
     // this pass is float-aware too (the value graph mirror is `possibly_float`). A param is
     // possibly-float if it has FLOAT type evidence (`double`/`f64`/…), OR — in a dynamically-
@@ -46,7 +46,7 @@ pub(crate) fn run(old: &Il, interner: &Interner) -> Il {
     // evidence. Integer-only annotated params remain associative.
     // Holding is split-only, so this costs recall, not soundness (corpus family delta 0).
     let dynamic = semantics(old.meta.lang).is_dynamically_typed();
-    let possibly_float_param_cids: FxHashSet<u32> = old
+    let mut possibly_float_cids: FxHashSet<u32> = old
         .nodes
         .iter()
         .enumerate()
@@ -61,13 +61,41 @@ pub(crate) fn run(old: &Il, interner: &Interner) -> Il {
             _ => None,
         })
         .collect();
+    // Preserve the possibility through local bindings too. Dataflow intentionally leaves some
+    // multi-use locals in place; without this fixed point, `const x = a*b; (x+c)+d` could hide
+    // every Number input from the outer association guard.
+    loop {
+        let mut changed = false;
+        for index in 0..old.nodes.len() {
+            let assignment = NodeId(index as u32);
+            if old.kind(assignment) != NodeKind::Assign {
+                continue;
+            }
+            let children = old.children(assignment);
+            let (Some(&lhs), Some(&rhs)) = (children.first(), children.get(1)) else {
+                continue;
+            };
+            let Payload::Cid(cid) = old.node(lhs).payload else {
+                continue;
+            };
+            if old.kind(lhs) == NodeKind::Var
+                && il_node_may_be_float(old, rhs, &possibly_float_cids)
+                && possibly_float_cids.insert(cid)
+            {
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
     let mut rw = Rewriter {
         old,
         b: IlBuilder::with_capacity(old.file, old.nodes.len(), old.edges.len()),
         hashes: Vec::with_capacity(old.nodes.len()),
         remap: FxHashMap::default(),
         unit_root_set,
-        possibly_float_param_cids,
+        possibly_float_cids,
         interner,
     };
     let (new_root, _) = rw.rewrite(old.root);
@@ -81,6 +109,28 @@ fn is_assoc_comm(op: Op) -> bool {
     )
 }
 
+fn il_node_may_be_float(il: &Il, node: NodeId, float_cids: &FxHashSet<u32>) -> bool {
+    match il.node(node).payload {
+        Payload::LitFloat(_) | Payload::Op(Op::TrueDiv) => true,
+        Payload::Cid(cid) if il.kind(node) == NodeKind::Var => float_cids.contains(&cid),
+        Payload::Op(Op::Neg | Op::Pos) => il
+            .children(node)
+            .first()
+            .is_some_and(|&child| il_node_may_be_float(il, child, float_cids)),
+        Payload::Op(
+            Op::Add | Op::Sub | Op::Mul | Op::Div | Op::FloorDiv | Op::Mod | Op::FloorMod | Op::Pow,
+        ) => il
+            .children(node)
+            .iter()
+            .any(|&child| il_node_may_be_float(il, child, float_cids)),
+        _ if il.kind(node) == NodeKind::If => il.children(node).get(1..).is_some_and(|arms| {
+            arms.iter()
+                .any(|&child| il_node_may_be_float(il, child, float_cids))
+        }),
+        _ => false,
+    }
+}
+
 struct Rewriter<'a> {
     old: &'a Il,
     b: IlBuilder,
@@ -88,10 +138,10 @@ struct Rewriter<'a> {
     hashes: Vec<u64>,
     remap: FxHashMap<u32, NodeId>,
     unit_root_set: FxHashSet<u32>,
-    /// Canonical ids of params that could be float (#283 C-float, #342) — float-typed,
-    /// TypeScript `number`, or any untyped param in a dynamically-typed language. A `+`/`*`
-    /// chain touching one is non-associative and must keep its source grouping.
-    possibly_float_param_cids: FxHashSet<u32>,
+    /// Canonical ids that could be float (#283 C-float, #342): float/Number/untyped dynamic
+    /// params plus local bindings derived from them. A `+`/`*` chain touching one is
+    /// non-associative and must keep its source grouping.
+    possibly_float_cids: FxHashSet<u32>,
     interner: &'a Interner,
 }
 
@@ -449,19 +499,6 @@ impl Rewriter<'_> {
     }
 
     fn il_node_is_float(&self, n: NodeId) -> bool {
-        match self.old.node(n).payload {
-            Payload::LitFloat(_) => true,
-            Payload::Op(Op::TrueDiv) => true,
-            Payload::Cid(c) if self.old.kind(n) == NodeKind::Var => {
-                self.possibly_float_param_cids.contains(&c)
-            }
-            // `-x` / `+x` is float iff `x` is (mirrors `proven_float`'s unary recursion).
-            Payload::Op(Op::Neg | Op::Pos) => self
-                .old
-                .children(n)
-                .first()
-                .is_some_and(|&child| self.il_node_is_float(child)),
-            _ => false,
-        }
+        il_node_may_be_float(self.old, n, &self.possibly_float_cids)
     }
 }

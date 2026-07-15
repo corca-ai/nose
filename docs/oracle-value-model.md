@@ -42,7 +42,7 @@ operation semantics in `crates/nose-normalize/src/interp/ops.rs`:
 | kind | models | notes |
 |---|---|---|
 | `Int(i64)` | every integer | i64 arithmetic, with JS int32 bitwise execution where typed (#344) |
-| `Float(F64)` | IEEE-754 doubles | full IEEE-754 `Add`/`Sub`/`Mul`/`Div`/`FloorDiv`/`Mod`/`Pow` in `interp/ops.rs` (#342, see §3.3); float *literals* stay opaque (`LitFloat`) |
+| `Float(F64)` | IEEE-754 doubles | shared arithmetic plus a source-gated JS/TS Number path for `+ - * / %`, comparisons, NaN truthiness, and int32 shifts; uncalibrated JS exponent edges fail closed. Float *literals* stay opaque (`LitFloat`). |
 | `Bool(bool)` | booleans | |
 | `Str(Vec<u64>)` | strings as a **free monoid** over appended token hashes | **order-sensitive**: `"x"+"y"` = `[hx,hy]` ≠ `[hy,hx]` = `"y"+"x"`. No char content; length/index stay `Err`. |
 | `List(Vec<Value>)` | sequences | |
@@ -241,8 +241,9 @@ first; promote to the full model only if the priced recall loss justifies it.
   non-associativity; the query path holds the grouping (`possibly_float` = a truly-untyped param in a
   dynamically-typed language, mirrored in `algebra`). Crucially the hold is associativity-only —
   COMMUTATIVITY is preserved (`a+b+1 ≡ b+a+1`, same grouping) via a grouping-preserving rebuild
-  that still sorts operands when the chain is non-concat — and `: int`-typed and `Number`-typed
-  params still fully reassociate (the oracle feeds them `Int`). **Recall delta 0 on the full
+  that still sorts operands when the chain is non-concat — while `: int`-typed params still
+  fully reassociate. TypeScript `number` now follows the IEEE-754 path described under #858
+  below. **Recall delta 0 on the full
   105-repo pinned corpus** (4309 → 4309; the design doc's gate, measured), verify clean across
   type4/coevo and 15 dynamic-language repos. See [value-float-kind-design](value-float-kind-design.md).
 - **Cost:** floor + syntactic + float-typed-param + fully-untyped non-associativity all paid
@@ -389,13 +390,19 @@ evidence is a mixed runtime domain only for dynamically typed languages. Missing
 and domains whose invariants the interpreter cannot faithfully host (set, byte array, iterator,
 map, record, result, and future-like values) fail closed to the advisory lane. TypeScript
 `Number` promotes every input into IEEE-754 (including integer-valued inputs) without narrowing
-to the integer interpreter; its `+`/`*` grouping is therefore preserved.
+to the integer interpreter. Float possibility propagates through derived arithmetic such as
+`a*b`, conditionals, and sign operations, so an enclosing `+`/`*` chain preserves its source
+grouping rather than hiding Number inputs behind intermediate nodes.
 Static `Integer`/`Float` evidence also fails closed while it erases width and signedness, as do
 array/collection/iterable/option domains while their element or payload type is erased. This
 prevents values valid for `i64` or `Vec<String>` from becoming hard witnesses for `u8` or
 `Vec<i32>`. Swift `String` also fails closed while source recovery erases `Character` into the
 same domain. Every hosted scalar is coerced faithfully in the fixed battery as well as the
-domain-aware search.
+domain-aware search. The interpreter uses source-gated JS Number semantics for zero division,
+remainder, comparisons, and NaN truthiness. JS `& | ^ << >>` applies `ToInt32` to both operands;
+shifts additionally mask the count to five bits and return a signed int32. Number operators whose
+edge semantics are not independently calibrated, currently exponentiation, make the unit
+uninterpretable instead of falling back to the generic float convention.
 
 Falsification compares float results bitwise so `+0.0` and `-0.0` are distinguishable, including
 when nested in effects, fields, or collections. This is narrower than the oracle's stable
@@ -411,8 +418,10 @@ default `verify` gate are untouched.
 
 The checked [source-runtime calibration](../bench/soundness/0.20.0/source-runtime-calibration.v1.json)
 is an independent boundary outside the Rust binary. `scripts/check-domain-calibration.py` runs
-Python and Node directly and compares their string, float-bit, integer-width, mutation,
-signed-zero, and NaN facts with that artifact. Integration tests lower real source fixtures
+Python and Node directly and compares their string, direct and derived float-bit, integer-width,
+mutation, signed-zero, NaN/empty-array truthiness, division-by-zero, and signed-shift facts with
+that artifact.
+Integration tests lower real source fixtures
 through the production frontend, normalization, and interpreter paths, then compare both
 internal channels with those checked facts. A mutation test gives both internal receipts the
 same incorrect float-associativity result and requires the independent runtime boundary to
