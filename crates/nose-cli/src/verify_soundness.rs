@@ -81,7 +81,9 @@ pub(super) fn hard_gate_equal_behavior_representative_pairs(
             if other.beh == first.beh
                 && first.claimable
                 && other.claimable
-                && first.domain_sig == other.domain_sig
+                && first.param_domains == other.param_domains
+                && !first.beh.iter().any(nose_normalize::behavior_has_sym)
+                && !other.beh.iter().any(nose_normalize::behavior_has_sym)
             {
                 pairs.push(VerifyRecPair { first, other });
             }
@@ -113,7 +115,7 @@ fn visit_soundness_disagreements(
 fn soundness_lane(first: &VerifyRec, rec: &VerifyRec) -> DisagreementLane {
     if first.beh.iter().any(nose_normalize::behavior_has_sym)
         || rec.beh.iter().any(nose_normalize::behavior_has_sym)
-        || first.domain_sig != rec.domain_sig
+        || first.param_domains != rec.param_domains
     {
         DisagreementLane::Advisory
     } else if first.claimable && rec.claimable {
@@ -148,7 +150,7 @@ fn sort_disagreements(disagreements: &mut [SoundnessDisagreement]) {
 mod tests {
     use super::*;
     use crate::verify_collect::VerifyRec;
-    use nose_il::NodeId;
+    use nose_il::{DomainEvidence, NodeId};
     use nose_normalize::{Behavior, Value};
 
     fn behavior(value: Value) -> Vec<Behavior> {
@@ -165,6 +167,7 @@ mod tests {
         beh: Vec<Behavior>,
         claimable: bool,
         domain_sig: u64,
+        param_domains: &[Option<DomainEvidence>],
     ) -> VerifyRec {
         VerifyRec {
             fp: fp.to_vec(),
@@ -179,6 +182,7 @@ mod tests {
             canon_exposed: false,
             admission_rejection: None,
             domain_sig,
+            param_domains: param_domains.to_vec(),
             file_idx: 0,
             core_root: NodeId(0),
         }
@@ -187,16 +191,32 @@ mod tests {
     #[test]
     fn classifies_fingerprint_disagreements_by_gate_lane() {
         let recs = vec![
-            rec("hard-a", &[1], behavior(Value::Int(1)), true, 7),
-            rec("hard-b", &[1], behavior(Value::Int(2)), true, 7),
-            rec("lossy-a", &[2], behavior(Value::Int(1)), false, 7),
-            rec("lossy-b", &[2], behavior(Value::Int(2)), true, 7),
-            rec("advisory-a", &[3], behavior(Value::Sym(1)), true, 7),
-            rec("advisory-b", &[3], behavior(Value::Sym(2)), true, 7),
-            rec("domain-a", &[4], behavior(Value::Int(1)), true, 7),
-            rec("domain-b", &[4], behavior(Value::Int(2)), true, 8),
-            rec("equal-a", &[5], behavior(Value::Int(1)), true, 7),
-            rec("equal-b", &[5], behavior(Value::Int(1)), true, 7),
+            rec("hard-a", &[1], behavior(Value::Int(1)), true, 7, &[]),
+            rec("hard-b", &[1], behavior(Value::Int(2)), true, 7, &[]),
+            rec("lossy-a", &[2], behavior(Value::Int(1)), false, 7, &[]),
+            rec("lossy-b", &[2], behavior(Value::Int(2)), true, 7, &[]),
+            rec("advisory-a", &[3], behavior(Value::Sym(1)), true, 7, &[]),
+            rec("advisory-b", &[3], behavior(Value::Sym(2)), true, 7, &[]),
+            // Same compact signature on purpose: exact domains, not hash inequality, must
+            // keep this disagreement out of the hard lane.
+            rec(
+                "domain-a",
+                &[4],
+                behavior(Value::Int(1)),
+                true,
+                7,
+                &[Some(DomainEvidence::Integer)],
+            ),
+            rec(
+                "domain-b",
+                &[4],
+                behavior(Value::Int(2)),
+                true,
+                7,
+                &[Some(DomainEvidence::String)],
+            ),
+            rec("equal-a", &[5], behavior(Value::Int(1)), true, 7, &[]),
+            rec("equal-b", &[5], behavior(Value::Int(1)), true, 7, &[]),
         ];
 
         let summary = classify_verify_soundness(&recs);
@@ -221,15 +241,31 @@ mod tests {
     #[test]
     fn hard_gate_equal_representative_pairs_feed_falsification_search() {
         let recs = vec![
-            rec("hard-a", &[1], behavior(Value::Int(1)), true, 7),
-            rec("hard-b", &[1], behavior(Value::Int(1)), true, 7),
-            rec("hard-c", &[1], behavior(Value::Int(1)), true, 7),
-            rec("changed", &[2], behavior(Value::Int(1)), true, 7),
-            rec("changed-other", &[2], behavior(Value::Int(2)), true, 7),
-            rec("lossy-a", &[3], behavior(Value::Int(1)), false, 7),
-            rec("lossy-b", &[3], behavior(Value::Int(1)), true, 7),
-            rec("domain-a", &[4], behavior(Value::Int(1)), true, 7),
-            rec("domain-b", &[4], behavior(Value::Int(1)), true, 8),
+            rec("hard-a", &[1], behavior(Value::Int(1)), true, 7, &[]),
+            rec("hard-b", &[1], behavior(Value::Int(1)), true, 7, &[]),
+            rec("hard-c", &[1], behavior(Value::Int(1)), true, 7, &[]),
+            rec("changed", &[2], behavior(Value::Int(1)), true, 7, &[]),
+            rec("changed-other", &[2], behavior(Value::Int(2)), true, 7, &[]),
+            rec("lossy-a", &[3], behavior(Value::Int(1)), false, 7, &[]),
+            rec("lossy-b", &[3], behavior(Value::Int(1)), true, 7, &[]),
+            rec(
+                "domain-a",
+                &[4],
+                behavior(Value::Int(1)),
+                true,
+                7,
+                &[Some(DomainEvidence::Integer)],
+            ),
+            rec(
+                "domain-b",
+                &[4],
+                behavior(Value::Int(1)),
+                true,
+                7,
+                &[Some(DomainEvidence::String)],
+            ),
+            rec("symbolic-a", &[5], behavior(Value::Sym(1)), true, 7, &[]),
+            rec("symbolic-b", &[5], behavior(Value::Sym(1)), true, 7, &[]),
         ];
 
         let pairs = hard_gate_equal_behavior_representative_pairs(&recs);

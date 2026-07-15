@@ -68,6 +68,7 @@ pub(crate) fn run() -> Result<()> {
             recall_loss_report,
             exclusion_census,
             falsify,
+            falsify_seed,
         } => cmd_verify(VerifyArgs {
             paths,
             no_cfg_norm,
@@ -77,6 +78,7 @@ pub(crate) fn run() -> Result<()> {
             recall_loss_report,
             exclusion_census,
             falsify,
+            falsify_seed,
         }),
         Cmd::BehavioralGate {
             paths,
@@ -137,6 +139,7 @@ struct VerifyArgs {
     recall_loss_report: Option<PathBuf>,
     exclusion_census: Option<PathBuf>,
     falsify: bool,
+    falsify_seed: Option<u64>,
 }
 
 fn cmd_verify(args: VerifyArgs) -> Result<()> {
@@ -149,6 +152,7 @@ fn cmd_verify(args: VerifyArgs) -> Result<()> {
         recall_loss_report,
         exclusion_census,
         falsify,
+        falsify_seed,
     } = args;
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
@@ -216,7 +220,13 @@ fn cmd_verify(args: VerifyArgs) -> Result<()> {
         // distinguishing-input search. Any hit is a false merge the battery's input
         // starvation missed; count it toward the gate so `--falsify --max-violations 0` is
         // the stronger engine the issue calls for.
-        n_violations += report_falsify(&corpus, &opts, &oracle.recs, &verify_probes(&corpus));
+        n_violations += report_falsify(
+            &corpus,
+            &opts,
+            &oracle.recs,
+            &verify_probes(&corpus),
+            falsify_seed.unwrap_or(crate::falsify::DEFAULT_FALSIFY_SEED),
+        );
     }
 
     // CI soundness gate: fail if false merges exceed the budget, or if any normalization

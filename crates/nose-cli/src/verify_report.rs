@@ -150,6 +150,7 @@ pub(super) fn report_falsify(
     opts: &nose_normalize::NormalizeOptions,
     recs: &[VerifyRec],
     probes: &[nose_normalize::Value],
+    seed: u64,
 ) -> usize {
     const PER_PAIR_BUDGET: usize = 4096;
     let oracle_opts = nose_normalize::NormalizeOptions {
@@ -158,7 +159,7 @@ pub(super) fn report_falsify(
     };
     let mut core_cache: std::collections::HashMap<usize, nose_il::Il> =
         std::collections::HashMap::new();
-    let mut found: Vec<(String, String)> = Vec::new();
+    let mut found: Vec<(String, String, falsify::FalsifyWitness)> = Vec::new();
     for pair in hard_gate_equal_behavior_representative_pairs(recs) {
         // The battery already found these EQUAL; only such groups need a deeper search.
         // Restrict to hard-gate-eligible pairs (claimable, comparable declarations) so a hit
@@ -170,7 +171,7 @@ pub(super) fn report_falsify(
         }
         let il_a = &core_cache[&pair.first.file_idx];
         let il_b = &core_cache[&pair.other.file_idx];
-        if falsify::falsify_pair(
+        if let Some(witness) = falsify::falsify_pair(
             il_a,
             pair.first.core_root,
             il_b,
@@ -178,10 +179,9 @@ pub(super) fn report_falsify(
             &corpus.interner,
             probes,
             PER_PAIR_BUDGET,
-        )
-        .is_some()
-        {
-            found.push((pair.first.loc.clone(), pair.other.loc.clone()));
+            seed,
+        ) {
+            found.push((pair.first.loc.clone(), pair.other.loc.clone(), witness));
         }
     }
     println!("\nFALSIFICATION SEARCH (#317) — distinguishing inputs beyond the fixed battery:");
@@ -190,13 +190,22 @@ pub(super) fn report_falsify(
             "  no new distinguishers — the fixed battery already separates every checked group ✓"
         );
     } else {
-        found.sort();
+        found.sort_by(|left, right| (&left.0, &left.1).cmp(&(&right.0, &right.1)));
         println!(
             "  [!] {} false merge(s) found by SEARCH that the fixed battery missed:",
             found.len()
         );
-        for (a, b) in found.iter().take(20) {
-            println!("    {a}  ≡?  {b}   (distinguisher found by search)");
+        for (a, b, witness) in found.iter().take(20) {
+            println!("    {a}  ≡?  {b}");
+            println!(
+                "      replay: --falsify --falsify-seed {}  case: {}",
+                witness.seed, witness.case_index
+            );
+            println!(
+                "      input: {}  shrunk: {}",
+                falsify::format_inputs(&witness.inputs),
+                falsify::format_inputs(&witness.shrunk_inputs)
+            );
         }
     }
     found.len()

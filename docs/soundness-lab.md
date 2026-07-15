@@ -10,6 +10,29 @@ The 0.19.0 baseline is frozen under
 adversarial batteries, and proof work may satisfy more of this cohort, but may
 not add easy fixtures to change its numerator or denominator.
 
+## 0.20 domain-aware falsification boundary
+
+The 0.20 offline gate supplements the unchanged global battery with a per-group,
+declared-domain-aware search. It compares exact parameter-domain vectors rather than trusting
+their compact report hash, excludes symbolic behavior from the hard lane, prioritizes known
+law boundaries, and emits deterministic seed/case/shrunk-input receipts. This keeps broad input
+generation away from the core-vs-canonical global battery, where type-incoherent rows would be
+misleading.
+
+The independent [source-runtime calibration](../bench/soundness/0.20.0/source-runtime-calibration.v1.json)
+is checked with:
+
+```sh
+python3 scripts/check-domain-calibration.py
+python3 scripts/check-domain-calibration.py --self-test
+```
+
+It executes Python and Node directly for string order, float association, JS-vs-Python integer
+width, mutation coordinates, signed zero, and NaN. The self-test injects the same wrong float
+fact into simulated frontend and interpreter channels and proves that agreement between those
+two channels cannot overrule the source runtimes. The calibration code and artifact remain
+offline and are not linked into the shipped `nose` binary.
+
 ## Two binary identities, one release-tree report
 
 The preserved clean release-candidate binary and raw report reproduce the

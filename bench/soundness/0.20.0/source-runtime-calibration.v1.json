@@ -1,0 +1,66 @@
+{
+  "issue": 858,
+  "observations": {
+    "node": {
+      "float_associativity": {
+        "left_bits": "3ff0000000000000",
+        "right_bits": "0000000000000000"
+      },
+      "integer_width": {
+        "bitand": "1"
+      },
+      "mutation_coordinate": {
+        "index_0": [
+          9,
+          2
+        ],
+        "index_1": [
+          1,
+          9
+        ]
+      },
+      "signed_zero_nan": {
+        "nan": true,
+        "negative_zero": true
+      },
+      "string_order": {
+        "forward": "ab",
+        "reverse": "ba"
+      }
+    },
+    "python": {
+      "float_associativity": {
+        "left_bits": "3ff0000000000000",
+        "right_bits": "0000000000000000"
+      },
+      "integer_width": {
+        "bitand": "64424509441"
+      },
+      "mutation_coordinate": {
+        "index_0": [
+          9,
+          2
+        ],
+        "index_1": [
+          1,
+          9
+        ]
+      },
+      "signed_zero_nan": {
+        "nan": true,
+        "negative_zero": true
+      },
+      "string_order": {
+        "forward": "ab",
+        "reverse": "ba"
+      }
+    }
+  },
+  "required_oracle_distinctions": [
+    "float_associativity",
+    "javascript_int32_width",
+    "mutation_coordinate",
+    "string_order"
+  ],
+  "schema": "nose.source_runtime_calibration.v1"
+}

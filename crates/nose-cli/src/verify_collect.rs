@@ -14,7 +14,7 @@ use census::{census_outcome, push_verify_census, synthetic_blocker, CensusLocati
 mod support;
 use support::{
     admission_rejection_for_rec, oracle_exclusion_diagnostic, param_domain_signature,
-    subtree_node_count, unit_value_fingerprint_and_contracts,
+    param_domains, subtree_node_count, unit_value_fingerprint_and_contracts,
 };
 
 /// One record per interpretable unit.
@@ -38,10 +38,10 @@ pub(super) struct VerifyRec {
     /// Diagnostics-only reason for a unit that cannot enter the exact semantic
     /// claim surface. This does not participate in the product admission gate.
     pub(super) admission_rejection: Option<ExactAdmissionRejectionDiagnostic>,
-    /// Hash of the unit's declared parameter domains. The oracle binds battery
-    /// rows under declared-type coercion, so two units are battery-COMPARABLE
-    /// only when their declarations agree; a disagreement across different
-    /// declarations is an advisory lead, not a hard violation.
+    /// Exact declared parameter domains. This is the hard-gate comparison source: a compact
+    /// hash alone cannot prove equality.
+    pub(super) param_domains: Vec<Option<nose_il::DomainEvidence>>,
+    /// Stable compact identifier for reports. Hard-gate decisions use `param_domains`.
     pub(super) domain_sig: u64,
     /// Index into `corpus.files` and the CORE-IL root, so `--falsify` can re-normalize the
     /// file (deterministically) and re-interpret this unit on search-generated inputs (#317).
@@ -488,6 +488,7 @@ fn collect_file_verify_recs(
             admission_context,
             raw_source,
         );
+        let param_domains = param_domains(n, root);
         oracle.recs.push(VerifyRec {
             fp,
             beh,
@@ -500,7 +501,8 @@ fn collect_file_verify_recs(
             product_admission: product_admission.label(),
             canon_exposed,
             admission_rejection,
-            domain_sig: param_domain_signature(n, root),
+            domain_sig: param_domain_signature(&param_domains),
+            param_domains,
             file_idx,
             core_root,
         });

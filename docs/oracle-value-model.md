@@ -374,19 +374,33 @@ and reordering operations ahead of a guaranteed trap is behavior-preserving. `Ok
 `Err→Ok`, and differing successful results still trip; the soundness/false-merge lane is
 untouched.
 
-**The SOUND form shipped — a per-group falsification SEARCH (`nose verify --falsify`, #317).**
+**The SOUND form shipped — a per-group falsification SEARCH (`nose verify --falsify`, #317,
+domain-aware in #858).**
 Rather than broaden the global battery (which manufactures the impossible-input rows above),
-the search compares MEMBERS of a fingerprint-equal group against EACH OTHER on a value-kind-rich
-input domain (two distinct strings/lists, int32-wrapping ints, float magnitudes, mined
-constants; `crates/nose-cli/src/falsify.rs`). It never touches the canon-preservation check
-(core-vs-full-IL), so the impossible-input hazard does not arise; and it runs only on
-hard-gate-eligible groups (claimable, comparable declarations). A hit is a false merge the
-fixed battery's input starvation missed — counted toward `--max-violations`. The engine
-re-derives the #283-C string-non-commutativity distinguisher BY SEARCH (regression test
-`search_finds_string_noncommutativity_distinguisher`), and on the pinned corpus finds **0 new
-false merges** (the fixed battery + value model already separate every checked group) — so it
-institutionalizes the adversarial-input discipline without changing the gate's verdict today.
-It is offline/opt-in: the query path and the default `verify` gate are untouched.
+the search compares members of a fingerprint-equal group against each other. Parameter pools
+come from the exact declared-domain vector: integer and int32 boundaries, IEEE-754 magnitudes,
+NaN and signed zero, distinct strings, collections, option/null values, and conforming mined
+constants (`crates/nose-cli/src/falsify.rs`). Relation-first rows exercise string order, float
+association, JS int32 width, and mutation coordinates before a seeded Cartesian search. Units
+whose exact domain vectors differ are never searched together; the compact `domain_signature`
+remains a reporting identifier and is not treated as proof of compatibility. Symbolic behavior
+is excluded from both the hard representative set and distinguishing witnesses.
+
+A hit is a false merge the fixed battery missed and counts toward `--max-violations`. Its report
+contains the deterministic seed, case number, original input, and a stable shrunk input; rerun
+with `--falsify --falsify-seed <seed>` to replay the same candidate order. The regression suite
+derives string-order, float-associativity, JS-int32, and mutation-coordinate witnesses by search
+and checks byte-stable replay. The engine still runs only offline and opt-in: the query path and
+default `verify` gate are untouched.
+
+The checked [source-runtime calibration](../bench/soundness/0.20.0/source-runtime-calibration.v1.json)
+is an independent boundary outside the Rust binary. `scripts/check-domain-calibration.py` runs
+Python and Node directly and compares their string, float-bit, integer-width, mutation,
+signed-zero, and NaN facts with that artifact. Its self-test gives both the frontend and
+interpreter the same incorrect float-associativity fact and requires the source runtimes to
+reject the shared mutant. Rust tests bind the required distinction IDs back to the falsifier
+tests, so changing the artifact to bless a shared Rust misconception still fails the
+source-runtime check.
 
 ### 7.1 The equality-over-`Err` mechanism — fixed (coevo series 9)
 
@@ -482,9 +496,9 @@ invalidated and element writes stay ordered).
 
 **Net:** the equality-over-`Err` class (§7.1), the dataflow unsoundness (§7.2), and the
 in-place element-mutation gap (§7.3) are all closed, so the verify soundness gate can widen
-toward dynamic-language repos. Type-domain-aware input feeding remains the floor-then-model
-follow-up (§3); the rest of `verify_battery` stays hand-curated **on purpose** (the guard
-comment there points here).
+toward dynamic-language repos. The global `verify_battery` stays hand-curated **on purpose**
+(the guard comment there points here); domain-aware breadth belongs to the exact-domain,
+per-group falsifier described above.
 
 ### 7.4 Nullish-coalesce map default ≡ absence default — FIXED (coevo series 10, #410)
 

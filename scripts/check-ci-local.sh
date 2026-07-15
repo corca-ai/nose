@@ -112,6 +112,9 @@ run_type4_executable_expectations() {
 
 run_regression_checker_selftests() {
     need_cmd python3
+    need_cmd node
+    python3 scripts/check-domain-calibration.py
+    python3 scripts/check-domain-calibration.py --self-test
     python3 bench/labels/query_schema.py --self-test
     python3 bench/labels/default_head_query_schema.py --self-test
     python3 bench/labels/eval_by_language.py --self-test
