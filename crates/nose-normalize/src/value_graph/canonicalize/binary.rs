@@ -128,13 +128,9 @@ impl<'a> Builder<'a> {
     // preserving (`normalize.value_graph.algebra`). String/list `+` is NOT reordered
     // (it is ordered concat); `* & | ^` Err on non-numeric regardless of order.
     /// A `Reduce(Add)` (a `sum`) forces its elements numeric — `sum` of non-numbers Errs
-    /// in EVERY order — so the per-element contribution's top-level `+` is numeric here and
-    /// may be commuted even when its operands are not context-free provable as non-concat:
-    /// `sum(x+y for …)` equals `sum(y+x for …)` (numeric-equal, or both Err). Sorting the
-    /// contribution's `+` operands at the point the reduction is built recovers the
-    /// generator ≡ loop ≡ `reduce` cross-form convergence (a core Type-4 case) that the
-    /// context-free `+` gate (#283-C) would otherwise split. Sound by the Reduce(Add)
-    /// numeric context, not a context-free claim — so it lives here, not in `proven_non_concat`.
+    /// in every order — so the per-element contribution's direct `+` operands may commute.
+    /// For JS-family and possibly-float reductions, this recovers operand-order convergence
+    /// without flattening nested additions or changing their observable source grouping.
     pub(super) fn commute_numeric_reduce_contrib(&mut self, op: &ValOp, args: &mut [ValueId]) {
         let ValOp::Reduce(o) = *op else { return };
         if o != Op::Add as u32 || args.is_empty() {
@@ -143,15 +139,27 @@ impl<'a> Builder<'a> {
         // The element contribution is the last arg (`[init, contrib]` or `[contrib]`); the
         // optional seed in slot 0 is left alone.
         let idx = args.len() - 1;
-        args[idx] = self.commute_add_in_numeric_context(args[idx]);
+        let preserve_grouping = self.is_js_like_lang() || self.possibly_float(args[idx]);
+        args[idx] = self.commute_add_in_numeric_context(args[idx], preserve_grouping);
     }
     /// Sort the operands of a top-level `+` known numeric by its enclosing `Reduce(Add)`,
     /// recursing through the `Phi(cond, contrib, identity)` a FILTERED reduction builds
     /// (`sum(x+y for … if g)`) so the guarded `x+y` is reached too. The guard condition
     /// (slot 0) is untouched.
-    fn commute_add_in_numeric_context(&mut self, v: ValueId) -> ValueId {
+    fn commute_add_in_numeric_context(&mut self, v: ValueId, preserve_grouping: bool) -> ValueId {
         match self.nodes[v as usize].op {
             ValOp::Bin(b) if b == Op::Add as u32 => {
+                if preserve_grouping {
+                    let mut direct = self.nodes[v as usize].args.clone();
+                    for value in &mut direct {
+                        *value = self.commute_add_in_numeric_context(*value, true);
+                    }
+                    if direct.len() == 2 && direct.iter().all(|&value| self.reorder_safe(value)) {
+                        direct.sort_unstable_by_key(|&value| self.vhash[value as usize]);
+                        return self.mk(ValOp::Bin(b), direct);
+                    }
+                    return v;
+                }
                 let mut leaves = Vec::new();
                 self.flatten_into(v, b, &mut leaves);
                 if leaves.len() >= 2 && leaves.iter().all(|&l| self.reorder_safe(l)) {
@@ -164,8 +172,8 @@ impl<'a> Builder<'a> {
             ValOp::Phi => {
                 let a = self.nodes[v as usize].args.clone();
                 if a.len() == 3 {
-                    let then_branch = self.commute_add_in_numeric_context(a[1]);
-                    let else_branch = self.commute_add_in_numeric_context(a[2]);
+                    let then_branch = self.commute_add_in_numeric_context(a[1], preserve_grouping);
+                    let else_branch = self.commute_add_in_numeric_context(a[2], preserve_grouping);
                     if then_branch != a[1] || else_branch != a[2] {
                         return self.mk(ValOp::Phi, vec![a[0], then_branch, else_branch]);
                     }

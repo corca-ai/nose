@@ -17,7 +17,7 @@ impl<'a> Interp<'a> {
                     .ok_or_else(|| Unsupported::value("value.binding-missing")),
                 _ => Err(Unsupported::il("il.variable-identity-missing")),
             },
-            NodeKind::Lit => eval_literal(n.payload),
+            NodeKind::Lit => eval_literal(n.payload, self.bitwise_result_is_int32()),
             NodeKind::BinOp => self.eval_bin_op(node, n.payload, env),
             NodeKind::UnOp => self.eval_unary(node, n.payload, env),
             NodeKind::Index => self.eval_index(node, env),
@@ -122,6 +122,18 @@ impl<'a> Interp<'a> {
             .ok_or_else(|| Unsupported::il("il.unary-operand-missing"))?;
         let value = self.eval(operand, env)?;
         let op = op_of(payload);
+        if self.bitwise_result_is_int32()
+            && matches!(op, Op::Neg | Op::Pos)
+            && !matches!(value, Value::Err | Value::Sym(_))
+        {
+            let number =
+                js_to_number(&value).ok_or_else(|| Unsupported::value("value.js-to-number"))?;
+            return Ok(Value::Float(F64(if matches!(op, Op::Neg) {
+                -number
+            } else {
+                number
+            })));
+        }
         // JS `~x` is `~ToInt32(x)`. Preserve an operand error/symbol, but fail closed when
         // the concrete coercion is not represented by the oracle.
         let value = if matches!(op, Op::BitNot)
@@ -155,6 +167,12 @@ impl<'a> Interp<'a> {
             return Err(Unsupported::il("il.binary-shape"));
         }
         let op = op_of(payload);
+        // This is an operator-level exclusion, not an operand-shape fallback. Check it before
+        // evaluating either side so an unsupported nested coercion cannot turn Pow into a
+        // concrete Err behavior.
+        if matches!(op, Op::Pow) && self.bitwise_result_is_int32() {
+            return Err(Unsupported::value("value.js-number-binary"));
+        }
         // SHORT-CIRCUIT `and`/`or` — real Python/JS/Go/C semantics: the right
         // operand is evaluated ONLY when the left doesn't already decide the result,
         // and the operator yields the deciding OPERAND's value (value-and/or), not a
@@ -200,17 +218,27 @@ impl<'a> Interp<'a> {
         if matches!(b, Value::Err) {
             return Ok(Value::Err);
         }
-        // JavaScript exponentiation also coerces non-number operands and has infinity edge
-        // rules not captured by Rust powf. No operand shape is calibrated yet, so exclude it.
-        if matches!(op, Op::Pow) && self.bitwise_result_is_int32() {
-            return Err(Unsupported::value("value.js-number-binary"));
-        }
         // Every JS-family bitwise op narrows both operands to int32; shifts additionally mask
         // the rhs to five bits. Other languages retain the shared wide-integer model.
         if matches!(op, Op::BitAnd | Op::BitOr | Op::BitXor | Op::Shl | Op::Shr)
             && self.bitwise_result_is_int32()
         {
             return js_bitwise_bin(op, a, b).ok_or_else(|| Unsupported::value("value.js-to-int32"));
+        }
+        if self.bitwise_result_is_int32()
+            && matches!(
+                op,
+                Op::Add | Op::Sub | Op::Mul | Op::Div | Op::TrueDiv | Op::Mod
+            )
+        {
+            if contains_sym(&a) || contains_sym(&b) {
+                return Ok(bin(op, &a, &b));
+            }
+            if matches!(op, Op::Add) && matches!((&a, &b), (Value::Str(_), Value::Str(_))) {
+                return Ok(bin(op, &a, &b));
+            }
+            return js_number_bin(op, &a, &b)
+                .ok_or_else(|| Unsupported::value("value.js-number-binary"));
         }
         if self.bitwise_result_is_int32()
             && matches!(a, Value::Int(_) | Value::Float(_))
@@ -260,8 +288,9 @@ impl<'a> Interp<'a> {
     }
 }
 
-fn eval_literal(payload: Payload) -> R<Value> {
+fn eval_literal(payload: Payload, javascript_number: bool) -> R<Value> {
     match payload {
+        Payload::LitInt(value) if javascript_number => Ok(Value::Float(F64(value as f64))),
         Payload::LitInt(value) => Ok(Value::Int(value)),
         Payload::LitBool(value) => Ok(Value::Bool(value)),
         Payload::LitStr(value) => Ok(Value::Str(vec![value])),

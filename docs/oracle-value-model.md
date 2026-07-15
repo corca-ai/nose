@@ -396,9 +396,12 @@ evidence is a mixed runtime domain only for dynamically typed languages. Missing
 and domains whose invariants the interpreter cannot faithfully host (set, byte array, iterator,
 map, record, result, and future-like values) fail closed to the advisory lane. TypeScript
 `Number` promotes every input into IEEE-754 (including integer-valued inputs) without narrowing
-to the integer interpreter. The JS-family association hold covers derived arithmetic such as
-`a*b`, integer-shaped literals, bitwise-derived values, and opaque call results, so an enclosing
-`+`/`*` chain preserves its source grouping even when leaf type evidence has disappeared.
+to the integer interpreter. Integer-shaped source literals likewise round through IEEE-754 before
+feeding `ToInt32`. The JS-family association hold covers derived arithmetic such as `a*b`,
+integer-shaped literals, bitwise-derived values, and opaque call results, so an enclosing `+`/`*`
+chain preserves its source grouping even when leaf type evidence has disappeared. Distribution
+is disabled for JS-family or possibly-float arithmetic. Reduction recognition does not flatten
+such an accumulator update; only direct operands commute, without changing nested grouping.
 Static `Integer`/`Float` evidence also fails closed while it erases width and signedness, as do
 array/collection/iterable/option domains while their element or payload type is erased. This
 prevents values valid for `i64` or `Vec<String>` from becoming hard witnesses for `u8` or
@@ -407,10 +410,11 @@ same domain. Every hosted scalar is coerced faithfully in the fixed battery as w
 domain-aware search. The interpreter uses source-gated JS Number semantics for zero division,
 remainder, comparisons, and NaN/array truthiness, including unary `!`. JS `& | ^ << >>` applies
 `ToInt32` to both operands; represented boolean and null coercions produce `1`/`0`, while
-unrepresented string or array coercions fail closed. Shifts additionally mask the count to five
-bits and return a signed int32. Number operators whose edge semantics are not independently
-calibrated, currently exponentiation, make the unit uninterpretable for every operand shape
-instead of falling back to the generic float convention.
+unrepresented string or array coercions fail closed even when nested inside another operator.
+Shifts additionally mask the count to five bits and return a signed int32. Number operators whose
+edge semantics are not independently calibrated, currently exponentiation, make the unit
+uninterpretable before operand evaluation for every operand shape instead of falling back to the
+generic float convention or inheriting a nested error.
 
 Falsification compares float results bitwise so `+0.0` and `-0.0` are distinguishable, including
 when nested in effects, fields, or collections. This is narrower than the oracle's stable
@@ -427,9 +431,9 @@ default `verify` gate are untouched.
 The checked [source-runtime calibration](../bench/soundness/0.20.0/source-runtime-calibration.v1.json)
 is an independent boundary outside the Rust binary. `scripts/check-domain-calibration.py` runs
 Python and Node directly and compares their string, direct, derived, literal, bitwise-derived,
-and overflow-sensitive float-bit facts, integer width, mutation, signed zero, NaN/empty-array
-truthiness and negation, division by zero, coercive exponentiation, and signed shifts with that
-artifact.
+reduction, distribution, and overflow-sensitive float-bit facts, integer width, large-literal
+bitwise rounding, nested coercion, mutation, signed zero, NaN/empty-array truthiness and negation,
+division by zero, coercive exponentiation, and signed shifts with that artifact.
 Integration tests lower real source fixtures
 through the production frontend, normalization, and interpreter paths, then compare both
 internal channels with those checked facts. A mutation test gives both internal receipts the

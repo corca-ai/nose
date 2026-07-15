@@ -72,6 +72,8 @@ mod imported_js_ts_map_defaults;
 mod inline_and_anchors;
 #[path = "equivalence/iteration_contracts.rs"]
 mod iteration_contracts;
+#[path = "equivalence/javascript_number_calibration.rs"]
+mod javascript_number_calibration;
 #[path = "equivalence/language_operator_boundaries.rs"]
 mod language_operator_boundaries;
 #[path = "equivalence/language_surfaces.rs"]

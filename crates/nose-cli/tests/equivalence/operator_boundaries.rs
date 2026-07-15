@@ -211,6 +211,22 @@ fn js_mixed_string_addition_keeps_grouping_ordered() {
         "JavaScript Number constant folding must not use wrapping i64 multiplication"
     );
 
+    let distributed = "function f(x:number,y:number,k:number):number { return x*k + y*k; }";
+    let factored = "function g(x:number,y:number,k:number):number { return (x+y)*k; }";
+    assert_ne!(
+        value_fp(&i, distributed, Lang::TypeScript),
+        value_fp(&i, factored, Lang::TypeScript),
+        "IEEE-754 multiplication must not use the integer distribution law"
+    );
+
+    let reduce_left = "function f(xs:number[],a:number,b:number):number { let total=0; for(const x of xs){ total += (x+a)+b; } return total; }";
+    let reduce_right = "function g(xs:number[],a:number,b:number):number { let total=0; for(const x of xs){ total += x+(a+b); } return total; }";
+    assert_ne!(
+        value_fp(&i, reduce_left, Lang::TypeScript),
+        value_fp(&i, reduce_right, Lang::TypeScript),
+        "numeric reduction context permits commutation but not IEEE-754 reassociation"
+    );
+
     let sub = "function f(x) { return x - 3; }";
     let add_neg = "function g(x) { return x + (-3); }";
     assert_ne!(
@@ -220,10 +236,10 @@ fn js_mixed_string_addition_keeps_grouping_ordered() {
     );
 
     let neg_grouped = "function f(x) { return -(x + 2); }";
-    let distributed = "function g(x) { return -x - 2; }";
+    let distributed_negation = "function g(x) { return -x - 2; }";
     assert_ne!(
         value_fp(&i, neg_grouped, Lang::JavaScript),
-        value_fp(&i, distributed, Lang::JavaScript),
+        value_fp(&i, distributed_negation, Lang::JavaScript),
         "untyped JS `-(x + 2)` must not distribute over potentially-string `+`"
     );
 

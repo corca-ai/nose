@@ -62,6 +62,10 @@ const literalLeft = (100000000 * 100000000 + -100000000 * 100000000) + 1;
 const literalRight = 100000000 * 100000000 + (-100000000 * 100000000 + 1);
 const bitwiseLeft = ((3 | 0) * (3 | 0)) * 4503599627370495;
 const bitwiseRight = (3 | 0) * ((3 | 0) * 4503599627370495);
+const factorLeft = 0 * Infinity + 1 * Infinity;
+const factorRight = (0 + 1) * Infinity;
+const reduceLeft = (1e16 + -1e16) + 1;
+const reduceRight = 1e16 + (-1e16 + 1);
 const first = [1, 2];
 const second = [1, 2];
 first[0] = 9;
@@ -79,11 +83,20 @@ console.log(JSON.stringify({
     division_pair_right: String((0 / 0) + (1 * 0)),
     empty_array_not: ![],
     empty_array_truthy: Boolean([]),
+    factor_distribution: {left_nan: Number.isNaN(factorLeft), right: String(factorRight)},
+    large_literal_bitwise: {
+      shift_right: 9223372036854775807 >> 0,
+      bitand: 9223372036854775807 & 1,
+      bitnot: ~9223372036854775807,
+    },
     literal_assoc: {left_bits: bits(literalLeft), right_bits: bits(literalRight)},
+    nested_bitwise: String(("1" - 0) & 1),
+    nested_pow_nan: Number.isNaN(2 ** ("a" - "b")),
     overflow_product: {
       left_bits: bits(4611686018427387904 * 4), right_bits: bits(0 * 4)
     },
     positive_div_zero: String(1 / 0),
+    reduce_association: {left_bits: bits(reduceLeft), right_bits: bits(reduceRight)},
     negative_div_zero: String(-1 / 0),
     zero_div_zero_nan: Number.isNaN(0 / 0),
     nan_truthy: Boolean(NaN),

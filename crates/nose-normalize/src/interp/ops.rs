@@ -29,14 +29,19 @@ pub(super) fn truthy(v: &Value) -> Option<bool> {
 /// the hard soundness lane: JavaScript division by zero produces infinities/NaN, and remainder
 /// by zero produces NaN. Keep those source semantics behind the same JS-family gate as the
 /// value graph rather than changing Python's distinct truthiness and error behavior.
-pub(super) fn js_number_bin(op: Op, a: &Value, b: &Value) -> Option<Value> {
-    use Value::{Bool, Float, Int};
-    let number = |value: &Value| match value {
-        Float(value) => Some(value.0),
-        Int(value) => Some(*value as f64),
+pub(super) fn js_to_number(value: &Value) -> Option<f64> {
+    match value {
+        Value::Float(value) => Some(value.0),
+        Value::Int(value) => Some(*value as f64),
+        Value::Bool(value) => Some(f64::from(*value)),
+        Value::Null => Some(0.0),
         _ => None,
-    };
-    let (x, y) = (number(a)?, number(b)?);
+    }
+}
+
+pub(super) fn js_number_bin(op: Op, a: &Value, b: &Value) -> Option<Value> {
+    use Value::{Bool, Float};
+    let (x, y) = (js_to_number(a)?, js_to_number(b)?);
     Some(match op {
         Op::Add => Float(F64(x + y)),
         Op::Sub => Float(F64(x - y)),
