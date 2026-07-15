@@ -1,57 +1,339 @@
-//! Falsification-driven distinguishing-input SEARCH for `nose verify` (#317).
+//! Domain-aware falsification for the offline `nose verify --falsify` gate (#858).
 //!
-//! The fixed `verify_battery` is the ad-hoc half of the soundness perimeter: it only finds a
-//! false merge when a HAND-CURATED row happens to feed the distinguishing input (e.g. two
-//! distinct strings to two untyped params — the #283-C class). This module institutionalizes
-//! that: given two fingerprint-equal units the battery found EQUAL, it SEARCHES a small,
-//! value-kind-rich input domain (mixed-radix, seeded/deterministic, budget-bounded) for a row
-//! on which they behave differently. A hit is a false merge the fixed battery missed.
-//!
-//! Scope: this runs only under `nose verify --falsify` (offline, opt-in) — the query path and
-//! the default gate are untouched. Determinism comes from the fixed pool + fixed enumeration
-//! order (no RNG), so a nightly run is reproducible.
+//! Each parameter is fed values from its declared source domain. Relation-first rows cover the
+//! laws most likely to be normalized unsafely; a seeded Cartesian search then explores the rest.
+//! A concrete disagreement is shrunk in a stable order and printed with its seed, making nightly
+//! failures byte-reproducible without adding code to the shipped query path.
 
-use nose_il::{Il, Interner, NodeId, NodeKind, Payload};
-use nose_normalize::{run_unit, Value, F64};
+use nose_il::{DomainEvidence, Il, Interner, Lang, NodeId, NodeKind, Payload};
+use nose_normalize::{behavior_has_sym, run_unit, Behavior, Value, F64};
+use std::collections::HashSet;
 
-/// The per-position value pool — deliberately spans every value KIND the oracle models, with
-/// at least TWO distinct strings and TWO distinct lists (the combination the fixed battery
-/// under-samples: it never binds two *different* strings to two params at once). Mined corpus
-/// constants are appended so value-keyed branches (`x == 'ipc'`) are exercised too.
-fn falsify_pool(probes: &[Value]) -> Vec<Value> {
-    let mut pool = vec![
+pub(crate) const DEFAULT_FALSIFY_SEED: u64 = 0x4e4f_5345_0020_0000;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct FalsifyWitness {
+    pub(crate) seed: u64,
+    /// Zero-based position in the de-duplicated deterministic candidate stream.
+    pub(crate) case_index: usize,
+    pub(crate) inputs: Vec<Value>,
+    pub(crate) shrunk_inputs: Vec<Value>,
+}
+
+fn parameter_domains(il: &Il, root: NodeId) -> Vec<Option<DomainEvidence>> {
+    il.children(root)
+        .iter()
+        .filter(|&&child| {
+            il.kind(child) == NodeKind::Param && matches!(il.node(child).payload, Payload::Cid(_))
+        })
+        .map(|&param| nose_semantics::domain_evidence_for_param(il, param))
+        .collect()
+}
+
+fn integer_values() -> Vec<Value> {
+    vec![
         Value::Int(0),
         Value::Int(1),
         Value::Int(-1),
-        Value::Int(0xF_0000_0003), // > 2^32, exposes int32 wrap
-        Value::Bool(true),
-        Value::Null,
-        Value::Str(vec![0x5EED_0001]),
-        Value::Str(vec![0x5EED_0002]), // a SECOND, distinct string
-        Value::List(vec![Value::Int(1), Value::Int(2)]),
-        Value::List(vec![Value::Int(2), Value::Int(1)]), // a distinct list (same multiset)
+        Value::Int(i32::MAX as i64),
+        Value::Int(i32::MIN as i64),
+        Value::Int(0x1_0000_0000),
+        Value::Int(-0x1_0000_0001),
+        Value::Int(0xF_0000_0003),
+        Value::Int(0xF_0000_0005),
+    ]
+}
+
+fn float_values() -> Vec<Value> {
+    vec![
+        Value::Float(F64(0.0)),
+        Value::Float(F64(-0.0)),
+        Value::Float(F64(1.0)),
+        Value::Float(F64(-1.0)),
+        Value::Float(F64(4_503_599_627_370_495.5)),
         Value::Float(F64(1e16)),
         Value::Float(F64(-1e16)),
-    ];
-    pool.extend(probes.iter().cloned());
-    pool
+        Value::Float(F64(f64::NAN)),
+        Value::Float(F64(f64::INFINITY)),
+        Value::Float(F64(f64::NEG_INFINITY)),
+    ]
 }
 
-/// Number of `Param` children of a unit root (its arity); inputs beyond it are ignored by the
-/// interpreter, so we only enumerate over this many positions.
-fn arity(il: &Il, root: NodeId) -> usize {
-    il.children(root)
-        .iter()
-        .filter(|&&c| {
-            il.kind(c) == NodeKind::Param && matches!(il.node(c).payload, Payload::Cid(_))
-        })
-        .count()
+fn string_values() -> Vec<Value> {
+    vec![
+        Value::Str(Vec::new()),
+        Value::Str(vec![0x5EED_0001]),
+        Value::Str(vec![0x5EED_0002]),
+        Value::Str(vec![0x5EED_0001, 0x5EED_0001]),
+    ]
 }
 
-/// Search for a distinguishing input for two units (their pre-canon CORE ILs + roots). Returns
-/// the first row on which both interpret to DIFFERENT, non-`None` behaviors, or `None` if none
-/// within `budget` rows. Mixed-radix enumeration over [`falsify_pool`] varies the lowest
-/// positions fastest, so the high-value 1- and 2-arg distinguishers are covered first.
+fn collection_values() -> Vec<Value> {
+    vec![
+        Value::List(Vec::new()),
+        Value::List(vec![Value::Int(0)]),
+        Value::List(vec![Value::Int(1), Value::Int(2)]),
+        Value::List(vec![Value::Int(2), Value::Int(1)]),
+        Value::List(vec![Value::Int(1), Value::Int(1)]),
+        Value::List(vec![Value::Str(vec![0x5EED_0001])]),
+    ]
+}
+
+fn push_unique(values: &mut Vec<Value>, value: Value) {
+    if !values.contains(&value) {
+        values.push(value);
+    }
+}
+
+fn domain_pool(domain: Option<DomainEvidence>, probes: &[Value]) -> Vec<Value> {
+    use DomainEvidence as D;
+    let mut values = match domain {
+        Some(D::Integer) => integer_values(),
+        Some(D::Float) => float_values(),
+        Some(D::Number) => {
+            let mut values = float_values();
+            for integer in integer_values() {
+                let Value::Int(integer) = integer else {
+                    unreachable!("integer pool contains only integers")
+                };
+                push_unique(&mut values, Value::Float(F64(integer as f64)));
+            }
+            values
+        }
+        Some(D::Boolean) => vec![Value::Bool(false), Value::Bool(true)],
+        Some(D::String) => string_values(),
+        Some(
+            D::Array
+            | D::ByteArray
+            | D::Collection
+            | D::FutureLike
+            | D::Iterable
+            | D::Iterator
+            | D::Map
+            | D::Nominal { .. }
+            | D::Option
+            | D::PromiseLike
+            | D::Record
+            | D::Result
+            | D::Set,
+        ) => Vec::new(),
+        None => {
+            let mut values = integer_values();
+            values.extend(float_values());
+            values.extend([Value::Bool(false), Value::Bool(true), Value::Null]);
+            values.extend(string_values());
+            values.extend(collection_values());
+            values
+        }
+    };
+    for probe in probes {
+        if value_conforms(probe, domain) {
+            push_unique(&mut values, probe.clone());
+        }
+    }
+    values
+}
+
+fn value_conforms(value: &Value, domain: Option<DomainEvidence>) -> bool {
+    use DomainEvidence as D;
+    match domain {
+        None => true,
+        Some(D::Integer) => matches!(value, Value::Int(_)),
+        Some(D::Float) => matches!(value, Value::Float(_)),
+        Some(D::Number) => matches!(value, Value::Float(_)),
+        Some(D::Boolean) => matches!(value, Value::Bool(_)),
+        Some(D::String) => matches!(value, Value::Str(_)),
+        Some(
+            D::Array
+            | D::ByteArray
+            | D::Collection
+            | D::FutureLike
+            | D::Iterable
+            | D::Iterator
+            | D::Map
+            | D::Nominal { .. }
+            | D::Option
+            | D::PromiseLike
+            | D::Record
+            | D::Result
+            | D::Set,
+        ) => false,
+    }
+}
+
+/// Whether every declared input domain has a concrete representation in the current oracle.
+/// `None` is a mixed runtime domain only for a dynamically typed language; elsewhere it is
+/// missing evidence. Parameterized containers/options and explicit Set/byte/iterator/map/record/
+/// future-like domains also stay out until their erased element/payload invariants are retained.
+/// Integer/float evidence is hosted only for languages whose runtime scalar has no erased static
+/// width/sign; treating Rust `u8` and `i64` as one domain would manufacture impossible inputs.
+/// Swift strings also stay out because source recovery currently erases `Character` into String.
+pub(crate) fn domains_are_hosted(lang: Lang, domains: &[Option<DomainEvidence>]) -> bool {
+    use DomainEvidence as D;
+    domains.iter().all(|domain| match domain {
+        None => nose_semantics::semantics(lang).is_dynamically_typed(),
+        Some(D::Boolean) => true,
+        Some(D::String) => lang != Lang::Swift,
+        Some(D::Integer | D::Float) => matches!(
+            lang,
+            Lang::Python | Lang::Ruby | Lang::JavaScript | Lang::Vue | Lang::Svelte | Lang::Html
+        ),
+        // Source type recovery emits `Number` only for TypeScript's IEEE-754 runtime number;
+        // even integer-valued rows are promoted to Float before execution.
+        Some(D::Number) => lang == Lang::TypeScript,
+        Some(
+            D::Array
+            | D::ByteArray
+            | D::Collection
+            | D::FutureLike
+            | D::Iterable
+            | D::Iterator
+            | D::Map
+            | D::Nominal { .. }
+            | D::Option
+            | D::PromiseLike
+            | D::Record
+            | D::Result
+            | D::Set,
+        ) => false,
+    })
+}
+
+fn relation_rows(domains: &[Option<DomainEvidence>], arity: usize) -> Vec<Vec<Value>> {
+    let mut rows = Vec::new();
+    let neutral = |index: usize| domain_pool(domains.get(index).copied().flatten(), &[])[0].clone();
+    let row_with = |overrides: &[(usize, Value)]| {
+        let mut row: Vec<Value> = (0..arity).map(&neutral).collect();
+        for (index, value) in overrides {
+            row[*index] = value.clone();
+        }
+        row
+    };
+    let accepts =
+        |index: usize, value: &Value| value_conforms(value, domains.get(index).copied().flatten());
+
+    let string_a = Value::Str(vec![0x5EED_0001]);
+    let string_b = Value::Str(vec![0x5EED_0002]);
+    if arity >= 2 && accepts(0, &string_a) && accepts(1, &string_b) {
+        rows.push(row_with(&[(0, string_a), (1, string_b)]));
+    }
+    let list_a = Value::List(vec![Value::Int(1), Value::Int(2)]);
+    let list_b = Value::List(vec![Value::Int(2), Value::Int(1)]);
+    if arity >= 2 && accepts(0, &list_a) && accepts(1, &list_b) {
+        rows.push(row_with(&[(0, list_a), (1, list_b)]));
+    }
+    let high_a = Value::Int(0xF_0000_0003);
+    let high_b = Value::Int(0xF_0000_0005);
+    if arity >= 2 && accepts(0, &high_a) && accepts(1, &high_b) {
+        rows.push(row_with(&[(0, high_a), (1, high_b)]));
+    }
+    let float_a = Value::Float(F64(1e16));
+    let float_b = Value::Float(F64(-1e16));
+    let float_c = Value::Float(F64(1.0));
+    if arity >= 3 && accepts(0, &float_a) && accepts(1, &float_b) && accepts(2, &float_c) {
+        rows.push(row_with(&[(0, float_a), (1, float_b), (2, float_c)]));
+    }
+    rows
+}
+
+fn rotate<T>(values: &mut [T], seed: u64) {
+    if !values.is_empty() {
+        values.rotate_left((splitmix64(seed) as usize) % values.len());
+    }
+}
+
+fn splitmix64(mut value: u64) -> u64 {
+    value = value.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    value ^ (value >> 31)
+}
+
+fn concrete_disagreement(
+    il_a: &Il,
+    root_a: NodeId,
+    il_b: &Il,
+    root_b: NodeId,
+    interner: &Interner,
+    row: &[Value],
+) -> bool {
+    let (Some(behavior_a), Some(behavior_b)) = (
+        run_unit(il_a, interner, root_a, row),
+        run_unit(il_b, interner, root_b, row),
+    ) else {
+        return false;
+    };
+    behaviors_concretely_differ(&behavior_a, &behavior_b)
+}
+
+fn behaviors_concretely_differ(a: &Behavior, b: &Behavior) -> bool {
+    !behaviors_falsification_equal(a, b) && !behavior_has_sym(a) && !behavior_has_sym(b)
+}
+
+/// Falsification observes the sign of zero because source runtimes expose it through operations
+/// such as `Object.is` and `copysign`. NaN payloads remain intentionally canonical: the oracle
+/// models one deterministic NaN class rather than platform-specific payload propagation.
+fn behaviors_falsification_equal(a: &Behavior, b: &Behavior) -> bool {
+    values_falsification_equal(&a.ret, &b.ret)
+        && a.effects.len() == b.effects.len()
+        && a.effects
+            .iter()
+            .zip(&b.effects)
+            .all(|(left, right)| values_falsification_equal(left, right))
+        && a.fields.len() == b.fields.len()
+        && a.fields
+            .iter()
+            .zip(&b.fields)
+            .all(|(left, right)| left.0 == right.0 && values_falsification_equal(&left.1, &right.1))
+}
+
+fn values_falsification_equal(a: &Value, b: &Value) -> bool {
+    match (a, b) {
+        (Value::Float(F64(left)), Value::Float(F64(right))) => {
+            (left.is_nan() && right.is_nan()) || left.to_bits() == right.to_bits()
+        }
+        (Value::List(left), Value::List(right)) => {
+            left.len() == right.len()
+                && left
+                    .iter()
+                    .zip(right)
+                    .all(|(a, b)| values_falsification_equal(a, b))
+        }
+        _ => a == b,
+    }
+}
+
+fn shrink(
+    il_a: &Il,
+    root_a: NodeId,
+    il_b: &Il,
+    root_b: NodeId,
+    interner: &Interner,
+    domains: &[Option<DomainEvidence>],
+    original: &[Value],
+) -> Vec<Value> {
+    let mut current = original.to_vec();
+    for index in 0..current.len() {
+        let candidates = domain_pool(domains.get(index).copied().flatten(), &[]);
+        let upper = candidates
+            .iter()
+            .position(|candidate| candidate == &current[index])
+            .unwrap_or(candidates.len());
+        for candidate in candidates.into_iter().take(upper) {
+            let mut attempt = current.clone();
+            attempt[index] = candidate;
+            if concrete_disagreement(il_a, root_a, il_b, root_b, interner, &attempt) {
+                current = attempt;
+                break;
+            }
+        }
+    }
+    current
+}
+
+/// Search for a concrete distinguishing input. Declared domains must agree exactly; callers may
+/// not use a hash collision or a cross-domain execution as hard soundness evidence.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn falsify_pair(
     il_a: &Il,
     root_a: NodeId,
@@ -60,85 +342,94 @@ pub(crate) fn falsify_pair(
     interner: &Interner,
     probes: &[Value],
     budget: usize,
-) -> Option<Vec<Value>> {
-    let pool = falsify_pool(probes);
-    let n = pool.len();
-    let ar = arity(il_a, root_a).max(arity(il_b, root_b)).max(1);
-    let total = n.checked_pow(ar as u32).unwrap_or(usize::MAX).min(budget);
-    for e in 0..total {
-        let row: Vec<Value> = (0..ar)
-            .map(|j| {
-                let radix = n.saturating_pow(j as u32).max(1);
-                pool[(e / radix) % n].clone()
-            })
-            .collect();
-        let (Some(ba), Some(bb)) = (
-            run_unit(il_a, interner, root_a, &row),
-            run_unit(il_b, interner, root_b, &row),
-        ) else {
+    seed: u64,
+) -> Option<FalsifyWitness> {
+    let domains = parameter_domains(il_a, root_a);
+    if domains != parameter_domains(il_b, root_b)
+        || !domains_are_hosted(il_a.meta.lang, &domains)
+        || !domains_are_hosted(il_b.meta.lang, &domains)
+    {
+        return None;
+    }
+    let arity = domains.len().max(1);
+    let mut pools: Vec<Vec<Value>> = (0..arity)
+        .map(|index| domain_pool(domains.get(index).copied().flatten(), probes))
+        .collect();
+    for (index, pool) in pools.iter_mut().enumerate() {
+        rotate(pool, seed ^ index as u64);
+    }
+    let mut relations = relation_rows(&domains, arity);
+    rotate(&mut relations, seed ^ 0x5245_4c41_5449_4f4e);
+
+    // `F64` intentionally canonicalizes signed zero for behavior equality, but the source
+    // domain still contains both bit patterns. De-duplicate by the receipt encoding so `+0`
+    // and `-0` both reach the interpreter while otherwise-identical rows are skipped.
+    let mut seen = HashSet::new();
+    let mut case_index = 0usize;
+    let total = pools.iter().try_fold(1usize, |total, pool| {
+        total.checked_mul(pool.len()).ok_or(())
+    });
+    let cartesian_limit = total.unwrap_or(usize::MAX).min(budget);
+    let candidates = relations
+        .into_iter()
+        .chain((0..cartesian_limit).map(|encoded| {
+            let mut remainder = encoded;
+            pools
+                .iter()
+                .map(|pool| {
+                    let value = pool[remainder % pool.len()].clone();
+                    remainder /= pool.len();
+                    value
+                })
+                .collect::<Vec<_>>()
+        }));
+    for row in candidates {
+        if !seen.insert(format_inputs(&row)) {
             continue;
-        };
-        // A symbolic disagreement is keyed on pre-canon syntax, not behavior — skip it (the
-        // soundness report routes those to the advisory lane, never the hard gate).
-        if ba != bb
-            && !nose_normalize::behavior_has_sym(&ba)
-            && !nose_normalize::behavior_has_sym(&bb)
-        {
-            return Some(row);
         }
+        if case_index >= budget {
+            break;
+        }
+        if concrete_disagreement(il_a, root_a, il_b, root_b, interner, &row) {
+            let shrunk_inputs = shrink(il_a, root_a, il_b, root_b, interner, &domains, &row);
+            return Some(FalsifyWitness {
+                seed,
+                case_index,
+                inputs: row,
+                shrunk_inputs,
+            });
+        }
+        case_index += 1;
     }
     None
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use nose_il::{FileId, FileMeta, IlBuilder, Lang, Op, Span};
+pub(crate) fn format_inputs(values: &[Value]) -> String {
+    let formatted: Vec<String> = values.iter().map(format_value).collect();
+    format!("[{}]", formatted.join(", "))
+}
 
-    // Build `return <a op b>` (operands in `order`) as a 2-arg unit.
-    fn two_arg_binop(op: Op, order: (u32, u32)) -> (Il, Interner, NodeId) {
-        let interner = Interner::new();
-        let sp = Span::synthetic(FileId(0));
-        let mut b = IlBuilder::new(FileId(0));
-        let pa = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
-        let pb = b.add(NodeKind::Param, Payload::Cid(1), sp, &[]);
-        let l = b.add(NodeKind::Var, Payload::Cid(order.0), sp, &[]);
-        let r = b.add(NodeKind::Var, Payload::Cid(order.1), sp, &[]);
-        let bin = b.add(NodeKind::BinOp, Payload::Op(op), sp, &[l, r]);
-        let ret = b.add(NodeKind::Return, Payload::None, sp, &[bin]);
-        let func = b.add(NodeKind::Func, Payload::None, sp, &[pa, pb, ret]);
-        let il = b.finish(
-            func,
-            FileMeta {
-                path: "t".into(),
-                lang: Lang::Python,
-            },
-            Vec::new(),
-            Vec::new(),
-        );
-        (il, interner, func)
-    }
-
-    // #317 regression baseline: re-derive the #283-C distinguisher BY SEARCH. `a + b` and
-    // `b + a` agree on every integer (the fixed battery's small-int rows), but DIFFER when both
-    // params are distinct STRINGS (`s1·s2 != s2·s1`) — the input the fixed battery starves. The
-    // search's pool carries two distinct strings, so it finds the row.
-    #[test]
-    fn search_finds_string_noncommutativity_distinguisher() {
-        let (ia, na, ra) = two_arg_binop(Op::Add, (0, 1)); // a + b
-        let (ib, _nb, rb) = two_arg_binop(Op::Add, (1, 0)); // b + a
-        let row = falsify_pair(&ia, ra, &ib, rb, &na, &[], 4096)
-            .expect("search must find a distinguishing input for a+b vs b+a");
-        // The distinguisher is two DISTINCT non-int values (strings or lists).
-        assert_ne!(row[0], row[1]);
-    }
-
-    // Genuinely-equal units (`a + b` vs `a + b`) have NO distinguisher — the search must report
-    // none (no false positive), the soundness side of the engine.
-    #[test]
-    fn search_finds_no_distinguisher_for_identical_units() {
-        let (ia, na, ra) = two_arg_binop(Op::Add, (0, 1));
-        let (ib, _nb, rb) = two_arg_binop(Op::Add, (0, 1));
-        assert!(falsify_pair(&ia, ra, &ib, rb, &na, &[], 4096).is_none());
+fn format_value(value: &Value) -> String {
+    match value {
+        Value::Int(value) => format!("int:{value}"),
+        Value::Float(F64(value)) if value.is_nan() => "float:nan".to_string(),
+        Value::Float(F64(value)) if *value == f64::INFINITY => "float:+inf".to_string(),
+        Value::Float(F64(value)) if *value == f64::NEG_INFINITY => "float:-inf".to_string(),
+        Value::Float(F64(value)) if *value == 0.0 && value.is_sign_negative() => {
+            "float:-0".to_string()
+        }
+        Value::Float(F64(value)) => format!("float:{value:e}"),
+        Value::Bool(value) => format!("bool:{value}"),
+        Value::Str(parts) => {
+            let parts: Vec<String> = parts.iter().map(|part| format!("{part:016x}")).collect();
+            format!("str:[{}]", parts.join("+"))
+        }
+        Value::List(values) => format!("list:{}", format_inputs(values)),
+        Value::Null => "null".to_string(),
+        Value::Err => "err".to_string(),
+        Value::Sym(value) => format!("sym:{value:016x}"),
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -10,6 +10,53 @@ The 0.19.0 baseline is frozen under
 adversarial batteries, and proof work may satisfy more of this cohort, but may
 not add easy fixtures to change its numerator or denominator.
 
+## 0.20 domain-aware falsification boundary
+
+The 0.20 offline gate supplements the unchanged global battery with a per-group,
+declared-domain-aware search. It compares exact parameter-domain vectors rather than trusting
+their compact report hash, excludes symbolic behavior from the hard lane, prioritizes known
+law boundaries, and emits deterministic seed/case/shrunk-input receipts. This keeps broad input
+generation away from the core-vs-canonical global battery, where type-incoherent rows would be
+misleading. A missing domain is treated as runtime `Any` only for dynamically typed languages;
+missing static evidence and domains without a faithful interpreter representation (including
+set, byte-array, iterator, map, record, result, and future-like values) fail closed to advisory.
+So do width-erased static integers/floats and element/payload-erased arrays, collections,
+iterables, and options. Swift strings also stay advisory while `Character` is erased into the
+same evidence. Hosted scalar domains are enforced in both the fixed battery and falsifier;
+TypeScript `number` includes IEEE-754 inputs and keeps non-associative source grouping.
+The JS-family hold also covers integer-shaped literals, bitwise-derived values, and opaque call
+results, so grouping does not depend on leaf type recovery. The source-gated interpreter models
+JS zero division, remainder, NaN and array truthiness, and signed int32 shifts. Integer-shaped
+literals round through IEEE-754 before bitwise narrowing, as they do at runtime, and represented
+`ToInt32` coercions include booleans and null. Operators without an independently calibrated JS
+edge model, and direct or nested coercions the oracle cannot represent, fail closed rather than
+leaking a generic error behavior. Float-capable arithmetic is not factored by distribution, and
+reduction extraction preserves the contribution's source grouping while still allowing direct
+numeric operands to commute.
+
+The independent [source-runtime calibration](../bench/soundness/0.20.0/source-runtime-calibration.v1.json)
+is checked with:
+
+```sh
+python3 scripts/check-domain-calibration.py
+python3 scripts/check-domain-calibration.py --self-test
+```
+
+Both commands run in the required GitHub `build · test · lint · dup-gate` job as well as the
+local fast gate.
+
+It executes Python and Node directly for string order, direct, derived, literal, bitwise-derived,
+reduction, distribution, and overflow-sensitive float association, JS-vs-Python integer width,
+large-literal bitwise rounding, nested coercion, division-by-zero, NaN and empty-array
+truthiness/negation, coercive exponentiation, signed shifts, mutation coordinates, signed zero,
+and NaN. The script self-test mutation-checks the
+independent comparison boundary. The Rust `domain_runtime_calibration` integration tests then
+lower real Python and typed-TypeScript source fixtures through the production frontend, normalize
+and interpret them, and compare both internal channels with the checked runtime artifact. Mutant
+tests inject the same wrong float fact into both channels for each runtime and require rejection,
+so frontend/interpreter agreement cannot overrule the source runtimes. The calibration code and
+artifact remain offline and are not linked into the shipped `nose` binary.
+
 ## Two binary identities, one release-tree report
 
 The preserved clean release-candidate binary and raw report reproduce the

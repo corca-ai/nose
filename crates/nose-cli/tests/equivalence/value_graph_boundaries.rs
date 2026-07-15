@@ -317,12 +317,14 @@ u32 q(const int *a) {
 
 #[test]
 fn value_graph_cross_language_reorder() {
-    // Same computation, different statement order, different language.
+    // Statement order disappears within a runtime domain, but Python `int` and TypeScript
+    // IEEE-754 `number` cannot share an exact arithmetic fingerprint.
     let i = Interner::new();
     let py = "def f(a: int, b: int):\n    p = a * b\n    q = a + b\n    return p + q + p\n";
     let ts = "function g(a: number, b: number): number { const q = a + b; const p = a * b; return p + q + p; }";
-    assert_eq!(
+    assert_ne!(
         value_fp(&i, py, Lang::Python),
-        value_fp(&i, ts, Lang::TypeScript)
+        value_fp(&i, ts, Lang::TypeScript),
+        "integer arithmetic must stay split from IEEE-754 arithmetic"
     );
 }

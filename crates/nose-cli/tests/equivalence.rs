@@ -58,6 +58,8 @@ mod collection_streams;
 mod convergence_probes;
 #[path = "equivalence/css_surfaces.rs"]
 mod css_surfaces;
+#[path = "equivalence/domain_runtime_calibration.rs"]
+mod domain_runtime_calibration;
 #[path = "equivalence/flat_map_aggregates.rs"]
 mod flat_map_aggregates;
 #[path = "equivalence/imported_collection_membership.rs"]
@@ -70,6 +72,8 @@ mod imported_js_ts_map_defaults;
 mod inline_and_anchors;
 #[path = "equivalence/iteration_contracts.rs"]
 mod iteration_contracts;
+#[path = "equivalence/javascript_number_calibration.rs"]
+mod javascript_number_calibration;
 #[path = "equivalence/language_operator_boundaries.rs"]
 mod language_operator_boundaries;
 #[path = "equivalence/language_surfaces.rs"]

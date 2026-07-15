@@ -42,7 +42,7 @@ operation semantics in `crates/nose-normalize/src/interp/ops.rs`:
 | kind | models | notes |
 |---|---|---|
 | `Int(i64)` | every integer | i64 arithmetic, with JS int32 bitwise execution where typed (#344) |
-| `Float(F64)` | IEEE-754 doubles | full IEEE-754 `Add`/`Sub`/`Mul`/`Div`/`FloorDiv`/`Mod`/`Pow` in `interp/ops.rs` (#342, see §3.3); float *literals* stay opaque (`LitFloat`) |
+| `Float(F64)` | IEEE-754 doubles | shared arithmetic plus a source-gated JS/TS Number path for `+ - * / %`, comparisons, NaN truthiness, and int32 shifts; uncalibrated JS exponent edges fail closed. Float *literals* stay opaque (`LitFloat`). |
 | `Bool(bool)` | booleans | |
 | `Str(Vec<u64>)` | strings as a **free monoid** over appended token hashes | **order-sensitive**: `"x"+"y"` = `[hx,hy]` ≠ `[hy,hx]` = `"y"+"x"`. No char content; length/index stay `Err`. |
 | `List(Vec<Value>)` | sequences | |
@@ -241,10 +241,24 @@ first; promote to the full model only if the priced recall loss justifies it.
   non-associativity; the query path holds the grouping (`possibly_float` = a truly-untyped param in a
   dynamically-typed language, mirrored in `algebra`). Crucially the hold is associativity-only —
   COMMUTATIVITY is preserved (`a+b+1 ≡ b+a+1`, same grouping) via a grouping-preserving rebuild
-  that still sorts operands when the chain is non-concat — and `: int`-typed and `Number`-typed
-  params still fully reassociate (the oracle feeds them `Int`). **Recall delta 0 on the full
+  that still sorts operands when the chain is non-concat — while `: int`-typed params still
+  fully reassociate. TypeScript `number` now follows the IEEE-754 path described under #858
+  below. **Recall delta 0 on the full
   105-repo pinned corpus** (4309 → 4309; the design doc's gate, measured), verify clean across
   type4/coevo and 15 dynamic-language repos. See [value-float-kind-design](value-float-kind-design.md).
+- **JS-family Number closure (#858).** JavaScript and TypeScript arithmetic is IEEE-754 even when
+  every source literal looks integral, an operand came from a bitwise expression, or a call's
+  declared return type is no longer visible at a value-graph leaf. The IL and value-graph layers
+  therefore hold JS-family `+`/`*` association by source language and operator, not only by a
+  recovered float leaf; subtraction likewise remains a literal `Sub`. This prevents i64 constant
+  folding and leaf flattening from erasing observable Number grouping. Exact operations whose
+  inputs are already in the shared compact integer form keep exact integer results in that same
+  form; a Float input keeps the IEEE-754 lane. Thus `1` and `-(-1)` compare alike without losing
+  NaN, infinity, fractional, signed-negative-zero, or grouping witnesses. External function
+  boundaries compact positive-zero inputs while retaining negative zero; proven internal calls
+  preserve computed values so helper and inlined forms stay representation-identical. Negating
+  negative zero produces the compact positive form; this makes both `-(-0) ≡ 0` and signed-zero
+  falsification hold.
 - **Cost:** floor + syntactic + float-typed-param + fully-untyped non-associativity all paid
   (0 recall on the full pinned corpus). The remaining float work is breadth, not a gap: a
   full Int↔Float coercion lattice (mixed-type comparison, float literals — `LitFloat` stores
@@ -374,19 +388,65 @@ and reordering operations ahead of a guaranteed trap is behavior-preserving. `Ok
 `Err→Ok`, and differing successful results still trip; the soundness/false-merge lane is
 untouched.
 
-**The SOUND form shipped — a per-group falsification SEARCH (`nose verify --falsify`, #317).**
+**The SOUND form shipped — a per-group falsification SEARCH (`nose verify --falsify`, #317,
+domain-aware in #858).**
 Rather than broaden the global battery (which manufactures the impossible-input rows above),
-the search compares MEMBERS of a fingerprint-equal group against EACH OTHER on a value-kind-rich
-input domain (two distinct strings/lists, int32-wrapping ints, float magnitudes, mined
-constants; `crates/nose-cli/src/falsify.rs`). It never touches the canon-preservation check
-(core-vs-full-IL), so the impossible-input hazard does not arise; and it runs only on
-hard-gate-eligible groups (claimable, comparable declarations). A hit is a false merge the
-fixed battery's input starvation missed — counted toward `--max-violations`. The engine
-re-derives the #283-C string-non-commutativity distinguisher BY SEARCH (regression test
-`search_finds_string_noncommutativity_distinguisher`), and on the pinned corpus finds **0 new
-false merges** (the fixed battery + value model already separate every checked group) — so it
-institutionalizes the adversarial-input discipline without changing the gate's verdict today.
-It is offline/opt-in: the query path and the default `verify` gate are untouched.
+the search compares members of a fingerprint-equal group against each other. Parameter pools
+come from the exact declared-domain vector: integer and int32 boundaries, IEEE-754 magnitudes,
+NaN and signed zero, distinct strings, collections, option/null values, and conforming mined
+constants (`crates/nose-cli/src/falsify.rs`). Relation-first rows exercise string order, float
+association, JS int32 width, and mutation coordinates before a seeded Cartesian search. Units
+whose exact domain vectors differ are never searched together; the compact `domain_signature`
+remains a reporting identifier and is not treated as proof of compatibility. Symbolic behavior
+is excluded from both the hard representative set and distinguishing witnesses. Missing domain
+evidence is a mixed runtime domain only for dynamically typed languages. Missing static evidence
+and domains whose invariants the interpreter cannot faithfully host (set, byte array, iterator,
+map, record, result, and future-like values) fail closed to the advisory lane. TypeScript
+`Number` promotes every input into IEEE-754 (including integer-valued inputs) without narrowing
+to the integer interpreter. Integer-shaped source literals likewise round through IEEE-754 before
+feeding `ToInt32`. The JS-family association hold covers derived arithmetic such as `a*b`,
+integer-shaped literals, bitwise-derived values, and opaque call results, so an enclosing `+`/`*`
+chain preserves its source grouping even when leaf type evidence has disappeared. Distribution
+is disabled for JS-family or possibly-float arithmetic. Reduction recognition does not flatten
+such an accumulator update; only direct operands commute, without changing nested grouping.
+Static `Integer`/`Float` evidence also fails closed while it erases width and signedness, as do
+array/collection/iterable/option domains while their element or payload type is erased. This
+prevents values valid for `i64` or `Vec<String>` from becoming hard witnesses for `u8` or
+`Vec<i32>`. Swift `String` also fails closed while source recovery erases `Character` into the
+same domain. Every hosted scalar is coerced faithfully in the fixed battery as well as the
+domain-aware search. The interpreter uses source-gated JS Number semantics for zero division,
+remainder, comparisons, and NaN/array truthiness, including unary `!`. JS `& | ^ << >>` applies
+`ToInt32` to both operands; represented boolean and null coercions produce `1`/`0`, while
+unrepresented string or array coercions fail closed even when nested inside another operator.
+Shifts additionally mask the count to five bits and return a signed int32. Number operators whose
+edge semantics are not independently calibrated, currently exponentiation, make the unit
+uninterpretable before operand evaluation for every operand shape instead of falling back to the
+generic float convention or inheriting a nested error.
+
+Falsification compares float results bitwise so `+0.0` and `-0.0` are distinguishable, including
+when nested in effects, fields, or collections. This is narrower than the oracle's stable
+fingerprint equality because source runtimes expose the sign through `Object.is`, `copysign`, and
+related operations. NaN payloads intentionally remain one deterministic observational class.
+
+A hit is a false merge the fixed battery missed and counts toward `--max-violations`. Its report
+contains the deterministic seed, case number, original input, and a stable shrunk input; rerun
+with `--falsify --falsify-seed <seed>` to replay the same candidate order. The regression suite
+derives string-order, float-associativity, JS-int32, and mutation-coordinate witnesses by search
+and checks byte-stable replay. The engine still runs only offline and opt-in: the query path and
+default `verify` gate are untouched.
+
+The checked [source-runtime calibration](../bench/soundness/0.20.0/source-runtime-calibration.v1.json)
+is an independent boundary outside the Rust binary. `scripts/check-domain-calibration.py` runs
+Python and Node directly and compares their string, direct, derived, literal, bitwise-derived,
+reduction, distribution, and overflow-sensitive float-bit facts, integer width, large-literal
+bitwise rounding, nested coercion, mutation, signed zero, NaN/empty-array truthiness and negation,
+division by zero, coercive exponentiation, and signed shifts with that artifact.
+Integration tests lower real source fixtures
+through the production frontend, normalization, and interpreter paths, then compare both
+internal channels with those checked facts. A mutation test gives both internal receipts the
+same incorrect float-associativity result and requires the independent runtime boundary to
+reject it. Changing the artifact to bless a shared Rust misconception still fails the direct
+Python/Node check.
 
 ### 7.1 The equality-over-`Err` mechanism — fixed (coevo series 9)
 
@@ -482,9 +542,9 @@ invalidated and element writes stay ordered).
 
 **Net:** the equality-over-`Err` class (§7.1), the dataflow unsoundness (§7.2), and the
 in-place element-mutation gap (§7.3) are all closed, so the verify soundness gate can widen
-toward dynamic-language repos. Type-domain-aware input feeding remains the floor-then-model
-follow-up (§3); the rest of `verify_battery` stays hand-curated **on purpose** (the guard
-comment there points here).
+toward dynamic-language repos. The global `verify_battery` stays hand-curated **on purpose**
+(the guard comment there points here); domain-aware breadth belongs to the exact-domain,
+per-group falsifier described above.
 
 ### 7.4 Nullish-coalesce map default ≡ absence default — FIXED (coevo series 10, #410)
 

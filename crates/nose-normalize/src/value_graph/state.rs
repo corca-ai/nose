@@ -154,31 +154,65 @@ impl<'a> Builder<'a> {
     }
 
     /// Whether `v` COULD be a float — `proven_float`, OR a bare parameter in a dynamically-typed
-    /// language (Python/JS/TS/Ruby), where an untyped param carries no static type and so may be
-    /// a float at runtime (#342). Used ONLY by the grouping HOLDS (associativity / `eval_sub_chain`
-    /// / `ac_chain_canon`), never by a value-creating rewrite: holding a chain is split-only, so a
-    /// false positive here costs recall, never soundness (corpus family delta measured 0). The
-    /// statically-typed languages decide float-ness by proven domain (`proven_float`) instead.
+    /// language (Python/JS/Ruby), where an untyped param carries no static type and so may be a
+    /// float at runtime (#342), OR a TypeScript `number` param (IEEE-754). Used ONLY by the
+    /// grouping HOLDS (associativity / `eval_sub_chain` / `ac_chain_canon`), never by a
+    /// value-creating rewrite: holding a chain is split-only, so a false positive costs recall,
+    /// never soundness (corpus family delta measured 0).
     pub(super) fn possibly_float(&mut self, v: ValueId) -> bool {
         if let Some(&possible) = self.possibly_float_cache.get(&v) {
             return possible;
         }
+        // Guard recursive predicates against any future cyclic value node. Normal expression
+        // nodes are a DAG, but Phi/loop growth should fail conservative rather than recurse.
+        self.possibly_float_cache.insert(v, false);
         if self.proven_float(v) {
             self.possibly_float_cache.insert(v, true);
             return true;
         }
-        if !semantics(self.il.meta.lang).is_dynamically_typed() {
-            self.possibly_float_cache.insert(v, false);
-            return false;
+        let op = self.nodes[v as usize].op.clone();
+        let args = self.nodes[v as usize].args.clone();
+        let js_number = js_like_lang(self.il.meta.lang)
+            && match &op {
+                ValOp::Const { kind, .. } => matches!(kind, ConstKind::Int | ConstKind::Float),
+                ValOp::Bin(code) => is_float_arithmetic_code(*code),
+                _ => false,
+            };
+        if js_number {
+            self.possibly_float_cache.insert(v, true);
+            return true;
         }
-        let possible = match self.nodes[v as usize].op {
+        if let ValOp::Input(cid) = &op {
+            if self
+                .param_domain
+                .get(cid)
+                .is_some_and(|&domain| domain == DomainEvidence::Number)
+            {
+                self.possibly_float_cache.insert(v, true);
+                return true;
+            }
+        }
+        let possible = match op {
+            // Number/Float possibility propagates through arithmetic results. This is a
+            // grouping HOLD only, so conservatively retaining a mixed-coercion chain costs
+            // recall but cannot create a merge.
+            ValOp::Bin(code) if is_float_arithmetic_code(code) => {
+                args.iter().any(|&arg| self.possibly_float(arg))
+            }
+            ValOp::Un(code) if matches!(op_from_code(code), Some(Op::Neg | Op::Pos)) => {
+                args.first().is_some_and(|&arg| self.possibly_float(arg))
+            }
+            // Phi args are [condition, then, else]; only result arms determine the value kind.
+            ValOp::Phi => args
+                .get(1..)
+                .is_some_and(|arms| arms.iter().any(|&arg| self.possibly_float(arg))),
             // A TRULY-UNTYPED param (no domain evidence) could be a float at runtime → hold; the
-            // float battery feeds it directly, so the oracle witnesses the non-associativity. Any
-            // param WITH a domain (`a: int`, inferred `Number`, `str`, …) is fed a coerced
-            // concrete value by `coerce_to_declared_domain` (a `Number` becomes an `Int`), so the
-            // oracle cannot witness float there — holding it would only cost recall (it would
-            // split int/`number` clones, including across languages) with no soundness gain.
-            ValOp::Input(cid) => !self.param_domain.contains_key(&cid),
+            // float battery feeds it directly, so the oracle witnesses the non-associativity.
+            // Typed `Number` was handled above because its runtime domain includes IEEE-754.
+            ValOp::Input(cid) => {
+                semantics(self.il.meta.lang).is_dynamically_typed()
+                    && !self.param_domain.contains_key(&cid)
+            }
             _ => false,
         };
         self.possibly_float_cache.insert(v, possible);

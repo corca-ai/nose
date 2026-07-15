@@ -155,10 +155,76 @@ fn js_mixed_string_addition_keeps_grouping_ordered() {
 
     let typed_left = "function f(x: number): number { return x + 2 + 3; }";
     let typed_grouped = "function g(x: number): number { return x + (2 + 3); }";
-    assert_eq!(
+    assert_ne!(
         value_fp(&i, typed_left, Lang::TypeScript),
         value_fp(&i, typed_grouped, Lang::TypeScript),
-        "TypeScript number evidence should preserve numeric associativity recall"
+        "TypeScript number is IEEE-754 and must preserve source association"
+    );
+
+    let derived_left = "function f(a:number,b:number,c:number,d:number,e:number,f:number): number { return (a*b + c*d) + e*f; }";
+    let derived_right = "function g(a:number,b:number,c:number,d:number,e:number,f:number): number { return a*b + (c*d + e*f); }";
+    assert_ne!(
+        value_fp(&i, derived_left, Lang::TypeScript),
+        value_fp(&i, derived_right, Lang::TypeScript),
+        "float possibility must propagate through derived Number expressions"
+    );
+
+    let bound_left = "function f(a:number,b:number,c:number,d:number,e:number,f:number): number { const x = a*b; return ((x + c*d) + e*f) + x; }";
+    let bound_right = "function g(a:number,b:number,c:number,d:number,e:number,f:number): number { const x = a*b; return (x + (c*d + e*f)) + x; }";
+    assert_ne!(
+        value_fp(&i, bound_left, Lang::TypeScript),
+        value_fp(&i, bound_right, Lang::TypeScript),
+        "float possibility must survive a multi-use local binding"
+    );
+
+    let literal_left =
+        "function f(): number { return (100000000*100000000 + -100000000*100000000) + 1; }";
+    let literal_right =
+        "function g(): number { return 100000000*100000000 + (-100000000*100000000 + 1); }";
+    assert_ne!(
+        value_fp(&i, literal_left, Lang::TypeScript),
+        value_fp(&i, literal_right, Lang::TypeScript),
+        "JavaScript integer literals still produce non-associative IEEE-754 Number arithmetic"
+    );
+
+    let bitwise_left = "function f(): number { return ((3|0)*(3|0))*4503599627370495; }";
+    let bitwise_right = "function g(): number { return (3|0)*((3|0)*4503599627370495); }";
+    assert_ne!(
+        value_fp(&i, bitwise_left, Lang::TypeScript),
+        value_fp(&i, bitwise_right, Lang::TypeScript),
+        "int32 results still enter non-associative JavaScript Number arithmetic"
+    );
+
+    let call_left = "declare function a(): number; declare function b(): number; declare function c(): number; function f(): number { return (a()*b())*c(); }";
+    let call_right = "declare function a(): number; declare function b(): number; declare function c(): number; function g(): number { return a()*(b()*c()); }";
+    assert_ne!(
+        value_fp(&i, call_left, Lang::TypeScript),
+        value_fp(&i, call_right, Lang::TypeScript),
+        "opaque number-returning calls must not license JavaScript multiplication reassociation"
+    );
+
+    let overflow = "function f(): number { return 4611686018427387904 * 4; }";
+    let zero = "function g(): number { return 0 * 4; }";
+    assert_ne!(
+        value_fp(&i, overflow, Lang::TypeScript),
+        value_fp(&i, zero, Lang::TypeScript),
+        "JavaScript Number constant folding must not use wrapping i64 multiplication"
+    );
+
+    let distributed = "function f(x:number,y:number,k:number):number { return x*k + y*k; }";
+    let factored = "function g(x:number,y:number,k:number):number { return (x+y)*k; }";
+    assert_ne!(
+        value_fp(&i, distributed, Lang::TypeScript),
+        value_fp(&i, factored, Lang::TypeScript),
+        "IEEE-754 multiplication must not use the integer distribution law"
+    );
+
+    let reduce_left = "function f(xs:number[],a:number,b:number):number { let total=0; for(const x of xs){ total += (x+a)+b; } return total; }";
+    let reduce_right = "function g(xs:number[],a:number,b:number):number { let total=0; for(const x of xs){ total += x+(a+b); } return total; }";
+    assert_ne!(
+        value_fp(&i, reduce_left, Lang::TypeScript),
+        value_fp(&i, reduce_right, Lang::TypeScript),
+        "numeric reduction context permits commutation but not IEEE-754 reassociation"
     );
 
     let sub = "function f(x) { return x - 3; }";
@@ -170,10 +236,10 @@ fn js_mixed_string_addition_keeps_grouping_ordered() {
     );
 
     let neg_grouped = "function f(x) { return -(x + 2); }";
-    let distributed = "function g(x) { return -x - 2; }";
+    let distributed_negation = "function g(x) { return -x - 2; }";
     assert_ne!(
         value_fp(&i, neg_grouped, Lang::JavaScript),
-        value_fp(&i, distributed, Lang::JavaScript),
+        value_fp(&i, distributed_negation, Lang::JavaScript),
         "untyped JS `-(x + 2)` must not distribute over potentially-string `+`"
     );
 

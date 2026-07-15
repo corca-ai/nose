@@ -22,6 +22,86 @@ pub(super) fn truthy(v: &Value) -> Option<bool> {
     })
 }
 
+/// JavaScript/TypeScript numeric binary semantics for values already known to be numbers.
+///
+/// The general float oracle deliberately uses a cross-language convention for exceptional
+/// arithmetic. That convention is not strong enough once TypeScript `number` participates in
+/// the hard soundness lane: JavaScript division by zero produces infinities/NaN, and remainder
+/// by zero produces NaN. Keep those source semantics behind the same JS-family gate as the
+/// value graph rather than changing Python's distinct truthiness and error behavior.
+pub(super) fn js_to_number(value: &Value) -> Option<f64> {
+    match value {
+        Value::Float(value) => Some(value.0),
+        Value::Int(value) => Some(*value as f64),
+        Value::Bool(value) => Some(f64::from(*value)),
+        Value::Null => Some(0.0),
+        _ => None,
+    }
+}
+
+/// Keep an exact JavaScript Number in the oracle's compact integer representation when the
+/// operation started from compact operands. A Float operand keeps the IEEE-754 lane even when
+/// this particular result happens to be integral, so later operations still witness Number
+/// grouping. Negative zero is never compacted because falsification observes its sign.
+pub(super) fn js_number_result(value: f64, preserve_float: bool) -> Value {
+    if !preserve_float && value.is_finite() && !(value == 0.0 && value.is_sign_negative()) {
+        let integer = value as i128;
+        if value.fract() == 0.0 {
+            if let Ok(integer) = i64::try_from(integer) {
+                if integer as f64 == value {
+                    return Value::Int(integer);
+                }
+            }
+        }
+    }
+    Value::Float(F64(value))
+}
+
+pub(super) fn js_number_bin(op: Op, a: &Value, b: &Value) -> Option<Value> {
+    use Value::Bool;
+    let (x, y) = (js_to_number(a)?, js_to_number(b)?);
+    let preserve_float = matches!(a, Value::Float(_)) || matches!(b, Value::Float(_));
+    Some(match op {
+        Op::Add => js_number_result(x + y, preserve_float),
+        Op::Sub => js_number_result(x - y, preserve_float),
+        Op::Mul => js_number_result(x * y, preserve_float),
+        Op::Div | Op::TrueDiv => js_number_result(x / y, preserve_float),
+        Op::Mod => js_number_result(x % y, preserve_float),
+        Op::Eq => Bool(x == y),
+        Op::Ne => Bool(x != y),
+        Op::Lt => Bool(x < y),
+        Op::Le => Bool(x <= y),
+        Op::Gt => Bool(x > y),
+        Op::Ge => Bool(x >= y),
+        // JS exponentiation has additional edge rules beyond Rust `powf` (notably infinities
+        // around |base| == 1). Fail closed until those rules have independent calibration.
+        _ => return None,
+    })
+}
+
+/// JavaScript bitwise execution after ToInt32/ToUint32 coercion.
+pub(super) fn js_bitwise_bin(op: Op, a: Value, b: Value) -> Option<Value> {
+    if contains_sym(&a) || contains_sym(&b) {
+        return Some(bin(op, &a, &b));
+    }
+    if matches!(a, Value::Err) || matches!(b, Value::Err) {
+        return Some(Value::Err);
+    }
+    let (Value::Int(x), Value::Int(y)) = (to_int32(a), to_int32(b)) else {
+        return None;
+    };
+    Some(match op {
+        Op::BitAnd => Value::Int(x & y),
+        Op::BitOr => Value::Int(x | y),
+        Op::BitXor => Value::Int(x ^ y),
+        // Shift counts use ToUint32(rhs) & 31. The low five bits are identical after
+        // ToInt32, while the lhs and result are signed int32 values.
+        Op::Shl => Value::Int((x as i32).wrapping_shl((y as u32) & 31) as i64),
+        Op::Shr => Value::Int(((x as i32) >> ((y as u32) & 31)) as i64),
+        _ => return None,
+    })
+}
+
 pub(super) fn fold_ints(v: Option<&Value>, init: i64, f: impl Fn(i64, i64) -> i64) -> Value {
     match v {
         Some(Value::List(xs)) => {
@@ -147,12 +227,26 @@ pub(super) fn range_values(args: &[Value]) -> R<Value> {
     Ok(Value::List(out))
 }
 
-/// Coerce an integer `Value` to int32 (`x & 0xFFFF_FFFF`, sign-extended), the operand coercion
-/// every JS-family bitwise operator applies (#344). Non-`Int` values pass through (a bitwise op
-/// on them already `Err`s / stays symbolic in `bin`).
+/// Coerce a numeric `Value` to int32, the operand coercion every JS-family bitwise operator
+/// applies (#344). IEEE-754 inputs follow ECMAScript ToInt32: non-finite/zero becomes zero,
+/// otherwise truncate and reduce modulo 2^32 before sign extension.
 pub(super) fn to_int32(v: Value) -> Value {
     match v {
         Value::Int(i) => Value::Int(i as i32 as i64),
+        Value::Bool(value) => Value::Int(i64::from(value)),
+        Value::Null => Value::Int(0),
+        Value::Float(F64(value)) => {
+            if !value.is_finite() || value == 0.0 {
+                return Value::Int(0);
+            }
+            let unsigned = value.trunc().rem_euclid(4_294_967_296.0);
+            let signed = if unsigned >= 2_147_483_648.0 {
+                unsigned - 4_294_967_296.0
+            } else {
+                unsigned
+            };
+            Value::Int(signed as i64)
+        }
         other => other,
     }
 }

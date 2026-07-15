@@ -80,6 +80,29 @@ impl<'a> Builder<'a> {
             ValOp::Bin(o) if is_assoc_comm_code(o) => o,
             _ => return None,
         };
+        // Extracting a loop reduction by flattening the whole update is itself an
+        // associativity claim. For JS-family or otherwise possibly-float `+`/`*`, accept only
+        // the direct `acc op contribution` shape and carry the contribution's source grouping
+        // intact into Reduce. Nested accumulator shapes stay as recurrences.
+        if (op == Op::Add as u32 || op == Op::Mul as u32)
+            && (self.is_js_like_lang() || self.possibly_float(val))
+        {
+            let args = self.nodes[val as usize].args.clone();
+            if args.len() != 2 {
+                return None;
+            }
+            let contribution = if args[0] == loopv {
+                args[1]
+            } else if args[1] == loopv {
+                args[0]
+            } else {
+                return None;
+            };
+            if self.references_cached(contribution, loopv, cache) {
+                return None;
+            }
+            return Some((op, contribution));
+        }
         let mut operands = Vec::new();
         self.flatten_into(val, op, &mut operands);
         // Exactly one top-level operand must be the previous accumulator, and it must

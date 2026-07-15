@@ -1236,3 +1236,20 @@ remain deliberately separate from float IEEE behavior, so extracting the ten
 shared dispatch lines would blur the soundness boundary. No new avoidable
 duplication is accepted; the two representative IDs are replaced and the
 budget is raised to 29 for the returning reviewed family.
+
+The #858 final JavaScript Number review tightens the reviewed count from 29 to
+27. The long-standing field-state test fixture family `90809d0e27461ac4` is
+removed by giving the interpreter tests shared helpers for `this.field` IL
+construction and Java fixture finalization; each test still owns its distinct
+read, write, error, ordering, and evidence assertions. The pre-existing numeric
+`int_bin` / `float_bin` dispatcher representative `856ea94f585f0c67` falls
+below value 40 after the Number-result hardening shifts the self-query, so its
+stale ID is removed without accepting a replacement.
+
+The remaining two deltas are representative churn for the same independent
+oracle/value-graph implementation pairs reviewed in #857:
+`20d66ad9ef0c1f42` becomes `1a27aef1c8aa5d25` for `interp/eval.rs` and
+`value_graph/eval/core.rs`, while `30ae71e90215f0cc` becomes
+`0028e1c168824352` for `interp/exec.rs` and
+`value_graph/control/statements.rs`. Their members and rationale are unchanged;
+no new family is accepted, and the budget is tightened to 27.

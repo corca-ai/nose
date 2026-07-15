@@ -85,9 +85,18 @@ pub(super) fn hashed<T: Hash>(t: &T) -> u64 {
 /// concretely are coerced; everything else binds unchanged.
 pub(super) fn coerce_to_declared_domain(v: Value, d: nose_il::DomainEvidence) -> Value {
     use nose_il::DomainEvidence as D;
+    if d == D::Number {
+        return match v {
+            Value::Float(_) => v,
+            Value::Int(value) => Value::Float(F64(value as f64)),
+            other => Value::Float(F64((vhash(&other) % 47) as f64 / 2.0 - 11.5)),
+        };
+    }
     let conforms = match d {
-        D::Integer | D::Number => matches!(v, Value::Int(_)),
+        D::Integer => matches!(v, Value::Int(_)),
+        D::Float => matches!(v, Value::Float(_)),
         D::Boolean => matches!(v, Value::Bool(_)),
+        D::String => matches!(v, Value::Str(_)),
         D::Array | D::Collection | D::Iterable => matches!(v, Value::List(_)),
         _ => true,
     };
@@ -96,13 +105,25 @@ pub(super) fn coerce_to_declared_domain(v: Value, d: nose_il::DomainEvidence) ->
     }
     let h = vhash(&v);
     match d {
-        D::Integer | D::Number => Value::Int((h % 23) as i64 - 11),
+        D::Integer => Value::Int((h % 23) as i64 - 11),
+        D::Float => Value::Float(F64((h % 23) as f64 - 11.0)),
         D::Boolean => Value::Bool(h & 1 == 1),
+        D::String => Value::Str(vec![h]),
         D::Array | D::Collection | D::Iterable => Value::List(vec![
             Value::Int((h % 7) as i64),
             Value::Int((h % 5) as i64 - 2),
         ]),
-        _ => v,
+        D::Number
+        | D::ByteArray
+        | D::FutureLike
+        | D::Iterator
+        | D::Map
+        | D::Nominal { .. }
+        | D::Option
+        | D::PromiseLike
+        | D::Record
+        | D::Result
+        | D::Set => v,
     }
 }
 
@@ -143,6 +164,23 @@ pub(super) fn contains_sym(v: &Value) -> bool {
         Value::Sym(_) => true,
         Value::List(xs) => xs.iter().any(contains_sym),
         _ => false,
+    }
+}
+
+/// Normalize positive zero at a JavaScript/TypeScript function boundary. The compact literal
+/// form already represents `+0` as `Int(0)`; doing the same for external inputs keeps identity
+/// and double-negation observations aligned. Negative zero remains a Float because source
+/// runtimes can distinguish it and the falsifier deliberately exercises that boundary.
+pub(super) fn compact_javascript_positive_zero(value: Value) -> Value {
+    match value {
+        Value::Float(F64(value)) if value == 0.0 && !value.is_sign_negative() => Value::Int(0),
+        Value::List(values) => Value::List(
+            values
+                .into_iter()
+                .map(compact_javascript_positive_zero)
+                .collect(),
+        ),
+        other => other,
     }
 }
 

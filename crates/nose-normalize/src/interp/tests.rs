@@ -3,6 +3,7 @@ use super::*;
 mod basic;
 mod calls_symbolic;
 mod hof;
+mod number;
 mod state;
 mod support;
 mod try_effects;

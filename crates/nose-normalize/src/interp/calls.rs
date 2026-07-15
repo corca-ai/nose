@@ -235,6 +235,9 @@ impl<'a> Interp<'a> {
             .ok_or_else(|| Unsupported::protocol("protocol.call-argument-binding"))?;
         let mut fenv: FxHashMap<u32, Value> = FxHashMap::default();
         for (cid, value_node) in plan {
+            // Preserve the computed representation at an internal call boundary. The value graph
+            // may inline this callee, so compacting JavaScript +0 only on the out-of-line path
+            // would make an identity helper disagree with its exact-equivalent inlined form.
             let value = self.eval(value_node, env)?;
             if matches!(value, Value::Err) {
                 return Ok(Value::Err);
@@ -413,7 +416,9 @@ impl<'a> Interp<'a> {
             if matches!(v, Value::Err) {
                 return Ok(Value::Err);
             }
-            let t = truthy(&v).ok_or_else(|| Unsupported::value("value.quantifier-truthiness"))?;
+            let t = self
+                .value_truthy(&v)
+                .ok_or_else(|| Unsupported::value("value.quantifier-truthiness"))?;
             // short-circuit: `any` stops at the first truthy, `all` at the first falsy.
             if all != t {
                 return Ok(Value::Bool(t));

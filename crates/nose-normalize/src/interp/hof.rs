@@ -65,7 +65,8 @@ impl<'a> Interp<'a> {
                     if matches!(keep, Value::Err) {
                         return Ok(Value::Err);
                     }
-                    let keep = truthy(&keep)
+                    let keep = self
+                        .value_truthy(&keep)
                         .ok_or_else(|| Unsupported::value("value.hof-predicate-truthiness"))?;
                     let keep = if kind == HoFKind::Reject { !keep } else { keep };
                     if keep {

@@ -17,25 +17,9 @@ impl<'a> Interp<'a> {
                     .ok_or_else(|| Unsupported::value("value.binding-missing")),
                 _ => Err(Unsupported::il("il.variable-identity-missing")),
             },
-            NodeKind::Lit => eval_literal(n.payload),
+            NodeKind::Lit => eval_literal(n.payload, self.bitwise_result_is_int32()),
             NodeKind::BinOp => self.eval_bin_op(node, n.payload, env),
-            NodeKind::UnOp => {
-                let kids = self.il.children(node).to_vec();
-                let a = self.eval(
-                    *kids
-                        .first()
-                        .ok_or_else(|| Unsupported::il("il.unary-operand-missing"))?,
-                    env,
-                )?;
-                let op = op_of(n.payload);
-                // int32 oracle execution (#344): JS-family `~x` is `~ToInt32(x)`, an int32.
-                let a = if matches!(op, Op::BitNot) && self.bitwise_result_is_int32() {
-                    to_int32(a)
-                } else {
-                    a
-                };
-                Ok(un(op, &a))
-            }
+            NodeKind::UnOp => self.eval_unary(node, n.payload, env),
             NodeKind::Index => self.eval_index(node, env),
             NodeKind::Seq => {
                 let mut out = Vec::new();
@@ -124,6 +108,61 @@ impl<'a> Interp<'a> {
         }
     }
 
+    fn eval_unary(
+        &mut self,
+        node: NodeId,
+        payload: Payload,
+        env: &mut FxHashMap<u32, Value>,
+    ) -> R<Value> {
+        let operand = self
+            .il
+            .children(node)
+            .first()
+            .copied()
+            .ok_or_else(|| Unsupported::il("il.unary-operand-missing"))?;
+        let value = self.eval(operand, env)?;
+        let op = op_of(payload);
+        if self.bitwise_result_is_int32()
+            && matches!(op, Op::Neg | Op::Pos)
+            && !matches!(value, Value::Err | Value::Sym(_))
+        {
+            let preserve_float = match &value {
+                Value::Float(F64(value)) => {
+                    !(matches!(op, Op::Neg) && *value == 0.0 && value.is_sign_negative())
+                }
+                _ => false,
+            };
+            let number =
+                js_to_number(&value).ok_or_else(|| Unsupported::value("value.js-to-number"))?;
+            let result = if matches!(op, Op::Neg) {
+                -number
+            } else {
+                number
+            };
+            return Ok(js_number_result(result, preserve_float));
+        }
+        // JS `~x` is `~ToInt32(x)`. Preserve an operand error/symbol, but fail closed when
+        // the concrete coercion is not represented by the oracle.
+        let value = if matches!(op, Op::BitNot)
+            && self.bitwise_result_is_int32()
+            && !matches!(value, Value::Err | Value::Sym(_))
+        {
+            let coerced = to_int32(value);
+            if !matches!(coerced, Value::Int(_)) {
+                return Err(Unsupported::value("value.js-to-int32"));
+            }
+            coerced
+        } else {
+            value
+        };
+        if matches!(op, Op::Not) && !matches!(value, Value::Err | Value::Sym(_)) {
+            return Ok(self
+                .value_truthy(&value)
+                .map_or(Value::Err, |truthy| Value::Bool(!truthy)));
+        }
+        Ok(un(op, &value))
+    }
+
     pub(super) fn eval_bin_op(
         &mut self,
         node: NodeId,
@@ -135,6 +174,12 @@ impl<'a> Interp<'a> {
             return Err(Unsupported::il("il.binary-shape"));
         }
         let op = op_of(payload);
+        // This is an operator-level exclusion, not an operand-shape fallback. Check it before
+        // evaluating either side so an unsupported nested coercion cannot turn Pow into a
+        // concrete Err behavior.
+        if matches!(op, Op::Pow) && self.bitwise_result_is_int32() {
+            return Err(Unsupported::value("value.js-number-binary"));
+        }
         // SHORT-CIRCUIT `and`/`or` — real Python/JS/Go/C semantics: the right
         // operand is evaluated ONLY when the left doesn't already decide the result,
         // and the operator yields the deciding OPERAND's value (value-and/or), not a
@@ -147,7 +192,9 @@ impl<'a> Interp<'a> {
         if matches!(op, Op::Or) {
             return Ok(
                 if matches!(a, Value::Err)
-                    || truthy(&a).ok_or_else(|| Unsupported::value("value.condition-truthiness"))?
+                    || self
+                        .value_truthy(&a)
+                        .ok_or_else(|| Unsupported::value("value.condition-truthiness"))?
                 {
                     a
                 } else {
@@ -158,7 +205,8 @@ impl<'a> Interp<'a> {
         if matches!(op, Op::And) {
             return Ok(
                 if matches!(a, Value::Err)
-                    || !truthy(&a)
+                    || !self
+                        .value_truthy(&a)
                         .ok_or_else(|| Unsupported::value("value.condition-truthiness"))?
                 {
                     a
@@ -174,13 +222,37 @@ impl<'a> Interp<'a> {
             return Ok(Value::Err);
         }
         let b = self.eval(kids[1], env)?;
-        // int32 oracle execution (#344): a JS-family bitwise `& | ^` coerces both operands to
-        // int32, so the result is int32 — `(2**40 & 1)` is `0`, not the bigint `2**40 & 1`.
-        // This makes the oracle WITNESS the int32-vs-bigint difference the value graph's
-        // `ToInt32` narrowing fingerprints (it narrows exactly these ops' operands), instead of
-        // computing them as arbitrary-precision i64. Other languages' bitwise stays i64.
-        if matches!(op, Op::BitAnd | Op::BitOr | Op::BitXor) && self.bitwise_result_is_int32() {
-            return Ok(bin(op, &to_int32(a), &to_int32(b)));
+        if matches!(b, Value::Err) {
+            return Ok(Value::Err);
+        }
+        // Every JS-family bitwise op narrows both operands to int32; shifts additionally mask
+        // the rhs to five bits. Other languages retain the shared wide-integer model.
+        if matches!(op, Op::BitAnd | Op::BitOr | Op::BitXor | Op::Shl | Op::Shr)
+            && self.bitwise_result_is_int32()
+        {
+            return js_bitwise_bin(op, a, b).ok_or_else(|| Unsupported::value("value.js-to-int32"));
+        }
+        if self.bitwise_result_is_int32()
+            && matches!(
+                op,
+                Op::Add | Op::Sub | Op::Mul | Op::Div | Op::TrueDiv | Op::Mod
+            )
+        {
+            if contains_sym(&a) || contains_sym(&b) {
+                return Ok(bin(op, &a, &b));
+            }
+            if matches!(op, Op::Add) && matches!((&a, &b), (Value::Str(_), Value::Str(_))) {
+                return Ok(bin(op, &a, &b));
+            }
+            return js_number_bin(op, &a, &b)
+                .ok_or_else(|| Unsupported::value("value.js-number-binary"));
+        }
+        if self.bitwise_result_is_int32()
+            && matches!(a, Value::Int(_) | Value::Float(_))
+            && matches!(b, Value::Int(_) | Value::Float(_))
+        {
+            return js_number_bin(op, &a, &b)
+                .ok_or_else(|| Unsupported::value("value.js-number-binary"));
         }
         Ok(bin(op, &a, &b))
     }
@@ -223,8 +295,16 @@ impl<'a> Interp<'a> {
     }
 }
 
-fn eval_literal(payload: Payload) -> R<Value> {
+fn eval_literal(payload: Payload, javascript_number: bool) -> R<Value> {
     match payload {
+        Payload::LitInt(value)
+            if javascript_number && (value as f64) as i128 != i128::from(value) =>
+        {
+            // Keep exactly representable integers in the oracle's shared compact form, but
+            // round an inexact JS integer literal before any later ToInt32 coercion or
+            // arithmetic. The i128 round-trip avoids i64's saturating float-cast boundary.
+            Ok(Value::Float(F64(value as f64)))
+        }
         Payload::LitInt(value) => Ok(Value::Int(value)),
         Payload::LitBool(value) => Ok(Value::Bool(value)),
         Payload::LitStr(value) => Ok(Value::Str(vec![value])),

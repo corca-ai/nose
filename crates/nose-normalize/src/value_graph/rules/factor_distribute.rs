@@ -33,6 +33,13 @@ pub(in super::super) fn apply(
     } else {
         return None;
     };
+    if builder.is_js_like_lang()
+        || [x, y, f]
+            .into_iter()
+            .any(|value| builder.possibly_float(value))
+    {
+        return None;
+    }
     if !builder.value_law_satisfied(ValueLaw::NumericFactorDistribution, &[x, y, f]) {
         return None;
     }

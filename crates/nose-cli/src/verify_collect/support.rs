@@ -101,18 +101,30 @@ fn runtime_boundary_diagnostic_from_source(
     })
 }
 
-/// Stable hash of a unit's declared parameter domains (position-sensitive).
-/// Units whose declarations differ are interpreted under different battery
-/// coercions and are not behavior-comparable row-for-row.
-pub(super) fn param_domain_signature(il: &nose_il::Il, root: nose_il::NodeId) -> u64 {
+/// A unit's declared parameter domains in source order. Units whose declarations differ are
+/// interpreted under different battery coercions and are not behavior-comparable row-for-row.
+/// Keep this exact representation for hard-gate decisions: the stable hash below is a compact
+/// reporting identifier, not a proof of equality.
+pub(super) fn param_domains(
+    il: &nose_il::Il,
+    root: nose_il::NodeId,
+) -> Vec<Option<nose_il::DomainEvidence>> {
+    il.children(root)
+        .iter()
+        .filter(|&&k| il.kind(k) == nose_il::NodeKind::Param)
+        .map(|&k| nose_semantics::domain_evidence_for_param(il, k))
+        .collect()
+}
+
+/// Stable hash of a unit's declared parameter domains (position-sensitive), retained in JSON
+/// reports as a compact compatibility identifier. Hard-gate comparisons use [`param_domains`].
+pub(super) fn param_domain_signature(domains: &[Option<nose_il::DomainEvidence>]) -> u64 {
     use std::hash::{Hash, Hasher};
     let mut h = std::collections::hash_map::DefaultHasher::new();
-    for &k in il.children(root) {
-        if il.kind(k) == nose_il::NodeKind::Param {
-            match nose_semantics::domain_evidence_for_param(il, k) {
-                Some(d) => d.hash(&mut h),
-                None => 0xD07Fu16.hash(&mut h),
-            }
+    for domain in domains {
+        match domain {
+            Some(d) => d.hash(&mut h),
+            None => 0xD07Fu16.hash(&mut h),
         }
     }
     h.finish()

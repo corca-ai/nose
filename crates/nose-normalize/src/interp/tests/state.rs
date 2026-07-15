@@ -101,6 +101,36 @@ fn float_addition_is_non_associative_in_the_oracle() {
     assert_eq!(bin(Op::Add, &Value::Int(2), &f(0.5)), f(2.5));
 }
 
+#[test]
+fn declared_scalar_domains_reject_mixed_battery_values() {
+    let float = Value::Float(F64(1.25));
+    let string = Value::Str(vec![0x5eed]);
+    assert_eq!(
+        coerce_to_declared_domain(float.clone(), DomainEvidence::Float),
+        float.clone()
+    );
+    assert_eq!(
+        coerce_to_declared_domain(float.clone(), DomainEvidence::Number),
+        float
+    );
+    assert_eq!(
+        coerce_to_declared_domain(string.clone(), DomainEvidence::String),
+        string
+    );
+    assert!(matches!(
+        coerce_to_declared_domain(Value::Int(7), DomainEvidence::Float),
+        Value::Float(_)
+    ));
+    assert!(matches!(
+        coerce_to_declared_domain(Value::List(vec![]), DomainEvidence::Number),
+        Value::Float(_)
+    ));
+    assert!(matches!(
+        coerce_to_declared_domain(Value::Int(7), DomainEvidence::String),
+        Value::Str(_)
+    ));
+}
+
 // #342: `F64`'s behavior-comparison `Eq` canonicalizes the float corners — all NaNs are
 // equal (two units returning NaN ARE behavior-equal) and `+0.0 == -0.0`.
 #[test]
@@ -151,6 +181,14 @@ fn js_bitwise_and_wraps_to_int32_in_the_oracle() {
     );
     // Small ints are identical either way (int32(x) == x).
     assert_eq!(run_bitand(Lang::JavaScript, 6, 3), Value::Int(2));
+    assert_eq!(
+        to_int32(Value::Float(F64(0xF_0000_0003_u64 as f64))),
+        Value::Int(3)
+    );
+    assert_eq!(to_int32(Value::Float(F64(-1.9))), Value::Int(-1));
+    assert_eq!(to_int32(Value::Float(F64(f64::NAN))), Value::Int(0));
+    assert_eq!(to_int32(Value::Bool(true)), Value::Int(1));
+    assert_eq!(to_int32(Value::Null), Value::Int(0));
 }
 
 fn run_foreach_with_iterable_err() -> Option<Value> {
@@ -214,22 +252,48 @@ fn throw_is_err_behavior_and_stops_execution() {
     assert_eq!(run_throw_then_return(), Value::Err);
 }
 
+fn add_self_field(
+    builder: &mut IlBuilder,
+    interner: &Interner,
+    field_name: nose_il::Symbol,
+    offset: u32,
+) -> (NodeId, NodeId) {
+    let receiver = builder.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("this")),
+        test_span(offset),
+        &[],
+    );
+    let field = builder.add(
+        NodeKind::Field,
+        Payload::Name(field_name),
+        test_span(offset + 1),
+        &[receiver],
+    );
+    (receiver, field)
+}
+
+fn finish_java_field_test(builder: IlBuilder, root: NodeId) -> Il {
+    builder.finish(
+        root,
+        FileMeta {
+            path: "T.java".into(),
+            lang: Lang::Java,
+        },
+        Vec::new(),
+        Vec::new(),
+    )
+}
+
 fn run_field_write_read() -> (Behavior, FieldKey) {
     let interner = Interner::new();
-    let this_name = interner.intern("this");
     let field_name = interner.intern("x");
     let field_key = FieldKey {
         receiver: FieldPlace::SelfReceiver,
         field: stable_symbol_hash(interner.resolve(field_name)),
     };
     let mut b = IlBuilder::new(FileId(0));
-    let write_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(1), &[]);
-    let write_target = b.add(
-        NodeKind::Field,
-        Payload::Name(field_name),
-        test_span(2),
-        &[write_receiver],
-    );
+    let (write_receiver, write_target) = add_self_field(&mut b, &interner, field_name, 1);
     let seven = b.add(NodeKind::Lit, Payload::LitInt(7), test_span(3), &[]);
     let assign = b.add(
         NodeKind::Assign,
@@ -237,13 +301,7 @@ fn run_field_write_read() -> (Behavior, FieldKey) {
         test_span(4),
         &[write_target, seven],
     );
-    let read_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(5), &[]);
-    let read_target = b.add(
-        NodeKind::Field,
-        Payload::Name(field_name),
-        test_span(6),
-        &[read_receiver],
-    );
+    let (read_receiver, read_target) = add_self_field(&mut b, &interner, field_name, 5);
     let ret = b.add(
         NodeKind::Return,
         Payload::None,
@@ -252,15 +310,7 @@ fn run_field_write_read() -> (Behavior, FieldKey) {
     );
     let block = b.add(NodeKind::Block, Payload::None, test_span(8), &[assign, ret]);
     let func = b.add(NodeKind::Func, Payload::None, test_span(9), &[block]);
-    let mut il = b.finish(
-        func,
-        FileMeta {
-            path: "T.java".into(),
-            lang: Lang::Java,
-        },
-        Vec::new(),
-        Vec::new(),
-    );
+    let mut il = finish_java_field_test(b, func);
     admit_test_self_field_write(
         &mut il,
         &interner,
@@ -348,16 +398,9 @@ fn raw_python_attribute_write_is_not_oracle_field_state_proof() {
 
 fn run_field_read_with_error_receiver() -> Behavior {
     let interner = Interner::new();
-    let this_name = interner.intern("this");
     let field_name = interner.intern("x");
     let mut b = IlBuilder::new(FileId(0));
-    let write_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(1), &[]);
-    let write_target = b.add(
-        NodeKind::Field,
-        Payload::Name(field_name),
-        test_span(2),
-        &[write_receiver],
-    );
+    let (write_receiver, write_target) = add_self_field(&mut b, &interner, field_name, 1);
     let seven = b.add(NodeKind::Lit, Payload::LitInt(7), test_span(3), &[]);
     let assign = b.add(
         NodeKind::Assign,
@@ -392,15 +435,7 @@ fn run_field_read_with_error_receiver() -> Behavior {
         &[assign, ret],
     );
     let func = b.add(NodeKind::Func, Payload::None, test_span(11), &[block]);
-    let mut il = b.finish(
-        func,
-        FileMeta {
-            path: "T.java".into(),
-            lang: Lang::Java,
-        },
-        Vec::new(),
-        Vec::new(),
-    );
+    let mut il = finish_java_field_test(b, func);
     admit_test_self_field_write(
         &mut il,
         &interner,
@@ -459,17 +494,10 @@ fn field_write_propagates_receiver_err_before_cached_value() {
 
 fn run_self_field_writes(swapped: bool) -> Behavior {
     let interner = Interner::new();
-    let this_name = interner.intern("this");
     let x_name = interner.intern("x");
     let y_name = interner.intern("y");
     let mut b = IlBuilder::new(FileId(0));
-    let x_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(1), &[]);
-    let x_target = b.add(
-        NodeKind::Field,
-        Payload::Name(x_name),
-        test_span(2),
-        &[x_receiver],
-    );
+    let (x_receiver, x_target) = add_self_field(&mut b, &interner, x_name, 1);
     let one = b.add(NodeKind::Lit, Payload::LitInt(1), test_span(3), &[]);
     let x_assign = b.add(
         NodeKind::Assign,
@@ -477,13 +505,7 @@ fn run_self_field_writes(swapped: bool) -> Behavior {
         test_span(4),
         &[x_target, one],
     );
-    let y_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(5), &[]);
-    let y_target = b.add(
-        NodeKind::Field,
-        Payload::Name(y_name),
-        test_span(6),
-        &[y_receiver],
-    );
+    let (y_receiver, y_target) = add_self_field(&mut b, &interner, y_name, 5);
     let two = b.add(NodeKind::Lit, Payload::LitInt(2), test_span(7), &[]);
     let y_assign = b.add(
         NodeKind::Assign,
@@ -498,15 +520,7 @@ fn run_self_field_writes(swapped: bool) -> Behavior {
     };
     let block = b.add(NodeKind::Block, Payload::None, test_span(9), &statements);
     let func = b.add(NodeKind::Func, Payload::None, test_span(10), &[block]);
-    let mut il = b.finish(
-        func,
-        FileMeta {
-            path: "T.java".into(),
-            lang: Lang::Java,
-        },
-        Vec::new(),
-        Vec::new(),
-    );
+    let mut il = finish_java_field_test(b, func);
     admit_test_self_field_write(
         &mut il, &interner, x_receiver, x_target, x_assign, x_name, 2000,
     );

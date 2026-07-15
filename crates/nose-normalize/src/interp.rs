@@ -39,7 +39,10 @@ mod ops;
 mod value;
 use ops::*;
 pub use value::{behavior_equiv, behavior_has_sym, Behavior, Value, F64};
-use value::{coerce_to_declared_domain, contains_sym, hashed, vhash, FieldKey, FieldPlace};
+use value::{
+    coerce_to_declared_domain, compact_javascript_positive_zero, contains_sym, hashed, vhash,
+    FieldKey, FieldPlace,
+};
 
 /// Stable structural signature of an IL subtree: pre-order over (kind, payload,
 /// child count), with `Name` symbols resolved through the interner so the signature
@@ -338,6 +341,11 @@ fn run_unit_once(
                     Some(d) => coerce_to_declared_domain(raw, d),
                     None => raw,
                 };
+                let v = if it.bitwise_result_is_int32() {
+                    compact_javascript_positive_zero(v)
+                } else {
+                    v
+                };
                 env.insert(c, v);
                 it.params.insert(c);
                 pi += 1;
@@ -385,7 +393,7 @@ impl<'a> Interp<'a> {
     /// symbolic). Loop conditions deliberately stay strict: an assumption per
     /// iteration is an unbounded chain, not a bounded fork.
     fn cond_truthy(&mut self, v: &Value) -> R<bool> {
-        if let Some(t) = truthy(v) {
+        if let Some(t) = self.value_truthy(v) {
             return Ok(t);
         }
         let Value::Sym(h) = v else {
@@ -404,6 +412,20 @@ impl<'a> Interp<'a> {
         self.effects
             .push(Value::Sym(sym_id(SYM_ASSUME, &[h, u64::from(taken)])));
         Ok(taken)
+    }
+
+    /// Concrete truthiness with the source language's Number edge cases. JavaScript treats
+    /// NaN as falsy and every array object as truthy; Python deliberately does neither, so
+    /// these cases cannot live in the shared helper.
+    fn value_truthy(&self, v: &Value) -> Option<bool> {
+        if self.bitwise_result_is_int32() {
+            match v {
+                Value::Float(value) if value.0.is_nan() => return Some(false),
+                Value::List(_) => return Some(true),
+                _ => {}
+            }
+        }
+        truthy(v)
     }
 }
 

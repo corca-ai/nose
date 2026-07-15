@@ -309,6 +309,9 @@ pub(crate) enum Cmd {
         /// the fixed battery's input STARVATION missed. Offline/opt-in; reports the search delta.
         #[arg(long)]
         falsify: bool,
+        /// Deterministic search seed. Re-run the printed seed to replay the exact candidate order.
+        #[arg(long, requires = "falsify")]
+        falsify_seed: Option<u64>,
     },
     /// EXPERIMENTAL Type-4 benchmark harness (research tool, not a stable interface).
     ///
