@@ -1,4 +1,4 @@
-use super::{first_func, value_fp};
+use super::{value_fp, value_fp_named};
 use nose_il::{FileId, Interner, Lang};
 use nose_normalize::{normalize, run_unit, Behavior, NormalizeOptions, Value, F64};
 
@@ -18,6 +18,17 @@ const EXACT_ZERO_LEFT: &str =
     "function f(a:number,b:number,c:number):number[] { return [-(-0),a,b,c]; }";
 const EXACT_ZERO_RIGHT: &str =
     "function f(a:number,b:number,c:number):number[] { return [0,a,b,c]; }";
+const HELPER_ZERO_LEFT: &str = r#"
+function identity(value: number): number { return value; }
+function f(x: number, a: number, b: number, c: number): number[] {
+    return [identity(x - x), a, b, c];
+}
+"#;
+const HELPER_ZERO_RIGHT: &str = r#"
+function f(x: number, a: number, b: number, c: number): number[] {
+    return [x - x, a, b, c];
+}
+"#;
 const FACTOR_LEFT: &str = "function f(x:number,y:number,k:number):number { return x*k + y*k; }";
 const FACTOR_RIGHT: &str = "function f(x:number,y:number,k:number):number { return (x+y)*k; }";
 const REDUCE_LEFT: &str = "function f(xs:number[],a:number,b:number):number { let total=0; for(const x of xs){ total += (x+a)+b; } return total; }";
@@ -40,7 +51,31 @@ fn behavior(interner: &Interner, source: &str, args: &[Value]) -> Option<Behavio
             ..NormalizeOptions::default()
         },
     );
-    run_unit(&core, interner, first_func(&core), args)
+    let root = core
+        .units
+        .iter()
+        .find(|unit| {
+            unit.name
+                .is_some_and(|symbol| interner.resolve(symbol) == "f")
+        })
+        .map(|unit| unit.root)
+        .expect("review calibration source must contain function f");
+    run_unit(&core, interner, root, args)
+}
+
+fn product_unit(interner: &Interner, source: &str) -> nose_detect::UnitFeat {
+    let il = nose_frontend::lower_source(
+        FileId(0),
+        "review.ts",
+        source.as_bytes(),
+        Lang::TypeScript,
+        interner,
+    )
+    .expect("review calibration source must lower");
+    nose_detect::units_of_file(&il, interner, &nose_detect::DetectOptions::default())
+        .into_iter()
+        .find(|unit| unit.name.as_deref() == Some("f"))
+        .expect("function f must reach product extraction")
 }
 
 fn returned(interner: &Interner, source: &str, args: &[Value]) -> Value {
@@ -96,6 +131,34 @@ fn assert_exact_integer_equivalence(interner: &Interner, edges: &serde_json::Val
     assert_eq!(edges["exact_zero_equivalence"].as_bool(), Some(true));
 }
 
+fn assert_helper_inline_zero_equivalence(interner: &Interner, edges: &serde_json::Value) {
+    let helper_fp = value_fp_named(interner, HELPER_ZERO_LEFT, Lang::TypeScript, "f");
+    let inline_fp = value_fp_named(interner, HELPER_ZERO_RIGHT, Lang::TypeScript, "f");
+    assert_eq!(helper_fp, inline_fp);
+
+    let helper_unit = product_unit(interner, HELPER_ZERO_LEFT);
+    let inline_unit = product_unit(interner, HELPER_ZERO_RIGHT);
+    assert!(nose_detect::exact_claim_eligible(&helper_unit));
+    assert!(nose_detect::exact_claim_eligible(&inline_unit));
+    assert_eq!(helper_unit.value, inline_unit.value);
+
+    let args = [
+        Value::Float(F64(1.0)),
+        Value::Float(F64(2.0)),
+        Value::Float(F64(-2.0)),
+        Value::Float(F64(-0.0)),
+    ];
+    assert_eq!(
+        behavior(interner, HELPER_ZERO_LEFT, &args),
+        behavior(interner, HELPER_ZERO_RIGHT, &args),
+        "an internal identity call must preserve the same +0 lane as its inlined form"
+    );
+    assert_eq!(
+        edges["helper_inline_zero_equivalence"].as_bool(),
+        Some(true)
+    );
+}
+
 #[test]
 fn production_javascript_number_boundaries_match_independent_node_runtime() {
     let artifact: serde_json::Value = serde_json::from_str(ARTIFACT).expect("calibration JSON");
@@ -122,6 +185,7 @@ fn production_javascript_number_boundaries_match_independent_node_runtime() {
     assert!(behavior(&interner, NESTED_POW, &[]).is_none());
 
     assert_exact_integer_equivalence(&interner, edges);
+    assert_helper_inline_zero_equivalence(&interner, edges);
 
     assert_ne!(
         value_fp(&interner, FACTOR_LEFT, Lang::TypeScript),

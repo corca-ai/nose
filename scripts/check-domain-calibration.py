@@ -66,6 +66,9 @@ const factorLeft = 0 * Infinity + 1 * Infinity;
 const factorRight = (0 + 1) * Infinity;
 const reduceLeft = (1e16 + -1e16) + 1;
 const reduceRight = 1e16 + (-1e16 + 1);
+const identity = value => value;
+const helperZero = identity(1 - 1);
+const inlineZero = 1 - 1;
 const first = [1, 2];
 const second = [1, 2];
 first[0] = 9;
@@ -86,6 +89,8 @@ console.log(JSON.stringify({
     exact_integer_equivalence: JSON.stringify([-(-1), 2, 3.5, -4]) === JSON.stringify([1, 2, 3.5, -4]),
     exact_zero_equivalence: Object.is(-(-0), 0),
     factor_distribution: {left_nan: Number.isNaN(factorLeft), right: String(factorRight)},
+    helper_inline_zero_equivalence:
+      Object.is(helperZero, inlineZero) && Object.is(helperZero, 0),
     large_literal_bitwise: {
       shift_right: 9223372036854775807 >> 0,
       bitand: 9223372036854775807 & 1,

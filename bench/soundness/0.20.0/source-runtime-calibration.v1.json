@@ -40,6 +40,7 @@
           "left_nan": true,
           "right": "Infinity"
         },
+        "helper_inline_zero_equivalence": true,
         "large_literal_bitwise": {
           "bitand": 0,
           "bitnot": -1,

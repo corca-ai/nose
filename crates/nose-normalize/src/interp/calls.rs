@@ -235,12 +235,12 @@ impl<'a> Interp<'a> {
             .ok_or_else(|| Unsupported::protocol("protocol.call-argument-binding"))?;
         let mut fenv: FxHashMap<u32, Value> = FxHashMap::default();
         for (cid, value_node) in plan {
-            let mut value = self.eval(value_node, env)?;
+            // Preserve the computed representation at an internal call boundary. The value graph
+            // may inline this callee, so compacting JavaScript +0 only on the out-of-line path
+            // would make an identity helper disagree with its exact-equivalent inlined form.
+            let value = self.eval(value_node, env)?;
             if matches!(value, Value::Err) {
                 return Ok(Value::Err);
-            }
-            if self.bitwise_result_is_int32() {
-                value = compact_javascript_positive_zero(value);
             }
             fenv.insert(cid, value);
         }
