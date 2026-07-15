@@ -1,5 +1,6 @@
 use super::super::{
-    abstraction_family_witness, extract, ExtractFeatures, UnitFeat, EXACT_VALUE_MIN,
+    abstraction_family_witness, default_product_value_fingerprint_context, extract,
+    ExtractFeatures, UnitFeat, EXACT_VALUE_MIN,
 };
 use crate::fragment::FragmentKind;
 use nose_il::{FileId, Interner, Lang, UnitKind};
@@ -55,6 +56,46 @@ fn lowered_java_unit(src: &str, interner: &Interner, kind: UnitKind, name: &str)
 
 fn lowered_java_method_unit(src: &str, interner: &Interner) -> UnitFeat {
     lowered_java_unit(src, interner, UnitKind::Method, "f")
+}
+
+#[test]
+fn default_product_value_context_counts_mixed_frontend_units() {
+    let interner = Interner::new();
+    let raw = nose_frontend::lower_source(
+        FileId(0),
+        "mixed.ts",
+        b"class C { value = 1; }\nfunction f(x: number) { return x + 1; }\n",
+        Lang::TypeScript,
+        &interner,
+    )
+    .expect("lower TypeScript source");
+    let il = nose_normalize::normalize(
+        &raw,
+        &interner,
+        &nose_normalize::NormalizeOptions::default(),
+    );
+
+    assert!(default_product_value_fingerprint_context(&il, &interner).is_some());
+}
+
+#[test]
+fn default_product_value_context_counts_default_block_roots() {
+    let interner = Interner::new();
+    let raw = nose_frontend::lower_source(
+        FileId(0),
+        "blocks.js",
+        b"function f(x) { if (x > 0) { return x + 1; } return x - 1; }\n",
+        Lang::JavaScript,
+        &interner,
+    )
+    .expect("lower JavaScript source");
+    let il = nose_normalize::normalize(
+        &raw,
+        &interner,
+        &nose_normalize::NormalizeOptions::default(),
+    );
+
+    assert!(default_product_value_fingerprint_context(&il, &interner).is_some());
 }
 
 #[test]

@@ -7,6 +7,7 @@ mod features;
 mod fragments;
 mod gates;
 mod model;
+mod product;
 mod timing;
 mod tree;
 
@@ -29,22 +30,14 @@ pub(crate) use model::abstraction_family_witness;
 pub use model::UnitFeat;
 use nose_il::{Il, Interner, NodeId, NodeKind, Payload, Span, Symbol, UnitKind, UnitOrigin};
 use nose_semantics::ValueLaw;
+pub use product::{
+    default_product_unit_admission, default_product_value_fingerprint_context,
+    ProductUnitAdmissionInput,
+};
 use std::time::Instant;
 use timing::{UnitTimer, UnitTimingSample, UnitTimingSkipSample};
 use tree::collect_pre;
 pub(crate) use tree::{build_parent_index, subtree_spans_within};
-
-/// Per-unit facts needed to ask whether the default product detector would admit an
-/// ordinary frontend-tagged unit to semantic extraction.
-#[derive(Clone, Copy)]
-pub struct ProductUnitAdmissionInput {
-    pub root: NodeId,
-    pub kind: UnitKind,
-    pub origin: UnitOrigin,
-    pub tokens: usize,
-    pub exact_safe: bool,
-    pub value_len: usize,
-}
 
 #[derive(Clone, Copy)]
 struct UnitRoot {
@@ -59,51 +52,45 @@ struct UnitRoot {
     fragment_kind: Option<FragmentKind>,
 }
 
+fn collect_unit_roots(
+    il: &Il,
+    interner: &Interner,
+    block_units: bool,
+) -> (Vec<UnitRoot>, Option<Vec<Option<NodeId>>>) {
+    let mut roots: Vec<UnitRoot> = il
+        .units
+        .iter()
+        .map(|u| UnitRoot {
+            root: u.root,
+            kind: u.kind,
+            name: u.name,
+            origin: u.origin,
+            fragment_kind: None,
+        })
+        .collect();
+    let parents = if block_units {
+        let parents = build_parent_index(il);
+        collect_extra_unit_roots(il, il.root, &parents, interner, &mut roots);
+        Some(parents)
+    } else {
+        None
+    };
+    (roots, parents)
+}
+
+fn value_fingerprint_context_for_roots(
+    il: &Il,
+    interner: &Interner,
+    root_count: usize,
+) -> Option<nose_normalize::ValueFingerprintContext> {
+    (root_count > 1).then(|| nose_normalize::ValueFingerprintContext::new(il, interner))
+}
+
 #[derive(Clone, Copy)]
 pub(crate) struct ExtractFeatures {
     pub(crate) shape_features: bool,
     pub(crate) abstraction_witnesses: bool,
     pub(crate) connected_witnesses: bool,
-}
-
-/// Whether an ordinary frontend-tagged unit can enter the product's default semantic
-/// extraction surface. This is the shared owner for offline soundness censuses: a unit that
-/// the default detector drops must not contribute "product-claimable" merge mass merely
-/// because its value fingerprint is exact-safe and non-trivial.
-pub fn default_product_unit_admission(
-    raw_il: &Il,
-    normalized_il: &Il,
-    input: ProductUnitAdmissionInput,
-) -> ProductUnitAdmission {
-    let opts = crate::DetectOptions::default();
-    let span = normalized_il.node(input.root).span;
-    let syntactically_small = span.line_count() < opts.min_lines || input.tokens < opts.min_tokens;
-    let declarative = matches!(
-        normalized_il.kind(input.root),
-        NodeKind::CssRule | NodeKind::HtmlElement
-    );
-    let gate = PreValueFingerprintGate {
-        kind: input.kind,
-        origin: input.origin,
-        tokens: input.tokens,
-        lines: span.line_count(),
-        syntactically_small,
-        declarative,
-        exact_fragment: false,
-        large_test_file: large_test_file(raw_il) || large_test_file(normalized_il),
-    };
-    if let Some(rejection) = pre_value_fingerprint_rejection(gate) {
-        return rejection;
-    }
-    post_value_fingerprint_rejection(
-        input.kind,
-        false,
-        declarative,
-        syntactically_small,
-        input.exact_safe,
-        input.value_len,
-    )
-    .unwrap_or(ProductUnitAdmission::Admitted)
 }
 
 /// Per-file inputs shared by every unit extraction in [`extract`].
@@ -157,28 +144,10 @@ pub(crate) fn extract(
     // fragments stay stricter: they must satisfy the exact semantic gate before they
     // are kept, so opaque surrounding code can no longer hide a provable return/effect
     // expression without expanding the fuzzy surface.
-    let mut roots: Vec<UnitRoot> = il
-        .units
-        .iter()
-        .map(|u| UnitRoot {
-            root: u.root,
-            kind: u.kind,
-            name: u.name,
-            origin: u.origin,
-            fragment_kind: None,
-        })
-        .collect();
-    let parents = if block_units {
-        let parents = build_parent_index(il);
-        collect_extra_unit_roots(il, il.root, &parents, interner, &mut roots);
-        Some(parents)
-    } else {
-        None
-    };
+    let (roots, parents) = collect_unit_roots(il, interner, block_units);
 
     let facts = StrictFacts::collect(il, interner);
-    let value_context =
-        (roots.len() > 1).then(|| nose_normalize::ValueFingerprintContext::new(il, interner));
+    let value_context = value_fingerprint_context_for_roots(il, interner, roots.len());
     let ctx = UnitExtractCtx {
         il,
         interner,
@@ -239,24 +208,9 @@ pub fn unit_dags_at(
     if n.nodes.len() > WITNESS_MAX_FILE_NODES {
         return vec![None; wanted.len()];
     }
-    let mut roots: Vec<UnitRoot> = n
-        .units
-        .iter()
-        .map(|u| UnitRoot {
-            root: u.root,
-            kind: u.kind,
-            name: u.name,
-            origin: u.origin,
-            fragment_kind: None,
-        })
-        .collect();
-    if opts.block_units {
-        let parents = build_parent_index(&n);
-        collect_extra_unit_roots(&n, n.root, &parents, interner, &mut roots);
-    }
+    let (roots, _) = collect_unit_roots(&n, interner, opts.block_units);
     let facts = StrictFacts::collect(&n, interner);
-    let context =
-        (roots.len() > 1).then(|| nose_normalize::ValueFingerprintContext::new(&n, interner));
+    let context = value_fingerprint_context_for_roots(&n, interner, roots.len());
     let referents = nose_normalize::FileReferents::new(&n, interner);
     // Span -> root (first wins, matching extraction order).
     let mut by_lines: rustc_hash::FxHashMap<(u32, u32), NodeId> = rustc_hash::FxHashMap::default();

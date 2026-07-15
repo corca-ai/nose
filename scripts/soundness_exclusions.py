@@ -61,6 +61,8 @@ def sha256_file(path: Path) -> str:
 
 
 def require_byte_identical(primary: Path, peer: Path, label: str) -> str:
+    if primary.resolve() == peer.resolve() or primary.samefile(peer):
+        raise ValueError(f"{label} must use distinct files for 1/4 threads")
     primary_hash = sha256_file(primary)
     peer_hash = sha256_file(peer)
     if primary_hash != peer_hash or primary.read_bytes() != peer.read_bytes():
@@ -787,6 +789,15 @@ def self_test() -> None:
             raise AssertionError("mismatched 1/4-thread evidence was accepted")
         peer.write_bytes(b"same\n")
         require_byte_identical(first, peer, "self-test evidence")
+        alias = Path(tmp) / "alias"
+        alias.hardlink_to(first)
+        for duplicate in (first, alias):
+            try:
+                require_byte_identical(first, duplicate, "self-test evidence")
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("non-distinct 1/4-thread evidence was accepted")
     family = {
         "repository": "fixture",
         "fingerprint_sha256": "a",

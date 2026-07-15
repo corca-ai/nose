@@ -104,8 +104,8 @@ per-family cap. The first two investment cells are:
 | Python / `kind:Assign` / `protocol.field-write-proof` | 68 | `319 / 147` |
 
 This makes the next decision concrete: close Java variable identity first for
-the broadest capped reach, then Python field-write proof for the largest raw
-claimable mass. Each implementation must still pass the frozen soundness gate;
+the broadest capped reach, then Python field-write proof for the next-largest
+capped reach. Each implementation must still pass the frozen soundness gate;
 the ranking is value evidence, not permission to widen admission.
 
 The checked policy tests inject both a 100-unit exact-unsafe fingerprint cluster

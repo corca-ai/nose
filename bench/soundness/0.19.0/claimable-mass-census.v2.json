@@ -15367,9 +15367,9 @@
   "claimable_family_cap": 8,
   "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
   "eligibility": "default_product_admission == admitted && exact_safe && value_fingerprint.len >= 4",
-  "evidence_sha256": "bafd7a9ae0fc7aa52b347b23db1de82c11a4749f2b05e67afb3926f252aff3b2",
+  "evidence_sha256": "51cba82f8f3bdf97a1d95564214da07f7a417d363d072e43f8beaee61a42a8b7",
   "nose": {
-    "sha256": "2cad61facdd795d72f50b4926fc86e5fa73022a68694577d0f1adbf9798cfbcb",
+    "sha256": "322d374994d15297c95a69264978d6704159c6ad3148d29c7d01167bc8ecba34",
     "version": "nose 0.19.0"
   },
   "prune_manifest_sha256": "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980",
@@ -16564,7 +16564,7 @@
         "semantic-boundary-attributed": 719
       },
       "capped_claimable_pair_mass": 2,
-      "census_sha256": "c8b5ad4773b8ab72f37697195d6aa7fb9f3bab49a951f09c17ad6a863d2bf3b6",
+      "census_sha256": "a6ceb6feffa590f5301c25e7697eb800bfc10455ab52078216dd765a89255095",
       "claimable_families": 2,
       "claimable_families_sha256": "ed9475a9b93f7f550a34d95000ff1ebf6da7d3d861c88cb97c17f2512bfc709c",
       "claimable_pair_mass": 2,
@@ -16930,7 +16930,7 @@
         "semantic-boundary-attributed": 878
       },
       "capped_claimable_pair_mass": 15,
-      "census_sha256": "b1b0d39d9c49ef68023d86cba44dfd8a67bcfbf270e79dbd2a2b329d239fed53",
+      "census_sha256": "b9f1ab2d74613744fc2630a2d098e8d938eba8629a07e003a157c3d810edb12e",
       "claimable_families": 6,
       "claimable_families_sha256": "d4880949c24a82754a2c60793c7ecd0ab9eba112c76d28782dbfe3f3a1132e94",
       "claimable_pair_mass": 17,
@@ -17651,7 +17651,7 @@
         "semantic-boundary-attributed": 3674
       },
       "capped_claimable_pair_mass": 107,
-      "census_sha256": "0b954ad759fd613ad94b00e9d270f4842e9c7b05a94cd3e2fd726abcf7673f32",
+      "census_sha256": "767759567294469d725b0fb25541d6dd1ce76cc0ca53972bcc9384f6f27eeedb",
       "claimable_families": 61,
       "claimable_families_sha256": "db045052d52c7b507290b58622e7b1db4196512dc51d4f8b26ef3bf0353ad697",
       "claimable_pair_mass": 245,
@@ -17835,7 +17835,7 @@
         "semantic-boundary-attributed": 718
       },
       "capped_claimable_pair_mass": 11,
-      "census_sha256": "ec1e5c175a16939c54e05e82c886e341318193d2367439fd8686ce574c603b9b",
+      "census_sha256": "16fbae64f33823437b4c8a249ecd7fbf56298347db93a444e4de5a24186c1342",
       "claimable_families": 9,
       "claimable_families_sha256": "0945b7fffcdad002008e859892024dacf8b682441004756280b7d705765d9a2c",
       "claimable_pair_mass": 11,
@@ -18350,7 +18350,7 @@
         "semantic-boundary-attributed": 484
       },
       "capped_claimable_pair_mass": 7,
-      "census_sha256": "a3018cae368fe09cee9c27df21e6a23c8bf7513faba2dfdb44649ae93ddc38fb",
+      "census_sha256": "4f8033013a9379abe961cf3d4aaf8d18cfe9e24fcb4450c118b9b06a09e175df",
       "claimable_families": 5,
       "claimable_families_sha256": "f0a2f45a4dfe720b5ae7dcbcd458af9803cc17da533756c3a7fea55b1dd56457",
       "claimable_pair_mass": 7,
@@ -18529,7 +18529,7 @@
         "semantic-boundary-attributed": 2093
       },
       "capped_claimable_pair_mass": 40,
-      "census_sha256": "1fedc95ef3ce4d0a14a2cd586de8d1659b60706dadb0ac4e102673072ac19573",
+      "census_sha256": "987692edc823296e2308bb175f22a0bc0ff879bdd977173376bb95c979f4a51e",
       "claimable_families": 10,
       "claimable_families_sha256": "fa747e82841f43187ec02813cf463609b29ac67e911b4a72bfafee15365933da",
       "claimable_pair_mass": 430,
@@ -19626,12 +19626,12 @@
         "semantic-boundary-attributed": 334
       },
       "capped_claimable_pair_mass": 5,
-      "census_sha256": "e558e81d8681a98eb71d58eb0c74ddb4e3d1bfb064f88aeded5f83c404bc79d2",
+      "census_sha256": "67573e0ca59bcaf1a22dc4e74be8c0c7e48aeab7b0b01b50dc35f3f4351facd9",
       "claimable_families": 3,
       "claimable_families_sha256": "389f95a79883184d22841d4556f846cdfd68f09c438a510d59033237e29f62f0",
       "claimable_pair_mass": 5,
       "claimable_units": 87,
-      "claimable_units_sha256": "5721dcaa6688e77bff4594e705c774349309dec224b7831f1ed8d2d719acedb7",
+      "claimable_units_sha256": "1411acb0444acd56e5971cf5bcc5009e4001dfaca2ae20dbb8bd41acdaede12b",
       "commit": "bbc68f990c7e6a5e3f506c56fb04bd0279b9c9b5",
       "excluded_units": 1000,
       "generic_unattributed_exclusions": 0,

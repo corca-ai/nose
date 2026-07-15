@@ -35,7 +35,7 @@
   },
   "exclusion_attribution": {
     "schema": "nose-oracle-exclusion-census/v2",
-    "instrument_binary_sha256": "2cad61facdd795d72f50b4926fc86e5fa73022a68694577d0f1adbf9798cfbcb",
+    "instrument_binary_sha256": "322d374994d15297c95a69264978d6704159c6ad3148d29c7d01167bc8ecba34",
     "release_tree_census_sha256": "e3136ef3fb4165315b4b7fdd31ef281812c973d057139debe22d31e8026da36f",
     "threads": [1, 4],
     "generic_unattributed_exclusions": 0,
@@ -65,13 +65,13 @@
     "bench/recall_loss/release-0.19.0-evidence-2026-07-13.v1.json": "7d0330a578d15f28c864ff8e4fe7dcb48ac8a6e8033d76f058003696276e0ab5"
   },
   "baseline_artifacts": {
-    "claimable-mass-census.v2.json": "7a4360e1f67bcb2448189499e68f563ea9aa9559357b907968e324fcdf425568",
+    "claimable-mass-census.v2.json": "dceaa0bd7f235f6c3a63a6bb2cc353046098b21ab103bf738252aec8f272f66d",
     "cohort.v1.json": "01a0cc8fec06ed9058e2fbe03524f1bd1237aa74b331229c0cced20e6b63f12c",
-    "corpus-census-evidence.v2.json": "bafd7a9ae0fc7aa52b347b23db1de82c11a4749f2b05e67afb3926f252aff3b2",
+    "corpus-census-evidence.v2.json": "51cba82f8f3bdf97a1d95564214da07f7a417d363d072e43f8beaee61a42a8b7",
     "crates-report.v1.json": "149abb80c7ffb790d3fc0fbc2ad910add776d768ecf2961ee4321239f935d9c9",
     "exclusion-census.v2.json": "e3136ef3fb4165315b4b7fdd31ef281812c973d057139debe22d31e8026da36f",
     "exclusion-ledger.v2.json": "47e4b3f50eb128ba0b41d4428d41b9172e2ac7850296c2757063a68fb5d18493",
-    "interpreter-priority.v2.json": "d3cce9e2e4017895ec41cb06add51ead459e2378101a67ec87c76365c808a2fa",
+    "interpreter-priority.v2.json": "9fa73dce0707e0ec3b84d5ee3cd787601d71bbcf82bb64631cb993901ebc2a33",
     "reporting.patch": "34f8a63357d044798a9acf1d458cfe12c73a2b1c7d0fecbadf91fe9b0bc92f69",
     "scorecard.v1.json": "b5edb7340a7a9c7b45bb6ba8c561c77315955059016f971cf25332cf8e2f60f2",
     "semantic-query.v1.json": "576e051be17a858f5353d5d1255bee5ca0fa7f0cf6803037f8b5260127d9a003"

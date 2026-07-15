@@ -594,7 +594,7 @@ def verify_manifest(base: Path, manifest: dict[str, Any]) -> None:
             raise ValueError(f"baseline artifact hash mismatch: {name}")
     expected_attribution = {
         "schema": "nose-oracle-exclusion-census/v2",
-        "instrument_binary_sha256": "2cad61facdd795d72f50b4926fc86e5fa73022a68694577d0f1adbf9798cfbcb",
+        "instrument_binary_sha256": "322d374994d15297c95a69264978d6704159c6ad3148d29c7d01167bc8ecba34",
         "release_tree_census_sha256": "e3136ef3fb4165315b4b7fdd31ef281812c973d057139debe22d31e8026da36f",
         "threads": [1, 4],
         "generic_unattributed_exclusions": 0,

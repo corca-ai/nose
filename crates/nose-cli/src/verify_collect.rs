@@ -205,13 +205,8 @@ pub(super) fn collect_verify_recs(
                 census_enabled: census,
                 exclusions: VerifyExclusions::default(),
             };
-            let func_count = n
-                .units
-                .iter()
-                .filter(|u| n.kind(u.root) == nose_il::NodeKind::Func)
-                .count();
-            let value_context = (func_count > 1)
-                .then(|| nose_normalize::ValueFingerprintContext::new(&n, &corpus.interner));
+            let value_context =
+                nose_detect::default_product_value_fingerprint_context(&n, &corpus.interner);
             let exact_safe_roots: Vec<_> = n
                 .units
                 .iter()

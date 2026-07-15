@@ -55,7 +55,7 @@ pub use report::{
     is_test_loc, is_test_path, rank_families, AcceptedCoverage, RefactorFamily, VaryingSpot,
 };
 pub use units::{
-    default_product_unit_admission, unit_dags_at, ProductUnitAdmission, ProductUnitAdmissionInput,
-    UnitFeat,
+    default_product_unit_admission, default_product_value_fingerprint_context, unit_dags_at,
+    ProductUnitAdmission, ProductUnitAdmissionInput, UnitFeat,
 };
 pub use witness::{graded_witness, GradedWitness, WitnessHole};
