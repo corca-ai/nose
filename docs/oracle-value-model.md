@@ -384,7 +384,17 @@ constants (`crates/nose-cli/src/falsify.rs`). Relation-first rows exercise strin
 association, JS int32 width, and mutation coordinates before a seeded Cartesian search. Units
 whose exact domain vectors differ are never searched together; the compact `domain_signature`
 remains a reporting identifier and is not treated as proof of compatibility. Symbolic behavior
-is excluded from both the hard representative set and distinguishing witnesses.
+is excluded from both the hard representative set and distinguishing witnesses. Missing domain
+evidence is a mixed runtime domain only for dynamically typed languages. Missing static evidence
+and domains whose invariants the interpreter cannot faithfully host (set, byte array, iterator,
+map, record, result, and future-like values) fail closed to the advisory lane. `Number` currently
+receives only the integer values the interpreter really hosts; float coverage comes from explicit
+`Float` or dynamic runtime domains rather than a misleading pre-coercion receipt.
+
+Falsification compares float results bitwise so `+0.0` and `-0.0` are distinguishable, including
+when nested in effects, fields, or collections. This is narrower than the oracle's stable
+fingerprint equality because source runtimes expose the sign through `Object.is`, `copysign`, and
+related operations. NaN payloads intentionally remain one deterministic observational class.
 
 A hit is a false merge the fixed battery missed and counts toward `--max-violations`. Its report
 contains the deterministic seed, case number, original input, and a stable shrunk input; rerun
@@ -396,11 +406,12 @@ default `verify` gate are untouched.
 The checked [source-runtime calibration](../bench/soundness/0.20.0/source-runtime-calibration.v1.json)
 is an independent boundary outside the Rust binary. `scripts/check-domain-calibration.py` runs
 Python and Node directly and compares their string, float-bit, integer-width, mutation,
-signed-zero, and NaN facts with that artifact. Its self-test gives both the frontend and
-interpreter the same incorrect float-associativity fact and requires the source runtimes to
-reject the shared mutant. Rust tests bind the required distinction IDs back to the falsifier
-tests, so changing the artifact to bless a shared Rust misconception still fails the
-source-runtime check.
+signed-zero, and NaN facts with that artifact. Integration tests lower real source fixtures
+through the production frontend, normalization, and interpreter paths, then compare both
+internal channels with those checked facts. A mutation test gives both internal receipts the
+same incorrect float-associativity result and requires the independent runtime boundary to
+reject it. Changing the artifact to bless a shared Rust misconception still fails the direct
+Python/Node check.
 
 ### 7.1 The equality-over-`Err` mechanism — fixed (coevo series 9)
 

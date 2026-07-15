@@ -5,7 +5,7 @@
 //! A concrete disagreement is shrunk in a stable order and printed with its seed, making nightly
 //! failures byte-reproducible without adding code to the shipped query path.
 
-use nose_il::{DomainEvidence, Il, Interner, NodeId, NodeKind, Payload};
+use nose_il::{DomainEvidence, Il, Interner, Lang, NodeId, NodeKind, Payload};
 use nose_normalize::{behavior_has_sym, run_unit, Behavior, Value, F64};
 use std::collections::HashSet;
 
@@ -89,16 +89,12 @@ fn domain_pool(domain: Option<DomainEvidence>, probes: &[Value]) -> Vec<Value> {
     let mut values = match domain {
         Some(D::Integer) => integer_values(),
         Some(D::Float) => float_values(),
-        Some(D::Number) => {
-            let mut values = integer_values();
-            values.extend(float_values());
-            values
-        }
+        // The current interpreter hosts `Number` through its established integer coercion.
+        // Do not claim float coverage until that coercion model itself is widened.
+        Some(D::Number) => integer_values(),
         Some(D::Boolean) => vec![Value::Bool(false), Value::Bool(true)],
         Some(D::String) => string_values(),
-        Some(D::Array | D::ByteArray | D::Collection | D::Iterable | D::Iterator | D::Set) => {
-            collection_values()
-        }
+        Some(D::Array | D::Collection | D::Iterable) => collection_values(),
         Some(D::Option) => {
             let mut values = vec![Value::Null];
             values.extend(integer_values().into_iter().take(3));
@@ -107,8 +103,16 @@ fn domain_pool(domain: Option<DomainEvidence>, probes: &[Value]) -> Vec<Value> {
             values
         }
         Some(
-            D::FutureLike | D::Map | D::Nominal { .. } | D::PromiseLike | D::Record | D::Result,
-        ) => vec![Value::Null],
+            D::ByteArray
+            | D::FutureLike
+            | D::Iterator
+            | D::Map
+            | D::Nominal { .. }
+            | D::PromiseLike
+            | D::Record
+            | D::Result
+            | D::Set,
+        ) => Vec::new(),
         None => {
             let mut values = integer_values();
             values.extend(float_values());
@@ -132,16 +136,48 @@ fn value_conforms(value: &Value, domain: Option<DomainEvidence>) -> bool {
         None | Some(D::Option) => true,
         Some(D::Integer) => matches!(value, Value::Int(_)),
         Some(D::Float) => matches!(value, Value::Float(_)),
-        Some(D::Number) => matches!(value, Value::Int(_) | Value::Float(_)),
+        Some(D::Number) => matches!(value, Value::Int(_)),
         Some(D::Boolean) => matches!(value, Value::Bool(_)),
         Some(D::String) => matches!(value, Value::Str(_)),
-        Some(D::Array | D::ByteArray | D::Collection | D::Iterable | D::Iterator | D::Set) => {
+        Some(D::Array | D::Collection | D::Iterable) => {
             matches!(value, Value::List(_))
         }
         Some(
-            D::FutureLike | D::Map | D::Nominal { .. } | D::PromiseLike | D::Record | D::Result,
-        ) => matches!(value, Value::Null),
+            D::ByteArray
+            | D::FutureLike
+            | D::Iterator
+            | D::Map
+            | D::Nominal { .. }
+            | D::PromiseLike
+            | D::Record
+            | D::Result
+            | D::Set,
+        ) => false,
     }
+}
+
+/// Whether every declared input domain has a concrete representation in the current oracle.
+/// `None` is a mixed runtime domain only for a dynamically typed language; elsewhere it is
+/// missing evidence. Explicit Set/byte/iterator/map/record/future-like domains also stay out of
+/// the hard lane until the interpreter has a faithful representation for their invariants.
+pub(crate) fn domains_are_hosted(lang: Lang, domains: &[Option<DomainEvidence>]) -> bool {
+    use DomainEvidence as D;
+    domains.iter().all(|domain| {
+        matches!(
+            domain,
+            Some(
+                D::Array
+                    | D::Boolean
+                    | D::Collection
+                    | D::Float
+                    | D::Integer
+                    | D::Iterable
+                    | D::Number
+                    | D::Option
+                    | D::String
+            )
+        ) || (domain.is_none() && nose_semantics::semantics(lang).is_dynamically_typed())
+    })
 }
 
 fn relation_rows(domains: &[Option<DomainEvidence>], arity: usize) -> Vec<Vec<Value>> {
@@ -212,7 +248,40 @@ fn concrete_disagreement(
 }
 
 fn behaviors_concretely_differ(a: &Behavior, b: &Behavior) -> bool {
-    a != b && !behavior_has_sym(a) && !behavior_has_sym(b)
+    !behaviors_falsification_equal(a, b) && !behavior_has_sym(a) && !behavior_has_sym(b)
+}
+
+/// Falsification observes the sign of zero because source runtimes expose it through operations
+/// such as `Object.is` and `copysign`. NaN payloads remain intentionally canonical: the oracle
+/// models one deterministic NaN class rather than platform-specific payload propagation.
+fn behaviors_falsification_equal(a: &Behavior, b: &Behavior) -> bool {
+    values_falsification_equal(&a.ret, &b.ret)
+        && a.effects.len() == b.effects.len()
+        && a.effects
+            .iter()
+            .zip(&b.effects)
+            .all(|(left, right)| values_falsification_equal(left, right))
+        && a.fields.len() == b.fields.len()
+        && a.fields
+            .iter()
+            .zip(&b.fields)
+            .all(|(left, right)| left.0 == right.0 && values_falsification_equal(&left.1, &right.1))
+}
+
+fn values_falsification_equal(a: &Value, b: &Value) -> bool {
+    match (a, b) {
+        (Value::Float(F64(left)), Value::Float(F64(right))) => {
+            (left.is_nan() && right.is_nan()) || left.to_bits() == right.to_bits()
+        }
+        (Value::List(left), Value::List(right)) => {
+            left.len() == right.len()
+                && left
+                    .iter()
+                    .zip(right)
+                    .all(|(a, b)| values_falsification_equal(a, b))
+        }
+        _ => a == b,
+    }
 }
 
 fn shrink(
@@ -257,7 +326,10 @@ pub(crate) fn falsify_pair(
     seed: u64,
 ) -> Option<FalsifyWitness> {
     let domains = parameter_domains(il_a, root_a);
-    if domains != parameter_domains(il_b, root_b) {
+    if domains != parameter_domains(il_b, root_b)
+        || !domains_are_hosted(il_a.meta.lang, &domains)
+        || !domains_are_hosted(il_b.meta.lang, &domains)
+    {
         return None;
     }
     let arity = domains.len().max(1);

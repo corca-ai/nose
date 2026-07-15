@@ -127,7 +127,7 @@ pub(super) fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
     }
     if !summary.advisory_disagreements.is_empty() {
         println!(
-            "  advisory (symbolic-trace disagreements — divergence, not gated): {}",
+            "  advisory (symbolic or domain-incompatible disagreements — divergence, not gated): {}",
             summary.advisory_disagreements.len()
         );
         for disagreement in summary.advisory_disagreements.iter().take(10) {

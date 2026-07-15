@@ -58,6 +58,8 @@ mod collection_streams;
 mod convergence_probes;
 #[path = "equivalence/css_surfaces.rs"]
 mod css_surfaces;
+#[path = "equivalence/domain_runtime_calibration.rs"]
+mod domain_runtime_calibration;
 #[path = "equivalence/flat_map_aggregates.rs"]
 mod flat_map_aggregates;
 #[path = "equivalence/imported_collection_membership.rs"]

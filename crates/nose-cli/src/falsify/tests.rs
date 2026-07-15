@@ -118,6 +118,22 @@ fn mutation_at(index: i64) -> (Il, Interner, NodeId) {
     (finish(b, root, Lang::Python), interner, root)
 }
 
+fn unary_float(negate: bool) -> (Il, Interner, NodeId) {
+    let interner = Interner::new();
+    let sp = Span::synthetic(FileId(0));
+    let mut b = IlBuilder::new(FileId(0));
+    let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+    let value = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+    let value = if negate {
+        b.add(NodeKind::UnOp, Payload::Op(Op::Neg), sp, &[value])
+    } else {
+        value
+    };
+    let ret = b.add(NodeKind::Return, Payload::None, sp, &[value]);
+    let root = b.add(NodeKind::Func, Payload::None, sp, &[param, ret]);
+    (finish(b, root, Lang::Python), interner, root)
+}
+
 fn calibration_artifact() -> serde_json::Value {
     serde_json::from_str(include_str!(
         "../../../../bench/soundness/0.20.0/source-runtime-calibration.v1.json"
@@ -261,6 +277,120 @@ fn incompatible_declared_domains_never_produce_a_hard_witness() {
 }
 
 #[test]
+fn signed_zero_outputs_are_observable_but_nan_payloads_are_canonical() {
+    let plus_zero = Behavior {
+        ret: Value::Float(F64(0.0)),
+        effects: Vec::new(),
+        fields: Vec::new(),
+    };
+    let minus_zero = Behavior {
+        ret: Value::Float(F64(-0.0)),
+        effects: Vec::new(),
+        fields: Vec::new(),
+    };
+    let first_nan = Behavior {
+        ret: Value::Float(F64(f64::from_bits(0x7ff8_0000_0000_0001))),
+        effects: Vec::new(),
+        fields: Vec::new(),
+    };
+    let second_nan = Behavior {
+        ret: Value::Float(F64(f64::from_bits(0x7ff8_0000_0000_0002))),
+        effects: Vec::new(),
+        fields: Vec::new(),
+    };
+
+    assert!(behaviors_concretely_differ(&plus_zero, &minus_zero));
+    assert!(!behaviors_concretely_differ(&first_nan, &second_nan));
+
+    let (mut identity, interner, identity_root) = unary_float(false);
+    let (mut negate, _, negate_root) = unary_float(true);
+    set_param_domain(&mut identity, identity_root, DomainEvidence::Float);
+    set_param_domain(&mut negate, negate_root, DomainEvidence::Float);
+    assert!(concrete_disagreement(
+        &identity,
+        identity_root,
+        &negate,
+        negate_root,
+        &interner,
+        &[Value::Float(F64(0.0))],
+    ));
+    assert!(falsify_pair(
+        &identity,
+        identity_root,
+        &negate,
+        negate_root,
+        &interner,
+        &[],
+        64,
+        DEFAULT_FALSIFY_SEED,
+    )
+    .is_some());
+}
+
+#[test]
+fn unhosted_domains_and_missing_static_evidence_never_produce_a_hard_witness() {
+    let (mut map_a, interner, map_a_root) = two_arg_binop(Op::Add, (0, 1), Lang::Rust);
+    let (mut map_b, _, map_b_root) = two_arg_binop(Op::Add, (1, 0), Lang::Rust);
+    set_param_domain(&mut map_a, map_a_root, DomainEvidence::Map);
+    set_param_domain(&mut map_b, map_b_root, DomainEvidence::Map);
+    assert!(falsify_pair(
+        &map_a,
+        map_a_root,
+        &map_b,
+        map_b_root,
+        &interner,
+        &[],
+        64,
+        DEFAULT_FALSIFY_SEED,
+    )
+    .is_none());
+
+    let (static_a, interner, static_a_root) = two_arg_binop(Op::Add, (0, 1), Lang::Rust);
+    let (static_b, _, static_b_root) = two_arg_binop(Op::Add, (1, 0), Lang::Rust);
+    assert!(falsify_pair(
+        &static_a,
+        static_a_root,
+        &static_b,
+        static_b_root,
+        &interner,
+        &[],
+        64,
+        DEFAULT_FALSIFY_SEED,
+    )
+    .is_none());
+
+    let (dynamic_a, interner, dynamic_a_root) = two_arg_binop(Op::Add, (0, 1), Lang::Python);
+    let (dynamic_b, _, dynamic_b_root) = two_arg_binop(Op::Add, (1, 0), Lang::Python);
+    assert!(falsify_pair(
+        &dynamic_a,
+        dynamic_a_root,
+        &dynamic_b,
+        dynamic_b_root,
+        &interner,
+        &[],
+        64,
+        DEFAULT_FALSIFY_SEED,
+    )
+    .is_some());
+}
+
+#[test]
+fn number_pool_matches_the_interpreters_integer_hosting() {
+    let (mut identity, interner, root) = unary_float(false);
+    set_param_domain(&mut identity, root, DomainEvidence::Number);
+
+    assert!(domain_pool(Some(DomainEvidence::Number), &[])
+        .iter()
+        .all(|value| matches!(value, Value::Int(_))));
+    assert!(matches!(
+        run_unit(&identity, &interner, root, &[Value::Float(F64(1.25))])
+            .expect("Number input must interpret")
+            .ret,
+        Value::Int(_)
+    ));
+}
+
+#[test]
 fn source_runtime_calibration_names_every_required_oracle_distinction() {
     let artifact = calibration_artifact();
     assert_eq!(
@@ -371,11 +501,8 @@ fn every_supported_domain_has_distinct_boundary_values() {
         D::Boolean,
         D::String,
         D::Array,
-        D::ByteArray,
         D::Collection,
         D::Iterable,
-        D::Iterator,
-        D::Set,
         D::Option,
     ];
     for domain in domains {
@@ -387,4 +514,17 @@ fn every_supported_domain_has_distinct_boundary_values() {
     assert!(float_receipts.contains(&"float:0e0".to_string()));
     assert!(float_receipts.contains(&"float:-0".to_string()));
     assert!(float_receipts.contains(&"float:nan".to_string()));
+
+    for domain in [
+        D::ByteArray,
+        D::FutureLike,
+        D::Iterator,
+        D::Map,
+        D::PromiseLike,
+        D::Record,
+        D::Result,
+        D::Set,
+    ] {
+        assert!(domain_pool(Some(domain), &[]).is_empty());
+    }
 }

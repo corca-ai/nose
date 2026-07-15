@@ -17,7 +17,9 @@ declared-domain-aware search. It compares exact parameter-domain vectors rather 
 their compact report hash, excludes symbolic behavior from the hard lane, prioritizes known
 law boundaries, and emits deterministic seed/case/shrunk-input receipts. This keeps broad input
 generation away from the core-vs-canonical global battery, where type-incoherent rows would be
-misleading.
+misleading. A missing domain is treated as runtime `Any` only for dynamically typed languages;
+missing static evidence and domains without a faithful interpreter representation (including
+set, byte-array, iterator, map, record, result, and future-like values) fail closed to advisory.
 
 The independent [source-runtime calibration](../bench/soundness/0.20.0/source-runtime-calibration.v1.json)
 is checked with:
@@ -28,10 +30,13 @@ python3 scripts/check-domain-calibration.py --self-test
 ```
 
 It executes Python and Node directly for string order, float association, JS-vs-Python integer
-width, mutation coordinates, signed zero, and NaN. The self-test injects the same wrong float
-fact into simulated frontend and interpreter channels and proves that agreement between those
-two channels cannot overrule the source runtimes. The calibration code and artifact remain
-offline and are not linked into the shipped `nose` binary.
+width, mutation coordinates, signed zero, and NaN. The script self-test mutation-checks the
+independent comparison boundary. The Rust `domain_runtime_calibration` integration tests then
+lower real source fixtures through the production frontend, normalize and interpret them, and
+compare both internal channels with the checked runtime artifact. A second integration test
+injects the same wrong float fact into both actual-channel receipts and requires rejection, so
+frontend/interpreter agreement cannot overrule the source runtimes. The calibration code and
+artifact remain offline and are not linked into the shipped `nose` binary.
 
 ## Two binary identities, one release-tree report
 

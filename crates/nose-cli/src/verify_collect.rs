@@ -19,6 +19,10 @@ use support::{
 
 /// One record per interpretable unit.
 pub(super) struct VerifyRec {
+    /// Source language is part of the input-domain hosting decision. A missing parameter
+    /// domain means runtime `Any` only for dynamically typed languages; for a statically typed
+    /// language it is missing evidence and must stay out of the hard lane.
+    pub(super) lang: Lang,
     pub(super) fp: Vec<u64>,
     pub(super) beh: Vec<nose_normalize::Behavior>,
     pub(super) file: String,
@@ -490,6 +494,7 @@ fn collect_file_verify_recs(
         );
         let param_domains = param_domains(n, root);
         oracle.recs.push(VerifyRec {
+            lang: n.meta.lang,
             fp,
             beh,
             file: file_path.to_string(),

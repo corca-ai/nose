@@ -140,21 +140,36 @@ def check_artifact(observed: dict[str, Any]) -> None:
         raise RuntimeError(f"source-runtime calibration drift: {detail}")
 
 
+def internal_channel_drift(
+    source: dict[str, Any], channels: dict[str, dict[str, Any]]
+) -> dict[str, list[str]]:
+    """Return every internal channel fact that disagrees with independent runtimes."""
+    return {
+        name: differing_paths(source, receipt, name)
+        for name, receipt in channels.items()
+        if differing_paths(source, receipt, name)
+    }
+
+
 def self_test(observed: dict[str, Any]) -> None:
     source = observed["observations"]
-    frontend = copy.deepcopy(source)
-    interpreter = copy.deepcopy(source)
-    for channel in (frontend, interpreter):
+    channels = {
+        "frontend": copy.deepcopy(source),
+        "interpreter": copy.deepcopy(source),
+    }
+    for channel in channels.values():
         for runtime in ("node", "python"):
             facts = channel[runtime]["float_associativity"]
             facts["right_bits"] = facts["left_bits"]
 
-    frontend_drift = differing_paths(source, frontend, "frontend")
-    interpreter_drift = differing_paths(source, interpreter, "interpreter")
-    if not frontend_drift or not interpreter_drift:
+    drift = internal_channel_drift(source, channels)
+    if set(drift) != {"frontend", "interpreter"}:
         raise AssertionError("shared frontend+interpreter mutant escaped calibration")
-    if canonical(frontend) == canonical(source) or canonical(interpreter) == canonical(source):
-        raise AssertionError("mutant canonicalization erased a source-runtime disagreement")
+    if not all(
+        any(path.endswith("float_associativity.right_bits") for path in paths)
+        for paths in drift.values()
+    ):
+        raise AssertionError("shared mutant was rejected for the wrong calibration fact")
 
 
 def main() -> int:
@@ -170,7 +185,7 @@ def main() -> int:
         check_artifact(observed)
         if args.self_test:
             self_test(observed)
-            print("domain calibration self-test: shared mutant rejected")
+            print("domain calibration comparator self-test: shared mutant rejected")
         else:
             print("domain calibration: source runtimes match checked facts")
         return 0
