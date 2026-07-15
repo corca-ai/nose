@@ -262,7 +262,7 @@ mod tests {
     use super::*;
     use crate::fragment::{Effect, EffectSite, Exit, FragmentKind};
     use nose_il::{FileId, Interner, Lang};
-    use nose_normalize::{normalize, NormalizeOptions, F64};
+    use nose_normalize::{normalize, NormalizeOptions};
 
     /// Lower + normalize `src`, returning the normalized IL.
     fn norm(interner: &Interner, src: &str, lang: Lang) -> Il {
@@ -331,7 +331,7 @@ mod tests {
         let (synth, func) = synthesize_wrapper(&il, &i, &contract).expect("wrapper synthesizes");
         assert_eq!(synth.kind(func), NodeKind::Func);
         let b = run_unit(&synth, &i, func, &[Value::Int(4)]).expect("interpretable");
-        assert_eq!(b.ret, Value::Float(F64(17.0)), "4*4 + 1 = 17");
+        assert_eq!(b.ret, Value::Int(17), "4*4 + 1 = 17");
     }
 
     #[test]
