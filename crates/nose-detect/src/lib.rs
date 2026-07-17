@@ -38,9 +38,10 @@ pub use detectors::{
 };
 pub use exact_policy::{exact_claim_eligible, exact_claim_eligible_parts};
 pub use fragment::{
-    fragment_behavior, fragment_input_projections, free_input_cids, recognized_fragment_contracts,
-    synthesize_wrapper, synthesize_wrapper_with_module_strings, Effect, EffectSite, Exit,
-    FragmentContract, FragmentKind, OracleInputProjection, Place, ProofFacts,
+    fragment_behavior, fragment_input_projections, fragment_observes_mixed_exit, free_input_cids,
+    recognized_fragment_contracts, synthesize_wrapper, synthesize_wrapper_with_module_strings,
+    Effect, EffectSite, Exit, FragmentContract, FragmentKind, OracleInputProjection, Place,
+    ProofFacts,
 };
 pub use model::{
     AbstractionHole, AbstractionWitness, ConnectedWitness, Dump, DupPair, EnclosingUnit,

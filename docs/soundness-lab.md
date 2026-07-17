@@ -321,6 +321,54 @@ parsed color, number/unit, box, and query-order cores, while a named browser/cas
 is linked to the executable declarative counterexamples. CI still treats `sorry`, stale Rust
 symbols or markers, and unused Lean proof hints as failures.
 
+## CI, nightly, deep, and release gates (#862)
+
+The Lab reuses the producers above in four deliberately different lanes. A PR that touches the
+semantic kernel, proof registry, Type-4 evidence, or Lab scripts gets a focused workflow. Its
+artifact indexes the registered claims touched by the diff, while the gate conservatively runs
+the complete formal registry and Lean proofs, scorecard, source-runtime calibration, Tier-A
+perimeter, and executable equivalence battery. This avoids a changed shared rule being declared
+safe merely because a dependency edge was missing from the selector.
+
+The nightly lane deterministically partitions all 120 pinned repositories into four GitHub
+matrix shards. Every repository has a per-repository timeout, and the merge step requires every
+pin exactly once. A missing checkout, missing shard artifact, wrong commit, timeout, nonzero exit,
+false merge, or canon-preservation change remains red. Raw logs and summaries are uploaded on
+success as well as failure. Timing is not part of `summary.tsv`, status rows, or evidence, so
+repeating the same binary and commits with different repository parallelism produces the same
+bytes. Advisory disagreements remain non-blocking, but the baseline snapshot
+[`nightly-advisory-baseline.v1.json`](../bench/soundness/0.20.0/nightly-advisory-baseline.v1.json) records
+the official v0.19.0 count for every repository, and the merged artifact reports all 120
+before/current/delta rows, including unchanged rows.
+
+A separate weekly deep lane runs the independent Python/Node calibration, the full metamorphic
+equivalence suite, and three fixed-seed distinguishing-input searches. Manual `release` mode runs
+both full nightly and deep lanes at the same commit, then emits one deterministic report containing
+hard gates, official-v0.19.0 and candidate risk-weighted coverage, every language floor, formal
+theorem/precondition/product-surface coverage, the guarded Tier-A perimeter, and the complete
+advisory diff. It cannot compose evidence from different commits.
+
+The workflow and aggregation contract can be checked without the 120-repository corpus:
+
+```sh
+./scripts/corpus-verify-nightly.sh --self-test
+python3 scripts/soundness-lab-gate.py self-test
+python3 scripts/soundness-lab-gate.py check
+```
+
+The self-tests inject a false merge, canon violation, coverage regression, unregistered claim,
+unguarded Tier-A cell, and generic attribution return, and require all six to fail closed. The
+runner separately injects missing repositories, changed pins, timeouts, and aggregation-order
+changes. The release workflow is intentionally manual: ordinary nightly evidence is useful by
+itself, while a release decision additionally requires a successful same-commit deep campaign.
+
+The first full candidate replay caught a real boundary error: a whole function could share an
+exact fingerprint with a conditional fragment that sometimes returns or throws and otherwise
+falls through into its enclosing function. The fragment now binds that mixed terminal-control
+coordinate into both product extraction and the independent audit fingerprint. A focused
+TypeScript regression and the five affected pinned repositories preserve the distinction; the
+gate is therefore recording a defect it found, not merely checking synthetic mutations.
+
 ## Reproduce and validate
 
 Use the published binary, the exact release source tree, and all pinned
@@ -353,11 +401,11 @@ python3 scripts/check-soundness-scorecard.py \
 ```
 
 The runner checks each repository HEAD, validates the checked pruned-corpus
-digest, and writes `evidence.json` binding those identities and `summary.tsv`
+digest, and writes v2 `evidence.json` binding those identities and deterministic `summary.tsv`
 to the actual binary hash. Missing repositories, changed pins or source bytes,
 the wrong binary, hard false merges, canon violations, artifact drift, or a
-non-release-tree report fail the check. Timing is omitted from the canonical
-120-repository result; statuses, hard counts, and advisory counts are retained.
+non-release-tree report fail the check. Timing is omitted from every archived
+aggregation file; statuses, hard counts, and advisory counts are retained.
 The measured 1-thread and 4-thread corpus results have the same canonical hash,
 zero hard failures, and 4,756 advisory disagreements.
 

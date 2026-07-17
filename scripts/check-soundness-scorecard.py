@@ -1265,11 +1265,13 @@ def verify_reproduction(path: Path, manifest: dict[str, Any]) -> None:
     if not summary_path.is_file():
         raise ValueError(f"120-repository summary missing: {summary_path}")
     lines = summary_path.read_text().splitlines()
-    expected_header = "repo\tstatus\texit_code\tfalse_merges\tcanon_changes\tadvisory\tseconds"
-    if not lines or lines[0] != expected_header:
+    legacy_header = "repo\tstatus\texit_code\tfalse_merges\tcanon_changes\tadvisory\tseconds"
+    deterministic_header = "repo\tstatus\texit_code\tfalse_merges\tcanon_changes\tadvisory"
+    if not lines or lines[0] not in {legacy_header, deterministic_header}:
         raise ValueError("120-repository summary schema changed")
     rows = [line.split("\t") for line in lines[1:] if line]
-    if any(len(row) != 7 for row in rows):
+    expected_width = 7 if lines[0] == legacy_header else 6
+    if any(len(row) != expected_width for row in rows):
         raise ValueError("120-repository summary row is malformed")
     corpus = load(ROOT / manifest["corpus"]["manifest"])
     expected_repositories = sorted(
@@ -1294,7 +1296,7 @@ def verify_reproduction(path: Path, manifest: dict[str, Any]) -> None:
     evidence = load(evidence_path)
     corpus_path = ROOT / manifest["corpus"]["manifest"]
     prune_path = ROOT / manifest["corpus"]["prune_manifest"]
-    expected_evidence = {
+    expected_v1 = {
         "schema": "nose-corpus-verify-evidence/v1",
         "complete": True,
         "nose": {"sha256": OFFICIAL_BINARY_SHA256, "version": "nose 0.19.0"},
@@ -1305,7 +1307,30 @@ def verify_reproduction(path: Path, manifest: dict[str, Any]) -> None:
         "summary_sha256": sha256_file(summary_path),
         "canonical_result_sha256": canonical_sha,
     }
-    if evidence != expected_evidence:
+    expected_results = [
+        {
+            "id": row[0],
+            "status": row[1],
+            "exit_code": int(row[2]),
+            "false_merges": int(row[3]),
+            "canon_changes": int(row[4]),
+            "advisory": int(row[5]),
+        }
+        for row in sorted(rows)
+    ]
+    expected_v2 = {
+        **expected_v1,
+        "schema": "nose-corpus-verify-evidence/v2",
+        "results": expected_results,
+        "totals": {
+            "repositories": len(expected_results),
+            "failed_repositories": 0,
+            "false_merges": 0,
+            "canon_changes": 0,
+            "advisory": sum(row["advisory"] for row in expected_results),
+        },
+    }
+    if evidence not in (expected_v1, expected_v2):
         raise ValueError("reproduction evidence is not bound to the official binary and pinned corpus")
 
 

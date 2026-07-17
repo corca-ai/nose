@@ -358,6 +358,41 @@ fn oracle_fragment_candidates_retain_current_product_rejections() {
 }
 
 #[test]
+fn mixed_exit_fragment_is_distinct_from_its_enclosing_function() {
+    let interner = Interner::new();
+    let source = r#"
+function tokenizer(src: string) {
+  if (src === 'name') {
+    return src + '!';
+  }
+}
+"#;
+    let raw = nose_frontend::lower_source(
+        FileId(0),
+        "mixed-exit.ts",
+        source.as_bytes(),
+        Lang::TypeScript,
+        &interner,
+    )
+    .expect("lower TypeScript source");
+    let units = crate::units_of_file(&raw, &interner, &crate::DetectOptions::default());
+    let function = units
+        .iter()
+        .find(|unit| unit.kind == UnitKind::Function)
+        .expect("whole function");
+    let fragment = units
+        .iter()
+        .find(|unit| unit.fragment_kind == Some(FragmentKind::ConditionalGuard))
+        .expect("mixed-exit conditional fragment");
+
+    assert!(function.exact_safe && fragment.exact_safe);
+    assert_ne!(
+        function.value, fragment.value,
+        "fragment fallthrough is not whole-function completion"
+    );
+}
+
+#[test]
 fn exact_fragment_collector_does_not_enter_lambda_bodies() {
     let interner = Interner::new();
     let fragments = lowered_fragment_units(

@@ -1,60 +1,392 @@
-name: corpus verify
+name: Soundness Lab
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/corpus-verify.yml"
+      - "bench/soundness/**"
+      - "bench/type4/**"
+      - "crates/nose-cli/**"
+      - "crates/nose-detect/**"
+      - "crates/nose-eval/**"
+      - "crates/nose-frontend/**"
+      - "crates/nose-il/**"
+      - "crates/nose-normalize/**"
+      - "crates/nose-semantics/**"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "formal/**"
+      - "scripts/check-domain-calibration.py"
+      - "scripts/check-formal-obligations.py"
+      - "scripts/check-lean-proofs.sh"
+      - "scripts/check-soundness-scorecard.py"
+      - "scripts/corpus-verify-nightly.sh"
+      - "scripts/formal_claim_schema.py"
+      - "scripts/soundness-lab-gate.py"
+      - "scripts/soundness_exclusions.py"
   schedule:
-    # Nightly tripwire for the pinned corpus soundness invariant.
+    # Full pinned corpus every night; deeper independent campaigns every Sunday.
     - cron: "17 18 * * *"
+    - cron: "43 17 * * 0"
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Campaign to run; release composes nightly and deep evidence.
+        type: choice
+        options: [nightly, deep, release]
+        default: nightly
 
 permissions:
   contents: read
 
 concurrency:
-  group: corpus-verify-${{ github.ref }}
+  group: soundness-lab-${{ github.event_name }}-${{ github.ref }}-${{ inputs.mode || github.event.schedule || 'pr' }}
   cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  verify:
-    name: nightly pinned-corpus verify
+  pr-claims:
+    name: touched claims · batteries · proofs · scorecard
+    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: cache pinned benchmark corpus
-        uses: actions/cache@v6
         with:
-          path: bench/repos
-          key: bench-corpus-${{ hashFiles('bench/goldens/corpus.json', 'bench/setup_repos.sh', 'bench/prune_corpus.py', 'bench/labels/prune_manifest.json') }}
-
-      - name: build nose
-        run: cargo build --release -p nose-cli
-
-      - name: reconstruct pinned corpus
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: install Lean
+        id: lean
+        continue-on-error: true
         run: |
-          bench/setup_repos.sh
-          python3 bench/prune_corpus.py --check-manifest
-
-      - name: verify corpus soundness
-        env:
-          NOSE_CORPUS_VERIFY_JOBS: "6"
+          toolchain="$(cat lean-toolchain)"
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            | sh -s -- -y --default-toolchain "$toolchain"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: index touched claims
+        id: plan
+        if: ${{ failure() || success() }}
+        continue-on-error: true
         run: |
-          ./scripts/corpus-verify-nightly.sh \
-            --nose target/release/nose \
-            --repos-root bench/repos \
-            --logs-dir target/corpus-verify-logs
-
-      - name: upload per-repo verify logs on failure
-        if: ${{ failure() || cancelled() }}
+          mkdir -p target/soundness-pr
+          python3 scripts/soundness-lab-gate.py pr-plan \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --output target/soundness-pr/plan.json \
+            --markdown target/soundness-pr/plan.md
+          cat target/soundness-pr/plan.md >> "$GITHUB_STEP_SUMMARY"
+      - name: build focused battery binary
+        id: build
+        if: ${{ failure() || success() }}
+        continue-on-error: true
+        run: cargo build --release -p nose-cli 2>&1 | tee target/soundness-pr/build.log
+      - name: workflow and producer mutation self-tests
+        id: selftest
+        if: ${{ failure() || success() }}
+        continue-on-error: true
+        run: |
+          {
+            ./scripts/corpus-verify-nightly.sh --self-test
+            python3 scripts/check-soundness-scorecard.py --self-test
+            python3 scripts/check-formal-obligations.py --self-test
+            python3 bench/type4/check_axis_language_claims.py --self-test
+            python3 scripts/soundness_exclusions.py --self-test
+            python3 scripts/soundness-lab-gate.py self-test
+          } 2>&1 | tee target/soundness-pr/self-tests.log
+      - name: touched-claim executable batteries and scorecard
+        id: batteries
+        if: ${{ failure() || success() }}
+        continue-on-error: true
+        run: |
+          {
+            python3 scripts/check-domain-calibration.py
+            python3 scripts/check-soundness-scorecard.py
+            cargo test --release -p nose-cli --test equivalence
+            python3 bench/type4/check_axis_language_claims.py \
+              --nose target/release/nose \
+              --ratchet-base "${{ github.event.pull_request.base.sha }}"
+          } 2>&1 | tee target/soundness-pr/batteries.log
+      - name: touched-claim registry and proofs
+        id: proofs
+        if: ${{ failure() || success() }}
+        continue-on-error: true
+        run: |
+          {
+            python3 scripts/check-formal-obligations.py
+            ./scripts/check-lean-proofs.sh
+          } 2>&1 | tee target/soundness-pr/proofs.log
+      - name: upload PR evidence
+        id: upload
+        if: ${{ failure() || cancelled() || success() }}
         uses: actions/upload-artifact@v7
         with:
-          name: corpus-verify-logs
-          path: target/corpus-verify-logs
-          if-no-files-found: warn
+          name: soundness-pr-${{ github.event.pull_request.head.sha }}
+          path: target/soundness-pr
+          if-no-files-found: error
+      - name: enforce PR gate
+        if: ${{ failure() || success() }}
+        run: |
+          test "${{ steps.lean.outcome }}" = success
+          test "${{ steps.plan.outcome }}" = success
+          test "${{ steps.build.outcome }}" = success
+          test "${{ steps.selftest.outcome }}" = success
+          test "${{ steps.batteries.outcome }}" = success
+          test "${{ steps.proofs.outcome }}" = success
+          test "${{ steps.upload.outcome }}" = success
+
+  plan-nightly:
+    name: plan all pinned repositories
+    if: >-
+      ${{
+        (github.event_name == 'schedule' && github.event.schedule == '17 18 * * *') ||
+        (github.event_name == 'workflow_dispatch' && (inputs.mode == 'nightly' || inputs.mode == 'release'))
+      }}
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: validate workflow and make deterministic shard plan
+        id: plan
+        run: |
+          python3 scripts/soundness-lab-gate.py check
+          matrix="$(python3 scripts/soundness-lab-gate.py plan-shards --count 4)"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  nightly-shard:
+    name: pinned corpus shard ${{ matrix.shard.id }}
+    needs: plan-nightly
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan-nightly.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: prepare shard evidence
+        id: prepare
+        run: mkdir -p target/soundness-nightly-shard
+      - name: build nose
+        id: build
+        continue-on-error: true
+        run: cargo build --release -p nose-cli 2>&1 | tee target/soundness-nightly-shard/build.log
+      - name: reconstruct this pinned shard
+        id: setup
+        if: ${{ failure() || success() }}
+        continue-on-error: true
+        env:
+          SHARD_REPOS: ${{ toJSON(matrix.shard.repos) }}
+        run: |
+          mapfile -t repos < <(python3 -c 'import json,os; print("\n".join(json.loads(os.environ["SHARD_REPOS"])))')
+          args=()
+          for repo in "${repos[@]}"; do args+=(--repo "$repo"); done
+          bench/setup_repos.sh "${args[@]}" 2>&1 | tee target/soundness-nightly-shard/setup.log
+      - name: verify this pinned shard
+        id: verify
+        if: ${{ failure() || success() }}
+        continue-on-error: true
+        env:
+          SHARD_REPOS: ${{ toJSON(matrix.shard.repos) }}
+        run: |
+          mapfile -t repos < <(python3 -c 'import json,os; print("\n".join(json.loads(os.environ["SHARD_REPOS"])))')
+          args=()
+          for repo in "${repos[@]}"; do args+=(--repo "$repo"); done
+          ./scripts/corpus-verify-nightly.sh \
+            --nose target/release/nose \
+            --source-commit "${{ github.sha }}" \
+            --repos-root bench/repos \
+            --logs-dir target/soundness-nightly-shard \
+            --jobs 6 \
+            --timeout-seconds 900 \
+            "${args[@]}"
+      - name: upload shard evidence on every outcome
+        id: upload
+        if: ${{ failure() || cancelled() || success() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: soundness-nightly-shard-${{ matrix.shard.id }}
+          path: target/soundness-nightly-shard
+          if-no-files-found: error
+      - name: enforce shard gate
+        if: ${{ failure() || success() }}
+        run: |
+          test "${{ steps.prepare.outcome }}" = success
+          test "${{ steps.build.outcome }}" = success
+          test "${{ steps.setup.outcome }}" = success
+          test "${{ steps.verify.outcome }}" = success
+          test "${{ steps.upload.outcome }}" = success
+
+  merge-nightly:
+    name: merge complete nightly evidence
+    if: >-
+      ${{
+        always() && (
+          (github.event_name == 'schedule' && github.event.schedule == '17 18 * * *') ||
+          (github.event_name == 'workflow_dispatch' && (inputs.mode == 'nightly' || inputs.mode == 'release'))
+        )
+      }}
+    needs: [plan-nightly, nightly-shard]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: prepare merged evidence
+        id: prepare
+        run: mkdir -p target/soundness-nightly
+      - name: download every shard
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: soundness-nightly-shard-*
+          path: target/soundness-nightly-inputs
+      - name: reject missing, overlapping, timed-out, or unsound shards
+        id: merge
+        if: ${{ failure() || success() }}
+        continue-on-error: true
+        run: |
+          python3 scripts/soundness-lab-gate.py merge-nightly \
+            --inputs target/soundness-nightly-inputs \
+            --output target/soundness-nightly/corpus-evidence.json \
+            --markdown target/soundness-nightly/summary.md \
+            2>&1 | tee target/soundness-nightly/merge.log
+          cat target/soundness-nightly/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: upload complete nightly evidence on every outcome
+        id: upload
+        if: ${{ failure() || cancelled() || success() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: soundness-nightly-${{ github.sha }}
+          path: target/soundness-nightly
+          if-no-files-found: error
+      - name: enforce complete nightly gate
+        if: ${{ failure() || success() }}
+        run: |
+          test "${{ needs.nightly-shard.result }}" = success
+          test "${{ steps.prepare.outcome }}" = success
+          test "${{ steps.download.outcome }}" = success
+          test "${{ steps.merge.outcome }}" = success
+          test "${{ steps.upload.outcome }}" = success
+
+  deep-campaign:
+    name: deep source-runtime · metamorphic · falsification
+    if: >-
+      ${{
+        (github.event_name == 'schedule' && github.event.schedule == '43 17 * * 0') ||
+        (github.event_name == 'workflow_dispatch' && (inputs.mode == 'deep' || inputs.mode == 'release'))
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: build deep-campaign binary
+        id: build
+        continue-on-error: true
+        run: |
+          mkdir -p target/soundness-deep
+          cargo build --release -p nose-cli 2>&1 | tee target/soundness-deep/build.log
+      - name: independent source-runtime campaign
+        id: domain
+        if: ${{ failure() || success() }}
+        continue-on-error: true
+        run: python3 scripts/check-domain-calibration.py 2>&1 | tee target/soundness-deep/domain.log
+      - name: metamorphic equivalence campaign
+        id: equivalence
+        if: ${{ failure() || success() }}
+        continue-on-error: true
+        run: cargo test --release -p nose-cli --test equivalence 2>&1 | tee target/soundness-deep/equivalence.log
+      - name: multi-seed distinguishing-input campaign
+        id: falsification
+        if: ${{ failure() || success() }}
+        continue-on-error: true
+        run: |
+          for seed in 1 11400714819323198485 13787848793156543929; do
+            RAYON_NUM_THREADS=1 target/release/nose verify crates \
+              --max-violations 0 --falsify --falsify-seed "$seed" \
+              > "target/soundness-deep/falsify-$seed.log" 2>&1
+          done
+      - name: record deep evidence even after failure
+        id: evidence
+        if: ${{ failure() || success() }}
+        continue-on-error: true
+        run: |
+          python3 scripts/soundness-lab-gate.py deep-evidence \
+            --commit "${{ github.sha }}" \
+            --domain "${{ steps.domain.outcome }}" \
+            --equivalence "${{ steps.equivalence.outcome }}" \
+            --falsification "${{ steps.falsification.outcome }}" \
+            --output target/soundness-deep/evidence.json
+      - name: upload deep evidence on every outcome
+        id: upload
+        if: ${{ failure() || cancelled() || success() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: soundness-deep-${{ github.sha }}
+          path: target/soundness-deep
+          if-no-files-found: error
+      - name: enforce deep campaign
+        if: ${{ failure() || success() }}
+        run: |
+          test "${{ steps.build.outcome }}" = success
+          test "${{ steps.domain.outcome }}" = success
+          test "${{ steps.equivalence.outcome }}" = success
+          test "${{ steps.falsification.outcome }}" = success
+          test "${{ steps.evidence.outcome }}" = success
+          test "${{ steps.upload.outcome }}" = success
+
+  release-gate:
+    name: compose 0.20 release evidence against official v0.19.0
+    if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.mode == 'release' }}
+    needs: [merge-nightly, deep-campaign]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: download nightly evidence
+        id: nightly
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: soundness-nightly-${{ github.sha }}
+          path: target/release-input/nightly
+      - name: download deep evidence
+        id: deep
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: soundness-deep-${{ github.sha }}
+          path: target/release-input/deep
+      - name: compose fail-closed release report
+        id: release
+        if: ${{ failure() || success() }}
+        continue-on-error: true
+        run: |
+          python3 scripts/soundness-lab-gate.py release \
+            --corpus target/release-input/nightly/corpus-evidence.json \
+            --deep target/release-input/deep/evidence.json \
+            --commit "${{ github.sha }}" \
+            --output target/soundness-release/evidence.json \
+            --markdown target/soundness-release/summary.md
+          cat target/soundness-release/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: upload release evidence on every outcome
+        id: upload
+        if: ${{ failure() || cancelled() || success() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: soundness-release-${{ github.sha }}
+          path: target/soundness-release
+          if-no-files-found: error
+      - name: enforce release gate
+        if: ${{ failure() || success() }}
+        run: |
+          test "${{ needs.merge-nightly.result }}" = success
+          test "${{ needs.deep-campaign.result }}" = success
+          test "${{ steps.nightly.outcome }}" = success
+          test "${{ steps.deep.outcome }}" = success
+          test "${{ steps.release.outcome }}" = success
+          test "${{ steps.upload.outcome }}" = success

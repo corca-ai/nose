@@ -1,25 +1,5 @@
 use super::*;
 
-fn fragment_observes_mixed_exit(
-    il: &nose_il::Il,
-    contract: &nose_detect::FragmentContract,
-) -> bool {
-    if contract.exit != nose_detect::Exit::Normal {
-        return false;
-    }
-    let mut stack = vec![contract.root];
-    while let Some(node) = stack.pop() {
-        if matches!(
-            il.kind(node),
-            nose_il::NodeKind::Return | nose_il::NodeKind::Throw
-        ) {
-            return true;
-        }
-        stack.extend(il.children(node));
-    }
-    false
-}
-
 #[allow(clippy::too_many_arguments)]
 #[allow(clippy::too_many_lines)]
 pub(super) fn collect_product_fragment_verify_rec(
@@ -248,8 +228,14 @@ pub(super) fn collect_product_fragment_verify_rec(
         );
         return;
     }
-    let observe_mixed_exit = fragment_observes_mixed_exit(n, &fragment.contract);
-    if observe_mixed_exit != fragment_observes_mixed_exit(core, core_contract) {
+    let observe_mixed_exit = nose_detect::fragment_observes_mixed_exit(
+        n,
+        fragment.contract.root,
+        fragment.contract.kind,
+    );
+    if observe_mixed_exit
+        != nose_detect::fragment_observes_mixed_exit(core, core_contract.root, core_contract.kind)
+    {
         record_fragment_oracle_exclusion(
             oracle,
             &location,

@@ -162,27 +162,28 @@ project (that user-facing guide is [continuous integration](continuous-integrati
 
 ### Nightly pinned-corpus verify — the soundness moat
 
-The scheduled `.github/workflows/corpus-verify.yml` gate guards soundness. Every night, and
-on manual `workflow_dispatch`, it reconstructs the pinned benchmark corpus with
-`bench/setup_repos.sh`, verifies the prune manifest, builds `target/release/nose`, and runs
-every corpus repository through:
+The scheduled `.github/workflows/corpus-verify.yml` gate guards soundness. Every night, and in
+manual `nightly` or `release` mode, it partitions the pinned benchmark corpus into four jobs,
+reconstructs each exact subset with `bench/setup_repos.sh`, builds `target/release/nose`, and
+runs every corpus repository through:
 
 ```sh
 target/release/nose verify bench/repos/<repo> --max-violations 0
 ```
 
-The runner is `scripts/corpus-verify-nightly.sh`. It shards by repository, keeps a per-repo
-log under `target/corpus-verify-logs/`, writes a Markdown summary to the GitHub step summary,
-and exits non-zero if any repo reports a hard false merge or a canon-preservation change.
-Symbolic-trace disagreements stay advisory: the summary counts them, but they do not fail the
-job. On failure the workflow uploads `target/corpus-verify-logs` as the `corpus-verify-logs`
-artifact so triage starts from the failing repo output. It caches `bench/repos` with a key
-derived from the pinned corpus manifest and prune scripts; a cold run still works because
-`bench/setup_repos.sh` removes unpinned local entries, then reconstructs any missing or
-drifted checkout. For a local spot check:
+The runner is `scripts/corpus-verify-nightly.sh`. It keeps a per-repository log and deterministic
+TSV, Markdown, and JSON evidence. The merge job rejects a missing or overlapping shard, missing
+artifact, wrong pin, per-repository timeout, hard false merge, or canon-preservation change.
+Every shard and merged artifact is uploaded on success as well as failure. Symbolic-trace
+disagreements stay advisory, but all per-repository deltas from the official v0.19.0 baseline are
+retained instead of being reduced to a total. The weekly deep job separately runs source-runtime,
+metamorphic equivalence, and multi-seed falsification campaigns; manual `release` mode requires
+that deep evidence and the full nightly evidence to belong to the same commit. See
+[Soundness Lab](soundness-lab.md#ci-nightly-deep-and-release-gates-862) for the complete contract.
+For a local spot check:
 
 ```sh
-./scripts/corpus-verify-nightly.sh --repo arrow --repo click --jobs 2
+./scripts/corpus-verify-nightly.sh --repo arrow --repo click --jobs 2 --timeout-seconds 900
 ```
 
 ### External review bots

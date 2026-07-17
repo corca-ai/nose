@@ -391,7 +391,7 @@ fn gate_unit(
     // gate so the gate can consult semantic richness (below).
     let value_start = unit_timer.start();
     let (
-        value,
+        mut value,
         lits,
         returns,
         anchors,
@@ -407,6 +407,9 @@ fn gate_unit(
     } else {
         nose_normalize::value_fingerprint_lits_anchors_laws(ctx.il, root, ctx.interner)
     };
+    if let Some(kind) = fragment_kind {
+        crate::fragment::bind_fragment_control_identity(ctx.il, root, kind, &mut value);
+    }
     let value_ms = UnitTimer::elapsed(value_start);
 
     // Size gate. A short unit normally isn't a meaningful clone — EXCEPT a

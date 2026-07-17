@@ -14,11 +14,14 @@ Options:
   --nose PATH        nose binary to run (default: target/release/nose, then cargo run)
   --expected-nose-sha256 HEX
                      fail before the run unless the explicit binary has this SHA-256
+  --source-commit HEX bind evidence to the producing source commit
   --corpus-manifest FILE
                      pinned repository manifest (default: bench/goldens/corpus.json)
   --repos-root DIR  checked-out pinned corpus root (default: bench/repos)
   --logs-dir DIR    per-repo log/output directory (default: target/corpus-verify-logs)
   --jobs N          repository-level parallelism (default: nproc/sysctl, capped at 6)
+  --timeout-seconds N
+                     fail a repository that exceeds this wall-clock limit (default: 900)
   --repo ID         run only one corpus repo id; may be repeated
   --self-test       run a fake-nose harness that proves pass/fail/advisory aggregation
   -h, --help        show this help
@@ -64,13 +67,13 @@ if [[ "${1:-}" == "__run_repo" ]]; then
     repos_root="$3"
     logs_dir="$4"
     status_dir="$5"
-    repo_id="$6"
-    expected_commit="$7"
+    timeout_seconds="$6"
+    repo_id="$7"
+    expected_commit="$8"
     repo_dir="$repos_root/$repo_id"
     log="$logs_dir/$repo_id.log"
     status_file="$status_dir/$repo_id.tsv"
 
-    started="$(date +%s)"
     mkdir -p "$logs_dir" "$status_dir"
 
     if [[ ! -d "$repo_dir" ]]; then
@@ -78,8 +81,8 @@ if [[ "${1:-}" == "__run_repo" ]]; then
             echo "missing pinned corpus repo: $repo_dir"
             echo "run bench/setup_repos.sh before corpus verify"
         } >"$log"
-        printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-            "$repo_id" "fail" "127" "0" "0" "0" "0" >"$status_file"
+        printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+            "$repo_id" "fail" "127" "0" "0" "0" >"$status_file"
         exit 0
     fi
 
@@ -91,31 +94,54 @@ if [[ "${1:-}" == "__run_repo" ]]; then
             echo "observed: ${observed_commit:-not-a-git-checkout}"
             echo "run bench/setup_repos.sh before corpus verify"
         } >"$log"
-        printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-            "$repo_id" "fail" "126" "0" "0" "0" "0" >"$status_file"
+        printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+            "$repo_id" "fail" "126" "0" "0" "0" >"$status_file"
         exit 0
     fi
 
-    set +e
+    command=("$nose" verify "$repo_dir" --max-violations 0)
     if [[ "$nose" == "__cargo_run__" ]]; then
-        cargo run --quiet -p nose-cli -- verify "$repo_dir" --max-violations 0 >"$log" 2>&1
-    else
-        "$nose" verify "$repo_dir" --max-violations 0 >"$log" 2>&1
+        command=(cargo run --quiet -p nose-cli -- verify "$repo_dir" --max-violations 0)
     fi
+    set +e
+    python3 - "$timeout_seconds" "$log" "${command[@]}" <<'PY'
+import os
+import signal
+import subprocess
+import sys
+
+timeout = int(sys.argv[1])
+log_name = sys.argv[2]
+command = sys.argv[3:]
+with open(log_name, "wb") as log:
+    process = subprocess.Popen(
+        command, stdout=log, stderr=subprocess.STDOUT, start_new_session=True
+    )
+    try:
+        code = process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGTERM)
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.wait()
+        log.write(f"\ncorpus verify timeout after {timeout} seconds\n".encode())
+        code = 124
+raise SystemExit(code)
+PY
     code=$?
     set -e
 
-    finished="$(date +%s)"
-    elapsed=$((finished - started))
     false_merges="$(parse_count '\[!\] ([0-9]+) VIOLATION\(S\)' "$log")"
     canon_changes="$(parse_count '\[!\] ([0-9]+) unit\(s\) whose behavior CHANGED' "$log")"
-    advisory="$(parse_count 'advisory \(symbolic-trace disagreements.*\): ([0-9]+)' "$log")"
+    advisory="$(parse_count 'advisory \([^)]*disagreements[^)]*\): ([0-9]+)' "$log")"
     status="pass"
     if [[ "$code" -ne 0 || "$false_merges" -ne 0 || "$canon_changes" -ne 0 ]]; then
         status="fail"
     fi
-    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-        "$repo_id" "$status" "$code" "$false_merges" "$canon_changes" "$advisory" "$elapsed" \
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+        "$repo_id" "$status" "$code" "$false_merges" "$canon_changes" "$advisory" \
         >"$status_file"
     exit 0
 fi
@@ -172,6 +198,9 @@ GATE: 0 <= 0 false merges - OK
 LOG
     ;;
   black)
+    if [[ "${NOSE_CORPUS_SELF_TEST_SLEEP:-0}" == "1" ]]; then
+      sleep 2
+    fi
     cat <<'LOG'
 === value-graph oracle (soundness + completeness) ===
 
@@ -227,6 +256,76 @@ EOF
     grep -q 'advisory symbolic-trace disagreements: 2' "$tmp/out"
     grep -q 'black' "$tmp/logs/summary.md"
     grep -q 'arrow' "$tmp/logs/summary.md"
+    cp -R "$tmp/logs" "$tmp/logs-first"
+    set +e
+    "$script_path" \
+        --nose "$fake_nose" \
+        --corpus-manifest "$tmp/corpus.json" \
+        --repos-root "$tmp/repos" \
+        --logs-dir "$tmp/logs" \
+        --jobs 1 \
+        >"$tmp/repeat-out" 2>&1
+    code=$?
+    set -e
+    [[ "$code" -eq 1 ]] || {
+        cat "$tmp/repeat-out" >&2
+        echo "self-test expected repeated aggregate failure, got exit $code" >&2
+        exit 1
+    }
+    diff -ru "$tmp/logs-first" "$tmp/logs"
+
+    rm -rf "$tmp/repos/black"
+    set +e
+    "$script_path" \
+        --nose "$fake_nose" \
+        --corpus-manifest "$tmp/corpus.json" \
+        --repos-root "$tmp/repos" \
+        --logs-dir "$tmp/missing-logs" \
+        --repo black \
+        >"$tmp/missing-out" 2>&1
+    code=$?
+    set -e
+    [[ "$code" -eq 1 ]] || {
+        cat "$tmp/missing-out" >&2
+        echo "self-test expected missing repository failure, got exit $code" >&2
+        exit 1
+    }
+    grep -q 'missing pinned corpus repo' "$tmp/missing-logs/black.log"
+
+    git -C "$tmp/repos" clone -q "$tmp/repos/arrow" black
+    black_commit="$(git -C "$tmp/repos/black" rev-parse HEAD)"
+    python3 - "$tmp/corpus.json" "$black_commit" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+value = json.loads(path.read_text())
+for repository in value["repositories"]:
+    if repository["id"] == "black":
+        repository["commit"] = sys.argv[2]
+path.write_text(json.dumps(value) + "\n")
+PY
+    set +e
+    NOSE_CORPUS_SELF_TEST_SLEEP=1 "$script_path" \
+        --nose "$fake_nose" \
+        --corpus-manifest "$tmp/corpus.json" \
+        --repos-root "$tmp/repos" \
+        --logs-dir "$tmp/timeout-logs" \
+        --timeout-seconds 1 \
+        --repo black \
+        >"$tmp/timeout-out" 2>&1
+    code=$?
+    set -e
+    [[ "$code" -eq 1 ]] || {
+        cat "$tmp/timeout-out" >&2
+        echo "self-test expected timeout failure, got exit $code" >&2
+        exit 1
+    }
+    grep -q 'timeout after 1 seconds' "$tmp/timeout-logs/black.log"
+
+    rm -rf "$tmp/repos/black"
+    git -C "$tmp/repos" clone -q "$tmp/repos/arrow" black
     git -C "$tmp/repos/arrow" \
         -c user.name='nose corpus self-test' \
         -c user.email='nose-corpus-self-test@example.invalid' \
@@ -253,10 +352,12 @@ EOF
 
 nose=""
 expected_nose_sha256=""
+source_commit=""
 corpus_manifest="bench/goldens/corpus.json"
 repos_root="bench/repos"
 logs_dir="target/corpus-verify-logs"
 jobs="${NOSE_CORPUS_VERIFY_JOBS:-$(default_jobs)}"
+timeout_seconds="${NOSE_CORPUS_VERIFY_TIMEOUT_SECONDS:-900}"
 repo_filters=()
 
 while [[ $# -gt 0 ]]; do
@@ -267,6 +368,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --expected-nose-sha256)
             expected_nose_sha256="${2:?missing value for --expected-nose-sha256}"
+            shift 2
+            ;;
+        --source-commit)
+            source_commit="${2:?missing value for --source-commit}"
             shift 2
             ;;
         --corpus-manifest)
@@ -283,6 +388,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --jobs)
             jobs="${2:?missing value for --jobs}"
+            shift 2
+            ;;
+        --timeout-seconds)
+            timeout_seconds="${2:?missing value for --timeout-seconds}"
             shift 2
             ;;
         --repo)
@@ -309,10 +418,27 @@ done
     echo "--jobs must be a positive integer, got: $jobs" >&2
     exit 2
 }
+[[ "$timeout_seconds" =~ ^[0-9]+$ && "$timeout_seconds" -gt 0 ]] || {
+    echo "--timeout-seconds must be a positive integer, got: $timeout_seconds" >&2
+    exit 2
+}
 [[ -z "$expected_nose_sha256" || "$expected_nose_sha256" =~ ^[0-9a-f]{64}$ ]] || {
     echo "--expected-nose-sha256 must be 64 lowercase hex characters" >&2
     exit 2
 }
+[[ -z "$source_commit" || "$source_commit" =~ ^[0-9a-f]{40}$ ]] || {
+    echo "--source-commit must be 40 lowercase hex characters" >&2
+    exit 2
+}
+if [[ -n "$source_commit" ]]; then
+    observed_source_commit="$(git rev-parse HEAD 2>/dev/null || true)"
+    if [[ "$observed_source_commit" != "$source_commit" ]]; then
+        echo "source commit mismatch" >&2
+        echo "expected: $source_commit" >&2
+        echo "observed: ${observed_source_commit:-not-a-git-checkout}" >&2
+        exit 2
+    fi
+fi
 [[ -f "$corpus_manifest" ]] || {
     echo "corpus manifest does not exist: $corpus_manifest" >&2
     exit 2
@@ -394,6 +520,7 @@ if [[ "${#repo_filters[@]}" -eq 0 && "$corpus_manifest_absolute" == "$default_co
 fi
 
 xargs -n 2 -P "$jobs" "$0" __run_repo "$nose" "$repos_root" "$logs_dir" "$logs_dir/status" \
+    "$timeout_seconds" \
     <"$repo_list"
 if [[ "$prune_verified" == "true" ]]; then
     python3 bench/prune_corpus.py --repos-root "$repos_root" --check-manifest
@@ -401,7 +528,7 @@ fi
 
 summary_tsv="$logs_dir/summary.tsv"
 {
-    printf 'repo\tstatus\texit_code\tfalse_merges\tcanon_changes\tadvisory\tseconds\n'
+    printf 'repo\tstatus\texit_code\tfalse_merges\tcanon_changes\tadvisory\n'
     LC_ALL=C sort "$logs_dir"/status/*.tsv
 } >"$summary_tsv"
 
@@ -412,13 +539,12 @@ totals="$(
         false_merges += $4
         canon_changes += $5
         advisory += $6
-        seconds += $7
     }
     END {
-        printf "%d\t%d\t%d\t%d\t%d\t%d", repos, failed, false_merges, canon_changes, advisory, seconds
+        printf "%d\t%d\t%d\t%d\t%d", repos, failed, false_merges, canon_changes, advisory
     }' "$summary_tsv"
 )"
-IFS=$'\t' read -r total_repos failed_repos total_false total_canon total_advisory total_seconds <<<"$totals"
+IFS=$'\t' read -r total_repos failed_repos total_false total_canon total_advisory <<<"$totals"
 
 python3 - \
     "$logs_dir/evidence.json" \
@@ -426,6 +552,7 @@ python3 - \
     "$repos_root" \
     "$nose_sha256" \
     "$nose_version" \
+    "$source_commit" \
     "$corpus_manifest" \
     "bench/labels/prune_manifest.json" \
     "$prune_verified" \
@@ -446,7 +573,7 @@ def sha256_file(path: Path) -> str:
 
 
 (
-    output_name, repo_list_name, repos_root_name, nose_sha256, nose_version,
+    output_name, repo_list_name, repos_root_name, nose_sha256, nose_version, source_commit,
     corpus_manifest_name, prune_manifest_name, prune_verified, summary_name,
 ) = sys.argv[1:]
 repo_list = Path(repo_list_name)
@@ -469,11 +596,22 @@ for line in repo_list.read_text().splitlines():
     })
 
 summary_rows = [line.split("\t") for line in summary.read_text().splitlines()[1:] if line]
-canonical = ("\n".join(sorted("\t".join(row[:6]) for row in summary_rows)) + "\n").encode()
+canonical = ("\n".join(sorted("\t".join(row) for row in summary_rows)) + "\n").encode()
 complete = prune_verified == "true"
 prune = json.loads(prune_manifest.read_text()) if complete else None
+results = [
+    {
+        "id": row[0],
+        "status": row[1],
+        "exit_code": int(row[2]),
+        "false_merges": int(row[3]),
+        "canon_changes": int(row[4]),
+        "advisory": int(row[5]),
+    }
+    for row in sorted(summary_rows)
+]
 evidence = {
-    "schema": "nose-corpus-verify-evidence/v1",
+    "schema": "nose-corpus-verify-evidence/v2",
     "complete": complete,
     "nose": {"sha256": nose_sha256 or None, "version": nose_version or None},
     "corpus_manifest_sha256": sha256_file(corpus_manifest),
@@ -482,9 +620,19 @@ evidence = {
         prune["corpus_digest_after_prune"]["hex"] if prune is not None else None
     ),
     "repositories": sorted(repositories, key=lambda row: row["id"]),
+    "results": results,
+    "totals": {
+        "repositories": len(results),
+        "failed_repositories": sum(row["status"] != "pass" for row in results),
+        "false_merges": sum(row["false_merges"] for row in results),
+        "canon_changes": sum(row["canon_changes"] for row in results),
+        "advisory": sum(row["advisory"] for row in results),
+    },
     "summary_sha256": sha256_file(summary),
     "canonical_result_sha256": hashlib.sha256(canonical).hexdigest(),
 }
+if source_commit:
+    evidence["source_commit"] = source_commit
 Path(output_name).write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n")
 PY
 
@@ -497,12 +645,11 @@ summary_md="$logs_dir/summary.md"
     echo "- hard false merges: $total_false"
     echo "- canon-preservation changes: $total_canon"
     echo "- advisory symbolic-trace disagreements: $total_advisory"
-    echo "- summed repo seconds: $total_seconds"
     echo
-    echo "| repo | status | false merges | canon changes | advisory | seconds |"
-    echo "|---|---:|---:|---:|---:|---:|"
+    echo "| repo | status | false merges | canon changes | advisory |"
+    echo "|---|---:|---:|---:|---:|"
     awk -F '\t' 'NR > 1 {
-        printf "| %s | %s | %s | %s | %s | %s |\n", $1, $2, $4, $5, $6, $7
+        printf "| %s | %s | %s | %s | %s |\n", $1, $2, $4, $5, $6
     }' "$summary_tsv"
 } >"$summary_md"
 
