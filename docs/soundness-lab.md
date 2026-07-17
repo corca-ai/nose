@@ -369,6 +369,17 @@ coordinate into both product extraction and the independent audit fingerprint. A
 TypeScript regression and the five affected pinned repositories preserve the distinction; the
 gate is therefore recording a defect it found, not merely checking synthetic mutations.
 
+The historical #859 expansion receipt remains bound to the implementation and performance run
+that completed that issue. The #862
+[`release-binding-862.v1.json`](../bench/soundness/0.20.0/release-binding-862.v1.json) separately
+binds the current crates tree, binary, replayed overlay, falsification output, and Type-4 blind
+receipt, while proving that all frozen pair decisions and coverage aggregates are unchanged. A
+fresh nine-iteration query run over the seven-repository regression frontier uses the published
+v0.19.0 arm64 binary as its baseline. After subtracting a same-binary control, the aggregate
+runtime delta is `+1.34%`, within the `5%` gate; the compact
+[`performance receipt`](../bench/recall_loss/issue-862-official-v0.19.0-performance-2026-07-18.v1.json) records
+both raw-run hashes and the exact corpus and binary identities.
+
 ## Reproduce and validate
 
 Use the published binary, the exact release source tree, and all pinned

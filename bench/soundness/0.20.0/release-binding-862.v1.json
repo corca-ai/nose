@@ -1,0 +1,92 @@
+{
+  "artifacts": {
+    "blind_attack": {
+      "path": "../../type4/blind_attack.v1.json",
+      "sha256": "67d1eedc77c9c6fed7daefe7770966b069a2f618f4178bcb0ce1c3768eacb788"
+    },
+    "expansion_receipt": {
+      "path": "oracle-expansion-859.v1.json",
+      "sha256": "fea5783c139b9bf5bbd385cd30a9cddc3604ea7b80ae903eb195c575c7186fbf"
+    },
+    "falsification": {
+      "path": "release-falsification-862.v1.txt",
+      "sha256": "8475256e910856862e97e171b32eb01ac785100e5d8cdc233a1be0ddcc4b76b9"
+    },
+    "historical_overlay": {
+      "path": "oracle-expansion-overlay.v2.json",
+      "sha256": "7f29837556de24e3abd0628a6def5ae1e3b882c5954a2ae4d7c1a3158933309c"
+    },
+    "overlay": {
+      "path": "release-overlay-862.v1.json",
+      "sha256": "8a6c8b43fe33657e459d1efa1e5577d70e23350b787807364946ed1ded40a419"
+    },
+    "performance": {
+      "path": "../../recall_loss/issue-862-official-v0.19.0-performance-2026-07-18.v1.json",
+      "sha256": "4ebb58e8375b4932a260dcdfa6968384d45a3d5449d8e71b8a4a7844c282ca8b"
+    }
+  },
+  "completeness": {
+    "behavior_equal_pairs": 222,
+    "fingerprint_equal_pairs": 108,
+    "structurally_near_under_merged_groups": 0,
+    "under_merged_behavior_groups": 8
+  },
+  "continuity": {
+    "reason": "The mixed-exit control coordinate changes fragment fingerprint identities but preserves every frozen pair decision, coverage aggregate, and language floor from the completed issue-859 expansion.",
+    "score_and_pair_status_unchanged": true
+  },
+  "falsification": {
+    "advisory_disagreements": 59,
+    "canon_checked": 304,
+    "canon_preservation_violations": 0,
+    "eligible_pairs": 63,
+    "executed_cases": 25766,
+    "false_merges": 0,
+    "interpretable_units": 2520,
+    "new_distinguishers": 0,
+    "searched_pairs": 63,
+    "skipped_pairs": 0,
+    "total_units": 13283
+  },
+  "implementation": {
+    "binary_sha256": "8a81f6f416904915a67b8a82eac3c154d4d9296f03a4e7de55a96ca7579f429d",
+    "crates_tree": "f32119d1c8d0d7f6ec9af7ba250417315d2de96c",
+    "raw_units_sha256": "35e8ecd90f839bcc1c7cd55c8437049c528979145c667c18e83b608bf09fd1d4",
+    "source_sha": "c3f3caccfb86b6c3b40cc1cbd0714e40baf02471"
+  },
+  "issue": 862,
+  "parent_issue": 855,
+  "release_tree": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+  "reproduction": {
+    "falsification_argv": [
+      "verify",
+      "crates",
+      "--max-violations",
+      "0",
+      "--falsify"
+    ],
+    "rayon_num_threads": 1,
+    "units_argv": [
+      "verify",
+      "crates",
+      "--json",
+      "--max-violations",
+      "0",
+      "--soundness-tranche",
+      "unused-trailing-parameters"
+    ]
+  },
+  "result": {
+    "baseline_verified_pair_regressions": [],
+    "candidate_cohort_sha256": "aba9aff33baef8682addebcbfa8b684cb0401fac501d158f8bb17085f11ee574",
+    "denominator_unchanged": true,
+    "exact_unsafe_pair_mass": 62,
+    "gate_passed": true,
+    "language_regressions": [],
+    "macro_ppm": 457620,
+    "pair_micro_ppm": 360824,
+    "release_target_met": true,
+    "verified_pair_mass": 35
+  },
+  "schema": "nose-soundness-release-binding/v1"
+}

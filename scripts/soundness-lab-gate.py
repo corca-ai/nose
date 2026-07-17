@@ -7,6 +7,7 @@ import argparse
 import copy
 import hashlib
 import json
+import math
 import re
 import subprocess
 import sys
@@ -27,6 +28,7 @@ TYPE4 = ROOT / "bench/type4"
 FORMAL = ROOT / "formal/obligations"
 WORKFLOW = ROOT / ".github/workflows/corpus-verify.yml"
 ADVISORY_BASELINE = CURRENT / "nightly-advisory-baseline.v1.json"
+PERFORMANCE = ROOT / "bench/recall_loss/issue-862-official-v0.19.0-performance-2026-07-18.v1.json"
 
 
 class GateError(ValueError):
@@ -150,9 +152,10 @@ def type4_coverage() -> dict[str, Any]:
 def static_snapshot() -> dict[str, Any]:
     manifest = load(BASELINE / "manifest.v1.json")
     baseline = load(BASELINE / "scorecard.v1.json")
-    overlay = load(CURRENT / "oracle-expansion-overlay.v2.json")
-    receipt = load(CURRENT / "oracle-expansion-859.v1.json")
+    overlay = load(CURRENT / "release-overlay-862.v1.json")
+    receipt = load(CURRENT / "release-binding-862.v1.json")
     blind = load(TYPE4 / "blind_attack.v1.json")
+    performance = load(PERFORMANCE)
     return {
         "official_baseline": {
             "version": manifest["baseline"],
@@ -166,6 +169,10 @@ def static_snapshot() -> dict[str, Any]:
             "coverage_gates": overlay["gates"],
             "focused_falsification": receipt["falsification"],
             "blind_attack": blind["hard_gate"],
+            "performance": {
+                "gate": performance["gate"],
+                "measurement": performance["measurement"],
+            },
         },
         "formal": formal_coverage(),
         "type4": type4_coverage(),
@@ -206,6 +213,13 @@ def validate_snapshot(snapshot: dict[str, Any], corpus: dict[str, Any] | None = 
         )
         if canon:
             errors.append(f"{label} has a canon-preservation violation")
+    performance = candidate["performance"]
+    if (
+        performance["gate"].get("passed") is not True
+        or performance["measurement"].get("adjusted_delta_pct", math.inf)
+        >= performance["gate"].get("adjusted_delta_pct_limit", -math.inf)
+    ):
+        errors.append("official-v0.19.0 performance gate failed")
     if corpus is not None:
         totals = corpus.get("totals", {})
         if not corpus.get("complete"):
@@ -435,6 +449,7 @@ def release_report(corpus: dict[str, Any], deep: dict[str, Any], commit: str) ->
             ),
         },
         "risk_weighted_coverage": snapshot["candidate"]["risk_weighted_coverage"],
+        "performance": snapshot["candidate"]["performance"],
         "language_floors": language_floors(snapshot),
         "proof_coverage": {
             key: snapshot["formal"][key]
@@ -460,6 +475,7 @@ def markdown_summary(report: dict[str, Any]) -> str:
         )
     coverage = report["risk_weighted_coverage"]
     proof = report["proof_coverage"]
+    performance = report["performance"]["measurement"]
     return (
         "## Soundness Lab 0.20 release gate\n\n"
         f"- result: **{'PASS' if report['gate_passed'] else 'FAIL'}**\n"
@@ -467,6 +483,7 @@ def markdown_summary(report: dict[str, Any]) -> str:
         f"- risk-weighted coverage: {coverage['macro_ppm'] / 10000:.2f}% "
         f"(target {coverage['release_target_ppm'] / 10000:.2f}%)\n"
         f"- frozen verified pairs: {coverage['verified_pair_mass']}/{coverage['baseline_pair_mass']}\n"
+        f"- official-v0.19.0 adjusted runtime delta: {performance['adjusted_delta_pct']:+.2f}%\n"
         f"- proof coverage: {proof['theorems']}\n"
         f"- precondition coverage: {proof['preconditions']}\n"
     )
