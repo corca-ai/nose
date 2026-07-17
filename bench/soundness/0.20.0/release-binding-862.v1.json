@@ -10,7 +10,7 @@
     },
     "expansion_receipt": {
       "path": "oracle-expansion-859.v1.json",
-      "sha256": "fea5783c139b9bf5bbd385cd30a9cddc3604ea7b80ae903eb195c575c7186fbf"
+      "sha256": "92d991811e8c93948ca0276e661a407b8b6c0fbf20f27c2fd71ffea5103aded0"
     },
     "falsification": {
       "path": "release-falsification-862.v1.txt",
