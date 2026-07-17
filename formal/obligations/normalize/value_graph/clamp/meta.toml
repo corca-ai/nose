@@ -1,7 +1,40 @@
 id = "normalize.value_graph.clamp"
-status = "proven"
 kind = "soundness"
 summary = "Clamp min/max compositions and two-comparison forms agree only under the lo <= hi precondition."
+
+[claim]
+id = "nose.claim.normalize.value_graph.clamp"
+
+[theorem]
+status = "proven"
+statement = "Clamp min/max compositions and two-comparison forms agree only under the lo <= hi precondition."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.integer_domain]
+kind = "runtime"
+status = "empirical"
+summary = "The value and both bounds must be proven integers before total-order clamp laws are used."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.bound_order]
+kind = "runtime"
+status = "empirical"
+summary = "Rust admission must carry a proof-backed lo <= hi fact for the exact bound coordinates."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.shape_and_effect_safety]
+kind = "runtime"
+status = "empirical"
+summary = "The min/max or two-comparison shape must match the modeled clamp without reordering observable effects."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = ["formal/obligations/normalize/value_graph/clamp/Counterexamples.lean#NoseClampCounterexamples.swapped_bounds_not_clamp", "formal/obligations/normalize/value_graph/clamp/Counterexamples.lean#NoseClampCounterexamples.wrong_nesting_not_clamp", "formal/obligations/normalize/value_graph/clamp/Counterexamples.lean#NoseClampCounterexamples.precondition_required"]
 
 [rust]
 rule_module = true

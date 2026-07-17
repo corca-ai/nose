@@ -281,12 +281,13 @@ API the contract describes.
 ### Laws and proof status
 
 Rewrites should be registered as semantic laws with explicit preconditions:
-required domains, effect conditions, demand conditions, and proof status.
+required domains, effect conditions, demand conditions, and evidence status.
 
-Proof statuses mirror [formal-soundness](formal-soundness.md): `proven`,
-`covered`, `missing`, `empirical-only`, and `rejected-counterexample`. Builtin
-exact laws need project-owned evidence. External laws may declare evidence, but
-nose does not certify it unless the law ships as builtin.
+The first-party registry does not assign one status to a whole claim. It reports the modeled
+theorem, every runtime precondition and its `proven`/`empirical`/`rejected` status, and the
+product surface separately; see [formal-soundness](formal-soundness.md). Builtin exact laws need
+project-owned evidence. External laws may declare evidence, but nose does not certify it unless
+the law ships as builtin.
 
 ## Channel eligibility
 

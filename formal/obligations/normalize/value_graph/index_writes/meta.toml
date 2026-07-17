@@ -1,7 +1,40 @@
 id = "normalize.value_graph.index_writes"
-status = "proven"
 kind = "soundness-boundary"
 summary = "Indexed-element read-forwarding returns the most-recent same-place write; a write to a distinct place preserves a place's value, and a possibly-aliasing write must invalidate the forward (so element writes stay order-sensitive)."
+
+[claim]
+id = "nose.claim.normalize.value_graph.index_writes"
+
+[theorem]
+status = "proven"
+statement = "Indexed-element read-forwarding returns the most-recent same-place write; a write to a distinct place preserves a place's value, and a possibly-aliasing write must invalidate the forward (so element writes stay order-sensitive)."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.index_place_identity]
+kind = "runtime"
+status = "empirical"
+summary = "Base and index coordinates must identify the exact place represented by the index-state key."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.alias_invalidation]
+kind = "runtime"
+status = "empirical"
+summary = "A possibly aliasing write must invalidate forwarding unless distinct-place evidence is available."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.write_order]
+kind = "runtime"
+status = "empirical"
+summary = "Read forwarding must select the most recent same-place write without reordering intervening effects."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = ["formal/obligations/normalize/value_graph/index_writes/Counterexamples.lean#NoseIndexWriteCounterexamples.same_place_write_order_matters"]
 
 [rust]
 files = [

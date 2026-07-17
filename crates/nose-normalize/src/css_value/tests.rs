@@ -55,6 +55,14 @@ fn number_spelling_canonicalizes() {
 }
 
 #[test]
+fn custom_property_tokens_preserve_spelling_and_casing() {
+    assert_eq!(canonicalize_value("--color", &["white"]), vec!["white"]);
+    assert_eq!(canonicalize_value("--color", &["#FFF"]), vec!["#FFF"]);
+    assert_eq!(canonicalize_value("--length", &["0px"]), vec!["0px"]);
+    assert_eq!(canonicalize_value("--keyword", &["1PX"]), vec!["1PX"]);
+}
+
+#[test]
 fn box_shorthand_collapses_soundly() {
     fn v(s: &str) -> Vec<&str> {
         s.split_whitespace().collect()

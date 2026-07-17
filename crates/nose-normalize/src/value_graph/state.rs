@@ -1,6 +1,7 @@
 //! Value-domain gates and evidence-backed state helpers.
 //!
 //! proof-obligation: normalize.value_graph.free_monoid
+// proof-claim: nose.claim.normalize.value_graph.free_monoid
 
 use super::*;
 

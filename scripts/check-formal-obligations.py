@@ -20,6 +20,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 
+import formal_claim_schema as claim_schema
+
 try:
     import tomllib  # type: ignore[import-not-found]
 except ModuleNotFoundError:  # Python < 3.11 on local developer machines.
@@ -27,13 +29,6 @@ except ModuleNotFoundError:  # Python < 3.11 on local developer machines.
 
 ROOT = Path(__file__).resolve().parents[1]
 OBLIGATION_ROOT = ROOT / "formal" / "obligations"
-STATUSES = {
-    "proven",
-    "covered",
-    "missing",
-    "empirical-only",
-    "rejected-counterexample",
-}
 RULE_ROOTS = {
     "normalize.value_graph": ROOT / "crates" / "nose-normalize" / "src" / "value_graph" / "rules",
 }
@@ -120,28 +115,53 @@ REQUIRED_OBLIGATIONS = (
         ),
         ("eval_inlined_call",),
     ),
-    # The near-channel graded witness. Required so the obligation can never be silently
-    # dropped while the soundness-bearing code lives — refactoring away `graded_witness`,
-    # `equal_modulo_holes`, or the `compare_referents` check (or removing the obligation's
-    # marker) fails the gate until the registry is updated. NOTE: unlike the entries above
-    # this obligation is `empirical-only`, not `proven` — required-EXISTENCE is enforced
-    # here; the Lean proof remains a tracked gap (the witness is near-channel evidence, not
-    # an exact-channel theorem). When a proof is written, flip the status to `proven` and
-    # the standard `[lean]` checks take over.
+    RequiredObligation(
+        "normalize.value_graph.promise_finally",
+        ("crates/nose-normalize/src/value_graph/rules/promise_then.rs",),
+        ("apply_finally_continuation",),
+    ),
+    RequiredObligation(
+        "normalize.value_graph.promise_aggregate",
+        ("crates/nose-normalize/src/value_graph/rules/promise_then.rs",),
+        ("promise_aggregate_value",),
+    ),
+    # The near-channel graded witness. Its structural theorem is proven, while source
+    # referent/decorator/sink/async grade-demotion checks remain empirical.
     RequiredObligation(
         "detect.graded_witness",
         ("crates/nose-detect/src/witness.rs",),
         ("graded_witness", "equal_modulo_holes", "compare_referents"),
     ),
-    # The declarative (CSS/HTML) fingerprint's value canonicalization. Like
-    # `detect.graded_witness` this is `empirical-only`: the fingerprint IS the canonical
-    # computed style (no IL rewrite), so soundness reduces to `canonicalize_value` being
-    # meaning-preserving, defended by adversarial batteries rather than Lean. Required
-    # here so the canon can never be silently dropped.
+    # The declarative fingerprint is intentionally split: Lean proves the parsed
+    # color/number/box/query cores, while browser and cascade behavior stays empirical.
     RequiredObligation(
-        "normalize.css.computed_style",
+        "normalize.css.color",
         ("crates/nose-normalize/src/css_value.rs",),
-        ("canonicalize_value", "canonicalize_at_rule_prelude", "canonicalize_query"),
+        ("normalize_color", "canonical_hex", "parse_rgb_func", "named_color"),
+    ),
+    RequiredObligation(
+        "normalize.css.number_unit",
+        ("crates/nose-normalize/src/css_value.rs",),
+        ("normalize_number", "canonical_number_text", "is_length_unit"),
+    ),
+    RequiredObligation(
+        "normalize.css.box",
+        ("crates/nose-normalize/src/css_value.rs",),
+        ("canonicalize_value", "collapse_box", "collapse_two_axis"),
+    ),
+    RequiredObligation(
+        "normalize.css.query",
+        ("crates/nose-normalize/src/css_value.rs",),
+        ("canonicalize_at_rule_prelude", "canonicalize_query", "canon_and_terms"),
+    ),
+    RequiredObligation(
+        "normalize.css.browser_remainder",
+        (
+            "crates/nose-normalize/src/css_value.rs",
+            "crates/nose-normalize/src/css.rs",
+            "crates/nose-normalize/src/html.rs",
+        ),
+        ("normalize_url", "normalize_color_function_spelling", "declarative_fingerprint"),
     ),
 )
 
@@ -220,8 +240,22 @@ def parse_meta(text: str) -> dict[str, Any]:
             return [parse_scalar(item.strip()) for item in inner.split(",") if item.strip()]
         raise ValueError(f"unsupported TOML array: {value}")
 
+    def strip_comment(raw: str) -> str:
+        in_string = False
+        escaped = False
+        for index, char in enumerate(raw):
+            if escaped:
+                escaped = False
+            elif char == "\\" and in_string:
+                escaped = True
+            elif char == '"':
+                in_string = not in_string
+            elif char == "#" and not in_string:
+                return raw[:index]
+        return raw
+
     for raw_line in text.splitlines():
-        line = raw_line.split("#", 1)[0].strip()
+        line = strip_comment(raw_line).strip()
         if not line:
             continue
         if pending_key is not None:
@@ -333,13 +367,13 @@ def lint_meta(
     where = str(rel / "meta.toml")
     meta = obligation.meta
 
-    for field in ("status", "kind", "summary"):
+    for field in ("kind", "summary"):
         if not isinstance(meta.get(field), str) or not meta[field].strip():
             error(errors, f"{where}: `{field}` must be a non-empty string")
 
-    status = meta.get("status")
-    if isinstance(status, str) and status not in STATUSES:
-        error(errors, f"{where}: unknown status `{status}`")
+    claim_schema.lint_claim_schema(obligation, ROOT, errors)
+    theorem = meta.get("theorem", {})
+    status = theorem.get("status") if isinstance(theorem, dict) else None
 
     rust = meta.get("rust", {})
     if not isinstance(rust, dict):
@@ -549,9 +583,30 @@ def run_self_tests() -> int:
         def base_meta(status: str) -> dict[str, Any]:
             return {
                 "id": "self_test",
-                "status": status,
                 "kind": "self-test",
                 "summary": "self-test obligation",
+                "claim": {"id": "nose.claim.self_test"},
+                "theorem": {
+                    "status": status,
+                    "statement": "the self-test proposition holds",
+                    "model": "a minimal proposition",
+                },
+                "preconditions": {
+                    "modeled_input": {
+                        "kind": "runtime",
+                        "status": "empirical",
+                        "summary": "the proposition is well formed",
+                        "evidence": ["scripts/check-formal-obligations.py"],
+                    }
+                },
+                "product": {
+                    "surface": "structural-invariant",
+                    "guarantee": "the self-test exercises registry validation",
+                },
+                "evidence": {
+                    "executable_tests": ["scripts/check-formal-obligations.py"],
+                    "counterexamples": [],
+                },
             }
 
         def lint(
@@ -591,6 +646,13 @@ def run_self_tests() -> int:
             lint_rust_marker_index(obligations, rust_markers, errors)
             return errors
 
+        def claim_marker_lint(
+            obligations: dict[str, Obligation], claim_markers: dict[str, set[str]]
+        ) -> list[str]:
+            errors: list[str] = []
+            claim_schema.lint_claim_marker_index(obligations, claim_markers, ROOT, errors)
+            return errors
+
         cases = [
             (
                 "valid proven",
@@ -609,6 +671,65 @@ def run_self_tests() -> int:
                 },
                 True,
                 "proven obligations must list at least one `lean.theorems`",
+            ),
+            (
+                "proven without structured preconditions",
+                {
+                    **base_meta("proven"),
+                    "preconditions": {},
+                    "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                },
+                True,
+                "`[preconditions.*]` must record at least one precondition",
+            ),
+            (
+                "ambiguous legacy top-level status",
+                {
+                    **base_meta("proven"),
+                    "status": "proven",
+                    "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                },
+                True,
+                "top-level `status` is ambiguous",
+            ),
+            (
+                "runtime precondition cannot claim proof without a theorem",
+                {
+                    **base_meta("proven"),
+                    "preconditions": {
+                        "runtime_gate": {
+                            "kind": "runtime",
+                            "status": "proven",
+                            "summary": "an unproved runtime gate",
+                            "evidence": ["scripts/check-formal-obligations.py"],
+                        }
+                    },
+                    "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                },
+                True,
+                "proven preconditions must be modeled and name a theorem",
+            ),
+            (
+                "rust-backed proof cannot erase runtime correspondence",
+                {
+                    **base_meta("proven"),
+                    "preconditions": {
+                        "modeled_gate": {
+                            "kind": "modeled",
+                            "status": "proven",
+                            "summary": "a theorem-backed modeled gate",
+                            "proof": "SelfTest.ok",
+                            "evidence": ["scripts/check-formal-obligations.py"],
+                        }
+                    },
+                    "rust": {
+                        "files": ["scripts/check-formal-obligations.py"],
+                        "symbols": [],
+                    },
+                    "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                },
+                True,
+                "Rust-backed proven theorem needs an empirical runtime precondition",
             ),
             (
                 "covered without covered_by",
@@ -711,6 +832,23 @@ def run_self_tests() -> int:
             ),
         ]
 
+        exact_meta = base_meta("proven")
+        exact_meta["product"]["surface"] = "exact-normalization"
+        claim_marker_cases = [
+            (
+                "unregistered exact claim marker",
+                {},
+                {"nose.claim.not_registered": {"crates/unregistered.rs"}},
+                "marker references unregistered claim `nose.claim.not_registered`",
+            ),
+            (
+                "registered exact claim without source marker",
+                {"self_test": Obligation("self_test", obligation_path, exact_meta)},
+                {},
+                "exact/canonicalization claim `nose.claim.self_test` needs a source marker",
+            ),
+        ]
+
         failures = []
         for name, meta, should_fail, expected in cases:
             rust_marker_index = {"self_test": {"required.rs"}} if "missing marker" not in name else {}
@@ -730,6 +868,20 @@ def run_self_tests() -> int:
             joined = "\n".join(errors)
             if expected not in joined:
                 failures.append(f"{name}: expected `{expected}`, got {errors}")
+        for name, obligations, claim_markers, expected in claim_marker_cases:
+            errors = claim_marker_lint(obligations, claim_markers)
+            joined = "\n".join(errors)
+            if expected not in joined:
+                failures.append(f"{name}: expected `{expected}`, got {errors}")
+        bogus_anchor_errors: list[str] = []
+        claim_schema.validate_reference(
+            ROOT,
+            "bench/type4/declarative_claim_matrix.v1.json#does.not.exist.1",
+            bogus_anchor_errors,
+            "self-test",
+        )
+        if not bogus_anchor_errors:
+            failures.append("bogus structured evidence anchor was accepted")
 
     if failures:
         print("formal obligation self-test failed:", file=sys.stderr)
@@ -751,10 +903,12 @@ def main() -> int:
     obligations = load_obligations(errors)
     all_ids = set(obligations)
     rust_markers = collect_rust_markers()
+    claim_markers = claim_schema.collect_claim_markers(RUST_ROOTS, ROOT)
     for obligation in obligations.values():
         lint_meta(obligation, all_ids, errors, rust_markers)
     lint_rule_modules(obligations, errors)
     lint_rust_marker_index(obligations, rust_markers, errors)
+    claim_schema.lint_claim_marker_index(obligations, claim_markers, ROOT, errors)
     lint_required_obligations(obligations, errors)
     lint_canon_naming(obligations, errors)
     lint_lean_layout(errors)
@@ -764,7 +918,10 @@ def main() -> int:
         for item in errors:
             print(f"  - {item}", file=sys.stderr)
         return 1
-    print(f"formal obligation lint passed ({len(obligations)} obligations)")
+    print(
+        f"formal obligation lint passed ({len(obligations)} obligations): "
+        f"{claim_schema.coverage_report(obligations.values())}"
+    )
     return 0
 
 

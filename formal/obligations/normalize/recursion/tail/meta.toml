@@ -1,7 +1,34 @@
 id = "normalize.recursion.tail"
-status = "proven"
 kind = "soundness"
 summary = "Tail-recursive self calls and their emitted while loop reach the same final state before returning."
+
+[claim]
+id = "nose.claim.normalize.recursion.tail"
+
+[theorem]
+status = "proven"
+statement = "Tail-recursive self calls and their emitted while loop reach the same final state before returning."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.self_call_identity]
+kind = "runtime"
+status = "empirical"
+summary = "The recursive call must resolve to the same function and occur in the admitted tail position."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.state_update_order]
+kind = "runtime"
+status = "empirical"
+summary = "Parameter updates must be hazard-safe and evaluate in the same dependency order as the recursive arguments."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = ["formal/obligations/normalize/recursion/tail/Counterexamples.lean#NoseRecursionTailCounterexamples.cyclic_binding_needs_hazard_safe_order"]
 
 [rust]
 files = ["crates/nose-normalize/src/recursion/tail.rs"]

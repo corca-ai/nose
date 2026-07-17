@@ -1,7 +1,34 @@
 id = "detect.fragment.effect_place"
-status = "proven"
 kind = "soundness-boundary"
 summary = "Append and index effects are directly observed; field writes require an exact-safe receiver place and reject Unknown."
+
+[claim]
+id = "nose.claim.detect.fragment.effect_place"
+
+[theorem]
+status = "proven"
+statement = "Append and index effects are directly observed; field writes require an exact-safe receiver place and reject Unknown."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.effect_classification]
+kind = "runtime"
+status = "empirical"
+summary = "Append, index, and field effects must be classified at every behavior-bearing fragment sink."
+evidence = ["crates/nose-detect/src/fragment/oracle/tests.rs"]
+
+[preconditions.receiver_place_identity]
+kind = "runtime"
+status = "empirical"
+summary = "A field write is admitted only when its receiver resolves to an exact-safe place rather than Unknown."
+evidence = ["crates/nose-detect/src/fragment/oracle/tests.rs"]
+
+[product]
+surface = "verification-boundary"
+guarantee = "Bounds behavioral verification to fragments satisfying the recorded contract."
+
+[evidence]
+executable_tests = ["crates/nose-detect/src/fragment/oracle/tests.rs"]
+counterexamples = []
 
 [rust]
 files = ["crates/nose-detect/src/fragment/contract.rs"]

@@ -1,7 +1,40 @@
 id = "normalize.value_graph.flatmap_identity"
-status = "proven"
 kind = "soundness"
 summary = "Identity flat-map (flatMap id) canonicalizes to flatten; the modeled inner-identity-map form has the same List denotation, so identity flat-map converges with the nested builder loop."
+
+[claim]
+id = "nose.claim.normalize.value_graph.flatmap_identity"
+
+[theorem]
+status = "proven"
+statement = "Identity flat-map (flatMap id) canonicalizes to flatten; the modeled inner-identity-map form has the same List denotation, so identity flat-map converges with the nested builder loop."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.collection_dispatch]
+kind = "runtime"
+status = "empirical"
+summary = "The receiver must use the admitted one-level flat-map collection contract and modeled traversal order."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.identity_callback]
+kind = "runtime"
+status = "empirical"
+summary = "The inner callback must return the exact outer element, without a changed source coordinate or nesting depth."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.callback_effect_safety]
+kind = "runtime"
+status = "empirical"
+summary = "Callback evaluation must not add effects, errors, or lazy-demand behavior erased by identity flattening."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = []
 
 [rust]
 files = [

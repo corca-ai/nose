@@ -1,7 +1,34 @@
 id = "normalize.value_graph.compare"
-status = "proven"
 kind = "soundness"
 summary = "Comparison direction, negated comparisons, equality-operand commutativity, and total-order lattice canons preserve Int comparison denotation."
+
+[claim]
+id = "nose.claim.normalize.value_graph.compare"
+
+[theorem]
+status = "proven"
+statement = "Comparison direction, negated comparisons, equality-operand commutativity, and total-order lattice canons preserve Int comparison denotation."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.total_order_domain]
+kind = "runtime"
+status = "empirical"
+summary = "Direction and lattice rewrites require operands proven to inhabit the modeled integer total order."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.operand_identity_and_effects]
+kind = "runtime"
+status = "empirical"
+summary = "Swapped or negated comparisons must preserve operand binding identity and observable evaluation order."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = []
 
 [rust]
 files = [

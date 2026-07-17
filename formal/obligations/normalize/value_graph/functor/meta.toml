@@ -1,7 +1,40 @@
 id = "normalize.value_graph.functor"
-status = "proven"
 kind = "soundness"
 summary = "Map/filter fusion and count-of-filter normalization preserve List denotation."
+
+[claim]
+id = "nose.claim.normalize.value_graph.functor"
+
+[theorem]
+status = "proven"
+statement = "Map/filter fusion and count-of-filter normalization preserve List denotation."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.collection_dispatch]
+kind = "runtime"
+status = "empirical"
+summary = "Map/filter/count rules require an admitted collection API with the modeled traversal and cardinality semantics."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.callback_purity]
+kind = "runtime"
+status = "empirical"
+summary = "Fused callbacks must be binding-safe and free of observable effects whose count or order would change."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.eager_demand]
+kind = "runtime"
+status = "empirical"
+summary = "Fusion and count normalization require the modeled eager demand; lazy streams and exception timing stay closed."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = []
 
 [rust]
 files = [

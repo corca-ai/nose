@@ -1,6 +1,7 @@
 //! Structural recursion to accumulator-fold recognition and emission.
 //!
 //! proof-obligation: normalize.recursion.structural_fold
+// proof-claim: nose.claim.normalize.recursion.structural_fold
 
 use super::Rebuilder;
 use nose_il::{LitClass, NodeId, NodeKind, Op, Payload, Span};

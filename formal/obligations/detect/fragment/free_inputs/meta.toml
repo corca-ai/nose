@@ -1,7 +1,34 @@
 id = "detect.fragment.free_inputs"
-status = "proven"
 kind = "soundness-boundary"
 summary = "Fragment wrapper inputs are exactly reads from the enclosing scope with fragment-local bindings removed."
+
+[claim]
+id = "nose.claim.detect.fragment.free_inputs"
+
+[theorem]
+status = "proven"
+statement = "Fragment wrapper inputs are exactly reads from the enclosing scope with fragment-local bindings removed."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.lexical_read_collection]
+kind = "runtime"
+status = "empirical"
+summary = "The extractor must collect every enclosing-scope read that the synthesized fragment can observe."
+evidence = ["crates/nose-detect/src/fragment/oracle/tests.rs"]
+
+[preconditions.local_binding_subtraction]
+kind = "runtime"
+status = "empirical"
+summary = "Parameters and fragment-local binding targets must be removed without hiding a captured outer referent."
+evidence = ["crates/nose-detect/src/fragment/oracle/tests.rs"]
+
+[product]
+surface = "verification-boundary"
+guarantee = "Bounds behavioral verification to fragments satisfying the recorded contract."
+
+[evidence]
+executable_tests = ["crates/nose-detect/src/fragment/oracle/tests.rs"]
+counterexamples = []
 
 [rust]
 files = ["crates/nose-detect/src/fragment/oracle.rs"]

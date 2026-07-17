@@ -5,6 +5,7 @@
 //! integers because the float min/max NaN semantics differ.
 //!
 //! proof-obligation: normalize.value_graph.clamp
+// proof-claim: nose.claim.normalize.value_graph.clamp
 
 use super::super::{Builder, ValOp, ValueId, MAX_CODE, MIN_CODE};
 

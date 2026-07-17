@@ -1,7 +1,34 @@
 id = "detect.fragment.wrapper_synthesis"
-status = "proven"
 kind = "structural-invariant"
 summary = "A fragment wrapper exposes one parameter per free input and keeps the synthesized body root in bounds."
+
+[claim]
+id = "nose.claim.detect.fragment.wrapper_synthesis"
+
+[theorem]
+status = "proven"
+statement = "A fragment wrapper exposes one parameter per free input and keeps the synthesized body root in bounds."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.parameter_alignment]
+kind = "runtime"
+status = "empirical"
+summary = "The wrapper must bind exactly one parameter for each discovered free input in deterministic order."
+evidence = ["crates/nose-detect/src/fragment/oracle/tests.rs"]
+
+[preconditions.copied_body_validity]
+kind = "runtime"
+status = "empirical"
+summary = "The copied fragment body and synthesized root must stay in bounds and preserve the selected behavior sinks."
+evidence = ["crates/nose-detect/src/fragment/oracle/tests.rs"]
+
+[product]
+surface = "verification-boundary"
+guarantee = "Bounds behavioral verification to fragments satisfying the recorded contract."
+
+[evidence]
+executable_tests = ["crates/nose-detect/src/fragment/oracle/tests.rs"]
+counterexamples = []
 
 [rust]
 files = ["crates/nose-detect/src/fragment/oracle.rs"]

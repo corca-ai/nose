@@ -31,7 +31,8 @@ registered proof obligation.
 
 Some semantic surfaces are required even when they are not one-file rule modules. The linter
 currently requires obligations for IL arena validity/deep-copy, recursion rewrites, exact
-fragment effect/place and wrapper contracts, and the oracle cutoff.
+fragment effect/place and wrapper contracts, the oracle cutoff, graded-witness demotion checks, and the
+split declarative core/remainder.
 
 Every Rust-backed obligation must carry a comment marker — `// proof-obligation: <obligation id>`
 — in one of its listed Rust files. The marker IS the obligation id, so there is no separate
@@ -43,6 +44,11 @@ Every Rust-backed obligation must carry a comment marker — `// proof-obligatio
 
 The linter also scans Rust files in the other direction: a marker with no matching
 obligation, or a marker in a file not named by that obligation's `rust.files`, fails CI.
+
+Every exact-normalization or canonicalization obligation also has a derived, source-visible
+`proof-claim: nose.claim.<obligation id>` marker. The structured `meta.toml` keeps `[claim]`,
+`[theorem]`, `[preconditions.*]`, `[product]`, and `[evidence]` separate. This lets a proven Lean
+theorem retain empirical Rust preconditions without presenting the whole product claim as proven.
 
 ## Registered proof families
 
@@ -74,6 +80,12 @@ obligation, or a marker in a file not named by that obligation's `rust.files`, f
 - `il.arena.validity` / `il.arena.deep_copy` — structural IL bounds invariants used by
   validation and wrapper deep-copying.
 - `oracle.cutoff` — oracle-mode normalization stops before semantic canonicalizations.
+- `detect.graded_witness` — proven anti-unification core with explicit empirical referent,
+  decorator, sink, and async grade-demotion checks.
+- `normalize.value_graph.promise_finally` / `promise_aggregate` — empirical exact perimeters
+  kept separate from the proven local `.then`/`.catch` model.
+- `normalize.css.color` / `number_unit` / `box` / `query` — proven parsed declarative cores.
+- `normalize.css.browser_remainder` — explicitly empirical browser/cascade/DOM perimeter.
 
 ## Check
 

@@ -7,20 +7,32 @@
 //! equivalent to its canonical form is returned UNCHANGED, so the worst case is a missed
 //! merge (recall), never a false merge (soundness).
 //!
-//! This is the soundness-bearing step of the declarative fingerprint: the fingerprint
-//! IS the canonical computed style (no IL rewrite), so *equal fingerprint ⟹ equal
-//! computed style* holds by construction PROVIDED every canonicalization here is
-//! meaning-preserving. That precondition is `empirical-only` — defended by the
-//! adversarial per-rule batteries (the `css_value` unit tests plus the CSS/HTML
-//! convergence and hard-negative tests in `crates/nose-cli/tests/equivalence/`), not by
-//! Lean. See the obligation registered in `formal/obligations/normalize/css/computed_style/`.
+//! The proof registry separates four machine-checked cores (color, number/unit, box,
+//! and query laws) from the browser/cascade-dependent remainder. The Lean models prove
+//! the algebra after parsing; parser/table correspondence and browser semantics remain
+//! explicit empirical preconditions defended by executable counterexamples. Custom-property
+//! values bypass these ordinary-property canons and preserve their source token spelling.
 //!
-//! proof-obligation: normalize.css.computed_style
+//! proof-obligation: normalize.css.color
+// proof-claim: nose.claim.normalize.css.color
+//! proof-obligation: normalize.css.number_unit
+// proof-claim: nose.claim.normalize.css.number_unit
+//! proof-obligation: normalize.css.box
+// proof-claim: nose.claim.normalize.css.box
+//! proof-obligation: normalize.css.query
+// proof-claim: nose.claim.normalize.css.query
+//! proof-obligation: normalize.css.browser_remainder
+// proof-claim: nose.claim.normalize.css.browser_remainder
 
 /// Canonicalize a declaration's value (a list of raw tokens) toward computed
 /// equivalence: normalize each token, then collapse a box-model shorthand if the
 /// property is one. Returns the canonical token list (length may shrink on collapse).
 pub(crate) fn canonicalize_value(property: &str, tokens: &[&str]) -> Vec<String> {
+    // Custom-property values are an author-defined token stream, not a value parsed
+    // against an ordinary CSS property grammar. Preserve spelling and casing exactly.
+    if property.starts_with("--") {
+        return tokens.iter().map(|token| (*token).to_string()).collect();
+    }
     let norm: Vec<String> = tokens.iter().map(|t| normalize_token(t)).collect();
     if is_box_shorthand(property) {
         collapse_box(&norm)

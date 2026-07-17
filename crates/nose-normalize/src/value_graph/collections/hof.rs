@@ -142,6 +142,7 @@ impl<'a> Builder<'a> {
                     None => self.fresh_opaque(),
                 };
                 // proof-obligation: normalize.value_graph.flatmap_identity
+                // proof-claim: nose.claim.normalize.value_graph.flatmap_identity
                 // `flatMap(λx. x)` (identity inner: the lambda returns the outer
                 // element unchanged) ≡ `flatMap(λx. map(λy. y, x))` ≡ flatten.
                 let inner = if inner == outer_elem {
