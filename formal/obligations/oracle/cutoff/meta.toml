@@ -10,7 +10,7 @@ status = "proven"
 statement = "Oracle-mode normalization stops after desugar and alpha, excluding semantic canonicalizations from the behavioral ground truth."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.pipeline_phase_cutoff]
 kind = "runtime"
 status = "empirical"
 summary = "The concrete oracle pipeline must stop at the modeled phase boundary before semantic canons execute."

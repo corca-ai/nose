@@ -10,10 +10,22 @@ status = "proven"
 statement = "Map/filter fusion and count-of-filter normalization preserve List denotation."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.collection_dispatch]
 kind = "runtime"
 status = "empirical"
-summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+summary = "Map/filter/count rules require an admitted collection API with the modeled traversal and cardinality semantics."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.callback_purity]
+kind = "runtime"
+status = "empirical"
+summary = "Fused callbacks must be binding-safe and free of observable effects whose count or order would change."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.eager_demand]
+kind = "runtime"
+status = "empirical"
+summary = "Fusion and count normalization require the modeled eager demand; lazy streams and exception timing stay closed."
 evidence = ["crates/nose-cli/tests/equivalence.rs"]
 
 [product]

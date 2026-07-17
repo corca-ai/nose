@@ -10,10 +10,22 @@ status = "proven"
 statement = "Integer structural recursion can be emitted as an accumulator fold for addition and multiplication monoids; a float-valued HEAD is non-associative and is excluded by the Rust gate (head_possibly_float), not admitted via the coarse Number domain."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.integer_monoid_domain]
 kind = "runtime"
 status = "empirical"
-summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+summary = "The recursive head, seed, and step must be proven integer addition or multiplication in the theorem's monoid."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.recursion_shape]
+kind = "runtime"
+status = "empirical"
+summary = "Rust recognition must establish a single structural self-call with the modeled base case and accumulator contribution."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.float_head_exclusion]
+kind = "runtime"
+status = "empirical"
+summary = "A possibly floating recursive head is rejected because reassociation is not IEEE-754 sound."
 evidence = ["crates/nose-cli/tests/equivalence.rs"]
 
 [product]

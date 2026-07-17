@@ -120,6 +120,22 @@ fn css_distinct_colors_do_not_converge() {
 }
 
 #[test]
+fn css_custom_property_token_spelling_stays_distinct() {
+    let i = Interner::new();
+    for (left, right) in [
+        (".a { --x: white; }", ".b { --x: #fff; }"),
+        (".a { --x: 0px; }", ".b { --x: 0; }"),
+        (".a { --x: 1PX; }", ".b { --x: 1px; }"),
+    ] {
+        assert_ne!(
+            css_fp(&i, left),
+            css_fp(&i, right),
+            "custom-property token spelling is behavior-bearing",
+        );
+    }
+}
+
+#[test]
 fn css_shorthand_longhand_cascade_is_order_sensitive() {
     // Soundness: a shorthand and one of its longhands in the same rule cascade by
     // ORDER — `margin: 0; margin-top: 5px` (top=5px) ≠ `margin-top: 5px; margin: 0`

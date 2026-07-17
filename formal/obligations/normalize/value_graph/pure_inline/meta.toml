@@ -10,10 +10,22 @@ status = "proven"
 statement = "Inlining a call to a PURE, single-`return` function is beta-substitution: `f(args)` ≡ the function's body with the parameters bound to the arguments. For an effect-free function (modeled as a total mathematical function) this preserves meaning — nothing observable is dropped — so the interprocedural inline (`eval_inlined_call`) is sound. The Rust side enforces the effect-free precondition (a lone `return <expr>` that is `function_binding_safe`), which is why only a pure body may be inlined."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.callee_identity_and_arity]
 kind = "runtime"
 status = "empirical"
-summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+summary = "The call target must resolve uniquely to the registered function and actual/formal arity must match."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.body_purity]
+kind = "runtime"
+status = "empirical"
+summary = "The inlined body must pass the sink fence without observable effects, recursion, or ambiguous returns."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.binding_substitution]
+kind = "runtime"
+status = "empirical"
+summary = "Parameter and captured binding identities must support the modeled beta-substitution."
 evidence = ["crates/nose-cli/tests/equivalence.rs"]
 
 [product]

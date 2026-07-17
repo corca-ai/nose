@@ -10,10 +10,16 @@ status = "proven"
 statement = "Value-graph field writes are interpreted as final receiver+field state with last-write-wins semantics."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.receiver_place_identity]
 kind = "runtime"
 status = "empirical"
-summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+summary = "Receiver and field coordinates must resolve to the exact place represented by the field-state key."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.write_order_and_aliasing]
+kind = "runtime"
+status = "empirical"
+summary = "Rust state tracking must preserve last-write order and invalidate reads when receiver aliasing is unknown."
 evidence = ["crates/nose-cli/tests/equivalence.rs"]
 
 [product]

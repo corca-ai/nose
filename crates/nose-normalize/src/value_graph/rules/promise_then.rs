@@ -69,6 +69,8 @@ pub(in super::super) fn apply(
             .map(|state| state.into_value(builder));
     }
     if let Some(admitted) = admitted_promise_finally_at_call(builder.il, builder.interner, expr) {
+        // proof-obligation: normalize.value_graph.promise_finally
+        // proof-claim: nose.claim.normalize.value_graph.promise_finally
         let contract = admitted.contract.result;
         if !contract.demand.is_async_boundary() {
             return None;
@@ -94,6 +96,8 @@ pub(in super::super) fn promise_aggregate_value(
     expr: NodeId,
     env: &FxHashMap<u32, ValueId>,
 ) -> Option<ValueId> {
+    // proof-obligation: normalize.value_graph.promise_aggregate
+    // proof-claim: nose.claim.normalize.value_graph.promise_aggregate
     promise_aggregate_state(builder, expr, env).map(|state| state.into_value(builder))
 }
 

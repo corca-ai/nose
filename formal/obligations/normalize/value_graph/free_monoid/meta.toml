@@ -10,10 +10,16 @@ status = "proven"
 statement = "String/list builder semantics are ordered free-monoid concatenation, not commutative algebra."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.ordered_concat_domain]
 kind = "runtime"
 status = "empirical"
-summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+summary = "Rust admission must distinguish ordered string/list concatenation from commutative numeric addition."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.element_order_and_effects]
+kind = "runtime"
+status = "empirical"
+summary = "Builder elements remain in source order and no observable append/evaluation effect is reordered."
 evidence = ["crates/nose-cli/tests/equivalence.rs"]
 
 [product]

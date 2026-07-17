@@ -10,10 +10,16 @@ status = "proven"
 statement = "Guard-return, dead-code-after-return, ternary-return, conjoined-guard merge, and continue-guard unwrap control-flow canons preserve return/loop semantics."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.control_flow_shape]
 kind = "runtime"
 status = "empirical"
-summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+summary = "Rust recognition must match the guard, exit, branch, and loop shapes represented by the control-flow model."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.effect_and_exit_order]
+kind = "runtime"
+status = "empirical"
+summary = "Moving or joining guards must not drop an observable effect or change which exit executes first."
 evidence = ["crates/nose-cli/tests/equivalence.rs"]
 
 [product]

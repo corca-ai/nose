@@ -93,13 +93,15 @@ There is deliberately no top-level status. A claim records these dimensions inde
 
 This matters for claims such as `detect.graded_witness`: its anti-unification theorem is proven,
 while referent identity, decorators, sink alignment, and async lifecycle are four separately
-visible empirical runtime preconditions. The report prints theorem, precondition, and product-
+visible empirical grade-demotion checks. The report prints theorem, precondition, and product-
 surface counts instead of collapsing them into a misleading “proven obligations” total.
 
 The former monolithic CSS empirical obligation is also gone. Lean now checks parsed color,
 number/unit, box-shorthand, and Boolean query-order cores under `normalize.css.*`; parser/table
-correspondence and the browser/cascade/DOM remainder stay explicitly empirical and are linked to
-the executable 19-row/25-hard-negative declarative perimeter.
+correspondence, custom-property token spelling, and the browser/cascade/DOM remainder stay
+explicitly empirical and are linked to executable counterexamples. Safe Promise `.finally` and
+literal-aggregate recovery are likewise separate empirical exact claims rather than being hidden
+under the proven `.then`/`.catch` model.
 
 ## Local checks
 

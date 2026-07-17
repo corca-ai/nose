@@ -10,7 +10,8 @@
 //! The proof registry separates four machine-checked cores (color, number/unit, box,
 //! and query laws) from the browser/cascade-dependent remainder. The Lean models prove
 //! the algebra after parsing; parser/table correspondence and browser semantics remain
-//! explicit empirical preconditions defended by the executable declarative matrix.
+//! explicit empirical preconditions defended by executable counterexamples. Custom-property
+//! values bypass these ordinary-property canons and preserve their source token spelling.
 //!
 //! proof-obligation: normalize.css.color
 // proof-claim: nose.claim.normalize.css.color
@@ -27,6 +28,11 @@
 /// equivalence: normalize each token, then collapse a box-model shorthand if the
 /// property is one. Returns the canonical token list (length may shrink on collapse).
 pub(crate) fn canonicalize_value(property: &str, tokens: &[&str]) -> Vec<String> {
+    // Custom-property values are an author-defined token stream, not a value parsed
+    // against an ordinary CSS property grammar. Preserve spelling and casing exactly.
+    if property.starts_with("--") {
+        return tokens.iter().map(|token| (*token).to_string()).collect();
+    }
     let norm: Vec<String> = tokens.iter().map(|t| normalize_token(t)).collect();
     if is_box_shorthand(property) {
         collapse_box(&norm)

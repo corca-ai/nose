@@ -16,13 +16,19 @@ status = "empirical"
 summary = "The Rust hex/rgb parsers and named-color table must map source tokens to the RGBA value used by the theorem."
 evidence = ["crates/nose-normalize/src/css_value/tests.rs"]
 
+[preconditions.property_grammar]
+kind = "runtime"
+status = "empirical"
+summary = "Color spelling normalization applies only to ordinary parsed properties; custom-property token streams remain byte-spelling-sensitive."
+evidence = ["crates/nose-cli/tests/equivalence/css_surfaces.rs#css_custom_property_token_spelling_stays_distinct"]
+
 [product]
 surface = "canonicalization"
 guarantee = "Only successfully parsed exact color spellings receive a shared canonical token."
 
 [evidence]
 executable_tests = ["crates/nose-normalize/src/css_value/tests.rs", "bench/type4/declarative_claim_matrix.v1.json"]
-counterexamples = ["bench/type4/declarative_claim_matrix.v1.json#css.color.canonical-spelling.hn.1", "bench/type4/declarative_claim_matrix.v1.json#css.color.canonical-spelling.hn.2"]
+counterexamples = ["bench/type4/declarative_claim_matrix.v1.json#css.color.canonical-spelling.hn.1", "bench/type4/declarative_claim_matrix.v1.json#css.color.canonical-spelling.hn.2", "crates/nose-cli/tests/equivalence/css_surfaces.rs#css_custom_property_token_spelling_stays_distinct"]
 
 [rust]
 files = ["crates/nose-normalize/src/css_value.rs"]

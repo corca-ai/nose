@@ -10,10 +10,10 @@ status = "proven"
 statement = "IL validation requires root, unit roots, and child edges to stay inside the node arena."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.arena_edge_enumeration]
 kind = "runtime"
 status = "empirical"
-summary = "Concrete arena ids, roots, and child edges must correspond to the finite arena modeled by the theorem."
+summary = "The validator must enumerate the concrete root, unit roots, and every child edge represented by the finite arena model."
 evidence = ["crates/nose-il/src/tests.rs"]
 
 [product]

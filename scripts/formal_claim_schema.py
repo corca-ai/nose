@@ -49,9 +49,16 @@ def validate_reference(root: Path, reference: str, errors: list[str], where: str
         return
     if anchor:
         source = path.read_text(encoding="utf-8", errors="replace")
+        if anchor in source:
+            return
         local_name = anchor.rsplit(".", 1)[-1]
-        if anchor not in source and re.search(rf"\b{re.escape(local_name)}\b", source) is None:
-            errors.append(f"{where}: evidence anchor `{anchor}` not found in {path_text}")
+        if path.suffix == ".lean" and re.search(
+            rf"^\s*(?:theorem|lemma|def)\s+{re.escape(local_name)}\b",
+            source,
+            re.MULTILINE,
+        ):
+            return
+        errors.append(f"{where}: evidence anchor `{anchor}` not found in {path_text}")
 
 
 def lint_claim_schema(obligation: Any, root: Path, errors: list[str]) -> None:
@@ -100,6 +107,9 @@ def lint_claim_schema(obligation: Any, root: Path, errors: list[str]) -> None:
         errors.append(f"{where}: `[preconditions.*]` must record at least one precondition")
         preconditions = {}
     empirical_preconditions = 0
+    runtime_empirical_preconditions = 0
+    lean = meta.get("lean", {})
+    lean_theorems = set(lean.get("theorems", [])) if isinstance(lean, dict) else set()
     for precondition_id, precondition in preconditions.items():
         pre_where = f"{where}: precondition `{precondition_id}`"
         if not PRECONDITION_ID_RE.fullmatch(precondition_id):
@@ -113,6 +123,16 @@ def lint_claim_schema(obligation: Any, root: Path, errors: list[str]) -> None:
         if status not in PRECONDITION_STATUSES:
             errors.append(f"{pre_where} has unknown status `{status}`")
         empirical_preconditions += int(status == "empirical")
+        runtime_empirical_preconditions += int(
+            status == "empirical" and precondition.get("kind") == "runtime"
+        )
+        if status == "proven":
+            proof = precondition.get("proof")
+            if precondition.get("kind") != "modeled" or proof not in lean_theorems:
+                errors.append(
+                    f"{pre_where}: proven preconditions must be modeled and name a theorem "
+                    "from `lean.theorems` in `proof`"
+                )
         if not non_empty_str(precondition.get("summary")):
             errors.append(f"{pre_where} needs a non-empty summary")
         references = string_list(
@@ -136,6 +156,12 @@ def lint_claim_schema(obligation: Any, root: Path, errors: list[str]) -> None:
         errors.append(f"{where}: empirical theorem/preconditions need executable tests")
     if theorem_status == "empirical" and not counterexamples:
         errors.append(f"{where}: empirical theorem needs executable counterexamples")
+    rust = meta.get("rust", {})
+    rust_files = rust.get("files", []) if isinstance(rust, dict) else []
+    if theorem_status == "proven" and rust_files and not runtime_empirical_preconditions:
+        errors.append(
+            f"{where}: Rust-backed proven theorem needs an empirical runtime precondition"
+        )
     for reference in [*tests, *counterexamples]:
         validate_reference(root, reference, errors, where)
 

@@ -184,7 +184,8 @@ them.
 Coverage is first-class: the [Raw-node ratio](languages.md#coverage-and-adding-a-language)
 on real-world `.css`/`.html` is sub-percent (CSS ~0.002%, HTML ~0.4% on hand-written
 markup). Lean proves the parsed color, number/unit, box, and query-order cores. Parser/table
-correspondence and browser/cascade/DOM semantics remain empirical, guarded by the adversarial
+correspondence, custom-property token semantics, and browser/cascade/DOM semantics remain empirical,
+guarded by the adversarial
 connected matrix above plus the `css_value` unit tests (the project's primary trust mechanism,
 [design §1](design.md)). The split obligations live under `formal/obligations/normalize/css/`;
 the scoped `browser_remainder` replaces the former monolithic empirical status. `nose verify`

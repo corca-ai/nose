@@ -10,11 +10,17 @@ status = "proven"
 statement = "Deep-copying a subtree into a fresh IL builder keeps old ids valid and gives the copied root an in-bounds id."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.source_subtree_validity]
 kind = "runtime"
 status = "empirical"
-summary = "Concrete arena ids, roots, and child edges must correspond to the finite arena modeled by the theorem."
+summary = "The copied source root and its traversed child edges must be valid in the source arena."
 evidence = ["crates/nose-il/src/tests.rs"]
+
+[preconditions.fresh_builder_indexing]
+kind = "runtime"
+status = "empirical"
+summary = "The destination builder must append copied nodes without invalidating existing ids and return the copied in-bounds root."
+evidence = ["crates/nose-detect/src/fragment/oracle/tests.rs"]
 
 [product]
 surface = "structural-invariant"

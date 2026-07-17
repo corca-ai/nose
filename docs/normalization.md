@@ -604,8 +604,10 @@ declaration block, as a sorted, domain-namespaced hash multiset:
 
 The formal boundary is deliberately narrower than “all browser behavior.” Lean proves four
 parsed cores: color aliases, numeric/unit spelling, box-shorthand expansion, and commutative
-query ordering. Rust parser/table correspondence and URL/HSL spelling, cascade, selector/context,
-framework directives, and rendered-DOM behavior remain explicit empirical preconditions. They
+query ordering. Rust parser/table correspondence, custom-property token spelling, URL/HSL
+spelling, cascade, selector/context, framework directives, and rendered-DOM behavior remain
+explicit empirical preconditions. Custom-property values therefore bypass ordinary color/number
+canonicalization and retain their source token spelling. These boundaries
 are guarded by the connected 19-row/25-hard-negative
 [declarative claim matrix](../bench/type4/declarative_claim_matrix.v1.json) and `css_value` unit
 tests. The imperative interpreter cannot serve as a browser/DOM oracle, so the registry reports

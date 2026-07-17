@@ -31,7 +31,7 @@ registered proof obligation.
 
 Some semantic surfaces are required even when they are not one-file rule modules. The linter
 currently requires obligations for IL arena validity/deep-copy, recursion rewrites, exact
-fragment effect/place and wrapper contracts, the oracle cutoff, graded-witness gates, and the
+fragment effect/place and wrapper contracts, the oracle cutoff, graded-witness demotion checks, and the
 split declarative core/remainder.
 
 Every Rust-backed obligation must carry a comment marker — `// proof-obligation: <obligation id>`
@@ -81,7 +81,9 @@ theorem retain empirical Rust preconditions without presenting the whole product
   validation and wrapper deep-copying.
 - `oracle.cutoff` — oracle-mode normalization stops before semantic canonicalizations.
 - `detect.graded_witness` — proven anti-unification core with explicit empirical referent,
-  decorator, sink, and async gates.
+  decorator, sink, and async grade-demotion checks.
+- `normalize.value_graph.promise_finally` / `promise_aggregate` — empirical exact perimeters
+  kept separate from the proven local `.then`/`.catch` model.
 - `normalize.css.color` / `number_unit` / `box` / `query` — proven parsed declarative cores.
 - `normalize.css.browser_remainder` — explicitly empirical browser/cascade/DOM perimeter.
 

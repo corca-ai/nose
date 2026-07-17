@@ -10,10 +10,16 @@ status = "proven"
 statement = "Tail-recursive self calls and their emitted while loop reach the same final state before returning."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.self_call_identity]
 kind = "runtime"
 status = "empirical"
-summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+summary = "The recursive call must resolve to the same function and occur in the admitted tail position."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.state_update_order]
+kind = "runtime"
+status = "empirical"
+summary = "Parameter updates must be hazard-safe and evaluate in the same dependency order as the recursive arguments."
 evidence = ["crates/nose-cli/tests/equivalence.rs"]
 
 [product]

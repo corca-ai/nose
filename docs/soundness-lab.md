@@ -316,7 +316,7 @@ gates disappear from the report.
 
 For example, `detect.graded_witness` keeps its Lean anti-unification theorem while listing
 referent identity, decorator identity, sink alignment, and async lifecycle as separate empirical
-preconditions. CSS no longer has one computed-style `empirical-only` obligation: Lean proves the
+grade-demotion checks. CSS no longer has one computed-style `empirical-only` obligation: Lean proves the
 parsed color, number/unit, box, and query-order cores, while a named browser/cascade/DOM remainder
 is linked to the executable declarative counterexamples. CI still treats `sorry`, stale Rust
 symbols or markers, and unused Lean proof hints as failures.

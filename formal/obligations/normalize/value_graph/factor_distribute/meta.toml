@@ -10,10 +10,22 @@ status = "proven"
 statement = "The named factor_distribute rule preserves Int denotation and is gated away from free-monoid repetition."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.integer_domain]
 kind = "runtime"
 status = "empirical"
-summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+summary = "Factoring is admitted only for values proven to use modeled integer multiplication and addition."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.free_monoid_exclusion]
+kind = "runtime"
+status = "empirical"
+summary = "String, list, and other ordered repetition domains must not enter the distributive integer rule."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.operand_effect_safety]
+kind = "runtime"
+status = "empirical"
+summary = "Factoring a repeated operand must not change observable evaluation count or effects."
 evidence = ["crates/nose-cli/tests/equivalence.rs"]
 
 [product]

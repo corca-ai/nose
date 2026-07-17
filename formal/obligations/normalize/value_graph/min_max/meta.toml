@@ -10,10 +10,22 @@ status = "proven"
 statement = "Min/max select idioms and accumulator reductions are commutative and associative over Int."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.integer_total_order]
 kind = "runtime"
 status = "empirical"
-summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+summary = "Min/max selection and reduction require values proven to use the modeled integer total order."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.api_and_shape_identity]
+kind = "runtime"
+status = "empirical"
+summary = "Method/free-function dispatch and select/reduction shape must resolve to the admitted min/max contract."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.operand_effect_safety]
+kind = "runtime"
+status = "empirical"
+summary = "Commuting or reassociating candidates must not change operand effects or callback demand."
 evidence = ["crates/nose-cli/tests/equivalence.rs"]
 
 [product]

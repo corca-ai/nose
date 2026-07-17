@@ -10,10 +10,22 @@ status = "proven"
 statement = "Indexed-element read-forwarding returns the most-recent same-place write; a write to a distinct place preserves a place's value, and a possibly-aliasing write must invalidate the forward (so element writes stay order-sensitive)."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.index_place_identity]
 kind = "runtime"
 status = "empirical"
-summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+summary = "Base and index coordinates must identify the exact place represented by the index-state key."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.alias_invalidation]
+kind = "runtime"
+status = "empirical"
+summary = "A possibly aliasing write must invalidate forwarding unless distinct-place evidence is available."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.write_order]
+kind = "runtime"
+status = "empirical"
+summary = "Read forwarding must select the most recent same-place write without reordering intervening effects."
 evidence = ["crates/nose-cli/tests/equivalence.rs"]
 
 [product]

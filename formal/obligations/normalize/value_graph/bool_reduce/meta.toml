@@ -10,10 +10,16 @@ status = "proven"
 statement = "Any/all reductions are well-defined Bool folds for cross-language predicate reductions."
 model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
 
-[preconditions.rust_model_correspondence]
+[preconditions.boolean_predicate_domain]
 kind = "runtime"
 status = "empirical"
-summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+summary = "The reducer and predicate results must use the modeled Boolean truth contract."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[preconditions.collection_demand]
+kind = "runtime"
+status = "empirical"
+summary = "Collection traversal, empty truth, callback demand, and callback effects must match the admitted eager reduction."
 evidence = ["crates/nose-cli/tests/equivalence.rs"]
 
 [product]

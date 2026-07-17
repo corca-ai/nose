@@ -115,8 +115,18 @@ REQUIRED_OBLIGATIONS = (
         ),
         ("eval_inlined_call",),
     ),
+    RequiredObligation(
+        "normalize.value_graph.promise_finally",
+        ("crates/nose-normalize/src/value_graph/rules/promise_then.rs",),
+        ("apply_finally_continuation",),
+    ),
+    RequiredObligation(
+        "normalize.value_graph.promise_aggregate",
+        ("crates/nose-normalize/src/value_graph/rules/promise_then.rs",),
+        ("promise_aggregate_value",),
+    ),
     # The near-channel graded witness. Its structural theorem is proven, while source
-    # referent/decorator/sink/async gates remain explicit empirical preconditions.
+    # referent/decorator/sink/async grade-demotion checks remain empirical.
     RequiredObligation(
         "detect.graded_witness",
         ("crates/nose-detect/src/witness.rs",),
@@ -583,8 +593,8 @@ def run_self_tests() -> int:
                 },
                 "preconditions": {
                     "modeled_input": {
-                        "kind": "modeled",
-                        "status": "proven",
+                        "kind": "runtime",
+                        "status": "empirical",
                         "summary": "the proposition is well formed",
                         "evidence": ["scripts/check-formal-obligations.py"],
                     }
@@ -593,7 +603,10 @@ def run_self_tests() -> int:
                     "surface": "structural-invariant",
                     "guarantee": "the self-test exercises registry validation",
                 },
-                "evidence": {"executable_tests": [], "counterexamples": []},
+                "evidence": {
+                    "executable_tests": ["scripts/check-formal-obligations.py"],
+                    "counterexamples": [],
+                },
             }
 
         def lint(
@@ -678,6 +691,45 @@ def run_self_tests() -> int:
                 },
                 True,
                 "top-level `status` is ambiguous",
+            ),
+            (
+                "runtime precondition cannot claim proof without a theorem",
+                {
+                    **base_meta("proven"),
+                    "preconditions": {
+                        "runtime_gate": {
+                            "kind": "runtime",
+                            "status": "proven",
+                            "summary": "an unproved runtime gate",
+                            "evidence": ["scripts/check-formal-obligations.py"],
+                        }
+                    },
+                    "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                },
+                True,
+                "proven preconditions must be modeled and name a theorem",
+            ),
+            (
+                "rust-backed proof cannot erase runtime correspondence",
+                {
+                    **base_meta("proven"),
+                    "preconditions": {
+                        "modeled_gate": {
+                            "kind": "modeled",
+                            "status": "proven",
+                            "summary": "a theorem-backed modeled gate",
+                            "proof": "SelfTest.ok",
+                            "evidence": ["scripts/check-formal-obligations.py"],
+                        }
+                    },
+                    "rust": {
+                        "files": ["scripts/check-formal-obligations.py"],
+                        "symbols": [],
+                    },
+                    "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                },
+                True,
+                "Rust-backed proven theorem needs an empirical runtime precondition",
             ),
             (
                 "covered without covered_by",
@@ -821,6 +873,15 @@ def run_self_tests() -> int:
             joined = "\n".join(errors)
             if expected not in joined:
                 failures.append(f"{name}: expected `{expected}`, got {errors}")
+        bogus_anchor_errors: list[str] = []
+        claim_schema.validate_reference(
+            ROOT,
+            "bench/type4/declarative_claim_matrix.v1.json#does.not.exist.1",
+            bogus_anchor_errors,
+            "self-test",
+        )
+        if not bogus_anchor_errors:
+            failures.append("bogus structured evidence anchor was accepted")
 
     if failures:
         print("formal obligation self-test failed:", file=sys.stderr)
