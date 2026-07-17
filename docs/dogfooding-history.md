@@ -1269,3 +1269,11 @@ layout shift also moves the pre-existing `int_bin` / `float_bin` dispatcher
 representative `aa2b95cf822a1cd2` below the value-40 duplication threshold;
 neither numeric policy changes. The stale ID is removed and the budget tightens
 without accepting a new family or file-length exception.
+
+The #861 formal proof-coverage pass keeps the reviewed count at 26. Adding a
+source claim marker inside `value_graph/field_state.rs` moves the previously
+reviewed whole-impl span-noise representative from `318c7eb92b77189f` to
+`90373a49a4b8174d`. Its members remain `field_state.rs` and
+`stdlib/bindings.rs`, with one shared line and one removable line across
+unrelated value-graph helpers. No useful common abstraction or new duplication
+is introduced, so the representative ID changes without a budget increase.

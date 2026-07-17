@@ -256,6 +256,8 @@ set -euo pipefail
 # 27 -> 27 (#859 bounded oracle expansion): the retained cardinality and immutable Swift-string
 # boundaries move reviewed representatives without adding a substantial family. No new budget is
 # accepted; see docs/dogfooding-history.md.
+# 26 -> 26 (#861 formal proof coverage): a source claim marker moves the reviewed value-graph
+# whole-impl span-noise representative without changing its members or the budget.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 
