@@ -29,6 +29,11 @@ FORMAL = ROOT / "formal/obligations"
 WORKFLOW = ROOT / ".github/workflows/corpus-verify.yml"
 ADVISORY_BASELINE = CURRENT / "nightly-advisory-baseline.v1.json"
 PERFORMANCE = ROOT / "bench/recall_loss/issue-862-official-v0.19.0-performance-2026-07-18.v1.json"
+DEEP_CHECKS = {
+    "source_runtime_calibration",
+    "metamorphic_equivalence",
+    "multi_seed_falsification",
+}
 
 
 class GateError(ValueError):
@@ -154,6 +159,7 @@ def static_snapshot() -> dict[str, Any]:
     baseline = load(BASELINE / "scorecard.v1.json")
     overlay = load(CURRENT / "release-overlay-862.v1.json")
     receipt = load(CURRENT / "release-binding-862.v1.json")
+    attribution = load(CURRENT / "current-exclusion-attribution-862.v1.json")
     blind = load(TYPE4 / "blind_attack.v1.json")
     performance = load(PERFORMANCE)
     return {
@@ -176,11 +182,7 @@ def static_snapshot() -> dict[str, Any]:
         },
         "formal": formal_coverage(),
         "type4": type4_coverage(),
-        "attribution": {
-            "generic_unattributed_exclusions": manifest["exclusion_attribution"][
-                "generic_unattributed_exclusions"
-            ]
-        },
+        "attribution": attribution["summary"],
     }
 
 
@@ -246,6 +248,8 @@ def shard_plan(count: int) -> list[dict[str, Any]]:
 def validate_shard_evidence(evidence: dict[str, Any]) -> None:
     if evidence.get("schema") != "nose-corpus-verify-evidence/v2":
         raise GateError("nightly shard has an unsupported evidence schema")
+    if evidence.get("complete") is not True:
+        raise GateError("nightly shard is incomplete")
     results = evidence.get("results")
     repositories = evidence.get("repositories")
     if not isinstance(results, list) or not isinstance(repositories, list):
@@ -258,6 +262,14 @@ def validate_shard_evidence(evidence: dict[str, Any]) -> None:
         raise GateError("nightly shard contains duplicate repositories")
     if set(result_ids) != set(repository_ids):
         raise GateError("nightly shard identities and results disagree")
+    for row in results:
+        hard_pass = (
+            row.get("exit_code") == 0
+            and row.get("false_merges") == 0
+            and row.get("canon_changes") == 0
+        )
+        if (row.get("status") == "pass") != hard_pass:
+            raise GateError(f"nightly shard status contradicts exit evidence: {row.get('id')}")
     expected_totals = {
         "repositories": len(results),
         "failed_repositories": sum(row["status"] != "pass" for row in results),
@@ -282,6 +294,16 @@ def advisory_baseline(path: Path = ADVISORY_BASELINE) -> dict[str, Any]:
         raise GateError("advisory baseline does not cover the pinned corpus")
     if value.get("total") != sum(row["advisory"] for row in rows):
         raise GateError("advisory baseline total is inconsistent")
+    snapshot = static_snapshot()
+    source = value.get("source", {})
+    expected = snapshot["official_baseline"]
+    if (
+        source.get("version") != expected["version"]
+        or source.get("binary_sha256") != expected["published_binary_sha256"]
+        or source.get("corpus_manifest_sha256") != sha256(CORPUS)
+        or value.get("total") != expected["corpus"]["advisory_disagreements"]
+    ):
+        raise GateError("advisory baseline provenance drifted from official v0.19.0")
     return value
 
 
@@ -423,15 +445,44 @@ def language_floors(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def release_report(corpus: dict[str, Any], deep: dict[str, Any], commit: str) -> dict[str, Any]:
-    snapshot = static_snapshot()
-    validate_snapshot(snapshot, corpus)
+def validate_deep_evidence(deep: dict[str, Any], commit: str) -> None:
     if deep.get("schema") != "nose-soundness-deep-evidence/v1":
         raise GateError("deep campaign evidence schema changed")
+    checks = deep.get("checks")
+    if (
+        deep.get("source_commit") != commit
+        or not isinstance(checks, dict)
+        or set(checks) != DEEP_CHECKS
+        or any(value is not True for value in checks.values())
+    ):
+        raise GateError("deep campaign is missing, failed, malformed, or belongs to another commit")
+
+
+def verify_release_commit_binding(commit: str) -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts/check-soundness-scorecard.py"),
+            "--release-commit",
+            commit,
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise GateError(f"release binding verification failed: {detail}")
+
+
+def release_report(corpus: dict[str, Any], deep: dict[str, Any], commit: str) -> dict[str, Any]:
+    verify_release_commit_binding(commit)
+    snapshot = static_snapshot()
+    validate_snapshot(snapshot, corpus)
     if corpus.get("source_commit") != commit:
         raise GateError("nightly corpus evidence belongs to another source commit")
-    if deep.get("source_commit") != commit or not all(deep.get("checks", {}).values()):
-        raise GateError("deep campaign is missing, failed, or belongs to another commit")
+    validate_deep_evidence(deep, commit)
     return {
         "schema": "nose-soundness-release-gate/v1",
         "source_commit": commit,
@@ -626,6 +677,64 @@ def self_test() -> None:
             pass
         else:
             raise AssertionError(f"self-test mutation escaped: {label}")
+    valid_shard = {
+        "schema": "nose-corpus-verify-evidence/v2",
+        "complete": True,
+        "nose": {"sha256": "0" * 64, "version": "nose 0.20.0"},
+        "repositories": [{"id": "fixture"}],
+        "results": [
+            {
+                "id": "fixture",
+                "status": "pass",
+                "exit_code": 0,
+                "false_merges": 0,
+                "canon_changes": 0,
+                "advisory": 0,
+            }
+        ],
+        "totals": {
+            "repositories": 1,
+            "failed_repositories": 0,
+            "false_merges": 0,
+            "canon_changes": 0,
+            "advisory": 0,
+        },
+    }
+    validate_shard_evidence(valid_shard)
+    shard_mutations = (
+        ("incomplete shard", lambda item: item.update(complete=False)),
+        ("pass with nonzero exit", lambda item: item["results"][0].update(exit_code=1)),
+        ("failure with zero exit", lambda item: item["results"][0].update(status="fail")),
+    )
+    for label, mutate in shard_mutations:
+        changed = copy.deepcopy(valid_shard)
+        mutate(changed)
+        try:
+            validate_shard_evidence(changed)
+        except GateError:
+            pass
+        else:
+            raise AssertionError(f"self-test mutation escaped: {label}")
+    valid_deep = {
+        "schema": "nose-soundness-deep-evidence/v1",
+        "source_commit": "0" * 40,
+        "checks": {key: True for key in DEEP_CHECKS},
+    }
+    validate_deep_evidence(valid_deep, "0" * 40)
+    deep_mutations = (
+        ("missing deep check", lambda item: item["checks"].pop("metamorphic_equivalence")),
+        ("empty deep checks", lambda item: item.update(checks={})),
+        ("extra deep check", lambda item: item["checks"].update(extra=True)),
+    )
+    for label, mutate in deep_mutations:
+        changed = copy.deepcopy(valid_deep)
+        mutate(changed)
+        try:
+            validate_deep_evidence(changed, "0" * 40)
+        except GateError:
+            pass
+        else:
+            raise AssertionError(f"self-test mutation escaped: {label}")
     first = canonical(snapshot)
     second = canonical(static_snapshot())
     if first != second:
@@ -635,7 +744,7 @@ def self_test() -> None:
     if sorted(ids) != sorted(row["id"] for row in corpus_rows()) or len(ids) != len(set(ids)):
         raise AssertionError("shard plan did not cover every pinned repository exactly once")
     check_workflow()
-    print("Soundness Lab gate self-test: six fail-closed mutations rejected")
+    print("Soundness Lab gate self-test: fail-closed mutations rejected")
 
 
 def main() -> int:

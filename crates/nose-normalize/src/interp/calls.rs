@@ -250,7 +250,7 @@ impl<'a> Interp<'a> {
         let result = self.exec(body, &mut fenv);
         match result? {
             Flow::Ret(v) => Ok(v),
-            Flow::Err => Ok(Value::Err),
+            Flow::Throw | Flow::Err => Ok(Value::Err),
             _ => Ok(Value::Null),
         }
     }

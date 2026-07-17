@@ -20,6 +20,7 @@ RAW_SCHEMA = "nose-oracle-exclusion-census/v2"
 LEDGER_SCHEMA = "nose-soundness-exclusion-ledger/v2"
 CORPUS_SCHEMA = "nose-claimable-mass-census/v2"
 PRIORITY_SCHEMA = "nose-interpreter-priority/v2"
+CURRENT_ATTRIBUTION_SCHEMA = "nose-soundness-current-exclusion-attribution/v1"
 RELEASE_COMMIT = "0985e6963c58d5a97e523bc532b88aa5e34f2ef9"
 CRATES_TREE = "f57b078517fcd114657dfb90a2b72f44bfb6cafb"
 REPORT_SHA256 = "149abb80c7ffb790d3fc0fbc2ad910add776d768ecf2961ee4321239f935d9c9"
@@ -203,6 +204,67 @@ def validate_raw(raw: dict[str, Any]) -> None:
     expected_priority = priority_rows(units, raw["claimable_family_cap"])
     if expected_priority != raw["priority"]:
         raise ValueError("priority aggregate does not match claimable unit rows")
+
+
+def current_attribution_receipt(
+    raw: dict[str, Any],
+    raw_sha256: str,
+    source_commit: str,
+    crates_tree: str,
+    binary_sha256: str,
+) -> dict[str, Any]:
+    """Compact a fully validated candidate census without checking in every unit row."""
+    validate_raw(raw)
+    excluded = [unit for unit in raw["units"] if unit["reason"] != "interpretable"]
+    classifications = Counter(unit["classification"] for unit in excluded)
+    capabilities = Counter(
+        unit["first_blocker"]["capability_id"]
+        for unit in excluded
+        if unit.get("first_blocker")
+    )
+    return {
+        "schema": CURRENT_ATTRIBUTION_SCHEMA,
+        "issue": 862,
+        "parent_issue": 855,
+        "source_sha": source_commit,
+        "crates_tree": crates_tree,
+        "binary_sha256": binary_sha256,
+        "raw_census": {
+            "schema": RAW_SCHEMA,
+            "sha256": raw_sha256,
+        },
+        "summary": {
+            "total_units": raw["units_total"],
+            "interpretable_units": raw["interpretable_units"],
+            "excluded_units": len(excluded),
+            "generic_unattributed_exclusions": raw["generic_unattributed_exclusions"],
+            "by_classification": dict(sorted(classifications.items())),
+            "by_capability": dict(sorted(capabilities.items())),
+        },
+    }
+
+
+def summarize_current(
+    census: Path, source_commit: str, binary_sha256: str, output: Path
+) -> None:
+    if len(source_commit) != 40 or any(char not in "0123456789abcdef" for char in source_commit):
+        raise ValueError("--source-commit must be a full lowercase Git object id")
+    if len(binary_sha256) != 64 or any(char not in "0123456789abcdef" for char in binary_sha256):
+        raise ValueError("--binary-sha256 must be 64 lowercase hex characters")
+    observed = subprocess.check_output(
+        ["git", "rev-parse", "--verify", f"{source_commit}^{{commit}}"],
+        cwd=ROOT,
+        text=True,
+    ).strip()
+    if observed != source_commit:
+        raise ValueError("--source-commit did not resolve exactly")
+    crates_tree = subprocess.check_output(
+        ["git", "rev-parse", f"{source_commit}:crates"], cwd=ROOT, text=True
+    ).strip()
+    receipt = current_attribution_receipt(
+        load(census), sha256_file(census), source_commit, crates_tree, binary_sha256
+    )
+    write(output, receipt)
 
 
 def parse_loc(loc: str) -> tuple[str, int]:
@@ -776,6 +838,29 @@ def self_test() -> None:
         pass
     else:
         raise AssertionError("missing blocker was accepted")
+    valid_raw = {
+        "schema": RAW_SCHEMA,
+        "units_total": 2,
+        "interpretable_units": 1,
+        "generic_unattributed_exclusions": 0,
+        "claimable_family_cap": PAIR_CAP,
+        "merge_pairs": count_pairs(iter(units)),
+        "claimable_merge_pairs": count_pairs(iter(units)),
+        "priority": before,
+        "units": units,
+    }
+    receipt = current_attribution_receipt(
+        valid_raw, "1" * 64, "2" * 40, "3" * 40, "4" * 64
+    )
+    if receipt["summary"] != {
+        "total_units": 2,
+        "interpretable_units": 1,
+        "excluded_units": 1,
+        "generic_unattributed_exclusions": 0,
+        "by_classification": {"missing-oracle-support": 1},
+        "by_capability": {"il.test": 1},
+    }:
+        raise AssertionError("current attribution receipt did not preserve validated counts")
     with tempfile.TemporaryDirectory() as tmp:
         first = Path(tmp) / "first"
         peer = Path(tmp) / "peer"
@@ -861,6 +946,7 @@ def main() -> None:
     parser.add_argument("--self-test", action="store_true")
     parser.add_argument("--freeze-baseline", action="store_true")
     parser.add_argument("--freeze-corpus", action="store_true")
+    parser.add_argument("--summarize-current", action="store_true")
     parser.add_argument("--census", type=Path)
     parser.add_argument("--census-peer", type=Path)
     parser.add_argument("--report", type=Path)
@@ -868,10 +954,21 @@ def main() -> None:
     parser.add_argument("--source-root", type=Path)
     parser.add_argument("--raw-dir", type=Path)
     parser.add_argument("--evidence", type=Path)
+    parser.add_argument("--source-commit")
+    parser.add_argument("--binary-sha256")
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--baseline", type=Path, default=BASELINE)
     args = parser.parse_args()
     if args.self_test:
         self_test()
+        return
+    if args.summarize_current:
+        if not all((args.census, args.source_commit, args.binary_sha256, args.output)):
+            parser.error(
+                "--summarize-current requires --census, --source-commit, "
+                "--binary-sha256, and --output"
+            )
+        summarize_current(args.census, args.source_commit, args.binary_sha256, args.output)
         return
     if args.freeze_baseline:
         if not all((

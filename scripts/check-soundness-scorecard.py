@@ -24,6 +24,7 @@ OVERLAY_SCHEMA = "nose-soundness-scorecard-overlay/v2"
 EXPANSION_SCHEMA = "nose-soundness-oracle-expansion/v1"
 PERFORMANCE_SCHEMA = "nose.issue-859.performance/v1"
 RELEASE_BINDING_SCHEMA = "nose-soundness-release-binding/v1"
+CURRENT_EXCLUSION_SCHEMA = "nose-soundness-current-exclusion-attribution/v1"
 CLAIM_ID = "nose.strict-exact.value-fingerprint/v0.19.0"
 PAIR_CAP = 8
 PPM = 1_000_000
@@ -969,7 +970,7 @@ def verify_expansion_receipt(
 
 
 def verify_release_binding(
-    frozen: dict[str, Any], binding_path: Path
+    frozen: dict[str, Any], binding_path: Path, release_commit: str | None = None
 ) -> dict[str, Any]:
     binding = load(binding_path)
     if (
@@ -987,8 +988,10 @@ def verify_release_binding(
     )
     if git_rev_parse(f"{source}:crates") != crates_tree:
         raise ValueError("release binding source does not match its crates tree")
-    if git_rev_parse("HEAD:crates") != crates_tree:
-        raise ValueError("checked-out product crates do not match the release binding")
+    if release_commit is not None:
+        candidate = require_git_oid(release_commit, "release candidate commit")
+        if git_rev_parse(f"{candidate}:crates") != crates_tree:
+            raise ValueError("release candidate product crates do not match the release binding")
     require_sha256(implementation.get("binary_sha256"), "release binding binary")
     require_sha256(implementation.get("raw_units_sha256"), "release binding raw units")
 
@@ -996,6 +999,7 @@ def verify_release_binding(
     loaded: dict[str, Path] = {}
     for name in (
         "blind_attack",
+        "current_exclusion_attribution",
         "overlay",
         "falsification",
         "historical_overlay",
@@ -1009,6 +1013,35 @@ def verify_release_binding(
         ):
             raise ValueError(f"release binding {name} hash drifted")
         loaded[name] = path
+
+    attribution = load(loaded["current_exclusion_attribution"])
+    attribution_summary = attribution.get("summary", {})
+    if (
+        attribution.get("schema") != CURRENT_EXCLUSION_SCHEMA
+        or attribution.get("issue") != 862
+        or attribution.get("parent_issue") != 855
+        or attribution.get("source_sha") != source
+        or attribution.get("crates_tree") != crates_tree
+        or attribution.get("binary_sha256") != implementation["binary_sha256"]
+        or attribution.get("raw_census", {}).get("schema")
+        != "nose-oracle-exclusion-census/v2"
+    ):
+        raise ValueError("current exclusion attribution provenance drifted")
+    require_sha256(
+        attribution.get("raw_census", {}).get("sha256"),
+        "current exclusion attribution raw census",
+    )
+    if (
+        attribution_summary.get("generic_unattributed_exclusions") != 0
+        or attribution_summary.get("total_units")
+        != attribution_summary.get("interpretable_units", -1)
+        + attribution_summary.get("excluded_units", -1)
+        or sum(attribution_summary.get("by_classification", {}).values())
+        != attribution_summary.get("excluded_units")
+        or sum(attribution_summary.get("by_capability", {}).values())
+        != attribution_summary.get("excluded_units")
+    ):
+        raise ValueError("current exclusion attribution counts are inconsistent")
 
     overlay = load(loaded["overlay"])
     historical = load(loaded["historical_overlay"])
@@ -1633,6 +1666,10 @@ def main() -> int:
     parser.add_argument("--query", type=Path)
     parser.add_argument("--source-root", type=Path)
     parser.add_argument("--repo-pin", default=OFFICIAL_RELEASE_COMMIT)
+    parser.add_argument(
+        "--release-commit",
+        help="also require this release candidate commit's crates tree to match the binding",
+    )
     args = parser.parse_args()
     try:
         if args.self_test:
@@ -1662,7 +1699,9 @@ def main() -> int:
             expansion_summary = load(expansion_overlay)["summary"]
         release_binding = ROOT / "bench/soundness/0.20.0/release-binding-862.v1.json"
         if release_binding.is_file():
-            expansion_summary = verify_release_binding(scorecard, release_binding)["summary"]
+            expansion_summary = verify_release_binding(
+                scorecard, release_binding, args.release_commit
+            )["summary"]
         if args.reproduce:
             verify_reproduction(args.reproduce.resolve(), manifest)
         summary = scorecard["summary"]

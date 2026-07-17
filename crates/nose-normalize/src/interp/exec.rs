@@ -58,7 +58,7 @@ impl<'a> Interp<'a> {
                 if let Some(&e) = self.il.children(node).first() {
                     self.eval(e, env)?;
                 }
-                Ok(Flow::Err)
+                Ok(Flow::Throw)
             }
             NodeKind::If => {
                 let kids = self.il.children(node).to_vec();
@@ -182,7 +182,7 @@ impl<'a> Interp<'a> {
             return Err(Unsupported::protocol("protocol.exception-handler-shape"));
         }
         match self.exec(kids[0], env)? {
-            Flow::Err => self.exec(kids[1], env),
+            Flow::Throw | Flow::Err => self.exec(kids[1], env),
             other => Ok(other),
         }
     }

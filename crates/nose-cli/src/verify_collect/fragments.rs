@@ -1,5 +1,17 @@
 use super::*;
 
+fn independently_observes_mixed_exit(exits: &[nose_normalize::UnitExit]) -> bool {
+    exits
+        .iter()
+        .any(|exit| *exit == nose_normalize::UnitExit::Fallthrough)
+        && exits.iter().any(|exit| {
+            matches!(
+                exit,
+                nose_normalize::UnitExit::Return | nose_normalize::UnitExit::Throw
+            )
+        })
+}
+
 #[allow(clippy::too_many_arguments)]
 #[allow(clippy::too_many_lines)]
 pub(super) fn collect_product_fragment_verify_rec(
@@ -228,12 +240,12 @@ pub(super) fn collect_product_fragment_verify_rec(
         );
         return;
     }
-    let observe_mixed_exit = nose_detect::fragment_observes_mixed_exit(
+    let product_observes_mixed_exit = nose_detect::fragment_observes_mixed_exit(
         n,
         fragment.contract.root,
         fragment.contract.kind,
     );
-    if observe_mixed_exit
+    if product_observes_mixed_exit
         != nose_detect::fragment_observes_mixed_exit(core, core_contract.root, core_contract.kind)
     {
         record_fragment_oracle_exclusion(
@@ -293,6 +305,11 @@ pub(super) fn collect_product_fragment_verify_rec(
     );
     push_verify_census(oracle, &location, core, core_contract.root, &fp, outcome);
 
+    // Keep the audit oracle independent from the product's structural mixed-exit classifier.
+    // If a fingerprint-tag regression makes a mixed fragment collide with a whole function,
+    // the executed battery must still retain the terminal-control distinction and report it.
+    let oracle_observes_mixed_exit = independently_observes_mixed_exit(&fragment_exits);
+
     let mut canon_exposed = false;
     if let Ok((full_beh, full_exits)) = run_fragment_battery_diagnostic_with_oracle_proofs(
         &full_wrapper,
@@ -308,7 +325,7 @@ pub(super) fn collect_product_fragment_verify_rec(
             canon_exposed = true;
             oracle.canon_checked += 1;
             if (canon_changed_behavior(&beh, &full_beh)
-                || (observe_mixed_exit && fragment_exits != full_exits))
+                || (oracle_observes_mixed_exit && fragment_exits != full_exits))
                 && oracle.canon_violations.len() < 20
             {
                 oracle.canon_violations.push(format!(
@@ -341,8 +358,34 @@ pub(super) fn collect_product_fragment_verify_rec(
         file_idx,
         core_root: core_contract.root,
         core_fragment: Some(core_contract.clone()),
-        fragment_exits: observe_mixed_exit.then_some(fragment_exits),
+        fragment_exits: oracle_observes_mixed_exit.then_some(fragment_exits),
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::independently_observes_mixed_exit;
+    use nose_normalize::UnitExit;
+
+    #[test]
+    fn oracle_mixed_exit_requires_fallthrough_and_terminal_control() {
+        assert!(independently_observes_mixed_exit(&[
+            UnitExit::Fallthrough,
+            UnitExit::Return,
+        ]));
+        assert!(!independently_observes_mixed_exit(&[
+            UnitExit::Return,
+            UnitExit::Error,
+        ]));
+        assert!(independently_observes_mixed_exit(&[
+            UnitExit::Fallthrough,
+            UnitExit::Throw,
+        ]));
+        assert!(!independently_observes_mixed_exit(&[
+            UnitExit::Fallthrough,
+            UnitExit::Fallthrough,
+        ]));
+    }
 }
 
 #[allow(clippy::too_many_arguments)]

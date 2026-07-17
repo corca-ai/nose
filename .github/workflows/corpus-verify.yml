@@ -6,6 +6,11 @@ on:
       - ".github/workflows/corpus-verify.yml"
       - "bench/soundness/**"
       - "bench/type4/**"
+      - "bench/recall_loss/**"
+      - "bench/goldens/corpus.json"
+      - "bench/setup_repos.sh"
+      - "bench/prune_corpus.py"
+      - "bench/labels/prune_manifest.json"
       - "crates/nose-cli/**"
       - "crates/nose-detect/**"
       - "crates/nose-eval/**"
@@ -168,13 +173,15 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: prepare shard evidence
+      - name: prepare shard outputs
         id: prepare
-        run: mkdir -p target/soundness-nightly-shard
+        run: |
+          mkdir -p target/soundness-nightly-shard-evidence
+          mkdir -p target/soundness-nightly-diagnostics/run
       - name: build nose
         id: build
         continue-on-error: true
-        run: cargo build --release -p nose-cli 2>&1 | tee target/soundness-nightly-shard/build.log
+        run: cargo build --release -p nose-cli 2>&1 | tee target/soundness-nightly-diagnostics/build.log
       - name: reconstruct this pinned shard
         id: setup
         if: ${{ failure() || success() }}
@@ -185,7 +192,7 @@ jobs:
           mapfile -t repos < <(python3 -c 'import json,os; print("\n".join(json.loads(os.environ["SHARD_REPOS"])))')
           args=()
           for repo in "${repos[@]}"; do args+=(--repo "$repo"); done
-          bench/setup_repos.sh "${args[@]}" 2>&1 | tee target/soundness-nightly-shard/setup.log
+          bench/setup_repos.sh "${args[@]}" 2>&1 | tee target/soundness-nightly-diagnostics/setup.log
       - name: verify this pinned shard
         id: verify
         if: ${{ failure() || success() }}
@@ -200,17 +207,39 @@ jobs:
             --nose target/release/nose \
             --source-commit "${{ github.sha }}" \
             --repos-root bench/repos \
-            --logs-dir target/soundness-nightly-shard \
+            --logs-dir target/soundness-nightly-diagnostics/run \
             --jobs 6 \
             --timeout-seconds 900 \
             "${args[@]}"
+      - name: collect byte-deterministic shard evidence
+        id: collect
+        if: ${{ failure() || success() }}
+        run: |
+          for file in evidence.json repos.txt summary.md summary.tsv; do
+            if test -f "target/soundness-nightly-diagnostics/run/$file"; then
+              cp "target/soundness-nightly-diagnostics/run/$file" \
+                "target/soundness-nightly-shard-evidence/$file"
+            fi
+          done
+          if ! test -f target/soundness-nightly-shard-evidence/evidence.json; then
+            echo "deterministic shard evidence unavailable; inspect the diagnostics artifact" \
+              > target/soundness-nightly-shard-evidence/unavailable.txt
+          fi
       - name: upload shard evidence on every outcome
         id: upload
         if: ${{ failure() || cancelled() || success() }}
         uses: actions/upload-artifact@v7
         with:
           name: soundness-nightly-shard-${{ matrix.shard.id }}
-          path: target/soundness-nightly-shard
+          path: target/soundness-nightly-shard-evidence
+          if-no-files-found: error
+      - name: upload shard diagnostics on every outcome
+        id: diagnostics
+        if: ${{ failure() || cancelled() || success() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: soundness-nightly-diagnostics-${{ matrix.shard.id }}
+          path: target/soundness-nightly-diagnostics
           if-no-files-found: error
       - name: enforce shard gate
         if: ${{ failure() || success() }}
@@ -219,7 +248,9 @@ jobs:
           test "${{ steps.build.outcome }}" = success
           test "${{ steps.setup.outcome }}" = success
           test "${{ steps.verify.outcome }}" = success
+          test "${{ steps.collect.outcome }}" = success
           test "${{ steps.upload.outcome }}" = success
+          test "${{ steps.diagnostics.outcome }}" = success
 
   merge-nightly:
     name: merge complete nightly evidence
@@ -347,6 +378,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: prepare release evidence
+        id: prepare
+        run: mkdir -p target/soundness-release
       - name: download nightly evidence
         id: nightly
         continue-on-error: true
@@ -366,13 +400,27 @@ jobs:
         if: ${{ failure() || success() }}
         continue-on-error: true
         run: |
+          set +e
           python3 scripts/soundness-lab-gate.py release \
             --corpus target/release-input/nightly/corpus-evidence.json \
             --deep target/release-input/deep/evidence.json \
             --commit "${{ github.sha }}" \
             --output target/soundness-release/evidence.json \
-            --markdown target/soundness-release/summary.md
+            --markdown target/soundness-release/summary.md \
+            2>&1 | tee target/soundness-release/compose.log
+          code="${PIPESTATUS[0]}"
+          set -e
+          if ! test -f target/soundness-release/summary.md; then
+            {
+              echo "## Soundness Lab 0.20 release gate"
+              echo
+              echo "- result: failed closed"
+              echo "- composer exit code: $code"
+              echo "- diagnostics: compose.log"
+            } > target/soundness-release/summary.md
+          fi
           cat target/soundness-release/summary.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"
       - name: upload release evidence on every outcome
         id: upload
         if: ${{ failure() || cancelled() || success() }}
@@ -386,6 +434,7 @@ jobs:
         run: |
           test "${{ needs.merge-nightly.result }}" = success
           test "${{ needs.deep-campaign.result }}" = success
+          test "${{ steps.prepare.outcome }}" = success
           test "${{ steps.nightly.outcome }}" = success
           test "${{ steps.deep.outcome }}" = success
           test "${{ steps.release.outcome }}" = success

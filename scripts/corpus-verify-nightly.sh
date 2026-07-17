@@ -256,6 +256,19 @@ EOF
     grep -q 'advisory symbolic-trace disagreements: 2' "$tmp/out"
     grep -q 'black' "$tmp/logs/summary.md"
     grep -q 'arrow' "$tmp/logs/summary.md"
+    python3 - "$tmp/logs/evidence.json" <<'PY'
+import json
+import sys
+
+evidence = json.load(open(sys.argv[1], encoding="utf-8"))
+assert evidence["complete"] is True
+assert evidence["full_corpus"] is False
+assert all(
+    (row["status"] == "pass")
+    == (row["exit_code"] == 0 and row["false_merges"] == 0 and row["canon_changes"] == 0)
+    for row in evidence["results"]
+)
+PY
     cp -R "$tmp/logs" "$tmp/logs-first"
     set +e
     "$script_path" \
@@ -597,8 +610,8 @@ for line in repo_list.read_text().splitlines():
 
 summary_rows = [line.split("\t") for line in summary.read_text().splitlines()[1:] if line]
 canonical = ("\n".join(sorted("\t".join(row) for row in summary_rows)) + "\n").encode()
-complete = prune_verified == "true"
-prune = json.loads(prune_manifest.read_text()) if complete else None
+full_corpus = prune_verified == "true"
+prune = json.loads(prune_manifest.read_text()) if full_corpus else None
 results = [
     {
         "id": row[0],
@@ -612,10 +625,13 @@ results = [
 ]
 evidence = {
     "schema": "nose-corpus-verify-evidence/v2",
-    "complete": complete,
+    # Reaching this writer means every selected repository produced exactly one status row.
+    # A failed repository is still a complete shard and remains red through its row/totals.
+    "complete": True,
+    "full_corpus": full_corpus,
     "nose": {"sha256": nose_sha256 or None, "version": nose_version or None},
     "corpus_manifest_sha256": sha256_file(corpus_manifest),
-    "prune_manifest_sha256": sha256_file(prune_manifest) if complete else None,
+    "prune_manifest_sha256": sha256_file(prune_manifest) if full_corpus else None,
     "pruned_corpus_digest_sha256": (
         prune["corpus_digest_after_prune"]["hex"] if prune is not None else None
     ),

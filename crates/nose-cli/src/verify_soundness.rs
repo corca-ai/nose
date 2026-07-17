@@ -258,7 +258,7 @@ mod tests {
     use super::*;
     use crate::verify_collect::VerifyRec;
     use nose_il::{DomainEvidence, Lang, NodeId};
-    use nose_normalize::{Behavior, Value};
+    use nose_normalize::{Behavior, UnitExit, Value};
 
     fn behavior(value: Value) -> Vec<Behavior> {
         vec![Behavior {
@@ -350,6 +350,18 @@ mod tests {
             counts.advisory_disagreements,
             summary.advisory_disagreements.len()
         );
+    }
+
+    #[test]
+    fn mixed_exit_oracle_catches_a_missing_product_fingerprint_tag() {
+        let whole = rec("whole", &[1], behavior(Value::Int(1)), true, 7, &[]);
+        let mut fragment = rec("fragment", &[1], behavior(Value::Int(1)), true, 7, &[]);
+        fragment.fragment_exits = Some(vec![UnitExit::Fallthrough, UnitExit::Return]);
+
+        let summary = classify_verify_soundness(&[whole, fragment]);
+
+        assert_eq!(summary.false_merges.len(), 1);
+        assert_eq!(summary.false_merges[0].differing_inputs, 1);
     }
 
     #[test]

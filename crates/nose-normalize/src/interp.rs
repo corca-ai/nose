@@ -164,6 +164,7 @@ type R<T> = Result<T, Unsupported>;
 enum Flow {
     Normal,
     Ret(Value),
+    Throw,
     Break,
     Continue,
     /// A type error in a CONDITION (an `Err` value used as an if/loop/ternary test). It
@@ -187,6 +188,7 @@ enum Flow {
 pub enum UnitExit {
     Fallthrough,
     Return,
+    Throw,
     Error,
 }
 
@@ -513,6 +515,7 @@ fn run_unit_once(
     };
     let (ret, exit) = match it.exec(body, &mut env) {
         Ok(Flow::Ret(v)) => (v, UnitExit::Return),
+        Ok(Flow::Throw) => (Value::Err, UnitExit::Throw),
         Ok(Flow::Err) => (Value::Err, UnitExit::Error),
         Ok(_) => (Value::Null, UnitExit::Fallthrough),
         Err(blocker) => return (Err(blocker), it.explore),
