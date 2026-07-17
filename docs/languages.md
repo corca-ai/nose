@@ -90,9 +90,10 @@ It is deliberately kept apart (no false merge) by:
   (language-blind) exact channel cannot merge CSS with code.
 
 Soundness for CSS is **by construction** (the fingerprint *is* the canonical computed
-style) plus adversarial per-rule batteries (the project's primary trust mechanism — see
-[design](design.md)); the value normalizations live in `nose-normalize::css_value`, each
-with positive and hard-negative tests. A standalone interpreter oracle (as for the
+style) plus the connected 19-row/25-hard-negative
+[declarative claim matrix](../bench/type4/declarative_claim_matrix.v1.json) (the project's
+primary trust mechanism — see [design](design.md)); the value normalizations live in
+`nose-normalize::css_value`, each with positive and hard-negative tests. A standalone interpreter oracle (as for the
 imperative languages) is redundant for a declarative domain where the fingerprint is the
 denotation. Lowering coverage is first-class: the [Raw-node ratio](#coverage-and-adding-a-language)
 for CSS distinguishes computed-style gaps from parser-owned residue. Known PostCSS
@@ -117,7 +118,7 @@ and insignificant whitespace. It keeps **tag/structure**, **child order**, **tex
 structural `near` channel additionally scores **structure-only** similarity (text and
 volatile values abstracted), which is what surfaces "the same repeated component shell
 with different content" — the highest-value markup clone. Soundness is by construction
-plus adversarial batteries; HTML and CSS fingerprints are domain-disjoint from each other
+plus the same connected declarative claim matrix; HTML and CSS fingerprints are domain-disjoint from each other
 and from imperative code. Real-world markup lowers at a first-class Raw-node ratio (~0.4%;
 the rare residue is malformed/generated pages, left as honest `Raw`).
 

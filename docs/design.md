@@ -271,13 +271,19 @@ matrix evenly instead of by prevalence:
   oracle is part of every sweep**, not a separate pass.
 - **`coverage_probe.py`** — checked-in positive + adjacent hard-negative pairs for axes the
   generator can't make; each positive must converge, each hard-negative must stay un-merged
-  (the soundness guard). Block sub-units are skipped (a bare loop with no escaping effect is a
-  vacuous no-op — its collision is sound, not a clone).
+  (the informed soundness guard). Its optional blind pass runs `nose verify` over the complete
+  focused corpus without reading case labels. Block sub-units are skipped (a bare loop with no
+  escaping effect is a vacuous no-op — its collision is sound, not a clone).
+- **`axis_language_claims.v1.json` + `check_axis_language_claims.py`** — the Tier-A exact
+  perimeter. Each applicable language is either backed by a positive plus adjacent
+  hard-negative or explicitly closed; an axis/language cell is credited once even when several
+  evidence producers exercise it. CI mutation-tests the checker and regenerates the blind,
+  informed, and planning artifacts with the release binary.
 
-**Soundness co-evolves with recall by construction**: no axis is "done" without a
-hard-negative guard, and the oracle runs on every sweep (0 merged hard-negatives across all
-swept axes; the real-corpus 0-violation gate is the nightly pinned-corpus
-`nose verify --max-violations 0` workflow).
+**Soundness co-evolves with recall by construction**: no exact axis is "done" without a
+hard-negative guard. The current report separates blind-oracle batteries from informed adjacent
+hard negatives and records 20/20 guarded axes with zero merges; the real-corpus 0-violation gate
+remains the nightly pinned-corpus `nose verify --max-violations 0` workflow.
 
 The battery has already paid off — it surfaced a systematic **`exact_safe` language
 asymmetry** (recursion / builder loops / java stream-reduce admitted to the exact channel in

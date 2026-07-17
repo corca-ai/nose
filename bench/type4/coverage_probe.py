@@ -22,14 +22,74 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import coverage_taxonomy as tax
 
 HERE = Path(__file__).resolve().parent
+REPO_ROOT = HERE.parents[1]
 PROBES = HERE / "coverage_probes"
 EVIDENCE = HERE / "coverage_evidence.v1.json"
-NOSE_DEFAULT = str(HERE.parents[1] / "target" / "debug" / "nose")
+NOSE_DEFAULT = str(REPO_ROOT / "target" / "debug" / "nose")
+
+
+def run_blind_attacker(nose: str, output: Path) -> bool:
+    """Run the oracle over the whole probe corpus without consulting case labels."""
+    with tempfile.TemporaryDirectory() as tmp:
+        full_report = Path(tmp) / "report.json"
+        proc = subprocess.run(
+            [
+                nose,
+                "verify",
+                str(PROBES),
+                "--max-violations",
+                "0",
+                "--recall-loss-report",
+                str(full_report),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if not full_report.is_file():
+            detail = (proc.stdout + proc.stderr)[-2000:]
+            raise RuntimeError(f"blind attacker did not emit its report:\n{detail}")
+        report = json.loads(full_report.read_text())
+
+    summary = report["summary"]
+    gate = report["soundness_gate"]
+    exclusions = {
+        row["reason"]: row["count"] for row in report["oracle_exclusions"]["counts"]
+    }
+    compact = {
+        "schema_version": 1,
+        "attacker": "blind-oracle",
+        "corpus": "bench/type4/coverage_probes",
+        "summary": {
+            "total_units": summary["total_units"],
+            "interpretable_units": summary["interpretable_units"],
+            "excluded_units": summary["excluded_units"],
+            "canon_checked": summary["canon_checked"],
+            "admission_rejections": summary["admission_rejections"],
+        },
+        "hard_gate": {
+            "fingerprint_groups": gate["fingerprint_groups"],
+            "false_merges": gate["false_merges"],
+            "canon_preservation_violations": gate["canon_preservation_violations"],
+            "gate_passed": gate["gate_passed"],
+        },
+        "advisory_disagreements": gate["advisory_disagreements"],
+        "oracle_exclusions": exclusions,
+    }
+    output.write_text(json.dumps(compact, indent=2, sort_keys=True) + "\n")
+    print(
+        "blind attacker: "
+        f"{compact['hard_gate']['fingerprint_groups']} exact groups, "
+        f"{compact['hard_gate']['false_merges']} false merges, "
+        f"{compact['hard_gate']['canon_preservation_violations']} canon violations"
+    )
+    print(f"wrote {output.resolve().relative_to(REPO_ROOT)}")
+    return proc.returncode == 0 and gate["gate_passed"]
 
 
 def converges(nose: str, pair_dir: Path) -> bool:
@@ -91,6 +151,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--nose", default=NOSE_DEFAULT)
     ap.add_argument("--axis", action="append", help="axis dir name (repeatable); default all")
+    ap.add_argument(
+        "--blind-report",
+        type=Path,
+        help="also run the label-blind oracle over every probe and write a compact receipt",
+    )
     args = ap.parse_args()
     if not Path(args.nose).exists():
         print(f"error: nose not found at {args.nose}", file=sys.stderr)
@@ -116,10 +181,17 @@ def main() -> int:
                   f"{cell['pos_hit']}/{cell['pos']}  "
                   f"{cell['neg'] - cell['false_merges']}/{cell['neg']}{flag}")
 
-    # merge into evidence (probe rows keyed distinct from sweep via gen_axis="probe:<axis>")
+    # Merge into evidence (probe rows are keyed separately from sweep). A full run replaces
+    # every probe row, so deleting or renaming a fixture cannot leave stale exact credit behind.
+    # A filtered development run preserves probe rows belonging to axes it did not exercise.
     prev = json.loads(EVIDENCE.read_text()) if EVIDENCE.exists() else {}
-    merged: dict[tuple, dict] = {(e["gen_axis"], e["language"]): e
-                                 for e in prev.get("evidence", [])}
+    selected = {axis_dir.name for axis_dir in axis_dirs}
+    merged: dict[tuple, dict] = {
+        (e["gen_axis"], e["language"]): e
+        for e in prev.get("evidence", [])
+        if e.get("source") != "probe"
+        or (args.axis and e.get("axis") not in selected)
+    }
     for e in rows:
         merged[(e["gen_axis"], e["language"])] = e
     out = sorted(merged.values(), key=lambda e: (e["axis"], e["gen_axis"], e["language"]))
@@ -132,7 +204,10 @@ def main() -> int:
     print(f"\nprobed {len(rows)} cells: {covered} covered, "
           f"{hard_negatives} soundness hard-negatives, {len(gaps)} gaps, "
           f"{len(bugs)} soundness bugs")
-    if bugs:
+    blind_ok = True
+    if args.blind_report:
+        blind_ok = run_blind_attacker(args.nose, args.blind_report)
+    if bugs or not blind_ok:
         print("SOUNDNESS BUGS (hard negative converged — must fix):")
         for r in bugs:
             print(f"  {r['axis']} / {r['language']}")

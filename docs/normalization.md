@@ -604,8 +604,9 @@ declaration block, as a sorted, domain-namespaced hash multiset:
 
 Soundness here is **by construction** — the fingerprint *is* the canonical computed
 style, so *equal fingerprint ⟺ equal computed style* holds definitionally — backed by
-adversarial per-rule batteries (`css_value` unit tests plus convergence/hard-negative
-tests; the project's primary trust mechanism, see [design](design.md)). A separate
+the connected 19-row/25-hard-negative
+[declarative claim matrix](../bench/type4/declarative_claim_matrix.v1.json) and `css_value`
+unit tests (the project's primary trust mechanism, see [design](design.md)). A separate
 interpreter oracle, as run for imperative code, is redundant for a declarative domain
 where the fingerprint is the denotation.
 

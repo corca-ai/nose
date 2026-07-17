@@ -29,6 +29,7 @@ import coverage_taxonomy as tax
 HERE = Path(__file__).resolve().parent
 REAL_FRONTIER = HERE / "real_frontier.v1.json"
 SWEEP_EVIDENCE = HERE / "coverage_evidence.v1.json"
+BLIND_RECEIPT = HERE / "blind_attack.v1.json"
 OUT_JSON = HERE / "coverage_matrix.v1.json"
 
 # Best-status precedence when a cell has several evidence rows (lower index wins).
@@ -231,30 +232,49 @@ def cmd_soundness(_args):
     if not SWEEP_EVIDENCE.exists():
         print("no sweep evidence yet (run coverage_sweep.py)")
         return 0
-    oracle = json.loads(SWEEP_EVIDENCE.read_text()).get("oracle", [])
-    # fold duplicate (gen_axis) rows up to the taxonomy axis
-    by_axis = defaultdict(lambda: {"hn": 0, "merged": 0, "leads": 0})
+    evidence_doc = json.loads(SWEEP_EVIDENCE.read_text())
+    oracle = evidence_doc.get("oracle", [])
+    # Fold generator/probe rows up to the taxonomy axis. These are the informed attacker:
+    # they know which pairs are adjacent boundaries. The blind attacker has no trustworthy
+    # per-axis attribution because it deliberately ignores those labels, so report its gate
+    # only at corpus scope instead of relabeling informed counts as blind evidence.
+    by_axis = defaultdict(lambda: {"informed_hn": 0, "merged": 0, "leads": 0})
     for o in oracle:
         a = by_axis[o["axis"]]
-        a["hn"] += o.get("hard_negatives") or 0
-        a["merged"] += o.get("hard_negatives_merged") or 0
         a["leads"] += o.get("oracle_under_merged") or 0
-    print("SOUNDNESS ARM  (hard-neg guard / merged=bug / oracle leads = recall feedback)")
-    print(f"{'axis':28s} {'hard-neg':>8s} {'merged':>6s} {'leads':>6s}  guard")
-    print("-" * 60)
+    for row in evidence_doc.get("evidence", []):
+        if row.get("axis") not in by_axis:
+            continue
+        a = by_axis[row["axis"]]
+        a["informed_hn"] += row.get("neg") or 0
+        a["merged"] += row.get("false_merges") or 0
+    blind = json.loads(BLIND_RECEIPT.read_text()) if BLIND_RECEIPT.exists() else {}
+    blind_gate = blind.get("hard_gate", {})
+    print("SOUNDNESS ARM  (blind oracle and informed adjacent hard negatives stay separate)")
+    print(
+        "blind corpus gate: "
+        f"{blind_gate.get('fingerprint_groups', 0)} exact groups, "
+        f"{blind_gate.get('false_merges', 0)} false merges, "
+        f"{blind_gate.get('canon_preservation_violations', 0)} canon violations"
+    )
+    print(f"\n{'axis':28s} {'informed':>8s} {'merged':>6s} {'leads':>6s}  guard")
+    print("-" * 62)
     leaky = guarded = unguarded = 0
     for axis in sorted(by_axis):
         a = by_axis[axis]
         if a["merged"]:
             g, leaky = "✗ LEAKY", leaky + 1
-        elif a["hn"] > 0:
+        elif a["informed_hn"] > 0:
             g, guarded = "✓", guarded + 1
         else:
             g, unguarded = "· none", unguarded + 1
-        print(f"{axis:28s} {a['hn']:8d} {a['merged']:6d} {a['leads']:6d}  {g}")
+        print(
+            f"{axis:28s} {a['informed_hn']:8d} "
+            f"{a['merged']:6d} {a['leads']:6d}  {g}"
+        )
     print(f"\n{guarded} guarded, {leaky} LEAKY (false merges), {unguarded} unguarded.")
-    print("oracle: 0 merged hard-negatives across all axes = soundness arm holds on the "
-          "synthetic corpus. (real-corpus gate: `nose verify bench/repos` == 0 violations.)")
+    print("0 merged hard-negatives across both attackers = focused soundness arm holds. "
+          "(real-corpus gate: `nose verify bench/repos` == 0 violations.)")
     return 0
 
 

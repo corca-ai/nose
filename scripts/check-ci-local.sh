@@ -110,6 +110,21 @@ run_type4_executable_expectations() {
     python3 bench/type4/proof_carrying_frontier.py --check
 }
 
+run_type4_axis_language_claims() {
+    need_cmd python3
+    python3 bench/type4/coverage_probe.py \
+        --nose "${1}" \
+        --blind-report bench/type4/blind_attack.v1.json
+    python3 bench/type4/coverage_sweep.py --nose "${1}" --quiet
+    python3 bench/type4/coverage_matrix.py matrix
+    python3 bench/type4/check_axis_language_claims.py --self-test
+    python3 bench/type4/check_axis_language_claims.py --nose "${1}"
+    git diff --exit-code -- \
+        bench/type4/coverage_evidence.v1.json \
+        bench/type4/coverage_matrix.v1.json \
+        bench/type4/blind_attack.v1.json
+}
+
 run_regression_checker_selftests() {
     need_cmd python3
     need_cmd node
@@ -342,6 +357,9 @@ if [[ "$mode" == "fast" ]]; then
     step "Type-4 executable focused expectations"
     run_type4_executable_expectations target/debug/nose
 
+    step "Type-4 axis-language claim perimeter"
+    run_type4_axis_language_claims target/debug/nose
+
     step "docs wiki connectivity (awiki)"
     run_docs_wiki_lint
 
@@ -363,6 +381,9 @@ target/release/nose semantic-pack check docs/examples/semantic-packs/v0 --format
 
 step "Type-4 executable focused expectations"
 run_type4_executable_expectations target/release/nose
+
+step "Type-4 axis-language claim perimeter"
+run_type4_axis_language_claims target/release/nose
 
 step "test (release)"
 cargo test --release

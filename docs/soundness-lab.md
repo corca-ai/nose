@@ -278,6 +278,31 @@ python3 scripts/check-soundness-scorecard.py
 Ordinary `verify` uses the final tranche. The default scorecard check validates the frozen
 baseline and the committed expansion receipt together.
 
+## 0.20 axis/language hard-negative perimeter (#860)
+
+The Type-4 planning matrix is no longer accepted as exact-claim evidence by itself. The checked
+[`axis_language_claims.v1.json`](../bench/type4/axis_language_claims.v1.json) registry assigns one
+stable Tier-A claim and hard-negative group to each admitted axis, then partitions every
+applicable language into executable exact evidence or an explicit closed cell. The current
+perimeter contains 24 axes, 108 exact axis/language cells, and 51 closed cells. A cell earns
+credit once, and only when all of its positives converge and at least one adjacent hard negative
+stays split.
+
+Soundness is attacked in two independent lanes. The informed lane queries each named positive
+and adjacent negative pair. The blind lane runs `nose verify` over the complete focused corpus
+without consulting those labels; its compact
+[`blind_attack.v1.json`](../bench/type4/blind_attack.v1.json) receipt records 54 exact fingerprint
+groups, zero false merges, and zero canon-preservation violations. The combined report has 20/20
+guarded axes and zero merged hard negatives. This corrected older coverage evidence that had not
+been regenerated after #857 tightened strict-exact admission; the planning matrix now reports the
+current 137/228 covered applicable cells rather than preserving stale credit.
+
+CSS and HTML use a separate connected declarative matrix because their exact fingerprint is the
+denotation rather than imperative execution. Its 19 unique canonical-rule/property/boundary rows
+all converge, and all 25 adjacent hard negatives stay distinct. CI builds the release binary,
+regenerates the blind receipt, informed evidence, and planning matrix, runs checker mutations,
+and rejects any artifact drift.
+
 ## Reproduce and validate
 
 Use the published binary, the exact release source tree, and all pinned

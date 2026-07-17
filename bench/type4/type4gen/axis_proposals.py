@@ -59,7 +59,7 @@ AXIS_PROPOSALS = {
     },
     "axis_import_namespace_shadowed_param_unshadowed_mutation_boundary": {
         "axis": "import_identity",
-        "why": "A mutation-like receiver call on the unshadowed namespace local must still block the module binding proof.",
+        "why": "A Java-only mutation-like method name on a JS/TS namespace import must not taint that binding; a changed template coordinate remains the adjacent hard negative.",
     },
     "axis_import_namespace_shadowed_param_fake_receiver_boundary": {
         "axis": "import_identity",

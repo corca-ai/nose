@@ -193,14 +193,23 @@ def main() -> int:
                 print(f"{tax_axis:26s} {lang:11s} {status:12s} "
                       f"{row['pos_hit']}/{row['pos']:<4d} {row['neg_hit']}/{row['neg']:<4d}{flag}")
 
-    # Merge into existing evidence: a filtered run (--axis) updates only the cells/axes it
-    # swept, never clobbering the rest of the matrix.
+    # Merge into existing evidence. A full run replaces all sweep rows and oracle rows, so a
+    # removed generator cannot leave stale exact credit behind. A filtered development run
+    # updates only the requested generator axes.
     prev = json.loads(EVIDENCE.read_text()) if EVIDENCE.exists() else {}
-    merged: dict[tuple, dict] = {(e["gen_axis"], e["language"]): e
-                                 for e in prev.get("evidence", [])}
+    merged: dict[tuple, dict] = {
+        (e["gen_axis"], e["language"]): e
+        for e in prev.get("evidence", [])
+        if e.get("source") != "sweep"
+        or (args.axis and e.get("gen_axis") not in gen_axes)
+    }
     for e in evidence:
         merged[(e["gen_axis"], e["language"])] = e
-    merged_oracle: dict[str, dict] = {o["gen_axis"]: o for o in prev.get("oracle", [])}
+    merged_oracle: dict[str, dict] = {
+        o["gen_axis"]: o
+        for o in prev.get("oracle", [])
+        if args.axis and o.get("gen_axis") not in gen_axes
+    }
     for o in oracle_rows:
         merged_oracle[o["gen_axis"]] = o
     rows = sorted(merged.values(), key=lambda e: (e["axis"], e["gen_axis"], e["language"]))
