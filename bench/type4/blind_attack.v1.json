@@ -1,0 +1,29 @@
+{
+  "advisory_disagreements": 86,
+  "attacker": "blind-oracle",
+  "corpus": "bench/type4/coverage_probes",
+  "corpus_files": 284,
+  "corpus_sha256": "7ae580a154ca51863fb7ebb36913dffb7c5a7d36dc3bb5fe4f264a6391dfbab2",
+  "hard_gate": {
+    "canon_preservation_violations": 0,
+    "false_merges": 0,
+    "fingerprint_groups": 54,
+    "gate_passed": true
+  },
+  "oracle_exclusions": {
+    "battery-bail": 0,
+    "core-missing": 2,
+    "empty-fingerprint": 0,
+    "path-bail": 0,
+    "uninterpretable": 160
+  },
+  "product_crates_tree": "bdcdfadcc64ffb56d60cc14b95d3322f6047d6fa",
+  "schema_version": 1,
+  "summary": {
+    "admission_rejections": 28,
+    "canon_checked": 267,
+    "excluded_units": 162,
+    "interpretable_units": 321,
+    "total_units": 483
+  }
+}

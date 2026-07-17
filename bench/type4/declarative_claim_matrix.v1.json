@@ -1,0 +1,349 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "css.color.canonical-spelling",
+      "domain": "css",
+      "canonical_rule": "color-spelling",
+      "property_family": "color",
+      "boundary": "distinct-color-value",
+      "positives": [
+        ".x { color: #fff; display: block; padding: 1px }",
+        ".y { color: #ffffff; display: block; padding: 1px }",
+        ".z { color: white; display: block; padding: 1px }",
+        ".w { color: rgb(255 255 255); display: block; padding: 1px }",
+        ".v { color: #ffffffff; display: block; padding: 1px }"
+      ],
+      "hard_negative_ids": [
+        "css.color.canonical-spelling.hn.1",
+        "css.color.canonical-spelling.hn.2"
+      ],
+      "hard_negatives": [
+        ".n { color: #00f; display: block; padding: 1px }",
+        ".n { color: rgba(255 255 255 / 50%); display: block; padding: 1px }"
+      ]
+    },
+    {
+      "id": "css.color.extended-name",
+      "domain": "css",
+      "canonical_rule": "extended-color-name",
+      "property_family": "color",
+      "boundary": "different-secondary-color",
+      "positives": [
+        ".a { color: darkgray; border-color: rebeccapurple }",
+        ".b { color: #a9a9a9; border-color: #663399 }",
+        ".c { color: #A9A9A9; border-color: #639 }"
+      ],
+      "hard_negative_ids": [
+        "css.color.extended-name.hn.1"
+      ],
+      "hard_negatives": [
+        ".n { color: #a9a9a9; border-color: red }"
+      ]
+    },
+    {
+      "id": "css.color.hsl-separators",
+      "domain": "css",
+      "canonical_rule": "hsl-spelling",
+      "property_family": "color",
+      "boundary": "different-hue",
+      "positives": [
+        ".a { color: hsl(0, 100%, 50%); padding: 1px }",
+        ".b { color: hsl(0 100% 50%); padding: 1px }",
+        ".c { color: hsl(0,100%,50%); padding: 1px }"
+      ],
+      "hard_negative_ids": [
+        "css.color.hsl-separators.hn.1"
+      ],
+      "hard_negatives": [
+        ".n { color: hsl(120, 100%, 50%); padding: 1px }"
+      ]
+    },
+    {
+      "id": "css.url.quote-spelling",
+      "domain": "css",
+      "canonical_rule": "url-quote-spelling",
+      "property_family": "image",
+      "boundary": "different-url-payload",
+      "positives": [
+        ".a { background: url(\"x.png\"); padding: 1px }",
+        ".b { background: url('x.png'); padding: 1px }",
+        ".c { background: url(x.png); padding: 1px }"
+      ],
+      "hard_negative_ids": [
+        "css.url.quote-spelling.hn.1"
+      ],
+      "hard_negatives": [
+        ".n { background: url(y.png); padding: 1px }"
+      ]
+    },
+    {
+      "id": "css.length.zero-unit",
+      "domain": "css",
+      "canonical_rule": "zero-unit-erasure",
+      "property_family": "length",
+      "boundary": "nonzero-length",
+      "positives": [
+        ".a { margin: 0; padding: 0px; top: 0em }",
+        ".b { margin: 0px; padding: 0; top: 0rem }"
+      ],
+      "hard_negative_ids": [
+        "css.length.zero-unit.hn.1"
+      ],
+      "hard_negatives": [
+        ".n { margin: 0; padding: 0; top: 1px }"
+      ]
+    },
+    {
+      "id": "css.number.canonical-spelling",
+      "domain": "css",
+      "canonical_rule": "number-spelling",
+      "property_family": "number-length",
+      "boundary": "different-number",
+      "positives": [
+        ".a { opacity: 0.50; width: 1.0px; left: +2px }",
+        ".b { opacity: .5; width: 1px; left: 2px }"
+      ],
+      "hard_negative_ids": [
+        "css.number.canonical-spelling.hn.1"
+      ],
+      "hard_negatives": [
+        ".n { opacity: .6; width: 1px; left: 2px }"
+      ]
+    },
+    {
+      "id": "css.box.shorthand-collapse",
+      "domain": "css",
+      "canonical_rule": "box-shorthand-collapse",
+      "property_family": "box",
+      "boundary": "different-box-coordinate",
+      "positives": [
+        ".a { margin: 0 0 0 0; padding: 1px 2px 1px 2px }",
+        ".b { margin: 0; padding: 1px 2px }",
+        ".c { margin: 0px 0 0em 0; padding: 1px 2px 1px 2px }"
+      ],
+      "hard_negative_ids": [
+        "css.box.shorthand-collapse.hn.1",
+        "css.box.shorthand-collapse.hn.2"
+      ],
+      "hard_negatives": [
+        ".n { margin: 1px; padding: 1px 2px }",
+        ".n { margin: 0; padding: 2px 1px }"
+      ]
+    },
+    {
+      "id": "css.rule.declaration-order-selector",
+      "domain": "css",
+      "canonical_rule": "rule-order-selector-independence",
+      "property_family": "rule",
+      "boundary": "different-property-value",
+      "positives": [
+        ".btn { display: flex; align-items: center; gap: 8px; padding: 12px }",
+        ".cta { padding: 12px; gap: 8px; align-items: center; display: flex }",
+        "button.primary { gap: 8px; display: flex; padding: 12px; align-items: center }"
+      ],
+      "hard_negative_ids": [
+        "css.rule.declaration-order-selector.hn.1"
+      ],
+      "hard_negatives": [
+        ".n { display: flex; align-items: center; gap: 9px; padding: 12px }"
+      ]
+    },
+    {
+      "id": "css.at-rule.media-condition",
+      "domain": "css",
+      "canonical_rule": "media-condition-canonicalization",
+      "property_family": "at-rule",
+      "boundary": "condition-or-rule-kind",
+      "positives": [
+        "@media screen and (max-width: 600px) { .a { color: red; padding: 1px } }",
+        "@media (max-width:600px) and screen { .b { color: red; padding: 1px } }",
+        "@media ( max-width : 600px ) and screen { .c { color: red; padding: 1px } }"
+      ],
+      "hard_negative_ids": [
+        "css.at-rule.media-condition.hn.1",
+        "css.at-rule.media-condition.hn.2"
+      ],
+      "hard_negatives": [
+        "@media screen and (max-width: 900px) { .n { color: red; padding: 1px } }",
+        "@supports screen and (max-width: 600px) { .n { color: red; padding: 1px } }"
+      ]
+    },
+    {
+      "id": "css.at-rule.media-zero-value",
+      "domain": "css",
+      "canonical_rule": "media-value-canonicalization",
+      "property_family": "at-rule-length",
+      "boundary": "different-query-threshold",
+      "positives": [
+        "@media (min-width: 0px) { .a { color: red; padding: 1px } }",
+        "@media (min-width: 0) { .b { color: red; padding: 1px } }"
+      ],
+      "hard_negative_ids": [
+        "css.at-rule.media-zero-value.hn.1"
+      ],
+      "hard_negatives": [
+        "@media (min-width: 1px) { .n { color: red; padding: 1px } }"
+      ]
+    },
+    {
+      "id": "css.cascade.repeated-property",
+      "domain": "css",
+      "canonical_rule": "repeated-property-last-wins",
+      "property_family": "cascade",
+      "boundary": "reversed-winning-value",
+      "positives": [
+        ".a { color: red; color: blue; padding: 1px }",
+        ".b { color: blue; padding: 1px }"
+      ],
+      "hard_negative_ids": [
+        "css.cascade.repeated-property.hn.1"
+      ],
+      "hard_negatives": [
+        ".n { color: blue; color: red; padding: 1px }"
+      ]
+    },
+    {
+      "id": "css.cascade.shorthand-longhand",
+      "domain": "css",
+      "canonical_rule": "shorthand-longhand-order",
+      "property_family": "cascade-box",
+      "boundary": "reversed-shorthand-longhand",
+      "positives": [
+        ".a { margin: 0; margin-top: 5px; color: red }",
+        ".b { margin: 0px; margin-top: 5.0px; color: #f00 }"
+      ],
+      "hard_negative_ids": [
+        "css.cascade.shorthand-longhand.hn.1"
+      ],
+      "hard_negatives": [
+        ".n { margin-top: 5px; margin: 0; color: red }"
+      ]
+    },
+    {
+      "id": "css.property.ascii-case",
+      "domain": "css",
+      "canonical_rule": "property-name-case",
+      "property_family": "property-name",
+      "boundary": "different-property",
+      "positives": [
+        ".a { COLOR: white; MARGIN: 0px; padding: 1px }",
+        ".b { color: #fff; margin: 0; padding: 1px }"
+      ],
+      "hard_negative_ids": [
+        "css.property.ascii-case.hn.1"
+      ],
+      "hard_negatives": [
+        ".n { background-color: white; margin: 0; padding: 1px }"
+      ]
+    },
+    {
+      "id": "html.dom.attribute-set",
+      "domain": "html",
+      "canonical_rule": "dom-attribute-and-whitespace-normalization",
+      "property_family": "dom",
+      "boundary": "text-attribute-or-child-order",
+      "positives": [
+        "<div class=\"card x\"><img src=\"a.png\" alt=\"p\"><button type=\"button\" disabled>Go</button></div>",
+        "<div class=\"x card\">\n <img alt=\"p\" src=\"a.png\">\n <button disabled=\"\" type=\"button\">Go</button>\n</div>"
+      ],
+      "hard_negative_ids": [
+        "html.dom.attribute-set.hn.1",
+        "html.dom.attribute-set.hn.2",
+        "html.dom.attribute-set.hn.3"
+      ],
+      "hard_negatives": [
+        "<div class=\"card x\"><img src=\"b.png\" alt=\"p\"><button type=\"button\" disabled>Go</button></div>",
+        "<div class=\"card x\"><img src=\"a.png\" alt=\"p\"><button type=\"button\" disabled>Stop</button></div>",
+        "<div class=\"card x\"><button type=\"button\" disabled>Go</button><img src=\"a.png\" alt=\"p\"></div>"
+      ]
+    },
+    {
+      "id": "html.style.inline-css",
+      "domain": "html",
+      "canonical_rule": "inline-style-canonicalization",
+      "property_family": "style-attribute",
+      "boundary": "different-computed-style",
+      "positives": [
+        "<section style=\"margin: 0 0 0 0; color: #ffffff\"><p>hi</p></section>",
+        "<section style=\"color: white; margin: 0\"><p>hi</p></section>"
+      ],
+      "hard_negative_ids": [
+        "html.style.inline-css.hn.1"
+      ],
+      "hard_negatives": [
+        "<section style=\"color: black; margin: 0\"><p>hi</p></section>"
+      ]
+    },
+    {
+      "id": "html.directive.vue-shorthand",
+      "domain": "html",
+      "canonical_rule": "vue-directive-shorthand",
+      "property_family": "bound-attribute",
+      "boundary": "different-bound-expression",
+      "positives": [
+        "<button :class=\"c\" @click=\"f\"><i class=\"ico\"></i>Go</button>",
+        "<button v-bind:class=\"c\" v-on:click=\"f\"><i class=\"ico\"></i>Go</button>"
+      ],
+      "hard_negative_ids": [
+        "html.directive.vue-shorthand.hn.1"
+      ],
+      "hard_negatives": [
+        "<button v-bind:class=\"d\" v-on:click=\"f\"><i class=\"ico\"></i>Go</button>"
+      ]
+    },
+    {
+      "id": "html.text.flow-whitespace",
+      "domain": "html",
+      "canonical_rule": "flow-whitespace-collapse",
+      "property_family": "text",
+      "boundary": "different-text",
+      "positives": [
+        "<section class=\"notice\"><h2>Heading</h2><p>hello world   again here friend</p><button disabled>Continue</button></section>",
+        "<section class=\"notice\"><h2>Heading</h2><p>hello world\n  again here friend</p><button disabled=\"\">Continue</button></section>"
+      ],
+      "hard_negative_ids": [
+        "html.text.flow-whitespace.hn.1"
+      ],
+      "hard_negatives": [
+        "<section class=\"notice\"><h2>Heading</h2><p>hello world again there friend</p><button disabled>Continue</button></section>"
+      ]
+    },
+    {
+      "id": "html.control.repeat-dialect",
+      "domain": "html",
+      "canonical_rule": "repeat-control-dialect",
+      "property_family": "control",
+      "boundary": "single-or-conditional-control",
+      "positives": [
+        "<ul class=\"list\"><li class=\"item\" v-for=\"x in xs\" :key=\"x.id\">row text</li></ul>",
+        "<ul class=\"list\">{#each xs as x (x.id)}<li class=\"item\">row text</li>{/each}</ul>"
+      ],
+      "hard_negative_ids": [
+        "html.control.repeat-dialect.hn.1",
+        "html.control.repeat-dialect.hn.2"
+      ],
+      "hard_negatives": [
+        "<ul class=\"list\"><li class=\"item\">row text</li></ul>",
+        "<ul class=\"list\">{#if xs}<li class=\"item\">row text</li>{/if}</ul>"
+      ]
+    },
+    {
+      "id": "html.dom.ascii-case",
+      "domain": "html",
+      "canonical_rule": "tag-and-attribute-case",
+      "property_family": "dom-name",
+      "boundary": "different-tag",
+      "positives": [
+        "<DIV CLASS=\"card\"><SPAN TITLE=\"x\">Hi</SPAN></DIV>",
+        "<div class=\"card\"><span title=\"x\">Hi</span></div>"
+      ],
+      "hard_negative_ids": [
+        "html.dom.ascii-case.hn.1"
+      ],
+      "hard_negatives": [
+        "<div class=\"card\"><strong title=\"x\">Hi</strong></div>"
+      ]
+    }
+  ]
+}

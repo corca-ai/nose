@@ -167,26 +167,25 @@ that must share a fingerprint) and HARD-NEGATIVE pairs (computed-distinct snippe
 not), one per equivalence-class axis.
 
 ```sh
-cargo test -p nose-cli --test css_html_quality -- --nocapture   # recall + soundness, per axis
+python3 bench/type4/check_axis_language_claims.py \
+  --nose target/release/nose   # connected recall + soundness matrix
 ```
 
-Headline (current): **recall 13/13 positive groups converged (100%)** across the modeled
-axes — CSS color (hex/short/name/`rgb()`), extended named colors, `hsl()`/`url()` spelling,
-zero-units, number canon, box-shorthand collapse, declaration-order and selector
-independence, media-query condition and value canonicalization; HTML DOM normalization
-(attribute order/boolean/`class`-set/whitespace/case), inline-`style=` canonicalization, and
-Vue/Svelte directive shorthand — and **soundness 14/14 hard negatives kept distinct (100%)**
-(distinct colors/values, repeated-property and shorthand/longhand cascade order,
-box-not-all-equal, value-order, at-rule condition, `hsl` distinctness, `@media` vs `@supports`
-and distinct media conditions; HTML text/attr/child-order/`<pre>`-whitespace differences).
-CSS, HTML, and imperative fingerprints are domain-disjoint, so the language-blind exact
-channel can never merge across them.
+Headline (current): **recall 19/19 canonical-rule rows converged (100%)** and **soundness
+25/25 adjacent hard negatives stayed distinct (100%)**. The checked
+[`declarative_claim_matrix.v1.json`](../bench/type4/declarative_claim_matrix.v1.json) binds
+every row to a unique `(domain, canonical rule, property family, boundary)` coordinate instead
+of maintaining independent positive and negative counters. It covers CSS color, URL, numeric,
+length, box, cascade, property-name, selector, and at-rule normalization, plus HTML attribute,
+style, directive, whitespace, case, and repeat-dialect normalization. CSS, HTML, and imperative
+fingerprints are domain-disjoint, so the language-blind exact channel can never merge across
+them.
 
 Coverage is first-class: the [Raw-node ratio](languages.md#coverage-and-adding-a-language)
 on real-world `.css`/`.html` is sub-percent (CSS ~0.002%, HTML ~0.4% on hand-written
 markup). Soundness is **by construction** — the fingerprint *is* the canonical computed
 style / rendered DOM, so equal fingerprint ⟺ equal denotation — backed by the adversarial
-per-rule batteries above plus the `css_value` unit tests (the project's primary trust
+connected matrix above plus the `css_value` unit tests (the project's primary trust
 mechanism, [design §1](design.md)); the obligation is registered `empirical-only`
 (`formal/obligations/normalize/css/computed_style/`), not yet Lean-proven. `nose verify`
 excludes declarative units (a declarative domain has no imperative behavior to interpret)

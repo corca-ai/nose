@@ -85,6 +85,7 @@ def run_query(nose: Path, sources: Path) -> list[dict]:
         "query",
         str(sources),
         "all",
+        "witness=exact",
         "top=0",
         "--mode",
         "semantic",

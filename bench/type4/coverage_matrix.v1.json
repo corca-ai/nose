@@ -50,7 +50,7 @@
       "java": "covered",
       "javascript": "covered",
       "python": "covered",
-      "ruby": "covered",
+      "ruby": "unsupported",
       "rust": "covered",
       "swift": "covered",
       "typescript": "covered"
@@ -81,12 +81,12 @@
       "c": "none",
       "go": "none",
       "java": "covered",
-      "javascript": "covered",
+      "javascript": "unsupported",
       "python": "covered",
-      "ruby": "covered",
-      "rust": "covered",
+      "ruby": "unsupported",
+      "rust": "unsupported",
       "swift": "covered",
-      "typescript": "covered"
+      "typescript": "unsupported"
     },
     "flat_map": {
       "c": "none",
@@ -171,8 +171,8 @@
       "java": "covered",
       "javascript": "covered",
       "python": "covered",
-      "ruby": "covered",
-      "rust": "covered",
+      "ruby": "unsupported",
+      "rust": "unsupported",
       "swift": "covered",
       "typescript": "covered"
     },
@@ -180,21 +180,21 @@
       "c": "none",
       "go": "none",
       "java": "covered",
-      "javascript": "covered",
+      "javascript": "unsupported",
       "python": "covered",
-      "ruby": "covered",
-      "rust": "covered",
-      "swift": "covered",
-      "typescript": "covered"
+      "ruby": "unsupported",
+      "rust": "unsupported",
+      "swift": "unsupported",
+      "typescript": "unsupported"
     },
     "membership_contains": {
       "c": "n/a",
       "go": "covered",
-      "java": "covered",
+      "java": "unsupported",
       "javascript": "covered",
-      "python": "covered",
-      "ruby": "covered",
-      "rust": "covered",
+      "python": "unsupported",
+      "ruby": "unsupported",
+      "rust": "unsupported",
       "swift": "covered",
       "typescript": "covered"
     },
@@ -205,7 +205,7 @@
       "javascript": "covered",
       "python": "covered",
       "ruby": "covered",
-      "rust": "covered",
+      "rust": "real-miss",
       "swift": "covered",
       "typescript": "covered"
     },
@@ -214,22 +214,22 @@
       "go": "none",
       "java": "none",
       "javascript": "none",
-      "python": "covered",
+      "python": "real-miss",
       "ruby": "none",
       "rust": "covered",
       "swift": "covered",
       "typescript": "none"
     },
     "numeric_minmax_abs": {
-      "c": "covered",
-      "go": "covered",
-      "java": "covered",
-      "javascript": "covered",
-      "python": "covered",
-      "ruby": "covered",
+      "c": "unsupported",
+      "go": "unsupported",
+      "java": "unsupported",
+      "javascript": "unsupported",
+      "python": "real-miss",
+      "ruby": "unsupported",
       "rust": "none",
       "swift": "covered",
-      "typescript": "covered"
+      "typescript": "unsupported"
     },
     "own_property_guard": {
       "c": "n/a",
@@ -300,10 +300,10 @@
     "recursion_tail_numeric": {
       "c": "covered",
       "go": "covered",
-      "java": "covered",
+      "java": "unsupported",
       "javascript": "covered",
       "python": "covered",
-      "ruby": "covered",
+      "ruby": "unsupported",
       "rust": "covered",
       "swift": "covered",
       "typescript": "covered"
@@ -312,12 +312,12 @@
       "c": "covered",
       "go": "covered",
       "java": "covered",
-      "javascript": "covered",
+      "javascript": "unsupported",
       "python": "covered",
-      "ruby": "covered",
+      "ruby": "unsupported",
       "rust": "covered",
       "swift": "covered",
-      "typescript": "covered"
+      "typescript": "real-miss"
     },
     "representation_choice": {
       "c": "none",
@@ -353,7 +353,7 @@
       "typescript": "covered"
     },
     "total_order_compare": {
-      "c": "covered",
+      "c": "unsupported",
       "go": "covered",
       "java": "covered",
       "javascript": "none",
@@ -400,39 +400,39 @@
   "per_language": {
     "c": {
       "applicable": 23,
-      "covered": 13
+      "covered": 11
     },
     "go": {
       "applicable": 24,
-      "covered": 16
+      "covered": 15
     },
     "java": {
       "applicable": 27,
-      "covered": 19
+      "covered": 16
     },
     "javascript": {
       "applicable": 27,
-      "covered": 19
+      "covered": 15
     },
     "python": {
       "applicable": 26,
-      "covered": 21
+      "covered": 18
     },
     "ruby": {
       "applicable": 24,
-      "covered": 15
+      "covered": 7
     },
     "rust": {
       "applicable": 25,
-      "covered": 17
+      "covered": 12
     },
     "swift": {
       "applicable": 25,
-      "covered": 21
+      "covered": 20
     },
     "typescript": {
       "applicable": 27,
-      "covered": 19
+      "covered": 15
     }
   }
 }

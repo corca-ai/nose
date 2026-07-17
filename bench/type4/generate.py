@@ -110,6 +110,14 @@ func AxisCase(value int) int {{
 end
 """
         return Variant("axis", src, "axis_case")
+    if surface.key == "swift":
+        src = f"""func axisCase(_ value: Int) -> Int {{
+    let base = {value}
+    let limit = base
+    return value + limit
+}}
+"""
+        return Variant("axis", src, "axisCase")
     raise ValueError(f"unsupported surface for immutable axis: {surface.key}")
 
 
@@ -212,6 +220,18 @@ def {name}({adjusted})
   shifted = {adjusted} + 1
   helper(shifted)
 end
+"""
+        return Variant("axis", src, name)
+    if surface.key == "swift":
+        name = "buildCase" if right else "axisCase"
+        src = f"""func helper(_ value: Int) -> Int {{
+    return value + {delta}
+}}
+
+func {name}(_ {adjusted}: Int) -> Int {{
+    let shifted = {adjusted} + 1
+    return helper(shifted)
+}}
 """
         return Variant("axis", src, name)
     raise ValueError(f"unsupported surface for callee axis: {surface.key}")
@@ -377,6 +397,8 @@ def null_presence_expr(surface: Surface, proposal_id: str, negative: bool, right
         return f"{target} != NULL" if nonnull else f"{target} == NULL"
     if surface.key in JS_LIKE_SURFACES:
         return f"{target} != null" if nonnull else f"{target} == null"
+    if surface.key == "swift":
+        return f"{target} != nil" if nonnull else f"{target} == nil"
     raise ValueError(f"unsupported surface for null presence axis: {surface.key}")
 
 
@@ -447,6 +469,12 @@ int {snake_name}(void *value, void *other) {{
 }}
 """
         return Variant("axis", src, snake_name)
+    if surface.key == "swift":
+        src = f"""func {name}(_ value: Int?, _ other: Int?) -> Bool {{
+    return {expr}
+}}
+"""
+        return Variant("axis", src, name)
 
     raise ValueError(f"unsupported surface for null presence axis: {surface.key}")
 
@@ -1565,7 +1593,6 @@ func {name}(items []int, other []int) bool {{
 end
 """
         return Variant("axis", src, name)
-
     raise ValueError(f"unsupported surface for collection-empty axis: {surface.key}")
 
 
@@ -4155,6 +4182,21 @@ end
 """
         return Variant("axis", src, name)
 
+    if surface.key == "swift":
+        name = "buildCase" if right else "axisCase"
+        if right:
+            src = f"""func {name}(_ row: Reading, _ amount: Int) -> Int {{
+    let selected = row.{field}
+    return amount + selected
+}}
+"""
+        else:
+            src = f"""func {name}(_ record: Reading, _ value: Int) -> Int {{
+    return value + record.today
+}}
+"""
+        return Variant("axis", src, name)
+
     raise ValueError(f"unsupported surface for projection axis: {surface.key}")
 
 
@@ -4217,6 +4259,13 @@ func {go_name}(value int) int {{
 end
 """
         return Variant("axis", src, rb_name)
+    if surface.key == "swift":
+        swift_name = "buildCase" if right else "axisCase"
+        src = f"""func {swift_name}(_ value: Int) -> Int {{
+    return value + AMBIENT_LIMIT
+}}
+"""
+        return Variant("axis", src, swift_name)
     raise ValueError(f"unsupported surface for unsafe axis: {surface.key}")
 
 
@@ -4369,6 +4418,13 @@ def {rb_entry}(value)
 end
 """
             return Variant("axis", src, rb_entry)
+        if surface.key == "swift":
+            swift_entry = "buildCase" if right else "axisCase"
+            src = f"""func {swift_entry}(_ value: Int) -> Int {{
+    return helper(value + 1)
+}}
+"""
+            return Variant("axis", src, swift_entry)
         raise ValueError(f"unsupported import unsafe surface: {surface.key}")
 
     if surface.key in JS_LIKE_SURFACES:
@@ -4598,13 +4654,13 @@ def import_namespace_shadowed_param_body(
         body = wrong_template_body if right and negative else template_body
         return prefix + (body if right else concat_body)
     if proposal_id == "axis_import_namespace_shadowed_param_unshadowed_mutation_boundary":
-        if right and negative:
-            return (
-                'import * as path from "node:path";\n\n'
-                'function touchPath() {\n  path.replaceAll("x", "y");\n}\n\n'
-                + template_body
-            )
-        return 'import * as path from "node:path";\n\n' + template_body
+        prefix = (
+            'import * as path from "node:path";\n\n'
+            'function touchPath() {\n  path.replaceAll("x", "y");\n}\n\n'
+            if right
+            else 'import * as path from "node:path";\n\n'
+        )
+        return prefix + (wrong_template_body if right and negative else template_body)
     if proposal_id == "axis_import_namespace_shadowed_param_fake_receiver_boundary":
         if right and negative:
             return (
@@ -6394,7 +6450,6 @@ def generate_axis_items(
                 )
                 continue
             if proposal_id in {
-                "axis_import_namespace_shadowed_param_unshadowed_mutation_boundary",
                 "axis_import_namespace_shadowed_param_fake_receiver_boundary",
             }:
                 items.append(

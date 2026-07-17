@@ -20,6 +20,15 @@ frontier_platform.py
   -> scripts/type4-smoke.sh / nose verify / focused tests
 ```
 
+The exact-claim perimeter runs beside that planning path:
+
+```text
+coverage_probe.py + coverage_sweep.py
+  -> coverage_evidence.v1.json
+  -> axis_language_claims.v1.json
+  -> check_axis_language_claims.py
+```
+
 `bench/type4/adversarial` is no longer the source of truth for next work. The former
 adversarial ledger was retired after each entry had a current gate in tests, `type4-smoke`,
 focused verifier checks, or `query_regression`.
@@ -36,6 +45,10 @@ What remains is intentionally smaller:
 | `scripts/type4-next` | print next task cards from `frontier_target_packets.v1.json` |
 | `scripts/type4-report` | summarize target packets and focused case coverage |
 | `scripts/type4-ingest-leads` | turn `nose verify --leads` JSON into draft target packets |
+| `axis_language_claims.v1.json` | one stable Tier-A claim and adjacent hard-negative group per exact axis |
+| `blind_attack.v1.json` | label-blind focused-corpus oracle receipt |
+| `declarative_claim_matrix.v1.json` | connected CSS/HTML canonical-rule, property-family, and boundary cases |
+| `check_axis_language_claims.py` | reject unregistered, unsupported, unguarded, or duplicated axis/language claims |
 
 Run the basic checks:
 
@@ -44,6 +57,7 @@ bench/type4/adversarial/scripts/type4-check
 NOSE_BIN=target/debug/nose bench/type4/adversarial/scripts/type4-exec-check
 bench/type4/adversarial/scripts/type4-report
 bench/type4/adversarial/scripts/type4-next --limit 3
+python3 bench/type4/check_axis_language_claims.py --nose target/release/nose
 ```
 
 `type4-check` is the structural gate and intentionally does not require a built `nose`
@@ -64,6 +78,17 @@ NOSE_BIN=target/debug/nose bench/type4/adversarial/scripts/type4-exec-check \
 `proof_carrying_frontier.py` reads that report and shows packet-level executable witness
 coverage in `frontier_readiness.md`. Missing, stale, or failing executable expectations are
 readiness blockers; they are not hidden behind the focused-case manifest linkage.
+
+The axis/language gate is stricter than the planning matrix. A cell receives exact credit only
+when every executable positive converges and at least one adjacent hard negative stays split.
+The current registry records 24 Tier-A axes, 104 exact axis/language cells, and 55 explicitly
+closed applicable cells. It aggregates every producer for a cell, so one successful spelling
+cannot hide another producer's recall gap. Two attackers stay distinct: a blind `nose verify`
+pass over the 483-unit focused probe corpus (321 interpretable, 162 explicitly excluded), and
+informed pair-by-pair queries over probes and generators. The legacy generator soundness
+inventory has 20/20 guarded axes; the blind corpus separately has 54 exact groups. Both lanes
+record zero merged hard negatives. CI regenerates the evidence with the release binary, rejects
+byte drift, and compares exact/declarative IDs with the base revision.
 
 ## Target packets
 

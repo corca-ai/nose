@@ -255,6 +255,31 @@ jobs:
             --check
           python3 bench/type4/python_loop_demorgan_proof_facts.py --check
           python3 bench/type4/proof_carrying_frontier.py --check
+      - name: Type-4 axis-language claim perimeter
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          ratchet_base="${PR_BASE_SHA:-${PUSH_BEFORE:-HEAD^}}"
+          if [ -z "$ratchet_base" ] || [[ "$ratchet_base" =~ ^0+$ ]] || \
+             ! git rev-parse --verify -q "$ratchet_base^{commit}" >/dev/null; then
+            ratchet_base="HEAD^"
+          fi
+          python3 bench/type4/coverage_probe.py \
+            --nose target/release/nose \
+            --blind-report bench/type4/blind_attack.v1.json
+          python3 bench/type4/coverage_sweep.py \
+            --nose target/release/nose \
+            --quiet
+          python3 bench/type4/coverage_matrix.py matrix
+          python3 bench/type4/check_axis_language_claims.py --self-test
+          python3 bench/type4/check_axis_language_claims.py \
+            --nose target/release/nose \
+            --ratchet-base "$ratchet_base"
+          git diff --exit-code -- \
+            bench/type4/coverage_evidence.v1.json \
+            bench/type4/coverage_matrix.v1.json \
+            bench/type4/blind_attack.v1.json
       - name: test
         run: cargo test --release
       - name: duplication gate (nose on itself)
