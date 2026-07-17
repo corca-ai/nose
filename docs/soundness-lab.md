@@ -424,7 +424,7 @@ Reproduce the compact current-candidate attribution receipt from the exact sourc
 binary recorded in `release-binding-862.v1.json`:
 
 ```sh
-candidate_commit=7c459eb4a65d9cb3ccc301e674fc3687a263ba6b
+candidate_commit=6223233e5e72f73426b74f8df7ec445b85362eed
 candidate_binary=target/release/nose
 candidate_binary_sha256="$(shasum -a 256 "$candidate_binary" | awk '{print $1}')"
 

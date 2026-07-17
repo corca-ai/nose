@@ -6,7 +6,7 @@
     },
     "current_exclusion_attribution": {
       "path": "current-exclusion-attribution-862.v1.json",
-      "sha256": "57774fad7159f6038624e5ec4f2683e7107a863de6eca0bb70259ec400d6045a"
+      "sha256": "c85f06891a8676cdab5edc87d60893e38cc125aabedce1d1939271278377bb24"
     },
     "expansion_receipt": {
       "path": "oracle-expansion-859.v1.json",
@@ -26,7 +26,7 @@
     },
     "performance": {
       "path": "../../recall_loss/issue-862-official-v0.19.0-performance-2026-07-18.v1.json",
-      "sha256": "b5cc9acbd0657cf1c215c4a2367477e1e12e02b41e0d16925c51c0fbea8f5386"
+      "sha256": "2ec164529b51f4fc5b8e80584129a191bf20c8e44bed01474c27a51017fcf1a0"
     }
   },
   "completeness": {
@@ -56,7 +56,7 @@
     "binary_sha256": "b94b2fa9a5b8d52c972340e530a9c7e956819cf5df97980cdc387bae5f7fe64f",
     "crates_tree": "85befdaa7e960a4762c9baade4fcdad372f005da",
     "raw_units_sha256": "ddbf5e83f194a28f5607a1eb4c15523c0d448d877fc834968d39f8c9ecc41341",
-    "source_sha": "7c459eb4a65d9cb3ccc301e674fc3687a263ba6b"
+    "source_sha": "6223233e5e72f73426b74f8df7ec445b85362eed"
   },
   "issue": 862,
   "parent_issue": 855,
