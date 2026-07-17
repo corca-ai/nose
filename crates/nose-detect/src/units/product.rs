@@ -189,19 +189,12 @@ pub fn default_product_oracle_fragment_candidates(
         // The extraction bundle records only whether a pointer-length contract fired. The Lab
         // needs the actual coordinates, so rebuild this offline-only fragment fingerprint once
         // and assert it is the same product value before translating its coordinates.
-        let (mut value, contracts) = match value_context.as_ref() {
-            Some(context) => nose_normalize::value_fingerprint_and_contracts_with_context(
-                normalized_il,
-                unit_root.root,
-                interner,
-                context,
-            ),
-            None => nose_normalize::value_fingerprint_and_contracts(
-                normalized_il,
-                unit_root.root,
-                interner,
-            ),
-        };
+        let (mut value, contracts) = offline_fragment_fingerprint(
+            normalized_il,
+            unit_root.root,
+            interner,
+            value_context.as_ref(),
+        );
         crate::fragment::bind_fragment_control_identity(
             normalized_il,
             unit_root.root,
@@ -232,6 +225,20 @@ pub fn default_product_oracle_fragment_candidates(
         });
     }
     fragments
+}
+
+fn offline_fragment_fingerprint(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+    context: Option<&nose_normalize::ValueFingerprintContext>,
+) -> (Vec<u64>, Vec<(u32, u32)>) {
+    match context {
+        Some(context) => nose_normalize::value_fingerprint_and_contracts_with_context(
+            il, root, interner, context,
+        ),
+        None => nose_normalize::value_fingerprint_and_contracts(il, root, interner),
+    }
 }
 
 fn translate_fragment_contracts(

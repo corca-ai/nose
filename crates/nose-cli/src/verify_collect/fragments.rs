@@ -1,9 +1,7 @@
 use super::*;
 
 fn independently_observes_mixed_exit(exits: &[nose_normalize::UnitExit]) -> bool {
-    exits
-        .iter()
-        .any(|exit| *exit == nose_normalize::UnitExit::Fallthrough)
+    exits.contains(&nose_normalize::UnitExit::Fallthrough)
         && exits.iter().any(|exit| {
             matches!(
                 exit,
@@ -362,32 +360,6 @@ pub(super) fn collect_product_fragment_verify_rec(
     });
 }
 
-#[cfg(test)]
-mod tests {
-    use super::independently_observes_mixed_exit;
-    use nose_normalize::UnitExit;
-
-    #[test]
-    fn oracle_mixed_exit_requires_fallthrough_and_terminal_control() {
-        assert!(independently_observes_mixed_exit(&[
-            UnitExit::Fallthrough,
-            UnitExit::Return,
-        ]));
-        assert!(!independently_observes_mixed_exit(&[
-            UnitExit::Return,
-            UnitExit::Error,
-        ]));
-        assert!(independently_observes_mixed_exit(&[
-            UnitExit::Fallthrough,
-            UnitExit::Throw,
-        ]));
-        assert!(!independently_observes_mixed_exit(&[
-            UnitExit::Fallthrough,
-            UnitExit::Fallthrough,
-        ]));
-    }
-}
-
 #[allow(clippy::too_many_arguments)]
 fn record_fragment_oracle_exclusion(
     oracle: &mut VerifyOracle,
@@ -421,4 +393,30 @@ fn record_fragment_oracle_exclusion(
     oracle
         .exclusions
         .record(exclusion, file_path, span, tokens, None);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::independently_observes_mixed_exit;
+    use nose_normalize::UnitExit;
+
+    #[test]
+    fn oracle_mixed_exit_requires_fallthrough_and_terminal_control() {
+        assert!(independently_observes_mixed_exit(&[
+            UnitExit::Fallthrough,
+            UnitExit::Return,
+        ]));
+        assert!(!independently_observes_mixed_exit(&[
+            UnitExit::Return,
+            UnitExit::Error,
+        ]));
+        assert!(independently_observes_mixed_exit(&[
+            UnitExit::Fallthrough,
+            UnitExit::Throw,
+        ]));
+        assert!(!independently_observes_mixed_exit(&[
+            UnitExit::Fallthrough,
+            UnitExit::Fallthrough,
+        ]));
+    }
 }
