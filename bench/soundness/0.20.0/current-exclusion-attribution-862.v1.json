@@ -8,7 +8,7 @@
     "sha256": "6d6137b6fe831b5657500c0f4fec77b77c0a6a26d20d6ae76defbcae765f1a1f"
   },
   "schema": "nose-soundness-current-exclusion-attribution/v1",
-  "source_sha": "7c459eb4a65d9cb3ccc301e674fc3687a263ba6b",
+  "source_sha": "6223233e5e72f73426b74f8df7ec445b85362eed",
   "summary": {
     "by_capability": {
       "budget.oracle-cost": 1,
