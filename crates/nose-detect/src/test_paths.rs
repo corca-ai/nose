@@ -1,9 +1,11 @@
+use std::borrow::Cow;
+
 /// Whether a file path follows a conventional test-file naming pattern.
 ///
 /// This is shared by report scoping and unit-extraction gates so a path is not
 /// ranked as production in one layer and cost-gated as test code in another.
 pub fn is_test_path(path: &str) -> bool {
-    let p = path.to_ascii_lowercase();
+    let p = lowercase_path(path);
     p.contains("/test/")
         || p.contains("/tests/")
         || p.contains("/__tests__/")
@@ -19,6 +21,16 @@ pub fn is_test_path(path: &str) -> bool {
             .any(|m| p.contains(m))
         || matches!(file_stem(&p), "test" | "tests")
         || file_stem(&p).starts_with("test_")
+}
+
+/// Repository paths are overwhelmingly already lowercase. Keep that common path allocation-free
+/// while preserving the existing case-insensitive classification for mixed-case paths.
+pub(crate) fn lowercase_path(path: &str) -> Cow<'_, str> {
+    if path.bytes().any(|byte| byte.is_ascii_uppercase()) {
+        Cow::Owned(path.to_ascii_lowercase())
+    } else {
+        Cow::Borrowed(path)
+    }
 }
 
 fn file_stem(path: &str) -> &str {
@@ -52,5 +64,12 @@ mod tests {
         assert!(!is_test_path("src/contest.rs"));
         assert!(!is_test_path("src/parser.rs"));
         assert!(!is_test_path("src/integration_helpers.py"));
+    }
+
+    #[test]
+    fn mixed_case_paths_keep_case_insensitive_test_classification() {
+        assert!(is_test_path("Crates/Widget/Tests/Parser.RS"));
+        assert!(is_test_path("Sources/Widget_SPEC.RB"));
+        assert!(!is_test_path("Sources/Contest.RS"));
     }
 }

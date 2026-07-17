@@ -302,6 +302,10 @@ pub(crate) enum Cmd {
         /// unsafe fingerprint mass out of the implementation priority queue.
         #[arg(long)]
         exclusion_census: Option<PathBuf>,
+        /// Internal Soundness Lab replay control. Hidden because it deliberately disables later
+        /// oracle tranches and must never be used for ordinary verification.
+        #[arg(long, hide = true)]
+        soundness_tranche: Option<String>,
         /// Run the falsification-driven distinguishing-input SEARCH (#317) IN ADDITION to the
         /// fixed battery: for each fingerprint-equal group the battery found equal, search a
         /// value-kind-rich input domain (two distinct strings/lists, int32-wrapping ints, float

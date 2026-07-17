@@ -1,0 +1,3747 @@
+{
+  "candidate_cohort_sha256": "a2cbb3be5402073f4b17ff18c52c1ad5369be45fe5962d69121a59df02be67f8",
+  "cells": [
+    {
+      "baseline_pair_mass": 1,
+      "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+      "construct": "oracle-gap",
+      "coverage_ppm": 1000000,
+      "exact_unsafe_pair_mass": 0,
+      "language": "cross-language",
+      "obligation_id": "exact-soundness.oracle-gap",
+      "prevalence_weight": 2,
+      "risk_tier": "tier-a",
+      "risk_weight": 5,
+      "verified_pair_mass": 1,
+      "weight_units": 10
+    },
+    {
+      "baseline_pair_mass": 34,
+      "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+      "construct": "oracle-gap",
+      "coverage_ppm": 382352,
+      "exact_unsafe_pair_mass": 21,
+      "language": "rust",
+      "obligation_id": "exact-soundness.oracle-gap",
+      "prevalence_weight": 7,
+      "risk_tier": "tier-a",
+      "risk_weight": 5,
+      "verified_pair_mass": 13,
+      "weight_units": 35
+    },
+    {
+      "baseline_pair_mass": 20,
+      "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+      "construct": "runtime-protocol",
+      "coverage_ppm": 800000,
+      "exact_unsafe_pair_mass": 4,
+      "language": "cross-language",
+      "obligation_id": "exact-soundness.runtime-protocol",
+      "prevalence_weight": 6,
+      "risk_tier": "tier-a",
+      "risk_weight": 5,
+      "verified_pair_mass": 16,
+      "weight_units": 30
+    },
+    {
+      "baseline_pair_mass": 2,
+      "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+      "construct": "runtime-protocol",
+      "coverage_ppm": 1000000,
+      "exact_unsafe_pair_mass": 0,
+      "language": "python",
+      "obligation_id": "exact-soundness.runtime-protocol",
+      "prevalence_weight": 3,
+      "risk_tier": "tier-a",
+      "risk_weight": 5,
+      "verified_pair_mass": 2,
+      "weight_units": 15
+    },
+    {
+      "baseline_pair_mass": 3,
+      "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+      "construct": "runtime-protocol",
+      "coverage_ppm": 666666,
+      "exact_unsafe_pair_mass": 1,
+      "language": "ruby",
+      "obligation_id": "exact-soundness.runtime-protocol",
+      "prevalence_weight": 3,
+      "risk_tier": "tier-a",
+      "risk_weight": 5,
+      "verified_pair_mass": 2,
+      "weight_units": 15
+    },
+    {
+      "baseline_pair_mass": 20,
+      "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+      "construct": "runtime-protocol",
+      "coverage_ppm": 0,
+      "exact_unsafe_pair_mass": 20,
+      "language": "rust",
+      "obligation_id": "exact-soundness.runtime-protocol",
+      "prevalence_weight": 6,
+      "risk_tier": "tier-a",
+      "risk_weight": 5,
+      "verified_pair_mass": 0,
+      "weight_units": 30
+    },
+    {
+      "baseline_pair_mass": 8,
+      "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+      "construct": "runtime-protocol",
+      "coverage_ppm": 125000,
+      "exact_unsafe_pair_mass": 7,
+      "language": "typescript",
+      "obligation_id": "exact-soundness.runtime-protocol",
+      "prevalence_weight": 5,
+      "risk_tier": "tier-a",
+      "risk_weight": 5,
+      "verified_pair_mass": 1,
+      "weight_units": 25
+    },
+    {
+      "baseline_pair_mass": 9,
+      "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+      "construct": "scalar-value",
+      "coverage_ppm": 0,
+      "exact_unsafe_pair_mass": 9,
+      "language": "rust",
+      "obligation_id": "exact-soundness.scalar-value",
+      "prevalence_weight": 5,
+      "risk_tier": "tier-c",
+      "risk_weight": 1,
+      "verified_pair_mass": 0,
+      "weight_units": 5
+    }
+  ],
+  "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+  "frozen_contract": {
+    "baseline_pair_ids_sha256": "612597cd4e9cd61ca684767c22f0fe348b024573f5b810c2f67e1b0d37e22be2",
+    "cell_contract_sha256": "3b58dba70ff657bd3bd996ec4ad0f66be63e3e97c1a4d6f68af9e4ef4fa5c677",
+    "release_target_ppm": 424999,
+    "scorecard_sha256": "b5edb7340a7a9c7b45bb6ba8c561c77315955059016f971cf25332cf8e2f60f2"
+  },
+  "gates": {
+    "baseline_verified_pair_regressions": [],
+    "denominator_unchanged": true,
+    "language_regressions": [],
+    "passed": true,
+    "release_target_met": true
+  },
+  "pair_ledger": [
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "975f3a9947dd744a",
+          "claimable": true,
+          "core_il_sha256": "6b299989249e62c0f3a72fadb047402fc759868d2dee46dc12d0c8a31f17de75",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "4f7548659771e5874b03b688ff68b29c1b4341e20f926f618e3c807621ad7158"
+        },
+        {
+          "behavior_hash": "975f3a9947dd744a",
+          "claimable": true,
+          "core_il_sha256": "6b299989249e62c0f3a72fadb047402fc759868d2dee46dc12d0c8a31f17de75",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "9f64e3a9b8a9a42a782b32d45050226caa6be3832bc8b8edee05851346922bf0"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "0041f7eb24094544ed17b247ed2ba81ebac62955817debabc81a0a5127b636ff"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "1e8075c8331eed2b",
+          "claimable": true,
+          "core_il_sha256": "af5a76778b60fb04aabb669dede2a6f513bfdeba83efe69b46224b48b6924106",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "8c62712320fc722cec034523d15fe8828873f1787974aa197e5541c53dada4ab"
+        },
+        {
+          "behavior_hash": "1e8075c8331eed2b",
+          "claimable": true,
+          "core_il_sha256": "af5a76778b60fb04aabb669dede2a6f513bfdeba83efe69b46224b48b6924106",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "39228cb2b8902af2c62f265cbb54bbcd775c25aa0af73677ff119b9323ed2eba"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "02ff7265d564f6c6b31d72e2f6615c05cc56cd459c0fa0321ce5315620c194b4"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "cf0c6ab73bdeca25",
+          "claimable": true,
+          "core_il_sha256": "a84605ddff4b1547e884d4f943c0fe7067e98dd9f2b8f96bbd4cc75dcb0f97ad",
+          "domain_hosted": true,
+          "domain_signature": "da158ccd7c438827",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "c8dc23f0484516fcf983d2548453bc9c2992821786b10aab50735548c43eadd8"
+        },
+        {
+          "behavior_hash": "cf0c6ab73bdeca25",
+          "claimable": true,
+          "core_il_sha256": "a84605ddff4b1547e884d4f943c0fe7067e98dd9f2b8f96bbd4cc75dcb0f97ad",
+          "domain_hosted": true,
+          "domain_signature": "da158ccd7c438827",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "9d3debdde0f09348c7f9bfc6ad0682d619ed68487f8c61ca8739d64cd18a8830"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "python",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "0321bd4069cce787caabd00100646f90cb764de5a1a6bf5e30f1c4374974c7c8"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "8549b234d62505db",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "90ef17e5fb90bbfe417affc95ccb75d689953c88b7b8cd267a979e33df8adb1b"
+        },
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "efc38b8a200f474531583ef52b260f5ed7cbb00f7fd27773aabdbdeafb590445"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "typescript",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "0420f02e54978c88488668759e738b24b68ffbcc41801ca9aebd4859d93b2a29"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "975f3a9947dd744a",
+          "claimable": true,
+          "core_il_sha256": "6b299989249e62c0f3a72fadb047402fc759868d2dee46dc12d0c8a31f17de75",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "fc899c5d0682853ac4a83c10b9bbac7ba65236978fc5cd5c0c5d5b4cb8fdd2d1"
+        },
+        {
+          "behavior_hash": "975f3a9947dd744a",
+          "claimable": true,
+          "core_il_sha256": "6b299989249e62c0f3a72fadb047402fc759868d2dee46dc12d0c8a31f17de75",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "e21a668aa86f2d2c90619f678be6fb6d4b121559e42ce6a564f761e34d8dbdd1"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "09ed91230ab266d4e29017a1e792be4b6c9afaa1943bb01f6e1fc0214a5d822c"
+    },
+    {
+      "baseline_status": "exact-unsafe-domain",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "7fee9acb3dffaa46cb61613c603b048f19c285b87d54129b615f75c061e66c4d"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "a79bbbdf4cab3f8d615b77345d07460fb6d35bd7e1c0373ab525f7152257c962"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "0a0d593970bb74cb289b1e6137731f9b7a8fb3f6518b4f9d385b07b5619832dd"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "908f6834112833b41b77c66cac64551dca32c976e66889f60257ba85448d7bd0"
+        },
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "154046f9a8535297812db8017c9d71607064aae9d1af9e72545f5d24d781a4d8"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "typescript",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "0a4cc4edbf7247f0acc7a2fca7bf95d083675e70008b246a5a1a0f06bad89260"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "48472097bf74745e05aed1200963ba3d335e4fd697251b3f86e37732b0696ac4"
+        },
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "472cbecf3f89a2ce185766411f5fb7e7160fc8a3cdbe319de6eaa1f329d20cce"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "0d10d3bce48edfe9ed40675ac73ac13b884d08f71545ae83524d05212ee7bc0c"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "e686cde9cdda4493d94c4f735aebababb3a34757d9adab7a202e031b333a5451"
+        },
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "8549b234d62505db",
+          "input_projections": [
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "60346d167e6e935306cf09ae456a03fa966092b4f5007ea67695cabe27ba59e6"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "0dc51515f9dde1f679be6f1e0fa5b319b0b74daebf0b687aa48bb637f44a1c0f"
+    },
+    {
+      "baseline_status": "exact-unsafe-domain",
+      "candidate_members": [
+        {
+          "behavior_hash": "9ae51aa942312f75",
+          "claimable": true,
+          "core_il_sha256": "1953b6bfeee1e200966980debbee271130ceef06d71ea52a26f83e5e9de7f5f6",
+          "domain_hosted": false,
+          "domain_signature": "6b493bf2e674c52a",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "7c99bcb1a48e556e4bbd6cee19d99a8b51e5827da472d78b3c4576ae4f4ce0ab"
+        },
+        {
+          "behavior_hash": "1df0fbc82b9f337d",
+          "claimable": true,
+          "core_il_sha256": "1953b6bfeee1e200966980debbee271130ceef06d71ea52a26f83e5e9de7f5f6",
+          "domain_hosted": false,
+          "domain_signature": "da158ccd7c438827",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "76e9ad45af3595fe0370ca34d1e8657ad8f359b904c74b816f8ca78a45181ce8"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "scalar-value",
+        "language": "rust",
+        "obligation_id": "exact-soundness.scalar-value",
+        "risk_tier": "tier-c"
+      },
+      "pair_id": "0decc25270d3dcedbd2c034525ebdb1415b60f1e330b9d70ea25b9d6628a7207"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        null,
+        null
+      ],
+      "candidate_status": "exact-unsafe-uninterpretable",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "0f02a2f6bc3ee917fbf2e44ae60cbebfad131e184036903e3a29440677b4feef"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "4a88f625f8767769",
+          "claimable": true,
+          "core_il_sha256": "a46db326d5242ecd0133a01a07bb5021db236df5231ab21aa13eea74227be338",
+          "domain_hosted": true,
+          "domain_signature": "d1fba762150c532c",
+          "input_projections": [],
+          "symbolic_behavior": true,
+          "unit_id": "f521fc76c8e8204375d9fe0f88ccc83f70512c348e4444bd6285f6ee15dc7af6"
+        },
+        {
+          "behavior_hash": "4a88f625f8767769",
+          "claimable": true,
+          "core_il_sha256": "a46db326d5242ecd0133a01a07bb5021db236df5231ab21aa13eea74227be338",
+          "domain_hosted": true,
+          "domain_signature": "d1fba762150c532c",
+          "input_projections": [],
+          "symbolic_behavior": true,
+          "unit_id": "8292f93edabcdb28ca46c89efe5b8a6cb7819deba45f7ac6fa8fdfd97b411726"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "0fbd198546516c438caf12f3847c9674e23c2e5a5d8d0682cfbe9d508bf93fe4"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "7fee9acb3dffaa46cb61613c603b048f19c285b87d54129b615f75c061e66c4d"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "b2beecd92111f0956378daa3718c179474114ab8bea2c43fa3b9b7b8a6d077c4"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "0ff03a0ecab38bad46ea73cd4ecf6bcc778aba188092842ac78a2dffe265433a"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "e686cde9cdda4493d94c4f735aebababb3a34757d9adab7a202e031b333a5451"
+        },
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "d377b26358c61bd5c0dcfff9093dae22451b5956b4a63b6cd835760a608ca355"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "typescript",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "1010987f330603eb813dea6a319b978ccaa7c5bdef60272473e31b5ad234982d"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "04883ac320842b46",
+          "claimable": true,
+          "core_il_sha256": "7117e11df5b7158138411a7d11caaca3dd56ea547fee378b7e517f0aa82f60e6",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "a7f0f0b02ba23c9d4ffe9da6dadaf7078c851584ccb31919af8675138de92dbc"
+        },
+        {
+          "behavior_hash": "04883ac320842b46",
+          "claimable": true,
+          "core_il_sha256": "7117e11df5b7158138411a7d11caaca3dd56ea547fee378b7e517f0aa82f60e6",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "667c5afa86bafce2f0f97ecc6cf2587e18b213858ebfc89309c8eeb88dee6343"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "1257501697ea0b3ef177b33220aa43170aae5cd4acb2a7b44231d222fa05514e"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0beb0ce840113548",
+          "claimable": true,
+          "core_il_sha256": "e5ff0639191ab720b94d3a3ca76982ecdb070ae946d880e9c3af82aa8d704eec",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "b381ad622b00afe32ab33ea72c3e896bb9126700f6fe0393536af04310940800"
+        },
+        {
+          "behavior_hash": "0beb0ce840113548",
+          "claimable": true,
+          "core_il_sha256": "e5ff0639191ab720b94d3a3ca76982ecdb070ae946d880e9c3af82aa8d704eec",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "f74b510ba0e39572d5bbeca8bf5852d8b963f3c2b2370bffbb1af87634dccfcf"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "12adb16a57efe125af356476ea98c0468c9e1704d1de3f7ede650e6d8d0756af"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "eb3e000b542c1dd097a660954208a16f6fe8acffe558f92c291899dbd9dd8c0e",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "0e309268793df933dbdf151b46d23410fe543407b767aed57e8726702f1f59a5"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "eb3e000b542c1dd097a660954208a16f6fe8acffe558f92c291899dbd9dd8c0e",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "d82f6211eda4c31ff80a0de4287b5f3701c945df66a182511bf18adf12e44e88"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "1323e59286d8113364e767c55e32d4906c80e5942785a24356cb2db309000cdd"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "48472097bf74745e05aed1200963ba3d335e4fd697251b3f86e37732b0696ac4"
+        },
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "b2c3cb647983c4a7020f01573ce884e196b9ab847afd9f2ff17dcffeee09ec78"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "1789b1c7986568a613b75baa148272d374ca7aa422936688638e9530b02acfd6"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "7fdb60be1d4f928912df128f05e4b23f07c02f3377d5c0efd30d1275ed6c493b"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "b2beecd92111f0956378daa3718c179474114ab8bea2c43fa3b9b7b8a6d077c4"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "18ba86852da56671d36ea3fe0566950e960331474b1f7b610c6ecb84575986a7"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "e5f504458f9abd9f",
+          "claimable": true,
+          "core_il_sha256": "0d75e483263a8346f1e114f31585ebc063df4a88573245d1927dea50c91248ac",
+          "domain_hosted": false,
+          "domain_signature": "347873722cd99e04",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "c3645dc5b5ee16d586a5bb9317aeb6e010f4ad18280d1e6d886ca63398dbc53e"
+        },
+        {
+          "behavior_hash": "e5f504458f9abd9f",
+          "claimable": true,
+          "core_il_sha256": "0d75e483263a8346f1e114f31585ebc063df4a88573245d1927dea50c91248ac",
+          "domain_hosted": false,
+          "domain_signature": "347873722cd99e04",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "6dad225d4d690fd4f3100b8c98720e6d7f9122038589a367016105a64cbdea0a"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "1a4f326bea8b1ffb93bb38fe963087f3f0dbe19aa3e4b1e12e5aa2de100f7408"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "38dcf942c6cac59059c151a41ffeed4dbf69c8581ee7f0144808219a445328a2"
+        },
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "8549b234d62505db",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "3762205d4d36efab549f3ea8773ea82e8faba57a79defc7f08b6d06c21ffdff8"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "typescript",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "1c692ef4c9b9b322bdbf1a55011e9d109e74fa9a9f49bedd1b46e51af5d111c1"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "8549b234d62505db",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "90ef17e5fb90bbfe417affc95ccb75d689953c88b7b8cd267a979e33df8adb1b"
+        },
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "908f6834112833b41b77c66cac64551dca32c976e66889f60257ba85448d7bd0"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "typescript",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "1d5ceb3b903063a6bc76b43c6d405975cbeea34b04bc562483a949135131d354"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "e686cde9cdda4493d94c4f735aebababb3a34757d9adab7a202e031b333a5451"
+        },
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "efc38b8a200f474531583ef52b260f5ed7cbb00f7fd27773aabdbdeafb590445"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "typescript",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "1d894b8c6ac8ce8dfad602bee1804c208504b93afbee2fa47d15b28628f64561"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "63dd7dd9ab1a68c0",
+          "claimable": true,
+          "core_il_sha256": "c05d415fb910c33be14fb38d36f9ce40b892954ce911386ea9fb1f49342907dd",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "d8afb38eef2c5cc96f10fd36f4258cbaa8b952f4a0174b95bc842c0eae021057"
+        },
+        {
+          "behavior_hash": "63dd7dd9ab1a68c0",
+          "claimable": true,
+          "core_il_sha256": "c05d415fb910c33be14fb38d36f9ce40b892954ce911386ea9fb1f49342907dd",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "6422cfef3ebc3782fb6250be0d63bdfb078acb22400f340989bbfeba9c6edad7"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "211e235263c3236e40d2dcaabeb3af8d85596857c43d2a804cec2e33567fd0fe"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "a79bbbdf4cab3f8d615b77345d07460fb6d35bd7e1c0373ab525f7152257c962"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "663cc976e219feb90a75cc5844deb1af4dc0d725232548eadb5f8feafb34fabc"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "21609956de724dd47acbc9a6e7a4fdecffb17a5910a5cae039dd63cf57601268"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "0882d1b930966f811872c6f60646edeb4347a8f371692f1638c6be742ac64c4e"
+        },
+        {
+          "behavior_hash": "94a57ea83a55cbed",
+          "claimable": true,
+          "core_il_sha256": "8f735a417041f450431fb8e2e99322d7a61791cb387eea8c590bed1a9cb8c689",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "d377b26358c61bd5c0dcfff9093dae22451b5956b4a63b6cd835760a608ca355"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "typescript",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "2268bfcff1df1e9301e6642037080fb43d3d3afddc3ac0326fb318af6013b7ca"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "5b6cdb32a256a48e",
+          "claimable": true,
+          "core_il_sha256": "d9c58c53a14e4001746f5b36296442f13edf5839e480b063445121ff77ad5d13",
+          "domain_hosted": false,
+          "domain_signature": "78239c4afb29808a",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "13fc6a85b8fe21fc2b3ea849038d4e0ec3148351637f589da6e6f10d90d627bc"
+        },
+        {
+          "behavior_hash": "5b6cdb32a256a48e",
+          "claimable": true,
+          "core_il_sha256": "d9c58c53a14e4001746f5b36296442f13edf5839e480b063445121ff77ad5d13",
+          "domain_hosted": false,
+          "domain_signature": "78239c4afb29808a",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "d3f48bc5a47542ee5383095e861546c8240d6ef028a886bcf5e4bd0b797ee2df"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "2273b0425472703589671d0b0890834eac1016baee5247d7e1d660c61cea7e6c"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        null,
+        null
+      ],
+      "candidate_status": "exact-unsafe-uninterpretable",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "230783542dee3159a169a27129ebab7de8292e436b16c6d9a07b73a9b69afe92"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "6982736bf4ba7452",
+          "claimable": true,
+          "core_il_sha256": "a950e8fef891d3ff49ec4ce980d86198f5c118e683ec886cda54dd17bc300eb2",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "2a9d709cc1255f1e4560763c7caaceb8d2f16ee872933985d93f2ac091f33a82"
+        },
+        {
+          "behavior_hash": "6982736bf4ba7452",
+          "claimable": true,
+          "core_il_sha256": "a950e8fef891d3ff49ec4ce980d86198f5c118e683ec886cda54dd17bc300eb2",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "89a0365a9e93ae2f92d9271a338f18a513dc26449d7f255aec6024481ffac39b"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "23fdef75609e3b6ae8eda6fbc442cc27df53179e6612b046a7104710cf189504"
+    },
+    {
+      "baseline_status": "exact-unsafe-domain",
+      "candidate_members": [
+        {
+          "behavior_hash": "08f03e84ac5c1791",
+          "claimable": true,
+          "core_il_sha256": "1953b6bfeee1e200966980debbee271130ceef06d71ea52a26f83e5e9de7f5f6",
+          "domain_hosted": false,
+          "domain_signature": "826b456a34125e97",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "e6961c3a6e05025a62ae1e63fa9c4c2f68cb54f70e9fc22259f6b77972e0c122"
+        },
+        {
+          "behavior_hash": "1df0fbc82b9f337d",
+          "claimable": true,
+          "core_il_sha256": "1953b6bfeee1e200966980debbee271130ceef06d71ea52a26f83e5e9de7f5f6",
+          "domain_hosted": false,
+          "domain_signature": "da158ccd7c438827",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "76e9ad45af3595fe0370ca34d1e8657ad8f359b904c74b816f8ca78a45181ce8"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "scalar-value",
+        "language": "rust",
+        "obligation_id": "exact-soundness.scalar-value",
+        "risk_tier": "tier-c"
+      },
+      "pair_id": "25ebebcd5a4d681f62c7dc06021c73792524f81bc0cf50b9bfff7d40ded2a95e"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "472cbecf3f89a2ce185766411f5fb7e7160fc8a3cdbe319de6eaa1f329d20cce"
+        },
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "b2c3cb647983c4a7020f01573ce884e196b9ab847afd9f2ff17dcffeee09ec78"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "29bd1970ce959036861d2076b95d04cfa3d2ff9d7f4c0e0afb7e8c225ef6ba10"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "581b3121ce724cca",
+          "claimable": true,
+          "core_il_sha256": "a7ea05d714e1566faf15d909731c9da53b8355d651cca1327266f78719bb091e",
+          "domain_hosted": false,
+          "domain_signature": "74ccec96dbe776b7",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "4bcdf15bd88d858cd442d281299a7e03cfa4b030619794e30c2f564807cc95cb"
+        },
+        {
+          "behavior_hash": "581b3121ce724cca",
+          "claimable": true,
+          "core_il_sha256": "a7ea05d714e1566faf15d909731c9da53b8355d651cca1327266f78719bb091e",
+          "domain_hosted": false,
+          "domain_signature": "74ccec96dbe776b7",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "fb607f92d5839398f3b413a86a5c42995dd1d25e2816216a4258383722d0ac54"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "2a2642976ac2aa4c9322e54233a6395ffdb08068a9dda82985b9f73d182ae67e"
+    },
+    {
+      "baseline_status": "exact-unsafe-domain",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "12358c6bd864e06966196795b439f6e61fdd9eb729f990ffd3ced7d6e3728841"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "0e1c7876344df4a93fe486267f639821921b14ab6aff67d9dd2417f0e9fb223d"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "typescript",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "2bbeb3edd75f1226fcfa81d8f61e28703255cd918a3ee55ae3039fccca912444"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "7d6ae29c0c52c0ee",
+          "claimable": true,
+          "core_il_sha256": "e75c12f338f9fc0c911ca8c3a389e7fb5ee68287caaf58a48f03b7ab53663904",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "615e0c9a7ce5c5b3a7e5fdb25956966dfb9abc3328c1c7dcbb0ab41e04226a12"
+        },
+        {
+          "behavior_hash": "7d6ae29c0c52c0ee",
+          "claimable": true,
+          "core_il_sha256": "e75c12f338f9fc0c911ca8c3a389e7fb5ee68287caaf58a48f03b7ab53663904",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "8786db28f6122f0aabe327973a4298d8d7f95fa441c33f18308636f352120331"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "2c2372765cf98ea511b82b3fa48357efd092bb58689489a183e6711afe3be2f6"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "63dd7dd9ab1a68c0",
+          "claimable": true,
+          "core_il_sha256": "4d9c03b5a034dfe184dd27781c9221ad79bf66027e4634f04a118c4ebe0d5508",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "d31c4047a037b1e3d15f6148c87441cba899ec996a73d26c7f38799ac7233452"
+        },
+        {
+          "behavior_hash": "63dd7dd9ab1a68c0",
+          "claimable": true,
+          "core_il_sha256": "4d9c03b5a034dfe184dd27781c9221ad79bf66027e4634f04a118c4ebe0d5508",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "e39fcadac48d7fc80e31687259e95ca18c35286b1caf01ae5a577dc0be4ae10d"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "33011c8dec2b18b25dcf14615c57b04f20e233c5a3bb296cb80898882b754f6a"
+    },
+    {
+      "baseline_status": "exact-unsafe-domain",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "0e1c7876344df4a93fe486267f639821921b14ab6aff67d9dd2417f0e9fb223d"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "7fee9acb3dffaa46cb61613c603b048f19c285b87d54129b615f75c061e66c4d"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "35fc0cabf4ea2da97d3c549e381c3fd7445e16a9554b865b7269ecdb4b2a6c3a"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "0e1c7876344df4a93fe486267f639821921b14ab6aff67d9dd2417f0e9fb223d"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "90f78473e2e0aea8d0ece0aaea500619a85cc23859e80cf89c7b9359d9c5acf8"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "3ae4a5556d7843c599936be8f700e128ebaaff3b661357ed4cb2e6964d29c640"
+    },
+    {
+      "baseline_status": "exact-unsafe-domain",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "f2c5f4740b7450153736669d9d156e3146ca2d538c20aa7646831f059cc88ee1"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "e12bf8911a3f11a564d19b4f166d1717459dee32fc17f0ae047aef23942b849a",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "a79bbbdf4cab3f8d615b77345d07460fb6d35bd7e1c0373ab525f7152257c962"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "python",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "3c3729f12513222bf6fc73a1466e8ddd2254cd585e3e36323393612e0162260c"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "60854b60cd85f69a",
+          "claimable": true,
+          "core_il_sha256": "4075088ce7437406a409c66f140f0bc937bbfe1b4b32bf34a74f3d34f8af9285",
+          "domain_hosted": false,
+          "domain_signature": "da158ccd7c438827",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "b5732ba2c21f62a29bf31e66fd8add3618a5cb3ea8f513236f86ffb474e3a721"
+        },
+        {
+          "behavior_hash": "60854b60cd85f69a",
+          "claimable": true,
+          "core_il_sha256": "4075088ce7437406a409c66f140f0bc937bbfe1b4b32bf34a74f3d34f8af9285",
+          "domain_hosted": false,
+          "domain_signature": "da158ccd7c438827",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "505b9ad4ec9db1ddb5838d5255c6a6a9c63f80d691c46e6d0b123705c4579018"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "3d630f0a728b5f94aa2607771b9e2a4faf91dfd5207537d5c43eb2ddaf2b7e37"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        null,
+        null
+      ],
+      "candidate_status": "exact-unsafe-uninterpretable",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "47e5c24715df0e65fda31dab47660142eadff33c06f6cb42c98a89d492ef3979"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "d50bd6747406d572",
+          "claimable": true,
+          "core_il_sha256": "f1b50631f0fc40484e407ba9cd9157dc656e86ea9d6eb57fd7975639ef10f462",
+          "domain_hosted": true,
+          "domain_signature": "cf0af296efbb5700",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "3596befb3dbe9beae2ac932d7f64c593f201591aa46000e9ad417549ff97ebb8"
+        },
+        {
+          "behavior_hash": "d50bd6747406d572",
+          "claimable": true,
+          "core_il_sha256": "f1b50631f0fc40484e407ba9cd9157dc656e86ea9d6eb57fd7975639ef10f462",
+          "domain_hosted": true,
+          "domain_signature": "cf0af296efbb5700",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "3aeecb1d4595cc967166d11e1a59ce933f4ea5b8d0e9248eb7915d8fa94eebe1"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "52bf305cf2a68a30a094ffda60a8a1c1a814c603eeeec2d959b656a1d55473e2"
+    },
+    {
+      "baseline_status": "exact-unsafe-domain",
+      "candidate_members": [
+        {
+          "behavior_hash": "eebc3af552e07b1a",
+          "claimable": true,
+          "core_il_sha256": "556cec4a8100e7b4b9bdf8f396a834eed6f3238ef74d770b8793ab53e9e7043b",
+          "domain_hosted": false,
+          "domain_signature": "9c0d025fd395f65b",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "d3d38cbc6ad67c0dfb7c33bc5cc72bc2b19c52205235c69dcb75318184320352"
+        },
+        {
+          "behavior_hash": "7021bc0329eda925",
+          "claimable": true,
+          "core_il_sha256": "556cec4a8100e7b4b9bdf8f396a834eed6f3238ef74d770b8793ab53e9e7043b",
+          "domain_hosted": false,
+          "domain_signature": "5a70451a066bcb7c",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "66ba03b3007f3299dc2e6a88a46ee3372300c23c2d31b38a3a9001d03edba2c7"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "scalar-value",
+        "language": "rust",
+        "obligation_id": "exact-soundness.scalar-value",
+        "risk_tier": "tier-c"
+      },
+      "pair_id": "561342e766aebe59e04cc3674a82217b3a2e8b1d199a5bb0a70e5e4405432926"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "169fb16745da2e0c",
+          "claimable": true,
+          "core_il_sha256": "7387fb7e7184c6348a673d425a28d3a0b4c8f0e4d25f88f742a38575ca2a78f5",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "f272c5a3062a66c828aec66c5ba621d4e3db47a2e0c5a7346fa0db27f8510327"
+        },
+        {
+          "behavior_hash": "169fb16745da2e0c",
+          "claimable": true,
+          "core_il_sha256": "7387fb7e7184c6348a673d425a28d3a0b4c8f0e4d25f88f742a38575ca2a78f5",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "3070ab6875a253b89db7a2178563e8efbc5b00b07e416762386965cac4f6c374"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "58c58aeef8354a224ced18a3da0d7e73f3672cf0d04d43b67bbbbbee2e89f94b"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0beb0ce840113548",
+          "claimable": true,
+          "core_il_sha256": "70035f06e7d0f69791c624e129617ba634585e2295dddc8c49f328dfe00bbfec",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "8aa1d53eaf40f6462c98cebc75dee4ffdece3bf8c4c5f5bab7e47b006d33f67c"
+        },
+        {
+          "behavior_hash": "0beb0ce840113548",
+          "claimable": true,
+          "core_il_sha256": "70035f06e7d0f69791c624e129617ba634585e2295dddc8c49f328dfe00bbfec",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "b6c5b2938dfefe02bc27475339185b7fa962acead7464a1617c473a5275b6b44"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "58d4ebed796003831e3312a771e63588fc1883523e1381e3e95bea44e0663fb6"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "cdef42a8b97eaa5f",
+          "claimable": true,
+          "core_il_sha256": "633bcd101ff1a316f9c12e4e84c2a56e95f5090d813b40f10b23b1453713346c",
+          "domain_hosted": true,
+          "domain_signature": "8549b234d62505db",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "6923e6ce012de95922507bdc45a53d45f58b0d1a9e81b66364ce77d1af65230c"
+        },
+        {
+          "behavior_hash": "cdef42a8b97eaa5f",
+          "claimable": true,
+          "core_il_sha256": "633bcd101ff1a316f9c12e4e84c2a56e95f5090d813b40f10b23b1453713346c",
+          "domain_hosted": true,
+          "domain_signature": "8549b234d62505db",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "d243c4ca23a8768b4bba8bcc9ecf2c613fa3440369bce93d079a771cb904b2d0"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "ruby",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "5b571b6b57bdf5ec73a73743818e489b9354ecdb6e232abab6de2012abdf4bab"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "0569429bbdbe1739",
+          "claimable": true,
+          "core_il_sha256": "c3087980d4f37609c7beb2d4686e35f678bc6ae71c15b2ba76183d587e844f82",
+          "domain_hosted": false,
+          "domain_signature": "13425e959c79a19e",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "98e50e3d28536a1d10740486a9d9b88d52b7c429f61e0930e857148b10520f40"
+        },
+        {
+          "behavior_hash": "a8aefcaf6e93f20e",
+          "claimable": true,
+          "core_il_sha256": "c3087980d4f37609c7beb2d4686e35f678bc6ae71c15b2ba76183d587e844f82",
+          "domain_hosted": false,
+          "domain_signature": "8350208d25b2d913",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "7e58bd5e90c78cbd03815acef9c2e47988ac0ee4b47a7f951118bac5260f366f"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "5c4aba145200611c79f17443d59e9fc7eeb074a2024292ab1ac83c78f1f7b75d"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "04883ac320842b46",
+          "claimable": true,
+          "core_il_sha256": "7117e11df5b7158138411a7d11caaca3dd56ea547fee378b7e517f0aa82f60e6",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "a7f0f0b02ba23c9d4ffe9da6dadaf7078c851584ccb31919af8675138de92dbc"
+        },
+        {
+          "behavior_hash": "04883ac320842b46",
+          "claimable": true,
+          "core_il_sha256": "7117e11df5b7158138411a7d11caaca3dd56ea547fee378b7e517f0aa82f60e6",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "4a06385749be6c1be9d06d4f782df3009b48736d0fa9c7ef67c2a88d07a164a4"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "600371198868892a10a00264379521ade7879df55aa673529a07e62ed19c415d"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "7613b2e2d903cd15",
+          "claimable": true,
+          "core_il_sha256": "446c2086dae9eb9f61613f398f4cae01d4a876659579e297e2b6461d6a425b30",
+          "domain_hosted": false,
+          "domain_signature": "14552732a8900803",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "6f7252ef03240470a07f29c472e5bf8af67bbd35ffe33bfd91174f84c0f2647a"
+        },
+        {
+          "behavior_hash": "7613b2e2d903cd15",
+          "claimable": true,
+          "core_il_sha256": "446c2086dae9eb9f61613f398f4cae01d4a876659579e297e2b6461d6a425b30",
+          "domain_hosted": false,
+          "domain_signature": "14552732a8900803",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "68bc4054bb5aab3957a87f26f462da683a55ce8e4fbf6ff5222f2c836a4aa5b3"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "60fe20c4d3b8a320e3b1e047ca9c9f225ac5e14e3b07e13c23abac7aa17df858"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "6982736bf4ba7452",
+          "claimable": true,
+          "core_il_sha256": "a950e8fef891d3ff49ec4ce980d86198f5c118e683ec886cda54dd17bc300eb2",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "4ae61a7e9b423fabd61cd1d131f32c8f10442fb2e5664fb35571b3968e17996c"
+        },
+        {
+          "behavior_hash": "6982736bf4ba7452",
+          "claimable": true,
+          "core_il_sha256": "a950e8fef891d3ff49ec4ce980d86198f5c118e683ec886cda54dd17bc300eb2",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "89a0365a9e93ae2f92d9271a338f18a513dc26449d7f255aec6024481ffac39b"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "6292e1b30187cca937aba76293b198201543173b17b86277e154e1cd96720b86"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "7d6ae29c0c52c0ee",
+          "claimable": true,
+          "core_il_sha256": "e75c12f338f9fc0c911ca8c3a389e7fb5ee68287caaf58a48f03b7ab53663904",
+          "domain_hosted": true,
+          "domain_signature": "8549b234d62505db",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "02fa0afa09529000c53617d4a7fc5ee062bd01b9e6b936b7d49da3a3bc241640"
+        },
+        {
+          "behavior_hash": "7d6ae29c0c52c0ee",
+          "claimable": true,
+          "core_il_sha256": "e75c12f338f9fc0c911ca8c3a389e7fb5ee68287caaf58a48f03b7ab53663904",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "615e0c9a7ce5c5b3a7e5fdb25956966dfb9abc3328c1c7dcbb0ab41e04226a12"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "6ad4137333a45877bb301b2f202a6fc54b61efa9e3a199d0266feb82a7650bf9"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "6da07059027e006a0dea4d4eacc9c0924b0597415e76ea3919021481295b2481"
+        },
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "bf5fd4c4753842161912e9c7bd667fd7778af38a7f4dd1e61d29583eac74c965"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "6fff41a162d9f824796902050b80aa49e8861fda1fda7be4ea9cf0a639757a01"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        null,
+        null
+      ],
+      "candidate_status": "exact-unsafe-uninterpretable",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "710b65c9c2880c1652a044a7e7c46b3d375ca5aa6955fc8f419533c35ea68563"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "80d2dd174beef836",
+          "claimable": true,
+          "core_il_sha256": "f8a5a94204cc812c05491e3c1493a9107d382e52bb98b42ec5bee84901f9aaba",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "bf56feebf378c85274396be7c2da20dd55e40fba973f9d2be7479f83928d59ef"
+        },
+        {
+          "behavior_hash": "80d2dd174beef836",
+          "claimable": true,
+          "core_il_sha256": "f8a5a94204cc812c05491e3c1493a9107d382e52bb98b42ec5bee84901f9aaba",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "5db9e61b92519b39b8676e7a55586d1eda449244fa0ac20a22934c2e1fa47f5e"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "733f22604d4bbcb1a9772d49e54ba9ab4772ffc5f997db8c30fa7ed5f05589ce"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "04883ac320842b46",
+          "claimable": true,
+          "core_il_sha256": "7117e11df5b7158138411a7d11caaca3dd56ea547fee378b7e517f0aa82f60e6",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "1bd79802acb9550fae9fd92f6aa2943f682ee2396c71655bb34bd660f91a3afd"
+        },
+        {
+          "behavior_hash": "04883ac320842b46",
+          "claimable": true,
+          "core_il_sha256": "7117e11df5b7158138411a7d11caaca3dd56ea547fee378b7e517f0aa82f60e6",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "4a06385749be6c1be9d06d4f782df3009b48736d0fa9c7ef67c2a88d07a164a4"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "7366ce99de4960da1cc1f764194677e401a8cbb145da3baac5c98d3d4998110d"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        null,
+        null
+      ],
+      "candidate_status": "exact-unsafe-uninterpretable",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "741be248e7332fbf70919baa73813d90d8b4f2a3e40ba3ca556847343e218aaf"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "63dd7dd9ab1a68c0",
+          "claimable": true,
+          "core_il_sha256": "4d9c03b5a034dfe184dd27781c9221ad79bf66027e4634f04a118c4ebe0d5508",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "e39fcadac48d7fc80e31687259e95ca18c35286b1caf01ae5a577dc0be4ae10d"
+        },
+        {
+          "behavior_hash": "63dd7dd9ab1a68c0",
+          "claimable": true,
+          "core_il_sha256": "4d9c03b5a034dfe184dd27781c9221ad79bf66027e4634f04a118c4ebe0d5508",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "d72ba6220225599acf0cce60c365c15c0e435cf0188a837fefe717790d54298d"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "751aca8d84fd78be6cbefee4ccedc58cd67caf8d5230f22622337d83f3f87099"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "472cbecf3f89a2ce185766411f5fb7e7160fc8a3cdbe319de6eaa1f329d20cce"
+        },
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "bf5fd4c4753842161912e9c7bd667fd7778af38a7f4dd1e61d29583eac74c965"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "81636ba5b278b96a90cef62c9ba69f7ffa0afa4f435ab29b9a1215bfaf227d1f"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "472cbecf3f89a2ce185766411f5fb7e7160fc8a3cdbe319de6eaa1f329d20cce"
+        },
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "6da07059027e006a0dea4d4eacc9c0924b0597415e76ea3919021481295b2481"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "839981c55b22308f1db74dcb1d7ef704641736617748eaa0830c051631a965c3"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "975f3a9947dd744a",
+          "claimable": true,
+          "core_il_sha256": "6b299989249e62c0f3a72fadb047402fc759868d2dee46dc12d0c8a31f17de75",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "e21a668aa86f2d2c90619f678be6fb6d4b121559e42ce6a564f761e34d8dbdd1"
+        },
+        {
+          "behavior_hash": "975f3a9947dd744a",
+          "claimable": true,
+          "core_il_sha256": "6b299989249e62c0f3a72fadb047402fc759868d2dee46dc12d0c8a31f17de75",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "9f64e3a9b8a9a42a782b32d45050226caa6be3832bc8b8edee05851346922bf0"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "87b67c0880ff8fc22e2e65b23e01ebed992ee761594f21c1a516de6d38c5e6c7"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0beb0ce840113548",
+          "claimable": true,
+          "core_il_sha256": "e5ff0639191ab720b94d3a3ca76982ecdb070ae946d880e9c3af82aa8d704eec",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "f74b510ba0e39572d5bbeca8bf5852d8b963f3c2b2370bffbb1af87634dccfcf"
+        },
+        {
+          "behavior_hash": "0beb0ce840113548",
+          "claimable": true,
+          "core_il_sha256": "e5ff0639191ab720b94d3a3ca76982ecdb070ae946d880e9c3af82aa8d704eec",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "41adc82835d34aab045c77353c57070261be84e41eff906f177efdac35357bbb"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "8f543d56c30ab21c3b55dcd47527572c03bfb06d42e41b07ed1ab879528e5115"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "42c9a152283287b4",
+          "claimable": true,
+          "core_il_sha256": "7c0d6c8a9038d4b29d729134923c9a40ddc0b7ac361fce261fcb830324219870",
+          "domain_hosted": false,
+          "domain_signature": "1e9644249664077c",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared",
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "b8d192ee21dbee0fb59a878772ec90019baf47a9829eb6c010c86f8e44ee2891"
+        },
+        {
+          "behavior_hash": "42c9a152283287b4",
+          "claimable": true,
+          "core_il_sha256": "7c0d6c8a9038d4b29d729134923c9a40ddc0b7ac361fce261fcb830324219870",
+          "domain_hosted": false,
+          "domain_signature": "1e9644249664077c",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared",
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "5a535f2b73d07e9b6b951056d547291654eeb8b553fb0e9a82c203d2446392a2"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "936da3744c1dc4d0d8063deffdff27b10f91f16b88186c70eeae1f92bcddbbd1"
+    },
+    {
+      "baseline_status": "exact-unsafe-domain",
+      "candidate_members": [
+        {
+          "behavior_hash": "6022c7d8673a7af2",
+          "claimable": true,
+          "core_il_sha256": "1953b6bfeee1e200966980debbee271130ceef06d71ea52a26f83e5e9de7f5f6",
+          "domain_hosted": false,
+          "domain_signature": "347873722cd99e04",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "993937cd013e03e456b9280ed07816fbe1d4d0ad326149590eebbe16c26a87d4"
+        },
+        {
+          "behavior_hash": "1df0fbc82b9f337d",
+          "claimable": true,
+          "core_il_sha256": "1953b6bfeee1e200966980debbee271130ceef06d71ea52a26f83e5e9de7f5f6",
+          "domain_hosted": false,
+          "domain_signature": "da158ccd7c438827",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "76e9ad45af3595fe0370ca34d1e8657ad8f359b904c74b816f8ca78a45181ce8"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "scalar-value",
+        "language": "rust",
+        "obligation_id": "exact-soundness.scalar-value",
+        "risk_tier": "tier-c"
+      },
+      "pair_id": "95764ebb07e2a1bb1a9e128564b348f216deab6bf640d52c9e656013a57dda77"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        null,
+        null
+      ],
+      "candidate_status": "exact-unsafe-uninterpretable",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "a24eed69c9096bc98aee20e864cdc994a2601e37bac0ec8c58ffc114457df7e6"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "96b3a9e2d542dbd44d5c329de7dbb629ccb1a6e7afa069a933e13e270cf90500",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "ddb96dbb90c3c6029359d9efab0968c0e5418665302e0240d8fd499d52ff2073"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "96b3a9e2d542dbd44d5c329de7dbb629ccb1a6e7afa069a933e13e270cf90500",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "369ebd9810daa12526460c9395fffe639c40b4e9e1b1a6a0e088068089772239"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "a3286682597783fdf513d77c82d3701b256fccbbfd6397a593d25842a2aa37a4"
+    },
+    {
+      "baseline_status": "exact-unsafe-domain",
+      "candidate_members": [
+        {
+          "behavior_hash": "7021bc0329eda925",
+          "claimable": true,
+          "core_il_sha256": "556cec4a8100e7b4b9bdf8f396a834eed6f3238ef74d770b8793ab53e9e7043b",
+          "domain_hosted": false,
+          "domain_signature": "5a70451a066bcb7c",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "66ba03b3007f3299dc2e6a88a46ee3372300c23c2d31b38a3a9001d03edba2c7"
+        },
+        {
+          "behavior_hash": "327a0a9375374001",
+          "claimable": true,
+          "core_il_sha256": "556cec4a8100e7b4b9bdf8f396a834eed6f3238ef74d770b8793ab53e9e7043b",
+          "domain_hosted": false,
+          "domain_signature": "fe8af148e38314eb",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "7a11a213e5643c6d35d01fb00b00bd853695185e0278c5c029e1e68d5c994cd6"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "scalar-value",
+        "language": "rust",
+        "obligation_id": "exact-soundness.scalar-value",
+        "risk_tier": "tier-c"
+      },
+      "pair_id": "a3414ec15d880e8d2f13278339cbc5657687b0c44f546c4afdb8bce7f79d58d4"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "c480acfbc2ac68897b18eede30272bf5255ee04198ce5a5c01edb135bfb26c27",
+          "domain_hosted": true,
+          "domain_signature": "d1fba762150c532c",
+          "input_projections": [],
+          "symbolic_behavior": false,
+          "unit_id": "0c52a0f027e07b29551cdac5bfd293f121478fc26f246cc80d6623b7c70f2111"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "c480acfbc2ac68897b18eede30272bf5255ee04198ce5a5c01edb135bfb26c27",
+          "domain_hosted": true,
+          "domain_signature": "d1fba762150c532c",
+          "input_projections": [],
+          "symbolic_behavior": false,
+          "unit_id": "092a4354d069019ae3b5770cc7a94e9e993acd26964d44e8273ecd8f3d6ce295"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "ruby",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "a43344facff23fe3830437d2f65751c582f679c0a61de2e2908097dff6c36c2c"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "6da07059027e006a0dea4d4eacc9c0924b0597415e76ea3919021481295b2481"
+        },
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "b2c3cb647983c4a7020f01573ce884e196b9ab847afd9f2ff17dcffeee09ec78"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "a4f41dc155855433e1c2c81fac3f2dc2d00fa75d9a47563488aec44cbe8eeac2"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "04883ac320842b46",
+          "claimable": true,
+          "core_il_sha256": "7117e11df5b7158138411a7d11caaca3dd56ea547fee378b7e517f0aa82f60e6",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "4a06385749be6c1be9d06d4f782df3009b48736d0fa9c7ef67c2a88d07a164a4"
+        },
+        {
+          "behavior_hash": "04883ac320842b46",
+          "claimable": true,
+          "core_il_sha256": "7117e11df5b7158138411a7d11caaca3dd56ea547fee378b7e517f0aa82f60e6",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "667c5afa86bafce2f0f97ecc6cf2587e18b213858ebfc89309c8eeb88dee6343"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "a58209ed77e6f5ad02a6ab0113e23034cfb4ac09c0975f82544f3ce6793ae22e"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "5ed7f368ad82fa8b",
+          "claimable": true,
+          "core_il_sha256": "20fdf3ffe6079e6bb76750bd08d3cdee26ae880e9089bbca848b5810cfa5d2de",
+          "domain_hosted": false,
+          "domain_signature": "8549b234d62505db",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "d5d32c1812e028710f0f5a33d79f44e934192ee020eb1ed9907a6fda24a0c032"
+        },
+        {
+          "behavior_hash": "5ed7f368ad82fa8b",
+          "claimable": true,
+          "core_il_sha256": "20fdf3ffe6079e6bb76750bd08d3cdee26ae880e9089bbca848b5810cfa5d2de",
+          "domain_hosted": false,
+          "domain_signature": "8549b234d62505db",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "16b6abd758610e57c0be925ca73bd47da312c9418f7c9271ac3f38f736427cb2"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "a64c35354b0c4b604ec7800bdb67275d1b07699b24eaad51d581f892e7efe3f5"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "48472097bf74745e05aed1200963ba3d335e4fd697251b3f86e37732b0696ac4"
+        },
+        {
+          "behavior_hash": "fb1d0ab9bea60764",
+          "claimable": true,
+          "core_il_sha256": "0e5ad45791d9b93cf6d4d7c1b222687f8f45e47830d1b83dc631ffa9ce12041b",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "6da07059027e006a0dea4d4eacc9c0924b0597415e76ea3919021481295b2481"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "a921c7b92ecd4c9efb14a8667c84044d750639b106a8fec4bccc1f5dd6424e8e"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        null,
+        null
+      ],
+      "candidate_status": "exact-unsafe-uninterpretable",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "ac1ff01ae8be7b0bd3ea9bc859085546729905dd92adda0581af84a79b5b43a5"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "eb3e000b542c1dd097a660954208a16f6fe8acffe558f92c291899dbd9dd8c0e",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "73d1898e0fa48143ca267c581a108ad8765cb648fbde8d58e68b62ae094825aa"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "eb3e000b542c1dd097a660954208a16f6fe8acffe558f92c291899dbd9dd8c0e",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "d82f6211eda4c31ff80a0de4287b5f3701c945df66a182511bf18adf12e44e88"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "b11a5ba014d798e3bd34d1163fb983b0364d9b7c687b9de453c00061774fb9b9"
+    },
+    {
+      "baseline_status": "exact-unsafe-domain",
+      "candidate_members": [
+        {
+          "behavior_hash": "08f03e84ac5c1791",
+          "claimable": true,
+          "core_il_sha256": "1953b6bfeee1e200966980debbee271130ceef06d71ea52a26f83e5e9de7f5f6",
+          "domain_hosted": false,
+          "domain_signature": "826b456a34125e97",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "e6961c3a6e05025a62ae1e63fa9c4c2f68cb54f70e9fc22259f6b77972e0c122"
+        },
+        {
+          "behavior_hash": "6022c7d8673a7af2",
+          "claimable": true,
+          "core_il_sha256": "1953b6bfeee1e200966980debbee271130ceef06d71ea52a26f83e5e9de7f5f6",
+          "domain_hosted": false,
+          "domain_signature": "347873722cd99e04",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "993937cd013e03e456b9280ed07816fbe1d4d0ad326149590eebbe16c26a87d4"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "scalar-value",
+        "language": "rust",
+        "obligation_id": "exact-soundness.scalar-value",
+        "risk_tier": "tier-c"
+      },
+      "pair_id": "b1aea946b8d73df37bd23b2d249886b361c18f2271b4f286b230d7a068658782"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        null,
+        null
+      ],
+      "candidate_status": "exact-unsafe-uninterpretable",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "b9a5ca2423ce76d0fa4efa25ec8330696e1197a91c50e1cbea16224c97338cc2"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "2f67098536da321c827dd79b6bca1580872a7833e38a4516a80900a12749efcc",
+          "domain_hosted": true,
+          "domain_signature": "d1fba762150c532c",
+          "input_projections": [],
+          "symbolic_behavior": false,
+          "unit_id": "71a40c1175542a281fb1804471d4b69b225ea7df600a6b6bceef0aacbc4d9eb2"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "2f67098536da321c827dd79b6bca1580872a7833e38a4516a80900a12749efcc",
+          "domain_hosted": true,
+          "domain_signature": "d1fba762150c532c",
+          "input_projections": [],
+          "symbolic_behavior": false,
+          "unit_id": "57dd6d2fbccd4539be0aa446cda2ecf2e62b6e05ce6932c2551ae45668dd4ecd"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "ruby",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "be9bac8020f6112e786c8b88edbef68bbd476e79967429c9f48c18a64abef1ac"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "975f3a9947dd744a",
+          "claimable": true,
+          "core_il_sha256": "6b299989249e62c0f3a72fadb047402fc759868d2dee46dc12d0c8a31f17de75",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "4f7548659771e5874b03b688ff68b29c1b4341e20f926f618e3c807621ad7158"
+        },
+        {
+          "behavior_hash": "975f3a9947dd744a",
+          "claimable": true,
+          "core_il_sha256": "6b299989249e62c0f3a72fadb047402fc759868d2dee46dc12d0c8a31f17de75",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "fc899c5d0682853ac4a83c10b9bbac7ba65236978fc5cd5c0c5d5b4cb8fdd2d1"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "bf10043302150fd236042e72eeb87f0ddf823f5f71379a0cdd513bc21d4fd327"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        null,
+        null
+      ],
+      "candidate_status": "exact-unsafe-uninterpretable",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "bfd782fa921bf607690ebd8d53306237427f24c6fea611a95d3a5094d88e539d"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        null,
+        null
+      ],
+      "candidate_status": "exact-unsafe-uninterpretable",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "c23025853a8c49a997c8c716cd24871e084f54ecc475e735dc7e242903d7736a"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "0993ccb467d65075",
+          "claimable": true,
+          "core_il_sha256": "feeafb36f6dbbac5ffb81c684076807574d0fe4bfc82a4138964aa2cefff18d1",
+          "domain_hosted": false,
+          "domain_signature": "da158ccd7c438827",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "1df02d6e2631d5a3e1b4f8b8f9debead19222e26c972b0f360d956187b1f0874"
+        },
+        {
+          "behavior_hash": "0993ccb467d65075",
+          "claimable": true,
+          "core_il_sha256": "feeafb36f6dbbac5ffb81c684076807574d0fe4bfc82a4138964aa2cefff18d1",
+          "domain_hosted": false,
+          "domain_signature": "da158ccd7c438827",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "90a3f960fdb4a91fda8aa97fcf2cfc59faacf5fd644bee685583f1099373925e"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "c2a8322ab77f00ce3e52de43e041e0a98d3bc9f08d4a0568696c80d5117366a5"
+    },
+    {
+      "baseline_status": "exact-unsafe-domain",
+      "candidate_members": [
+        {
+          "behavior_hash": "9ae51aa942312f75",
+          "claimable": true,
+          "core_il_sha256": "1953b6bfeee1e200966980debbee271130ceef06d71ea52a26f83e5e9de7f5f6",
+          "domain_hosted": false,
+          "domain_signature": "6b493bf2e674c52a",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "7c99bcb1a48e556e4bbd6cee19d99a8b51e5827da472d78b3c4576ae4f4ce0ab"
+        },
+        {
+          "behavior_hash": "6022c7d8673a7af2",
+          "claimable": true,
+          "core_il_sha256": "1953b6bfeee1e200966980debbee271130ceef06d71ea52a26f83e5e9de7f5f6",
+          "domain_hosted": false,
+          "domain_signature": "347873722cd99e04",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "993937cd013e03e456b9280ed07816fbe1d4d0ad326149590eebbe16c26a87d4"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "scalar-value",
+        "language": "rust",
+        "obligation_id": "exact-soundness.scalar-value",
+        "risk_tier": "tier-c"
+      },
+      "pair_id": "c59d476ac9996fe3d22ee4dbffc483d66bf56cd170768ec7577b00c27a7692ea"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "7d6ae29c0c52c0ee",
+          "claimable": true,
+          "core_il_sha256": "e75c12f338f9fc0c911ca8c3a389e7fb5ee68287caaf58a48f03b7ab53663904",
+          "domain_hosted": true,
+          "domain_signature": "8549b234d62505db",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "02fa0afa09529000c53617d4a7fc5ee062bd01b9e6b936b7d49da3a3bc241640"
+        },
+        {
+          "behavior_hash": "7d6ae29c0c52c0ee",
+          "claimable": true,
+          "core_il_sha256": "e75c12f338f9fc0c911ca8c3a389e7fb5ee68287caaf58a48f03b7ab53663904",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "8786db28f6122f0aabe327973a4298d8d7f95fa441c33f18308636f352120331"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "c6525fc0bafd919ccc5c24f6d672c106f03159c4bb1d15f1a50474670cd988cc"
+    },
+    {
+      "baseline_status": "exact-unsafe-domain",
+      "candidate_members": [
+        {
+          "behavior_hash": "eebc3af552e07b1a",
+          "claimable": true,
+          "core_il_sha256": "556cec4a8100e7b4b9bdf8f396a834eed6f3238ef74d770b8793ab53e9e7043b",
+          "domain_hosted": false,
+          "domain_signature": "9c0d025fd395f65b",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "d3d38cbc6ad67c0dfb7c33bc5cc72bc2b19c52205235c69dcb75318184320352"
+        },
+        {
+          "behavior_hash": "327a0a9375374001",
+          "claimable": true,
+          "core_il_sha256": "556cec4a8100e7b4b9bdf8f396a834eed6f3238ef74d770b8793ab53e9e7043b",
+          "domain_hosted": false,
+          "domain_signature": "fe8af148e38314eb",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "7a11a213e5643c6d35d01fb00b00bd853695185e0278c5c029e1e68d5c994cd6"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "scalar-value",
+        "language": "rust",
+        "obligation_id": "exact-soundness.scalar-value",
+        "risk_tier": "tier-c"
+      },
+      "pair_id": "c86758f5ed14b6dcdd025b4c396675efa2ce459d81409a6f28f20c8e2fcbcabe"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "04883ac320842b46",
+          "claimable": true,
+          "core_il_sha256": "7117e11df5b7158138411a7d11caaca3dd56ea547fee378b7e517f0aa82f60e6",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "1bd79802acb9550fae9fd92f6aa2943f682ee2396c71655bb34bd660f91a3afd"
+        },
+        {
+          "behavior_hash": "04883ac320842b46",
+          "claimable": true,
+          "core_il_sha256": "7117e11df5b7158138411a7d11caaca3dd56ea547fee378b7e517f0aa82f60e6",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "667c5afa86bafce2f0f97ecc6cf2587e18b213858ebfc89309c8eeb88dee6343"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "d2140aded87131ec1b6f1ab658538699114788cab6bb242bc08704ee59d1f3d9"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0beb0ce840113548",
+          "claimable": true,
+          "core_il_sha256": "70035f06e7d0f69791c624e129617ba634585e2295dddc8c49f328dfe00bbfec",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "5b55349fbccdc87df6cdde9daec6e5d2326bb87e6c5da58201e1b53d352b861d"
+        },
+        {
+          "behavior_hash": "0beb0ce840113548",
+          "claimable": true,
+          "core_il_sha256": "70035f06e7d0f69791c624e129617ba634585e2295dddc8c49f328dfe00bbfec",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "8aa1d53eaf40f6462c98cebc75dee4ffdece3bf8c4c5f5bab7e47b006d33f67c"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "d2c3e691c4a9d7fc395e88842469520b2c5c5f6c12a3006e051dc51c669a5d0a"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "975f3a9947dd744a",
+          "claimable": true,
+          "core_il_sha256": "6b299989249e62c0f3a72fadb047402fc759868d2dee46dc12d0c8a31f17de75",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "4f7548659771e5874b03b688ff68b29c1b4341e20f926f618e3c807621ad7158"
+        },
+        {
+          "behavior_hash": "975f3a9947dd744a",
+          "claimable": true,
+          "core_il_sha256": "6b299989249e62c0f3a72fadb047402fc759868d2dee46dc12d0c8a31f17de75",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "e21a668aa86f2d2c90619f678be6fb6d4b121559e42ce6a564f761e34d8dbdd1"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "d34a6071b88d8ce70f86da9cb2c4f73682adcda9da13b9218ccd3b2e1d479a70"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0beb0ce840113548",
+          "claimable": true,
+          "core_il_sha256": "70035f06e7d0f69791c624e129617ba634585e2295dddc8c49f328dfe00bbfec",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "5b55349fbccdc87df6cdde9daec6e5d2326bb87e6c5da58201e1b53d352b861d"
+        },
+        {
+          "behavior_hash": "0beb0ce840113548",
+          "claimable": true,
+          "core_il_sha256": "70035f06e7d0f69791c624e129617ba634585e2295dddc8c49f328dfe00bbfec",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "b6c5b2938dfefe02bc27475339185b7fa962acead7464a1617c473a5275b6b44"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "d7152883aeb411ffc51cecf3ef61ac54037cbfb0e643f3cc08c103f168f4fa9a"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "581b3121ce724cca",
+          "claimable": true,
+          "core_il_sha256": "a7ea05d714e1566faf15d909731c9da53b8355d651cca1327266f78719bb091e",
+          "domain_hosted": false,
+          "domain_signature": "74ccec96dbe776b7",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "ff7f550af24b399fede90705473d60f479cd70cb2bdeea3bdaee9b8b4950f732"
+        },
+        {
+          "behavior_hash": "581b3121ce724cca",
+          "claimable": true,
+          "core_il_sha256": "a7ea05d714e1566faf15d909731c9da53b8355d651cca1327266f78719bb091e",
+          "domain_hosted": false,
+          "domain_signature": "74ccec96dbe776b7",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "fb607f92d5839398f3b413a86a5c42995dd1d25e2816216a4258383722d0ac54"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "d99f14832277ce5075d5de5cca2dec85eed9f8dc290a5cd641383c32e5861621"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "581b3121ce724cca",
+          "claimable": true,
+          "core_il_sha256": "a7ea05d714e1566faf15d909731c9da53b8355d651cca1327266f78719bb091e",
+          "domain_hosted": false,
+          "domain_signature": "74ccec96dbe776b7",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "4bcdf15bd88d858cd442d281299a7e03cfa4b030619794e30c2f564807cc95cb"
+        },
+        {
+          "behavior_hash": "581b3121ce724cca",
+          "claimable": true,
+          "core_il_sha256": "a7ea05d714e1566faf15d909731c9da53b8355d651cca1327266f78719bb091e",
+          "domain_hosted": false,
+          "domain_signature": "74ccec96dbe776b7",
+          "input_projections": [
+            "declared",
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "ff7f550af24b399fede90705473d60f479cd70cb2bdeea3bdaee9b8b4950f732"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "dead4c96ad6689267b2c7782814730f8d1f3ece39561aac747392cb4904edad8"
+    },
+    {
+      "baseline_status": "exact-unsafe-domain",
+      "candidate_members": [
+        {
+          "behavior_hash": "9ae51aa942312f75",
+          "claimable": true,
+          "core_il_sha256": "1953b6bfeee1e200966980debbee271130ceef06d71ea52a26f83e5e9de7f5f6",
+          "domain_hosted": false,
+          "domain_signature": "6b493bf2e674c52a",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "7c99bcb1a48e556e4bbd6cee19d99a8b51e5827da472d78b3c4576ae4f4ce0ab"
+        },
+        {
+          "behavior_hash": "08f03e84ac5c1791",
+          "claimable": true,
+          "core_il_sha256": "1953b6bfeee1e200966980debbee271130ceef06d71ea52a26f83e5e9de7f5f6",
+          "domain_hosted": false,
+          "domain_signature": "826b456a34125e97",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "e6961c3a6e05025a62ae1e63fa9c4c2f68cb54f70e9fc22259f6b77972e0c122"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "scalar-value",
+        "language": "rust",
+        "obligation_id": "exact-soundness.scalar-value",
+        "risk_tier": "tier-c"
+      },
+      "pair_id": "e4a5172397d86036cccaab701dc6aff866cc0a04b4868c12e593a11c2a508477"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "975f3a9947dd744a",
+          "claimable": true,
+          "core_il_sha256": "6b299989249e62c0f3a72fadb047402fc759868d2dee46dc12d0c8a31f17de75",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "fc899c5d0682853ac4a83c10b9bbac7ba65236978fc5cd5c0c5d5b4cb8fdd2d1"
+        },
+        {
+          "behavior_hash": "975f3a9947dd744a",
+          "claimable": true,
+          "core_il_sha256": "6b299989249e62c0f3a72fadb047402fc759868d2dee46dc12d0c8a31f17de75",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "9f64e3a9b8a9a42a782b32d45050226caa6be3832bc8b8edee05851346922bf0"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "ec4e7b6e24a937586b7b9b8abac1a0f5919b376941fa2061e9b209cb872b1095"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "63dd7dd9ab1a68c0",
+          "claimable": true,
+          "core_il_sha256": "4d9c03b5a034dfe184dd27781c9221ad79bf66027e4634f04a118c4ebe0d5508",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "d31c4047a037b1e3d15f6148c87441cba899ec996a73d26c7f38799ac7233452"
+        },
+        {
+          "behavior_hash": "63dd7dd9ab1a68c0",
+          "claimable": true,
+          "core_il_sha256": "4d9c03b5a034dfe184dd27781c9221ad79bf66027e4634f04a118c4ebe0d5508",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "d72ba6220225599acf0cce60c365c15c0e435cf0188a837fefe717790d54298d"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "ed3ba527ae0b7e343c3080501376b41790c4f58bee37b98b45c7fb308fa71e00"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "eb3e000b542c1dd097a660954208a16f6fe8acffe558f92c291899dbd9dd8c0e",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "0e309268793df933dbdf151b46d23410fe543407b767aed57e8726702f1f59a5"
+        },
+        {
+          "behavior_hash": "0ff6aa10c98c38b4",
+          "claimable": true,
+          "core_il_sha256": "eb3e000b542c1dd097a660954208a16f6fe8acffe558f92c291899dbd9dd8c0e",
+          "domain_hosted": true,
+          "domain_signature": "7548c4fcbe6ef526",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "73d1898e0fa48143ca267c581a108ad8765cb648fbde8d58e68b62ae094825aa"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "f0289ab5e36bec4f7ea57ec513c334cf9873a50aaafd7ecce70758ed061e7948"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "04883ac320842b46",
+          "claimable": true,
+          "core_il_sha256": "7117e11df5b7158138411a7d11caaca3dd56ea547fee378b7e517f0aa82f60e6",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "1bd79802acb9550fae9fd92f6aa2943f682ee2396c71655bb34bd660f91a3afd"
+        },
+        {
+          "behavior_hash": "04883ac320842b46",
+          "claimable": true,
+          "core_il_sha256": "7117e11df5b7158138411a7d11caaca3dd56ea547fee378b7e517f0aa82f60e6",
+          "domain_hosted": true,
+          "domain_signature": "b95740cc6e7e4a23",
+          "input_projections": [
+            "cardinality"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "a7f0f0b02ba23c9d4ffe9da6dadaf7078c851584ccb31919af8675138de92dbc"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "f435bbf86963a2b7db85753d40c73be7b08b64a3fa16ea5a73c178e594050c76"
+    },
+    {
+      "baseline_status": "exact-unsafe-symbolic",
+      "candidate_members": [
+        {
+          "behavior_hash": "8bdde575918a8c00",
+          "claimable": true,
+          "core_il_sha256": "efb794f9cd4eb66d2a2fe5498d378bc5367177064d43d1565199685e0e7c8abb",
+          "domain_hosted": false,
+          "domain_signature": "da158ccd7c438827",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "afc651b041753aed837d76cf6ec3bf0fea2987fb4d19b87ad48b87b095708e74"
+        },
+        {
+          "behavior_hash": "8bdde575918a8c00",
+          "claimable": true,
+          "core_il_sha256": "efb794f9cd4eb66d2a2fe5498d378bc5367177064d43d1565199685e0e7c8abb",
+          "domain_hosted": false,
+          "domain_signature": "da158ccd7c438827",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": true,
+          "unit_id": "2192e08ed22344a5276e5214373d90aabd431ab2d8c022488827c486ae698a2d"
+        }
+      ],
+      "candidate_status": "exact-unsafe-symbolic",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "rust",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "f4a3a2b5751d9ec212ce3f662d4cc101b37eb1beeeb221447037a008ea69136a"
+    },
+    {
+      "baseline_status": "exact-safe-verified",
+      "candidate_members": [
+        {
+          "behavior_hash": "0beb0ce840113548",
+          "claimable": true,
+          "core_il_sha256": "e5ff0639191ab720b94d3a3ca76982ecdb070ae946d880e9c3af82aa8d704eec",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "b381ad622b00afe32ab33ea72c3e896bb9126700f6fe0393536af04310940800"
+        },
+        {
+          "behavior_hash": "0beb0ce840113548",
+          "claimable": true,
+          "core_il_sha256": "e5ff0639191ab720b94d3a3ca76982ecdb070ae946d880e9c3af82aa8d704eec",
+          "domain_hosted": true,
+          "domain_signature": "5412234deae82590",
+          "input_projections": [
+            "declared",
+            "declared",
+            "unused-trailing"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "41adc82835d34aab045c77353c57070261be84e41eff906f177efdac35357bbb"
+        }
+      ],
+      "candidate_status": "exact-safe-verified",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "runtime-protocol",
+        "language": "cross-language",
+        "obligation_id": "exact-soundness.runtime-protocol",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "f9cc088f20fa7b3a6eab4485e2e01d70fa6929a9993765c93286ca010665ee9e"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "7d18d6185b7c7087",
+          "claimable": true,
+          "core_il_sha256": "36955c534799636b2ec079df8a78bc172f301d2daab828c0ffda7861e672388f",
+          "domain_hosted": false,
+          "domain_signature": "da158ccd7c438827",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "0eae0ea54c326a3f12218e5cedb46dbaeb3cd6af9c925dedfc363b8ff063ae00"
+        },
+        {
+          "behavior_hash": "f0edf1f21cb422cd",
+          "claimable": true,
+          "core_il_sha256": "36955c534799636b2ec079df8a78bc172f301d2daab828c0ffda7861e672388f",
+          "domain_hosted": false,
+          "domain_signature": "826b456a34125e97",
+          "input_projections": [
+            "declared",
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "e54cf22728af606d2ef52692ee5fa946bd99ea3bcce0ae030da170b1af855308"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "fa4ce47b81b8bb5be9758dbf64486c2835bee46685d1777051a55143413258b3"
+    },
+    {
+      "baseline_status": "exact-unsafe-uninterpretable",
+      "candidate_members": [
+        {
+          "behavior_hash": "6982736bf4ba7452",
+          "claimable": true,
+          "core_il_sha256": "a950e8fef891d3ff49ec4ce980d86198f5c118e683ec886cda54dd17bc300eb2",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "4ae61a7e9b423fabd61cd1d131f32c8f10442fb2e5664fb35571b3968e17996c"
+        },
+        {
+          "behavior_hash": "6982736bf4ba7452",
+          "claimable": true,
+          "core_il_sha256": "a950e8fef891d3ff49ec4ce980d86198f5c118e683ec886cda54dd17bc300eb2",
+          "domain_hosted": false,
+          "domain_signature": "fbd8f25ee5d0c5a8",
+          "input_projections": [
+            "declared"
+          ],
+          "symbolic_behavior": false,
+          "unit_id": "2a9d709cc1255f1e4560763c7caaceb8d2f16ee872933985d93f2ac091f33a82"
+        }
+      ],
+      "candidate_status": "exact-unsafe-unhosted-domain",
+      "frozen_cell": {
+        "claim_id": "nose.strict-exact.value-fingerprint/v0.19.0",
+        "construct": "oracle-gap",
+        "language": "rust",
+        "obligation_id": "exact-soundness.oracle-gap",
+        "risk_tier": "tier-a"
+      },
+      "pair_id": "feb1fb212d8bf8efb77caaaf84bf92f313ab5861640bbb00b5d7d2a5be7488f1"
+    }
+  ],
+  "repo_pin": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+  "schema": "nose-soundness-scorecard-overlay/v2",
+  "summary": {
+    "baseline_pair_mass": 97,
+    "by_language": {
+      "cross-language": {
+        "macro_ppm": 850000,
+        "pair_micro_ppm": 809523
+      },
+      "python": {
+        "macro_ppm": 1000000,
+        "pair_micro_ppm": 1000000
+      },
+      "ruby": {
+        "macro_ppm": 666666,
+        "pair_micro_ppm": 666666
+      },
+      "rust": {
+        "macro_ppm": 191176,
+        "pair_micro_ppm": 206349
+      },
+      "typescript": {
+        "macro_ppm": 125000,
+        "pair_micro_ppm": 125000
+      }
+    },
+    "cell_count": 8,
+    "exact_unsafe_pair_mass": 62,
+    "macro_ppm": 457620,
+    "pair_micro_ppm": 360824,
+    "release_target_ppm": 424999,
+    "verified_pair_mass": 35
+  }
+}

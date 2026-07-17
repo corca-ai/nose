@@ -10,6 +10,7 @@ import itertools
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -19,6 +20,9 @@ from typing import Any
 
 SCHEMA = "nose-soundness-scorecard/v1"
 COHORT_SCHEMA = "nose-soundness-cohort/v1"
+OVERLAY_SCHEMA = "nose-soundness-scorecard-overlay/v2"
+EXPANSION_SCHEMA = "nose-soundness-oracle-expansion/v1"
+PERFORMANCE_SCHEMA = "nose.issue-859.performance/v1"
 CLAIM_ID = "nose.strict-exact.value-fingerprint/v0.19.0"
 PAIR_CAP = 8
 PPM = 1_000_000
@@ -186,6 +190,8 @@ def normalize_units(raw: dict[str, Any], source_root: Path, repo_pin: str) -> di
             "claimable": record["claimable"],
             "canon_exposed": record["canon_exposed"],
             "domain_signature": record["domain_signature"],
+            "domain_hosted": record.get("domain_hosted"),
+            "input_projections": record.get("input_projections", []),
             "behavior_hash": record["behavior"],
             "trivial_behavior": record["trivial"],
             "symbolic_behavior": record["symbolic"],
@@ -194,7 +200,20 @@ def normalize_units(raw: dict[str, Any], source_root: Path, repo_pin: str) -> di
         }
         unit["unit_id"] = unit_identity(unit)
         units.append(unit)
-    units.sort(key=lambda row: row["unit_id"])
+    unique: dict[str, dict[str, Any]] = {}
+    for unit in units:
+        previous = unique.get(unit["unit_id"])
+        if previous is None:
+            unique[unit["unit_id"]] = unit
+            continue
+        previous_without_tags = dict(previous, constructs=[])
+        unit_without_tags = dict(unit, constructs=[])
+        if previous_without_tags != unit_without_tags:
+            raise ValueError(f"ambiguous duplicate unit identity: {unit['unit_id']}")
+        previous["constructs"] = sorted(
+            set(previous["constructs"]) | set(unit["constructs"])
+        )
+    units = sorted(unique.values(), key=lambda row: row["unit_id"])
     return {
         "schema": COHORT_SCHEMA,
         "cohort_id": "nose-0.19.0-crates-exact-claim",
@@ -229,6 +248,8 @@ def pair_status(left: dict[str, Any] | None, right: dict[str, Any] | None) -> st
         return "exact-unsafe-unclaimable"
     if left["symbolic_behavior"] or right["symbolic_behavior"]:
         return "exact-unsafe-symbolic"
+    if left.get("domain_hosted") is False or right.get("domain_hosted") is False:
+        return "exact-unsafe-unhosted-domain"
     if left["domain_signature"] != right["domain_signature"]:
         return "exact-unsafe-domain"
     if left["behavior_hash"] != right["behavior_hash"]:
@@ -383,6 +404,567 @@ def build_scorecard(query: dict[str, Any], cohort: dict[str, Any], source_root: 
         "pairs": pairs,
         **scored,
     }
+
+
+def candidate_unit_at(
+    index: dict[tuple[str, int, int], list[dict[str, Any]]],
+    member: dict[str, Any],
+) -> dict[str, Any] | None:
+    candidates = index.get(
+        (member["path"], member["start_line"], member["end_line"]), []
+    )
+    if len(candidates) <= 1:
+        return candidates[0] if candidates else None
+    matching = [
+        row for row in candidates
+        if row["core_il_sha256"] == member.get("core_il_sha256")
+    ]
+    if len(matching) == 1:
+        return matching[0]
+    raise ValueError(
+        "candidate location has ambiguous executable evidence: "
+        f"{member['path']}:{member['start_line']}-{member['end_line']}"
+    )
+
+
+def frozen_pair_status(
+    left: dict[str, Any] | None, right: dict[str, Any] | None
+) -> str:
+    if left is None or right is None:
+        return "exact-unsafe-uninterpretable"
+    if left["core_il_sha256"] != right["core_il_sha256"]:
+        return "exact-unsafe-fingerprint-drift"
+    if left["symbolic_behavior"] or right["symbolic_behavior"]:
+        return "exact-unsafe-symbolic"
+    if left.get("domain_hosted") is not True or right.get("domain_hosted") is not True:
+        return "exact-unsafe-unhosted-domain"
+    if left["domain_signature"] != right["domain_signature"]:
+        return "exact-unsafe-domain"
+    if left["behavior_hash"] != right["behavior_hash"]:
+        return "exact-unsafe-disagreement"
+    return "exact-safe-verified"
+
+
+def score_frozen_contract(
+    frozen: dict[str, Any], statuses: dict[str, str]
+) -> dict[str, Any]:
+    selected_ids = set(frozen["baseline_pair_ids"])
+    selected = {
+        row["pair_id"]: row for row in frozen["pairs"]
+        if row["pair_id"] in selected_ids
+    }
+    if set(selected) != selected_ids or set(statuses) != selected_ids:
+        raise ValueError("candidate overlay does not cover the frozen pair ledger exactly")
+
+    cells = []
+    for frozen_cell in frozen["cells"]:
+        key = (
+            frozen_cell["claim_id"], frozen_cell["obligation_id"],
+            frozen_cell["language"], frozen_cell["construct"],
+        )
+        pair_ids = [
+            pair_id for pair_id, pair in selected.items() if cell_key(pair) == key
+        ]
+        if len(pair_ids) != frozen_cell["baseline_pair_mass"]:
+            raise ValueError(f"frozen cell membership drifted: {key}")
+        safe = sum(statuses[pair_id] == "exact-safe-verified" for pair_id in pair_ids)
+        cell = copy.deepcopy(frozen_cell)
+        cell["verified_pair_mass"] = safe
+        cell["exact_unsafe_pair_mass"] = len(pair_ids) - safe
+        cell["coverage_ppm"] = safe * PPM // len(pair_ids)
+        cells.append(cell)
+
+    denominator = sum(cell["weight_units"] for cell in cells)
+    macro = sum(
+        cell["weight_units"] * cell["coverage_ppm"] for cell in cells
+    ) // denominator
+    safe = sum(status == "exact-safe-verified" for status in statuses.values())
+    by_language = {}
+    for name in sorted({cell["language"] for cell in cells}):
+        language_cells = [cell for cell in cells if cell["language"] == name]
+        language_denominator = sum(cell["weight_units"] for cell in language_cells)
+        by_language[name] = {
+            "macro_ppm": sum(
+                cell["weight_units"] * cell["coverage_ppm"]
+                for cell in language_cells
+            ) // language_denominator,
+            "pair_micro_ppm": (
+                sum(cell["verified_pair_mass"] for cell in language_cells) * PPM
+                // sum(cell["baseline_pair_mass"] for cell in language_cells)
+            ),
+        }
+    return {
+        "cells": cells,
+        "summary": {
+            "macro_ppm": macro,
+            "pair_micro_ppm": safe * PPM // len(statuses),
+            "baseline_pair_mass": len(statuses),
+            "verified_pair_mass": safe,
+            "exact_unsafe_pair_mass": len(statuses) - safe,
+            "cell_count": len(cells),
+            "by_language": by_language,
+            "release_target_ppm": frozen["summary"]["release_target_ppm"],
+        },
+    }
+
+
+def frozen_contract_identity(frozen: dict[str, Any]) -> dict[str, Any]:
+    keys = (
+        "claim_id", "obligation_id", "language", "construct", "risk_tier",
+        "baseline_pair_mass", "prevalence_weight", "risk_weight", "weight_units",
+    )
+    return {
+        "scorecard_sha256": sha256_bytes(pretty_bytes(frozen)),
+        "baseline_pair_ids_sha256": sha256_bytes(
+            canonical_bytes(frozen["baseline_pair_ids"])
+        ),
+        "cell_contract_sha256": sha256_bytes(canonical_bytes([
+            {key: cell[key] for key in keys} for cell in frozen["cells"]
+        ])),
+        "release_target_ppm": frozen["summary"]["release_target_ppm"],
+    }
+
+
+def overlay_gates(
+    frozen: dict[str, Any], ledger: list[dict[str, Any]], scored: dict[str, Any]
+) -> dict[str, Any]:
+    regressions = sorted(
+        row["pair_id"] for row in ledger
+        if row["baseline_status"] == "exact-safe-verified"
+        and row["candidate_status"] != "exact-safe-verified"
+    )
+    candidate_languages = scored["summary"]["by_language"]
+    language_regressions = sorted(
+        name for name, baseline in frozen["summary"]["by_language"].items()
+        if candidate_languages[name]["macro_ppm"] < baseline["macro_ppm"]
+        or candidate_languages[name]["pair_micro_ppm"] < baseline["pair_micro_ppm"]
+    )
+    target_met = (
+        scored["summary"]["macro_ppm"] >= frozen["summary"]["release_target_ppm"]
+    )
+    denominator_unchanged = (
+        scored["summary"]["baseline_pair_mass"]
+        == frozen["summary"]["baseline_pair_mass"]
+        and scored["summary"]["cell_count"] == frozen["summary"]["cell_count"]
+    )
+    return {
+        "denominator_unchanged": denominator_unchanged,
+        "baseline_verified_pair_regressions": regressions,
+        "language_regressions": language_regressions,
+        "release_target_met": target_met,
+        "passed": (
+            denominator_unchanged
+            and not regressions
+            and not language_regressions
+            and target_met
+        ),
+    }
+
+
+def build_overlay(frozen: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
+    by_location: dict[tuple[str, int, int], list[dict[str, Any]]] = defaultdict(list)
+    for unit in candidate["units"]:
+        location = (unit["path"], unit["start_line"], unit["end_line"])
+        by_location[location].append(unit)
+
+    selected_ids = set(frozen["baseline_pair_ids"])
+    ledger = []
+    statuses = {}
+    for pair in frozen["pairs"]:
+        if pair["pair_id"] not in selected_ids:
+            continue
+        units = [candidate_unit_at(by_location, member) for member in pair["members"]]
+        status = frozen_pair_status(units[0], units[1])
+        statuses[pair["pair_id"]] = status
+        ledger.append({
+            "pair_id": pair["pair_id"],
+            "frozen_cell": {
+                key: pair[key] for key in (
+                    "claim_id", "obligation_id", "language", "construct", "risk_tier"
+                )
+            },
+            "baseline_status": pair["status"],
+            "candidate_status": status,
+            "candidate_members": [
+                None if unit is None else {
+                    key: unit[key] for key in (
+                        "unit_id", "core_il_sha256", "behavior_hash", "claimable",
+                        "symbolic_behavior", "domain_signature", "domain_hosted",
+                        "input_projections",
+                    )
+                }
+                for unit in units
+            ],
+        })
+    ledger.sort(key=lambda row: row["pair_id"])
+    scored = score_frozen_contract(frozen, statuses)
+    return {
+        "schema": OVERLAY_SCHEMA,
+        "claim_id": frozen["claim_id"],
+        "repo_pin": candidate["repo_pin"],
+        "frozen_contract": frozen_contract_identity(frozen),
+        "candidate_cohort_sha256": sha256_bytes(pretty_bytes(candidate)),
+        "pair_ledger": ledger,
+        **scored,
+        "gates": overlay_gates(frozen, ledger, scored),
+    }
+
+
+def verify_overlay(frozen: dict[str, Any], overlay: dict[str, Any]) -> None:
+    selected = {
+        row["pair_id"]: row for row in frozen["pairs"]
+        if row["pair_id"] in set(frozen["baseline_pair_ids"])
+    }
+    ledger = overlay.get("pair_ledger")
+    if (
+        overlay.get("schema") != OVERLAY_SCHEMA
+        or overlay.get("claim_id") != frozen["claim_id"]
+        or overlay.get("repo_pin") != scorecard_repo_pin(frozen)
+        or not isinstance(ledger, list)
+        or ledger != sorted(ledger, key=lambda row: row["pair_id"])
+        or len(ledger) != len(selected)
+        or {row["pair_id"] for row in ledger} != set(selected)
+    ):
+        raise ValueError("candidate overlay is not bound to the frozen pair ledger")
+
+    statuses = {}
+    for row in ledger:
+        pair = selected[row["pair_id"]]
+        expected_cell = {
+            key: pair[key] for key in (
+                "claim_id", "obligation_id", "language", "construct", "risk_tier"
+            )
+        }
+        members = row.get("candidate_members")
+        if (
+            row.get("frozen_cell") != expected_cell
+            or row.get("baseline_status") != pair["status"]
+            or not isinstance(members, list)
+            or len(members) != 2
+        ):
+            raise ValueError(f"candidate overlay pair metadata drifted: {row['pair_id']}")
+        status = frozen_pair_status(members[0], members[1])
+        if row.get("candidate_status") != status:
+            raise ValueError(
+                f"candidate overlay status is not evidence-derived: {row['pair_id']}"
+            )
+        statuses[row["pair_id"]] = status
+
+    candidate_sha = overlay.get("candidate_cohort_sha256")
+    if not isinstance(candidate_sha, str) or len(candidate_sha) != 64:
+        raise ValueError("candidate overlay cohort hash is malformed")
+    scored = score_frozen_contract(frozen, statuses)
+    expected = {
+        "schema": OVERLAY_SCHEMA,
+        "claim_id": frozen["claim_id"],
+        "repo_pin": scorecard_repo_pin(frozen),
+        "frozen_contract": frozen_contract_identity(frozen),
+        "candidate_cohort_sha256": candidate_sha,
+        "pair_ledger": ledger,
+        **scored,
+        "gates": overlay_gates(frozen, ledger, scored),
+    }
+    if overlay != expected:
+        raise ValueError("candidate overlay aggregates or gates do not replay from its ledger")
+
+
+def require_sha256(value: Any, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) != 64
+        or any(char not in "0123456789abcdef" for char in value)
+    ):
+        raise ValueError(f"{label} is not a SHA-256 digest")
+    return value
+
+
+def require_git_oid(value: Any, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) != 40
+        or any(char not in "0123456789abcdef" for char in value)
+    ):
+        raise ValueError(f"{label} is not a full Git object ID")
+    return value
+
+
+def checked_artifact(receipt_path: Path, relative: Any) -> Path:
+    if not isinstance(relative, str) or not relative:
+        raise ValueError("oracle expansion artifact path is missing")
+    path = (receipt_path.parent / relative).resolve()
+    try:
+        path.relative_to(ROOT.resolve())
+    except ValueError as error:
+        raise ValueError(f"oracle expansion artifact escapes the repository: {relative}") from error
+    if not path.is_file():
+        raise ValueError(f"oracle expansion artifact is missing: {relative}")
+    return path
+
+
+def parse_falsification(path: Path) -> tuple[dict[str, int], dict[str, int]]:
+    text = path.read_text(encoding="utf-8")
+
+    def captures(pattern: str, label: str) -> tuple[int, ...]:
+        match = re.search(pattern, text)
+        if match is None:
+            raise ValueError(f"falsification output is missing {label}")
+        return tuple(int(value) for value in match.groups())
+
+    total, interpretable = captures(
+        r"units: (\d+) total, (\d+) interpretable", "unit counts"
+    )
+    (canon_checked,) = captures(
+        r"units checked \(interpretable both ways\): (\d+)", "canon count"
+    )
+    (advisory,) = captures(
+        r"advisory \(symbolic or non-hard-domain disagreements[^\n]*\): (\d+)",
+        "advisory count",
+    )
+    equal_pairs, behavior_pairs = captures(
+        r"completeness: (\d+)/(\d+) =", "completeness counts"
+    )
+    (under_merged,) = captures(
+        r"under-merged behavior groups \(missed clones\): (\d+)",
+        "under-merged count",
+    )
+    (structurally_near,) = captures(
+        r"of which structurally-near[^\n]*: (\d+)", "structurally-near count"
+    )
+    eligible, searched, skipped, cases = captures(
+        r"eligible pairs: (\d+); searched: (\d+); skipped: (\d+); executed cases: (\d+)",
+        "falsification search counts",
+    )
+    false_merges, max_violations = captures(
+        r"GATE: (\d+) ≤ (\d+) false merges", "false-merge gate"
+    )
+    if "PRESERVED: every canon-changed unit computes the same thing" not in text:
+        raise ValueError("falsification output does not preserve canonical behavior")
+    if "no new distinguishers" not in text:
+        raise ValueError("falsification output does not close the distinguishing-input search")
+    return (
+        {
+            "advisory_disagreements": advisory,
+            "canon_checked": canon_checked,
+            "canon_preservation_violations": 0,
+            "eligible_pairs": eligible,
+            "executed_cases": cases,
+            "false_merges": false_merges,
+            "new_distinguishers": 0,
+            "searched_pairs": searched,
+            "skipped_pairs": skipped,
+            "total_units": total,
+            "interpretable_units": interpretable,
+        },
+        {
+            "behavior_equal_pairs": behavior_pairs,
+            "fingerprint_equal_pairs": equal_pairs,
+            "structurally_near_under_merged_groups": structurally_near,
+            "under_merged_behavior_groups": under_merged,
+            "max_violations": max_violations,
+        },
+    )
+
+
+def verify_performance_receipt(receipt: dict[str, Any], expansion: dict[str, Any]) -> None:
+    if receipt.get("schema") != PERFORMANCE_SCHEMA or receipt.get("issue") != 859:
+        raise ValueError("oracle expansion performance receipt has the wrong identity")
+    baseline = receipt.get("baseline", {})
+    candidate = receipt.get("candidate", {})
+    if (
+        baseline.get("source_sha") != expansion["release_tree"]
+        or baseline.get("binary_sha256") != OFFICIAL_BINARY_SHA256
+        or candidate.get("source_sha") != expansion["implementation_source_sha"]
+        or candidate.get("crates_tree") != expansion["implementation_crates_tree"]
+    ):
+        raise ValueError("oracle expansion performance provenance drifted")
+    for side in (baseline, candidate):
+        require_sha256(side.get("binary_sha256"), "performance binary")
+        require_sha256(side.get("binary_code_sha256"), "performance code identity")
+    corpus = receipt.get("corpus", {})
+    expected_repositories = [
+        "alamofire", "guava", "hugo", "netty", "rxjava", "sqlalchemy", "sympy"
+    ]
+    if corpus.get("repositories") != expected_repositories:
+        raise ValueError("oracle expansion performance corpus changed")
+    for key, value in corpus.items():
+        if key.endswith("sha256"):
+            require_sha256(value, f"performance corpus {key}")
+
+    query = receipt.get("default_query", {})
+    parity = query.get("pre_issue_output_parity", {})
+    focused = query.get("focused", {})
+    if (
+        parity.get("baseline_source_sha") != expansion["branch_base"]
+        or parity.get("candidate_source_sha") != expansion["implementation_source_sha"]
+        or parity.get("byte_identical_repositories") != parity.get("repository_count")
+        or parity.get("repository_count") != len(expected_repositories)
+        or focused.get("status") != "known-stage-regressions"
+        or focused.get("tracked_by") != "https://github.com/corca-ai/nose/issues/892"
+        or not focused.get("confirmed_stage_signals")
+        or focused.get("aggregate_adjusted_delta_pct", math.inf) >= 5.0
+    ):
+        raise ValueError("oracle expansion performance conclusion drifted")
+    swift = receipt.get("swift_verify", {})
+    if (
+        swift.get("repository") != "alamofire"
+        or swift.get("verdict") != "below-50ms-materiality-threshold"
+        or not 0 <= swift.get("adjusted_delta_ms", math.inf) < 50.0
+    ):
+        raise ValueError("oracle expansion Swift verify performance conclusion drifted")
+    for section in (query.get("primary", {}), focused, parity, swift):
+        for key, value in section.items():
+            if key.endswith("sha256"):
+                require_sha256(value, f"performance {key}")
+
+
+def verify_expansion_receipt(
+    frozen: dict[str, Any], overlay_path: Path, receipt_path: Path
+) -> None:
+    overlay = load(overlay_path)
+    receipt = load(receipt_path)
+    verify_overlay(frozen, overlay)
+    if (
+        receipt.get("schema") != EXPANSION_SCHEMA
+        or receipt.get("issue") != 859
+        or receipt.get("parent_issue") != 855
+        or receipt.get("release_tree") != scorecard_repo_pin(frozen)
+    ):
+        raise ValueError("oracle expansion receipt has the wrong identity")
+    require_git_oid(receipt.get("branch_base"), "oracle expansion branch base")
+    require_git_oid(receipt.get("implementation_source_sha"), "oracle expansion source")
+    implementation_tree = require_git_oid(
+        receipt.get("implementation_crates_tree"), "oracle expansion crates tree"
+    )
+    if git_rev_parse("HEAD:crates") != implementation_tree:
+        raise ValueError("checked-out product crates do not match the measured implementation")
+
+    frozen_contract = receipt.get("frozen_contract", {})
+    expected_contract = {
+        "baseline_macro_ppm": frozen["summary"]["macro_ppm"],
+        "baseline_pair_ids_sha256": sha256_bytes(canonical_bytes(frozen["baseline_pair_ids"])),
+        "baseline_pair_mass": frozen["summary"]["baseline_pair_mass"],
+        "baseline_pair_micro_ppm": frozen["summary"]["pair_micro_ppm"],
+        "baseline_verified_pair_mass": frozen["summary"]["verified_pair_mass"],
+        "release_target_ppm": frozen["summary"]["release_target_ppm"],
+        "scorecard_sha256": sha256_file(
+            ROOT / "bench/soundness/0.19.0/scorecard.v1.json"
+        ),
+    }
+    if frozen_contract != expected_contract:
+        raise ValueError("oracle expansion frozen contract drifted")
+
+    artifacts = receipt.get("artifacts", {})
+    loaded_artifacts = {}
+    for name in ("overlay", "falsification", "performance", "expected_drift_manifest"):
+        artifact = artifacts.get(name, {})
+        path = checked_artifact(receipt_path, artifact.get("path"))
+        if sha256_file(path) != require_sha256(
+            artifact.get("sha256"), f"oracle expansion {name}"
+        ):
+            raise ValueError(f"oracle expansion {name} hash drifted")
+        loaded_artifacts[name] = path
+    if loaded_artifacts["overlay"] != overlay_path.resolve():
+        raise ValueError("oracle expansion receipt points at a different overlay")
+
+    summary = overlay["summary"]
+    gates = overlay["gates"]
+    expected_result = {
+        "baseline_verified_pair_regressions": gates["baseline_verified_pair_regressions"],
+        "candidate_cohort_sha256": overlay["candidate_cohort_sha256"],
+        "denominator_unchanged": gates["denominator_unchanged"],
+        "exact_unsafe_pair_mass": summary["exact_unsafe_pair_mass"],
+        "gate_passed": gates["passed"],
+        "language_regressions": gates["language_regressions"],
+        "macro_ppm": summary["macro_ppm"],
+        "pair_micro_ppm": summary["pair_micro_ppm"],
+        "release_target_met": gates["release_target_met"],
+        "verified_pair_mass": summary["verified_pair_mass"],
+    }
+    if receipt.get("result") != expected_result or not gates["passed"]:
+        raise ValueError("oracle expansion result does not match its overlay")
+
+    measured_falsification, measured_completeness = parse_falsification(
+        loaded_artifacts["falsification"]
+    )
+    continuity = receipt.get("completeness_continuity", {})
+    measured_completeness.pop("max_violations")
+    if (
+        receipt.get("falsification") != measured_falsification
+        or continuity.get("final") != measured_completeness
+        or continuity.get("frozen_release")
+        != {
+            "behavior_equal_pairs": EXPECTED_RELEASE_METRICS["completeness"]["behavior_equal_pairs"],
+            "fingerprint_equal_pairs": EXPECTED_RELEASE_METRICS["completeness"]["fingerprint_equal_pairs"],
+            "structurally_near_under_merged_groups": 0,
+            "under_merged_behavior_groups": 2,
+        }
+        or not isinstance(continuity.get("reason"), str)
+    ):
+        raise ValueError("oracle expansion falsification or completeness receipt drifted")
+
+    selected = set(frozen["baseline_pair_ids"])
+    baseline_safe = {
+        row["pair_id"] for row in frozen["pairs"]
+        if row["pair_id"] in selected and row["status"] == "exact-safe-verified"
+    }
+    final_safe = {
+        row["pair_id"] for row in overlay["pair_ledger"]
+        if row["candidate_status"] == "exact-safe-verified"
+    }
+    previous_safe = set(baseline_safe)
+    previous_macro = frozen["summary"]["macro_ppm"]
+    expected_names = [
+        "fragment-cardinality-projection",
+        "immutable-swift-module-string",
+        "unused-trailing-parameters",
+    ]
+    tranches = receipt.get("tranches")
+    if not isinstance(tranches, list) or [row.get("name") for row in tranches] != expected_names:
+        raise ValueError("oracle expansion tranche sequence changed")
+    rust_sources = "\n".join(
+        path.read_text(encoding="utf-8") for path in (ROOT / "crates").rglob("*.rs")
+    )
+    for order, tranche in enumerate(tranches, 1):
+        new_ids = tranche.get("new_verified_pair_ids")
+        if (
+            tranche.get("implementation_order") != order
+            or not isinstance(new_ids, list)
+            or new_ids != sorted(new_ids)
+            or len(new_ids) != len(set(new_ids))
+            or set(new_ids) & previous_safe
+            or not set(new_ids) <= final_safe
+            or tranche.get("verified_pair_mass") != len(previous_safe) + len(new_ids)
+            or tranche.get("macro_delta_ppm") != tranche.get("macro_ppm") - previous_macro
+        ):
+            raise ValueError(f"oracle expansion tranche accounting drifted: {tranche.get('name')}")
+        for key in ("candidate_cohort_sha256", "overlay_sha256", "raw_units_sha256"):
+            require_sha256(tranche.get(key), f"oracle expansion tranche {key}")
+        for key in ("source_independent_positive", "adjacent_negative", "unsupported_boundary"):
+            reference = tranche.get(key)
+            symbol = reference.rsplit("::", 1)[-1] if isinstance(reference, str) else ""
+            if not symbol or f"fn {symbol}(" not in rust_sources:
+                raise ValueError(f"oracle expansion test reference is missing: {reference}")
+        previous_safe.update(new_ids)
+        previous_macro = tranche["macro_ppm"]
+    if (
+        previous_safe != final_safe
+        or tranches[-1]["candidate_cohort_sha256"] != overlay["candidate_cohort_sha256"]
+        or tranches[-1]["overlay_sha256"] != sha256_file(overlay_path)
+        or tranches[-1]["macro_ppm"] != summary["macro_ppm"]
+    ):
+        raise ValueError("oracle expansion tranche chain does not reach the final overlay")
+
+    performance = load(loaded_artifacts["performance"])
+    verify_performance_receipt(performance, receipt)
+    drift = load(loaded_artifacts["expected_drift_manifest"])
+    entries = drift.get("entries")
+    if (
+        drift.get("schema") != "nose.semantic_regression_expected_drift.v1"
+        or not isinstance(entries, list)
+        or len(entries) != 5
+        or any(row.get("baseline_source_sha") != receipt["release_tree"] for row in entries)
+    ):
+        raise ValueError("oracle expansion expected-drift manifest changed")
 
 
 def verify_cohort(cohort: dict[str, Any]) -> None:
@@ -809,6 +1391,19 @@ def self_test() -> None:
                     raise
             else:
                 raise AssertionError("a missing pinned repository counted as success")
+            expansion_overlay = ROOT / "bench/soundness/0.20.0/oracle-expansion-overlay.v2.json"
+            expansion_receipt = ROOT / "bench/soundness/0.20.0/oracle-expansion-859.v1.json"
+            if expansion_overlay.is_file() and expansion_receipt.is_file():
+                verify_expansion_receipt(scorecard, expansion_overlay, expansion_receipt)
+                tampered_overlay = load(expansion_overlay)
+                tampered_overlay["summary"]["verified_pair_mass"] += 1
+                try:
+                    verify_overlay(scorecard, tampered_overlay)
+                except ValueError as error:
+                    if "replay" not in str(error):
+                        raise
+                else:
+                    raise AssertionError("tampered expansion aggregate passed replay")
     print("ok soundness scorecard self-test")
 
 
@@ -831,12 +1426,35 @@ def freeze(args: argparse.Namespace) -> None:
     print(f"froze {len(cohort['units'])} units and {len(scorecard['pairs'])} exact pairs")
 
 
+def evaluate(args: argparse.Namespace) -> None:
+    if not args.units or not args.source_root or not args.output:
+        raise ValueError("--evaluate requires --units, --source-root, and --output")
+    frozen = load(args.baseline.resolve() / "scorecard.v1.json")
+    candidate = normalize_units(load(args.units), args.source_root.resolve(), args.repo_pin)
+    verify_cohort(candidate)
+    overlay = build_overlay(frozen, candidate)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_bytes(pretty_bytes(overlay))
+    summary = overlay["summary"]
+    print(
+        "soundness overlay: "
+        f"macro={summary['macro_ppm'] / 10000:.2f}% "
+        f"target={summary['release_target_ppm'] / 10000:.2f}% "
+        f"pairs={summary['verified_pair_mass']}/{summary['baseline_pair_mass']} "
+        f"passed={str(overlay['gates']['passed']).lower()}"
+    )
+    if not overlay["gates"]["passed"]:
+        raise ValueError("candidate does not satisfy the frozen scorecard gates")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--baseline", type=Path, default=ROOT / "bench/soundness/0.19.0")
     parser.add_argument("--reproduce", type=Path)
     parser.add_argument("--self-test", action="store_true")
     parser.add_argument("--freeze", action="store_true")
+    parser.add_argument("--evaluate", action="store_true")
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--units", type=Path)
     parser.add_argument("--query", type=Path)
     parser.add_argument("--source-root", type=Path)
@@ -849,6 +1467,9 @@ def main() -> int:
         if args.freeze:
             freeze(args)
             return 0
+        if args.evaluate:
+            evaluate(args)
+            return 0
         base = args.baseline.resolve()
         manifest = load(base / "manifest.v1.json")
         verify_manifest(base, manifest)
@@ -857,15 +1478,31 @@ def main() -> int:
         scorecard = load(base / "scorecard.v1.json")
         verify_cohort(cohort)
         verify_scorecard(scorecard, cohort, query)
+        expansion_overlay = ROOT / "bench/soundness/0.20.0/oracle-expansion-overlay.v2.json"
+        expansion_receipt = ROOT / "bench/soundness/0.20.0/oracle-expansion-859.v1.json"
+        if expansion_overlay.is_file() != expansion_receipt.is_file():
+            raise ValueError("oracle expansion evidence must include its overlay and receipt")
+        expansion_summary = None
+        if expansion_overlay.is_file():
+            verify_expansion_receipt(scorecard, expansion_overlay, expansion_receipt)
+            expansion_summary = load(expansion_overlay)["summary"]
         if args.reproduce:
             verify_reproduction(args.reproduce.resolve(), manifest)
         summary = scorecard["summary"]
-        print(
+        message = (
             "soundness scorecard ok: "
             f"macro={summary['macro_ppm'] / 10000:.2f}% "
             f"micro={summary['pair_micro_ppm'] / 10000:.2f}% "
             f"pairs={summary['verified_pair_mass']}/{summary['baseline_pair_mass']}"
         )
+        if expansion_summary is not None:
+            message += (
+                "; expansion "
+                f"macro={expansion_summary['macro_ppm'] / 10000:.2f}% "
+                f"pairs={expansion_summary['verified_pair_mass']}/"
+                f"{expansion_summary['baseline_pair_mass']}"
+            )
+        print(message)
         return 0
     except (KeyError, OSError, ValueError, json.JSONDecodeError) as error:
         print(f"soundness scorecard error: {error}", file=os.sys.stderr)

@@ -30,10 +30,12 @@ pub(crate) use model::abstraction_family_witness;
 pub use model::UnitFeat;
 use nose_il::{Il, Interner, NodeId, NodeKind, Payload, Span, Symbol, UnitKind, UnitOrigin};
 use nose_semantics::ValueLaw;
-pub(crate) use product::block_units_for_file;
+#[cfg(test)]
+pub(crate) use product::default_product_oracle_fragments;
+pub(crate) use product::{block_units_for_file, raw_il_is_empty_module};
 pub use product::{
-    default_product_unit_admission, default_product_value_fingerprint_context,
-    ProductUnitAdmissionInput,
+    default_product_oracle_fragment_candidates, default_product_unit_admission,
+    default_product_value_fingerprint_context, ProductOracleFragment, ProductUnitAdmissionInput,
 };
 use std::time::Instant;
 use timing::{UnitTimer, UnitTimingSample, UnitTimingSkipSample};
@@ -146,6 +148,9 @@ pub(crate) fn extract(
     // are kept, so opaque surrounding code can no longer hide a provable return/effect
     // expression without expanding the fuzzy surface.
     let (roots, parents) = collect_unit_roots(il, interner, block_units);
+    if roots.is_empty() {
+        return Vec::new();
+    }
 
     let facts = StrictFacts::collect(il, interner);
     let value_context = value_fingerprint_context_for_roots(il, interner, roots.len());
@@ -162,18 +167,24 @@ pub(crate) fn extract(
         large_test_file: large_test_file(il),
     };
     let mut unit_timer = UnitTimer::new();
-    let test_module_spans = inline_test_module_spans(il, interner);
     let mut out = Vec::new();
     let mut emitted_roots: Vec<NodeId> = Vec::new();
     for unit_root in roots {
         let root = unit_root.root;
-        if let Some(mut unit) = extract_unit(&ctx, unit_root, &mut unit_timer) {
-            unit.in_test_module = test_module_spans
-                .iter()
-                .any(|&(s, e)| s <= unit.start_line && unit.end_line <= e);
+        if let Some(unit) = extract_unit(&ctx, unit_root, &mut unit_timer) {
             out.push(unit);
             emitted_roots.push(root);
         }
+    }
+    if out.is_empty() {
+        unit_timer.report_summary(&il.meta.path);
+        return out;
+    }
+    let test_module_spans = inline_test_module_spans(il, interner);
+    for unit in &mut out {
+        unit.in_test_module = test_module_spans
+            .iter()
+            .any(|&(s, e)| s <= unit.start_line && unit.end_line <= e);
     }
     fill_called_helper_returns(il, interner, &mut out, &emitted_roots);
     unit_timer.report_summary(&il.meta.path);

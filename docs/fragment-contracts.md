@@ -81,6 +81,33 @@ a parameter would inflate the arity and feed it a battery value the loop immedia
 overwrites. Omitting a genuine input only ever under-reports — an unbound read makes the
 wrapper uninterpretable (fail-closed), never a false merge.
 
+Each synthetic parameter retains the exact span of its enclosing source declaration. Domain
+evidence therefore resolves through the same source fact in the wrapper; a free local with no
+unique enclosing parameter deliberately keeps a synthetic/unknown span. A wrapper may also copy a
+referenced immutable module string assignment, but only when the shared module-scope and mutation
+analysis proves exactly one direct binding. Reassigned or shadowed globals are not guessed.
+
+### Oracle projections and fragment control
+
+The executable oracle can narrow a free input to a `Cardinality` quotient when every occurrence
+inside the fragment is the sole argument of an already admitted `Len`. Bounded representative
+lists can then exercise the observed length quotient without inventing erased element values; this
+is not a claim of exhaustive coverage over every possible length. Any element read, index,
+iteration, mutation, or opaque use returns the projection to `Declared` and the hard lane remains
+closed when that domain cannot be hosted.
+
+For a normal-exit fragment containing an early enclosing-function `return` or `throw`, wrapper
+execution records `UnitExit` alongside the ordinary value/effect behavior. `Return` and
+`Fallthrough` therefore cannot collapse merely because both carry the same null-like value. The
+JSON behavior hash, stdout completeness report, structured recall-loss report, soundness
+partition, and falsifier all use this same control observation.
+
+The offline audit enumerates every contract-recognized candidate before current product admission,
+then records product admission and exact eligibility separately. This keeps a recognized fragment
+that is currently below a size floor or rejected by another product gate visible as unverified
+mass; it does not silently disappear from the frozen score. Production query extraction remains
+the admission authority.
+
 ## The effect algebra
 
 The substrate names *how* each effect is observed, because that determines its soundness
@@ -95,13 +122,14 @@ obligation — it does not treat every mutation as append-like:
 
 The `Append` row is deliberately about receiver *place* identity after an append
 has been proven. It is not permission to infer append semantics from a method
-name. Exact append fragments consume canonical `Builtin::Append` evidence:
-frontends and normalizers must first prove the language/library receiver or
-active-builder contract for the specific surface (`Array.push`, Python
-`list.append`, Java builder `add`, Rust builder `push`, etc.) and lower it to
-that canonical form, or a pack/frontend must attach `Effect(BuilderAppendCall)`
-to the call. A raw selector-only call can still be compared under the separate
-opaque-call policy as `Other`, but it does not prove append semantics.
+name. Exact append fragments consume an independently admitted append receipt: canonical
+`Builtin::Append` plus its library/API dependency, an asserted `Effect(BuilderAppendCall)`, or
+the equivalent admitted source method occurrence at the pre-canonical oracle cutoff. Frontends
+and normalizers must first prove the language/library receiver or active-builder contract for the
+specific surface (`Array.push`, Python `list.append`, Java builder `add`, Rust builder `push`,
+etc.). A raw selector-only call can still be compared under the separate opaque-call policy as
+`Other`, but it does not prove append semantics. This proof-equivalent admission is what lets the
+wrapper tag the receiver role identically before and after canonicalization.
 
 A field write is the one case whose final-state slot is receiver-bearing, so a field write is
 exact-safe only when its receiver resolves to a proven place. This is exactly why a fixed

@@ -171,6 +171,15 @@ fn type_domain_contracts_cover_swift_signatures() {
         Some(DomainEvidence::Collection),
     );
     assert_type_domain(Lang::Swift, "text: String", Some(DomainEvidence::String));
+    assert_type_domain(
+        Lang::Swift,
+        "text: Swift.String",
+        Some(DomainEvidence::String),
+    );
+    assert_type_domain(Lang::Swift, "text: T.String", None);
+    assert_type_domain(Lang::Swift, "text: Foundation.String", None);
+    assert_type_domain(Lang::Swift, "text: Substring", None);
+    assert_type_domain(Lang::Swift, "text: Character", None);
     assert_type_domain(Lang::Swift, "ok: Bool", Some(DomainEvidence::Boolean));
     assert_type_domain(Lang::Swift, "xs: Bitmap<String>", None);
 }

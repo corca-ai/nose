@@ -85,6 +85,7 @@ pub(super) fn lower_import(lo: &mut Lowering, node: TsNode) -> NodeId {
     record_nil_literal_proof_barrier(lo, span);
     record_flat_map_dispatch_proof_barrier(lo, span);
     record_dictionary_default_subscript_proof_barrier(lo, span);
+    record_selective_import_shadow(lo, node);
     let module = Lowering::named_children(node)
         .into_iter()
         .filter(|child| matches!(child.kind(), "identifier" | "simple_identifier"))
@@ -97,6 +98,7 @@ pub(super) fn lower_import(lo: &mut Lowering, node: TsNode) -> NodeId {
         crate::lower::import_namespace(lo, span, &module, &module)
     }
 }
+
 pub(super) fn lower_type(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let name = node.child_by_field_name("name").map(|n| lo.sym(lo.text(n)));
@@ -446,6 +448,9 @@ pub(super) fn lower_param(
         .into_iter()
         .any(|child| child.kind() == "parameter_modifiers");
     let plain_parameter = !has_attribute && !has_parameter_modifiers && !param.has_error();
+    let string_evidence = plain_parameter
+        .then(|| type_node.and_then(|ty| swift_string_parameter_evidence(lo, param, ty)))
+        .flatten();
     if type_node.is_some_and(|ty| ty.kind() == "array_type") && plain_parameter {
         // Swift's bracket type is the one source surface that proves a builtin
         // Array independently of nominal `Array`/`Collection` declarations.
@@ -467,12 +472,21 @@ pub(super) fn lower_param(
                 "swift_dictionary_parameter",
             );
         }
+        if let Some(kind) = string_evidence {
+            lo.record_evidence(
+                EvidenceAnchor::param(span),
+                EvidenceKind::Type(kind),
+                "swift_string_parameter",
+            );
+        }
     }
     if let Some(domain) = type_node
         .and_then(|ty| lo.type_domain_from_text_with_dependencies(lo.text(ty)))
         .or_else(|| lo.type_domain_from_text_with_dependencies(lo.text(param)))
     {
-        lo.record_param_domain_resolution(span, domain);
+        if domain.domain != nose_il::DomainEvidence::String || string_evidence.is_some() {
+            lo.record_param_domain_resolution(span, domain);
+        }
     }
     let shape = if plain_parameter {
         Vec::new()

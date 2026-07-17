@@ -1,5 +1,6 @@
 use crate::oracle_gate::{
-    func_span_index, run_battery, run_battery_diagnostic, verify_battery_over_budget,
+    func_span_index, run_battery_diagnostic_with_oracle_proofs,
+    run_fragment_battery_diagnostic_with_oracle_proofs, verify_battery_over_budget,
 };
 use crate::verify_admission::{
     exact_admission_rejection_with_context, runtime_boundary_rejection_diagnostic_with_context,
@@ -14,8 +15,11 @@ use census::{census_outcome, push_verify_census, synthetic_blocker, CensusLocati
 mod support;
 use support::{
     admission_rejection_for_rec, oracle_exclusion_diagnostic, param_domain_signature,
-    param_domains, subtree_node_count, unit_value_fingerprint_and_contracts,
+    param_domains, plain_source_parameters, subtree_node_count, trailing_unused_input_projections,
+    unit_value_fingerprint_and_contracts,
 };
+mod tranche;
+pub(super) use tranche::OracleTranche;
 
 /// One record per interpretable unit.
 pub(super) struct VerifyRec {
@@ -45,123 +49,43 @@ pub(super) struct VerifyRec {
     /// Exact declared parameter domains. This is the hard-gate comparison source: a compact
     /// hash alone cannot prove equality.
     pub(super) param_domains: Vec<Option<nose_il::DomainEvidence>>,
+    /// Oracle projection proof for each declared input. Fragment cardinality is local to a
+    /// synthesized fragment; whole functions may erase only a proven unread trailing suffix.
+    pub(super) input_projections: Vec<nose_detect::OracleInputProjection>,
     /// Stable compact identifier for reports. Hard-gate decisions use `param_domains`.
     pub(super) domain_sig: u64,
     /// Index into `corpus.files` and the CORE-IL root, so `--falsify` can re-normalize the
     /// file (deterministically) and re-interpret this unit on search-generated inputs (#317).
     pub(super) file_idx: usize,
     pub(super) core_root: nose_il::NodeId,
+    /// Present for an exact product fragment. Its node ids refer to the same deterministic
+    /// pre-canonical core arena as `core_root`; falsification re-synthesizes the runnable wrapper
+    /// from this contract instead of accidentally executing the enclosing whole function.
+    pub(super) core_fragment: Option<nose_detect::FragmentContract>,
+    /// Terminal control per battery path for fragments. `None` keeps the historical
+    /// whole-function convention; `Some` distinguishes an early enclosing-function return from
+    /// normal fragment fallthrough.
+    pub(super) fragment_exits: Option<Vec<nose_normalize::UnitExit>>,
 }
 
-#[derive(Clone, Copy)]
-pub(super) enum VerifyExclusionReason {
-    CoreMissing,
-    BatteryBail,
-    EmptyFingerprint,
-    Uninterpretable,
-    /// #244 fail-closed: the unit forked on more symbolic If/ternary sites than
-    /// the per-execution exploration cap allows.
-    PathBail,
+/// Whether a record has no behaviorally discriminating observation. Fragment terminal control is
+/// part of the behavior: a value-trivial fragment that sometimes returns from its enclosing
+/// function is not trivial. Keep this shared by stdout and structured recall-loss reporting so
+/// the two completeness ledgers cannot silently count different populations.
+pub(super) fn verify_record_behavior_is_trivial(record: &VerifyRec) -> bool {
+    let exits_are_trivial = record
+        .fragment_exits
+        .as_ref()
+        .is_none_or(|exits| exits.iter().collect::<std::collections::HashSet<_>>().len() < 2);
+    crate::oracle_gate::is_trivial_behavior(&record.beh) && exits_are_trivial
 }
 
-impl VerifyExclusionReason {
-    pub(super) fn label(self) -> &'static str {
-        match self {
-            VerifyExclusionReason::CoreMissing => "core-missing",
-            VerifyExclusionReason::BatteryBail => "battery-bail",
-            VerifyExclusionReason::EmptyFingerprint => "empty-fingerprint",
-            VerifyExclusionReason::Uninterpretable => "uninterpretable",
-            VerifyExclusionReason::PathBail => "path-bail",
-        }
-    }
-}
-
-pub(super) struct VerifyExcludedUnit {
-    pub(super) reason: VerifyExclusionReason,
-    pub(super) file: String,
-    pub(super) start: u32,
-    pub(super) end: u32,
-    pub(super) tokens: usize,
-    pub(super) diagnostic: Option<ExactAdmissionRejectionDiagnostic>,
-}
-
-#[derive(Clone, Copy)]
-struct RuntimeDiagnosticSource<'a> {
-    il: &'a nose_il::Il,
-    root: Option<nose_il::NodeId>,
-}
-
-#[derive(Default)]
-pub(super) struct VerifyExclusions {
-    pub(super) core_missing: usize,
-    pub(super) battery_bail: usize,
-    pub(super) empty_fingerprint: usize,
-    pub(super) uninterpretable: usize,
-    pub(super) path_bail: usize,
-    pub(super) units: Vec<VerifyExcludedUnit>,
-}
-
-impl VerifyExclusions {
-    fn record_core_missing(&mut self, file: &str, span: nose_il::Span, tokens: usize) {
-        self.record(VerifyExclusionReason::CoreMissing, file, span, tokens, None);
-    }
-
-    fn record_battery_bail(&mut self, file: &str, span: nose_il::Span, tokens: usize) {
-        self.record(VerifyExclusionReason::BatteryBail, file, span, tokens, None);
-    }
-
-    fn record_empty_fingerprint(&mut self, file: &str, span: nose_il::Span, tokens: usize) {
-        self.record(
-            VerifyExclusionReason::EmptyFingerprint,
-            file,
-            span,
-            tokens,
-            None,
-        );
-    }
-
-    fn record(
-        &mut self,
-        reason: VerifyExclusionReason,
-        file: &str,
-        span: nose_il::Span,
-        tokens: usize,
-        diagnostic: Option<ExactAdmissionRejectionDiagnostic>,
-    ) {
-        match reason {
-            VerifyExclusionReason::CoreMissing => self.core_missing += 1,
-            VerifyExclusionReason::BatteryBail => self.battery_bail += 1,
-            VerifyExclusionReason::EmptyFingerprint => self.empty_fingerprint += 1,
-            VerifyExclusionReason::Uninterpretable => self.uninterpretable += 1,
-            VerifyExclusionReason::PathBail => self.path_bail += 1,
-        }
-        self.units.push(VerifyExcludedUnit {
-            reason,
-            file: file.to_string(),
-            start: span.start_line,
-            end: span.end_line,
-            tokens,
-            diagnostic,
-        });
-    }
-
-    fn append(&mut self, other: VerifyExclusions) {
-        self.core_missing += other.core_missing;
-        self.battery_bail += other.battery_bail;
-        self.empty_fingerprint += other.empty_fingerprint;
-        self.uninterpretable += other.uninterpretable;
-        self.path_bail += other.path_bail;
-        self.units.extend(other.units);
-    }
-
-    pub(super) fn total(&self) -> usize {
-        self.core_missing
-            + self.battery_bail
-            + self.empty_fingerprint
-            + self.uninterpretable
-            + self.path_bail
-    }
-}
+mod exclusions;
+pub(super) use exclusions::{
+    RuntimeDiagnosticSource, VerifyExcludedUnit, VerifyExclusionReason, VerifyExclusions,
+};
+mod fragments;
+use fragments::collect_product_fragment_verify_rec;
 
 /// The oracle's interpretation pass: every interpretable unit's record, plus the
 /// CANON PRESERVATION tallies — a stricter, pair-free soundness check: does the full
@@ -184,6 +108,7 @@ pub(super) fn collect_verify_recs(
     opts: &nose_normalize::NormalizeOptions,
     battery: &[Vec<nose_normalize::Value>],
     census: bool,
+    tranche: OracleTranche,
 ) -> VerifyOracle {
     let admission_context = AdmissionContext::from_corpus(corpus);
     let oracle_opts = nose_normalize::NormalizeOptions {
@@ -238,6 +163,7 @@ pub(super) fn collect_verify_recs(
                 &exact_safe_by_span,
                 file_idx,
                 &admission_context,
+                tranche,
             );
             oracle
         })
@@ -301,10 +227,22 @@ fn collect_file_verify_recs(
     exact_safe_by_span: &std::collections::HashMap<(u32, u32), bool>,
     file_idx: usize,
     admission_context: &AdmissionContext,
+    tranche: OracleTranche,
 ) {
     let file_path = &n.meta.path;
     let raw_func = func_span_index(raw);
     let core_func = func_span_index(core);
+    let mut core_fragments: std::collections::HashMap<
+        (u32, u32, nose_detect::FragmentKind),
+        Vec<nose_detect::FragmentContract>,
+    > = std::collections::HashMap::new();
+    for contract in nose_detect::recognized_fragment_contracts(core, interner) {
+        let span = core.node(contract.root).span;
+        core_fragments
+            .entry((span.start_byte, span.end_byte, contract.kind))
+            .or_default()
+            .push(contract);
+    }
     for u in &n.units {
         let root = u.root;
         if n.kind(root) != nose_il::NodeKind::Func {
@@ -326,9 +264,10 @@ fn collect_file_verify_recs(
         // The same function in the core IL (by span) — interpret THAT, not `n`.
         let span0 = n.node(root).span;
         let tokens = subtree_node_count(n, root);
+        let raw_root = raw_func.get(&(span0.start_byte, span0.end_byte)).copied();
         let raw_source = RuntimeDiagnosticSource {
             il: raw,
-            root: raw_func.get(&(span0.start_byte, span0.end_byte)).copied(),
+            root: raw_root,
         };
         // Compute the product fingerprint and exact-claim eligibility before
         // oracle admission so the census can distinguish valuable fail-closed
@@ -385,6 +324,23 @@ fn collect_file_verify_recs(
             push_verify_census(oracle, &census_location, core, core_root, &fp, outcome);
             continue;
         }
+        let param_domains = param_domains(n, root);
+        let input_projections = if tranche.includes_unused_trailing_parameters() {
+            raw_root
+                .map(|root| plain_source_parameters(raw, root))
+                .filter(|plain_source| plain_source.len() == param_domains.len())
+                .and_then(|plain_source| {
+                    let normalized = trailing_unused_input_projections(n, root, &plain_source);
+                    let canonical =
+                        trailing_unused_input_projections(core, core_root, &plain_source);
+                    (normalized == canonical).then_some(normalized)
+                })
+                .unwrap_or_else(|| {
+                    vec![nose_detect::OracleInputProjection::Declared; param_domains.len()]
+                })
+        } else {
+            vec![nose_detect::OracleInputProjection::Declared; param_domains.len()]
+        };
         // Soundness is about merges on the VALUE fingerprint. A unit whose value
         // graph is EMPTY (`fn resumed() {}`, or a body the graph captures nothing of)
         // has no value fingerprint to merge on — the detector keys candidates on
@@ -413,7 +369,14 @@ fn collect_file_verify_recs(
             continue;
         }
         // Run the battery; the unit is interpretable only if every input runs.
-        let beh = match run_battery_diagnostic(core, interner, core_root, battery, &contracts) {
+        let beh = match run_battery_diagnostic_with_oracle_proofs(
+            core,
+            interner,
+            core_root,
+            battery,
+            &contracts,
+            tranche.includes_swift_module_strings(),
+        ) {
             Ok(behaviors) => behaviors,
             Err(blocker) => {
                 let path_cap = blocker.capability_id == "budget.symbolic-branch-sites";
@@ -460,11 +423,15 @@ fn collect_file_verify_recs(
         // Canon preservation is judged on CONCRETE behaviors only: symbolic identity
         // is keyed on syntax, and canonicalization legitimately rewrites syntax, so a
         // Sym-bearing mismatch here is expected, not a behavior change.
-        let mut full_path_cap = false;
         let mut canon_exposed = false;
-        if let Some(full_beh) =
-            run_battery(n, interner, root, battery, &contracts, &mut full_path_cap)
-        {
+        if let Ok(full_beh) = run_battery_diagnostic_with_oracle_proofs(
+            n,
+            interner,
+            root,
+            battery,
+            &contracts,
+            tranche.includes_swift_module_strings(),
+        ) {
             // Path-explored behaviors always carry the Sym assume markers, so the
             // concrete-only filter below also keeps canon preservation away from
             // path alignment questions (canonicalization may merge or split the
@@ -492,7 +459,6 @@ fn collect_file_verify_recs(
             admission_context,
             raw_source,
         );
-        let param_domains = param_domains(n, root);
         oracle.recs.push(VerifyRec {
             lang: n.meta.lang,
             fp,
@@ -506,10 +472,27 @@ fn collect_file_verify_recs(
             product_admission: product_admission.label(),
             canon_exposed,
             admission_rejection,
-            domain_sig: param_domain_signature(&param_domains),
+            domain_sig: param_domain_signature(&param_domains, &input_projections),
             param_domains,
+            input_projections,
             file_idx,
             core_root,
+            core_fragment: None,
+            fragment_exits: None,
         });
+    }
+
+    for fragment in nose_detect::default_product_oracle_fragment_candidates(raw, n, interner) {
+        collect_product_fragment_verify_rec(
+            n,
+            core,
+            interner,
+            battery,
+            oracle,
+            &core_fragments,
+            file_idx,
+            fragment,
+            tranche,
+        );
     }
 }

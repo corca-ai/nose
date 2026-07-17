@@ -1,7 +1,7 @@
 use super::*;
 use nose_il::{
-    stable_symbol_hash, DomainEvidence, EvidenceKind, EvidenceStatus, Lang, LibraryApiEvidenceKind,
-    SymbolEvidenceKind, TypeEvidenceKind,
+    stable_symbol_hash, DomainEvidence, EvidenceAnchor, EvidenceKind, EvidenceStatus, Lang,
+    LibraryApiEvidenceKind, SymbolEvidenceKind, TypeEvidenceKind,
 };
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
@@ -9,6 +9,8 @@ use nose_semantics::{
     library_swift_map_factory_contract, LibraryApiCalleeContract, LibraryApiContractId,
 };
 use std::fs;
+
+mod swift_string_shadows;
 
 fn temp_dir(tag: &str) -> std::path::PathBuf {
     let dir = std::env::temp_dir().join(format!("nose_frontend_{tag}_{}", std::process::id()));

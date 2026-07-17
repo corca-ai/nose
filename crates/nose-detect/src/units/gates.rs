@@ -99,7 +99,9 @@ pub(super) fn post_value_fingerprint_rejection(
 }
 
 pub(crate) fn large_test_file(il: &Il) -> bool {
-    is_test_path(&il.meta.path) && il.nodes.len() > LARGE_TEST_FILE_NODE_CUTOFF
+    // Check the integer first: almost every source file is below the cutoff, so ordinary query
+    // traffic should not scan its path merely to reject this rare pathological-file gate.
+    il.nodes.len() > LARGE_TEST_FILE_NODE_CUTOFF && is_test_path(&il.meta.path)
 }
 
 fn semantic_container_token_cap(kind: UnitKind) -> Option<usize> {

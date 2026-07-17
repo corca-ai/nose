@@ -1,0 +1,99 @@
+{
+  "baseline": {
+    "binary_code_sha256": "e55d0e989993ff1d1d6b4e933dbd3f5ade38203368b8321d3a7842799a95aca6",
+    "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3",
+    "source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+    "version": "v0.19.0"
+  },
+  "candidate": {
+    "binary_code_sha256": "32317da5e4dd1d4bf0fc19995c77be045e575dbce1a5e71405c5fef1eaf6de31",
+    "binary_sha256": "2560f715818c9cfb117653f0ebe6da28f8d2947929f0d4db0dc7375d73ba24b2",
+    "crates_tree": "bdcdfadcc64ffb56d60cc14b95d3322f6047d6fa",
+    "source_sha": "6cd0f5f68689b69dba219c52af6116f60d9d0e4d"
+  },
+  "corpus": {
+    "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
+    "corpus_state_sha256": "781b5c5082c5ddf03cf5a3b3622eb4944bd2389b233e8a593b08f54e96ef6eda",
+    "expected_corpus_state_sha256": "b28d7245aa34d7e0320d0c80ef988803ba6acb65b63eaf1bae6d7ac840b168e0",
+    "prune_manifest_sha256": "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980",
+    "repositories": [
+      "alamofire",
+      "guava",
+      "hugo",
+      "netty",
+      "rxjava",
+      "sqlalchemy",
+      "sympy"
+    ],
+    "selection_sha256": "71f212ab2cddd5d59494b244f8a6b2be20cbf021d6a20c9ac33ffe6adc5a22f6",
+    "subset_sha256": "7247d64112bc20749de43d91fb86c6f288ae09271a08d67b68aa252d5abb5804"
+  },
+  "default_query": {
+    "command": "query {repo} all top=0 --format json",
+    "expected_drift_manifest": "issue-859-official-v0.19.0-expected-drift-2026-07-17.v1.json",
+    "focused": {
+      "aggregate_adjusted_delta_ms": 96.66304,
+      "aggregate_adjusted_delta_pct": 1.141316,
+      "aggregate_baseline_median_ms": 8469.4395,
+      "aggregate_current_median_ms": 8558.346646,
+      "aggregate_same_binary_control_delta_ms": -7.755894,
+      "confirmed_stage_signals": [
+        "alamofire:candidates",
+        "alamofire:query_gate",
+        "alamofire:query_opp",
+        "guava:query_opp",
+        "netty:parse+lower",
+        "netty:query_opp",
+        "rxjava:query_opp",
+        "sqlalchemy:query_opp",
+        "sqlalchemy:query_render",
+        "sympy:query_opp"
+      ],
+      "iterations": 40,
+      "measured_candidate_source_sha": "12b450068242f385e0f03640152d812e6e8d5e9b",
+      "raw_artifact_sha256": "605e9c5937937f04c9e6374d030740e8aa94b4b127507c00912c7b841d39da5d",
+      "raw_control_artifact_sha256": "72fff62854e1e4e3b16fc749a9a360ac43aafaba68bde1e623a542cd02151e8a",
+      "status": "known-stage-regressions",
+      "transfer_basis": "The final candidate is byte-identical to the measured candidate on all seven repository outputs; a fresh final-candidate primary run also remains aggregate-safe.",
+      "tracked_by": "https://github.com/corca-ai/nose/issues/892",
+      "warmups": 2
+    },
+    "pre_issue_output_parity": {
+      "baseline_source_sha": "7db472bae53867a0e2c2b5f7108c469bbe28819a",
+      "byte_identical_repositories": 7,
+      "candidate_source_sha": "6cd0f5f68689b69dba219c52af6116f60d9d0e4d",
+      "raw_artifact_sha256": "0524b65e1f2d77efa50ea6eff9b51c86b6a2711fb708bb3635f833834fff3fa3",
+      "repository_count": 7
+    },
+    "primary": {
+      "aggregate_adjusted_delta_ms": 14.481711,
+      "aggregate_adjusted_delta_pct": 0.163346,
+      "aggregate_baseline_median_ms": 8865.653583,
+      "aggregate_current_median_ms": 8891.344377,
+      "aggregate_delta_pct": 0.289779,
+      "aggregate_same_binary_control_delta_ms": 11.209083,
+      "aggregate_same_binary_control_delta_pct": 0.113958,
+      "iterations": 9,
+      "raw_artifact_sha256": "85dc70c72a2e5fe8383a6dc54658da1f827b55c46bc8a421068e4f5122756204",
+      "raw_control_artifact_sha256": "6723037486b511c5a9bc3575341572c476f79cb831b0b439401ac3889d9d8b83",
+      "warmups": 2
+    }
+  },
+  "issue": 859,
+  "schema": "nose.issue-859.performance/v1",
+  "swift_verify": {
+    "adjusted_delta_ms": 33.186791,
+    "adjusted_delta_pct": 11.752066,
+    "baseline_median_ms": 282.391125,
+    "command": "verify {repo} --json --max-violations 0",
+    "current_median_ms": 319.954958,
+    "iterations": 9,
+    "measured_candidate_source_sha": "12b450068242f385e0f03640152d812e6e8d5e9b",
+    "raw_artifact_sha256": "34180d521511b40fdc953bf9b68481186e29ab04320966781570e0d13d3c744e",
+    "raw_control_artifact_sha256": "8d4fb54bbea2e6b4d1f261eba07cf55389a1e391293e86b23f7119ef974ba242",
+    "repository": "alamofire",
+    "same_binary_control_delta_ms": 4.377042,
+    "verdict": "below-50ms-materiality-threshold",
+    "warmups": 2
+  }
+}

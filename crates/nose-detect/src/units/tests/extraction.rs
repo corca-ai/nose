@@ -1,6 +1,7 @@
 use super::super::{
-    abstraction_family_witness, block_units_for_file, default_product_value_fingerprint_context,
-    extract, ExtractFeatures, UnitFeat, EXACT_VALUE_MIN,
+    abstraction_family_witness, block_units_for_file, default_product_oracle_fragment_candidates,
+    default_product_oracle_fragments, default_product_value_fingerprint_context, extract,
+    ExtractFeatures, UnitFeat, EXACT_VALUE_MIN,
 };
 use crate::fragment::FragmentKind;
 use nose_il::{FileId, Interner, Lang, UnitKind};
@@ -282,6 +283,77 @@ fn exact_fragment_collector_produces_contract_recognized_direct_return() {
             .iter()
             .any(|unit| unit.fragment_kind == Some(FragmentKind::DirectReturn)),
         "contract-first collector should still produce the exact direct-return fragment"
+    );
+}
+
+#[test]
+fn product_oracle_fragment_surface_matches_shipped_extraction() {
+    let interner = Interner::new();
+    let source = "function f(x) { console.log(x); return (x + 1) * (x + 2); }\n";
+    let raw = nose_frontend::lower_source(
+        FileId(0),
+        "fragment.js",
+        source.as_bytes(),
+        Lang::JavaScript,
+        &interner,
+    )
+    .expect("lower source");
+    let opts = crate::DetectOptions::default();
+    let product: Vec<_> = crate::units_of_file(&raw, &interner, &opts)
+        .into_iter()
+        .filter(|unit| unit.fragment_kind.is_some())
+        .collect();
+    let normalized = nose_normalize::normalize(
+        &raw,
+        &interner,
+        &nose_normalize::NormalizeOptions {
+            cfg_norm: opts.cfg_norm,
+            dce: opts.dce,
+            ..Default::default()
+        },
+    );
+    let oracle = default_product_oracle_fragments(&raw, &normalized, &interner);
+
+    assert_eq!(oracle.len(), product.len(), "audit surface must not drift");
+    for audited in oracle {
+        let span = normalized.node(audited.root).span;
+        let matching = product.iter().find(|unit| {
+            unit.start_line == span.start_line
+                && unit.end_line == span.end_line
+                && unit.fragment_kind == Some(audited.contract.kind)
+        });
+        let matching = matching.expect("every audited fragment is a product fragment");
+        assert_eq!(audited.value, matching.value);
+        assert!(audited.exact_safe);
+        assert!(audited.product_admission.admitted());
+        assert!(audited.oracle_contracts.is_some());
+    }
+}
+
+#[test]
+fn oracle_fragment_candidates_retain_current_product_rejections() {
+    let interner = Interner::new();
+    let source = "fn check(kids: &[u8]) -> Option<u8> {\n    if kids.len() != 2 {\n        return None;\n    }\n    Some(kids[0])\n}\n";
+    let raw = nose_frontend::lower_source(
+        FileId(0),
+        "fragment.rs",
+        source.as_bytes(),
+        Lang::Rust,
+        &interner,
+    )
+    .expect("lower source");
+    let normalized = nose_normalize::normalize(
+        &raw,
+        &interner,
+        &nose_normalize::NormalizeOptions::default(),
+    );
+
+    let candidates = default_product_oracle_fragment_candidates(&raw, &normalized, &interner);
+    assert!(
+        candidates
+            .iter()
+            .any(|candidate| candidate.contract.kind == FragmentKind::ConditionalGuard),
+        "the audit surface must retain a recognized cardinality guard"
     );
 }
 

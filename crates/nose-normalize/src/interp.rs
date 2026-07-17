@@ -20,6 +20,7 @@
 
 use nose_il::{
     stable_symbol_hash, Builtin, HoFKind, Il, Interner, LoopKind, NodeId, NodeKind, Op, Payload,
+    Symbol,
 };
 use nose_semantics::{
     admitted_builtin_semantics_at_call_with_interner, builtin_demand_profile,
@@ -31,6 +32,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::hash::{Hash, Hasher};
 
 mod calls;
+mod control;
 mod eval;
 mod exec;
 mod field_state;
@@ -174,6 +176,20 @@ enum Flow {
     Err,
 }
 
+/// Terminal control channel of one interpreted unit execution.
+///
+/// Ordinary whole-function verification intentionally compares only [`Behavior`], preserving
+/// the established convention that an implicit null/void fallthrough and an explicit matching
+/// return are equivalent. Exact sub-function fragments additionally observe this channel: an
+/// early return from the enclosing function is not the same as falling through the fragment.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum UnitExit {
+    Fallthrough,
+    Return,
+    Error,
+}
+
 const STEP_BUDGET: u64 = 200_000;
 
 /// Symbolic-condition path exploration cap (#244): at most this many symbolic
@@ -203,6 +219,8 @@ struct Interp<'a> {
     steps: u64,
     effects: Vec<Value>,
     fields: FxHashMap<FieldKey, Value>,
+    /// Direct immutable module strings, proven by the shared module scope/mutation boundary.
+    globals: FxHashMap<Symbol, Value>,
     /// Parameter cids — appending to one is a caller-visible mutation (an effect); appending
     /// to a LOCAL list var builds that list's value (faithful, converges with a comprehension).
     params: FxHashSet<u32>,
@@ -234,9 +252,111 @@ fn callable_roots(il: &Il) -> Vec<NodeId> {
 /// branch condition bails (strict contract; see [`run_unit_paths`] for the
 /// exploring variant).
 pub fn run_unit(il: &Il, interner: &Interner, root: NodeId, args: &[Value]) -> Option<Behavior> {
-    run_unit_once(il, interner, root, args, callable_roots(il), None)
+    PreparedInterpreter::new(il, interner, true).run(root, args)
+}
+
+/// Strict single-path execution with its terminal control channel retained.
+///
+/// This is the fragment-oracle counterpart to [`run_unit`]. It does not widen interpreter
+/// support or guess at control: unsupported and symbolic conditions still return `None`.
+pub fn run_unit_observing_exit(
+    il: &Il,
+    interner: &Interner,
+    root: NodeId,
+    args: &[Value],
+) -> Option<(Behavior, UnitExit)> {
+    PreparedInterpreter::new(il, interner, true).run_observing_exit(root, args)
+}
+
+/// Immutable interpreter facts prepared once for repeated executions of one IL.
+///
+/// Behavioral verification runs every unit against a battery of rows. Callable roots and
+/// module-string bindings depend only on the IL, so rebuilding them for every row adds cost
+/// without changing semantics.
+pub struct PreparedInterpreter<'a> {
+    il: &'a Il,
+    interner: &'a Interner,
+    callable_roots: Vec<NodeId>,
+    globals: FxHashMap<Symbol, Value>,
+}
+
+impl<'a> PreparedInterpreter<'a> {
+    pub fn new(il: &'a Il, interner: &'a Interner, include_immutable_module_strings: bool) -> Self {
+        Self {
+            il,
+            interner,
+            callable_roots: callable_roots(il),
+            globals: immutable_module_string_globals(
+                il,
+                interner,
+                include_immutable_module_strings,
+            ),
+        }
+    }
+
+    pub fn run(&self, root: NodeId, args: &[Value]) -> Option<Behavior> {
+        self.run_observing_exit(root, args)
+            .map(|(behavior, _)| behavior)
+    }
+
+    pub fn run_observing_exit(&self, root: NodeId, args: &[Value]) -> Option<(Behavior, UnitExit)> {
+        run_unit_once(
+            self.il,
+            self.interner,
+            root,
+            args,
+            self.callable_roots.clone(),
+            self.globals.clone(),
+            None,
+        )
         .0
         .ok()
+    }
+
+    pub fn run_paths_diagnostic(
+        &self,
+        root: NodeId,
+        args: &[Value],
+    ) -> Result<Vec<Behavior>, InterpreterBlocker> {
+        self.run_paths_observing_exit_diagnostic(root, args)
+            .map(|paths| paths.into_iter().map(|(behavior, _)| behavior).collect())
+    }
+
+    pub fn run_paths_observing_exit_diagnostic(
+        &self,
+        root: NodeId,
+        args: &[Value],
+    ) -> Result<Vec<(Behavior, UnitExit)>, InterpreterBlocker> {
+        let mut out = Vec::new();
+        let mut prescribed: Vec<bool> = Vec::new();
+        loop {
+            let explore = Explore {
+                prescribed: prescribed.clone(),
+                ..Explore::default()
+            };
+            let (result, ex) = run_unit_once(
+                self.il,
+                self.interner,
+                root,
+                args,
+                self.callable_roots.clone(),
+                self.globals.clone(),
+                Some(explore),
+            );
+            let ex = ex.expect("explore state survives the run");
+            out.push(result.map_err(Unsupported::into_report)?);
+            let mut next = ex.taken;
+            while next.last() == Some(&false) {
+                next.pop();
+            }
+            match next.last_mut() {
+                Some(last) => *last = false,
+                None => break,
+            }
+            prescribed = next;
+        }
+        Ok(out)
+    }
 }
 
 /// Every behavior of the unit on `args`, one per explored symbolic-condition path
@@ -273,30 +393,61 @@ pub fn run_unit_paths_diagnostic(
     root: NodeId,
     args: &[Value],
 ) -> Result<Vec<Behavior>, InterpreterBlocker> {
-    let roots = callable_roots(il);
-    let mut out = Vec::new();
-    let mut prescribed: Vec<bool> = Vec::new();
-    loop {
-        let explore = Explore {
-            prescribed: prescribed.clone(),
-            ..Explore::default()
-        };
-        let (beh, ex) = run_unit_once(il, interner, root, args, roots.clone(), Some(explore));
-        let ex = ex.expect("explore state survives the run");
-        out.push(beh.map_err(Unsupported::into_report)?);
-        // Advance depth-first: flip the deepest `true` decision to `false`,
-        // dropping exhausted (`false`) tails — a binary counter over sites.
-        let mut next = ex.taken;
-        while next.last() == Some(&false) {
-            next.pop();
-        }
-        match next.last_mut() {
-            Some(last) => *last = false,
-            None => break,
-        }
-        prescribed = next;
+    run_unit_paths_diagnostic_with_module_strings(il, interner, root, args, true)
+}
+
+/// Soundness Lab replay variant with explicit immutable-module-string control.
+/// Product callers keep the shared module facts enabled; the flag only supports
+/// provenance-bound tranche ablations.
+pub fn run_unit_paths_diagnostic_with_module_strings(
+    il: &Il,
+    interner: &Interner,
+    root: NodeId,
+    args: &[Value],
+    include_immutable_module_strings: bool,
+) -> Result<Vec<Behavior>, InterpreterBlocker> {
+    PreparedInterpreter::new(il, interner, include_immutable_module_strings)
+        .run_paths_diagnostic(root, args)
+}
+
+/// Diagnostic path-exploring execution with terminal control retained for every path.
+///
+/// Exact fragments use this to distinguish an enclosing-function return from normal fragment
+/// completion while preserving the same deterministic path order and fail-closed budget as
+/// [`run_unit_paths_diagnostic`].
+pub fn run_unit_paths_observing_exit_diagnostic(
+    il: &Il,
+    interner: &Interner,
+    root: NodeId,
+    args: &[Value],
+) -> Result<Vec<(Behavior, UnitExit)>, InterpreterBlocker> {
+    run_unit_paths_observing_exit_diagnostic_with_module_strings(il, interner, root, args, true)
+}
+
+/// Exit-observing Soundness Lab replay variant with explicit immutable-module-string control.
+pub fn run_unit_paths_observing_exit_diagnostic_with_module_strings(
+    il: &Il,
+    interner: &Interner,
+    root: NodeId,
+    args: &[Value],
+    include_immutable_module_strings: bool,
+) -> Result<Vec<(Behavior, UnitExit)>, InterpreterBlocker> {
+    PreparedInterpreter::new(il, interner, include_immutable_module_strings)
+        .run_paths_observing_exit_diagnostic(root, args)
+}
+
+fn immutable_module_string_globals(
+    il: &Il,
+    interner: &Interner,
+    include: bool,
+) -> FxHashMap<Symbol, Value> {
+    if !include {
+        return FxHashMap::default();
     }
-    Ok(out)
+    crate::module_facts::immutable_module_string_bindings(il, interner)
+        .into_iter()
+        .map(|binding| (binding.name, Value::Str(vec![binding.literal_hash])))
+        .collect()
 }
 
 fn run_unit_once(
@@ -305,8 +456,9 @@ fn run_unit_once(
     root: NodeId,
     args: &[Value],
     callable_roots: Vec<NodeId>,
+    globals: FxHashMap<Symbol, Value>,
     explore: Option<Explore>,
-) -> (R<Behavior>, Option<Explore>) {
+) -> (R<(Behavior, UnitExit)>, Option<Explore>) {
     if il.kind(root) != NodeKind::Func {
         return (
             Err(Unsupported::il("il.root-not-function").with_frame(il, root, "root")),
@@ -319,6 +471,7 @@ fn run_unit_once(
         steps: 0,
         effects: Vec::new(),
         fields: FxHashMap::default(),
+        globals,
         params: FxHashSet::default(),
         callable_roots,
         explore,
@@ -358,10 +511,10 @@ fn run_unit_once(
             it.explore,
         );
     };
-    let ret = match it.exec(body, &mut env) {
-        Ok(Flow::Ret(v)) => v,
-        Ok(Flow::Err) => Value::Err,
-        Ok(_) => Value::Null,
+    let (ret, exit) = match it.exec(body, &mut env) {
+        Ok(Flow::Ret(v)) => (v, UnitExit::Return),
+        Ok(Flow::Err) => (Value::Err, UnitExit::Error),
+        Ok(_) => (Value::Null, UnitExit::Fallthrough),
         Err(blocker) => return (Err(blocker), it.explore),
     };
     let mut fields: Vec<(FieldKey, Value)> = it.fields.into_iter().collect();
@@ -371,62 +524,7 @@ fn run_unit_once(
         effects: it.effects,
         fields,
     };
-    (Ok(behavior), it.explore)
-}
-
-impl<'a> Interp<'a> {
-    fn tick(&mut self) -> R<()> {
-        self.steps += 1;
-        if self.steps > STEP_BUDGET {
-            Err(Unsupported::budget("budget.interpreter-steps"))
-        } else {
-            Ok(())
-        }
-    }
-
-    /// Truthiness of an If/ternary condition. A concrete value decides as usual.
-    /// A symbolic condition bails in strict mode; under #244 exploration it takes
-    /// the prescribed arm (or assumes `true` at a new site, depth-first) and
-    /// RECORDS the assumption as a `Sym` effect marker — so the decision is
-    /// conditioned, never guessed, and any cross-unit disagreement involving an
-    /// explored path stays in the advisory lane (the marker keeps the behavior
-    /// symbolic). Loop conditions deliberately stay strict: an assumption per
-    /// iteration is an unbounded chain, not a bounded fork.
-    fn cond_truthy(&mut self, v: &Value) -> R<bool> {
-        if let Some(t) = self.value_truthy(v) {
-            return Ok(t);
-        }
-        let Value::Sym(h) = v else {
-            return Err(Unsupported::value("value.condition-truthiness"));
-        };
-        let h = *h;
-        let Some(ex) = self.explore.as_mut() else {
-            return Err(Unsupported::value("value.symbolic-condition"));
-        };
-        if ex.taken.len() >= MAX_SYM_BRANCH_SITES {
-            ex.cap_hit = true;
-            return Err(Unsupported::budget("budget.symbolic-branch-sites"));
-        }
-        let taken = ex.prescribed.get(ex.taken.len()).copied().unwrap_or(true);
-        ex.taken.push(taken);
-        self.effects
-            .push(Value::Sym(sym_id(SYM_ASSUME, &[h, u64::from(taken)])));
-        Ok(taken)
-    }
-
-    /// Concrete truthiness with the source language's Number edge cases. JavaScript treats
-    /// NaN as falsy and every array object as truthy; Python deliberately does neither, so
-    /// these cases cannot live in the shared helper.
-    fn value_truthy(&self, v: &Value) -> Option<bool> {
-        if self.bitwise_result_is_int32() {
-            match v {
-                Value::Float(value) if value.0.is_nan() => return Some(false),
-                Value::List(_) => return Some(true),
-                _ => {}
-            }
-        }
-        truthy(v)
-    }
+    (Ok((behavior, exit)), it.explore)
 }
 
 #[cfg(test)]

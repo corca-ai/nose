@@ -92,6 +92,30 @@ oracle, not only by the detector gate. The remaining genuine gap is *mixed* stri
 **coercion** rows (a string and a number to the same family of params), which need
 type-domain-aware feeding to avoid manufacturing impossible inputs (§7).
 
+### 1.2 Exact projections added for the 0.20 frozen cohort
+
+The declared domain is still the default and the hard-lane comparison key. A narrower executable
+projection is allowed only when a local proof shows that it preserves every observation made by
+that unit:
+
+- `Cardinality` is fragment-local. Every occurrence of the free input must be the sole argument
+  of an admitted `Len` node. Bounded representative lists exercise this quotient without
+  pretending that erased element values or every possible length are covered. Any element read,
+  index, iteration, mutation, or opaque call use falls back to `Declared` and remains unhosted
+  where necessary.
+- `UnusedTrailing` is whole-function-local. Only a contiguous unread parameter suffix may be
+  removed from the effective input contract, and normalized/core IL must agree. Leading or
+  interior holes and nested captures remain `Declared`, preserving positional binding. The raw
+  frontend must also prove plain binding syntax: defaulted, splat/rest, destructured, or otherwise
+  non-plain parameters carry `ParameterShape(NonPlain)` evidence and remain `Declared`. Keeping
+  this evidence outside the node tree prevents an oracle-only proof from changing product output.
+
+The expansion also hosts exact Swift `String` while leaving `Substring` and `Character`
+unsupported. Fragment wrappers may copy an immutable module string only through the shared
+module-scope and mutation proof; reassignment removes the fact instead of selecting either value.
+See [Soundness Lab §0.20](soundness-lab.md#020-pareto-oracle-expansion-859) for the frozen-pair
+measurements and fail-closed boundaries.
+
 ---
 
 ## 2. The three findings, re-scoped

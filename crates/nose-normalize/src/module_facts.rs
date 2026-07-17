@@ -5,6 +5,43 @@ use nose_semantics::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
+mod immutable_string;
+pub use immutable_string::{immutable_module_string_bindings, ImmutableModuleStringBinding};
+
+pub(crate) fn top_level_node_bitmap(il: &Il, top_level: &[NodeId]) -> Vec<bool> {
+    let mut bitmap = vec![false; il.nodes.len()];
+    for &statement in top_level {
+        if let Some(slot) = bitmap.get_mut(statement.0 as usize) {
+            *slot = true;
+        }
+    }
+    bitmap
+}
+
+pub(crate) fn assignment_name_counts(
+    top_level: &[NodeId],
+    mut name_for: impl FnMut(NodeId) -> Option<Symbol>,
+) -> FxHashMap<Symbol, usize> {
+    let mut counts = FxHashMap::default();
+    for &statement in top_level {
+        if let Some(name) = name_for(statement) {
+            *counts.entry(name).or_insert(0usize) += 1;
+        }
+    }
+    counts
+}
+
+pub(crate) fn unique_non_unit_assignment_names(
+    il: &Il,
+    counts: &FxHashMap<Symbol, usize>,
+) -> FxHashSet<Symbol> {
+    let unit_symbols: FxHashSet<Symbol> = il.units.iter().filter_map(|unit| unit.name).collect();
+    counts
+        .iter()
+        .filter_map(|(&name, &count)| (count == 1 && !unit_symbols.contains(&name)).then_some(name))
+        .collect()
+}
+
 /// Whether the module-level binding `name` is mutated ANYWHERE in the file — a
 /// non-top-level assignment (e.g. `global name; name = other` inside a function, a bare
 /// reassignment in a JS function), a receiver-mutation call, or an opaque argument

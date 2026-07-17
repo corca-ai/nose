@@ -18,8 +18,8 @@ use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind, Place};
 use nose_il::{stable_symbol_hash, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
-    builder_append_call, exact_java_this_var, exact_non_overloadable_index_assignment,
-    exact_self_field_write_assignment,
+    admitted_builder_append_call_args, exact_java_this_var,
+    exact_non_overloadable_index_assignment, exact_self_field_write_assignment,
 };
 
 /// Fragment kinds that have been migrated onto the contract path. The differential gate
@@ -97,6 +97,35 @@ pub(crate) fn recognize_contract(
     }
 }
 
+/// Enumerate every migrated fragment contract recognized in `il`.
+///
+/// Product extraction remains the admission authority. This narrower public audit surface lets
+/// the offline oracle span-match an admitted fully-normalized fragment to its pre-canonical core
+/// counterpart without duplicating the recognizer or relying on arena node ids lining up.
+pub fn recognized_contracts(il: &Il, interner: &Interner) -> Vec<FragmentContract> {
+    let parents = crate::units::build_parent_index(il);
+    let mut contracts = Vec::new();
+    let mut stack = vec![il.root];
+    while let Some(node) = stack.pop() {
+        if matches!(
+            il.kind(node),
+            NodeKind::Return
+                | NodeKind::Throw
+                | NodeKind::Assign
+                | NodeKind::ExprStmt
+                | NodeKind::If
+                | NodeKind::Loop
+                | NodeKind::Block
+        ) {
+            if let Some(contract) = recognize_contract(il, node, &parents, interner) {
+                contracts.push(contract);
+            }
+        }
+        stack.extend(il.children(node).iter().rev().copied());
+    }
+    contracts
+}
+
 /// Classify an assignment-effect fragment: a non-overloadable index write (C/Go/Java) or a
 /// Java fixed-receiver `this.field` write. The two shapes are structurally disjoint.
 fn recognize_assignment_effect(
@@ -156,7 +185,7 @@ fn expr_effect_shape(il: &Il, kids: &[NodeId]) -> bool {
 }
 
 fn is_append_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    builder_append_call(il, interner, node)
+    admitted_builder_append_call_args(il, interner, node).is_some()
 }
 
 fn effect_contract(

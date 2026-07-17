@@ -1,8 +1,12 @@
+use super::domains::domain_pool;
 use super::*;
 use nose_il::{
     EvidenceAnchor, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus,
-    FileId, FileMeta, IlBuilder, Lang, Op, Span,
+    FileId, FileMeta, IlBuilder, Lang, NodeKind, Op, Payload, Span,
 };
+
+mod domains;
+mod projections;
 
 fn set_param_domain(il: &mut Il, root: NodeId, domain: DomainEvidence) {
     let params: Vec<NodeId> = il
@@ -244,17 +248,21 @@ fn javascript_int32_width_difference_is_found_automatically() {
 fn mutation_coordinates_are_falsified_with_collection_inputs() {
     let (first, interner, first_root) = mutation_at(0);
     let (second, _, second_root) = mutation_at(1);
-    assert!(concrete_disagreement(
-        &first,
-        first_root,
-        &second,
-        second_root,
-        &interner,
-        &[
-            Value::List(vec![Value::Int(1), Value::Int(2)]),
-            Value::Int(9),
-        ],
-    ));
+    let replay = ReplayPair {
+        left: ReplayUnit {
+            interpreter: PreparedInterpreter::new(&first, &interner, true),
+            root: first_root,
+        },
+        right: ReplayUnit {
+            interpreter: PreparedInterpreter::new(&second, &interner, true),
+            root: second_root,
+        },
+        observe_exit: false,
+    };
+    assert!(replay.concrete_disagreement(&[
+        Value::List(vec![Value::Int(1), Value::Int(2)]),
+        Value::Int(9),
+    ]));
     let witness = falsify_pair(
         &first,
         first_root,
@@ -320,14 +328,18 @@ fn signed_zero_outputs_are_observable_but_nan_payloads_are_canonical() {
     let (mut negate, _, negate_root) = unary_float(true, Lang::Python);
     set_param_domain(&mut identity, identity_root, DomainEvidence::Float);
     set_param_domain(&mut negate, negate_root, DomainEvidence::Float);
-    assert!(concrete_disagreement(
-        &identity,
-        identity_root,
-        &negate,
-        negate_root,
-        &interner,
-        &[Value::Float(F64(0.0))],
-    ));
+    let replay = ReplayPair {
+        left: ReplayUnit {
+            interpreter: PreparedInterpreter::new(&identity, &interner, true),
+            root: identity_root,
+        },
+        right: ReplayUnit {
+            interpreter: PreparedInterpreter::new(&negate, &interner, true),
+            root: negate_root,
+        },
+        observe_exit: false,
+    };
+    assert!(replay.concrete_disagreement(&[Value::Float(F64(0.0))]));
     assert!(falsify_pair(
         &identity,
         identity_root,
@@ -386,55 +398,6 @@ fn unhosted_domains_and_missing_static_evidence_never_produce_a_hard_witness() {
         DEFAULT_FALSIFY_SEED,
     )
     .is_some());
-}
-
-#[test]
-fn erased_static_width_and_payload_domains_fail_closed() {
-    use DomainEvidence as D;
-    for (lang, source_type, expected) in [
-        (Lang::Rust, "x: u8", D::Integer),
-        (Lang::Java, "byte x", D::Integer),
-        (Lang::Swift, "x: UInt8", D::Integer),
-        (Lang::Swift, "x: Character", D::String),
-        (Lang::Rust, "xs: Vec<i32>", D::Collection),
-        (Lang::Rust, "x: Option<i32>", D::Option),
-    ] {
-        assert_eq!(
-            nose_semantics::type_domain_from_source_text(lang, source_type),
-            Some(expected)
-        );
-        assert!(!domains_are_hosted(lang, &[Some(expected)]));
-    }
-    for lang in [Lang::Rust, Lang::Java, Lang::Swift, Lang::Go, Lang::C] {
-        for domain in [D::Integer, D::Float, D::Collection, D::Iterable, D::Option] {
-            assert!(
-                !domains_are_hosted(lang, &[Some(domain)]),
-                "{lang:?} {domain:?} loses source constraints"
-            );
-        }
-    }
-    assert!(domains_are_hosted(
-        Lang::Python,
-        &[Some(D::Integer), Some(D::Float)]
-    ));
-    assert!(domains_are_hosted(Lang::Rust, &[Some(D::String)]));
-    assert!(domains_are_hosted(Lang::TypeScript, &[Some(D::Number)]));
-
-    let (mut rust_a, interner, rust_a_root) = two_arg_binop(Op::BitAnd, (0, 1), Lang::Rust);
-    let (mut rust_b, _, rust_b_root) = two_arg_binop(Op::BitAnd, (1, 0), Lang::Rust);
-    set_param_domain(&mut rust_a, rust_a_root, D::Integer);
-    set_param_domain(&mut rust_b, rust_b_root, D::Integer);
-    assert!(falsify_pair(
-        &rust_a,
-        rust_a_root,
-        &rust_b,
-        rust_b_root,
-        &interner,
-        &[],
-        64,
-        DEFAULT_FALSIFY_SEED,
-    )
-    .is_none());
 }
 
 #[test]
@@ -559,36 +522,4 @@ fn identical_units_have_no_distinguisher() {
         DEFAULT_FALSIFY_SEED,
     )
     .is_none());
-}
-
-#[test]
-fn every_supported_domain_has_distinct_boundary_values() {
-    use DomainEvidence as D;
-    let domains = [D::Integer, D::Float, D::Number, D::Boolean, D::String];
-    for domain in domains {
-        let pool = domain_pool(Some(domain), &[]);
-        assert!(pool.len() >= 2, "{domain:?} domain is under-sampled");
-        assert!(pool.iter().all(|value| value_conforms(value, Some(domain))));
-    }
-    let float_receipts: Vec<String> = float_values().iter().map(format_value).collect();
-    assert!(float_receipts.contains(&"float:0e0".to_string()));
-    assert!(float_receipts.contains(&"float:-0".to_string()));
-    assert!(float_receipts.contains(&"float:nan".to_string()));
-
-    for domain in [
-        D::Array,
-        D::ByteArray,
-        D::Collection,
-        D::FutureLike,
-        D::Iterable,
-        D::Iterator,
-        D::Map,
-        D::Option,
-        D::PromiseLike,
-        D::Record,
-        D::Result,
-        D::Set,
-    ] {
-        assert!(domain_pool(Some(domain), &[]).is_empty());
-    }
 }

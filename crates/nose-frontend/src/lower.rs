@@ -88,10 +88,11 @@ use nose_il::{
     stable_symbol_hash, BoundOrderGuardActivation, Builtin, DomainEvidence, EffectEvidenceKind,
     EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord,
     EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, Il, IlBuilder, ImportEvidenceKind,
-    Interner, Lang, LibraryApiEvidenceKind, LitClass, NodeId, NodeKind, Op, Payload,
-    PlaceEvidenceKind, RegionKind, SequenceSurfaceKind, SourceCallKind, SourceComprehensionKind,
-    SourceFactKind, SourceGranularity, SourceProtocolKind, Span, Symbol, SymbolEvidenceKind, Unit,
-    UnitBodyKind, UnitDomain, UnitDomains, UnitEvidenceFlag, UnitKind, UnitOrigin, UnitSubkind,
+    Interner, Lang, LibraryApiEvidenceKind, LitClass, NodeId, NodeKind, Op,
+    ParameterShapeEvidenceKind, Payload, PlaceEvidenceKind, RegionKind, SequenceSurfaceKind,
+    SourceCallKind, SourceComprehensionKind, SourceFactKind, SourceGranularity, SourceProtocolKind,
+    Span, Symbol, SymbolEvidenceKind, Unit, UnitBodyKind, UnitDomain, UnitDomains,
+    UnitEvidenceFlag, UnitKind, UnitOrigin, UnitSubkind,
 };
 use nose_semantics::{
     binding_write_target, js_object_key_view_argument_dependency_ids_for_call,

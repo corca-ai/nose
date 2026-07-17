@@ -495,7 +495,7 @@ fn admit_test_self_field(
     interner: &Interner,
     receiver: NodeId,
     field: NodeId,
-    field_name: nose_il::Symbol,
+    field_name: Symbol,
     first_id: u32,
 ) -> EvidenceId {
     let receiver_id = EvidenceId(first_id);
@@ -527,7 +527,7 @@ fn admit_test_self_field_write(
     receiver: NodeId,
     field: NodeId,
     assign: NodeId,
-    field_name: nose_il::Symbol,
+    field_name: Symbol,
     first_id: u32,
 ) {
     let field_id = admit_test_self_field(il, interner, receiver, field, field_name, first_id);

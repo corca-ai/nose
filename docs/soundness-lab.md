@@ -187,6 +187,97 @@ scorecard also reports each language independently; aggregate gain cannot make
 an uncovered Tier-A cell disappear. A future exact claim must add its required
 cells; it may not reuse the frozen denominator to avoid new proof work.
 
+## 0.20 Pareto oracle expansion (#859)
+
+Three bounded tranches expand executable coverage without guessing through an unsupported value
+or changing the frozen denominator:
+
+| tranche | newly verified frozen pairs | macro delta |
+| --- | ---: | ---: |
+| fragment cardinality quotient | `13` | `+8.1105 pp` |
+| immutable Swift module `String` | `1` | `+6.0606 pp` |
+| unread trailing parameters | `4` | `+8.2576 pp` |
+
+Together they move the frozen score from `17/97` (`23.33%` risk-weighted macro coverage) to
+`35/97` (`45.76%`) with no false merge, canon violation, baseline-pair regression, denominator
+change, or per-language regression. This exceeds the `42.50%` release target. Three checked
+artifacts bind the evidence: the
+[overlay](../bench/soundness/0.20.0/oracle-expansion-overlay.v2.json), the compact
+[receipt](../bench/soundness/0.20.0/oracle-expansion-859.v1.json), and the recorded
+[falsification output](../bench/soundness/0.20.0/oracle-expansion-falsification-859.v1.txt). Together
+they bind the final ledger, the hashes of all four raw replay cohorts, and the exact implementation
+`crates` tree. Raw multi-megabyte unit dumps remain local measurement inputs rather than permanent
+repository payload.
+
+The cardinality quotient is available only when every occurrence of a fragment input is the sole
+argument of an admitted `Len`. Element observation, indexing, iteration, mutation, or opaque use
+falls back to the declared domain. Fragment execution also records terminal control, so an early
+enclosing-function return cannot collapse into normal fallthrough.
+
+The Swift lane copies a direct immutable module string into a fragment wrapper only when the
+frontend proves a `let` declaration and shared module-scope analysis proves a unique, unmodified
+binding. `var`, reassignment, local shadowing, `Substring`, `Character`, and ambiguous
+`String`/import surfaces remain unsupported.
+
+The arity lane erases only a contiguous suffix of whole-function parameters for which neither
+normalized nor canonical IL contains a read. An inner closure capture counts as a read. Unused
+leading or interior parameters, a used trailing parameter, or disagreement between the two IL
+forms keeps the entire positional contract declared. Defaulted, splat/rest, destructured, and
+otherwise non-plain source parameters also remain declared through parameter-shape evidence that
+does not enter the product node tree. The fixed battery still executes the full function; only
+hard-lane domain comparison and falsification omit the proven unread suffix.
+
+The final one-thread falsification replay covers `13,283` units, of which `2,520` are
+interpretable. It checks all `63` eligible pairs, skips none, executes `25,766` cases, and finds
+zero new distinguishers, hard false merges, or canon violations. Diagnostic completeness moves
+from the release tree's `63/180` to `108/222`; all eight under-merged behavior groups remain below
+the `0.70` structurally-near threshold.
+
+Performance is measured against the published v0.19.0 arm64 binary, not a branch-local build. On
+the seven repositories inherited from the #846 regression frontier, the final-candidate
+9-iteration default-query aggregate is control-adjusted `+14.48 ms / +0.16%`, within the aggregate
+threshold. A 40-iteration focused run on the pre-cleanup candidate was also aggregate-safe at
+`+96.66 ms / +1.14%`; the final candidate preserves its output hashes on all seven repositories.
+The stage gate still reproduces the previously registered `query_opp` and related signals owned by
+[#892](https://github.com/corca-ai/nose/issues/892); #859 neither hides nor expands that issue.
+A direct pre-#859 `main` replay is byte-identical on all seven repositories, while the duplicated
+float-chain evaluation found during profiling is removed. The Swift-heavy Alamofire `verify`
+probe is control-adjusted `+33.19 ms`, below the existing `50 ms` materiality floor while emitting
+substantially more oracle evidence. The compact [performance
+receipt](../bench/recall_loss/issue-859-official-v0.19.0-performance-2026-07-17.v1.json) records
+binary, corpus, raw-run hashes, measurements, and the explicit #892 boundary. Its exact [drift
+manifest](../bench/recall_loss/issue-859-official-v0.19.0-expected-drift-2026-07-17.v1.json) defines
+acceptance only for output already present at the pre-#859 boundary.
+
+To replay the final #859 cohort from the clean release worktree:
+
+```sh
+root="$(pwd)"
+release_root="$root/target/soundness-lab/clean-v0.19.0"
+cargo build -p nose-cli
+
+(
+  cd "$release_root"
+  RAYON_NUM_THREADS=1 "$root/target/debug/nose" verify crates \
+    --json --max-violations 0 \
+    --soundness-tranche unused-trailing-parameters \
+    > "$root/target/issue-859/units.json"
+  RAYON_NUM_THREADS=1 "$root/target/debug/nose" verify crates \
+    --max-violations 0 --falsify \
+    > "$root/target/issue-859/falsification.txt" 2>&1
+)
+
+python3 scripts/check-soundness-scorecard.py --evaluate \
+  --units target/issue-859/units.json \
+  --source-root "$release_root" \
+  --output target/issue-859/overlay.v2.json
+python3 scripts/check-soundness-scorecard.py
+```
+
+`--soundness-tranche` is an internal cumulative replay control, not a supported product option.
+Ordinary `verify` uses the final tranche. The default scorecard check validates the frozen
+baseline and the committed expansion receipt together.
+
 ## Reproduce and validate
 
 Use the published binary, the exact release source tree, and all pinned

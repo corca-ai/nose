@@ -10,9 +10,9 @@
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
     stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceKind, FileId, Il, Interner, Lang,
-    LitClass, LoopKind, NodeId, NodeKind, Op, Payload, RegionKind, SourceGranularity,
-    SourceProtocolKind, Span, Symbol, TypeEvidenceKind, UnitBodyKind, UnitDomain, UnitDomains,
-    UnitEvidenceFlag, UnitKind, UnitOrigin, UnitSubkind,
+    LitClass, LoopKind, NodeId, NodeKind, Op, Payload, RegionKind, SourceBindingKind,
+    SourceFactKind, SourceGranularity, SourceProtocolKind, Span, Symbol, TypeEvidenceKind,
+    UnitBodyKind, UnitDomain, UnitDomains, UnitEvidenceFlag, UnitKind, UnitOrigin, UnitSubkind,
 };
 use nose_semantics::{
     SWIFT_ALL_SATISFY_DISPATCH_BARRIER_MARKER, SWIFT_COMPACT_MAP_DISPATCH_BARRIER_MARKER,
@@ -29,10 +29,11 @@ mod items;
 mod lambdas;
 mod properties;
 mod statements;
+mod string_proofs;
 
 use self::{
     calls::*, dispatch_barriers::*, expressions::*, helpers::*, items::*, lambdas::*,
-    properties::*, statements::*,
+    properties::*, statements::*, string_proofs::*,
 };
 
 pub(crate) fn lower(

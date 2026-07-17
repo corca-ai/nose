@@ -18,6 +18,11 @@ pub enum SourceFactKind {
 /// seeding, inlining) must see these and fail closed.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum SourceBindingKind {
+    /// A source declaration whose binding keyword makes the value immutable.
+    /// This is intentionally narrower than "not reassigned in this file": languages such as
+    /// Swift distinguish `let` from externally mutable module `var` declarations even when no
+    /// second assignment appears in the analyzed file.
+    ImmutableDeclaration,
     /// A decorated definition's runtime binding is `decorator(f)`, not `f` — lowering
     /// keeps only the inner body (sound for unit-shape analysis) (coevo series 6, S2-A).
     DecoratedDefinition,

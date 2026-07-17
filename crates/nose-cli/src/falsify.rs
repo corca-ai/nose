@@ -5,9 +5,17 @@
 //! A concrete disagreement is shrunk in a stable order and printed with its seed, making nightly
 //! failures byte-reproducible without adding code to the shipped query path.
 
-use nose_il::{DomainEvidence, Il, Interner, Lang, NodeId, NodeKind, Payload};
-use nose_normalize::{behavior_has_sym, run_unit, Behavior, Value, F64};
+use nose_il::{DomainEvidence, Il, Interner, NodeId};
+#[cfg(test)]
+use nose_normalize::run_unit;
+use nose_normalize::{behavior_has_sym, Behavior, PreparedInterpreter, Value, F64};
 use std::collections::HashSet;
+
+mod domains;
+#[cfg(test)]
+use domains::domains_are_hosted;
+pub(crate) use domains::{domains_are_hosted_with_projections, effective_domain_contract};
+use domains::{parameter_domains, projected_domain_pool, relation_rows};
 
 pub(crate) const DEFAULT_FALSIFY_SEED: u64 = 0x4e4f_5345_0020_0000;
 
@@ -20,220 +28,11 @@ pub(crate) struct FalsifyWitness {
     pub(crate) shrunk_inputs: Vec<Value>,
 }
 
-fn parameter_domains(il: &Il, root: NodeId) -> Vec<Option<DomainEvidence>> {
-    il.children(root)
-        .iter()
-        .filter(|&&child| {
-            il.kind(child) == NodeKind::Param && matches!(il.node(child).payload, Payload::Cid(_))
-        })
-        .map(|&param| nose_semantics::domain_evidence_for_param(il, param))
-        .collect()
-}
-
-fn integer_values() -> Vec<Value> {
-    vec![
-        Value::Int(0),
-        Value::Int(1),
-        Value::Int(-1),
-        Value::Int(i32::MAX as i64),
-        Value::Int(i32::MIN as i64),
-        Value::Int(0x1_0000_0000),
-        Value::Int(-0x1_0000_0001),
-        Value::Int(0xF_0000_0003),
-        Value::Int(0xF_0000_0005),
-    ]
-}
-
-fn float_values() -> Vec<Value> {
-    vec![
-        Value::Float(F64(0.0)),
-        Value::Float(F64(-0.0)),
-        Value::Float(F64(1.0)),
-        Value::Float(F64(-1.0)),
-        Value::Float(F64(4_503_599_627_370_495.5)),
-        Value::Float(F64(1e16)),
-        Value::Float(F64(-1e16)),
-        Value::Float(F64(f64::NAN)),
-        Value::Float(F64(f64::INFINITY)),
-        Value::Float(F64(f64::NEG_INFINITY)),
-    ]
-}
-
-fn string_values() -> Vec<Value> {
-    vec![
-        Value::Str(Vec::new()),
-        Value::Str(vec![0x5EED_0001]),
-        Value::Str(vec![0x5EED_0002]),
-        Value::Str(vec![0x5EED_0001, 0x5EED_0001]),
-    ]
-}
-
-fn collection_values() -> Vec<Value> {
-    vec![
-        Value::List(Vec::new()),
-        Value::List(vec![Value::Int(0)]),
-        Value::List(vec![Value::Int(1), Value::Int(2)]),
-        Value::List(vec![Value::Int(2), Value::Int(1)]),
-        Value::List(vec![Value::Int(1), Value::Int(1)]),
-        Value::List(vec![Value::Str(vec![0x5EED_0001])]),
-    ]
-}
-
-fn push_unique(values: &mut Vec<Value>, value: Value) {
-    if !values.contains(&value) {
-        values.push(value);
-    }
-}
-
-fn domain_pool(domain: Option<DomainEvidence>, probes: &[Value]) -> Vec<Value> {
-    use DomainEvidence as D;
-    let mut values = match domain {
-        Some(D::Integer) => integer_values(),
-        Some(D::Float) => float_values(),
-        Some(D::Number) => {
-            let mut values = float_values();
-            for integer in integer_values() {
-                let Value::Int(integer) = integer else {
-                    unreachable!("integer pool contains only integers")
-                };
-                push_unique(&mut values, Value::Float(F64(integer as f64)));
-            }
-            values
-        }
-        Some(D::Boolean) => vec![Value::Bool(false), Value::Bool(true)],
-        Some(D::String) => string_values(),
-        Some(
-            D::Array
-            | D::ByteArray
-            | D::Collection
-            | D::FutureLike
-            | D::Iterable
-            | D::Iterator
-            | D::Map
-            | D::Nominal { .. }
-            | D::Option
-            | D::PromiseLike
-            | D::Record
-            | D::Result
-            | D::Set,
-        ) => Vec::new(),
-        None => {
-            let mut values = integer_values();
-            values.extend(float_values());
-            values.extend([Value::Bool(false), Value::Bool(true), Value::Null]);
-            values.extend(string_values());
-            values.extend(collection_values());
-            values
-        }
-    };
-    for probe in probes {
-        if value_conforms(probe, domain) {
-            push_unique(&mut values, probe.clone());
-        }
-    }
-    values
-}
-
-fn value_conforms(value: &Value, domain: Option<DomainEvidence>) -> bool {
-    use DomainEvidence as D;
-    match domain {
-        None => true,
-        Some(D::Integer) => matches!(value, Value::Int(_)),
-        Some(D::Float) => matches!(value, Value::Float(_)),
-        Some(D::Number) => matches!(value, Value::Float(_)),
-        Some(D::Boolean) => matches!(value, Value::Bool(_)),
-        Some(D::String) => matches!(value, Value::Str(_)),
-        Some(
-            D::Array
-            | D::ByteArray
-            | D::Collection
-            | D::FutureLike
-            | D::Iterable
-            | D::Iterator
-            | D::Map
-            | D::Nominal { .. }
-            | D::Option
-            | D::PromiseLike
-            | D::Record
-            | D::Result
-            | D::Set,
-        ) => false,
-    }
-}
-
-/// Whether every declared input domain has a concrete representation in the current oracle.
-/// `None` is a mixed runtime domain only for a dynamically typed language; elsewhere it is
-/// missing evidence. Parameterized containers/options and explicit Set/byte/iterator/map/record/
-/// future-like domains also stay out until their erased element/payload invariants are retained.
-/// Integer/float evidence is hosted only for languages whose runtime scalar has no erased static
-/// width/sign; treating Rust `u8` and `i64` as one domain would manufacture impossible inputs.
-/// Swift strings also stay out because source recovery currently erases `Character` into String.
-pub(crate) fn domains_are_hosted(lang: Lang, domains: &[Option<DomainEvidence>]) -> bool {
-    use DomainEvidence as D;
-    domains.iter().all(|domain| match domain {
-        None => nose_semantics::semantics(lang).is_dynamically_typed(),
-        Some(D::Boolean) => true,
-        Some(D::String) => lang != Lang::Swift,
-        Some(D::Integer | D::Float) => matches!(
-            lang,
-            Lang::Python | Lang::Ruby | Lang::JavaScript | Lang::Vue | Lang::Svelte | Lang::Html
-        ),
-        // Source type recovery emits `Number` only for TypeScript's IEEE-754 runtime number;
-        // even integer-valued rows are promoted to Float before execution.
-        Some(D::Number) => lang == Lang::TypeScript,
-        Some(
-            D::Array
-            | D::ByteArray
-            | D::Collection
-            | D::FutureLike
-            | D::Iterable
-            | D::Iterator
-            | D::Map
-            | D::Nominal { .. }
-            | D::Option
-            | D::PromiseLike
-            | D::Record
-            | D::Result
-            | D::Set,
-        ) => false,
-    })
-}
-
-fn relation_rows(domains: &[Option<DomainEvidence>], arity: usize) -> Vec<Vec<Value>> {
-    let mut rows = Vec::new();
-    let neutral = |index: usize| domain_pool(domains.get(index).copied().flatten(), &[])[0].clone();
-    let row_with = |overrides: &[(usize, Value)]| {
-        let mut row: Vec<Value> = (0..arity).map(&neutral).collect();
-        for (index, value) in overrides {
-            row[*index] = value.clone();
-        }
-        row
-    };
-    let accepts =
-        |index: usize, value: &Value| value_conforms(value, domains.get(index).copied().flatten());
-
-    let string_a = Value::Str(vec![0x5EED_0001]);
-    let string_b = Value::Str(vec![0x5EED_0002]);
-    if arity >= 2 && accepts(0, &string_a) && accepts(1, &string_b) {
-        rows.push(row_with(&[(0, string_a), (1, string_b)]));
-    }
-    let list_a = Value::List(vec![Value::Int(1), Value::Int(2)]);
-    let list_b = Value::List(vec![Value::Int(2), Value::Int(1)]);
-    if arity >= 2 && accepts(0, &list_a) && accepts(1, &list_b) {
-        rows.push(row_with(&[(0, list_a), (1, list_b)]));
-    }
-    let high_a = Value::Int(0xF_0000_0003);
-    let high_b = Value::Int(0xF_0000_0005);
-    if arity >= 2 && accepts(0, &high_a) && accepts(1, &high_b) {
-        rows.push(row_with(&[(0, high_a), (1, high_b)]));
-    }
-    let float_a = Value::Float(F64(1e16));
-    let float_b = Value::Float(F64(-1e16));
-    let float_c = Value::Float(F64(1.0));
-    if arity >= 3 && accepts(0, &float_a) && accepts(1, &float_b) && accepts(2, &float_c) {
-        rows.push(row_with(&[(0, float_a), (1, float_b), (2, float_c)]));
-    }
-    rows
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum FalsifyOutcome {
+    Witness(FalsifyWitness),
+    Exhausted { cases: usize },
+    Skipped { reason: &'static str },
 }
 
 fn rotate<T>(values: &mut [T], seed: u64) {
@@ -249,21 +48,40 @@ fn splitmix64(mut value: u64) -> u64 {
     value ^ (value >> 31)
 }
 
-fn concrete_disagreement(
-    il_a: &Il,
-    root_a: NodeId,
-    il_b: &Il,
-    root_b: NodeId,
-    interner: &Interner,
-    row: &[Value],
-) -> bool {
-    let (Some(behavior_a), Some(behavior_b)) = (
-        run_unit(il_a, interner, root_a, row),
-        run_unit(il_b, interner, root_b, row),
-    ) else {
-        return false;
-    };
-    behaviors_concretely_differ(&behavior_a, &behavior_b)
+struct ReplayUnit<'a> {
+    interpreter: PreparedInterpreter<'a>,
+    root: NodeId,
+}
+
+struct ReplayPair<'a> {
+    left: ReplayUnit<'a>,
+    right: ReplayUnit<'a>,
+    observe_exit: bool,
+}
+
+impl ReplayPair<'_> {
+    fn concrete_disagreement(&self, row: &[Value]) -> bool {
+        if self.observe_exit {
+            let (Some((behavior_a, exit_a)), Some((behavior_b, exit_b))) = (
+                self.left
+                    .interpreter
+                    .run_observing_exit(self.left.root, row),
+                self.right
+                    .interpreter
+                    .run_observing_exit(self.right.root, row),
+            ) else {
+                return false;
+            };
+            return exit_a != exit_b || behaviors_concretely_differ(&behavior_a, &behavior_b);
+        }
+        let (Some(behavior_a), Some(behavior_b)) = (
+            self.left.interpreter.run(self.left.root, row),
+            self.right.interpreter.run(self.right.root, row),
+        ) else {
+            return false;
+        };
+        behaviors_concretely_differ(&behavior_a, &behavior_b)
+    }
 }
 
 fn behaviors_concretely_differ(a: &Behavior, b: &Behavior) -> bool {
@@ -304,17 +122,21 @@ fn values_falsification_equal(a: &Value, b: &Value) -> bool {
 }
 
 fn shrink(
-    il_a: &Il,
-    root_a: NodeId,
-    il_b: &Il,
-    root_b: NodeId,
-    interner: &Interner,
+    replay: &ReplayPair<'_>,
     domains: &[Option<DomainEvidence>],
+    projections: &[nose_detect::OracleInputProjection],
     original: &[Value],
 ) -> Vec<Value> {
     let mut current = original.to_vec();
     for index in 0..current.len() {
-        let candidates = domain_pool(domains.get(index).copied().flatten(), &[]);
+        let candidates = projected_domain_pool(
+            domains.get(index).copied().flatten(),
+            projections
+                .get(index)
+                .copied()
+                .unwrap_or(nose_detect::OracleInputProjection::Declared),
+            &[],
+        );
         let upper = candidates
             .iter()
             .position(|candidate| candidate == &current[index])
@@ -322,7 +144,7 @@ fn shrink(
         for candidate in candidates.into_iter().take(upper) {
             let mut attempt = current.clone();
             attempt[index] = candidate;
-            if concrete_disagreement(il_a, root_a, il_b, root_b, interner, &attempt) {
+            if replay.concrete_disagreement(&attempt) {
                 current = attempt;
                 break;
             }
@@ -334,6 +156,7 @@ fn shrink(
 /// Search for a concrete distinguishing input. Declared domains must agree exactly; callers may
 /// not use a hash collision or a cross-domain execution as hard soundness evidence.
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 pub(crate) fn falsify_pair(
     il_a: &Il,
     root_a: NodeId,
@@ -344,21 +167,143 @@ pub(crate) fn falsify_pair(
     budget: usize,
     seed: u64,
 ) -> Option<FalsifyWitness> {
-    let domains = parameter_domains(il_a, root_a);
-    if domains != parameter_domains(il_b, root_b)
-        || !domains_are_hosted(il_a.meta.lang, &domains)
-        || !domains_are_hosted(il_b.meta.lang, &domains)
+    let domains_a = parameter_domains(il_a, root_a);
+    let domains_b = parameter_domains(il_b, root_b);
+    if !domains_are_hosted(il_a.meta.lang, &domains_a)
+        || !domains_are_hosted(il_b.meta.lang, &domains_b)
     {
         return None;
     }
+    let projections_a = vec![nose_detect::OracleInputProjection::Declared; domains_a.len()];
+    let projections_b = vec![nose_detect::OracleInputProjection::Declared; domains_b.len()];
+    match falsify_pair_inner(
+        il_a,
+        root_a,
+        il_b,
+        root_b,
+        interner,
+        probes,
+        budget,
+        seed,
+        &domains_a,
+        &projections_a,
+        &domains_b,
+        &projections_b,
+        false,
+        true,
+    ) {
+        FalsifyOutcome::Witness(witness) => Some(witness),
+        FalsifyOutcome::Exhausted { .. } | FalsifyOutcome::Skipped { .. } => None,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn falsify_pair_with_projections(
+    il_a: &Il,
+    root_a: NodeId,
+    il_b: &Il,
+    root_b: NodeId,
+    interner: &Interner,
+    probes: &[Value],
+    budget: usize,
+    seed: u64,
+    projections_a: &[nose_detect::OracleInputProjection],
+    projections_b: &[nose_detect::OracleInputProjection],
+    observe_exit: bool,
+    include_immutable_module_strings: bool,
+) -> FalsifyOutcome {
+    let domains_a = parameter_domains(il_a, root_a);
+    let domains_b = parameter_domains(il_b, root_b);
+    falsify_pair_inner(
+        il_a,
+        root_a,
+        il_b,
+        root_b,
+        interner,
+        probes,
+        budget,
+        seed,
+        &domains_a,
+        projections_a,
+        &domains_b,
+        projections_b,
+        observe_exit,
+        include_immutable_module_strings,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn falsify_pair_inner(
+    il_a: &Il,
+    root_a: NodeId,
+    il_b: &Il,
+    root_b: NodeId,
+    interner: &Interner,
+    probes: &[Value],
+    budget: usize,
+    seed: u64,
+    domains_a: &[Option<DomainEvidence>],
+    projections_a: &[nose_detect::OracleInputProjection],
+    domains_b: &[Option<DomainEvidence>],
+    projections_b: &[nose_detect::OracleInputProjection],
+    observe_exit: bool,
+    include_immutable_module_strings: bool,
+) -> FalsifyOutcome {
+    let Some((domains, projections)) = effective_domain_contract(domains_a, projections_a) else {
+        return FalsifyOutcome::Skipped {
+            reason: "invalid left projection contract",
+        };
+    };
+    let Some((other_domains, other_projections)) =
+        effective_domain_contract(domains_b, projections_b)
+    else {
+        return FalsifyOutcome::Skipped {
+            reason: "invalid right projection contract",
+        };
+    };
+    if domains != other_domains || projections != other_projections {
+        return FalsifyOutcome::Skipped {
+            reason: "effective domain contracts differ",
+        };
+    }
+    if !domains_are_hosted_with_projections(il_a.meta.lang, domains_a, projections_a) {
+        return FalsifyOutcome::Skipped {
+            reason: "left domain contract is not hosted",
+        };
+    }
+    if !domains_are_hosted_with_projections(il_b.meta.lang, domains_b, projections_b) {
+        return FalsifyOutcome::Skipped {
+            reason: "right domain contract is not hosted",
+        };
+    }
+    let replay = ReplayPair {
+        left: ReplayUnit {
+            interpreter: PreparedInterpreter::new(il_a, interner, include_immutable_module_strings),
+            root: root_a,
+        },
+        right: ReplayUnit {
+            interpreter: PreparedInterpreter::new(il_b, interner, include_immutable_module_strings),
+            root: root_b,
+        },
+        observe_exit,
+    };
     let arity = domains.len().max(1);
     let mut pools: Vec<Vec<Value>> = (0..arity)
-        .map(|index| domain_pool(domains.get(index).copied().flatten(), probes))
+        .map(|index| {
+            projected_domain_pool(
+                domains.get(index).copied().flatten(),
+                projections
+                    .get(index)
+                    .copied()
+                    .unwrap_or(nose_detect::OracleInputProjection::Declared),
+                probes,
+            )
+        })
         .collect();
     for (index, pool) in pools.iter_mut().enumerate() {
         rotate(pool, seed ^ index as u64);
     }
-    let mut relations = relation_rows(&domains, arity);
+    let mut relations = relation_rows(domains, projections, arity);
     rotate(&mut relations, seed ^ 0x5245_4c41_5449_4f4e);
 
     // `F64` intentionally canonicalizes signed zero for behavior equality, but the source
@@ -390,9 +335,9 @@ pub(crate) fn falsify_pair(
         if case_index >= budget {
             break;
         }
-        if concrete_disagreement(il_a, root_a, il_b, root_b, interner, &row) {
-            let shrunk_inputs = shrink(il_a, root_a, il_b, root_b, interner, &domains, &row);
-            return Some(FalsifyWitness {
+        if replay.concrete_disagreement(&row) {
+            let shrunk_inputs = shrink(&replay, domains, projections, &row);
+            return FalsifyOutcome::Witness(FalsifyWitness {
                 seed,
                 case_index,
                 inputs: row,
@@ -401,7 +346,7 @@ pub(crate) fn falsify_pair(
         }
         case_index += 1;
     }
-    None
+    FalsifyOutcome::Exhausted { cases: case_index }
 }
 
 pub(crate) fn format_inputs(values: &[Value]) -> String {

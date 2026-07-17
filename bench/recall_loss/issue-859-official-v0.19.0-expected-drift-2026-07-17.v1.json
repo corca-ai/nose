@@ -1,0 +1,203 @@
+{
+  "entries": [
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            28501873
+          ],
+          "current": [
+            28502976
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "8a651d7983d8b4e262188b041aab934e444fa5fadf1884a55ac272aa76a5f26c"
+          ],
+          "current": [
+            "26f502dda15b5e74a5718f2b53fee5f7ae617cdc65bf9c56ee791b9ada4541db"
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 755,
+              "generated": 77,
+              "hidden": 144,
+              "shallow": 139
+            }
+          ],
+          "current": [
+            {
+              "default": 368,
+              "generated": 584,
+              "hidden": 55,
+              "shallow": 108
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/859",
+      "reason": "This is the accepted pre-#859 output at origin/main 7db472ba; a direct seven-repository replay proves the #859 binary is byte-identical to that boundary",
+      "repo": "alamofire"
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            5895559
+          ],
+          "current": [
+            5895567
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "d8e73f1343d0f6ccdaaf43f95cb4e14b246f5c5dbfc97104692267b19167adaa"
+          ],
+          "current": [
+            "fe9259e496891f8b880fce330af755e89bdadcc828c10948e76324c66f9e832e"
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 2242,
+              "divergence": 3,
+              "generated": 1,
+              "hidden": 747,
+              "shallow": 289
+            }
+          ],
+          "current": [
+            {
+              "declaration": 2,
+              "default": 2241,
+              "divergence": 3,
+              "generated": 1,
+              "hidden": 747,
+              "shallow": 288
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/859",
+      "reason": "This is the accepted pre-#859 output at origin/main 7db472ba; a direct seven-repository replay proves the #859 binary is byte-identical to that boundary",
+      "repo": "guava"
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            7209661
+          ],
+          "current": [
+            7209681
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "023136381a507a5a52b26bfbe92e5f4c14868a2db1c006d227bb11c023534292"
+          ],
+          "current": [
+            "c2d8f93cc9ebc84723d0c8da15d7537c501c78b932091fc729cdd528d55653d6"
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 2491,
+              "divergence": 6,
+              "hidden": 1311,
+              "shallow": 1136
+            }
+          ],
+          "current": [
+            {
+              "declaration": 1,
+              "default": 2491,
+              "divergence": 6,
+              "hidden": 1311,
+              "shallow": 1135
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/859",
+      "reason": "This is the accepted pre-#859 output at origin/main 7db472ba; a direct seven-repository replay proves the #859 binary is byte-identical to that boundary",
+      "repo": "netty"
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            4493545
+          ],
+          "current": [
+            4493532
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "7462e24f646e51d177e597ce0e229e4360acc755d2dd4072c970a82aa6e8ff21"
+          ],
+          "current": [
+            "fdfe09c80f23a0911d658bd095e5b4cb4969f2c48377d25773462671a86c4dd3"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/859",
+      "reason": "This is the accepted pre-#859 output at origin/main 7db472ba; a direct seven-repository replay proves the #859 binary is byte-identical to that boundary",
+      "repo": "sqlalchemy"
+    },
+    {
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            5291568
+          ],
+          "current": [
+            5290008
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "31621ca940c6d18eb341209b336eac16fc8a3d2c92dd5f7b4e655c91561474fe"
+          ],
+          "current": [
+            "011de7a300e3956bd1c4d503a283387813313e74e7d882fbfe17393ec9103e70"
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 2099,
+              "divergence": 9,
+              "generated": 1,
+              "hidden": 1057,
+              "shallow": 1862
+            }
+          ],
+          "current": [
+            {
+              "default": 2100,
+              "divergence": 9,
+              "generated": 1,
+              "hidden": 1056,
+              "shallow": 1862
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/859",
+      "reason": "This is the accepted pre-#859 output at origin/main 7db472ba; a direct seven-repository replay proves the #859 binary is byte-identical to that boundary",
+      "repo": "sympy"
+    }
+  ],
+  "schema": "nose.semantic_regression_expected_drift.v1"
+}

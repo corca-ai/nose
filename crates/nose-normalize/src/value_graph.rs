@@ -65,9 +65,10 @@ pub use value_dag::{
 
 use crate::combine;
 use crate::module_facts::{
-    assignment_name_in_scope, collect_all_node_symbols_in_scope,
+    assignment_name_counts, assignment_name_in_scope, collect_all_node_symbols_in_scope,
     collect_module_mutations_in_scope_with_direct_definitions, local_scope_nodes,
-    node_symbol_in_scope, top_level_statements_for,
+    node_symbol_in_scope, top_level_node_bitmap, top_level_statements_for,
+    unique_non_unit_assignment_names,
 };
 use field_state::FieldStateKey;
 use index_state::IndexStateKey;
