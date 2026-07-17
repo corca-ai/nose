@@ -1,0 +1,44 @@
+{
+  "binary_sha256": "b94b2fa9a5b8d52c972340e530a9c7e956819cf5df97980cdc387bae5f7fe64f",
+  "crates_tree": "0feac652bb481a2a68042ef68574f8530cd982bb",
+  "issue": 862,
+  "parent_issue": 855,
+  "raw_census": {
+    "schema": "nose-oracle-exclusion-census/v2",
+    "sha256": "c3afa0b0c8807fe9dd4e5783135788b335004b112b06a2c6c8a833f7e4deae7d"
+  },
+  "schema": "nose-soundness-current-exclusion-attribution/v1",
+  "source_sha": "a75c3d8c924513d59e6ae4a97941e6241f4ca01e",
+  "summary": {
+    "by_capability": {
+      "budget.oracle-cost": 1,
+      "budget.symbolic-branch-sites": 6,
+      "il.conditional-shape": 62,
+      "il.expression-node-unsupported": 2304,
+      "il.fragment-core-span": 1,
+      "il.literal-payload-missing": 100,
+      "il.statement-node-unsupported": 74,
+      "il.variable-identity-missing": 7969,
+      "protocol.assignment-target": 61,
+      "protocol.field-write-proof": 17,
+      "value.binding-missing": 56,
+      "value.condition-truthiness": 492,
+      "value.empty-fingerprint": 1,
+      "value.hof-predicate-truthiness": 3,
+      "value.literal-not-retained": 28,
+      "value.loop-condition-truthiness": 3
+    },
+    "by_classification": {
+      "core-span-missing": 1,
+      "empty-value-fingerprint": 1,
+      "missing-oracle-support": 10507,
+      "oracle-cost-budget": 1,
+      "path-exploration-budget": 6,
+      "semantic-boundary-attributed": 662
+    },
+    "excluded_units": 11178,
+    "generic_unattributed_exclusions": 0,
+    "interpretable_units": 2612,
+    "total_units": 13790
+  }
+}

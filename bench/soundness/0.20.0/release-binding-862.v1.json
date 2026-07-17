@@ -2,7 +2,11 @@
   "artifacts": {
     "blind_attack": {
       "path": "../../type4/blind_attack.v1.json",
-      "sha256": "67d1eedc77c9c6fed7daefe7770966b069a2f618f4178bcb0ce1c3768eacb788"
+      "sha256": "688d4f46c689cfe7473f999f2800c0d39d99be499c5e81069a79e1f3e8ada7b5"
+    },
+    "current_exclusion_attribution": {
+      "path": "current-exclusion-attribution-862.v1.json",
+      "sha256": "741a2d25907332ddaa8ffa03eabfc5109eab1778eb984fa80535a27db3b01583"
     },
     "expansion_receipt": {
       "path": "oracle-expansion-859.v1.json",
@@ -10,7 +14,7 @@
     },
     "falsification": {
       "path": "release-falsification-862.v1.txt",
-      "sha256": "8475256e910856862e97e171b32eb01ac785100e5d8cdc233a1be0ddcc4b76b9"
+      "sha256": "733d3a9022ecec5aee68e6b974c736a9806d3d17f0eff0eec288bf72af41ba1d"
     },
     "historical_overlay": {
       "path": "oracle-expansion-overlay.v2.json",
@@ -18,16 +22,16 @@
     },
     "overlay": {
       "path": "release-overlay-862.v1.json",
-      "sha256": "8a6c8b43fe33657e459d1efa1e5577d70e23350b787807364946ed1ded40a419"
+      "sha256": "802ecee41defb6cef5f7970d1fc3e2c8f8d63dbf9318ae94b75397fcb6e9de08"
     },
     "performance": {
       "path": "../../recall_loss/issue-862-official-v0.19.0-performance-2026-07-18.v1.json",
-      "sha256": "4ebb58e8375b4932a260dcdfa6968384d45a3d5449d8e71b8a4a7844c282ca8b"
+      "sha256": "8f157d4b28a2f96bce444704757cdb0063e7d5305d5a373b0afead722de33357"
     }
   },
   "completeness": {
-    "behavior_equal_pairs": 222,
-    "fingerprint_equal_pairs": 108,
+    "behavior_equal_pairs": 221,
+    "fingerprint_equal_pairs": 107,
     "structurally_near_under_merged_groups": 0,
     "under_merged_behavior_groups": 8
   },
@@ -36,23 +40,23 @@
     "score_and_pair_status_unchanged": true
   },
   "falsification": {
-    "advisory_disagreements": 59,
+    "advisory_disagreements": 64,
     "canon_checked": 304,
     "canon_preservation_violations": 0,
     "eligible_pairs": 63,
     "executed_cases": 25766,
     "false_merges": 0,
-    "interpretable_units": 2520,
+    "interpretable_units": 2612,
     "new_distinguishers": 0,
     "searched_pairs": 63,
     "skipped_pairs": 0,
-    "total_units": 13283
+    "total_units": 13790
   },
   "implementation": {
-    "binary_sha256": "8a81f6f416904915a67b8a82eac3c154d4d9296f03a4e7de55a96ca7579f429d",
-    "crates_tree": "f32119d1c8d0d7f6ec9af7ba250417315d2de96c",
-    "raw_units_sha256": "35e8ecd90f839bcc1c7cd55c8437049c528979145c667c18e83b608bf09fd1d4",
-    "source_sha": "c3f3caccfb86b6c3b40cc1cbd0714e40baf02471"
+    "binary_sha256": "b94b2fa9a5b8d52c972340e530a9c7e956819cf5df97980cdc387bae5f7fe64f",
+    "crates_tree": "0feac652bb481a2a68042ef68574f8530cd982bb",
+    "raw_units_sha256": "ddbf5e83f194a28f5607a1eb4c15523c0d448d877fc834968d39f8c9ecc41341",
+    "source_sha": "a75c3d8c924513d59e6ae4a97941e6241f4ca01e"
   },
   "issue": 862,
   "parent_issue": 855,
@@ -78,7 +82,7 @@
   },
   "result": {
     "baseline_verified_pair_regressions": [],
-    "candidate_cohort_sha256": "aba9aff33baef8682addebcbfa8b684cb0401fac501d158f8bb17085f11ee574",
+    "candidate_cohort_sha256": "218f1aa3b3c58fe9f832eddf3c05b423f97f5a0ed31ed26bcfe8a0159e7ecb79",
     "denominator_unchanged": true,
     "exact_unsafe_pair_mass": 62,
     "gate_passed": true,

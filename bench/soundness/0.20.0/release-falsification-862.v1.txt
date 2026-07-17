@@ -1,11 +1,11 @@
 === value-graph oracle (soundness + completeness) ===
-units: 13283 total, 2520 interpretable (10763 excluded)
+units: 13790 total, 2612 interpretable (11178 excluded)
 
 EXCLUSIONS — fail-closed units by reason:
   core-missing: 1
   battery-bail: 1 (>384000 node-rows)
   empty-fingerprint: 1
-  uninterpretable: 10754
+  uninterpretable: 11169
   path-bail: 6 (> 3 symbolic branch sites)
 
 CANON PRESERVATION — normalization preserves behavior:
@@ -13,11 +13,11 @@ CANON PRESERVATION — normalization preserves behavior:
   PRESERVED: every canon-changed unit computes the same thing ✓
 
 SOUNDNESS — fingerprint-equal ⟹ behavior-equal (exact claim surface):
-  fingerprint groups (≥2): 713
+  fingerprint groups (≥2): 746
   SOUND: no false merges ✓
-  advisory (symbolic or non-hard-domain disagreements — divergence, not gated): 59
+  advisory (symbolic or non-hard-domain disagreements — divergence, not gated): 64
     crates/nose-cli/src/divergence/detect.rs:422  ≢?  crates/nose-cli/src/divergence/detect.rs:423-426@15776-15835   (129 differing inputs)
-    crates/nose-cli/src/ignores.rs:473  ≢?  crates/nose-cli/src/ignores.rs:474-480@14920-15084   (64 differing inputs)
+    crates/nose-cli/src/ignores.rs:473  ≢?  crates/nose-cli/src/ignores.rs:474-480@14920-15084   (63 differing inputs)
     crates/nose-cli/src/path_utils.rs:59  ≢?  crates/nose-cli/src/path_utils.rs:65-68@2394-2624   (201 differing inputs)
     crates/nose-cli/src/recall_loss_report/location.rs:5  ≢?  crates/nose-cli/src/recall_loss_report/location.rs:6-12@179-362   (201 differing inputs)
     crates/nose-cli/src/semantic_pack/inventory.rs:185  ≢?  crates/nose-cli/src/semantic_pack/inventory.rs:189-210@6191-7160   (201 differing inputs)
@@ -28,11 +28,11 @@ SOUNDNESS — fingerprint-equal ⟹ behavior-equal (exact claim surface):
     crates/nose-cli/tests/cli/exact_fragments/support.rs:121  ≢?  crates/nose-il/src/span.rs:32-38@957-1083   (198 differing inputs)
 
 COMPLETENESS — behavior-equal ⟹ fingerprint-equal (non-trivial only):
-  behavior groups (≥2): 35
-  completeness: 108/222 = 49% of behavior-equal pairs also converge
+  behavior groups (≥2): 34
+  completeness: 107/221 = 48% of behavior-equal pairs also converge
   under-merged behavior groups (missed clones): 8
   of which structurally-near (max cross-fp vj ≥ 0.7 → behavior-gated near-match would recover): 0
-    vj=0.33  crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_python.py:1  ↮  crates/nose-normalize/src/interp/value.rs:134-134@6206-6212
+    vj=0.33  crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_python.py:1  ↮  crates/nose-normalize/src/interp/value.rs:155-155@6858-6864
     vj=0.33  crates/nose-frontend/src/lower/library_api_evidence.rs:152-154@5279-5333  ↮  crates/nose-semantics/src/method_families.rs:140-142@5123-5169
     vj=0.33  crates/nose-semantics/src/ruby_redefinitions/dynamic_method_changes/instruction_sequence.rs:115-117@2991-3034  ↮  crates/nose-semantics/src/ruby_redefinitions/dynamic_method_changes/instruction_sequence.rs:187-189@5153-5196
     vj=0.33  crates/nose-semantics/src/ruby_redefinitions/dynamic_method_changes/method_objects.rs:331-333@9818-9860  ↮  crates/nose-semantics/src/ruby_redefinitions/dynamic_method_changes/method_objects.rs:436-438@12690-12732
@@ -43,10 +43,10 @@ COMPLETENESS — behavior-equal ⟹ fingerprint-equal (non-trivial only):
 
 CALIBRATION — P(behavior-equal | value-Jaccard) [windowed sample]:
   (the detector accepts an exact match [1.0]; this is how safe near-match is)
-  vj [1.0]  :  2577/2671  =  96% behavior-equal
-  vj [.8,.9) :     0/1     =   0% behavior-equal
-  vj [.7,.8) :     1/10    =  10% behavior-equal
-  vj [.5,.7) :     1/134   =   1% behavior-equal
+  vj [1.0]  :  2605/2704  =  96% behavior-equal
+  vj [.8,.9) :     1/1     = 100% behavior-equal
+  vj [.7,.8) :     1/15    =   7% behavior-equal
+  vj [.5,.7) :     2/135   =   1% behavior-equal
 
 FALSIFICATION SEARCH (#317) — distinguishing inputs beyond the fixed battery:
   eligible pairs: 63; searched: 63; skipped: 0; executed cases: 25766

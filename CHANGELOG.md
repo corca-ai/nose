@@ -12,11 +12,15 @@ break.
   failure, binds shards to one source commit and binary, fully diffs non-blocking advisory
   disagreements against the published v0.19.0 binary, and rejects missing artifacts, changed
   pins, timeouts, false merges, canon violations, coverage regressions, unregistered claims,
-  unguarded Tier-A cells, and unattributed exclusions.
+  unguarded Tier-A cells, and unattributed exclusions. Deterministic shard evidence is separated
+  from diagnostic logs, release failures retain a summary, and the release commit's product tree
+  must match the checked binding.
 - Kept mixed-exit fragments distinct from whole functions in exact fingerprints. A conditional
   fragment that may return or throw but can also fall through no longer collides with a whole
   function whose completion has different enclosing-control behavior; the Soundness Lab found
-  and reproduced this boundary across five pinned repositories.
+  and reproduced this boundary across pinned repositories. The audit oracle now distinguishes
+  explicit throw from ordinary evaluation errors independently of the product classifier, and
+  cache schema v12 prevents pre-fix feature entries from being reused.
 - Committed the #846 held-out review inputs without publishing their source. The
   official v0.19.0 replay reproduces 54 queries, 1,564 candidate commitments, and the
   exact 214-family sealed selection, then creates three persona-specific packets outside

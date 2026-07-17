@@ -6,10 +6,10 @@
     "version": "v0.19.0"
   },
   "candidate": {
-    "binary_code_sha256": "d924a693deae8af3c2659154ef51faba76aab77e3d33b0246b20b5a938fa1ef2",
-    "binary_sha256": "8a81f6f416904915a67b8a82eac3c154d4d9296f03a4e7de55a96ca7579f429d",
-    "crates_tree": "f32119d1c8d0d7f6ec9af7ba250417315d2de96c",
-    "source_sha": "c3f3caccfb86b6c3b40cc1cbd0714e40baf02471"
+    "binary_code_sha256": "9b8760574a86cefd36a670d70f46f4ac2a80ba18f5b0a09b5a9dee9d74b8690d",
+    "binary_sha256": "b94b2fa9a5b8d52c972340e530a9c7e956819cf5df97980cdc387bae5f7fe64f",
+    "crates_tree": "0feac652bb481a2a68042ef68574f8530cd982bb",
+    "source_sha": "a75c3d8c924513d59e6ae4a97941e6241f4ca01e"
   },
   "corpus": {
     "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
@@ -34,19 +34,19 @@
   },
   "issue": 862,
   "measurement": {
-    "adjusted_delta_ms": 110.37266731727868,
-    "adjusted_delta_pct": 1.3425801925177503,
-    "aggregate_baseline_median_ms": 8220.936666009948,
-    "aggregate_current_median_ms": 8325.394790037535,
-    "aggregate_raw_delta_ms": 104.45812402758747,
-    "aggregate_raw_delta_pct": 1.2706353092279263,
+    "adjusted_delta_ms": 133.06908158119768,
+    "adjusted_delta_pct": 1.6324586958299498,
+    "aggregate_baseline_median_ms": 8151.451667421497,
+    "aggregate_current_median_ms": 8303.407373838127,
+    "aggregate_raw_delta_ms": 151.95570641662925,
+    "aggregate_raw_delta_pct": 1.8641551543995911,
     "command": "nose query <repo> all top=0 --format json",
-    "control_baseline_median_ms": 8688.472333946265,
-    "control_current_median_ms": 8682.557790656574,
-    "control_delta_ms": -5.91454328969121,
-    "control_raw_sha256": "25ae8265b95a8d2a0d347d04219f69c4dc8b567ae0973d38fa91b6143b0830f1",
+    "control_baseline_median_ms": 8907.669874257408,
+    "control_current_median_ms": 8926.55649909284,
+    "control_delta_ms": 18.886624835431576,
+    "control_raw_sha256": "ce3837af9858b5cafb9afc7120d60441a121fec06a0ddda90d0fef26941d9a27",
     "iterations": 9,
-    "primary_raw_sha256": "d50e38e4c6884b6b0fb710a307e2a79c2a6203aaa31f6a569f5d303a8cf19609",
+    "primary_raw_sha256": "9a3f0c529216644817f6bc5a896e6e7b859dc75998c2f862d7c736d372b2c323",
     "warmups": 2
   },
   "parent_issue": 855,

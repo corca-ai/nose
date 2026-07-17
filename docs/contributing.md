@@ -171,10 +171,12 @@ runs every corpus repository through:
 target/release/nose verify bench/repos/<repo> --max-violations 0
 ```
 
-The runner is `scripts/corpus-verify-nightly.sh`. It keeps a per-repository log and deterministic
-TSV, Markdown, and JSON evidence. The merge job rejects a missing or overlapping shard, missing
-artifact, wrong pin, per-repository timeout, hard false merge, or canon-preservation change.
-Every shard and merged artifact is uploaded on success as well as failure. Symbolic-trace
+The runner is `scripts/corpus-verify-nightly.sh`. It keeps per-repository diagnostics separately
+from the byte-deterministic TSV, Markdown, repository selection, and JSON evidence artifact. The
+merge job rejects an incomplete, missing, or overlapping shard, contradictory status/exit row,
+missing artifact, wrong pin, per-repository timeout, hard false merge, or canon-preservation
+change. Every shard evidence artifact, diagnostic artifact, and merged artifact is uploaded on
+success as well as failure. Symbolic-trace
 disagreements stay advisory, but all per-repository deltas from the official v0.19.0 baseline are
 retained instead of being reduced to a total. The weekly deep job separately runs source-runtime,
 metamorphic equivalence, and multi-seed falsification campaigns; manual `release` mode requires
