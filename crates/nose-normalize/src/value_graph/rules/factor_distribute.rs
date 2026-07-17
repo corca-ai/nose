@@ -8,6 +8,7 @@
 //! repetition monoid, so the type gate is part of the proof obligation.
 //!
 //! proof-obligation: normalize.value_graph.factor_distribute
+// proof-claim: nose.claim.normalize.value_graph.factor_distribute
 
 use super::super::{Builder, ValOp, ValueId};
 use nose_il::Op;

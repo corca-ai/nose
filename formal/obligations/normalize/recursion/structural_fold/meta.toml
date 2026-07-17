@@ -1,7 +1,28 @@
 id = "normalize.recursion.structural_fold"
-status = "proven"
 kind = "soundness"
 summary = "Integer structural recursion can be emitted as an accumulator fold for addition and multiplication monoids; a float-valued HEAD is non-associative and is excluded by the Rust gate (head_possibly_float), not admitted via the coarse Number domain."
+
+[claim]
+id = "nose.claim.normalize.recursion.structural_fold"
+
+[theorem]
+status = "proven"
+statement = "Integer structural recursion can be emitted as an accumulator fold for addition and multiplication monoids; a float-valued HEAD is non-associative and is excluded by the Rust gate (head_possibly_float), not admitted via the coarse Number domain."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.rust_model_correspondence]
+kind = "runtime"
+status = "empirical"
+summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = ["formal/obligations/normalize/recursion/structural_fold/Counterexamples.lean#NoseRecursionStructuralFoldCounterexamples.subtraction_is_not_a_structural_fold_monoid", "formal/obligations/normalize/recursion/structural_fold/Counterexamples.lean#NoseRecursionStructuralFoldCounterexamples.wrong_mul_identity_changes_fold", "formal/obligations/normalize/recursion/structural_fold/Counterexamples.lean#NoseRecursionStructuralFoldCounterexamples.float_like_rounding_breaks_fold"]
 
 [rust]
 files = ["crates/nose-normalize/src/recursion/structural_fold.rs"]

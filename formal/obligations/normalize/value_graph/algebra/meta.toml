@@ -1,7 +1,28 @@
 id = "normalize.value_graph.algebra"
-status = "proven"
 kind = "soundness"
 summary = "Associative-commutative numeric algebra and subtraction/negation canonicalization preserve Int denotation."
+
+[claim]
+id = "nose.claim.normalize.value_graph.algebra"
+
+[theorem]
+status = "proven"
+statement = "Associative-commutative numeric algebra and subtraction/negation canonicalization preserve Int denotation."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.rust_model_correspondence]
+kind = "runtime"
+status = "empirical"
+summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = []
 
 [rust]
 files = [

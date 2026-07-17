@@ -1,6 +1,7 @@
 //! Path-conditioned sink emission for value-graph returns, throws, and effects.
 //!
 //! proof-obligation: normalize.control_flow.guard_returns
+// proof-claim: nose.claim.normalize.control_flow.guard_returns
 
 use super::*;
 

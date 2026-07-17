@@ -1,7 +1,28 @@
 id = "normalize.value_graph.bool_reduce"
-status = "proven"
 kind = "soundness"
 summary = "Any/all reductions are well-defined Bool folds for cross-language predicate reductions."
+
+[claim]
+id = "nose.claim.normalize.value_graph.bool_reduce"
+
+[theorem]
+status = "proven"
+statement = "Any/all reductions are well-defined Bool folds for cross-language predicate reductions."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.rust_model_correspondence]
+kind = "runtime"
+status = "empirical"
+summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = []
 
 [rust]
 files = [

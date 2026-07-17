@@ -1,7 +1,28 @@
 id = "il.arena.validity"
-status = "proven"
 kind = "structural-invariant"
 summary = "IL validation requires root, unit roots, and child edges to stay inside the node arena."
+
+[claim]
+id = "nose.claim.il.arena.validity"
+
+[theorem]
+status = "proven"
+statement = "IL validation requires root, unit roots, and child edges to stay inside the node arena."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.rust_model_correspondence]
+kind = "runtime"
+status = "empirical"
+summary = "Concrete arena ids, roots, and child edges must correspond to the finite arena modeled by the theorem."
+evidence = ["crates/nose-il/src/tests.rs"]
+
+[product]
+surface = "structural-invariant"
+guarantee = "Rejects malformed IL or preserves arena validity at the listed structural boundary."
+
+[evidence]
+executable_tests = ["crates/nose-il/src/tests.rs"]
+counterexamples = []
 
 [rust]
 files = [

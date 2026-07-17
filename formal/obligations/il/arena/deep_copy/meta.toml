@@ -1,7 +1,28 @@
 id = "il.arena.deep_copy"
-status = "proven"
 kind = "structural-invariant"
 summary = "Deep-copying a subtree into a fresh IL builder keeps old ids valid and gives the copied root an in-bounds id."
+
+[claim]
+id = "nose.claim.il.arena.deep_copy"
+
+[theorem]
+status = "proven"
+statement = "Deep-copying a subtree into a fresh IL builder keeps old ids valid and gives the copied root an in-bounds id."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.rust_model_correspondence]
+kind = "runtime"
+status = "empirical"
+summary = "Concrete arena ids, roots, and child edges must correspond to the finite arena modeled by the theorem."
+evidence = ["crates/nose-il/src/tests.rs"]
+
+[product]
+surface = "structural-invariant"
+guarantee = "Rejects malformed IL or preserves arena validity at the listed structural boundary."
+
+[evidence]
+executable_tests = ["crates/nose-il/src/tests.rs"]
+counterexamples = []
 
 [rust]
 files = ["crates/nose-detect/src/fragment/oracle.rs"]

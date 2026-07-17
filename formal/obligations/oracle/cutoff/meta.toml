@@ -1,7 +1,28 @@
 id = "oracle.cutoff"
-status = "proven"
 kind = "soundness-boundary"
 summary = "Oracle-mode normalization stops after desugar and alpha, excluding semantic canonicalizations from the behavioral ground truth."
+
+[claim]
+id = "nose.claim.oracle.cutoff"
+
+[theorem]
+status = "proven"
+statement = "Oracle-mode normalization stops after desugar and alpha, excluding semantic canonicalizations from the behavioral ground truth."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.rust_model_correspondence]
+kind = "runtime"
+status = "empirical"
+summary = "The concrete oracle pipeline must stop at the modeled phase boundary before semantic canons execute."
+evidence = ["crates/nose-normalize/src/interp/tests.rs"]
+
+[product]
+surface = "verification-boundary"
+guarantee = "Keeps behavioral ground truth independent from the semantic rewrites it evaluates."
+
+[evidence]
+executable_tests = ["crates/nose-normalize/src/interp/tests.rs"]
+counterexamples = []
 
 [rust]
 files = ["crates/nose-normalize/src/lib.rs"]

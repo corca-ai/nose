@@ -13,6 +13,7 @@
 //! to compute the same payload.
 //!
 //! proof-obligation: normalize.value_graph.promise_then
+// proof-claim: nose.claim.normalize.value_graph.promise_then
 
 use super::super::{Builder, ConstKind, ValOp, ValueDomain, ValueId};
 use nose_il::{

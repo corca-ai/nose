@@ -306,6 +306,21 @@ all converge, and all 25 adjacent hard negatives stay distinct. CI builds the re
 regenerates the blind receipt, informed evidence, and planning matrix, runs checker mutations,
 and rejects any artifact drift.
 
+## Honest proof coverage and declarative core (#861)
+
+Formal coverage is reported along three independent dimensions: modeled theorem status, runtime
+precondition status, and product surface. Every obligation has a derived `nose.claim.*` id; exact
+and canonicalization sources carry a reverse-indexed `proof-claim` marker, and the linter self-test
+rejects an unregistered exact claim. A proven theorem therefore cannot make its empirical Rust
+gates disappear from the report.
+
+For example, `detect.graded_witness` keeps its Lean anti-unification theorem while listing
+referent identity, decorator identity, sink alignment, and async lifecycle as separate empirical
+preconditions. CSS no longer has one computed-style `empirical-only` obligation: Lean proves the
+parsed color, number/unit, box, and query-order cores, while a named browser/cascade/DOM remainder
+is linked to the executable declarative counterexamples. CI still treats `sorry`, stale Rust
+symbols or markers, and unused Lean proof hints as failures.
+
 ## Reproduce and validate
 
 Use the published binary, the exact release source tree, and all pinned

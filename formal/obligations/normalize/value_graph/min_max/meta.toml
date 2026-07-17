@@ -1,7 +1,28 @@
 id = "normalize.value_graph.min_max"
-status = "proven"
 kind = "soundness"
 summary = "Min/max select idioms and accumulator reductions are commutative and associative over Int."
+
+[claim]
+id = "nose.claim.normalize.value_graph.min_max"
+
+[theorem]
+status = "proven"
+statement = "Min/max select idioms and accumulator reductions are commutative and associative over Int."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.rust_model_correspondence]
+kind = "runtime"
+status = "empirical"
+summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = []
 
 [rust]
 files = [

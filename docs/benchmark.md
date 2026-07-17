@@ -183,13 +183,13 @@ them.
 
 Coverage is first-class: the [Raw-node ratio](languages.md#coverage-and-adding-a-language)
 on real-world `.css`/`.html` is sub-percent (CSS ~0.002%, HTML ~0.4% on hand-written
-markup). Soundness is **by construction** — the fingerprint *is* the canonical computed
-style / rendered DOM, so equal fingerprint ⟺ equal denotation — backed by the adversarial
-connected matrix above plus the `css_value` unit tests (the project's primary trust
-mechanism, [design §1](design.md)); the obligation is registered `empirical-only`
-(`formal/obligations/normalize/css/computed_style/`), not yet Lean-proven. `nose verify`
-excludes declarative units (a declarative domain has no imperative behavior to interpret)
-and its imperative gate is unaffected. Modeled scope and honest limits (SCSS/Less, cross-file
+markup). Lean proves the parsed color, number/unit, box, and query-order cores. Parser/table
+correspondence and browser/cascade/DOM semantics remain empirical, guarded by the adversarial
+connected matrix above plus the `css_value` unit tests (the project's primary trust mechanism,
+[design §1](design.md)). The split obligations live under `formal/obligations/normalize/css/`;
+the scoped `browser_remainder` replaces the former monolithic empirical status. `nose verify`
+excludes declarative units because its interpreter is not a browser/DOM oracle, and its
+imperative gate is unaffected. Modeled scope and honest limits (SCSS/Less, cross-file
 `var()`, shorthand↔longhand expansion, Svelte block grammar) are in
 [clone-types](clone-types.md) and [languages](languages.md).
 

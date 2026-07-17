@@ -602,13 +602,14 @@ declaration block, as a sorted, domain-namespaced hash multiset:
   imperative one (the cross-domain false-merge guard for the language-blind exact
   channel).
 
-Soundness here is **by construction** — the fingerprint *is* the canonical computed
-style, so *equal fingerprint ⟺ equal computed style* holds definitionally — backed by
-the connected 19-row/25-hard-negative
-[declarative claim matrix](../bench/type4/declarative_claim_matrix.v1.json) and `css_value`
-unit tests (the project's primary trust mechanism, see [design](design.md)). A separate
-interpreter oracle, as run for imperative code, is redundant for a declarative domain
-where the fingerprint is the denotation.
+The formal boundary is deliberately narrower than “all browser behavior.” Lean proves four
+parsed cores: color aliases, numeric/unit spelling, box-shorthand expansion, and commutative
+query ordering. Rust parser/table correspondence and URL/HSL spelling, cascade, selector/context,
+framework directives, and rendered-DOM behavior remain explicit empirical preconditions. They
+are guarded by the connected 19-row/25-hard-negative
+[declarative claim matrix](../bench/type4/declarative_claim_matrix.v1.json) and `css_value` unit
+tests. The imperative interpreter cannot serve as a browser/DOM oracle, so the registry reports
+this scoped remainder instead of calling the whole computed-style surface proven by construction.
 
 **HTML markup** (`nose-normalize::html`) works the same way, with *rendered DOM* in place
 of *computed style*: each `HtmlElement`'s fingerprint is a collision-resistant recursive

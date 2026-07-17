@@ -1,7 +1,28 @@
 id = "normalize.control_flow.guard_returns"
-status = "proven"
 kind = "soundness"
 summary = "Guard-return, dead-code-after-return, ternary-return, conjoined-guard merge, and continue-guard unwrap control-flow canons preserve return/loop semantics."
+
+[claim]
+id = "nose.claim.normalize.control_flow.guard_returns"
+
+[theorem]
+status = "proven"
+statement = "Guard-return, dead-code-after-return, ternary-return, conjoined-guard merge, and continue-guard unwrap control-flow canons preserve return/loop semantics."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.rust_model_correspondence]
+kind = "runtime"
+status = "empirical"
+summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = []
 
 [rust]
 files = [

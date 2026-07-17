@@ -1,7 +1,28 @@
 id = "normalize.value_graph.promise_then"
-status = "proven"
 kind = "soundness"
 summary = "A settled fulfilled Promise is modeled by its resolved value, so `p.then(λr. body r)` is the continuation applied to that value. The local Promise slice also models fulfilled/rejected channels for dependency-closed first-party `Promise.resolve`, `Promise.reject`, `.then`, and `.catch`: handler-returned `Promise.resolve` flattens, handler-returned `Promise.reject` preserves the rejected channel, and `catch(h)` agrees with `then(undefined, h)` for rejected local producers. Thenable assimilation, `.finally`, aggregates, custom receivers, and scheduling remain outside this proof and fail closed."
+
+[claim]
+id = "nose.claim.normalize.value_graph.promise_then"
+
+[theorem]
+status = "proven"
+statement = "A settled fulfilled Promise is modeled by its resolved value, so `p.then(λr. body r)` is the continuation applied to that value. The local Promise slice also models fulfilled/rejected channels for dependency-closed first-party `Promise.resolve`, `Promise.reject`, `.then`, and `.catch`: handler-returned `Promise.resolve` flattens, handler-returned `Promise.reject` preserves the rejected channel, and `catch(h)` agrees with `then(undefined, h)` for rejected local producers. Thenable assimilation, `.finally`, aggregates, custom receivers, and scheduling remain outside this proof and fail closed."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.rust_model_correspondence]
+kind = "runtime"
+status = "empirical"
+summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = []
 
 [rust]
 rule_module = true

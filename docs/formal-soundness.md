@@ -8,8 +8,8 @@ should not depend only on corpus coverage. The registry lives under
 [formal/obligations](../formal/obligations). Reusable Lean models live under
 [formal/lib](../formal/lib), and each obligation directory contains:
 
-- `meta.toml` — the id, status, related Rust files/symbols, theorem names, assumptions, and
-  optional counterexample theorem names.
+- `meta.toml` — separate claim identity, modeled theorem, runtime preconditions and their
+  status, product surface, executable evidence, related Rust files/symbols, and theorem names.
 - `Proof.lean` — positive proof that the accepted rewrite preserves the modeled semantics.
 - `Counterexamples.lean` — optional boundary proof for rewrites or missing preconditions that
   must stay closed.
@@ -51,6 +51,16 @@ marker IS the obligation id — there is no `rust.markers` field to repeat it (a
 fn is likewise required to appear in some obligation's `rust.symbols`). This keeps
 proof-sensitive code from drifting away from the registry.
 
+Exact-normalization and canonicalization surfaces also carry an auto-discoverable claim marker:
+
+```rust
+// proof-claim: nose.claim.normalize.value_graph.factor_distribute
+```
+
+The claim id is derived from the obligation path. An unregistered marker, a claim marker in an
+unlisted source file, or an exact/canonicalization obligation without its marker fails CI. The
+linter self-test injects an unregistered exact claim to keep this reverse-index gate live.
+
 ## Named rule modules
 
 For new proof-sensitive rewrites, prefer a named Rust rule module instead of adding another
@@ -70,13 +80,26 @@ put the rule-specific recognition/emission in a named module and mark that modul
 obligation id. Recursion now follows this pattern with `recursion/tail.rs` and
 `recursion/structural_fold.rs`.
 
-## Statuses
+## Theorem, precondition, and surface coverage
 
-- `proven` — Lean proof file and theorem names are present and type-check.
-- `covered` — the rule is covered by another registered obligation.
-- `missing` — the obligation is acknowledged but not proved yet.
-- `empirical-only` — currently guarded by the interpreter oracle or tests only.
-- `rejected-counterexample` — the registry records why a tempting rewrite must stay closed.
+There is deliberately no top-level status. A claim records these dimensions independently:
+
+- `[theorem]` says exactly what the Lean model proves (or marks a scoped theorem empirical);
+- every `[preconditions.<id>]` labels a modeled or runtime precondition as `proven`,
+  `empirical`, or `rejected`, with concrete evidence;
+- `[product]` identifies whether the result affects exact normalization, declarative
+  canonicalization, a near witness, a structural invariant, or a verification boundary;
+- `[evidence]` links executable tests and counterexamples.
+
+This matters for claims such as `detect.graded_witness`: its anti-unification theorem is proven,
+while referent identity, decorators, sink alignment, and async lifecycle are four separately
+visible empirical runtime preconditions. The report prints theorem, precondition, and product-
+surface counts instead of collapsing them into a misleading “proven obligations” total.
+
+The former monolithic CSS empirical obligation is also gone. Lean now checks parsed color,
+number/unit, box-shorthand, and Boolean query-order cores under `normalize.css.*`; parser/table
+correspondence and the browser/cascade/DOM remainder stay explicitly empirical and are linked to
+the executable 19-row/25-hard-negative declarative perimeter.
 
 ## Local checks
 

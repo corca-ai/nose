@@ -176,6 +176,7 @@ impl<'a> Builder<'a> {
     /// fallback to run — for missing or ambiguous call-target evidence, unknown targets, arity
     /// mismatch, recursion, or any body whose evaluation the sink fence rejects as impure.
     // proof-obligation: normalize.value_graph.pure_inline
+    // proof-claim: nose.claim.normalize.value_graph.pure_inline
     pub(super) fn eval_inlined_call(
         &mut self,
         call: NodeId,

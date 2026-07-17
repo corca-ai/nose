@@ -2,6 +2,7 @@
 //!
 //! proof-obligation: normalize.control_flow.guard_returns
 //! proof-obligation: normalize.value_graph.bool_reduce
+// proof-claim: nose.claim.normalize.value_graph.bool_reduce
 
 mod block_return;
 mod containers;

@@ -1,0 +1,33 @@
+id = "normalize.css.box"
+kind = "soundness"
+summary = "CSS one-to-four-value box and two-axis shorthand collapse preserves expanded coordinates."
+
+[claim]
+id = "nose.claim.normalize.css.box"
+
+[theorem]
+status = "proven"
+statement = "The admitted one-, two-, and three-token shorthand collapses expand to the same four box coordinates as the original spelling."
+model = "Lean models CSS box expansion over arbitrary token values; property classification remains a runtime precondition."
+
+[preconditions.property_classification]
+kind = "runtime"
+status = "empirical"
+summary = "Only CSS properties with standard box or two-axis expansion semantics may call the corresponding collapse."
+evidence = ["crates/nose-normalize/src/css_value/tests.rs"]
+
+[product]
+surface = "canonicalization"
+guarantee = "Collapses only recognized shorthand properties and only equality patterns proven by the box model."
+
+[evidence]
+executable_tests = ["crates/nose-normalize/src/css_value/tests.rs", "bench/type4/declarative_claim_matrix.v1.json"]
+counterexamples = ["bench/type4/declarative_claim_matrix.v1.json#css.box.shorthand-collapse.hn.1", "bench/type4/declarative_claim_matrix.v1.json#css.box.shorthand-collapse.hn.2", "bench/type4/declarative_claim_matrix.v1.json#css.cascade.shorthand-longhand.hn.1"]
+
+[rust]
+files = ["crates/nose-normalize/src/css_value.rs"]
+symbols = ["canonicalize_value", "is_box_shorthand", "is_two_axis_shorthand", "collapse_box", "collapse_two_axis"]
+
+[lean]
+proof = "Proof.lean"
+theorems = ["NoseCssBox.four_equal_to_one", "NoseCssBox.four_pair_to_two", "NoseCssBox.four_sides_to_three", "NoseCssBox.two_axes_equal_to_one"]

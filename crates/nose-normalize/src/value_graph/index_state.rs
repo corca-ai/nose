@@ -18,6 +18,7 @@
 //! mutation in lockstep (`interp.rs` `bind` for `Index`) and would witness any false merge.
 //!
 //! proof-obligation: normalize.value_graph.index_writes
+// proof-claim: nose.claim.normalize.value_graph.index_writes
 
 use super::*;
 

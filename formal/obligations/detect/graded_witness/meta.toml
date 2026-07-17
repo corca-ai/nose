@@ -1,7 +1,46 @@
 id = "detect.graded_witness"
-status = "proven"
 kind = "soundness"
-summary = "The graded witness's `equal_modulo_holes` grade asserts the two copies' value graphs are equal modulo the reported holes. Its STRUCTURAL core — anti-unification soundness — is machine-checked: both inputs match their least general generalization (it is a real generalization; holes are the only freedom), and a hole-free anti-unification means the terms are equal (the k=0 case). Like `factor_distribute`'s Num gate, one precondition stays empirical and is NOT part of the proof: that names both copies consume resolve to the same referent (`compare_referents`), plus the decorator/sink checks — these fail the family closed when violated and are defended by the witness soundness battery, not by Lean."
+summary = "The graded witness has a proven anti-unification theorem and separately recorded empirical referent, decorator, sink, and async gates."
+
+[claim]
+id = "nose.claim.detect.graded_witness"
+
+[theorem]
+status = "proven"
+statement = "Both inputs match their anti-unification pattern, and a hole-free anti-unification implies equality of the modeled terms."
+model = "Lean models abstract operation/leaf identity and binary term anti-unification; it does not model source binding, decorators, sink extraction, or async lifecycle."
+
+[preconditions.referent_identity]
+kind = "runtime"
+status = "empirical"
+summary = "Names consumed by both copies must resolve to the same source referent."
+evidence = ["crates/nose-detect/src/witness/tests.rs#disjoint_referents_demote_the_witness"]
+
+[preconditions.decorator_identity]
+kind = "runtime"
+status = "empirical"
+summary = "Definition-site decorators must fail exact admission before a transformed binding reaches the witness."
+evidence = ["crates/nose-cli/tests/equivalence/reinvented_helper_boundaries.rs#decorated_function_callers_fail_closed_coevo_s6_s2a"]
+
+[preconditions.sink_alignment]
+kind = "runtime"
+status = "empirical"
+summary = "Return and effect sinks must align without an unmatched behavior-bearing sink."
+evidence = ["crates/nose-detect/src/witness/tests.rs#extra_return_sink_is_a_superset_pattern"]
+
+[preconditions.async_lifecycle]
+kind = "runtime"
+status = "empirical"
+summary = "A one-sided async boundary is a transformation mirror, never behavioral equality."
+evidence = ["crates/nose-detect/src/witness/tests.rs#async_await_aligns_with_sync_twin_as_async_mirror"]
+
+[product]
+surface = "near-witness"
+guarantee = "Reports structural similarity only after the separately recorded runtime gates pass."
+
+[evidence]
+executable_tests = ["crates/nose-detect/src/witness/tests.rs", "crates/nose-cli/tests/equivalence/reinvented_helper_boundaries.rs"]
+counterexamples = ["crates/nose-detect/src/witness/tests.rs#disjoint_referents_demote_the_witness", "crates/nose-detect/src/witness/tests.rs#extra_return_sink_is_a_superset_pattern", "crates/nose-detect/src/witness/tests.rs#async_await_aligns_with_sync_twin_as_async_mirror"]
 
 [rust]
 files = [

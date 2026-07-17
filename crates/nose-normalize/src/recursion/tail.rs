@@ -1,6 +1,7 @@
 //! Tail-recursion recognition and emission.
 //!
 //! proof-obligation: normalize.recursion.tail
+// proof-claim: nose.claim.normalize.recursion.tail
 
 use super::Rebuilder;
 use nose_il::{NodeId, Span};

@@ -1,0 +1,33 @@
+id = "normalize.css.number_unit"
+kind = "soundness"
+summary = "CSS numeric spelling cleanup and zero-length unit elision preserve parsed scalar denotation."
+
+[claim]
+id = "nose.claim.normalize.css.number_unit"
+
+[theorem]
+status = "proven"
+statement = "Canonical numeric spelling and unit-free zero length denote the same modeled scalar as their parsed input."
+model = "Lean distinguishes scalar dimensions and models spelling variants only after an exact string parse."
+
+[preconditions.numeric_parser_correspondence]
+kind = "runtime"
+status = "empirical"
+summary = "Rust string surgery must parse sign, decimal digits, and CSS unit dimensions exactly as represented by the model."
+evidence = ["crates/nose-normalize/src/css_value/tests.rs"]
+
+[product]
+surface = "canonicalization"
+guarantee = "Normalizes exact decimal spellings and elides units only for zero lengths."
+
+[evidence]
+executable_tests = ["crates/nose-normalize/src/css_value/tests.rs", "bench/type4/declarative_claim_matrix.v1.json"]
+counterexamples = ["bench/type4/declarative_claim_matrix.v1.json#css.length.zero-unit.hn.1", "bench/type4/declarative_claim_matrix.v1.json#css.number.canonical-spelling.hn.1"]
+
+[rust]
+files = ["crates/nose-normalize/src/css_value.rs"]
+symbols = ["normalize_number", "canonical_number_text", "is_length_unit"]
+
+[lean]
+proof = "Proof.lean"
+theorems = ["NoseCssNumberUnit.canonicalize_preserves_scalar", "NoseCssNumberUnit.zero_length_units_agree"]

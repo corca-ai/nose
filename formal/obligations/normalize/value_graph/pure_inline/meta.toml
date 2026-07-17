@@ -1,7 +1,28 @@
 id = "normalize.value_graph.pure_inline"
-status = "proven"
 kind = "soundness"
 summary = "Inlining a call to a PURE, single-`return` function is beta-substitution: `f(args)` ≡ the function's body with the parameters bound to the arguments. For an effect-free function (modeled as a total mathematical function) this preserves meaning — nothing observable is dropped — so the interprocedural inline (`eval_inlined_call`) is sound. The Rust side enforces the effect-free precondition (a lone `return <expr>` that is `function_binding_safe`), which is why only a pure body may be inlined."
+
+[claim]
+id = "nose.claim.normalize.value_graph.pure_inline"
+
+[theorem]
+status = "proven"
+statement = "Inlining a call to a PURE, single-`return` function is beta-substitution: `f(args)` ≡ the function's body with the parameters bound to the arguments. For an effect-free function (modeled as a total mathematical function) this preserves meaning — nothing observable is dropped — so the interprocedural inline (`eval_inlined_call`) is sound. The Rust side enforces the effect-free precondition (a lone `return <expr>` that is `function_binding_safe`), which is why only a pure body may be inlined."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.rust_model_correspondence]
+kind = "runtime"
+status = "empirical"
+summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = []
 
 [rust]
 files = [

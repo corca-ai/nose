@@ -1,7 +1,28 @@
 id = "normalize.value_graph.free_monoid"
-status = "proven"
 kind = "soundness-boundary"
 summary = "String/list builder semantics are ordered free-monoid concatenation, not commutative algebra."
+
+[claim]
+id = "nose.claim.normalize.value_graph.free_monoid"
+
+[theorem]
+status = "proven"
+statement = "String/list builder semantics are ordered free-monoid concatenation, not commutative algebra."
+model = "The Lean declarations listed in [lean] define the modeled theorem boundary."
+
+[preconditions.rust_model_correspondence]
+kind = "runtime"
+status = "empirical"
+summary = "Rust admission must establish the modeled domain, shape, binding, and effect hypotheses before emitting this exact normalization."
+evidence = ["crates/nose-cli/tests/equivalence.rs"]
+
+[product]
+surface = "exact-normalization"
+guarantee = "Shares an exact fingerprint only when the recorded runtime preconditions admit the modeled theorem."
+
+[evidence]
+executable_tests = ["crates/nose-cli/tests/equivalence.rs"]
+counterexamples = ["formal/obligations/normalize/value_graph/free_monoid/Counterexamples.lean#NoseFreeMonoidCounterexamples.concat_not_commutative", "formal/obligations/normalize/value_graph/free_monoid/Counterexamples.lean#NoseFreeMonoidCounterexamples.repeat_distribution_not_sound"]
 
 [rust]
 files = [
