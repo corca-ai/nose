@@ -381,8 +381,8 @@ that completed that issue. The #862
 [`release-binding-862.v1.json`](../bench/soundness/0.20.0/release-binding-862.v1.json) separately
 binds the current crates tree, binary, replayed overlay, falsification output, Type-4 blind receipt,
 and a candidate-generated exclusion-attribution census, while proving that all frozen pair
-decisions and coverage aggregates are unchanged. The candidate census covers 13,790 units and
-attributes every one of its 11,178 exclusions to a concrete classification and capability; generic
+decisions and coverage aggregates are unchanged. The candidate census covers 13,794 units and
+attributes every one of its 11,182 exclusions to a concrete classification and capability; generic
 or unattributed exclusions remain zero. A fresh nine-iteration query run over the seven-repository
 regression frontier uses the published v0.19.0 arm64 binary as its baseline. After subtracting a
 same-binary control, the aggregate runtime delta is `+1.63%`, within the `5%` gate; the compact
@@ -424,7 +424,7 @@ Reproduce the compact current-candidate attribution receipt from the exact sourc
 binary recorded in `release-binding-862.v1.json`:
 
 ```sh
-candidate_commit=a75c3d8c924513d59e6ae4a97941e6241f4ca01e
+candidate_commit=7c459eb4a65d9cb3ccc301e674fc3687a263ba6b
 candidate_binary=target/release/nose
 candidate_binary_sha256="$(shasum -a 256 "$candidate_binary" | awk '{print $1}')"
 

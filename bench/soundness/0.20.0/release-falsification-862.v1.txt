@@ -1,11 +1,11 @@
 === value-graph oracle (soundness + completeness) ===
-units: 13790 total, 2612 interpretable (11178 excluded)
+units: 13794 total, 2612 interpretable (11182 excluded)
 
 EXCLUSIONS — fail-closed units by reason:
   core-missing: 1
   battery-bail: 1 (>384000 node-rows)
   empty-fingerprint: 1
-  uninterpretable: 11169
+  uninterpretable: 11173
   path-bail: 6 (> 3 symbolic branch sites)
 
 CANON PRESERVATION — normalization preserves behavior:

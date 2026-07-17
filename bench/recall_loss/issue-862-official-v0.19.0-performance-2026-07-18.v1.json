@@ -8,8 +8,8 @@
   "candidate": {
     "binary_code_sha256": "9b8760574a86cefd36a670d70f46f4ac2a80ba18f5b0a09b5a9dee9d74b8690d",
     "binary_sha256": "b94b2fa9a5b8d52c972340e530a9c7e956819cf5df97980cdc387bae5f7fe64f",
-    "crates_tree": "0feac652bb481a2a68042ef68574f8530cd982bb",
-    "source_sha": "a75c3d8c924513d59e6ae4a97941e6241f4ca01e"
+    "crates_tree": "85befdaa7e960a4762c9baade4fcdad372f005da",
+    "source_sha": "7c459eb4a65d9cb3ccc301e674fc3687a263ba6b"
   },
   "corpus": {
     "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
