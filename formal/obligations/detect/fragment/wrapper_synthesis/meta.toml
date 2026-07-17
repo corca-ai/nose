@@ -22,17 +22,31 @@ status = "empirical"
 summary = "The copied fragment body and synthesized root must stay in bounds and preserve the selected behavior sinks."
 evidence = ["crates/nose-detect/src/fragment/oracle/tests.rs"]
 
+[preconditions.mixed_exit_identity]
+kind = "runtime"
+status = "empirical"
+summary = "A fallthrough fragment that may return or throw carries a fragment-only control coordinate, so it cannot collide with a whole function that intentionally erases that distinction."
+evidence = ["crates/nose-detect/src/units/tests/extraction.rs#mixed_exit_fragment_is_distinct_from_its_enclosing_function"]
+
 [product]
 surface = "verification-boundary"
 guarantee = "Bounds behavioral verification to fragments satisfying the recorded contract."
 
 [evidence]
-executable_tests = ["crates/nose-detect/src/fragment/oracle/tests.rs"]
+executable_tests = [
+  "crates/nose-detect/src/fragment/oracle/tests.rs",
+  "crates/nose-detect/src/units/tests/extraction.rs#mixed_exit_fragment_is_distinct_from_its_enclosing_function",
+]
 counterexamples = []
 
 [rust]
-files = ["crates/nose-detect/src/fragment/oracle.rs"]
-symbols = ["fragment_behavior", "synthesize_wrapper", "run_unit"]
+files = [
+  "crates/nose-detect/src/fragment.rs",
+  "crates/nose-detect/src/fragment/oracle.rs",
+  "crates/nose-detect/src/units.rs",
+  "crates/nose-detect/src/units/product.rs",
+]
+symbols = ["fragment_behavior", "fragment_observes_mixed_exit", "synthesize_wrapper", "run_unit"]
 
 [lean]
 proof = "Proof.lean"

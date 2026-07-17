@@ -226,7 +226,7 @@ fn foreach_iterable_err_stops_execution() {
     assert_eq!(run_foreach_with_iterable_err(), Some(Value::Err));
 }
 
-fn run_throw_then_return() -> Value {
+fn run_throw_then_return() -> (Value, UnitExit) {
     let sp = Span::synthetic(FileId(0));
     let mut b = IlBuilder::new(FileId(0));
     let thrown = b.add(NodeKind::Lit, Payload::LitStr(0xBAD), sp, &[]);
@@ -244,12 +244,14 @@ fn run_throw_then_return() -> Value {
         Vec::new(),
         Vec::new(),
     );
-    run_admitted_unit(il, func, &[]).expect("run_unit").ret
+    let interner = Interner::new();
+    let (behavior, exit) = run_unit_observing_exit(&il, &interner, func, &[]).expect("run_unit");
+    (behavior.ret, exit)
 }
 
 #[test]
 fn throw_is_err_behavior_and_stops_execution() {
-    assert_eq!(run_throw_then_return(), Value::Err);
+    assert_eq!(run_throw_then_return(), (Value::Err, UnitExit::Throw));
 }
 
 fn add_self_field(

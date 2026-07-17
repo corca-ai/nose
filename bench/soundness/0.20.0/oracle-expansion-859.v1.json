@@ -14,7 +14,7 @@
     },
     "performance": {
       "path": "../../recall_loss/issue-859-official-v0.19.0-performance-2026-07-17.v1.json",
-      "sha256": "d0407b56f4ab829ec10a1c94189566d5bdb52934c4c8a889106f0270d3ae5eee"
+      "sha256": "d6ee837cf8ffce97b185bf428db82b0029d999a12d0fc6451864c57b56d69c9a"
     }
   },
   "branch_base": "7db472bae53867a0e2c2b5f7108c469bbe28819a",
@@ -55,7 +55,7 @@
     "release_target_ppm": 424999,
     "scorecard_sha256": "b5edb7340a7a9c7b45bb6ba8c561c77315955059016f971cf25332cf8e2f60f2"
   },
-  "implementation_source_sha": "acb87669c54dc941d94d72cdd81e4a71a0fcd591",
+  "implementation_source_sha": "478b21e8599a2230bc8143f92dce87b2383fe06b",
   "implementation_crates_tree": "9695959bd28e9b126674996c8fb47f39e7ae059c",
   "issue": 859,
   "parent_issue": 855,

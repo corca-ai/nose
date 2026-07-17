@@ -33,6 +33,49 @@ pub use oracle::{
 };
 pub use recognize::recognized_contracts as recognized_fragment_contracts;
 
+const MIXED_EXIT_FINGERPRINT_TAG: u64 =
+    nose_il::stable_symbol_hash("nose.fragment.control.mixed-exit/v1");
+
+/// Whether an otherwise fallthrough fragment can also return or throw from its enclosing unit.
+///
+/// Whole functions intentionally erase fallthrough-vs-explicit-return when their returned value
+/// agrees. A sub-function fragment cannot: falling through continues the enclosing function.
+/// This control coordinate therefore belongs to the exact product identity, not only the
+/// offline oracle. `proof-claim: nose.claim.detect.fragment.wrapper_synthesis`
+pub fn fragment_observes_mixed_exit(
+    il: &nose_il::Il,
+    root: nose_il::NodeId,
+    kind: FragmentKind,
+) -> bool {
+    if kind.primary_exit() != Exit::Normal {
+        return false;
+    }
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if matches!(
+            il.kind(node),
+            nose_il::NodeKind::Return | nose_il::NodeKind::Throw
+        ) {
+            return true;
+        }
+        stack.extend(il.children(node));
+    }
+    false
+}
+
+/// Add the fragment-only terminal-control coordinate to an already sorted exact fingerprint.
+pub(crate) fn bind_fragment_control_identity(
+    il: &nose_il::Il,
+    root: nose_il::NodeId,
+    kind: FragmentKind,
+    value: &mut Vec<u64>,
+) {
+    if fragment_observes_mixed_exit(il, root, kind) {
+        value.push(MIXED_EXIT_FINGERPRINT_TAG);
+        value.sort_unstable();
+    }
+}
+
 /// The shape of an accepted exact sub-function fragment.
 ///
 /// Each variant is the classification of one recognizer branch in

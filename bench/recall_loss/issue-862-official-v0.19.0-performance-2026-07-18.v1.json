@@ -1,0 +1,54 @@
+{
+  "baseline": {
+    "binary_code_sha256": "e55d0e989993ff1d1d6b4e933dbd3f5ade38203368b8321d3a7842799a95aca6",
+    "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3",
+    "source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+    "version": "v0.19.0"
+  },
+  "candidate": {
+    "binary_code_sha256": "9b8760574a86cefd36a670d70f46f4ac2a80ba18f5b0a09b5a9dee9d74b8690d",
+    "binary_sha256": "b94b2fa9a5b8d52c972340e530a9c7e956819cf5df97980cdc387bae5f7fe64f",
+    "crates_tree": "85befdaa7e960a4762c9baade4fcdad372f005da",
+    "source_sha": "7c459eb4a65d9cb3ccc301e674fc3687a263ba6b"
+  },
+  "corpus": {
+    "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
+    "corpus_state_sha256": "781b5c5082c5ddf03cf5a3b3622eb4944bd2389b233e8a593b08f54e96ef6eda",
+    "expected_corpus_state_sha256": "b28d7245aa34d7e0320d0c80ef988803ba6acb65b63eaf1bae6d7ac840b168e0",
+    "prune_manifest_sha256": "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980",
+    "repositories": [
+      "alamofire",
+      "guava",
+      "hugo",
+      "netty",
+      "rxjava",
+      "sqlalchemy",
+      "sympy"
+    ],
+    "selection_sha256": "71f212ab2cddd5d59494b244f8a6b2be20cbf021d6a20c9ac33ffe6adc5a22f6",
+    "subset_sha256": "7247d64112bc20749de43d91fb86c6f288ae09271a08d67b68aa252d5abb5804"
+  },
+  "gate": {
+    "adjusted_delta_pct_limit": 5.0,
+    "passed": true
+  },
+  "issue": 862,
+  "measurement": {
+    "adjusted_delta_ms": 133.06908158119768,
+    "adjusted_delta_pct": 1.6324586958299498,
+    "aggregate_baseline_median_ms": 8151.451667421497,
+    "aggregate_current_median_ms": 8303.407373838127,
+    "aggregate_raw_delta_ms": 151.95570641662925,
+    "aggregate_raw_delta_pct": 1.8641551543995911,
+    "command": "nose query <repo> all top=0 --format json",
+    "control_baseline_median_ms": 8907.669874257408,
+    "control_current_median_ms": 8926.55649909284,
+    "control_delta_ms": 18.886624835431576,
+    "control_raw_sha256": "ce3837af9858b5cafb9afc7120d60441a121fec06a0ddda90d0fef26941d9a27",
+    "iterations": 9,
+    "primary_raw_sha256": "9a3f0c529216644817f6bc5a896e6e7b859dc75998c2f862d7c736d372b2c323",
+    "warmups": 2
+  },
+  "parent_issue": 855,
+  "schema": "nose.issue-862.performance/v1"
+}

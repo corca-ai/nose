@@ -150,7 +150,7 @@ impl<'a> Interp<'a> {
             | NodeKind::Break
             | NodeKind::Continue => match self.exec(body, &mut local)? {
                 Flow::Ret(v) => Ok(v),
-                Flow::Err => Ok(Value::Err),
+                Flow::Throw | Flow::Err => Ok(Value::Err),
                 Flow::Normal => Ok(Value::Null),
                 Flow::Break | Flow::Continue => {
                     Err(Unsupported::protocol("protocol.lambda-nonlocal-control"))

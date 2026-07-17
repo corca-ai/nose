@@ -322,6 +322,17 @@ fn exact_safe_for_unit(ctx: &UnitExtractCtx<'_>, root: NodeId, exact_fragment: b
             }))
 }
 
+fn bind_optional_fragment_control_identity(
+    il: &Il,
+    root: NodeId,
+    fragment_kind: Option<FragmentKind>,
+    value: &mut Vec<u64>,
+) {
+    if let Some(kind) = fragment_kind {
+        crate::fragment::bind_fragment_control_identity(il, root, kind, value);
+    }
+}
+
 fn gate_unit(
     ctx: &UnitExtractCtx<'_>,
     unit_root: UnitRoot,
@@ -391,7 +402,7 @@ fn gate_unit(
     // gate so the gate can consult semantic richness (below).
     let value_start = unit_timer.start();
     let (
-        value,
+        mut value,
         lits,
         returns,
         anchors,
@@ -407,6 +418,7 @@ fn gate_unit(
     } else {
         nose_normalize::value_fingerprint_lits_anchors_laws(ctx.il, root, ctx.interner)
     };
+    bind_optional_fragment_control_identity(ctx.il, root, fragment_kind, &mut value);
     let value_ms = UnitTimer::elapsed(value_start);
 
     // Size gate. A short unit normally isn't a meaningful clone — EXCEPT a

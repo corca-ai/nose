@@ -21,9 +21,9 @@ use rayon::prelude::*;
 use std::path::Path;
 
 /// Bump when the cached payload's layout, extraction, or feature hashing changes — old
-/// cache entries then live under a different directory and are ignored. (v11: compact
-/// connected-witness tokens were added to near-channel unit features.)
-const SCHEMA: u32 = 11;
+/// cache entries then live under a different directory and are ignored. (v12: exact fragment
+/// fingerprints gained the mixed-terminal-control coordinate.)
+const SCHEMA: u32 = 12;
 
 pub(crate) struct CachedUnits {
     pub units: Vec<UnitFeat>,
@@ -164,5 +164,40 @@ mod tests {
             return;
         }
         assert_eq!(out.files, 1, "only the readable file should be counted");
+    }
+
+    #[test]
+    fn schema_12_ignores_pre_mixed_exit_cache_entries() {
+        let root = std::env::temp_dir().join(format!("nose_cache_schema_{}", std::process::id()));
+        let source = root.join("source");
+        let cache = root.join("cache");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&source).unwrap();
+        std::fs::create_dir_all(&cache).unwrap();
+        std::fs::write(
+            source.join("mixed.ts"),
+            "function f(x: boolean) { if (x) { return 1; } }\n",
+        )
+        .unwrap();
+
+        let corpus = nose_frontend::lower_corpus_filtered(&[source.as_path()], &[]);
+        let options = DetectOptions::default();
+        let signature = options_signature(&options);
+        let current = cache.join(format!("v12-{signature:016x}"));
+        let stale = cache.join(format!("v11-{signature:016x}"));
+        let first = build_units_cached(&corpus, &options, &cache);
+        assert!(!first.units.is_empty());
+        std::fs::rename(&current, &stale).unwrap();
+        assert!(!current.exists());
+
+        let second = build_units_cached(&corpus, &options, &cache);
+        assert_eq!(second.units.len(), first.units.len());
+        assert!(
+            current.is_dir(),
+            "v11 entries must be ignored and a fresh v12 bucket written"
+        );
+        assert!(stale.is_dir(), "the stale bucket should remain untouched");
+
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

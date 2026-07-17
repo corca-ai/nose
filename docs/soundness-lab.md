@@ -321,6 +321,74 @@ parsed color, number/unit, box, and query-order cores, while a named browser/cas
 is linked to the executable declarative counterexamples. CI still treats `sorry`, stale Rust
 symbols or markers, and unused Lean proof hints as failures.
 
+## CI, nightly, deep, and release gates (#862)
+
+The Lab reuses the producers above in four deliberately different lanes. A PR that touches the
+semantic kernel, proof registry, Type-4 evidence, or Lab scripts gets a focused workflow. Its
+artifact indexes the registered claims touched by the diff, while the gate conservatively runs
+the complete formal registry and Lean proofs, scorecard, source-runtime calibration, Tier-A
+perimeter, and executable equivalence battery. This avoids a changed shared rule being declared
+safe merely because a dependency edge was missing from the selector.
+
+The nightly lane deterministically partitions all 120 pinned repositories into four GitHub
+matrix shards. Every repository has a per-repository timeout, and the merge step requires every
+pin exactly once. A missing checkout, missing shard artifact, wrong commit, timeout, nonzero exit,
+false merge, or canon-preservation change remains red. Each shard uploads a byte-deterministic
+evidence artifact (`evidence.json`, repository selection, TSV, and Markdown) separately from its
+build, setup, and per-repository diagnostic logs; both artifacts are retained on success and
+failure. Timing is not part of the deterministic artifact, so repeating the same binary and
+commits with different repository parallelism produces the same bytes. Advisory disagreements
+remain non-blocking, but the baseline snapshot
+[`nightly-advisory-baseline.v1.json`](../bench/soundness/0.20.0/nightly-advisory-baseline.v1.json) records
+the official v0.19.0 count for every repository, and the merged artifact reports all 120
+before/current/delta rows, including unchanged rows.
+
+A separate weekly deep lane runs the independent Python/Node calibration, the full metamorphic
+equivalence suite, and three fixed-seed distinguishing-input searches. Manual `release` mode runs
+both full nightly and deep lanes at the same commit, then emits one deterministic report containing
+hard gates, official-v0.19.0 and candidate risk-weighted coverage, every language floor, formal
+theorem/precondition/product-surface coverage, the guarded Tier-A perimeter, and the complete
+advisory diff. It cannot compose evidence from different commits, accept a missing or extra deep
+check, or release a commit whose `crates` tree differs from the checked binding. A failed composer
+still uploads its log and a failure summary.
+
+The workflow and aggregation contract can be checked without the 120-repository corpus:
+
+```sh
+./scripts/corpus-verify-nightly.sh --self-test
+python3 scripts/soundness-lab-gate.py self-test
+python3 scripts/soundness-lab-gate.py check
+```
+
+The self-tests inject false merges, canon violations, coverage regressions, unregistered claims,
+unguarded Tier-A cells, generic attribution returns, incomplete shards, contradictory exit/status
+rows, and missing/empty/extra deep checks, and require all to fail closed. The runner separately
+injects missing repositories, changed pins, timeouts, and aggregation-order changes. The release
+workflow is intentionally manual: ordinary nightly evidence is useful by itself, while a release
+decision additionally requires a successful same-commit deep campaign.
+
+The first full candidate replay caught a real boundary error: a whole function could share an
+exact fingerprint with a conditional fragment that sometimes returns or throws and otherwise
+falls through into its enclosing function. The fragment now binds that mixed terminal-control
+coordinate into product extraction. The audit oracle independently retains observed terminal
+control, including a distinct throw channel, so deleting the product tag is itself detected. A
+focused TypeScript regression, a tag-removal mutation test, and the affected pinned repositories
+preserve the distinction; the gate is therefore recording a defect it found, not merely checking
+synthetic mutations.
+
+The historical #859 expansion receipt remains bound to the implementation and performance run
+that completed that issue. The #862
+[`release-binding-862.v1.json`](../bench/soundness/0.20.0/release-binding-862.v1.json) separately
+binds the current crates tree, binary, replayed overlay, falsification output, Type-4 blind receipt,
+and a candidate-generated exclusion-attribution census, while proving that all frozen pair
+decisions and coverage aggregates are unchanged. The candidate census covers 13,794 units and
+attributes every one of its 11,182 exclusions to a concrete classification and capability; generic
+or unattributed exclusions remain zero. A fresh nine-iteration query run over the seven-repository
+regression frontier uses the published v0.19.0 arm64 binary as its baseline. After subtracting a
+same-binary control, the aggregate runtime delta is `+1.63%`, within the `5%` gate; the compact
+[`performance receipt`](../bench/recall_loss/issue-862-official-v0.19.0-performance-2026-07-18.v1.json) records
+both raw-run hashes and the exact corpus and binary identities.
+
 ## Reproduce and validate
 
 Use the published binary, the exact release source tree, and all pinned
@@ -352,12 +420,31 @@ python3 scripts/check-soundness-scorecard.py \
   --reproduce target/soundness-lab/v0.19.0
 ```
 
+Reproduce the compact current-candidate attribution receipt from the exact source commit and
+binary recorded in `release-binding-862.v1.json`:
+
+```sh
+candidate_commit=7c459eb4a65d9cb3ccc301e674fc3687a263ba6b
+candidate_binary=target/release/nose
+candidate_binary_sha256="$(shasum -a 256 "$candidate_binary" | awk '{print $1}')"
+
+RAYON_NUM_THREADS=1 "$candidate_binary" verify crates \
+  --max-violations 0 \
+  --exclusion-census target/soundness-lab/current-exclusions.json
+python3 scripts/soundness_exclusions.py \
+  --summarize-current \
+  --census target/soundness-lab/current-exclusions.json \
+  --source-commit "$candidate_commit" \
+  --binary-sha256 "$candidate_binary_sha256" \
+  --output target/soundness-lab/current-exclusion-attribution.json
+```
+
 The runner checks each repository HEAD, validates the checked pruned-corpus
-digest, and writes `evidence.json` binding those identities and `summary.tsv`
+digest, and writes v2 `evidence.json` binding those identities and deterministic `summary.tsv`
 to the actual binary hash. Missing repositories, changed pins or source bytes,
 the wrong binary, hard false merges, canon violations, artifact drift, or a
-non-release-tree report fail the check. Timing is omitted from the canonical
-120-repository result; statuses, hard counts, and advisory counts are retained.
+non-release-tree report fail the check. Timing is omitted from every archived
+aggregation file; statuses, hard counts, and advisory counts are retained.
 The measured 1-thread and 4-thread corpus results have the same canonical hash,
 zero hard failures, and 4,756 advisory disagreements.
 
