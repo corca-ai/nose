@@ -167,7 +167,7 @@ def main() -> int:
         except subprocess.CalledProcessError as exc:
             print(f"  ! {gen_axis}: generate/query failed: {exc.stderr[:120] if exc.stderr else exc}",
                   file=sys.stderr)
-            continue
+            return 1
         # Soundness arm: did the generator's hard negatives stay un-merged, and what did the
         # oracle find (under-merged leads = recall feedback; canon_changed = synthetic budget).
         hard_neg = sum(c["neg"] for c in cells.values())

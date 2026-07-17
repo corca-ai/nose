@@ -10,217 +10,582 @@
       "axis_id": "collection_empty_check",
       "claim_id": "nose.type4.collection-empty",
       "risk_tier": "A",
-      "exact_languages": ["c", "go", "java", "javascript", "typescript", "python", "rust", "swift"],
-      "closed_languages": ["ruby"],
-      "hard_negative_group": "axis.collection-empty.adjacent",
-      "boundary_classes": ["domain", "protocol"]
+      "exact_languages": [
+        "c",
+        "go",
+        "java",
+        "javascript",
+        "typescript",
+        "python",
+        "rust",
+        "swift"
+      ],
+      "closed_languages": [
+        "ruby"
+      ],
+      "hard_negative_group": "axis.collection_empty_check.adjacent",
+      "evidence_producers": [
+        "collection_empty_check",
+        "probe:collection_empty_check"
+      ],
+      "boundary_classes": [
+        "domain",
+        "protocol"
+      ]
     },
     {
       "axis_id": "string_prefix_suffix",
       "claim_id": "nose.type4.string-affix",
       "risk_tier": "A",
-      "exact_languages": ["go", "java", "javascript", "typescript", "python", "ruby", "rust", "swift"],
+      "exact_languages": [
+        "go",
+        "java",
+        "javascript",
+        "typescript",
+        "python",
+        "ruby",
+        "rust",
+        "swift"
+      ],
       "closed_languages": [],
-      "hard_negative_group": "axis.string-affix.adjacent",
-      "boundary_classes": ["domain", "protocol"]
+      "hard_negative_group": "axis.string_prefix_suffix.adjacent",
+      "evidence_producers": [
+        "probe:string_prefix_suffix",
+        "string_prefix_suffix"
+      ],
+      "boundary_classes": [
+        "domain",
+        "protocol"
+      ]
     },
     {
       "axis_id": "membership_contains",
       "claim_id": "nose.type4.membership",
       "risk_tier": "A",
-      "exact_languages": ["go", "java", "javascript", "typescript", "python", "ruby", "rust", "swift"],
-      "closed_languages": [],
-      "hard_negative_group": "axis.membership.adjacent",
-      "boundary_classes": ["domain", "protocol"]
+      "exact_languages": [
+        "go",
+        "java",
+        "javascript",
+        "typescript",
+        "swift"
+      ],
+      "closed_languages": [
+        "python",
+        "ruby",
+        "rust"
+      ],
+      "hard_negative_group": "axis.membership_contains.adjacent",
+      "evidence_producers": [
+        "literal_collection_membership",
+        "map_key_membership",
+        "probe:membership_contains"
+      ],
+      "boundary_classes": [
+        "domain",
+        "protocol"
+      ]
     },
     {
       "axis_id": "null_option_presence",
       "claim_id": "nose.type4.null-option-presence",
       "risk_tier": "A",
-      "exact_languages": ["c", "go", "java", "javascript", "typescript", "python", "ruby", "rust", "swift"],
-      "closed_languages": [],
-      "hard_negative_group": "axis.null-option-presence.adjacent",
-      "boundary_classes": ["domain", "protocol"]
+      "exact_languages": [
+        "c",
+        "go",
+        "java",
+        "javascript",
+        "typescript",
+        "python",
+        "ruby",
+        "swift"
+      ],
+      "closed_languages": [
+        "rust"
+      ],
+      "hard_negative_group": "axis.null_option_presence.adjacent",
+      "evidence_producers": [
+        "null_presence_predicate",
+        "nullish_default",
+        "probe:null_option_presence"
+      ],
+      "boundary_classes": [
+        "domain",
+        "protocol"
+      ]
     },
     {
       "axis_id": "map_default_lookup",
       "claim_id": "nose.type4.map-default",
       "risk_tier": "A",
-      "exact_languages": ["go", "java", "javascript", "typescript", "python", "ruby", "swift"],
-      "closed_languages": ["rust"],
-      "hard_negative_group": "axis.map-default.adjacent",
-      "boundary_classes": ["domain", "effect", "protocol"]
+      "exact_languages": [
+        "go",
+        "java",
+        "javascript",
+        "typescript",
+        "python",
+        "ruby",
+        "swift"
+      ],
+      "closed_languages": [
+        "rust"
+      ],
+      "hard_negative_group": "axis.map_default_lookup.adjacent",
+      "evidence_producers": [
+        "literal_map_default_lookup",
+        "map_default_lookup",
+        "probe:map_default_lookup",
+        "table_access"
+      ],
+      "boundary_classes": [
+        "domain",
+        "effect",
+        "protocol"
+      ]
     },
     {
       "axis_id": "numeric_minmax_abs",
       "claim_id": "nose.type4.numeric-minmax-abs",
       "risk_tier": "A",
-      "exact_languages": ["swift"],
-      "closed_languages": ["c", "go", "java", "javascript", "typescript", "python", "ruby", "rust"],
-      "hard_negative_group": "axis.numeric-minmax-abs.adjacent",
-      "boundary_classes": ["domain", "effect", "protocol"]
+      "exact_languages": [
+        "swift"
+      ],
+      "closed_languages": [
+        "c",
+        "go",
+        "java",
+        "javascript",
+        "typescript",
+        "python",
+        "ruby",
+        "rust"
+      ],
+      "hard_negative_group": "axis.numeric_minmax_abs.adjacent",
+      "evidence_producers": [
+        "numeric_minmax_abs",
+        "probe:numeric_minmax_abs"
+      ],
+      "boundary_classes": [
+        "domain",
+        "effect",
+        "protocol"
+      ]
     },
     {
       "axis_id": "numeric_clamp",
       "claim_id": "nose.type4.numeric-clamp",
       "risk_tier": "A",
-      "exact_languages": ["python", "rust", "swift"],
-      "closed_languages": ["c", "go", "java", "javascript", "typescript", "ruby"],
-      "hard_negative_group": "axis.numeric-clamp.adjacent",
-      "boundary_classes": ["domain", "effect", "protocol"]
+      "exact_languages": [
+        "python",
+        "rust",
+        "swift"
+      ],
+      "closed_languages": [
+        "c",
+        "go",
+        "java",
+        "javascript",
+        "typescript",
+        "ruby"
+      ],
+      "hard_negative_group": "axis.numeric_clamp.adjacent",
+      "evidence_producers": [
+        "numeric_clamp",
+        "probe:numeric_clamp"
+      ],
+      "boundary_classes": [
+        "domain",
+        "effect",
+        "protocol"
+      ]
     },
     {
       "axis_id": "total_order_compare",
       "claim_id": "nose.type4.total-order-compare",
       "risk_tier": "A",
-      "exact_languages": ["go", "java", "swift"],
-      "closed_languages": ["c", "javascript", "typescript", "python", "ruby", "rust"],
-      "hard_negative_group": "axis.total-order-compare.adjacent",
-      "boundary_classes": ["domain", "effect", "protocol"]
+      "exact_languages": [
+        "go",
+        "java",
+        "swift"
+      ],
+      "closed_languages": [
+        "c",
+        "javascript",
+        "typescript",
+        "python",
+        "ruby",
+        "rust"
+      ],
+      "hard_negative_group": "axis.total_order_compare.adjacent",
+      "evidence_producers": [
+        "probe:total_order_compare",
+        "total_order_compare"
+      ],
+      "boundary_classes": [
+        "domain",
+        "effect",
+        "protocol"
+      ]
     },
     {
       "axis_id": "property_type_guard",
       "claim_id": "nose.type4.property-type-guard",
       "risk_tier": "A",
-      "exact_languages": ["javascript", "typescript"],
+      "exact_languages": [
+        "javascript",
+        "typescript"
+      ],
       "closed_languages": [],
-      "hard_negative_group": "axis.property-type-guard.adjacent",
-      "boundary_classes": ["domain", "protocol"]
+      "hard_negative_group": "axis.property_type_guard.adjacent",
+      "evidence_producers": [
+        "projection_identity",
+        "record_shape_guard"
+      ],
+      "boundary_classes": [
+        "domain",
+        "protocol"
+      ]
     },
     {
       "axis_id": "own_property_guard",
       "claim_id": "nose.type4.own-property-guard",
       "risk_tier": "A",
-      "exact_languages": ["javascript", "typescript"],
+      "exact_languages": [
+        "javascript",
+        "typescript"
+      ],
       "closed_languages": [],
-      "hard_negative_group": "axis.own-property-guard.adjacent",
-      "boundary_classes": ["domain", "protocol"]
+      "hard_negative_group": "axis.own_property_guard.adjacent",
+      "evidence_producers": [
+        "own_property_guard"
+      ],
+      "boundary_classes": [
+        "domain",
+        "protocol"
+      ]
     },
     {
       "axis_id": "import_identity",
       "claim_id": "nose.type4.import-identity",
       "risk_tier": "A",
-      "exact_languages": ["go", "java", "javascript", "typescript", "python", "rust", "swift"],
-      "closed_languages": ["c", "ruby"],
-      "hard_negative_group": "axis.import-identity.adjacent",
-      "boundary_classes": ["effect", "protocol"]
+      "exact_languages": [
+        "go",
+        "java",
+        "javascript",
+        "typescript",
+        "python",
+        "rust",
+        "swift"
+      ],
+      "closed_languages": [
+        "c",
+        "ruby"
+      ],
+      "hard_negative_group": "axis.import_identity.adjacent",
+      "evidence_producers": [
+        "import_identity",
+        "probe:import_identity"
+      ],
+      "boundary_classes": [
+        "effect",
+        "protocol"
+      ]
     },
     {
       "axis_id": "filter_fusion",
       "claim_id": "nose.type4.filter-fusion",
       "risk_tier": "A",
-      "exact_languages": ["java", "python", "swift"],
-      "closed_languages": ["c", "go", "javascript", "typescript", "ruby", "rust"],
-      "hard_negative_group": "axis.filter-fusion.adjacent",
-      "boundary_classes": ["domain", "effect", "protocol"]
+      "exact_languages": [
+        "java",
+        "python",
+        "swift"
+      ],
+      "closed_languages": [
+        "c",
+        "go",
+        "javascript",
+        "typescript",
+        "ruby",
+        "rust"
+      ],
+      "hard_negative_group": "axis.filter_fusion.adjacent",
+      "evidence_producers": [
+        "probe:filter_fusion"
+      ],
+      "boundary_classes": [
+        "domain",
+        "effect",
+        "protocol"
+      ]
     },
     {
       "axis_id": "map_fusion",
       "claim_id": "nose.type4.map-fusion",
       "risk_tier": "A",
-      "exact_languages": ["java", "python"],
-      "closed_languages": ["c", "go", "javascript", "typescript", "ruby", "rust", "swift"],
-      "hard_negative_group": "axis.map-fusion.adjacent",
-      "boundary_classes": ["domain", "effect", "protocol"]
+      "exact_languages": [
+        "java",
+        "python"
+      ],
+      "closed_languages": [
+        "c",
+        "go",
+        "javascript",
+        "typescript",
+        "ruby",
+        "rust",
+        "swift"
+      ],
+      "hard_negative_group": "axis.map_fusion.adjacent",
+      "evidence_producers": [
+        "probe:map_fusion"
+      ],
+      "boundary_classes": [
+        "domain",
+        "effect",
+        "protocol"
+      ]
     },
     {
       "axis_id": "flat_map",
       "claim_id": "nose.type4.flat-map",
       "risk_tier": "A",
-      "exact_languages": ["python", "swift"],
-      "closed_languages": ["c", "go", "java", "javascript", "typescript", "ruby", "rust"],
-      "hard_negative_group": "axis.flat-map.adjacent",
-      "boundary_classes": ["domain", "effect", "protocol"]
+      "exact_languages": [
+        "python",
+        "swift"
+      ],
+      "closed_languages": [
+        "c",
+        "go",
+        "java",
+        "javascript",
+        "typescript",
+        "ruby",
+        "rust"
+      ],
+      "hard_negative_group": "axis.flat_map.adjacent",
+      "evidence_producers": [
+        "probe:flat_map"
+      ],
+      "boundary_classes": [
+        "domain",
+        "effect",
+        "protocol"
+      ]
     },
     {
       "axis_id": "reduce_minmax_anyall",
       "claim_id": "nose.type4.reduction",
       "risk_tier": "A",
-      "exact_languages": ["c", "go", "java", "python", "rust", "swift"],
-      "closed_languages": ["javascript", "typescript", "ruby"],
-      "hard_negative_group": "axis.reduction.adjacent",
-      "boundary_classes": ["domain", "effect", "protocol"]
+      "exact_languages": [
+        "c",
+        "go",
+        "java",
+        "python",
+        "rust",
+        "swift"
+      ],
+      "closed_languages": [
+        "javascript",
+        "typescript",
+        "ruby"
+      ],
+      "hard_negative_group": "axis.reduce_minmax_anyall.adjacent",
+      "evidence_producers": [
+        "probe:reduce_minmax_anyall"
+      ],
+      "boundary_classes": [
+        "domain",
+        "effect",
+        "protocol"
+      ]
     },
     {
       "axis_id": "recursion_tail_numeric",
       "claim_id": "nose.type4.tail-recursion-numeric",
       "risk_tier": "A",
-      "exact_languages": ["c", "go", "javascript", "typescript", "python", "rust", "swift"],
-      "closed_languages": ["java", "ruby"],
-      "hard_negative_group": "axis.tail-recursion-numeric.adjacent",
-      "boundary_classes": ["domain", "effect"]
+      "exact_languages": [
+        "c",
+        "go",
+        "javascript",
+        "typescript",
+        "python",
+        "rust",
+        "swift"
+      ],
+      "closed_languages": [
+        "java",
+        "ruby"
+      ],
+      "hard_negative_group": "axis.recursion_tail_numeric.adjacent",
+      "evidence_producers": [
+        "probe:recursion_tail_numeric"
+      ],
+      "boundary_classes": [
+        "domain",
+        "effect"
+      ]
     },
     {
       "axis_id": "java_integer_low_bit_toggle",
       "claim_id": "nose.type4.java-low-bit-toggle",
       "risk_tier": "A",
-      "exact_languages": ["java"],
+      "exact_languages": [
+        "java"
+      ],
       "closed_languages": [],
-      "hard_negative_group": "axis.java-low-bit-toggle.adjacent",
-      "boundary_classes": ["domain"]
+      "hard_negative_group": "axis.java_integer_low_bit_toggle.adjacent",
+      "evidence_producers": [
+        "java_integer_low_bit_toggle"
+      ],
+      "boundary_classes": [
+        "domain"
+      ]
     },
     {
       "axis_id": "java_statically_false_loop",
       "claim_id": "nose.type4.java-statically-false-loop",
       "risk_tier": "A",
-      "exact_languages": ["java"],
+      "exact_languages": [
+        "java"
+      ],
       "closed_languages": [],
-      "hard_negative_group": "axis.java-statically-false-loop.adjacent",
-      "boundary_classes": ["effect", "protocol"]
+      "hard_negative_group": "axis.java_statically_false_loop.adjacent",
+      "evidence_producers": [
+        "java_statically_false_loop"
+      ],
+      "boundary_classes": [
+        "effect",
+        "protocol"
+      ]
     },
     {
       "axis_id": "c_u16_be_byte_pack",
       "claim_id": "nose.type4.c-u16-be-byte-pack",
       "risk_tier": "A",
-      "exact_languages": ["c"],
+      "exact_languages": [
+        "c"
+      ],
       "closed_languages": [],
-      "hard_negative_group": "axis.c-u16-be-byte-pack.adjacent",
-      "boundary_classes": ["domain", "protocol"]
+      "hard_negative_group": "axis.c_u16_be_byte_pack.adjacent",
+      "evidence_producers": [
+        "c_u16_be_byte_pack"
+      ],
+      "boundary_classes": [
+        "domain",
+        "protocol"
+      ]
     },
     {
       "axis_id": "c_u32_be_byte_pack",
       "claim_id": "nose.type4.c-u32-be-byte-pack",
       "risk_tier": "A",
-      "exact_languages": ["c"],
+      "exact_languages": [
+        "c"
+      ],
       "closed_languages": [],
-      "hard_negative_group": "axis.c-u32-be-byte-pack.adjacent",
-      "boundary_classes": ["domain", "protocol"]
+      "hard_negative_group": "axis.c_u32_be_byte_pack.adjacent",
+      "evidence_producers": [
+        "c_u32_be_byte_pack"
+      ],
+      "boundary_classes": [
+        "domain",
+        "protocol"
+      ]
     },
     {
       "axis_id": "python_docstring_noop",
       "claim_id": "nose.type4.python-docstring-noop",
       "risk_tier": "A",
-      "exact_languages": ["python"],
+      "exact_languages": [
+        "python"
+      ],
       "closed_languages": [],
-      "hard_negative_group": "axis.python-docstring-noop.adjacent",
-      "boundary_classes": ["effect", "protocol"]
+      "hard_negative_group": "axis.python_docstring_noop.adjacent",
+      "evidence_producers": [
+        "python_docstring_noop"
+      ],
+      "boundary_classes": [
+        "effect",
+        "protocol"
+      ]
     },
     {
       "axis_id": "immutable_binding",
       "claim_id": "nose.type4.immutable-binding",
       "risk_tier": "A",
-      "exact_languages": ["c", "go", "java", "javascript", "typescript", "python", "ruby", "rust", "swift"],
+      "exact_languages": [
+        "c",
+        "go",
+        "java",
+        "javascript",
+        "typescript",
+        "python",
+        "ruby",
+        "rust",
+        "swift"
+      ],
       "closed_languages": [],
-      "hard_negative_group": "axis.immutable-binding.adjacent",
-      "boundary_classes": ["effect", "protocol"]
+      "hard_negative_group": "axis.immutable_binding.adjacent",
+      "evidence_producers": [
+        "immutable_binding",
+        "probe:immutable_binding"
+      ],
+      "boundary_classes": [
+        "effect",
+        "protocol"
+      ]
     },
     {
       "axis_id": "proven_callee_identity",
       "claim_id": "nose.type4.proven-callee-identity",
       "risk_tier": "A",
-      "exact_languages": ["c", "go", "java", "javascript", "typescript", "python", "ruby", "rust", "swift"],
+      "exact_languages": [
+        "c",
+        "go",
+        "java",
+        "javascript",
+        "typescript",
+        "python",
+        "ruby",
+        "rust",
+        "swift"
+      ],
       "closed_languages": [],
-      "hard_negative_group": "axis.proven-callee-identity.adjacent",
-      "boundary_classes": ["effect", "protocol"]
+      "hard_negative_group": "axis.proven_callee_identity.adjacent",
+      "evidence_producers": [
+        "probe:proven_callee_identity",
+        "proven_callee_identity"
+      ],
+      "boundary_classes": [
+        "effect",
+        "protocol"
+      ]
     },
     {
       "axis_id": "extract_method_inline",
       "claim_id": "nose.type4.extract-method-inline",
       "risk_tier": "A",
-      "exact_languages": ["c", "go", "javascript", "typescript", "python", "rust", "swift"],
-      "closed_languages": ["java", "ruby"],
-      "hard_negative_group": "axis.extract-method-inline.adjacent",
-      "boundary_classes": ["domain", "effect", "protocol"]
+      "exact_languages": [
+        "c",
+        "go",
+        "javascript",
+        "typescript",
+        "python",
+        "rust",
+        "swift"
+      ],
+      "closed_languages": [
+        "java",
+        "ruby"
+      ],
+      "hard_negative_group": "axis.extract_method_inline.adjacent",
+      "evidence_producers": [
+        "probe:extract_method_inline"
+      ],
+      "boundary_classes": [
+        "domain",
+        "effect",
+        "protocol"
+      ]
     }
   ]
 }

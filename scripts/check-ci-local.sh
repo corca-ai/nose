@@ -118,7 +118,9 @@ run_type4_axis_language_claims() {
     python3 bench/type4/coverage_sweep.py --nose "${1}" --quiet
     python3 bench/type4/coverage_matrix.py matrix
     python3 bench/type4/check_axis_language_claims.py --self-test
-    python3 bench/type4/check_axis_language_claims.py --nose "${1}"
+    python3 bench/type4/check_axis_language_claims.py \
+        --nose "${1}" \
+        --ratchet-base origin/main
     git diff --exit-code -- \
         bench/type4/coverage_evidence.v1.json \
         bench/type4/coverage_matrix.v1.json \

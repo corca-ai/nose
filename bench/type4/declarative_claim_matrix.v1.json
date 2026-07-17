@@ -14,6 +14,10 @@
         ".w { color: rgb(255 255 255); display: block; padding: 1px }",
         ".v { color: #ffffffff; display: block; padding: 1px }"
       ],
+      "hard_negative_ids": [
+        "css.color.canonical-spelling.hn.1",
+        "css.color.canonical-spelling.hn.2"
+      ],
       "hard_negatives": [
         ".n { color: #00f; display: block; padding: 1px }",
         ".n { color: rgba(255 255 255 / 50%); display: block; padding: 1px }"
@@ -30,6 +34,9 @@
         ".b { color: #a9a9a9; border-color: #663399 }",
         ".c { color: #A9A9A9; border-color: #639 }"
       ],
+      "hard_negative_ids": [
+        "css.color.extended-name.hn.1"
+      ],
       "hard_negatives": [
         ".n { color: #a9a9a9; border-color: red }"
       ]
@@ -44,6 +51,9 @@
         ".a { color: hsl(0, 100%, 50%); padding: 1px }",
         ".b { color: hsl(0 100% 50%); padding: 1px }",
         ".c { color: hsl(0,100%,50%); padding: 1px }"
+      ],
+      "hard_negative_ids": [
+        "css.color.hsl-separators.hn.1"
       ],
       "hard_negatives": [
         ".n { color: hsl(120, 100%, 50%); padding: 1px }"
@@ -60,6 +70,9 @@
         ".b { background: url('x.png'); padding: 1px }",
         ".c { background: url(x.png); padding: 1px }"
       ],
+      "hard_negative_ids": [
+        "css.url.quote-spelling.hn.1"
+      ],
       "hard_negatives": [
         ".n { background: url(y.png); padding: 1px }"
       ]
@@ -73,6 +86,9 @@
       "positives": [
         ".a { margin: 0; padding: 0px; top: 0em }",
         ".b { margin: 0px; padding: 0; top: 0rem }"
+      ],
+      "hard_negative_ids": [
+        "css.length.zero-unit.hn.1"
       ],
       "hard_negatives": [
         ".n { margin: 0; padding: 0; top: 1px }"
@@ -88,6 +104,9 @@
         ".a { opacity: 0.50; width: 1.0px; left: +2px }",
         ".b { opacity: .5; width: 1px; left: 2px }"
       ],
+      "hard_negative_ids": [
+        "css.number.canonical-spelling.hn.1"
+      ],
       "hard_negatives": [
         ".n { opacity: .6; width: 1px; left: 2px }"
       ]
@@ -102,6 +121,10 @@
         ".a { margin: 0 0 0 0; padding: 1px 2px 1px 2px }",
         ".b { margin: 0; padding: 1px 2px }",
         ".c { margin: 0px 0 0em 0; padding: 1px 2px 1px 2px }"
+      ],
+      "hard_negative_ids": [
+        "css.box.shorthand-collapse.hn.1",
+        "css.box.shorthand-collapse.hn.2"
       ],
       "hard_negatives": [
         ".n { margin: 1px; padding: 1px 2px }",
@@ -119,6 +142,9 @@
         ".cta { padding: 12px; gap: 8px; align-items: center; display: flex }",
         "button.primary { gap: 8px; display: flex; padding: 12px; align-items: center }"
       ],
+      "hard_negative_ids": [
+        "css.rule.declaration-order-selector.hn.1"
+      ],
       "hard_negatives": [
         ".n { display: flex; align-items: center; gap: 9px; padding: 12px }"
       ]
@@ -133,6 +159,10 @@
         "@media screen and (max-width: 600px) { .a { color: red; padding: 1px } }",
         "@media (max-width:600px) and screen { .b { color: red; padding: 1px } }",
         "@media ( max-width : 600px ) and screen { .c { color: red; padding: 1px } }"
+      ],
+      "hard_negative_ids": [
+        "css.at-rule.media-condition.hn.1",
+        "css.at-rule.media-condition.hn.2"
       ],
       "hard_negatives": [
         "@media screen and (max-width: 900px) { .n { color: red; padding: 1px } }",
@@ -149,6 +179,9 @@
         "@media (min-width: 0px) { .a { color: red; padding: 1px } }",
         "@media (min-width: 0) { .b { color: red; padding: 1px } }"
       ],
+      "hard_negative_ids": [
+        "css.at-rule.media-zero-value.hn.1"
+      ],
       "hard_negatives": [
         "@media (min-width: 1px) { .n { color: red; padding: 1px } }"
       ]
@@ -163,6 +196,9 @@
         ".a { color: red; color: blue; padding: 1px }",
         ".b { color: blue; padding: 1px }"
       ],
+      "hard_negative_ids": [
+        "css.cascade.repeated-property.hn.1"
+      ],
       "hard_negatives": [
         ".n { color: blue; color: red; padding: 1px }"
       ]
@@ -175,7 +211,10 @@
       "boundary": "reversed-shorthand-longhand",
       "positives": [
         ".a { margin: 0; margin-top: 5px; color: red }",
-        ".b { margin: 0; margin-top: 5px; color: red }"
+        ".b { margin: 0px; margin-top: 5.0px; color: #f00 }"
+      ],
+      "hard_negative_ids": [
+        "css.cascade.shorthand-longhand.hn.1"
       ],
       "hard_negatives": [
         ".n { margin-top: 5px; margin: 0; color: red }"
@@ -191,6 +230,9 @@
         ".a { COLOR: white; MARGIN: 0px; padding: 1px }",
         ".b { color: #fff; margin: 0; padding: 1px }"
       ],
+      "hard_negative_ids": [
+        "css.property.ascii-case.hn.1"
+      ],
       "hard_negatives": [
         ".n { background-color: white; margin: 0; padding: 1px }"
       ]
@@ -204,6 +246,11 @@
       "positives": [
         "<div class=\"card x\"><img src=\"a.png\" alt=\"p\"><button type=\"button\" disabled>Go</button></div>",
         "<div class=\"x card\">\n <img alt=\"p\" src=\"a.png\">\n <button disabled=\"\" type=\"button\">Go</button>\n</div>"
+      ],
+      "hard_negative_ids": [
+        "html.dom.attribute-set.hn.1",
+        "html.dom.attribute-set.hn.2",
+        "html.dom.attribute-set.hn.3"
       ],
       "hard_negatives": [
         "<div class=\"card x\"><img src=\"b.png\" alt=\"p\"><button type=\"button\" disabled>Go</button></div>",
@@ -221,6 +268,9 @@
         "<section style=\"margin: 0 0 0 0; color: #ffffff\"><p>hi</p></section>",
         "<section style=\"color: white; margin: 0\"><p>hi</p></section>"
       ],
+      "hard_negative_ids": [
+        "html.style.inline-css.hn.1"
+      ],
       "hard_negatives": [
         "<section style=\"color: black; margin: 0\"><p>hi</p></section>"
       ]
@@ -234,6 +284,9 @@
       "positives": [
         "<button :class=\"c\" @click=\"f\"><i class=\"ico\"></i>Go</button>",
         "<button v-bind:class=\"c\" v-on:click=\"f\"><i class=\"ico\"></i>Go</button>"
+      ],
+      "hard_negative_ids": [
+        "html.directive.vue-shorthand.hn.1"
       ],
       "hard_negatives": [
         "<button v-bind:class=\"d\" v-on:click=\"f\"><i class=\"ico\"></i>Go</button>"
@@ -249,6 +302,9 @@
         "<section class=\"notice\"><h2>Heading</h2><p>hello world   again here friend</p><button disabled>Continue</button></section>",
         "<section class=\"notice\"><h2>Heading</h2><p>hello world\n  again here friend</p><button disabled=\"\">Continue</button></section>"
       ],
+      "hard_negative_ids": [
+        "html.text.flow-whitespace.hn.1"
+      ],
       "hard_negatives": [
         "<section class=\"notice\"><h2>Heading</h2><p>hello world again there friend</p><button disabled>Continue</button></section>"
       ]
@@ -262,6 +318,10 @@
       "positives": [
         "<ul class=\"list\"><li class=\"item\" v-for=\"x in xs\" :key=\"x.id\">row text</li></ul>",
         "<ul class=\"list\">{#each xs as x (x.id)}<li class=\"item\">row text</li>{/each}</ul>"
+      ],
+      "hard_negative_ids": [
+        "html.control.repeat-dialect.hn.1",
+        "html.control.repeat-dialect.hn.2"
       ],
       "hard_negatives": [
         "<ul class=\"list\"><li class=\"item\">row text</li></ul>",
@@ -277,6 +337,9 @@
       "positives": [
         "<DIV CLASS=\"card\"><SPAN TITLE=\"x\">Hi</SPAN></DIV>",
         "<div class=\"card\"><span title=\"x\">Hi</span></div>"
+      ],
+      "hard_negative_ids": [
+        "html.dom.ascii-case.hn.1"
       ],
       "hard_negatives": [
         "<div class=\"card\"><strong title=\"x\">Hi</strong></div>"

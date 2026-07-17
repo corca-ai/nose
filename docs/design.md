@@ -281,9 +281,11 @@ matrix evenly instead of by prevalence:
   informed, and planning artifacts with the release binary.
 
 **Soundness co-evolves with recall by construction**: no exact axis is "done" without a
-hard-negative guard. The current report separates blind-oracle batteries from informed adjacent
-hard negatives and records 20/20 guarded axes with zero merges; the real-corpus 0-violation gate
-remains the nightly pinned-corpus `nose verify --max-violations 0` workflow.
+hard-negative guard. The current report separates a 483-unit blind focused-probe corpus (321
+interpretable, 162 explicitly excluded) from informed adjacent hard negatives. The historical
+generator soundness inventory is 20/20 guarded and both lanes have zero merges; this is not a
+claim that the blind corpus covers every generator-only exact cell. The real-corpus 0-violation
+gate remains the nightly pinned-corpus `nose verify --max-violations 0` workflow.
 
 The battery has already paid off — it surfaced a systematic **`exact_safe` language
 asymmetry** (recursion / builder loops / java stream-reduce admitted to the exact channel in

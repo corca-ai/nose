@@ -81,11 +81,14 @@ readiness blockers; they are not hidden behind the focused-case manifest linkage
 
 The axis/language gate is stricter than the planning matrix. A cell receives exact credit only
 when every executable positive converges and at least one adjacent hard negative stays split.
-The current registry records 24 Tier-A axes, 108 exact axis/language cells, and 51 explicitly
-closed applicable cells. It also keeps two attackers distinct: a blind `nose verify` pass over
-the whole focused corpus, and informed pair-by-pair queries. The soundness report currently has
-20/20 guarded axes, with zero merged hard negatives in either lane. CI regenerates all three
-evidence artifacts with the release binary and rejects any byte drift.
+The current registry records 24 Tier-A axes, 104 exact axis/language cells, and 55 explicitly
+closed applicable cells. It aggregates every producer for a cell, so one successful spelling
+cannot hide another producer's recall gap. Two attackers stay distinct: a blind `nose verify`
+pass over the 483-unit focused probe corpus (321 interpretable, 162 explicitly excluded), and
+informed pair-by-pair queries over probes and generators. The legacy generator soundness
+inventory has 20/20 guarded axes; the blind corpus separately has 54 exact groups. Both lanes
+record zero merged hard negatives. CI regenerates the evidence with the release binary, rejects
+byte drift, and compares exact/declarative IDs with the base revision.
 
 ## Target packets
 

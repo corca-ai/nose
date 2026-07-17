@@ -19,6 +19,7 @@ recorded as `no-positive`, which the matrix counts only as a soundness hard-nega
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -32,6 +33,19 @@ REPO_ROOT = HERE.parents[1]
 PROBES = HERE / "coverage_probes"
 EVIDENCE = HERE / "coverage_evidence.v1.json"
 NOSE_DEFAULT = str(REPO_ROOT / "target" / "debug" / "nose")
+
+
+def corpus_identity(root: Path) -> tuple[str, int]:
+    digest = hashlib.sha256()
+    files = sorted(path for path in root.rglob("*") if path.is_file())
+    for path in files:
+        relative = path.relative_to(root).as_posix().encode()
+        digest.update(len(relative).to_bytes(8, "big"))
+        digest.update(relative)
+        payload = path.read_bytes()
+        digest.update(len(payload).to_bytes(8, "big"))
+        digest.update(payload)
+    return digest.hexdigest(), len(files)
 
 
 def run_blind_attacker(nose: str, output: Path) -> bool:
@@ -61,10 +75,21 @@ def run_blind_attacker(nose: str, output: Path) -> bool:
     exclusions = {
         row["reason"]: row["count"] for row in report["oracle_exclusions"]["counts"]
     }
+    corpus_sha256, corpus_files = corpus_identity(PROBES)
+    crates_tree = subprocess.run(
+        ["git", "rev-parse", "HEAD:crates"],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
     compact = {
         "schema_version": 1,
         "attacker": "blind-oracle",
         "corpus": "bench/type4/coverage_probes",
+        "corpus_sha256": corpus_sha256,
+        "corpus_files": corpus_files,
+        "product_crates_tree": crates_tree,
         "summary": {
             "total_units": summary["total_units"],
             "interpretable_units": summary["interpretable_units"],
@@ -161,8 +186,8 @@ def main() -> int:
         print(f"error: nose not found at {args.nose}", file=sys.stderr)
         return 2
     if not PROBES.is_dir():
-        print(f"no probes dir at {PROBES}")
-        return 0
+        print(f"error: focused probe corpus is missing at {PROBES}", file=sys.stderr)
+        return 2
 
     axis_dirs = [PROBES / a for a in args.axis] if args.axis else sorted(
         d for d in PROBES.iterdir() if d.is_dir())

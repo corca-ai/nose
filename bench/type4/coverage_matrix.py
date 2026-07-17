@@ -32,9 +32,10 @@ SWEEP_EVIDENCE = HERE / "coverage_evidence.v1.json"
 BLIND_RECEIPT = HERE / "blind_attack.v1.json"
 OUT_JSON = HERE / "coverage_matrix.v1.json"
 
-# Best-status precedence when a cell has several evidence rows (lower index wins).
-STATUS_RANK = ["false-merge", "closed", "already-covered", "hard-negative", "real-miss",
-               "unsupported"]
+# Conservative precedence when a cell has several evidence rows (lower index wins).
+# A current failing producer must not be masked by a historical covered/closed row.
+STATUS_RANK = ["false-merge", "real-miss", "unsupported", "hard-negative", "closed",
+               "already-covered"]
 COVERED = {"closed", "already-covered"}
 # coverage_sweep.py status -> matrix status vocabulary.
 SWEEP_MAP = {"covered": "closed", "gap": "unsupported", "partial": "real-miss",
@@ -52,7 +53,7 @@ def canon(axis_field: str) -> str:
 
 
 def load_evidence():
-    """(axis_id_or_canon, language) -> best status, merging real_frontier + the live sweep."""
+    """Merge historical frontier rows with live evidence, conservatively per cell."""
     raw = defaultdict(list)
     axes = tax.axis_index()
     for it in json.loads(REAL_FRONTIER.read_text()).get("items", []):
