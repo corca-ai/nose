@@ -38,8 +38,9 @@ pub use detectors::{
 };
 pub use exact_policy::{exact_claim_eligible, exact_claim_eligible_parts};
 pub use fragment::{
-    fragment_behavior, free_input_cids, synthesize_wrapper, Effect, EffectSite, Exit,
-    FragmentContract, FragmentKind, Place, ProofFacts,
+    fragment_behavior, fragment_input_projections, free_input_cids, recognized_fragment_contracts,
+    synthesize_wrapper, synthesize_wrapper_with_module_strings, Effect, EffectSite, Exit,
+    FragmentContract, FragmentKind, OracleInputProjection, Place, ProofFacts,
 };
 pub use model::{
     AbstractionHole, AbstractionWitness, ConnectedWitness, Dump, DupPair, EnclosingUnit,
@@ -55,7 +56,8 @@ pub use report::{
     is_test_loc, is_test_path, rank_families, AcceptedCoverage, RefactorFamily, VaryingSpot,
 };
 pub use units::{
-    default_product_unit_admission, default_product_value_fingerprint_context, unit_dags_at,
+    default_product_oracle_fragment_candidates, default_product_unit_admission,
+    default_product_value_fingerprint_context, unit_dags_at, ProductOracleFragment,
     ProductUnitAdmission, ProductUnitAdmissionInput, UnitFeat,
 };
 pub use witness::{graded_witness, GradedWitness, WitnessHole};

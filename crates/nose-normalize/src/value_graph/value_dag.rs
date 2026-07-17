@@ -435,6 +435,7 @@ impl<'a> FileReferents<'a> {
                     module_hash,
                     exported_hash,
                     member_hash,
+                    ..
                 } => (
                     member_hash,
                     Some(fxh(&[13, module_hash, exported_hash])),

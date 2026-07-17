@@ -12,7 +12,7 @@ use nose_semantics::{
 };
 use rustc_hash::FxHashSet;
 
-const SWIFT_STDLIB_SHADOW_NAMES: &[&str] = &["Array", "Set", "Dictionary", "Swift"];
+const SWIFT_STDLIB_SHADOW_NAMES: &[&str] = &["Array", "Set", "Dictionary", "String", "Swift"];
 
 pub(crate) fn close_local_dictionary_default_subscript(il: &mut Il, interner: &Interner) {
     if il.meta.lang != Lang::Swift {
@@ -20,20 +20,20 @@ pub(crate) fn close_local_dictionary_default_subscript(il: &mut Il, interner: &I
     }
     let close_all =
         swift_dictionary_default_subscript_barrier_declared(std::slice::from_ref(il), interner);
-    let unqualified_shadowed =
-        shadowed_swift_stdlib_factory_name_hashes(std::slice::from_ref(il), interner)
-            .contains(&stable_symbol_hash("Dictionary"));
-    let qualified_shadowed =
-        shadowed_swift_stdlib_factory_name_hashes(std::slice::from_ref(il), interner)
-            .contains(&stable_symbol_hash("Swift"));
-    if close_all || unqualified_shadowed || qualified_shadowed {
+    let shadowed = shadowed_swift_stdlib_factory_name_hashes(std::slice::from_ref(il), interner);
+    let dictionary_shadowed = shadowed.contains(&stable_symbol_hash("Dictionary"));
+    let string_shadowed = shadowed.contains(&stable_symbol_hash("String"));
+    let swift_shadowed = shadowed.contains(&stable_symbol_hash("Swift"));
+    if close_all || dictionary_shadowed || swift_shadowed {
         close_shadowed_swift_dictionary_parameters(
             il,
-            unqualified_shadowed,
-            qualified_shadowed,
+            dictionary_shadowed,
+            swift_shadowed,
             close_all,
         );
     }
+    close_shadowed_swift_string_bindings(il, string_shadowed, swift_shadowed);
+    close_shadowed_swift_string_parameters(il, string_shadowed, swift_shadowed);
 }
 
 pub(crate) fn close_shadowed_stdlib_apis(files: &mut [Il], interner: &Interner) {
@@ -50,6 +50,7 @@ pub(crate) fn close_shadowed_stdlib_apis(files: &mut [Il], interner: &Interner) 
     let dictionary_default_subscript_ambiguous =
         swift_dictionary_default_subscript_barrier_declared(files, interner);
     let dictionary_name_shadowed = shadowed.contains(&stable_symbol_hash("Dictionary"));
+    let string_name_shadowed = shadowed.contains(&stable_symbol_hash("String"));
     let swift_namespace_shadowed = shadowed.contains(&stable_symbol_hash("Swift"));
     if shadowed.is_empty()
         && !compact_map_dispatch_ambiguous
@@ -73,6 +74,8 @@ pub(crate) fn close_shadowed_stdlib_apis(files: &mut [Il], interner: &Interner) 
                 dictionary_default_subscript_ambiguous,
             );
         }
+        close_shadowed_swift_string_bindings(il, string_name_shadowed, swift_namespace_shadowed);
+        close_shadowed_swift_string_parameters(il, string_name_shadowed, swift_namespace_shadowed);
         if compact_map_dispatch_ambiguous || nil_literal_conformance {
             close_shadowed_compact_map(il);
         }
@@ -83,6 +86,69 @@ pub(crate) fn close_shadowed_stdlib_apis(files: &mut [Il], interner: &Interner) 
             close_shadowed_swift_method(il, "allSatisfy", 1);
         }
     }
+}
+
+fn close_shadowed_swift_string_parameters(
+    il: &mut Il,
+    close_unqualified: bool,
+    close_qualified: bool,
+) {
+    let spans: FxHashSet<_> = il
+        .evidence
+        .iter()
+        .filter(|record| {
+            record.status == EvidenceStatus::Asserted
+                && matches!(record.anchor, nose_il::EvidenceAnchor::Param { .. })
+                && (close_unqualified
+                    && record.kind
+                        == EvidenceKind::Type(TypeEvidenceKind::SwiftUnqualifiedStringParameter)
+                    || close_qualified
+                        && record.kind
+                            == EvidenceKind::Type(TypeEvidenceKind::SwiftQualifiedStringParameter))
+        })
+        .map(|record| record.anchor.span())
+        .collect();
+    let mut ambiguous = FxHashSet::default();
+    for record in &mut il.evidence {
+        if record.status == EvidenceStatus::Asserted
+            && spans.contains(&record.anchor.span())
+            && (matches!(record.anchor, nose_il::EvidenceAnchor::Param { .. }))
+            && (record.kind == EvidenceKind::Domain(nose_il::DomainEvidence::String)
+                || matches!(
+                    record.kind,
+                    EvidenceKind::Type(
+                        TypeEvidenceKind::SwiftUnqualifiedStringParameter
+                            | TypeEvidenceKind::SwiftQualifiedStringParameter
+                    )
+                ))
+        {
+            record.status = EvidenceStatus::Ambiguous;
+            ambiguous.insert(record.id);
+        }
+    }
+    propagate_ambiguity(il, ambiguous);
+}
+
+fn close_shadowed_swift_string_bindings(
+    il: &mut Il,
+    close_unqualified: bool,
+    close_qualified: bool,
+) {
+    let mut ambiguous = FxHashSet::default();
+    for record in &mut il.evidence {
+        if record.status != EvidenceStatus::Asserted {
+            continue;
+        }
+        let closes = close_unqualified
+            && record.kind == EvidenceKind::Type(TypeEvidenceKind::SwiftUnqualifiedStringBinding)
+            || close_qualified
+                && record.kind == EvidenceKind::Type(TypeEvidenceKind::SwiftQualifiedStringBinding);
+        if closes {
+            record.status = EvidenceStatus::Ambiguous;
+            ambiguous.insert(record.id);
+        }
+    }
+    propagate_ambiguity(il, ambiguous);
 }
 
 fn swift_dictionary_default_subscript_barrier_declared(files: &[Il], interner: &Interner) -> bool {

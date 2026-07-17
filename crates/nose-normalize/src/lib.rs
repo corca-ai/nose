@@ -37,8 +37,11 @@ mod value_graph;
 
 pub use commutative::{node_tag, node_tag_valued, subtree_hashes, valued_tree_hash};
 pub use interp::{
-    behavior_equiv, behavior_has_sym, run_unit, run_unit_paths, run_unit_paths_diagnostic,
-    Behavior, InterpreterBlocker, InterpreterBlockerFrame, Value, F64, MAX_SYM_BRANCH_SITES,
+    behavior_equiv, behavior_has_sym, run_unit, run_unit_observing_exit, run_unit_paths,
+    run_unit_paths_diagnostic, run_unit_paths_diagnostic_with_module_strings,
+    run_unit_paths_observing_exit_diagnostic,
+    run_unit_paths_observing_exit_diagnostic_with_module_strings, Behavior, InterpreterBlocker,
+    InterpreterBlockerFrame, PreparedInterpreter, UnitExit, Value, F64, MAX_SYM_BRANCH_SITES,
 };
 pub use value_graph::{
     anchor_min_weight, containment_anchor_min_weight, value_anchors, value_fingerprint,

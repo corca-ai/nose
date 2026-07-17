@@ -264,7 +264,15 @@ fn swift_type_domain(text: &str) -> Option<DomainEvidence> {
     }
     match swift_type_name(&ty) {
         "bool" => Some(DomainEvidence::Boolean),
-        "string" | "substring" | "character" => Some(DomainEvidence::String),
+        // `Substring` shares much of String's API but retains a base/index domain, while
+        // `Character` is one extended grapheme cluster rather than a String value. Collapsing
+        // either into `String` made the behavioral oracle feed and compare the wrong runtime
+        // domain. Preserve only an exact Swift `String`; the other text types stay unsupported
+        // until they have their own value representation.
+        "string" if matches!(ty.as_str(), "string" | "swift.string") => {
+            Some(DomainEvidence::String)
+        }
+        "string" | "substring" | "character" => None,
         "int" | "int8" | "int16" | "int32" | "int64" | "uint" | "uint8" | "uint16" | "uint32"
         | "uint64" => Some(DomainEvidence::Integer),
         "float" | "double" | "float16" | "float32" | "float64" | "cgfloat" => {

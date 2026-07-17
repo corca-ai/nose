@@ -138,8 +138,20 @@ pub(super) fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<Node
         if let Some(domain) = lo.type_domain_from_text_with_dependencies(lo.text(p)) {
             lo.record_param_domain_resolution(span, domain);
         }
+        if !plain_parameter(p) {
+            lo.record_parameter_shape(span, nose_il::ParameterShapeEvidenceKind::NonPlain);
+        }
         out.push(lo.add(NodeKind::Param, payload, span, &[]));
     }
+}
+
+fn plain_parameter(param: TsNode) -> bool {
+    param.kind() == "identifier"
+        || param.kind() == "typed_parameter"
+            && param
+                .child_by_field_name("name")
+                .or_else(|| param.named_child(0))
+                .is_some_and(|name| name.kind() == "identifier")
 }
 /// Dig the identifier name out of the various Python parameter node shapes.
 pub(super) fn param_name<'a>(lo: &Lowering<'a>, p: TsNode<'a>) -> Option<&'a str> {

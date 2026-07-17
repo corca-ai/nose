@@ -67,6 +67,7 @@ pub(crate) fn run() -> Result<()> {
             leads,
             recall_loss_report,
             exclusion_census,
+            soundness_tranche,
             falsify,
             falsify_seed,
         } => cmd_verify(VerifyArgs {
@@ -77,6 +78,7 @@ pub(crate) fn run() -> Result<()> {
             leads,
             recall_loss_report,
             exclusion_census,
+            soundness_tranche,
             falsify,
             falsify_seed,
         }),
@@ -138,6 +140,7 @@ struct VerifyArgs {
     leads: Option<PathBuf>,
     recall_loss_report: Option<PathBuf>,
     exclusion_census: Option<PathBuf>,
+    soundness_tranche: Option<String>,
     falsify: bool,
     falsify_seed: Option<u64>,
 }
@@ -151,6 +154,7 @@ fn cmd_verify(args: VerifyArgs) -> Result<()> {
         leads,
         recall_loss_report,
         exclusion_census,
+        soundness_tranche,
         falsify,
         falsify_seed,
     } = args;
@@ -165,7 +169,14 @@ fn cmd_verify(args: VerifyArgs) -> Result<()> {
     // battery is identical for every unit (a function uses only its first `arity`
     // inputs), so behavior vectors are always length-comparable.
     let battery = verify_battery(&verify_probes(&corpus));
-    let oracle = collect_verify_recs(&corpus, &opts, &battery, exclusion_census.is_some() || json);
+    let tranche = crate::verify_collect::OracleTranche::parse(soundness_tranche.as_deref())?;
+    let oracle = collect_verify_recs(
+        &corpus,
+        &opts,
+        &battery,
+        exclusion_census.is_some() || json,
+        tranche,
+    );
     if let Some(path) = &exclusion_census {
         verify_census::write_report(path, &oracle.census)?;
         println!("exclusion census written to {}", path.display());
@@ -226,7 +237,8 @@ fn cmd_verify(args: VerifyArgs) -> Result<()> {
             &oracle.recs,
             &verify_probes(&corpus),
             falsify_seed.unwrap_or(crate::falsify::DEFAULT_FALSIFY_SEED),
-        );
+            tranche,
+        )?;
     }
 
     // CI soundness gate: fail if false merges exceed the budget, or if any normalization

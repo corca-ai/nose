@@ -359,8 +359,10 @@ impl<'a> Builder<'a> {
         }
         if expr_operands.len() >= LARGE_AC_EXPR_OPERANDS {
             let mut operands = Vec::new();
+            let mut evaluated = FxHashMap::default();
             for k in expr_operands {
                 let v = self.eval(k, env);
+                evaluated.insert(k, v);
                 self.flatten_into(v, op, &mut operands);
             }
             if (op == Op::Add as u32 || op == Op::Mul as u32)
@@ -368,7 +370,7 @@ impl<'a> Builder<'a> {
             {
                 let commutable = self.ac_chain_commutes(op, &operands, ValueLaw::AddAssociativity)
                     && operands.iter().all(|&v| self.reorder_safe(v));
-                return self.rebuild_grouped_float_chain(op, kids, env, commutable);
+                return self.rebuild_grouped_float_chain(op, kids, env, commutable, &mut evaluated);
             }
             if let Some(v) = self.c_u32_be_byte_pack_pattern(&operands) {
                 return v;
@@ -383,8 +385,10 @@ impl<'a> Builder<'a> {
         }
 
         let mut operands = Vec::new();
+        let mut evaluated = FxHashMap::default();
         for &k in kids {
             let v = self.eval(k, env);
+            evaluated.insert(k, v);
             self.flatten_into(v, op, &mut operands);
         }
         if let Some(v) = self.c_u32_be_byte_pack_pattern(&operands) {
@@ -410,7 +414,7 @@ impl<'a> Builder<'a> {
             // the per-node `order_bin_operands` gate alone would miss it for an inner pair (#342).
             let commutable = self.ac_chain_commutes(op, &operands, ValueLaw::AddAssociativity)
                 && operands.iter().all(|&v| self.reorder_safe(v));
-            return self.rebuild_grouped_float_chain(op, kids, env, commutable);
+            return self.rebuild_grouped_float_chain(op, kids, env, commutable, &mut evaluated);
         }
         self.narrow_js_bitwise_leaves(op, &mut operands);
         let do_sort = self.ac_chain_commutes(op, &operands, ValueLaw::AddAssociativity)
@@ -439,6 +443,7 @@ impl<'a> Builder<'a> {
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
         commutable: bool,
+        evaluated: &mut FxHashMap<NodeId, ValueId>,
     ) -> ValueId {
         let mut acc: Option<ValueId> = None;
         for &k in kids {
@@ -446,9 +451,16 @@ impl<'a> Builder<'a> {
                 && matches!(self.il.node(k).payload, Payload::Op(o) if o as u32 == op)
             {
                 let sub = self.il.children(k).to_vec();
-                self.rebuild_grouped_float_chain(op, &sub, env, commutable)
+                self.rebuild_grouped_float_chain(op, &sub, env, commutable, evaluated)
             } else {
-                self.eval(k, env)
+                match evaluated.get(&k).copied() {
+                    Some(value) => value,
+                    None => {
+                        let value = self.eval(k, env);
+                        evaluated.insert(k, value);
+                        value
+                    }
+                }
             };
             acc = Some(match acc {
                 None => v,

@@ -4,6 +4,9 @@ use anyhow::Result;
 use nose_il::{Corpus, Interner};
 use std::path::PathBuf;
 
+mod report;
+use report::{gate_units, print_gate_report, tally_gate, GateManifest};
+
 /// Deterministic input battery for an `arity`-parameter function. The parameters range
 /// over a fixed pool of small int-lists and scalars; for small arity the pool is
 /// enumerated *combinatorially* (mixed-radix), so e.g. a 2-arg comparison sees `a<b`,
@@ -277,7 +280,7 @@ pub(super) fn run_battery(
     contracts: &[(u32, u32)],
     path_cap: &mut bool,
 ) -> Option<Vec<nose_normalize::Behavior>> {
-    match run_battery_diagnostic(il, interner, root, battery, contracts) {
+    match run_battery_diagnostic_with_oracle_proofs(il, interner, root, battery, contracts, true) {
         Ok(behaviors) => Some(behaviors),
         Err(blocker) => {
             if blocker.capability_id == "budget.symbolic-branch-sites" {
@@ -288,24 +291,51 @@ pub(super) fn run_battery(
     }
 }
 
-/// Diagnostic twin of [`run_battery`]. Execution and failure order are
-/// identical; the error only makes the first fail-closed capability available
-/// to offline exclusion reports.
-pub(super) fn run_battery_diagnostic(
+pub(super) fn run_battery_diagnostic_with_oracle_proofs(
     il: &nose_il::Il,
     interner: &Interner,
     root: nose_il::NodeId,
     battery: &[Vec<nose_normalize::Value>],
     contracts: &[(u32, u32)],
+    include_immutable_module_strings: bool,
 ) -> Result<Vec<nose_normalize::Behavior>, nose_normalize::InterpreterBlocker> {
     let mut beh = Vec::with_capacity(battery.len());
+    let interpreter =
+        nose_normalize::PreparedInterpreter::new(il, interner, include_immutable_module_strings);
     for inputs in battery {
         let row = apply_contracts(inputs, contracts);
-        beh.extend(nose_normalize::run_unit_paths_diagnostic(
-            il, interner, root, &row,
-        )?);
+        beh.extend(interpreter.run_paths_diagnostic(root, &row)?);
     }
     Ok(beh)
+}
+
+/// Fragment counterpart to the whole-unit diagnostic runner, retaining whether every path returned
+/// from the enclosing function or fell through the fragment. The ordinary whole-function gate
+/// intentionally keeps its historical value-only control convention. The module-string flag is
+/// an explicit Soundness Lab ablation; ordinary verification always selects the final tranche.
+pub(super) fn run_fragment_battery_diagnostic_with_oracle_proofs(
+    il: &nose_il::Il,
+    interner: &Interner,
+    root: nose_il::NodeId,
+    battery: &[Vec<nose_normalize::Value>],
+    contracts: &[(u32, u32)],
+    include_immutable_module_strings: bool,
+) -> Result<
+    (Vec<nose_normalize::Behavior>, Vec<nose_normalize::UnitExit>),
+    nose_normalize::InterpreterBlocker,
+> {
+    let mut behaviors = Vec::with_capacity(battery.len());
+    let mut exits = Vec::with_capacity(battery.len());
+    let interpreter =
+        nose_normalize::PreparedInterpreter::new(il, interner, include_immutable_module_strings);
+    for inputs in battery {
+        let row = apply_contracts(inputs, contracts);
+        for (behavior, exit) in interpreter.run_paths_observing_exit_diagnostic(root, &row)? {
+            behaviors.push(behavior);
+            exits.push(exit);
+        }
+    }
+    Ok((behaviors, exits))
 }
 
 /// Trivial behavior (constant / all-Err) is coincidental, never evidence of a
@@ -325,216 +355,6 @@ pub(super) fn behavior_hash(beh: &[nose_normalize::Behavior]) -> u64 {
     let mut h = std::collections::hash_map::DefaultHasher::new();
     beh.hash(&mut h);
     h.finish()
-}
-
-/// One interpretable record per generated source file (each holds exactly one function).
-struct GateUnit {
-    fp: Vec<u64>,
-    beh_hash: u64,
-    trivial: bool,
-}
-
-fn gate_units(
-    corpus: &Corpus,
-    battery: &[Vec<nose_normalize::Value>],
-) -> std::collections::HashMap<String, GateUnit> {
-    let opts = nose_normalize::NormalizeOptions::default();
-    let oracle_opts = nose_normalize::NormalizeOptions {
-        oracle: true,
-        ..opts
-    };
-    let mut units = std::collections::HashMap::new();
-    for il in &corpus.files {
-        let n = nose_normalize::normalize(il, &corpus.interner, &opts);
-        let core = nose_normalize::normalize(il, &corpus.interner, &oracle_opts);
-        let core_func = func_span_index(&core);
-        for u in &n.units {
-            let root = u.root;
-            if n.kind(root) != nose_il::NodeKind::Func {
-                continue;
-            }
-            let span0 = n.node(root).span;
-            let Some(&core_root) = core_func.get(&(span0.start_byte, span0.end_byte)) else {
-                continue;
-            };
-            // Fingerprint + pointer-length contracts (n = len(array)) from one build.
-            let (fp, contracts) =
-                nose_normalize::value_fingerprint_and_contracts(&n, root, &corpus.interner);
-            if fp.is_empty() {
-                continue;
-            }
-            let mut path_cap = false;
-            let Some(beh) = run_battery(
-                &core,
-                &corpus.interner,
-                core_root,
-                battery,
-                &contracts,
-                &mut path_cap,
-            ) else {
-                continue;
-            };
-            let trivial = is_trivial_behavior(&beh);
-            units.insert(
-                manifest_key(&il.meta.path),
-                GateUnit {
-                    fp,
-                    beh_hash: behavior_hash(&beh),
-                    trivial,
-                },
-            );
-        }
-    }
-    units
-}
-
-// The manifest's labeled pairs, cross-referenced against the interpretable units.
-#[derive(serde::Deserialize)]
-struct GateSide {
-    path: String,
-}
-#[derive(serde::Deserialize)]
-struct GateItem {
-    left: GateSide,
-    right: GateSide,
-    semantic_status: String,
-    split: String,
-}
-#[derive(serde::Deserialize)]
-struct GateManifest {
-    items: Vec<GateItem>,
-}
-
-/// Per-class tally: did exact-fingerprint merge the pair? did the behavioral gate?
-struct GateTally {
-    pairs: usize,
-    fp_merge: usize,
-    beh_merge: usize,
-    beh_only: usize, // behavioral merge that fingerprint missed (the leap value / cost)
-}
-
-impl GateTally {
-    fn new() -> Self {
-        GateTally {
-            pairs: 0,
-            fp_merge: 0,
-            beh_merge: 0,
-            beh_only: 0,
-        }
-    }
-}
-
-struct GateOutcome {
-    pos: GateTally,
-    neg: GateTally,
-    pos_heldout: usize,
-    pos_heldout_beh_only: usize,
-    uninterp_pairs: usize,
-}
-
-/// Tally, restricted to pairs where BOTH units are interpretable (the slice this gate
-/// can speak to).
-fn tally_gate(
-    m: &GateManifest,
-    units: &std::collections::HashMap<String, GateUnit>,
-) -> GateOutcome {
-    let mut out = GateOutcome {
-        pos: GateTally::new(),
-        neg: GateTally::new(),
-        pos_heldout: 0,
-        pos_heldout_beh_only: 0,
-        uninterp_pairs: 0,
-    };
-    for it in &m.items {
-        let (lk, rk) = (manifest_key(&it.left.path), manifest_key(&it.right.path));
-        let (Some(lu), Some(ru)) = (units.get(&lk), units.get(&rk)) else {
-            out.uninterp_pairs += 1;
-            continue;
-        };
-        let positive = it.semantic_status == "equivalent";
-        let t = if positive { &mut out.pos } else { &mut out.neg };
-        t.pairs += 1;
-        let fp_merge = lu.fp == ru.fp;
-        // A behavioral merge requires identical behavior on EVERY battery input and a
-        // non-trivial behavior (constant/all-Err units never merge on behavior).
-        let beh_merge = !lu.trivial && !ru.trivial && lu.beh_hash == ru.beh_hash;
-        if fp_merge {
-            t.fp_merge += 1;
-        }
-        if beh_merge {
-            t.beh_merge += 1;
-        }
-        if beh_merge && !fp_merge {
-            t.beh_only += 1;
-            if positive && it.split == "heldout" {
-                out.pos_heldout_beh_only += 1;
-            }
-        }
-        if positive && it.split == "heldout" {
-            out.pos_heldout += 1;
-        }
-    }
-    out
-}
-
-fn print_gate_report(battery_kind: BatteryKind, battery_rows: usize, outcome: &GateOutcome) {
-    let GateOutcome {
-        pos,
-        neg,
-        pos_heldout,
-        pos_heldout_beh_only,
-        uninterp_pairs,
-    } = outcome;
-    let kind = match battery_kind {
-        BatteryKind::Standard => "standard (leap 2)",
-        BatteryKind::Wide => "wide (leap 3)",
-    };
-    println!("=== behavioral-equivalence acceptance gate — battery: {kind} ===");
-    println!("battery rows: {battery_rows}");
-    println!(
-        "manifest pairs: {} interpretable-both / {} excluded (a unit not interpretable)",
-        pos.pairs + neg.pairs,
-        uninterp_pairs
-    );
-    println!();
-    println!(
-        "POSITIVES (should merge), interpretable slice = {}",
-        pos.pairs
-    );
-    println!(
-        "  exact-fingerprint recall : {}/{} ({:.1}%)",
-        pos.fp_merge,
-        pos.pairs,
-        pct(pos.fp_merge, pos.pairs)
-    );
-    println!(
-        "  behavioral-gate recall   : {}/{} ({:.1}%)",
-        pos.beh_merge,
-        pos.pairs,
-        pct(pos.beh_merge, pos.pairs)
-    );
-    println!(
-        "  → RECOVERED beyond fingerprint (leap value): {} (heldout: {}/{})",
-        pos.beh_only, pos_heldout_beh_only, pos_heldout
-    );
-    println!();
-    println!(
-        "HARD NEGATIVES (must NOT merge), interpretable slice = {}",
-        neg.pairs
-    );
-    println!(
-        "  exact-fingerprint false merges: {}/{} ({:.1}%)",
-        neg.fp_merge,
-        neg.pairs,
-        pct(neg.fp_merge, neg.pairs)
-    );
-    println!(
-        "  behavioral-gate false merges  : {}/{} ({:.1}%)  ← the soundness cost",
-        neg.beh_merge,
-        neg.pairs,
-        pct(neg.beh_merge, neg.pairs)
-    );
-    println!("  → INTRODUCED beyond fingerprint: {}", neg.beh_only);
 }
 
 pub(super) fn pct(a: usize, b: usize) -> f64 {

@@ -1,5 +1,5 @@
 use super::*;
-use nose_il::DomainEvidence;
+use nose_il::{DomainEvidence, EvidenceStatus};
 
 #[test]
 fn parameter_type_annotation_records_domain() {
@@ -79,6 +79,64 @@ func mutate(_ lookup: inout Dictionary<String, Int>, _ key: String, _ fallback: 
         )),
         "inout Dictionary parameters must not prove stable receiver identity"
     );
+}
+
+#[test]
+fn only_plain_unshadowed_swift_string_parameters_record_domains() {
+    let il = il(r#"
+func plain(_ value: String) {}
+func qualified(_ value: Swift.String) {}
+func generic<String>(_ value: String) {}
+func member<T>(_ value: T.String) {}
+func modified(_ value: inout String) {}
+func attributed(@Wrapped _ value: String) {}
+protocol Shadowed {
+    associatedtype String
+    func requirement(_ value: String)
+}
+"#);
+    let string_domains = il
+        .evidence
+        .iter()
+        .filter(|record| matches!(record.anchor, EvidenceAnchor::Param { .. }))
+        .filter(|record| record.kind == EvidenceKind::Domain(DomainEvidence::String))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        string_domains.len(),
+        2,
+        "only exact, plain, lexically unshadowed String spellings may claim a String domain: {string_domains:?}"
+    );
+    assert_eq!(
+        il.evidence
+            .iter()
+            .filter(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Type(
+                        TypeEvidenceKind::SwiftUnqualifiedStringParameter
+                            | TypeEvidenceKind::SwiftQualifiedStringParameter
+                    )
+                )
+            })
+            .count(),
+        2,
+        "the source proof and Domain(String) admission must stay coupled"
+    );
+}
+
+#[test]
+fn parser_recovered_string_parameter_modifiers_fail_closed() {
+    for modifier in ["sending", "__shared", "__owned"] {
+        let source = format!("func transform(_ value: {modifier} String) {{}}\n");
+        let il = il(&source);
+        assert!(
+            !il.evidence.iter().any(|record| {
+                matches!(record.anchor, EvidenceAnchor::Param { .. })
+                    && record.kind == EvidenceKind::Domain(DomainEvidence::String)
+            }),
+            "parser-recovered `{modifier}` must not claim a String parameter domain"
+        );
+    }
 }
 
 #[test]
@@ -204,4 +262,74 @@ return out
                 if local_hash == stable_symbol_hash("out")
         ) && record.kind == EvidenceKind::Domain(DomainEvidence::Collection)
     }));
+}
+
+#[test]
+fn explicit_string_binding_types_preserve_namespace_proof_boundaries() {
+    let il = il(r#"
+let inferred = "inferred"
+let unqualified: String = "unqualified"
+let qualified: Swift.String = "qualified"
+let substring: Substring = "substring"
+"#);
+    let binding_kind = |name: &str, expected: TypeEvidenceKind| {
+        il.evidence.iter().any(|record| {
+            matches!(
+                record.anchor,
+                EvidenceAnchor::Binding { local_hash, .. }
+                    if local_hash == stable_symbol_hash(name)
+            ) && record.kind == EvidenceKind::Type(expected)
+        })
+    };
+    assert!(!binding_kind(
+        "inferred",
+        TypeEvidenceKind::SwiftExplicitBindingType
+    ));
+    assert!(binding_kind(
+        "unqualified",
+        TypeEvidenceKind::SwiftExplicitBindingType
+    ));
+    assert!(binding_kind(
+        "unqualified",
+        TypeEvidenceKind::SwiftUnqualifiedStringBinding
+    ));
+    assert!(binding_kind(
+        "qualified",
+        TypeEvidenceKind::SwiftQualifiedStringBinding
+    ));
+    assert!(binding_kind(
+        "substring",
+        TypeEvidenceKind::SwiftExplicitBindingType
+    ));
+    assert!(!binding_kind(
+        "substring",
+        TypeEvidenceKind::SwiftUnqualifiedStringBinding
+    ));
+}
+
+#[test]
+fn local_string_typealias_closes_unqualified_string_binding_proof() {
+    let il = il(r#"
+typealias String = Character
+let alias: String = "x"
+let qualified: Swift.String = "x"
+"#);
+    let status = |name: &str, kind: TypeEvidenceKind| {
+        il.evidence.iter().find_map(|record| {
+            (matches!(
+                record.anchor,
+                EvidenceAnchor::Binding { local_hash, .. }
+                    if local_hash == stable_symbol_hash(name)
+            ) && record.kind == EvidenceKind::Type(kind))
+            .then_some(record.status)
+        })
+    };
+    assert_eq!(
+        status("alias", TypeEvidenceKind::SwiftUnqualifiedStringBinding),
+        Some(EvidenceStatus::Ambiguous)
+    );
+    assert_eq!(
+        status("qualified", TypeEvidenceKind::SwiftQualifiedStringBinding),
+        Some(EvidenceStatus::Asserted)
+    );
 }

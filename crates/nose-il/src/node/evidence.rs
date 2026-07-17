@@ -159,6 +159,23 @@ pub enum TypeEvidenceKind {
     /// An attribute- and modifier-free Swift parameter whose source type is
     /// explicitly `Swift.Dictionary<K, V>`.
     SwiftQualifiedDictionaryParameter,
+    /// An attribute- and modifier-free Swift parameter whose source type is the
+    /// unqualified `String` name. Corpus namespace analysis may close this proof.
+    SwiftUnqualifiedStringParameter,
+    /// An attribute- and modifier-free Swift parameter whose source type is
+    /// explicitly `Swift.String`.
+    SwiftQualifiedStringParameter,
+    /// A Swift binding has an explicit source type annotation. Exact literal
+    /// consumers use this marker to distinguish contextual literal conversion
+    /// from an unannotated literal whose default type is `Swift.String`.
+    SwiftExplicitBindingType,
+    /// An explicitly typed Swift binding uses the unqualified `String` name.
+    /// Corpus namespace analysis may make this evidence ambiguous when a local
+    /// or cross-file declaration shadows the standard-library type.
+    SwiftUnqualifiedStringBinding,
+    /// An explicitly typed Swift binding uses `Swift.String`. Corpus namespace
+    /// analysis may make this evidence ambiguous when `Swift` is shadowed.
+    SwiftQualifiedStringBinding,
 }
 
 /// Kernel-facing proof that a source-level symbol denotes a specific global or
@@ -324,6 +341,11 @@ pub enum SequenceSurfaceKind {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum ParameterShapeEvidenceKind {
+    NonPlain,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum EvidenceKind {
     Source(SourceFactKind),
     Domain(DomainEvidence),
@@ -337,6 +359,7 @@ pub enum EvidenceKind {
     CallTarget(CallTargetEvidenceKind),
     PromiseSettledValue(PromiseSettledValueEvidenceKind),
     SequenceSurface(SequenceSurfaceKind),
+    ParameterShape(ParameterShapeEvidenceKind),
 }
 
 /// Pack-facing semantic evidence record. It is evidence, not a verdict: exact

@@ -16,7 +16,7 @@ pub use self::evidence::{
     BoundOrderGuardActivation, CTypeTarget, CallTargetEvidenceKind, EffectEvidenceKind,
     EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord,
     EvidenceStatus, GuardEvidenceKind, ImportEvidenceKind, JsRecordGuardComparison,
-    JsRecordGuardNullCheck, LibraryApiEvidenceKind, PlaceEvidenceKind,
+    JsRecordGuardNullCheck, LibraryApiEvidenceKind, ParameterShapeEvidenceKind, PlaceEvidenceKind,
     PromiseSettledValueEvidenceKind, PromiseSettlementChannel, SequenceSurfaceKind,
     SymbolEvidenceKind, TypeEvidenceKind,
 };

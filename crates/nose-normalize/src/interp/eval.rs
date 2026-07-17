@@ -10,11 +10,26 @@ impl<'a> Interp<'a> {
         self.tick()?;
         let n = *self.il.node(node);
         match n.kind {
+            NodeKind::Var
+                if nose_semantics::admitted_rust_option_none_sentinel_at_node(
+                    self.il,
+                    self.interner,
+                    node,
+                )
+                .is_some() =>
+            {
+                Ok(Value::Null)
+            }
             NodeKind::Var => match n.payload {
                 Payload::Cid(c) => env
                     .get(&c)
                     .cloned()
                     .ok_or_else(|| Unsupported::value("value.binding-missing")),
+                Payload::Name(name) => self
+                    .globals
+                    .get(&name)
+                    .cloned()
+                    .ok_or_else(|| Unsupported::il("il.variable-identity-missing")),
                 _ => Err(Unsupported::il("il.variable-identity-missing")),
             },
             NodeKind::Lit => eval_literal(n.payload, self.bitwise_result_is_int32()),

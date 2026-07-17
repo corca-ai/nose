@@ -253,6 +253,9 @@ set -euo pipefail
 # below the threshold, while the two oracle/value-graph whole-impl representatives churn without
 # changing members. The stale IDs are removed and the ratchet tightens; see
 # docs/dogfooding-history.md.
+# 27 -> 27 (#859 bounded oracle expansion): the retained cardinality and immutable Swift-string
+# boundaries move reviewed representatives without adding a substantial family. No new budget is
+# accepted; see docs/dogfooding-history.md.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

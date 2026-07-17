@@ -1,12 +1,22 @@
 use crate::falsify;
-use crate::oracle_gate::{behavior_hash, is_trivial_behavior, VERIFY_BATTERY_NODE_ROW_BUDGET};
-use crate::verify_collect::{VerifyExclusions, VerifyOracle, VerifyRec};
+use crate::oracle_gate::VERIFY_BATTERY_NODE_ROW_BUDGET;
+use crate::verify_collect::{
+    verify_record_behavior_is_trivial, OracleTranche, VerifyExclusions, VerifyOracle, VerifyRec,
+};
 use crate::verify_soundness::{
     classify_verify_soundness, hard_gate_equal_behavior_representative_pairs,
 };
 use anyhow::Result;
 use nose_detect::multiset_jaccard;
 use nose_il::Corpus;
+
+fn verify_record_behavior_hash(record: &VerifyRec) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut hash = std::collections::hash_map::DefaultHasher::new();
+    record.beh.hash(&mut hash);
+    record.fragment_exits.hash(&mut hash);
+    hash.finish()
+}
 
 /// Behavioral ground truth for the value-add evaluator: each interpretable unit with
 /// a stable hash of its behavior battery (equal hash ⟺ behaviorally equal on the
@@ -29,13 +39,22 @@ pub(super) fn print_verify_json(oracle: &VerifyOracle) -> Result<()> {
                 "start_line": r.start,
                 "end_line": r.end,
                 "tokens": r.tokens,
-                "behavior": format!("{:016x}", behavior_hash(&r.beh)),
-                "trivial": is_trivial_behavior(&r.beh),
+                "behavior": format!("{:016x}", verify_record_behavior_hash(r)),
+                "trivial": verify_record_behavior_is_trivial(r),
                 "symbolic": r.beh.iter().any(nose_normalize::behavior_has_sym),
                 "claimable": r.claimable,
                 "product_admission": r.product_admission,
                 "canon_exposed": r.canon_exposed,
                 "domain_signature": format!("{:016x}", r.domain_sig),
+                "domain_hosted": falsify::domains_are_hosted_with_projections(
+                    r.lang,
+                    &r.param_domains,
+                    &r.input_projections,
+                ),
+                "input_projections": r.input_projections
+                    .iter()
+                    .map(|projection| projection.label())
+                    .collect::<Vec<_>>(),
                 "value_fingerprint": r.fp,
                 "constructs": constructs.get(r.loc.as_str()).copied().unwrap_or_default(),
             })
@@ -151,7 +170,8 @@ pub(super) fn report_falsify(
     recs: &[VerifyRec],
     probes: &[nose_normalize::Value],
     seed: u64,
-) -> usize {
+    tranche: OracleTranche,
+) -> Result<usize> {
     const PER_PAIR_BUDGET: usize = 4096;
     let oracle_opts = nose_normalize::NormalizeOptions {
         oracle: true,
@@ -160,7 +180,11 @@ pub(super) fn report_falsify(
     let mut core_cache: std::collections::HashMap<usize, nose_il::Il> =
         std::collections::HashMap::new();
     let mut found: Vec<(String, String, falsify::FalsifyWitness)> = Vec::new();
+    let mut eligible_pairs = 0usize;
+    let mut searched_pairs = 0usize;
+    let mut executed_cases = 0usize;
     for pair in hard_gate_equal_behavior_representative_pairs(recs) {
+        eligible_pairs += 1;
         // The battery already found these EQUAL; only such groups need a deeper search.
         // Restrict to hard-gate-eligible pairs (claimable, comparable declarations) so a hit
         // is a real false merge, not an advisory/lossy diagnostic.
@@ -171,20 +195,88 @@ pub(super) fn report_falsify(
         }
         let il_a = &core_cache[&pair.first.file_idx];
         let il_b = &core_cache[&pair.other.file_idx];
-        if let Some(witness) = falsify::falsify_pair(
-            il_a,
-            pair.first.core_root,
-            il_b,
-            pair.other.core_root,
+        let wrapped_a = if let Some(contract) = pair.first.core_fragment.as_ref() {
+            let Some(wrapper) = nose_detect::synthesize_wrapper_with_module_strings(
+                il_a,
+                &corpus.interner,
+                contract,
+                tranche.includes_swift_module_strings(),
+            ) else {
+                anyhow::bail!(
+                    "falsification invariant: eligible fragment {} could not be wrapped",
+                    pair.first.loc
+                );
+            };
+            Some(wrapper)
+        } else {
+            None
+        };
+        let wrapped_b = if let Some(contract) = pair.other.core_fragment.as_ref() {
+            let Some(wrapper) = nose_detect::synthesize_wrapper_with_module_strings(
+                il_b,
+                &corpus.interner,
+                contract,
+                tranche.includes_swift_module_strings(),
+            ) else {
+                anyhow::bail!(
+                    "falsification invariant: eligible fragment {} could not be wrapped",
+                    pair.other.loc
+                );
+            };
+            Some(wrapper)
+        } else {
+            None
+        };
+        let (target_il_a, target_root_a) = match wrapped_a.as_ref() {
+            Some((wrapper, root)) => (wrapper, *root),
+            None => (il_a, pair.first.core_root),
+        };
+        let (target_il_b, target_root_b) = match wrapped_b.as_ref() {
+            Some((wrapper, root)) => (wrapper, *root),
+            None => (il_b, pair.other.core_root),
+        };
+        let outcome = falsify::falsify_pair_with_projections(
+            target_il_a,
+            target_root_a,
+            target_il_b,
+            target_root_b,
             &corpus.interner,
             probes,
             PER_PAIR_BUDGET,
             seed,
-        ) {
-            found.push((pair.first.loc.clone(), pair.other.loc.clone(), witness));
+            &pair.first.input_projections,
+            &pair.other.input_projections,
+            pair.first.core_fragment.is_some() && pair.other.core_fragment.is_some(),
+            tranche.includes_swift_module_strings(),
+        );
+        searched_pairs += 1;
+        match outcome {
+            falsify::FalsifyOutcome::Witness(witness) => {
+                executed_cases += witness.case_index + 1;
+                found.push((pair.first.loc.clone(), pair.other.loc.clone(), witness));
+            }
+            falsify::FalsifyOutcome::Exhausted { cases } => executed_cases += cases,
+            falsify::FalsifyOutcome::Skipped { reason } => anyhow::bail!(
+                "falsification invariant: eligible pair {} / {} was skipped: {reason}",
+                pair.first.loc,
+                pair.other.loc
+            ),
         }
     }
+    print_falsification_outcome(&mut found, eligible_pairs, searched_pairs, executed_cases);
+    Ok(found.len())
+}
+
+fn print_falsification_outcome(
+    found: &mut [(String, String, falsify::FalsifyWitness)],
+    eligible_pairs: usize,
+    searched_pairs: usize,
+    executed_cases: usize,
+) {
     println!("\nFALSIFICATION SEARCH (#317) — distinguishing inputs beyond the fixed battery:");
+    println!(
+        "  eligible pairs: {eligible_pairs}; searched: {searched_pairs}; skipped: 0; executed cases: {executed_cases}"
+    );
     if found.is_empty() {
         println!(
             "  no new distinguishers — the fixed battery already separates every checked group ✓"
@@ -208,7 +300,6 @@ pub(super) fn report_falsify(
             );
         }
     }
-    found.len()
 }
 
 /// Completeness: behavior-equal ⟹ fingerprint-equal (the under-merge / recall
@@ -222,7 +313,11 @@ pub(super) fn report_verify_completeness(
     recs: &[VerifyRec],
     leads: Option<&std::path::Path>,
 ) -> Result<()> {
-    let mut by_beh: std::collections::HashMap<&[nose_normalize::Behavior], Vec<&VerifyRec>> =
+    type BehaviorClass<'a> = (
+        &'a [nose_normalize::Behavior],
+        Option<&'a [nose_normalize::UnitExit]>,
+    );
+    let mut by_beh: std::collections::HashMap<BehaviorClass<'_>, Vec<&VerifyRec>> =
         std::collections::HashMap::new();
     for r in recs {
         // Concrete behaviors only: symbolic equality says "same opaque operations on
@@ -230,8 +325,13 @@ pub(super) fn report_verify_completeness(
         // wrappers calling same-NAMED but different functions would coincide). The
         // under-merge direction keeps its §BC meaning; symbolic coverage serves the
         // soundness direction.
-        if !is_trivial_behavior(&r.beh) && !r.beh.iter().any(nose_normalize::behavior_has_sym) {
-            by_beh.entry(&r.beh).or_default().push(r);
+        if !verify_record_behavior_is_trivial(r)
+            && !r.beh.iter().any(nose_normalize::behavior_has_sym)
+        {
+            by_beh
+                .entry((&r.beh, r.fragment_exits.as_deref()))
+                .or_default()
+                .push(r);
         }
     }
     let (mut beh_pairs, mut fp_equal_pairs, mut split_groups) = (0usize, 0usize, 0usize);
@@ -379,7 +479,7 @@ pub(super) fn report_verify_calibration(recs: &[VerifyRec]) {
             let vj = multiset_jaccard(&a.fp, &b.fp);
             if let Some(bi) = bin(vj) {
                 tot[bi] += 1;
-                eq[bi] += (a.beh == b.beh) as usize;
+                eq[bi] += (a.beh == b.beh && a.fragment_exits == b.fragment_exits) as usize;
             }
         }
     }

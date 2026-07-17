@@ -22,7 +22,83 @@ use nose_il::{
     UnitKind,
 };
 use nose_normalize::{run_unit, Behavior, Value};
-use nose_semantics::builder_append_call_args;
+use nose_semantics::admitted_builder_append_call_args;
+use std::collections::HashMap;
+
+/// How the offline oracle is allowed to represent one input.
+///
+/// `Declared` retains the whole source domain. `Cardinality` is a narrower quotient: the
+/// fragment was structurally proven to observe that input only through an admitted `Len`
+/// builtin, so bounded representative lists can execute the fragment without inventing erased
+/// element values. `UnusedTrailing` applies only to whole functions and is proved by the
+/// Soundness Lab collector.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum OracleInputProjection {
+    Declared,
+    Cardinality,
+    /// The parameter is part of a whole-function declaration but a trailing suffix proof found
+    /// no read of it. It is excluded from the oracle's effective input contract.
+    UnusedTrailing,
+}
+
+impl OracleInputProjection {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Declared => "declared",
+            Self::Cardinality => "cardinality",
+            Self::UnusedTrailing => "unused-trailing",
+        }
+    }
+}
+
+/// Prove the executable input projection for every free input in `contract`.
+///
+/// A cardinality proof requires at least one occurrence of the input and requires *every*
+/// occurrence in the fragment subtree to be the sole argument of an already-admitted
+/// `Builtin::Len` node. Indexing, iteration, element comparison, mutation, passing the value to
+/// another call, or any unrecognized use falls back to the full declared domain.
+pub fn fragment_input_projections(
+    il: &Il,
+    contract: &FragmentContract,
+) -> Vec<OracleInputProjection> {
+    contract
+        .inputs
+        .iter()
+        .map(|&cid| {
+            let mut seen = false;
+            if input_is_cardinality_only(il, contract.root, None, cid, &mut seen) && seen {
+                OracleInputProjection::Cardinality
+            } else {
+                OracleInputProjection::Declared
+            }
+        })
+        .collect()
+}
+
+fn input_is_cardinality_only(
+    il: &Il,
+    node: NodeId,
+    parent: Option<NodeId>,
+    cid: u32,
+    seen: &mut bool,
+) -> bool {
+    if il.kind(node) == NodeKind::Var && il.node(node).payload == Payload::Cid(cid) {
+        *seen = true;
+        let Some(parent) = parent else {
+            return false;
+        };
+        if il.kind(parent) != NodeKind::Call
+            || il.node(parent).payload != Payload::Builtin(Builtin::Len)
+            || il.children(parent) != [node]
+        {
+            return false;
+        }
+    }
+    il.children(node)
+        .iter()
+        .all(|&child| input_is_cardinality_only(il, child, Some(node), cid, seen))
+}
 
 /// Run the fragment described by `contract` on `args` (bound to its inputs in order) and
 /// return its observable [`Behavior`], or `None` if the wrapper cannot be synthesized or
@@ -48,6 +124,17 @@ pub fn synthesize_wrapper(
     interner: &Interner,
     contract: &FragmentContract,
 ) -> Option<(Il, NodeId)> {
+    synthesize_wrapper_with_module_strings(il, interner, contract, true)
+}
+
+/// Soundness Lab replay variant that can reproduce the pre-Swift tranche from the same binary.
+/// Product callers always use [`synthesize_wrapper`], which keeps the proven bindings enabled.
+pub fn synthesize_wrapper_with_module_strings(
+    il: &Il,
+    interner: &Interner,
+    contract: &FragmentContract,
+    include_module_strings: bool,
+) -> Option<(Il, NodeId)> {
     let mut b = IlBuilder::new(il.file);
     let syn = Span::synthetic(il.file);
     let policy = CopyPolicy {
@@ -56,12 +143,32 @@ pub fn synthesize_wrapper(
             .iter()
             .any(|site| site.effect == Effect::Append),
     };
+    let input_spans = enclosing_parameter_spans(il, contract.root);
+    let referenced_names = referenced_name_symbols(il, contract.root);
+    let module_strings = if include_module_strings {
+        nose_normalize::module_facts::immutable_module_string_bindings(il, interner)
+    } else {
+        Vec::new()
+    };
+    let module_statements: Vec<NodeId> = module_strings
+        .into_iter()
+        .filter(|binding| referenced_names.contains(&binding.name))
+        .map(|binding| binding.statement)
+        .map(|statement| copy_subtree(il, interner, statement, &mut b, policy))
+        .collect::<Option<Vec<_>>>()?;
 
     // Parameters: one per free input, in the contract's canonical order.
     let mut children: Vec<NodeId> = contract
         .inputs
         .iter()
-        .map(|&cid| b.add(NodeKind::Param, Payload::Cid(cid), syn, &[]))
+        .map(|&cid| {
+            // Parameter-domain evidence is anchored to the original declaration span. Preserve
+            // that span in the wrapper so typed battery coercion and hard-lane domain comparison
+            // see the same source contract as the enclosing function. A free local with no
+            // enclosing parameter deliberately stays synthetic/unknown.
+            let span = input_spans.get(&cid).copied().unwrap_or(syn);
+            b.add(NodeKind::Param, Payload::Cid(cid), span, &[])
+        })
         .collect();
 
     // Body: deep-copy the fragment into the wrapper's body block. A block-rooted fragment
@@ -92,7 +199,14 @@ pub fn synthesize_wrapper(
         name: None,
         origin: Default::default(),
     }];
-    let mut synth = b.finish(func, meta, units, il.cid_names.clone());
+    let root = if module_statements.is_empty() {
+        func
+    } else {
+        let mut children = module_statements;
+        children.push(func);
+        b.add(NodeKind::Module, Payload::None, syn, &children)
+    };
+    let mut synth = b.finish(root, meta, units, il.cid_names.clone());
     // Copied fragment nodes keep their original spans, so their semantic evidence
     // remains valid for interpreter admission in the wrapper.
     synth.evidence = il.evidence.clone();
@@ -101,6 +215,57 @@ pub fn synthesize_wrapper(
         "synthesized fragment wrapper must be a valid arena"
     );
     Some((synth, func))
+}
+
+fn referenced_name_symbols(il: &Il, root: NodeId) -> std::collections::HashSet<nose_il::Symbol> {
+    let mut names = std::collections::HashSet::new();
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if let Payload::Name(name) = il.node(node).payload {
+            names.insert(name);
+        }
+        stack.extend(il.children(node));
+    }
+    names
+}
+
+fn enclosing_parameter_spans(il: &Il, root: NodeId) -> HashMap<u32, Span> {
+    let mut parents = vec![None; il.nodes.len()];
+    let mut stack = vec![il.root];
+    while let Some(parent) = stack.pop() {
+        for &child in il.children(parent) {
+            if parents[child.0 as usize].is_none() {
+                parents[child.0 as usize] = Some(parent);
+                stack.push(child);
+            }
+        }
+    }
+    let mut cursor = Some(root);
+    while let Some(node) = cursor {
+        if il.kind(node) == NodeKind::Func {
+            let mut spans = HashMap::new();
+            let mut duplicates = std::collections::HashSet::new();
+            for &child in il.children(node) {
+                if il.kind(child) != NodeKind::Param {
+                    continue;
+                }
+                let Payload::Cid(cid) = il.node(child).payload else {
+                    continue;
+                };
+                if spans.insert(cid, il.node(child).span).is_some() {
+                    duplicates.insert(cid);
+                }
+            }
+            for cid in duplicates {
+                // Duplicate canonical ids do not identify one declaration domain. Leave the
+                // wrapper input unknown instead of choosing one by source order.
+                spans.remove(&cid);
+            }
+            return spans;
+        }
+        cursor = parents[node.0 as usize];
+    }
+    HashMap::new()
 }
 
 #[derive(Clone, Copy)]
@@ -159,7 +324,7 @@ fn copy_subtree(
 }
 
 fn append_surface_parts(src: &Il, interner: &Interner, node: NodeId) -> Option<(NodeId, NodeId)> {
-    builder_append_call_args(src, interner, node)
+    admitted_builder_append_call_args(src, interner, node)
 }
 
 fn append_receiver_tag(src: &Il, receiver: NodeId) -> Option<i64> {
@@ -258,283 +423,4 @@ fn collect_binding_targets(il: &Il, node: NodeId, out: &mut Vec<u32>) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::fragment::{Effect, EffectSite, Exit, FragmentKind};
-    use nose_il::{FileId, Interner, Lang};
-    use nose_normalize::{normalize, NormalizeOptions};
-
-    /// Lower + normalize `src`, returning the normalized IL.
-    fn norm(interner: &Interner, src: &str, lang: Lang) -> Il {
-        let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, interner)
-            .expect("lowering should succeed");
-        normalize(&il, interner, &NormalizeOptions::default())
-    }
-
-    /// Find the first `Return` node with one computed (non-var/lit) child — a direct-return
-    /// fragment root.
-    fn first_direct_return(il: &Il, node: NodeId) -> Option<NodeId> {
-        if il.kind(node) == NodeKind::Return {
-            let kids = il.children(node);
-            if kids.len() == 1 && !matches!(il.kind(kids[0]), NodeKind::Var | NodeKind::Lit) {
-                return Some(node);
-            }
-        }
-        for &c in il.children(node) {
-            if let Some(found) = first_direct_return(il, c) {
-                return Some(found);
-            }
-        }
-        None
-    }
-
-    fn direct_return_contract(il: &Il, root: NodeId) -> FragmentContract {
-        FragmentContract::value_sink(
-            FragmentKind::DirectReturn,
-            root,
-            free_input_cids(il, root),
-            Exit::Return,
-        )
-    }
-
-    /// A small single-argument battery — enough to separate the spike's fragments.
-    fn battery_1() -> Vec<Vec<Value>> {
-        [-2i64, -1, 0, 1, 2, 3, 5]
-            .into_iter()
-            .map(|n| vec![Value::Int(n)])
-            .collect()
-    }
-
-    fn behavior_vector(
-        il: &Il,
-        interner: &Interner,
-        c: &FragmentContract,
-        battery: &[Vec<Value>],
-    ) -> Vec<Behavior> {
-        battery
-            .iter()
-            .map(|row| {
-                fragment_behavior(il, interner, c, row)
-                    .expect("direct-return fragment must be interpretable")
-            })
-            .collect()
-    }
-
-    #[test]
-    fn wrapper_synthesis_runs_a_direct_return_fragment() {
-        let i = Interner::new();
-        let il = norm(&i, "function f(a){ return a*a + 1; }", Lang::JavaScript);
-        let root = first_direct_return(&il, il.root).expect("a direct-return fragment");
-        let contract = direct_return_contract(&il, root);
-        assert_eq!(contract.arity(), 1, "one free input (the parameter)");
-
-        let (synth, func) = synthesize_wrapper(&il, &i, &contract).expect("wrapper synthesizes");
-        assert_eq!(synth.kind(func), NodeKind::Func);
-        let b = run_unit(&synth, &i, func, &[Value::Int(4)]).expect("interpretable");
-        assert_eq!(b.ret, Value::Int(17), "4*4 + 1 = 17");
-    }
-
-    #[test]
-    fn equivalent_fragments_agree_on_the_battery() {
-        let i = Interner::new();
-        // Same spec, different surface: squared-plus-one.
-        let f = norm(&i, "function f(a){ return a*a + 1; }", Lang::JavaScript);
-        let g = norm(&i, "function g(b){ return 1 + b*b; }", Lang::JavaScript);
-        let cf = direct_return_contract(&f, first_direct_return(&f, f.root).unwrap());
-        let cg = direct_return_contract(&g, first_direct_return(&g, g.root).unwrap());
-
-        let battery = battery_1();
-        assert_eq!(
-            behavior_vector(&f, &i, &cf, &battery),
-            behavior_vector(&g, &i, &cg, &battery),
-            "equivalent direct-return fragments must agree on every battery input"
-        );
-    }
-
-    #[test]
-    fn distinct_fragments_diverge_on_the_battery() {
-        let i = Interner::new();
-        let f = norm(&i, "function f(a){ return a*a + 1; }", Lang::JavaScript);
-        let h = norm(&i, "function h(a){ return a*a - 1; }", Lang::JavaScript);
-        let cf = direct_return_contract(&f, first_direct_return(&f, f.root).unwrap());
-        let ch = direct_return_contract(&h, first_direct_return(&h, h.root).unwrap());
-
-        let battery = battery_1();
-        assert_ne!(
-            behavior_vector(&f, &i, &cf, &battery),
-            behavior_vector(&h, &i, &ch, &battery),
-            "behaviorally distinct fragments must diverge on the battery"
-        );
-    }
-
-    // ---- binding-aware free-input inference --------------------------------------------
-
-    fn find<P: Fn(&Il, NodeId) -> bool>(il: &Il, node: NodeId, pred: &P) -> Option<NodeId> {
-        if pred(il, node) {
-            return Some(node);
-        }
-        il.children(node).iter().find_map(|&c| find(il, c, pred))
-    }
-
-    fn first_foreach(il: &Il) -> NodeId {
-        find(il, il.root, &|il, n| {
-            il.kind(n) == NodeKind::Loop
-                && matches!(il.node(n).payload, Payload::Loop(LoopKind::ForEach))
-        })
-        .expect("a for-each loop")
-    }
-
-    /// The body `Block` of the first `Func` — the multi-statement fragment body.
-    fn first_func_body(il: &Il) -> NodeId {
-        let func = find(il, il.root, &|il, n| il.kind(n) == NodeKind::Func).expect("a func");
-        *il.children(func).last().expect("func has a body block")
-    }
-
-    #[test]
-    fn free_inputs_exclude_the_foreach_loop_variable() {
-        // The loop variable `x` is bound by the for-each pattern, not read from outside; only
-        // the appended-to list `out` and the iterable `xs` are genuine free inputs. Without
-        // binding-aware inference this would be arity 3 and the wrapper would misbind `x`.
-        let i = Interner::new();
-        let il = norm(
-            &i,
-            "function f(out, xs){ for (const x of xs){ out.push(x); } }",
-            Lang::JavaScript,
-        );
-        let loop_node = first_foreach(&il);
-        let inputs = free_input_cids(&il, loop_node);
-        assert_eq!(
-            inputs.len(),
-            2,
-            "only `out` and `xs` are free; the loop variable `x` must be excluded, got {inputs:?}"
-        );
-    }
-
-    #[test]
-    fn free_inputs_exclude_a_local_temp() {
-        // `t` is assigned then read inside the fragment, so it is a local, not a free input.
-        let i = Interner::new();
-        let il = norm(
-            &i,
-            "function f(a){ let t = a * a; return t + 1; }",
-            Lang::JavaScript,
-        );
-        let body = first_func_body(&il);
-        let inputs = free_input_cids(&il, body);
-        assert_eq!(
-            inputs.len(),
-            1,
-            "only `a` is free; the temp `t` must be excluded, got {inputs:?}"
-        );
-    }
-
-    #[test]
-    fn equivalent_foreach_loops_agree_through_the_oracle() {
-        // Two for-each append loops with the same spec must agree; a different appended value
-        // must diverge — exercising binding-aware inputs + multi-statement loop lowering.
-        let battery = || {
-            vec![vec![
-                Value::List(vec![]),
-                Value::List(vec![Value::Int(2), Value::Int(5)]),
-            ]]
-        };
-        let run = |src: &str| -> Vec<Behavior> {
-            let i = Interner::new();
-            let il = norm(&i, src, Lang::TypeScript);
-            let loop_node = first_foreach(&il);
-            let c = FragmentContract::single_effect(
-                FragmentKind::LoopEffect,
-                loop_node,
-                free_input_cids(&il, loop_node),
-                EffectSite::observable(Effect::Append),
-            );
-            assert_eq!(c.arity(), 2, "loop var excluded → arity 2");
-            battery()
-                .iter()
-                .map(|row| {
-                    fragment_behavior(&il, &i, &c, row).expect("loop fragment interpretable")
-                })
-                .collect()
-        };
-        let f = run(
-            "function f(out: number[], xs: number[]): void { for (const x of xs){ out.push(x); } }",
-        );
-        let g = run(
-            "function g(acc: number[], ys: number[]): void { for (const y of ys){ acc.push(y); } }",
-        );
-        let h = run(
-            "function h(out: number[], xs: number[]): void { for (const x of xs){ out.push(x * 2); } }",
-        );
-        assert!(
-            f.iter().all(|b| !b.effects.is_empty()),
-            "loop append surfaces as effects"
-        );
-        assert_eq!(f, g, "equivalent for-each append loops must agree");
-        assert_ne!(f, h, "appending a different value must diverge");
-    }
-
-    // ---- ordered multi-effect, multi-statement body -----------------------------------
-
-    #[test]
-    fn ordered_multi_effect_body_observes_statement_order() {
-        // A two-append body lowered as an ordered-effect contract: the effect order is
-        // observable, so swapping the two appends diverges while an identical body agrees.
-        let run = |src: &str| -> Behavior {
-            let i = Interner::new();
-            let il = norm(&i, src, Lang::TypeScript);
-            let body = first_func_body(&il);
-            let c = FragmentContract::ordered_effects(
-                FragmentKind::ExprEffect,
-                body,
-                free_input_cids(&il, body),
-                Exit::Normal,
-                vec![
-                    EffectSite::observable(Effect::Append),
-                    EffectSite::observable(Effect::Append),
-                ],
-            );
-            assert_eq!(c.arity(), 1, "only `out` is free (literals are not inputs)");
-            fragment_behavior(&il, &i, &c, &[Value::List(vec![])]).expect("interpretable")
-        };
-        let fwd = run("function f(out: number[]): void { out.push(1); out.push(2); }");
-        let fwd2 = run("function h(out: number[]): void { out.push(1); out.push(2); }");
-        let rev = run("function g(out: number[]): void { out.push(2); out.push(1); }");
-        assert_eq!(fwd.effects.len(), 2, "both appends are recorded in order");
-        assert_eq!(fwd, fwd2, "identical ordered bodies must agree");
-        assert_ne!(fwd, rev, "swapping the append order must be observable");
-    }
-
-    #[test]
-    fn append_effect_wrapper_preserves_receiver_identity() {
-        let run = |src: &str| -> Behavior {
-            let i = Interner::new();
-            let il = norm(&i, src, Lang::TypeScript);
-            let body = first_func_body(&il);
-            let c = FragmentContract::ordered_effects(
-                FragmentKind::ExprEffect,
-                body,
-                free_input_cids(&il, body),
-                Exit::Normal,
-                vec![
-                    EffectSite::observable(Effect::Append),
-                    EffectSite::observable(Effect::Append),
-                ],
-            );
-            fragment_behavior(&il, &i, &c, &[Value::List(vec![]), Value::List(vec![])])
-                .expect("interpretable")
-        };
-
-        let same =
-            run("function f(out: number[], other: number[]): void { out.push(1); other.push(2); }");
-        let renamed =
-            run("function g(dst: number[], aux: number[]): void { dst.push(1); aux.push(2); }");
-        let swapped =
-            run("function h(out: number[], other: number[]): void { other.push(1); out.push(2); }");
-
-        assert_eq!(same, renamed, "alpha-renamed receiver roles should agree");
-        assert_ne!(
-            same, swapped,
-            "append effects must preserve which receiver role was mutated"
-        );
-    }
-}
+mod tests;

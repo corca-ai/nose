@@ -255,7 +255,7 @@ fn throw_is_err_behavior_and_stops_execution() {
 fn add_self_field(
     builder: &mut IlBuilder,
     interner: &Interner,
-    field_name: nose_il::Symbol,
+    field_name: Symbol,
     offset: u32,
 ) -> (NodeId, NodeId) {
     let receiver = builder.add(

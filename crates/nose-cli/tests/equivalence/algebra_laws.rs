@@ -219,6 +219,26 @@ fn float_typed_param_addition_is_held_unassociated() {
 }
 
 #[test]
+fn large_float_possible_polynomial_reuses_subtree_evaluations() {
+    // #858 preserves the source grouping of possibly-float `+`/`*` trees. Rebuilding a large
+    // alternating polynomial must reuse the values already computed for each direct child;
+    // recursively interpreting every child again made SymPy's `unrad` unit take 17 seconds.
+    let polynomial = (1..=32)
+        .map(|power| format!("a**{power} * b**{}", 33 - power))
+        .collect::<Vec<_>>()
+        .join(" + ");
+    let source = format!("def f(a, b):\n    return {polynomial}\n");
+    let renamed = format!(
+        "def g(x, y):\n    return {}\n",
+        polynomial.replace('a', "x").replace('b', "y")
+    );
+    let interner = Interner::new();
+    let fingerprint = value_fp(&interner, &source, Lang::Python);
+    assert!(!fingerprint.is_empty());
+    assert_eq!(fingerprint, value_fp(&interner, &renamed, Lang::Python));
+}
+
+#[test]
 fn algebra_comparison_direction() {
     let i = Interner::new();
     let gt = "def f(a, b):\n    return a > b\n";

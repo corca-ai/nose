@@ -82,6 +82,15 @@ impl<'a> Lowering<'a> {
         );
     }
 
+    pub(crate) fn record_parameter_shape(&mut self, span: Span, kind: ParameterShapeEvidenceKind) {
+        self.record_evidence_with_provenance_dependencies(
+            EvidenceAnchor::param(span),
+            EvidenceKind::ParameterShape(kind),
+            self.language_source_fact_provenance,
+            Vec::new(),
+        );
+    }
+
     pub(crate) fn record_evidence(
         &mut self,
         anchor: EvidenceAnchor,

@@ -27,7 +27,11 @@ pub(crate) mod recognize;
 mod self_field_body;
 
 pub use contract::{Effect, EffectSite, FragmentContract, Place};
-pub use oracle::{fragment_behavior, free_input_cids, synthesize_wrapper};
+pub use oracle::{
+    fragment_behavior, fragment_input_projections, free_input_cids, synthesize_wrapper,
+    synthesize_wrapper_with_module_strings, OracleInputProjection,
+};
+pub use recognize::recognized_contracts as recognized_fragment_contracts;
 
 /// The shape of an accepted exact sub-function fragment.
 ///

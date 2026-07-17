@@ -43,6 +43,28 @@ fn comments_inside_parenthesized_expressions_are_lexical_noise() {
 }
 
 #[test]
+fn non_plain_parameter_shapes_remain_visible_as_evidence() {
+    let interner = Interner::new();
+    let il = lower(
+        FileId(0),
+        "t.py",
+        b"def f(plain, typed: int, default=make(), typed_default: int = make(), *args, **kwargs):\n    return plain\n",
+        &interner,
+    )
+    .expect("lower");
+    assert_eq!(
+        il.evidence
+            .iter()
+            .filter(|record| {
+                record.kind
+                    == EvidenceKind::ParameterShape(nose_il::ParameterShapeEvidenceKind::NonPlain)
+            })
+            .count(),
+        4
+    );
+}
+
+#[test]
 fn dictionary_unpack_lowers_to_fail_closed_surface_without_raw() {
     let src = b"def f(base, override):\n    return {**base, 'x': 1, **override}\n";
     let raw = raw_names(src);

@@ -1,5 +1,4 @@
-use crate::oracle_gate::is_trivial_behavior;
-use crate::verify_collect::{VerifyOracle, VerifyRec};
+use crate::verify_collect::{verify_record_behavior_is_trivial, VerifyOracle, VerifyRec};
 use crate::verify_soundness::count_verify_soundness;
 use anyhow::{Context, Result};
 use nose_detect::multiset_jaccard;
@@ -108,10 +107,19 @@ fn soundness_gate(
 }
 
 fn completeness_report(recs: &[VerifyRec]) -> (Completeness, Vec<UnderMerge>) {
-    let mut by_beh: HashMap<&[nose_normalize::Behavior], Vec<&VerifyRec>> = HashMap::new();
+    type BehaviorClass<'a> = (
+        &'a [nose_normalize::Behavior],
+        Option<&'a [nose_normalize::UnitExit]>,
+    );
+    let mut by_beh: HashMap<BehaviorClass<'_>, Vec<&VerifyRec>> = HashMap::new();
     for rec in recs {
-        if !is_trivial_behavior(&rec.beh) && !rec.beh.iter().any(nose_normalize::behavior_has_sym) {
-            by_beh.entry(&rec.beh).or_default().push(rec);
+        if !verify_record_behavior_is_trivial(rec)
+            && !rec.beh.iter().any(nose_normalize::behavior_has_sym)
+        {
+            by_beh
+                .entry((&rec.beh, rec.fragment_exits.as_deref()))
+                .or_default()
+                .push(rec);
         }
     }
 
@@ -323,4 +331,66 @@ fn top_opportunities(under_merges: &[UnderMerge]) -> Vec<TopOpportunity> {
             }
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nose_normalize::{Behavior, UnitExit, Value};
+
+    fn rec(name: &str, fp: u64, exits: Vec<UnitExit>) -> VerifyRec {
+        VerifyRec {
+            lang: nose_il::Lang::Rust,
+            fp: vec![fp],
+            beh: vec![
+                Behavior {
+                    ret: Value::Int(0),
+                    effects: Vec::new(),
+                    fields: Vec::new(),
+                },
+                Behavior {
+                    ret: Value::Int(0),
+                    effects: Vec::new(),
+                    fields: Vec::new(),
+                },
+            ],
+            file: name.to_string(),
+            start: 1,
+            end: 1,
+            tokens: 1,
+            loc: format!("{name}:1"),
+            claimable: true,
+            product_admission: "admitted",
+            canon_exposed: true,
+            admission_rejection: None,
+            param_domains: Vec::new(),
+            input_projections: Vec::new(),
+            domain_sig: 0,
+            file_idx: 0,
+            core_root: nose_il::NodeId(0),
+            core_fragment: None,
+            fragment_exits: Some(exits),
+        }
+    }
+
+    #[test]
+    fn completeness_keeps_fragment_terminal_control_in_the_behavior_key() {
+        let shared = vec![UnitExit::Fallthrough, UnitExit::Return];
+        let records = vec![
+            rec("a.rs", 1, shared.clone()),
+            rec("b.rs", 2, shared),
+            rec(
+                "different-exit.rs",
+                1,
+                vec![UnitExit::Return, UnitExit::Fallthrough],
+            ),
+        ];
+
+        let (summary, misses) = completeness_report(&records);
+        assert_eq!(summary.behavior_groups, 1);
+        assert_eq!(summary.behavior_equal_pairs, 1);
+        assert_eq!(summary.fingerprint_equal_pairs, 0);
+        assert_eq!(summary.under_merged_behavior_groups, 1);
+        assert_eq!(misses.len(), 1);
+    }
 }

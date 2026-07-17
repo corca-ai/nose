@@ -29,6 +29,27 @@ pub(super) struct VerifyRecPair<'a> {
     pub(super) other: &'a VerifyRec,
 }
 
+fn same_domain_contract(left: &VerifyRec, right: &VerifyRec) -> bool {
+    crate::falsify::effective_domain_contract(&left.param_domains, &left.input_projections)
+        == crate::falsify::effective_domain_contract(&right.param_domains, &right.input_projections)
+}
+
+fn same_observed_behavior(left: &VerifyRec, right: &VerifyRec) -> bool {
+    left.beh == right.beh && left.fragment_exits == right.fragment_exits
+}
+
+fn behavior_is_symbolic(rec: &VerifyRec) -> bool {
+    rec.beh.iter().any(nose_normalize::behavior_has_sym)
+}
+
+fn domains_are_hosted(rec: &VerifyRec) -> bool {
+    crate::falsify::domains_are_hosted_with_projections(
+        rec.lang,
+        &rec.param_domains,
+        &rec.input_projections,
+    )
+}
+
 #[derive(Copy, Clone)]
 enum DisagreementLane {
     FalseMerge,
@@ -76,13 +97,11 @@ pub(super) fn hard_gate_equal_behavior_representative_pairs(
         for domain_members in exact_domain_partitions(&members) {
             let mut behavior_groups: Vec<Vec<&VerifyRec>> = Vec::new();
             for rec in domain_members.into_iter().filter(|rec| {
-                rec.claimable
-                    && crate::falsify::domains_are_hosted(rec.lang, &rec.param_domains)
-                    && !rec.beh.iter().any(nose_normalize::behavior_has_sym)
+                rec.claimable && domains_are_hosted(rec) && !behavior_is_symbolic(rec)
             }) {
                 match behavior_groups
                     .iter_mut()
-                    .find(|group| group[0].beh == rec.beh)
+                    .find(|group| same_observed_behavior(group[0], rec))
                 {
                     Some(group) => group.push(rec),
                     None => behavior_groups.push(vec![rec]),
@@ -128,7 +147,7 @@ fn visit_soundness_disagreements(
         // domain mask compatible hard comparisons inside later partitions.
         let first = members[0];
         for rec in &members[1..] {
-            if rec.param_domains != first.param_domains && rec.beh != first.beh {
+            if !same_domain_contract(rec, first) && !same_observed_behavior(rec, first) {
                 visit(DisagreementLane::Advisory, first, rec);
             }
         }
@@ -137,11 +156,11 @@ fn visit_soundness_disagreements(
 }
 
 fn soundness_lane(first: &VerifyRec, rec: &VerifyRec) -> DisagreementLane {
-    if first.beh.iter().any(nose_normalize::behavior_has_sym)
-        || rec.beh.iter().any(nose_normalize::behavior_has_sym)
-        || first.param_domains != rec.param_domains
-        || !crate::falsify::domains_are_hosted(first.lang, &first.param_domains)
-        || !crate::falsify::domains_are_hosted(rec.lang, &rec.param_domains)
+    if behavior_is_symbolic(first)
+        || behavior_is_symbolic(rec)
+        || !same_domain_contract(first, rec)
+        || !domains_are_hosted(first)
+        || !domains_are_hosted(rec)
     {
         DisagreementLane::Advisory
     } else if first.claimable && rec.claimable {
@@ -152,11 +171,18 @@ fn soundness_lane(first: &VerifyRec, rec: &VerifyRec) -> DisagreementLane {
 }
 
 fn differing_behavior_inputs(first: &VerifyRec, rec: &VerifyRec) -> usize {
-    rec.beh
+    let behavior_differences = rec
+        .beh
         .iter()
         .zip(&first.beh)
         .filter(|(a, b)| a != b)
-        .count()
+        .count();
+    let exit_differences = match (&rec.fragment_exits, &first.fragment_exits) {
+        (Some(left), Some(right)) => left.iter().zip(right).filter(|(a, b)| a != b).count(),
+        (None, None) => 0,
+        _ => rec.beh.len().max(first.beh.len()),
+    };
+    behavior_differences.max(exit_differences)
 }
 
 fn fingerprint_groups(recs: &[VerifyRec]) -> Vec<Vec<&VerifyRec>> {
@@ -172,7 +198,7 @@ fn exact_domain_partitions<'a>(members: &[&'a VerifyRec]) -> Vec<Vec<&'a VerifyR
     for &rec in members {
         match partitions
             .iter_mut()
-            .find(|partition| partition[0].param_domains == rec.param_domains)
+            .find(|partition| same_domain_contract(partition[0], rec))
         {
             Some(partition) => partition.push(rec),
             None => partitions.push(vec![rec]),
@@ -186,7 +212,7 @@ fn behavior_partitions<'a>(members: &[&'a VerifyRec]) -> Vec<Vec<&'a VerifyRec>>
     for &rec in members {
         match partitions
             .iter_mut()
-            .find(|partition| partition[0].beh == rec.beh)
+            .find(|partition| same_observed_behavior(partition[0], rec))
         {
             Some(partition) => partition.push(rec),
             None => partitions.push(vec![rec]),
@@ -219,8 +245,7 @@ fn hard_eligible(rec: &VerifyRec) -> bool {
 }
 
 fn concrete_hosted(rec: &VerifyRec) -> bool {
-    crate::falsify::domains_are_hosted(rec.lang, &rec.param_domains)
-        && !rec.beh.iter().any(nose_normalize::behavior_has_sym)
+    domains_are_hosted(rec) && !behavior_is_symbolic(rec)
 }
 
 fn sort_disagreements(disagreements: &mut [SoundnessDisagreement]) {
@@ -266,8 +291,14 @@ mod tests {
             admission_rejection: None,
             domain_sig,
             param_domains: param_domains.to_vec(),
+            input_projections: vec![
+                nose_detect::OracleInputProjection::Declared;
+                param_domains.len()
+            ],
             file_idx: 0,
             core_root: NodeId(0),
+            core_fragment: None,
+            fragment_exits: None,
         }
     }
 
@@ -319,6 +350,35 @@ mod tests {
             counts.advisory_disagreements,
             summary.advisory_disagreements.len()
         );
+    }
+
+    #[test]
+    fn unread_trailing_parameters_do_not_change_the_effective_domain_contract() {
+        let short = rec(
+            "short",
+            &[1],
+            behavior(Value::Int(1)),
+            true,
+            7,
+            &[Some(DomainEvidence::String)],
+        );
+        let mut long = rec(
+            "long",
+            &[1],
+            behavior(Value::Int(1)),
+            true,
+            7,
+            &[Some(DomainEvidence::String), Some(DomainEvidence::Integer)],
+        );
+        long.input_projections[1] = nose_detect::OracleInputProjection::UnusedTrailing;
+        assert!(same_domain_contract(&short, &long));
+
+        long.input_projections = vec![
+            nose_detect::OracleInputProjection::UnusedTrailing,
+            nose_detect::OracleInputProjection::Declared,
+        ];
+        assert!(!same_domain_contract(&short, &long));
+        assert!(!domains_are_hosted(&long));
     }
 
     #[test]

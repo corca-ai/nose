@@ -17,7 +17,7 @@ use crate::{
     reinvented::reinvented_helpers,
     units::{self, UnitFeat},
 };
-use nose_il::{Corpus, Il, Interner, NodeKind};
+use nose_il::{Corpus, Il, Interner};
 use nose_normalize::NormalizeOptions;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
@@ -101,7 +101,7 @@ fn extract_units_of_file(
     norm_opts: &NormalizeOptions,
     seeds: &[u64],
 ) -> Vec<UnitFeat> {
-    if raw_il_is_empty_module(il) || units::large_test_file(il) {
+    if units::raw_il_is_empty_module(il) || units::large_test_file(il) {
         return Vec::new();
     }
     let n = nose_normalize::normalize(il, interner, norm_opts);
@@ -199,10 +199,6 @@ fn detect_with_dump_inner(
         detector,
         trace_accepted_coverage,
     )
-}
-
-fn raw_il_is_empty_module(il: &Il) -> bool {
-    il.units.is_empty() && il.kind(il.root) == NodeKind::Module && il.children(il.root).is_empty()
 }
 
 /// Run candidate-generation → scoring → clustering over already-built `units` (the

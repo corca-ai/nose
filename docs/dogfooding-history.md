@@ -1253,3 +1253,19 @@ oracle/value-graph implementation pairs reviewed in #857:
 `0028e1c168824352` for `interp/exec.rs` and
 `value_graph/control/statements.rs`. Their members and rationale are unchanged;
 no new family is accepted, and the budget is tightened to 27.
+
+The bounded #859 oracle expansion keeps the reviewed count at 27. The existing
+small-predicate family moves from `2584eb6878354c38` to `53dc1560776f2450` after
+the retained Swift String and parameter-shape evidence shifts self-query spans.
+Its members remain `css.rs::is_selector_kind`,
+`python/expressions.rs::is_op_tok`, and `type_domain.rs::rust_integer_type`;
+they are three unrelated vocabulary predicates with zero shared lines and no
+useful common abstraction. No new family or budget is accepted.
+
+The #859 closeout split tightens the reviewed count from 27 to 26. Moving the
+oracle projection tests and Swift String proof helpers into focused modules
+brings all touched Rust files below the 599-line default ceiling. That source
+layout shift also moves the pre-existing `int_bin` / `float_bin` dispatcher
+representative `aa2b95cf822a1cd2` below the value-40 duplication threshold;
+neither numeric policy changes. The stale ID is removed and the budget tightens
+without accepting a new family or file-length exception.

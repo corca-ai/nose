@@ -3,7 +3,9 @@ use super::*;
 pub(super) fn lower_property(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let mut assigns = Vec::new();
-    let is_async_let = swift_property_is_async_let(lo.text(node));
+    let declaration = lo.text(node);
+    let is_async_let = swift_property_is_async_let(declaration);
+    let is_immutable_let = swift_property_is_direct_let(declaration);
     let mut cursor = node.walk();
     let names: Vec<TsNode> = node.children_by_field_name("name", &mut cursor).collect();
     record_all_satisfy_dispatch_barrier(lo, node);
@@ -25,6 +27,12 @@ pub(super) fn lower_property(lo: &mut Lowering, node: TsNode) -> NodeId {
             .or_else(|| lower_computed_property(lo, node))
             .unwrap_or_else(|| lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]));
         let assign = lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]);
+        if is_immutable_let {
+            lo.record_source_fact(
+                span,
+                SourceFactKind::Binding(SourceBindingKind::ImmutableDeclaration),
+            );
+        }
         assigns.push(if is_async_let {
             lo.protocol_boundary(span, SourceProtocolKind::TaskSpawn, "task_spawn", &[assign])
         } else {
@@ -38,6 +46,10 @@ pub(super) fn lower_property(lo: &mut Lowering, node: TsNode) -> NodeId {
     } else {
         lo.add(NodeKind::Block, Payload::None, span, &assigns)
     }
+}
+
+fn swift_property_is_direct_let(text: &str) -> bool {
+    consume_swift_keyword(text.trim_start(), "let").is_some()
 }
 
 fn swift_property_is_async_let(text: &str) -> bool {
@@ -58,6 +70,7 @@ pub(super) fn record_property_binding_domain(
     if name == "_" {
         return;
     }
+    record_explicit_binding_type(lo, name_node, &name, lo.text(type_node));
     let Some(domain) = lo.type_domain_from_text_with_dependencies(lo.text(type_node)) else {
         return;
     };
@@ -95,6 +108,7 @@ pub(super) fn record_property_binding_domain_from_decl_text(
     if ty.is_empty() {
         return;
     }
+    record_explicit_binding_type(lo, name_node, &name, ty);
     let annotated = format!("{name}: {ty}");
     let Some(domain) = lo.type_domain_from_text_with_dependencies(&annotated) else {
         return;
@@ -104,6 +118,26 @@ pub(super) fn record_property_binding_domain_from_decl_text(
         EvidenceKind::Domain(domain.domain),
         domain.provenance.evidence_provenance,
         domain.dependencies,
+    );
+}
+
+fn record_explicit_binding_type(lo: &mut Lowering, name_node: TsNode, name: &str, type_text: &str) {
+    let anchor = EvidenceAnchor::binding(lo.span(name_node), stable_symbol_hash(name));
+    lo.record_evidence(
+        anchor,
+        EvidenceKind::Type(TypeEvidenceKind::SwiftExplicitBindingType),
+        "swift_explicit_binding_type",
+    );
+    let compact: String = type_text.chars().filter(|ch| !ch.is_whitespace()).collect();
+    let kind = match compact.as_str() {
+        "String" => TypeEvidenceKind::SwiftUnqualifiedStringBinding,
+        "Swift.String" => TypeEvidenceKind::SwiftQualifiedStringBinding,
+        _ => return,
+    };
+    lo.record_evidence(
+        anchor,
+        EvidenceKind::Type(kind),
+        "swift_explicit_string_binding_type",
     );
 }
 pub(super) fn lower_computed_property(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {

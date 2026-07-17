@@ -32,9 +32,10 @@ function thenCall(db, id, f) { return db.get(id).then(f); }\n",
     let report_text = fs::read_to_string(&report_path).expect("recall-loss report");
     let report: serde_json::Value =
         serde_json::from_str(&report_text).expect("recall-loss report JSON");
-    assert_eq!(report["summary"]["total_units"], 12);
-    assert_eq!(report["summary"]["interpretable_units"], 10);
-    assert_eq!(report["summary"]["excluded_units"], 2);
+    // Twelve whole functions plus twelve independently audited product-fragment candidates.
+    assert_eq!(report["summary"]["total_units"], 24);
+    assert_eq!(report["summary"]["interpretable_units"], 21);
+    assert_eq!(report["summary"]["excluded_units"], 3);
     assert_eq!(report["summary"]["admission_rejections"], 9);
 
     let obligations = report["by_obligation"]

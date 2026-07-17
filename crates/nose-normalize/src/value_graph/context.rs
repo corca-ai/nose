@@ -63,19 +63,10 @@ impl ModuleSeedContext {
     fn new(il: &Il, interner: &Interner) -> Self {
         let local_scope = local_scope_nodes(il);
         let top_level = top_level_statements_for(il);
-        let mut is_top_level = vec![false; il.nodes.len()];
-        for &stmt in &top_level {
-            if let Some(slot) = is_top_level.get_mut(stmt.0 as usize) {
-                *slot = true;
-            }
-        }
-
-        let mut assignment_counts: FxHashMap<Symbol, usize> = FxHashMap::default();
-        for &stmt in &top_level {
-            if let Some(name) = module_seed_assignment_name(il, stmt, &local_scope) {
-                *assignment_counts.entry(name).or_insert(0) += 1;
-            }
-        }
+        let is_top_level = top_level_node_bitmap(il, &top_level);
+        let assignment_counts = assignment_name_counts(&top_level, |statement| {
+            module_seed_assignment_name(il, statement, &local_scope)
+        });
         let mut assignment_deps: FxHashMap<Symbol, FxHashSet<Symbol>> = FxHashMap::default();
         for &stmt in &top_level {
             let Some(name) = module_seed_assignment_name(il, stmt, &local_scope) else {
@@ -90,12 +81,7 @@ impl ModuleSeedContext {
 
         let unit_symbols: FxHashSet<Symbol> =
             il.units.iter().filter_map(|unit| unit.name).collect();
-        let candidate_names: FxHashSet<Symbol> = assignment_counts
-            .iter()
-            .filter_map(|(&name, &count)| {
-                (count == 1 && !unit_symbols.contains(&name)).then_some(name)
-            })
-            .collect();
+        let candidate_names = unique_non_unit_assignment_names(il, &assignment_counts);
         let direct_definitions: FxHashSet<NodeId> = top_level
             .iter()
             .copied()
