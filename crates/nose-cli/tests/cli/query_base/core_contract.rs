@@ -91,6 +91,7 @@ fn assert_json_contract(dir: &Path) {
             "span_tokens",
             "is_fragment",
             "touches_shared",
+            "semantic_change",
         ] {
             assert!(
                 site.get(key).is_some(),

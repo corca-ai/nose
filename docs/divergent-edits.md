@@ -110,6 +110,26 @@ so suppressing on it would risk the keep-every-propagation property the shared-l
 is measured against. The shared-logic proof stays separate from graded-witness
 presentation evidence; the v2 tier decides whether that proof is default-failing.
 
+## Bounded semantic-change evidence
+
+For an already-flagged base divergence, each changed site also carries
+`semantic_change`. nose aligns that base unit with its current-tree unit, compares bounded
+value-DAG and behavior-sink projections, and maps affected base nodes into a capped set of
+skipped siblings. This distinguishes source contact with no normalized semantic delta from
+replacement, deletion, and insertion of value, return, control, or effect behavior.
+
+The analysis is candidate-local: at most 64 selected base/current files of 2 MiB each, 16
+changed sites and 16 skipped siblings per family, 512 units per file, and 2,048 value nodes
+per unit participate. It does not discover or scan the repository again. Unsupported
+fragments or declarative/container languages, parse/lower failures, missing current units,
+lossy lowering, unresolved referents, ambiguous or heuristic alignment, pure insertions,
+mixed changes, and cap exhaustion remain explicit advisory or unavailable evidence.
+
+This is deliberately not a v2 decision input. `tier()` and `gate.fail_default` continue to
+use the frozen v2 policy above; even a complete semantic-change witness cannot promote a
+finding in this implementation. The evidence exists so the development corpus can price a
+future policy before that policy is frozen and evaluated blind.
+
 ## V2 gate tiers (design contract)
 
 #670 refreshed the replay measurement and changed the next implementation target:

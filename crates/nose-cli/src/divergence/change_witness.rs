@@ -1,0 +1,857 @@
+//! Bounded base-to-current semantic change witnesses for already-flagged divergences.
+//!
+//! This module is intentionally downstream of candidate detection. It reads only the
+//! changed candidate files and a capped set of their base siblings; it never performs a
+//! second repository discovery. The evidence is advisory in divergent-edit v2.
+
+use super::git::DiffEntry;
+use super::*;
+use nose_il::{FileId, Interner, Lang, UnitKind};
+use nose_normalize::{FileReferents, ValueDag, VgSinkKind};
+use std::collections::{BTreeMap, HashMap};
+use std::fs;
+use std::path::Path;
+
+const MAX_FILES: usize = 64;
+const MAX_FILE_BYTES: usize = 2 * 1024 * 1024;
+const MAX_CHANGED_SITES_PER_FAMILY: usize = 16;
+const MAX_SIBLINGS_PER_FAMILY: usize = 16;
+const MAX_UNITS_PER_FILE: usize = 512;
+const MAX_NODES_PER_UNIT: usize = 2_048;
+
+const CAPS: SemanticWitnessCaps = SemanticWitnessCaps {
+    max_files: MAX_FILES,
+    max_file_bytes: MAX_FILE_BYTES,
+    max_changed_sites_per_family: MAX_CHANGED_SITES_PER_FAMILY,
+    max_siblings_per_family: MAX_SIBLINGS_PER_FAMILY,
+    max_units_per_file: MAX_UNITS_PER_FILE,
+    max_nodes_per_unit: MAX_NODES_PER_UNIT,
+};
+
+pub(super) fn enrich_semantic_change_witnesses(
+    flagged: &mut [Divergence],
+    base_root: &Path,
+    current_root: &Path,
+    base_changed: &HashMap<String, Vec<(u32, u32)>>,
+    current_changed: &HashMap<String, Vec<(u32, u32)>>,
+    diff_entries: &[DiffEntry],
+    opts: &nose_detect::DetectOptions,
+) {
+    let mut builder = WitnessBuilder::new(
+        base_root,
+        current_root,
+        base_changed,
+        current_changed,
+        diff_entries,
+        opts,
+    );
+    for divergence in flagged
+        .iter_mut()
+        .filter(|d| d.lane == DivergenceLane::BaseDivergence)
+    {
+        let siblings = divergence
+            .not_updated
+            .iter()
+            .take(MAX_SIBLINGS_PER_FAMILY)
+            .cloned()
+            .collect::<Vec<_>>();
+        for (index, site) in divergence.changed.iter_mut().enumerate() {
+            site.semantic_change = Some(if index < MAX_CHANGED_SITES_PER_FAMILY {
+                builder.witness(site, &siblings)
+            } else {
+                unavailable(
+                    SemanticProjectionStatus::CapExceeded,
+                    SemanticProjectionStatus::NotAttempted,
+                    vec![SemanticWitnessCaveat::Truncated],
+                )
+            });
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+enum Tree {
+    Base,
+    Current,
+}
+
+#[derive(Clone)]
+enum LoadState {
+    Ready(FileProjection),
+    Failed(SemanticProjectionStatus),
+}
+
+#[derive(Clone)]
+struct FileProjection {
+    units: Vec<UnitProjection>,
+}
+
+#[derive(Clone)]
+struct UnitProjection {
+    kind: UnitKind,
+    name: Option<String>,
+    start_line: u32,
+    end_line: u32,
+    exact_safe: bool,
+    dag: ValueDag,
+    truncated: bool,
+    unresolved_referent: bool,
+}
+
+#[derive(Clone)]
+struct ProjectionAttempt {
+    status: SemanticProjectionStatus,
+    alignment: SemanticAlignment,
+    unit: Option<UnitProjection>,
+}
+
+impl ProjectionAttempt {
+    fn failed(status: SemanticProjectionStatus) -> Self {
+        Self {
+            status,
+            alignment: SemanticAlignment::None,
+            unit: None,
+        }
+    }
+}
+
+struct WitnessBuilder<'a> {
+    base_root: &'a Path,
+    current_root: &'a Path,
+    base_changed: &'a HashMap<String, Vec<(u32, u32)>>,
+    current_changed: &'a HashMap<String, Vec<(u32, u32)>>,
+    diff_entries: &'a [DiffEntry],
+    opts: nose_detect::DetectOptions,
+    files: HashMap<(Tree, String), LoadState>,
+}
+
+impl<'a> WitnessBuilder<'a> {
+    fn new(
+        base_root: &'a Path,
+        current_root: &'a Path,
+        base_changed: &'a HashMap<String, Vec<(u32, u32)>>,
+        current_changed: &'a HashMap<String, Vec<(u32, u32)>>,
+        diff_entries: &'a [DiffEntry],
+        opts: &nose_detect::DetectOptions,
+    ) -> Self {
+        let mut opts = *opts;
+        // A current unit may shrink below the query's candidate floor after an edit. The
+        // witness still needs to align it, so extraction here has no size floor.
+        opts.min_lines = 0;
+        opts.min_tokens = 0;
+        opts.contiguous_min_lines = 0;
+        opts.contiguous_min_tokens = 0;
+        Self {
+            base_root,
+            current_root,
+            base_changed,
+            current_changed,
+            diff_entries,
+            opts,
+            files: HashMap::new(),
+        }
+    }
+
+    fn witness(&mut self, site: &Site, siblings: &[Site]) -> SemanticChangeWitness {
+        if site.is_fragment {
+            return unavailable(
+                SemanticProjectionStatus::Unsupported,
+                SemanticProjectionStatus::NotAttempted,
+                vec![SemanticWitnessCaveat::FragmentUnsupported],
+            );
+        }
+        let base = self.project_base(site);
+        let Some(base_unit) = base.unit else {
+            return unavailable(
+                base.status,
+                SemanticProjectionStatus::NotAttempted,
+                caveat_for_projection(base.status, true),
+            );
+        };
+
+        let Some(current_path) = self.current_path(&site.file) else {
+            return unavailable(
+                base.status,
+                SemanticProjectionStatus::Missing,
+                vec![SemanticWitnessCaveat::MissingCurrentUnit],
+            );
+        };
+        let current_ranges = self
+            .current_changed
+            .get(&current_path)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        let current = self.project_current(&base_unit, &current_path, current_ranges);
+        let Some(current_unit) = current.unit else {
+            let mut caveats = caveat_for_projection(current.status, false);
+            if caveats.is_empty() {
+                caveats.push(SemanticWitnessCaveat::MissingCurrentUnit);
+            }
+            return unavailable(base.status, current.status, caveats);
+        };
+
+        let base_ranges = self
+            .base_changed
+            .get(&site.file)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        let sibling_hashes = self.sibling_hashes(siblings);
+        compare_units(
+            &base_unit,
+            &current_unit,
+            base_ranges,
+            current_ranges,
+            &sibling_hashes,
+            current.alignment,
+        )
+    }
+
+    fn current_path(&self, base_path: &str) -> Option<String> {
+        self.diff_entries
+            .iter()
+            .find(|entry| entry.old_path.as_deref() == Some(base_path))
+            .map(|entry| entry.new_path.clone())
+            .unwrap_or_else(|| Some(base_path.to_string()))
+    }
+
+    fn project_base(&mut self, site: &Site) -> ProjectionAttempt {
+        let file = match self.load_file(Tree::Base, &site.file) {
+            Ok(file) => file,
+            Err(status) => return ProjectionAttempt::failed(status),
+        };
+        let mut candidates = file
+            .units
+            .iter()
+            .filter(|unit| unit_matches_site(unit, site, true))
+            .cloned()
+            .collect::<Vec<_>>();
+        if candidates.is_empty() {
+            if let Some(enclosing) = &site.enclosing_unit {
+                candidates = file
+                    .units
+                    .iter()
+                    .filter(|unit| unit_matches_enclosing(unit, enclosing))
+                    .cloned()
+                    .collect();
+            }
+        }
+        match candidates.as_slice() {
+            [unit] => ProjectionAttempt {
+                status: SemanticProjectionStatus::Ok,
+                alignment: SemanticAlignment::ExactSpan,
+                unit: Some(unit.clone()),
+            },
+            [] => ProjectionAttempt::failed(SemanticProjectionStatus::UnitMissing),
+            _ => ProjectionAttempt::failed(SemanticProjectionStatus::AmbiguousUnit),
+        }
+    }
+
+    fn project_current(
+        &mut self,
+        base: &UnitProjection,
+        current_path: &str,
+        changed_ranges: &[(u32, u32)],
+    ) -> ProjectionAttempt {
+        let file = match self.load_file(Tree::Current, current_path) {
+            Ok(file) => file,
+            Err(status) => return ProjectionAttempt::failed(status),
+        };
+        let same_kind = file
+            .units
+            .into_iter()
+            .filter(|unit| unit.kind == base.kind)
+            .collect::<Vec<_>>();
+        let exact = same_kind
+            .iter()
+            .filter(|unit| {
+                unit.name == base.name
+                    && unit.start_line == base.start_line
+                    && unit.end_line == base.end_line
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        if let [unit] = exact.as_slice() {
+            return projected(unit.clone(), SemanticAlignment::ExactSpan);
+        }
+        if let Some(name) = base.name.as_deref() {
+            let named = same_kind
+                .iter()
+                .filter(|unit| unit.name.as_deref() == Some(name))
+                .cloned()
+                .collect::<Vec<_>>();
+            if let [unit] = named.as_slice() {
+                return projected(unit.clone(), SemanticAlignment::StableName);
+            }
+        }
+        let changed = same_kind
+            .iter()
+            .filter(|unit| ranges_touch_unit(changed_ranges, unit))
+            .cloned()
+            .collect::<Vec<_>>();
+        if let [unit] = changed.as_slice() {
+            return projected(unit.clone(), SemanticAlignment::ChangedRange);
+        }
+        let Some(min_distance) = same_kind
+            .iter()
+            .map(|unit| unit.start_line.abs_diff(base.start_line))
+            .min()
+        else {
+            return ProjectionAttempt::failed(SemanticProjectionStatus::UnitMissing);
+        };
+        let nearest = same_kind
+            .into_iter()
+            .filter(|unit| unit.start_line.abs_diff(base.start_line) == min_distance)
+            .collect::<Vec<_>>();
+        match nearest.as_slice() {
+            [unit] => projected(unit.clone(), SemanticAlignment::NearestSpan),
+            _ => ProjectionAttempt::failed(SemanticProjectionStatus::AmbiguousUnit),
+        }
+    }
+
+    fn sibling_hashes(&mut self, siblings: &[Site]) -> SharedHashes {
+        let mut hashes = BTreeMap::new();
+        let mut units_checked = 0;
+        for sibling in siblings {
+            if sibling.is_fragment {
+                continue;
+            }
+            let attempt = self.project_base(sibling);
+            if let Some(unit) = attempt.unit {
+                units_checked += 1;
+                for hash in node_hashes(&unit.dag) {
+                    *hashes.entry(hash).or_insert(0usize) += 1;
+                }
+            }
+        }
+        SharedHashes {
+            hashes,
+            units_checked,
+        }
+    }
+
+    fn load_file(
+        &mut self,
+        tree: Tree,
+        relative_path: &str,
+    ) -> Result<FileProjection, SemanticProjectionStatus> {
+        let key = (tree, relative_path.to_string());
+        if let Some(state) = self.files.get(&key).cloned() {
+            return loaded(state);
+        }
+        if self.files.len() >= MAX_FILES {
+            return Err(SemanticProjectionStatus::CapExceeded);
+        }
+        let root = match tree {
+            Tree::Base => self.base_root,
+            Tree::Current => self.current_root,
+        };
+        let state = project_file(&root.join(relative_path), relative_path, &self.opts);
+        self.files.insert(key, state.clone());
+        loaded(state)
+    }
+}
+
+struct SharedHashes {
+    hashes: BTreeMap<u64, usize>,
+    units_checked: usize,
+}
+
+impl SharedHashes {
+    fn contains_key(&self, hash: &u64) -> bool {
+        self.hashes.contains_key(hash)
+    }
+}
+
+struct SemanticAnalysis {
+    change_kind: SemanticChangeKind,
+    facets: Vec<SemanticChangeFacet>,
+    sink_deltas: Vec<SemanticSinkDelta>,
+    base_affected_nodes: usize,
+    current_affected_nodes: usize,
+    mapped_shared_nodes: usize,
+    has_insertions: bool,
+    has_non_insertions: bool,
+    same_semantics: bool,
+    removed: usize,
+    inserted: usize,
+}
+
+fn compare_units(
+    base: &UnitProjection,
+    current: &UnitProjection,
+    base_ranges: &[(u32, u32)],
+    current_ranges: &[(u32, u32)],
+    sibling_hashes: &SharedHashes,
+    alignment: SemanticAlignment,
+) -> SemanticChangeWitness {
+    let analysis = analyze_change(base, current, base_ranges, current_ranges, sibling_hashes);
+    let caveats = analysis_caveats(&analysis, base, current, alignment);
+    SemanticChangeWitness {
+        status: if caveats.is_empty() {
+            SemanticWitnessStatus::Complete
+        } else {
+            SemanticWitnessStatus::Advisory
+        },
+        change_kind: analysis.change_kind,
+        facets: analysis.facets,
+        alignment,
+        base_projection: SemanticProjectionStatus::Ok,
+        current_projection: SemanticProjectionStatus::Ok,
+        coverage: SemanticWitnessCoverage {
+            base_affected_nodes: analysis.base_affected_nodes,
+            current_affected_nodes: analysis.current_affected_nodes,
+            mapped_shared_nodes: analysis.mapped_shared_nodes,
+            sibling_units_checked: sibling_hashes.units_checked,
+        },
+        sink_deltas: analysis.sink_deltas,
+        caveats,
+        caps: CAPS,
+    }
+}
+
+fn analyze_change(
+    base: &UnitProjection,
+    current: &UnitProjection,
+    base_ranges: &[(u32, u32)],
+    current_ranges: &[(u32, u32)],
+    sibling_hashes: &SharedHashes,
+) -> SemanticAnalysis {
+    let base_ranges = ranges_inside_unit(base_ranges, base);
+    let current_ranges = ranges_inside_unit(current_ranges, current);
+    let has_insertions = base_ranges.iter().any(|(start, end)| start > end);
+    let has_non_insertions = base_ranges.iter().any(|(start, end)| start <= end);
+    let source_deletion = has_non_insertions
+        && !has_insertions
+        && !current_ranges.is_empty()
+        && current_ranges.iter().all(|(start, end)| start > end);
+    let base_affected = affected_hashes(&base.dag, &base_ranges);
+    let current_affected = if source_deletion {
+        Vec::new()
+    } else {
+        affected_hashes(&current.dag, &current_ranges)
+    };
+    let mapped_shared_nodes = base_affected
+        .iter()
+        .filter(|hash| sibling_hashes.contains_key(hash))
+        .count();
+    let base_nodes = node_hashes(&base.dag);
+    let current_nodes = node_hashes(&current.dag);
+    let sinks_before = sink_signatures(&base.dag);
+    let sinks_after = sink_signatures(&current.dag);
+    let same_semantics = base_nodes == current_nodes && sinks_before == sinks_after;
+    let removed = multiset_removed(&base_affected, &current_affected);
+    let inserted = multiset_removed(&current_affected, &base_affected);
+    let sink_deltas = sink_deltas(&sinks_before, &sinks_after);
+    SemanticAnalysis {
+        change_kind: classify_change(
+            same_semantics,
+            has_insertions,
+            has_non_insertions,
+            removed,
+            inserted,
+        ),
+        facets: change_facets(base_nodes != current_nodes, &sink_deltas),
+        sink_deltas,
+        base_affected_nodes: base_affected.len(),
+        current_affected_nodes: current_affected.len(),
+        mapped_shared_nodes,
+        has_insertions,
+        has_non_insertions,
+        same_semantics,
+        removed,
+        inserted,
+    }
+}
+
+fn classify_change(
+    same_semantics: bool,
+    has_insertions: bool,
+    has_non_insertions: bool,
+    removed: usize,
+    inserted: usize,
+) -> SemanticChangeKind {
+    match (
+        same_semantics,
+        has_insertions,
+        has_non_insertions,
+        removed,
+        inserted,
+    ) {
+        (true, _, _, _, _) => SemanticChangeKind::NoSemanticDelta,
+        (_, true, true, _, _) => SemanticChangeKind::Mixed,
+        (_, true, false, _, _) | (_, false, _, 0, 1..) => SemanticChangeKind::Insertion,
+        (_, false, _, 1.., 1..) => SemanticChangeKind::Replacement,
+        (_, false, _, 1.., 0) => SemanticChangeKind::Deletion,
+        _ => SemanticChangeKind::Unknown,
+    }
+}
+
+fn change_facets(
+    value_changed: bool,
+    sink_deltas: &[SemanticSinkDelta],
+) -> Vec<SemanticChangeFacet> {
+    let mut facets = Vec::new();
+    if value_changed {
+        facets.push(SemanticChangeFacet::Value);
+    }
+    for delta in sink_deltas {
+        match delta.kind {
+            SemanticSinkKind::Return => facets.push(SemanticChangeFacet::Return),
+            SemanticSinkKind::Cond | SemanticSinkKind::Break => {
+                facets.push(SemanticChangeFacet::Control);
+            }
+            SemanticSinkKind::Effect => facets.push(SemanticChangeFacet::Effect),
+            SemanticSinkKind::Throw => {
+                facets.push(SemanticChangeFacet::Control);
+                facets.push(SemanticChangeFacet::Effect);
+            }
+        }
+    }
+    facets.sort();
+    facets.dedup();
+    facets
+}
+
+fn analysis_caveats(
+    analysis: &SemanticAnalysis,
+    base: &UnitProjection,
+    current: &UnitProjection,
+    alignment: SemanticAlignment,
+) -> Vec<SemanticWitnessCaveat> {
+    let mut caveats = Vec::new();
+    if analysis.has_insertions && analysis.has_non_insertions {
+        caveats.push(SemanticWitnessCaveat::MixedChange);
+    } else if analysis.has_insertions {
+        caveats.push(SemanticWitnessCaveat::PureInsertion);
+    }
+    if !base.exact_safe {
+        caveats.push(SemanticWitnessCaveat::LossyBaseLowering);
+    }
+    if !current.exact_safe {
+        caveats.push(SemanticWitnessCaveat::LossyCurrentLowering);
+    }
+    if base.unresolved_referent || current.unresolved_referent {
+        caveats.push(SemanticWitnessCaveat::UnresolvedReferent);
+    }
+    if base.truncated || current.truncated {
+        caveats.push(SemanticWitnessCaveat::Truncated);
+    }
+    if alignment == SemanticAlignment::NearestSpan {
+        caveats.push(SemanticWitnessCaveat::HeuristicAlignment);
+    }
+    if analysis.base_affected_nodes == 0 {
+        caveats.push(SemanticWitnessCaveat::NoAffectedSemanticNode);
+    } else if analysis.mapped_shared_nodes == 0 {
+        caveats.push(SemanticWitnessCaveat::NoSharedSemanticNode);
+    }
+    if !analysis.same_semantics && analysis.removed == 0 && analysis.inserted == 0 {
+        caveats.push(SemanticWitnessCaveat::ScopedDeltaUnmapped);
+    }
+    caveats.sort();
+    caveats.dedup();
+    caveats
+}
+
+fn loaded(state: LoadState) -> Result<FileProjection, SemanticProjectionStatus> {
+    match state {
+        LoadState::Ready(file) => Ok(file),
+        LoadState::Failed(status) => Err(status),
+    }
+}
+
+fn project_file(
+    absolute_path: &Path,
+    relative_path: &str,
+    opts: &nose_detect::DetectOptions,
+) -> LoadState {
+    let Some(lang) = Lang::from_file_path(absolute_path) else {
+        return LoadState::Failed(SemanticProjectionStatus::Unsupported);
+    };
+    // Container/declarative projections need region-aware source coordinates or a
+    // non-imperative fingerprint; neither may be silently interpreted as a value DAG.
+    if matches!(lang, Lang::Css | Lang::Vue | Lang::Svelte | Lang::Html) {
+        return LoadState::Failed(SemanticProjectionStatus::Unsupported);
+    }
+    let source = match fs::read(absolute_path) {
+        Ok(source) => source,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return LoadState::Failed(SemanticProjectionStatus::Missing)
+        }
+        Err(_) => return LoadState::Failed(SemanticProjectionStatus::ReadFailed),
+    };
+    if source.len() > MAX_FILE_BYTES {
+        return LoadState::Failed(SemanticProjectionStatus::CapExceeded);
+    }
+    let interner = Interner::new();
+    let raw = match nose_frontend::lower_source(FileId(0), relative_path, &source, lang, &interner)
+    {
+        Ok(raw) => raw,
+        Err(_) => return LoadState::Failed(SemanticProjectionStatus::LowerFailed),
+    };
+    let features = nose_detect::units_of_file(&raw, &interner, opts);
+    let normalized = nose_normalize::normalize(
+        &raw,
+        &interner,
+        &nose_normalize::NormalizeOptions {
+            cfg_norm: opts.cfg_norm,
+            dce: opts.dce,
+            ..Default::default()
+        },
+    );
+    if normalized.units.len() > MAX_UNITS_PER_FILE {
+        return LoadState::Failed(SemanticProjectionStatus::CapExceeded);
+    }
+    let referents = FileReferents::new(&normalized, &interner);
+    let mut units = Vec::with_capacity(normalized.units.len());
+    for unit in &normalized.units {
+        let span = normalized.node(unit.root).span;
+        let name = unit.name.map(|symbol| interner.resolve(symbol).to_string());
+        let feature = features.iter().find(|feature| {
+            feature.kind == unit.kind
+                && feature.start_line == span.start_line
+                && feature.end_line == span.end_line
+                && feature.name == name
+                && feature.fragment_kind.is_none()
+        });
+        let dag = nose_normalize::value_dag(&normalized, unit.root, &interner, None, &referents);
+        let truncated = dag.nodes.len() > MAX_NODES_PER_UNIT;
+        let unresolved_referent = dag
+            .referents
+            .iter()
+            .any(|referent| referent.referent.is_none());
+        units.push(UnitProjection {
+            kind: unit.kind,
+            name,
+            start_line: span.start_line,
+            end_line: span.end_line,
+            exact_safe: feature.is_some_and(|feature| feature.exact_safe),
+            dag,
+            truncated,
+            unresolved_referent,
+        });
+    }
+    LoadState::Ready(FileProjection { units })
+}
+
+fn unit_matches_site(unit: &UnitProjection, site: &Site, require_span: bool) -> bool {
+    unit.kind == site.kind
+        && (!require_span || (unit.start_line == site.start_line && unit.end_line == site.end_line))
+        && match site.name.as_deref() {
+            Some(name) => unit.name.as_deref() == Some(name),
+            None => true,
+        }
+}
+
+fn unit_matches_enclosing(unit: &UnitProjection, enclosing: &EnclosingUnit) -> bool {
+    unit.kind == enclosing.kind
+        && unit.start_line == enclosing.start_line
+        && unit.end_line == enclosing.end_line
+        && match enclosing.name.as_deref() {
+            Some(name) => unit.name.as_deref() == Some(name),
+            None => true,
+        }
+}
+
+fn projected(unit: UnitProjection, alignment: SemanticAlignment) -> ProjectionAttempt {
+    ProjectionAttempt {
+        status: SemanticProjectionStatus::Ok,
+        alignment,
+        unit: Some(unit),
+    }
+}
+
+fn ranges_inside_unit(ranges: &[(u32, u32)], unit: &UnitProjection) -> Vec<(u32, u32)> {
+    ranges
+        .iter()
+        .copied()
+        .filter(|&(start, end)| {
+            if start <= end {
+                start <= unit.end_line && unit.start_line <= end
+            } else {
+                unit.start_line < start && start <= unit.end_line
+            }
+        })
+        .collect()
+}
+
+fn ranges_touch_unit(ranges: &[(u32, u32)], unit: &UnitProjection) -> bool {
+    !ranges_inside_unit(ranges, unit).is_empty()
+}
+
+fn affected_hashes(dag: &ValueDag, ranges: &[(u32, u32)]) -> Vec<u64> {
+    let mut hashes = dag
+        .nodes
+        .iter()
+        .take(MAX_NODES_PER_UNIT)
+        .filter(|node| node.line_start != 0 && node.line_end != 0)
+        .filter(|node| {
+            ranges.iter().any(|&(start, end)| {
+                if start <= end {
+                    start <= node.line_end && node.line_start <= end
+                } else {
+                    node.line_start < start && start <= node.line_end
+                }
+            })
+        })
+        .map(|node| node.hash)
+        .collect::<Vec<_>>();
+    hashes.sort_unstable();
+    hashes
+}
+
+fn node_hashes(dag: &ValueDag) -> Vec<u64> {
+    let mut hashes = dag
+        .nodes
+        .iter()
+        .take(MAX_NODES_PER_UNIT)
+        .map(|node| node.hash)
+        .collect::<Vec<_>>();
+    hashes.sort_unstable();
+    hashes
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct SinkSignature {
+    kind: SemanticSinkKind,
+    hash: u64,
+    effect_ord: Option<u32>,
+}
+
+fn sink_signatures(dag: &ValueDag) -> Vec<SinkSignature> {
+    let mut signatures = dag
+        .sinks
+        .iter()
+        .take(MAX_NODES_PER_UNIT)
+        .filter_map(|sink| {
+            Some(SinkSignature {
+                kind: semantic_sink_kind(sink.kind),
+                hash: dag.nodes.get(sink.value as usize)?.hash,
+                effect_ord: sink.effect_ord,
+            })
+        })
+        .collect::<Vec<_>>();
+    signatures.sort();
+    signatures
+}
+
+fn semantic_sink_kind(kind: VgSinkKind) -> SemanticSinkKind {
+    match kind {
+        VgSinkKind::Return => SemanticSinkKind::Return,
+        VgSinkKind::Cond => SemanticSinkKind::Cond,
+        VgSinkKind::Effect => SemanticSinkKind::Effect,
+        VgSinkKind::Break => SemanticSinkKind::Break,
+        VgSinkKind::Throw => SemanticSinkKind::Throw,
+    }
+}
+
+fn multiset_removed<T: Ord>(before: &[T], after: &[T]) -> usize {
+    let mut before_index = 0;
+    let mut after_index = 0;
+    let mut removed = 0;
+    while before_index < before.len() {
+        while after_index < after.len() && after[after_index] < before[before_index] {
+            after_index += 1;
+        }
+        if after_index < after.len() && after[after_index] == before[before_index] {
+            after_index += 1;
+        } else {
+            removed += 1;
+        }
+        before_index += 1;
+    }
+    removed
+}
+
+fn sink_deltas(before: &[SinkSignature], after: &[SinkSignature]) -> Vec<SemanticSinkDelta> {
+    let mut kinds = BTreeMap::<SemanticSinkKind, (Vec<SinkSignature>, Vec<SinkSignature>)>::new();
+    for &sink in before {
+        kinds.entry(sink.kind).or_default().0.push(sink);
+    }
+    for &sink in after {
+        kinds.entry(sink.kind).or_default().1.push(sink);
+    }
+    kinds
+        .into_iter()
+        .filter_map(|(kind, (before, after))| {
+            let removed = multiset_removed(&before, &after);
+            let inserted = multiset_removed(&after, &before);
+            (removed > 0 || inserted > 0).then_some(SemanticSinkDelta {
+                kind,
+                removed,
+                inserted,
+            })
+        })
+        .collect()
+}
+
+fn caveat_for_projection(
+    status: SemanticProjectionStatus,
+    base: bool,
+) -> Vec<SemanticWitnessCaveat> {
+    match status {
+        SemanticProjectionStatus::Unsupported => vec![SemanticWitnessCaveat::UnsupportedLanguage],
+        SemanticProjectionStatus::AmbiguousUnit => {
+            vec![SemanticWitnessCaveat::AmbiguousAlignment]
+        }
+        SemanticProjectionStatus::CapExceeded => vec![SemanticWitnessCaveat::Truncated],
+        SemanticProjectionStatus::Missing | SemanticProjectionStatus::UnitMissing if !base => {
+            vec![SemanticWitnessCaveat::MissingCurrentUnit]
+        }
+        _ => Vec::new(),
+    }
+}
+
+fn unavailable(
+    base_projection: SemanticProjectionStatus,
+    current_projection: SemanticProjectionStatus,
+    mut caveats: Vec<SemanticWitnessCaveat>,
+) -> SemanticChangeWitness {
+    caveats.sort();
+    caveats.dedup();
+    SemanticChangeWitness {
+        status: SemanticWitnessStatus::Unavailable,
+        change_kind: SemanticChangeKind::Unknown,
+        facets: Vec::new(),
+        alignment: SemanticAlignment::None,
+        base_projection,
+        current_projection,
+        coverage: SemanticWitnessCoverage {
+            base_affected_nodes: 0,
+            current_affected_nodes: 0,
+            mapped_shared_nodes: 0,
+            sibling_units_checked: 0,
+        },
+        sink_deltas: Vec::new(),
+        caveats,
+        caps: CAPS,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn multiset_difference_preserves_duplicate_counts() {
+        assert_eq!(multiset_removed(&[1, 1, 2, 4], &[1, 2, 3]), 2);
+        assert_eq!(multiset_removed(&[1, 2, 3], &[1, 1, 2, 4]), 1);
+    }
+
+    #[test]
+    fn insertion_context_requires_a_node_to_straddle_the_gap() {
+        let dag = ValueDag {
+            nodes: vec![nose_normalize::VgNode {
+                op: nose_normalize::VgOp::Input,
+                key: 0,
+                args: Vec::new(),
+                hash: 7,
+                line_start: 2,
+                line_end: 4,
+            }],
+            sinks: Vec::new(),
+            referents: Vec::new(),
+        };
+        assert_eq!(affected_hashes(&dag, &[(3, 2)]), vec![7]);
+        assert!(affected_hashes(&dag, &[(2, 1)]).is_empty());
+    }
+}

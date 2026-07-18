@@ -177,6 +177,7 @@ pub(super) fn render_query_base(
             divergence::DivergenceLane::BaseDivergence => {
                 for s in &d.changed {
                     println!("    changed:      {}", site(s));
+                    print_semantic_change(s);
                 }
                 for s in &d.not_updated {
                     println!("    not updated:  {}", site(s));
@@ -194,6 +195,12 @@ pub(super) fn render_query_base(
     }
     println!("\nnext:");
     println!("  nose query {path} base={base_ref} --fail-on any   # fail CI on strict divergences");
+}
+
+fn print_semantic_change(site: &divergence::Site) {
+    if let Some(witness) = &site.semantic_change {
+        println!("      semantic:   {}", witness.concise_label());
+    }
 }
 
 /// The `reinvented` view: code that reimplements an existing helper's body (the `reinvented`

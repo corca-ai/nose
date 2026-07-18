@@ -55,6 +55,7 @@ pub(crate) fn divergence_items_json(flagged: &[Divergence]) -> Vec<serde_json::V
             "reason_code": s.reason_code,
             "enclosing_unit": s.enclosing_unit,
             "touches_shared": s.touches_shared,
+            "semantic_change": s.semantic_change,
         })
     };
     flagged
@@ -191,6 +192,9 @@ fn divergence_sarif_result(d: &Divergence) -> serde_json::Value {
             },
             "policy": DIVERGENT_EDIT_V2_POLICY,
             "fire_eligible": d.fire_eligible,
+            "semantic_change": d.changed.iter()
+                .filter_map(|site| site.semantic_change.as_ref())
+                .collect::<Vec<_>>(),
         },
     })
 }

@@ -71,6 +71,15 @@ pub(crate) fn detect_divergences(
         &base_tree.path,
         &enrich_opts,
     );
+    change_witness::enrich_semantic_change_witnesses(
+        &mut flagged,
+        &base_tree.path,
+        &root,
+        &changed,
+        &current_changed,
+        &diff_entries,
+        &enrich_opts,
+    );
     if current_lane_requested {
         let current_paths = reroot_paths(&divergence_paths, &root);
         let mut current_families = detect_divergence_base_families(
@@ -416,6 +425,7 @@ pub(super) fn to_site(loc: &Loc) -> Site {
         reason_code: loc.reason_code,
         enclosing_unit: loc.enclosing_unit.clone(),
         touches_shared: None,
+        semantic_change: None,
     }
 }
 
