@@ -1,6 +1,6 @@
 use super::*;
 use crate::divergence::variant::{
-    enrich_projected, enrich_source, VariantCaveatCode, VariantEvidence,
+    enrich_projected, enrich_source, VariantCaveatCode, VariantEvidence, VariantSourceContext,
 };
 
 impl WitnessBuilder<'_> {
@@ -36,15 +36,18 @@ impl WitnessBuilder<'_> {
                 .unit
                 .as_ref()
                 .map(|unit| (unit.start_line, unit.end_line));
+            let mut context = VariantSourceContext {
+                current_root: self.current_root,
+                base_root: self.base_root,
+                lines: &mut self.source_lines,
+            };
             enrich_source(
                 evidence,
                 changed,
                 current_path,
                 current_span,
                 skipped,
-                self.current_root,
-                self.base_root,
-                &mut self.source_lines,
+                &mut context,
             );
         }
         let mut details = Vec::new();

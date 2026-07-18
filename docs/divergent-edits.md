@@ -117,6 +117,8 @@ authority until the measured v3 policy in #852 consumes target evidence.
 
 Each target also carries `variant_evidence`. Its closed `status` is `none`, `advisory`, or
 `disqualifying`; the last value means that at least one strong, pair-local signal was observed.
+Role and definition-modifier evidence compares the current changed result with the base-tree
+skipped endpoint, while identity remains anchored to the direct base edge.
 Strong signals are limited to resolved referent mismatch, definition decorator/attribute
 mismatch, async or observable-effect role mismatch, incompatible explicit protocol roles, and
 provably disjoint platform constraints. Every signal names its exact changed/skipped evidence.

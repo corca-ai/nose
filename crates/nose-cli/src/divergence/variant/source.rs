@@ -8,9 +8,7 @@ pub(super) fn source_signals(
     current_path: &str,
     current_span: Option<(u32, u32)>,
     skipped: &Site,
-    current_root: &Path,
-    base_root: &Path,
-    lines: &mut FileLineCache,
+    context: &mut VariantSourceContext<'_>,
 ) {
     let (current_start, current_end) = current_span.unwrap_or_else(|| {
         let (start, end) = effective_span(changed);
@@ -20,11 +18,17 @@ pub(super) fn source_signals(
         current_path,
         current_start,
         current_end,
-        current_root,
-        lines,
+        context.current_root,
+        context.lines,
     );
     let (skipped_start, skipped_end) = effective_span(skipped);
-    let skipped_lines = site_lines(&skipped.file, skipped_start, skipped_end, base_root, lines);
+    let skipped_lines = site_lines(
+        &skipped.file,
+        skipped_start,
+        skipped_end,
+        context.base_root,
+        context.lines,
+    );
     let (Some(changed_lines), Some(skipped_lines)) = (changed_lines, skipped_lines) else {
         evidence.caveat(VariantCaveatCode::SourceUnavailable, std::iter::empty());
         return;

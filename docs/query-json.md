@@ -146,6 +146,8 @@ and `version-label-mismatch` are always `strength="weak"`. Caveat codes are
 `conflicting-platform-guard`. Missing or contradictory evidence is advisory, and weak signals
 cannot disqualify a target. This field does not change the v2 `tier` or `gate.fail_default`;
 #852 may consume it only through the frozen v3 policy.
+The evidence compares the current changed result to the skipped base-tree endpoint; the stable
+`target_id` and `direct_witness` remain anchored to the accepted base-tree edge.
 
 JSON keeps one `items[]` finding per family, with zero or more direct targets. SARIF likewise
 keeps one result per family: `properties.targets` mirrors JSON's `targets`, and every

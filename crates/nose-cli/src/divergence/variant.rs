@@ -100,6 +100,12 @@ pub(crate) struct VariantEvidence {
     pub(crate) caveats: Vec<VariantCaveat>,
 }
 
+pub(super) struct VariantSourceContext<'a> {
+    pub(super) current_root: &'a Path,
+    pub(super) base_root: &'a Path,
+    pub(super) lines: &'a mut FileLineCache,
+}
+
 impl VariantEvidence {
     fn empty() -> Self {
         Self {
@@ -191,9 +197,7 @@ pub(super) fn enrich_source(
     current_path: &str,
     current_span: Option<(u32, u32)>,
     skipped: &super::Site,
-    current_root: &Path,
-    base_root: &Path,
-    lines: &mut FileLineCache,
+    context: &mut VariantSourceContext<'_>,
 ) {
     source_signals(
         evidence,
@@ -201,9 +205,7 @@ pub(super) fn enrich_source(
         current_path,
         current_span,
         skipped,
-        current_root,
-        base_root,
-        lines,
+        context,
     );
 }
 

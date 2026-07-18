@@ -396,6 +396,58 @@ python3 eval/divergence_fire/direct_target_eval.py runtime \
   --out /tmp/issue-850-runtime-primary.json
 ```
 
+## Target variant evidence development pricing (2026-07-18, #851)
+
+#851 adds closed, pair-local strong signals for resolved referent, definition modifier,
+async/effect role, protocol role, and disjoint platform differences. Name, path, and
+version-label differences remain weak hints and cannot disqualify a target. The checked
+[`variant_evidence_dev_2026_07_18.v1.json`](variant_evidence_dev_2026_07_18.v1.json)
+uses only the public development labels; no blind or temporal input was accessed, and
+the v2 `gate.fail_default` output is unchanged.
+
+All 179 findings replayed with zero query errors. On the 80-finding v2 strict slice,
+excluding every target carrying any strong variant signal would fully demote 27
+findings: 12 false positives and 15 `should_propagate` positives. It identifies six of
+the 13 `intentional_divergence` false positives but is not a standalone precision
+policy: selected precision moves only 56.25% → 56.60%, while TP retention falls to
+66.67%. #852 must therefore combine these facts with semantic/direct-target
+requirements instead of treating every strong variant code as a sufficient policy.
+
+| strong signal | fully demoted FP | fully demoted TP |
+|---|---:|---:|
+| referent mismatch | 6 | 8 |
+| decorator/attribute mismatch | 6 | 5 |
+| async role mismatch | 1 | 0 |
+| effect role mismatch | 1 | 0 |
+| disjoint platform guard | 1 | 0 |
+| protocol role mismatch | 0 | 0 |
+
+Signal effects overlap, so rows do not sum to the 27-finding combined effect. There
+were 91 weak-only targets and zero weak-only disqualifications. Missing projections,
+lossy lowering, unresolved referents, truncation, and conflicting platform constraints
+remain named advisory caveats rather than guessed negatives.
+
+The official-v0.19.0 runtime receipt is
+[`issue-851-official-v0.19.0-performance-2026-07-18.v1.json`](../../bench/recall_loss/issue-851-official-v0.19.0-performance-2026-07-18.v1.json).
+Across the same 17-repository selection, the candidate adds 877.83 ms / 8.44% raw
+and 836.51 ms / 8.04% after the same-binary control. Removing `semantic_change` and
+`targets` keeps every legacy output equal. The nearest-rank repository p90 is 44.47%
+(axios 52.56%, regex 44.47%); target role analysis is bounded and reuses file, unit,
+projection, and source caches, but the cumulative family-plus-target compatibility
+path remains above #847's 5% budget. #852 must remove that duplicate path and
+remeasure against the official release.
+
+Reproduce the development aggregate after building the release binary:
+
+```sh
+python3 eval/divergence_fire/variant_evidence_eval.py selftest
+python3 eval/divergence_fire/semantic_witness_eval.py replay \
+  --jobs 4 --timeout 240 --out /tmp/issue-851-dev-replay.jsonl
+python3 eval/divergence_fire/variant_evidence_eval.py summarize \
+  --records /tmp/issue-851-dev-replay.jsonl --nose target/release/nose \
+  --out eval/divergence_fire/variant_evidence_dev_2026_07_18.v1.json
+```
+
 ## Fire rate (change level; 347 replayed changes per arm)
 
 | arm | fire rate | findings/fire p50 | p90 | max | divergence s p50 | p90 |
