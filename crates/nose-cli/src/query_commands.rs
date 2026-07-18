@@ -1,4 +1,3 @@
-use crate::baseline;
 use crate::baseline_comparison::BaselineComparison;
 use crate::cli_args::{Cmd, QueryArgs, ScopeFilter};
 use crate::divergence;
@@ -192,14 +191,9 @@ fn query_opportunities(
         .iter()
         .filter(|f| is_default_opportunity_family(f, overrides))
         .collect();
-    let mut groups = OpportunityGroups::from_ranked(&default_fams);
-    let default_ids = families
-        .iter()
-        .filter(|family| is_default_report_family(family, overrides))
-        .map(baseline::family_id)
-        .collect();
-    groups.restrict_default_slices_to(&default_ids);
-    groups
+    OpportunityGroups::from_ranked_with_default(&default_fams, |family| {
+        is_default_report_family(family, overrides)
+    })
 }
 
 fn discard_accepted_coverage(families: &mut [nose_detect::RefactorFamily]) {

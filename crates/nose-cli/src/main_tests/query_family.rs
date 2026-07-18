@@ -58,8 +58,8 @@ fn compiled_css_pipeline_demotes_source_plus_outputs_but_not_cross_source() {
     let ov = SurfaceOverrides {
         generated_sources: gen.clone(),
         additional_generated_surface_sources: rustc_hash::FxHashSet::default(),
-        declaration_run_ids: rustc_hash::FxHashSet::default(),
-        declaration_only_type_contract_ids: rustc_hash::FxHashSet::default(),
+        declaration_run_families: rustc_hash::FxHashSet::default(),
+        declaration_only_type_contract_families: rustc_hash::FxHashSet::default(),
     };
     assert_eq!(effective_surface(&pipe, &ov), "generated");
     assert!(
@@ -104,8 +104,8 @@ fn partial_jazzy_provenance_keeps_the_family_on_its_ranked_surface() {
         ]
         .into_iter()
         .collect(),
-        declaration_run_ids: rustc_hash::FxHashSet::default(),
-        declaration_only_type_contract_ids: rustc_hash::FxHashSet::default(),
+        declaration_run_families: rustc_hash::FxHashSet::default(),
+        declaration_only_type_contract_families: rustc_hash::FxHashSet::default(),
     };
     assert_eq!(effective_surface(&family, &overrides), "default");
     assert!(is_default_report_family(&family, &overrides));
@@ -126,8 +126,8 @@ fn jazzy_surface_classification_preserves_the_opportunity_fold_input() {
         ]
         .into_iter()
         .collect(),
-        declaration_run_ids: rustc_hash::FxHashSet::default(),
-        declaration_only_type_contract_ids: rustc_hash::FxHashSet::default(),
+        declaration_run_families: rustc_hash::FxHashSet::default(),
+        declaration_only_type_contract_families: rustc_hash::FxHashSet::default(),
     };
     assert_eq!(effective_surface(&family, &overrides), "generated");
     assert!(
@@ -146,8 +146,8 @@ fn query_family_json_carries_fold_navigation() {
     let ov = SurfaceOverrides {
         generated_sources: rustc_hash::FxHashSet::default(),
         additional_generated_surface_sources: rustc_hash::FxHashSet::default(),
-        declaration_run_ids: rustc_hash::FxHashSet::default(),
-        declaration_only_type_contract_ids: rustc_hash::FxHashSet::default(),
+        declaration_run_families: rustc_hash::FxHashSet::default(),
+        declaration_only_type_contract_families: rustc_hash::FxHashSet::default(),
     };
     // The primary lists the slice ids it subsumes (navigable id= handles).
     let ja = query_family_json(&a, &ov, &opp, false, None, None);
@@ -195,8 +195,8 @@ fn query_family_json_carries_proof_depth() {
     let ov = SurfaceOverrides {
         generated_sources: rustc_hash::FxHashSet::default(),
         additional_generated_surface_sources: rustc_hash::FxHashSet::default(),
-        declaration_run_ids: rustc_hash::FxHashSet::default(),
-        declaration_only_type_contract_ids: rustc_hash::FxHashSet::default(),
+        declaration_run_families: rustc_hash::FxHashSet::default(),
+        declaration_only_type_contract_families: rustc_hash::FxHashSet::default(),
     };
     let empty = OpportunityGroups::default();
     // Exact channel: how much is proven identical (the shared value-multiset size).
@@ -230,8 +230,8 @@ fn query_family_json_carries_raw_detector_metrics() {
     let ov = SurfaceOverrides {
         generated_sources: rustc_hash::FxHashSet::default(),
         additional_generated_surface_sources: rustc_hash::FxHashSet::default(),
-        declaration_run_ids: rustc_hash::FxHashSet::default(),
-        declaration_only_type_contract_ids: rustc_hash::FxHashSet::default(),
+        declaration_run_families: rustc_hash::FxHashSet::default(),
+        declaration_only_type_contract_families: rustc_hash::FxHashSet::default(),
     };
     let empty = OpportunityGroups::default();
     let mut f = fam(2, 3, &[Some("a"), Some("b"), Some("c")]);

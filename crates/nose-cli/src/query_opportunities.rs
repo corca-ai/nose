@@ -47,7 +47,18 @@ impl OpportunityGroups {
     /// policy. Requiring direct obligation coverage prevents partial overlap or
     /// an A-B-C bridge from hiding accepted endpoints the primary does not
     /// represent.
+    #[cfg(test)]
     pub(crate) fn from_ranked(families: &[&nose_detect::RefactorFamily]) -> Self {
+        Self::from_ranked_with_default(families, |_| true)
+    }
+
+    /// Build the stable all-surface fold forest and, while the direct endpoints are already
+    /// known, decide which edges may also fold on the default surface. Computing that decision
+    /// here avoids a second full-family identity pass after the graph has been built (#892).
+    pub(crate) fn from_ranked_with_default(
+        families: &[&nose_detect::RefactorFamily],
+        is_default: impl Fn(&nose_detect::RefactorFamily) -> bool,
+    ) -> Self {
         // A file listing implausibly many families would make candidate
         // generation quadratic; skip it rather than risk query speed.
         const PER_FILE_CAP: usize = 200;
@@ -142,30 +153,17 @@ impl OpportunityGroups {
         }
         let mut groups = Self::default();
         for (i, primary) in primary_index.into_iter().enumerate() {
-            if let Some(primary) = primary {
-                let primary = baseline::family_id(families[primary]);
+            if let Some(primary_index) = primary {
+                let primary = baseline::family_id(families[primary_index]);
                 let slice = baseline::family_id(families[i]);
+                if is_default(families[i]) && is_default(families[primary_index]) {
+                    groups.default_slices.insert(slice.clone());
+                }
                 groups.primary_of.insert(slice.clone(), primary.clone());
                 groups.slices_of.entry(primary).or_default().push(slice);
             }
         }
         groups
-            .default_slices
-            .extend(groups.primary_of.keys().cloned());
-        groups
-    }
-
-    /// Restrict default-view folds to edges whose slice and direct suppressor
-    /// both remain on the default surface. The unrestricted maps continue to
-    /// describe the stable `all` view and its JSON navigation.
-    pub(crate) fn restrict_default_slices_to(&mut self, default_ids: &FxHashSet<String>) {
-        self.default_slices.retain(|slice| {
-            default_ids.contains(slice)
-                && self
-                    .primary_of
-                    .get(slice)
-                    .is_some_and(|primary| default_ids.contains(primary))
-        });
     }
 
     pub(crate) fn is_slice(&self, family: &nose_detect::RefactorFamily) -> bool {
