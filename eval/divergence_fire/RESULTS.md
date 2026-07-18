@@ -483,6 +483,30 @@ python3 eval/divergence_fire/v3_policy_eval.py summarize \
   --out eval/divergence_fire/v3_policy_dev_2026_07_18.v1.json
 ```
 
+## Blind readiness preflight verdict (2026-07-18, #853)
+
+The checked
+[`blind_readiness_verdict_2026_07_18.v1.json`](blind_readiness_verdict_2026_07_18.v1.json)
+records exactly one allowed verdict: **`failed`** at
+`pre-unseal-development-qualification`. It verifies the #852 qualification and #848 protocol
+hashes and confirms that no runnable v3 candidate identity was frozen.
+
+The private replay was deliberately not run. Opening the held-out population without a defined
+candidate could not measure policy quality and would only spend the seal. Zero repositories and
+changes were opened, zero labels were created or revealed, and the population remains
+`sealed-unjudged` with quality-label state `unopened-no-quality-labels-exist`. Consequently this
+cycle has no blind target/finding/change precision result and cannot support either an
+`improved-opt-in-only` or `default-on-ready` claim. The supported product claim remains the
+active v2 opt-in review gate plus the new inspectable evidence.
+
+Reproduce the preflight verdict without access to any private directory:
+
+```sh
+python3 eval/divergence_fire/blind_readiness_verdict.py selftest
+python3 eval/divergence_fire/blind_readiness_verdict.py emit \
+  --out eval/divergence_fire/blind_readiness_verdict_2026_07_18.v1.json
+```
+
 ## Fire rate (change level; 347 replayed changes per arm)
 
 | arm | fire rate | findings/fire p50 | p90 | max | divergence s p50 | p90 |

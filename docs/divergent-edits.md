@@ -159,6 +159,13 @@ bumped, and `divergent-edit-v2-strict` remains the active opt-in policy. Human, 
 exit status now consume one internal policy-decision object, with `items[].gate.fail_default`
 remaining the sole machine authority. See the [development result](../eval/divergence_fire/RESULTS.md#v3-policy-development-qualification-2026-07-18-852).
 
+#853 then ran the sealed-replay preflight, not the private replay. Because no runnable v3
+candidate identity existed, opening the held-out population would not evaluate a defined policy
+and would only consume the seal. Its single checked verdict is `failed` at the
+`pre-unseal-development-qualification` stage: zero private repositories or changes were opened,
+no quality labels were created or revealed, and the held-out population remains
+`sealed-unjudged`. This is a failed default-on cycle, not a blind precision measurement.
+
 ## Bounded semantic-change evidence
 
 For an already-flagged base divergence, each family-level changed site and each direct target's
