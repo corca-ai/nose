@@ -6,6 +6,7 @@
   "blind_or_temporal_data_accessed": false,
   "source": {
     "candidate_commit": "3d15ac455a167fd90e449fc3f935deadd4bdd384",
+    "final_commit": "d639321f8668eaaa14226a4b3600292e828ec087",
     "baseline_release": "v0.19.0",
     "baseline_source_commit": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9"
   },
@@ -58,5 +59,11 @@
   "assessment": {
     "status": "bounded-advisory-overhead",
     "reason": "The issue defines no numeric promotion budget. The evidence remains advisory, legacy output is identical on all 17 repositories, work is capped to already-flagged candidate files and units, and the initial unbounded eager-projection regression was removed."
+  },
+  "final_commit_transfer": {
+    "change": "Box the cached FileProjection enum variant to satisfy clippy::large-enum-variant.",
+    "behavioral_or_work_scope_change": false,
+    "remeasurement_required": false,
+    "validation": "Final source passed clippy -D warnings plus 232 library, 235 CLI, and 3 connected-witness tests."
   }
 }

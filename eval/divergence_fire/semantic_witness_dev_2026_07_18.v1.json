@@ -11,6 +11,8 @@
   "blind_or_temporal_data_accessed": false,
   "development_only": true,
   "implementation": {
+    "final_commit": "d639321f8668eaaa14226a4b3600292e828ec087",
+    "final_commit_transfer": "Boxed only the cached FileProjection enum variant; evidence behavior and bounded work are unchanged.",
     "nose_binary": "target/release/nose",
     "nose_binary_sha256": "2f961af03e2e62f275e1b9ac4d5df162e2385c54f947475350e6c4a79bfd4eb2",
     "nose_version": "nose 0.19.0",
