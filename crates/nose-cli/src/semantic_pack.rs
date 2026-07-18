@@ -14,7 +14,7 @@ pub(crate) use compatibility::{
 };
 pub(crate) use inventory::{cmd_inventory, InventoryFormat, INVENTORY_SCHEMA_VERSION};
 
-pub(crate) const CONFORMANCE_SCHEMA_VERSION: u32 = 2;
+pub(crate) const CONFORMANCE_SCHEMA_VERSION: u32 = 3;
 
 #[derive(Clone, Copy, PartialEq, clap::ValueEnum)]
 pub(crate) enum CheckFormat {
@@ -47,6 +47,8 @@ struct CheckJsonTotals {
 
 #[derive(serde::Serialize)]
 struct CheckJsonManifest {
+    api_version: Option<&'static str>,
+    semantic_digest: Option<String>,
     id: String,
     version: String,
     display_name: String,
@@ -152,6 +154,8 @@ impl CheckJsonReport {
                 .manifests
                 .iter()
                 .map(|manifest| CheckJsonManifest {
+                    api_version: manifest.pack.api_version,
+                    semantic_digest: manifest.pack.semantic_digest.clone(),
                     id: manifest.pack.id.clone(),
                     version: manifest.pack.version.clone(),
                     display_name: manifest.pack.display_name.clone(),
@@ -231,7 +235,13 @@ impl CheckJsonExecutableConformance {
 impl CheckJsonInfluencePreflight {
     fn new(report: &nose_semantics::ExternalInfluencePreflightReport) -> Self {
         Self {
-            status: if report.passed() { "ok" } else { "blocked" },
+            status: if report.rows.is_empty() {
+                "unavailable"
+            } else if report.passed() {
+                "ok"
+            } else {
+                "blocked"
+            },
             rows: report
                 .rows
                 .iter()

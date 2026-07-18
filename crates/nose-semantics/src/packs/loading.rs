@@ -10,6 +10,12 @@ pub(super) struct LoadedLocalManifest {
     pub external_evidence_producer_rows: Vec<ExternalEvidenceProducerRow>,
     pub external_contract_rows: Vec<ExternalContractRow>,
     pub external_value_law_rows: Vec<ExternalValueLawRow>,
+    pub compiled_v1: Option<CompiledSemanticPackV1>,
+}
+
+enum LocalManifest {
+    V0(Box<SemanticPackManifest>),
+    V1(Box<SemanticPackManifestV1>),
 }
 
 pub fn check_semantic_pack_conformance(
@@ -19,17 +25,36 @@ pub fn check_semantic_pack_conformance(
     let mut manifests: Vec<SemanticPackConformanceManifest> = Vec::new();
     for path in manifest_paths {
         let manifest = read_local_manifest(&path)?;
-        let conformance_command = manifest.conformance.command.clone();
-        let proof_links = manifest.conformance.proofs.clone();
-        let fixtures = collect_fixture_checks(&path, &manifest);
-        let executable = collect_executable_conformance_checks(&path, &manifest, &fixtures);
-        let pack =
-            SemanticPackSummary::from_manifest(path.clone(), manifest).map_err(|message| {
-                SemanticPackLoadError::InvalidManifest {
-                    path: path.clone(),
-                    message,
-                }
-            })?;
+        let (pack, conformance_command, proof_links, fixtures, executable) = match manifest {
+            LocalManifest::V0(manifest) => {
+                let conformance_command = manifest.conformance.command.clone();
+                let proof_links = manifest.conformance.proofs.clone();
+                let fixtures = collect_fixture_checks(&path, &manifest);
+                let executable = collect_executable_conformance_checks(&path, &manifest, &fixtures);
+                let pack = SemanticPackSummary::from_manifest_v0(path.clone(), *manifest).map_err(
+                    |message| SemanticPackLoadError::InvalidManifest {
+                        path: path.clone(),
+                        message,
+                    },
+                )?;
+                (pack, conformance_command, proof_links, fixtures, executable)
+            }
+            LocalManifest::V1(manifest) => {
+                let compiled = compile_manifest_v1(&manifest).map_err(|message| {
+                    SemanticPackLoadError::InvalidManifest {
+                        path: path.clone(),
+                        message,
+                    }
+                })?;
+                (
+                    SemanticPackSummary::from_manifest_v1(path.clone(), &manifest, &compiled),
+                    None,
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                )
+            }
+        };
         if is_compiled_builtin_pack_id(&pack.id) {
             return Err(SemanticPackLoadError::DuplicatePackId {
                 id: pack.id,
@@ -124,62 +149,131 @@ fn push_unique_manifest(
 
 pub fn load_local_manifest(path: &Path) -> Result<SemanticPackSummary, SemanticPackLoadError> {
     let manifest = read_local_manifest(path)?;
-    SemanticPackSummary::from_manifest(path.to_path_buf(), manifest).map_err(|message| {
-        SemanticPackLoadError::InvalidManifest {
-            path: path.to_path_buf(),
-            message,
+    match manifest {
+        LocalManifest::V0(manifest) => {
+            SemanticPackSummary::from_manifest_v0(path.to_path_buf(), *manifest).map_err(
+                |message| SemanticPackLoadError::InvalidManifest {
+                    path: path.to_path_buf(),
+                    message,
+                },
+            )
         }
-    })
+        LocalManifest::V1(manifest) => {
+            let compiled = compile_manifest_v1(&manifest).map_err(|message| {
+                SemanticPackLoadError::InvalidManifest {
+                    path: path.to_path_buf(),
+                    message,
+                }
+            })?;
+            Ok(SemanticPackSummary::from_manifest_v1(
+                path.to_path_buf(),
+                &manifest,
+                &compiled,
+            ))
+        }
+    }
 }
 
 pub(super) fn load_local_manifest_with_rows(
     path: &Path,
 ) -> Result<LoadedLocalManifest, SemanticPackLoadError> {
     let manifest = read_local_manifest(path)?;
-    let external_evidence_producer_rows = manifest
-        .declares
-        .evidence_producers
-        .iter()
-        .map(|producer| ExternalEvidenceProducerRow::from_manifest(path, &manifest, producer))
-        .collect();
-    let external_contract_rows = manifest
-        .declares
-        .contracts
-        .iter()
-        .map(|contract| ExternalContractRow::from_manifest(path, &manifest, contract))
-        .collect();
-    let external_value_law_rows = manifest
-        .declares
-        .value_laws
-        .iter()
-        .map(|law| ExternalValueLawRow::from_manifest(path, &manifest, law))
-        .collect();
-    let summary =
-        SemanticPackSummary::from_manifest(path.to_path_buf(), manifest).map_err(|message| {
-            SemanticPackLoadError::InvalidManifest {
-                path: path.to_path_buf(),
-                message,
-            }
-        })?;
-    Ok(LoadedLocalManifest {
-        summary,
-        external_evidence_producer_rows,
-        external_contract_rows,
-        external_value_law_rows,
-    })
+    match manifest {
+        LocalManifest::V0(manifest) => {
+            let external_evidence_producer_rows = manifest
+                .declares
+                .evidence_producers
+                .iter()
+                .map(|producer| {
+                    ExternalEvidenceProducerRow::from_manifest(path, &manifest, producer)
+                })
+                .collect();
+            let external_contract_rows = manifest
+                .declares
+                .contracts
+                .iter()
+                .map(|contract| ExternalContractRow::from_manifest(path, &manifest, contract))
+                .collect();
+            let external_value_law_rows = manifest
+                .declares
+                .value_laws
+                .iter()
+                .map(|law| ExternalValueLawRow::from_manifest(path, &manifest, law))
+                .collect();
+            let summary = SemanticPackSummary::from_manifest_v0(path.to_path_buf(), *manifest)
+                .map_err(|message| SemanticPackLoadError::InvalidManifest {
+                    path: path.to_path_buf(),
+                    message,
+                })?;
+            Ok(LoadedLocalManifest {
+                summary,
+                external_evidence_producer_rows,
+                external_contract_rows,
+                external_value_law_rows,
+                compiled_v1: None,
+            })
+        }
+        LocalManifest::V1(manifest) => {
+            let compiled_v1 = compile_manifest_v1(&manifest).map_err(|message| {
+                SemanticPackLoadError::InvalidManifest {
+                    path: path.to_path_buf(),
+                    message,
+                }
+            })?;
+            let summary =
+                SemanticPackSummary::from_manifest_v1(path.to_path_buf(), &manifest, &compiled_v1);
+            Ok(LoadedLocalManifest {
+                summary,
+                external_evidence_producer_rows: Vec::new(),
+                external_contract_rows: Vec::new(),
+                external_value_law_rows: Vec::new(),
+                compiled_v1: Some(compiled_v1),
+            })
+        }
+    }
 }
 
-fn read_local_manifest(path: &Path) -> Result<SemanticPackManifest, SemanticPackLoadError> {
+fn read_local_manifest(path: &Path) -> Result<LocalManifest, SemanticPackLoadError> {
     let text = std::fs::read_to_string(path).map_err(|source| SemanticPackLoadError::Io {
         path: path.to_path_buf(),
         source,
     })?;
-    serde_json::from_str::<SemanticPackManifest>(&text).map_err(|source| {
+    let value = serde_json::from_str::<serde_json::Value>(&text).map_err(|source| {
         SemanticPackLoadError::Json {
             path: path.to_path_buf(),
             source,
         }
-    })
+    })?;
+    let api_version = value
+        .get("api_version")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| SemanticPackLoadError::InvalidManifest {
+            path: path.to_path_buf(),
+            message: "`api_version` must be a string".to_string(),
+        })?;
+    match api_version {
+        SEMANTIC_PACK_API_VERSION => serde_json::from_value::<SemanticPackManifest>(value)
+            .map(Box::new)
+            .map(LocalManifest::V0)
+            .map_err(|source| SemanticPackLoadError::Json {
+                path: path.to_path_buf(),
+                source,
+            }),
+        SEMANTIC_PACK_API_VERSION_V1 => serde_json::from_value::<SemanticPackManifestV1>(value)
+            .map(Box::new)
+            .map(LocalManifest::V1)
+            .map_err(|source| SemanticPackLoadError::Json {
+                path: path.to_path_buf(),
+                source,
+            }),
+        other => Err(SemanticPackLoadError::InvalidManifest {
+            path: path.to_path_buf(),
+            message: format!(
+                "unsupported `api_version` `{other}`; supported versions: {}",
+                SUPPORTED_SEMANTIC_PACK_API_VERSIONS.join(", ")
+            ),
+        }),
+    }
 }
 
 fn collect_fixture_checks(

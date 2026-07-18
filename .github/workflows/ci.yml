@@ -244,7 +244,7 @@ jobs:
           python3 bench/labels/query_schema.py --self-test --nose target/release/nose
           python3 bench/labels/default_head_query_schema.py --self-test --nose target/release/nose
       - name: semantic-pack example conformance
-        run: target/release/nose semantic-pack check docs/examples/semantic-packs/v0 --format json
+        run: target/release/nose semantic-pack check docs/examples/semantic-packs/v0 docs/examples/semantic-packs/v1 --format json
       - name: Type-4 executable focused expectations
         run: |
           NOSE_BIN=target/release/nose bench/type4/adversarial/scripts/type4-exec-check \

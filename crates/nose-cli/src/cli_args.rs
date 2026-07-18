@@ -130,7 +130,7 @@ pub(crate) enum Cmd {
         /// Structured-ignore file for suppressed families; auto-read `nose.ignore.json` when present.
         #[arg(long, value_name = "FILE")]
         ignore_file: Option<PathBuf>,
-        /// Local semantic-pack v0 manifest file or directory to load (repeatable; explicit opt-in).
+        /// Local semantic-pack v0/v1 manifest file or directory to load (repeatable; explicit opt-in).
         #[arg(long = "semantic-pack", value_name = "FILE_OR_DIR")]
         semantic_pack: Vec<PathBuf>,
         /// Read defaults from this config file (else `nose.toml`/`.nose.toml`).
@@ -218,7 +218,7 @@ pub(crate) enum Cmd {
     },
     /// Emit the machine-readable capability contract for integrations.
     Capabilities,
-    /// Validate semantic-pack v0 manifests and declared conformance fixtures.
+    /// Validate semantic-pack v0 manifests/fixtures or compile typed v1 manifests.
     #[command(name = "semantic-pack")]
     SemanticPack {
         #[command(subcommand)]
@@ -340,7 +340,7 @@ pub(crate) enum Cmd {
 
 #[derive(Subcommand)]
 pub(crate) enum SemanticPackCmd {
-    /// Check local semantic-pack v0 manifests for structural conformance.
+    /// Check local semantic-pack v0 manifests or compile typed v1 manifests.
     Check {
         /// Semantic-pack manifest file or directory of direct `*.json` manifests.
         #[arg(required = true, value_name = "FILE_OR_DIR")]

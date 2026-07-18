@@ -427,5 +427,8 @@ previous semantic-kernel tranches.
   ecosystem slices that may become scoped packs.
 - [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md) defines
   the versioned external schema boundary.
+- [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md) defines
+  the first closed typed declaration compiler; its rows remain non-influential
+  until the external trust and evidence lanes are complete.
 - [semantic-pack-loading](semantic-pack-loading.md) describes manifest loading
   and the current metadata-only external behavior.

@@ -1,13 +1,15 @@
 # Semantic pack loading
 
-Status: nose can validate local semantic-pack v0 manifests on `nose query`, and
-it can run a separate local conformance check for manifests and declared fixture
-assets. External packs are explicit opt-ins and are currently `metadata-only`:
+Status: nose can validate local semantic-pack v0 manifests and compile typed v1
+manifests on `nose query`, and it can run a separate local check. External packs
+are explicit opt-ins and are currently `metadata-only`:
 they do not emit evidence, open exact contracts, mint fingerprints, approve clone
 pairs, or change exact/near query results. Local `declares.evidence_producers`,
 `declares.contracts`, and `declares.value_laws` entries are registered as
 data-only rows on the active `SemanticPackSet`, but no normalize, value-graph,
-or exact consumer reads those external rows yet. `nose capabilities` reports the
+or exact consumer reads those external rows yet. v1 contracts compile into
+deterministic typed indexes and a semantic digest, but no analysis consumer
+reads those indexes yet. `nose capabilities` reports the
 same boundary with `external_pack_influence = "metadata-only"`,
 the current external influence blocker labels, and
 `external_pack_execution = "none"`.
@@ -49,6 +51,10 @@ references, exact-capable contract obligations, conformance fixture references,
 fixture expectation labels, executable fixture-expectation gates, and fixture
 file existence. It does not execute external producers, provider commands, or
 fixture contents, and it does not certify semantic correctness. See [semantic-pack-conformance](semantic-pack-conformance.md).
+
+For v1, the command validates the closed Java/Maven package-API grammar and
+builds its canonical digest and indexes. v1 does not reuse v0's opaque row or
+fixture declarations. See [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md).
 
 ## Trust policy
 
@@ -224,6 +230,8 @@ code execution, parser/lowering plugins, or manifest presence alone.
 
 - [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md) defines
   the manifest schema that loading consumes.
+- [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md) defines
+  typed package API contracts, canonical digests, and deterministic indexes.
 - [semantic-pack-conformance](semantic-pack-conformance.md) describes validation
   before manifests are trusted for reporting.
 - [semantic-pack-compatibility](semantic-pack-compatibility.md) records version

@@ -75,7 +75,8 @@ impl CompatibilityReport {
             },
             current_nose_version: env!("CARGO_PKG_VERSION"),
             supported: CompatibilitySupported {
-                manifest_api_versions: vec![nose_semantics::SEMANTIC_PACK_API_VERSION],
+                manifest_api_versions: nose_semantics::SUPPORTED_SEMANTIC_PACK_API_VERSIONS
+                    .to_vec(),
                 trust_lanes: vec!["builtin-default", "builtin-optional", "external-opt-in"],
                 report_sources: vec!["policy"],
                 output_formats: vec!["human", "json"],

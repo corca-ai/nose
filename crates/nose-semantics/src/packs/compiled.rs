@@ -80,6 +80,8 @@ impl BuiltinPackDescriptor {
                 .map(|language| (*language).to_string())
                 .collect(),
             counts: self.counts(),
+            api_version: None,
+            semantic_digest: None,
         }
     }
 }

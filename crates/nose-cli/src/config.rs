@@ -34,7 +34,7 @@ pub(crate) struct QueryConfig {
     /// Minimum unit size in IL tokens.
     pub min_size: Option<usize>,
     pub ignore_file: Option<PathBuf>,
-    /// Local semantic-pack v0 manifest files or directories. These are explicit opt-ins.
+    /// Local semantic-pack v0/v1 manifest files or directories. These are explicit opt-ins.
     pub semantic_packs: Vec<PathBuf>,
 }
 

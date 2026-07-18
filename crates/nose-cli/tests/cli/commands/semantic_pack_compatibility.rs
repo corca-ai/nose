@@ -11,7 +11,7 @@ fn semantic_pack_compatibility_json_reports_fail_closed_policy() {
     assert_eq!(json["current_nose_version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(
         json_array_strings(&json["supported"], "manifest_api_versions"),
-        vec!["nose.semantic-pack.v0"]
+        vec!["nose.semantic-pack.v0", "nose.semantic-pack.v1"]
     );
     assert_eq!(
         json_array_strings(&json["supported"], "report_sources"),

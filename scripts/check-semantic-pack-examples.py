@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate checked-in semantic-pack v0 schema examples.
+"""Validate checked-in semantic-pack v0/v1 schema examples.
 
 This is intentionally a lightweight structural check, not a full JSON Schema
 implementation. It keeps the checked-in design examples honest in the docs job;
@@ -15,8 +15,12 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = ROOT / "docs" / "schemas" / "semantic-pack-v0.schema.json"
+SCHEMA_V1 = ROOT / "docs" / "schemas" / "semantic-pack-v1.schema.json"
 EXAMPLES = sorted(
     (ROOT / "docs" / "examples" / "semantic-packs" / "v0").glob("*.json")
+)
+EXAMPLES_V1 = sorted(
+    (ROOT / "docs" / "examples" / "semantic-packs" / "v1").glob("*.json")
 )
 
 API_VERSION = "nose.semantic-pack.v0"
@@ -285,6 +289,73 @@ def validate_pack(path: Path, doc: dict[str, Any]) -> None:
         validate_contract(path, law, known_refs, conformance_ids, require_surface=False)
 
 
+def validate_v1_pack(path: Path, doc: dict[str, Any]) -> None:
+    if doc.get("api_version") != "nose.semantic-pack.v1":
+        fail(path, "`api_version` must be nose.semantic-pack.v1")
+    pack = require_object(path, doc, "pack")
+    require_string(path, pack, "id")
+    require_string(path, pack, "version")
+    require_string(path, pack, "display_name")
+    require_enum(path, pack.get("kind"), {"LibraryPack"}, "pack.kind")
+    require_enum(path, pack.get("trust"), {"external-opt-in"}, "pack.trust")
+    if require_bool(path, pack, "enabled_by_default"):
+        fail(path, "semantic-pack v1 examples must be disabled by default")
+
+    provenance = require_object(path, doc, "provenance")
+    provider = require_object(path, provenance, "provider")
+    require_string(path, provider, "name")
+    require_string(path, provenance, "license")
+    require_string(path, provenance, "repository")
+    compatibility = require_object(path, doc, "compatibility")
+    require_string(path, compatibility, "nose")
+
+    languages = require_array(path, doc, "supported_languages", min_items=1)
+    for language in languages:
+        require_enum(path, language, {"java"}, "supported_languages[]")
+    packages = require_array(path, doc, "packages", min_items=1)
+    package_coordinates: set[tuple[str, str]] = set()
+    for package in packages:
+        if not isinstance(package, dict):
+            fail(path, "`packages[]` must be an object")
+        ecosystem = require_enum(path, package.get("ecosystem"), {"maven"}, "packages[].ecosystem")
+        name = require_string(path, package, "name")
+        require_string(path, package, "versions")
+        package_coordinates.add((ecosystem, name))
+
+    declares = require_object(path, doc, "declares")
+    contracts = require_array(path, declares, "api_contracts", min_items=1)
+    require_unique_ids(path, contracts, "declares.api_contracts")
+    for contract in contracts:
+        require_enum(path, contract.get("language"), {"java"}, "api_contract.language")
+        package = require_object(path, contract, "package")
+        coordinate = (
+            require_enum(path, package.get("ecosystem"), {"maven"}, "api_contract.package.ecosystem"),
+            require_string(path, package, "name"),
+        )
+        if coordinate not in package_coordinates:
+            fail(path, f"contract `{contract['id']}` references an undeclared package")
+        require_enum(path, contract.get("anchor"), {"call-node"}, "api_contract.anchor")
+        require_enum(path, contract.get("matcher"), {"imported-api"}, "api_contract.matcher")
+        import_coordinate = require_object(path, contract, "import")
+        require_enum(path, import_coordinate.get("role"), {"type", "static-member"}, "api_contract.import.role")
+        require_string(path, import_coordinate, "module")
+        require_string(path, import_coordinate, "name")
+        call = require_object(path, contract, "call")
+        require_enum(path, call.get("shape"), {"static-method", "free-function"}, "api_contract.call.shape")
+        require_string(path, call, "member")
+        require_object(path, call, "arity")
+        require_enum(path, call.get("receiver"), {"imported-type", "none"}, "api_contract.call.receiver")
+        require_enum(path, contract.get("operation"), {"collection-factory", "map-factory"}, "api_contract.operation")
+        require_enum(path, contract.get("result_domain"), {"collection", "map"}, "api_contract.result_domain")
+        profiles = require_object(path, contract, "profiles")
+        require_enum(path, profiles.get("demand"), {"eager"}, "api_contract.profiles.demand")
+        require_enum(path, profiles.get("effects"), {"pure"}, "api_contract.profiles.effects")
+        require_enum(path, profiles.get("exceptions"), {"no-throw", "may-throw"}, "api_contract.profiles.exceptions")
+        require_enum(path, profiles.get("mutation"), {"none"}, "api_contract.profiles.mutation")
+        require_enum(path, profiles.get("identity"), {"fresh"}, "api_contract.profiles.identity")
+        require_enum(path, contract.get("channel"), {"near", "external-exact"}, "api_contract.channel")
+
+
 def main() -> int:
     schema = read_json(SCHEMA)
     if schema.get("$id") is None or schema.get("title") is None:
@@ -293,7 +364,17 @@ def main() -> int:
         fail(ROOT / "docs" / "examples" / "semantic-packs" / "v0", "no examples found")
     for example in EXAMPLES:
         validate_pack(example, read_json(example))
-    print(f"validated {len(EXAMPLES)} semantic-pack v0 example(s)")
+    schema_v1 = read_json(SCHEMA_V1)
+    if schema_v1.get("$id") is None or schema_v1.get("title") is None:
+        fail(SCHEMA_V1, "schema must declare $id and title")
+    if not EXAMPLES_V1:
+        fail(ROOT / "docs" / "examples" / "semantic-packs" / "v1", "no examples found")
+    for example in EXAMPLES_V1:
+        validate_v1_pack(example, read_json(example))
+    print(
+        f"validated {len(EXAMPLES)} semantic-pack v0 example(s) and "
+        f"{len(EXAMPLES_V1)} semantic-pack v1 example(s)"
+    )
     return 0
 
 

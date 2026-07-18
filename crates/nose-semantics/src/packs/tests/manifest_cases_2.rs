@@ -151,7 +151,7 @@ fn compatibility_nose_must_include_current_binary_version() {
 fn unsupported_api_versions_are_rejected_before_loading() {
     for (tag, api_version) in [
         ("too_old", "nose.semantic-pack.pre-v0"),
-        ("too_new", "nose.semantic-pack.v1"),
+        ("too_new", "nose.semantic-pack.v2"),
     ] {
         let dir = unique_dir(&format!("api_version_{tag}"));
         let path = dir.join("pack.json");
@@ -164,7 +164,10 @@ fn unsupported_api_versions_are_rejected_before_loading() {
         )
         .unwrap();
         let err = load_local_manifest(&path).expect_err("unsupported API versions must fail");
-        assert!(err.to_string().contains("`api_version` must be"), "{err}");
+        assert!(
+            err.to_string().contains("unsupported `api_version`"),
+            "{err}"
+        );
         let _ = fs::remove_dir_all(dir);
     }
 }
