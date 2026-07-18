@@ -76,7 +76,7 @@ enum Tree {
 }
 
 enum LoadState {
-    Ready(FileProjection),
+    Ready(Box<FileProjection>),
     Failed(SemanticProjectionStatus),
 }
 
@@ -379,7 +379,7 @@ impl<'a> WitnessBuilder<'a> {
             self.files.insert(key.clone(), state);
         }
         match self.files.get(&key).expect("file projection was inserted") {
-            LoadState::Ready(file) => Ok(file),
+            LoadState::Ready(file) => Ok(file.as_ref()),
             LoadState::Failed(status) => Err(*status),
         }
     }
@@ -639,11 +639,11 @@ fn project_file(
             end_line: span.end_line,
         });
     }
-    LoadState::Ready(FileProjection {
+    LoadState::Ready(Box::new(FileProjection {
         interner,
         normalized,
         units,
-    })
+    }))
 }
 
 fn project_unit(file: &FileProjection, unit: &UnitSkeleton) -> UnitProjection {
