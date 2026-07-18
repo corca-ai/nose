@@ -468,3 +468,20 @@ fn v8_json_and_sarif_share_policy_fields() {
         );
     }
 }
+
+#[test]
+fn active_policy_decision_is_the_single_gate_authority() {
+    for divergence in [
+        tier_divergence("prod", true, Some(true)),
+        tier_divergence("prod", false, Some(false)),
+        tier_divergence("mixed", true, Some(true)),
+    ] {
+        let decision = divergence.policy_decision();
+        assert_eq!(divergence.tier(), decision.tier);
+        assert_eq!(divergence.tier_reasons(), decision.tier_reasons);
+        assert_eq!(divergence.taxonomy_hint(), decision.taxonomy_hint);
+        assert_eq!(divergence.gate_fail_default(), decision.gate.fail_default);
+        assert_eq!(decision.gate.eligible, decision.tier.gate_eligible());
+        assert_eq!(decision.gate.policy, DIVERGENT_EDIT_V2_POLICY);
+    }
+}

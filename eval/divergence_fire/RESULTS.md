@@ -326,8 +326,8 @@ The last row is promising development evidence—it removes all five `not_a_clon
 rows and four of the 17 strict `no_propagation_needed` rows without losing a labeled
 positive—but it is frequently advisory because of lossy lowering or unresolved
 referents. #849 therefore records it without promoting it into policy. No complete
-predicate selected a real development finding, so treating absence of caveats as a
-new strict requirement would erase all strict recall rather than prove a better gate.
+predicate selected a real development finding; #852 later confirmed that requiring
+the protocol's caveat-free evidence leaves the admissible policy class with zero support.
 
 The official-v0.19.0 runtime receipt is
 [`issue-849-official-v0.19.0-performance-2026-07-18.v1.json`](../../bench/recall_loss/issue-849-official-v0.19.0-performance-2026-07-18.v1.json).
@@ -363,8 +363,8 @@ All 179 labeled findings replayed without an error. The frozen v2 strict slice s
 contains 80 findings, now exposing 168 direct targets and retaining 26
 transitive-only locations as review context rather than action endpoints. Requiring a
 direct target demotes none of the five `not_a_clone` rows, so #850 improves target
-identity and evidence locality but does not claim a precision gain. Policy tuning
-remains reserved for #852.
+identity and evidence locality but does not claim a precision gain. #852 later found
+no target-local policy with non-degenerate development support.
 
 The official-v0.19.0 runtime receipt is
 [`issue-850-official-v0.19.0-performance-2026-07-18.v1.json`](../../bench/recall_loss/issue-850-official-v0.19.0-performance-2026-07-18.v1.json).
@@ -377,9 +377,9 @@ The 64.13% nearest-rank repository p90 triggered the required investigation.
 Profiling found and removed repeated group-by-pair distribution and cloned location
 ownership; prepared semantic changes and sibling hashes are now cached and target
 count is capped. The remaining total exceeds #847's 5% budget because the
-compatibility path retains both #849 family evidence and #850 target evidence. #852
-must collapse that duplication during the v3 target-policy transition and remeasure
-against the same official binary before the epic can close.
+compatibility path retains both #849 family evidence and #850 target evidence. #852 did
+not qualify a v3 target-policy transition, so #854 must remove the cumulative cost or
+record that the epic's runtime gate fails in the closeout verdict.
 
 Reproduce the development artifacts after building the release binary:
 
@@ -410,8 +410,8 @@ excluding every target carrying any strong variant signal would fully demote 27
 findings: 12 false positives and 15 `should_propagate` positives. It identifies six of
 the 13 `intentional_divergence` false positives but is not a standalone precision
 policy: selected precision moves only 56.25% → 56.60%, while TP retention falls to
-66.67%. #852 must therefore combine these facts with semantic/direct-target
-requirements instead of treating every strong variant code as a sufficient policy.
+66.67%. #852 combined these facts with semantic/direct-target requirements and found
+that the protocol-admissible class has zero non-degenerate development support.
 
 | strong signal | fully demoted FP | fully demoted TP |
 |---|---:|---:|
@@ -434,8 +434,8 @@ and 836.51 ms / 8.04% after the same-binary control. Removing `semantic_change` 
 `targets` keeps every legacy output equal. The nearest-rank repository p90 is 44.47%
 (axios 52.56%, regex 44.47%); target role analysis is bounded and reuses file, unit,
 projection, and source caches, but the cumulative family-plus-target compatibility
-path remains above #847's 5% budget. #852 must remove that duplicate path and
-remeasure against the official release.
+path remains above #847's 5% budget. Because #852 did not qualify a v3 policy, #854
+must remove the cumulative cost or record the failed runtime gate in the closeout verdict.
 
 Reproduce the development aggregate after building the release binary:
 
@@ -446,6 +446,41 @@ python3 eval/divergence_fire/semantic_witness_eval.py replay \
 python3 eval/divergence_fire/variant_evidence_eval.py summarize \
   --records /tmp/issue-851-dev-replay.jsonl --nose target/release/nose \
   --out eval/divergence_fire/variant_evidence_dev_2026_07_18.v1.json
+```
+
+## V3 policy development qualification (2026-07-18, #852)
+
+#852 combines #849 semantic witnesses, #850 direct targets, and #851 variant evidence under
+the sealed #848 objective without opening blind or temporal data. The checked
+[`v3_policy_dev_2026_07_18.v1.json`](v3_policy_dev_2026_07_18.v1.json) freezes the admissible
+policy class, its hash, the protocol and public-development input hashes, the source commit,
+and the release binary hash.
+
+The admissible class is monotone and fail-closed. A strict target requires a detector-accepted
+direct edge, pair-local shared contact, a caveat-free complete semantic witness for a mapped
+replacement or deletion, and no strong variant or uncertainty caveat. Variant codes may only
+demote. Of 168 direct targets on the 80-finding v2 strict slice, zero have a complete semantic
+witness. Therefore every policy in the admissible class has zero strict findings and targets,
+regardless of which closed variant demotions are selected.
+
+The only relaxed diagnostic—allowing known incomplete/lossy evidence and variant caveats—selects
+13 findings and 22 targets, with seven positive findings and six false positives (finding
+precision 0.538). It is not an admissible policy. The development verdicts are finding-level,
+not direct-target adjudications, so target precision is also unavailable rather than inferred.
+
+The frozen qualification status is **`no-policy-qualifies`**. No v3 candidate, binary, or
+threshold is released to blind replay; the blind and temporal labels remain sealed. Schema v8,
+capability flags, and the active `divergent-edit-v2-strict` output stay unchanged. Human, JSON,
+SARIF, and exit status now consume one internal policy-decision object, preventing any renderer
+from re-deriving a different `gate.fail_default` value.
+
+Reproduce the source-free aggregate after building the recorded release source commit:
+
+```sh
+python3 eval/divergence_fire/v3_policy_eval.py selftest
+python3 eval/divergence_fire/v3_policy_eval.py summarize \
+  --records /tmp/issue-852-dev-replay.jsonl --nose target/release/nose \
+  --out eval/divergence_fire/v3_policy_dev_2026_07_18.v1.json
 ```
 
 ## Fire rate (change level; 347 replayed changes per arm)

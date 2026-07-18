@@ -127,7 +127,8 @@ pub(super) fn render_query_base(
         format!("{}:{}-{}{name}", s.file, s.start_line, s.end_line)
     };
     for d in flagged.iter().take(limit) {
-        let propagation = match (d.tier(), d.lane, d.taxonomy_hint()) {
+        let decision = d.policy_decision();
+        let propagation = match (decision.tier, d.lane, decision.taxonomy_hint) {
             (divergence::DivergenceTier::Strict, _, _) => "strict (likely missed propagation)",
             (divergence::DivergenceTier::Review, _, "no_propagation_needed") => {
                 "review (shared logic not touched)"
