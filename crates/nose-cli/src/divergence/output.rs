@@ -32,6 +32,7 @@ fn target_json(target: &PropagationTarget) -> serde_json::Value {
         "changed": site_json(&target.changed, "base"),
         "skipped": site_json(&target.skipped, "base"),
         "direct_witness": target.direct_witness,
+        "variant_evidence": target.variant_evidence,
     })
 }
 

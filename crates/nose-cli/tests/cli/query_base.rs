@@ -14,6 +14,8 @@ mod semantic_packs;
 mod suppression_edges;
 #[path = "query_base/tier_policy.rs"]
 mod tier_policy;
+#[path = "query_base/variant_evidence.rs"]
+mod variant_evidence;
 
 fn git_in(dir: &Path, args: &[&str]) {
     let out = Command::new("git")

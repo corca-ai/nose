@@ -19,6 +19,7 @@ mod output;
 mod targets;
 #[cfg(test)]
 mod tests;
+mod variant;
 
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
@@ -125,6 +126,10 @@ pub(crate) struct PropagationTarget {
     pub(crate) changed: Site,
     pub(crate) skipped: Site,
     pub(crate) direct_witness: DirectPairWitness,
+    /// Pair-local evidence that the two sites deliberately occupy different roles.
+    /// #851 only records this evidence; the frozen v3 policy in #852 decides whether
+    /// it is disqualifying for the strict tier.
+    pub(crate) variant_evidence: variant::VariantEvidence,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, serde::Serialize)]

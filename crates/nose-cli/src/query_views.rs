@@ -162,6 +162,9 @@ pub(super) fn render_query_base(
                         target.direct_witness.kind,
                         target.direct_witness.similarity,
                     );
+                    if let Some(label) = target.variant_evidence.concise_label() {
+                        println!("      variant:    {label}");
+                    }
                 }
             }
             divergence::DivergenceLane::NewCopy => {

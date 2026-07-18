@@ -258,6 +258,7 @@ pub(super) fn project_file(
         units.push(UnitSkeleton {
             root: unit.root,
             kind: unit.kind,
+            origin: unit.origin,
             name,
             start_line: span.start_line,
             end_line: span.end_line,
@@ -292,6 +293,7 @@ pub(super) fn project_unit(file: &FileProjection, unit: &UnitSkeleton) -> UnitPr
         .any(|referent| referent.referent.is_none());
     UnitProjection {
         kind: unit.kind,
+        origin: unit.origin,
         name: unit.name.clone(),
         start_line: unit.start_line,
         end_line: unit.end_line,

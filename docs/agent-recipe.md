@@ -137,7 +137,10 @@ evidence, `witness_kind`, `scope`, per-changed-site `touches_shared`, and the ad
 pairs; use its stable `target_id`, pair-local `direct_witness`, and target-local
 `changed.touches_shared` / `changed.semantic_change` rather than treating every
 transitively grouped family member as an action. Keep `changed[]` / `not_updated[]` as
-broader review context. For propagation triage over the top findings, judge each target as
+broader review context. Read `variant_evidence` at the same target boundary: strong signals
+name exact referent, decorator, async/effect, protocol, or disjoint-platform evidence; name,
+path, and version differences are weak hints only. Under v2 this evidence does not override
+`gate.fail_default`. For propagation triage over the top findings, judge each target as
 should-propagate / intentional-divergence / not-a-clone using the changed member's
 diff and the un-updated sibling's body. Most fires are not propagation hazards; the
 current checked strict baseline has precision 0.562 ([experiments](experiments.md)

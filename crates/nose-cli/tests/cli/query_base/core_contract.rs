@@ -93,6 +93,13 @@ fn assert_json_target_contract(item: &serde_json::Value, json: &serde_json::Valu
             && target["direct_witness"]["similarity"].is_number(),
         "target carries pair-local detector evidence: {json}"
     );
+    assert!(
+        matches!(
+            target["variant_evidence"]["status"].as_str(),
+            Some("none" | "advisory" | "disqualifying")
+        ),
+        "target carries closed pair-local variant evidence: {json}"
+    );
 }
 
 fn assert_json_site_contract(item: &serde_json::Value, json: &serde_json::Value) {
@@ -201,6 +208,10 @@ fn assert_sarif_target_contract(
     assert_eq!(
         result["properties"]["targets"][0]["target_id"], target_id,
         "JSON and SARIF name the same exact direct target: {sarif}"
+    );
+    assert!(
+        result["properties"]["targets"][0]["variant_evidence"]["status"].is_string(),
+        "SARIF carries the same target-local variant evidence: {sarif}"
     );
     assert_eq!(
         result["locations"][0]["properties"]["target_id"], target_id,
