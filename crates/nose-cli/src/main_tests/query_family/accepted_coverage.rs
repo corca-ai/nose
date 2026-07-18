@@ -54,10 +54,9 @@ fn overlapping_slices_fold_under_their_primary() {
 fn a_slice_stays_visible_when_its_primary_leaves_the_default_surface() {
     let primary = fam_at(&[("docs/a.html", 100, 130), ("docs/b.html", 50, 70)]);
     let slice = fam_at(&[("docs/a.html", 105, 128), ("docs/b.html", 52, 66)]);
-    let mut groups = OpportunityGroups::from_ranked(&[&primary, &slice]);
-    let default_ids = [baseline::family_id(&slice)].into_iter().collect();
-
-    groups.restrict_default_slices_to(&default_ids);
+    let groups = OpportunityGroups::from_ranked_with_default(&[&primary, &slice], |family| {
+        std::ptr::eq(family, &slice)
+    });
 
     assert!(
         groups.is_slice(&slice),

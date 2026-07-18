@@ -35,9 +35,21 @@ pub(crate) fn classify_surface_overrides(
     SurfaceOverrides {
         generated_sources: generated.sources,
         additional_generated_surface_sources: generated.additional_surface_sources,
-        declaration_run_ids: declaration_run_ids(families),
-        declaration_only_type_contract_ids: declaration_only_type_contract_ids(families),
+        declaration_run_families: declaration_run_families(families),
+        declaration_only_type_contract_families: declaration_only_type_contract_families(families),
     }
+}
+
+/// Process-local identity for a ranked family.
+///
+/// Surface overrides live only as long as the query's family vector. The location buffer is
+/// not resized after classification, so its address and length remain stable even if the outer
+/// family vector is sorted. This avoids repeatedly sorting and hashing every location merely to
+/// ask whether an already-classified family has a presentation override (#892).
+type FamilyHandle = (usize, usize);
+
+fn family_handle(family: &nose_detect::RefactorFamily) -> FamilyHandle {
+    (family.locations.as_ptr() as usize, family.locations.len())
 }
 
 /// The mechanically-decidable non-actionable classes (design.md §2b: the
@@ -51,14 +63,14 @@ pub(crate) struct SurfaceOverrides {
     /// files deliberately do not set `Loc::looks_generated`, which has semantic effects on
     /// helper selection and folding beyond presentation (#842).
     pub(crate) additional_generated_surface_sources: FxHashSet<String>,
-    /// Family ids whose every member span is provably only import/include/
+    /// Families whose every member span is provably only import/include/
     /// use/re-export declarations — duplication the language mandates per
     /// file, with no extraction action to take.
-    pub(crate) declaration_run_ids: FxHashSet<String>,
-    /// Family ids whose every member carries the complete, already-lowered
+    pub(crate) declaration_run_families: FxHashSet<FamilyHandle>,
+    /// Families whose every member carries the complete, already-lowered
     /// declaration-only type-contract proof frozen by #841. This consumes only
     /// language-neutral `UnitOrigin` facets; missing or mixed evidence fails open.
-    pub(crate) declaration_only_type_contract_ids: FxHashSet<String>,
+    pub(crate) declaration_only_type_contract_families: FxHashSet<FamilyHandle>,
 }
 
 /// The surface an integration should treat this family as: the ranked
@@ -130,8 +142,8 @@ fn family_declaration_run(
     overrides: &SurfaceOverrides,
 ) -> bool {
     overrides
-        .declaration_run_ids
-        .contains(&crate::baseline::family_id(family))
+        .declaration_run_families
+        .contains(&family_handle(family))
 }
 
 fn family_declaration_only_type_contract(
@@ -139,8 +151,8 @@ fn family_declaration_only_type_contract(
     overrides: &SurfaceOverrides,
 ) -> bool {
     overrides
-        .declaration_only_type_contract_ids
-        .contains(&crate::baseline::family_id(family))
+        .declaration_only_type_contract_families
+        .contains(&family_handle(family))
 }
 
 /// Apply the typed product form of `declaration-only-type.v1` frozen by #841.
@@ -155,13 +167,13 @@ fn family_declaration_only_type_contract(
 /// disqualifiers. Because every condition is positive and all-member, unknown,
 /// partial, mixed, default-body, extension, enum, and schema origins remain on
 /// their ranked surface.
-fn declaration_only_type_contract_ids(
+fn declaration_only_type_contract_families(
     families: &[nose_detect::RefactorFamily],
-) -> FxHashSet<String> {
+) -> FxHashSet<FamilyHandle> {
     families
         .iter()
         .filter(|family| is_declaration_only_type_contract(family))
-        .map(crate::baseline::family_id)
+        .map(family_handle)
         .collect()
 }
 
@@ -223,7 +235,7 @@ fn is_declaration_only_type_contract(family: &nose_detect::RefactorFamily) -> bo
 /// statement keeps the family on its ranked surface. Misclassifying a real
 /// finding is the error class this guards against; missing an import run is
 /// only a ranking nuisance.
-fn declaration_run_ids(families: &[nose_detect::RefactorFamily]) -> FxHashSet<String> {
+fn declaration_run_families(families: &[nose_detect::RefactorFamily]) -> FxHashSet<FamilyHandle> {
     // Three passes (coevo s4 perf packet): a cheap serial prescreen picks the
     // candidate families, the unique candidate files parse in PARALLEL (the
     // serial per-file AST parse cost +29% wall on sympy), and the final pass
@@ -267,7 +279,7 @@ fn declaration_run_ids(families: &[nose_detect::RefactorFamily]) -> FxHashSet<St
                 .iter()
                 .all(|l| declaration_run_span(l, &mut lines, &facts))
         })
-        .map(|f| crate::baseline::family_id(f))
+        .map(|f| family_handle(f))
         .collect()
 }
 

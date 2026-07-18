@@ -302,17 +302,13 @@ mod tests {
             ]
             .into_iter()
             .collect(),
-            declaration_run_ids: Default::default(),
-            declaration_only_type_contract_ids: Default::default(),
+            declaration_run_families: Default::default(),
+            declaration_only_type_contract_families: Default::default(),
         };
         let ranked: Vec<_> = families.iter().collect();
-        let mut groups = OpportunityGroups::from_ranked(&ranked);
-        let default_ids = families
-            .iter()
-            .filter(|family| is_default_report_family(family, &overrides))
-            .map(baseline::family_id)
-            .collect();
-        groups.restrict_default_slices_to(&default_ids);
+        let groups = OpportunityGroups::from_ranked_with_default(&ranked, |family| {
+            is_default_report_family(family, &overrides)
+        });
         let filters = [
             ("surface=default", QOp::Eq, "default", false),
             ("surface~default", QOp::Has, "default", false),
