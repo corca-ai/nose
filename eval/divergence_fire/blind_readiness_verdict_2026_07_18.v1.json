@@ -1,0 +1,56 @@
+{
+  "blind_or_temporal_data_accessed": false,
+  "blind_replay": {
+    "changes_replayed": 0,
+    "labels_created_or_revealed": 0,
+    "population_consumed": false,
+    "repositories_opened": 0,
+    "run": false,
+    "strict_findings": null,
+    "strict_targets": null
+  },
+  "decision": {
+    "active_runtime_policy": "divergent-edit-v2-strict",
+    "classification_basis": "failed before unseal because the frozen-candidate identity required by #853 does not exist",
+    "default_on_ready": false,
+    "opt_in_only": true,
+    "reason": "#852 froze no runnable v3 candidate after the admissible class had zero development support. Opening the held-out population could not evaluate a defined candidate and would only spend the seal."
+  },
+  "generator": {
+    "path": "eval/divergence_fire/blind_readiness_verdict.py",
+    "sha256": "69583dd684adf15d9245b4dbcb7c9719805c0e2a2e34c68b2f50af79edd2dab5",
+    "source_commit": "a30c907339ccd7916a6d4e98dc99dfe582818435"
+  },
+  "held_out_state_after": {
+    "consumed": false,
+    "protocol": "sealed-unjudged",
+    "quality_labels": "unopened-no-quality-labels-exist"
+  },
+  "inputs": {
+    "development_qualification": {
+      "bytes": 4059,
+      "path": "eval/divergence_fire/v3_policy_dev_2026_07_18.v1.json",
+      "sha256": "473aef397ef6dd70dd0d9b7d57dddf18f4a968fff700c2dbce6de83f10f1f6fe"
+    },
+    "precision_protocol": {
+      "bytes": 400879,
+      "path": "eval/divergence_fire/precision_protocol_2026_07_14.v2.json",
+      "sha256": "a6b90708edc4527eae6b30ef119153f078884f85f3ac650502da5b5e96318185"
+    }
+  },
+  "issue": 853,
+  "next_action": "#854 must ship only the supported opt-in/review claim and close performance, determinism, compatibility, CI, and documentation evidence. Any future v3 cycle needs target-adjudicated development evidence and a newly qualified candidate before this held-out seal is opened.",
+  "preflight": {
+    "binary_hash_available": true,
+    "candidate_frozen_for_blind_replay": false,
+    "policy_hash_available": true,
+    "protocol_state_before": "sealed-unjudged",
+    "qualification_status": "no-policy-qualifies",
+    "quality_label_state_before": "unopened-no-quality-labels-exist",
+    "runnable_candidate_identity_available": false
+  },
+  "schema_version": 1,
+  "stage": "pre-unseal-development-qualification",
+  "verdict": "failed",
+  "verdict_count": 1
+}
