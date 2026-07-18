@@ -381,7 +381,9 @@ that completed that issue. The #862
 [`release-binding-862.v1.json`](../bench/soundness/0.20.0/release-binding-862.v1.json) separately
 binds the current crates tree, binary, replayed overlay, falsification output, Type-4 blind receipt,
 and a candidate-generated exclusion-attribution census, while proving that all frozen pair
-decisions and coverage aggregates are unchanged. The candidate census covers 13,794 units and
+decisions and coverage aggregates are unchanged. Its Type-4 input is an immutable #862 snapshot;
+the live `bench/type4/blind_attack.v1.json` continues to follow the current crates tree without
+rewriting historical release evidence. The candidate census covers 13,794 units and
 attributes every one of its 11,182 exclusions to a concrete classification and capability; generic
 or unattributed exclusions remain zero. A fresh nine-iteration query run over the seven-repository
 regression frontier uses the published v0.19.0 arm64 binary as its baseline. After subtracting a
