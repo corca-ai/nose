@@ -148,6 +148,7 @@ def replay_repo(repo, requests, repos_root, nose, timeout):
 
 def cmd_replay(args):
     samples = jsonl(args.samples)
+    nose = args.nose.resolve()
     grouped = defaultdict(list)
     by_query = defaultdict(list)
     for sample in samples:
@@ -159,7 +160,7 @@ def cmd_replay(args):
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as executor:
         futures = {
             executor.submit(
-                replay_repo, repo, requests, args.repos_root, args.nose, args.timeout
+                replay_repo, repo, requests, args.repos_root, nose, args.timeout
             ): repo
             for repo, requests in grouped.items()
         }

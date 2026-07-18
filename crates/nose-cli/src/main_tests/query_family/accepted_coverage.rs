@@ -1,4 +1,5 @@
 use super::*;
+use crate::query_dataset::preserve_query_accepted_coverage;
 
 fn accepted_pair(sites: Vec<Loc>) -> nose_detect::AcceptedCoverage {
     nose_detect::AcceptedCoverage {
@@ -10,6 +11,26 @@ fn accepted_pair(sites: Vec<Loc>) -> nose_detect::AcceptedCoverage {
             witness_kind: "exact-value-graph",
         }],
     }
+}
+
+#[test]
+fn ordinary_query_keeps_the_pre_target_accepted_coverage_contract() {
+    let mut family = fam_at(&[("t/a.go", 1, 20), ("t/b.go", 1, 20)]);
+    family.direct_edges.push(nose_detect::AcceptedEdge {
+        left: 0,
+        right: 1,
+        score: 1.0,
+        witness_kind: "exact-value-graph",
+    });
+
+    preserve_query_accepted_coverage(std::slice::from_mut(&mut family));
+
+    assert!(family.direct_edges.is_empty());
+    let [coverage] = family.accepted_coverage.as_slice() else {
+        panic!("ordinary query should retain one accepted-pair obligation");
+    };
+    assert_eq!(coverage.sites.len(), 2);
+    assert_eq!(coverage.edges.len(), 1);
 }
 
 #[test]
