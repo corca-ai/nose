@@ -112,8 +112,9 @@ Each target has a stable `target_id`, base-tree `changed` and `skipped` sites, a
 change are recomputed for that exact pair. The ID is derived from repo-relative base coordinates
 and unit metadata, so changing the temporary worktree path or moving/renaming the current-tree
 file does not change the base target. JSON and SARIF expose the same ID; SARIF also attaches it
-to the skipped primary location and changed related location. The v2 family gate remains the
-authority until the measured v3 policy in #852 consumes target evidence.
+to the skipped primary location and changed related location. The #852 development
+qualification found no non-degenerate v3 candidate, so the v2 family gate remains the active
+authority and target evidence remains inspectable review context.
 
 Each target also carries `variant_evidence`. Its closed `status` is `none`, `advisory`, or
 `disqualifying`; the last value means that at least one strong, pair-local signal was observed.
@@ -125,8 +126,8 @@ provably disjoint platform constraints. Every signal names its exact changed/ski
 Name, path, and version-label differences are emitted only with `strength="weak"`; they cannot
 become hard-block authority alone. Projection/source loss, unresolved referents, truncation, and
 overlapping or incomparable platform constraints remain explicit advisory `caveats[]`. #851
-records these facts but deliberately leaves the v2 tier and `gate.fail_default` unchanged; #852
-is the first issue allowed to consume them in a frozen policy.
+records these facts but deliberately leaves the v2 tier and `gate.fail_default` unchanged. #852
+priced the admissible target-local policy class and did not qualify a v3 consumer.
 
 The graded witness is **evidence for the consumer, not a fire gate**: a clean
 `equal_modulo_holes` family is a strong missed-propagation candidate, while a
@@ -137,6 +138,26 @@ difference does not stop a shared-*body* fix from being a genuine missed propaga
 so suppressing on it would risk the keep-every-propagation property the shared-logic policy
 is measured against. The shared-logic proof stays separate from graded-witness
 presentation evidence; the v2 tier decides whether that proof is default-failing.
+
+## V3 development qualification outcome
+
+#852 froze a monotone precision-first policy class: a hard-block target must have a direct
+changed→skipped edge, pair-local shared contact, a caveat-free `complete` semantic witness for a
+mapped replacement or deletion, and no strong variant or uncertainty caveat. Closed variant
+signals may only demote; missing evidence cannot promote.
+
+On the 80-finding public development slice, 168 direct targets were emitted but zero had a
+`complete` semantic witness. Because every admissible policy requires that witness, every
+policy in the class has zero support before any variant-code choice is made. A diagnostic that
+relaxed the fail-closed caveat requirements selected 13 findings at only 0.538 finding
+precision. Development labels also adjudicate findings rather than the newly introduced direct
+targets, so they cannot establish target precision.
+
+The checked result is therefore `no-policy-qualifies`: no v3 binary or threshold was frozen for
+blind replay, the sealed blind labels remain unopened, schema v8 and capability flags were not
+bumped, and `divergent-edit-v2-strict` remains the active opt-in policy. Human, JSON, SARIF, and
+exit status now consume one internal policy-decision object, with `items[].gate.fail_default`
+remaining the sole machine authority. See the [development result](../eval/divergence_fire/RESULTS.md#v3-policy-development-qualification-2026-07-18-852).
 
 ## Bounded semantic-change evidence
 
@@ -157,8 +178,9 @@ mixed changes, and cap exhaustion remain explicit advisory or unavailable eviden
 
 This is deliberately not a v2 decision input. `tier()` and `gate.fail_default` continue to
 use the frozen v2 policy above; even a complete semantic-change witness cannot promote a
-finding in this implementation. The evidence exists so the development corpus can price a
-future policy before that policy is frozen and evaluated blind.
+finding in this implementation. The evidence remains review context; a future policy cycle
+would need a fresh target-adjudicated development set before it could be frozen and evaluated
+blind.
 
 ## V2 gate tiers (design contract)
 
@@ -206,7 +228,7 @@ The tier decision is deterministic. Apply these rules in order:
    only `scope="prod"` can be `strict`.
 3. An unsuppressed finding with `fire_eligible=true` and
    `taxonomy_hint="missed_propagation"` in `scope="prod"` routes to `strict`. This v2
-   compatibility decision remains family-level; #852 freezes the target-local v3 policy.
+   compatibility decision remains family-level; #852 did not qualify a target-local v3 policy.
 4. Every other unsuppressed base-tree divergent-edit candidate routes to `review`.
 
 Newly added copy evidence is a separate report-only lane, not a base-tree

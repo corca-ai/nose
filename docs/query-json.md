@@ -101,9 +101,10 @@ sites and otherwise carries the bounded base-to-current evidence described below
 `divergences` is the total before `top=N` truncation; `shown_divergences` is `items.length`;
 `limit` is the numeric row limit or `null` for `top=0`. `fire_eligible` is the legacy v1
 conservative gate verdict. In the current implementation it means the diff provably touches
-shared logic in the family and the family is not all-test scaffolding. Direct target evidence
-does not alter this compatibility verdict until #852 freezes v3. `strict` counts the v2 default-failing
-items, but it is only a summary count; CI decisions should read each emitted item's
+shared logic in the family and the family is not all-test scaffolding. The #852 development
+qualification found no non-degenerate v3 candidate, so direct target evidence does not alter
+this compatibility verdict. `strict` counts the v2 default-failing items, but it is only a
+summary count; CI decisions should read each emitted item's
 `gate.fail_default`, ideally from a `top=0` run.
 
 The v8 base-view additions for divergent-edit v2 are intentionally schema-breaking
@@ -122,7 +123,8 @@ caps, and explicit `caveats[]` make partial evidence inspectable. Pure source in
 mixed changes, lossy/unsupported lowering, missing or ambiguous units, heuristic alignment,
 unresolved referents, and capped mappings cannot be `complete`. This field does not alter
 `fire_eligible`, `tier`, or `gate.fail_default`; #849 emits and measures the evidence before
-a later frozen policy may consume it.
+policy qualification. #852 found no admissible non-degenerate v3 consumer, so it remains
+review evidence under schema v8.
 
 `targets[]` is an evidence-only v8 extension for target-level policy development. A target is
 `{target_id, changed, skipped, direct_witness, variant_evidence}`. `target_id` is the 16-hex-digit FNV identity of
@@ -145,7 +147,7 @@ and `version-label-mismatch` are always `strength="weak"`. Caveat codes are
 `lossy-projection`, `unresolved-referent`, `truncated`, and
 `conflicting-platform-guard`. Missing or contradictory evidence is advisory, and weak signals
 cannot disqualify a target. This field does not change the v2 `tier` or `gate.fail_default`;
-#852 may consume it only through the frozen v3 policy.
+#852 did not qualify or activate a v3 policy that consumes it.
 The evidence compares the current changed result to the skipped base-tree endpoint; the stable
 `target_id` and `direct_witness` remain anchored to the accepted base-tree edge.
 
@@ -154,8 +156,8 @@ keeps one result per family: `properties.targets` mirrors JSON's `targets`, and 
 target-backed primary/related location carries the same `target_id` in its `properties`. A base
 finding with no retained direct target remains review context and falls back to family
 locations; consumers must not reconstruct targets from those fallback locations. This
-extension does not make target evidence a v2 gate input by itself; #852 freezes the policy that
-may consume it.
+extension does not make target evidence a v2 gate input by itself. #852 left the v2 contract
+active after the admissible v3 class had zero development support.
 
 The v8 `base.items[]` object adds:
 
