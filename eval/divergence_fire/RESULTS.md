@@ -300,6 +300,58 @@ The remaining false-positive buckets under serialized `fire_eligible` are:
 | `test_scaffolding` | 12 | keep test/scope filtering prominent in default policy |
 | `not_a_clone` | 7 | improve family grouping quality for broad low-specificity matches |
 
+## Semantic change witness development pricing (2026-07-18, #849)
+
+#849 adds bounded base-to-current value/control/effect/return evidence to already
+flagged changed members. It does not change `tier`, `fire_eligible`, or
+`gate.fail_default`. The checked
+[`semantic_witness_dev_2026_07_18.v1.json`](semantic_witness_dev_2026_07_18.v1.json)
+prices the evidence only on the public 2026-07-06 development labels; no blind or
+temporal input was accessed.
+
+The final replay matched all 179 labeled findings with zero query errors. The frozen
+v2 strict slice remains 80 findings: 45 `should_propagate`, 17
+`no_propagation_needed`, 13 `intentional_divergence`, and 5 `not_a_clone`.
+
+| simulated predicate | selected | true positives | precision | TP retention |
+|---|---:|---:|---:|---:|
+| current v2 strict | 80 | 45 | 56.25% | 100% |
+| mapped semantic delta evidence | 22 | 12 | 54.55% | 26.67% |
+| mapped sink delta evidence | 20 | 12 | 60.00% | 26.67% |
+| require complete mapped delta | 0 | 0 | n/a | 0% |
+| demote any no-semantic-delta evidence | 76 | 44 | 57.89% | 97.78% |
+| demote no-shared-semantic-node evidence | 71 | 45 | 63.38% | 100% |
+
+The last row is promising development evidence—it removes all five `not_a_clone`
+rows and four of the 17 strict `no_propagation_needed` rows without losing a labeled
+positive—but it is frequently advisory because of lossy lowering or unresolved
+referents. #849 therefore records it without promoting it into policy. No complete
+predicate selected a real development finding, so treating absence of caveats as a
+new strict requirement would erase all strict recall rather than prove a better gate.
+
+The official-v0.19.0 runtime receipt is
+[`issue-849-official-v0.19.0-performance-2026-07-18.v1.json`](../../bench/recall_loss/issue-849-official-v0.19.0-performance-2026-07-18.v1.json).
+Across one frozen strict default-arm query in each of 17 development repositories,
+the final candidate adds 508.48 ms / 5.06% raw and 537.98 ms / 5.35% after the
+same-binary control. Removing `semantic_change` makes all 17 JSON outputs identical.
+The first eager implementation added 5,492.02 ms / 54.86%; lazy per-unit projection
+and caching removed that unbounded file-wide work before closeout.
+
+Reproduce the source-free aggregate artifacts after building the release binary:
+
+```sh
+python3 eval/divergence_fire/semantic_witness_eval.py selftest
+python3 eval/divergence_fire/semantic_witness_eval.py replay \
+  --jobs 4 --timeout 240 --out /tmp/issue-849-dev-replay.jsonl
+python3 eval/divergence_fire/semantic_witness_eval.py summarize \
+  --records /tmp/issue-849-dev-replay.jsonl --nose target/release/nose \
+  --out eval/divergence_fire/semantic_witness_dev_2026_07_18.v1.json
+python3 eval/divergence_fire/semantic_witness_eval.py runtime \
+  --baseline target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose \
+  --current target/release/nose --iterations 3 --warmups 1 --timeout 240 \
+  --out /tmp/issue-849-runtime-primary.json
+```
+
 ## Fire rate (change level; 347 replayed changes per arm)
 
 | arm | fire rate | findings/fire p50 | p90 | max | divergence s p50 | p90 |
