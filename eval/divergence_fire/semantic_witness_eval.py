@@ -12,6 +12,7 @@ import concurrent.futures
 import hashlib
 import json
 from pathlib import Path
+import statistics
 import subprocess
 import tempfile
 import time
@@ -171,15 +172,24 @@ def cmd_replay(args):
 def witness_predicates(row):
     witnesses = [w for w in row.get("semantic_change", []) if isinstance(w, dict)]
     complete = [w for w in witnesses if w.get("status") == "complete"]
-    mapped_delta = [
-        w for w in complete
+    mapped_delta_evidence = [
+        w for w in witnesses
         if w.get("change_kind") not in {"no-semantic-delta", "mixed", "unknown"}
         and w.get("facets")
         and w.get("coverage", {}).get("mapped_shared_nodes", 0) > 0
     ]
+    complete_mapped_delta = [w for w in mapped_delta_evidence if w.get("status") == "complete"]
     return {
-        "complete-mapped-semantic-delta": bool(mapped_delta),
-        "complete-mapped-sink-delta": any(w.get("sink_deltas") for w in mapped_delta),
+        "mapped-semantic-delta-evidence": bool(mapped_delta_evidence),
+        "mapped-sink-delta-evidence": any(w.get("sink_deltas") for w in mapped_delta_evidence),
+        "no-semantic-delta-evidence": any(
+            w.get("change_kind") == "no-semantic-delta" for w in witnesses
+        ),
+        "no-shared-semantic-node-evidence": any(
+            "no-shared-semantic-node" in w.get("caveats", []) for w in witnesses
+        ),
+        "complete-mapped-semantic-delta": bool(complete_mapped_delta),
+        "complete-mapped-sink-delta": any(w.get("sink_deltas") for w in complete_mapped_delta),
         "complete-no-semantic-delta": any(
             w.get("status") == "complete" and w.get("change_kind") == "no-semantic-delta"
             for w in witnesses
@@ -294,6 +304,16 @@ def cmd_summarize(args):
         "simulations": [
             simulation("current-v2-strict", strict, lambda row: True),
             simulation(
+                "evidence-slice-mapped-semantic-delta",
+                strict,
+                lambda row: row["predicates"]["mapped-semantic-delta-evidence"],
+            ),
+            simulation(
+                "evidence-slice-mapped-sink-delta",
+                strict,
+                lambda row: row["predicates"]["mapped-sink-delta-evidence"],
+            ),
+            simulation(
                 "require-complete-mapped-semantic-delta",
                 strict,
                 lambda row: row["predicates"]["complete-mapped-semantic-delta"],
@@ -307,6 +327,16 @@ def cmd_summarize(args):
                 "demote-complete-no-semantic-delta",
                 strict,
                 lambda row: not row["predicates"]["complete-no-semantic-delta"],
+            ),
+            simulation(
+                "demote-on-any-no-semantic-delta-evidence",
+                strict,
+                lambda row: not row["predicates"]["no-semantic-delta-evidence"],
+            ),
+            simulation(
+                "demote-on-no-shared-semantic-node-evidence",
+                strict,
+                lambda row: not row["predicates"]["no-shared-semantic-node-evidence"],
             ),
         ],
         "interpretation": (
@@ -330,8 +360,159 @@ def cmd_selftest(_args):
         }]
     }
     assert witness_predicates(row)["complete-mapped-semantic-delta"]
+    assert witness_predicates(row)["mapped-semantic-delta-evidence"]
     assert not witness_predicates(row)["complete-mapped-sink-delta"]
     print("semantic_witness_eval selftest: ok")
+
+
+def strip_semantic_change(document):
+    document = json.loads(json.dumps(document))
+    for finding in document.get("items", []):
+        for key in ("changed", "not_updated", "current_only"):
+            for site in finding.get(key, []):
+                site.pop("semantic_change", None)
+    return document
+
+
+def runtime_queries(samples):
+    by_repo = {}
+    for sample in sorted(samples, key=lambda row: (row["repo"], row["sid"])):
+        if sample["arm"] == "default" and current_v2_strict(sample):
+            by_repo.setdefault(sample["repo"], sample)
+    return list(by_repo.values())
+
+
+def runtime_repo(sample, repos_root, binaries, iterations, warmups, timeout):
+    repo = sample["repo"]
+    source = repos_root / repo
+    rows = []
+    legacy_equal = True
+    with tempfile.TemporaryDirectory(prefix=f"nose-849-runtime-{repo}-") as tmp:
+        worktree = Path(tmp) / "worktree"
+        added = run([
+            "git", "-C", str(source), "worktree", "add", "--detach", "--quiet",
+            str(worktree), sample["commit"],
+        ])
+        if added.returncode != 0:
+            raise SystemExit(f"runtime worktree add failed for {repo}: {added.stderr}")
+        try:
+            command_tail = [
+                "query", ".", f"base={sample['parent']}", "top=0", "--format", "json"
+            ]
+            for _ in range(warmups):
+                for binary in binaries.values():
+                    result = run([str(binary), *command_tail], cwd=worktree, timeout=timeout)
+                    if result.returncode != 0:
+                        raise SystemExit(f"runtime warmup failed for {repo}: {result.stderr}")
+            documents = {}
+            for iteration in range(1, iterations + 1):
+                order = ("baseline", "current") if iteration % 2 else ("current", "baseline")
+                for label in order:
+                    started = time.perf_counter()
+                    result = run(
+                        [str(binaries[label]), *command_tail],
+                        cwd=worktree,
+                        timeout=timeout,
+                    )
+                    elapsed_ms = (time.perf_counter() - started) * 1000
+                    if result.returncode != 0:
+                        raise SystemExit(
+                            f"runtime query failed for {repo}/{label}: {result.stderr}"
+                        )
+                    document = json.loads(result.stdout)
+                    documents[label] = document
+                    rows.append({
+                        "repo": repo,
+                        "iteration": iteration,
+                        "label": label,
+                        "elapsed_ms": round(elapsed_ms, 6),
+                        "output_bytes": len(result.stdout.encode()),
+                    })
+                legacy_equal &= documents["baseline"] == strip_semantic_change(
+                    documents["current"]
+                )
+        finally:
+            run(["git", "-C", str(source), "worktree", "remove", "--force", str(worktree)])
+            run(["git", "-C", str(source), "worktree", "prune"])
+    return rows, legacy_equal
+
+
+def runtime_summary(rows, repos):
+    by_repo = {}
+    for repo in repos:
+        labels = {}
+        for label in ("baseline", "current"):
+            elapsed = [
+                row["elapsed_ms"] for row in rows
+                if row["repo"] == repo and row["label"] == label
+            ]
+            labels[label] = round(statistics.median(elapsed), 6)
+        baseline = labels["baseline"]
+        current = labels["current"]
+        by_repo[repo] = {
+            **labels,
+            "delta_ms": round(current - baseline, 6),
+            "delta_pct": round((current - baseline) / baseline * 100, 6),
+        }
+    baseline = sum(row["baseline"] for row in by_repo.values())
+    current = sum(row["current"] for row in by_repo.values())
+    return {
+        "aggregate": {
+            "baseline_median_sum_ms": round(baseline, 6),
+            "current_median_sum_ms": round(current, 6),
+            "delta_ms": round(current - baseline, 6),
+            "delta_pct": round((current - baseline) / baseline * 100, 6),
+        },
+        "by_repo": by_repo,
+    }
+
+
+def cmd_runtime(args):
+    samples = jsonl(args.samples)
+    queries = runtime_queries(samples)
+    binaries = {"baseline": args.baseline.resolve(), "current": args.current.resolve()}
+    rows = []
+    compatibility = {}
+    for sample in queries:
+        repo_rows, legacy_equal = runtime_repo(
+            sample, args.repos_root, binaries, args.iterations, args.warmups, args.timeout
+        )
+        rows.extend(repo_rows)
+        compatibility[sample["repo"]] = legacy_equal
+        print(f"[{sample['repo']}] runtime complete", flush=True)
+    output = {
+        "schema_version": 1,
+        "issue": 849,
+        "command": "nose query . base=<parent> top=0 --format json",
+        "development_only": True,
+        "inputs": {
+            "samples": str(args.samples.relative_to(ROOT)),
+            "samples_sha256": sha256(args.samples),
+            "harness_sha256": sha256(Path(__file__)),
+            "selection": "first current-v2-strict default-arm finding per repository",
+        },
+        "configuration": {
+            "iterations": args.iterations,
+            "warmups": args.warmups,
+            "timeout_s": args.timeout,
+            "repositories": [sample["repo"] for sample in queries],
+        },
+        "binaries": {
+            label: {
+                "path": str(binary),
+                "sha256": sha256(binary),
+                "version": run([str(binary), "--version"]).stdout.strip(),
+            }
+            for label, binary in binaries.items()
+        },
+        "legacy_output_compatibility": {
+            "all_equal_after_removing_semantic_change": all(compatibility.values()),
+            "by_repo": compatibility,
+        },
+        "runs": rows,
+        "summary": runtime_summary(rows, [sample["repo"] for sample in queries]),
+    }
+    args.out.write_text(json.dumps(output, indent=2, sort_keys=True) + "\n")
 
 
 def parser():
@@ -356,6 +537,17 @@ def parser():
 
     selftest = commands.add_parser("selftest")
     selftest.set_defaults(func=cmd_selftest)
+
+    runtime = commands.add_parser("runtime")
+    runtime.add_argument("--samples", type=Path, default=DEFAULT_SAMPLES)
+    runtime.add_argument("--repos-root", type=Path, default=ROOT / "bench/repos")
+    runtime.add_argument("--baseline", type=Path, required=True)
+    runtime.add_argument("--current", type=Path, required=True)
+    runtime.add_argument("--iterations", type=int, default=3)
+    runtime.add_argument("--warmups", type=int, default=1)
+    runtime.add_argument("--timeout", type=int, default=240)
+    runtime.add_argument("--out", type=Path, required=True)
+    runtime.set_defaults(func=cmd_runtime)
     return root
 
 
