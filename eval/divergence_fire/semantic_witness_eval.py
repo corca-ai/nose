@@ -134,6 +134,11 @@ def replay_repo(repo, requests, repos_root, nose, timeout):
                             [site.get("semantic_change") for site in finding.get("changed", [])]
                             if finding else []
                         ),
+                        # Additive replay evidence used by #850. The #849 summarizer ignores
+                        # these fields, so its checked artifact remains reproducible.
+                        "changed": finding.get("changed", []) if finding else [],
+                        "not_updated": finding.get("not_updated", []) if finding else [],
+                        "targets": finding.get("targets", []) if finding else [],
                     })
         finally:
             run(["git", "-C", str(source), "worktree", "remove", "--force", str(worktree)])
@@ -368,6 +373,9 @@ def cmd_selftest(_args):
 def strip_semantic_change(document):
     document = json.loads(json.dumps(document))
     for finding in document.get("items", []):
+        # #850 adds pair-local evidence after #849. Removing it here lets the same
+        # official-release compatibility harness compare the pre-evidence contract.
+        finding.pop("targets", None)
         for key in ("changed", "not_updated", "current_only"):
             for site in finding.get(key, []):
                 site.pop("semantic_change", None)

@@ -17,6 +17,6 @@ mod score;
 #[cfg(test)]
 mod tests;
 
-pub use model::{AcceptedCoverage, RefactorFamily, VaryingSpot};
+pub use model::{AcceptedCoverage, AcceptedEdge, RefactorFamily, VaryingSpot};
 pub use paths::{is_test_loc, is_test_path};
 pub use ranking::rank_families;

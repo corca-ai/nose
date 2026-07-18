@@ -41,7 +41,18 @@ pub fn detect_with_accepted_coverage(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> Report {
-    detect_with_dump_inner(corpus, opts, detector, true).0
+    detect_with_dump_inner(corpus, opts, detector, true, false).0
+}
+
+/// Divergent-edit detection counterpart that also retains direct copy-paste-run
+/// edges. Product query suppression intentionally keeps its historical structural-
+/// coverage behavior; propagation targets need every enabled detector channel.
+pub fn detect_with_direct_accepted_coverage(
+    corpus: &Corpus,
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+) -> Report {
+    detect_with_dump_inner(corpus, opts, detector, true, true).0
 }
 
 /// Per-stage wall-clock timing, printed to stderr when `NOSE_TIME` is set. A
@@ -126,7 +137,7 @@ pub fn detect_with_dump(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> (Report, Dump) {
-    detect_with_dump_inner(corpus, opts, detector, false)
+    detect_with_dump_inner(corpus, opts, detector, false, false)
 }
 
 fn detect_with_dump_inner(
@@ -134,6 +145,7 @@ fn detect_with_dump_inner(
     opts: &DetectOptions,
     detector: &dyn Detector,
     trace_accepted_coverage: bool,
+    trace_contiguous_coverage: bool,
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
@@ -198,6 +210,7 @@ fn detect_with_dump_inner(
         opts,
         detector,
         trace_accepted_coverage,
+        trace_contiguous_coverage,
     )
 }
 
@@ -213,7 +226,7 @@ pub fn detect_from_units(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> (Report, Dump) {
-    detect_from_units_inner(units, files, streams, opts, detector, false)
+    detect_from_units_inner(units, files, streams, opts, detector, false, false)
 }
 
 /// Cached-query counterpart to [`detect_with_accepted_coverage`].
@@ -224,7 +237,7 @@ pub fn detect_from_units_with_accepted_coverage(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> (Report, Dump) {
-    detect_from_units_inner(units, files, streams, opts, detector, true)
+    detect_from_units_inner(units, files, streams, opts, detector, true, false)
 }
 
 fn detect_from_units_inner(
@@ -234,6 +247,7 @@ fn detect_from_units_inner(
     opts: &DetectOptions,
     detector: &dyn Detector,
     trace_accepted_coverage: bool,
+    trace_contiguous_coverage: bool,
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
@@ -335,10 +349,20 @@ fn detect_from_units_inner(
     // value-graph channel, so both `detect` and the CLI's `--cache-dir` path produce
     // the same families — the cache supplies cached streams, otherwise this would
     // silently omit every contiguous clone.
-    append_contiguous_groups(&mut report, streams, opts, &units);
+    append_contiguous_groups(
+        &mut report,
+        streams,
+        opts,
+        &units,
+        trace_contiguous_coverage,
+    );
     clk.lap("contiguous");
 
-    let dump = Dump {
+    (report, detection_dump(&units, &candidates))
+}
+
+fn detection_dump(units: &[UnitFeat], candidates: &[(usize, usize)]) -> Dump {
+    Dump {
         units: units
             .iter()
             .map(|u| UnitLoc {
@@ -353,9 +377,7 @@ fn detect_from_units_inner(
             .iter()
             .map(|&(i, j)| (i as u32, j as u32))
             .collect(),
-    };
-
-    (report, dump)
+    }
 }
 
 type AcceptedPair = (usize, usize, f64);
@@ -449,16 +471,21 @@ fn append_contiguous_groups(
     streams: &[Stream],
     opts: &DetectOptions,
     units: &[UnitFeat],
+    trace_accepted_coverage: bool,
 ) {
     if !opts.contiguous {
         return;
     }
-    let mut extra = contiguous::detect(
+    let (mut extra, accepted_edges) = contiguous::detect(
         streams,
         opts.contiguous_min_tokens,
         opts.contiguous_min_lines,
+        trace_accepted_coverage,
     );
     attach_enclosing_units(&mut extra, units);
     report.metrics.groups += extra.len();
     report.groups.extend(extra);
+    if trace_accepted_coverage {
+        report.accepted_group_edges.extend(accepted_edges);
+    }
 }

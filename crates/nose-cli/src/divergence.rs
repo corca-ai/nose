@@ -110,6 +110,26 @@ pub(crate) struct Divergence {
     pub(crate) changed: Vec<Site>,
     /// Sibling members the change did *not* touch (where it may be missing).
     pub(crate) not_updated: Vec<Site>,
+    /// Pair-local propagation targets backed by detector-accepted edges. Family
+    /// members that are reachable only through transitive closure stay in the
+    /// changed/not-updated review context but never appear here.
+    pub(crate) targets: Vec<PropagationTarget>,
+}
+
+#[derive(Clone)]
+pub(crate) struct PropagationTarget {
+    /// Directed identity of (base changed site, base skipped site), independent
+    /// of the temporary base worktree and enclosing-family clustering.
+    pub(crate) target_id: String,
+    pub(crate) changed: Site,
+    pub(crate) skipped: Site,
+    pub(crate) direct_witness: DirectPairWitness,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize)]
+pub(crate) struct DirectPairWitness {
+    pub(crate) kind: &'static str,
+    pub(crate) similarity: f64,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -381,6 +401,7 @@ pub(crate) struct SemanticWitnessCaps {
     pub(crate) max_file_bytes: usize,
     pub(crate) max_changed_sites_per_family: usize,
     pub(crate) max_siblings_per_family: usize,
+    pub(crate) max_targets_per_family: usize,
     pub(crate) max_units_per_file: usize,
     pub(crate) max_nodes_per_unit: usize,
 }

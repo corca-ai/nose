@@ -100,6 +100,21 @@ the family's [graded witness](graded-witness.md) (`graded`: `equal_modulo_holes`
 `holes`, `patterns`, `referent_mismatches`, `caveat_names`), so a CI wrapper can use
 the emitted `gate.fail_default` value without re-deriving the analysis.
 
+It also carries `targets[]`, the exact propagation edges under evaluation. Clone families are
+transitive components: if A matched B and B matched C, family membership alone does not prove
+that A matched C. nose therefore retains detector-accepted pairs before clustering and emits a
+target only when one direct edge crosses from a changed member to a skipped member. A bridge or
+other transitive member remains in `changed[]` / `not_updated[]` as review context but cannot be
+named as the endpoint of a strict action without its own accepted edge.
+
+Each target has a stable `target_id`, base-tree `changed` and `skipped` sites, and a pair-local
+`direct_witness` with detector kind and similarity. Shared-line contact and bounded semantic
+change are recomputed for that exact pair. The ID is derived from repo-relative base coordinates
+and unit metadata, so changing the temporary worktree path or moving/renaming the current-tree
+file does not change the base target. JSON and SARIF expose the same ID; SARIF also attaches it
+to the skipped primary location and changed related location. The v2 family gate remains the
+authority until the measured v3 policy in #852 consumes target evidence.
+
 The graded witness is **evidence for the consumer, not a fire gate**: a clean
 `equal_modulo_holes` family is a strong missed-propagation candidate, while a
 `referent-mismatch` / `decorator-differs` family is evidence that the copies may have
@@ -112,14 +127,16 @@ presentation evidence; the v2 tier decides whether that proof is default-failing
 
 ## Bounded semantic-change evidence
 
-For an already-flagged base divergence, each changed site also carries
+For an already-flagged base divergence, each family-level changed site and each direct target's
+changed site also carries
 `semantic_change`. nose aligns that base unit with its current-tree unit, compares bounded
 value-DAG and behavior-sink projections, and maps affected base nodes into a capped set of
-skipped siblings. This distinguishes source contact with no normalized semantic delta from
+skipped siblings. Family-level evidence retains the capped aggregate for review; target-level
+evidence maps against exactly one skipped endpoint. This distinguishes source contact with no normalized semantic delta from
 replacement, deletion, and insertion of value, return, control, or effect behavior.
 
 The analysis is candidate-local: at most 64 selected base/current files of 2 MiB each, 16
-changed sites and 16 skipped siblings per family, 512 units per file, and 2,048 value nodes
+changed sites, 16 skipped siblings, and 64 direct targets per family, 512 units per file, and 2,048 value nodes
 per unit participate. It does not discover or scan the repository again. Unsupported
 fragments or declarative/container languages, parse/lower failures, missing current units,
 lossy lowering, unresolved referents, ambiguous or heuristic alignment, pure insertions,
@@ -175,7 +192,8 @@ The tier decision is deterministic. Apply these rules in order:
    strict policy, `test_scope` covers both `scope="test"` and `scope="mixed"`;
    only `scope="prod"` can be `strict`.
 3. An unsuppressed finding with `fire_eligible=true` and
-   `taxonomy_hint="missed_propagation"` in `scope="prod"` routes to `strict`.
+   `taxonomy_hint="missed_propagation"` in `scope="prod"` routes to `strict`. This v2
+   compatibility decision remains family-level; #852 freezes the target-local v3 policy.
 4. Every other unsuppressed base-tree divergent-edit candidate routes to `review`.
 
 Newly added copy evidence is a separate report-only lane, not a base-tree

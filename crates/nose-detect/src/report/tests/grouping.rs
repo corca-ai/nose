@@ -4,7 +4,7 @@ use super::super::{
     rank_families,
     ranking::{family_min_loc, subsumes},
 };
-use super::support::{fam, loc, report};
+use super::support::{accepted_edge, fam, loc, report};
 
 #[test]
 fn subsumes_collapses_window_shift() {
@@ -106,18 +106,29 @@ fn accepted_edges_follow_collapsed_sites_across_files() {
         witness: None,
     };
     let mut report = report(vec![g]);
-    report.accepted_group_edges = vec![vec![(0, 2), (1, 2), (2, 3), (0, 1)]];
+    report.accepted_group_edges = vec![vec![
+        accepted_edge(0, 2),
+        accepted_edge(1, 2),
+        accepted_edge(2, 3),
+        accepted_edge(0, 1),
+    ]];
 
     let families = rank_families(&report);
     let [family] = families.as_slice() else {
         panic!("the collapsed group must remain one family")
     };
-    let [coverage] = family.accepted_coverage.as_slice() else {
-        panic!("the family must retain one accepted-edge obligation")
-    };
-
-    assert_eq!(coverage.sites.len(), 3);
-    assert_eq!(coverage.edges, vec![(0, 1), (1, 2)]);
+    assert!(
+        family.accepted_coverage.is_empty(),
+        "a retained family's own edges need no copied coverage obligation"
+    );
+    assert_eq!(
+        family
+            .direct_edges
+            .iter()
+            .map(|edge| (edge.left, edge.right))
+            .collect::<Vec<_>>(),
+        vec![(0, 1), (1, 2)]
+    );
 }
 
 #[test]
@@ -146,7 +157,7 @@ fn subsumed_family_is_dropped() {
         witness: None,
     };
     let mut report = report(vec![inner, outer]);
-    report.accepted_group_edges = vec![vec![(0, 1)], Vec::new()];
+    report.accepted_group_edges = vec![vec![accepted_edge(0, 1)], Vec::new()];
     let fams = rank_families(&report);
     assert_eq!(fams.len(), 1, "the contained family should be dropped");
     assert_eq!(
@@ -157,7 +168,11 @@ fn subsumed_family_is_dropped() {
         panic!("the syntax survivor must inherit exactly one structural obligation")
     };
     assert_eq!(obligation.sites.len(), 2);
-    assert_eq!(obligation.edges, vec![(0, 1)]);
+    assert_eq!(obligation.edges.len(), 1);
+    assert_eq!(
+        (obligation.edges[0].left, obligation.edges[0].right),
+        (0, 1)
+    );
     assert!(obligation
         .sites
         .iter()

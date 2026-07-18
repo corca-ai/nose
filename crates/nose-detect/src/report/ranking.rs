@@ -3,7 +3,7 @@ use nose_semantics::value_law_provenance;
 use rayon::prelude::*;
 
 use super::{
-    model::{AcceptedCoverage, RefactorFamily},
+    model::{AcceptedCoverage, AcceptedEdge, RefactorFamily},
     paths::{
         is_generated_loc, is_test_loc, module_of, overlap_frac, refactor_discount, span_lines,
     },
@@ -37,7 +37,7 @@ pub(super) fn family_of(group: &Group) -> RefactorFamily {
     family_of_with_edges(group, &[])
 }
 
-fn family_of_with_edges(group: &Group, group_edges: &[(u32, u32)]) -> RefactorFamily {
+fn family_of_with_edges(group: &Group, group_edges: &[AcceptedEdge]) -> RefactorFamily {
     // Collapse co-located units to one refactoring site. Block extraction yields a
     // function unit *and* inner blocks that overlap it, and near-identical spans can
     // differ by a line; all of these are one place to refactor, not several. Keep the
@@ -104,14 +104,6 @@ fn family_of_with_edges(group: &Group, group_edges: &[(u32, u32)]) -> RefactorFa
         langs.len(),
     ) * discount;
     let collapsed_edges = collapsed_accepted_edges(group, &locs, group_edges);
-    let accepted_coverage = if collapsed_edges.is_empty() {
-        Vec::new()
-    } else {
-        vec![AcceptedCoverage {
-            sites: locs.clone(),
-            edges: collapsed_edges,
-        }]
-    };
     RefactorFamily {
         value,
         members,
@@ -126,7 +118,8 @@ fn family_of_with_edges(group: &Group, group_edges: &[(u32, u32)]) -> RefactorFa
         params: 0,
         shared_weight: 0.0,
         locations: locs,
-        accepted_coverage,
+        direct_edges: collapsed_edges,
+        accepted_coverage: Vec::new(),
         display_params: None,
         mean_sem,
         scope,
@@ -145,8 +138,8 @@ fn family_of_with_edges(group: &Group, group_edges: &[(u32, u32)]) -> RefactorFa
 fn collapsed_accepted_edges(
     group: &Group,
     collapsed_sites: &[Loc],
-    group_edges: &[(u32, u32)],
-) -> Vec<(u32, u32)> {
+    group_edges: &[AcceptedEdge],
+) -> Vec<AcceptedEdge> {
     let mut sites_by_file: rustc_hash::FxHashMap<&str, Vec<(u32, &Loc)>> =
         rustc_hash::FxHashMap::default();
     for (index, site) in collapsed_sites.iter().enumerate() {
@@ -169,16 +162,27 @@ fn collapsed_accepted_edges(
                 .map(|(index, _)| index)
         })
         .collect();
-    let mut edges: Vec<(u32, u32)> = group_edges
+    let mut edges: Vec<AcceptedEdge> = group_edges
         .iter()
-        .filter_map(|&(left, right)| {
-            let left = site_of.get(left as usize).copied().flatten()?;
-            let right = site_of.get(right as usize).copied().flatten()?;
-            (left != right).then_some((left.min(right), left.max(right)))
+        .filter_map(|edge| {
+            let left = site_of.get(edge.left as usize).copied().flatten()?;
+            let right = site_of.get(edge.right as usize).copied().flatten()?;
+            (left != right).then_some(AcceptedEdge {
+                left: left.min(right),
+                right: left.max(right),
+                score: edge.score,
+                witness_kind: edge.witness_kind,
+            })
         })
         .collect();
-    edges.sort_unstable();
-    edges.dedup();
+    edges.sort_by(|a, b| {
+        a.left
+            .cmp(&b.left)
+            .then(a.right.cmp(&b.right))
+            .then_with(|| b.score.total_cmp(&a.score))
+            .then(a.witness_kind.cmp(b.witness_kind))
+    });
+    edges.dedup_by(|a, b| a.left == b.left && a.right == b.right);
     edges
 }
 
@@ -258,6 +262,12 @@ pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
                 })
             });
             if let Some(ki) = subsumer {
+                if !f.direct_edges.is_empty() {
+                    f.accepted_coverage.push(AcceptedCoverage {
+                        sites: std::mem::take(&mut f.locations),
+                        edges: std::mem::take(&mut f.direct_edges),
+                    });
+                }
                 merge_accepted_coverage(
                     &mut kept[ki].accepted_coverage,
                     std::mem::take(&mut f.accepted_coverage),

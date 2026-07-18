@@ -94,14 +94,15 @@ omitted from `items[]` because production code should rehome/extract a helper be
 `shown_divergences`, `limit`, `fire_eligible`, `strict`), and `items[]` of `{family_id, lane,
 base_family_id, similarity, complexity, scope, witness_kind, fire_eligible, tier,
 tier_reasons[], taxonomy_hint, gate, suppression, graded, changed[], not_updated[],
-current_only[]}` — each site carries `{file, name, start_line, end_line, lang, kind,
+current_only[], targets[]}` — each site carries `{file, name, start_line, end_line, lang, kind,
 span_lines, span_tokens, is_fragment, fragment_kind, reason_code, enclosing_unit,
 touches_shared, semantic_change, tree}`. `semantic_change` is `null` for skipped/current-only
 sites and otherwise carries the bounded base-to-current evidence described below.
 `divergences` is the total before `top=N` truncation; `shown_divergences` is `items.length`;
 `limit` is the numeric row limit or `null` for `top=0`. `fire_eligible` is the legacy v1
 conservative gate verdict. In the current implementation it means the diff provably touches
-shared logic and the family is not all-test scaffolding. `strict` counts the v2 default-failing
+shared logic in the family and the family is not all-test scaffolding. Direct target evidence
+does not alter this compatibility verdict until #852 freezes v3. `strict` counts the v2 default-failing
 items, but it is only a summary count; CI decisions should read each emitted item's
 `gate.fail_default`, ideally from a `top=0` run.
 
@@ -123,6 +124,25 @@ unresolved referents, and capped mappings cannot be `complete`. This field does 
 `fire_eligible`, `tier`, or `gate.fail_default`; #849 emits and measures the evidence before
 a later frozen policy may consume it.
 
+`targets[]` is an evidence-only v8 extension for target-level policy development. A target is
+`{target_id, changed, skipped, direct_witness}`. `target_id` is the 16-hex-digit FNV identity of
+the directed pair's repo-relative base coordinates and unit metadata; temporary base-worktree
+paths and enclosing-family membership are not inputs. `direct_witness` is the pair-local
+`{kind, similarity}` recorded when the detector accepted that edge, before transitive family
+closure. `changed.touches_shared` is computed against only that target's `skipped` site, and
+`changed.semantic_change` maps the changed behavior against only that skipped site. The
+top-level `changed[]` / `not_updated[]` arrays remain the complete family review context, so a
+bridge member reachable only through another clone stays visible there but is not silently
+turned into a propagation target.
+
+JSON keeps one `items[]` finding per family, with zero or more direct targets. SARIF likewise
+keeps one result per family: `properties.targets` mirrors JSON's `targets`, and every
+target-backed primary/related location carries the same `target_id` in its `properties`. A base
+finding with no retained direct target remains review context and falls back to family
+locations; consumers must not reconstruct targets from those fallback locations. This
+extension does not make target evidence a v2 gate input by itself; #852 freezes the policy that
+may consume it.
+
 The v8 `base.items[]` object adds:
 
 | field | type | meaning |
@@ -134,6 +154,7 @@ The v8 `base.items[]` object adds:
 | `taxonomy_hint` | string or null | Closed evidence/routing bucket for UI copy: `missed_propagation`, `no_propagation_needed`, `intentional_variant`, `test_scaffolding`, `grouping_artifact`, or `unclear`. This guides inspection; it is not a harm or correctness verdict. |
 | `gate` | object | `{eligible, fail_default, policy}` where `eligible` is informational (`true` for `strict` and `review`, false for `report-only` and `suppressed`), `fail_default` is the authoritative default CI decision and is true only for unsuppressed `strict`, and `policy` names the policy version such as `divergent-edit-v2-strict`. |
 | `suppression` | object or null | Structured-ignore match metadata when a future suppressed/debug view asks for it: `{kind, reason, owner, expires_at}`. `kind` is the closed enum `structured-ignore` for v8. Active human/SARIF output omits suppressed findings by default. |
+| `targets[]` | array | Direct detector-accepted changed→skipped propagation edges. Each target has stable `target_id`, pair-local `direct_witness`, and base-tree `changed` / `skipped` sites carrying pair-specific shared-line and semantic-change mapping. Empty for `new-copy` and when no direct edge survives. |
 
 Composition rules for v8:
 
@@ -146,6 +167,9 @@ Composition rules for v8:
   the added/copied/renamed current member plus its current-tree clone siblings.
   The `new-copy` pass is bounded to diffs touching at most two source files so
   report-only evidence does not add broad-PR runtime cost.
+- `targets[]` never uses family reachability as pair evidence. A direct accepted edge must cross
+  the changed/unchanged cut; edges with two changed or two unchanged endpoints do not produce a
+  target. Duplicate obligations collapse deterministically to the strongest pair witness.
 - `strict` requires `fire_eligible=true`, `taxonomy_hint="missed_propagation"`,
   `scope="prod"`, and no higher-priority suppression or report-only reason. Missing
   proof or mixed/test scope fails closed to `review` or `report-only`.

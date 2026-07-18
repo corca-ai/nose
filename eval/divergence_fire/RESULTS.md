@@ -352,6 +352,50 @@ python3 eval/divergence_fire/semantic_witness_eval.py runtime \
   --out /tmp/issue-849-runtime-primary.json
 ```
 
+## Direct propagation target development pricing (2026-07-18, #850)
+
+#850 turns a divergent family into explicit changed-member-to-skipped-sibling
+obligations. The checked
+[`direct_targets_dev_2026_07_18.v1.json`](direct_targets_dev_2026_07_18.v1.json)
+uses only the public development labels; no blind or temporal input was accessed.
+
+All 179 labeled findings replayed without an error. The frozen v2 strict slice still
+contains 80 findings, now exposing 168 direct targets and retaining 26
+transitive-only locations as review context rather than action endpoints. Requiring a
+direct target demotes none of the five `not_a_clone` rows, so #850 improves target
+identity and evidence locality but does not claim a precision gain. Policy tuning
+remains reserved for #852.
+
+The official-v0.19.0 runtime receipt is
+[`issue-850-official-v0.19.0-performance-2026-07-18.v1.json`](../../bench/recall_loss/issue-850-official-v0.19.0-performance-2026-07-18.v1.json).
+The candidate adds 857.60 ms / 8.34% raw and 846.73 ms / 8.24% after the
+same-binary control. Relative to the main binary immediately before #850, the direct
+target increment is 470.58 ms / 4.38%. Removing `semantic_change` and `targets` makes
+all 17 JSON outputs equal to the official release output.
+
+The 64.13% nearest-rank repository p90 triggered the required investigation.
+Profiling found and removed repeated group-by-pair distribution and cloned location
+ownership; prepared semantic changes and sibling hashes are now cached and target
+count is capped. The remaining total exceeds #847's 5% budget because the
+compatibility path retains both #849 family evidence and #850 target evidence. #852
+must collapse that duplication during the v3 target-policy transition and remeasure
+against the same official binary before the epic can close.
+
+Reproduce the development artifacts after building the release binary:
+
+```sh
+python3 eval/divergence_fire/direct_target_eval.py selftest
+python3 eval/divergence_fire/semantic_witness_eval.py replay \
+  --jobs 4 --timeout 240 --out /tmp/issue-850-dev-replay.jsonl
+python3 eval/divergence_fire/direct_target_eval.py summarize \
+  --records /tmp/issue-850-dev-replay.jsonl --nose target/release/nose \
+  --out eval/divergence_fire/direct_targets_dev_2026_07_18.v1.json
+python3 eval/divergence_fire/direct_target_eval.py runtime \
+  --baseline target/issue-839/official-v0.19.0/nose-cli-aarch64-apple-darwin/nose \
+  --current target/release/nose --iterations 3 --warmups 1 --timeout 240 \
+  --out /tmp/issue-850-runtime-primary.json
+```
+
 ## Fire rate (change level; 347 replayed changes per arm)
 
 | arm | fire rate | findings/fire p50 | p90 | max | divergence s p50 | p90 |

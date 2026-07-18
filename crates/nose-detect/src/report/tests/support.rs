@@ -108,6 +108,7 @@ pub(super) fn fam(
         params,
         shared_weight: shared as f64,
         locations: locs,
+        direct_edges: Vec::new(),
         accepted_coverage: Vec::new(),
         display_params: None,
         mean_sem: 50.0,
@@ -149,4 +150,13 @@ pub(super) fn witnessed(mut f: RefactorFamily, kind: &'static str) -> RefactorFa
         graded_pair: None,
     });
     f
+}
+
+pub(super) fn accepted_edge(left: u32, right: u32) -> crate::AcceptedEdge {
+    crate::AcceptedEdge {
+        left,
+        right,
+        score: 1.0,
+        witness_kind: "exact-value-graph",
+    }
 }

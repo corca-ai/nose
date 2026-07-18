@@ -152,6 +152,7 @@ pub(super) fn fam_kind(
         params: 0,
         shared_weight: 0.0,
         locations,
+        direct_edges: Vec::new(),
         accepted_coverage: Vec::new(),
         display_params: None,
         mean_sem: 50.0,

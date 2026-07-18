@@ -3,7 +3,12 @@ use super::*;
 fn accepted_pair(sites: Vec<Loc>) -> nose_detect::AcceptedCoverage {
     nose_detect::AcceptedCoverage {
         sites,
-        edges: vec![(0, 1)],
+        edges: vec![nose_detect::AcceptedEdge {
+            left: 0,
+            right: 1,
+            score: 1.0,
+            witness_kind: "exact-value-graph",
+        }],
     }
 }
 
@@ -194,7 +199,12 @@ fn accepted_graph_ignores_sites_without_a_direct_edge() {
             loc_at("t/b.go", 1, 30, nose_il::UnitKind::Block),
             loc_at("t/c.go", 1, 30, nose_il::UnitKind::Block),
         ],
-        edges: vec![(0, 1)],
+        edges: vec![nose_detect::AcceptedEdge {
+            left: 0,
+            right: 1,
+            score: 1.0,
+            witness_kind: "exact-value-graph",
+        }],
     });
     let ranked = [&a, &b];
     let groups = OpportunityGroups::from_ranked(&ranked);
