@@ -3607,6 +3607,29 @@ control-adjusted. The incremental post-#821 cost is -0.24% raw / -0.44% control-
 See [the #832 closeout](bounded-same-unit-windows-832.md) for exact IDs, artifacts, budgets, and the
 result-dependent next action.
 
+## DN. Divergent-edit precision-first closeout — evidence improves, default-on does not qualify (#847, 2026-07-18)
+
+The #847 cycle tested whether the opt-in v2 divergent-edit signal could become a
+precision-qualified required check without hiding uncertainty. Bounded semantic-change evidence,
+detector-accepted changed-to-skipped targets, and pair-local variant signals were added as
+inspectable evidence. The admissible v3 class required a direct target, pair-local shared contact,
+a complete caveat-free mapped replacement/deletion witness, and no strong variant caveat.
+
+On the public development slice, v2 still fires on 80 findings (45 true positives, 35 false
+positives) and exposes 168 direct targets, but **zero targets** have the required complete semantic
+witness. Every admissible policy is therefore degenerate. A relaxed, non-admissible diagnostic
+selected 13 findings at only 0.538 finding precision. No v3 policy or binary was frozen, so the
+private population was not opened and remains `sealed-unjudged`.
+
+Operational closeout also failed its performance gate: the published-v0.19.0 comparison is
++9.06% raw and +8.74% after a same-binary control, above the 5% budget; repository p90 is +58.60%.
+Profiling attributes the tails to re-lowering selected files for family and target evidence.
+Sharing cached projections removes deep clones, but a proposed whole-base-corpus lifetime
+extension was rejected as memory/coupling growth without a demonstrated pass. Legacy base output
+is compatible after removing additive evidence, and non-`base=` output is unchanged across the
+epic. Durable conclusion: ship the better review evidence, keep v2 opt-in, and do not spend the
+blind seal until target-adjudicated development evidence qualifies a non-degenerate policy.
+
 ## DH. Parser-artifact hygiene and unsupported-header routing (2026-06-20)
 
 After §DG, the largest `gap-impact` rows were no longer ordinary lowering misses. They were parser

@@ -507,6 +507,31 @@ python3 eval/divergence_fire/blind_readiness_verdict.py emit \
   --out eval/divergence_fire/blind_readiness_verdict_2026_07_18.v1.json
 ```
 
+## Epic closeout (2026-07-18, #847/#854)
+
+#854 ships only the claim supported by the preceding results. The active policy remains
+`divergent-edit-v2-strict`, schema v8 and capability flags remain unchanged, and the held-out
+population remains sealed. Users gain direct target identity plus semantic-change and variant
+review evidence; none of those advisory fields independently authorizes CI failure.
+
+The 179-finding development replay completed with zero errors. A serial replay in fresh temporary
+worktrees matched the parallel evidence byte-for-byte after removing durations. Human, JSON,
+SARIF, and exit status continue to consume the same policy decision, and focused fixtures cover
+report-only, mixed/test, new-copy, and suppressed non-failure.
+
+Against the published v0.19.0 binary on 17 development repositories, aggregate base-query runtime
+moved 10,101.61 ms -> 11,017.30 ms. Subtracting the 32.59 ms same-binary movement leaves
++883.10 ms / **+8.74%**, which fails the 5% epic budget. The nearest-rank repository p90 is
++58.60%; profiling attributes the tails to selected-file semantic re-lowering in family and
+target evidence. A small shared-projection optimization preserves identical replay evidence but
+does not erase the cumulative cost. Ordinary non-`base=` output is byte-identical across the
+pre-epic and closeout binaries, while all 17 base outputs retain legacy equality after removing
+the reviewed additive fields.
+
+The final verdict is therefore **failed / opt-in-only**, not default-on ready. See the
+[#854 closeout](../../docs/divergent-gate-closeout-854.md) and
+[durable receipt](../../bench/recall_loss/issue-854-official-v0.19.0-closeout-2026-07-18.v1.json).
+
 ## Fire rate (change level; 347 replayed changes per arm)
 
 | arm | fire rate | findings/fire p50 | p90 | max | divergence s p50 | p90 |

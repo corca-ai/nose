@@ -252,9 +252,12 @@ must not fail default CI. Newly added clone evidence appears as `lane="new-copy"
 `properties.gate.fail_default` remains `false` in SARIF.
 
 Checked closeout evidence supports opt-in enforcement, not default-on blocking. The
-final replay/policy artifacts record 560 replay records with 0 errors and v2 strict
-precision 0.562 while retaining 45/45 confirmed v1 missed-propagation positives
-([results](../eval/divergence_fire/RESULTS.md), [policy artifact](../eval/divergence_fire/policy_eval_final_head_a38ecb8b_2026_07_06.json)).
+v2 replay records strict precision 0.562 while retaining 45/45 confirmed v1
+missed-propagation positives. The #847 precision-first cycle added target-local semantic,
+direct-edge, and variant evidence, but no admissible v3 policy had development support;
+the blind population therefore remains sealed and the final official-v0.19.0 comparison
+also misses the 5% runtime budget at 8.74% control-adjusted
+([results](../eval/divergence_fire/RESULTS.md), [#854 closeout](divergent-gate-closeout-854.md)).
 The [CI examples](examples/ci/divergent-edit-observe-only.yml) and
 [enforcing workflow](examples/ci/divergent-edit-enforcing.yml) show the recommended
 observe-only-to-enforcing rollout, the [#687 pilot](divergent-history-mining-pilot-687.md)

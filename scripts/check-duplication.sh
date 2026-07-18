@@ -258,6 +258,11 @@ set -euo pipefail
 # accepted; see docs/dogfooding-history.md.
 # 26 -> 26 (#861 formal proof coverage): a source claim marker moves the reviewed value-graph
 # whole-impl span-noise representative without changing its members or the budget.
+# 26 -> 27 (#854 divergent-edit closeout): restoring the ordinary-query accepted-coverage
+# contract makes two pre-existing families visible again. The reviewed Markdown/detect
+# candidate-pair representative moves from `8462d08908be9e8a` to `3fefab5ac16598ec`, and the
+# long-standing numeric `int_bin` / `float_bin` family `aa2b95cf822a1cd2` crosses value 40.
+# Neither family was introduced or modified here; see docs/dogfooding-history.md.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

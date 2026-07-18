@@ -148,6 +148,11 @@ and `version-label-mismatch` are always `strength="weak"`. Caveat codes are
 `conflicting-platform-guard`. Missing or contradictory evidence is advisory, and weak signals
 cannot disqualify a target. This field does not change the v2 `tier` or `gate.fail_default`;
 #852 did not qualify or activate a v3 policy that consumes it.
+
+The #854 closeout keeps this additive evidence on schema v8 and leaves
+`divergent-edit-v2-strict` active. It did not open the blind population or introduce a new
+threshold/capability; integrations must continue to treat the evidence as explanatory and
+`gate.fail_default` as authoritative.
 The evidence compares the current changed result to the skipped base-tree endpoint; the stable
 `target_id` and `direct_witness` remain anchored to the accepted base-tree edge.
 

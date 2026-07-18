@@ -153,6 +153,12 @@ measured policy explicitly promotes a lane. `taxonomy_hint` guides inspection; i
 not declare correctness or harm. Adding `near` to PR-time `base=` is an explicit audit
 opt-in, not the default recommendation.
 
+The #847/#854 closeout did not qualify a v3 blocker: no development target had the
+required complete caveat-free witness, the blind set stayed sealed, and the cumulative
+evidence path missed its runtime budget. Agents should use direct targets, semantic change,
+and variant evidence to make review more specific, but must not promote them into a private
+hard-block rule. See the [0.20 closeout](divergent-gate-closeout-854.md).
+
 ## Validation
 
 The recipe was validated decide-from-JSON-only, then grade: an agent

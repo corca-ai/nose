@@ -1277,3 +1277,16 @@ reviewed whole-impl span-noise representative from `318c7eb92b77189f` to
 `stdlib/bindings.rs`, with one shared line and one removable line across
 unrelated value-graph helpers. No useful common abstraction or new duplication
 is introduced, so the representative ID changes without a budget increase.
+
+The #854 divergent-edit closeout raises the reviewed count from 26 to 27 as a
+consequence of restoring the ordinary-query accepted-coverage contract that
+#850 had unintentionally changed. The restored folding behavior moves the
+already reviewed Markdown/detect candidate-pair representative from
+`8462d08908be9e8a` to `3fefab5ac16598ec`; its only members remain
+`fingerprint.rs::candidate_pairs` and `candidates.rs::anchor_candidates`. It
+also makes the long-standing `int_bin` / `float_bin` dispatcher family
+`aa2b95cf822a1cd2` cross value 40 again. Neither pair was introduced or edited
+by #854. Sharing either pair would couple independent engines or numeric
+policies for the sake of incidental structure, so no new abstraction is
+accepted. The baseline records the corrected detector behavior rather than
+hiding the query-compatibility fix.
