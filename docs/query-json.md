@@ -96,7 +96,8 @@ base_family_id, similarity, complexity, scope, witness_kind, fire_eligible, tier
 tier_reasons[], taxonomy_hint, gate, suppression, graded, changed[], not_updated[],
 current_only[]}` — each site carries `{file, name, start_line, end_line, lang, kind,
 span_lines, span_tokens, is_fragment, fragment_kind, reason_code, enclosing_unit,
-touches_shared, tree}`.
+touches_shared, semantic_change, tree}`. `semantic_change` is `null` for skipped/current-only
+sites and otherwise carries the bounded base-to-current evidence described below.
 `divergences` is the total before `top=N` truncation; `shown_divergences` is `items.length`;
 `limit` is the numeric row limit or `null` for `top=0`. `fire_eligible` is the legacy v1
 conservative gate verdict. In the current implementation it means the diff provably touches
@@ -109,6 +110,18 @@ instead of silent v7 additions: CI wrappers and agents need stable enums for gat
 The v7 evidence fields remain available in the base item, but `fire_eligible` stays a
 compatibility verdict rather than a raw input. The raw inputs are `scope`, `witness_kind`,
 `graded`, and per-site `touches_shared`.
+
+`changed[].semantic_change` is an evidence-only v8 extension. Its `status` is `complete`,
+`advisory`, or `unavailable`; `change_kind` is `no-semantic-delta`, `replacement`,
+`deletion`, `insertion`, `mixed`, or `unknown`. `facets[]` identifies changed `value`,
+`return`, `control`, and `effect` behavior. `coverage` records affected base/current value
+nodes, how many affected base nodes occur in a skipped sibling, and how many siblings were
+checked. `sink_deltas[]`, base/current projection status, alignment method, deterministic
+caps, and explicit `caveats[]` make partial evidence inspectable. Pure source insertions,
+mixed changes, lossy/unsupported lowering, missing or ambiguous units, heuristic alignment,
+unresolved referents, and capped mappings cannot be `complete`. This field does not alter
+`fire_eligible`, `tier`, or `gate.fail_default`; #849 emits and measures the evidence before
+a later frozen policy may consume it.
 
 The v8 `base.items[]` object adds:
 

@@ -60,11 +60,58 @@ fn query_base_deleted_copy_is_strict_base_divergence() {
     assert_eq!(item["gate"]["fail_default"], true);
     assert_site_files(item, "changed", &["a/f.py"]);
     assert_site_files(item, "not_updated", &["b/f.py"]);
+    assert_eq!(
+        item["changed"][0]["semantic_change"]["status"], "unavailable",
+        "a missing current unit cannot become a complete semantic witness: {json}"
+    );
+    assert!(
+        item["changed"][0]["semantic_change"]["caveats"]
+            .as_array()
+            .is_some_and(|caveats| caveats
+                .iter()
+                .any(|caveat| caveat == "missing-current-unit")),
+        "missing current unit is explicit: {json}"
+    );
 
     let gated = nose_query_base(&dir, &["--fail"]);
     assert!(
         !gated.status.success(),
         "deleting one prod copy is a strict base divergence under the current policy"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn query_base_semantic_witness_maps_a_deleted_computation() {
+    let dir = make_temp_dir("query_base_semantic_deletion");
+    let body = |name: &str, acc: &str, item: &str| {
+        format!(
+            "def {name}(items):\n    {acc} = 0\n    for {item} in items:\n        {acc} = {acc} + {item}\n    {acc} = {acc} + 1\n    return {acc}\n"
+        )
+    };
+    write_files(
+        &dir,
+        &[
+            ("a.py", &body("first", "total", "value")),
+            ("b.py", &body("second", "sum", "entry")),
+        ],
+    );
+    init_git_repo(&dir);
+    let a = dir.join("a.py");
+    let source = fs::read_to_string(&a).unwrap();
+    fs::write(&a, source.replace("    total = total + 1\n", "")).unwrap();
+
+    let json = query_base_json(&dir);
+    let item = find_item_by_lane_and_files(&json, "base-divergence", "changed", &["a.py"]);
+    let witness = &item["changed"][0]["semantic_change"];
+    assert_eq!(witness["status"], "complete", "witness: {json}");
+    assert_eq!(witness["change_kind"], "deletion", "witness: {json}");
+    assert!(
+        witness["coverage"]["mapped_shared_nodes"]
+            .as_u64()
+            .is_some_and(|count| count > 0),
+        "deleted semantics map to the skipped sibling: {json}"
     );
 
     let _ = fs::remove_dir_all(&dir);

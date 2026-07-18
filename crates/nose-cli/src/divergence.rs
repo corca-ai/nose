@@ -12,6 +12,7 @@
 //!
 //! The structural signal is a candidate surfacer, not a proof: inspect the flagged siblings.
 
+mod change_witness;
 mod detect;
 mod git;
 mod output;
@@ -256,4 +257,181 @@ pub(crate) struct Site {
     /// varying spots; `None` = unprovable (unreadable source / capped diff) or a
     /// not-updated site.
     pub(crate) touches_shared: Option<bool>,
+    /// Bounded base-to-current semantic change evidence (#849). This is deliberately
+    /// presentation-only in v2: neither `tier()` nor `gate_fail_default()` reads it.
+    pub(crate) semantic_change: Option<SemanticChangeWitness>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum SemanticWitnessStatus {
+    Complete,
+    Advisory,
+    Unavailable,
+}
+
+impl SemanticWitnessStatus {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::Complete => "complete",
+            Self::Advisory => "advisory",
+            Self::Unavailable => "unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum SemanticChangeKind {
+    NoSemanticDelta,
+    Replacement,
+    Deletion,
+    Insertion,
+    Mixed,
+    Unknown,
+}
+
+impl SemanticChangeKind {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::NoSemanticDelta => "no-semantic-delta",
+            Self::Replacement => "replacement",
+            Self::Deletion => "deletion",
+            Self::Insertion => "insertion",
+            Self::Mixed => "mixed",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum SemanticChangeFacet {
+    Value,
+    Return,
+    Control,
+    Effect,
+}
+
+impl SemanticChangeFacet {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::Value => "value",
+            Self::Return => "return",
+            Self::Control => "control",
+            Self::Effect => "effect",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum SemanticAlignment {
+    ExactSpan,
+    StableName,
+    ChangedRange,
+    NearestSpan,
+    None,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum SemanticProjectionStatus {
+    Ok,
+    Missing,
+    Unsupported,
+    ReadFailed,
+    LowerFailed,
+    UnitMissing,
+    AmbiguousUnit,
+    CapExceeded,
+    NotAttempted,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum SemanticWitnessCaveat {
+    PureInsertion,
+    MixedChange,
+    MissingCurrentUnit,
+    UnsupportedLanguage,
+    LossyBaseLowering,
+    LossyCurrentLowering,
+    FragmentUnsupported,
+    AmbiguousAlignment,
+    HeuristicAlignment,
+    UnresolvedReferent,
+    NoAffectedSemanticNode,
+    NoSharedSemanticNode,
+    ScopedDeltaUnmapped,
+    Truncated,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub(crate) struct SemanticWitnessCoverage {
+    pub(crate) base_affected_nodes: usize,
+    pub(crate) current_affected_nodes: usize,
+    pub(crate) mapped_shared_nodes: usize,
+    pub(crate) sibling_units_checked: usize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
+pub(crate) struct SemanticWitnessCaps {
+    pub(crate) max_files: usize,
+    pub(crate) max_file_bytes: usize,
+    pub(crate) max_changed_sites_per_family: usize,
+    pub(crate) max_siblings_per_family: usize,
+    pub(crate) max_units_per_file: usize,
+    pub(crate) max_nodes_per_unit: usize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum SemanticSinkKind {
+    Return,
+    Cond,
+    Effect,
+    Break,
+    Throw,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub(crate) struct SemanticSinkDelta {
+    pub(crate) kind: SemanticSinkKind,
+    pub(crate) removed: usize,
+    pub(crate) inserted: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub(crate) struct SemanticChangeWitness {
+    pub(crate) status: SemanticWitnessStatus,
+    pub(crate) change_kind: SemanticChangeKind,
+    pub(crate) facets: Vec<SemanticChangeFacet>,
+    pub(crate) alignment: SemanticAlignment,
+    pub(crate) base_projection: SemanticProjectionStatus,
+    pub(crate) current_projection: SemanticProjectionStatus,
+    pub(crate) coverage: SemanticWitnessCoverage,
+    pub(crate) sink_deltas: Vec<SemanticSinkDelta>,
+    pub(crate) caveats: Vec<SemanticWitnessCaveat>,
+    pub(crate) caps: SemanticWitnessCaps,
+}
+
+impl SemanticChangeWitness {
+    pub(crate) fn concise_label(&self) -> String {
+        let facets = self
+            .facets
+            .iter()
+            .map(|facet| facet.as_str())
+            .collect::<Vec<_>>()
+            .join("+");
+        if facets.is_empty() {
+            format!("{} {}", self.status.as_str(), self.change_kind.as_str())
+        } else {
+            format!(
+                "{} {} ({facets})",
+                self.status.as_str(),
+                self.change_kind.as_str()
+            )
+        }
+    }
 }

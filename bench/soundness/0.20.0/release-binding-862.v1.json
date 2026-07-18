@@ -1,7 +1,7 @@
 {
   "artifacts": {
     "blind_attack": {
-      "path": "../../type4/blind_attack.v1.json",
+      "path": "release-blind-attack-862.v1.json",
       "sha256": "622601e62ed10b5b822ca606397dd7ab1ef97f47b31f2ce88dbae22a8cdb4c4c"
     },
     "current_exclusion_attribution": {

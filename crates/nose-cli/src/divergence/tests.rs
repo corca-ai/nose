@@ -5,7 +5,9 @@ use super::git::{
 };
 use super::output::{divergence_items_json, divergence_sarif, fragment_context};
 use super::{
-    Divergence, DivergenceLane, DivergenceTier, Site, DIVERGENCE_LANE_VALUES,
+    Divergence, DivergenceLane, DivergenceTier, SemanticAlignment, SemanticChangeKind,
+    SemanticChangeWitness, SemanticProjectionStatus, SemanticWitnessCaps, SemanticWitnessCaveat,
+    SemanticWitnessCoverage, SemanticWitnessStatus, Site, DIVERGENCE_LANE_VALUES,
     DIVERGENCE_SUPPRESSION_KIND_VALUES, DIVERGENCE_TAXONOMY_HINT_VALUES,
     DIVERGENCE_TIER_REASON_VALUES, DIVERGENCE_TIER_VALUES, DIVERGENT_EDIT_V2_POLICY,
 };
@@ -274,6 +276,7 @@ fn tier_site(file: &str, touches_shared: Option<bool>) -> Site {
         reason_code: None,
         enclosing_unit: None,
         touches_shared,
+        semantic_change: None,
     }
 }
 
@@ -309,9 +312,36 @@ fn v2_tier_routes_new_copy_lane_to_report_only() {
 
 #[test]
 fn v2_tier_routes_unknown_shared_evidence_to_review() {
-    let d = tier_divergence("prod", false, None);
+    let mut d = tier_divergence("prod", false, None);
+    d.changed[0].semantic_change = Some(SemanticChangeWitness {
+        status: SemanticWitnessStatus::Unavailable,
+        change_kind: SemanticChangeKind::Unknown,
+        facets: Vec::new(),
+        alignment: SemanticAlignment::None,
+        base_projection: SemanticProjectionStatus::Ok,
+        current_projection: SemanticProjectionStatus::UnitMissing,
+        coverage: SemanticWitnessCoverage {
+            base_affected_nodes: 0,
+            current_affected_nodes: 0,
+            mapped_shared_nodes: 0,
+            sibling_units_checked: 0,
+        },
+        sink_deltas: Vec::new(),
+        caveats: vec![SemanticWitnessCaveat::MissingCurrentUnit],
+        caps: SemanticWitnessCaps {
+            max_files: 64,
+            max_file_bytes: 2 * 1024 * 1024,
+            max_changed_sites_per_family: 16,
+            max_siblings_per_family: 16,
+            max_units_per_file: 512,
+            max_nodes_per_unit: 2_048,
+        },
+    });
     assert_eq!(d.tier(), DivergenceTier::Review);
-    assert!(!d.gate_fail_default(), "unknown evidence must fail closed");
+    assert!(
+        !d.gate_fail_default(),
+        "an unavailable semantic witness cannot promote the v2 gate"
+    );
     assert_eq!(d.taxonomy_hint(), "unclear");
     assert_eq!(
         d.tier_reasons(),

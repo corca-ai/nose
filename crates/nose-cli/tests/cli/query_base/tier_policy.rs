@@ -142,10 +142,7 @@ fn query_base_exact_renamed_twin_remains_strict() {
     let src = fs::read_to_string(&a).unwrap();
     fs::write(
         &a,
-        src.replace(
-            "total = total + item * item",
-            "total = total + item * item + 1",
-        ),
+        src.replace("total = total + item * item", "total = total - item * item"),
     )
     .unwrap();
 
@@ -166,11 +163,69 @@ fn query_base_exact_renamed_twin_remains_strict() {
         "exact renamed twin stays strict: {json}"
     );
     assert_eq!(finding["gate"]["fail_default"], true, "strict gate: {json}");
+    let semantic_change = &finding["changed"][0]["semantic_change"];
+    assert_eq!(semantic_change["status"], "complete", "witness: {json}");
+    assert_eq!(
+        semantic_change["change_kind"], "replacement",
+        "witness: {json}"
+    );
+    assert!(
+        semantic_change["coverage"]["mapped_shared_nodes"]
+            .as_u64()
+            .is_some_and(|count| count > 0),
+        "changed base semantics map to the skipped sibling: {json}"
+    );
+    assert!(
+        semantic_change["facets"]
+            .as_array()
+            .is_some_and(|facets| facets.iter().any(|facet| facet == "return")),
+        "return behavior changed: {json}"
+    );
 
     let gated = nose_query_base(&dir, &["--mode", "semantic", "--fail"]);
     assert!(
         !gated.status.success(),
         "--fail must fire for an exact renamed-twin strict divergence"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn query_base_semantic_witness_distinguishes_no_delta_and_pure_insertion() {
+    let dir = make_mode_project("query_base_semantic_change_kinds");
+    init_git_repo(&dir);
+    let a = dir.join("renamed_a.py");
+    let original = fs::read_to_string(&a).unwrap();
+
+    fs::write(&a, original.replace("return total", "return (total)")).unwrap();
+    let no_delta = query_base_json_value(&dir, &["--mode", "semantic"]);
+    let finding =
+        find_item_by_lane_and_files(&no_delta, "base-divergence", "changed", &["renamed_a.py"]);
+    assert_eq!(
+        finding["changed"][0]["semantic_change"]["change_kind"], "no-semantic-delta",
+        "source contact without a normalized semantic delta: {no_delta}"
+    );
+
+    fs::write(
+        &a,
+        original.replace(
+            "    return total",
+            "    total = total + 1\n    return total",
+        ),
+    )
+    .unwrap();
+    let insertion = query_base_json_value(&dir, &["--mode", "semantic"]);
+    let finding =
+        find_item_by_lane_and_files(&insertion, "base-divergence", "changed", &["renamed_a.py"]);
+    let witness = &finding["changed"][0]["semantic_change"];
+    assert_eq!(witness["status"], "advisory", "witness: {insertion}");
+    assert_eq!(witness["change_kind"], "insertion", "witness: {insertion}");
+    assert!(
+        witness["caveats"]
+            .as_array()
+            .is_some_and(|caveats| caveats.iter().any(|caveat| caveat == "pure-insertion")),
+        "pure insertions stay explicitly advisory: {insertion}"
     );
 
     let _ = fs::remove_dir_all(&dir);
@@ -202,6 +257,10 @@ fn first_fire_policy_finding(dir: &Path) -> serde_json::Value {
 
 fn assert_varying_spot_is_review(dir: &Path) {
     let finding = first_fire_policy_finding(dir);
+    assert_eq!(
+        finding["changed"][0]["semantic_change"]["status"], "advisory",
+        "a varying-spot edit without mapped shared semantics stays advisory: {finding}"
+    );
     assert_eq!(
         finding["fire_eligible"], false,
         "a varying-spot-only change must not be gate-eligible: {finding}"

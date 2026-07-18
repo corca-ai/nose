@@ -132,7 +132,8 @@ Read the fields in this order — each step either decides or narrows:
 `nose query <path> base=<ref> --format json` (the `base` view) emits one `items[]`
 finding per divergence, each carrying the v2 gate fields: `tier`, `tier_reasons[]`,
 `taxonomy_hint`, and `gate.fail_default`, plus legacy `fire_eligible` compatibility
-evidence, `witness_kind`, `scope`, and per-changed-site `touches_shared`. For propagation
+evidence, `witness_kind`, `scope`, per-changed-site `touches_shared`, and the advisory
+`semantic_change` projection. For propagation
 triage over the top findings, judge each as
 should-propagate / intentional-divergence / not-a-clone using the changed member's
 diff and the un-updated sibling's body. Most fires are not propagation hazards; the

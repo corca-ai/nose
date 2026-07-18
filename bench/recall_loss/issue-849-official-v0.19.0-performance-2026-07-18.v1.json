@@ -1,0 +1,69 @@
+{
+  "schema": "nose.issue-849.performance/v1",
+  "issue": 849,
+  "measured_at": "2026-07-18",
+  "development_only": true,
+  "blind_or_temporal_data_accessed": false,
+  "source": {
+    "candidate_commit": "3d15ac455a167fd90e449fc3f935deadd4bdd384",
+    "final_commit": "d639321f8668eaaa14226a4b3600292e828ec087",
+    "baseline_release": "v0.19.0",
+    "baseline_source_commit": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9"
+  },
+  "binaries": {
+    "baseline": {
+      "version": "nose 0.19.0",
+      "sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
+    },
+    "candidate": {
+      "version": "nose 0.19.0",
+      "sha256": "2f961af03e2e62f275e1b9ac4d5df162e2385c54f947475350e6c4a79bfd4eb2"
+    }
+  },
+  "harness": {
+    "path": "eval/divergence_fire/semantic_witness_eval.py",
+    "sha256": "043d676901691ec37e0fbec22f57fd73cba8c99ae2931201d921ae7060f76722",
+    "selection": "first current-v2-strict default-arm finding per development repository",
+    "repositories": 17,
+    "iterations": 3,
+    "warmups": 1,
+    "command": "nose query . base=<parent> top=0 --format json"
+  },
+  "primary": {
+    "baseline_median_sum_ms": 10058.212163,
+    "candidate_median_sum_ms": 10566.691753,
+    "raw_delta_ms": 508.47959,
+    "raw_delta_pct": 5.055368,
+    "legacy_outputs_equal_after_removing_semantic_change": true,
+    "legacy_outputs_equal_repositories": 17,
+    "raw_artifact_sha256": "2fe6055efd090583769e060ee072cceeea51f76c7af33f7215a695d0166b87be"
+  },
+  "same_binary_control": {
+    "first_median_sum_ms": 10141.731584,
+    "second_median_sum_ms": 10112.234708,
+    "delta_ms": -29.496876,
+    "delta_pct": -0.290847,
+    "raw_artifact_sha256": "9af0423341619cdd6905a649c63f7814a641a427d69540247d04655ca04c86dc"
+  },
+  "control_adjusted": {
+    "delta_ms": 537.976466,
+    "delta_pct": 5.348629
+  },
+  "optimization_receipt": {
+    "pre_optimization_raw_delta_ms": 5492.024167,
+    "pre_optimization_raw_delta_pct": 54.86025,
+    "pre_optimization_candidate_binary_sha256": "275a97171d38ce9a1ba313c70c7188a0dba89eab6011187a7e00ee77c2899510",
+    "pre_optimization_raw_artifact_sha256": "fccdc76a9fb2442e425b3ed8c1dc5c91e6056a9456f98c25bce2f4b8f3e097b7",
+    "change": "normalize selected files once, build and cache value DAGs only for aligned candidate units, and skip unalignable detector-only blocks"
+  },
+  "assessment": {
+    "status": "bounded-advisory-overhead",
+    "reason": "The issue defines no numeric promotion budget. The evidence remains advisory, legacy output is identical on all 17 repositories, work is capped to already-flagged candidate files and units, and the initial unbounded eager-projection regression was removed."
+  },
+  "final_commit_transfer": {
+    "change": "Box the cached FileProjection enum variant to satisfy clippy::large-enum-variant.",
+    "behavioral_or_work_scope_change": false,
+    "remeasurement_required": false,
+    "validation": "Final source passed clippy -D warnings plus 232 library, 235 CLI, and 3 connected-witness tests."
+  }
+}
