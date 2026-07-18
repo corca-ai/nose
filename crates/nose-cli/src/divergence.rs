@@ -32,6 +32,7 @@ pub(crate) use detect::{detect_divergences, divergences_fire};
 pub(crate) use output::divergence_items_json;
 
 pub(crate) const DIVERGENT_EDIT_V2_POLICY: &str = "divergent-edit-v2-strict";
+const ACTIVE_DIVERGENT_EDIT_POLICY: &str = DIVERGENT_EDIT_V2_POLICY;
 #[cfg(test)]
 pub(crate) const DIVERGENCE_LANE_VALUES: &[&str] = &["base-divergence", "new-copy"];
 #[cfg(test)]
@@ -127,8 +128,8 @@ pub(crate) struct PropagationTarget {
     pub(crate) skipped: Site,
     pub(crate) direct_witness: DirectPairWitness,
     /// Pair-local evidence that the two sites deliberately occupy different roles.
-    /// #851 only records this evidence; the frozen v3 policy in #852 decides whether
-    /// it is disqualifying for the strict tier.
+    /// #851 records this evidence. #852 found no non-degenerate v3 policy that
+    /// qualified to consume it, so the active v2 tier remains unchanged.
     pub(crate) variant_evidence: variant::VariantEvidence,
 }
 
@@ -167,22 +168,33 @@ impl DivergenceLane {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub(crate) enum DivergenceTier {
     Strict,
     Review,
     ReportOnly,
 }
 
-impl DivergenceTier {
-    pub(crate) fn as_str(self) -> &'static str {
-        match self {
-            Self::Strict => "strict",
-            Self::Review => "review",
-            Self::ReportOnly => "report-only",
-        }
-    }
+/// The one active policy decision consumed by human, JSON, SARIF, and exit-status
+/// surfaces. Keeping the gate fields together prevents a renderer from silently
+/// re-deriving a different hard-block decision.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
+pub(crate) struct DivergenceGateDecision {
+    pub(crate) eligible: bool,
+    pub(crate) fail_default: bool,
+    pub(crate) policy: &'static str,
+}
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct DivergencePolicyDecision {
+    pub(crate) tier: DivergenceTier,
+    pub(crate) tier_reasons: Vec<&'static str>,
+    pub(crate) taxonomy_hint: &'static str,
+    pub(crate) gate: DivergenceGateDecision,
+}
+
+impl DivergenceTier {
     pub(crate) fn sarif_rule_id(self) -> &'static str {
         match self {
             Self::Strict => "nose.divergent.strict",
@@ -213,22 +225,15 @@ impl DivergenceTier {
 }
 
 impl Divergence {
-    pub(crate) fn tier(&self) -> DivergenceTier {
-        if self.lane == DivergenceLane::NewCopy || self.scope != "prod" {
+    pub(crate) fn policy_decision(&self) -> DivergencePolicyDecision {
+        let tier = if self.lane == DivergenceLane::NewCopy || self.scope != "prod" {
             DivergenceTier::ReportOnly
         } else if self.fire_eligible {
             DivergenceTier::Strict
         } else {
             DivergenceTier::Review
-        }
-    }
-
-    pub(crate) fn gate_fail_default(&self) -> bool {
-        self.tier() == DivergenceTier::Strict
-    }
-
-    pub(crate) fn taxonomy_hint(&self) -> &'static str {
-        if self.lane == DivergenceLane::NewCopy {
+        };
+        let taxonomy_hint = if self.lane == DivergenceLane::NewCopy {
             "unclear"
         } else if self.scope != "prod" {
             "test_scaffolding"
@@ -238,10 +243,7 @@ impl Divergence {
             "no_propagation_needed"
         } else {
             "unclear"
-        }
-    }
-
-    pub(crate) fn tier_reasons(&self) -> Vec<&'static str> {
+        };
         let mut reasons = Vec::with_capacity(3);
         if self.lane == DivergenceLane::NewCopy {
             reasons.push("new_copy_no_base_member");
@@ -260,7 +262,35 @@ impl Divergence {
             reasons.push("test_scope");
             reasons.push("test_scaffolding");
         }
-        reasons
+        DivergencePolicyDecision {
+            tier,
+            tier_reasons: reasons,
+            taxonomy_hint,
+            gate: DivergenceGateDecision {
+                eligible: tier.gate_eligible(),
+                fail_default: tier == DivergenceTier::Strict,
+                policy: ACTIVE_DIVERGENT_EDIT_POLICY,
+            },
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn tier(&self) -> DivergenceTier {
+        self.policy_decision().tier
+    }
+
+    pub(crate) fn gate_fail_default(&self) -> bool {
+        self.policy_decision().gate.fail_default
+    }
+
+    #[cfg(test)]
+    pub(crate) fn taxonomy_hint(&self) -> &'static str {
+        self.policy_decision().taxonomy_hint
+    }
+
+    #[cfg(test)]
+    pub(crate) fn tier_reasons(&self) -> Vec<&'static str> {
+        self.policy_decision().tier_reasons
     }
 }
 

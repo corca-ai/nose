@@ -74,7 +74,7 @@ pub(crate) fn divergence_items_json(flagged: &[Divergence]) -> Vec<serde_json::V
     flagged
         .iter()
         .map(|d| {
-            let tier = d.tier();
+            let decision = d.policy_decision();
             let mut item = json!({
                 "family_id": d.family_id,
                 "lane": d.lane.as_str(),
@@ -84,14 +84,10 @@ pub(crate) fn divergence_items_json(flagged: &[Divergence]) -> Vec<serde_json::V
                 "scope": d.scope,
                 "witness_kind": d.witness_kind,
                 "fire_eligible": d.fire_eligible,
-                "tier": tier.as_str(),
-                "tier_reasons": d.tier_reasons(),
-                "taxonomy_hint": d.taxonomy_hint(),
-                "gate": {
-                    "eligible": tier.gate_eligible(),
-                    "fail_default": d.gate_fail_default(),
-                    "policy": DIVERGENT_EDIT_V2_POLICY,
-                },
+                "tier": decision.tier,
+                "tier_reasons": decision.tier_reasons,
+                "taxonomy_hint": decision.taxonomy_hint,
+                "gate": decision.gate,
                 "suppression": null,
                 "graded": d.graded,
                 "targets": d.targets.iter().map(target_json).collect::<Vec<_>>(),
@@ -158,7 +154,8 @@ fn tier_label(tier: DivergenceTier) -> &'static str {
 
 fn divergence_sarif_result(d: &Divergence) -> serde_json::Value {
     use serde_json::json;
-    let tier = d.tier();
+    let decision = d.policy_decision();
+    let tier = decision.tier;
     let changed = d
         .changed
         .iter()
@@ -226,15 +223,11 @@ fn divergence_sarif_result(d: &Divergence) -> serde_json::Value {
             "family_id": d.family_id,
             "base_family_id": d.lane.base_family_id(&d.family_id),
             "lane": d.lane.as_str(),
-            "tier": tier.as_str(),
-            "tier_reasons": d.tier_reasons(),
-            "taxonomy_hint": d.taxonomy_hint(),
-            "gate": {
-                "eligible": tier.gate_eligible(),
-                "fail_default": d.gate_fail_default(),
-                "policy": DIVERGENT_EDIT_V2_POLICY,
-            },
-            "policy": DIVERGENT_EDIT_V2_POLICY,
+            "tier": decision.tier,
+            "tier_reasons": decision.tier_reasons,
+            "taxonomy_hint": decision.taxonomy_hint,
+            "gate": decision.gate,
+            "policy": decision.gate.policy,
             "fire_eligible": d.fire_eligible,
             "targets": d.targets.iter().map(target_json).collect::<Vec<_>>(),
             "semantic_change": d.changed.iter()

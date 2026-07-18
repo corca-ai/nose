@@ -1,9 +1,9 @@
 //! Deterministic, pair-local evidence for intentional clone variants.
 //!
 //! This module does not decide the active divergent-edit tier. It records strong
-//! disqualifiers, weak review hints, and uncertainty separately so #852 can price a
-//! frozen policy without turning names, paths, or repository-specific prose into gate
-//! authority.
+//! disqualifiers, weak review hints, and uncertainty separately. #852 priced the
+//! admissible policy class and found no non-degenerate v3 candidate; names, paths,
+//! and repository-specific prose therefore remain outside gate authority.
 
 mod source;
 
