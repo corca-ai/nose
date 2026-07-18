@@ -16,6 +16,7 @@ mod change_witness;
 mod detect;
 mod git;
 mod output;
+mod targets;
 #[cfg(test)]
 mod tests;
 
