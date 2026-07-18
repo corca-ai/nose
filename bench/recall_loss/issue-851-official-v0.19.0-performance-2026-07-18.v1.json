@@ -1,0 +1,83 @@
+{
+  "schema": "nose.issue-851.performance/v1",
+  "issue": 851,
+  "measured_at": "2026-07-18",
+  "development_only": true,
+  "blind_or_temporal_data_accessed": false,
+  "source": {
+    "candidate_commit": "201a2f4dfa607ed6a54681ca5d84b9c688535910",
+    "candidate_parent_commit": "df6ca124dc7b84f175d0ed9ca093c2b52b23eec4",
+    "baseline_release": "v0.19.0",
+    "baseline_source_commit": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9"
+  },
+  "binaries": {
+    "baseline": {
+      "version": "nose 0.19.0",
+      "sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
+    },
+    "candidate": {
+      "version": "nose 0.19.0",
+      "sha256": "9a1e7e3fc7ecb0ea31c8dbc8bb1008ff852b00d08285503e397885870da7e317"
+    }
+  },
+  "harness": {
+    "path": "eval/divergence_fire/direct_target_eval.py",
+    "sha256": "9db413f2a4da674de3ad83dbe987848b9997faa7bacc575b1b0fdd55ce94fc2d",
+    "shared_path": "eval/divergence_fire/semantic_witness_eval.py",
+    "shared_sha256": "82c672c8a4b004ce4c5a11bfddfbf66d92efb511e256431d744c07095000c2d6",
+    "selection": "first current-v2-strict default-arm finding per development repository",
+    "repositories": 17,
+    "iterations": 3,
+    "warmups": 1,
+    "command": "nose query . base=<parent> top=0 --format json"
+  },
+  "official_release_primary": {
+    "baseline_median_sum_ms": 10405.383374,
+    "candidate_median_sum_ms": 11283.217295,
+    "raw_delta_ms": 877.833921,
+    "raw_delta_pct": 8.436344,
+    "legacy_outputs_equal_after_removing_semantic_change_and_targets": true,
+    "legacy_outputs_equal_repositories": 17,
+    "raw_artifact_sha256": "856c2f558cda28b65fef0a0e8e8f206b7e1cc6204bab8b9e1deb322815ea1b14"
+  },
+  "same_binary_control": {
+    "first_median_sum_ms": 10029.397708,
+    "second_median_sum_ms": 10070.721292,
+    "delta_ms": 41.323584,
+    "delta_pct": 0.412025,
+    "raw_artifact_sha256": "b5e045a752638152685dd9c847d1e5c6caa47e7b51b64405661dd7f438c0f1f0"
+  },
+  "control_adjusted": {
+    "delta_ms": 836.510337,
+    "delta_pct": 8.039207,
+    "epic_budget_pct": 5.0,
+    "within_epic_budget": false
+  },
+  "tail_investigation": {
+    "nearest_rank_p90_repo_delta_pct": 44.468695,
+    "above_twenty_pct": [
+      {
+        "repo": "axios",
+        "delta_pct": 52.558274
+      },
+      {
+        "repo": "regex",
+        "delta_pct": 44.468695
+      }
+    ],
+    "diagnosis": "The cumulative #847 compatibility path still emits both family semantic evidence and target-local semantic/variant evidence. #851 reuses cached normalized files, base/current unit projections, and source lines, bounds graded role comparison to the existing 2,048-node and 64-target caps, and performs no repository-wide discovery. The remaining tail is the already-recorded family-plus-target compatibility debt; #852 must make the target policy authoritative, remove duplicate family work, and remeasure against the official release."
+  },
+  "optimization_receipt": {
+    "changes": [
+      "reuse WitnessBuilder base/current file and unit projection caches for target role evidence",
+      "cache current/base source lines used by decorator and platform comparisons",
+      "keep weak name, path, and version checks allocation-bounded and pair-local",
+      "reuse the existing 2,048-node projection and 64-target family caps",
+      "perform no second repository discovery or history query"
+    ]
+  },
+  "assessment": {
+    "status": "bounded-evidence-with-epic-budget-debt",
+    "reason": "The official v0.19.0 comparison is 8.44% raw and 8.04% after the same-binary control, with identical legacy JSON on all 17 repositories after removing the reviewed semantic_change and targets evidence. The complete #847 path remains above its 5% budget, so #852 must remove compatibility duplication before the epic can close."
+  }
+}

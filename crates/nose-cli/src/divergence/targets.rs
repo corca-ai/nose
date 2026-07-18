@@ -1,4 +1,5 @@
 use super::detect::{site_touched_loc, to_site, to_site_touch, touches_shared_lines};
+use super::variant::initial_evidence;
 use super::{DirectPairWitness, PropagationTarget, Site};
 use crate::source_lines::FileLineCache;
 use nose_detect::{FragmentKind, Loc, RefactorFamily};
@@ -78,6 +79,7 @@ fn append_direct_targets(
         );
         let changed_site = to_site_touch(changed_loc, touch);
         let skipped_site = to_site(skipped_loc);
+        let variant_evidence = initial_evidence(changed_loc, skipped_loc);
         targets.push(PropagationTarget {
             target_id: propagation_target_id(&changed_site, &skipped_site),
             changed: changed_site,
@@ -86,6 +88,7 @@ fn append_direct_targets(
                 kind: edge.witness_kind,
                 similarity: edge.score,
             },
+            variant_evidence,
         });
     }
 }

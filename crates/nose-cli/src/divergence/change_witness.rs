@@ -5,6 +5,7 @@
 //! second repository discovery. The evidence is advisory in divergent-edit v2.
 
 mod analysis;
+mod variant_projection;
 
 use self::analysis::{
     analyze_change, caveat_for_projection, finish_witness, node_hashes, project_file, project_unit,
@@ -13,7 +14,8 @@ use self::analysis::{
 };
 use super::git::DiffEntry;
 use super::*;
-use nose_il::{FileId, Interner, Lang, NodeId, UnitKind};
+use crate::source_lines::FileLineCache;
+use nose_il::{FileId, Interner, Lang, NodeId, UnitKind, UnitOrigin};
 use nose_normalize::{FileReferents, ValueDag};
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
@@ -104,6 +106,11 @@ pub(super) fn enrich_semantic_change_witnesses(
                     vec![SemanticWitnessCaveat::Truncated],
                 )
             });
+            builder.variant_evidence(
+                &target.changed,
+                &target.skipped,
+                &mut target.variant_evidence,
+            );
         }
         target_elapsed += target_started.elapsed();
     }
@@ -151,6 +158,7 @@ struct FileProjection {
 struct UnitSkeleton {
     root: NodeId,
     kind: UnitKind,
+    origin: UnitOrigin,
     name: Option<String>,
     start_line: u32,
     end_line: u32,
@@ -159,6 +167,7 @@ struct UnitSkeleton {
 #[derive(Clone)]
 struct UnitProjection {
     kind: UnitKind,
+    origin: UnitOrigin,
     name: Option<String>,
     start_line: u32,
     end_line: u32,
@@ -196,6 +205,7 @@ struct WitnessBuilder<'a> {
     projections: HashMap<(Tree, String, NodeId), UnitProjection>,
     prepared: HashMap<String, PreparedChange>,
     sibling_nodes: HashMap<String, Vec<u64>>,
+    source_lines: FileLineCache,
 }
 
 struct UnavailableChange {
@@ -237,6 +247,7 @@ impl<'a> WitnessBuilder<'a> {
             projections: HashMap::new(),
             prepared: HashMap::new(),
             sibling_nodes: HashMap::new(),
+            source_lines: FileLineCache::default(),
         }
     }
 

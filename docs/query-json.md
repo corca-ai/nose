@@ -125,7 +125,7 @@ unresolved referents, and capped mappings cannot be `complete`. This field does 
 a later frozen policy may consume it.
 
 `targets[]` is an evidence-only v8 extension for target-level policy development. A target is
-`{target_id, changed, skipped, direct_witness}`. `target_id` is the 16-hex-digit FNV identity of
+`{target_id, changed, skipped, direct_witness, variant_evidence}`. `target_id` is the 16-hex-digit FNV identity of
 the directed pair's repo-relative base coordinates and unit metadata; temporary base-worktree
 paths and enclosing-family membership are not inputs. `direct_witness` is the pair-local
 `{kind, similarity}` recorded when the detector accepted that edge, before transitive family
@@ -134,6 +134,20 @@ closure. `changed.touches_shared` is computed against only that target's `skippe
 top-level `changed[]` / `not_updated[]` arrays remain the complete family review context, so a
 bridge member reachable only through another clone stays visible there but is not silently
 turned into a propagation target.
+
+`variant_evidence` is pair-local and uses closed enums. `status` is `none`, `advisory`, or
+`disqualifying`; `signals[]` entries contain `{code, strength, changed[], skipped[]}` and
+`caveats[]` contain `{code, details[]}`. Strong signal codes are `referent-mismatch`,
+`decorator-mismatch`, `async-role-mismatch`, `effect-role-mismatch`,
+`protocol-role-mismatch`, and `disjoint-platform-guard`. `name-mismatch`, `path-mismatch`,
+and `version-label-mismatch` are always `strength="weak"`. Caveat codes are
+`source-unavailable`, `projection-unavailable`, `alignment-unavailable`,
+`lossy-projection`, `unresolved-referent`, `truncated`, and
+`conflicting-platform-guard`. Missing or contradictory evidence is advisory, and weak signals
+cannot disqualify a target. This field does not change the v2 `tier` or `gate.fail_default`;
+#852 may consume it only through the frozen v3 policy.
+The evidence compares the current changed result to the skipped base-tree endpoint; the stable
+`target_id` and `direct_witness` remain anchored to the accepted base-tree edge.
 
 JSON keeps one `items[]` finding per family, with zero or more direct targets. SARIF likewise
 keeps one result per family: `properties.targets` mirrors JSON's `targets`, and every
@@ -154,7 +168,7 @@ The v8 `base.items[]` object adds:
 | `taxonomy_hint` | string or null | Closed evidence/routing bucket for UI copy: `missed_propagation`, `no_propagation_needed`, `intentional_variant`, `test_scaffolding`, `grouping_artifact`, or `unclear`. This guides inspection; it is not a harm or correctness verdict. |
 | `gate` | object | `{eligible, fail_default, policy}` where `eligible` is informational (`true` for `strict` and `review`, false for `report-only` and `suppressed`), `fail_default` is the authoritative default CI decision and is true only for unsuppressed `strict`, and `policy` names the policy version such as `divergent-edit-v2-strict`. |
 | `suppression` | object or null | Structured-ignore match metadata when a future suppressed/debug view asks for it: `{kind, reason, owner, expires_at}`. `kind` is the closed enum `structured-ignore` for v8. Active human/SARIF output omits suppressed findings by default. |
-| `targets[]` | array | Direct detector-accepted changed→skipped propagation edges. Each target has stable `target_id`, pair-local `direct_witness`, and base-tree `changed` / `skipped` sites carrying pair-specific shared-line and semantic-change mapping. Empty for `new-copy` and when no direct edge survives. |
+| `targets[]` | array | Direct detector-accepted changed→skipped propagation edges. Each target has stable `target_id`, pair-local `direct_witness`, base-tree `changed` / `skipped` sites carrying pair-specific shared-line and semantic-change mapping, and closed `variant_evidence`. Empty for `new-copy` and when no direct edge survives. |
 
 Composition rules for v8:
 

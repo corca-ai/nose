@@ -115,6 +115,19 @@ file does not change the base target. JSON and SARIF expose the same ID; SARIF a
 to the skipped primary location and changed related location. The v2 family gate remains the
 authority until the measured v3 policy in #852 consumes target evidence.
 
+Each target also carries `variant_evidence`. Its closed `status` is `none`, `advisory`, or
+`disqualifying`; the last value means that at least one strong, pair-local signal was observed.
+Role and definition-modifier evidence compares the current changed result with the base-tree
+skipped endpoint, while identity remains anchored to the direct base edge.
+Strong signals are limited to resolved referent mismatch, definition decorator/attribute
+mismatch, async or observable-effect role mismatch, incompatible explicit protocol roles, and
+provably disjoint platform constraints. Every signal names its exact changed/skipped evidence.
+Name, path, and version-label differences are emitted only with `strength="weak"`; they cannot
+become hard-block authority alone. Projection/source loss, unresolved referents, truncation, and
+overlapping or incomparable platform constraints remain explicit advisory `caveats[]`. #851
+records these facts but deliberately leaves the v2 tier and `gate.fail_default` unchanged; #852
+is the first issue allowed to consume them in a frozen policy.
+
 The graded witness is **evidence for the consumer, not a fire gate**: a clean
 `equal_modulo_holes` family is a strong missed-propagation candidate, while a
 `referent-mismatch` / `decorator-differs` family is evidence that the copies may have

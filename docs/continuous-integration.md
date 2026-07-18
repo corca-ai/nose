@@ -241,6 +241,9 @@ JSON and SARIF keep one finding/result per family and carry the same `targets[]`
 SARIF target-backed primary and related locations repeat `target_id` in location properties,
 so an annotation identifies the exact skipped sibling and changed source without promoting a
 bridge member reached only through transitive family closure.
+Each target also mirrors the same closed `variant_evidence`: strong pair evidence is separated
+from weak name/path/version hints and explicit caveats. It is development evidence in v2, not
+another CI authority; wrappers must still decide only from `gate.fail_default`.
 
 Structured ignores apply before the gate: a suppressed divergent-edit family must not
 produce a `strict` failure, and report-only lanes such as newly added clone evidence
