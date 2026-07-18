@@ -200,6 +200,9 @@ fundamentals; the rest is grouped by area.
 - [divergent fire-precision results](../eval/divergence_fire/RESULTS.md) — final #681 replay/policy closeout for the opt-in divergent-edit gate, including the checked strict precision baseline and retention evidence.
 - [divergent-history-mining-pilot-687](divergent-history-mining-pilot-687.md) — checked #687 evidence for bounded divergent history mining and a non-required observe-only pilot.
 - [divergent-gate-product-runtime-688](divergent-gate-product-runtime-688.md) — checked #688 product-output and runtime evidence for the opt-in divergent gate.
+- [divergent-edit 0.20 closeout](divergent-gate-closeout-854.md) — #847/#854's
+  fail-closed policy decision, still-sealed blind population, official-v0.19.0 runtime
+  result, compatibility checks, and supported opt-in claim.
 - [reinvented-helper-audit-2026-06-13](reinvented-helper-audit-2026-06-13.md) — the hand-labeled field audit that promoted the reinvented-helper channel to the default surface.
 - [query-json-agent-audit-2026-06-10](query-json-agent-audit-2026-06-10.md) — machine-contract audit for consumer 1's evidence surface.
 - [query-json-agent-audit-2026-06-13](query-json-agent-audit-2026-06-13.md) — re-validation after the gap fixes (incl. the graded witness): all five gaps closed, 8/8 decidable from JSON alone.

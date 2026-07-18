@@ -20,6 +20,7 @@ use nose_normalize::{FileReferents, ValueDag};
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 const MAX_FILES: usize = 64;
@@ -164,7 +165,6 @@ struct UnitSkeleton {
     end_line: u32,
 }
 
-#[derive(Clone)]
 struct UnitProjection {
     kind: UnitKind,
     origin: UnitOrigin,
@@ -181,7 +181,7 @@ struct UnitProjection {
 struct ProjectionAttempt {
     status: SemanticProjectionStatus,
     alignment: SemanticAlignment,
-    unit: Option<UnitProjection>,
+    unit: Option<Arc<UnitProjection>>,
 }
 
 impl ProjectionAttempt {
@@ -202,7 +202,7 @@ struct WitnessBuilder<'a> {
     diff_entries: &'a [DiffEntry],
     opts: nose_detect::DetectOptions,
     files: HashMap<(Tree, String), LoadState>,
-    projections: HashMap<(Tree, String, NodeId), UnitProjection>,
+    projections: HashMap<(Tree, String, NodeId), Arc<UnitProjection>>,
     prepared: HashMap<String, PreparedChange>,
     sibling_nodes: HashMap<String, Vec<u64>>,
     source_lines: FileLineCache,
@@ -253,18 +253,20 @@ impl<'a> WitnessBuilder<'a> {
 
     fn witness(&mut self, site: &Site, siblings: &[Site]) -> SemanticChangeWitness {
         let key = semantic_site_key(site);
-        let prepared = if let Some(prepared) = self.prepared.get(&key).cloned() {
-            prepared
-        } else {
+        if !self.prepared.contains_key(&key) {
             let prepared = match self.prepare_change(site) {
                 Ok(prepared) => prepared,
                 Err(unavailable) => return unavailable.into_witness(),
             };
-            self.prepared.insert(key, prepared.clone());
-            prepared
-        };
+            self.prepared.insert(key.clone(), prepared);
+        }
         let sibling_hashes = self.sibling_hashes(siblings);
-        finish_witness(&prepared, &sibling_hashes)
+        finish_witness(
+            self.prepared
+                .get(&key)
+                .expect("prepared change was inserted"),
+            &sibling_hashes,
+        )
     }
 
     fn prepare_change(&mut self, site: &Site) -> Result<PreparedChange, UnavailableChange> {
@@ -435,17 +437,17 @@ impl<'a> WitnessBuilder<'a> {
         alignment: SemanticAlignment,
     ) -> ProjectionAttempt {
         let key = (tree, relative_path.to_string(), unit.root);
-        if let Some(projection) = self.projections.get(&key).cloned() {
-            return projected(projection, alignment);
+        if let Some(projection) = self.projections.get(&key) {
+            return projected(Arc::clone(projection), alignment);
         }
         let projection = {
             let file = match self.load_file(tree, relative_path) {
                 Ok(file) => file,
                 Err(status) => return ProjectionAttempt::failed(status),
             };
-            project_unit(file, &unit)
+            Arc::new(project_unit(file, &unit))
         };
-        self.projections.insert(key, projection.clone());
+        self.projections.insert(key, Arc::clone(&projection));
         projected(projection, alignment)
     }
 
@@ -457,19 +459,16 @@ impl<'a> WitnessBuilder<'a> {
                 continue;
             }
             let key = semantic_site_key(sibling);
-            let node_hashes = if let Some(node_hashes) = self.sibling_nodes.get(&key).cloned() {
-                Some(node_hashes)
-            } else {
-                self.project_base(sibling).unit.map(|unit| {
+            if !self.sibling_nodes.contains_key(&key) {
+                if let Some(unit) = self.project_base(sibling).unit {
                     let node_hashes = node_hashes(&unit.dag);
-                    self.sibling_nodes.insert(key, node_hashes.clone());
-                    node_hashes
-                })
-            };
-            if let Some(node_hashes) = node_hashes {
+                    self.sibling_nodes.insert(key.clone(), node_hashes);
+                }
+            }
+            if let Some(node_hashes) = self.sibling_nodes.get(&key) {
                 units_checked += 1;
                 for hash in node_hashes {
-                    *hashes.entry(hash).or_insert(0usize) += 1;
+                    *hashes.entry(*hash).or_insert(0usize) += 1;
                 }
             }
         }

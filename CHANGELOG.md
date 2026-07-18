@@ -7,6 +7,14 @@ break.
 ## [Unreleased]
 
 ### Added
+- Closed the #847 divergent-edit precision-first cycle without overstating readiness.
+  Direct changed-to-skipped targets, bounded semantic-change evidence, and pair-local
+  variant signals now give users more precise review context, while one internal policy
+  decision keeps human, JSON, SARIF, and exit status aligned. No admissible v3 policy had
+  development support, so the blind population remains sealed and v2 stays opt-in. The
+  official-v0.19.0 closeout is output-compatible after removing reviewed additive evidence
+  but misses the runtime gate at +8.74% control-adjusted; default-on enforcement is not
+  recommended.
 - Added fail-closed Soundness Lab PR, nightly, deep-campaign, and 0.20 release
   gates. Nightly evidence covers every pinned repository exactly once, retains artifacts on
   failure, binds shards to one source commit and binary, fully diffs non-blocking advisory

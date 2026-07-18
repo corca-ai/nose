@@ -37,6 +37,7 @@ pub(super) fn build_query_dataset(
         query_detect_report(args, refs, &settings.exclude, &opts, detector.as_ref());
 
     let mut families = time_stage("rank_families", || nose_detect::rank_families(&report));
+    preserve_query_accepted_coverage(&mut families);
     time_stage("query_filter", || {
         if settings.channels.abstraction_only() {
             families.retain(|f| f.abstraction_witness.is_some());
@@ -84,6 +85,25 @@ pub(super) fn build_query_dataset(
         reinvented,
         opts,
     })
+}
+
+/// `direct_edges` is the richer representation needed by the `base=` divergence view.
+/// Ordinary query opportunity folding predates that representation and must keep treating
+/// the same detector pairs as accepted-coverage obligations; otherwise adding target evidence
+/// changes which ordinary families remain visible.
+pub(crate) fn preserve_query_accepted_coverage(families: &mut [nose_detect::RefactorFamily]) {
+    for family in families {
+        if family.direct_edges.is_empty() {
+            continue;
+        }
+        family.accepted_coverage.insert(
+            0,
+            nose_detect::AcceptedCoverage {
+                sites: family.locations.clone(),
+                edges: std::mem::take(&mut family.direct_edges),
+            },
+        );
+    }
 }
 
 /// The query settings after layering: CLI flag wins, else config file, else built-in

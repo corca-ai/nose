@@ -166,6 +166,13 @@ and would only consume the seal. Its single checked verdict is `failed` at the
 no quality labels were created or revealed, and the held-out population remains
 `sealed-unjudged`. This is a failed default-on cycle, not a blind precision measurement.
 
+#854 closes the cycle without widening the claim. The official-v0.19.0 runtime comparison is
+8.74% slower after its same-binary control, above the 5% budget, although legacy base-query
+output is compatible after removing the reviewed additive evidence and ordinary non-`base=`
+output is unchanged across the epic. The supported product is therefore the existing opt-in v2
+gate with better review evidence, not default-on enforcement. The detailed
+[closeout evidence](divergent-gate-closeout-854.md) records the performance and compatibility checks.
+
 ## Bounded semantic-change evidence
 
 For an already-flagged base divergence, each family-level changed site and each direct target's

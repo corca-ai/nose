@@ -13,7 +13,6 @@ impl SharedHashes {
     }
 }
 
-#[derive(Clone)]
 pub(super) struct SemanticAnalysis {
     change_kind: SemanticChangeKind,
     facets: Vec<SemanticChangeFacet>,
@@ -28,7 +27,6 @@ pub(super) struct SemanticAnalysis {
     inserted: usize,
 }
 
-#[derive(Clone)]
 pub(super) struct PreparedChange {
     pub(super) analysis: SemanticAnalysis,
     pub(super) alignment: SemanticAlignment,
@@ -323,7 +321,10 @@ pub(super) fn unit_matches_enclosing(unit: &UnitSkeleton, enclosing: &EnclosingU
         }
 }
 
-pub(super) fn projected(unit: UnitProjection, alignment: SemanticAlignment) -> ProjectionAttempt {
+pub(super) fn projected(
+    unit: Arc<UnitProjection>,
+    alignment: SemanticAlignment,
+) -> ProjectionAttempt {
     ProjectionAttempt {
         status: SemanticProjectionStatus::Ok,
         alignment,
