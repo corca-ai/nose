@@ -1,0 +1,124 @@
+{
+  "artifacts": {
+    "all120_control_r3_sha256": "df2fd999cb7fa6dd8f23957771a7d8513b2929866f530e367bdc1f565fb39b88",
+    "all120_primary_r3_sha256": "40c5cbab8d35aa259371d29553c1c0355590d730212eb18365c8bf3f793daeb9",
+    "focused18_control_r21_sha256": "85df47e2b2669ada888e9b84051fe7d7d87ce4ad8d0524b4fd96511374af9e40",
+    "focused18_primary_r21_sha256": "1f72f3da5e9b4f6ade160ae6c2cd4617a38e608512452e63e4756c7bdc32e397",
+    "focused33_control_r9_sha256": "86294885619feda1c2397a1773b272ca18b05bfaed1ecb4750737478a2b16eab",
+    "focused33_primary_r9_sha256": "a4188eba28259d77f630444013bc3bf76e8c3e43adbfe1fb9eb1911824451dc2",
+    "focused9_control_r40_sha256": "a3e615b896b9520604ddcd19ed60e2a0e6390746179513c1ab5541e9f987fb63",
+    "focused9_primary_r40_sha256": "a539b07ede84b3531b28623a4b84278fe5225ad1c4327c5331a9d5e191fc948a",
+    "final_checker_status_sha256": "021b949bd1a9a3b4fef512af268f683e799e7b2103f21ec857c21db165a8b8f2",
+    "pre_post_all120_output_sha256": "124f972fa54cd58710d5503673e0a1d0b32ffd71e5fa38889557aadbbecbd7c8",
+    "semantic_smoke_focused_sha256": "c32658ab8fc9adbf230f40c25ad4bab2cb5a28095415090e46bfcba24e39cd38",
+    "semantic_smoke_primary_sha256": "6ec2c77834f7714738183511ee452c9c284af35cd2f5bfbb0c8cc82bf6767c3b",
+    "semantic_smoke_summary_sha256": "ec9728da3960f8635b009d8bc59d12a9857c79607ee474ce20af02424737f37c"
+  },
+  "baseline": {
+    "binary_code_sha256": "e55d0e989993ff1d1d6b4e933dbd3f5ade38203368b8321d3a7842799a95aca6",
+    "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3",
+    "source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+    "version": "v0.19.0"
+  },
+  "candidate": {
+    "binary_code_sha256": "e8f592a00519b27d1bd4ff4a52911806c1180e8f9a72be68232157adca7dc63f",
+    "binary_sha256": "111c6507dd028a194c000fbc279e05e6b9b2899552a9dca7f56a15d23c5ad38c",
+    "source_sha": "8c37b8f9c75b9543dc746e3eb6b9b18209810059"
+  },
+  "corpus": {
+    "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
+    "corpus_state_sha256": "781b5c5082c5ddf03cf5a3b3622eb4944bd2389b233e8a593b08f54e96ef6eda",
+    "expected_corpus_state_sha256": "b28d7245aa34d7e0320d0c80ef988803ba6acb65b63eaf1bae6d7ac840b168e0",
+    "prune_manifest_sha256": "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980",
+    "repositories": 120
+  },
+  "escalation": [
+    {
+      "iterations": 3,
+      "repositories": 120
+    },
+    {
+      "iterations": 9,
+      "repositories": 33
+    },
+    {
+      "iterations": 21,
+      "repositories": 18
+    },
+    {
+      "iterations": 40,
+      "repositories": 9
+    }
+  ],
+  "follow_up": {
+    "frontend": "https://github.com/corca-ai/nose/issues/907",
+    "normalization": "https://github.com/corca-ai/nose/issues/908"
+  },
+  "gate": {
+    "aggregate_control_adjusted_delta_pct_limit": 5.0,
+    "aggregate_passed": true,
+    "default_query_regressions_removed": true,
+    "final_checker_status": "split-independent-residuals",
+    "semantic_smoke_passed": true
+  },
+  "issue": 892,
+  "measurement": {
+    "all120_r3": {
+      "adjusted_delta_ms": -247.1176718827337,
+      "adjusted_delta_pct": -0.690817460034696,
+      "aggregate_baseline_median_ms": 35752.501708688214,
+      "aggregate_current_median_ms": 35438.88137477916,
+      "control_delta_ms": -66.50266202632338,
+      "raw_delta_ms": -313.6203339090571,
+      "raw_delta_pct": -0.8771982908061625
+    },
+    "command": "nose query <repo> all top=0 --format json",
+    "focused9_r40": {
+      "adjusted_delta_ms": -16.153500822838396,
+      "adjusted_delta_pct": -0.23344612168502538,
+      "aggregate_baseline_median_ms": 6806.019897107035,
+      "aggregate_current_median_ms": 6760.2532703313045,
+      "control_delta_ms": -29.613125952892005,
+      "raw_delta_ms": -45.7666267757304,
+      "raw_delta_pct": -0.6724433291061044
+    },
+    "remaining_independent_signals": [
+      {
+        "adjusted_delta_ms": 5.55,
+        "adjusted_delta_pct": 6.52,
+        "repo": "etcd",
+        "stage": "lower"
+      },
+      {
+        "adjusted_delta_ms": 5.9,
+        "adjusted_delta_pct": 10.55,
+        "repo": "etcd",
+        "stage": "parse+lower"
+      },
+      {
+        "adjusted_delta_ms": 26.5,
+        "adjusted_delta_pct": 7.39,
+        "repo": "guava",
+        "stage": "normalize+extract"
+      },
+      {
+        "adjusted_delta_ms": 7.05,
+        "adjusted_delta_pct": 6.39,
+        "repo": "minio",
+        "stage": "normalize+extract"
+      }
+    ]
+  },
+  "output_invariance": {
+    "all120_family_count_order_surface_metadata_and_bytes_identical": true,
+    "baseline_binary_sha256": "7fed6a7cfa374031f950cbfedb04124d8868baa0a6c1eabf2e7685e5429edf87",
+    "baseline_source_sha": "963af51f38e1a9004f8aed3a0bd0d3ab1648e353",
+    "candidate_binary_sha256": "111c6507dd028a194c000fbc279e05e6b9b2899552a9dca7f56a15d23c5ad38c",
+    "repositories": 120
+  },
+  "root_cause": {
+    "description": "Default-surface checks recomputed sorted whole-family identities in opportunity grouping, gating, and rendering after the #842/#843 surface split.",
+    "fix": "Use stable in-process family handles for surface membership and decide default slices while constructing direct fold edges, removing the redundant full-family pass."
+  },
+  "schema": "nose.issue-892.performance/v1"
+}
