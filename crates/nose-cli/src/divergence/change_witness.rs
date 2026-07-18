@@ -6,7 +6,7 @@
 
 use super::git::DiffEntry;
 use super::*;
-use nose_il::{FileId, Interner, Lang, UnitKind};
+use nose_il::{FileId, Interner, Lang, NodeId, UnitKind};
 use nose_normalize::{FileReferents, ValueDag, VgSinkKind};
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
@@ -75,15 +75,24 @@ enum Tree {
     Current,
 }
 
-#[derive(Clone)]
 enum LoadState {
     Ready(FileProjection),
     Failed(SemanticProjectionStatus),
 }
 
-#[derive(Clone)]
 struct FileProjection {
-    units: Vec<UnitProjection>,
+    interner: Interner,
+    normalized: nose_il::Il,
+    units: Vec<UnitSkeleton>,
+}
+
+#[derive(Clone)]
+struct UnitSkeleton {
+    root: NodeId,
+    kind: UnitKind,
+    name: Option<String>,
+    start_line: u32,
+    end_line: u32,
 }
 
 #[derive(Clone)]
@@ -123,6 +132,7 @@ struct WitnessBuilder<'a> {
     diff_entries: &'a [DiffEntry],
     opts: nose_detect::DetectOptions,
     files: HashMap<(Tree, String), LoadState>,
+    projections: HashMap<(Tree, String, NodeId), UnitProjection>,
 }
 
 impl<'a> WitnessBuilder<'a> {
@@ -149,6 +159,7 @@ impl<'a> WitnessBuilder<'a> {
             diff_entries,
             opts,
             files: HashMap::new(),
+            projections: HashMap::new(),
         }
     }
 
@@ -215,34 +226,44 @@ impl<'a> WitnessBuilder<'a> {
     }
 
     fn project_base(&mut self, site: &Site) -> ProjectionAttempt {
-        let file = match self.load_file(Tree::Base, &site.file) {
-            Ok(file) => file,
-            Err(status) => return ProjectionAttempt::failed(status),
-        };
-        let mut candidates = file
-            .units
-            .iter()
-            .filter(|unit| unit_matches_site(unit, site, true))
-            .cloned()
-            .collect::<Vec<_>>();
-        if candidates.is_empty() {
-            if let Some(enclosing) = &site.enclosing_unit {
-                candidates = file
-                    .units
-                    .iter()
-                    .filter(|unit| unit_matches_enclosing(unit, enclosing))
-                    .cloned()
-                    .collect();
-            }
+        // Detector-added block roots are not frontend units in the normalized IL. Without
+        // an enclosing frontend unit there is nothing this projection can align, so avoid
+        // normalizing a potentially large file only to return the same `unit-missing` result.
+        if site.kind == UnitKind::Block && site.enclosing_unit.is_none() {
+            return ProjectionAttempt::failed(SemanticProjectionStatus::UnitMissing);
         }
-        match candidates.as_slice() {
-            [unit] => ProjectionAttempt {
-                status: SemanticProjectionStatus::Ok,
-                alignment: SemanticAlignment::ExactSpan,
-                unit: Some(unit.clone()),
-            },
-            [] => ProjectionAttempt::failed(SemanticProjectionStatus::UnitMissing),
-            _ => ProjectionAttempt::failed(SemanticProjectionStatus::AmbiguousUnit),
+        let selected = {
+            let file = match self.load_file(Tree::Base, &site.file) {
+                Ok(file) => file,
+                Err(status) => return ProjectionAttempt::failed(status),
+            };
+            let mut candidates = file
+                .units
+                .iter()
+                .filter(|unit| unit_matches_site(unit, site, true))
+                .cloned()
+                .collect::<Vec<_>>();
+            if candidates.is_empty() {
+                if let Some(enclosing) = &site.enclosing_unit {
+                    candidates = file
+                        .units
+                        .iter()
+                        .filter(|unit| unit_matches_enclosing(unit, enclosing))
+                        .cloned()
+                        .collect();
+                }
+            }
+            match candidates.as_slice() {
+                [unit] => Ok(unit.clone()),
+                [] => Err(SemanticProjectionStatus::UnitMissing),
+                _ => Err(SemanticProjectionStatus::AmbiguousUnit),
+            }
+        };
+        match selected {
+            Ok(unit) => {
+                self.project_selected(Tree::Base, &site.file, unit, SemanticAlignment::ExactSpan)
+            }
+            Err(status) => ProjectionAttempt::failed(status),
         }
     }
 
@@ -252,60 +273,71 @@ impl<'a> WitnessBuilder<'a> {
         current_path: &str,
         changed_ranges: &[(u32, u32)],
     ) -> ProjectionAttempt {
-        let file = match self.load_file(Tree::Current, current_path) {
-            Ok(file) => file,
-            Err(status) => return ProjectionAttempt::failed(status),
-        };
-        let same_kind = file
-            .units
-            .into_iter()
-            .filter(|unit| unit.kind == base.kind)
-            .collect::<Vec<_>>();
-        let exact = same_kind
-            .iter()
-            .filter(|unit| {
-                unit.name == base.name
-                    && unit.start_line == base.start_line
-                    && unit.end_line == base.end_line
-            })
-            .cloned()
-            .collect::<Vec<_>>();
-        if let [unit] = exact.as_slice() {
-            return projected(unit.clone(), SemanticAlignment::ExactSpan);
-        }
-        if let Some(name) = base.name.as_deref() {
-            let named = same_kind
+        let selected = {
+            let file = match self.load_file(Tree::Current, current_path) {
+                Ok(file) => file,
+                Err(status) => return ProjectionAttempt::failed(status),
+            };
+            let same_kind = file
+                .units
                 .iter()
-                .filter(|unit| unit.name.as_deref() == Some(name))
+                .filter(|unit| unit.kind == base.kind)
                 .cloned()
                 .collect::<Vec<_>>();
-            if let [unit] = named.as_slice() {
-                return projected(unit.clone(), SemanticAlignment::StableName);
+            let exact = same_kind
+                .iter()
+                .filter(|unit| {
+                    unit.name == base.name
+                        && unit.start_line == base.start_line
+                        && unit.end_line == base.end_line
+                })
+                .cloned()
+                .collect::<Vec<_>>();
+            if let [unit] = exact.as_slice() {
+                Ok((unit.clone(), SemanticAlignment::ExactSpan))
+            } else if let Some(name) = base.name.as_deref() {
+                let named = same_kind
+                    .iter()
+                    .filter(|unit| unit.name.as_deref() == Some(name))
+                    .cloned()
+                    .collect::<Vec<_>>();
+                if let [unit] = named.as_slice() {
+                    Ok((unit.clone(), SemanticAlignment::StableName))
+                } else {
+                    select_current_by_change_or_distance(&same_kind, base, changed_ranges)
+                }
+            } else {
+                select_current_by_change_or_distance(&same_kind, base, changed_ranges)
             }
-        }
-        let changed = same_kind
-            .iter()
-            .filter(|unit| ranges_touch_unit(changed_ranges, unit))
-            .cloned()
-            .collect::<Vec<_>>();
-        if let [unit] = changed.as_slice() {
-            return projected(unit.clone(), SemanticAlignment::ChangedRange);
-        }
-        let Some(min_distance) = same_kind
-            .iter()
-            .map(|unit| unit.start_line.abs_diff(base.start_line))
-            .min()
-        else {
-            return ProjectionAttempt::failed(SemanticProjectionStatus::UnitMissing);
         };
-        let nearest = same_kind
-            .into_iter()
-            .filter(|unit| unit.start_line.abs_diff(base.start_line) == min_distance)
-            .collect::<Vec<_>>();
-        match nearest.as_slice() {
-            [unit] => projected(unit.clone(), SemanticAlignment::NearestSpan),
-            _ => ProjectionAttempt::failed(SemanticProjectionStatus::AmbiguousUnit),
+        match selected {
+            Ok((unit, alignment)) => {
+                self.project_selected(Tree::Current, current_path, unit, alignment)
+            }
+            Err(status) => ProjectionAttempt::failed(status),
         }
+    }
+
+    fn project_selected(
+        &mut self,
+        tree: Tree,
+        relative_path: &str,
+        unit: UnitSkeleton,
+        alignment: SemanticAlignment,
+    ) -> ProjectionAttempt {
+        let key = (tree, relative_path.to_string(), unit.root);
+        if let Some(projection) = self.projections.get(&key).cloned() {
+            return projected(projection, alignment);
+        }
+        let projection = {
+            let file = match self.load_file(tree, relative_path) {
+                Ok(file) => file,
+                Err(status) => return ProjectionAttempt::failed(status),
+            };
+            project_unit(file, &unit)
+        };
+        self.projections.insert(key, projection.clone());
+        projected(projection, alignment)
     }
 
     fn sibling_hashes(&mut self, siblings: &[Site]) -> SharedHashes {
@@ -333,21 +365,23 @@ impl<'a> WitnessBuilder<'a> {
         &mut self,
         tree: Tree,
         relative_path: &str,
-    ) -> Result<FileProjection, SemanticProjectionStatus> {
+    ) -> Result<&FileProjection, SemanticProjectionStatus> {
         let key = (tree, relative_path.to_string());
-        if let Some(state) = self.files.get(&key).cloned() {
-            return loaded(state);
+        if !self.files.contains_key(&key) {
+            if self.files.len() >= MAX_FILES {
+                return Err(SemanticProjectionStatus::CapExceeded);
+            }
+            let root = match tree {
+                Tree::Base => self.base_root,
+                Tree::Current => self.current_root,
+            };
+            let state = project_file(&root.join(relative_path), relative_path, &self.opts);
+            self.files.insert(key.clone(), state);
         }
-        if self.files.len() >= MAX_FILES {
-            return Err(SemanticProjectionStatus::CapExceeded);
+        match self.files.get(&key).expect("file projection was inserted") {
+            LoadState::Ready(file) => Ok(file),
+            LoadState::Failed(status) => Err(*status),
         }
-        let root = match tree {
-            Tree::Base => self.base_root,
-            Tree::Current => self.current_root,
-        };
-        let state = project_file(&root.join(relative_path), relative_path, &self.opts);
-        self.files.insert(key, state.clone());
-        loaded(state)
     }
 }
 
@@ -552,13 +586,6 @@ fn analysis_caveats(
     caveats
 }
 
-fn loaded(state: LoadState) -> Result<FileProjection, SemanticProjectionStatus> {
-    match state {
-        LoadState::Ready(file) => Ok(file),
-        LoadState::Failed(status) => Err(status),
-    }
-}
-
 fn project_file(
     absolute_path: &Path,
     relative_path: &str,
@@ -588,7 +615,6 @@ fn project_file(
         Ok(raw) => raw,
         Err(_) => return LoadState::Failed(SemanticProjectionStatus::LowerFailed),
     };
-    let features = nose_detect::units_of_file(&raw, &interner, opts);
     let normalized = nose_normalize::normalize(
         &raw,
         &interner,
@@ -601,39 +627,58 @@ fn project_file(
     if normalized.units.len() > MAX_UNITS_PER_FILE {
         return LoadState::Failed(SemanticProjectionStatus::CapExceeded);
     }
-    let referents = FileReferents::new(&normalized, &interner);
     let mut units = Vec::with_capacity(normalized.units.len());
     for unit in &normalized.units {
         let span = normalized.node(unit.root).span;
         let name = unit.name.map(|symbol| interner.resolve(symbol).to_string());
-        let feature = features.iter().find(|feature| {
-            feature.kind == unit.kind
-                && feature.start_line == span.start_line
-                && feature.end_line == span.end_line
-                && feature.name == name
-                && feature.fragment_kind.is_none()
-        });
-        let dag = nose_normalize::value_dag(&normalized, unit.root, &interner, None, &referents);
-        let truncated = dag.nodes.len() > MAX_NODES_PER_UNIT;
-        let unresolved_referent = dag
-            .referents
-            .iter()
-            .any(|referent| referent.referent.is_none());
-        units.push(UnitProjection {
+        units.push(UnitSkeleton {
+            root: unit.root,
             kind: unit.kind,
             name,
             start_line: span.start_line,
             end_line: span.end_line,
-            exact_safe: feature.is_some_and(|feature| feature.exact_safe),
-            dag,
-            truncated,
-            unresolved_referent,
         });
     }
-    LoadState::Ready(FileProjection { units })
+    LoadState::Ready(FileProjection {
+        interner,
+        normalized,
+        units,
+    })
 }
 
-fn unit_matches_site(unit: &UnitProjection, site: &Site, require_span: bool) -> bool {
+fn project_unit(file: &FileProjection, unit: &UnitSkeleton) -> UnitProjection {
+    let span = file.normalized.node(unit.root).span;
+    let exact_safe =
+        nose_detect::exact_safe_roots_by_span(&file.normalized, &file.interner, &[unit.root])
+            .get(&(span.start_byte, span.end_byte))
+            .copied()
+            .unwrap_or(false);
+    let referents = FileReferents::new(&file.normalized, &file.interner);
+    let dag = nose_normalize::value_dag(
+        &file.normalized,
+        unit.root,
+        &file.interner,
+        None,
+        &referents,
+    );
+    let truncated = dag.nodes.len() > MAX_NODES_PER_UNIT;
+    let unresolved_referent = dag
+        .referents
+        .iter()
+        .any(|referent| referent.referent.is_none());
+    UnitProjection {
+        kind: unit.kind,
+        name: unit.name.clone(),
+        start_line: unit.start_line,
+        end_line: unit.end_line,
+        exact_safe,
+        dag,
+        truncated,
+        unresolved_referent,
+    }
+}
+
+fn unit_matches_site(unit: &UnitSkeleton, site: &Site, require_span: bool) -> bool {
     unit.kind == site.kind
         && (!require_span || (unit.start_line == site.start_line && unit.end_line == site.end_line))
         && match site.name.as_deref() {
@@ -642,7 +687,7 @@ fn unit_matches_site(unit: &UnitProjection, site: &Site, require_span: bool) -> 
         }
 }
 
-fn unit_matches_enclosing(unit: &UnitProjection, enclosing: &EnclosingUnit) -> bool {
+fn unit_matches_enclosing(unit: &UnitSkeleton, enclosing: &EnclosingUnit) -> bool {
     unit.kind == enclosing.kind
         && unit.start_line == enclosing.start_line
         && unit.end_line == enclosing.end_line
@@ -660,6 +705,37 @@ fn projected(unit: UnitProjection, alignment: SemanticAlignment) -> ProjectionAt
     }
 }
 
+fn select_current_by_change_or_distance(
+    same_kind: &[UnitSkeleton],
+    base: &UnitProjection,
+    changed_ranges: &[(u32, u32)],
+) -> Result<(UnitSkeleton, SemanticAlignment), SemanticProjectionStatus> {
+    let changed = same_kind
+        .iter()
+        .filter(|unit| ranges_touch_skeleton(changed_ranges, unit))
+        .cloned()
+        .collect::<Vec<_>>();
+    if let [unit] = changed.as_slice() {
+        return Ok((unit.clone(), SemanticAlignment::ChangedRange));
+    }
+    let Some(min_distance) = same_kind
+        .iter()
+        .map(|unit| unit.start_line.abs_diff(base.start_line))
+        .min()
+    else {
+        return Err(SemanticProjectionStatus::UnitMissing);
+    };
+    let nearest = same_kind
+        .iter()
+        .filter(|unit| unit.start_line.abs_diff(base.start_line) == min_distance)
+        .cloned()
+        .collect::<Vec<_>>();
+    match nearest.as_slice() {
+        [unit] => Ok((unit.clone(), SemanticAlignment::NearestSpan)),
+        _ => Err(SemanticProjectionStatus::AmbiguousUnit),
+    }
+}
+
 fn ranges_inside_unit(ranges: &[(u32, u32)], unit: &UnitProjection) -> Vec<(u32, u32)> {
     ranges
         .iter()
@@ -674,8 +750,14 @@ fn ranges_inside_unit(ranges: &[(u32, u32)], unit: &UnitProjection) -> Vec<(u32,
         .collect()
 }
 
-fn ranges_touch_unit(ranges: &[(u32, u32)], unit: &UnitProjection) -> bool {
-    !ranges_inside_unit(ranges, unit).is_empty()
+fn ranges_touch_skeleton(ranges: &[(u32, u32)], unit: &UnitSkeleton) -> bool {
+    ranges.iter().any(|&(start, end)| {
+        if start <= end {
+            start <= unit.end_line && unit.start_line <= end
+        } else {
+            unit.start_line < start && start <= unit.end_line
+        }
+    })
 }
 
 fn affected_hashes(dag: &ValueDag, ranges: &[(u32, u32)]) -> Vec<u64> {
