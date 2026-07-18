@@ -2,6 +2,7 @@ use super::git::{
     canonical, ensure_base_ref_available, git_changed_ranges_and_entries, git_repo_root,
     repo_relative_paths, reroot_paths, BaseWorktree, DiffEntry,
 };
+use super::targets::{direct_targets, same_loc};
 use super::*;
 use crate::detect_pipeline::detect_divergence_base_families;
 use crate::query_witness::enrich_graded_witnesses;
@@ -150,15 +151,31 @@ fn flag_divergences(
             enrich_graded_witnesses(std::slice::from_mut(&mut abs), enrich_opts);
             abs.witness.and_then(|w| w.graded)
         };
-        // The #245 fire policy input: does the diff touch lines this changed
-        // member SHARES with an un-updated sibling (its span minus the
-        // varying spots)? §BR measured 51% of divergence false-fires as
-        // span-overlap-but-not-shared-logic; a gate fires only on proof.
         let witness_kind = fam.witness.as_ref().map(|w| w.kind);
+        // A family is a transitive component, not a propagation-target list. Build
+        // only changed -> skipped pairs that the detector accepted directly, then
+        // compute shared-line contact against that exact sibling.
+        let targets = direct_targets(&fam, base_root, &mut lines, changed);
         let touches: Vec<Option<bool>> = changed_members
             .iter()
-            .map(|c| {
-                touches_shared_lines(c, &untouched, witness_kind, base_root, &mut lines, changed)
+            .map(|member| {
+                if let [sibling] = untouched.as_slice() {
+                    if let Some(touch) = targets.iter().find(|target| {
+                        same_loc(member, &target.changed)
+                            && same_loc(sibling, &target.skipped)
+                            && Some(target.direct_witness.kind) == witness_kind
+                    }) {
+                        return touch.changed.touches_shared;
+                    }
+                }
+                touches_shared_lines(
+                    member,
+                    &untouched,
+                    witness_kind,
+                    base_root,
+                    &mut lines,
+                    changed,
+                )
             })
             .collect();
         // All-test families are divergence context, not gate material: §BG-audit
@@ -186,6 +203,7 @@ fn flag_divergences(
                 .map(|(l, t)| to_site_touch(l, *t))
                 .collect(),
             not_updated: untouched.iter().map(|l| to_site(l)).collect(),
+            targets,
         });
     }
     // Most likely un-propagated fix first.
@@ -255,6 +273,7 @@ fn flag_new_copy_divergences(
             graded: None,
             changed: changed_members.iter().map(|l| to_site(l)).collect(),
             not_updated: untouched.iter().map(|l| to_site(l)).collect(),
+            targets: Vec::new(),
         });
     }
     flagged.sort_by(|a, b| {
@@ -429,7 +448,7 @@ pub(super) fn to_site(loc: &Loc) -> Site {
     }
 }
 
-fn to_site_touch(loc: &Loc, touches_shared: Option<bool>) -> Site {
+pub(super) fn to_site_touch(loc: &Loc, touches_shared: Option<bool>) -> Site {
     Site {
         touches_shared,
         ..to_site(loc)
@@ -456,7 +475,7 @@ fn to_site_touch(loc: &Loc, touches_shared: Option<bool>) -> Site {
 ///   hit its cap (a truncated list under-counts variance, which would
 ///   over-claim shared lines). The gate treats unknown as not-eligible: it
 ///   fires on proof, never on absence of one.
-fn touches_shared_lines(
+pub(super) fn touches_shared_lines(
     member: &Loc,
     siblings: &[&Loc],
     witness_kind: Option<&'static str>,
@@ -522,7 +541,7 @@ pub(super) fn divergence_priority(
 }
 
 /// Does this member's (repo-relative) base span overlap a changed range of its file?
-fn site_touched_loc(loc: &Loc, changed: &HashMap<String, Vec<(u32, u32)>>) -> bool {
+pub(super) fn site_touched_loc(loc: &Loc, changed: &HashMap<String, Vec<(u32, u32)>>) -> bool {
     changed
         .get(&loc.file)
         .is_some_and(|ranges| ranges_touch(ranges, loc.start_line, loc.end_line))

@@ -13,7 +13,18 @@ use super::{
 #[derive(Clone)]
 pub struct AcceptedCoverage {
     pub sites: Vec<Loc>,
-    pub edges: Vec<(u32, u32)>,
+    pub edges: Vec<AcceptedEdge>,
+}
+
+/// One detector-accepted pair before family transitive closure. The witness and
+/// score are pair-local: consumers must not substitute the enclosing family's
+/// aggregate witness when deciding whether these two sites are directly related.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AcceptedEdge {
+    pub left: u32,
+    pub right: u32,
+    pub score: f64,
+    pub witness_kind: &'static str,
 }
 
 #[derive(Serialize, Clone)]
@@ -53,10 +64,16 @@ pub struct RefactorFamily {
     pub shared_weight: f64,
     /// The duplicated sites, largest first.
     pub locations: Vec<Loc>,
+    /// Direct detector-accepted edges over `locations`, before family transitive
+    /// closure. Keeping these indices separate avoids cloning every retained
+    /// family's locations merely to store edge endpoints.
+    #[doc(hidden)]
+    #[serde(skip)]
+    pub direct_edges: Vec<AcceptedEdge>,
     /// Structural accepted-family sites this row must keep covered if a later
-    /// presentation layer suppresses it. Syntax-only windows start empty; when
-    /// rank subsumption drops a structural family, its obligation moves to the
-    /// covering survivor. Kept out of product JSON: this is bounded internal
+    /// presentation layer suppresses it. When rank subsumption drops a family,
+    /// its locations and direct edges move to the covering survivor. Kept out of
+    /// product JSON: this is bounded internal
     /// suppression provenance, not another reported clone family.
     #[doc(hidden)]
     #[serde(skip)]

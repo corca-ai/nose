@@ -49,6 +49,42 @@ fn query_base_pure_rename_without_content_change_stays_quiet() {
 }
 
 #[test]
+fn query_base_edited_rename_keeps_a_stable_base_target() {
+    let dir = edge_project("query_base_edited_rename");
+    git_in(&dir, &["mv", "a/f.py", "a/moved.py"]);
+    let moved = dir.join("a/moved.py");
+    let source = fs::read_to_string(&moved).unwrap();
+    fs::write(
+        &moved,
+        source.replace(
+            "    return total",
+            "    total = total + 1\n    return total",
+        ),
+    )
+    .unwrap();
+
+    let first = query_base_json(&dir);
+    let item = first_query_base_item(&first);
+    assert_site_files(item, "changed", &["a/f.py"]);
+    assert_site_files(item, "not_updated", &["b/f.py"]);
+    let target = &item["targets"][0];
+    assert_eq!(
+        target["changed"]["file"], "a/f.py",
+        "base identity: {first}"
+    );
+    assert_eq!(target["skipped"]["file"], "b/f.py", "base target: {first}");
+    let target_id = target["target_id"].clone();
+
+    let second = query_base_json(&dir);
+    assert_eq!(
+        second["items"][0]["targets"][0]["target_id"], target_id,
+        "a rerun and temporary-worktree change must not alter target identity"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn query_base_deleted_copy_is_strict_base_divergence() {
     let dir = edge_project("query_base_deleted_copy");
     fs::remove_file(dir.join("a/f.py")).unwrap();

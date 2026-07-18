@@ -275,7 +275,7 @@ pub struct Report {
     /// For each structural `groups` entry, direct accepted edges as local
     /// member-index pairs. Empty outside query's suppression-provenance path.
     #[serde(skip)]
-    pub accepted_group_edges: Vec<Vec<(u32, u32)>>,
+    pub accepted_group_edges: Vec<Vec<crate::AcceptedEdge>>,
 }
 
 fn unit_kind_name(kind: UnitKind) -> &'static str {

@@ -1,0 +1,99 @@
+{
+  "schema": "nose.issue-850.performance/v1",
+  "issue": 850,
+  "measured_at": "2026-07-18",
+  "development_only": true,
+  "blind_or_temporal_data_accessed": false,
+  "source": {
+    "candidate_parent_commit": "aa9a565c5c0e60e4732278d3886d16be8632750f",
+    "baseline_release": "v0.19.0",
+    "baseline_source_commit": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9"
+  },
+  "binaries": {
+    "baseline": {
+      "version": "nose 0.19.0",
+      "sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
+    },
+    "pre_issue_850": {
+      "version": "nose 0.19.0",
+      "sha256": "84dd9f1abc40e149f299b35f0e68c8ba6e3fe02334c7045c1320f4818212b327"
+    },
+    "candidate": {
+      "version": "nose 0.19.0",
+      "sha256": "4d7dfecdb72f22adf7caa398fbc7d9f7deb87003f0af0c0c0a6160089e15b030"
+    }
+  },
+  "harness": {
+    "path": "eval/divergence_fire/direct_target_eval.py",
+    "sha256": "9db413f2a4da674de3ad83dbe987848b9997faa7bacc575b1b0fdd55ce94fc2d",
+    "shared_path": "eval/divergence_fire/semantic_witness_eval.py",
+    "shared_sha256": "82c672c8a4b004ce4c5a11bfddfbf66d92efb511e256431d744c07095000c2d6",
+    "selection": "first current-v2-strict default-arm finding per development repository",
+    "repositories": 17,
+    "iterations": 3,
+    "warmups": 1,
+    "command": "nose query . base=<parent> top=0 --format json"
+  },
+  "official_release_primary": {
+    "baseline_median_sum_ms": 10281.990749,
+    "candidate_median_sum_ms": 11139.587334,
+    "raw_delta_ms": 857.596585,
+    "raw_delta_pct": 8.340764,
+    "legacy_outputs_equal_after_removing_semantic_change_and_targets": true,
+    "legacy_outputs_equal_repositories": 17,
+    "raw_artifact_sha256": "e6f0925dfb826258cced771154ec1cd5e15eb3d2ab86c59e1e520570c6300882"
+  },
+  "same_binary_control": {
+    "first_median_sum_ms": 10066.733418,
+    "second_median_sum_ms": 10077.599292,
+    "delta_ms": 10.865874,
+    "delta_pct": 0.107938,
+    "raw_artifact_sha256": "231b23170f063cf00c651e0f6ecc9bd2526536e97d1708853f8c8c7ece1b07a3"
+  },
+  "control_adjusted": {
+    "delta_ms": 846.730711,
+    "delta_pct": 8.235085,
+    "epic_budget_pct": 5.0,
+    "within_epic_budget": false
+  },
+  "incremental_from_pre_issue_850": {
+    "baseline_median_sum_ms": 10732.907374,
+    "candidate_median_sum_ms": 11203.48425,
+    "raw_delta_ms": 470.576876,
+    "raw_delta_pct": 4.384431,
+    "raw_artifact_sha256": "3bce70139fd428433e5637e1a19d103f4b4f055977167e6b199c6c4e655d860d"
+  },
+  "tail_investigation": {
+    "nearest_rank_p90_repo_delta_pct": 64.128755,
+    "above_twenty_pct": [
+      {
+        "repo": "regex",
+        "delta_pct": 72.542388
+      },
+      {
+        "repo": "axios",
+        "delta_pct": 64.128755
+      }
+    ],
+    "diagnosis": "Profiling attributed the initial tail to repeated contiguous-pair distribution and duplicate location ownership, followed by the compatibility cost of retaining family semantic evidence while also producing target evidence. Pair distribution is now O(members + pairs), locations are not cloned for retained families, prepared changed-site analysis and sibling hashes are cached, and a single identical sibling reuses the family witness. The remaining family-plus-target compatibility path must be collapsed by the v3 policy work in issue 852 before the epic runtime gate can pass."
+  },
+  "optimization_receipt": {
+    "changes": [
+      "replace O(groups * pairs) contiguous edge distribution with one member-to-group index",
+      "store direct edges as compact family-local indices without cloning retained locations",
+      "cache prepared base-to-current changes and sibling node hashes per family",
+      "reuse the family semantic witness for the common single-identical-sibling target",
+      "cap emitted direct targets at 64 per family"
+    ],
+    "timing_probe": {
+      "regex_semantic_family_ms": 1731.6,
+      "regex_semantic_target_ms": 0.3,
+      "rxjava_semantic_family_ms": 170.0,
+      "rxjava_semantic_target_ms": 0.0
+    }
+  },
+  "assessment": {
+    "status": "bounded-incremental-overhead-with-epic-budget-debt",
+    "reason": "Issue 850 adds 4.38% relative to its immediate parent and preserves all legacy JSON on 17 repositories after removing the two reviewed evidence fields. The complete issue-847 path is 8.24% slower than the official v0.19.0 binary, so issue 852 must remove the compatibility duplication and remeasure against the same official binary; issue 847 cannot close while the adjusted result remains above 5%."
+  }
+}

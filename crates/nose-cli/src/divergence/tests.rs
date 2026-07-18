@@ -1,3 +1,5 @@
+mod targets;
+
 use super::detect::{divergence_priority, ranges_touch, to_site};
 use super::git::{
     parse_name_status, parse_new_side_ranges, parse_old_side_ranges, parse_patch_entries,
@@ -227,6 +229,7 @@ fn divergence_family(locs: Vec<Loc>) -> RefactorFamily {
         params: 0,
         shared_weight: 4.0,
         locations: locs,
+        direct_edges: Vec::new(),
         accepted_coverage: Vec::new(),
         display_params: None,
         mean_sem: 4.0,
@@ -294,6 +297,7 @@ fn tier_divergence(scope: &'static str, fire_eligible: bool, touch: Option<bool>
         graded: None,
         changed: vec![tier_site("a.py", touch)],
         not_updated: vec![tier_site("b.py", None)],
+        targets: Vec::new(),
     }
 }
 
@@ -333,6 +337,7 @@ fn v2_tier_routes_unknown_shared_evidence_to_review() {
             max_file_bytes: 2 * 1024 * 1024,
             max_changed_sites_per_family: 16,
             max_siblings_per_family: 16,
+            max_targets_per_family: 64,
             max_units_per_file: 512,
             max_nodes_per_unit: 2_048,
         },
@@ -454,6 +459,7 @@ fn v8_json_and_sarif_share_policy_fields() {
         assert_eq!(item["taxonomy_hint"], result["properties"]["taxonomy_hint"]);
         assert_eq!(item["gate"], result["properties"]["gate"]);
         assert_eq!(item["fire_eligible"], result["properties"]["fire_eligible"]);
+        assert_eq!(item["targets"], result["properties"]["targets"]);
         assert_eq!(item["gate"]["policy"], DIVERGENT_EDIT_V2_POLICY);
         assert_eq!(result["properties"]["policy"], DIVERGENT_EDIT_V2_POLICY);
         assert!(

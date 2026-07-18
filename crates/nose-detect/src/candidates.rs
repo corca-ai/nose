@@ -118,7 +118,7 @@ pub(crate) fn build_groups(
     enclosing: &[Option<EnclosingUnit>],
     opts: &DetectOptions,
     trace_accepted_coverage: bool,
-) -> (Vec<Group>, Vec<Vec<(u32, u32)>>) {
+) -> (Vec<Group>, Vec<Vec<crate::AcceptedEdge>>) {
     let mut by_root: FxHashMap<usize, (f64, u32)> = FxHashMap::default();
     for &(i, _j, s) in accepted {
         let e = by_root.entry(uf.find(i)).or_insert((0.0, 0));
@@ -161,7 +161,7 @@ pub(crate) fn build_groups(
         })
         .collect();
     let accepted_group_edges = if trace_accepted_coverage {
-        accepted_edges_by_group(units.len(), raw_groups, accepted)
+        accepted_edges_by_group(units, raw_groups, accepted)
     } else {
         Vec::new()
     };
@@ -174,7 +174,7 @@ pub(crate) fn build_connected_groups(
     enclosing: &[Option<EnclosingUnit>],
     opts: &DetectOptions,
     trace_accepted_coverage: bool,
-) -> (Vec<Group>, Vec<Vec<(u32, u32)>>) {
+) -> (Vec<Group>, Vec<Vec<crate::AcceptedEdge>>) {
     let groups = accepted
         .iter()
         .map(|pair| {
@@ -218,7 +218,21 @@ pub(crate) fn build_connected_groups(
         })
         .collect();
     let edges = if trace_accepted_coverage {
-        vec![vec![(0, 1)]; accepted.len()]
+        accepted
+            .iter()
+            .map(|pair| {
+                vec![crate::AcceptedEdge {
+                    left: 0,
+                    right: 1,
+                    score: round3(pair.score),
+                    witness_kind: if matches!(pair.route, ConnectedRoute::SameUnit) {
+                        "bounded-same-unit-window"
+                    } else {
+                        "connected-mapped-sub-dag"
+                    },
+                }]
+            })
+            .collect()
     } else {
         Vec::new()
     };
@@ -226,18 +240,18 @@ pub(crate) fn build_connected_groups(
 }
 
 fn accepted_edges_by_group(
-    unit_count: usize,
+    units: &[UnitFeat],
     raw_groups: &[Vec<usize>],
     accepted: &[(usize, usize, f64)],
-) -> Vec<Vec<(u32, u32)>> {
-    let mut member_position: Vec<Option<(usize, u32)>> = vec![None; unit_count];
+) -> Vec<Vec<crate::AcceptedEdge>> {
+    let mut member_position: Vec<Option<(usize, u32)>> = vec![None; units.len()];
     for (group_index, members) in raw_groups.iter().enumerate() {
         for (local_index, &unit_index) in members.iter().enumerate() {
             member_position[unit_index] = Some((group_index, local_index as u32));
         }
     }
     let mut edges = vec![Vec::new(); raw_groups.len()];
-    for &(left, right, _) in accepted {
+    for &(left, right, score) in accepted {
         let (Some((left_group, left_local)), Some((right_group, right_local))) =
             (member_position[left], member_position[right])
         else {
@@ -245,7 +259,12 @@ fn accepted_edges_by_group(
         };
         debug_assert_eq!(left_group, right_group);
         if left_group == right_group {
-            edges[left_group].push((left_local, right_local));
+            edges[left_group].push(crate::AcceptedEdge {
+                left: left_local,
+                right: right_local,
+                score: round3(score),
+                witness_kind: group_witness(&[left, right], units).kind,
+            });
         }
     }
     edges

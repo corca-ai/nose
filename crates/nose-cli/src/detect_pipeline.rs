@@ -38,7 +38,10 @@ pub(crate) fn detect_divergence_base_families(
     let opts = detection_options(channels, min_tokens, min_lines);
     let detector = detection_engine(channels, &opts);
     let corpus = nose_frontend::lower_corpus_filtered(&refs, exclude);
-    let report = nose_detect::detect(&corpus, &opts, detector.as_ref());
+    // Divergence needs the detector's direct accepted edges: family membership is
+    // transitive and therefore cannot identify an exact propagation target.
+    let report =
+        nose_detect::detect_with_direct_accepted_coverage(&corpus, &opts, detector.as_ref());
     let mut families = nose_detect::rank_families(&report);
     if channels.abstraction_only() {
         families.retain(|f| f.abstraction_witness.is_some());

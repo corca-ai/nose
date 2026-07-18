@@ -64,23 +64,47 @@ pub(super) fn accepted_obligations_covered(
     primary: &nose_detect::RefactorFamily,
     slice: &nose_detect::RefactorFamily,
 ) -> bool {
-    slice.accepted_coverage.iter().all(|obligation| {
-        obligation.edges.iter().all(|&(left, right)| {
-            let Some(left) = obligation.sites.get(left as usize) else {
-                return false;
-            };
-            let Some(right) = obligation.sites.get(right as usize) else {
-                return false;
-            };
-            primary
-                .locations
-                .iter()
-                .any(|loc| site_is_covered(loc, left))
-                && primary
+    edges_covered_by_family(primary, &slice.locations, &slice.direct_edges)
+        && slice.accepted_coverage.iter().all(|obligation| {
+            obligation.edges.iter().all(|edge| {
+                let Some(left) = obligation.sites.get(edge.left as usize) else {
+                    return false;
+                };
+                let Some(right) = obligation.sites.get(edge.right as usize) else {
+                    return false;
+                };
+                primary
                     .locations
                     .iter()
-                    .any(|loc| site_is_covered(loc, right))
+                    .any(|loc| site_is_covered(loc, left))
+                    && primary
+                        .locations
+                        .iter()
+                        .any(|loc| site_is_covered(loc, right))
+            })
         })
+}
+
+fn edges_covered_by_family(
+    primary: &nose_detect::RefactorFamily,
+    sites: &[nose_detect::Loc],
+    edges: &[nose_detect::AcceptedEdge],
+) -> bool {
+    edges.iter().all(|edge| {
+        let Some(left) = sites.get(edge.left as usize) else {
+            return false;
+        };
+        let Some(right) = sites.get(edge.right as usize) else {
+            return false;
+        };
+        primary
+            .locations
+            .iter()
+            .any(|loc| site_is_covered(loc, left))
+            && primary
+                .locations
+                .iter()
+                .any(|loc| site_is_covered(loc, right))
     })
 }
 
@@ -90,35 +114,68 @@ pub(super) fn accepted_edges_covered_by_roots(
     coverage_roots: &[bool],
     by_file: &FxHashMap<&str, FileOpportunityBucket>,
 ) -> bool {
-    carrier.accepted_coverage.iter().all(|obligation| {
-        let roots_by_site: Vec<Vec<usize>> = obligation
-            .sites
-            .iter()
-            .map(|site| {
-                by_file
-                    .get(site.file.as_str())
-                    .into_iter()
-                    .flat_map(|bucket| bucket.families.iter().copied())
-                    .filter(|&family_index| {
-                        coverage_roots[family_index]
-                            && families[family_index]
-                                .locations
-                                .iter()
-                                .any(|loc| site_is_covered(loc, site))
-                    })
-                    .collect()
-            })
-            .collect();
-        obligation.edges.iter().all(|&(left, right)| {
-            let Some(left_roots) = roots_by_site.get(left as usize) else {
+    edges_covered_by_roots(
+        &carrier.locations,
+        &carrier.direct_edges,
+        families,
+        coverage_roots,
+        by_file,
+    ) && carrier.accepted_coverage.iter().all(|obligation| {
+        let roots_by_site = roots_by_site(&obligation.sites, families, coverage_roots, by_file);
+        obligation.edges.iter().all(|edge| {
+            let Some(left_roots) = roots_by_site.get(edge.left as usize) else {
                 return false;
             };
-            let Some(right_roots) = roots_by_site.get(right as usize) else {
+            let Some(right_roots) = roots_by_site.get(edge.right as usize) else {
                 return false;
             };
             sorted_lists_intersect(left_roots, right_roots)
         })
     })
+}
+
+fn edges_covered_by_roots(
+    sites: &[nose_detect::Loc],
+    edges: &[nose_detect::AcceptedEdge],
+    families: &[&nose_detect::RefactorFamily],
+    coverage_roots: &[bool],
+    by_file: &FxHashMap<&str, FileOpportunityBucket>,
+) -> bool {
+    let roots_by_site = roots_by_site(sites, families, coverage_roots, by_file);
+    edges.iter().all(|edge| {
+        let Some(left_roots) = roots_by_site.get(edge.left as usize) else {
+            return false;
+        };
+        let Some(right_roots) = roots_by_site.get(edge.right as usize) else {
+            return false;
+        };
+        sorted_lists_intersect(left_roots, right_roots)
+    })
+}
+
+fn roots_by_site(
+    sites: &[nose_detect::Loc],
+    families: &[&nose_detect::RefactorFamily],
+    coverage_roots: &[bool],
+    by_file: &FxHashMap<&str, FileOpportunityBucket>,
+) -> Vec<Vec<usize>> {
+    sites
+        .iter()
+        .map(|site| {
+            by_file
+                .get(site.file.as_str())
+                .into_iter()
+                .flat_map(|bucket| bucket.families.iter().copied())
+                .filter(|&family_index| {
+                    coverage_roots[family_index]
+                        && families[family_index]
+                            .locations
+                            .iter()
+                            .any(|loc| site_is_covered(loc, site))
+                })
+                .collect()
+        })
+        .collect()
 }
 
 fn sorted_lists_intersect(left: &[usize], right: &[usize]) -> bool {

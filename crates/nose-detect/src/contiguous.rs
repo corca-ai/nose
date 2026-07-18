@@ -251,7 +251,12 @@ fn line_count(l: &LocSeed) -> u32 {
 /// which is extended to its maximal length and (if large enough) emitted. After a
 /// match the pass skips past it, so each duplicated region is reported once and the
 /// pass stays linear even on highly repetitive code.
-pub(crate) fn detect(streams: &[Stream], min_tokens: usize, min_lines: u32) -> Vec<crate::Group> {
+pub(crate) fn detect(
+    streams: &[Stream],
+    min_tokens: usize,
+    min_lines: u32,
+    trace_accepted_coverage: bool,
+) -> (Vec<crate::Group>, Vec<Vec<crate::AcceptedEdge>>) {
     let (k, mint, minl) = (k(), min_tokens, min_lines);
     // First occurrence of each k-gram, keyed by (hash, language): `(hash, lang) ->
     // (stream, pos)`. Keying on language makes the contiguous channel **same-language
@@ -312,15 +317,16 @@ pub(crate) fn detect(streams: &[Stream], min_tokens: usize, min_lines: u32) -> V
     }
 
     if locs.is_empty() {
-        return Vec::new();
+        return (Vec::new(), Vec::new());
     }
     // Cluster instances into families (transitively: copy C of a block joins A,B).
     let mut uf = UnionFind::new(locs.len());
     for &(a, b) in &pairs {
         uf.union(a, b);
     }
-    let mut groups = Vec::new();
-    for members in uf.groups(locs.len()) {
+    let raw_groups = uf.groups(locs.len());
+    let mut groups = Vec::with_capacity(raw_groups.len());
+    for members in &raw_groups {
         // The contiguous channel can't score similarity per-pair cheaply; these are
         // exact-token-run clones, so report them at sim 1.0.
         groups.push(crate::Group {
@@ -338,7 +344,35 @@ pub(crate) fn detect(streams: &[Stream], min_tokens: usize, min_lines: u32) -> V
             }),
         });
     }
-    groups
+    if !trace_accepted_coverage {
+        return (groups, Vec::new());
+    }
+    // Distribute direct pairs in one pass. Scanning every pair once per group is
+    // O(groups * pairs) on clone-heavy repositories (RxJava has thousands of both).
+    let mut member_position = vec![None; locs.len()];
+    for (group_index, members) in raw_groups.iter().enumerate() {
+        for (local_index, &member) in members.iter().enumerate() {
+            member_position[member] = Some((group_index, local_index as u32));
+        }
+    }
+    let mut accepted_edges = vec![Vec::new(); raw_groups.len()];
+    for &(left, right) in &pairs {
+        let (Some((left_group, left_local)), Some((right_group, right_local))) =
+            (member_position[left], member_position[right])
+        else {
+            continue;
+        };
+        debug_assert_eq!(left_group, right_group);
+        if left_group == right_group {
+            accepted_edges[left_group].push(crate::AcceptedEdge {
+                left: left_local,
+                right: right_local,
+                score: 1.0,
+                witness_kind: "copy-paste-run",
+            });
+        }
+    }
+    (groups, accepted_edges)
 }
 
 #[cfg(test)]
@@ -370,7 +404,7 @@ mod tests {
         let mut b = vec![9, 8];
         b.extend(&shared);
         b.extend([7, 6, 5, 4]);
-        let groups = detect(&[mk("a.py", a), mk("b.py", b)], 10, 3);
+        let groups = detect(&[mk("a.py", a), mk("b.py", b)], 10, 3, false).0;
         assert_eq!(groups.len(), 1, "the shared run is one family");
         assert_eq!(groups[0].members.len(), 2, "one site per file");
     }
@@ -383,7 +417,9 @@ mod tests {
         a.extend(&shared);
         let mut b = vec![9, 8, 7];
         b.extend(&shared);
-        assert!(detect(&[mk("a.py", a), mk("b.py", b)], 10, 3).is_empty());
+        assert!(detect(&[mk("a.py", a), mk("b.py", b)], 10, 3, false)
+            .0
+            .is_empty());
     }
 
     #[test]
@@ -419,7 +455,9 @@ mod tests {
             }
         };
         assert!(
-            detect(&[stream("a.py"), stream("b.py")], 10, 3).is_empty(),
+            detect(&[stream("a.py"), stream("b.py")], 10, 3, false)
+                .0
+                .is_empty(),
             "an operation-free run is not a refactor candidate"
         );
         // The same run with one operation token IS reported.
@@ -429,7 +467,9 @@ mod tests {
             s
         };
         assert_eq!(
-            detect(&[with_op("a.py"), with_op("b.py")], 10, 3).len(),
+            detect(&[with_op("a.py"), with_op("b.py")], 10, 3, false)
+                .0
+                .len(),
             1,
             "a run containing an operation is a clone"
         );

@@ -74,6 +74,28 @@ fn assert_json_contract(dir: &Path) {
         item["not_updated"][0]["tree"], "base",
         "skipped sibling coordinate origin: {json}"
     );
+    assert_json_target_contract(item, &json);
+    assert_json_site_contract(item, &json);
+}
+
+fn assert_json_target_contract(item: &serde_json::Value, json: &serde_json::Value) {
+    let target = &item["targets"][0];
+    assert!(
+        target["target_id"]
+            .as_str()
+            .is_some_and(|target_id| target_id.len() == 16),
+        "direct target has a stable id: {json}"
+    );
+    assert_eq!(target["changed"]["tree"], "base", "target source: {json}");
+    assert_eq!(target["skipped"]["tree"], "base", "target sink: {json}");
+    assert!(
+        target["direct_witness"]["kind"].is_string()
+            && target["direct_witness"]["similarity"].is_number(),
+        "target carries pair-local detector evidence: {json}"
+    );
+}
+
+fn assert_json_site_contract(item: &serde_json::Value, json: &serde_json::Value) {
     for site in item["changed"]
         .as_array()
         .unwrap()
@@ -102,6 +124,11 @@ fn assert_json_contract(dir: &Path) {
 }
 
 fn assert_sarif_contract(dir: &Path) {
+    let json_out = nose_query_in(dir, &["base=main", "--min-size", "8", "--format", "json"]);
+    let json: serde_json::Value = serde_json::from_slice(&json_out.stdout).unwrap();
+    let target_id = json["items"][0]["targets"][0]["target_id"]
+        .as_str()
+        .expect("JSON direct target id");
     let out = nose_query_in(dir, &["base=main", "--min-size", "8", "--format", "sarif"]);
     assert!(
         out.status.success(),
@@ -153,6 +180,7 @@ fn assert_sarif_contract(dir: &Path) {
     );
     assert_eq!(result["properties"]["policy"], "divergent-edit-v2-strict");
     assert_eq!(result["properties"]["fire_eligible"], true);
+    assert_sarif_target_contract(result, target_id, &sarif);
     assert_eq!(
         result["locations"][0]["physicalLocation"]["region"]["startLine"], 1,
         "SARIF skipped-sibling location carries a region: {sarif}"
@@ -162,6 +190,25 @@ fn assert_sarif_contract(dir: &Path) {
             .as_str()
             .is_some_and(|uri| uri.ends_with("a/f.py")),
         "base-divergence SARIF relates the changed copy: {sarif}"
+    );
+}
+
+fn assert_sarif_target_contract(
+    result: &serde_json::Value,
+    target_id: &str,
+    sarif: &serde_json::Value,
+) {
+    assert_eq!(
+        result["properties"]["targets"][0]["target_id"], target_id,
+        "JSON and SARIF name the same exact direct target: {sarif}"
+    );
+    assert_eq!(
+        result["locations"][0]["properties"]["target_id"], target_id,
+        "SARIF primary location names the skipped target: {sarif}"
+    );
+    assert_eq!(
+        result["relatedLocations"][0]["properties"]["target_id"], target_id,
+        "SARIF related location names the changed source: {sarif}"
     );
 }
 

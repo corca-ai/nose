@@ -230,11 +230,17 @@ suppressed results; a future suppressed/debug SARIF surface must emit
 metadata.
 
 The legacy `fire_eligible` field remains in JSON as the serialized v1 conservative
-verdict. In the current implementation it is computed from proven shared-logic touch
-and not-all-test scope, so mixed-scope findings may still be `fire_eligible=true`.
+verdict. In the current implementation it is computed from proven shared-logic touch on
+at least one direct `targets[]` edge and not-all-test scope, so mixed-scope findings may
+still be `fire_eligible=true`.
 Wrappers should display `tier`, but decide pass/fail only from `gate.fail_default`.
 They should not reconstruct gate behavior from raw fields such as `touches_shared`,
 `scope`, `witness_kind`, or `graded` when a `tier` is present.
+
+JSON and SARIF keep one finding/result per family and carry the same `targets[]` target IDs.
+SARIF target-backed primary and related locations repeat `target_id` in location properties,
+so an annotation identifies the exact skipped sibling and changed source without promoting a
+bridge member reached only through transitive family closure.
 
 Structured ignores apply before the gate: a suppressed divergent-edit family must not
 produce a `strict` failure, and report-only lanes such as newly added clone evidence
