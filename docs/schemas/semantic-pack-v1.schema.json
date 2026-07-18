@@ -1,0 +1,330 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/corca-ai/nose/docs/schemas/semantic-pack-v1.schema.json",
+  "title": "nose typed semantic pack influence manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "pack",
+    "provenance",
+    "compatibility",
+    "supported_languages",
+    "packages",
+    "declares"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "api_version": {
+      "const": "nose.semantic-pack.v1"
+    },
+    "pack": {
+      "$ref": "#/$defs/pack"
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "compatibility": {
+      "$ref": "#/$defs/compatibility"
+    },
+    "supported_languages": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": ["java"]
+      }
+    },
+    "packages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/package"
+      }
+    },
+    "declares": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["api_contracts"],
+      "properties": {
+        "api_contracts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/api_contract"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "stable_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+    },
+    "non_empty_string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "display_name",
+        "trust",
+        "enabled_by_default"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "kind": {
+          "const": "LibraryPack"
+        },
+        "version": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "display_name": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "description": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "trust": {
+          "const": "external-opt-in"
+        },
+        "enabled_by_default": {
+          "const": false
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "license", "repository"],
+      "properties": {
+        "provider": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name"],
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/non_empty_string"
+            },
+            "contact": {
+              "$ref": "#/$defs/non_empty_string"
+            }
+          }
+        },
+        "license": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "repository": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "source_revision": {
+          "$ref": "#/$defs/non_empty_string"
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nose"],
+      "properties": {
+        "nose": {
+          "$ref": "#/$defs/non_empty_string"
+        }
+      }
+    },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ecosystem", "name", "versions"],
+      "properties": {
+        "ecosystem": {
+          "const": "maven"
+        },
+        "name": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "versions": {
+          "$ref": "#/$defs/non_empty_string"
+        }
+      }
+    },
+    "package_coordinate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ecosystem", "name"],
+      "properties": {
+        "ecosystem": {
+          "const": "maven"
+        },
+        "name": {
+          "$ref": "#/$defs/non_empty_string"
+        }
+      }
+    },
+    "import_coordinate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "module", "name"],
+      "properties": {
+        "role": {
+          "enum": ["type", "static-member"]
+        },
+        "module": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "name": {
+          "$ref": "#/$defs/non_empty_string"
+        }
+      }
+    },
+    "arity": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "min", "max"],
+          "properties": {
+            "kind": {
+              "const": "range"
+            },
+            "min": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 32
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 32
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "values"],
+          "properties": {
+            "kind": {
+              "const": "set"
+            },
+            "values": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 33,
+              "uniqueItems": true,
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 32
+              }
+            }
+          }
+        }
+      ]
+    },
+    "call_coordinate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["shape", "member", "arity", "receiver"],
+      "properties": {
+        "shape": {
+          "enum": ["static-method", "free-function"]
+        },
+        "member": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "arity": {
+          "$ref": "#/$defs/arity"
+        },
+        "receiver": {
+          "enum": ["imported-type", "none"]
+        }
+      }
+    },
+    "profiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["demand", "effects", "exceptions", "mutation", "identity"],
+      "properties": {
+        "demand": {
+          "const": "eager"
+        },
+        "effects": {
+          "const": "pure"
+        },
+        "exceptions": {
+          "enum": ["no-throw", "may-throw"]
+        },
+        "mutation": {
+          "const": "none"
+        },
+        "identity": {
+          "const": "fresh"
+        }
+      }
+    },
+    "api_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "language",
+        "package",
+        "anchor",
+        "matcher",
+        "import",
+        "call",
+        "operation",
+        "result_domain",
+        "profiles",
+        "channel"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "language": {
+          "const": "java"
+        },
+        "package": {
+          "$ref": "#/$defs/package_coordinate"
+        },
+        "anchor": {
+          "const": "call-node"
+        },
+        "matcher": {
+          "const": "imported-api"
+        },
+        "import": {
+          "$ref": "#/$defs/import_coordinate"
+        },
+        "call": {
+          "$ref": "#/$defs/call_coordinate"
+        },
+        "operation": {
+          "enum": ["collection-factory", "map-factory"]
+        },
+        "result_domain": {
+          "enum": ["collection", "map"]
+        },
+        "profiles": {
+          "$ref": "#/$defs/profiles"
+        },
+        "channel": {
+          "enum": ["near", "external-exact"]
+        }
+      }
+    }
+  }
+}

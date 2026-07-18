@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-const CAPABILITIES_SCHEMA_VERSION: u32 = 4;
+const CAPABILITIES_SCHEMA_VERSION: u32 = 5;
 
 #[derive(serde::Serialize)]
 struct Report {
@@ -155,7 +155,7 @@ fn current_schemas() -> Schemas {
             crate::schema_versions::QUERY_JSON_SCHEMA_VERSION,
             crate::schema_versions::QUERY_BASE_JSON_SCHEMA_VERSION,
         ],
-        semantic_packs: vec![nose_semantics::SEMANTIC_PACK_API_VERSION],
+        semantic_packs: nose_semantics::SUPPORTED_SEMANTIC_PACK_API_VERSIONS.to_vec(),
         semantic_pack_conformance: vec![crate::semantic_pack::CONFORMANCE_SCHEMA_VERSION],
         semantic_pack_inventory: vec![crate::semantic_pack::INVENTORY_SCHEMA_VERSION],
         semantic_pack_adoption_gates: vec![crate::semantic_pack::ADOPTION_GATES_SCHEMA_VERSION],
@@ -165,7 +165,7 @@ fn current_schemas() -> Schemas {
 
 fn current_semantic_packs() -> SemanticPacks {
     SemanticPacks {
-        api_versions: vec![nose_semantics::SEMANTIC_PACK_API_VERSION],
+        api_versions: nose_semantics::SUPPORTED_SEMANTIC_PACK_API_VERSIONS.to_vec(),
         loading: vec![
             "compiled-builtin",
             "local-manifest-file",

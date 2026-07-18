@@ -1,6 +1,7 @@
 # Semantic pack compatibility
 
-Status: compatibility policy and machine-readable report for semantic-pack v0.
+Status: compatibility policy and machine-readable report for semantic-pack v0
+and typed v1.
 
 This page defines how semantic packs stay compatible as the semantic kernel
 changes. The current path is builtin-first: nose rehearses vocabulary and
@@ -11,7 +12,8 @@ analysis.
 
 Compatibility is checked across these dimensions:
 
-- manifest API version, currently `nose.semantic-pack.v0`;
+- manifest API version, currently `nose.semantic-pack.v0` or
+  `nose.semantic-pack.v1`;
 - `compatibility.nose`, which must include the installed nose binary version;
 - trust lane and default enablement;
 - stable pack ids, including builtin-reserved ids;
@@ -19,7 +21,7 @@ Compatibility is checked across these dimensions:
   vocabulary;
 - external influence and execution capability.
 
-Local manifests are strict v0 JSON documents. Unknown fields, unsupported enum
+Local manifests are strict versioned JSON documents. Unknown fields, unsupported enum
 values, unsupported API versions, unsupported nose version ranges, builtin trust
 claims, default-enabled external packs, and duplicate or reserved pack ids fail
 before analysis starts.
@@ -54,7 +56,7 @@ Important fields:
 | `schema_version` | `1` |
 | `status` | `ok` or `blocked` |
 | `current_nose_version` | Installed binary package version. |
-| `supported.manifest_api_versions[]` | Supported manifest API versions, currently `nose.semantic-pack.v0`. |
+| `supported.manifest_api_versions[]` | Supported manifest API versions, currently `nose.semantic-pack.v0` and `nose.semantic-pack.v1`. |
 | `supported.report_sources[]` | Report data sources, currently `policy`. |
 | `policy.manifest_nose_version` | `must-include-installed-version` |
 | `policy.manifest_schema_changes` | `breaking-change-requires-new-api-version` |
@@ -121,6 +123,8 @@ product output is unchanged except for additive metadata.
   behavior boundary compatibility changes must preserve.
 - [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md) defines
   the versioned schema surface.
+- [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md) defines
+  the closed typed manifest and semantic digest contract.
 - [semantic-pack-conformance](semantic-pack-conformance.md) defines validation
   checks for provider and user packs.
 - [semantic-pack-loading](semantic-pack-loading.md) describes how compatible

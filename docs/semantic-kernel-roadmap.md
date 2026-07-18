@@ -2083,6 +2083,11 @@ justifies a tranche ([design §2c](design.md)).
   conformance is implemented in
   [semantic-pack-conformance](semantic-pack-conformance.md); external packs
   remain metadata-only.
+- [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md) adds the
+  first closed typed Java/Maven contract compiler, canonical semantic digest,
+  and deterministic indexes. Those indexes deliberately remain disconnected
+  from analysis until project locks/conflicts, dependency and occurrence
+  evidence, lane consumers, receipts, and a real reference pack are complete.
 - Start with data-only external packs for simple APIs once producer execution and
   executable fixture/oracle checks exist.
 - Add restricted recognizer hooks only after the manifest path is stable.

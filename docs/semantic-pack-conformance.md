@@ -1,15 +1,20 @@
 # Semantic pack conformance
 
-Status: nose provides a local semantic-pack v0 conformance harness for manifest
-structure, declared fixture assets, and declarative fixture-expectation gates for
-exact-capable rows. The harness is a provider/user workflow, not nose approval of
-third-party semantic correctness. External packs remain `metadata-only` when
-loaded by `nose query`.
+Status: nose provides a local semantic-pack v0 conformance harness and a typed
+v1 compile check. The v0 harness covers manifest structure, declared fixture
+assets, and declarative fixture-expectation gates for exact-capable rows. These
+are provider/user workflows, not nose approval of third-party semantic
+correctness. External packs remain `metadata-only` when loaded by `nose query`.
+
+Typed v1 manifests use the same command to validate and compile their closed
+contract grammar. v1 does not inherit v0's opaque fixture/gate rows; its later
+source-analyzing receipts are separate work. Compilation alone remains
+`metadata-only`.
 
 ## Goal
 
-The conformance workflow gives pack providers a reproducible way to show that a
-pack meets the extension contract's minimum structural obligations:
+For v0, the conformance workflow gives pack providers a reproducible way to show
+that a pack meets the extension contract's minimum structural obligations:
 
 - the manifest parses as semantic-pack v0;
 - stable ids, enum values, trust/default policy, provenance, and compatibility
@@ -208,11 +213,13 @@ Important fields:
 
 ## Check JSON Report
 
-`--format json` emits schema version 2:
+`--format json` emits schema version 3. Version 3 adds `api_version` and the
+optional v1 `semantic_digest` to each manifest entry; the rest of this example
+shows the unchanged v0 fixture and influence-preflight structure:
 
 ```json
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "status": "ok",
   "totals": {
     "manifests": 1,
@@ -267,6 +274,8 @@ Important fields:
   },
   "manifests": [
     {
+      "api_version": "nose.semantic-pack.v0",
+      "semantic_digest": null,
       "id": "com.example.semantic-pack",
       "version": "0.1.0",
       "display_name": "Example semantic pack",
@@ -336,6 +345,8 @@ and `failed` when any declared gate reports issues such as `unknown-fixture`,
 
 The JSON report also includes `influence_preflight`. This is a row-level
 admission preview for local external declarations, not a grant of influence.
+Its status is `unavailable` when the loaded manifests produce no v0 preflight
+rows, including typed v1-only checks; v1 compilation is not an influence grant.
 Exact-capable rows without a passed executable gate report
 `executable-conformance-unavailable`. Rows with a passed gate clear only that
 blocker; v0 external rows still report blockers such as

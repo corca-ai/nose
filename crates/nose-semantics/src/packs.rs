@@ -109,6 +109,7 @@ mod external;
 mod loading;
 mod manifest;
 mod result_domain_semantics;
+mod v1;
 mod validation;
 
 pub use compiled::{
@@ -133,10 +134,23 @@ pub use loading::{
     SemanticPackLoadError,
 };
 use manifest::*;
+use v1::{compile_manifest_v1, SemanticPackManifestV1};
+pub use v1::{
+    CompiledSemanticPackV1, SemanticPackV1Anchor, SemanticPackV1Arity, SemanticPackV1ArityKind,
+    SemanticPackV1Call, SemanticPackV1CallShape, SemanticPackV1Channel, SemanticPackV1Contract,
+    SemanticPackV1Coordinate, SemanticPackV1DemandProfile, SemanticPackV1EffectProfile,
+    SemanticPackV1ExceptionProfile, SemanticPackV1IdentityProfile, SemanticPackV1Import,
+    SemanticPackV1ImportRole, SemanticPackV1Language, SemanticPackV1Matcher,
+    SemanticPackV1MutationProfile, SemanticPackV1Package, SemanticPackV1PackageCoordinate,
+    SemanticPackV1PackageEcosystem, SemanticPackV1Profiles, SemanticPackV1ProtocolOperation,
+    SemanticPackV1ReceiverRole, SemanticPackV1ResultDomain, SEMANTIC_PACK_API_VERSION_V1,
+};
 
 use compiled::compiled_builtin_packs;
 use validation::validate_manifest;
 pub const SEMANTIC_PACK_API_VERSION: &str = "nose.semantic-pack.v0";
+pub const SUPPORTED_SEMANTIC_PACK_API_VERSIONS: &[&str] =
+    &[SEMANTIC_PACK_API_VERSION, SEMANTIC_PACK_API_VERSION_V1];
 
 const ALLOWED_REQUIREMENT_PREFIXES: &[&str] = &[
     "Source.",
@@ -350,6 +364,8 @@ pub struct SemanticPackSummary {
     pub license: String,
     pub supported_languages: Vec<String>,
     pub counts: SemanticPackCounts,
+    pub api_version: Option<&'static str>,
+    pub semantic_digest: Option<String>,
 }
 
 impl SemanticPackSummary {
@@ -357,7 +373,7 @@ impl SemanticPackSummary {
         format!("{:016x}", self.hash)
     }
 
-    fn from_manifest(path: PathBuf, manifest: SemanticPackManifest) -> Result<Self, String> {
+    fn from_manifest_v0(path: PathBuf, manifest: SemanticPackManifest) -> Result<Self, String> {
         validate_manifest(&manifest).map_err(|err| err.to_string())?;
         let id = manifest.pack.id;
         let supported_languages = manifest
@@ -388,7 +404,47 @@ impl SemanticPackSummary {
             license: manifest.provenance.license,
             supported_languages,
             counts,
+            api_version: Some(SEMANTIC_PACK_API_VERSION),
+            semantic_digest: None,
         })
+    }
+
+    fn from_manifest_v1(
+        path: PathBuf,
+        manifest: &SemanticPackManifestV1,
+        compiled: &CompiledSemanticPackV1,
+    ) -> Self {
+        Self {
+            id: manifest.pack.id.clone(),
+            hash: semantic_pack_hash(&manifest.pack.id),
+            kind: manifest.pack.kind,
+            version: manifest.pack.version.clone(),
+            display_name: manifest.pack.display_name.clone(),
+            trust: PackTrust::ExternalOptIn,
+            enabled_by_default: false,
+            source: SemanticPackSource::LocalManifest,
+            influence: SemanticPackInfluence::MetadataOnly,
+            manifest_path: Some(path),
+            provider: manifest.provenance.provider.name.clone(),
+            repository: manifest.provenance.repository.clone(),
+            license: manifest.provenance.license.clone(),
+            supported_languages: manifest
+                .supported_languages
+                .iter()
+                .map(|language| match language {
+                    SemanticPackV1Language::Java => "java".to_string(),
+                })
+                .collect(),
+            counts: SemanticPackCounts {
+                evidence_producers: 0,
+                contracts: manifest.declares.api_contracts.len(),
+                value_laws: 0,
+                positive_fixtures: 0,
+                hard_negatives: 0,
+            },
+            api_version: Some(SEMANTIC_PACK_API_VERSION_V1),
+            semantic_digest: Some(compiled.semantic_digest().to_string()),
+        }
     }
 }
 
@@ -402,6 +458,7 @@ pub struct SemanticPackSet {
     external_evidence_producer_rows: Vec<ExternalEvidenceProducerRow>,
     external_contract_rows: Vec<ExternalContractRow>,
     external_value_law_rows: Vec<ExternalValueLawRow>,
+    compiled_external_v1_packs: Vec<CompiledSemanticPackV1>,
 }
 
 impl SemanticPackSet {
@@ -411,6 +468,7 @@ impl SemanticPackSet {
         let mut external_evidence_producer_rows = Vec::new();
         let mut external_contract_rows = Vec::new();
         let mut external_value_law_rows = Vec::new();
+        let mut compiled_external_v1_packs = Vec::new();
         for path in manifest_paths {
             let loaded = loading::load_local_manifest_with_rows(&path)?;
             if let Some(existing) = packs
@@ -426,6 +484,9 @@ impl SemanticPackSet {
             external_evidence_producer_rows.extend(loaded.external_evidence_producer_rows);
             external_contract_rows.extend(loaded.external_contract_rows);
             external_value_law_rows.extend(loaded.external_value_law_rows);
+            if let Some(compiled) = loaded.compiled_v1 {
+                compiled_external_v1_packs.push(compiled);
+            }
             packs.push(loaded.summary);
         }
         Ok(Self {
@@ -433,6 +494,7 @@ impl SemanticPackSet {
             external_evidence_producer_rows,
             external_contract_rows,
             external_value_law_rows,
+            compiled_external_v1_packs,
         })
     }
 
@@ -442,6 +504,7 @@ impl SemanticPackSet {
             external_evidence_producer_rows: Vec::new(),
             external_contract_rows: Vec::new(),
             external_value_law_rows: Vec::new(),
+            compiled_external_v1_packs: Vec::new(),
         }
     }
 
@@ -463,6 +526,10 @@ impl SemanticPackSet {
 
     pub fn external_value_law_rows(&self) -> &[ExternalValueLawRow] {
         &self.external_value_law_rows
+    }
+
+    pub fn compiled_external_v1_packs(&self) -> &[CompiledSemanticPackV1] {
+        &self.compiled_external_v1_packs
     }
 }
 

@@ -379,7 +379,10 @@ step "product query JSON schema"
 run_product_query_schema_live_check target/release/nose
 
 step "semantic-pack example conformance"
-target/release/nose semantic-pack check docs/examples/semantic-packs/v0 --format json
+target/release/nose semantic-pack check \
+  docs/examples/semantic-packs/v0 \
+  docs/examples/semantic-packs/v1 \
+  --format json
 
 step "Type-4 executable focused expectations"
 run_type4_executable_expectations target/release/nose

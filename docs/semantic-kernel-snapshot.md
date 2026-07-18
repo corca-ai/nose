@@ -629,8 +629,11 @@ still being migrated toward it.
   `nose.python.stdlib.type_domain` descriptor directly exposes its alias
   contract rows so producer id, contract id, conformance refs, and declaration
   counts come from one pack-owned table.
-- The external pack API is documented as a v0 manifest/schema with examples.
+- The external pack API keeps v0 permanently metadata-only and now adds a
+  closed typed `nose.semantic-pack.v1` Java/Maven package-API compiler.
   `nose-semantics` can validate local manifest files/directories as metadata,
+  compile v1 contracts into immutable ordered indexes, and report a canonical
+  SHA-256 semantic content digest. v1 still does not feed analysis consumers.
   `nose semantic-pack check` validates local manifests plus declared fixture
   assets, and `nose query --format json` reports active builtin/local packs in
   top-level `semantic_packs`. External packs are still `metadata-only`; builtin

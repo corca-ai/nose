@@ -249,7 +249,7 @@ mode flags are documented under [Ranking](#ranking) and [Detection modes](#detec
 | `--root <path>` / `-r <path>` | analyze another root; repeat for multi-root query runs. With `--root`, bare positional arguments are query terms. |
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
 | `--ignore-file <file>` | suppress accepted families using a structured ignore file with reason/owner/expiry metadata |
-| `--semantic-pack <file-or-dir>` | explicitly load local semantic-pack v0 manifest metadata for provenance reporting; external packs are metadata-only today |
+| `--semantic-pack <file-or-dir>` | load local semantic-pack v0 metadata or compile a typed v1 manifest for provenance/digest reporting; external packs are metadata-only today |
 
 **Output**
 
@@ -293,7 +293,7 @@ and may change to improve readability. The stable contract is documented in
   the same `--format` contract as `query`/`il`).
   Use it to spot a language/construct that isn't lowering well; see [languages](languages.md).
 - `nose semantic-pack check <file-or-dir> [--format human|json]` — validate local
-  semantic-pack v0 manifest structure and declared fixture assets. It is a
+  semantic-pack v0 structure/fixtures or compile a typed v1 manifest. It is a
   pack-author/user workflow, not external pack certification; see [semantic-pack-conformance](semantic-pack-conformance.md).
 - `nose semantic-pack inventory [--format human|json]` — inspect compiled
   builtin pack declarations, conformance refs, exact-capable coverage status,

@@ -83,9 +83,11 @@ project paths do not depend on where `nose` was invoked. This applies to
 `--semantic-pack` remain current-working-directory relative.
 
 `semantic-packs` is additive with repeated `--semantic-pack` flags. Each entry is
-an explicit local opt-in to a semantic-pack v0 manifest file or a directory of
-direct `*.json` manifests. Loaded external packs are reported as `metadata-only`;
-they do not emit evidence or enable exact contracts yet. See [semantic-pack-loading](semantic-pack-loading.md).
+an explicit local opt-in to a semantic-pack v0 or v1 manifest file, or a
+directory of direct `*.json` manifests. v0 rows remain data-only; v1 rows
+compile to typed indexes and a semantic digest. Loaded external packs are still
+`metadata-only`: they do not emit evidence or enable near/exact contracts. The
+[semantic-pack loading guide](semantic-pack-loading.md) defines the full boundary.
 
 ## Excludes
 

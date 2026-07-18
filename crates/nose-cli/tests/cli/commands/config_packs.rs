@@ -96,6 +96,11 @@ fn semantic_pack_manifest(id: &str) -> String {
     )
 }
 
+fn semantic_pack_manifest_v1() -> String {
+    include_str!("../../../../../docs/examples/semantic-packs/v1/guava-immutable-collections.json")
+        .to_string()
+}
+
 fn semantic_pack_manifest_with_value_law(id: &str) -> String {
     semantic_pack_manifest(id).replace(
         r#""value_laws": []"#,
@@ -171,6 +176,8 @@ fn assert_example_external_pack(pack: &serde_json::Value, expected_id: &str) {
     assert_eq!(pack["enabled_by_default"], false);
     assert_eq!(pack["source"], "local-manifest");
     assert_eq!(pack["influence"], "metadata-only");
+    assert_eq!(pack["api_version"], "nose.semantic-pack.v0");
+    assert!(pack.get("semantic_digest").is_none());
     assert_eq!(pack["provider"], "Example Packs");
     assert_eq!(pack["repository"], "https://example.invalid/semantic-pack");
     assert_eq!(pack["license"], "MIT");
@@ -189,3 +196,5 @@ fn assert_example_external_pack(pack: &serde_json::Value, expected_id: &str) {
 mod builtin_report;
 #[path = "config_packs/external_cases_0.rs"]
 mod external_cases_0;
+#[path = "config_packs/external_cases_v1.rs"]
+mod external_cases_v1;

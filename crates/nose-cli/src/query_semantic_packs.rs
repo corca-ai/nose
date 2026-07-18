@@ -19,7 +19,7 @@ pub(crate) fn with_semantic_packs(mut report: Value, semantic_packs: &[Value]) -
 }
 
 fn semantic_pack_summary_json(pack: &nose_semantics::SemanticPackSummary) -> Value {
-    json!({
+    let mut summary = json!({
         "id": &pack.id,
         "hash": pack.hash_hex(),
         "kind": pack.kind.as_str(),
@@ -41,5 +41,15 @@ fn semantic_pack_summary_json(pack: &nose_semantics::SemanticPackSummary) -> Val
             "positive_fixtures": pack.counts.positive_fixtures,
             "hard_negatives": pack.counts.hard_negatives,
         },
-    })
+    });
+    let object = summary
+        .as_object_mut()
+        .expect("semantic-pack summary is an object");
+    if let Some(api_version) = pack.api_version {
+        object.insert("api_version".to_string(), json!(api_version));
+    }
+    if let Some(semantic_digest) = &pack.semantic_digest {
+        object.insert("semantic_digest".to_string(), json!(semantic_digest));
+    }
+    summary
 }

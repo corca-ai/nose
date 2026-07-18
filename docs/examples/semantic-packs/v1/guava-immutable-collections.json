@@ -1,0 +1,108 @@
+{
+  "$schema": "../../../schemas/semantic-pack-v1.schema.json",
+  "api_version": "nose.semantic-pack.v1",
+  "pack": {
+    "id": "com.example.java-guava-typed-factories",
+    "kind": "LibraryPack",
+    "version": "1.0.0",
+    "display_name": "Typed Guava immutable collection factories",
+    "description": "Typed v1 compiler example. It compiles to metadata and immutable indexes but does not influence analysis without later lock and evidence work.",
+    "trust": "external-opt-in",
+    "enabled_by_default": false
+  },
+  "provenance": {
+    "provider": {
+      "name": "Example Semantic Packs",
+      "contact": "semantics@example.invalid"
+    },
+    "license": "MIT",
+    "repository": "https://example.invalid/semantic-packs/java-guava-typed-factories",
+    "source_revision": "0000000000000000000000000000000000000000"
+  },
+  "compatibility": {
+    "nose": ">=0.19.0 <0.21.0"
+  },
+  "supported_languages": [
+    "java"
+  ],
+  "packages": [
+    {
+      "ecosystem": "maven",
+      "name": "com.google.guava:guava",
+      "versions": ">=32.0.0 <34.0.0"
+    }
+  ],
+  "declares": {
+    "api_contracts": [
+      {
+        "id": "java.guava.immutable-list.of",
+        "language": "java",
+        "package": {
+          "ecosystem": "maven",
+          "name": "com.google.guava:guava"
+        },
+        "anchor": "call-node",
+        "matcher": "imported-api",
+        "import": {
+          "role": "type",
+          "module": "com.google.common.collect",
+          "name": "ImmutableList"
+        },
+        "call": {
+          "shape": "static-method",
+          "member": "of",
+          "arity": {
+            "kind": "range",
+            "min": 0,
+            "max": 12
+          },
+          "receiver": "imported-type"
+        },
+        "operation": "collection-factory",
+        "result_domain": "collection",
+        "profiles": {
+          "demand": "eager",
+          "effects": "pure",
+          "exceptions": "may-throw",
+          "mutation": "none",
+          "identity": "fresh"
+        },
+        "channel": "near"
+      },
+      {
+        "id": "java.guava.immutable-map.of",
+        "language": "java",
+        "package": {
+          "ecosystem": "maven",
+          "name": "com.google.guava:guava"
+        },
+        "anchor": "call-node",
+        "matcher": "imported-api",
+        "import": {
+          "role": "type",
+          "module": "com.google.common.collect",
+          "name": "ImmutableMap"
+        },
+        "call": {
+          "shape": "static-method",
+          "member": "of",
+          "arity": {
+            "kind": "set",
+            "values": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+          },
+          "receiver": "imported-type"
+        },
+        "operation": "map-factory",
+        "result_domain": "map",
+        "profiles": {
+          "demand": "eager",
+          "effects": "pure",
+          "exceptions": "may-throw",
+          "mutation": "none",
+          "identity": "fresh"
+        },
+        "channel": "near"
+      }
+    ]
+  }
+}
