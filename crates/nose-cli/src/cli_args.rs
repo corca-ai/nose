@@ -133,6 +133,9 @@ pub(crate) enum Cmd {
         /// Local semantic-pack v0/v1 manifest file or directory to load (repeatable; explicit opt-in).
         #[arg(long = "semantic-pack", value_name = "FILE_OR_DIR")]
         semantic_pack: Vec<PathBuf>,
+        /// Content-pinned local semantic-pack project lock. Mutually exclusive with unlocked pack paths.
+        #[arg(long = "semantic-pack-lock", value_name = "FILE")]
+        semantic_pack_lock: Option<PathBuf>,
         /// Read defaults from this config file (else `nose.toml`/`.nose.toml`).
         #[arg(long, value_name = "FILE")]
         config: Option<PathBuf>,
@@ -349,6 +352,43 @@ pub(crate) enum SemanticPackCmd {
         #[arg(long, default_value = "human")]
         format: semantic_pack::CheckFormat,
     },
+    /// Create a local content-pinned project lock; never fetches or installs packs.
+    Lock {
+        /// Typed v1 semantic-pack manifest file or directory.
+        #[arg(required = true, value_name = "FILE_OR_DIR")]
+        manifests: Vec<PathBuf>,
+        /// Lock file to create.
+        #[arg(
+            long,
+            default_value = "nose.semantic-pack-lock.json",
+            value_name = "FILE"
+        )]
+        output: PathBuf,
+        /// Authorized influence channel; repeat or use a comma-list.
+        #[arg(long = "channel", value_delimiter = ',', default_value = "near")]
+        channels: Vec<semantic_pack::LockChannel>,
+        /// Selected row id. With multiple packs use PACK_ID/ROW_ID. Omit to select all rows in the authorized channels.
+        #[arg(long = "row", value_name = "PACK_ID/ROW_ID")]
+        selected_rows: Vec<String>,
+        /// Checked-in dependency manifest or lock file to content-pin (repeatable).
+        #[arg(long = "dependency", required = true, value_name = "FILE")]
+        dependencies: Vec<PathBuf>,
+        /// Optional local exact-conformance receipt to content-pin.
+        #[arg(long, value_name = "FILE")]
+        exact_receipt: Option<PathBuf>,
+        /// Output format.
+        #[arg(long, default_value = "human")]
+        format: semantic_pack::LockStatusFormat,
+    },
+    /// Validate and report a local semantic-pack project lock.
+    Status {
+        /// Project lock file.
+        #[arg(value_name = "FILE")]
+        lock: PathBuf,
+        /// Output format.
+        #[arg(long, default_value = "human")]
+        format: semantic_pack::LockStatusFormat,
+    },
     /// Report builtin semantic-pack adoption gates for optional/default lanes.
     #[command(name = "adoption-gates")]
     AdoptionGates {
@@ -403,6 +443,7 @@ pub(crate) struct QueryArgs {
     pub(crate) baseline: Option<PathBuf>,
     pub(crate) ignore_file: Option<PathBuf>,
     pub(crate) semantic_pack: Vec<PathBuf>,
+    pub(crate) semantic_pack_lock: Option<PathBuf>,
     pub(crate) write_baseline: bool,
     pub(crate) format: ReportFormat,
     pub(crate) exclude: Vec<String>,

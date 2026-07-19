@@ -18,6 +18,8 @@ min-members = 3
 min-size    = 30
 ignore-file = "nose.ignore.json"
 semantic-packs = ["semantic-packs/python-math-prod.json"]
+# Or, for content-pinned typed v1 authorization instead of unlocked paths:
+# semantic-pack-lock = "nose.semantic-pack-lock.json"
 ```
 
 Pass an alternate file with `--config <file>`. A malformed config is a **hard
@@ -48,6 +50,7 @@ term — `nose query` spells `sort` as the DSL term `sort=`, not `--sort`).
 | `min-lines` | int (advanced) | `5` | `--min-lines` |
 | `ignore-file` | string path | auto-read `nose.ignore.json` when present | `--ignore-file` |
 | `semantic-packs` | list of file or directory paths | `[]` | `--semantic-pack` |
+| `semantic-pack-lock` | project-lock file path | unset | `--semantic-pack-lock` |
 
 `mode` is a TOML array, even for one channel:
 
@@ -79,8 +82,9 @@ cutoff.
 
 Config file paths are resolved from the config file's directory, so committed
 project paths do not depend on where `nose` was invoked. This applies to
-`ignore-file` and `semantic-packs`. CLI path flags such as `--ignore-file` and
-`--semantic-pack` remain current-working-directory relative.
+`ignore-file`, `semantic-packs`, and `semantic-pack-lock`. CLI path flags such
+as `--ignore-file`, `--semantic-pack`, and `--semantic-pack-lock` remain
+current-working-directory relative.
 
 `semantic-packs` is additive with repeated `--semantic-pack` flags. Each entry is
 an explicit local opt-in to a semantic-pack v0 or v1 manifest file, or a
@@ -88,6 +92,14 @@ directory of direct `*.json` manifests. v0 rows remain data-only; v1 rows
 compile to typed indexes and a semantic digest. Loaded external packs are still
 `metadata-only`: they do not emit evidence or enable near/exact contracts. The
 [semantic-pack loading guide](semantic-pack-loading.md) defines the full boundary.
+
+`semantic-pack-lock` selects one content-pinned
+[`nose.semantic-pack-lock.v1`](semantic-pack-project-lock.md) file. It is
+mutually exclusive with `semantic-packs` and `--semantic-pack`: the validated
+lock owns the complete manifest set and cannot be extended by an unlocked path.
+A missing, stale, altered, incompatible, conflicting, or path-escaped lock is a
+hard error before analysis. The CLI `--semantic-pack-lock` value overrides a
+configured lock, while the same no-mixing rule remains in force.
 
 ## Excludes
 

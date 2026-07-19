@@ -383,6 +383,9 @@ target/release/nose semantic-pack check \
   docs/examples/semantic-packs/v0 \
   docs/examples/semantic-packs/v1 \
   --format json
+target/release/nose semantic-pack status \
+  docs/examples/semantic-pack-lock-v1.json \
+  --format json
 
 step "Type-4 executable focused expectations"
 run_type4_executable_expectations target/release/nose

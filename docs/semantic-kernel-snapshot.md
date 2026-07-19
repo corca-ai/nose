@@ -633,7 +633,11 @@ still being migrated toward it.
   closed typed `nose.semantic-pack.v1` Java/Maven package-API compiler.
   `nose-semantics` can validate local manifest files/directories as metadata,
   compile v1 contracts into immutable ordered indexes, and report a canonical
-  SHA-256 semantic content digest. v1 still does not feed analysis consumers.
+  SHA-256 semantic content digest. The local
+  `nose.semantic-pack-lock.v1` layer now pins manifest identity/content,
+  selected rows/channels, dependency inputs, and optional receipts; rejects
+  path escapes and overlapping cross-pack coordinates; and exposes local
+  create/status commands. v1 still does not feed analysis consumers.
   `nose semantic-pack check` validates local manifests plus declared fixture
   assets, and `nose query --format json` reports active builtin/local packs in
   top-level `semantic_packs`. External packs are still `metadata-only`; builtin

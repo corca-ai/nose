@@ -25,6 +25,7 @@ struct CompatibilityReport {
 #[derive(serde::Serialize)]
 struct CompatibilitySupported {
     manifest_api_versions: Vec<&'static str>,
+    project_lock_api_versions: Vec<&'static str>,
     trust_lanes: Vec<&'static str>,
     report_sources: Vec<&'static str>,
     output_formats: Vec<&'static str>,
@@ -37,6 +38,7 @@ struct CompatibilityPolicy {
     kernel_vocabulary_changes: &'static str,
     capabilities_changes: &'static str,
     external_pack_influence: &'static str,
+    external_pack_authorization: &'static str,
     external_pack_execution: &'static str,
     external_packs_enabled_by_default: bool,
 }
@@ -77,6 +79,7 @@ impl CompatibilityReport {
             supported: CompatibilitySupported {
                 manifest_api_versions: nose_semantics::SUPPORTED_SEMANTIC_PACK_API_VERSIONS
                     .to_vec(),
+                project_lock_api_versions: vec![nose_semantics::SEMANTIC_PACK_LOCK_API_VERSION_V1],
                 trust_lanes: vec!["builtin-default", "builtin-optional", "external-opt-in"],
                 report_sources: vec!["policy"],
                 output_formats: vec!["human", "json"],
@@ -87,6 +90,7 @@ impl CompatibilityReport {
                 kernel_vocabulary_changes: "document-and-rehearse-with-builtin-packs-first",
                 capabilities_changes: "additive-or-schema-versioned",
                 external_pack_influence: "metadata-only",
+                external_pack_authorization: "content-pinned-project-lock-required",
                 external_pack_execution: "none",
                 external_packs_enabled_by_default: false,
             },
@@ -98,6 +102,8 @@ impl CompatibilityReport {
                     "local-manifest-trust-external-opt-in",
                     "local-manifest-disabled-by-default",
                     "no-duplicate-or-reserved-pack-id",
+                    "v1-influence-requires-valid-project-lock",
+                    "v0-lock-cannot-authorize-influence",
                 ],
                 kernel: vec![
                     "dependency-backed-evidence-required",
@@ -148,12 +154,20 @@ fn compatibility_failure_modes() -> Vec<CompatibilityFailureMode> {
             action: "reject-before-analysis",
         },
         CompatibilityFailureMode {
+            code: "missing-stale-or-altered-project-lock",
+            action: "reject-before-analysis",
+        },
+        CompatibilityFailureMode {
+            code: "project-lock-path-escape",
+            action: "reject-before-analysis",
+        },
+        CompatibilityFailureMode {
             code: "unsupported-influence",
             action: "block-external-influence",
         },
         CompatibilityFailureMode {
             code: "row-conflict",
-            action: "block-external-influence",
+            action: "reject-before-analysis",
         },
     ]
 }
@@ -216,6 +230,8 @@ mod tests {
         assert!(codes.contains(&"unsupported-nose-version"));
         assert!(codes.contains(&"unsupported-influence"));
         assert!(codes.contains(&"row-conflict"));
+        assert!(codes.contains(&"missing-stale-or-altered-project-lock"));
+        assert!(codes.contains(&"project-lock-path-escape"));
     }
 
     #[test]

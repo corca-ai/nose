@@ -23,7 +23,7 @@ Every response is an object with:
 | `tool` | `"nose"` |
 | `view` | which surface produced it: `dashboard` \| `list` \| `group` \| `family` \| `reinvented` \| `base` |
 | `path` | the analyzed path expression, as given; multi-root commands render the repeated `--root`/`-r` flags |
-| `semantic_packs` | active builtin packs plus any local metadata-only packs loaded through `--semantic-pack` or `[query].semantic-packs` |
+| `semantic_packs` | active builtin packs plus local metadata-only packs loaded through unlocked paths or a validated project lock |
 
 plus the view-specific body below. Like the human surface, a result is a pure function of
 (repo state, command); an unknown field or enum value is a hard error.
@@ -54,10 +54,16 @@ Each entry has:
 | `provider`, `repository`, `license` | string | Pack provenance fields. |
 | `supported_languages` | array | Language ids declared by the pack. |
 | `counts` | object | Counts of declared `evidence_producers`, `contracts`, `value_laws`, `positive_fixtures`, and `hard_negatives`. |
+| `lock` | object, locked v1 only | Valid project-lock API/decision digest, allowed channels, selected rows, dependency pins, and optional receipt. Its presence authorizes future consumers but `influence` remains `metadata-only` in this phase. |
 
 Local external packs are reported for provenance and validation only. They must
 not change families, ranking, witnesses, surfaces, or exact/near results while
 their `influence` is `metadata-only`.
+
+For a locked v1 pack, `lock.status` is `valid`; invalid locks fail before a query
+report exists. `lock.decision_digest` is independent of workspace location and
+document/load order. Dependency and receipt paths are lock-root-relative, never
+machine-absolute. See [semantic-pack-project-lock](semantic-pack-project-lock.md).
 
 ## Views
 

@@ -219,6 +219,15 @@ pub enum SemanticPackV1Channel {
     ExternalExact,
 }
 
+impl SemanticPackV1Channel {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Near => "near",
+            Self::ExternalExact => "external-exact",
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct SemanticPackV1Contract {
@@ -256,6 +265,7 @@ pub struct SemanticPackV1Coordinate {
 pub struct CompiledSemanticPackV1 {
     pack_id: String,
     pack_version: String,
+    nose_compatibility: String,
     semantic_digest: String,
     packages_by_coordinate: BTreeMap<SemanticPackV1PackageCoordinate, SemanticPackV1Package>,
     contracts_by_id: BTreeMap<String, SemanticPackV1Contract>,
@@ -270,6 +280,10 @@ impl CompiledSemanticPackV1 {
 
     pub fn pack_version(&self) -> &str {
         &self.pack_version
+    }
+
+    pub fn nose_compatibility(&self) -> &str {
+        &self.nose_compatibility
     }
 
     pub fn semantic_digest(&self) -> &str {

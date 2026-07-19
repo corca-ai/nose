@@ -26,7 +26,7 @@ nose capabilities
 
 ```json
 {
-  "schema_version": 5,
+  "schema_version": 6,
   "tool": {
     "name": "nose",
     "version": "<version>"
@@ -46,9 +46,11 @@ nose capabilities
     "deprecated": []
   },
   "schemas": {
-    "capabilities": [5],
+    "capabilities": [6],
     "query_json": [7, 8],
     "semantic_packs": ["nose.semantic-pack.v0", "nose.semantic-pack.v1"],
+    "semantic_pack_locks": ["nose.semantic-pack-lock.v1"],
+    "semantic_pack_lock_status": [1],
     "semantic_pack_conformance": [3],
     "semantic_pack_inventory": [1],
     "semantic_pack_adoption_gates": [1],
@@ -68,6 +70,7 @@ nose capabilities
       "min-value",
       "mode",
       "semantic-packs",
+      "semantic-pack-lock",
       "sort"
     ],
     "capabilities": {
@@ -86,16 +89,21 @@ nose capabilities
       "query_base_structured_ignores": true,
       "reinvented_view": true,
       "semantic_pack_loading": true,
+      "semantic_pack_project_lock": true,
       "structured_ignores": true
     }
   },
   "semantic_packs": {
     "api_versions": ["nose.semantic-pack.v0", "nose.semantic-pack.v1"],
+    "lock_api_versions": ["nose.semantic-pack-lock.v1"],
     "loading": [
       "compiled-builtin",
       "local-manifest-file",
-      "local-manifest-directory"
+      "local-manifest-directory",
+      "local-project-lock"
     ],
+    "project_lock": ["create", "status"],
+    "project_lock_output_formats": ["human", "json"],
     "conformance": [
       "local-manifest-file",
       "local-manifest-directory"
@@ -145,11 +153,11 @@ release so it can't drift.
 The JSON example above is compared against `nose capabilities` by the CLI integration test;
 only `tool.version` and the platform values are normalized for the local build.
 
-## Version 5 Fields
+## Version 6 Fields
 
 | field | type | meaning |
 |---|---|---|
-| `schema_version` | integer | Capabilities contract version. Version 5 is documented here. |
+| `schema_version` | integer | Capabilities contract version. Version 6 is documented here. |
 | `tool.name` | string | Always `nose`. |
 | `tool.version` | string | Package version of the installed binary. |
 | `platform.os` | string | Rust target OS name, such as `linux`, `macos`, or `windows`. |
@@ -159,10 +167,12 @@ only `tool.version` and the platform values are normalized for the local build.
 | `interfaces.version_json` | boolean | Whether `nose --version --json` is supported. Version 1 reports `false`. |
 | `interfaces.doctor_json` | boolean | Whether `nose doctor --json` is supported. Version 1 reports `false`. |
 | `commands.stable` | array | Stable user-facing commands that integrations may invoke (incl. `query`, the interactive exploration surface — see [usage › nose query](usage.md#nose-query), with its versioned [query-JSON](query-json.md) contract). Hidden research commands are intentionally omitted. |
-| `commands.deprecated` | array | Commands that still work but are being retired. Version 5 reports an empty array. |
+| `commands.deprecated` | array | Commands that still work but are being retired. Version 6 reports an empty array. |
 | `schemas.capabilities` | array | Supported capabilities schema versions. |
 | `schemas.query_json` | array | Supported `nose query --format json` schema versions ([query-json](query-json.md)). |
 | `schemas.semantic_packs` | array | Supported semantic-pack manifest API versions, currently `nose.semantic-pack.v0` and `nose.semantic-pack.v1`. |
+| `schemas.semantic_pack_locks` | array | Supported project-lock API versions, currently `nose.semantic-pack-lock.v1`. |
+| `schemas.semantic_pack_lock_status` | array | Supported `nose semantic-pack status --format json` schemas. |
 | `schemas.semantic_pack_conformance` | array | Supported `nose semantic-pack check --format json` schema versions. Version 3 adds per-manifest API version and semantic digest reporting to the v0 structural/gate/preflight report and v1 typed compilation check. |
 | `schemas.semantic_pack_inventory` | array | Supported `nose semantic-pack inventory --format json` schema versions. Version 1 reports compiled builtin pack declarations, conformance refs, coverage status, and audit gaps. |
 | `schemas.semantic_pack_adoption_gates` | array | Supported `nose semantic-pack adoption-gates --format json` schema versions. Version 1 reports compiled builtin pack optional/default promotion gates, rollback actions, and blocker status. |
@@ -174,20 +184,23 @@ only `tool.version` and the platform values are normalized for the local build.
 | `query.config_keys` | array | Supported `[query]` keys in `nose.toml` / `.nose.toml`. |
 | `query.capabilities` | object | Stable boolean capability flags for query workflows. |
 | `semantic_packs.api_versions` | array | Supported semantic-pack manifest API versions. |
-| `semantic_packs.loading` | array | Supported loading sources. Schema version 5 reports `compiled-builtin` for compiled builtin packs, plus local v0/v1 manifest files/directories. |
+| `semantic_packs.lock_api_versions` | array | Supported content-pinned project-lock API versions. |
+| `semantic_packs.loading` | array | Supported loading sources. Schema version 6 adds validated local project locks to compiled builtins and local v0/v1 manifest files/directories. |
+| `semantic_packs.project_lock` | array | Supported local project-lock operations: `create` and `status`. |
+| `semantic_packs.project_lock_output_formats` | array | Supported lock/status report formats. |
 | `semantic_packs.conformance` | array | Supported conformance input sources: local manifest files/directories. |
 | `semantic_packs.conformance_output_formats` | array | Supported `nose semantic-pack check --format` values. |
-| `semantic_packs.inventory` | array | Supported inventory sources. Version 5 reports `compiled-builtin`. |
+| `semantic_packs.inventory` | array | Supported inventory sources. Version 6 reports `compiled-builtin`. |
 | `semantic_packs.inventory_output_formats` | array | Supported `nose semantic-pack inventory --format` values. |
-| `semantic_packs.adoption_gates` | array | Supported adoption-gate report sources. Version 5 may report `compiled-builtin`; consumers should treat absence as unsupported. |
+| `semantic_packs.adoption_gates` | array | Supported adoption-gate report sources. Version 6 may report `compiled-builtin`; consumers should treat absence as unsupported. |
 | `semantic_packs.adoption_gate_output_formats` | array | Supported `nose semantic-pack adoption-gates --format` values. |
-| `semantic_packs.compatibility` | array | Supported compatibility report sources. Version 5 may report `policy`; consumers should treat absence as unsupported. |
+| `semantic_packs.compatibility` | array | Supported compatibility report sources. Version 6 may report `policy`; consumers should treat absence as unsupported. |
 | `semantic_packs.compatibility_output_formats` | array | Supported `nose semantic-pack compatibility --format` values. |
 | `semantic_packs.trust` | array | Supported trust policy labels. |
 | `semantic_packs.external_packs_enabled_by_default` | boolean | Always `false`; external packs require explicit CLI/config opt-in. |
 | `semantic_packs.external_pack_influence` | string | Current influence of loaded external packs, `metadata-only`. |
 | `semantic_packs.external_influence_blockers` | array | Stable blocker labels that currently prevent external rows from influencing analysis. |
-| `semantic_packs.external_pack_execution` | string | Current external pack execution support. Version 5 reports `none`; local external packs do not run recognizers, parser/lowering plugins, producer code, sandboxed code, or fixture contents. |
+| `semantic_packs.external_pack_execution` | string | Current external pack execution support. Version 6 reports `none`; local external packs do not run recognizers, parser/lowering plugins, producer code, sandboxed code, or fixture contents. |
 | `il.output_formats` | array | Supported `nose il --format` values. |
 | `il.normalized` | boolean | Whether `nose il --normalized` is supported. |
 | `il.cfg_norm_toggle` | boolean | Whether `nose il --no-cfg-norm` is supported. |
@@ -201,7 +214,7 @@ capabilities schema version.
 
 ## Query Capability Flags
 
-Version 5 defines these `query.capabilities` keys:
+Version 6 defines these `query.capabilities` keys:
 
 | key | meaning |
 |---|---|
@@ -220,4 +233,5 @@ Version 5 defines these `query.capabilities` keys:
 | `query_base_structured_ignores` | Structured ignores are applied before the `base=<ref>` divergent-edit gate. |
 | `reinvented_view` | The `reinvented` query view is supported. |
 | `semantic_pack_loading` | local v0 manifests can be loaded as metadata and typed v1 manifests can be compiled for metadata/digest reporting. |
+| `semantic_pack_project_lock` | local v1 project locks can be created, validated, and supplied to query before analysis. |
 | `structured_ignores` | `nose.ignore.json` / `--ignore-file` audited suppressions are supported. |

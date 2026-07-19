@@ -2085,9 +2085,13 @@ justifies a tranche ([design §2c](design.md)).
   remain metadata-only.
 - [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md) adds the
   first closed typed Java/Maven contract compiler, canonical semantic digest,
-  and deterministic indexes. Those indexes deliberately remain disconnected
-  from analysis until project locks/conflicts, dependency and occurrence
-  evidence, lane consumers, receipts, and a real reference pack are complete.
+  and deterministic indexes.
+- [semantic-pack-project-lock](semantic-pack-project-lock.md) adds the first
+  content-pinned project authorization and deterministic semantic-coordinate
+  conflict boundary. It pins selected rows/channels and checked-in dependency
+  inputs without opening influence. The typed indexes deliberately remain
+  disconnected from analysis until dependency and occurrence evidence, lane
+  consumers, receipts, and a real reference pack are complete.
 - Start with data-only external packs for simple APIs once producer execution and
   executable fixture/oracle checks exist.
 - Add restricted recognizer hooks only after the manifest path is stable.
@@ -2096,7 +2100,9 @@ justifies a tranche ([design §2c](design.md)).
 - Keep the pack conformance checklist explicit: structural harness results,
   semantic correctness evidence, and enablement risk are provider/user
   responsibility unless the pack is builtin.
-- User configuration and `--semantic-pack` can enable local manifests explicitly.
+- User configuration and `--semantic-pack` can load local manifests explicitly;
+  `semantic-pack-lock`/`--semantic-pack-lock` select a mutually exclusive,
+  content-pinned v1 set.
 - Query JSON reports active pack provenance and whether each pack influenced
   evidence/contracts or metadata only. Per-finding contract/law provenance and
   external pack influence on `near`/exact results remain open.

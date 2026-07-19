@@ -14,6 +14,10 @@ fn semantic_pack_compatibility_json_reports_fail_closed_policy() {
         vec!["nose.semantic-pack.v0", "nose.semantic-pack.v1"]
     );
     assert_eq!(
+        json_array_strings(&json["supported"], "project_lock_api_versions"),
+        vec!["nose.semantic-pack-lock.v1"]
+    );
+    assert_eq!(
         json_array_strings(&json["supported"], "report_sources"),
         vec!["policy"]
     );
@@ -22,6 +26,10 @@ fn semantic_pack_compatibility_json_reports_fail_closed_policy() {
         "must-include-installed-version"
     );
     assert_eq!(json["policy"]["external_pack_influence"], "metadata-only");
+    assert_eq!(
+        json["policy"]["external_pack_authorization"],
+        "content-pinned-project-lock-required"
+    );
     assert_eq!(json["policy"]["external_pack_execution"], "none");
     assert_eq!(json["policy"]["external_packs_enabled_by_default"], false);
     assert!(json_array_strings(&json["requirements"], "manifest")
@@ -44,6 +52,10 @@ fn semantic_pack_compatibility_json_reports_fail_closed_policy() {
         ]
     );
 
+    assert_fail_closed_modes(&json);
+}
+
+fn assert_fail_closed_modes(json: &serde_json::Value) {
     let failure_modes = json["failure_modes"]
         .as_array()
         .expect("failure modes should be an array");
@@ -59,4 +71,7 @@ fn semantic_pack_compatibility_json_reports_fail_closed_policy() {
         .iter()
         .any(|mode| mode["code"] == "unsupported-influence"
             && mode["action"] == "block-external-influence"));
+    assert!(failure_modes
+        .iter()
+        .any(|mode| mode["code"] == "row-conflict" && mode["action"] == "reject-before-analysis"));
 }

@@ -7,6 +7,11 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added local `nose.semantic-pack-lock.v1` project authorization for typed v1
+  semantic packs. `nose semantic-pack lock/status` content-pin manifest identity,
+  semantic digest, selected rows/channels, dependency files, and optional receipts;
+  query validates configured locks before analysis, rejects stale/escaped/conflicting
+  decisions independent of load order, and keeps all external rows metadata-only.
 - Closed the #847 divergent-edit precision-first cycle without overstating readiness.
   Direct changed-to-skipped targets, bounded semantic-change evidence, and pair-local
   variant signals now give users more precise review context, while one internal policy

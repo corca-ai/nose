@@ -123,14 +123,30 @@ pub(super) fn resolve_query_semantic_packs(
     args: &QueryArgs,
 ) -> Result<nose_semantics::SemanticPackSet> {
     let cfg = config::load_query(args.config.as_deref())?;
-    semantic_pack_set_from_paths(cfg.semantic_packs, &args.semantic_pack)
+    semantic_pack_set_from_inputs(
+        cfg.semantic_packs,
+        &args.semantic_pack,
+        cfg.semantic_pack_lock,
+        args.semantic_pack_lock.as_ref(),
+    )
 }
 
-fn semantic_pack_set_from_paths(
+fn semantic_pack_set_from_inputs(
     mut semantic_pack_paths: Vec<std::path::PathBuf>,
     cli_semantic_pack_paths: &[std::path::PathBuf],
+    config_lock: Option<std::path::PathBuf>,
+    cli_lock: Option<&std::path::PathBuf>,
 ) -> Result<nose_semantics::SemanticPackSet> {
     semantic_pack_paths.extend(cli_semantic_pack_paths.iter().cloned());
+    let lock = cli_lock.cloned().or(config_lock);
+    if let Some(lock) = lock {
+        if !semantic_pack_paths.is_empty() {
+            anyhow::bail!(
+                "a semantic-pack project lock is mutually exclusive with `--semantic-pack` and `[query].semantic-packs`; the lock owns the complete manifest set"
+            );
+        }
+        return Ok(nose_semantics::SemanticPackSet::new_locked(&lock)?);
+    }
     Ok(nose_semantics::SemanticPackSet::new_local(
         &semantic_pack_paths,
     )?)
@@ -147,7 +163,12 @@ fn resolve_query_settings(
     let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
     let min_tokens = args.min_size.or(cfg.min_size).unwrap_or(24);
     let ignore_file = args.ignore_file.clone().or(cfg.ignore_file);
-    let semantic_packs = semantic_pack_set_from_paths(cfg.semantic_packs, &args.semantic_pack)?;
+    let semantic_packs = semantic_pack_set_from_inputs(
+        cfg.semantic_packs,
+        &args.semantic_pack,
+        cfg.semantic_pack_lock,
+        args.semantic_pack_lock.as_ref(),
+    )?;
     // Excludes are additive: config patterns plus any given on the command line.
     let mut exclude = cfg.exclude;
     exclude.extend(args.exclude.iter().cloned());

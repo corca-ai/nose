@@ -114,6 +114,12 @@ fn validate_base_query(q: &Query, args: &QueryArgs) -> Result<()> {
     if !args.semantic_pack.is_empty() {
         unsupported_flags.push("--semantic-pack");
     }
+    if cfg.semantic_pack_lock.is_some() {
+        unsupported_flags.push("semantic-pack-lock config");
+    }
+    if args.semantic_pack_lock.is_some() {
+        unsupported_flags.push("--semantic-pack-lock");
+    }
     if args.baseline.is_some() {
         unsupported_flags.push("--baseline");
     }
@@ -285,6 +291,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         cache_dir,
         ignore_file,
         semantic_pack,
+        semantic_pack_lock,
         config,
         fail_on,
         baseline,
@@ -311,6 +318,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         baseline,
         ignore_file,
         semantic_pack,
+        semantic_pack_lock,
         write_baseline,
         format,
         exclude,
