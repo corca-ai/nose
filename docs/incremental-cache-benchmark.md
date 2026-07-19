@@ -37,13 +37,13 @@ same-binary control before attributing a regression.
 
 ## What the current cache actually reuses
 
-The published v0.19.0 cache is schema v11; the #872 candidate is schema v13. Both always rediscover,
+The published v0.19.0 cache is schema v11; the #872 candidate is schema v14. Both always rediscover,
 read, parse, and lower every selected source, rebuild corpus import facts, and repeat global
 detection, family construction/ranking, and presentation. They reuse only per-file
-normalize/extract units and syntax streams. v13 keys the post-resolution IL together with
+normalize/extract units and syntax streams. v14 keys the post-resolution IL together with
 report-affecting names, spans, suppression and evidence, plus unit-affecting options. In
 particular, a warm hit does **not** skip parsing. This narrower statement replaces the old CI
-documentation claim. The v13 reporting identity prevents two clone-shaped files from sharing
+documentation claim. The v14 reporting identity prevents two clone-shaped files from sharing
 stale function names or line locations while paths remain retargetable across checkout roots.
 
 #275 is the required cross-file regression. A provider literal and importer that converge with

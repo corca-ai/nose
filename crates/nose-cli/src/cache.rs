@@ -21,13 +21,14 @@
 use nose_detect::{DetectOptions, Stream, UnitFeat};
 use nose_il::{Corpus, Interner};
 use rayon::prelude::*;
+use std::hash::{Hash, Hasher};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
 /// Bump when the cached payload's layout, extraction, or feature hashing changes — old
-/// cache entries then live under a different directory and are ignored. (v13: the key
-/// gained report-affecting spans, unit metadata, names, and semantic evidence.)
-const SCHEMA: u32 = 13;
+/// cache entries then live under a different directory and are ignored. (v14: report
+/// metadata moved from JSON serialization to allocation-free stable hashing.)
+const SCHEMA: u32 = 14;
 
 pub(crate) struct CachedUnits {
     pub units: Vec<UnitFeat>,
@@ -157,23 +158,33 @@ fn resolved_il_hash(il: &nose_il::Il, interner: &Interner) -> u64 {
                 .map(|name| interner.symbol_hash(name))
                 .unwrap_or_default(),
         );
-        h = mix_serialized(h, &unit.origin);
+        h = mix_hashable(h, &unit.origin);
     }
     for &name in &il.cid_names {
         h = crate::fnv::mix(h, interner.symbol_hash(name));
     }
-    h = mix_serialized(h, &il.suppressed);
-    mix_serialized(h, &il.evidence)
+    h = mix_hashable(h, &il.suppressed);
+    mix_hashable(h, &il.evidence)
 }
 
-fn mix_serialized(mut h: u64, value: &impl serde::Serialize) -> u64 {
-    if let Ok(bytes) = serde_json::to_vec(value) {
-        h = crate::fnv::mix(h, bytes.len() as u64);
-        for byte in bytes {
-            h = crate::fnv::mix(h, byte as u64);
+struct StableFnv(u64);
+
+impl Hasher for StableFnv {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        for &byte in bytes {
+            self.0 = crate::fnv::mix(self.0, byte as u64);
         }
     }
-    h
+}
+
+fn mix_hashable(h: u64, value: &impl Hash) -> u64 {
+    let mut hasher = StableFnv(h);
+    value.hash(&mut hasher);
+    hasher.finish()
 }
 
 /// Fold every unit-affecting option into one value; changing any of them changes
@@ -234,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn schema_13_ignores_pre_reporting_identity_cache_entries() {
+    fn schema_14_ignores_json_hashed_reporting_identity_entries() {
         let root = std::env::temp_dir().join(format!("nose_cache_schema_{}", std::process::id()));
         let source = root.join("source");
         let cache = root.join("cache");
@@ -250,8 +261,8 @@ mod tests {
         let corpus = nose_frontend::lower_corpus_filtered(&[source.as_path()], &[]);
         let options = DetectOptions::default();
         let signature = options_signature(&options);
-        let current = cache.join(format!("v13-{signature:016x}"));
-        let stale = cache.join(format!("v12-{signature:016x}"));
+        let current = cache.join(format!("v14-{signature:016x}"));
+        let stale = cache.join(format!("v13-{signature:016x}"));
         let first = build_units_cached(&corpus, &options, &cache);
         assert!(!first.units.is_empty());
         std::fs::rename(&current, &stale).unwrap();
@@ -261,7 +272,7 @@ mod tests {
         assert_eq!(second.units.len(), first.units.len());
         assert!(
             current.is_dir(),
-            "v12 entries must be ignored and a fresh v13 bucket written"
+            "v13 entries must be ignored and a fresh v14 bucket written"
         );
         assert!(stale.is_dir(), "the stale bucket should remain untouched");
 
