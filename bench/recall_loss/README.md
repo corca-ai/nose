@@ -11,6 +11,9 @@ remain reviewable without retaining large raw profiles. For example,
 `issue-907-etcd-frontend-attribution-2026-07-19.v1.json` binds the #892 r40 rows to exact
 binary/build identities, normalized instruction hashes, the compact profile summary,
 and the resulting no-go optimization decision.
+`issue-908-normalize-extract-performance-2026-07-19.v1.json` binds the inherited Guava
+and MinIO rows to the shared MinHash hot path, the output-identical optimization, and
+the fixed r40 checker evidence.
 
 Scheduling lifecycle audit artifacts use a separate source-prevalence status
 vocabulary:

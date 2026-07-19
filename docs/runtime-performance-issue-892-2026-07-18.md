@@ -106,3 +106,8 @@ frontend regression: source and hot lowering instructions are identical, the exa
 binaries have different SDK provenance, and signed negative controls lift sub-5-ms raw
 deltas over the absolute gate. The measurement-contract consequence is isolated in
 [#927](https://github.com/corca-ai/nose/issues/927).
+
+The [#908 closeout](runtime-performance-issue-908-2026-07-19.md) removes both remaining
+`normalize+extract` rows with an output-identical MinHash loop transposition. Final
+control-adjusted r40 movement is `-5.21%` for Guava and `-5.73%` for MinIO at the
+unchanged `5%` / `5 ms` contract.

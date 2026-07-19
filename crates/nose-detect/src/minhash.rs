@@ -23,6 +23,8 @@ pub(crate) fn seeds(k: usize) -> Vec<u64> {
 pub(crate) fn sign(distinct: &[u64], seeds: &[u64]) -> Vec<u64> {
     let mut sig = Vec::with_capacity(seeds.len());
     for &seed in seeds {
+        // Keep one minimum in a register and write it once. The feature-major form
+        // revisited and conditionally wrote the whole signature for every feature.
         let mut minimum = u64::MAX;
         for &feature in distinct {
             minimum = minimum.min(splitmix64(feature ^ seed));
