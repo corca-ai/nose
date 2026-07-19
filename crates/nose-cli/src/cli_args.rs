@@ -348,6 +348,9 @@ pub(crate) enum SemanticPackCmd {
         /// Semantic-pack manifest file or directory of direct `*.json` manifests.
         #[arg(required = true, value_name = "FILE_OR_DIR")]
         paths: Vec<PathBuf>,
+        /// Write the passed kernel conformance receipt for one v1 pack.
+        #[arg(long, value_name = "FILE")]
+        receipt_out: Option<PathBuf>,
         /// Output format.
         #[arg(long, default_value = "human")]
         format: semantic_pack::CheckFormat,

@@ -6,9 +6,16 @@ fn semantic_pack_compatibility_json_reports_fail_closed_policy() {
     let json: serde_json::Value =
         serde_json::from_str(&out).expect("compatibility must emit valid JSON");
 
-    assert_eq!(json["schema_version"], 1);
+    assert_eq!(json["schema_version"], 2);
     assert_eq!(json["status"], "ok");
     assert_eq!(json["current_nose_version"], env!("CARGO_PKG_VERSION"));
+    assert_supported_contract(&json);
+    assert_policy_and_requirements(&json);
+    assert_compatibility_checks(&json);
+    assert_fail_closed_modes(&json);
+}
+
+fn assert_supported_contract(json: &serde_json::Value) {
     assert_eq!(
         json_array_strings(&json["supported"], "manifest_api_versions"),
         vec!["nose.semantic-pack.v0", "nose.semantic-pack.v1"]
@@ -21,13 +28,16 @@ fn semantic_pack_compatibility_json_reports_fail_closed_policy() {
         json_array_strings(&json["supported"], "report_sources"),
         vec!["policy"]
     );
+}
+
+fn assert_policy_and_requirements(json: &serde_json::Value) {
     assert_eq!(
         json["policy"]["manifest_nose_version"],
         "must-include-installed-version"
     );
     assert_eq!(
         json["policy"]["external_pack_influence"],
-        "metadata-or-locked-near-only"
+        "metadata-or-locked-near-or-receipt-backed-external-claim-exact"
     );
     assert_eq!(
         json["policy"]["external_pack_authorization"],
@@ -41,10 +51,14 @@ fn semantic_pack_compatibility_json_reports_fail_closed_policy() {
         .contains(&"unsupported-capability-fail-closed"));
     assert!(json_array_strings(&json["requirements"], "kernel")
         .contains(&"unlocked-or-v0-external-rows-do-not-influence-analysis"));
+}
+
+fn assert_compatibility_checks(json: &serde_json::Value) {
     assert_eq!(json["checks"]["builtin_inventory_status"], "ok");
     assert_eq!(json["checks"]["builtin_packs"], 49);
     assert_eq!(json["checks"]["external_metadata_only"], false);
     assert_eq!(json["checks"]["external_locked_near_only"], true);
+    assert_eq!(json["checks"]["external_receipt_exact"], true);
     assert_eq!(
         json_array_strings(&json["checks"], "external_influence_blockers"),
         vec![
@@ -55,8 +69,6 @@ fn semantic_pack_compatibility_json_reports_fail_closed_policy() {
             "row-conflict"
         ]
     );
-
-    assert_fail_closed_modes(&json);
 }
 
 fn assert_fail_closed_modes(json: &serde_json::Value) {

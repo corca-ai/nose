@@ -283,6 +283,11 @@ fn query_location_json(
         object["semantic_pack_near"] = serde_json::to_value(&location.semantic_pack_near)
             .expect("semantic-pack near provenance is JSON serializable");
     }
+    if !location.semantic_pack_external_exact.is_empty() {
+        object["semantic_pack_external_exact"] =
+            serde_json::to_value(&location.semantic_pack_external_exact)
+                .expect("semantic-pack external exact provenance is JSON serializable");
+    }
     object
 }
 
@@ -335,6 +340,10 @@ pub(super) fn query_family_json_with_counts(
     if !f.semantic_pack_near.is_empty() {
         obj["semantic_pack_near"] = serde_json::to_value(&f.semantic_pack_near)
             .expect("semantic-pack near provenance is JSON serializable");
+    }
+    if !f.semantic_pack_external_exact.is_empty() {
+        obj["semantic_pack_external_exact"] = serde_json::to_value(&f.semantic_pack_external_exact)
+            .expect("semantic-pack external exact provenance is JSON serializable");
     }
     // Temporal status against a `since=` snapshot (new/changed/unchanged), when one was given.
     if let Some(cmp) = since {

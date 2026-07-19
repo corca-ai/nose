@@ -12,6 +12,7 @@ mod callee_shape;
 mod contract_keys;
 mod contracts;
 mod dependency_facts;
+mod external_exact;
 mod imported_occurrences;
 mod receiver_dependencies;
 mod registry;
@@ -23,6 +24,7 @@ pub(in crate::library_api) use callee_dependencies::*;
 pub(in crate::library_api) use callee_shape::*;
 pub use contracts::*;
 pub(in crate::library_api) use dependency_facts::*;
+pub use external_exact::admitted_external_collection_factory_at_call;
 pub(in crate::library_api) use receiver_dependencies::{
     async_receiver_dependencies_at_span, domain_dependency_anchor_matches_receiver,
     iterator_adapter_receiver_dependencies_at_span, method_receiver_dependencies_at_span,

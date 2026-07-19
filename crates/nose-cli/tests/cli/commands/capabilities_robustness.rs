@@ -12,7 +12,7 @@ fn capabilities_command_emits_machine_readable_contract() {
     let json: serde_json::Value =
         serde_json::from_str(&out).expect("capabilities must emit valid JSON");
 
-    assert_eq!(json["schema_version"], 6);
+    assert_eq!(json["schema_version"], 7);
     assert_eq!(json["tool"]["name"], "nose");
     assert_eq!(json["tool"]["version"], env!("CARGO_PKG_VERSION"));
     assert!(
@@ -63,7 +63,7 @@ fn capabilities_command_lists_stable_commands_and_schemas() {
         vec!["capabilities", "il", "query", "semantic-pack", "stats"]
     );
     assert!(json_array_strings(&json["commands"], "deprecated").is_empty());
-    assert_eq!(json["schemas"]["capabilities"][0], 6);
+    assert_eq!(json["schemas"]["capabilities"][0], 7);
     assert_eq!(json["schemas"]["query_json"], serde_json::json!([7, 8]));
     assert_eq!(
         json["schemas"]["semantic_packs"],
@@ -77,10 +77,10 @@ fn capabilities_command_lists_stable_commands_and_schemas() {
         json["schemas"]["semantic_pack_lock_status"],
         serde_json::json!([1])
     );
-    assert_eq!(json["schemas"]["semantic_pack_conformance"][0], 3);
+    assert_eq!(json["schemas"]["semantic_pack_conformance"][0], 4);
     assert_eq!(json["schemas"]["semantic_pack_inventory"][0], 1);
-    assert_eq!(json["schemas"]["semantic_pack_adoption_gates"][0], 1);
-    assert_eq!(json["schemas"]["semantic_pack_compatibility"][0], 1);
+    assert_eq!(json["schemas"]["semantic_pack_adoption_gates"][0], 2);
+    assert_eq!(json["schemas"]["semantic_pack_compatibility"][0], 2);
 }
 
 #[test]
@@ -132,6 +132,10 @@ fn capabilities_command_reports_query_surface() {
         true
     );
     assert_eq!(
+        json["query"]["capabilities"]["semantic_pack_external_claim_exact"],
+        true
+    );
+    assert_eq!(
         json["query"]["capabilities"]["semantic_pack_project_lock"],
         true
     );
@@ -151,7 +155,7 @@ fn capabilities_command_reports_semantic_pack_il_and_stats_surfaces() {
     assert_semantic_pack_project_lock_capabilities(&json);
     assert_eq!(
         json["semantic_packs"]["external_pack_influence"],
-        "metadata-or-locked-near-only"
+        "metadata-or-locked-near-or-receipt-backed-external-claim-exact"
     );
     assert_eq!(
         json_array_strings(&json["semantic_packs"], "external_influence_blockers"),
@@ -166,7 +170,13 @@ fn capabilities_command_reports_semantic_pack_il_and_stats_surfaces() {
     assert_eq!(json["semantic_packs"]["external_pack_execution"], "none");
     assert_eq!(
         json_array_strings(&json["semantic_packs"], "conformance"),
-        vec!["local-manifest-file", "local-manifest-directory"]
+        vec![
+            "local-manifest-file",
+            "local-manifest-directory",
+            "v0-fixture-metadata",
+            "v1-kernel-source-analysis",
+            "receipt-output"
+        ]
     );
     assert_eq!(
         json_array_strings(&json["semantic_packs"], "conformance_output_formats"),

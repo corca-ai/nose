@@ -86,6 +86,14 @@ impl EvidenceProvenance {
             rule_hash: Some(stable_symbol_hash(rule)),
         }
     }
+
+    pub fn external(pack_id: &str, row_id: &str) -> Self {
+        Self {
+            emitter: EvidenceEmitter::External,
+            pack_hash: Some(stable_symbol_hash(pack_id)),
+            rule_hash: Some(stable_symbol_hash(row_id)),
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
@@ -269,6 +277,14 @@ pub enum LibraryApiEvidenceKind {
         callee_hash: u64,
         arity: u16,
     },
+    /// Query-local authorization for one closed kernel operation claimed by an
+    /// external semantic pack. The kernel creates this only after project-lock,
+    /// receipt, dependency, import, call-shape, and conflict checks pass.
+    ///
+    /// It deliberately cannot name a private value-graph node or provider
+    /// callback. Exact consumers still validate provenance, dependencies, the
+    /// current call arity, and the operation-specific safety obligations.
+    ExternalCollectionFactory { arity: u16 },
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]

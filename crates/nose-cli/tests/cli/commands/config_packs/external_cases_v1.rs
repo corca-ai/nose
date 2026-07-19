@@ -51,7 +51,7 @@ fn typed_v1_pack_compiles_and_reports_digest_without_changing_families() {
         .expect("v1 semantic-pack check");
     assert!(check.status.success());
     let check_json: serde_json::Value = serde_json::from_slice(&check.stdout).unwrap();
-    assert_eq!(check_json["schema_version"], 3);
+    assert_eq!(check_json["schema_version"], 4);
     assert_eq!(check_json["influence_preflight"]["status"], "unavailable");
     assert_eq!(
         check_json["manifests"][0]["api_version"],

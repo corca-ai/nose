@@ -150,13 +150,44 @@ fn every_supported_semantic_change_changes_the_digest() {
             "\"exceptions\":\"may-throw\"",
             "\"exceptions\":\"no-throw\"",
         ),
-        original.replace("\"channel\":\"near\"", "\"channel\":\"external-exact\""),
     ];
 
     for candidate in changed {
         let compiled = parse_and_compile(&candidate).expect("changed manifest remains valid");
         assert_ne!(baseline.semantic_digest(), compiled.semantic_digest());
     }
+}
+
+#[test]
+fn external_exact_requires_closed_profiles_and_source_fixture_coverage() {
+    let baseline = parse_and_compile(&manifest_json()).unwrap();
+    let mut value: serde_json::Value = serde_json::from_str(&manifest_json()).unwrap();
+    value["declares"]["api_contracts"][0]["channel"] = serde_json::json!("external-exact");
+    value["declares"]["api_contracts"][0]["profiles"]["exceptions"] = serde_json::json!("no-throw");
+    value["conformance"] = serde_json::json!({
+        "fixtures": [{
+            "id": "positive",
+            "row_id": "java.guava.immutable-list.of",
+            "kind": "positive",
+            "path": "fixtures/positive",
+            "dependency": "pom.xml",
+            "expectation": "external-exact-match"
+        }, {
+            "id": "negative",
+            "row_id": "java.guava.immutable-list.of",
+            "kind": "hard-negative",
+            "path": "fixtures/negative",
+            "dependency": "pom.xml",
+            "expectation": "no-external-exact-match"
+        }]
+    });
+    let exact = parse_and_compile(&serde_json::to_string(&value).unwrap()).unwrap();
+    assert_ne!(baseline.semantic_digest(), exact.semantic_digest());
+    assert_eq!(exact.conformance_fixtures().len(), 2);
+
+    value["declares"]["api_contracts"][0]["profiles"]["exceptions"] =
+        serde_json::json!("may-throw");
+    assert!(parse_and_compile(&serde_json::to_string(&value).unwrap()).is_err());
 }
 
 #[test]

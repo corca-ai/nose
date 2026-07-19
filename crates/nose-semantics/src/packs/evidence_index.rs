@@ -8,6 +8,7 @@ use super::*;
 use nose_il::{Corpus, EvidenceId, Span};
 use rustc_hash::FxHashMap;
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 mod maven;
 mod occurrences;
@@ -114,6 +115,24 @@ impl SemanticPackEvidenceIndex {
                     builder.push_row(pack, contract, corpus);
                 }
             }
+        }
+        builder.finish()
+    }
+
+    /// Build the same dependency/occurrence evidence used by product queries for
+    /// one declared source-conformance row. This does not authorize product
+    /// influence; it exists only so the CLI's kernel runner can exercise the
+    /// normal matcher and admission path before issuing a receipt.
+    pub fn build_for_conformance(
+        pack: &CompiledSemanticPackV1,
+        row_id: &str,
+        dependency_paths: &[PathBuf],
+        corpus: &Corpus,
+    ) -> Self {
+        let mut builder =
+            EvidenceIndexBuilder::new(MavenCatalog::from_conformance_paths(dependency_paths));
+        if let Some(contract) = pack.contracts_by_id().get(row_id) {
+            builder.push_row(pack, contract, corpus);
         }
         builder.finish()
     }

@@ -6,7 +6,7 @@
     "kind": "LibraryPack",
     "version": "1.0.0",
     "display_name": "Typed Guava immutable collection factories",
-    "description": "Typed v1 example. A project lock can build immutable occurrence evidence, but no lane consumes it yet and the pack remains metadata-only.",
+    "description": "Typed v1 near example. It remains metadata-only unless a project lock authorizes its dependency-backed rows.",
     "trust": "external-opt-in",
     "enabled_by_default": false
   },

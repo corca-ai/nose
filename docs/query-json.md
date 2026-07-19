@@ -49,18 +49,22 @@ Each entry has:
 | `trust` | string | `builtin-default`, `builtin-optional`, or `external-opt-in`. Local manifests must still use `external-opt-in`; builtin trust is reserved for packs shipped and gated with nose. |
 | `enabled_by_default` | boolean | Whether the pack is default-enabled. Local manifests are rejected unless this is `false`; compiled builtin packs report `true`. |
 | `source` | string | `compiled-builtin` for compiled builtin packs, or `local-manifest` for local manifest opt-ins. |
-| `influence` | string | `evidence-and-contracts` for compiled builtin semantics, `metadata-only` for unlocked/v0 external packs, or `near-only` for a v1 pack with valid near authorization. |
+| `influence` | string | `evidence-and-contracts` for compiled builtin semantics, `metadata-only` for unlocked/v0 external packs, `near-only` for valid near authorization, or `external-claim-exact` for a receipt-backed exact authorization. |
 | `path` | string or null | Canonical local manifest path for loaded manifests; `null` for compiled builtin packs. |
 | `provider`, `repository`, `license` | string | Pack provenance fields. |
 | `supported_languages` | array | Language ids declared by the pack. |
 | `counts` | object | Counts of declared `evidence_producers`, `contracts`, `value_laws`, `positive_fixtures`, and `hard_negatives`. |
 | `lock` | object, locked v1 only | Valid project-lock API/decision digest, allowed channels, selected rows, dependency pins, and optional receipt. |
 | `near_influence` | object, near-authorized v1 only | `{lane,trust,selected_rows,admitted_rows,rejected_rows,admitted_occurrences,influential_occurrences,caveats[]}`. Counts distinguish authorization/evidence from occurrences that contributed to retained near families. |
+| `external_exact_influence` | object, exact-authorized v1 only | Separately assured `{lane,trust,assurance,selected_rows,admitted_rows,rejected_rows,admitted_occurrences,influential_occurrences,caveats[]}` counts. `lane` is `external-claim-exact`; this is never builtin certification. |
 
 Local external packs must not change families, ranking, witnesses, surfaces, or
 exact/near results while their `influence` is `metadata-only`. `near-only` rows
 may support an existing near candidate but cannot create candidates or change
 fingerprints, exact results, or `nose verify`.
+`external-claim-exact` requires a matching kernel receipt and exact lock. Only
+the closed collection-factory kernel operation can affect fingerprints, and
+every affected family/member exposes its external provenance and caveats.
 
 For a locked v1 pack, `lock.status` is `valid`; invalid locks fail before a query
 report exists. `lock.decision_digest` is independent of workspace location and
@@ -252,7 +256,8 @@ Composition rules for v8:
 | `subsumes` | (present when this family has folded slices, in any view) the `id=` handles of the slice families this one subsumes — open any to inspect |
 | `subsumed_by` | (present when this family is a slice, in any view) the `id=` handle of the fuller overlapping family this one is a slice of |
 | `semantic_pack_near` | affected near families only: deduplicated provenance rows with pack/row semantic digests, lane/trust/operation, dependency coordinate and pinned source digests, occurrence span, and caveats |
-| `locations[]` | every copy: `{id, file, start, end, name, lang}` where `id` is the member id used by baseline diagnostics; when the frontend knows source-origin facts the location also carries `origin` (domains/body/region facets such as `type-contract`, `style`, `markup`, `declaration-only`, or `vue-sfc`); a near-influenced member carries `semantic_pack_near`; the `existing_helper` member also carries `role: "existing-helper"`; a sub-dag clone's member carries `shared_subdag: [start, end]` — where the proven shared computation lives at that site |
+| `semantic_pack_external_exact` | affected exact families only: receipt-backed external provider-claim provenance with pack/row/receipt digests, dependency evidence, lane `external-exact`, assurance `external-claim-exact`, occurrence span, and non-certification caveats |
+| `locations[]` | every copy: `{id, file, start, end, name, lang}` where `id` is the member id used by baseline diagnostics; when the frontend knows source-origin facts the location also carries `origin` (domains/body/region facets such as `type-contract`, `style`, `markup`, `declaration-only`, or `vue-sfc`); influenced members may carry `semantic_pack_near` or `semantic_pack_external_exact`; the `existing_helper` member also carries `role: "existing-helper"`; a sub-dag clone's member carries `shared_subdag: [start, end]` — where the proven shared computation lives at that site |
 | `skeleton` | (only with `full`) the all-copies extraction-skeleton lines, each varying spot a `⟨param N: class⟩` placeholder (`class` = `literal`/`name`/`call`/`expr`/`block` — a coarse value-class hint for the helper signature) |
 
 `metrics` carries the raw `RefactorFamily` features before query's view-specific display fields

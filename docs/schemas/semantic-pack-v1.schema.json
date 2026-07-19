@@ -57,6 +57,9 @@
           }
         }
       }
+    },
+    "conformance": {
+      "$ref": "#/$defs/conformance"
     }
   },
   "$defs": {
@@ -274,6 +277,52 @@
         }
       }
     },
+    "conformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fixtures"],
+      "properties": {
+        "fixtures": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/conformance_fixture"
+          }
+        }
+      }
+    },
+    "conformance_fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "row_id",
+        "kind",
+        "path",
+        "dependency",
+        "expectation"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "row_id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "kind": {
+          "enum": ["positive", "hard-negative"]
+        },
+        "path": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "dependency": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "expectation": {
+          "enum": ["external-exact-match", "no-external-exact-match"]
+        }
+      }
+    },
     "api_contract": {
       "type": "object",
       "additionalProperties": false,
@@ -324,7 +373,25 @@
         "channel": {
           "enum": ["near", "external-exact"]
         }
-      }
+      },
+      "allOf": [{
+        "if": {
+          "properties": {
+            "channel": { "const": "external-exact" }
+          }
+        },
+        "then": {
+          "properties": {
+            "operation": { "const": "collection-factory" },
+            "result_domain": { "const": "collection" },
+            "profiles": {
+              "properties": {
+                "exceptions": { "const": "no-throw" }
+              }
+            }
+          }
+        }
+      }]
     }
   }
 }

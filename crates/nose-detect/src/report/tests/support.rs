@@ -119,6 +119,7 @@ pub(super) fn fam(
         varying_spots: Vec::new(),
         semantic_laws: Vec::new(),
         semantic_pack_near: Vec::new(),
+        semantic_pack_external_exact: Vec::new(),
     }
 }
 

@@ -639,13 +639,16 @@ still being migrated toward it.
   path escapes and overlapping cross-pack coordinates; and exposes local
   create/status commands. Locked queries now use a bounded Maven POM reader and
   builtin Java evidence matcher to build an immutable dependency/import/symbol/
-  receiver/effect occurrence index. The first bounded consumer maps admitted
-  collection/map factory occurrences onto existing near candidates; normalize,
-  fingerprints, exact, and verify remain disconnected.
-  `nose semantic-pack check` validates local manifests plus declared fixture
-  assets, and `nose query --format json` reports active builtin/local packs in
-  top-level `semantic_packs`. Unlocked/v0 packs stay `metadata-only`, while a
-  valid near lock reports `near-only`; builtin
+  receiver/effect occurrence index. The near consumer maps admitted
+  collection/map factory occurrences onto existing candidates. The exact
+  consumer admits only receipt-backed collection-factory rows through the
+  existing kernel normalization/value-graph operation and reports distinct
+  external-claim provenance.
+  `nose semantic-pack check` validates local manifests and analyzes bounded v1
+  fixture source without executing programs; `nose query --format json` reports
+  active builtin/local packs in top-level `semantic_packs`. Unlocked/v0 packs
+  stay `metadata-only`, a valid near lock reports `near-only`, and a receipt-backed
+  exact lock reports `external-claim-exact`; builtin
   producers remain compiled Rust and are expected to map onto the same
   vocabulary. The first compiled pilots are the `nose.lang.*` builtin language
   descriptor/source-fact producer set, with `nose.lang.c` also carrying C
@@ -1660,8 +1663,8 @@ language.
   families/members expose external row/dependency provenance.
 - Builtin and external responsibility boundaries are documented and represented
   in the internal facade as provenance/trust policy. Unlocked/v0 manifests stay
-  metadata-only; external exact remains closed until the executable
-  fixture/oracle workflow exists.
+  metadata-only; external exact is limited to the receipt-backed
+  collection-factory operation and remains distinct from builtin assurance.
 
 ## Current fail-closed choices
 

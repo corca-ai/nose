@@ -457,6 +457,7 @@ mod tests {
             looks_generated: false,
             shared_subdag: None,
             semantic_pack_near: Vec::new(),
+            semantic_pack_external_exact: Vec::new(),
         }
     }
 

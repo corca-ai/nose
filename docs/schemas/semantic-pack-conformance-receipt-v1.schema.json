@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/corca-ai/nose/docs/schemas/semantic-pack-conformance-receipt-v1.schema.json",
+  "title": "nose semantic-pack kernel conformance receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "nose_version",
+    "kernel_capability",
+    "pack_id",
+    "pack_version",
+    "semantic_digest",
+    "rows",
+    "fixtures",
+    "passed"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "nose.semantic-pack-conformance-receipt.v1"
+    },
+    "nose_version": { "type": "string", "minLength": 1 },
+    "kernel_capability": {
+      "const": "nose.kernel.external-collection-factory-exact.v1"
+    },
+    "pack_id": { "type": "string", "minLength": 1 },
+    "pack_version": { "type": "string", "minLength": 1 },
+    "semantic_digest": { "$ref": "#/$defs/digest" },
+    "rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/row" }
+    },
+    "fixtures": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/fixture" }
+    },
+    "passed": { "const": true }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["row_id", "row_digest", "channel"],
+      "properties": {
+        "row_id": { "type": "string", "minLength": 1 },
+        "row_digest": { "$ref": "#/$defs/digest" },
+        "channel": { "const": "external-exact" }
+      }
+    },
+    "fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "row_id",
+        "kind",
+        "path",
+        "dependency",
+        "fixture_digest",
+        "dependency_digest",
+        "expectation",
+        "observed",
+        "passed"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "row_id": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["positive", "hard-negative"] },
+        "path": { "type": "string", "minLength": 1 },
+        "dependency": { "type": "string", "minLength": 1 },
+        "fixture_digest": { "$ref": "#/$defs/digest" },
+        "dependency_digest": { "$ref": "#/$defs/digest" },
+        "expectation": {
+          "enum": ["external-exact-match", "no-external-exact-match"]
+        },
+        "observed": {
+          "enum": ["external-exact-match", "no-external-exact-match"]
+        },
+        "passed": { "const": true }
+      }
+    }
+  }
+}

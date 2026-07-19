@@ -46,7 +46,7 @@ The command reads only compiled policy and builtin inventory metadata. It does
 not load external manifests, execute provider code, run queries, parse source
 files, or enable external influence.
 
-JSON schema version 1 reports:
+JSON schema version 2 reports:
 
 - the current nose version;
 - supported semantic-pack manifest API versions;
@@ -60,17 +60,18 @@ Important fields:
 
 | Field | Values |
 |---|---|
-| `schema_version` | `1` |
+| `schema_version` | `2` |
 | `status` | `ok` or `blocked` |
 | `current_nose_version` | Installed binary package version. |
 | `supported.manifest_api_versions[]` | Supported manifest API versions, currently `nose.semantic-pack.v0` and `nose.semantic-pack.v1`. |
 | `supported.project_lock_api_versions[]` | Supported project-lock APIs, currently `nose.semantic-pack-lock.v1`. |
+| `supported.conformance_receipt_api_versions[]` | Supported receipt APIs, currently `nose.semantic-pack-conformance-receipt.v1`. |
 | `supported.report_sources[]` | Report data sources, currently `policy`. |
 | `policy.manifest_nose_version` | `must-include-installed-version` |
 | `policy.manifest_schema_changes` | `breaking-change-requires-new-api-version` |
 | `policy.kernel_vocabulary_changes` | `document-and-rehearse-with-builtin-packs-first` |
 | `policy.capabilities_changes` | `additive-or-schema-versioned` |
-| `policy.external_pack_influence` | `metadata-or-locked-near-only` |
+| `policy.external_pack_influence` | `metadata-or-locked-near-or-receipt-backed-external-claim-exact` |
 | `policy.external_pack_authorization` | `content-pinned-project-lock-required` |
 | `policy.external_pack_execution` | `none` |
 | `policy.external_packs_enabled_by_default` | `false` |
@@ -81,7 +82,8 @@ Important fields:
 | `failure_modes[].action` | `reject-before-analysis` or `block-external-influence`. |
 | `checks.builtin_inventory_status` | Current builtin inventory status. |
 | `checks.external_metadata_only` | `false` now that a locked near consumer exists. |
-| `checks.external_locked_near_only` | Whether locked v1 near influence is available while exact remains closed. |
+| `checks.external_locked_near_only` | Whether locked v1 near influence is available. |
+| `checks.external_receipt_exact` | Whether receipt-backed v1 external-claim exact is available for the closed collection-factory kernel operation. |
 | `checks.external_influence_blockers[]` | Stable blocker labels preventing external influence. |
 
 ## Version Policy
@@ -107,6 +109,8 @@ Only typed v1 rows can be authorized by a project lock; locking a v0 manifest is
 rejected and v0 remains permanently metadata-only. The lock separately pins API,
 pack id/version, the original nose compatibility range, canonical semantic
 digest, selected rows/channels, dependency file content, and an optional receipt.
+A receipt is mandatory whenever an `external-exact` row is selected and must
+bind the same rows, fixtures, dependencies, nose version, and kernel capability.
 Manifest and dependency coordinates must stay under the lock directory.
 
 The lock decision is independent of JSON key/array order, load order, workspace
@@ -120,16 +124,17 @@ precedence. See [semantic-pack-project-lock](semantic-pack-project-lock.md).
 Kernel vocabulary changes must keep builtin packs ahead of external influence:
 
 - add or migrate builtin descriptors, tests, conformance refs, and docs first;
-- keep unlocked manifests metadata-only and keep locked near rows non-influential
-  while new vocabulary is being proven;
+- keep unlocked manifests metadata-only and keep unsupported locked rows
+  non-influential while new vocabulary is being proven;
 - add compatibility notes for renamed fields, aliases, or enum values;
 - use additive capabilities fields for additive reporting;
 - require a new manifest API version for breaking manifest changes.
 
 External packs can use the same evidence and contract vocabulary as builtin
-packs, but they do not gain product influence until dependency-backed evidence,
-conflict handling, executable conformance, trust gates, and compatibility gates
-all exist.
+packs, but they gain product influence only where dependency-backed evidence,
+conflict handling, kernel source conformance, explicit lock authorization,
+trust gates, and compatibility gates all exist. Version 2 opens only the
+collection-factory operation; every other exact operation stays closed.
 
 ## Product And Performance Invariants
 

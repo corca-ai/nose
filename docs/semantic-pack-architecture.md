@@ -198,10 +198,14 @@ Behavior-change defaults:
 - Metadata-only external packs must not change families, ranking, witnesses,
   surfaces, or exact/near results.
 
-The first explicitly opened consumer is locked near-only protocol support.
-It may raise only an existing near candidate with dependency/occurrence evidence
-and must leave fingerprints, exact groups, and oracle behavior untouched. Lock
-validation still finishes before lowering; missing, stale, escaped, or
+The first explicitly opened consumer is locked near protocol support. It may
+raise only an existing near candidate with dependency/occurrence evidence and
+must leave fingerprints, exact groups, and oracle behavior untouched. The
+second is receipt-backed external-claim exact for the existing
+collection-factory kernel operation. It requires bounded product source
+conformance, matching dependency and fixture content, and a separate user lock;
+it cannot introduce a new operation, value law, recognizer, or canonical node.
+Lock validation still finishes before lowering; missing, stale, escaped, or
 conflicting configured locks fail before analysis rather than falling back to
 unlocked metadata or precedence.
 
@@ -214,7 +218,8 @@ Builtin descriptors should be static data or once-built indexes. External
 manifest loading and near-registry construction should happen before detection.
 Metadata-only packs must not add work inside normalize, detect, value-graph,
 fragment, or oracle loops; locked near rows may add only indexed unit annotation
-and existing-candidate scoring work.
+and existing-candidate scoring work. Exact locks may add only query-local indexed
+evidence and constant-time admission checks on matched occurrences.
 
 Use the product query-regression path when a corpus is available:
 
@@ -428,8 +433,10 @@ previous semantic-kernel tranches.
    overlapping coordinates, and still opens no analysis influence by itself.
    The next completed boundary is a query-local immutable evidence index: a
    bounded kernel Maven reader connects pinned dependency versions to builtin
-   Java import/symbol/receiver/effect facts, but no lane consumes those facts
-   yet.
+   Java import/symbol/receiver/effect facts. Locked near rows consume those facts
+   only as existing-candidate support. Receipt-backed external-exact rows consume
+   only the existing collection-factory kernel operation and report distinct
+   external-claim provenance.
 8. **Phase 7, adoption gates:** define `external-opt-in -> builtin-optional` and
    `builtin-optional -> builtin-default` promotion criteria, rollback behavior,
    corpus regression, docs, and performance budgets.
@@ -448,9 +455,10 @@ previous semantic-kernel tranches.
   the versioned external schema boundary.
 - [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md) defines
   the first closed typed declaration compiler, locked occurrence-evidence
-  index, and bounded near-only consumer.
+  index, bounded near consumer, source-conformance receipt, and closed
+  collection-factory external-claim exact consumer.
 - [semantic-pack-loading](semantic-pack-loading.md) describes manifest loading
-  and the metadata-or-locked-near-only external behavior.
+  and the metadata/near/receipt-backed exact external behavior.
 - [semantic-pack-project-lock](semantic-pack-project-lock.md) defines the
   content-addressed user authorization between manifest claims and future
   evidence/influence consumers.

@@ -105,6 +105,10 @@ pub struct RefactorFamily {
     /// Deduplicated external near-lane evidence that contributed to this family.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub semantic_pack_near: Vec<nose_semantics::SemanticPackNearProvenance>,
+    /// Receipt-backed, user-authorized external claims that contributed to this
+    /// exact family. Never presented as builtin certification.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub semantic_pack_external_exact: Vec<nose_semantics::SemanticPackExternalExactProvenance>,
     /// WHY the members merged — the agent-facing equivalence witness (#222): an
     /// exact value-graph proof, a shared heavy sub-DAG, a token-identical
     /// copy-paste run, or structural similarity with its value/shape components.

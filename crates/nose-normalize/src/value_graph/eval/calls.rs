@@ -170,6 +170,14 @@ impl<'a> Builder<'a> {
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
+        if admitted_external_collection_factory_at_call(self.il, expr).is_some() {
+            let values = kids
+                .iter()
+                .skip(1)
+                .map(|&argument| self.eval(argument, env))
+                .collect();
+            return Some(self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), values));
+        }
         if let Some(r) = self.eval_count_call(expr, kids, env) {
             return Some(r);
         }

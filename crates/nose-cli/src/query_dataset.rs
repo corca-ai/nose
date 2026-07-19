@@ -24,6 +24,7 @@ pub(super) struct QueryDataset {
     pub(super) settings: QuerySettings,
     pub(super) semantic_packs: nose_semantics::SemanticPackSet,
     pub(super) semantic_pack_near_report: nose_semantics::SemanticPackNearReport,
+    pub(super) semantic_pack_external_exact_report: nose_semantics::SemanticPackExternalExactReport,
     pub(super) reinvented: Vec<nose_detect::ReinventedHelper>,
     pub(super) opts: nose_detect::DetectOptions,
 }
@@ -35,7 +36,7 @@ pub(super) fn build_query_dataset(
     let (settings, semantic_packs) = resolve_query_settings(args)?;
     let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
     let detector = detection_engine(settings.channels, &opts);
-    let (mut report, scope, semantic_pack_near) = query_detect_report(
+    let (mut report, scope, semantic_pack_near, semantic_pack_external_exact) = query_detect_report(
         args,
         refs,
         &settings.exclude,
@@ -46,6 +47,7 @@ pub(super) fn build_query_dataset(
 
     let mut families = time_stage("rank_families", || nose_detect::rank_families(&report));
     annotate_semantic_pack_near(&mut families, &semantic_pack_near);
+    annotate_semantic_pack_external_exact(&mut families, &semantic_pack_external_exact);
     preserve_query_accepted_coverage(&mut families);
     time_stage("query_filter", || {
         if settings.channels.abstraction_only() {
@@ -64,8 +66,14 @@ pub(super) fn build_query_dataset(
                 for provenance in &mut l.semantic_pack_near {
                     provenance.occurrence_file = relativize(&provenance.occurrence_file, &cwd);
                 }
+                for provenance in &mut l.semantic_pack_external_exact {
+                    provenance.occurrence_file = relativize(&provenance.occurrence_file, &cwd);
+                }
             }
             for provenance in &mut f.semantic_pack_near {
+                provenance.occurrence_file = relativize(&provenance.occurrence_file, &cwd);
+            }
+            for provenance in &mut f.semantic_pack_external_exact {
                 provenance.occurrence_file = relativize(&provenance.occurrence_file, &cwd);
             }
             for obligation in &mut f.accepted_coverage {
@@ -97,12 +105,18 @@ pub(super) fn build_query_dataset(
             .iter()
             .flat_map(|family| family.semantic_pack_near.iter()),
     );
+    let semantic_pack_external_exact_report = semantic_pack_external_exact.report_with_influential(
+        families
+            .iter()
+            .flat_map(|family| family.semantic_pack_external_exact.iter()),
+    );
     Ok(QueryDataset {
         families,
         scope,
         settings,
         semantic_packs,
         semantic_pack_near_report,
+        semantic_pack_external_exact_report,
         reinvented,
         opts,
     })
@@ -226,10 +240,11 @@ fn query_detect_report(
     nose_detect::Report,
     QueryScope,
     nose_semantics::SemanticPackNearRegistry,
+    nose_semantics::SemanticPackExternalExactRegistry,
 ) {
     // Lower AND cross-file-resolve every run. The cache skips only the dominant
     // normalize/extract step and therefore stays identical to the uncached path.
-    let corpus = time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude));
+    let mut corpus = time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude));
     let scope = QueryScope::from_corpus(&corpus);
     let semantic_pack_evidence =
         nose_semantics::SemanticPackEvidenceIndex::build(semantic_packs, &corpus);
@@ -238,6 +253,12 @@ fn query_detect_report(
         &semantic_pack_evidence,
         &corpus,
     );
+    let semantic_pack_external_exact = nose_semantics::SemanticPackExternalExactRegistry::build(
+        semantic_packs,
+        &semantic_pack_evidence,
+        &corpus,
+    );
+    semantic_pack_external_exact.apply(&mut corpus);
     let (mut units, streams, files) = if let Some(dir) = &args.cache_dir {
         let cache::CachedUnits {
             units,
@@ -261,7 +282,12 @@ fn query_detect_report(
         units, files, &streams, opts, detector,
     )
     .0;
-    (report, scope, semantic_pack_near)
+    (
+        report,
+        scope,
+        semantic_pack_near,
+        semantic_pack_external_exact,
+    )
 }
 
 fn annotate_semantic_pack_near(
@@ -302,6 +328,27 @@ fn annotate_semantic_pack_near(
             location.semantic_pack_near = member.into_iter().collect();
         }
         family.semantic_pack_near = aggregate.into_iter().collect();
+    }
+}
+
+fn annotate_semantic_pack_external_exact(
+    families: &mut [nose_detect::RefactorFamily],
+    registry: &nose_semantics::SemanticPackExternalExactRegistry,
+) {
+    if !registry.is_active() {
+        return;
+    }
+    for family in families.iter_mut().filter(|family| {
+        family.witness.as_ref().map(|witness| witness.kind) == Some("exact-value-graph")
+    }) {
+        let mut aggregate = BTreeSet::new();
+        for location in &mut family.locations {
+            let claims =
+                registry.claims_for_unit(&location.file, location.start_line, location.end_line);
+            aggregate.extend(claims.iter().cloned());
+            location.semantic_pack_external_exact = claims;
+        }
+        family.semantic_pack_external_exact = aggregate.into_iter().collect();
     }
 }
 

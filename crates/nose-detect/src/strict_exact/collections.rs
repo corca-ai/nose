@@ -539,7 +539,8 @@ pub(super) fn strict_exact_collection_factory_call_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    strict_exact_set_constructor_collection_safe(il, interner, facts, node)
+    strict_exact_external_collection_factory_safe(il, interner, facts, node)
+        || strict_exact_set_constructor_collection_safe(il, interner, facts, node)
         || strict_exact_python_collection_factory_safe(il, interner, facts, node)
         || strict_exact_ruby_set_factory_safe(il, interner, facts, node)
         || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, node)

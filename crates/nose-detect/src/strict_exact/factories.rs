@@ -1,5 +1,19 @@
 use super::*;
 
+pub(super) fn strict_exact_external_collection_factory_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    admitted_external_collection_factory_at_call(il, node).is_some()
+        && il
+            .children(node)
+            .iter()
+            .skip(1)
+            .all(|&argument| strict_exact_safe_tree(il, interner, facts, argument))
+}
+
 pub(crate) fn strict_exact_set_constructor_collection_safe(
     il: &Il,
     interner: &Interner,

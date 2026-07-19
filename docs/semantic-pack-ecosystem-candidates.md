@@ -29,9 +29,10 @@ Create an implementation issue only when the candidate can name:
 - adoption-gate and rollback evidence.
 
 External ecosystem packs remain explicit opt-ins. Unlocked packs are
-metadata-only; locked v1 rows may enter only the narrow near-only consumer after
+metadata-only; locked v1 rows may enter the narrow near consumer after
 compatibility, dependency-backed evidence, trust, and conflict gates pass.
-External exact remains closed until its separate conformance-receipt gate exists.
+Receipt-backed external-claim exact is limited to the existing
+collection-factory kernel operation; other operations remain closed.
 
 ## Candidate Matrix
 

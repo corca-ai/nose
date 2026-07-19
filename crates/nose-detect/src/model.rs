@@ -77,6 +77,10 @@ pub struct Loc {
     /// External near-lane evidence that contributed to this member's structural family.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub semantic_pack_near: Vec<nose_semantics::SemanticPackNearProvenance>,
+    /// Receipt-backed provider claims that contributed to this member's exact
+    /// fingerprint. This is distinct from builtin-certified exact evidence.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub semantic_pack_external_exact: Vec<nose_semantics::SemanticPackExternalExactProvenance>,
 }
 
 /// Inclusive source-line range used to construct a [`Loc`].
@@ -158,6 +162,7 @@ impl Loc {
             looks_generated: false,
             shared_subdag: None,
             semantic_pack_near: Vec::new(),
+            semantic_pack_external_exact: Vec::new(),
         }
     }
 }

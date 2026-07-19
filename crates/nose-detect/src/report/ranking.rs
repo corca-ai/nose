@@ -133,6 +133,7 @@ fn family_of_with_edges(group: &Group, group_edges: &[AcceptedEdge]) -> Refactor
             .filter_map(|&law| value_law_provenance(law))
             .collect(),
         semantic_pack_near: Vec::new(),
+        semantic_pack_external_exact: Vec::new(),
     }
 }
 

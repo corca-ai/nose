@@ -1,6 +1,7 @@
 use super::{SemanticPackDependencyEvidence, SemanticPackDependencyEvidenceId};
 use crate::{
     SemanticPackDependencySource, SemanticPackV1Authorization, SemanticPackV1PackageEcosystem,
+    MAX_SEMANTIC_PACK_DEPENDENCY_BYTES,
 };
 use quick_xml::events::Event;
 use quick_xml::Reader;
@@ -9,7 +10,6 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 
-const MAX_POM_BYTES: usize = 2 * 1024 * 1024;
 const MAX_XML_DEPTH: usize = 64;
 const MAX_PROPERTY_EXPANSIONS: usize = 16;
 
@@ -69,6 +69,16 @@ impl MavenCatalog {
         catalog
     }
 
+    pub(super) fn from_conformance_paths(paths: &[std::path::PathBuf]) -> Self {
+        let mut catalog = Self::default();
+        for path in paths {
+            let Ok(bytes) = fs::read(path) else { continue };
+            let content_digest = digest(&bytes);
+            catalog.read_bytes(&bytes, &path.to_string_lossy(), &content_digest);
+        }
+        catalog
+    }
+
     pub(super) fn resolve(&self, coordinate: &str, requirement: &str) -> MavenResolution {
         let Some(declarations) = self.declarations.get(coordinate) else {
             return MavenResolution::Missing;
@@ -120,18 +130,25 @@ impl MavenCatalog {
         let Ok(bytes) = fs::read(file.resolved_path()) else {
             return;
         };
-        if bytes.len() > MAX_POM_BYTES || digest(&bytes) != file.content_digest() {
+        if digest(&bytes) != file.content_digest() {
             return;
         }
-        let Ok(text) = std::str::from_utf8(&bytes) else {
+        self.read_bytes(&bytes, file.declared_path(), file.content_digest());
+    }
+
+    fn read_bytes(&mut self, bytes: &[u8], declared_path: &str, content_digest: &str) {
+        if bytes.len() > MAX_SEMANTIC_PACK_DEPENDENCY_BYTES {
+            return;
+        }
+        let Ok(text) = std::str::from_utf8(bytes) else {
             return;
         };
         let Ok(pom) = parse_pom(text) else {
             return;
         };
         let source = SemanticPackDependencySource {
-            declared_path: file.declared_path().to_string(),
-            content_digest: file.content_digest().to_string(),
+            declared_path: declared_path.to_string(),
+            content_digest: content_digest.to_string(),
         };
         for dependency in pom.direct_dependencies() {
             self.declarations

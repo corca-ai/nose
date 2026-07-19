@@ -222,7 +222,13 @@ fn library_api_suppresses_opaque_argument_escape(api: LibraryApiEvidenceKind) ->
         contract_hash,
         arity,
         ..
-    } = api;
+    } = api
+    else {
+        return matches!(
+            api,
+            LibraryApiEvidenceKind::ExternalCollectionFactory { .. }
+        );
+    };
     contract_hash != library_api_contract_id_hash(LibraryApiContractId::PromiseThen)
         && contract_hash != library_api_contract_id_hash(LibraryApiContractId::PromiseCatch)
         && contract_hash != library_api_contract_id_hash(LibraryApiContractId::PromiseFinally)

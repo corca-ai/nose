@@ -11,7 +11,7 @@ responsibility. It must not create a second implementation path.
 
 | lane | owner | default | meaning |
 |---|---|---|---|
-| `external-opt-in` | provider/user | off | Local manifests are explicit opt-ins. Unlocked manifests are metadata-only; a valid v1 project lock may authorize the narrow near-only consumer. |
+| `external-opt-in` | provider/user | off | Local manifests are explicit opt-ins. Unlocked manifests are metadata-only; a valid v1 project lock may authorize narrow near influence or a receipt-backed collection-factory exact claim. |
 | `builtin-optional` | nose | off | Shipped with nose, but not default-enabled until product risk is accepted. |
 | `builtin-default` | nose | on | Shipped with nose and enabled by default. |
 
@@ -171,7 +171,7 @@ The report reads compiled builtin descriptors through the same static inventory
 surface as `nose semantic-pack inventory`. It does not run queries, parse
 external manifests, execute provider code, or enable external influence.
 
-JSON schema version 1 reports:
+JSON schema version 2 reports:
 
 - current builtin lane counts;
 - optional/default PR checklist requirements;
@@ -188,7 +188,7 @@ Important fields:
 
 | Field | Values |
 |---|---|
-| `schema_version` | `1` |
+| `schema_version` | `2` |
 | `status` | `ok` or `needs-evidence` |
 | `totals.builtin_packs` | Number of compiled builtin packs inspected. |
 | `totals.builtin_default_packs` | Builtin packs in the `builtin-default` trust lane. |
@@ -199,7 +199,7 @@ Important fields:
 | `policy.scope` | `compiled-builtin` |
 | `policy.default_lane` | `builtin-default` |
 | `policy.optional_lane` | `builtin-optional` |
-| `policy.external_influence` | `unlocked-metadata-or-locked-near-only` |
+| `policy.external_influence` | `unlocked-metadata-or-locked-near-or-receipt-backed-external-claim-exact` |
 | `policy.product_behavior_gate` | `required-for-builtin-default-promotion` |
 | `policy.performance_gate` | `required-for-builtin-default-promotion` |
 | `packs[].adoption_status` | `default-gated`, `optional-gated`, `blocked`, or `tracked` |

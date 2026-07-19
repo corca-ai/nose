@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use super::inventory::InventoryJsonReport;
 
-pub(crate) const COMPATIBILITY_SCHEMA_VERSION: u32 = 1;
+pub(crate) const COMPATIBILITY_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Clone, Copy, PartialEq, clap::ValueEnum)]
 pub(crate) enum CompatibilityFormat {
@@ -26,6 +26,7 @@ struct CompatibilityReport {
 struct CompatibilitySupported {
     manifest_api_versions: Vec<&'static str>,
     project_lock_api_versions: Vec<&'static str>,
+    conformance_receipt_api_versions: Vec<&'static str>,
     trust_lanes: Vec<&'static str>,
     report_sources: Vec<&'static str>,
     output_formats: Vec<&'static str>,
@@ -62,6 +63,7 @@ struct CompatibilityChecks {
     builtin_packs: usize,
     external_metadata_only: bool,
     external_locked_near_only: bool,
+    external_receipt_exact: bool,
     external_influence_blockers: Vec<&'static str>,
 }
 
@@ -81,6 +83,9 @@ impl CompatibilityReport {
                 manifest_api_versions: nose_semantics::SUPPORTED_SEMANTIC_PACK_API_VERSIONS
                     .to_vec(),
                 project_lock_api_versions: vec![nose_semantics::SEMANTIC_PACK_LOCK_API_VERSION_V1],
+                conformance_receipt_api_versions: vec![
+                    nose_semantics::SEMANTIC_PACK_RECEIPT_API_VERSION_V1,
+                ],
                 trust_lanes: vec!["builtin-default", "builtin-optional", "external-opt-in"],
                 report_sources: vec!["policy"],
                 output_formats: vec!["human", "json"],
@@ -90,7 +95,8 @@ impl CompatibilityReport {
                 manifest_schema_changes: "breaking-change-requires-new-api-version",
                 kernel_vocabulary_changes: "document-and-rehearse-with-builtin-packs-first",
                 capabilities_changes: "additive-or-schema-versioned",
-                external_pack_influence: "metadata-or-locked-near-only",
+                external_pack_influence:
+                    "metadata-or-locked-near-or-receipt-backed-external-claim-exact",
                 external_pack_authorization: "content-pinned-project-lock-required",
                 external_pack_execution: "none",
                 external_packs_enabled_by_default: false,
@@ -104,6 +110,7 @@ impl CompatibilityReport {
                     "local-manifest-disabled-by-default",
                     "no-duplicate-or-reserved-pack-id",
                     "v1-influence-requires-valid-project-lock",
+                    "external-exact-requires-matching-kernel-conformance-receipt",
                     "v0-lock-cannot-authorize-influence",
                 ],
                 kernel: vec![
@@ -112,6 +119,7 @@ impl CompatibilityReport {
                     "unknown-fields-and-enums-rejected",
                     "external-execution-none",
                     "unlocked-or-v0-external-rows-do-not-influence-analysis",
+                    "external-exact-limited-to-kernel-collection-factory-v1",
                 ],
                 migration: vec![
                     "builtin-pack-migration-before-external-influence",
@@ -127,6 +135,7 @@ impl CompatibilityReport {
                 builtin_packs: inventory.totals.builtin_packs,
                 external_metadata_only: false,
                 external_locked_near_only: true,
+                external_receipt_exact: true,
                 external_influence_blockers: blockers,
             },
         }

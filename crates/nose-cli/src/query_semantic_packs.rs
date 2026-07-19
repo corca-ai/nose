@@ -3,11 +3,12 @@ use serde_json::{json, Value};
 pub(crate) fn semantic_packs_json(
     semantic_packs: &nose_semantics::SemanticPackSet,
     near_report: Option<&nose_semantics::SemanticPackNearReport>,
+    exact_report: Option<&nose_semantics::SemanticPackExternalExactReport>,
 ) -> Vec<Value> {
     semantic_packs
         .packs()
         .iter()
-        .map(|pack| semantic_pack_summary_json(pack, semantic_packs, near_report))
+        .map(|pack| semantic_pack_summary_json(pack, semantic_packs, near_report, exact_report))
         .collect()
 }
 
@@ -25,6 +26,7 @@ fn semantic_pack_summary_json(
     pack: &nose_semantics::SemanticPackSummary,
     semantic_packs: &nose_semantics::SemanticPackSet,
     near_report: Option<&nose_semantics::SemanticPackNearReport>,
+    exact_report: Option<&nose_semantics::SemanticPackExternalExactReport>,
 ) -> Value {
     let mut summary = json!({
         "id": &pack.id,
@@ -101,6 +103,26 @@ fn semantic_pack_summary_json(
                     "not-an-equivalence-proof",
                     "provider-claim-user-authorized",
                     "exact-output-unchanged"
+                ],
+            }),
+        );
+    }
+    if let Some(counts) = exact_report.and_then(|report| report.pack(&pack.id)) {
+        object.insert(
+            "external_exact_influence".to_string(),
+            json!({
+                "lane": "external-claim-exact",
+                "trust": "external-opt-in",
+                "assurance": "kernel-conformance-receipt",
+                "selected_rows": counts.selected_rows,
+                "admitted_rows": counts.admitted_rows,
+                "rejected_rows": counts.rejected_rows,
+                "admitted_occurrences": counts.admitted_occurrences,
+                "influential_occurrences": counts.influential_occurrences,
+                "caveats": [
+                    "external-claim-not-builtin-certification",
+                    "provider-claim-user-authorized",
+                    "local-content-pinned"
                 ],
             }),
         );

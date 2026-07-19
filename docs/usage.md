@@ -251,7 +251,7 @@ mode flags are documented under [Ranking](#ranking) and [Detection modes](#detec
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
 | `--ignore-file <file>` | suppress accepted families using a structured ignore file with reason/owner/expiry metadata |
 | `--semantic-pack <file-or-dir>` | load local semantic-pack v0 metadata or compile a typed v1 manifest for provenance/digest reporting; unlocked external packs are metadata-only |
-| `--semantic-pack-lock <file>` | validate one content-pinned typed v1 project lock before analysis; eligible rows may support existing near candidates, and unlocked pack paths cannot be mixed in |
+| `--semantic-pack-lock <file>` | validate one content-pinned typed v1 project lock before analysis; eligible rows may support near candidates or receipt-backed collection-factory exact claims, and unlocked pack paths cannot be mixed in |
 
 **Output**
 
@@ -294,9 +294,11 @@ and may change to improve readability. The stable contract is documented in
   the top unhandled surface kinds (`--top`, default 30; `--format json` for machine output —
   the same `--format` contract as `query`/`il`).
   Use it to spot a language/construct that isn't lowering well; see [languages](languages.md).
-- `nose semantic-pack check <file-or-dir> [--format human|json]` — validate local
-  semantic-pack v0 structure/fixtures or compile a typed v1 manifest. It is a
-  pack-author/user workflow, not external pack certification; see [semantic-pack-conformance](semantic-pack-conformance.md).
+- `nose semantic-pack check <file-or-dir> [--format human|json] [--receipt-out <file>]` — validate local
+  semantic-pack v0 structure/fixtures or compile and source-check typed v1
+  fixtures. `--receipt-out` writes a content-bound receipt only after a passing
+  single-pack v1 run; it is a pack-author/user workflow, not external pack
+  certification. See [semantic-pack-conformance](semantic-pack-conformance.md).
 - `nose semantic-pack lock <file-or-dir> --dependency <file> [--channel near|external-exact] [--row ID] [--output <file>] [--format human|json]` — create a local content-pinned v1 project lock without fetching or installing anything.
 - `nose semantic-pack status <lock> [--format human|json]` — revalidate pinned manifests, dependency inputs, selected rows/channels, optional receipts, path containment, and conflicts. See [semantic-pack-project-lock](semantic-pack-project-lock.md).
 - `nose semantic-pack inventory [--format human|json]` — inspect compiled

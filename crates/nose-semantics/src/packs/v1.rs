@@ -17,6 +17,8 @@ pub(super) struct SemanticPackManifestV1 {
     pub(super) supported_languages: Vec<SemanticPackV1Language>,
     pub(super) packages: Vec<SemanticPackV1Package>,
     pub(super) declares: ManifestV1Declares,
+    #[serde(default)]
+    pub(super) conformance: Option<SemanticPackV1Conformance>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -66,6 +68,55 @@ pub(super) struct ManifestV1Compatibility {
 #[serde(deny_unknown_fields)]
 pub(super) struct ManifestV1Declares {
     pub(super) api_contracts: Vec<SemanticPackV1Contract>,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SemanticPackV1Conformance {
+    pub fixtures: Vec<SemanticPackV1ConformanceFixture>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SemanticPackV1FixtureKind {
+    Positive,
+    HardNegative,
+}
+
+impl SemanticPackV1FixtureKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Positive => "positive",
+            Self::HardNegative => "hard-negative",
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SemanticPackV1Expectation {
+    ExternalExactMatch,
+    NoExternalExactMatch,
+}
+
+impl SemanticPackV1Expectation {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::ExternalExactMatch => "external-exact-match",
+            Self::NoExternalExactMatch => "no-external-exact-match",
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SemanticPackV1ConformanceFixture {
+    pub id: String,
+    pub row_id: String,
+    pub kind: SemanticPackV1FixtureKind,
+    pub path: String,
+    pub dependency: String,
+    pub expectation: SemanticPackV1Expectation,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Deserialize, Serialize)]
@@ -272,6 +323,7 @@ pub struct CompiledSemanticPackV1 {
     contracts_by_id: BTreeMap<String, SemanticPackV1Contract>,
     contract_ids_by_coordinate: BTreeMap<SemanticPackV1Coordinate, Vec<String>>,
     contract_ids_by_operation: BTreeMap<SemanticPackV1ProtocolOperation, Vec<String>>,
+    conformance_fixtures: Vec<SemanticPackV1ConformanceFixture>,
 }
 
 impl CompiledSemanticPackV1 {
@@ -313,6 +365,10 @@ impl CompiledSemanticPackV1 {
         &self,
     ) -> &BTreeMap<SemanticPackV1ProtocolOperation, Vec<String>> {
         &self.contract_ids_by_operation
+    }
+
+    pub fn conformance_fixtures(&self) -> &[SemanticPackV1ConformanceFixture] {
+        &self.conformance_fixtures
     }
 }
 

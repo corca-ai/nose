@@ -29,7 +29,11 @@ pub(crate) fn run() -> Result<()> {
         } => cmd_il(path, format, normalized, no_cfg_norm),
         Cmd::Capabilities => capabilities::print(),
         Cmd::SemanticPack { cmd } => match cmd {
-            SemanticPackCmd::Check { paths, format } => semantic_pack::cmd_check(paths, format),
+            SemanticPackCmd::Check {
+                paths,
+                receipt_out,
+                format,
+            } => semantic_pack::cmd_check(paths, receipt_out, format),
             SemanticPackCmd::Lock {
                 manifests,
                 output,
