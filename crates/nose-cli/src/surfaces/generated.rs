@@ -59,7 +59,9 @@ fn generated_source_kind(file: &str) -> Option<GeneratedSourceKind> {
     let head = bounded_source_head(file)?;
     if source_head_has_generated_header(&head) {
         Some(GeneratedSourceKind::Established)
-    } else if head_has_jazzy_generated_provenance(file, &head) {
+    } else if head_has_declared_generator_provenance(&head)
+        || head_has_jazzy_generated_provenance(file, &head)
+    {
         Some(GeneratedSourceKind::AdditionalSurface)
     } else {
         None
@@ -83,6 +85,169 @@ fn source_head_has_generated_header(head: &[u8]) -> bool {
     std::str::from_utf8(head)
         .ok()
         .is_some_and(|text| text.lines().take(8).any(is_generated_header_line))
+}
+
+/// A complete HTML document can declare the program that produced it with the standard
+/// `<meta name="generator" content="…">` element. This is producer-independent, unlike a
+/// stylesheet or directory name, and the non-empty content is positive provenance rather
+/// than a guess from document shape.
+///
+/// Only a real element in an explicit document head qualifies. Comments and raw-text or
+/// template elements are skipped so documentation examples and embedded markup fail open.
+/// The caller supplies the bounded source head and the all-family-members quantifier.
+pub(crate) fn head_has_declared_generator_provenance(head: &[u8]) -> bool {
+    let mut lower = head.to_vec();
+    lower.make_ascii_lowercase();
+
+    let mut cursor = 0;
+    let mut saw_doctype = false;
+    let mut saw_html = false;
+    let mut in_head = false;
+    while let Some(relative) = lower[cursor..].iter().position(|byte| *byte == b'<') {
+        let start = cursor + relative;
+        if lower[start..].starts_with(b"<!--") {
+            let Some(end) = find_bytes(&lower, start + 4, b"-->") else {
+                return false;
+            };
+            cursor = end + 3;
+            continue;
+        }
+
+        let Some(end) = html_tag_end(&lower, start + 1) else {
+            return false;
+        };
+        let tag = trim_ascii(&lower[start + 1..end]);
+        if tag
+            .strip_prefix(b"!doctype")
+            .is_some_and(|rest| rest.first().is_some_and(u8::is_ascii_whitespace))
+        {
+            saw_doctype = true;
+            cursor = end + 1;
+            continue;
+        }
+
+        let (closing, tag) = if let Some(rest) = tag.strip_prefix(b"/") {
+            (true, trim_ascii_start(rest))
+        } else {
+            (false, tag)
+        };
+        let name_end = tag
+            .iter()
+            .position(|byte| byte.is_ascii_whitespace() || matches!(*byte, b'/' | b'>'))
+            .unwrap_or(tag.len());
+        let name = &tag[..name_end];
+
+        if closing {
+            if name == b"head" {
+                in_head = false;
+            }
+            cursor = end + 1;
+            continue;
+        }
+        if name == b"html" && saw_doctype {
+            saw_html = true;
+        } else if name == b"head" && saw_doctype && saw_html {
+            in_head = true;
+        } else if name == b"meta" && in_head && meta_declares_nonempty_generator(&tag[name_end..]) {
+            return true;
+        }
+
+        if in_head && matches!(name, b"script" | b"style" | b"template") {
+            let mut closing_tag = Vec::with_capacity(name.len() + 2);
+            closing_tag.extend_from_slice(b"</");
+            closing_tag.extend_from_slice(name);
+            let Some(raw_end) = find_bytes(&lower, end + 1, &closing_tag) else {
+                return false;
+            };
+            cursor = raw_end;
+        } else {
+            cursor = end + 1;
+        }
+    }
+    false
+}
+
+fn find_bytes(haystack: &[u8], start: usize, needle: &[u8]) -> Option<usize> {
+    haystack[start..]
+        .windows(needle.len())
+        .position(|window| window == needle)
+        .map(|offset| start + offset)
+}
+
+fn html_tag_end(bytes: &[u8], start: usize) -> Option<usize> {
+    let mut quote = None;
+    for (offset, byte) in bytes[start..].iter().copied().enumerate() {
+        match (quote, byte) {
+            (Some(open), close) if open == close => quote = None,
+            (None, b'\'' | b'"') => quote = Some(byte),
+            (None, b'>') => return Some(start + offset),
+            _ => {}
+        }
+    }
+    None
+}
+
+fn trim_ascii(mut value: &[u8]) -> &[u8] {
+    value = trim_ascii_start(value);
+    while value.last().is_some_and(u8::is_ascii_whitespace) {
+        value = &value[..value.len() - 1];
+    }
+    value
+}
+
+fn trim_ascii_start(mut value: &[u8]) -> &[u8] {
+    while value.first().is_some_and(u8::is_ascii_whitespace) {
+        value = &value[1..];
+    }
+    value
+}
+
+fn meta_declares_nonempty_generator(mut attributes: &[u8]) -> bool {
+    let mut name_is_generator = false;
+    let mut content_is_nonempty = false;
+    while !attributes.is_empty() {
+        attributes = trim_ascii_start(attributes);
+        if attributes.is_empty() || attributes[0] == b'/' {
+            break;
+        }
+        let name_end = attributes
+            .iter()
+            .position(|byte| byte.is_ascii_whitespace() || matches!(*byte, b'=' | b'/'))
+            .unwrap_or(attributes.len());
+        if name_end == 0 {
+            return false;
+        }
+        let attribute_name = &attributes[..name_end];
+        attributes = trim_ascii_start(&attributes[name_end..]);
+        if !attributes.starts_with(b"=") {
+            continue;
+        }
+        attributes = trim_ascii_start(&attributes[1..]);
+        let (value, rest) = match attributes.first().copied() {
+            Some(quote @ (b'\'' | b'"')) => {
+                let quoted = &attributes[1..];
+                let Some(end) = quoted.iter().position(|byte| *byte == quote) else {
+                    return false;
+                };
+                (&quoted[..end], &quoted[end + 1..])
+            }
+            Some(_) => {
+                let end = attributes
+                    .iter()
+                    .position(|byte| byte.is_ascii_whitespace() || *byte == b'/')
+                    .unwrap_or(attributes.len());
+                (&attributes[..end], &attributes[end..])
+            }
+            None => return false,
+        };
+        if attribute_name == b"name" && trim_ascii(value) == b"generator" {
+            name_is_generator = true;
+        } else if attribute_name == b"content" && !trim_ascii(value).is_empty() {
+            content_is_nonempty = true;
+        }
+        attributes = rest;
+    }
+    name_is_generator && content_is_nonempty
 }
 
 /// Jazzy output carries two independent provenance classes in the bounded file head: its

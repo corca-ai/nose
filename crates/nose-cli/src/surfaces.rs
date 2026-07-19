@@ -8,7 +8,8 @@ mod generated;
 use generated::{generated_source_indexes, GeneratedSourceIndexes};
 #[cfg(test)]
 pub(crate) use generated::{
-    has_version_tag, head_has_jazzy_generated_provenance, looks_compiled_css,
+    has_version_tag, head_has_declared_generator_provenance, head_has_jazzy_generated_provenance,
+    looks_compiled_css,
 };
 
 /// Compute the surface overrides for every output format and flag generated

@@ -1,0 +1,38 @@
+{
+  "schema": "nose.generated_artifact_provenance_heldout_selection.v1",
+  "issue": 891,
+  "selected_on": "2026-07-19",
+  "selection_timing": "Repository identities and commits were frozen before classifier implementation and before cloning, querying, or inspecting their source trees.",
+  "reveal_policy": "Do not clone, query, or inspect these repositories until the implementation and dev expectations are frozen. Held-out results may accept or reject the tranche, but must not retune its predicate.",
+  "exclusions": {
+    "corpus_manifest": "bench/goldens/corpus.json",
+    "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
+    "fresh_dev_repositories": ["libcheck/check", "remkop/picocli", "pydantic/pydantic"]
+  },
+  "repositories": [
+    {
+      "id": "plantuml-heldout",
+      "repository": "plantuml/plantuml",
+      "language": "Java",
+      "default_branch": "master",
+      "commit": "a77b87e38d4b88ea6cbc95ccc69a865d4f3562f9",
+      "url": "https://github.com/plantuml/plantuml"
+    },
+    {
+      "id": "mypy-heldout",
+      "repository": "python/mypy",
+      "language": "Python",
+      "default_branch": "master",
+      "commit": "d17b99ed5929b74157e1b87f7899ce2682a622fb",
+      "url": "https://github.com/python/mypy"
+    },
+    {
+      "id": "autoconf-archive-heldout",
+      "repository": "autoconf-archive/autoconf-archive",
+      "language": "M4",
+      "default_branch": "master",
+      "commit": "ce7e1be1c4b114ba5eb6dfa8b8253f5ca8522c65",
+      "url": "https://github.com/autoconf-archive/autoconf-archive"
+    }
+  ]
+}

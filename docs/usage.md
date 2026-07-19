@@ -134,8 +134,9 @@ the per-family economics, scope tags, and the `→` hint — is covered in [gett
 The dashboard, the other formats, and the `--fail-on` gate show a curated **default
 surface** of action-oriented families, and hold the rest back behind a one-line omission
 footer (`omitted N families …`). Held back are tiny proof-only fragments,
-fragments, generated/distributed-output families (including generated-code headers and CSS
-source-plus-compiled/minified build pipelines), **declaration runs**
+fragments, generated/distributed-output families (including generated-code headers,
+self-declared generated HTML documents, and CSS source-plus-compiled/minified build
+pipelines), **declaration runs**
 (spans that are only import/include/use/re-export lines — duplication the language mandates
 per file, with nothing to extract), and **shallow-extraction** families (a helper that would
 be mostly parameters — `params` ≥ a third of the shared lines). Add `all` to widen the view

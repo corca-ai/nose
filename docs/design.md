@@ -132,8 +132,9 @@ is held to proof discipline (§1). Actionability splits by **decidability, not c
   can always opt back in.
 - Generator evidence is source-coherent and bounded, not path folklore. For example,
   [#842](generated-provenance-842.md) requires two independent Jazzy provenance classes
-  within 64 KiB in every HTML member, fails open on partial/unknown evidence, and keeps
-  family identity and non-surface fields unchanged.
+  within 64 KiB in every HTML member; [#891](generated-artifact-provenance-891.md)
+  accepts a producer-independent, non-empty HTML generator declaration. Both fail open
+  on partial/unknown evidence and keep family identity and non-surface fields unchanged.
 - Declaration-only type-contract evidence is likewise positive, all-member, and
   language-neutral. [#843](declaration-only-type-contracts-843.md) requires complete
   whole-unit `UnitOrigin` proof, fails open on partial/runtime/default/extension evidence,

@@ -79,6 +79,34 @@ fn jazzy_provenance_requires_both_bounded_html_signal_classes() {
 }
 
 #[test]
+fn declared_generator_provenance_requires_a_real_nonempty_head_element() {
+    assert!(head_has_declared_generator_provenance(
+        b"<!DOCTYPE html><HTML><HEAD><META content='Static Tool 4.2' NAME=generator></HEAD>"
+    ));
+    assert!(head_has_declared_generator_provenance(
+        b"<!doctype html><html><head><meta name = \"generator\" content = unversioned></head>"
+    ));
+
+    for hard_negative in [
+        b"<!doctype html><html><head><meta name=\"generator-padding\" content=\"ordinary\"></head>".as_slice(),
+        b"<!doctype html><html><head><meta property=\"generator\" content=\"Tool\"></head>",
+        b"<!doctype html><html><head><meta name=\"generator\" content=\"\"></head>",
+        b"<!doctype html><html><head><!-- <meta name=\"generator\" content=\"Tool\"> --></head>",
+        b"<!doctype html><html><head><script>const example = '<meta name=\"generator\" content=\"Tool\">';</script></head>",
+        b"<!doctype html><html><head><style>/* <meta name=\"generator\" content=\"Tool\"> */</style></head>",
+        b"<!doctype html><html><head><template><meta name=\"generator\" content=\"Tool\"></template></head>",
+        b"&lt;!doctype html&gt;&lt;html&gt;&lt;head&gt;&lt;meta name=\"generator\" content=\"Tool\"&gt;",
+        b"<html><head><meta name=\"generator\" content=\"Tool\"></head>",
+    ] {
+        assert!(
+            !head_has_declared_generator_provenance(hard_negative),
+            "hard negative matched: {}",
+            String::from_utf8_lossy(hard_negative)
+        );
+    }
+}
+
+#[test]
 fn decorator_prefix_is_language_aware() {
     // `@` is a decorator in these languages...
     assert_eq!(decorator_prefix("python"), Some("@"));
