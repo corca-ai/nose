@@ -317,13 +317,19 @@ for the recorded artifact and disposition shape.
 
 ## Fast re-runs: `--cache-dir`
 
-`--cache-dir <dir>` caches each file's analysis keyed by its post-resolution IL and stable
-reporting identity. Unchanged files reuse [normalization](normalization.md), feature extraction,
-and syntax streams on the next run. The current cache still rediscovers, reads, parses, and lowers
-the whole selected corpus, resolves cross-file facts, and repeats global detection and
-presentation. Point it at a directory your CI caches between runs; see the
-[incremental cache benchmark](incremental-cache-benchmark.md) for the exact boundary and the
-0.20 replacement contract.
+`--cache-dir <dir>` caches each file's analysis in the
+[portable layered CAS](portable-cache-artifacts.md), keyed by a SHA-256 digest of its complete
+post-resolution IL/reporting identity and unit-affecting options. Entries have stage/schema
+identity plus an independent payload checksum; corrupt or truncated bytes recompute. Unchanged
+files reuse [normalization](normalization.md), feature extraction, and syntax streams on the next
+run, including when the same relative source is checked out below another absolute root.
+
+The active cache layer still rediscovers, reads, parses, and lowers the whole selected corpus,
+resolves cross-file facts, and repeats global detection and presentation. Raw/resolved portable
+formats are ready for dependency-aware activation in #874, but #873 does not claim those stages
+are skipped. Point the directory at storage your CI preserves between runs; see the
+[incremental cache benchmark](incremental-cache-benchmark.md) for the exact performance and
+clean-scan-equivalence contract.
 
 ```sh
 nose query src --cache-dir .nose-cache --fail-on any
