@@ -154,6 +154,9 @@ fundamentals; the rest is grouped by area.
 - [0.20 checked-in generated artifact provenance](generated-artifact-provenance-891.md) — the
   producer-independent HTML generator declaration, mixed-family fail-open boundary,
   fresh-repository confirmation, exact transition ledger, and residual API no-go.
+- [0.20 caller-provided generated paths](caller-generated-path-provenance.md) — the
+  root-anchored CLI/config assertion contract, canonical containment and fail-open rules,
+  all-member recovery semantics, and machine-readable trust boundary.
 - [0.20 declaration-only type contracts](declaration-only-type-contracts-843.md) — the
   all-member `UnitOrigin` classifier, cross-language fail-open boundaries, exact dev
   surface/origin drift, worthy-recall preservation, and official-v0.19.0 runtime price.
