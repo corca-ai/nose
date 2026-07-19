@@ -151,6 +151,9 @@ fundamentals; the rest is grouped by area.
 - [0.20 generated provenance](generated-provenance-842.md) — the bounded Jazzy
   all-member classifier, reason-coded recovery contract, exact dev output drift, hard
   negatives, and official-v0.19.0 runtime price.
+- [0.20 checked-in generated artifact provenance](generated-artifact-provenance-891.md) — the
+  producer-independent HTML generator declaration, mixed-family fail-open boundary,
+  fresh-repository confirmation, exact transition ledger, and residual API no-go.
 - [0.20 declaration-only type contracts](declaration-only-type-contracts-843.md) — the
   all-member `UnitOrigin` classifier, cross-language fail-open boundaries, exact dev
   surface/origin drift, worthy-recall preservation, and official-v0.19.0 runtime price.

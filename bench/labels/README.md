@@ -201,6 +201,15 @@ the closeout's fixed path/hash binding prevent a caller from substituting anothe
 the validator also recomputes the Ruby medians, exponent, delta, and verdict from the
 embedded runs before joining the replay to the exact evidence paths and hashes consumed.
 
+`generated_artifact_provenance_891_dev_cohort_2026_07_19.v1.json` freezes the three
+post-#846 generated-artifact discoveries and their hard negatives before implementation.
+`generated_artifact_provenance_891_heldout_selection_2026_07_19.v1.json` seals the fresh
+repository identities and commits before reveal. The corresponding
+`generated_artifact_provenance_891_closeout_2026_07_19.v1.json` publishes the exact 599
+family surface transitions, byte-equality and determinism results, official-v0.19.0
+performance price, held-out limitation, and residual Check/Pydantic no-go. See
+[#891 checked-in generated artifact provenance](../../docs/generated-artifact-provenance-891.md).
+
 `lawpack_provenance_audit_2026_06_10.json` is also adjacent evidence, not part of
 the active metric. It records the full-corpus and targeted real-repo pass for the
 first-party `nose.value_graph.laws` LawPack pilot. See
