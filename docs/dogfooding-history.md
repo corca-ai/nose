@@ -1309,3 +1309,14 @@ records separate assurance, and adds kernel evidence to the corpus. A common
 base registry would couple those security boundaries for incidental structure.
 The members are kept separate, the stale numeric ID is replaced, and no budget
 increase or new avoidable duplication is accepted.
+
+The post-#872 completion audit raises the reviewed count from 27 to 28. The
+bounded mutation/oracle additions shift self-query fingerprints enough for the
+long-standing `interp/ops.rs::int_bin` / `float_bin` dispatcher family
+`aa2b95cf822a1cd2` to cross value 40 again; neither function was changed by the
+CI-contract repair. The family shares ten dispatch lines, but integer wrapping,
+floor/modulo, and bitwise semantics deliberately differ from float IEEE
+arithmetic and unsupported-operation behavior. Extracting a common numeric
+dispatcher would couple those soundness policies for incidental structure, so
+the already reviewed family is restored to the baseline rather than hidden by
+an abstraction. No new avoidable duplication is accepted.
