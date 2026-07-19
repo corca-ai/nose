@@ -18,7 +18,7 @@ use occurrences::occurrences_for_contract;
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct SemanticPackDependencyEvidenceId(pub u32);
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize)]
 pub struct SemanticPackDependencySource {
     pub declared_path: String,
     pub content_digest: String,
@@ -58,6 +58,7 @@ pub struct SemanticPackEvidenceRow {
     pub pack_id: String,
     pub row_id: String,
     pub semantic_digest: String,
+    pub row_digest: String,
     pub channel: SemanticPackV1Channel,
     pub dependency: Option<SemanticPackDependencyEvidenceId>,
     pub blocker: Option<SemanticPackEvidenceBlocker>,
@@ -205,6 +206,10 @@ impl EvidenceIndexBuilder {
             pack_id: pack.pack_id().to_string(),
             row_id: contract.id.clone(),
             semantic_digest: pack.semantic_digest().to_string(),
+            row_digest: pack
+                .row_digest(&contract.id)
+                .expect("compiled v1 contract has a row digest")
+                .to_string(),
             channel: contract.channel,
             dependency,
             blocker,

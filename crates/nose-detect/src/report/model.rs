@@ -102,6 +102,9 @@ pub struct RefactorFamily {
     /// Pack-facing semantic laws that influenced this family-level value fingerprint.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub semantic_laws: Vec<ValueLawProvenance>,
+    /// Deduplicated external near-lane evidence that contributed to this family.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub semantic_pack_near: Vec<nose_semantics::SemanticPackNearProvenance>,
     /// WHY the members merged — the agent-facing equivalence witness (#222): an
     /// exact value-graph proof, a shared heavy sub-DAG, a token-identical
     /// copy-paste run, or structural similarity with its value/shape components.

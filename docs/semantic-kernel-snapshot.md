@@ -639,12 +639,13 @@ still being migrated toward it.
   path escapes and overlapping cross-pack coordinates; and exposes local
   create/status commands. Locked queries now use a bounded Maven POM reader and
   builtin Java evidence matcher to build an immutable dependency/import/symbol/
-  receiver/effect occurrence index. The index is threaded through query
-  analysis but still does not feed normalize, exact, near, or detection
-  consumers.
+  receiver/effect occurrence index. The first bounded consumer maps admitted
+  collection/map factory occurrences onto existing near candidates; normalize,
+  fingerprints, exact, and verify remain disconnected.
   `nose semantic-pack check` validates local manifests plus declared fixture
   assets, and `nose query --format json` reports active builtin/local packs in
-  top-level `semantic_packs`. External packs are still `metadata-only`; builtin
+  top-level `semantic_packs`. Unlocked/v0 packs stay `metadata-only`, while a
+  valid near lock reports `near-only`; builtin
   producers remain compiled Rust and are expected to map onto the same
   vocabulary. The first compiled pilots are the `nose.lang.*` builtin language
   descriptor/source-fact producer set, with `nose.lang.c` also carrying C
@@ -1654,13 +1655,13 @@ language.
   obligations.
 - External producer execution does not exist. New languages and libraries that
   affect analysis must still be added inside the main crates.
-- Query JSON now exposes the active builtin/local pack set at top level, but
-  family/member-level pack provenance is still limited. Selected findings can
-  expose internal law provenance; local external packs remain metadata-only.
+- Query JSON exposes the active builtin/local pack set at top level. Selected
+  findings can expose internal law provenance, and locked near-influenced
+  families/members expose external row/dependency provenance.
 - Builtin and external responsibility boundaries are documented and represented
-  in the internal facade as provenance/trust policy. Loaded external manifests
-  remain metadata-only until a producer runtime and executable fixture/oracle
-  workflow exist.
+  in the internal facade as provenance/trust policy. Unlocked/v0 manifests stay
+  metadata-only; external exact remains closed until the executable
+  fixture/oracle workflow exists.
 
 ## Current fail-closed choices
 

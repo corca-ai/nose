@@ -267,6 +267,7 @@ pub struct CompiledSemanticPackV1 {
     pack_version: String,
     nose_compatibility: String,
     semantic_digest: String,
+    row_digests_by_id: BTreeMap<String, String>,
     packages_by_coordinate: BTreeMap<SemanticPackV1PackageCoordinate, SemanticPackV1Package>,
     contracts_by_id: BTreeMap<String, SemanticPackV1Contract>,
     contract_ids_by_coordinate: BTreeMap<SemanticPackV1Coordinate, Vec<String>>,
@@ -298,6 +299,10 @@ impl CompiledSemanticPackV1 {
 
     pub fn contracts_by_id(&self) -> &BTreeMap<String, SemanticPackV1Contract> {
         &self.contracts_by_id
+    }
+
+    pub fn row_digest(&self, row_id: &str) -> Option<&str> {
+        self.row_digests_by_id.get(row_id).map(String::as_str)
     }
 
     pub fn contract_ids_by_coordinate(&self) -> &BTreeMap<SemanticPackV1Coordinate, Vec<String>> {

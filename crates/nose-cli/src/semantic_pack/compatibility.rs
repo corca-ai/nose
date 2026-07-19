@@ -61,6 +61,7 @@ struct CompatibilityChecks {
     builtin_inventory_status: &'static str,
     builtin_packs: usize,
     external_metadata_only: bool,
+    external_locked_near_only: bool,
     external_influence_blockers: Vec<&'static str>,
 }
 
@@ -89,7 +90,7 @@ impl CompatibilityReport {
                 manifest_schema_changes: "breaking-change-requires-new-api-version",
                 kernel_vocabulary_changes: "document-and-rehearse-with-builtin-packs-first",
                 capabilities_changes: "additive-or-schema-versioned",
-                external_pack_influence: "metadata-only",
+                external_pack_influence: "metadata-or-locked-near-only",
                 external_pack_authorization: "content-pinned-project-lock-required",
                 external_pack_execution: "none",
                 external_packs_enabled_by_default: false,
@@ -110,7 +111,7 @@ impl CompatibilityReport {
                     "unsupported-capability-fail-closed",
                     "unknown-fields-and-enums-rejected",
                     "external-execution-none",
-                    "metadata-only-external-rows-do-not-influence-analysis",
+                    "unlocked-or-v0-external-rows-do-not-influence-analysis",
                 ],
                 migration: vec![
                     "builtin-pack-migration-before-external-influence",
@@ -124,7 +125,8 @@ impl CompatibilityReport {
             checks: CompatibilityChecks {
                 builtin_inventory_status: inventory.status,
                 builtin_packs: inventory.totals.builtin_packs,
-                external_metadata_only: true,
+                external_metadata_only: false,
+                external_locked_near_only: true,
                 external_influence_blockers: blockers,
             },
         }

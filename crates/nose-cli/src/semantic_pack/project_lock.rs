@@ -107,7 +107,15 @@ impl LockStatusReport {
             lock_api_version: lock.summary().api_version(),
             lock_path: lock.summary().lock_path().display().to_string(),
             decision_digest: lock.summary().decision_digest().to_string(),
-            influence: "metadata-only",
+            influence: if lock.authorizations().iter().any(|authorization| {
+                authorization
+                    .allowed_channels()
+                    .contains(&nose_semantics::SemanticPackV1Channel::Near)
+            }) {
+                "near-only"
+            } else {
+                "metadata-only"
+            },
             totals: LockStatusTotals {
                 packs: packs.len(),
                 selected_rows: packs.iter().map(|pack| pack.selected_rows.len()).sum(),

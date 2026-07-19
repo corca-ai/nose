@@ -100,6 +100,59 @@ pub fn units_of_file(il: &Il, interner: &Interner, opts: &DetectOptions) -> Vec<
     extract_units_of_file(il, interner, opts, &norm_opts, &seeds)
 }
 
+/// Corpus features ready for detection. The caller may attach query-local evidence to
+/// `units` before handing the immutable feature set to [`detect_from_units`].
+pub struct CorpusFeatures {
+    pub units: Vec<UnitFeat>,
+    pub streams: Vec<Stream>,
+    pub files: usize,
+}
+
+pub fn corpus_features(corpus: &Corpus, opts: &DetectOptions) -> CorpusFeatures {
+    let norm_opts = NormalizeOptions {
+        cfg_norm: opts.cfg_norm,
+        dce: opts.dce,
+        ..Default::default()
+    };
+    let seeds = minhash::seeds(opts.minhash_k);
+    let per_file: Vec<(Vec<UnitFeat>, Option<Stream>)> = corpus
+        .files
+        .par_iter()
+        .map(|il| {
+            let units = if opts.structural {
+                extract_units_of_file(il, &corpus.interner, opts, &norm_opts, &seeds)
+            } else {
+                Vec::new()
+            };
+            // Build contiguous copy-paste streams from raw IL. Alpha-renaming is
+            // function-scoped, so normalized identifiers would vary by enclosing unit;
+            // renamed Type-2/3/4 matches remain the structural channel's job.
+            let stream = opts
+                .contiguous
+                .then(|| contiguous::stream(il, &corpus.interner));
+            (units, stream)
+        })
+        .collect();
+    let unit_count = per_file.iter().map(|(units, _)| units.len()).sum();
+    let stream_count = per_file
+        .iter()
+        .filter(|(_, stream)| stream.is_some())
+        .count();
+    let mut units = Vec::with_capacity(unit_count);
+    let mut streams = Vec::with_capacity(stream_count);
+    for (file_units, stream) in per_file {
+        units.extend(file_units);
+        if let Some(stream) = stream {
+            streams.push(stream);
+        }
+    }
+    CorpusFeatures {
+        units,
+        streams,
+        files: corpus.files.len(),
+    }
+}
+
 /// Keep the normalization/extraction body out of the Rayon closure. This path
 /// is large and hot; sharing one non-inlined implementation with the cached
 /// per-file entry point avoids code-layout-sensitive copies while preserving
@@ -152,52 +205,11 @@ fn detect_with_dump_inner(
     // Normalize each file and extract its units in one fused parallel pass — a file's
     // normalized IL stays hot in cache through extraction and is freed immediately,
     // rather than materializing the whole normalized corpus first.
-    let norm_opts = NormalizeOptions {
-        cfg_norm: opts.cfg_norm,
-        dce: opts.dce,
-        ..Default::default()
-    };
-    let seeds = minhash::seeds(opts.minhash_k);
-    // Normalize each file once; extract its units and (when enabled) its contiguous
-    // token stream from the same hot normalized IL.
-    let per_file: Vec<(Vec<UnitFeat>, Option<Stream>)> = corpus
-        .files
-        .par_iter()
-        .map(|il| {
-            let units = if opts.structural {
-                extract_units_of_file(il, &corpus.interner, opts, &norm_opts, &seeds)
-            } else {
-                Vec::new()
-            };
-            // Build the contiguous stream from the *raw* IL, not the normalized one:
-            // alpha-renaming is function-scoped, so a copy-pasted block's variable
-            // cids depend on its enclosing function and identical blocks diverge.
-            // Raw tokens (names content-hashed by `node_tag`) are stable across files
-            // — matching jscpd's name-based copy-paste. Renamed Type-2/3/4 is the
-            // structural channel's job.
-            let stream = opts
-                .contiguous
-                .then(|| contiguous::stream(il, &corpus.interner));
-            (units, stream)
-        })
-        .collect();
-    // `UnitFeat` is large enough that repeatedly growing the aggregate vector
-    // copies a meaningful amount of memory on repositories with many files.
-    // The parallel pass already owns every per-file length, so reserve the
-    // exact aggregate capacities before moving the results into place.
-    let unit_count = per_file.iter().map(|(units, _)| units.len()).sum();
-    let stream_count = per_file
-        .iter()
-        .filter(|(_, stream)| stream.is_some())
-        .count();
-    let mut units: Vec<UnitFeat> = Vec::with_capacity(unit_count);
-    let mut streams: Vec<Stream> = Vec::with_capacity(stream_count);
-    for (u, s) in per_file {
-        units.extend(u);
-        if let Some(s) = s {
-            streams.push(s);
-        }
-    }
+    let CorpusFeatures {
+        units,
+        streams,
+        files,
+    } = corpus_features(corpus, opts);
     clk.lap("normalize+extract");
 
     // `detect_from_units` runs its own `StageTimer` for the detection sub-phases
@@ -205,7 +217,7 @@ fn detect_with_dump_inner(
     // mislabel the whole call (group scoring dwarfs contiguous) as "contiguous".
     detect_from_units_inner(
         units,
-        corpus.files.len(),
+        files,
         &streams,
         opts,
         detector,

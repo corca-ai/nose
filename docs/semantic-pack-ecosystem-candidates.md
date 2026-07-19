@@ -28,9 +28,10 @@ Create an implementation issue only when the candidate can name:
 - product output and runtime measurement plan;
 - adoption-gate and rollback evidence.
 
-External ecosystem packs remain explicit opt-ins and metadata-only until the
-compatibility, dependency-backed evidence, trust, conformance, and conflict gates
-all exist.
+External ecosystem packs remain explicit opt-ins. Unlocked packs are
+metadata-only; locked v1 rows may enter only the narrow near-only consumer after
+compatibility, dependency-backed evidence, trust, and conflict gates pass.
+External exact remains closed until its separate conformance-receipt gate exists.
 
 ## Candidate Matrix
 

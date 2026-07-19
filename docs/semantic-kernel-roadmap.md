@@ -2081,21 +2081,21 @@ justifies a tranche ([design §2c](design.md)).
   metadata loading is implemented for manifest files/directories and documented
   in [semantic-pack-loading](semantic-pack-loading.md); local structural
   conformance is implemented in
-  [semantic-pack-conformance](semantic-pack-conformance.md); external packs
-  remain metadata-only.
+  [semantic-pack-conformance](semantic-pack-conformance.md); v0 and unlocked
+  packs remain metadata-only.
 - [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md) adds the
   first closed typed Java/Maven contract compiler, canonical semantic digest,
   and deterministic indexes.
 - [semantic-pack-project-lock](semantic-pack-project-lock.md) adds the first
   content-pinned project authorization and deterministic semantic-coordinate
   conflict boundary. It pins selected rows/channels and checked-in dependency
-  inputs without opening influence.
+  inputs before any influence is considered.
 - Locked v1 queries now build an immutable dependency/occurrence index with a
   bounded Maven POM reader and builtin Java import/symbol/receiver/effect
   matchers. Missing, invalid, ambiguous, out-of-range, wrong-package, wildcard,
-  shadowed, and rebound cases fail closed. The evidence index is threaded
-  through query analysis but deliberately remains disconnected from detection
-  until lane consumers, receipts, and a real reference pack are complete.
+  shadowed, and rebound cases fail closed. The first bounded consumer maps
+  admitted `collection-factory`/`map-factory` occurrences onto existing near
+  candidates only; it cannot create candidates or affect exact/verify output.
 - Start with data-only external packs for simple APIs once producer execution and
   executable fixture/oracle checks exist.
 - Add restricted recognizer hooks only after the manifest path is stable.
@@ -2107,9 +2107,9 @@ justifies a tranche ([design §2c](design.md)).
 - User configuration and `--semantic-pack` can load local manifests explicitly;
   `semantic-pack-lock`/`--semantic-pack-lock` select a mutually exclusive,
   content-pinned v1 set.
-- Query JSON reports active pack provenance and whether each pack influenced
-  evidence/contracts or metadata only. Per-finding contract/law provenance and
-  external pack influence on `near`/exact results remain open.
+- Query JSON reports active pack provenance and whether each pack is builtin,
+  metadata-only, or locked near-only. Affected near families/members report row
+  and dependency provenance; external-claim exact remains open.
 
 The external schema must make proof obligations first-class. For example, a pack
 claiming `pkg.Foo.map` maps to the `Map` protocol must say how `pkg.Foo` is

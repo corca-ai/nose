@@ -31,6 +31,7 @@ pub(in crate::library_api) use receiver_dependencies::{
 pub(crate) use receiver_dependencies::{
     language_core_builtin_at_call, library_api_dependency_id_for_normalized_hof,
 };
+pub(crate) use registry::admitted_library_api_near_operation_for_call_record;
 pub use registry::admitted_library_api_result_domain_for_call_record;
 pub(in crate::library_api) use registry::{
     library_api_callee_contract_for_hash, library_api_contract_id_from_hash,

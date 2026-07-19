@@ -26,6 +26,19 @@ fn evidence_for(source: &str, packs: &SemanticPackSet) -> SemanticPackEvidenceIn
     SemanticPackEvidenceIndex::build(packs, &Corpus::new(interner, vec![il]))
 }
 
+fn corpus_for(source: &str) -> Corpus {
+    let interner = Interner::new();
+    let il = crate::lower_source(
+        FileId(0),
+        "Fixture.java",
+        source.as_bytes(),
+        Lang::Java,
+        &interner,
+    )
+    .expect("Java fixture should lower");
+    Corpus::new(interner, vec![il])
+}
+
 #[test]
 fn locked_dependency_and_builtin_import_facts_produce_one_occurrence() {
     let packs =
@@ -134,4 +147,40 @@ fn wrong_package_local_shadow_and_unlocked_metadata_stay_closed() {
     );
     assert!(metadata_only.rows().is_empty());
     assert!(metadata_only.occurrences().is_empty());
+}
+
+#[test]
+fn locked_near_registry_joins_external_and_builtin_protocol_evidence() {
+    let packs =
+        SemanticPackSet::new_locked(&workspace_path("docs/examples/semantic-pack-lock-v1.json"))
+            .expect("checked-in lock should validate");
+    let corpus = corpus_for(
+        "import com.google.common.collect.ImmutableList;\n\
+         class Example { Object f() { return ImmutableList.of(\"a\", \"b\"); } }",
+    );
+    let evidence = SemanticPackEvidenceIndex::build(&packs, &corpus);
+    let row = evidence.row(PACK_ID, LIST_ROW).expect("selected list row");
+    assert_eq!(row.row_digest.len(), 71);
+    assert!(row.row_digest.starts_with("sha256:"));
+
+    let registry = nose_semantics::SemanticPackNearRegistry::build(&packs, &evidence, &corpus);
+    assert!(registry.is_active());
+    let protocols = registry.protocols_for_unit("Fixture.java", 1, 2);
+    assert!(protocols
+        .iter()
+        .any(|protocol| protocol.provenance.is_some()));
+    assert!(protocols
+        .iter()
+        .any(|protocol| protocol.provenance.is_none()));
+    let report = registry.report_with_influential(
+        protocols
+            .iter()
+            .filter_map(|protocol| protocol.provenance.as_ref()),
+    );
+    let counts = report.pack(PACK_ID).expect("near pack counts");
+    assert_eq!(counts.selected_rows, 3);
+    assert_eq!(counts.admitted_rows, 3);
+    assert_eq!(counts.rejected_rows, 0);
+    assert_eq!(counts.admitted_occurrences, 1);
+    assert_eq!(counts.influential_occurrences, 1);
 }

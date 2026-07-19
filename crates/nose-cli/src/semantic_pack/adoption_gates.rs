@@ -97,7 +97,7 @@ impl AdoptionGateReport {
                 scope: "compiled-builtin",
                 default_lane: "builtin-default",
                 optional_lane: "builtin-optional",
-                external_influence: "metadata-only",
+                external_influence: "unlocked-metadata-or-locked-near-only",
                 product_behavior_gate: "required-for-builtin-default-promotion",
                 performance_gate: "required-for-builtin-default-promotion",
             },

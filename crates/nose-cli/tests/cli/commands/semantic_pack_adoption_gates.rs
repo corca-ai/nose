@@ -19,7 +19,10 @@ fn assert_adoption_gate_totals(json: &serde_json::Value) {
     assert_eq!(json["schema_version"], 1);
     assert_eq!(json["status"], "ok");
     assert_eq!(json["policy"]["scope"], "compiled-builtin");
-    assert_eq!(json["policy"]["external_influence"], "metadata-only");
+    assert_eq!(
+        json["policy"]["external_influence"],
+        "unlocked-metadata-or-locked-near-only"
+    );
     assert_eq!(json["totals"]["builtin_packs"], 49);
     assert_eq!(json["totals"]["builtin_default_packs"], 49);
     assert_eq!(json["totals"]["builtin_optional_packs"], 0);

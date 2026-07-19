@@ -193,7 +193,7 @@ fn current_semantic_packs() -> SemanticPacks {
         compatibility_output_formats: vec!["human", "json"],
         trust: vec!["builtin-default", "builtin-optional", "external-opt-in"],
         external_packs_enabled_by_default: false,
-        external_pack_influence: "metadata-only",
+        external_pack_influence: "metadata-or-locked-near-only",
         external_influence_blockers: crate::semantic_pack::external_influence_blocker_labels(),
         external_pack_execution: "none",
     }
@@ -216,6 +216,7 @@ fn query_capability_flags() -> std::collections::BTreeMap<&'static str, bool> {
         ("query_base_structured_ignores", true),
         ("reinvented_view", true),
         ("semantic_pack_dependency_evidence", true),
+        ("semantic_pack_locked_near_influence", true),
         ("semantic_pack_loading", true),
         ("semantic_pack_project_lock", true),
         ("structured_ignores", true),

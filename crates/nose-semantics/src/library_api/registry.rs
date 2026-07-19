@@ -70,6 +70,47 @@ pub(super) fn library_api_contract_id_from_hash(hash: u64) -> Option<LibraryApiC
         .find(|id| library_api_contract_id_hash(*id) == hash)
 }
 
+pub(crate) fn admitted_library_api_near_operation_for_call_record(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    record: &EvidenceRecord,
+) -> Option<SemanticPackV1ProtocolOperation> {
+    let EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract { contract_hash, .. }) =
+        record.kind
+    else {
+        return None;
+    };
+    if record.status != EvidenceStatus::Asserted
+        || record.provenance.emitter != EvidenceEmitter::Builtin
+        || !il.evidence_dependencies_asserted(record)
+        || !library_api_record_admitted_for_current_shape(il, interner, call, record)
+    {
+        return None;
+    }
+    match library_api_contract_id_from_hash(contract_hash)? {
+        LibraryApiContractId::PythonBuiltinCollectionFactory
+        | LibraryApiContractId::PythonImportedCollectionFactory
+        | LibraryApiContractId::SwiftCollectionFactory(_)
+        | LibraryApiContractId::RustStdCollectionFactory
+        | LibraryApiContractId::RustVecMacroFactory
+        | LibraryApiContractId::RustVecNewFactory
+        | LibraryApiContractId::JavaCollectionFactory(_)
+        | LibraryApiContractId::JavaCollectionConstructor(_)
+        | LibraryApiContractId::RubySetFactory
+        | LibraryApiContractId::JsLikeSetConstructor => {
+            Some(SemanticPackV1ProtocolOperation::CollectionFactory)
+        }
+        LibraryApiContractId::SwiftMapFactory(_)
+        | LibraryApiContractId::RustStdMapFactory
+        | LibraryApiContractId::JavaMapFactory(_)
+        | LibraryApiContractId::JsLikeMapConstructor => {
+            Some(SemanticPackV1ProtocolOperation::MapFactory)
+        }
+        _ => None,
+    }
+}
+
 pub(super) fn library_api_record_admitted_for_current_shape(
     il: &Il,
     interner: &Interner,

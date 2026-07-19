@@ -35,7 +35,7 @@ fn run_query_base(args: &QueryArgs, base_ref: &str, q: &Query, path_arg: &str) -
         );
     }
     let semantic_packs_json = if matches!(args.format, ReportFormat::Json) {
-        semantic_packs_json(&resolve_query_semantic_packs(args)?)
+        semantic_packs_json(&resolve_query_semantic_packs(args)?, None)
     } else {
         Vec::new()
     };
@@ -213,7 +213,10 @@ fn semantic_packs_for_output(
     dataset: &QueryDataset,
 ) -> Vec<serde_json::Value> {
     if matches!(format, ReportFormat::Json) {
-        semantic_packs_json(&dataset.semantic_packs)
+        semantic_packs_json(
+            &dataset.semantic_packs,
+            Some(&dataset.semantic_pack_near_report),
+        )
     } else {
         Vec::new()
     }

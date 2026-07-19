@@ -25,7 +25,10 @@ fn semantic_pack_compatibility_json_reports_fail_closed_policy() {
         json["policy"]["manifest_nose_version"],
         "must-include-installed-version"
     );
-    assert_eq!(json["policy"]["external_pack_influence"], "metadata-only");
+    assert_eq!(
+        json["policy"]["external_pack_influence"],
+        "metadata-or-locked-near-only"
+    );
     assert_eq!(
         json["policy"]["external_pack_authorization"],
         "content-pinned-project-lock-required"
@@ -37,10 +40,11 @@ fn semantic_pack_compatibility_json_reports_fail_closed_policy() {
     assert!(json_array_strings(&json["requirements"], "kernel")
         .contains(&"unsupported-capability-fail-closed"));
     assert!(json_array_strings(&json["requirements"], "kernel")
-        .contains(&"metadata-only-external-rows-do-not-influence-analysis"));
+        .contains(&"unlocked-or-v0-external-rows-do-not-influence-analysis"));
     assert_eq!(json["checks"]["builtin_inventory_status"], "ok");
     assert_eq!(json["checks"]["builtin_packs"], 49);
-    assert_eq!(json["checks"]["external_metadata_only"], true);
+    assert_eq!(json["checks"]["external_metadata_only"], false);
+    assert_eq!(json["checks"]["external_locked_near_only"], true);
     assert_eq!(
         json_array_strings(&json["checks"], "external_influence_blockers"),
         vec![

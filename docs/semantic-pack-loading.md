@@ -3,15 +3,16 @@
 Status: nose can validate local semantic-pack v0 manifests, compile typed v1
 manifests, and validate content-pinned v1 project locks before `nose query`.
 It also provides separate local check/lock/status commands. External packs are
-explicit opt-ins and are currently `metadata-only`:
-they do not emit evidence, open exact contracts, mint fingerprints, approve clone
-pairs, or change exact/near query results. Local `declares.evidence_producers`,
+explicit opt-ins. Unlocked v0/v1 packs are `metadata-only`; a content-pinned v1
+lock may authorize the narrow near-only consumer. External packs do not emit IL
+evidence, open exact contracts, mint fingerprints, or approve exact clone
+pairs. Local `declares.evidence_producers`,
 `declares.contracts`, and `declares.value_laws` entries are registered as
 data-only rows on the active `SemanticPackSet`, but no normalize, value-graph,
 or exact consumer reads those external rows yet. v1 contracts compile into
-deterministic typed indexes and a semantic digest, but no analysis consumer
-reads those indexes yet. `nose capabilities` reports the
-same boundary with `external_pack_influence = "metadata-only"`,
+deterministic typed indexes and a semantic digest; the near consumer reads only
+locked dependency-backed occurrences. `nose capabilities` reports the
+same boundary with `external_pack_influence = "metadata-or-locked-near-only"`,
 the current external influence blocker labels, and
 `external_pack_execution = "none"`.
 
@@ -214,14 +215,16 @@ Trust is separate from channel eligibility.
 
 `nose query --format json` validates configured and CLI-provided semantic-pack
 paths before analysis and reports the active builtin/local pack set in the
-top-level `semantic_packs` array. Local external packs remain metadata-only
-while builtin compiled packs report `evidence-and-contracts` influence. A
+top-level `semantic_packs` array. Unlocked local external packs remain
+metadata-only while builtin compiled packs report `evidence-and-contracts`
+influence. A
 validated v1 project lock additionally builds a query-local, immutable Maven
 dependency and Java occurrence-evidence index from content-pinned inputs and
 builtin frontend facts. External producer, contract, and value-law rows are
 available to the loaded pack set for future conflict checks and adoption gates,
-but neither those rows nor the evidence index are serialized into clone-family
-law provenance or consumed by detection yet. Builtin pack order in
+Those rows cannot enter exact/value-law consumers. Near-authorized admitted
+occurrences may support existing near candidates and are serialized as separate
+family/member near provenance. Builtin pack order in
 this array follows the compiled registry's stable reporting order; roadmap and
 snapshot prose may group packs by migration narrative instead.
 
@@ -234,15 +237,16 @@ influence preflight report. It also validates fixed call result-domain
 declarations in `semantics.result_domain` against the known domain vocabulary
 and requires required `LibraryApi.Contract` evidence for those rows. The v0
 preflight still blocks opaque external rows. For locked typed v1 rows, a
-kernel-owned Maven reader and Java matcher now produce dependency-backed
-occurrence facts, while lane consumers remain unavailable. A project lock
+kernel-owned Maven reader and Java matcher produce dependency-backed occurrence
+facts. The near lane consumes only admitted `collection-factory` and
+`map-factory` occurrences matched to builtin protocol evidence. A project lock
 supplies explicit content/row/lane authorization and rejects
-semantic-coordinate conflicts before analysis; its evidence index alone cannot
+semantic-coordinate conflicts before analysis; the evidence index alone cannot
 influence a result. Exact-capable rows also remain blocked until they have passed
 declarative executable conformance.
 `nose semantic-pack check --format json` exposes that row-level preflight to
-providers and integrations, but query, normalize, value-graph, exact, and
-detection consumers do not read it. It does not yet:
+providers and integrations, but normalize, value-graph, and exact consumers do
+not read it. It does not yet:
 
 - execute external evidence producers;
 - register external contract rows with exact consumers;

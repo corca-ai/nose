@@ -558,6 +558,7 @@ fn extract_unit(
         called_helper_returns: Vec::new(),
         anchors,
         semantic_laws,
+        semantic_pack_near_protocols: Vec::new(),
         exact_safe,
         fragment_kind,
         proof_facts,

@@ -1,10 +1,9 @@
 # Semantic-pack project locks
 
 Status: project lock v1, local creation/status commands, pre-analysis
-validation, and a locked Maven evidence reader are implemented. A valid lock
-authorizes selected v1 rows and lanes and bounds which local dependency inputs
-the evidence index may read, but external rows remain `metadata-only` until lane
-consumers land. v0 can never become influential through a lock.
+validation, a locked Maven evidence reader, and the first near-only consumer are
+implemented. A valid near lock may support existing near candidates; v0 can
+never become influential through a lock.
 
 ## Why a separate lock exists
 
@@ -90,12 +89,14 @@ pin set and rechecks content digests before using dependency facts. Missing,
 ambiguous, invalid, or out-of-range versions keep selected rows closed rather
 than consulting Maven or a registry.
 
-Query JSON keeps `influence: "metadata-only"` for locked v1 packs in this phase
-and adds a `lock` object containing `status: "valid"`, lock API and decision
-digest, authorized channels, selected rows, dependency pins, and optional
-receipt. Occurrence counts are not reported until a lane consumer can explain
-their effect. Removing the lock or narrowing a regenerated selection removes
-that authorization and its evidence index without changing the manifest.
+Query JSON reports `influence: "near-only"` when a lock authorizes near rows and
+adds a `lock` object containing `status: "valid"`, lock API and decision digest,
+authorized channels, selected rows, dependency pins, and optional receipt. Its
+`near_influence` object reports admitted/rejected rows and admitted/influential
+occurrences. Removing the lock or narrowing a regenerated selection removes the
+authorization, evidence, and supported near results without changing the
+manifest. Exact-only authorization remains metadata-only until its separate
+consumer lands.
 
 ## Determinism and conflicts
 

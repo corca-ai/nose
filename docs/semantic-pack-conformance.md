@@ -4,12 +4,14 @@ Status: nose provides a local semantic-pack v0 conformance harness and a typed
 v1 compile check. The v0 harness covers manifest structure, declared fixture
 assets, and declarative fixture-expectation gates for exact-capable rows. These
 are provider/user workflows, not nose approval of third-party semantic
-correctness. External packs remain `metadata-only` when loaded by `nose query`.
+correctness. v0 and unlocked v1 external packs remain `metadata-only` when
+loaded by `nose query`. A separately validated v1 project lock may authorize
+the narrow near-only consumer; conformance checking alone never does.
 
 Typed v1 manifests use the same command to validate and compile their closed
 contract grammar. v1 does not inherit v0's opaque fixture/gate rows; its later
-source-analyzing receipts are separate work. Compilation alone remains
-`metadata-only`.
+source-analyzing receipts are separate work. Compilation or conformance alone
+remains `metadata-only`.
 
 ## Goal
 

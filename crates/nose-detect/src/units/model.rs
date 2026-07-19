@@ -89,6 +89,10 @@ pub struct UnitFeat {
     /// Pack-facing value laws that actually rewrote or bridged this unit's value graph.
     #[serde(default)]
     pub semantic_laws: Vec<ValueLaw>,
+    /// Query-local, dependency-backed protocol evidence for the external near lane.
+    /// Empty in cached units and every no-pack or exact-only run.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub semantic_pack_near_protocols: Vec<nose_semantics::SemanticPackNearProtocol>,
     /// Whether the value fingerprint is safe to use as a strict semantic proof.
     ///
     /// `semantic` mode must not report units whose fingerprint passed through lossy

@@ -198,11 +198,12 @@ Behavior-change defaults:
 - Metadata-only external packs must not change families, ranking, witnesses,
   surfaces, or exact/near results.
 
-Locked external packs remain metadata-only until an issue explicitly opens a
-consumer lane. Lock validation finishes before lowering and may add only
-top-level pack/authorization metadata. Missing, stale, escaped, or conflicting
-configured locks fail before analysis rather than falling back to unlocked
-metadata or precedence.
+The first explicitly opened consumer is locked near-only protocol support.
+It may raise only an existing near candidate with dependency/occurrence evidence
+and must leave fingerprints, exact groups, and oracle behavior untouched. Lock
+validation still finishes before lowering; missing, stale, escaped, or
+conflicting configured locks fail before analysis rather than falling back to
+unlocked metadata or precedence.
 
 ## Performance Gate
 
@@ -210,8 +211,10 @@ The migration should be performance-neutral or performance-positive. A pack
 boundary must not put manifest parsing, string-heavy lookup, dynamic dispatch,
 global locks, or repeated registry scans on per-node or per-unit hot paths.
 Builtin descriptors should be static data or once-built indexes. External
-manifest loading should happen before analysis, and metadata-only packs must not
-add work inside normalize, detect, value-graph, fragment, or oracle loops.
+manifest loading and near-registry construction should happen before detection.
+Metadata-only packs must not add work inside normalize, detect, value-graph,
+fragment, or oracle loops; locked near rows may add only indexed unit annotation
+and existing-candidate scoring work.
 
 Use the product query-regression path when a corpus is available:
 
@@ -444,11 +447,10 @@ previous semantic-kernel tranches.
 - [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md) defines
   the versioned external schema boundary.
 - [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md) defines
-  the first closed typed declaration compiler and locked occurrence-evidence
-  index; its rows remain non-influential until the external trust lanes are
-  complete.
+  the first closed typed declaration compiler, locked occurrence-evidence
+  index, and bounded near-only consumer.
 - [semantic-pack-loading](semantic-pack-loading.md) describes manifest loading
-  and the current metadata-only external behavior.
+  and the metadata-or-locked-near-only external behavior.
 - [semantic-pack-project-lock](semantic-pack-project-lock.md) defines the
   content-addressed user authorization between manifest claims and future
   evidence/influence consumers.

@@ -70,7 +70,7 @@ Important fields:
 | `policy.manifest_schema_changes` | `breaking-change-requires-new-api-version` |
 | `policy.kernel_vocabulary_changes` | `document-and-rehearse-with-builtin-packs-first` |
 | `policy.capabilities_changes` | `additive-or-schema-versioned` |
-| `policy.external_pack_influence` | `metadata-only` |
+| `policy.external_pack_influence` | `metadata-or-locked-near-only` |
 | `policy.external_pack_authorization` | `content-pinned-project-lock-required` |
 | `policy.external_pack_execution` | `none` |
 | `policy.external_packs_enabled_by_default` | `false` |
@@ -80,7 +80,8 @@ Important fields:
 | `failure_modes[].code` | Stable failure label. |
 | `failure_modes[].action` | `reject-before-analysis` or `block-external-influence`. |
 | `checks.builtin_inventory_status` | Current builtin inventory status. |
-| `checks.external_metadata_only` | Whether local external rows remain metadata-only. |
+| `checks.external_metadata_only` | `false` now that a locked near consumer exists. |
+| `checks.external_locked_near_only` | Whether locked v1 near influence is available while exact remains closed. |
 | `checks.external_influence_blockers[]` | Stable blocker labels preventing external influence. |
 
 ## Version Policy
@@ -119,7 +120,8 @@ precedence. See [semantic-pack-project-lock](semantic-pack-project-lock.md).
 Kernel vocabulary changes must keep builtin packs ahead of external influence:
 
 - add or migrate builtin descriptors, tests, conformance refs, and docs first;
-- keep external manifests metadata-only while the new vocabulary is being proven;
+- keep unlocked manifests metadata-only and keep locked near rows non-influential
+  while new vocabulary is being proven;
 - add compatibility notes for renamed fields, aliases, or enum values;
 - use additive capabilities fields for additive reporting;
 - require a new manifest API version for breaking manifest changes.
