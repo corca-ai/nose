@@ -110,6 +110,12 @@ impl LockStatusReport {
             influence: if lock.authorizations().iter().any(|authorization| {
                 authorization
                     .allowed_channels()
+                    .contains(&nose_semantics::SemanticPackV1Channel::ExternalExact)
+            }) {
+                "external-claim-exact"
+            } else if lock.authorizations().iter().any(|authorization| {
+                authorization
+                    .allowed_channels()
                     .contains(&nose_semantics::SemanticPackV1Channel::Near)
             }) {
                 "near-only"

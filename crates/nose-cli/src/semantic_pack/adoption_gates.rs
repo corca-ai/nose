@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use super::inventory::{InventoryJsonPack, InventoryJsonReport};
 
-pub(crate) const ADOPTION_GATES_SCHEMA_VERSION: u32 = 1;
+pub(crate) const ADOPTION_GATES_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Clone, Copy, PartialEq, clap::ValueEnum)]
 pub(crate) enum AdoptionGateFormat {
@@ -97,7 +97,8 @@ impl AdoptionGateReport {
                 scope: "compiled-builtin",
                 default_lane: "builtin-default",
                 optional_lane: "builtin-optional",
-                external_influence: "unlocked-metadata-or-locked-near-only",
+                external_influence:
+                    "unlocked-metadata-or-locked-near-or-receipt-backed-external-claim-exact",
                 product_behavior_gate: "required-for-builtin-default-promotion",
                 performance_gate: "required-for-builtin-default-promotion",
             },

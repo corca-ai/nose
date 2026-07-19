@@ -1,9 +1,9 @@
 # Semantic-pack project locks
 
 Status: project lock v1, local creation/status commands, pre-analysis
-validation, a locked Maven evidence reader, and the first near-only consumer are
-implemented. A valid near lock may support existing near candidates; v0 can
-never become influential through a lock.
+validation, a locked Maven evidence reader, near influence, and receipt-backed
+external-claim exact are implemented. v0 can never become influential through
+a lock.
 
 ## Why a separate lock exists
 
@@ -45,8 +45,19 @@ nose semantic-pack lock semantic-packs/guava.json \
 Omit `--row` to select every declared row whose requested channel is allowed.
 Repeat `--row ROW_ID` for one pack. With multiple packs, qualify each selection
 as `PACK_ID/ROW_ID`. Repeat `--dependency` for every checked-in input whose
-change must invalidate the decision. `--exact-receipt` only content-pins a local
-receipt at this stage; it does not open exact influence.
+change must invalidate the decision. To authorize selected `external-exact`
+rows, first create a passing receipt with `semantic-pack check --receipt-out`,
+then pass it with `--exact-receipt`. Exact selection without that matching
+receipt fails.
+
+```sh
+nose semantic-pack check semantic-packs/example.json \
+  --receipt-out semantic-packs/example.receipt.json
+nose semantic-pack lock semantic-packs/example.json \
+  --dependency pom.xml \
+  --channel external-exact \
+  --exact-receipt semantic-packs/example.receipt.json
+```
 
 Inspect or automate the decision:
 
@@ -89,14 +100,19 @@ pin set and rechecks content digests before using dependency facts. Missing,
 ambiguous, invalid, or out-of-range versions keep selected rows closed rather
 than consulting Maven or a registry.
 
-Query JSON reports `influence: "near-only"` when a lock authorizes near rows and
-adds a `lock` object containing `status: "valid"`, lock API and decision digest,
-authorized channels, selected rows, dependency pins, and optional receipt. Its
+Query JSON reports `influence: "near-only"` for a near-only lock and
+`influence: "external-claim-exact"` when an exact receipt-backed row is
+authorized. It adds a `lock` object containing `status: "valid"`, lock API and
+decision digest, authorized channels, selected rows, dependency pins, and the
+receipt pin. Its
 `near_influence` object reports admitted/rejected rows and admitted/influential
 occurrences. Removing the lock or narrowing a regenerated selection removes the
 authorization, evidence, and supported near results without changing the
-manifest. Exact-only authorization remains metadata-only until its separate
-consumer lands.
+manifest. `external_exact_influence` reports separately assured row and
+occurrence counts; affected families and members carry
+`semantic_pack_external_exact` provenance. These fields describe a provider
+claim tested by the kernel and authorized by the user, not builtin
+certification.
 
 ## Determinism and conflicts
 
@@ -114,10 +130,12 @@ decision.
 
 ## Update and rollback
 
-Regenerate the lock after an intentional manifest, dependency, row, channel, or
-receipt change, review the diff, and run `semantic-pack status`. Do not hand-edit
-digests. To roll back, remove `semantic-pack-lock` from config or restore the
-previous lock; external packs then return to unlocked metadata-only behavior.
+Regenerate the receipt and then the lock after an intentional manifest,
+fixture, dependency, row, channel, nose version, or kernel-capability change.
+Review both diffs and run `semantic-pack status`; stale fixture content is
+rehashed even though it is not a separate lock entry. Do not hand-edit digests.
+To roll back, remove `semantic-pack-lock` from config or restore the previous
+lock; external packs then return to unlocked metadata-only behavior.
 
 ## See also
 

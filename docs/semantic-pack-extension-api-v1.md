@@ -1,8 +1,8 @@
 # Typed semantic pack influence manifest v1
 
 Status: implemented typed manifest, deterministic compiler, content-pinned
-project authorization, kernel-owned dependency/occurrence evidence, and the
-first locked near-only consumer.
+project authorization, kernel-owned dependency/occurrence evidence, locked near
+influence, and receipt-backed external-claim exact influence.
 `nose.semantic-pack.v0` remains permanently metadata-only.
 
 ## Purpose
@@ -11,11 +11,13 @@ v1 is the first semantic-pack format that nose can interpret without executing
 provider code. It replaces v0's opaque `surface` and `semantics` JSON with a
 small closed grammar. Loading a v1 file validates and compiles that grammar
 before analysis starts. A validated project lock pins and authorizes rows,
-channels, dependency files, and an optional receipt. During a locked query nose
+channels, dependency files, and a kernel conformance receipt. During a locked query nose
 can now read the pinned Maven inputs and bind selected rows to builtin Java
 import/symbol/receiver/effect facts. For near-authorized rows, the resulting
-immutable index may support an existing near candidate; unlocked v1 and every
-v0 manifest remain `metadata-only`.
+immutable index may support an existing near candidate. A much narrower
+`external-exact` row may enter the existing exact kernel only when source
+conformance produced a matching receipt and the project lock pins it. Unlocked
+v1 and every v0 manifest remain `metadata-only`.
 
 The schema is [semantic-pack-v1.schema.json](schemas/semantic-pack-v1.schema.json).
 The [Guava example](examples/semantic-packs/v1/guava-immutable-collections.json)
@@ -47,6 +49,11 @@ free function with no receiver. Collection and map factory operations must use
 their corresponding fixed result domain. Map-factory arities must contain only
 even positional key/value counts.
 
+`external-exact` is narrower still: v1 accepts only `collection-factory` with
+`eager`, `pure`, `no-throw`, `none`, and `fresh` profiles, plus at least one
+positive and one hard-negative source fixture per row. Map, HOF, lazy, async,
+stream, provider value-law, and new-canon exact claims remain closed.
+
 Exact coordinates use validated Maven `group:artifact` names and exact Java
 module, imported-name, and member segments. There is no regex, expression,
 callback, provider matcher, selector, fingerprint, value law, generic HOF
@@ -74,10 +81,10 @@ compilation. Duplicate ids, duplicate package coordinates, duplicate exact
 contract coordinates plus arity, invalid cross-field combinations, and
 out-of-range arities fail before analysis.
 
-The compiled indexes feed the dependency/occurrence index and the locked near
-registry. Unlocked v1 summaries remain `metadata-only`; a valid lock that allows
-`near` reports `near-only`. Neither path changes normalization, fingerprints,
-exact value graphs, exact membership, witnesses, or oracle behavior.
+The compiled indexes feed the dependency/occurrence index and the two locked
+consumers. Unlocked v1 summaries remain `metadata-only`; a valid lock that
+allows only `near` reports `near-only`. Near authorization never changes
+normalization, fingerprints, exact membership, witnesses, or oracle behavior.
 
 ## Locked dependency and occurrence evidence
 
@@ -147,6 +154,54 @@ binds the implementation and release-binary identities, focused lock/rollback
 fixture, 9-repository no-pack parity, official-v0.19.0 semantic and near runtime
 measurements, and the zero-false-merge verify result.
 
+## Kernel source conformance and external-claim exact
+
+An exact-capable v1 manifest declares closed source fixtures under
+`conformance.fixtures`. Each fixture binds one row, a non-escaping source path,
+a checked-in Maven dependency input, a `positive` or `hard-negative` kind, and
+the matching closed expectation (`external-exact-match` or
+`no-external-exact-match`). Run:
+
+```sh
+nose semantic-pack check semantic-packs/example.json \
+  --receipt-out semantic-packs/example.receipt.json
+```
+
+The runner enforces 64 files and 1 MiB of fixture content plus a 2 MiB Maven
+input cap, rejects symlinks, path escapes, and parse-error recovery, lowers
+source with the product frontend, builds the ordinary
+dependency/occurrence evidence index, injects only the kernel-owned collection
+factory contract, then uses the product normalizer, strict exact-safety gate,
+value graph, and exact detector. It never runs fixture programs, Maven,
+provider commands, or downloaded code. Resource-limit and analysis failures
+cannot satisfy a negative expectation.
+
+The v1 receipt uses the [semantic-pack conformance receipt
+schema](schemas/semantic-pack-conformance-receipt-v1.schema.json), which is
+validated again at lock creation, status, and query time.
+It binds the nose version, kernel capability, pack/version/semantic digest,
+external-exact row and row digests, fixture paths and content digests,
+dependency digests, expected and observed outcomes, and pass status. Lock
+creation and every later status/query validation reparse the receipt and rehash
+the declared fixtures. Missing, edited, stale, failed, differently selected, or
+wrong-capability receipts fail before analysis.
+
+After validation, nose emits a query-local external evidence record for each
+dependency/import/symbol/receiver/arity-matched occurrence. The record can only
+select the existing collection-sequence operation; it cannot name a private
+value-graph node, fingerprint, new law, callback, or rewrite. Normalization and
+strict exact safety independently recheck the record's external provenance,
+dependency closure, current call anchor, unique admission, and arity.
+
+Affected exact families and members use `semantic_pack_external_exact`, not
+builtin semantic-law provenance. The payload names lane `external-exact`,
+assurance `external-claim-exact`, pack/row digests, receipt and dependency
+digests, occurrence span, and caveats including
+`external-claim-not-builtin-certification`. This is a provider claim tested by
+nose and explicitly authorized by the user; it is not nose certification of
+the external API's universal behavior. Removing the lock restores ordinary
+output.
+
 ## Semantic content digest
 
 v1 reports a lowercase `sha256:<64 hex digits>` digest over canonical typed
@@ -168,15 +223,16 @@ being locked.
 
 ## Reporting and current limits
 
-`nose capabilities` schema v6 lists both `nose.semantic-pack.v0` and
+`nose capabilities` schema v7 lists both `nose.semantic-pack.v0` and
 `nose.semantic-pack.v1`. `nose semantic-pack compatibility` lists the same
 accepted versions. Query semantic-pack summaries conditionally add
 `api_version`; v1 also adds `semantic_digest`. Compiled builtin summaries keep
 their existing shape so no-pack product output is unchanged.
 
-`nose semantic-pack check --format json` schema v3 includes `api_version` and
-`semantic_digest` for each manifest. For v1 it validates and compiles the typed
-content, but it does not invent v0 fixture rows or report an influence grant.
+`nose semantic-pack check --format json` schema v4 includes `api_version`,
+`semantic_digest`, and a separate `kernel_conformance` result. For v0 it keeps
+the historical fixture-metadata behavior; v0 never receives a kernel receipt or
+influence grant.
 
 The project-lock layer is now defined by
 [semantic-pack-project-lock](semantic-pack-project-lock.md). It pins API,
@@ -184,10 +240,8 @@ pack/version, nose compatibility, semantic digest, selected rows/channels,
 dependency content, and optional receipts; it also rejects overlapping
 cross-pack coordinates independent of load order.
 
-The following work remains outside this slice:
-
-- the separate external-claim exact lane;
-- source-analyzing conformance receipts and a real external reference pack.
+Shipping and measuring a reviewed real external reference pack remains outside
+this implementation slice.
 
 ## See also
 

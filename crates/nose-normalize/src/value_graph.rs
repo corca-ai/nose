@@ -86,7 +86,8 @@ use nose_il::{
 };
 use nose_semantics::{
     admitted_builder_append_method_call_args, admitted_builtin_semantics_at_call_with_interner,
-    admitted_free_function_builtin_at_call, admitted_free_name_collection_factory_at_call,
+    admitted_external_collection_factory_at_call, admitted_free_function_builtin_at_call,
+    admitted_free_name_collection_factory_at_call,
     admitted_free_name_collection_factory_at_call_span,
     admitted_free_name_map_factory_at_call_span,
     admitted_hof_demand_effect_profile_at_node_with_interner,

@@ -2096,8 +2096,10 @@ justifies a tranche ([design §2c](design.md)).
   shadowed, and rebound cases fail closed. The first bounded consumer maps
   admitted `collection-factory`/`map-factory` occurrences onto existing near
   candidates only; it cannot create candidates or affect exact/verify output.
-- Start with data-only external packs for simple APIs once producer execution and
-  executable fixture/oracle checks exist.
+  A separate receipt-backed path admits only the existing collection-factory
+  operation to external-claim exact after bounded product source conformance.
+- Keep provider execution closed; external packs for simple APIs use typed data,
+  dependency evidence, kernel source conformance, and explicit user locks.
 - Add restricted recognizer hooks only after the manifest path is stable.
 - Require pack metadata: provider, license, version range, supported analysis
   channels, evidence status, conformance commands, and semantic provenance ids.
@@ -2108,8 +2110,9 @@ justifies a tranche ([design §2c](design.md)).
   `semantic-pack-lock`/`--semantic-pack-lock` select a mutually exclusive,
   content-pinned v1 set.
 - Query JSON reports active pack provenance and whether each pack is builtin,
-  metadata-only, or locked near-only. Affected near families/members report row
-  and dependency provenance; external-claim exact remains open.
+  metadata-only, locked near-only, or receipt-backed external-claim exact.
+  Affected families/members report row and dependency provenance; exact claims
+  also report receipt assurance and never imply builtin certification.
 
 The external schema must make proof obligations first-class. For example, a pack
 claiming `pkg.Foo.map` maps to the `Map` protocol must say how `pkg.Foo` is

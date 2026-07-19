@@ -92,7 +92,8 @@ directory of direct `*.json` manifests. v0 rows remain data-only; v1 rows
 compile to typed indexes and a semantic digest. Unlocked external packs are
 `metadata-only`: they do not emit evidence or enable near/exact contracts. A
 valid `semantic-pack-lock` may authorize eligible v1 rows to support existing
-near candidates; external exact remains closed. The
+near candidates or, with a matching kernel receipt, the closed
+collection-factory external-claim exact operation. The
 [semantic-pack loading guide](semantic-pack-loading.md) defines the full boundary.
 
 `semantic-pack-lock` selects one content-pinned

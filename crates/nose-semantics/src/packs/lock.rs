@@ -148,14 +148,26 @@ impl ValidatedSemanticPackProjectLock {
 
     pub fn into_semantic_packs(mut self) -> SemanticPackSet {
         for pack in &mut self.semantic_packs.packs {
-            if self.authorizations.iter().any(|authorization| {
-                authorization.pack_id == pack.id
-                    && authorization
-                        .allowed_channels
-                        .binary_search(&SemanticPackV1Channel::Near)
-                        .is_ok()
-            }) {
-                pack.influence = super::SemanticPackInfluence::NearOnly;
+            if let Some(authorization) = self
+                .authorizations
+                .iter()
+                .find(|authorization| authorization.pack_id == pack.id)
+            {
+                pack.influence = if authorization
+                    .allowed_channels
+                    .binary_search(&SemanticPackV1Channel::ExternalExact)
+                    .is_ok()
+                {
+                    super::SemanticPackInfluence::ExternalClaimExact
+                } else if authorization
+                    .allowed_channels
+                    .binary_search(&SemanticPackV1Channel::Near)
+                    .is_ok()
+                {
+                    super::SemanticPackInfluence::NearOnly
+                } else {
+                    super::SemanticPackInfluence::MetadataOnly
+                };
             }
         }
         self.semantic_packs.external_v1_authorizations = self

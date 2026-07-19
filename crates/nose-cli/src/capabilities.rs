@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-const CAPABILITIES_SCHEMA_VERSION: u32 = 6;
+const CAPABILITIES_SCHEMA_VERSION: u32 = 7;
 
 #[derive(serde::Serialize)]
 struct Report {
@@ -48,6 +48,7 @@ struct Schemas {
     query_json: Vec<u32>,
     semantic_packs: Vec<&'static str>,
     semantic_pack_locks: Vec<&'static str>,
+    semantic_pack_receipts: Vec<&'static str>,
     semantic_pack_lock_status: Vec<u32>,
     semantic_pack_conformance: Vec<u32>,
     semantic_pack_inventory: Vec<u32>,
@@ -83,6 +84,7 @@ struct SemanticPacks {
     trust: Vec<&'static str>,
     external_packs_enabled_by_default: bool,
     external_pack_influence: &'static str,
+    external_exact_operations: Vec<&'static str>,
     external_influence_blockers: Vec<&'static str>,
     external_pack_execution: &'static str,
 }
@@ -163,6 +165,7 @@ fn current_schemas() -> Schemas {
         ],
         semantic_packs: nose_semantics::SUPPORTED_SEMANTIC_PACK_API_VERSIONS.to_vec(),
         semantic_pack_locks: vec![nose_semantics::SEMANTIC_PACK_LOCK_API_VERSION_V1],
+        semantic_pack_receipts: vec![nose_semantics::SEMANTIC_PACK_RECEIPT_API_VERSION_V1],
         semantic_pack_lock_status: vec![crate::semantic_pack::LOCK_STATUS_SCHEMA_VERSION],
         semantic_pack_conformance: vec![crate::semantic_pack::CONFORMANCE_SCHEMA_VERSION],
         semantic_pack_inventory: vec![crate::semantic_pack::INVENTORY_SCHEMA_VERSION],
@@ -183,7 +186,13 @@ fn current_semantic_packs() -> SemanticPacks {
         ],
         project_lock: vec!["create", "status"],
         project_lock_output_formats: vec!["human", "json"],
-        conformance: vec!["local-manifest-file", "local-manifest-directory"],
+        conformance: vec![
+            "local-manifest-file",
+            "local-manifest-directory",
+            "v0-fixture-metadata",
+            "v1-kernel-source-analysis",
+            "receipt-output",
+        ],
         conformance_output_formats: vec!["human", "json"],
         inventory: vec!["compiled-builtin"],
         inventory_output_formats: vec!["human", "json"],
@@ -193,7 +202,8 @@ fn current_semantic_packs() -> SemanticPacks {
         compatibility_output_formats: vec!["human", "json"],
         trust: vec!["builtin-default", "builtin-optional", "external-opt-in"],
         external_packs_enabled_by_default: false,
-        external_pack_influence: "metadata-or-locked-near-only",
+        external_pack_influence: "metadata-or-locked-near-or-receipt-backed-external-claim-exact",
+        external_exact_operations: vec!["collection-factory"],
         external_influence_blockers: crate::semantic_pack::external_influence_blocker_labels(),
         external_pack_execution: "none",
     }
@@ -217,6 +227,8 @@ fn query_capability_flags() -> std::collections::BTreeMap<&'static str, bool> {
         ("reinvented_view", true),
         ("semantic_pack_dependency_evidence", true),
         ("semantic_pack_locked_near_influence", true),
+        ("semantic_pack_external_claim_exact", true),
+        ("semantic_pack_kernel_conformance_receipt", true),
         ("semantic_pack_loading", true),
         ("semantic_pack_project_lock", true),
         ("structured_ignores", true),

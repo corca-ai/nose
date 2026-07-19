@@ -58,6 +58,11 @@ pub(in crate::packs) fn compile_manifest_v1(
         contracts_by_id,
         contract_ids_by_coordinate,
         contract_ids_by_operation,
+        conformance_fixtures: manifest
+            .conformance
+            .as_ref()
+            .map(|conformance| conformance.fixtures.clone())
+            .unwrap_or_default(),
     })
 }
 
@@ -159,7 +164,8 @@ fn validate_manifest_v1(manifest: &SemanticPackManifestV1) -> Result<(), String>
     )?;
     validate_version_requirement("compatibility.nose", &manifest.compatibility.nose, true)?;
     validate_targets(manifest)?;
-    validate_contracts(manifest)
+    validate_contracts(manifest)?;
+    validate_conformance(manifest)
 }
 
 fn validate_targets(manifest: &SemanticPackManifestV1) -> Result<(), String> {
@@ -243,6 +249,7 @@ fn validate_contracts(manifest: &SemanticPackManifestV1) -> Result<(), String> {
         validate_call_shape(contract)?;
         contract.call.arity.validate(&contract.id)?;
         validate_operation_domain(contract)?;
+        validate_external_exact_contract(contract)?;
         let mut arity = contract.call.arity.clone();
         arity.canonicalize();
         let exact_key = (contract.coordinate(), arity);
@@ -252,6 +259,112 @@ fn validate_contracts(manifest: &SemanticPackManifestV1) -> Result<(), String> {
                 contract.id
             ));
         }
+    }
+    Ok(())
+}
+
+fn validate_external_exact_contract(contract: &SemanticPackV1Contract) -> Result<(), String> {
+    if contract.channel != SemanticPackV1Channel::ExternalExact {
+        return Ok(());
+    }
+    if contract.operation != SemanticPackV1ProtocolOperation::CollectionFactory {
+        return Err(format!(
+            "contract `{}` requests external exact for an operation outside the v1 kernel perimeter",
+            contract.id
+        ));
+    }
+    let profiles = contract.profiles;
+    if profiles.demand != SemanticPackV1DemandProfile::Eager
+        || profiles.effects != SemanticPackV1EffectProfile::Pure
+        || profiles.exceptions != SemanticPackV1ExceptionProfile::NoThrow
+        || profiles.mutation != SemanticPackV1MutationProfile::None
+        || profiles.identity != SemanticPackV1IdentityProfile::Fresh
+    {
+        return Err(format!(
+            "contract `{}` external exact requires eager, pure, no-throw, non-mutating, fresh semantics",
+            contract.id
+        ));
+    }
+    Ok(())
+}
+
+fn validate_conformance(manifest: &SemanticPackManifestV1) -> Result<(), String> {
+    let exact_rows = manifest
+        .declares
+        .api_contracts
+        .iter()
+        .filter(|contract| contract.channel == SemanticPackV1Channel::ExternalExact)
+        .map(|contract| contract.id.as_str())
+        .collect::<BTreeSet<_>>();
+    let fixtures = manifest
+        .conformance
+        .as_ref()
+        .map(|conformance| conformance.fixtures.as_slice())
+        .unwrap_or_default();
+    if exact_rows.is_empty() {
+        if fixtures.is_empty() {
+            return Ok(());
+        }
+        return Err("`conformance.fixtures` requires an external-exact row".to_string());
+    }
+    let mut ids = BTreeSet::new();
+    let mut coverage = BTreeMap::<&str, (usize, usize)>::new();
+    for fixture in fixtures {
+        require_stable_id("conformance.fixtures[].id", &fixture.id)?;
+        if !ids.insert(fixture.id.as_str()) {
+            return Err(format!("duplicate conformance fixture id `{}`", fixture.id));
+        }
+        if !exact_rows.contains(fixture.row_id.as_str()) {
+            return Err(format!(
+                "fixture `{}` references non-external-exact row `{}`",
+                fixture.id, fixture.row_id
+            ));
+        }
+        validate_relative_path("conformance.fixtures[].path", &fixture.path)?;
+        validate_relative_path("conformance.fixtures[].dependency", &fixture.dependency)?;
+        let expected = match fixture.kind {
+            SemanticPackV1FixtureKind::Positive => SemanticPackV1Expectation::ExternalExactMatch,
+            SemanticPackV1FixtureKind::HardNegative => {
+                SemanticPackV1Expectation::NoExternalExactMatch
+            }
+        };
+        if fixture.expectation != expected {
+            return Err(format!(
+                "fixture `{}` kind and expectation disagree",
+                fixture.id
+            ));
+        }
+        let counts = coverage.entry(&fixture.row_id).or_default();
+        match fixture.kind {
+            SemanticPackV1FixtureKind::Positive => counts.0 += 1,
+            SemanticPackV1FixtureKind::HardNegative => counts.1 += 1,
+        }
+    }
+    for row_id in exact_rows {
+        if coverage.get(row_id).copied().unwrap_or_default().0 == 0
+            || coverage.get(row_id).copied().unwrap_or_default().1 == 0
+        {
+            return Err(format!(
+                "external-exact row `{row_id}` requires positive and hard-negative source fixtures"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn validate_relative_path(label: &str, value: &str) -> Result<(), String> {
+    use std::path::{Component, Path};
+    let path = Path::new(value);
+    if value.is_empty()
+        || path.is_absolute()
+        || path.components().any(|component| {
+            matches!(
+                component,
+                Component::ParentDir | Component::RootDir | Component::Prefix(_)
+            )
+        })
+    {
+        return Err(format!("`{label}` must be a non-escaping relative path"));
     }
     Ok(())
 }

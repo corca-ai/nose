@@ -317,8 +317,10 @@ invalid. Changing public strings requires a schema/capabilities update.
 
 External packs may declare their intended eligibility, but users choose whether
 to trust that declaration. Explicitly loaded unlocked packs are reported as
-`metadata-only`. A content-pinned v1 project lock may authorize the narrow
-near-only protocol consumer; external exact matching remains closed.
+`metadata-only`. A content-pinned v1 project lock may authorize the narrow near
+protocol consumer. Receipt-backed exact authorization is limited to the
+existing collection-factory operation and reports external-claim rather than
+builtin-certified assurance.
 
 ## Pack conformance
 

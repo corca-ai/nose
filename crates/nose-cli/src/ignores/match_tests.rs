@@ -52,6 +52,7 @@ fn family_with_locations(locations: &[(String, &str)]) -> RefactorFamily {
         varying_spots: Vec::new(),
         semantic_laws: Vec::new(),
         semantic_pack_near: Vec::new(),
+        semantic_pack_external_exact: Vec::new(),
     }
 }
 

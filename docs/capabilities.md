@@ -26,7 +26,7 @@ nose capabilities
 
 ```json
 {
-  "schema_version": 6,
+  "schema_version": 7,
   "tool": {
     "name": "nose",
     "version": "<version>"
@@ -46,15 +46,16 @@ nose capabilities
     "deprecated": []
   },
   "schemas": {
-    "capabilities": [6],
+    "capabilities": [7],
     "query_json": [7, 8],
     "semantic_packs": ["nose.semantic-pack.v0", "nose.semantic-pack.v1"],
     "semantic_pack_locks": ["nose.semantic-pack-lock.v1"],
+    "semantic_pack_receipts": ["nose.semantic-pack-conformance-receipt.v1"],
     "semantic_pack_lock_status": [1],
-    "semantic_pack_conformance": [3],
+    "semantic_pack_conformance": [4],
     "semantic_pack_inventory": [1],
-    "semantic_pack_adoption_gates": [1],
-    "semantic_pack_compatibility": [1]
+    "semantic_pack_adoption_gates": [2],
+    "semantic_pack_compatibility": [2]
   },
   "query": {
     "modes": ["syntax", "semantic", "near"],
@@ -89,6 +90,8 @@ nose capabilities
       "query_base_structured_ignores": true,
       "reinvented_view": true,
       "semantic_pack_dependency_evidence": true,
+      "semantic_pack_external_claim_exact": true,
+      "semantic_pack_kernel_conformance_receipt": true,
       "semantic_pack_locked_near_influence": true,
       "semantic_pack_loading": true,
       "semantic_pack_project_lock": true,
@@ -108,7 +111,10 @@ nose capabilities
     "project_lock_output_formats": ["human", "json"],
     "conformance": [
       "local-manifest-file",
-      "local-manifest-directory"
+      "local-manifest-directory",
+      "v0-fixture-metadata",
+      "v1-kernel-source-analysis",
+      "receipt-output"
     ],
     "conformance_output_formats": ["human", "json"],
     "inventory": ["compiled-builtin"],
@@ -123,7 +129,8 @@ nose capabilities
       "external-opt-in"
     ],
     "external_packs_enabled_by_default": false,
-    "external_pack_influence": "metadata-or-locked-near-only",
+    "external_pack_influence": "metadata-or-locked-near-or-receipt-backed-external-claim-exact",
+    "external_exact_operations": ["collection-factory"],
     "external_influence_blockers": [
       "data-only-registration",
       "dependency-backed-evidence-unavailable",
@@ -155,11 +162,11 @@ release so it can't drift.
 The JSON example above is compared against `nose capabilities` by the CLI integration test;
 only `tool.version` and the platform values are normalized for the local build.
 
-## Version 6 Fields
+## Version 7 Fields
 
 | field | type | meaning |
 |---|---|---|
-| `schema_version` | integer | Capabilities contract version. Version 6 is documented here. |
+| `schema_version` | integer | Capabilities contract version. Version 7 is documented here. |
 | `tool.name` | string | Always `nose`. |
 | `tool.version` | string | Package version of the installed binary. |
 | `platform.os` | string | Rust target OS name, such as `linux`, `macos`, or `windows`. |
@@ -169,16 +176,17 @@ only `tool.version` and the platform values are normalized for the local build.
 | `interfaces.version_json` | boolean | Whether `nose --version --json` is supported. Version 1 reports `false`. |
 | `interfaces.doctor_json` | boolean | Whether `nose doctor --json` is supported. Version 1 reports `false`. |
 | `commands.stable` | array | Stable user-facing commands that integrations may invoke (incl. `query`, the interactive exploration surface — see [usage › nose query](usage.md#nose-query), with its versioned [query-JSON](query-json.md) contract). Hidden research commands are intentionally omitted. |
-| `commands.deprecated` | array | Commands that still work but are being retired. Version 6 reports an empty array. |
+| `commands.deprecated` | array | Commands that still work but are being retired. Version 7 reports an empty array. |
 | `schemas.capabilities` | array | Supported capabilities schema versions. |
 | `schemas.query_json` | array | Supported `nose query --format json` schema versions ([query-json](query-json.md)). |
 | `schemas.semantic_packs` | array | Supported semantic-pack manifest API versions, currently `nose.semantic-pack.v0` and `nose.semantic-pack.v1`. |
 | `schemas.semantic_pack_locks` | array | Supported project-lock API versions, currently `nose.semantic-pack-lock.v1`. |
+| `schemas.semantic_pack_receipts` | array | Supported kernel source-conformance receipt APIs, currently `nose.semantic-pack-conformance-receipt.v1`. |
 | `schemas.semantic_pack_lock_status` | array | Supported `nose semantic-pack status --format json` schemas. |
-| `schemas.semantic_pack_conformance` | array | Supported `nose semantic-pack check --format json` schema versions. Version 3 adds per-manifest API version and semantic digest reporting to the v0 structural/gate/preflight report and v1 typed compilation check. |
+| `schemas.semantic_pack_conformance` | array | Supported `nose semantic-pack check --format json` schemas. Version 4 adds bounded v1 kernel source-conformance observations and optional receipt output. |
 | `schemas.semantic_pack_inventory` | array | Supported `nose semantic-pack inventory --format json` schema versions. Version 1 reports compiled builtin pack declarations, conformance refs, coverage status, and audit gaps. |
-| `schemas.semantic_pack_adoption_gates` | array | Supported `nose semantic-pack adoption-gates --format json` schema versions. Version 1 reports compiled builtin pack optional/default promotion gates, rollback actions, and blocker status. |
-| `schemas.semantic_pack_compatibility` | array | Supported `nose semantic-pack compatibility --format json` schema versions. Version 1 reports manifest API, installed-version, kernel-vocabulary, and external-influence compatibility policy. |
+| `schemas.semantic_pack_adoption_gates` | array | Supported `nose semantic-pack adoption-gates --format json` schemas. Version 2 updates the external-influence policy for receipt-backed exact claims. |
+| `schemas.semantic_pack_compatibility` | array | Supported `nose semantic-pack compatibility --format json` schemas. Version 2 reports receipt-backed external-claim exact support. |
 | `query.modes` | array | Supported `--mode` values. |
 | `query.default_modes` | array | Modes used by `nose query` when `--mode` is omitted. |
 | `query.output_formats` | array | Supported `nose query --format` values. |
@@ -187,22 +195,23 @@ only `tool.version` and the platform values are normalized for the local build.
 | `query.capabilities` | object | Stable boolean capability flags for query workflows. |
 | `semantic_packs.api_versions` | array | Supported semantic-pack manifest API versions. |
 | `semantic_packs.lock_api_versions` | array | Supported content-pinned project-lock API versions. |
-| `semantic_packs.loading` | array | Supported loading sources. Schema version 6 adds validated local project locks to compiled builtins and local v0/v1 manifest files/directories. |
+| `semantic_packs.loading` | array | Supported loading sources, including validated local project locks. |
 | `semantic_packs.project_lock` | array | Supported local project-lock operations: `create` and `status`. |
 | `semantic_packs.project_lock_output_formats` | array | Supported lock/status report formats. |
 | `semantic_packs.conformance` | array | Supported conformance input sources: local manifest files/directories. |
 | `semantic_packs.conformance_output_formats` | array | Supported `nose semantic-pack check --format` values. |
-| `semantic_packs.inventory` | array | Supported inventory sources. Version 6 reports `compiled-builtin`. |
+| `semantic_packs.inventory` | array | Supported inventory sources. Version 7 reports `compiled-builtin`. |
 | `semantic_packs.inventory_output_formats` | array | Supported `nose semantic-pack inventory --format` values. |
-| `semantic_packs.adoption_gates` | array | Supported adoption-gate report sources. Version 6 may report `compiled-builtin`; consumers should treat absence as unsupported. |
+| `semantic_packs.adoption_gates` | array | Supported adoption-gate report sources. Version 7 reports `compiled-builtin`. |
 | `semantic_packs.adoption_gate_output_formats` | array | Supported `nose semantic-pack adoption-gates --format` values. |
-| `semantic_packs.compatibility` | array | Supported compatibility report sources. Version 6 may report `policy`; consumers should treat absence as unsupported. |
+| `semantic_packs.compatibility` | array | Supported compatibility report sources. Version 7 reports `policy`. |
 | `semantic_packs.compatibility_output_formats` | array | Supported `nose semantic-pack compatibility --format` values. |
 | `semantic_packs.trust` | array | Supported trust policy labels. |
 | `semantic_packs.external_packs_enabled_by_default` | boolean | Always `false`; external packs require explicit CLI/config opt-in. |
-| `semantic_packs.external_pack_influence` | string | Current external boundary: unlocked/v0 metadata, or dependency-backed locked v1 near-only influence. |
+| `semantic_packs.external_pack_influence` | string | Current external boundary: unlocked/v0 metadata, dependency-backed locked v1 near influence, or receipt-backed external-claim exact. |
+| `semantic_packs.external_exact_operations` | array | Closed external-exact kernel operations; version 7 contains only `collection-factory`. |
 | `semantic_packs.external_influence_blockers` | array | Stable blocker labels that currently prevent external rows from influencing analysis. |
-| `semantic_packs.external_pack_execution` | string | Current external pack execution support. Version 6 reports `none`; local external packs do not run recognizers, parser/lowering plugins, producer code, sandboxed code, or fixture contents. |
+| `semantic_packs.external_pack_execution` | string | Current external pack execution support. Version 7 reports `none`; nose analyzes fixture source but never executes fixture programs, recognizers, parser/lowering plugins, producer code, or sandboxed code. |
 | `il.output_formats` | array | Supported `nose il --format` values. |
 | `il.normalized` | boolean | Whether `nose il --normalized` is supported. |
 | `il.cfg_norm_toggle` | boolean | Whether `nose il --no-cfg-norm` is supported. |
@@ -214,15 +223,17 @@ consumers. New fields may be added to existing objects without changing
 `schema_version`; changing a documented field's type or meaning requires a new
 capabilities schema version.
 
-The blocker list describes rows outside the admitted locked-near slice,
-especially opaque v0/unlocked rows and external exact. A locked typed v1 query
+The blocker list describes rows outside the admitted locked-near or
+receipt-backed exact slices, especially opaque v0/unlocked rows. A locked typed v1 query
 can build the dependency/occurrence index advertised by
 `semantic_pack_dependency_evidence`; `semantic_pack_locked_near_influence`
-means its admitted near rows may support existing near candidates.
+means its admitted near rows may support existing near candidates. Exact
+influence additionally requires `semantic_pack_kernel_conformance_receipt` and
+is limited to the operation advertised by `external_exact_operations`.
 
 ## Query Capability Flags
 
-Version 6 defines these `query.capabilities` keys:
+Version 7 defines these `query.capabilities` keys:
 
 | key | meaning |
 |---|---|
@@ -241,7 +252,9 @@ Version 6 defines these `query.capabilities` keys:
 | `query_base_structured_ignores` | Structured ignores are applied before the `base=<ref>` divergent-edit gate. |
 | `reinvented_view` | The `reinvented` query view is supported. |
 | `semantic_pack_dependency_evidence` | A content-pinned v1 lock can build a local-only immutable Maven dependency/import/symbol/receiver/effect occurrence index; lane authorization and a consumer are still required for influence. |
-| `semantic_pack_locked_near_influence` | Near-authorized dependency-backed v1 occurrences may support existing near candidates with family/member provenance; exact output remains unchanged. |
+| `semantic_pack_external_claim_exact` | Receipt-backed, dependency-backed, user-authorized v1 collection-factory rows may enter the existing exact kernel and report distinct external-claim provenance. |
+| `semantic_pack_kernel_conformance_receipt` | `semantic-pack check --receipt-out` can bind bounded product source-analysis observations for later exact lock validation. |
+| `semantic_pack_locked_near_influence` | Near-authorized dependency-backed v1 occurrences may support existing near candidates with family/member provenance. |
 | `semantic_pack_loading` | local v0 manifests can be loaded as metadata and typed v1 manifests can be compiled for metadata/digest reporting. |
 | `semantic_pack_project_lock` | local v1 project locks can be created, validated, and supplied to query before analysis. |
 | `structured_ignores` | `nose.ignore.json` / `--ignore-file` audited suppressions are supported. |

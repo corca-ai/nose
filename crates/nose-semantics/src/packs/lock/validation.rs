@@ -2,8 +2,9 @@ use super::paths::*;
 use super::version_ranges::requirements_may_overlap;
 use super::*;
 use crate::packs::{
-    discover_manifest_paths, CompiledSemanticPackV1, SemanticPackV1Arity, SemanticPackV1ArityKind,
-    SemanticPackV1Contract, SEMANTIC_PACK_API_VERSION_V1,
+    discover_manifest_paths, read_semantic_pack_conformance_receipt,
+    validate_semantic_pack_conformance_receipt, CompiledSemanticPackV1, SemanticPackV1Arity,
+    SemanticPackV1ArityKind, SemanticPackV1Contract, SEMANTIC_PACK_API_VERSION_V1,
 };
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -348,6 +349,13 @@ fn validate_authorizations(
             .as_ref()
             .map(|pin| validate_pin(root, pin, lock_path))
             .transpose()?;
+        validate_exact_receipt(
+            entry,
+            pack,
+            &resolved_manifest,
+            exact_receipt.as_ref(),
+            lock_path,
+        )?;
         authorizations.push(SemanticPackV1Authorization {
             pack_id: entry.pack_id.clone(),
             allowed_channels: entry.allowed_channels.clone(),
@@ -357,6 +365,57 @@ fn validate_authorizations(
         });
     }
     Ok(authorizations)
+}
+
+fn validate_exact_receipt(
+    entry: &SemanticPackLockedEntryV1,
+    pack: &CompiledSemanticPackV1,
+    manifest_path: &Path,
+    receipt_file: Option<&SemanticPackLockedFile>,
+    lock_path: &Path,
+) -> Result<(), SemanticPackLockError> {
+    let exact_rows = entry
+        .selected_rows
+        .iter()
+        .filter(|row_id| {
+            pack.contracts_by_id()[*row_id].channel == SemanticPackV1Channel::ExternalExact
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    if exact_rows.is_empty() {
+        if receipt_file.is_some() {
+            return invalid(
+                lock_path,
+                format!(
+                    "pack `{}` pins an exact receipt without a selected external-exact row",
+                    entry.pack_id
+                ),
+            );
+        }
+        return Ok(());
+    }
+    let receipt_file = receipt_file.ok_or_else(|| SemanticPackLockError::Invalid {
+        path: lock_path.to_path_buf(),
+        message: format!(
+            "pack `{}` selects external-exact rows but has no exact conformance receipt",
+            entry.pack_id
+        ),
+    })?;
+    let receipt = read_semantic_pack_conformance_receipt(receipt_file.resolved_path()).map_err(
+        |message| SemanticPackLockError::Invalid {
+            path: lock_path.to_path_buf(),
+            message,
+        },
+    )?;
+    validate_semantic_pack_conformance_receipt(&receipt, pack, manifest_path, &exact_rows).map_err(
+        |message| SemanticPackLockError::Invalid {
+            path: lock_path.to_path_buf(),
+            message: format!(
+                "pack `{}` exact receipt is invalid: {message}",
+                entry.pack_id
+            ),
+        },
+    )
 }
 
 fn validate_entry_identity(

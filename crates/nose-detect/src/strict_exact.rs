@@ -11,7 +11,7 @@ use nose_il::{
 };
 use nose_normalize::module_facts::collect_module_mutations;
 use nose_semantics::{
-    admitted_builtin_semantics_at_call_with_interner,
+    admitted_builtin_semantics_at_call_with_interner, admitted_external_collection_factory_at_call,
     admitted_free_name_collection_factory_at_call, admitted_free_name_map_factory_at_call,
     admitted_hof_demand_effect_profile_at_node_with_interner,
     admitted_imported_collection_factory_at_call, admitted_iterator_identity_adapter_at_call,
@@ -73,11 +73,11 @@ use collections::{
     strict_exact_proven_map_receiver_safe,
 };
 use factories::{
-    strict_exact_go_literal_zero_map_index_safe, strict_exact_java_collection_constructor_safe,
-    strict_exact_map_constructor_entries_safe, strict_exact_ruby_set_factory_safe,
-    strict_exact_rust_std_collection_factory_safe, strict_exact_rust_std_map_factory_safe,
-    strict_exact_rust_vec_macro_collection_safe, strict_exact_rust_vec_new_safe,
-    strict_exact_swift_default_subscript_index_safe,
+    strict_exact_external_collection_factory_safe, strict_exact_go_literal_zero_map_index_safe,
+    strict_exact_java_collection_constructor_safe, strict_exact_map_constructor_entries_safe,
+    strict_exact_ruby_set_factory_safe, strict_exact_rust_std_collection_factory_safe,
+    strict_exact_rust_std_map_factory_safe, strict_exact_rust_vec_macro_collection_safe,
+    strict_exact_rust_vec_new_safe, strict_exact_swift_default_subscript_index_safe,
     strict_exact_swift_membership_collection_factory_safe,
 };
 pub(crate) use factories::{

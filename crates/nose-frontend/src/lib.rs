@@ -111,6 +111,19 @@ pub fn lower_source(
     }
 }
 
+/// Parse a Java conformance fixture with the product grammar and reject error
+/// recovery. Product analysis may preserve partial trees fail-closed, but a
+/// negative conformance expectation must not pass merely because its fixture is
+/// malformed.
+pub fn java_source_parses_cleanly(src: &[u8]) -> bool {
+    lower::parse(
+        lower::grammar::JAVA,
+        || tree_sitter_java::LANGUAGE.into(),
+        src,
+    )
+    .is_ok_and(|tree| !tree.root_node().has_error())
+}
+
 /// Whether a Raw surface tag is an intentional protocol/effect boundary rather than a
 /// fixable lowering gap. Exposed for CLI diagnostics that rank gap work.
 pub fn is_protocol_boundary_tag(tag: &str) -> bool {

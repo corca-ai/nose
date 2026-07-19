@@ -1,17 +1,17 @@
 # Semantic pack conformance
 
-Status: nose provides a local semantic-pack v0 conformance harness and a typed
-v1 compile check. The v0 harness covers manifest structure, declared fixture
-assets, and declarative fixture-expectation gates for exact-capable rows. These
-are provider/user workflows, not nose approval of third-party semantic
-correctness. v0 and unlocked v1 external packs remain `metadata-only` when
-loaded by `nose query`. A separately validated v1 project lock may authorize
-the narrow near-only consumer; conformance checking alone never does.
+Status: nose provides the historical semantic-pack v0 metadata harness and a v1
+kernel source-conformance runner. The v0 harness covers manifest structure,
+declared fixture assets, and declarative fixture-expectation gates. v1 compiles
+its closed typed grammar and analyzes bounded source fixtures through the
+product frontend, evidence matcher, normalizer, strict exact gate, value graph,
+and detector. These are provider/user workflows, not nose approval of
+third-party semantic correctness.
 
-Typed v1 manifests use the same command to validate and compile their closed
-contract grammar. v1 does not inherit v0's opaque fixture/gate rows; its later
-source-analyzing receipts are separate work. Compilation or conformance alone
-remains `metadata-only`.
+Typed v1 manifests do not inherit v0's opaque fixture/gate rows. A passing v1
+run may write a content-bound receipt, but exact influence still requires a
+separately validated project lock that selects the same external-exact rows and
+pins that receipt. Compilation or conformance alone remains `metadata-only`.
 
 ## Goal
 
@@ -44,8 +44,9 @@ The harness does not:
 - register external contract rows with exact consumers;
 - treat a passing structural check as permission for external rows to influence
   analysis;
-- execute fixture contents, provider commands, recognizers, parser/lowering
-  plugins, producer code, or sandboxed code as an oracle;
+- execute fixture programs, provider commands, recognizers, parser/lowering
+  plugins, producer code, or sandboxed code as an oracle; v1 only parses and
+  analyzes fixture source;
 - prove that the provider's semantic claims are complete or true;
 - certify, approve, rank, or endorse external packs.
 
@@ -65,6 +66,8 @@ manifests:
 ```sh
 nose semantic-pack check semantic-packs/python-math-prod.json
 nose semantic-pack check docs/examples/semantic-packs/v0 --format json
+nose semantic-pack check semantic-packs/typed-exact.json \
+  --receipt-out semantic-packs/typed-exact.receipt.json
 ```
 
 Directory checking follows the same local discovery rule as pack loading: direct
@@ -79,6 +82,24 @@ expectation oracle. For `--format json`, the command still writes the report
 before returning the non-zero exit after manifests have loaded. Manifest parse,
 schema, compatibility, reserved-id, or duplicate-id errors that prevent report
 creation are returned as load errors instead.
+
+For v1 external-exact rows the command additionally requires positive and
+hard-negative fixtures with closed expectations. Fixture roots must stay below
+the manifest directory, contain no symlinks, parse cleanly as Java, and fit
+within 64 files and 1 MiB. Each local Maven dependency input is capped at 2 MiB;
+the runner never invokes Maven or uses a network. `resource-limit` and
+`analysis-failure` observations always fail; they cannot masquerade as a
+passing hard negative.
+
+The optional receipt uses the [`nose.semantic-pack-conformance-receipt.v1`
+schema](schemas/semantic-pack-conformance-receipt-v1.schema.json), which keeps
+the bound inputs and observations machine-readable.
+It binds nose and kernel capability, pack and row digests, channels, fixture and
+dependency content digests, expectations, observations, and pass state. Only
+one source-conformant v1 pack may be written by one `--receipt-out` invocation.
+See [typed manifest v1](semantic-pack-extension-api-v1.md) and
+[project locks](semantic-pack-project-lock.md) for exact authorization and
+reporting semantics.
 The example [law pack](examples/semantic-packs/v0/law-pack.json) uses this
 workflow to declare value-law positives and hard negatives. Passing the check
 confirms only that the law metadata and fixture assets are structurally present;
@@ -215,13 +236,13 @@ Important fields:
 
 ## Check JSON Report
 
-`--format json` emits schema version 3. Version 3 adds `api_version` and the
-optional v1 `semantic_digest` to each manifest entry; the rest of this example
-shows the unchanged v0 fixture and influence-preflight structure:
+`--format json` emits schema version 4. Version 4 adds the distinct
+`kernel_conformance` report and its fixture totals; v0 metadata gates remain in
+`executable_conformance`:
 
 ```json
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "status": "ok",
   "totals": {
     "manifests": 1,
@@ -232,7 +253,9 @@ shows the unchanged v0 fixture and influence-preflight structure:
     "passed_executable_conformance_rows": 1,
     "executable_conformance_issues": 0,
     "influence_rows": 1,
-    "blocked_influence_rows": 1
+    "blocked_influence_rows": 1,
+    "kernel_conformance_fixtures": 0,
+    "passed_kernel_conformance_fixtures": 0
   },
   "executable_conformance": {
     "status": "ok",
@@ -253,6 +276,10 @@ shows the unchanged v0 fixture and influence-preflight structure:
         "issues": []
       }
     ]
+  },
+  "kernel_conformance": {
+    "status": "unavailable",
+    "receipts": []
   },
   "influence_preflight": {
     "status": "blocked",

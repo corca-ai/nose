@@ -4,6 +4,7 @@ use std::path::PathBuf;
 mod adoption_gates;
 mod compatibility;
 mod inventory;
+mod kernel_conformance;
 mod project_lock;
 
 pub(crate) use adoption_gates::{
@@ -18,7 +19,7 @@ pub(crate) use project_lock::{
     cmd_lock, cmd_status, LockChannel, LockCommand, LockStatusFormat, LOCK_STATUS_SCHEMA_VERSION,
 };
 
-pub(crate) const CONFORMANCE_SCHEMA_VERSION: u32 = 3;
+pub(crate) const CONFORMANCE_SCHEMA_VERSION: u32 = 4;
 
 #[derive(Clone, Copy, PartialEq, clap::ValueEnum)]
 pub(crate) enum CheckFormat {
@@ -32,6 +33,7 @@ struct CheckJsonReport {
     status: &'static str,
     totals: CheckJsonTotals,
     executable_conformance: CheckJsonExecutableConformance,
+    kernel_conformance: serde_json::Value,
     influence_preflight: CheckJsonInfluencePreflight,
     manifests: Vec<CheckJsonManifest>,
 }
@@ -47,6 +49,8 @@ struct CheckJsonTotals {
     executable_conformance_issues: usize,
     influence_rows: usize,
     blocked_influence_rows: usize,
+    kernel_conformance_fixtures: usize,
+    passed_kernel_conformance_fixtures: usize,
 }
 
 #[derive(serde::Serialize)]
@@ -137,10 +141,15 @@ impl CheckJsonReport {
     fn new(
         report: &nose_semantics::SemanticPackConformanceReport,
         influence_preflight: &nose_semantics::ExternalInfluencePreflightReport,
+        kernel: &kernel_conformance::KernelConformanceReport,
     ) -> Self {
         Self {
             schema_version: CONFORMANCE_SCHEMA_VERSION,
-            status: if report.passed() { "ok" } else { "failed" },
+            status: if report.passed() && kernel.passed() {
+                "ok"
+            } else {
+                "failed"
+            },
             totals: CheckJsonTotals {
                 manifests: report.manifest_count(),
                 positive_fixtures: report.positive_fixture_count(),
@@ -151,8 +160,12 @@ impl CheckJsonReport {
                 executable_conformance_issues: report.executable_conformance_issue_count(),
                 influence_rows: influence_preflight.rows.len(),
                 blocked_influence_rows: influence_preflight.blocked_count(),
+                kernel_conformance_fixtures: kernel.fixture_count(),
+                passed_kernel_conformance_fixtures: kernel.passed_fixture_count(),
             },
             executable_conformance: CheckJsonExecutableConformance::new(report),
+            kernel_conformance: serde_json::to_value(kernel)
+                .expect("kernel conformance is JSON serializable"),
             influence_preflight: CheckJsonInfluencePreflight::new(influence_preflight),
             manifests: report
                 .manifests
@@ -269,33 +282,59 @@ impl CheckJsonInfluencePreflight {
     }
 }
 
-pub(crate) fn cmd_check(paths: Vec<PathBuf>, format: CheckFormat) -> Result<()> {
+pub(crate) fn cmd_check(
+    paths: Vec<PathBuf>,
+    receipt_out: Option<PathBuf>,
+    format: CheckFormat,
+) -> Result<()> {
     let report = nose_semantics::check_semantic_pack_conformance(&paths)?;
+    let kernel = kernel_conformance::run(&paths)?;
     match format {
-        CheckFormat::Human => print_human(&report),
+        CheckFormat::Human => print_human(&report, &kernel),
         CheckFormat::Json => {
             let influence_preflight = nose_semantics::SemanticPackSet::new_local(&paths)?
                 .external_influence_preflight_with_conformance(&report);
             println!(
                 "{}",
-                serde_json::to_string_pretty(&CheckJsonReport::new(&report, &influence_preflight))?
+                serde_json::to_string_pretty(&CheckJsonReport::new(
+                    &report,
+                    &influence_preflight,
+                    &kernel,
+                ))?
             );
         }
     }
-    if !report.passed() {
+    if !report.passed() || !kernel.passed() {
         anyhow::bail!(
-            "semantic pack conformance failed: {} fixture issue(s), {} executable gate issue(s)",
+            "semantic pack conformance failed: {} fixture issue(s), {} executable gate issue(s), {} kernel fixture failure(s)",
             report.fixture_issue_count(),
-            report.executable_conformance_issue_count()
+            report.executable_conformance_issue_count(),
+            kernel.fixture_count().saturating_sub(kernel.passed_fixture_count()),
         );
+    }
+    if let Some(path) = receipt_out {
+        let [receipt] = kernel.receipts.as_slice() else {
+            anyhow::bail!("--receipt-out requires exactly one v1 pack with source conformance");
+        };
+        let mut json = serde_json::to_string_pretty(receipt)?;
+        json.push('\n');
+        std::fs::write(&path, json)
+            .map_err(|error| anyhow::anyhow!("writing receipt {}: {error}", path.display()))?;
     }
     Ok(())
 }
 
-fn print_human(report: &nose_semantics::SemanticPackConformanceReport) {
+fn print_human(
+    report: &nose_semantics::SemanticPackConformanceReport,
+    kernel: &kernel_conformance::KernelConformanceReport,
+) {
     println!(
         "semantic pack conformance: {}",
-        if report.passed() { "ok" } else { "failed" }
+        if report.passed() && kernel.passed() {
+            "ok"
+        } else {
+            "failed"
+        }
     );
     println!(
         "manifests: {}; fixtures: {} positive, {} hard-negative; fixture issues: {}",
@@ -317,6 +356,12 @@ fn print_human(report: &nose_semantics::SemanticPackConformanceReport) {
         report.passed_executable_conformance_count(),
         report.executable_conformance_count(),
         report.executable_conformance_issue_count()
+    );
+    println!(
+        "kernel source conformance: {}; {} passed / {} fixture(s)",
+        kernel.status,
+        kernel.passed_fixture_count(),
+        kernel.fixture_count(),
     );
     for manifest in &report.manifests {
         println!(

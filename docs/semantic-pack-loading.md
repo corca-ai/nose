@@ -4,17 +4,15 @@ Status: nose can validate local semantic-pack v0 manifests, compile typed v1
 manifests, and validate content-pinned v1 project locks before `nose query`.
 It also provides separate local check/lock/status commands. External packs are
 explicit opt-ins. Unlocked v0/v1 packs are `metadata-only`; a content-pinned v1
-lock may authorize the narrow near-only consumer. External packs do not emit IL
-evidence, open exact contracts, mint fingerprints, or approve exact clone
-pairs. Local `declares.evidence_producers`,
-`declares.contracts`, and `declares.value_laws` entries are registered as
-data-only rows on the active `SemanticPackSet`, but no normalize, value-graph,
-or exact consumer reads those external rows yet. v1 contracts compile into
-deterministic typed indexes and a semantic digest; the near consumer reads only
-locked dependency-backed occurrences. `nose capabilities` reports the
-same boundary with `external_pack_influence = "metadata-or-locked-near-only"`,
-the current external influence blocker labels, and
-`external_pack_execution = "none"`.
+lock may authorize narrow near influence, and a matching kernel conformance
+receipt may additionally authorize a closed collection-factory exact claim.
+Opaque v0 producer, contract, and value-law declarations remain data-only.
+Typed v1 contracts compile into deterministic indexes and a semantic digest;
+consumers read only locked, dependency-backed occurrences. `nose capabilities`
+reports the same boundary with
+`external_pack_influence = "metadata-or-locked-near-or-receipt-backed-external-claim-exact"`,
+`external_exact_operations = ["collection-factory"]`, the current blocker
+labels, and `external_pack_execution = "none"`.
 
 ## Local entry points
 
@@ -60,13 +58,17 @@ them into an analysis run:
 ```sh
 nose semantic-pack check semantic-packs/python-math-prod.json
 nose semantic-pack check semantic-packs --format json
+nose semantic-pack check semantic-packs/typed-exact.json \
+  --receipt-out semantic-packs/typed-exact.receipt.json
 ```
 
 The conformance command validates manifest structure, trust policy, dependency
-references, exact-capable contract obligations, conformance fixture references,
-fixture expectation labels, executable fixture-expectation gates, and fixture
-file existence. It does not execute external producers, provider commands, or
-fixture contents, and it does not certify semantic correctness. See [semantic-pack-conformance](semantic-pack-conformance.md).
+references, exact-capable contract obligations, fixture references, and closed
+expectations. For v1 external-exact rows it analyzes bounded fixture source
+through the product kernel and may write a content-bound receipt. It does not
+execute fixture programs, external producers, provider commands, or downloaded
+code, and it does not certify semantic correctness. The [semantic-pack
+conformance guide](semantic-pack-conformance.md) defines its exact boundary.
 
 For v1, the command validates the closed Java/Maven package-API grammar and
 builds its canonical digest and indexes. v1 does not reuse v0's opaque row or
@@ -85,7 +87,7 @@ nose semantic-pack status nose.semantic-pack-lock.json --format json
 Trust is separate from channel eligibility.
 
 - Compiled builtin packs are enabled by default and are the only packs that
-  currently influence evidence and contracts. Machine output reports them with
+  influence builtin evidence and contracts. Machine output reports them with
   `compiled-builtin` source and `builtin-default` trust. Older v0 manifest
   examples may still use legacy first-party trust aliases, but local manifests
   that claim builtin trust are rejected after parsing. `nose.first_party` remains
@@ -217,14 +219,15 @@ Trust is separate from channel eligibility.
 paths before analysis and reports the active builtin/local pack set in the
 top-level `semantic_packs` array. Unlocked local external packs remain
 metadata-only while builtin compiled packs report `evidence-and-contracts`
-influence. A
-validated v1 project lock additionally builds a query-local, immutable Maven
+influence. A validated v1 project lock builds a query-local, immutable Maven
 dependency and Java occurrence-evidence index from content-pinned inputs and
-builtin frontend facts. External producer, contract, and value-law rows are
-available to the loaded pack set for future conflict checks and adoption gates,
-Those rows cannot enter exact/value-law consumers. Near-authorized admitted
-occurrences may support existing near candidates and are serialized as separate
-family/member near provenance. Builtin pack order in
+builtin frontend facts. Near-authorized admitted occurrences may support
+existing near candidates and are serialized as separate family/member
+provenance. Receipt-backed external-exact collection-factory occurrences may
+select only the kernel's existing collection value and exact detector path;
+affected results carry separate external-claim provenance and are never
+reported as builtin certification. Opaque v0 rows and unsupported v1 operations
+cannot enter normalize, value-graph, or exact consumers. Builtin pack order in
 this array follows the compiled registry's stable reporting order; roadmap and
 snapshot prose may group packs by migration narrative instead.
 
@@ -239,26 +242,26 @@ and requires required `LibraryApi.Contract` evidence for those rows. The v0
 preflight still blocks opaque external rows. For locked typed v1 rows, a
 kernel-owned Maven reader and Java matcher produce dependency-backed occurrence
 facts. The near lane consumes only admitted `collection-factory` and
-`map-factory` occurrences matched to builtin protocol evidence. A project lock
-supplies explicit content/row/lane authorization and rejects
-semantic-coordinate conflicts before analysis; the evidence index alone cannot
-influence a result. Exact-capable rows also remain blocked until they have passed
-declarative executable conformance.
-`nose semantic-pack check --format json` exposes that row-level preflight to
-providers and integrations, but normalize, value-graph, and exact consumers do
-not read it. It does not yet:
+`map-factory` occurrences matched to builtin protocol evidence. The exact lane
+consumes only receipt-backed `collection-factory` rows with the closed
+eager/pure/no-throw/non-mutating/fresh profile. A project lock supplies explicit
+content/row/lane authorization and rejects semantic-coordinate conflicts before
+analysis; the evidence index alone cannot influence a result. `nose
+semantic-pack check --format json` exposes source observations to providers and
+integrations. It does not:
 
 - execute external evidence producers;
-- register external contract rows with exact consumers;
-- register external value-law rows with value-graph or exact consumers;
+- register arbitrary external contract rows with exact consumers;
+- register provider value-law rows or new canonical value-graph operations;
 - execute fixture contents, provider commands, recognizers, parser/lowering
   plugins, producer code, or sandboxed code;
 - install packs from a registry or remote source.
 
 Future loader work should keep this boundary: external pack claims can become
-usable only through dependency-backed evidence records and fail-closed kernel
-contracts, never through raw selectors, arbitrary recognizer hooks, sandboxed
-code execution, parser/lowering plugins, or manifest presence alone.
+usable only through dependency-backed evidence records, product source
+conformance, explicit user authorization, and fail-closed kernel contracts,
+never through raw selectors, arbitrary recognizer hooks, sandboxed code
+execution, parser/lowering plugins, or manifest presence alone.
 
 ## See also
 
@@ -273,4 +276,4 @@ code execution, parser/lowering plugins, or manifest presence alone.
 - [semantic-pack-project-lock](semantic-pack-project-lock.md) records local
   content pins, authorization, deterministic conflict handling, and rollback.
 - [semantic-kernel](semantic-kernel.md) owns the exact-admission boundary that
-  loaded external manifests cannot bypass.
+  loaded external manifests and receipts cannot bypass.

@@ -229,7 +229,7 @@ fn semantic_pack_check_json_reports_conformance_success() {
     );
     let stdout = String::from_utf8(out.stdout).unwrap();
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("check should emit JSON");
-    assert_eq!(json["schema_version"], 3);
+    assert_eq!(json["schema_version"], 4);
     assert_eq!(json["status"], "ok");
     assert_eq!(json["totals"]["manifests"], 1);
     assert_eq!(json["totals"]["positive_fixtures"], 1);
@@ -338,7 +338,7 @@ fn semantic_pack_check_json_reports_passed_executable_gates_without_opening_infl
     );
     let stdout = String::from_utf8(out.stdout).unwrap();
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("check should emit JSON");
-    assert_eq!(json["schema_version"], 3);
+    assert_eq!(json["schema_version"], 4);
     assert_eq!(json["status"], "ok");
     assert_eq!(json["totals"]["executable_conformance_rows"], 2);
     assert_eq!(json["totals"]["passed_executable_conformance_rows"], 2);

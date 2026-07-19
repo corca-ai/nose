@@ -103,19 +103,19 @@ use nose_il::stable_symbol_hash;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
-
 mod compiled;
 mod conformance;
 mod evidence_index;
+mod exact_registry;
 mod external;
 mod loading;
 mod lock;
 mod manifest;
 mod near_registry;
+mod receipt;
 mod result_domain_semantics;
 mod v1;
 mod validation;
-
 pub use compiled::{
     builtin_compat_semantic_pack, builtin_pack_descriptor, builtin_pack_descriptors,
     first_party_semantic_pack, first_party_value_law_pack, python_stdlib_type_domain_pack,
@@ -131,6 +131,10 @@ pub use evidence_index::{
     SemanticPackDependencyEvidence, SemanticPackDependencyEvidenceId, SemanticPackDependencySource,
     SemanticPackEvidenceBlocker, SemanticPackEvidenceIndex, SemanticPackEvidenceRow,
     SemanticPackOccurrenceEvidence,
+};
+pub use exact_registry::{
+    SemanticPackExternalExactPackCounts, SemanticPackExternalExactProvenance,
+    SemanticPackExternalExactRegistry, SemanticPackExternalExactReport,
 };
 pub use external::{
     ExternalContractRow, ExternalEvidenceProducerRow, ExternalInfluenceBlocker,
@@ -152,13 +156,23 @@ pub use near_registry::{
     SemanticPackNearDependency, SemanticPackNearPackCounts, SemanticPackNearProtocol,
     SemanticPackNearProvenance, SemanticPackNearRegistry, SemanticPackNearReport,
 };
+pub use receipt::{
+    read_semantic_pack_conformance_receipt, resolve_fixture_path, semantic_pack_file_digest,
+    semantic_pack_fixture_digest, validate_semantic_pack_conformance_receipt,
+    SemanticPackConformanceReceiptFixture, SemanticPackConformanceReceiptRow,
+    SemanticPackConformanceReceiptV1, SemanticPackV1ObservedExpectation,
+    MAX_SEMANTIC_PACK_DEPENDENCY_BYTES, MAX_SEMANTIC_PACK_FIXTURE_BYTES,
+    MAX_SEMANTIC_PACK_FIXTURE_FILES, SEMANTIC_PACK_EXACT_KERNEL_CAPABILITY_V1,
+    SEMANTIC_PACK_RECEIPT_API_VERSION_V1,
+};
 use v1::{compile_manifest_v1, SemanticPackManifestV1};
 pub use v1::{
     CompiledSemanticPackV1, SemanticPackV1Anchor, SemanticPackV1Arity, SemanticPackV1ArityKind,
-    SemanticPackV1Call, SemanticPackV1CallShape, SemanticPackV1Channel, SemanticPackV1Contract,
-    SemanticPackV1Coordinate, SemanticPackV1DemandProfile, SemanticPackV1EffectProfile,
-    SemanticPackV1ExceptionProfile, SemanticPackV1IdentityProfile, SemanticPackV1Import,
-    SemanticPackV1ImportRole, SemanticPackV1Language, SemanticPackV1Matcher,
+    SemanticPackV1Call, SemanticPackV1CallShape, SemanticPackV1Channel, SemanticPackV1Conformance,
+    SemanticPackV1ConformanceFixture, SemanticPackV1Contract, SemanticPackV1Coordinate,
+    SemanticPackV1DemandProfile, SemanticPackV1EffectProfile, SemanticPackV1ExceptionProfile,
+    SemanticPackV1Expectation, SemanticPackV1FixtureKind, SemanticPackV1IdentityProfile,
+    SemanticPackV1Import, SemanticPackV1ImportRole, SemanticPackV1Language, SemanticPackV1Matcher,
     SemanticPackV1MutationProfile, SemanticPackV1Package, SemanticPackV1PackageCoordinate,
     SemanticPackV1PackageEcosystem, SemanticPackV1Profiles, SemanticPackV1ProtocolOperation,
     SemanticPackV1ReceiverRole, SemanticPackV1ResultDomain, SEMANTIC_PACK_API_VERSION_V1,
@@ -207,6 +221,7 @@ impl SemanticPackSource {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SemanticPackInfluence {
     EvidenceAndContracts,
+    ExternalClaimExact,
     NearOnly,
     MetadataOnly,
 }
@@ -215,6 +230,7 @@ impl SemanticPackInfluence {
     pub const fn as_str(self) -> &'static str {
         match self {
             SemanticPackInfluence::EvidenceAndContracts => "evidence-and-contracts",
+            SemanticPackInfluence::ExternalClaimExact => "external-claim-exact",
             SemanticPackInfluence::NearOnly => "near-only",
             SemanticPackInfluence::MetadataOnly => "metadata-only",
         }
@@ -459,8 +475,16 @@ impl SemanticPackSummary {
                 evidence_producers: 0,
                 contracts: manifest.declares.api_contracts.len(),
                 value_laws: 0,
-                positive_fixtures: 0,
-                hard_negatives: 0,
+                positive_fixtures: compiled
+                    .conformance_fixtures()
+                    .iter()
+                    .filter(|fixture| fixture.kind == SemanticPackV1FixtureKind::Positive)
+                    .count(),
+                hard_negatives: compiled
+                    .conformance_fixtures()
+                    .iter()
+                    .filter(|fixture| fixture.kind == SemanticPackV1FixtureKind::HardNegative)
+                    .count(),
             },
             api_version: Some(SEMANTIC_PACK_API_VERSION_V1),
             semantic_digest: Some(compiled.semantic_digest().to_string()),
