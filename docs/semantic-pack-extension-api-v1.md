@@ -142,6 +142,11 @@ caveats. The top-level pack entry reports selected/admitted/rejected rows plus
 admitted and influential occurrence counts. Rows with dependency blockers stay
 visible in these counts but cannot annotate a unit.
 
+The [#867 closeout receipt](../bench/semantic_pack/issue-867-locked-near-closeout-2026-07-19.v1.json)
+binds the implementation and release-binary identities, focused lock/rollback
+fixture, 9-repository no-pack parity, official-v0.19.0 semantic and near runtime
+measurements, and the zero-false-merge verify result.
+
 ## Semantic content digest
 
 v1 reports a lowercase `sha256:<64 hex digits>` digest over canonical typed
