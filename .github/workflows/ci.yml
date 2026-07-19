@@ -116,6 +116,10 @@ jobs:
           python3 bench/labels/accepted_pair_coverage.py --self-test
           python3 scripts/query-regression-harness.py --self-test
           python3 scripts/cache-query-regression.py --self-test
+          python3 scripts/cache-query-regression.py --validate-receipt \
+            bench/cache/issue-872-mutation-matrix-receipt-2026-07-20.v1.json
+          python3 scripts/cache-query-regression.py --validate-report \
+            bench/cache/issue-872-v0.19.0-vs-candidate-sympy-paired-2026-07-20.v1.json
           python3 scripts/ruby-redefinition-scaling.py --self-test
           python3 scripts/semantic-regression-summary.py --self-test
           python3 scripts/recall-loss-diff.py --self-test

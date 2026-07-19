@@ -27,6 +27,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "bench/cache/mutation-manifest.v1.json"
 DEFAULT_BASELINE = ROOT / "bench/cache/official-v0.19.0-binaries.v1.json"
 SCHEMA = "nose.cache_query_regression/v1"
+RECEIPT_SCHEMA = "nose.cache_query_regression_receipt/v1"
+COMPARISON_SCHEMA = "nose.cache_query_comparison/v1"
 MANIFEST_SCHEMA = "nose.incremental_mutation_manifest/v1"
 BASELINE_SCHEMA = "nose.official_binary_baseline/v1"
 TIME_RE = re.compile(r"\[time\]\s+([a-zA-Z0-9_+\-]+)\s+([0-9.]+)ms")
@@ -210,6 +212,14 @@ def load_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise SystemExit(f"{path}: expected a JSON object")
     return value
+
+
+def portable_path(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(ROOT).as_posix()
+    except ValueError:
+        return resolved.as_posix()
 
 
 def validate_manifests(mutation_path: Path, baseline_path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -565,7 +575,7 @@ def verify_official_binary(
         )
     return {
         "target": target,
-        "archive": archive.as_posix(),
+        "archive": portable_path(archive),
         "archive_sha256": archive_sha256,
     }
 
@@ -719,12 +729,116 @@ def validate_report_payload(report: dict[str, Any]) -> None:
         raise SystemExit("cache report summary does not match its raw rows")
 
 
+def validate_comparison_payload(report: dict[str, Any]) -> None:
+    if report.get("schema") != COMPARISON_SCHEMA or report.get("status") != "passed":
+        raise SystemExit("cache comparison must be a passed v1 report")
+    measurement = report.get("measurement")
+    workload = report.get("workload")
+    provenance = report.get("provenance")
+    runs = report.get("runs")
+    if not all(isinstance(value, dict) for value in (measurement, workload, provenance)):
+        raise SystemExit("cache comparison lacks measurement, workload, or provenance metadata")
+    if not isinstance(runs, list) or not runs:
+        raise SystemExit("cache comparison lacks raw runs")
+    if workload.get("kind") != "real" or not isinstance(workload.get("id"), str):
+        raise SystemExit("cache comparison requires one pinned real workload")
+    replays = measurement.get("replays")
+    minimum = measurement.get("minimum_replays")
+    if not isinstance(replays, int) or not isinstance(minimum, int) or replays < minimum:
+        raise SystemExit("cache comparison does not meet its minimum replay count")
+    if measurement.get("p95") != "nearest-rank":
+        raise SystemExit("cache comparison does not use nearest-rank p95")
+    if measurement.get("order") != "alternating-ab-ba":
+        raise SystemExit("cache comparison does not alternate candidate and official order")
+    require_fields(
+        provenance,
+        (
+            "candidate",
+            "official",
+            "harness_sha256",
+            "mutation_manifest_sha256",
+            "official_baseline_sha256",
+        ),
+        "cache comparison provenance",
+    )
+    for role in ("candidate", "official"):
+        identity = provenance.get(role)
+        if not isinstance(identity, dict):
+            raise SystemExit(f"cache comparison lacks {role} binary provenance")
+        require_fields(
+            identity,
+            ("binary_sha256", "binary_code_sha256", "binary_revision"),
+            f"cache comparison {role} provenance",
+        )
+        for field in ("binary_sha256", "binary_code_sha256"):
+            if re.fullmatch(r"[0-9a-f]{64}", str(identity[field])) is None:
+                raise SystemExit(f"cache comparison {role} has invalid {field}")
+        if not isinstance(identity["binary_revision"], str) or not identity["binary_revision"]:
+            raise SystemExit(f"cache comparison {role} requires a binary revision")
+    if not isinstance(provenance["official"].get("release_verification"), dict):
+        raise SystemExit("cache comparison requires verified official release provenance")
+    for field in (
+        "harness_sha256",
+        "mutation_manifest_sha256",
+        "official_baseline_sha256",
+    ):
+        if re.fullmatch(r"[0-9a-f]{64}", str(provenance[field])) is None:
+            raise SystemExit(f"cache comparison provenance has invalid {field}")
+
+    expected_phases = {"clean-after", "empty-store-after", "history-after"}
+    workload_id = workload["id"]
+    if len(runs) != replays * len(expected_phases) * 2:
+        raise SystemExit("cache comparison has an incomplete raw replay matrix")
+    equivalence: dict[str, bool] = {}
+    for role in ("candidate", "official"):
+        selected = [row for row in runs if row.get("binary_role") == role]
+        if len(selected) != replays * len(expected_phases):
+            raise SystemExit(f"cache comparison has incomplete {role} rows")
+        role_equivalent = True
+        for replay in range(1, replays + 1):
+            replay_rows = [row for row in selected if row.get("replay") == replay]
+            by_phase = {row.get("phase"): row for row in replay_rows}
+            if set(by_phase) != expected_phases:
+                raise SystemExit(f"cache comparison {role} replay {replay}: incomplete phases")
+            expected_first = "candidate" if replay % 2 else "official"
+            for phase, row in by_phase.items():
+                if row.get("workload_id") != workload_id:
+                    raise SystemExit(f"cache comparison {role} replay {replay}: wrong workload")
+                if row.get("first_role") != expected_first:
+                    raise SystemExit(f"cache comparison replay {replay}: wrong execution order")
+                require_fields(
+                    row,
+                    ("elapsed_ms", "peak_rss_bytes", "output_sha256", "stages_ms", "store"),
+                    f"cache comparison {role} replay {replay} {phase}",
+                )
+                if role == "candidate" and phase != "clean-after" and not isinstance(
+                    row.get("cache"), dict
+                ):
+                    raise SystemExit(
+                        f"cache comparison candidate replay {replay} {phase}: missing cache stats"
+                    )
+            clean_hash = by_phase["clean-after"]["output_sha256"]
+            role_equivalent &= by_phase["empty-store-after"]["output_sha256"] == clean_hash
+            role_equivalent &= by_phase["history-after"]["output_sha256"] == clean_hash
+        equivalence[role] = role_equivalent
+    if report.get("equivalence") != equivalence or not all(equivalence.values()):
+        raise SystemExit("cache comparison equivalence summary does not match its raw rows")
+    expected_summary = {
+        role: summarize([row for row in runs if row.get("binary_role") == role])
+        for role in ("candidate", "official")
+    }
+    if report.get("summary") != expected_summary:
+        raise SystemExit("cache comparison summary does not match its raw rows")
+
+
 def validate_report(path: Path) -> None:
     report = load_json(path)
-    validate_report_payload(report)
+    if report.get("schema") == COMPARISON_SCHEMA:
+        validate_comparison_payload(report)
+    else:
+        validate_report_payload(report)
     provenance = report["provenance"]
     current = {
-        "harness_sha256": sha256_file(Path(__file__)),
         "mutation_manifest_sha256": sha256_file(DEFAULT_MANIFEST),
         "official_baseline_sha256": sha256_file(DEFAULT_BASELINE),
     }
@@ -734,6 +848,237 @@ def validate_report(path: Path) -> None:
                 f"{path}: {field} does not match the checked benchmark contract"
             )
     print(f"cache query regression report validated ({report['status']}): {path}")
+
+
+def write_receipt(report_path: Path, output_path: Path) -> None:
+    report = load_json(report_path)
+    validate_report_payload(report)
+    if report.get("status") != "passed" or report.get("workload", {}).get("kind") != "fixture-matrix":
+        raise SystemExit("a checked receipt requires a passed fixture-matrix report")
+    raw_bytes = report_path.read_bytes()
+    receipt = {key: value for key, value in report.items() if key not in {"schema", "runs"}}
+    receipt.update(
+        {
+            "schema": RECEIPT_SCHEMA,
+            "report_schema": SCHEMA,
+            "raw_report": {
+                "sha256": hashlib.sha256(raw_bytes).hexdigest(),
+                "bytes": len(raw_bytes),
+                "rows": len(report["runs"]),
+                "retention": "local-target; regenerate with the checked harness",
+            },
+        }
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+
+def validate_receipt(path: Path) -> None:
+    receipt = load_json(path)
+    if (
+        receipt.get("schema") != RECEIPT_SCHEMA
+        or receipt.get("report_schema") != SCHEMA
+        or receipt.get("status") != "passed"
+    ):
+        raise SystemExit(f"{path}: expected a passed cache-regression receipt")
+    workload = receipt.get("workload")
+    measurement = receipt.get("measurement")
+    raw = receipt.get("raw_report")
+    provenance = receipt.get("provenance")
+    if not all(isinstance(value, dict) for value in (workload, measurement, raw, provenance)):
+        raise SystemExit(f"{path}: incomplete receipt metadata")
+    if workload != {"kind": "fixture-matrix", "ids": sorted(EXECUTABLE_CASES)}:
+        raise SystemExit(f"{path}: incomplete fixture matrix")
+    replays = measurement.get("replays")
+    minimum = measurement.get("minimum_replays")
+    if not isinstance(replays, int) or not isinstance(minimum, int) or replays < minimum:
+        raise SystemExit(f"{path}: insufficient receipt replays")
+    if raw.get("rows") != len(EXECUTABLE_CASES) * replays * 5:
+        raise SystemExit(f"{path}: raw row count does not cover the matrix")
+    if not isinstance(raw.get("bytes"), int) or raw["bytes"] <= 0:
+        raise SystemExit(f"{path}: invalid raw report size")
+    if re.fullmatch(r"[0-9a-f]{64}", str(raw.get("sha256"))) is None:
+        raise SystemExit(f"{path}: invalid raw report seal")
+    current = {
+        "mutation_manifest_sha256": sha256_file(DEFAULT_MANIFEST),
+        "official_baseline_sha256": sha256_file(DEFAULT_BASELINE),
+    }
+    for field, expected in current.items():
+        if provenance.get(field) != expected:
+            raise SystemExit(f"{path}: {field} does not match the checked contract")
+    if receipt.get("equivalence") != {
+        "seed_clean_equals_empty_store": True,
+        "after_clean_equals_empty_store": True,
+        "after_clean_equals_history_store": True,
+    }:
+        raise SystemExit(f"{path}: receipt does not prove cache equivalence")
+    identities = receipt.get("source_identity")
+    summary = receipt.get("summary")
+    if not isinstance(identities, dict) or set(identities) != EXECUTABLE_CASES:
+        raise SystemExit(f"{path}: incomplete source identities")
+    if not isinstance(summary, dict) or set(summary) != EXECUTABLE_CASES:
+        raise SystemExit(f"{path}: incomplete fixture summaries")
+    phases = {
+        "clean-seed",
+        "empty-store-seed",
+        "clean-after",
+        "empty-store-after",
+        "history-after",
+    }
+    for case, case_summary in summary.items():
+        if not isinstance(case_summary, dict) or set(case_summary) != phases:
+            raise SystemExit(f"{path}: {case} has incomplete phase summaries")
+        seed_hashes = {
+            tuple(case_summary[phase].get("output_sha256", []))
+            for phase in ("clean-seed", "empty-store-seed")
+        }
+        after_hashes = {
+            tuple(case_summary[phase].get("output_sha256", []))
+            for phase in ("clean-after", "empty-store-after", "history-after")
+        }
+        if len(seed_hashes) != 1 or len(after_hashes) != 1:
+            raise SystemExit(f"{path}: {case} output identities are inconsistent")
+        for phase, phase_summary in case_summary.items():
+            require_fields(
+                phase_summary,
+                ("elapsed_ms", "peak_rss_bytes", "stages_ms", "output_sha256"),
+                f"{path}: {case} {phase}",
+            )
+            if not phase_summary["stages_ms"]:
+                raise SystemExit(f"{path}: {case} {phase} lacks stage timing")
+    print(f"cache query regression receipt validated: {path}")
+
+
+def run_paired_comparison(
+    args: argparse.Namespace,
+    manifest: dict[str, Any],
+    baseline: dict[str, Any],
+    candidate: Path,
+    workspace: Path,
+) -> None:
+    if args.root is None:
+        raise SystemExit("--compare-official-binary requires --root")
+    if not args.compare_official_revision:
+        raise SystemExit("--compare-official-revision is required for paired evidence")
+    if args.official_target is None or args.official_archive is None:
+        raise SystemExit(
+            "--compare-official-binary requires --official-target and --official-archive"
+        )
+    official = args.compare_official_binary.resolve()
+    if not official.is_file():
+        raise SystemExit(f"missing official binary: {official}")
+    official_verification = verify_official_binary(
+        official,
+        args.official_archive.resolve(),
+        args.official_target,
+        baseline,
+    )
+    repo = args.root.resolve()
+    if not repo.is_dir():
+        raise SystemExit(f"missing repository: {repo}")
+    workload_id = args.label or repo.name
+    expected = next(
+        (
+            row["commit"]
+            for row in manifest["workloads"]["real"]
+            if row["id"] == workload_id
+        ),
+        None,
+    )
+    if expected is None:
+        raise SystemExit(f"{workload_id}: repository is not pinned by the mutation manifest")
+    observed = repository_head(repo)
+    if observed != expected:
+        raise SystemExit(
+            f"{workload_id}: repository HEAD {observed} does not match {expected}"
+        )
+
+    binaries = {"candidate": candidate, "official": official}
+    rows: list[dict[str, Any]] = []
+    equivalence = {"candidate": True, "official": True}
+    for replay in range(1, args.replays + 1):
+        first_role = "candidate" if replay % 2 else "official"
+        second_role = "official" if first_role == "candidate" else "candidate"
+        for role in (first_role, second_role):
+            replay_rows, cold_equal, warm_equal = run_noop_replay(
+                binaries[role],
+                workspace / role,
+                repo,
+                replay,
+                require_cache_stats=role == "candidate",
+            )
+            if not cold_equal:
+                raise SystemExit(f"{role} cold no-op replay {replay}: output mismatch")
+            if not warm_equal:
+                raise SystemExit(f"{role} warm no-op replay {replay}: output mismatch")
+            equivalence[role] &= cold_equal and warm_equal
+            for row in replay_rows:
+                row.update(
+                    {
+                        "binary_role": role,
+                        "first_role": first_role,
+                        "workload_id": workload_id,
+                    }
+                )
+            rows.extend(replay_rows)
+
+    candidate_identity = binary_identity(candidate)
+    official_identity = binary_identity(official)
+    output = {
+        "schema": COMPARISON_SCHEMA,
+        "status": "passed",
+        "workload": {
+            "kind": "real",
+            "id": workload_id,
+            "path": portable_path(repo),
+            "commit": observed,
+        },
+        "measurement": {
+            "replays": args.replays,
+            "minimum_replays": manifest["minimum_replays"],
+            "p95": "nearest-rank",
+            "order": "alternating-ab-ba",
+            "cache_stats_required": {"candidate": True, "official": False},
+        },
+        "provenance": {
+            "candidate": {
+                "binary": portable_path(candidate),
+                "binary_sha256": candidate_identity.file_sha256,
+                "binary_code_sha256": candidate_identity.code_sha256,
+                "binary_code_sha256_algorithm": candidate_identity.code_sha256_algorithm,
+                "binary_revision": args.binary_revision,
+            },
+            "official": {
+                "binary": portable_path(official),
+                "binary_sha256": official_identity.file_sha256,
+                "binary_code_sha256": official_identity.code_sha256,
+                "binary_code_sha256_algorithm": official_identity.code_sha256_algorithm,
+                "binary_revision": args.compare_official_revision,
+                "release_verification": official_verification,
+            },
+            "harness": "scripts/cache-query-regression.py",
+            "harness_sha256": sha256_file(Path(__file__)),
+            "mutation_manifest": portable_path(args.manifest),
+            "mutation_manifest_sha256": sha256_file(args.manifest),
+            "official_baseline": portable_path(args.official_baseline),
+            "official_baseline_sha256": sha256_file(args.official_baseline),
+        },
+        "source_identity": source_identity(repo),
+        "equivalence": equivalence,
+        "environment": measurement_environment(),
+        "runs": rows,
+        "summary": {
+            role: summarize([row for row in rows if row["binary_role"] == role])
+            for role in ("candidate", "official")
+        },
+    }
+    validate_comparison_payload(output)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(
+        json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def measurement_environment() -> dict[str, Any]:
@@ -784,10 +1129,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--official-baseline", type=Path, default=DEFAULT_BASELINE)
     parser.add_argument("--official-target")
     parser.add_argument("--official-archive", type=Path)
+    parser.add_argument("--compare-official-binary", type=Path)
+    parser.add_argument("--compare-official-revision")
     parser.add_argument("--binary-revision")
     parser.add_argument("--work-dir", type=Path, default=ROOT / "target/cache-query-regression")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--validate-report", type=Path)
+    parser.add_argument("--write-receipt", type=Path)
+    parser.add_argument("--validate-receipt", type=Path)
     parser.add_argument("--self-test", action="store_true")
     return parser.parse_args()
 
@@ -799,6 +1148,14 @@ def main() -> int:
         return 0
     if args.validate_report is not None:
         validate_report(args.validate_report.resolve())
+        return 0
+    if args.write_receipt is not None:
+        if args.output is None:
+            raise SystemExit("--write-receipt requires --output")
+        write_receipt(args.write_receipt.resolve(), args.output.resolve())
+        return 0
+    if args.validate_receipt is not None:
+        validate_receipt(args.validate_receipt.resolve())
         return 0
     if args.binary is None or args.output is None:
         raise SystemExit("--binary and --output are required")
@@ -815,9 +1172,17 @@ def main() -> int:
         raise SystemExit(f"missing binary: {binary}")
     if not args.binary_revision:
         raise SystemExit("--binary-revision is required for reproducible evidence")
-    official_release_verification = None
     if (args.official_target is None) != (args.official_archive is None):
         raise SystemExit("--official-target and --official-archive must be provided together")
+    if args.output.exists():
+        args.output.unlink()
+    workspace = args.work_dir.resolve()
+    workspace.mkdir(parents=True, exist_ok=True)
+    if args.compare_official_binary is not None:
+        run_paired_comparison(args, manifest, baseline, binary, workspace)
+        return 0
+
+    official_release_verification = None
     if args.official_target is not None:
         official_release_verification = verify_official_binary(
             binary,
@@ -831,10 +1196,6 @@ def main() -> int:
         raise SystemExit(
             "--characterize-equivalence-failures requires a verified official binary and --root"
         )
-    if args.output.exists():
-        args.output.unlink()
-    workspace = args.work_dir.resolve()
-    workspace.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, Any]] = []
     cold_equivalent = True
     history_equivalent = True
@@ -888,7 +1249,7 @@ def main() -> int:
             workload = {
                 "kind": "real",
                 "id": workload_id,
-                "path": repo.as_posix(),
+                "path": portable_path(repo),
                 "commit": observed,
             }
         else:
@@ -928,16 +1289,16 @@ def main() -> int:
             "characterization_only": args.characterize_equivalence_failures,
         },
         "provenance": {
-            "binary": binary.as_posix(),
+            "binary": portable_path(binary),
             "binary_sha256": identity.file_sha256,
             "binary_code_sha256": identity.code_sha256,
             "binary_code_sha256_algorithm": identity.code_sha256_algorithm,
             "binary_revision": args.binary_revision,
             "harness": "scripts/cache-query-regression.py",
             "harness_sha256": sha256_file(Path(__file__)),
-            "mutation_manifest": args.manifest.as_posix(),
+            "mutation_manifest": portable_path(args.manifest),
             "mutation_manifest_sha256": sha256_file(args.manifest),
-            "official_baseline": args.official_baseline.as_posix(),
+            "official_baseline": portable_path(args.official_baseline),
             "official_baseline_sha256": sha256_file(args.official_baseline),
             "official_release_verification": official_release_verification,
         },

@@ -19,9 +19,10 @@ fixture, failed mutation, non-zero query, malformed JSON, absent measurement, or
 makes the replay fail; it never becomes a skipped success.
 
 Cross-version performance comparisons are different: version/schema fields may intentionally
-change, so the published-release comparison uses the documented semantic projection while a
-same-binary control prices noise. The mutation manifest fixes the source and output identity
-algorithms.
+change, so stdout is not compared between releases. Instead, each binary must independently
+prove clean/empty-store/history-store equality on the same pinned checkout. The paired runner
+alternates candidate-first and official-first replays to price machine noise fairly. The
+mutation manifest fixes the source and output identity algorithms.
 
 ## Published v0.19.0 baseline
 
@@ -34,6 +35,47 @@ The same manifest binds the already checked 120-repository release evidence: est
 semantic `28,964.56 ms` and expanded default `36,159.03 ms`, each with one warmup and three
 alternating iterations. Later clean-scan comparisons retain the epic's 5% limit and use a
 same-binary control before attributing a regression.
+
+## Checked #872 evidence
+
+The checked
+[`issue-872-v0.19.0-vs-candidate-sympy-paired-2026-07-20.v1.json`](../bench/cache/issue-872-v0.19.0-vs-candidate-sympy-paired-2026-07-20.v1.json)
+contains all 180 raw rows from 30 alternating AB/BA replays on the pinned SymPy checkout. The
+official executable came from the verified `aarch64-apple-darwin` v0.19.0 archive at commit
+`0985e696`; the candidate is commit `2ac8b411`. Both roles independently passed exact
+clean/cold/warm output equivalence.
+
+| Phase | Official p50 / p95 | Candidate p50 / p95 | Candidate delta p50 / p95 |
+| --- | ---: | ---: | ---: |
+| Clean | 1081.86 / 1124.18 ms | 1075.26 / 1127.46 ms | -0.61% / +0.29% |
+| Empty store | 1128.42 / 1192.17 ms | 1120.79 / 1182.97 ms | -0.68% / -0.77% |
+| Warm store | 690.65 / 758.04 ms | 702.69 / 757.30 ms | +1.74% / -0.10% |
+
+This is the locked baseline, not a claim that the current cache is already instant. On the
+candidate's warm run all 1,584 inputs hit, but the p50 cache stage still takes 48.3 ms, the
+store is 379,910,220 bytes, and total p50 remains 702.69 ms because most global work is repeated.
+
+The checked
+[`issue-872-mutation-matrix-receipt-2026-07-20.v1.json`](../bench/cache/issue-872-mutation-matrix-receipt-2026-07-20.v1.json)
+seals the complete 2,100-row raw matrix by SHA-256 while retaining every summary and source
+identity in the repository. All 14 executable mutations passed 30 replays. Representative warm
+hit/miss closures are no-op `3/0`, leaf edit `2/1`, provider export edit `1/2`, high fan-out
+`1/33`, Swift global barrier `0/3`, and same-size/restored-mtime edit `3/1`. The 2,668,770-byte
+raw report stays under `target/` and is reproducible from the receipt instead of being duplicated
+in the repository.
+
+The deterministic scale tiers also pass exact clean/cold/warm equivalence. These are one-replay
+capacity smokes, deliberately not p50/p95 acceptance evidence:
+
+| Files | Clean | Empty store | Warm store | Store | Warm peak RSS |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1,000 | 37.40 ms | 74.30 ms | 40.73 ms | 6.46 MiB | 23.75 MiB |
+| 10,000 | 256.99 ms | 707.71 ms | 320.34 ms | 64.65 MiB | 151.45 MiB |
+| 100,000 | 2732.10 ms | 7294.07 ms | 3699.44 ms | 646.87 MiB | 1372.92 MiB |
+
+The 100k numbers make the next engineering constraint explicit: #873 and its successors must
+reduce both repeated global work and the roughly linear serialized-store footprint. A scheduled
+30-replay 100k run remains release evidence; it does not belong in ordinary PR CI.
 
 ## What the current cache actually reuses
 
@@ -65,7 +107,9 @@ Each mutation replay has two revisions and five subprocesses:
 read, and bytes written; the harness also measures recursive regular-file store bytes and peak
 RSS for each subprocess. Report summaries use the ordinary median and nearest-rank p95
 (`ceil(0.95 * n)`, one-indexed) over at least 30 successful replays. Raw rows remain in the
-artifact; p50/p95 never replace them.
+artifact; p50/p95 never replace them. A checked receipt may seal a large local raw report while
+retaining its hash, byte size, row count, provenance, identities, equivalence, and complete
+summaries.
 
 ## Workloads and mutation closure
 
@@ -100,12 +144,26 @@ python3 scripts/cache-query-regression.py \
   --output target/cache-mutation-matrix.json
 python3 scripts/cache-query-regression.py \
   --validate-report target/cache-mutation-matrix.json
+python3 scripts/cache-query-regression.py \
+  --write-receipt target/cache-mutation-matrix.json \
+  --output target/cache-mutation-matrix-receipt.json
 ```
 
-For a pinned real workload, use `--root bench/repos/sympy --label sympy`. For the published
-baseline, additionally pass the downloaded archive with `--official-archive`, its platform with
-`--official-target`, `--no-require-cache-stats`, and
-`--characterize-equivalence-failures`. The harness verifies both archive and executable
-checksums against the checked manifest before starting any measurement. A release-cache
-mismatch remains `failed-equivalence`; the mode preserves its performance rows but never labels
-the run as passed.
+For the paired published-release comparison, use the same candidate arguments plus the pinned
+real workload and verified official executable:
+
+```sh
+python3 scripts/cache-query-regression.py \
+  --binary target/release/nose --binary-revision "$REVISION" \
+  --compare-official-binary target/v0.19.0/nose \
+  --compare-official-revision 0985e6963c58d5a97e523bc532b88aa5e34f2ef9 \
+  --official-target aarch64-apple-darwin \
+  --official-archive target/v0.19.0/nose-cli-aarch64-apple-darwin.tar.xz \
+  --root bench/repos/sympy --label sympy --replays 30 \
+  --output target/cache-sympy-paired.json
+```
+
+The harness verifies both official archive and executable checksums before starting. It gives
+the two binaries separate stores, alternates their order on every replay, and requires exact
+same-binary equivalence. A failed phase or missing cache evidence never produces an output
+artifact.
