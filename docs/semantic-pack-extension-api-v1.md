@@ -1,7 +1,8 @@
 # Typed semantic pack influence manifest v1
 
-Status: implemented typed manifest, deterministic compiler, and content-pinned
-project authorization. Influence is not enabled yet.
+Status: implemented typed manifest, deterministic compiler, content-pinned
+project authorization, and kernel-owned dependency/occurrence evidence index.
+Influence is not enabled yet.
 `nose.semantic-pack.v0` remains permanently metadata-only.
 
 ## Purpose
@@ -9,10 +10,12 @@ project authorization. Influence is not enabled yet.
 v1 is the first semantic-pack format that nose can interpret without executing
 provider code. It replaces v0's opaque `surface` and `semantics` JSON with a
 small closed grammar. Loading a v1 file validates and compiles that grammar
-before analysis starts. A validated project lock can now pin and authorize rows,
-channels, dependency files, and an optional receipt, but the compiled rows still
-have `metadata-only` influence until dependency/occurrence evidence and
-lane-specific consumers are implemented.
+before analysis starts. A validated project lock pins and authorizes rows,
+channels, dependency files, and an optional receipt. During a locked query nose
+can now read the pinned Maven inputs and bind selected rows to builtin Java
+import/symbol/receiver/effect facts. The resulting index is intentionally not
+consumed by detection yet, so compiled rows still have `metadata-only`
+influence until lane-specific consumers are implemented.
 
 The schema is [semantic-pack-v1.schema.json](schemas/semantic-pack-v1.schema.json).
 The [Guava example](examples/semantic-packs/v1/guava-immutable-collections.json)
@@ -70,10 +73,51 @@ compilation. Duplicate ids, duplicate package coordinates, duplicate exact
 contract coordinates plus arity, invalid cross-field combinations, and
 out-of-range arities fail before analysis.
 
-The indexes are deliberately not read by normalize, fingerprint, exact, near,
-or detection consumers in this change. v1 summary rows therefore report
+The compiled contract indexes are read only by the dependency/occurrence index
+builder. That evidence index is deliberately not read by normalize,
+fingerprint, exact, near, or detection consumers in this change. v1 summary rows therefore report
 `source: local-manifest` and `influence: metadata-only`, just like v0, while
 also reporting their API version and semantic digest.
+
+## Locked dependency and occurrence evidence
+
+Evidence construction runs once per query after builtin lowering. It is
+available only when a validated `nose.semantic-pack-lock.v1` authorizes the row
+and its requested lane; loading the same manifest without a lock produces no
+row or occurrence evidence.
+
+The first dependency reader accepts checked-in Maven POM XML only. It reads
+top-level direct dependencies, top-level `dependencyManagement` versions, and
+bounded `${property}` references from the project, parent coordinate, and
+top-level `properties`. Profiles, plugins, external entities, unresolved
+environment/system properties, Maven version ranges, snapshots, release
+aliases, malformed XML, and files over the resource cap do not produce facts.
+The Guava distribution suffixes `-jre` and `-android` are matched by their
+three-component release version; other prerelease qualifiers stay closed. The
+reader rechecks each locked content digest and never invokes Maven, a registry,
+a build tool, an installer, provider code, or the network.
+
+For an in-range unique dependency, the Java matcher supports two exact source
+forms:
+
+- an explicit type import followed by a qualified static call such as
+  `ImmutableList.of(...)`;
+- an explicit static-member import followed by a free call such as `of(...)`.
+
+Every admitted occurrence records the dependency fact id, binding import id,
+symbol proof id, receiver span/proof when the contract has an imported-type
+receiver, and any builtin effect, call-target, domain, and place ids already
+anchored to the call. These are references to existing kernel/frontend facts,
+not provider-emitted IL. Exact package/module/member, arity, binding visibility,
+and dependency liveness are checked. Wildcards, wrong-package or same-name local
+APIs, shadowed/rebound bindings, conflicting or ambiguous versions, missing or
+out-of-range dependencies, unsupported receiver dispatch, and evidence-broken
+records produce no occurrence.
+
+The index exposes deterministic row and dependency summaries plus lookup by row
+or exact call span. Its collections are immutable after construction, it uses no
+global registry, and its ids are query-local. Merely building it does not emit
+IL evidence, change a family, or authorize either lane.
 
 ## Semantic content digest
 
@@ -96,7 +140,7 @@ being locked.
 
 ## Reporting and current limits
 
-`nose capabilities` schema v5 lists both `nose.semantic-pack.v0` and
+`nose capabilities` schema v6 lists both `nose.semantic-pack.v0` and
 `nose.semantic-pack.v1`. `nose semantic-pack compatibility` lists the same
 accepted versions. Query semantic-pack summaries conditionally add
 `api_version`; v1 also adds `semantic_digest`. Compiled builtin summaries keep
@@ -114,7 +158,6 @@ cross-pack coordinates independent of load order.
 
 The following work remains outside this slice:
 
-- dependency/version readers and occurrence evidence;
 - near consumers and the separate external-claim exact lane;
 - source-analyzing conformance receipts and a real external reference pack.
 

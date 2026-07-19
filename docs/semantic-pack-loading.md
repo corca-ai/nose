@@ -215,10 +215,13 @@ Trust is separate from channel eligibility.
 `nose query --format json` validates configured and CLI-provided semantic-pack
 paths before analysis and reports the active builtin/local pack set in the
 top-level `semantic_packs` array. Local external packs remain metadata-only
-while builtin compiled packs report `evidence-and-contracts` influence. External
-producer, contract, and value-law rows are available to the loaded pack set for
-future conflict checks and adoption gates, but they are not serialized into
-clone-family law provenance and do not affect analysis. Builtin pack order in
+while builtin compiled packs report `evidence-and-contracts` influence. A
+validated v1 project lock additionally builds a query-local, immutable Maven
+dependency and Java occurrence-evidence index from content-pinned inputs and
+builtin frontend facts. External producer, contract, and value-law rows are
+available to the loaded pack set for future conflict checks and adoption gates,
+but neither those rows nor the evidence index are serialized into clone-family
+law provenance or consumed by detection yet. Builtin pack order in
 this array follows the compiled registry's stable reporting order; roadmap and
 snapshot prose may group packs by migration narrative instead.
 
@@ -229,12 +232,14 @@ producer, contract, and value-law declarations as data-only rows, can report
 row-id conflicts with builtin or other external rows, and can run a data-only
 influence preflight report. It also validates fixed call result-domain
 declarations in `semantics.result_domain` against the known domain vocabulary
-and requires required `LibraryApi.Contract` evidence for those rows. Today that
-preflight blocks all external rows until dependency-backed occurrence evidence
-and lane consumers exist. A project lock now supplies explicit content/row/lane
-authorization and rejects semantic-coordinate conflicts before analysis, but it
-does not itself produce occurrence evidence or influence. Exact-capable rows also
-remain blocked until they have passed declarative executable conformance.
+and requires required `LibraryApi.Contract` evidence for those rows. The v0
+preflight still blocks opaque external rows. For locked typed v1 rows, a
+kernel-owned Maven reader and Java matcher now produce dependency-backed
+occurrence facts, while lane consumers remain unavailable. A project lock
+supplies explicit content/row/lane authorization and rejects
+semantic-coordinate conflicts before analysis; its evidence index alone cannot
+influence a result. Exact-capable rows also remain blocked until they have passed
+declarative executable conformance.
 `nose semantic-pack check --format json` exposes that row-level preflight to
 providers and integrations, but query, normalize, value-graph, exact, and
 detection consumers do not read it. It does not yet:

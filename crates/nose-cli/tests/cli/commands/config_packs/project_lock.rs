@@ -53,7 +53,7 @@ fn lock_and_status_commands_report_the_same_valid_local_decision() {
     );
     assert_eq!(created_json["influence"], "metadata-only");
     assert_eq!(created_json["totals"]["packs"], 1);
-    assert_eq!(created_json["totals"]["selected_rows"], 2);
+    assert_eq!(created_json["totals"]["selected_rows"], 3);
     assert_eq!(created_json["totals"]["conflicts"], 0);
     assert_eq!(created_json["dependencies"][0]["path"], "pom.xml");
 
@@ -115,7 +115,7 @@ fn locked_query_reports_authorization_but_keeps_families_unchanged() {
         pack["lock"]["allowed_channels"],
         serde_json::json!(["near"])
     );
-    assert_eq!(pack["lock"]["selected_rows"].as_array().unwrap().len(), 2);
+    assert_eq!(pack["lock"]["selected_rows"].as_array().unwrap().len(), 3);
     assert_eq!(pack["lock"]["dependencies"][0]["path"], "pom.xml");
 }
 

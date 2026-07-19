@@ -22,6 +22,7 @@ pub(super) struct QueryDataset {
     pub(super) scope: QueryScope,
     pub(super) settings: QuerySettings,
     pub(super) semantic_packs: nose_semantics::SemanticPackSet,
+    pub(super) _semantic_pack_evidence: nose_semantics::SemanticPackEvidenceIndex,
     pub(super) reinvented: Vec<nose_detect::ReinventedHelper>,
     pub(super) opts: nose_detect::DetectOptions,
 }
@@ -33,8 +34,14 @@ pub(super) fn build_query_dataset(
     let (settings, semantic_packs) = resolve_query_settings(args)?;
     let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
     let detector = detection_engine(settings.channels, &opts);
-    let (mut report, scope) =
-        query_detect_report(args, refs, &settings.exclude, &opts, detector.as_ref());
+    let (mut report, scope, semantic_pack_evidence) = query_detect_report(
+        args,
+        refs,
+        &settings.exclude,
+        &opts,
+        detector.as_ref(),
+        &semantic_packs,
+    );
 
     let mut families = time_stage("rank_families", || nose_detect::rank_families(&report));
     preserve_query_accepted_coverage(&mut families);
@@ -82,6 +89,7 @@ pub(super) fn build_query_dataset(
         scope,
         settings,
         semantic_packs,
+        _semantic_pack_evidence: semantic_pack_evidence,
         reinvented,
         opts,
     })
@@ -200,7 +208,12 @@ fn query_detect_report(
     exclude: &[String],
     opts: &nose_detect::DetectOptions,
     detector: &dyn nose_detect::Detector,
-) -> (nose_detect::Report, QueryScope) {
+    semantic_packs: &nose_semantics::SemanticPackSet,
+) -> (
+    nose_detect::Report,
+    QueryScope,
+    nose_semantics::SemanticPackEvidenceIndex,
+) {
     if let Some(dir) = &args.cache_dir {
         // Lower AND cross-file-resolve the corpus every run (the smaller half of
         // the work, §BQ), then cache only the dominant normalize+extract step
@@ -209,6 +222,8 @@ fn query_detect_report(
         // (#275), which the old per-file source-content cache skipped.
         let corpus = time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude));
         let scope = QueryScope::from_corpus(&corpus);
+        let semantic_pack_evidence =
+            nose_semantics::SemanticPackEvidenceIndex::build(semantic_packs, &corpus);
         let cache::CachedUnits {
             units,
             streams,
@@ -218,14 +233,14 @@ fn query_detect_report(
             units, files, &streams, opts, detector,
         )
         .0;
-        (report, scope)
+        (report, scope, semantic_pack_evidence)
     } else {
         let corpus = time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude));
         let scope = QueryScope::from_corpus(&corpus);
-        (
-            nose_detect::detect_with_accepted_coverage(&corpus, opts, detector),
-            scope,
-        )
+        let semantic_pack_evidence =
+            nose_semantics::SemanticPackEvidenceIndex::build(semantic_packs, &corpus);
+        let report = nose_detect::detect_with_accepted_coverage(&corpus, opts, detector);
+        (report, scope, semantic_pack_evidence)
     }
 }
 

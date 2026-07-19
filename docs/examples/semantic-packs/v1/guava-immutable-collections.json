@@ -6,7 +6,7 @@
     "kind": "LibraryPack",
     "version": "1.0.0",
     "display_name": "Typed Guava immutable collection factories",
-    "description": "Typed v1 compiler example. It compiles to metadata and immutable indexes but does not influence analysis without later lock and evidence work.",
+    "description": "Typed v1 example. A project lock can build immutable occurrence evidence, but no lane consumes it yet and the pack remains metadata-only.",
     "trust": "external-opt-in",
     "enabled_by_default": false
   },
@@ -57,6 +57,41 @@
             "max": 12
           },
           "receiver": "imported-type"
+        },
+        "operation": "collection-factory",
+        "result_domain": "collection",
+        "profiles": {
+          "demand": "eager",
+          "effects": "pure",
+          "exceptions": "may-throw",
+          "mutation": "none",
+          "identity": "fresh"
+        },
+        "channel": "near"
+      },
+      {
+        "id": "java.guava.immutable-list.static-of",
+        "language": "java",
+        "package": {
+          "ecosystem": "maven",
+          "name": "com.google.guava:guava"
+        },
+        "anchor": "call-node",
+        "matcher": "imported-api",
+        "import": {
+          "role": "static-member",
+          "module": "com.google.common.collect.ImmutableList",
+          "name": "of"
+        },
+        "call": {
+          "shape": "free-function",
+          "member": "of",
+          "arity": {
+            "kind": "range",
+            "min": 0,
+            "max": 12
+          },
+          "receiver": "none"
         },
         "operation": "collection-factory",
         "result_domain": "collection",

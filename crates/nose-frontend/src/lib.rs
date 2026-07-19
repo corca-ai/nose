@@ -24,6 +24,8 @@ mod type_domain_aliases;
 
 #[cfg(test)]
 mod corpus_tests;
+#[cfg(test)]
+mod semantic_pack_evidence_tests;
 
 pub use coverage::{coverage, raw_node_surface, CoverageReport, RawSurface};
 pub use declaration_facts::{declaration_facts, DeclarationFacts};

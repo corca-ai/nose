@@ -106,6 +106,7 @@ use std::path::PathBuf;
 
 mod compiled;
 mod conformance;
+mod evidence_index;
 mod external;
 mod loading;
 mod lock;
@@ -124,6 +125,11 @@ pub use conformance::{
     SemanticPackExecutableConformanceCheck, SemanticPackExecutableConformanceIssue,
     SemanticPackExecutableOracle, SemanticPackFixtureCheck, SemanticPackFixtureIssue,
     SemanticPackFixtureKind,
+};
+pub use evidence_index::{
+    SemanticPackDependencyEvidence, SemanticPackDependencyEvidenceId, SemanticPackDependencySource,
+    SemanticPackEvidenceBlocker, SemanticPackEvidenceIndex, SemanticPackEvidenceRow,
+    SemanticPackOccurrenceEvidence,
 };
 pub use external::{
     ExternalContractRow, ExternalEvidenceProducerRow, ExternalInfluenceBlocker,

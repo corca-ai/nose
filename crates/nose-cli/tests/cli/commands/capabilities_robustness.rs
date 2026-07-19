@@ -124,6 +124,10 @@ fn capabilities_command_reports_query_surface() {
     );
     assert_eq!(json["query"]["capabilities"]["semantic_pack_loading"], true);
     assert_eq!(
+        json["query"]["capabilities"]["semantic_pack_dependency_evidence"],
+        true
+    );
+    assert_eq!(
         json["query"]["capabilities"]["semantic_pack_project_lock"],
         true
     );

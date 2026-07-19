@@ -423,6 +423,10 @@ previous semantic-kernel tranches.
    `nose.semantic-pack-lock.v1` project lock: it content-pins typed v1 rows,
    channels, dependency inputs, and optional receipts, rejects path escapes and
    overlapping coordinates, and still opens no analysis influence by itself.
+   The next completed boundary is a query-local immutable evidence index: a
+   bounded kernel Maven reader connects pinned dependency versions to builtin
+   Java import/symbol/receiver/effect facts, but no lane consumes those facts
+   yet.
 8. **Phase 7, adoption gates:** define `external-opt-in -> builtin-optional` and
    `builtin-optional -> builtin-default` promotion criteria, rollback behavior,
    corpus regression, docs, and performance budgets.
@@ -440,8 +444,9 @@ previous semantic-kernel tranches.
 - [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md) defines
   the versioned external schema boundary.
 - [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md) defines
-  the first closed typed declaration compiler; its rows remain non-influential
-  until the external trust and evidence lanes are complete.
+  the first closed typed declaration compiler and locked occurrence-evidence
+  index; its rows remain non-influential until the external trust lanes are
+  complete.
 - [semantic-pack-loading](semantic-pack-loading.md) describes manifest loading
   and the current metadata-only external behavior.
 - [semantic-pack-project-lock](semantic-pack-project-lock.md) defines the
