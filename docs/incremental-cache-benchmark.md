@@ -75,6 +75,14 @@ The 100k numbers make the next engineering constraint explicit: #873 and its suc
 reduce both repeated global work and the roughly linear serialized-store footprint. A scheduled
 30-replay 100k run remains release evidence; it does not belong in ordinary PR CI.
 
+The checked [#873 portable-CAS evidence](portable-cache-artifacts.md#checked-873-performance-evidence)
+repeats the published-binary SymPy comparison after replacing v14's u64/JSON entries. Across 30
+alternating replays, clean p50 is +2.0%, cold p50 +4.7%, and warm p50 +5.5% versus the official
+binary; exact same-binary output equivalence passes for both roles. The independently checksummed
+named-MessagePack store is 190,665,950 bytes, 49.8% smaller than the official 380,153,028-byte
+store, while warm p50 RSS is 6.5% lower. Those numbers price the #873 trust boundary before later
+issues remove repeated pipeline stages.
+
 ## What the current cache actually reuses
 
 The published v0.19.0 cache is schema v11 and the locked #872 candidate is schema v14. The current

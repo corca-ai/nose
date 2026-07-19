@@ -83,3 +83,23 @@ Focused tests prove:
 The existing #275 provider/importer integration test remains the cross-file safety gate, and the
 benchmark's clean/empty/history equality remains the product-output authority. See
 [continuous integration](continuous-integration.md) for current user-facing cache behavior.
+
+## Checked #873 performance evidence
+
+The checked
+[`issue-873-portable-cas-sympy-paired-2026-07-20.v1.json`](../bench/cache/issue-873-portable-cas-sympy-paired-2026-07-20.v1.json)
+contains 30 alternating AB/BA replays against the checksum-verified published v0.19.0
+`aarch64-apple-darwin` binary. Both roles independently passed exact clean/empty/history output
+equivalence across all 180 raw rows.
+
+| Phase | Official p50 / p95 | #873 p50 / p95 | p50 delta |
+| --- | ---: | ---: | ---: |
+| Clean | 1097.20 / 1247.37 ms | 1119.15 / 1251.12 ms | +2.0% |
+| Empty store | 1180.43 / 1346.40 ms | 1235.86 / 1422.30 ms | +4.7% |
+| Warm store | 734.30 / 857.68 ms | 774.74 / 900.45 ms | +5.5% |
+
+The clean result remains within the epic's 5% gate. The warm delta prices full checksum validation
+instead of trusting file presence, while named MessagePack limits that cost: the store falls from
+380,153,028 to 190,665,950 bytes (-49.8%), and warm p50 RSS falls from 1,066,008,576 to 996,851,712
+bytes (-6.5%). This is foundation evidence, not an instant-cache claim; #874 and #875 own removal
+of repeated parse/resolve and global work.
