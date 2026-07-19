@@ -6,6 +6,12 @@ the checked-in files record the command, selected surface, hard gate, reason
 rollups, and representative fixtures needed to reproduce or review a semantic
 kernel PR.
 
+Performance attribution records also live here when a frozen product-level result must
+remain reviewable without retaining large raw profiles. For example,
+`issue-907-etcd-frontend-attribution-2026-07-19.v1.json` binds the #892 r40 rows to exact
+binary/build identities, normalized instruction hashes, the compact profile summary,
+and the resulting no-go optimization decision.
+
 Scheduling lifecycle audit artifacts use a separate source-prevalence status
 vocabulary:
 

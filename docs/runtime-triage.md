@@ -33,6 +33,12 @@ rebuild of the release tag is useful for diagnosis but is not the release
 baseline. A pre-change `main` binary may be retained as a secondary attribution
 comparison; it does not replace the official release binary.
 
+Record native build provenance as well as source and binary digests. On Mach-O, capture
+`LC_BUILD_VERSION`'s minimum OS and SDK plus the `__text` size. Source-identical C/C++
+parser code can differ when an official release and a local candidate use different
+SDKs or linker/code-generation environments; do not attribute that difference to a
+frontend source change without call-path or normalized-disassembly evidence.
+
 Use `scripts/runtime-triage-harness.py` when comparing two binaries on one or more corpus
 repos. It runs `nose query <repo> all top=0 --mode semantic --format json` with
 `NOSE_TIME=1` and `NOSE_TIME_UNIT_SUMMARY=1`, stores raw runs, aggregates median stage

@@ -100,3 +100,9 @@ These execute before the query classification changed by #892. The Go frontend w
 untouched by this fix, while normalization grew materially after v0.19.0 in #900 and
 #859. The split therefore follows the issue's explicit independent-cause rule rather
 than broadening one query optimization into unrelated frontend and semantic work.
+
+The [#907 closeout](runtime-performance-issue-907-2026-07-19.md) found no structural Go
+frontend regression: source and hot lowering instructions are identical, the exact
+binaries have different SDK provenance, and signed negative controls lift sub-5-ms raw
+deltas over the absolute gate. The measurement-contract consequence is isolated in
+[#927](https://github.com/corca-ai/nose/issues/927).
