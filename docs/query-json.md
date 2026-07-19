@@ -13,6 +13,11 @@ divergent-edit gate should also require `query.capabilities.query_base_json_v8`,
 `query.capabilities.query_base_gate_fail_default`, and, for SARIF uploads,
 `query.capabilities.query_base_sarif`.
 
+Validate a binary against the current non-`base` contract with
+`python3 bench/labels/live_query_schema.py --self-test --nose <nose>`. The older
+`query_schema.py` and `default_head_query_schema.py` adapters remain byte-stable inputs to
+the frozen v0.19.0 quality evidence; they are not the current-product compatibility gate.
+
 ## Envelope
 
 Every response is an object with:

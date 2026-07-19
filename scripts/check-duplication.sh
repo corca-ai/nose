@@ -268,6 +268,11 @@ set -euo pipefail
 # dispatcher representative with an exact/near registry whole-impl overlap. Those registries
 # intentionally keep receipt-backed exact mutation separate from near-protocol evidence; no shared
 # base registry or budget increase is accepted. See docs/dogfooding-history.md.
+# 27 -> 28 (post-#872 completion audit): the bounded mutation/oracle additions shift self-query
+# fingerprints enough for the long-reviewed `int_bin` / `float_bin` dispatcher family
+# `aa2b95cf822a1cd2` to cross value 40 again; neither member changed. Integer wrapping/floor/bitwise
+# and float IEEE policies remain deliberately separate, so no shared numeric dispatcher is accepted.
+# See docs/dogfooding-history.md.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 
