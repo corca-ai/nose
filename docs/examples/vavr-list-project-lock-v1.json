@@ -1,0 +1,31 @@
+{
+  "api_version": "nose.semantic-pack-lock.v1",
+  "dependencies": [
+    {
+      "path": "semantic-packs/v1/vavr-list-pom.xml",
+      "content_digest": "sha256:9d5c9a4a52d83b72acfd0021a86d6b5ece0ffa3091d1054678b0d63f0d3f8d33"
+    }
+  ],
+  "packs": [
+    {
+      "manifest": "semantic-packs/v1/vavr-list.json",
+      "manifest_api_version": "nose.semantic-pack.v1",
+      "pack_id": "org.corca.reference.java-vavr-list",
+      "pack_version": "1.0.0",
+      "nose_compatibility": ">=0.19.0 <0.21.0",
+      "semantic_digest": "sha256:e0abacf8a1f01dc5d1cc417b1bd7a47e9decfce0f9f700dd5322dd6ddd7cd597",
+      "allowed_channels": [
+        "near",
+        "external-exact"
+      ],
+      "selected_rows": [
+        "java.vavr.list.of-five-exact",
+        "java.vavr.list.of-three-four-near"
+      ],
+      "exact_receipt": {
+        "path": "semantic-pack-receipts/vavr-list.v1.json",
+        "content_digest": "sha256:90e1f1fb4df090cfac2ca1134556a4c1ff78b5dae9819774b79e468b1340955e"
+      }
+    }
+  ]
+}

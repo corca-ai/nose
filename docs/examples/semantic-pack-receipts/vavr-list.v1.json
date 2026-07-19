@@ -1,0 +1,42 @@
+{
+  "api_version": "nose.semantic-pack-conformance-receipt.v1",
+  "nose_version": "0.19.0",
+  "kernel_capability": "nose.kernel.external-collection-factory-exact.v1",
+  "pack_id": "org.corca.reference.java-vavr-list",
+  "pack_version": "1.0.0",
+  "semantic_digest": "sha256:e0abacf8a1f01dc5d1cc417b1bd7a47e9decfce0f9f700dd5322dd6ddd7cd597",
+  "rows": [
+    {
+      "row_id": "java.vavr.list.of-five-exact",
+      "row_digest": "sha256:f985154dd824eee880a03151e00b5324be4131ce5406538ccf449819a6e20d10",
+      "channel": "external-exact"
+    }
+  ],
+  "fixtures": [
+    {
+      "id": "vavr-list-hard-negatives",
+      "row_id": "java.vavr.list.of-five-exact",
+      "kind": "hard-negative",
+      "path": "vavr-list-fixtures/hard-negatives",
+      "dependency": "vavr-list-pom.xml",
+      "fixture_digest": "sha256:644350648918e712c4dbb60288a052ca5b74b73a5d2e4e9dec7beb34aca62da0",
+      "dependency_digest": "sha256:9d5c9a4a52d83b72acfd0021a86d6b5ece0ffa3091d1054678b0d63f0d3f8d33",
+      "expectation": "no-external-exact-match",
+      "observed": "no-external-exact-match",
+      "passed": true
+    },
+    {
+      "id": "vavr-list-of-five-positive",
+      "row_id": "java.vavr.list.of-five-exact",
+      "kind": "positive",
+      "path": "vavr-list-fixtures/positive",
+      "dependency": "vavr-list-pom.xml",
+      "fixture_digest": "sha256:4e969e76ba68c1515e2e5f40d42eb87fa199791e156f0b20c7e15428f7a58613",
+      "dependency_digest": "sha256:9d5c9a4a52d83b72acfd0021a86d6b5ece0ffa3091d1054678b0d63f0d3f8d33",
+      "expectation": "external-exact-match",
+      "observed": "external-exact-match",
+      "passed": true
+    }
+  ],
+  "passed": true
+}
