@@ -1,5 +1,6 @@
-//! Optional on-disk cache of per-file detection units, keyed by the **resolved
-//! IL and reporting metadata** content hash. Re-running nose on a project where
+//! Optional layered content-addressed cache. The currently active product layer
+//! stores per-file detection units keyed by the **resolved IL and reporting
+//! metadata** SHA-256 digest. Re-running nose on a project where
 //! most files are unchanged then skips the dominant cost (normalize + extract)
 //! for those files and deserializes their units instead.
 //!
@@ -11,24 +12,27 @@
 //! (its provider edited) gets a different key and recomputes — fixing #275, where
 //! the old source-content key skipped resolution entirely and the cached analysis
 //! under-merged cross-file imported-literal convergence. A [`UnitFeat`]'s features
-//! are interner-independent content hashes, so a hit needs no interner; the key
-//! folds in unit names, source spans, semantic evidence, a schema version, and an
-//! options signature so a report-affecting metadata/format/option change transparently
-//! misses. Paths stay outside the key and are retargeted on a hit, preserving cache
-//! reuse across checkout roots without allowing structurally identical files with
-//! different symbols or line locations to reuse stale reporting metadata.
+//! are interner-independent content hashes, so a hit needs no interner. The key
+//! covers nodes, edges, spans, facets, symbol strings, suppression, and complete
+//! semantic evidence plus stage/schema/options identity. Paths and process-local
+//! ids stay outside the key and are rebound on a hit. A checksummed envelope makes
+//! corrupt, truncated, or misplaced entries clean misses rather than silent reuse.
+
+mod digest;
+mod portable_il;
+mod store;
 
 use nose_detect::{DetectOptions, Stream, UnitFeat};
-use nose_il::{Corpus, Interner};
+use nose_il::Corpus;
 use rayon::prelude::*;
-use std::hash::{Hash, Hasher};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
-/// Bump when the cached payload's layout, extraction, or feature hashing changes — old
-/// cache entries then live under a different directory and are ignored. (v14: report
-/// metadata moved from JSON serialization to allocation-free stable hashing.)
-const SCHEMA: u32 = 14;
+use self::digest::ContentDigest;
+use self::store::{ArtifactKey, ArtifactStage, LayeredCas};
+
+/// Bump when unit/stream serialization, extraction, or feature hashing changes.
+const UNITS_SYNTAX_SCHEMA: u32 = 2;
 
 pub(crate) struct CachedUnits {
     pub units: Vec<UnitFeat>,
@@ -54,10 +58,8 @@ pub(crate) struct CacheStats {
 /// normalize+extract step is cached. A cache hit needs no interner (features are
 /// content-derived); a miss recomputes and writes back.
 pub(crate) fn build_units_cached(corpus: &Corpus, opts: &DetectOptions, dir: &Path) -> CachedUnits {
-    // One bucket per (schema, options signature): changing an option that affects
-    // units lands in a fresh bucket, so stale entries are never read.
-    let bucket = dir.join(format!("v{SCHEMA}-{:016x}", options_signature(opts)));
-    let _ = std::fs::create_dir_all(&bucket);
+    let cas = LayeredCas::new(dir);
+    let options = options_digest(opts);
     let hits = AtomicUsize::new(0);
     let misses = AtomicUsize::new(0);
     let read_bytes = AtomicU64::new(0);
@@ -68,32 +70,37 @@ pub(crate) fn build_units_cached(corpus: &Corpus, opts: &DetectOptions, dir: &Pa
         .par_iter()
         .map(|il| {
             let path = il.meta.path.clone();
-            // Key on the post-resolve IL plus every report-affecting metadata
-            // surface. Paths are deliberately excluded and retargeted below.
-            let key = resolved_il_hash(il, &corpus.interner);
-            let entry = bucket.join(format!("{key:016x}.json"));
+            let resolved = portable_il::semantic_digest(il, &corpus.interner);
+            let key = ArtifactKey::derive(
+                ArtifactStage::UnitsSyntax,
+                UNITS_SYNTAX_SCHEMA,
+                &[resolved.as_bytes(), options.as_bytes()],
+            );
 
-            if let Ok(bytes) = std::fs::read(&entry) {
-                read_bytes.fetch_add(bytes.len() as u64, Ordering::Relaxed);
+            if let Some(entry) = cas.load(key) {
+                read_bytes.fetch_add(entry.stored_bytes, Ordering::Relaxed);
                 if let Ok((mut units, mut stream)) =
-                    serde_json::from_slice::<(Vec<UnitFeat>, Stream)>(&bytes)
+                    rmp_serde::from_slice::<(Vec<UnitFeat>, Stream)>(&entry.payload)
                 {
                     hits.fetch_add(1, Ordering::Relaxed);
-                    for u in &mut units {
-                        u.path = path.clone();
-                    }
-                    stream.set_path(path.clone());
+                    retarget(&mut units, &mut stream, &path);
                     return (units, stream);
                 }
             }
 
             misses.fetch_add(1, Ordering::Relaxed);
-            let units = nose_detect::units_of_file(il, &corpus.interner, opts);
-            let stream = nose_detect::file_stream(il, &corpus.interner);
-            if let Ok(bytes) = serde_json::to_vec(&(&units, &stream)) {
-                let len = bytes.len() as u64;
-                if std::fs::write(&entry, bytes).is_ok() {
-                    written_bytes.fetch_add(len, Ordering::Relaxed);
+            let mut units = nose_detect::units_of_file(il, &corpus.interner, opts);
+            let mut stream = nose_detect::file_stream(il, &corpus.interner);
+            // Checkout paths are presentation state, not payload identity. Blank
+            // them before serialization and restore them for this query.
+            retarget(&mut units, &mut stream, "");
+            // Named MessagePack preserves serde's default/skip compatibility
+            // while avoiding JSON's decimal expansion of feature hashes.
+            let payload = rmp_serde::to_vec_named(&(&units, &stream));
+            retarget(&mut units, &mut stream, &path);
+            if let Ok(payload) = payload {
+                if let Ok(bytes) = cas.store(key, &payload) {
+                    written_bytes.fetch_add(bytes, Ordering::Relaxed);
                 }
             }
             (units, stream)
@@ -121,78 +128,17 @@ pub(crate) fn build_units_cached(corpus: &Corpus, opts: &DetectOptions, dir: &Pa
     }
 }
 
-/// Content hash of a file's *post-resolve* IL and reporting metadata — the cache key. Uses
-/// `valued_tree_hash`: an interner-INDEPENDENT fold that retains literal values.
-/// Interner-independence is essential because the corpus shares one interner whose
-/// symbol ids depend on parallel interning order — serializing the raw IL (with
-/// those ids) gave a key that varied run-to-run and never warm-hit. Value-retention
-/// is essential because the structural `subtree_hashes` erases literal values, so a
-/// resolved `LOOKUP = {…: 1}` vs `{…: 9}` would collide — the very post-resolve
-/// distinction #275 turns on. The normalized tree is intentionally alpha-invariant,
-/// however, while cached units also contain original unit names and source locations.
-/// Those fields, all original symbol names, suppression ranges, and the complete
-/// semantic-evidence records therefore join the key. Otherwise two clone-shaped files
-/// can collide and a warm query can inherit the first file's function name or spans.
-fn resolved_il_hash(il: &nose_il::Il, interner: &Interner) -> u64 {
-    let mut h = crate::fnv::OFFSET_BASIS;
-    h = crate::fnv::mix(h, il.meta.lang as u8 as u64);
-    h = crate::fnv::mix(h, il.root.0 as u64);
-    h = crate::fnv::mix(h, nose_normalize::valued_tree_hash(il, interner));
-
-    for node in &il.nodes {
-        for coordinate in [
-            node.span.start_byte,
-            node.span.end_byte,
-            node.span.start_line,
-            node.span.end_line,
-        ] {
-            h = crate::fnv::mix(h, coordinate as u64);
-        }
+fn retarget(units: &mut [UnitFeat], stream: &mut Stream, path: &str) {
+    for unit in units {
+        path.clone_into(&mut unit.path);
     }
-    for unit in &il.units {
-        h = crate::fnv::mix(h, unit.root.0 as u64);
-        h = crate::fnv::mix(h, unit.kind as u8 as u64);
-        h = crate::fnv::mix(
-            h,
-            unit.name
-                .map(|name| interner.symbol_hash(name))
-                .unwrap_or_default(),
-        );
-        h = mix_hashable(h, &unit.origin);
-    }
-    for &name in &il.cid_names {
-        h = crate::fnv::mix(h, interner.symbol_hash(name));
-    }
-    h = mix_hashable(h, &il.suppressed);
-    mix_hashable(h, &il.evidence)
+    stream.set_path(path.to_owned());
 }
 
-struct StableFnv(u64);
-
-impl Hasher for StableFnv {
-    fn finish(&self) -> u64 {
-        self.0
-    }
-
-    fn write(&mut self, bytes: &[u8]) {
-        for &byte in bytes {
-            self.0 = crate::fnv::mix(self.0, byte as u64);
-        }
-    }
-}
-
-fn mix_hashable(h: u64, value: &impl Hash) -> u64 {
-    let mut hasher = StableFnv(h);
-    value.hash(&mut hasher);
-    hasher.finish()
-}
-
-/// Fold every unit-affecting option into one value; changing any of them changes
-/// the cache bucket. (`threshold`/`bands` only affect scoring/candidate-gen, not the
-/// units themselves, so they are deliberately excluded.)
-fn options_signature(opts: &DetectOptions) -> u64 {
-    let mut h = crate::fnv::OFFSET_BASIS;
-    for v in [
+/// Fold every unit-affecting option into a collision-resistant, fixed-width
+/// identity. Threshold/bands affect later stages and remain deliberately absent.
+fn options_digest(opts: &DetectOptions) -> ContentDigest {
+    let values = [
         opts.min_lines as u64,
         opts.min_tokens as u64,
         opts.block_units as u64,
@@ -202,10 +148,12 @@ fn options_signature(opts: &DetectOptions) -> u64 {
         opts.shape_features as u64,
         opts.connected_witnesses as u64,
         opts.abstraction_witnesses as u64,
-    ] {
-        h = crate::fnv::mix(h, v);
+    ];
+    let mut bytes = Vec::with_capacity(values.len() * 8);
+    for value in values {
+        bytes.extend_from_slice(&value.to_be_bytes());
     }
-    h
+    ContentDigest::derive(b"nose.units-syntax-options.v1", &[&bytes])
 }
 
 #[cfg(all(test, unix))]
@@ -245,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn schema_14_ignores_json_hashed_reporting_identity_entries() {
+    fn layered_cas_ignores_legacy_schema_14_entries() {
         let root = std::env::temp_dir().join(format!("nose_cache_schema_{}", std::process::id()));
         let source = root.join("source");
         let cache = root.join("cache");
@@ -260,22 +208,80 @@ mod tests {
 
         let corpus = nose_frontend::lower_corpus_filtered(&[source.as_path()], &[]);
         let options = DetectOptions::default();
-        let signature = options_signature(&options);
-        let current = cache.join(format!("v14-{signature:016x}"));
-        let stale = cache.join(format!("v13-{signature:016x}"));
+        let stale = cache.join("v14-deadbeef");
+        std::fs::create_dir_all(&stale).unwrap();
+        std::fs::write(stale.join("legacy.json"), b"[]").unwrap();
         let first = build_units_cached(&corpus, &options, &cache);
         assert!(!first.units.is_empty());
-        std::fs::rename(&current, &stale).unwrap();
-        assert!(!current.exists());
-
         let second = build_units_cached(&corpus, &options, &cache);
         assert_eq!(second.units.len(), first.units.len());
-        assert!(
-            current.is_dir(),
-            "v13 entries must be ignored and a fresh v14 bucket written"
-        );
-        assert!(stale.is_dir(), "the stale bucket should remain untouched");
+        assert_eq!(second.stats.hits, 1);
+        assert!(cache.join("cas-v1/units-syntax").is_dir());
+        assert!(stale.is_dir(), "the legacy bucket should remain untouched");
 
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn checkout_path_moves_reuse_payload_and_rebind_locations() {
+        let root = std::env::temp_dir().join(format!("nose_cache_move_{}", std::process::id()));
+        let source_a = root.join("checkout-a");
+        let source_b = root.join("checkout-b");
+        let cache = root.join("cache");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&source_a).unwrap();
+        std::fs::create_dir_all(&source_b).unwrap();
+        let source = "def total(xs):\n    return sum(xs)\n";
+        std::fs::write(source_a.join("same.py"), source).unwrap();
+        std::fs::write(source_b.join("same.py"), source).unwrap();
+
+        let options = DetectOptions::default();
+        let first_corpus = nose_frontend::lower_corpus_filtered(&[source_a.as_path()], &[]);
+        let first = build_units_cached(&first_corpus, &options, &cache);
+        assert_eq!((first.stats.hits, first.stats.misses), (0, 1));
+        let second_corpus = nose_frontend::lower_corpus_filtered(&[source_b.as_path()], &[]);
+        let second = build_units_cached(&second_corpus, &options, &cache);
+        assert_eq!((second.stats.hits, second.stats.misses), (1, 0));
+        assert!(second
+            .units
+            .iter()
+            .all(|unit| unit.path.starts_with(source_b.to_string_lossy().as_ref())));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn evidence_only_change_misses_then_reuses_resolved_artifact() {
+        use nose_il::{
+            EvidenceAnchor, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord,
+            EvidenceStatus, ParameterShapeEvidenceKind,
+        };
+
+        let root = std::env::temp_dir().join(format!("nose_cache_evidence_{}", std::process::id()));
+        let source = root.join("source");
+        let cache = root.join("cache");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&source).unwrap();
+        std::fs::write(source.join("same.py"), "def f(x):\n    return x\n").unwrap();
+        let options = DetectOptions::default();
+        let corpus = nose_frontend::lower_corpus_filtered(&[source.as_path()], &[]);
+        let first = build_units_cached(&corpus, &options, &cache);
+        assert_eq!((first.stats.hits, first.stats.misses), (0, 1));
+
+        let mut changed = corpus.clone();
+        let il = &mut changed.files[0];
+        let span = il.node(il.root).span;
+        il.evidence.push(EvidenceRecord::new(
+            EvidenceId(il.evidence.len() as u32),
+            EvidenceAnchor::param(span),
+            EvidenceKind::ParameterShape(ParameterShapeEvidenceKind::NonPlain),
+            EvidenceProvenance::builtin("nose.test", "evidence-only"),
+            Vec::new(),
+            EvidenceStatus::Asserted,
+        ));
+        let second = build_units_cached(&changed, &options, &cache);
+        assert_eq!((second.stats.hits, second.stats.misses), (0, 1));
+        let third = build_units_cached(&changed, &options, &cache);
+        assert_eq!((third.stats.hits, third.stats.misses), (1, 0));
         let _ = std::fs::remove_dir_all(&root);
     }
 }

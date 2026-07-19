@@ -1320,3 +1320,10 @@ arithmetic and unsupported-operation behavior. Extracting a common numeric
 dispatcher would couple those soundness policies for incidental structure, so
 the already reviewed family is restored to the baseline rather than hidden by
 an abstraction. No new avoidable duplication is accepted.
+
+The #873 portable-artifact and layered-CAS work tightens the reviewed count from
+28 to 27. The new cache modules and raw/resolved lowering boundary shift the
+self-query fingerprints enough for the same long-standing `int_bin` /
+`float_bin` dispatcher representative `aa2b95cf822a1cd2` to fall below value 40;
+neither numeric function changed. No replacement family appears, so the stale
+ID is removed and the budget tightens without accepting new duplication.

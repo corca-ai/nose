@@ -28,6 +28,8 @@ toml = { workspace = true }
 rayon = { workspace = true }
 ignore = { workspace = true }
 rustc-hash = { workspace = true }
+sha2 = { workspace = true }
+rmp-serde = { workspace = true }
 
 [dev-dependencies]
 nose-il = { workspace = true }

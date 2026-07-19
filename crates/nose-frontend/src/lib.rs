@@ -177,6 +177,15 @@ pub fn lower_corpus_many(roots: &[&Path]) -> Corpus {
 /// Like [`lower_corpus_many`] but applies gitignore-syntax `exclude` globs during
 /// discovery (e.g. `tests`, `vendor/**`, `**/*.generated.ts`).
 pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
+    let mut corpus = lower_corpus_raw_filtered(roots, exclude);
+    resolve_corpus(&mut corpus);
+    corpus
+}
+
+/// Discover, read, parse, and lower a corpus without corpus-wide semantic
+/// resolution. This is the portable raw-IL stage boundary used by the layered
+/// cache; ordinary callers should prefer [`lower_corpus_filtered`].
+pub fn lower_corpus_raw_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
     let timing = std::env::var_os("NOSE_TIME").is_some();
     let t0 = std::time::Instant::now();
 
@@ -195,7 +204,7 @@ pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
     // `flat_map`, not `filter_map`: an embedded container (Vue/Svelte/HTML) lowers to
     // SEVERAL region `Il`s (JS/TS `<script>` + CSS `<style>`), all sharing its `FileId`.
     // rayon's indexed `flat_map` preserves path order, so `FileId`s stay deterministic.
-    let mut files: Vec<Il> = paths
+    let files: Vec<Il> = paths
         .par_iter()
         .enumerate()
         .flat_map(|(i, (path, lang))| match std::fs::read(path) {
@@ -217,17 +226,24 @@ pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
         );
     }
 
-    let t2 = std::time::Instant::now();
-    module_imports::resolve_imported_immutable_bindings(&mut files, &interner);
-    swift_cross_file_shadows::close_shadowed_stdlib_apis(&mut files, &interner);
+    Corpus::new(interner, files)
+}
+
+/// Apply every corpus-wide frontend resolver to a raw corpus in place. Keeping
+/// this boundary explicit lets raw and resolved artifacts round-trip separately
+/// without changing the clean-scan pipeline.
+pub fn resolve_corpus(corpus: &mut Corpus) {
+    let timing = std::env::var_os("NOSE_TIME").is_some();
+    let started = std::time::Instant::now();
+    module_imports::resolve_imported_immutable_bindings(&mut corpus.files, &corpus.interner);
+    swift_cross_file_shadows::close_shadowed_stdlib_apis(&mut corpus.files, &corpus.interner);
     if timing {
         eprintln!(
             "  [time] {:<12} {:>7.1}ms  (corpus import facts)",
             "import-resolve",
-            t2.elapsed().as_secs_f64() * 1e3
+            started.elapsed().as_secs_f64() * 1e3
         );
     }
-    Corpus::new(interner, files)
 }
 
 #[cfg(test)]

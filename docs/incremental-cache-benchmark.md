@@ -75,16 +75,29 @@ The 100k numbers make the next engineering constraint explicit: #873 and its suc
 reduce both repeated global work and the roughly linear serialized-store footprint. A scheduled
 30-replay 100k run remains release evidence; it does not belong in ordinary PR CI.
 
+The checked [#873 portable-CAS evidence](portable-cache-artifacts.md#checked-873-performance-evidence)
+repeats the published-binary SymPy comparison after replacing v14's u64/JSON entries. Across 30
+alternating replays, clean p50 is +2.0%, cold p50 +4.7%, and warm p50 +5.5% versus the official
+binary; exact same-binary output equivalence passes for both roles. The independently checksummed
+named-MessagePack store is 190,665,950 bytes, 49.8% smaller than the official 380,153,028-byte
+store, while warm p50 RSS is 6.5% lower. Those numbers price the #873 trust boundary before later
+issues remove repeated pipeline stages.
+
 ## What the current cache actually reuses
 
-The published v0.19.0 cache is schema v11; the #872 candidate is schema v14. Both always rediscover,
-read, parse, and lower every selected source, rebuild corpus import facts, and repeat global
-detection, family construction/ranking, and presentation. They reuse only per-file
-normalize/extract units and syntax streams. v14 keys the post-resolution IL together with
-report-affecting names, spans, suppression and evidence, plus unit-affecting options. In
-particular, a warm hit does **not** skip parsing. This narrower statement replaces the old CI
-documentation claim. The v14 reporting identity prevents two clone-shaped files from sharing
-stale function names or line locations while paths remain retargetable across checkout roots.
+The published v0.19.0 cache is schema v11 and the locked #872 candidate is schema v14. The current
+0.20 development tree migrates that same active units/syntax boundary to the #873 layered CAS v1.
+All three still rediscover, read, parse, and lower every selected source, rebuild corpus import
+facts, and repeat global detection, family construction/ranking, and presentation. In particular,
+a warm hit does **not** skip parsing.
+
+CAS v1 replaces the u64 entry name with a stage/schema-separated SHA-256 address over the complete
+post-resolution semantic/reporting identity and unit-affecting options. An independent payload
+SHA-256, exact length, and envelope identity make corrupt or misplaced bytes clean misses. Paths,
+`FileId`s, and interner ids are portable and rebound; names, spans, suppression, facets, and full
+evidence records remain identity-bearing. The raw/resolved portable codec is complete, but those
+layers are intentionally not written until #874 can invalidate them by affected closure instead
+of duplicating unused data. See [portable cache artifacts](portable-cache-artifacts.md).
 
 #275 is the required cross-file regression. A provider literal and importer that converge with
 an inline literal must remain converged on an empty store, warm store, and after the provider
