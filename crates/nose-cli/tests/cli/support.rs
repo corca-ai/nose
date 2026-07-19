@@ -241,6 +241,7 @@ fn query_json_list_args(args: &[&str]) -> Vec<String> {
                 | "--cache-dir"
                 | "--semantic-pack"
                 | "--exclude"
+                | "--generated-path"
                 | "--fail-on"
         ) {
             skip_next = true;

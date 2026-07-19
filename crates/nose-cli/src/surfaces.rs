@@ -4,6 +4,7 @@ use rustc_hash::FxHashSet;
 use crate::source_lines::FileLineCache;
 
 mod generated;
+mod generated_paths;
 
 use generated::{generated_source_indexes, GeneratedSourceIndexes};
 #[cfg(test)]
@@ -11,18 +12,27 @@ pub(crate) use generated::{
     has_version_tag, head_has_declared_generator_provenance, head_has_jazzy_generated_provenance,
     looks_compiled_css,
 };
+pub(crate) use generated_paths::GeneratedPathAssertions;
 
 /// Compute the surface overrides for every output format and flag generated
 /// locations. The generated indexes are one head-read per discovered file
 /// (#224 — the #216 audit's re2c case) and the declaration analysis is one
 /// span-read per family; both run only when families exist.
+#[cfg(test)]
 pub(crate) fn classify_surface_overrides(
     families: &mut [nose_detect::RefactorFamily],
+) -> SurfaceOverrides {
+    classify_surface_overrides_with_generated_paths(families, &GeneratedPathAssertions::default())
+}
+
+pub(crate) fn classify_surface_overrides_with_generated_paths(
+    families: &mut [nose_detect::RefactorFamily],
+    caller_generated_paths: &GeneratedPathAssertions,
 ) -> SurfaceOverrides {
     let generated = if families.is_empty() {
         GeneratedSourceIndexes::default()
     } else {
-        generated_source_indexes(families)
+        generated_source_indexes(families, caller_generated_paths)
     };
     for f in families.iter_mut() {
         for l in &mut f.locations {
@@ -36,6 +46,7 @@ pub(crate) fn classify_surface_overrides(
     SurfaceOverrides {
         generated_sources: generated.sources,
         additional_generated_surface_sources: generated.additional_surface_sources,
+        caller_generated_surface_sources: generated.caller_surface_sources,
         declaration_run_families: declaration_run_families(families),
         declaration_only_type_contract_families: declaration_only_type_contract_families(families),
     }
@@ -64,6 +75,9 @@ pub(crate) struct SurfaceOverrides {
     /// files deliberately do not set `Loc::looks_generated`, which has semantic effects on
     /// helper selection and folding beyond presentation (#842).
     pub(crate) additional_generated_surface_sources: FxHashSet<String>,
+    /// Caller assertions from root-anchored `--generated-path` / config globs. Like
+    /// other presentation-only provenance, these never set `Loc::looks_generated`.
+    pub(crate) caller_generated_surface_sources: FxHashSet<String>,
     /// Families whose every member span is provably only import/include/
     /// use/re-export declarations — duplication the language mandates per
     /// file, with no extraction action to take.
@@ -415,11 +429,13 @@ fn family_all_generated_source(
     family: &nose_detect::RefactorFamily,
     generated_sources: &FxHashSet<String>,
     additional_generated_surface_sources: &FxHashSet<String>,
+    caller_generated_surface_sources: &FxHashSet<String>,
 ) -> bool {
     !family.locations.is_empty()
         && family.locations.iter().all(|loc| {
             generated_sources.contains(&loc.file)
                 || additional_generated_surface_sources.contains(&loc.file)
+                || caller_generated_surface_sources.contains(&loc.file)
         })
 }
 
@@ -431,7 +447,49 @@ fn family_generated_source(
         family,
         &overrides.generated_sources,
         &overrides.additional_generated_surface_sources,
+        &overrides.caller_generated_surface_sources,
     ) || family_is_compiled_css_pipeline(family, &overrides.generated_sources)
+}
+
+pub(crate) fn generated_provenance_json(
+    family: &nose_detect::RefactorFamily,
+    overrides: &SurfaceOverrides,
+) -> Option<serde_json::Value> {
+    let all_members = family_all_generated_source(
+        family,
+        &overrides.generated_sources,
+        &overrides.additional_generated_surface_sources,
+        &overrides.caller_generated_surface_sources,
+    );
+    let compiled_css_pipeline =
+        family_is_compiled_css_pipeline(family, &overrides.generated_sources);
+    if !all_members && !compiled_css_pipeline {
+        return None;
+    }
+
+    let caller = family.locations.iter().any(|location| {
+        overrides
+            .caller_generated_surface_sources
+            .contains(&location.file)
+    });
+    let inferred = compiled_css_pipeline
+        || family.locations.iter().any(|location| {
+            overrides.generated_sources.contains(&location.file)
+                || overrides
+                    .additional_generated_surface_sources
+                    .contains(&location.file)
+        });
+    let mut sources = Vec::with_capacity(2);
+    if caller {
+        sources.push("caller-path");
+    }
+    if inferred {
+        sources.push("nose-inferred");
+    }
+    Some(serde_json::json!({
+        "basis": if all_members { "all-members" } else { "compiled-css-pipeline" },
+        "sources": sources,
+    }))
 }
 
 fn family_established_generated_source(

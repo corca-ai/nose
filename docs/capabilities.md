@@ -47,7 +47,7 @@ nose capabilities
   },
   "schemas": {
     "capabilities": [7],
-    "query_json": [7, 8],
+    "query_json": [8, 9],
     "semantic_packs": ["nose.semantic-pack.v0", "nose.semantic-pack.v1"],
     "semantic_pack_locks": ["nose.semantic-pack-lock.v1"],
     "semantic_pack_receipts": ["nose.semantic-pack-conformance-receipt.v1"],
@@ -64,6 +64,7 @@ nose capabilities
     "sort_keys": ["extractability", "value", "sites", "hazard"],
     "config_keys": [
       "exclude",
+      "generated-paths",
       "ignore-file",
       "min-lines",
       "min-members",
@@ -80,6 +81,7 @@ nose capabilities
       "baseline_changed_detection": true,
       "baseline_member_digest": true,
       "cache": true,
+      "caller_generated_paths": true,
       "ci_fail_gate": true,
       "family_drilldown": true,
       "inline_suppression": true,
@@ -242,6 +244,7 @@ Version 7 defines these `query.capabilities` keys:
 | `baseline_changed_detection` | Baseline comparisons can classify changed and resolved families. |
 | `baseline_member_digest` | Baselines use accepted member source digests, so reshaped accepted families stay hidden while edited members report as changed. |
 | `cache` | `--cache-dir` file analysis caching is supported. |
+| `caller_generated_paths` | Repeatable `--generated-path` and `[query].generated-paths` assertions classify all-member families without deleting them; non-base JSON distinguishes caller and nose provenance. |
 | `ci_fail_gate` | `--fail-on any|new` gate behavior is supported. |
 | `family_drilldown` | Opening a family with `id=<fam>` / `at=FILE:LINE` is supported. |
 | `inline_suppression` | Source-level `nose-ignore` markers are supported. |

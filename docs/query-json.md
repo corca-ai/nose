@@ -1,4 +1,4 @@
-# nose query JSON (schemas v7 and v8)
+# nose query JSON (schemas v8 and v9)
 
 `nose query <path> [terms…] --format json` emits a structured, versioned contract over the
 duplicated-code family dataset — the **machine** form of the
@@ -8,7 +8,7 @@ For multi-root analysis, use repeated roots:
 `nose query --root <path> --root <path> [terms…] --format json`.
 
 Discover support with [`nose capabilities`](capabilities.md): `schemas.query_json` lists the
-versions the installed binary emits (currently `[7, 8]`). CI wrappers for the
+versions the installed binary emits (currently `[8, 9]`). CI wrappers for the
 divergent-edit gate should also require `query.capabilities.query_base_json_v8`,
 `query.capabilities.query_base_gate_fail_default`, and, for SARIF uploads,
 `query.capabilities.query_base_sarif`.
@@ -19,7 +19,7 @@ Every response is an object with:
 
 | field | meaning |
 |---|---|
-| `schema_version` | `7` for the non-`base` query views; `8` for `base=<ref>` |
+| `schema_version` | `9` for the non-`base` query views; `8` for `base=<ref>` |
 | `tool` | `"nose"` |
 | `view` | which surface produced it: `dashboard` \| `list` \| `group` \| `family` \| `reinvented` \| `base` |
 | `path` | the analyzed path expression, as given; multi-root commands render the repeated `--root`/`-r` flags |
@@ -28,7 +28,9 @@ Every response is an object with:
 plus the view-specific body below. Like the human surface, a result is a pure function of
 (repo state, command); an unknown field or enum value is a hard error.
 
-Schema v8 adds the divergent-edit `base=<ref>` tier contract. Schema v7 adds
+Schema v9 adds explicit `generated_provenance` to generated families so callers can
+distinguish caller path assertions from nose inference without silently extending the strict
+v7 contract. Schema v8 adds the divergent-edit `base=<ref>` tier contract. Schema v7 adds
 on-demand family-level `graded` and `graded_pair` evidence for
 `spotclass` enrichment. Schema v6 added the top-level `semantic_packs`
 reporting field and renamed pack-facing trust/source values from legacy
@@ -231,6 +233,7 @@ Composition rules for v8:
 | `scope` | `prod` \| `test` \| `mixed` (context, never a worthiness penalty; conventional test paths such as `tests/`, `spec/`, `__tests__/`, `*_test.go`, `*.test.*`, `*.spec.*`, `conftest.py`, and Rust modular `test.rs`/`tests.rs` count as test scope, as do Rust inline `mod test`/`mod tests` spans) |
 | `witness` | why the copies merged: `exact` (same unit behavior) \| `subdag` (shared computation inside each site) \| `connected` (pair-local mapped cross-unit region) \| `bounded-window` (two disjoint mapped regions in one enclosing unit; a near/refactoring witness, not exact-fragment proof) \| `copy-paste` \| `similar` |
 | `surface` | `default` \| `divergence` \| `hidden` \| `shallow` \| `generated` \| `declaration` \| `debug` (curation tier; `debug` is a reserved diagnostic tier normal runs don't emit) |
+| `generated_provenance` | schema v9, generated families only: `{basis,sources[]}`. `basis` is `all-members` or `compiled-css-pipeline`; sorted `sources[]` contains `caller-path`, `nose-inferred`, or both, so integrations do not confuse a caller assertion with nose-derived evidence. |
 | `members` | number of copies |
 | `files` / `dirs` / `languages` | distinct files / directories / languages the copies span |
 | `source_comparable` | `false` for cross-language families, where source lines cannot be anti-unified directly; those rows display repeated semantic volume rather than shared/removable source lines |

@@ -131,6 +131,7 @@ impl Report {
                 sort_keys: vec!["extractability", "value", "sites", "hazard"],
                 config_keys: vec![
                     "exclude",
+                    "generated-paths",
                     "ignore-file",
                     "min-lines",
                     "min-members",
@@ -160,8 +161,8 @@ fn current_schemas() -> Schemas {
     Schemas {
         capabilities: vec![CAPABILITIES_SCHEMA_VERSION],
         query_json: vec![
-            crate::schema_versions::QUERY_JSON_SCHEMA_VERSION,
             crate::schema_versions::QUERY_BASE_JSON_SCHEMA_VERSION,
+            crate::schema_versions::QUERY_JSON_SCHEMA_VERSION,
         ],
         semantic_packs: nose_semantics::SUPPORTED_SEMANTIC_PACK_API_VERSIONS.to_vec(),
         semantic_pack_locks: vec![nose_semantics::SEMANTIC_PACK_LOCK_API_VERSION_V1],
@@ -216,6 +217,7 @@ fn query_capability_flags() -> std::collections::BTreeMap<&'static str, bool> {
         ("baseline_changed_detection", true),
         ("baseline_member_digest", true),
         ("cache", true),
+        ("caller_generated_paths", true),
         ("ci_fail_gate", true),
         ("family_drilldown", true),
         ("inline_suppression", true),

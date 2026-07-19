@@ -58,6 +58,7 @@ fn compiled_css_pipeline_demotes_source_plus_outputs_but_not_cross_source() {
     let ov = SurfaceOverrides {
         generated_sources: gen.clone(),
         additional_generated_surface_sources: rustc_hash::FxHashSet::default(),
+        caller_generated_surface_sources: rustc_hash::FxHashSet::default(),
         declaration_run_families: rustc_hash::FxHashSet::default(),
         declaration_only_type_contract_families: rustc_hash::FxHashSet::default(),
     };
@@ -104,6 +105,7 @@ fn partial_jazzy_provenance_keeps_the_family_on_its_ranked_surface() {
         ]
         .into_iter()
         .collect(),
+        caller_generated_surface_sources: rustc_hash::FxHashSet::default(),
         declaration_run_families: rustc_hash::FxHashSet::default(),
         declaration_only_type_contract_families: rustc_hash::FxHashSet::default(),
     };
@@ -126,6 +128,7 @@ fn jazzy_surface_classification_preserves_the_opportunity_fold_input() {
         ]
         .into_iter()
         .collect(),
+        caller_generated_surface_sources: rustc_hash::FxHashSet::default(),
         declaration_run_families: rustc_hash::FxHashSet::default(),
         declaration_only_type_contract_families: rustc_hash::FxHashSet::default(),
     };
@@ -146,6 +149,7 @@ fn query_family_json_carries_fold_navigation() {
     let ov = SurfaceOverrides {
         generated_sources: rustc_hash::FxHashSet::default(),
         additional_generated_surface_sources: rustc_hash::FxHashSet::default(),
+        caller_generated_surface_sources: rustc_hash::FxHashSet::default(),
         declaration_run_families: rustc_hash::FxHashSet::default(),
         declaration_only_type_contract_families: rustc_hash::FxHashSet::default(),
     };
@@ -195,6 +199,7 @@ fn query_family_json_carries_proof_depth() {
     let ov = SurfaceOverrides {
         generated_sources: rustc_hash::FxHashSet::default(),
         additional_generated_surface_sources: rustc_hash::FxHashSet::default(),
+        caller_generated_surface_sources: rustc_hash::FxHashSet::default(),
         declaration_run_families: rustc_hash::FxHashSet::default(),
         declaration_only_type_contract_families: rustc_hash::FxHashSet::default(),
     };
@@ -230,6 +235,7 @@ fn query_family_json_carries_raw_detector_metrics() {
     let ov = SurfaceOverrides {
         generated_sources: rustc_hash::FxHashSet::default(),
         additional_generated_surface_sources: rustc_hash::FxHashSet::default(),
+        caller_generated_surface_sources: rustc_hash::FxHashSet::default(),
         declaration_run_families: rustc_hash::FxHashSet::default(),
         declaration_only_type_contract_families: rustc_hash::FxHashSet::default(),
     };

@@ -250,6 +250,7 @@ mode flags are documented under [Ranking](#ranking) and [Detection modes](#detec
 | `--mode MODE` | one or more of `syntax`, `semantic`, `near[:T]`; comma-list or repeatable; when present, replaces the default. Experimental `abstraction[:T]` is accepted but not a stable capabilities mode. |
 | `--root <path>` / `-r <path>` | analyze another root; repeat for multi-root query runs. With `--root`, bare positional arguments are query terms. |
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
+| `--generated-path <glob>` | assert that files matching this root-anchored glob are generated; repeatable and recoverable with `all top=0` |
 | `--ignore-file <file>` | suppress accepted families using a structured ignore file with reason/owner/expiry metadata |
 | `--semantic-pack <file-or-dir>` | load local semantic-pack v0 metadata or compile a typed v1 manifest for provenance/digest reporting; unlocked external packs are metadata-only |
 | `--semantic-pack-lock <file>` | validate one content-pinned typed v1 project lock before analysis; eligible rows may support near candidates or receipt-backed collection-factory exact claims, and unlocked pack paths cannot be mixed in |
@@ -264,7 +265,7 @@ Use terms for report shaping: `sort=KEY`, `top=N`, `scope=prod|test|mixed`, `gro
 `id=<fam> full`, and `reinvented`. `--format json` emits the stable
 [query-json](query-json.md) contract.
 
-**Workflow** (`--baseline`, `--write-baseline`, `--fail-on any|new`, `--ignore-file`, `--cache-dir`, `--config`, `--semantic-pack`, `--semantic-pack-lock`) is covered in
+**Workflow** (`--baseline`, `--write-baseline`, `--fail-on any|new`, `--ignore-file`, `--cache-dir`, `--config`, `--generated-path`, `--semantic-pack`, `--semantic-pack-lock`) is covered in
 [continuous-integration](continuous-integration.md), [configuration](configuration.md), and [semantic-pack-loading](semantic-pack-loading.md).
 Structured suppressions are covered in [structured-ignores](structured-ignores.md).
 

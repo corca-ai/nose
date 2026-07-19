@@ -15,8 +15,8 @@ use crate::query_views::render_query_base;
 use crate::query_witness::enrich_graded_witnesses;
 use crate::source_lines::family_anchor;
 use crate::surfaces::{
-    classify_surface_overrides, is_default_opportunity_family, is_default_report_family,
-    SurfaceOverrides,
+    classify_surface_overrides_with_generated_paths, is_default_opportunity_family,
+    is_default_report_family, SurfaceOverrides,
 };
 use crate::timing::time_stage;
 use anyhow::Result;
@@ -113,6 +113,12 @@ fn validate_base_query(q: &Query, args: &QueryArgs) -> Result<()> {
     }
     if !args.semantic_pack.is_empty() {
         unsupported_flags.push("--semantic-pack");
+    }
+    if !cfg.generated_paths.is_empty() {
+        unsupported_flags.push("generated-paths config");
+    }
+    if !args.generated_path.is_empty() {
+        unsupported_flags.push("--generated-path");
     }
     if cfg.semantic_pack_lock.is_some() {
         unsupported_flags.push("semantic-pack-lock config");
@@ -292,6 +298,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         min_value,
         min_members,
         exclude,
+        generated_path,
         cache_dir,
         ignore_file,
         semantic_pack,
@@ -326,6 +333,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         write_baseline,
         format,
         exclude,
+        generated_path,
         min_size,
         min_lines,
         scope: ScopeFilter::All,
@@ -343,9 +351,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
     let baseline_comparison = time_stage("query_activate", || {
         activate_query_families(&args, &mut dataset)
     })?;
-    let overrides = time_stage("query_surface", || {
-        classify_surface_overrides(&mut dataset.families)
-    });
+    let overrides = time_stage("query_surface", || query_surface_overrides(&mut dataset));
     if query_needs_spotclass(&q) {
         time_stage("query_spot", || {
             enrich_graded_witnesses(&mut dataset.families, &dataset.opts)
@@ -387,4 +393,11 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
     }
     time_stage("query_gate", || enforce_query_fail_on(&output))?;
     Ok(())
+}
+
+fn query_surface_overrides(dataset: &mut QueryDataset) -> SurfaceOverrides {
+    classify_surface_overrides_with_generated_paths(
+        &mut dataset.families,
+        &dataset.settings.generated_paths,
+    )
 }

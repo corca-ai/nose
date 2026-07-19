@@ -5,6 +5,7 @@
 //! ```toml
 //! [query]
 //! exclude = ["tests/**", "**/*.generated.ts", "vendor/**"]
+//! generated-paths = ["generated/**", "**/snapshots/mypy/**"]
 //! mode = ["syntax", "semantic", "near:0.8"] # fuzzy thresholds ride on the mode
 //! min-value = 200
 //! sort = "extractability"
@@ -26,6 +27,8 @@ use crate::query_options::{DetectionMode, SortKey};
 #[serde(rename_all = "kebab-case", default, deny_unknown_fields)]
 pub(crate) struct QueryConfig {
     pub exclude: Vec<String>,
+    /// Root-anchored caller assertions; unlike excludes, these retain findings.
+    pub generated_paths: Vec<String>,
     pub mode: Vec<DetectionMode>,
     pub min_value: Option<f64>,
     pub sort: Option<SortKey>,
@@ -128,11 +131,12 @@ mod tests {
     fn valid_config_still_loads() {
         let p = write_cfg(
             "ok",
-            "[query]\nmin-value = 200\nmin-size = 30\nignore-file = \"nose.ignore.json\"\nsemantic-packs = [\"packs\"]\n",
+            "[query]\nmin-value = 200\nmin-size = 30\ngenerated-paths = [\"generated/**\"]\nignore-file = \"nose.ignore.json\"\nsemantic-packs = [\"packs\"]\n",
         );
         let cfg = load_query(Some(&p)).expect("valid config must load");
         assert_eq!(cfg.min_value, Some(200.0));
         assert_eq!(cfg.min_size, Some(30));
+        assert_eq!(cfg.generated_paths, vec!["generated/**"]);
         assert_eq!(
             cfg.ignore_file,
             Some(p.parent().unwrap().join("nose.ignore.json"))

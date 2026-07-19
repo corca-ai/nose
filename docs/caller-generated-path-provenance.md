@@ -70,8 +70,8 @@ Every generated family in non-`base` query JSON has additive provenance:
 ```
 
 `basis` is `all-members` or `compiled-css-pipeline`. `sources` is a sorted, deduplicated list
-containing `caller-path`, `nose-inferred`, or both. This distinguishes caller trust from
-nose inference without changing the meaning or type of any existing schema-v7 field.
+containing `caller-path`, `nose-inferred`, or both. This is query JSON schema v9: the existing
+strict v7 contract is not silently extended, and no v7 field changes meaning or type.
 `base=<ref>` is a separate divergent-edit contract and rejects generated-path inputs rather
 than silently ignoring them.
 
