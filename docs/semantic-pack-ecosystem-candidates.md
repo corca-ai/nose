@@ -39,6 +39,7 @@ collection-factory kernel operation; other operations remain closed.
 | ecosystem | first narrow slice | candidate status | target lane/channel | value | risk | evidence availability | tracking issue |
 |---|---|---|---|---|---|---|---|
 | Guava | `nose.java.ecosystem.guava.immutable_collection_factories`: immutable `of` factories (`ImmutableList.of`, `ImmutableSet.of`, `ImmutableMap.of`) | first slice implemented | builtin default narrow slice | high for Java collection equivalence | medium | good: existing Java collection/map-factory vocabulary is reused with exact Guava import proof; `copyOf` remains closed | [#496](https://github.com/corca-ai/nose/issues/496) |
+| Vavr | `org.corca.reference.java-vavr-list`: imported `List.of` at arity 3–5 | `priced-ready`; local reference pack shipped | locked near plus external-claim exact | concrete Java collection-factory equivalence without builtin overlap | low-medium within the pinned slice | good: Maven coordinate/version, import, arity, source conformance, receipt, and real consumer evidence are pinned | [#869](https://github.com/corca-ai/nose/issues/869) |
 | Lodash | collection projection/predicate helpers (`map`, `filter`, `some`, `every`) | deferred until fixture evidence | undecided | high for JS/TS repos | high | mixed: callback demand, shorthand iteratees, object order, and lazy chains need hard negatives | [#497](https://github.com/corca-ai/nose/issues/497) |
 | NumPy | scalar integer ufuncs or array clip/min/max laws | deferred | undecided | high for Python data/science repos | high | mixed: dtype, broadcasting, NaN, signed-zero, overflow, and mutation boundaries must be explicit | [#498](https://github.com/corca-ai/nose/issues/498) |
 | RxJS | Observable identity/projection protocol slices | deferred | likely `near-only` before exact-capable rows | medium-high for JS/TS reactive code | high | limited: scheduler, subscription, hot/cold stream, error, and completion behavior need proof boundaries | [#499](https://github.com/corca-ai/nose/issues/499) |
@@ -74,6 +75,17 @@ Future Guava work must still prove the exact package coordinate, static-import
 path, arity/overload identity, version policy, source/result domain, and
 unsupported cases. It must not admit exact equivalence from selector names
 alone.
+
+## External reference candidate
+
+The first shipped external reference pack is the bounded Vavr `List.of` slice.
+It is documented in [Vavr reference pack](semantic-pack-reference-vavr.md) and
+remains disabled unless a user supplies its checked-in project lock. It does
+not duplicate the builtin Guava surface: its package coordinate is
+`io.vavr:vavr`, exact is limited to arity five, and near is limited to arities
+three and four. The `priced-ready` decision is supported by a pinned Maven
+consumer and same-binary product controls; it is not a claim about the rest of
+Vavr.
 
 ## Deferred Candidates
 

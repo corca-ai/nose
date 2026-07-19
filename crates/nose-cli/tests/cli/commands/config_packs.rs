@@ -202,3 +202,5 @@ mod external_cases_v1;
 mod external_exact;
 #[path = "config_packs/project_lock.rs"]
 mod project_lock;
+#[path = "config_packs/reference_vavr.rs"]
+mod reference_vavr;

@@ -1,0 +1,182 @@
+{
+  "schema": "nose.semantic-pack.issue-869-closeout/v1",
+  "issue": 869,
+  "generated_at": "2026-07-19",
+  "candidate": {
+    "status": "priced-ready",
+    "pack_id": "org.corca.reference.java-vavr-list",
+    "implementation_commit": "4aeb5a3cb76f78dfaac00450c228295a530e58d3",
+    "manifest_sha256": "5107b07e289d472ed736327ade951bd45204eeefc0d000fa0f60f9c48eecc413",
+    "semantic_digest": "sha256:e0abacf8a1f01dc5d1cc417b1bd7a47e9decfce0f9f700dd5322dd6ddd7cd597",
+    "decision_digest": "sha256:3182e5d41acfd3e66d3d14fb906b212370b80737302b30b198aa6cf35522d823",
+    "receipt_sha256": "90e1f1fb4df090cfac2ca1134556a4c1ff78b5dae9819774b79e468b1340955e",
+    "lock_sha256": "19ee051580d60bd65dc1bfc0d4dbc653e448da9dc971b90fae6e6abdd343ce6c",
+    "dependency_sha256": "9d5c9a4a52d83b72acfd0021a86d6b5ece0ffa3091d1054678b0d63f0d3f8d33",
+    "enabled_by_default": false,
+    "trust": "external-opt-in"
+  },
+  "pinned_real_consumer": {
+    "repository": "https://github.com/dhinojosa/vavr-study",
+    "commit": "10c8b1c649c672e69a75c60669f442f97b8a555e",
+    "dependency": "io.vavr:vavr:0.9.1",
+    "dependency_kind": "direct-maven",
+    "source_execution": false,
+    "matched_import": "io.vavr.collection.List",
+    "near_admitted_occurrences": 9,
+    "external_exact_admitted_occurrences": 1,
+    "standalone_influential_occurrences": 0,
+    "interpretation": "the real repository prices dependency, import, member, arity, and occurrence availability; checked-in same-binary controls isolate observable result changes"
+  },
+  "supported_slice": {
+    "coordinate": "io.vavr:vavr",
+    "versions": ">=0.9.0 <0.10.0",
+    "language": "java",
+    "import_role": "type",
+    "receiver": "imported-type",
+    "member": "of",
+    "operation": "collection-factory",
+    "near_arities": [3, 4],
+    "external_exact_arities": [5],
+    "non_overlap": "the builtin Guava coordinate and rows remain distinct",
+    "unsupported": [
+      "Vavr versions outside 0.9.x",
+      "wildcard, static, aliased, shadowed, rebound, or fully-qualified uses",
+      "other members, arities, receivers, packages, collection types, callbacks, streams, or lazy APIs",
+      "provider code, network resolution, registries, parser plugins, or new canonicalization"
+    ]
+  },
+  "controlled_product_evaluation": {
+    "roots": [
+      "pinned dhinojosa/vavr-study source",
+      "bench/semantic_pack/reference/vavr-study-control"
+    ],
+    "semantic": {
+      "without_lock_families": 0,
+      "with_lock_families": 1,
+      "attributed_external_exact_families": 1,
+      "admitted_occurrences": 2,
+      "influential_occurrences": 1,
+      "without_lock_sha256": "9d16dcbd39994e20716c654c0ceee0eac05b911de37ae24afe857158a3109a70",
+      "with_lock_sha256": "0cf6c13b9577d397b84b5d078df4516abff39468399df6920dd675154ab3ea50"
+    },
+    "near": {
+      "without_lock_families": 8,
+      "with_lock_families": 10,
+      "attributed_near_families": 1,
+      "attributed_external_exact_families": 1,
+      "near_admitted_occurrences": 11,
+      "near_influential_occurrences": 2,
+      "without_lock_sha256": "b54ec5255cde38e659c3f5c19d0a0d6c332ed80cc2350ea5f32fe0ee7f9b53af",
+      "with_lock_sha256": "bd1b1e9752cc6200e5e14dccff1ec399180769e9362b3436c1ae9ee555991226"
+    },
+    "deterministic_repeat": true,
+    "removing_lock_restores_without_lock_output": true,
+    "provenance_includes": [
+      "pack_id",
+      "row_id",
+      "semantic_digest",
+      "row_digest",
+      "trust",
+      "lane",
+      "assurance",
+      "dependency coordinate/version/source digest",
+      "receipt_digest",
+      "occurrence file/span",
+      "caveats"
+    ]
+  },
+  "fail_closed_evidence": {
+    "source_conformance": "2/2 fixtures passed",
+    "reference_hard_negatives": [
+      "wrong arity",
+      "wrong member",
+      "shadowed imported type"
+    ],
+    "epic_matrix_covered_by_workspace_tests": [
+      "missing dependency",
+      "unsupported dependency version",
+      "wrong package or import",
+      "alias, shadow, and rebind",
+      "receiver, dynamic-dispatch, arity, and overload mismatch",
+      "demand, effect, exception, mutation, and identity mismatch",
+      "row or semantic-coordinate conflict",
+      "missing, stale, or tampered receipt",
+      "fixture and dependency digest drift",
+      "symlink and resource-limit rejection"
+    ],
+    "pack_check_sha256": "9849ef8ad2a49b43cbc1853fc50f0f028e2beca90f46fb00f158693c6c0c5328",
+    "lock_status_sha256": "1cfcfadd3ed07f4ee2949bdf52b248bd1ce0a235f44092109e97e12269ae6762"
+  },
+  "official_release_performance": {
+    "baseline": {
+      "version": "v0.19.0",
+      "source_tag_object": "54f8a67436e39e24c777a85e14224273116add6b",
+      "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3"
+    },
+    "candidate": {
+      "source_commit": "4aeb5a3cb76f78dfaac00450c228295a530e58d3",
+      "binary_sha256": "68f903b639a61e8fa9b1a318b1f1a0ad2e4cb77acddad7f0404c138b7a605edb"
+    },
+    "corpus": "pinned dhinojosa/vavr-study",
+    "repeats": 15,
+    "warmups": 2,
+    "threads": 1,
+    "no_pack_semantic": {
+      "baseline_median_ms": 17.0187,
+      "candidate_median_ms": 17.0574,
+      "delta_ms": 0.0387,
+      "delta_pct": 0.2272,
+      "outputs_identical": true,
+      "measurement_sha256": "a93a238fb2e75f9201a60a07f722dfa38df3157bfbb3ed26b69651aa6711de1c"
+    },
+    "no_pack_near": {
+      "baseline_median_ms": 23.8591,
+      "candidate_median_ms": 23.732,
+      "delta_ms": -0.1271,
+      "delta_pct": -0.5328,
+      "outputs_identical": true,
+      "measurement_sha256": "c57c73e3173fb101d19725ef6a90e49aec51dd3600873e692184ca05b945bf98"
+    },
+    "same_binary_enabled_semantic": {
+      "without_lock_median_ms": 16.7848,
+      "with_lock_median_ms": 19.9171,
+      "delta_ms": 3.1323,
+      "delta_pct": 18.6617,
+      "measurement_sha256": "3f02f852bd04ee7120b4727a4cba5a8e59c73f75687bdb3385e1ce4026a8ada9"
+    },
+    "same_binary_enabled_near": {
+      "without_lock_median_ms": 23.2987,
+      "with_lock_median_ms": 26.7177,
+      "delta_ms": 3.419,
+      "delta_pct": 14.6745,
+      "measurement_sha256": "cf7b7f06c9f5e4a6349291828b466830ce6146cf4e230e84e9b719656ea835d3"
+    },
+    "gate": {
+      "limit_pct": 5.0,
+      "floor_ms": 5.0,
+      "passed": true,
+      "reason": "both enabled deltas are below the 5 ms measurement floor; no-pack deltas are below 1%"
+    }
+  },
+  "soundness": {
+    "command": "RAYON_NUM_THREADS=1 nose verify crates --max-violations 0",
+    "fingerprint_groups": 791,
+    "false_merges": 0,
+    "canon_changed_units_preserved": true,
+    "output_sha256": "8f4830cfacb76adbc73eb7f1e6d37ee2520306e9cd11e12f904876e09ffb5c6b"
+  },
+  "rollback": {
+    "action": "remove --semantic-pack-lock or the semantic-pack-lock config entry; optionally regenerate a narrower row/channel lock",
+    "network_or_install_cleanup": false,
+    "provider_code_cleanup": false
+  },
+  "validation": {
+    "focused_reference_test": "1 passed",
+    "cargo_test_workspace": "passed",
+    "cargo_clippy_workspace_all_targets_deny_warnings": "passed",
+    "cargo_fmt_check": "passed",
+    "docs": "passed",
+    "file_lengths": "passed",
+    "git_diff_check": "passed"
+  }
+}
