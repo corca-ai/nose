@@ -1,0 +1,76 @@
+{
+  "schema": "nose.official_binary_baseline/v1",
+  "version": "0.19.0",
+  "release": {
+    "url": "https://github.com/corca-ai/nose/releases/tag/v0.19.0",
+    "published_at": "2026-07-13T08:05:53Z",
+    "annotated_tag_object_sha": "54f8a67436e39e24c777a85e14224273116add6b",
+    "commit_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+    "dist_manifest": {
+      "url": "https://github.com/corca-ai/nose/releases/download/v0.19.0/dist-manifest.json",
+      "sha256": "e9ec68c842d8b796c910b7b9cd332a1864ae83a9d0767fc2bd86be29776edbcb"
+    }
+  },
+  "artifacts": [
+    {
+      "target": "aarch64-apple-darwin",
+      "archive": "nose-cli-aarch64-apple-darwin.tar.xz",
+      "archive_sha256": "097c7e766e9ab756a32cec715897067d1360e145074715168a653962be409981",
+      "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3",
+      "binary_code_sha256": "e55d0e989993ff1d1d6b4e933dbd3f5ade38203368b8321d3a7842799a95aca6",
+      "binary_code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1"
+    },
+    {
+      "target": "x86_64-apple-darwin",
+      "archive": "nose-cli-x86_64-apple-darwin.tar.xz",
+      "archive_sha256": "b3e63aceea637f698c5a0f62677b9ec6ff741c55031d670e24447d628fe8b5c3",
+      "binary_sha256": "1d7ead88c48e4bb512f46e4e2b1c74f4552ca9f660864b54cb96ffeaf24783df",
+      "binary_code_sha256": "42ef03d4dbc907d9e8aefe249da9aad4ac3174ad190810305cff3dd5cc92fc09",
+      "binary_code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1"
+    },
+    {
+      "target": "aarch64-unknown-linux-gnu",
+      "archive": "nose-cli-aarch64-unknown-linux-gnu.tar.xz",
+      "archive_sha256": "172a83673ce4b3a520173a6ba76a863f653822a4d170eed6711b03946851f461",
+      "binary_sha256": "ab7c68626a561bf693b2de6f7e795900564a7e624a8cf0891922aa84afc20551",
+      "binary_code_sha256": "ab7c68626a561bf693b2de6f7e795900564a7e624a8cf0891922aa84afc20551",
+      "binary_code_sha256_algorithm": "sha256/full-file-v1"
+    },
+    {
+      "target": "x86_64-unknown-linux-gnu",
+      "archive": "nose-cli-x86_64-unknown-linux-gnu.tar.xz",
+      "archive_sha256": "8ae7b1000fb00b4029f9daa034f42291331486806ddeef133ec4c9ac4f2dafbd",
+      "binary_sha256": "fa7973b741884a7035491c005a932165ff79d3d35b2181a746246c5e71adc607",
+      "binary_code_sha256": "fa7973b741884a7035491c005a932165ff79d3d35b2181a746246c5e71adc607",
+      "binary_code_sha256_algorithm": "sha256/full-file-v1"
+    }
+  ],
+  "cache_boundary": {
+    "schema": 11,
+    "always_recomputed": [
+      "discovery",
+      "source-read",
+      "parse-and-lower",
+      "corpus-import-resolution",
+      "global-detection",
+      "family-ranking",
+      "presentation"
+    ],
+    "reused": ["per-file-normalize-and-extract-units", "per-file-syntax-stream"]
+  },
+  "release_performance": {
+    "evidence": "bench/recall_loss/release-0.19.0-evidence-2026-07-13.v1.json",
+    "evidence_sha256": "7d0330a578d15f28c864ff8e4fe7dcb48ac8a6e8033d76f058003696276e0ab5",
+    "repositories": 120,
+    "iterations": 3,
+    "warmups": 1,
+    "established_semantic_median_ms": 28964.5600427757,
+    "expanded_default_median_ms": 36159.033919044305
+  },
+  "policy": {
+    "accepted_baseline": "downloaded-published-archive-only",
+    "local_rebuild_accepted": false,
+    "verify_archive_before_extraction": true,
+    "verify_binary_before_measurement": true
+  }
+}

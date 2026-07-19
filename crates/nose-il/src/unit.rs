@@ -19,7 +19,7 @@ pub struct Unit {
     pub origin: UnitOrigin,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum UnitKind {
     Function,
     Method,
@@ -27,7 +27,7 @@ pub enum UnitKind {
     Block,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub struct UnitOrigin {
     #[serde(default, skip_serializing_if = "UnitDomains::is_empty")]
     pub domains: UnitDomains,

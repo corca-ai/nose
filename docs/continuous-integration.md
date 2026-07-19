@@ -317,10 +317,13 @@ for the recorded artifact and disposition shape.
 
 ## Fast re-runs: `--cache-dir`
 
-`--cache-dir <dir>` caches each file's analysis keyed by content hash. Unchanged
-files are reused on the next run — skipping parse, [normalization](normalization.md), and feature
-extraction — which makes repeated invocations (CI, pre-commit, local iteration)
-much faster. Point it at a directory your CI caches between runs.
+`--cache-dir <dir>` caches each file's analysis keyed by its post-resolution IL and stable
+reporting identity. Unchanged files reuse [normalization](normalization.md), feature extraction,
+and syntax streams on the next run. The current cache still rediscovers, reads, parses, and lowers
+the whole selected corpus, resolves cross-file facts, and repeats global detection and
+presentation. Point it at a directory your CI caches between runs; see the
+[incremental cache benchmark](incremental-cache-benchmark.md) for the exact boundary and the
+0.20 replacement contract.
 
 ```sh
 nose query src --cache-dir .nose-cache --fail-on any

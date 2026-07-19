@@ -6,6 +6,8 @@ mod support;
 
 pub(crate) use support::*;
 
+#[path = "cli/cache.rs"]
+mod cache;
 #[path = "cli/commands.rs"]
 mod commands;
 #[path = "cli/declaration_surfaces.rs"]
