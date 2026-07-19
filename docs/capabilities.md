@@ -88,6 +88,7 @@ nose capabilities
       "query_base_sarif": true,
       "query_base_structured_ignores": true,
       "reinvented_view": true,
+      "semantic_pack_dependency_evidence": true,
       "semantic_pack_loading": true,
       "semantic_pack_project_lock": true,
       "structured_ignores": true
@@ -212,6 +213,12 @@ consumers. New fields may be added to existing objects without changing
 `schema_version`; changing a documented field's type or meaning requires a new
 capabilities schema version.
 
+The global `dependency-backed-evidence-unavailable` influence blocker describes
+the existing opaque/data-only external-row preflight. A locked typed v1 query
+can build the separate dependency/occurrence index advertised by
+`semantic_pack_dependency_evidence`, but no lane consumes that index yet and it
+does not remove the global `metadata-only` policy.
+
 ## Query Capability Flags
 
 Version 6 defines these `query.capabilities` keys:
@@ -232,6 +239,7 @@ Version 6 defines these `query.capabilities` keys:
 | `query_base_sarif` | `base=<ref> --format sarif` emits divergent-edit SARIF results. Wrappers should also verify `query.output_formats` contains `sarif`. |
 | `query_base_structured_ignores` | Structured ignores are applied before the `base=<ref>` divergent-edit gate. |
 | `reinvented_view` | The `reinvented` query view is supported. |
+| `semantic_pack_dependency_evidence` | A content-pinned v1 lock can build a local-only immutable Maven dependency/import/symbol/receiver/effect occurrence index; the index does not imply analysis influence. |
 | `semantic_pack_loading` | local v0 manifests can be loaded as metadata and typed v1 manifests can be compiled for metadata/digest reporting. |
 | `semantic_pack_project_lock` | local v1 project locks can be created, validated, and supplied to query before analysis. |
 | `structured_ignores` | `nose.ignore.json` / `--ignore-file` audited suppressions are supported. |

@@ -637,7 +637,11 @@ still being migrated toward it.
   `nose.semantic-pack-lock.v1` layer now pins manifest identity/content,
   selected rows/channels, dependency inputs, and optional receipts; rejects
   path escapes and overlapping cross-pack coordinates; and exposes local
-  create/status commands. v1 still does not feed analysis consumers.
+  create/status commands. Locked queries now use a bounded Maven POM reader and
+  builtin Java evidence matcher to build an immutable dependency/import/symbol/
+  receiver/effect occurrence index. The index is threaded through query
+  analysis but still does not feed normalize, exact, near, or detection
+  consumers.
   `nose semantic-pack check` validates local manifests plus declared fixture
   assets, and `nose query --format json` reports active builtin/local packs in
   top-level `semantic_packs`. External packs are still `metadata-only`; builtin

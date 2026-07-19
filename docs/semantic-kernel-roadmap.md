@@ -2089,9 +2089,13 @@ justifies a tranche ([design §2c](design.md)).
 - [semantic-pack-project-lock](semantic-pack-project-lock.md) adds the first
   content-pinned project authorization and deterministic semantic-coordinate
   conflict boundary. It pins selected rows/channels and checked-in dependency
-  inputs without opening influence. The typed indexes deliberately remain
-  disconnected from analysis until dependency and occurrence evidence, lane
-  consumers, receipts, and a real reference pack are complete.
+  inputs without opening influence.
+- Locked v1 queries now build an immutable dependency/occurrence index with a
+  bounded Maven POM reader and builtin Java import/symbol/receiver/effect
+  matchers. Missing, invalid, ambiguous, out-of-range, wrong-package, wildcard,
+  shadowed, and rebound cases fail closed. The evidence index is threaded
+  through query analysis but deliberately remains disconnected from detection
+  until lane consumers, receipts, and a real reference pack are complete.
 - Start with data-only external packs for simple APIs once producer execution and
   executable fixture/oracle checks exist.
 - Add restricted recognizer hooks only after the manifest path is stable.

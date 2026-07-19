@@ -55,7 +55,7 @@ fn creates_and_validates_a_content_pinned_relative_lock() {
 
     assert!(lock_path.is_file());
     assert_eq!(created.authorizations().len(), 1);
-    assert_eq!(created.authorizations()[0].selected_rows().len(), 2);
+    assert_eq!(created.authorizations()[0].selected_rows().len(), 3);
     assert!(created.summary().decision_digest().starts_with("sha256:"));
     let json: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&lock_path).unwrap()).unwrap();

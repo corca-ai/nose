@@ -1,9 +1,10 @@
 # Semantic-pack project locks
 
-Status: project lock v1, local creation/status commands, and pre-analysis
-validation are implemented. A valid lock authorizes selected v1 rows and lanes,
-but external rows remain `metadata-only` until the evidence and lane consumers
-land. v0 can never become influential through a lock.
+Status: project lock v1, local creation/status commands, pre-analysis
+validation, and a locked Maven evidence reader are implemented. A valid lock
+authorizes selected v1 rows and lanes and bounds which local dependency inputs
+the evidence index may read, but external rows remain `metadata-only` until lane
+consumers land. v0 can never become influential through a lock.
 
 ## Why a separate lock exists
 
@@ -83,11 +84,18 @@ before source analysis. Without a configured lock, ordinary v0/v1 manifest
 loading remains available for metadata/check workflows and cannot influence
 analysis.
 
+Query analysis builds a query-local dependency/occurrence evidence index from
+the validated lock and builtin frontend facts. It rereads no path outside the
+pin set and rechecks content digests before using dependency facts. Missing,
+ambiguous, invalid, or out-of-range versions keep selected rows closed rather
+than consulting Maven or a registry.
+
 Query JSON keeps `influence: "metadata-only"` for locked v1 packs in this phase
 and adds a `lock` object containing `status: "valid"`, lock API and decision
 digest, authorized channels, selected rows, dependency pins, and optional
-receipt. Removing the lock or narrowing a regenerated selection removes that
-authorization without changing the manifest.
+receipt. Occurrence counts are not reported until a lane consumer can explain
+their effect. Removing the lock or narrowing a regenerated selection removes
+that authorization and its evidence index without changing the manifest.
 
 ## Determinism and conflicts
 

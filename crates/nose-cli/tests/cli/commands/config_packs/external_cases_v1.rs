@@ -34,7 +34,7 @@ fn typed_v1_pack_compiles_and_reports_digest_without_changing_families() {
     assert_eq!(reported["api_version"], "nose.semantic-pack.v1");
     assert_eq!(reported["source"], "local-manifest");
     assert_eq!(reported["influence"], "metadata-only");
-    assert_eq!(reported["counts"]["contracts"], 2);
+    assert_eq!(reported["counts"]["contracts"], 3);
     let digest = reported["semantic_digest"].as_str().unwrap();
     assert!(digest.starts_with("sha256:"));
     assert_eq!(digest.len(), 71);

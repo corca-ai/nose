@@ -215,6 +215,7 @@ fn query_capability_flags() -> std::collections::BTreeMap<&'static str, bool> {
         ("query_base_sarif", true),
         ("query_base_structured_ignores", true),
         ("reinvented_view", true),
+        ("semantic_pack_dependency_evidence", true),
         ("semantic_pack_loading", true),
         ("semantic_pack_project_lock", true),
         ("structured_ignores", true),

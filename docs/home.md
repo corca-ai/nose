@@ -100,8 +100,8 @@ fundamentals; the rest is grouped by area.
 - [semantic-pack-adoption](semantic-pack-adoption.md) — promotion, rollback, and adoption-gate reports for moving external or optional packs into official builtin support without forking semantic vocabulary.
 - [semantic-pack-compatibility](semantic-pack-compatibility.md) — manifest API, installed-version, kernel-vocabulary, and fail-closed external-influence compatibility policy for semantic packs.
 - [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md) — versioned v0 schema and provider-facing extension API for language/library semantic packs.
-- [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md) — closed typed Java/Maven package-API grammar, deterministic pre-analysis compiler, and semantic content digest; influence remains disabled pending evidence and lane consumers.
-- [semantic-pack-project-lock](semantic-pack-project-lock.md) — local content-pinned v1 authorization, row/channel selection, dependency/receipt pins, path containment, and deterministic conflict rejection.
+- [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md) — closed typed Java/Maven package-API grammar, deterministic compiler, local dependency/occurrence evidence index, and semantic content digest; influence remains disabled pending lane consumers.
+- [semantic-pack-project-lock](semantic-pack-project-lock.md) — local content-pinned v1 authorization, row/channel selection, dependency/receipt pins, path containment, deterministic conflict rejection, and evidence input boundary.
 - [semantic-pack-conformance](semantic-pack-conformance.md) — provider/user workflow for checking local pack manifests and the builtin inventory workflow for auditing shipped pack coverage.
 - [semantic-pack-loading](semantic-pack-loading.md) — local pack manifest loading, explicit opt-in trust policy, and current metadata-only limits.
 
