@@ -21,14 +21,47 @@ pub(crate) fn seeds(k: usize) -> Vec<u64> {
 
 /// MinHash signature of a *distinct* feature set: `sig[i] = min_f h_i(f)`.
 pub(crate) fn sign(distinct: &[u64], seeds: &[u64]) -> Vec<u64> {
-    let mut sig = vec![u64::MAX; seeds.len()];
-    for &f in distinct {
-        for (i, &s) in seeds.iter().enumerate() {
-            let h = splitmix64(f ^ s);
-            if h < sig[i] {
-                sig[i] = h;
+    let mut sig = Vec::with_capacity(seeds.len());
+    for &seed in seeds {
+        let mut minimum = u64::MAX;
+        for &feature in distinct {
+            minimum = minimum.min(splitmix64(feature ^ seed));
+        }
+        sig.push(minimum);
+    }
+    sig
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn feature_major_sign(distinct: &[u64], seeds: &[u64]) -> Vec<u64> {
+        let mut signature = vec![u64::MAX; seeds.len()];
+        for &feature in distinct {
+            for (index, &seed) in seeds.iter().enumerate() {
+                signature[index] = signature[index].min(splitmix64(feature ^ seed));
+            }
+        }
+        signature
+    }
+
+    #[test]
+    fn seed_major_sign_preserves_feature_major_signature() {
+        let feature_sets: &[&[u64]] = &[
+            &[],
+            &[0],
+            &[1, 2, 3, u64::MAX],
+            &[0x0123_4567_89ab_cdef, 0xfedc_ba98_7654_3210],
+        ];
+        for &features in feature_sets {
+            for seed_count in [0, 1, 2, 64, 128] {
+                let permutation_seeds = seeds(seed_count);
+                assert_eq!(
+                    sign(features, &permutation_seeds),
+                    feature_major_sign(features, &permutation_seeds)
+                );
             }
         }
     }
-    sig
 }
