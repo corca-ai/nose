@@ -263,6 +263,11 @@ set -euo pipefail
 # candidate-pair representative moves from `8462d08908be9e8a` to `3fefab5ac16598ec`, and the
 # long-standing numeric `int_bin` / `float_bin` family `aa2b95cf822a1cd2` crosses value 40.
 # Neither family was introduced or modified here; see docs/dogfooding-history.md.
+# 27 -> 27 (#870 semantic-pack closeout): reusing the shipped Vavr manifest removes an
+# avoidable exact-pack test fixture family. The final self-query replaces the reviewed numeric
+# dispatcher representative with an exact/near registry whole-impl overlap. Those registries
+# intentionally keep receipt-backed exact mutation separate from near-protocol evidence; no shared
+# base registry or budget increase is accepted. See docs/dogfooding-history.md.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

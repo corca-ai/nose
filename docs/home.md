@@ -102,6 +102,7 @@ fundamentals; the rest is grouped by area.
 - [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md) — versioned v0 schema and provider-facing extension API for language/library semantic packs.
 - [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md) — closed typed Java/Maven package-API grammar, deterministic compiler, local dependency/occurrence evidence, bounded locked near influence, and receipt-backed collection-factory exact claims.
 - [semantic-pack-reference-vavr](semantic-pack-reference-vavr.md) — shipped, disabled-by-default Vavr `List.of` reference pack, pinned lock/receipt, measured value, boundaries, and rollback.
+- [semantic-pack-0.20-release-gate](semantic-pack-0.20-release-gate.md) — the #863 compatibility, provenance, soundness, performance, responsibility, and rollback closeout for influential local packs.
 - [semantic-pack-project-lock](semantic-pack-project-lock.md) — local content-pinned v1 authorization, row/channel selection, dependency/receipt pins, path containment, deterministic conflict rejection, and evidence input boundary.
 - [semantic-pack-conformance](semantic-pack-conformance.md) — provider/user workflow for structural and bounded kernel source checks, receipt output, and builtin inventory audits.
 - [semantic-pack-loading](semantic-pack-loading.md) — local pack manifest loading, explicit opt-in trust policy, and fail-closed near/external-claim-exact boundaries.

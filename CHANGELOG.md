@@ -11,7 +11,13 @@ break.
   semantic packs. `nose semantic-pack lock/status` content-pin manifest identity,
   semantic digest, selected rows/channels, dependency files, and optional receipts;
   query validates configured locks before analysis, rejects stale/escaped/conflicting
-  decisions independent of load order, and keeps all external rows metadata-only.
+  decisions independent of load order, and can admit dependency-backed near rows or
+  receipt-backed, separately attributed external-claim exact collection factories.
+  v0 and unlocked v1 remain metadata-only. External packs are local, explicit opt-ins,
+  disabled by default, and data-only: nose adds no provider-code execution, registry,
+  network resolver, installer, or parser plugin. A shipped Vavr 0.9.x `List.of`
+  reference pack demonstrates the complete lock, receipt, attribution, and rollback
+  workflow without claiming builtin certification.
 - Closed the #847 divergent-edit precision-first cycle without overstating readiness.
   Direct changed-to-skipped targets, bounded semantic-change evidence, and pair-local
   variant signals now give users more precise review context, while one internal policy

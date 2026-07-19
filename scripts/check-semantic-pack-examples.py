@@ -18,7 +18,13 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = ROOT / "docs" / "schemas" / "semantic-pack-v0.schema.json"
 SCHEMA_V1 = ROOT / "docs" / "schemas" / "semantic-pack-v1.schema.json"
 LOCK_SCHEMA_V1 = ROOT / "docs" / "schemas" / "semantic-pack-lock-v1.schema.json"
-LOCK_EXAMPLE_V1 = ROOT / "docs" / "examples" / "semantic-pack-lock-v1.json"
+RECEIPT_SCHEMA_V1 = (
+    ROOT / "docs" / "schemas" / "semantic-pack-conformance-receipt-v1.schema.json"
+)
+LOCK_EXAMPLES_V1 = sorted((ROOT / "docs" / "examples").glob("*lock-v1.json"))
+RECEIPT_EXAMPLES_V1 = sorted(
+    (ROOT / "docs" / "examples" / "semantic-pack-receipts").glob("*.json")
+)
 EXAMPLES = sorted(
     (ROOT / "docs" / "examples" / "semantic-packs" / "v0").glob("*.json")
 )
@@ -76,6 +82,8 @@ EVIDENCE_PREFIXES = (
     "SequenceSurface.",
 )
 ALLOWED_REQUIREMENT_PREFIXES = EVIDENCE_PREFIXES + ("nose.",)
+DIGEST_PREFIX = "sha256:"
+DIGEST_LENGTH = len(DIGEST_PREFIX) + 64
 
 
 def fail(path: Path, message: str) -> None:
@@ -127,6 +135,32 @@ def require_enum(path: Path, value: Any, allowed: set[str], label: str) -> str:
     if not isinstance(value, str) or value not in allowed:
         fail(path, f"`{label}` must be one of {sorted(allowed)}")
     return value
+
+
+def require_digest(path: Path, value: Any, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) != DIGEST_LENGTH
+        or not value.startswith(DIGEST_PREFIX)
+        or any(character not in "0123456789abcdef" for character in value[len(DIGEST_PREFIX) :])
+    ):
+        fail(path, f"`{label}` must be a lowercase sha256 digest")
+    return value
+
+
+def require_exact_keys(
+    path: Path,
+    value: dict[str, Any],
+    required: set[str],
+    optional: set[str],
+    label: str,
+) -> None:
+    missing = required - value.keys()
+    unknown = value.keys() - required - optional
+    if missing:
+        fail(path, f"`{label}` is missing fields {sorted(missing)}")
+    if unknown:
+        fail(path, f"`{label}` has unknown fields {sorted(unknown)}")
 
 
 def require_unique_ids(path: Path, items: list[Any], label: str) -> set[str]:
@@ -376,26 +410,169 @@ def resolve_lock_path(lock_path: Path, declared: str) -> Path:
 def validate_file_pin(lock_path: Path, pin: Any) -> None:
     if not isinstance(pin, dict):
         fail(lock_path, "file pin must be an object")
+    require_exact_keys(lock_path, pin, {"path", "content_digest"}, set(), "file pin")
     declared = require_string(lock_path, pin, "path")
-    expected = require_string(lock_path, pin, "content_digest")
+    expected = require_digest(lock_path, pin.get("content_digest"), "file pin content_digest")
     resolved = resolve_lock_path(lock_path, declared)
     actual = "sha256:" + hashlib.sha256(resolved.read_bytes()).hexdigest()
     if expected != actual:
         fail(lock_path, f"locked file `{declared}` digest is stale")
 
 
+def validate_v1_receipt(path: Path, doc: dict[str, Any]) -> None:
+    require_exact_keys(
+        path,
+        doc,
+        {
+            "api_version",
+            "nose_version",
+            "kernel_capability",
+            "pack_id",
+            "pack_version",
+            "semantic_digest",
+            "rows",
+            "fixtures",
+            "passed",
+        },
+        set(),
+        "receipt",
+    )
+    if doc.get("api_version") != "nose.semantic-pack-conformance-receipt.v1":
+        fail(path, "receipt `api_version` must be nose.semantic-pack-conformance-receipt.v1")
+    require_string(path, doc, "nose_version")
+    if doc.get("kernel_capability") != "nose.kernel.external-collection-factory-exact.v1":
+        fail(path, "receipt has an unsupported kernel capability")
+    require_string(path, doc, "pack_id")
+    require_string(path, doc, "pack_version")
+    require_digest(path, doc.get("semantic_digest"), "receipt semantic_digest")
+    if require_bool(path, doc, "passed") is not True:
+        fail(path, "checked-in receipt must have passed")
+
+    rows = require_array(path, doc, "rows", min_items=1)
+    row_ids: set[str] = set()
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            fail(path, f"`rows[{index}]` must be an object")
+        require_exact_keys(
+            path,
+            row,
+            {"row_id", "row_digest", "channel"},
+            set(),
+            f"rows[{index}]",
+        )
+        row_id = require_string(path, row, "row_id")
+        if row_id in row_ids:
+            fail(path, f"duplicate receipt row `{row_id}`")
+        row_ids.add(row_id)
+        require_digest(path, row.get("row_digest"), f"rows[{index}].row_digest")
+        require_enum(path, row.get("channel"), {"external-exact"}, f"rows[{index}].channel")
+
+    fixtures = require_array(path, doc, "fixtures", min_items=2)
+    fixture_ids: set[str] = set()
+    fixture_kinds = {row_id: set() for row_id in row_ids}
+    expectations = {"external-exact-match", "no-external-exact-match"}
+    for index, fixture in enumerate(fixtures):
+        if not isinstance(fixture, dict):
+            fail(path, f"`fixtures[{index}]` must be an object")
+        require_exact_keys(
+            path,
+            fixture,
+            {
+                "id",
+                "row_id",
+                "kind",
+                "path",
+                "dependency",
+                "fixture_digest",
+                "dependency_digest",
+                "expectation",
+                "observed",
+                "passed",
+            },
+            set(),
+            f"fixtures[{index}]",
+        )
+        fixture_id = require_string(path, fixture, "id")
+        if fixture_id in fixture_ids:
+            fail(path, f"duplicate receipt fixture `{fixture_id}`")
+        fixture_ids.add(fixture_id)
+        row_id = require_string(path, fixture, "row_id")
+        if row_id not in row_ids:
+            fail(path, f"receipt fixture `{fixture_id}` references unknown row `{row_id}`")
+        kind = require_enum(
+            path,
+            fixture.get("kind"),
+            {"positive", "hard-negative"},
+            f"fixtures[{index}].kind",
+        )
+        fixture_kinds[row_id].add(kind)
+        require_string(path, fixture, "path")
+        require_string(path, fixture, "dependency")
+        require_digest(path, fixture.get("fixture_digest"), f"fixtures[{index}].fixture_digest")
+        require_digest(
+            path,
+            fixture.get("dependency_digest"),
+            f"fixtures[{index}].dependency_digest",
+        )
+        expectation = require_enum(
+            path,
+            fixture.get("expectation"),
+            expectations,
+            f"fixtures[{index}].expectation",
+        )
+        observed = require_enum(
+            path,
+            fixture.get("observed"),
+            expectations,
+            f"fixtures[{index}].observed",
+        )
+        if expectation != observed or require_bool(path, fixture, "passed") is not True:
+            fail(path, f"receipt fixture `{fixture_id}` is not a passing observation")
+    for row_id, kinds in fixture_kinds.items():
+        if kinds != {"positive", "hard-negative"}:
+            fail(path, f"receipt row `{row_id}` must have positive and hard-negative fixtures")
+
+
 def validate_v1_lock(path: Path, doc: dict[str, Any]) -> None:
+    require_exact_keys(
+        path,
+        doc,
+        {"api_version", "dependencies", "packs"},
+        {"$schema"},
+        "project lock",
+    )
     if doc.get("api_version") != "nose.semantic-pack-lock.v1":
         fail(path, "lock `api_version` must be nose.semantic-pack-lock.v1")
     dependencies = require_array(path, doc, "dependencies", min_items=1)
+    dependency_paths: set[str] = set()
     for dependency in dependencies:
         validate_file_pin(path, dependency)
+        declared = dependency["path"]
+        if declared in dependency_paths:
+            fail(path, f"duplicate dependency path `{declared}`")
+        dependency_paths.add(declared)
     packs = require_array(path, doc, "packs", min_items=1)
     ids: set[str] = set()
     manifests: set[str] = set()
     for entry in packs:
         if not isinstance(entry, dict):
             fail(path, "lock pack entries must be objects")
+        require_exact_keys(
+            path,
+            entry,
+            {
+                "manifest",
+                "manifest_api_version",
+                "pack_id",
+                "pack_version",
+                "nose_compatibility",
+                "semantic_digest",
+                "allowed_channels",
+                "selected_rows",
+            },
+            {"exact_receipt"},
+            "lock pack entry",
+        )
         pack_id = require_string(path, entry, "pack_id")
         manifest_path = require_string(path, entry, "manifest")
         if pack_id in ids or manifest_path in manifests:
@@ -407,6 +584,7 @@ def validate_v1_lock(path: Path, doc: dict[str, Any]) -> None:
             fail(path, f"lock entry `{pack_id}` must pin manifest v1")
         if manifest.get("api_version") != "nose.semantic-pack.v1":
             fail(path, f"lock entry `{pack_id}` references a non-v1 manifest")
+        validate_v1_pack(resolve_lock_path(path, manifest_path), manifest)
         if require_object(path, manifest, "pack").get("id") != pack_id:
             fail(path, f"lock entry `{pack_id}` does not match its manifest")
         if require_string(path, entry, "pack_version") != manifest["pack"]["version"]:
@@ -414,17 +592,42 @@ def validate_v1_lock(path: Path, doc: dict[str, Any]) -> None:
         compatibility = require_object(path, manifest, "compatibility")
         if require_string(path, entry, "nose_compatibility") != compatibility.get("nose"):
             fail(path, f"lock entry `{pack_id}` compatibility range is stale")
-        digest = require_string(path, entry, "semantic_digest")
-        if len(digest) != 71 or not digest.startswith("sha256:"):
-            fail(path, f"lock entry `{pack_id}` semantic digest is malformed")
+        require_digest(path, entry.get("semantic_digest"), f"lock entry {pack_id} semantic_digest")
         channels = require_array(path, entry, "allowed_channels", min_items=1)
         if len(channels) != len(set(channels)) or not set(channels) <= {"near", "external-exact"}:
             fail(path, f"lock entry `{pack_id}` has invalid allowed channels")
         rows = require_array(path, entry, "selected_rows", min_items=1)
         if len(rows) != len(set(rows)):
             fail(path, f"lock entry `{pack_id}` has duplicate selected rows")
-        if "exact_receipt" in entry:
-            validate_file_pin(path, entry["exact_receipt"])
+        manifest_rows = {
+            contract["id"]: contract["channel"]
+            for contract in require_object(path, manifest, "declares")["api_contracts"]
+        }
+        for row_id in rows:
+            if row_id not in manifest_rows:
+                fail(path, f"lock entry `{pack_id}` selects unknown row `{row_id}`")
+            if manifest_rows[row_id] not in channels:
+                fail(path, f"lock entry `{pack_id}` does not allow row `{row_id}` channel")
+        exact_rows = sorted(row_id for row_id in rows if manifest_rows[row_id] == "external-exact")
+        receipt_pin = entry.get("exact_receipt")
+        if exact_rows and receipt_pin is None:
+            fail(path, f"lock entry `{pack_id}` selects exact rows without a receipt")
+        if not exact_rows and receipt_pin is not None:
+            fail(path, f"lock entry `{pack_id}` pins a receipt without exact rows")
+        if receipt_pin is not None:
+            validate_file_pin(path, receipt_pin)
+            receipt_path = resolve_lock_path(path, receipt_pin["path"])
+            receipt = read_json(receipt_path)
+            validate_v1_receipt(receipt_path, receipt)
+            if (
+                receipt["pack_id"] != pack_id
+                or receipt["pack_version"] != entry["pack_version"]
+                or receipt["semantic_digest"] != entry["semantic_digest"]
+            ):
+                fail(path, f"lock entry `{pack_id}` receipt identity is stale")
+            receipt_rows = sorted(row["row_id"] for row in receipt["rows"])
+            if receipt_rows != exact_rows:
+                fail(path, f"lock entry `{pack_id}` receipt rows do not match selected exact rows")
 
 
 def main() -> int:
@@ -445,10 +648,25 @@ def main() -> int:
     lock_schema = read_json(LOCK_SCHEMA_V1)
     if lock_schema.get("$id") is None or lock_schema.get("title") is None:
         fail(LOCK_SCHEMA_V1, "schema must declare $id and title")
-    validate_v1_lock(LOCK_EXAMPLE_V1, read_json(LOCK_EXAMPLE_V1))
+    receipt_schema = read_json(RECEIPT_SCHEMA_V1)
+    if receipt_schema.get("$id") is None or receipt_schema.get("title") is None:
+        fail(RECEIPT_SCHEMA_V1, "schema must declare $id and title")
+    if not LOCK_EXAMPLES_V1:
+        fail(ROOT / "docs" / "examples", "no project lock v1 examples found")
+    if not RECEIPT_EXAMPLES_V1:
+        fail(
+            ROOT / "docs" / "examples" / "semantic-pack-receipts",
+            "no conformance receipt v1 examples found",
+        )
+    for receipt in RECEIPT_EXAMPLES_V1:
+        validate_v1_receipt(receipt, read_json(receipt))
+    for lock in LOCK_EXAMPLES_V1:
+        validate_v1_lock(lock, read_json(lock))
     print(
         f"validated {len(EXAMPLES)} semantic-pack v0 example(s) and "
-        f"{len(EXAMPLES_V1)} semantic-pack v1 example(s), plus project lock v1"
+        f"{len(EXAMPLES_V1)} semantic-pack v1 example(s), "
+        f"{len(LOCK_EXAMPLES_V1)} project lock(s), and "
+        f"{len(RECEIPT_EXAMPLES_V1)} conformance receipt(s)"
     )
     return 0
 

@@ -45,7 +45,8 @@ same-binary comparison controls. With no lock, the controlled semantic result
 is absent. With the lock, one attributed external-claim exact family appears;
 near adds one family with two attributed occurrences. Removing the lock restores
 the original output. The closeout artifact records hashes, counts, negative
-matrices, verification, and official-v0.19 runtime comparisons.
+matrices, verification, and official-v0.19 runtime comparisons; see the
+[#869 machine-readable evidence](../bench/semantic_pack/issue-869-vavr-reference-pack-closeout-2026-07-19.v1.json) for the immutable values.
 
 ## Closed boundaries
 
