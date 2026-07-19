@@ -111,6 +111,7 @@ mod external;
 mod loading;
 mod lock;
 mod manifest;
+mod near_registry;
 mod result_domain_semantics;
 mod v1;
 mod validation;
@@ -147,6 +148,10 @@ pub use lock::{
     ValidatedSemanticPackProjectLock, SEMANTIC_PACK_LOCK_API_VERSION_V1,
 };
 use manifest::*;
+pub use near_registry::{
+    SemanticPackNearDependency, SemanticPackNearPackCounts, SemanticPackNearProtocol,
+    SemanticPackNearProvenance, SemanticPackNearRegistry, SemanticPackNearReport,
+};
 use v1::{compile_manifest_v1, SemanticPackManifestV1};
 pub use v1::{
     CompiledSemanticPackV1, SemanticPackV1Anchor, SemanticPackV1Arity, SemanticPackV1ArityKind,
@@ -202,6 +207,7 @@ impl SemanticPackSource {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SemanticPackInfluence {
     EvidenceAndContracts,
+    NearOnly,
     MetadataOnly,
 }
 
@@ -209,6 +215,7 @@ impl SemanticPackInfluence {
     pub const fn as_str(self) -> &'static str {
         match self {
             SemanticPackInfluence::EvidenceAndContracts => "evidence-and-contracts",
+            SemanticPackInfluence::NearOnly => "near-only",
             SemanticPackInfluence::MetadataOnly => "metadata-only",
         }
     }

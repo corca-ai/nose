@@ -89,8 +89,10 @@ current-working-directory relative.
 `semantic-packs` is additive with repeated `--semantic-pack` flags. Each entry is
 an explicit local opt-in to a semantic-pack v0 or v1 manifest file, or a
 directory of direct `*.json` manifests. v0 rows remain data-only; v1 rows
-compile to typed indexes and a semantic digest. Loaded external packs are still
-`metadata-only`: they do not emit evidence or enable near/exact contracts. The
+compile to typed indexes and a semantic digest. Unlocked external packs are
+`metadata-only`: they do not emit evidence or enable near/exact contracts. A
+valid `semantic-pack-lock` may authorize eligible v1 rows to support existing
+near candidates; external exact remains closed. The
 [semantic-pack loading guide](semantic-pack-loading.md) defines the full boundary.
 
 `semantic-pack-lock` selects one content-pinned

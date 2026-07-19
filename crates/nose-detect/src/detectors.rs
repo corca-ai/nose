@@ -138,6 +138,35 @@ impl Detector for StructuralDetector {
     }
 
     fn score(&self, a: &UnitFeat, b: &UnitFeat) -> f64 {
+        let protocol_match = self.candidate_mode && external_near_protocol_match(a, b);
+        let score = self.base_score(a, b, protocol_match);
+        if protocol_match && score >= 0.60 {
+            // A reviewed protocol row is supporting near evidence, never an exact proof.
+            // Move an already-substantial existing candidate only one quarter of the
+            // remaining distance toward 1.0 and keep it visibly below exact confidence.
+            (score + (1.0 - score) * 0.25).min(0.95)
+        } else {
+            score
+        }
+    }
+}
+
+fn external_near_protocol_match(a: &UnitFeat, b: &UnitFeat) -> bool {
+    a.semantic_pack_near_protocols.iter().any(|left| {
+        left.provenance.is_some()
+            && b.semantic_pack_near_protocols
+                .iter()
+                .any(|right| right.operation == left.operation)
+    }) || b.semantic_pack_near_protocols.iter().any(|right| {
+        right.provenance.is_some()
+            && a.semantic_pack_near_protocols
+                .iter()
+                .any(|left| left.operation == right.operation)
+    })
+}
+
+impl StructuralDetector {
+    fn base_score(&self, a: &UnitFeat, b: &UnitFeat, protocol_match: bool) -> f64 {
         // Oracle-certified fast path (§AJ): an identical value-graph fingerprint means
         // behaviorally-equal — `nose verify` proved fingerprint-equality ⟹ behavior
         // -equality across the corpus (0 false merges). So accept an exact match
@@ -190,7 +219,7 @@ impl Detector for StructuralDetector {
         // Score-preserving early-exit: RANSAC (≤1) and the gates only lower the
         // score, so if the upper bound `wv·vj+ws·sj+wr` can't reach threshold the
         // pair is rejected anyway — skip the alignment DP.
-        if wv * vj + ws * sj + wr < self.accept_threshold {
+        if !protocol_match && wv * vj + ws * sj + wr < self.accept_threshold {
             return wv * vj + ws * sj + wr;
         }
         let l = align::ransac_ratio(&a.linear, &b.linear);
@@ -324,7 +353,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{units_of_file, DetectOptions};
     use nose_il::{FileId, FileMeta, IlBuilder, Lang, NodeKind, Payload, Span};
+    use nose_semantics::{
+        SemanticPackNearDependency, SemanticPackNearProtocol, SemanticPackNearProvenance,
+        SemanticPackV1Channel, SemanticPackV1ProtocolOperation,
+    };
 
     #[test]
     fn exact_safety_keeps_same_line_functions_separate_by_byte_span() {
@@ -355,5 +389,75 @@ mod tests {
         assert_eq!(safety.len(), 2);
         assert!(safety[&(0, 8)]);
         assert!(!safety[&(9, 18)]);
+    }
+
+    #[test]
+    fn locked_protocol_evidence_only_lifts_substantial_near_scores() {
+        let interner = Interner::new();
+        let il = nose_frontend::lower_source(
+            FileId(0),
+            "T.java",
+            b"class T { Object a(Object x) { return x; } Object b(Object x) { return x; } }",
+            Lang::Java,
+            &interner,
+        )
+        .expect("Java fixture lowers");
+        let options = DetectOptions {
+            min_lines: 1,
+            min_tokens: 1,
+            shape_features: true,
+            ..DetectOptions::default()
+        };
+        let mut units = units_of_file(&il, &interner, &options);
+        let mut right = units.pop().expect("second method");
+        let mut left = units.pop().expect("first method");
+        left.value = vec![1, 2];
+        right.value = vec![1, 3];
+        left.shapes = vec![1, 2, 3, 4, 5];
+        right.shapes = vec![1, 2, 3, 4, 6];
+        left.linear = vec![1, 2, 3, 4];
+        right.linear = left.linear.clone();
+        let detector = StructuralDetector::candidates(0.5)
+            .without_exact_behavior()
+            .with_threshold(0.70);
+        let base = detector.score(&left, &right);
+        assert!((0.60..0.70).contains(&base), "calibrated base={base}");
+
+        left.semantic_pack_near_protocols = vec![external_collection_protocol()];
+        right.semantic_pack_near_protocols = vec![SemanticPackNearProtocol {
+            operation: SemanticPackV1ProtocolOperation::CollectionFactory,
+            provenance: None,
+        }];
+        let supported = detector.score(&left, &right);
+        assert!((0.70..1.0).contains(&supported), "score={supported}");
+
+        right.semantic_pack_near_protocols[0].operation =
+            SemanticPackV1ProtocolOperation::MapFactory;
+        assert_eq!(detector.score(&left, &right), base);
+    }
+
+    fn external_collection_protocol() -> SemanticPackNearProtocol {
+        SemanticPackNearProtocol {
+            operation: SemanticPackV1ProtocolOperation::CollectionFactory,
+            provenance: Some(SemanticPackNearProvenance {
+                pack_id: "example.pack".into(),
+                row_id: "example.row".into(),
+                semantic_digest: "sha256:pack".into(),
+                row_digest: "sha256:row".into(),
+                lane: SemanticPackV1Channel::Near,
+                trust: "external-opt-in".into(),
+                operation: SemanticPackV1ProtocolOperation::CollectionFactory,
+                dependency: SemanticPackNearDependency {
+                    coordinate: "example:pack".into(),
+                    declared_version: "1.0.0".into(),
+                    matched_version: "1.0.0".into(),
+                    sources: Vec::new(),
+                },
+                occurrence_file: "T.java".into(),
+                call_start_line: 1,
+                call_end_line: 1,
+                caveats: Vec::new(),
+            }),
+        }
     }
 }

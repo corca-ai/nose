@@ -15,6 +15,10 @@ pub(in crate::packs) fn compile_manifest_v1(
     }
     contracts.sort_by(|left, right| left.id.cmp(&right.id));
     let semantic_digest = semantic_digest(manifest, &contracts)?;
+    let row_digests_by_id = contracts
+        .iter()
+        .map(|contract| Ok((contract.id.clone(), digest_json(contract)?)))
+        .collect::<Result<BTreeMap<_, _>, String>>()?;
     let packages_by_coordinate = manifest
         .packages
         .iter()
@@ -49,6 +53,7 @@ pub(in crate::packs) fn compile_manifest_v1(
         pack_version: manifest.pack.version.clone(),
         nose_compatibility: manifest.compatibility.nose.clone(),
         semantic_digest,
+        row_digests_by_id,
         packages_by_coordinate,
         contracts_by_id,
         contract_ids_by_coordinate,
@@ -327,7 +332,11 @@ fn semantic_digest(
         packages,
         api_contracts: contracts,
     };
-    let bytes = serde_json::to_vec(&canonical)
+    digest_json(&canonical)
+}
+
+fn digest_json(value: &impl Serialize) -> Result<String, String> {
+    let bytes = serde_json::to_vec(value)
         .map_err(|err| format!("serializing canonical v1 semantic content: {err}"))?;
     let digest = Sha256::digest(bytes);
     let mut hex = String::with_capacity(64);

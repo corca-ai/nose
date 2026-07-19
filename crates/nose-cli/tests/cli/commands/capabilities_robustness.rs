@@ -128,6 +128,10 @@ fn capabilities_command_reports_query_surface() {
         true
     );
     assert_eq!(
+        json["query"]["capabilities"]["semantic_pack_locked_near_influence"],
+        true
+    );
+    assert_eq!(
         json["query"]["capabilities"]["semantic_pack_project_lock"],
         true
     );
@@ -147,7 +151,7 @@ fn capabilities_command_reports_semantic_pack_il_and_stats_surfaces() {
     assert_semantic_pack_project_lock_capabilities(&json);
     assert_eq!(
         json["semantic_packs"]["external_pack_influence"],
-        "metadata-only"
+        "metadata-or-locked-near-only"
     );
     assert_eq!(
         json_array_strings(&json["semantic_packs"], "external_influence_blockers"),

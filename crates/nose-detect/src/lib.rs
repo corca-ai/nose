@@ -49,9 +49,9 @@ pub use model::{
 };
 pub use options::DetectOptions;
 pub use orchestration::{
-    detect, detect_from_units, detect_from_units_with_accepted_coverage,
+    corpus_features, detect, detect_from_units, detect_from_units_with_accepted_coverage,
     detect_with_accepted_coverage, detect_with_direct_accepted_coverage, detect_with_dump,
-    file_stream, units_of_file,
+    file_stream, units_of_file, CorpusFeatures,
 };
 pub use reinvented::{reinvented_helpers, ReinventedHelper};
 pub use report::{

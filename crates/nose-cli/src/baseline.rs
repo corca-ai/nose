@@ -485,6 +485,7 @@ mod tests {
             witness: None,
             varying_spots: Vec::new(),
             semantic_laws: Vec::new(),
+            semantic_pack_near: Vec::new(),
         }
     }
 
@@ -507,6 +508,7 @@ mod tests {
             in_test_module: false,
             looks_generated: false,
             shared_subdag: None,
+            semantic_pack_near: Vec::new(),
         }
     }
 

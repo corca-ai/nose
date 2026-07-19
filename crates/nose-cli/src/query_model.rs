@@ -260,6 +260,32 @@ fn query_family_metrics_json(f: &nose_detect::RefactorFamily) -> serde_json::Val
     })
 }
 
+fn query_location_json(
+    location: &nose_detect::Loc,
+    existing_helper: Option<&nose_detect::Loc>,
+) -> serde_json::Value {
+    let mut object = serde_json::json!({
+        "id": baseline::member_id(location),
+        "file": location.file, "start": location.start_line, "end": location.end_line,
+        "name": location.name, "lang": location.lang.as_str(),
+    });
+    if existing_helper.is_some_and(|helper| std::ptr::eq(helper, location)) {
+        object["role"] = serde_json::Value::from("existing-helper");
+    }
+    if let Some((start, end)) = location.shared_subdag {
+        object["shared_subdag"] = serde_json::json!([start, end]);
+    }
+    if !location.origin.is_unknown() {
+        object["origin"] =
+            serde_json::to_value(location.origin).expect("UnitOrigin JSON serialization");
+    }
+    if !location.semantic_pack_near.is_empty() {
+        object["semantic_pack_near"] = serde_json::to_value(&location.semantic_pack_near)
+            .expect("semantic-pack near provenance is JSON serializable");
+    }
+    object
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(super) fn query_family_json_with_counts(
     f: &nose_detect::RefactorFamily,
@@ -277,28 +303,7 @@ pub(super) fn query_family_json_with_counts(
     let locations: Vec<_> = f
         .locations
         .iter()
-        .map(|l| {
-            let mut o = serde_json::json!({
-                "id": baseline::member_id(l),
-                "file": l.file, "start": l.start_line, "end": l.end_line,
-                "name": l.name, "lang": l.lang.as_str(),
-            });
-            // Mark the member that is itself the existing helper, so the agent does not read
-            // it as one more copy to fold (#374 item 5).
-            if helper.is_some_and(|h| std::ptr::eq(h, l)) {
-                o["role"] = serde_json::Value::from("existing-helper");
-            }
-            // For a shared-sub-dag (partial) clone, where the proven shared computation lives
-            // at this site — so the caller can see what is provably equal, not just the unit.
-            if let Some((s, e)) = l.shared_subdag {
-                o["shared_subdag"] = serde_json::json!([s, e]);
-            }
-            if !l.origin.is_unknown() {
-                o["origin"] =
-                    serde_json::to_value(l.origin).expect("UnitOrigin JSON serialization");
-            }
-            o
-        })
+        .map(|location| query_location_json(location, helper))
         .collect();
     let mut obj = serde_json::json!({
         "id": id.clone(),
@@ -326,6 +331,10 @@ pub(super) fn query_family_json_with_counts(
     // proven span per location instead). Evidence, not a verdict.
     if let Some(n) = f.witness.as_ref().and_then(|w| w.value_nodes) {
         obj["value_nodes"] = serde_json::Value::from(n);
+    }
+    if !f.semantic_pack_near.is_empty() {
+        obj["semantic_pack_near"] = serde_json::to_value(&f.semantic_pack_near)
+            .expect("semantic-pack near provenance is JSON serializable");
     }
     // Temporal status against a `since=` snapshot (new/changed/unchanged), when one was given.
     if let Some(cmp) = since {

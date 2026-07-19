@@ -1,10 +1,13 @@
 use serde_json::{json, Value};
 
-pub(crate) fn semantic_packs_json(semantic_packs: &nose_semantics::SemanticPackSet) -> Vec<Value> {
+pub(crate) fn semantic_packs_json(
+    semantic_packs: &nose_semantics::SemanticPackSet,
+    near_report: Option<&nose_semantics::SemanticPackNearReport>,
+) -> Vec<Value> {
     semantic_packs
         .packs()
         .iter()
-        .map(|pack| semantic_pack_summary_json(pack, semantic_packs))
+        .map(|pack| semantic_pack_summary_json(pack, semantic_packs, near_report))
         .collect()
 }
 
@@ -21,6 +24,7 @@ pub(crate) fn with_semantic_packs(mut report: Value, semantic_packs: &[Value]) -
 fn semantic_pack_summary_json(
     pack: &nose_semantics::SemanticPackSummary,
     semantic_packs: &nose_semantics::SemanticPackSet,
+    near_report: Option<&nose_semantics::SemanticPackNearReport>,
 ) -> Value {
     let mut summary = json!({
         "id": &pack.id,
@@ -78,6 +82,26 @@ fn semantic_pack_summary_json(
                     "path": receipt.declared_path(),
                     "content_digest": receipt.content_digest(),
                 })),
+            }),
+        );
+    }
+    if let Some(counts) = near_report.and_then(|report| report.pack(&pack.id)) {
+        object.insert(
+            "near_influence".to_string(),
+            json!({
+                "lane": "near",
+                "trust": "external-opt-in",
+                "selected_rows": counts.selected_rows,
+                "admitted_rows": counts.admitted_rows,
+                "rejected_rows": counts.rejected_rows,
+                "admitted_occurrences": counts.admitted_occurrences,
+                "influential_occurrences": counts.influential_occurrences,
+                "caveats": [
+                    "near-only",
+                    "not-an-equivalence-proof",
+                    "provider-claim-user-authorized",
+                    "exact-output-unchanged"
+                ],
             }),
         );
     }

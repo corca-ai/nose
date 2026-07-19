@@ -11,7 +11,7 @@ responsibility. It must not create a second implementation path.
 
 | lane | owner | default | meaning |
 |---|---|---|---|
-| `external-opt-in` | provider/user | off | Local manifests are explicit opt-ins and metadata-only until influence gates exist. |
+| `external-opt-in` | provider/user | off | Local manifests are explicit opt-ins. Unlocked manifests are metadata-only; a valid v1 project lock may authorize the narrow near-only consumer. |
 | `builtin-optional` | nose | off | Shipped with nose, but not default-enabled until product risk is accepted. |
 | `builtin-default` | nose | on | Shipped with nose and enabled by default. |
 
@@ -199,7 +199,7 @@ Important fields:
 | `policy.scope` | `compiled-builtin` |
 | `policy.default_lane` | `builtin-default` |
 | `policy.optional_lane` | `builtin-optional` |
-| `policy.external_influence` | `metadata-only` |
+| `policy.external_influence` | `unlocked-metadata-or-locked-near-only` |
 | `policy.product_behavior_gate` | `required-for-builtin-default-promotion` |
 | `policy.performance_gate` | `required-for-builtin-default-promotion` |
 | `packs[].adoption_status` | `default-gated`, `optional-gated`, `blocked`, or `tracked` |

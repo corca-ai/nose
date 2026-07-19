@@ -74,6 +74,9 @@ pub struct Loc {
     /// partial clone point at *where* the shared computation lives in each copy.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shared_subdag: Option<(u32, u32)>,
+    /// External near-lane evidence that contributed to this member's structural family.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub semantic_pack_near: Vec<nose_semantics::SemanticPackNearProvenance>,
 }
 
 /// Inclusive source-line range used to construct a [`Loc`].
@@ -154,6 +157,7 @@ impl Loc {
             in_test_module: false,
             looks_generated: false,
             shared_subdag: None,
+            semantic_pack_near: Vec::new(),
         }
     }
 }

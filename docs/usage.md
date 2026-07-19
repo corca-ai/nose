@@ -250,8 +250,8 @@ mode flags are documented under [Ranking](#ranking) and [Detection modes](#detec
 | `--root <path>` / `-r <path>` | analyze another root; repeat for multi-root query runs. With `--root`, bare positional arguments are query terms. |
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
 | `--ignore-file <file>` | suppress accepted families using a structured ignore file with reason/owner/expiry metadata |
-| `--semantic-pack <file-or-dir>` | load local semantic-pack v0 metadata or compile a typed v1 manifest for provenance/digest reporting; external packs are metadata-only today |
-| `--semantic-pack-lock <file>` | validate one content-pinned typed v1 project lock before analysis; mutually exclusive with unlocked semantic-pack paths |
+| `--semantic-pack <file-or-dir>` | load local semantic-pack v0 metadata or compile a typed v1 manifest for provenance/digest reporting; unlocked external packs are metadata-only |
+| `--semantic-pack-lock <file>` | validate one content-pinned typed v1 project lock before analysis; eligible rows may support existing near candidates, and unlocked pack paths cannot be mixed in |
 
 **Output**
 
