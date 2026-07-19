@@ -37,12 +37,14 @@ same-binary control before attributing a regression.
 
 ## What the current cache actually reuses
 
-The published v0.19.0 cache is schema v11; current main is schema v12. Both always rediscover,
+The published v0.19.0 cache is schema v11; the #872 candidate is schema v13. Both always rediscover,
 read, parse, and lower every selected source, rebuild corpus import facts, and repeat global
 detection, family construction/ranking, and presentation. They reuse only per-file
-normalize/extract units and syntax streams, keyed by post-resolution IL plus unit-affecting
-options. In particular, a warm hit does **not** skip parsing. This narrower statement replaces
-the old CI documentation claim.
+normalize/extract units and syntax streams. v13 keys the post-resolution IL together with
+report-affecting names, spans, suppression and evidence, plus unit-affecting options. In
+particular, a warm hit does **not** skip parsing. This narrower statement replaces the old CI
+documentation claim. The v13 reporting identity prevents two clone-shaped files from sharing
+stale function names or line locations while paths remain retargetable across checkout roots.
 
 #275 is the required cross-file regression. A provider literal and importer that converge with
 an inline literal must remain converged on an empty store, warm store, and after the provider
@@ -82,3 +84,28 @@ once the dependency-aware engine is under test.
 The synthetic generator uses unique, stable checkout-relative paths and source bytes; it must
 not manufacture 100k identical cache keys. Real repositories must match their pinned commits.
 The 100k tier is an explicit scheduled benchmark, not part of ordinary PR CI.
+
+## Reproduce and validate
+
+Build the candidate from a committed revision, then run the complete mutation matrix. The
+validator recomputes every summary from raw rows and rechecks every per-replay output identity;
+a development run below 30 replays cannot validate as release evidence.
+
+```sh
+cargo build --release -p nose-cli
+REVISION=$(git rev-parse HEAD)
+python3 scripts/cache-query-regression.py \
+  --binary target/release/nose --binary-revision "$REVISION" \
+  --fixture all --replays 30 \
+  --output target/cache-mutation-matrix.json
+python3 scripts/cache-query-regression.py \
+  --validate-report target/cache-mutation-matrix.json
+```
+
+For a pinned real workload, use `--root bench/repos/sympy --label sympy`. For the published
+baseline, additionally pass the downloaded archive with `--official-archive`, its platform with
+`--official-target`, `--no-require-cache-stats`, and
+`--characterize-equivalence-failures`. The harness verifies both archive and executable
+checksums against the checked manifest before starting any measurement. A release-cache
+mismatch remains `failed-equivalence`; the mode preserves its performance rows but never labels
+the run as passed.

@@ -192,6 +192,7 @@ run_regression_checker_selftests() {
     python3 bench/labels/accepted_pair_coverage.py --self-test
     python3 scripts/binary_identity.py --self-test
     python3 scripts/query-regression-harness.py --self-test
+    python3 scripts/cache-query-regression.py --self-test
     python3 scripts/ruby-redefinition-scaling.py --self-test
     python3 scripts/semantic-regression-summary.py --self-test
     python3 scripts/recall-loss-diff.py --self-test

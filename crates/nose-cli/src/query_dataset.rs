@@ -234,7 +234,7 @@ fn resolve_query_settings(
 }
 
 /// With --cache-dir, build units per file through the on-disk cache (skips
-/// parse/normalize/extract for unchanged files); otherwise lower the whole corpus.
+/// normalize/extract for unchanged files); otherwise lower the whole corpus.
 fn query_detect_report(
     args: &QueryArgs,
     refs: &[&std::path::Path],
@@ -270,7 +270,14 @@ fn query_detect_report(
             units,
             streams,
             files,
-        } = cache::build_units_cached(&corpus, opts, dir);
+            stats,
+        } = time_stage("cache", || cache::build_units_cached(&corpus, opts, dir));
+        if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+            eprintln!(
+                "  [cache] files={} hits={} misses={} read_bytes={} written_bytes={}",
+                stats.files, stats.hits, stats.misses, stats.read_bytes, stats.written_bytes
+            );
+        }
         (units, streams, files)
     } else {
         let features = time_stage("normalize+extract", || {
