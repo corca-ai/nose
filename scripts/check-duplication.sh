@@ -258,6 +258,9 @@ set -euo pipefail
 # accepted; see docs/dogfooding-history.md.
 # 26 -> 26 (#861 formal proof coverage): a source claim marker moves the reviewed value-graph
 # whole-impl span-noise representative without changing its members or the budget.
+# 28 -> 27 (#873 portable layered CAS): the cache-module and lowering-boundary source changes
+# move the reviewed int/float dispatcher below value 40. No replacement family appears, so the
+# stale ID is removed and the ratchet tightens; see docs/dogfooding-history.md.
 # 26 -> 27 (#854 divergent-edit closeout): restoring the ordinary-query accepted-coverage
 # contract makes two pre-existing families visible again. The reviewed Markdown/detect
 # candidate-pair representative moves from `8462d08908be9e8a` to `3fefab5ac16598ec`, and the
