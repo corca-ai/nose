@@ -1,69 +1,21 @@
 use super::*;
 
 fn exact_manifest() -> String {
-    r#"{
-  "api_version":"nose.semantic-pack.v1",
-  "pack":{
-    "id":"com.example.fast-list",
-    "kind":"LibraryPack",
-    "version":"1.0.0",
-    "display_name":"Fast List",
-    "trust":"external-opt-in",
-    "enabled_by_default":false
-  },
-  "provenance":{
-    "provider":{"name":"Example"},
-    "license":"MIT",
-    "repository":"https://example.invalid/fast-list"
-  },
-  "compatibility":{"nose":">=0.19.0 <0.21.0"},
-  "supported_languages":["java"],
-  "packages":[{
-    "ecosystem":"maven",
-    "name":"com.example:fast-list",
-    "versions":">=1.2.0 <2.0.0"
-  }],
-  "declares":{"api_contracts":[{
-    "id":"java.fast-list.of-five",
-    "language":"java",
-    "package":{"ecosystem":"maven","name":"com.example:fast-list"},
-    "anchor":"call-node",
-    "matcher":"imported-api",
-    "import":{"role":"type","module":"com.example.collect","name":"FastList"},
-    "call":{
-      "shape":"static-method",
-      "member":"of",
-      "arity":{"kind":"set","values":[5]},
-      "receiver":"imported-type"
-    },
-    "operation":"collection-factory",
-    "result_domain":"collection",
-    "profiles":{
-      "demand":"eager",
-      "effects":"pure",
-      "exceptions":"no-throw",
-      "mutation":"none",
-      "identity":"fresh"
-    },
-    "channel":"external-exact"
-  }]},
-  "conformance":{"fixtures":[{
-    "id":"factory-positive",
-    "row_id":"java.fast-list.of-five",
-    "kind":"positive",
-    "path":"fixtures/positive",
-    "dependency":"pom.xml",
-    "expectation":"external-exact-match"
-  },{
-    "id":"wrong-member-negative",
-    "row_id":"java.fast-list.of-five",
-    "kind":"hard-negative",
-    "path":"fixtures/wrong-member",
-    "dependency":"pom.xml",
-    "expectation":"no-external-exact-match"
-  }]}
-}"#
-    .to_string()
+    include_str!("../../../../../../docs/examples/semantic-packs/v1/vavr-list.json")
+        .replace(
+            "org.corca.reference.java-vavr-list",
+            "com.example.fast-list",
+        )
+        .replace("io.vavr:vavr", "com.example:fast-list")
+        .replace(">=0.9.0 <0.10.0", ">=1.2.0 <2.0.0")
+        .replace("java.vavr.list.of-five-exact", "java.fast-list.of-five")
+        .replace("io.vavr.collection", "com.example.collect")
+        .replace("List", "FastList")
+        .replace("vavr-list-hard-negatives", "wrong-member-negative")
+        .replace("vavr-list-of-five-positive", "factory-positive")
+        .replace("vavr-list-fixtures/hard-negatives", "fixtures/wrong-member")
+        .replace("vavr-list-fixtures/positive", "fixtures/positive")
+        .replace("vavr-list-pom.xml", "pom.xml")
 }
 
 fn prepare_exact_project(tag: &str) -> PathBuf {

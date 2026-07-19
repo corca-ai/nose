@@ -16,6 +16,9 @@ The [semantic-pack lock v1 schema](schemas/semantic-pack-lock-v1.schema.json)
 defines the machine-readable contract.
 A [checked-in Guava lock example](examples/semantic-pack-lock-v1.json) pins the
 typed v1 example and a local Maven dependency file.
+The [Vavr reference lock](examples/vavr-list-project-lock-v1.json) additionally
+pins an external-exact conformance receipt and demonstrates a mixed near/exact
+decision.
 A lock pins:
 
 - the manifest's project-relative coordinate, API version, pack id/version,

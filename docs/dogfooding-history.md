@@ -1290,3 +1290,22 @@ by #854. Sharing either pair would couple independent engines or numeric
 policies for the sake of incidental structure, so no new abstraction is
 accepted. The baseline records the corrected detector behavior rather than
 hiding the query-compatibility fix.
+
+The #870 semantic-pack epic closeout keeps the reviewed count at 27. Its first
+self-query found one avoidable test family: the external-exact CLI fixture and
+the v1 compiler unit fixture each carried a nearly complete inline manifest.
+The CLI test now derives its isolated FastList scenario from the shipped Vavr
+v1 reference manifest, then changes only the pack-specific coordinates and
+fixture names. All six exact-lane tests retain their source, receipt, stale,
+resource, and symlink assertions, while family `346987af8dd29546` disappears.
+
+The final ID delta replaces the returning numeric `int_bin` / `float_bin`
+representative `aa2b95cf822a1cd2` with `2bca2e8582b7d7a7`, a broad whole-impl
+overlap between `SemanticPackNearRegistry` and
+`SemanticPackExternalExactRegistry`. The two registries share 21 lines across
+roughly 200-line implementations, but own different trust mechanics: near
+builds protocol evidence and joins builtins, while exact requires a receipt,
+records separate assurance, and adds kernel evidence to the corpus. A common
+base registry would couple those security boundaries for incidental structure.
+The members are kept separate, the stale numeric ID is replaced, and no budget
+increase or new avoidable duplication is accepted.
