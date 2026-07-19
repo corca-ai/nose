@@ -134,6 +134,7 @@ run_regression_checker_selftests() {
     python3 scripts/check-domain-calibration.py --self-test
     python3 bench/labels/query_schema.py --self-test
     python3 bench/labels/default_head_query_schema.py --self-test
+    python3 bench/labels/live_query_schema.py --self-test
     python3 bench/labels/eval_by_language.py --self-test
     python3 bench/labels/check_default_head_baseline.py --self-test
     python3 bench/labels/check_default_head_baseline.py
@@ -289,8 +290,7 @@ run_missed_worthy_frontier_checks() {
 
 run_product_query_schema_live_check() {
     need_cmd python3
-    python3 bench/labels/query_schema.py --self-test --nose "$1"
-    python3 bench/labels/default_head_query_schema.py --self-test --nose "$1"
+    python3 bench/labels/live_query_schema.py --self-test --nose "$1"
 }
 
 run_shell_script_lint() {

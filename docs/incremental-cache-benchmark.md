@@ -38,8 +38,7 @@ same-binary control before attributing a regression.
 
 ## Checked #872 evidence
 
-The checked
-[`issue-872-v0.19.0-vs-candidate-sympy-paired-2026-07-20.v1.json`](../bench/cache/issue-872-v0.19.0-vs-candidate-sympy-paired-2026-07-20.v1.json)
+The checked [`issue-872-v0.19.0-vs-candidate-sympy-paired-2026-07-20.v1.json`](../bench/cache/issue-872-v0.19.0-vs-candidate-sympy-paired-2026-07-20.v1.json)
 contains all 180 raw rows from 30 alternating AB/BA replays on the pinned SymPy checkout. The
 official executable came from the verified `aarch64-apple-darwin` v0.19.0 archive at commit
 `0985e696`; the candidate is commit `2ac8b411`. Both roles independently passed exact
@@ -55,8 +54,7 @@ This is the locked baseline, not a claim that the current cache is already insta
 candidate's warm run all 1,584 inputs hit, but the p50 cache stage still takes 48.3 ms, the
 store is 379,910,220 bytes, and total p50 remains 702.69 ms because most global work is repeated.
 
-The checked
-[`issue-872-mutation-matrix-receipt-2026-07-20.v1.json`](../bench/cache/issue-872-mutation-matrix-receipt-2026-07-20.v1.json)
+The checked [`issue-872-mutation-matrix-receipt-2026-07-20.v1.json`](../bench/cache/issue-872-mutation-matrix-receipt-2026-07-20.v1.json)
 seals the complete 2,100-row raw matrix by SHA-256 while retaining every summary and source
 identity in the repository. All 14 executable mutations passed 30 replays. Representative warm
 hit/miss closures are no-op `3/0`, leaf edit `2/1`, provider export edit `1/2`, high fan-out
