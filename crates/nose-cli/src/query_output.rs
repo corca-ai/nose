@@ -302,6 +302,7 @@ mod tests {
             ]
             .into_iter()
             .collect(),
+            caller_generated_surface_sources: Default::default(),
             declaration_run_families: Default::default(),
             declaration_only_type_contract_families: Default::default(),
         };

@@ -1,0 +1,116 @@
+{
+  "schema": "nose.issue-925.caller_generated_path_closeout/v1",
+  "issue": 925,
+  "generated_on": "2026-07-19",
+  "outcome": "root-anchored-path-contract-shipped",
+  "design": {
+    "published_before_implementation_commit": "e95959abe90016911d4d4dc08075542465ecf7a4",
+    "implementation_commit": "6617f99e7c03884f098b3be73f2207b3c3049bf4",
+    "cli": "--generated-path <GLOB>",
+    "config": "[query].generated-paths",
+    "composition": "config-and-cli-union",
+    "pattern_anchor": "each-explicit-query-root",
+    "canonical_containment": true,
+    "all_member_quantifier": true,
+    "mixed_missing_unreadable_out_of_root_policy": "fail-open",
+    "family_universe_preserved": true,
+    "producer_manifest_in_scope": false,
+    "producer_or_repository_allowlists": false,
+    "query_json_schema": 9,
+    "base_query_schema": 8
+  },
+  "field_validation": {
+    "check": {
+      "root": "target/issue-846-fresh-repos/check-fresh",
+      "pattern": "m4/**",
+      "families_before": 22,
+      "families_after": 22,
+      "surface_counts_before": {
+        "default": 10,
+        "divergence": 2,
+        "hidden": 10
+      },
+      "surface_counts_after": {
+        "default": 7,
+        "divergence": 2,
+        "generated": 3,
+        "hidden": 10
+      },
+      "caller_generated_families": 3,
+      "m4_default_to_generated": 3,
+      "normalized_family_sha256_before": "ba7028c16850e7bc60936cdb71463c3e21949a9a657201cd32486378750ef6fe",
+      "normalized_family_sha256_after": "ba7028c16850e7bc60936cdb71463c3e21949a9a657201cd32486378750ef6fe",
+      "normalization": "delete only surface and generated_provenance from each ordered family object",
+      "rayon_1_output_sha256": "3fd4923a408aec765ec09a16560411e0292e908180b7794c7f34a7ca60986d07",
+      "rayon_4_output_sha256": "3fd4923a408aec765ec09a16560411e0292e908180b7794c7f34a7ca60986d07"
+    },
+    "pydantic": {
+      "root": "target/issue-846-fresh-repos/pydantic-fresh",
+      "pattern": "tests/mypy/outputs/**",
+      "families_before": 167,
+      "families_after": 167,
+      "surface_counts_before": {
+        "default": 64,
+        "divergence": 5,
+        "hidden": 98
+      },
+      "surface_counts_after": {
+        "default": 64,
+        "divergence": 5,
+        "hidden": 98
+      },
+      "mixed_output_input_families_failing_open": 4,
+      "caller_generated_families": 0,
+      "normalized_family_sha256_before": "69d0b31a4f6cbf13d57245a36bc7789ab35efe9d01cc2569035cdf6eea185a58",
+      "normalized_family_sha256_after": "69d0b31a4f6cbf13d57245a36bc7789ab35efe9d01cc2569035cdf6eea185a58",
+      "normalization": "delete only surface and generated_provenance from each ordered family object"
+    }
+  },
+  "performance": {
+    "command": "nose query <repo> all top=0 --mode semantic --format json",
+    "cohort_repositories": 66,
+    "cohort_source_artifact": "bench/recall_loss/issue-891-official-v0.19.0-dev-query-regression-2026-07-19.v1.json",
+    "cohort_source_artifact_sha256": "480c52b1c98a7c12c01e62098f1ab0a06af46b050616d582a421eee0c49f3a3f",
+    "corpus_selection_sha256": "8971c7d5eae88d243d3317665ef5ef24eb78973c816400992179470d1184325c",
+    "iterations": 3,
+    "warmups": 1,
+    "baseline": {
+      "version": "v0.19.0",
+      "source_sha": "54f8a67436e39e24c777a85e14224273116add6b",
+      "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3",
+      "code_sha256": "e55d0e989993ff1d1d6b4e933dbd3f5ade38203368b8321d3a7842799a95aca6",
+      "query_json_schema": 7
+    },
+    "candidate": {
+      "source_sha": "6617f99e7c03884f098b3be73f2207b3c3049bf4",
+      "binary_sha256": "e28e47336690c28d39f3fe8841f1b98cf7882ad9654fc30f01bf9477f9a70af0",
+      "code_sha256": "c0aa1d6a75566886ffcd5a67c93b1368327f606a4dc84ae79395a618b7aa5aaa",
+      "query_json_schema": 9
+    },
+    "primary": {
+      "aggregate_baseline_median_ms": 15724.017669796012,
+      "aggregate_candidate_median_ms": 15682.598076877184,
+      "raw_delta_ms": -41.41959291882813,
+      "raw_delta_pct": -0.26341609243030994,
+      "report_sha256": "dbd63b54bf0dfcadac8b5824cd0e24c0ae19d68490ba32454e71d4a50feee65d",
+      "schema_only_output_drift_repositories": 66
+    },
+    "same_binary_control": {
+      "aggregate_first_median_ms": 16054.2420061538,
+      "aggregate_second_median_ms": 16010.97113196738,
+      "delta_ms": -43.27087418641895,
+      "delta_pct": -0.2695292257948564,
+      "output_drift_repositories": 0,
+      "report_sha256": "ce0c35183d09535d04d8b7612a06e17f9f8603130f64a07c2b017b8218aa92e0"
+    },
+    "control_adjusted_delta_ms": 1.8512812675908208,
+    "control_adjusted_delta_pct": 0.006113133364546441,
+    "material_regression_thresholds": {
+      "maximum_delta_pct": 5.0,
+      "minimum_absolute_delta_ms": 5.0
+    },
+    "material_regression": false,
+    "focused_escalation": false,
+    "interpretation": "The default path adds no generated-path matching work when no assertion exists. Aggregate release-relative movement is inside same-binary noise after control subtraction. All primary byte hashes differ because the strict non-base query schema intentionally changes from v7 to v9, not because a caller assertion changed the family universe."
+  }
+}

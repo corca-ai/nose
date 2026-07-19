@@ -124,6 +124,9 @@ pub(crate) enum Cmd {
         /// Skip paths matching a gitignore-style glob (repeatable). (.gitignore is already respected.)
         #[arg(long)]
         exclude: Vec<String>,
+        /// Classify files matching a root-anchored gitignore glob as generated (repeatable; findings remain recoverable).
+        #[arg(long = "generated-path", value_name = "GLOB")]
+        generated_path: Vec<String>,
         /// Cache per-file analysis under this directory; re-runs reuse it for unchanged files.
         #[arg(long, value_name = "DIR")]
         cache_dir: Option<PathBuf>,
@@ -450,6 +453,7 @@ pub(crate) struct QueryArgs {
     pub(crate) write_baseline: bool,
     pub(crate) format: ReportFormat,
     pub(crate) exclude: Vec<String>,
+    pub(crate) generated_path: Vec<String>,
     pub(crate) min_size: Option<usize>,
     pub(crate) min_lines: Option<u32>,
     pub(crate) scope: ScopeFilter,

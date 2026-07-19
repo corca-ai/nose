@@ -1,12 +1,14 @@
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 
+use super::generated_paths::GeneratedPathAssertions;
 use crate::path_utils::relativize;
 
 #[derive(Default)]
 pub(super) struct GeneratedSourceIndexes {
     pub(super) sources: FxHashSet<String>,
     pub(super) additional_surface_sources: FxHashSet<String>,
+    pub(super) caller_surface_sources: FxHashSet<String>,
 }
 
 #[derive(Clone, Copy)]
@@ -17,6 +19,7 @@ enum GeneratedSourceKind {
 
 pub(super) fn generated_source_indexes(
     families: &[nose_detect::RefactorFamily],
+    caller_generated_paths: &GeneratedPathAssertions,
 ) -> GeneratedSourceIndexes {
     let cwd = std::env::current_dir().ok();
     let mut generated = GeneratedSourceIndexes::default();
@@ -34,19 +37,32 @@ pub(super) fn generated_source_indexes(
         .collect::<Vec<_>>();
     let generated_files = files
         .into_par_iter()
-        .filter_map(|path| generated_source_kind(&path).map(|kind| (path, kind)))
+        .map(|path| {
+            let kind = generated_source_kind(&path);
+            let caller = caller_generated_paths.matches(&path);
+            (path, kind, caller)
+        })
         .collect::<Vec<_>>();
-    for (path, kind) in generated_files {
-        let index = match kind {
-            GeneratedSourceKind::Established => &mut generated.sources,
-            GeneratedSourceKind::AdditionalSurface => &mut generated.additional_surface_sources,
-        };
-        index.insert(path.clone());
-        if let Some(cwd) = &cwd {
-            index.insert(relativize(&path, cwd));
+    for (path, kind, caller) in generated_files {
+        if let Some(kind) = kind {
+            let index = match kind {
+                GeneratedSourceKind::Established => &mut generated.sources,
+                GeneratedSourceKind::AdditionalSurface => &mut generated.additional_surface_sources,
+            };
+            insert_path_aliases(index, &path, cwd.as_deref());
+        }
+        if caller {
+            insert_path_aliases(&mut generated.caller_surface_sources, &path, cwd.as_deref());
         }
     }
     generated
+}
+
+fn insert_path_aliases(index: &mut FxHashSet<String>, path: &str, cwd: Option<&std::path::Path>) {
+    index.insert(path.to_string());
+    if let Some(cwd) = cwd {
+        index.insert(relativize(path, cwd));
+    }
 }
 
 fn generated_source_kind(file: &str) -> Option<GeneratedSourceKind> {

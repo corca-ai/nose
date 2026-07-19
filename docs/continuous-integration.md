@@ -186,7 +186,7 @@ at least detectable; `top=0` avoids the cap entirely.
 
 `--format json` is the general machine-readable form for any other tooling. The forward
 versioned contract is [query-json](query-json.md) (`nose query --format json`; schema v8
-for `base=<ref>`, schema v7 for the other query views).
+for `base=<ref>`, schema v9 for the other query views).
 It is truncated by the active top limit in the same way.
 
 ## Divergent-edit v2 gate tiers

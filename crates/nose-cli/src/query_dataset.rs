@@ -10,6 +10,7 @@ use crate::source_lines::{
     corpus_line_idf, family_anchor, is_trivial_line, shared_lines_of, varying_spots_of,
     FileLineCache,
 };
+use crate::surfaces::GeneratedPathAssertions;
 use crate::timing::{time_lower, time_stage};
 use crate::{cache, config, ignores};
 use std::collections::BTreeSet;
@@ -151,6 +152,7 @@ pub(super) struct QuerySettings {
     pub(super) min_lines: u32,
     pub(super) min_tokens: usize,
     pub(super) exclude: Vec<String>,
+    pub(super) generated_paths: GeneratedPathAssertions,
     pub(super) ignore_set: Option<ignores::IgnoreSet>,
 }
 
@@ -208,6 +210,9 @@ fn resolve_query_settings(
     let mut exclude = cfg.exclude;
     exclude.extend(args.exclude.iter().cloned());
     validate_exclude_globs(&exclude)?;
+    let mut generated_path_patterns = cfg.generated_paths;
+    generated_path_patterns.extend(args.generated_path.iter().cloned());
+    let generated_paths = GeneratedPathAssertions::new(&args.paths, generated_path_patterns)?;
     let ignore_set = ignores::load_for_query(ignore_file.as_deref())?;
     if let Some(ignore_set) = &ignore_set {
         ignore_set.warn_expired();
@@ -221,6 +226,7 @@ fn resolve_query_settings(
             min_lines,
             min_tokens,
             exclude,
+            generated_paths,
             ignore_set,
         },
         semantic_packs,

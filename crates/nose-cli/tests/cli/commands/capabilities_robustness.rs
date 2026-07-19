@@ -64,7 +64,7 @@ fn capabilities_command_lists_stable_commands_and_schemas() {
     );
     assert!(json_array_strings(&json["commands"], "deprecated").is_empty());
     assert_eq!(json["schemas"]["capabilities"][0], 7);
-    assert_eq!(json["schemas"]["query_json"], serde_json::json!([7, 8]));
+    assert_eq!(json["schemas"]["query_json"], serde_json::json!([8, 9]));
     assert_eq!(
         json["schemas"]["semantic_packs"],
         serde_json::json!(["nose.semantic-pack.v0", "nose.semantic-pack.v1"])
@@ -105,6 +105,7 @@ fn capabilities_command_reports_query_surface() {
         json_array_strings(&json["query"], "sort_keys"),
         vec!["extractability", "value", "sites", "hazard"]
     );
+    assert_caller_generated_path_capability(&json);
     assert_eq!(json["query"]["capabilities"]["baseline"], true);
     assert_eq!(
         json["query"]["capabilities"]["baseline_member_digest"],
@@ -140,6 +141,14 @@ fn capabilities_command_reports_query_surface() {
         true
     );
     assert_eq!(json["query"]["capabilities"]["structured_ignores"], true);
+}
+
+fn assert_caller_generated_path_capability(json: &serde_json::Value) {
+    assert!(json_array_strings(&json["query"], "config_keys").contains(&"generated-paths"));
+    assert_eq!(
+        json["query"]["capabilities"]["caller_generated_paths"],
+        true
+    );
 }
 
 #[test]
@@ -409,6 +418,6 @@ fn recursive_hof_callback_fragment_does_not_overflow() {
         "top=0",
     ]);
     let json = query_json(&out);
-    assert_eq!(json["schema_version"], 7);
+    assert_eq!(json["schema_version"], 9);
     let _ = fs::remove_dir_all(&dir);
 }

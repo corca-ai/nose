@@ -119,10 +119,7 @@ fn query_reinvented_view_lists_call_the_helper_findings() {
         "json",
     ]))
     .unwrap();
-    assert_eq!(
-        j["schema_version"], 7,
-        "reinvented json stays schema v7: {j}"
-    );
+    assert_eq!(j["schema_version"], 9, "reinvented json is schema v9: {j}");
     assert_eq!(j["view"], "reinvented");
     assert_query_json_reports_semantic_packs(&j);
     assert_eq!(

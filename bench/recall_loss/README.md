@@ -14,6 +14,9 @@ and the resulting no-go optimization decision.
 `issue-908-normalize-extract-performance-2026-07-19.v1.json` binds the inherited Guava
 and MinIO rows to the shared MinHash hot path, the output-identical optimization, and
 the fixed r40 checker evidence.
+`issue-925-caller-generated-path-closeout-2026-07-19.v1.json` binds the root-anchored
+caller provenance contract to fresh Check/Pydantic outcomes, determinism hashes, and its
+published-v0.19.0 66-repository runtime price with same-binary control.
 
 Scheduling lifecycle audit artifacts use a separate source-prevalence status
 vocabulary:

@@ -407,8 +407,8 @@ fn query_dashboard_filter_and_family() {
     let dash: serde_json::Value =
         serde_json::from_str(&run_raw(&["query", p, "--format", "json"])).unwrap();
     assert_eq!(
-        dash["schema_version"], 7,
-        "dashboard json is schema v7: {dash}"
+        dash["schema_version"], 9,
+        "dashboard json is schema v9: {dash}"
     );
     assert_eq!(dash["view"], "dashboard");
     assert_query_json_reports_semantic_packs(&dash);
@@ -438,17 +438,14 @@ fn query_dashboard_filter_and_family() {
     // A filtered list emits structured family objects (not human `where` strings).
     let list: serde_json::Value =
         serde_json::from_str(&run(&["query", p, "members>1", "--format", "json"])).unwrap();
-    assert_eq!(
-        list["schema_version"], 7,
-        "list json stays schema v7: {list}"
-    );
+    assert_eq!(list["schema_version"], 9, "list json is schema v9: {list}");
     assert_eq!(list["view"], "list");
     assert_query_json_reports_semantic_packs(&list);
     let grouped: serde_json::Value =
         serde_json::from_str(&run(&["query", p, "group=dir", "--format", "json"])).unwrap();
     assert_eq!(
-        grouped["schema_version"], 7,
-        "group json stays schema v7: {grouped}"
+        grouped["schema_version"], 9,
+        "group json is schema v9: {grouped}"
     );
     assert_eq!(grouped["view"], "group");
     assert_query_json_reports_semantic_packs(&grouped);
@@ -469,8 +466,8 @@ fn query_dashboard_filter_and_family() {
     ]))
     .unwrap();
     assert_eq!(
-        opened["schema_version"], 7,
-        "family json stays schema v7: {opened}"
+        opened["schema_version"], 9,
+        "family json is schema v9: {opened}"
     );
     assert_eq!(opened["view"], "family");
     assert_query_json_reports_semantic_packs(&opened);

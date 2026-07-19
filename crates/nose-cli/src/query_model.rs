@@ -6,7 +6,7 @@ use crate::query_opportunities::OpportunityGroups;
 use crate::query_terms::{QFilter, QOp};
 use crate::source_lines::{anti_unify_all, read_lines, FileLineCache};
 use crate::style;
-use crate::surfaces::{effective_surface, SurfaceOverrides};
+use crate::surfaces::{effective_surface, generated_provenance_json, SurfaceOverrides};
 
 /// Canonical `witness.kind` for a friendly filter token (`exact`→`exact-value-graph`, …).
 fn witness_alias(v: &str) -> &str {
@@ -331,6 +331,9 @@ pub(super) fn query_family_json_with_counts(
         "folds": opp.slices_of.get(&id).map(Vec::len).unwrap_or(0),
         "locations": locations,
     });
+    if let Some(provenance) = generated_provenance_json(f, ov) {
+        obj["generated_provenance"] = provenance;
+    }
     // Proof depth: for the exact channel, how much is proven identical — the size of the shared
     // value multiset. Lets a caller act now on the strongest evidence (subdag families carry the
     // proven span per location instead). Evidence, not a verdict.

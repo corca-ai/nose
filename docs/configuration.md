@@ -3,14 +3,15 @@
 Real projects shouldn't carry 200-character command lines. Put a `nose.toml`
 (or `.nose.toml`) in the directory where you invoke nose and it is read
 automatically. The config supplies defaults for supported query settings; most CLI flags
-override those defaults, while `exclude` globs are additive. Anything unset falls back to
-the built-in default.
+override those defaults, while `exclude` and `generated-paths` globs are additive. Anything
+unset falls back to the built-in default.
 
 ## `nose.toml`
 
 ```toml
 [query]
 exclude     = ["tests/**", "**/*.generated.ts", "vendor/**"]
+generated-paths = ["generated/**", "**/snapshots/mypy/**"]
 mode        = ["syntax", "semantic"]
 sort        = "extractability"
 min-value   = 200
@@ -25,8 +26,8 @@ semantic-packs = ["semantic-packs/python-math-prod.json"]
 Pass an alternate file with `--config <file>`. A malformed config is a **hard
 error** — a silently-ignored typo'd setting would be worse than a crash.
 
-Put stable project policy in `nose.toml`: excludes, detection modes, ranking, size/value
-thresholds, the structured-ignore file, and explicit local
+Put stable project policy in `nose.toml`: excludes, generated-artifact assertions, detection
+modes, ranking, size/value thresholds, the structured-ignore file, and explicit local
 semantic-pack opt-ins. Keep one-off workflow choices on the command line or in query terms:
 output format, the drill/view terms (`id=`, `group=`, `full`), baselines, cache location, and
 CI failure mode.
@@ -42,6 +43,7 @@ term — `nose query` spells `sort` as the DSL term `sort=`, not `--sort`).
 | key | type | default | CLI override |
 |---|---|---|---|
 | `exclude` | list of globs | `[]` | `--exclude` |
+| `generated-paths` | list of root-anchored globs | `[]` | `--generated-path` |
 | `mode` | list of `syntax`\|`semantic`\|`near[:T]` | `["syntax", "semantic", "near"]` | `--mode` |
 | `sort` | `extractability`\|`value`\|`sites`\|`hazard` | `extractability` | `sort=` (query term) |
 | `min-value` | finite non-negative float | `0.0` | `--min-value` |
@@ -84,7 +86,8 @@ Config file paths are resolved from the config file's directory, so committed
 project paths do not depend on where `nose` was invoked. This applies to
 `ignore-file`, `semantic-packs`, and `semantic-pack-lock`. CLI path flags such
 as `--ignore-file`, `--semantic-pack`, and `--semantic-pack-lock` remain
-current-working-directory relative.
+current-working-directory relative. `generated-paths` entries are globs rather than config
+file paths: they are always anchored to each analyzed root.
 
 `semantic-packs` is additive with repeated `--semantic-pack` flags. Each entry is
 an explicit local opt-in to a semantic-pack v0 or v1 manifest file, or a
@@ -117,6 +120,21 @@ worse than failing early.
 tree is not a git checkout, so vendored dependencies, build output, and the like are
 skipped without any configuration. Parent ignore files above the analyzed root are not
 applied; pointing nose at an ignored subdirectory intentionally still analyzes it.
+
+## Generated paths
+
+`generated-paths` is additive: config assertions and repeated `--generated-path` flags are
+combined. Unlike `exclude`, these patterns do not prune files or delete findings. A family
+moves to `surface=generated` only when every member is covered by caller or nose provenance;
+recover it with `all top=0` or `surface=generated`.
+
+Patterns use positive gitignore syntax and are automatically anchored to each query root.
+Use `generated/**` for an immediate child or `**/generated/**` at any depth. Empty,
+negated, absolute, parent-relative, and backslash patterns are hard errors. Matching first
+checks canonical root containment: an explicitly supplied symlink root works, while a symlink
+below a root cannot mark a file outside that root. Missing, unreadable, out-of-root, and mixed
+families fail open. See [caller-provided generated paths](caller-generated-path-provenance.md)
+for the trust, JSON, multi-root, and portability contract.
 
 ## Structured ignores
 
