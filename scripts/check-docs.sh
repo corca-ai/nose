@@ -39,6 +39,7 @@ if [ -n "${NOSE_BIN:-}" ]; then
         exit 127
     fi
     "${NOSE_BIN}" semantic-pack check "${semantic_pack_examples[@]}" --format json >/dev/null
+    "${NOSE_BIN}" semantic-pack status docs/examples/semantic-pack-lock-v1.json --format json >/dev/null
 else
     echo "skipped semantic-pack CLI conformance — set NOSE_BIN or run ./scripts/check-ci-local.sh --full"
 fi

@@ -9,6 +9,7 @@ the Rust CLI provides the pack-author conformance harness.
 from __future__ import annotations
 
 import json
+import hashlib
 import sys
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = ROOT / "docs" / "schemas" / "semantic-pack-v0.schema.json"
 SCHEMA_V1 = ROOT / "docs" / "schemas" / "semantic-pack-v1.schema.json"
+LOCK_SCHEMA_V1 = ROOT / "docs" / "schemas" / "semantic-pack-lock-v1.schema.json"
+LOCK_EXAMPLE_V1 = ROOT / "docs" / "examples" / "semantic-pack-lock-v1.json"
 EXAMPLES = sorted(
     (ROOT / "docs" / "examples" / "semantic-packs" / "v0").glob("*.json")
 )
@@ -356,6 +359,74 @@ def validate_v1_pack(path: Path, doc: dict[str, Any]) -> None:
         require_enum(path, contract.get("channel"), {"near", "external-exact"}, "api_contract.channel")
 
 
+def resolve_lock_path(lock_path: Path, declared: str) -> Path:
+    relative = Path(declared)
+    if relative.is_absolute() or ".." in relative.parts:
+        fail(lock_path, f"locked path `{declared}` must be relative and non-escaping")
+    resolved = (lock_path.parent / relative).resolve()
+    try:
+        resolved.relative_to(lock_path.parent.resolve())
+    except ValueError:
+        fail(lock_path, f"locked path `{declared}` escapes the lock root")
+    if not resolved.is_file():
+        fail(lock_path, f"locked path `{declared}` does not name a file")
+    return resolved
+
+
+def validate_file_pin(lock_path: Path, pin: Any) -> None:
+    if not isinstance(pin, dict):
+        fail(lock_path, "file pin must be an object")
+    declared = require_string(lock_path, pin, "path")
+    expected = require_string(lock_path, pin, "content_digest")
+    resolved = resolve_lock_path(lock_path, declared)
+    actual = "sha256:" + hashlib.sha256(resolved.read_bytes()).hexdigest()
+    if expected != actual:
+        fail(lock_path, f"locked file `{declared}` digest is stale")
+
+
+def validate_v1_lock(path: Path, doc: dict[str, Any]) -> None:
+    if doc.get("api_version") != "nose.semantic-pack-lock.v1":
+        fail(path, "lock `api_version` must be nose.semantic-pack-lock.v1")
+    dependencies = require_array(path, doc, "dependencies", min_items=1)
+    for dependency in dependencies:
+        validate_file_pin(path, dependency)
+    packs = require_array(path, doc, "packs", min_items=1)
+    ids: set[str] = set()
+    manifests: set[str] = set()
+    for entry in packs:
+        if not isinstance(entry, dict):
+            fail(path, "lock pack entries must be objects")
+        pack_id = require_string(path, entry, "pack_id")
+        manifest_path = require_string(path, entry, "manifest")
+        if pack_id in ids or manifest_path in manifests:
+            fail(path, "lock pack ids and manifest paths must be unique")
+        ids.add(pack_id)
+        manifests.add(manifest_path)
+        manifest = read_json(resolve_lock_path(path, manifest_path))
+        if entry.get("manifest_api_version") != "nose.semantic-pack.v1":
+            fail(path, f"lock entry `{pack_id}` must pin manifest v1")
+        if manifest.get("api_version") != "nose.semantic-pack.v1":
+            fail(path, f"lock entry `{pack_id}` references a non-v1 manifest")
+        if require_object(path, manifest, "pack").get("id") != pack_id:
+            fail(path, f"lock entry `{pack_id}` does not match its manifest")
+        if require_string(path, entry, "pack_version") != manifest["pack"]["version"]:
+            fail(path, f"lock entry `{pack_id}` pack version is stale")
+        compatibility = require_object(path, manifest, "compatibility")
+        if require_string(path, entry, "nose_compatibility") != compatibility.get("nose"):
+            fail(path, f"lock entry `{pack_id}` compatibility range is stale")
+        digest = require_string(path, entry, "semantic_digest")
+        if len(digest) != 71 or not digest.startswith("sha256:"):
+            fail(path, f"lock entry `{pack_id}` semantic digest is malformed")
+        channels = require_array(path, entry, "allowed_channels", min_items=1)
+        if len(channels) != len(set(channels)) or not set(channels) <= {"near", "external-exact"}:
+            fail(path, f"lock entry `{pack_id}` has invalid allowed channels")
+        rows = require_array(path, entry, "selected_rows", min_items=1)
+        if len(rows) != len(set(rows)):
+            fail(path, f"lock entry `{pack_id}` has duplicate selected rows")
+        if "exact_receipt" in entry:
+            validate_file_pin(path, entry["exact_receipt"])
+
+
 def main() -> int:
     schema = read_json(SCHEMA)
     if schema.get("$id") is None or schema.get("title") is None:
@@ -371,9 +442,13 @@ def main() -> int:
         fail(ROOT / "docs" / "examples" / "semantic-packs" / "v1", "no examples found")
     for example in EXAMPLES_V1:
         validate_v1_pack(example, read_json(example))
+    lock_schema = read_json(LOCK_SCHEMA_V1)
+    if lock_schema.get("$id") is None or lock_schema.get("title") is None:
+        fail(LOCK_SCHEMA_V1, "schema must declare $id and title")
+    validate_v1_lock(LOCK_EXAMPLE_V1, read_json(LOCK_EXAMPLE_V1))
     print(
         f"validated {len(EXAMPLES)} semantic-pack v0 example(s) and "
-        f"{len(EXAMPLES_V1)} semantic-pack v1 example(s)"
+        f"{len(EXAMPLES_V1)} semantic-pack v1 example(s), plus project lock v1"
     )
     return 0
 

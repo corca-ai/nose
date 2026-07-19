@@ -47,6 +47,7 @@ pub(in crate::packs) fn compile_manifest_v1(
     Ok(CompiledSemanticPackV1 {
         pack_id: manifest.pack.id.clone(),
         pack_version: manifest.pack.version.clone(),
+        nose_compatibility: manifest.compatibility.nose.clone(),
         semantic_digest,
         packages_by_coordinate,
         contracts_by_id,

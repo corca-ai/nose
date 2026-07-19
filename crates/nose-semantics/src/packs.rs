@@ -101,12 +101,14 @@ use crate::{
 };
 use nose_il::stable_symbol_hash;
 use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 mod compiled;
 mod conformance;
 mod external;
 mod loading;
+mod lock;
 mod manifest;
 mod result_domain_semantics;
 mod v1;
@@ -132,6 +134,11 @@ pub use external::{
 pub use loading::{
     check_semantic_pack_conformance, discover_manifest_paths, load_local_manifest,
     SemanticPackLoadError,
+};
+pub use lock::{
+    create_project_lock, validate_project_lock, SemanticPackLockError, SemanticPackLockOptions,
+    SemanticPackLockedFile, SemanticPackProjectLockSummary, SemanticPackV1Authorization,
+    ValidatedSemanticPackProjectLock, SEMANTIC_PACK_LOCK_API_VERSION_V1,
 };
 use manifest::*;
 use v1::{compile_manifest_v1, SemanticPackManifestV1};
@@ -459,9 +466,15 @@ pub struct SemanticPackSet {
     external_contract_rows: Vec<ExternalContractRow>,
     external_value_law_rows: Vec<ExternalValueLawRow>,
     compiled_external_v1_packs: Vec<CompiledSemanticPackV1>,
+    external_v1_authorizations: BTreeMap<String, SemanticPackV1Authorization>,
+    project_lock: Option<SemanticPackProjectLockSummary>,
 }
 
 impl SemanticPackSet {
+    pub fn new_locked(lock_path: &std::path::Path) -> Result<Self, SemanticPackLockError> {
+        Ok(validate_project_lock(lock_path)?.into_semantic_packs())
+    }
+
     pub fn new_local(paths: &[PathBuf]) -> Result<Self, SemanticPackLoadError> {
         let manifest_paths = discover_manifest_paths(paths)?;
         let mut packs = compiled_builtin_packs();
@@ -495,6 +508,8 @@ impl SemanticPackSet {
             external_contract_rows,
             external_value_law_rows,
             compiled_external_v1_packs,
+            external_v1_authorizations: BTreeMap::new(),
+            project_lock: None,
         })
     }
 
@@ -505,6 +520,8 @@ impl SemanticPackSet {
             external_contract_rows: Vec::new(),
             external_value_law_rows: Vec::new(),
             compiled_external_v1_packs: Vec::new(),
+            external_v1_authorizations: BTreeMap::new(),
+            project_lock: None,
         }
     }
 
@@ -530,6 +547,14 @@ impl SemanticPackSet {
 
     pub fn compiled_external_v1_packs(&self) -> &[CompiledSemanticPackV1] {
         &self.compiled_external_v1_packs
+    }
+
+    pub fn external_v1_authorization(&self, pack_id: &str) -> Option<&SemanticPackV1Authorization> {
+        self.external_v1_authorizations.get(pack_id)
+    }
+
+    pub fn project_lock(&self) -> Option<&SemanticPackProjectLockSummary> {
+        self.project_lock.as_ref()
     }
 }
 

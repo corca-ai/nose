@@ -1,8 +1,9 @@
 # Semantic pack loading
 
-Status: nose can validate local semantic-pack v0 manifests and compile typed v1
-manifests on `nose query`, and it can run a separate local check. External packs
-are explicit opt-ins and are currently `metadata-only`:
+Status: nose can validate local semantic-pack v0 manifests, compile typed v1
+manifests, and validate content-pinned v1 project locks before `nose query`.
+It also provides separate local check/lock/status commands. External packs are
+explicit opt-ins and are currently `metadata-only`:
 they do not emit evidence, open exact contracts, mint fingerprints, approve clone
 pairs, or change exact/near query results. Local `declares.evidence_producers`,
 `declares.contracts`, and `declares.value_laws` entries are registered as
@@ -36,6 +37,20 @@ are resolved relative to the config file that declared them; paths from
 CLI paths. Directory loading reads direct `*.json` children in sorted order; it
 does not recurse and it does not contact a registry or network service.
 
+For a reviewed, content-pinned typed v1 set, configure a project lock instead:
+
+```toml
+[query]
+semantic-pack-lock = "nose.semantic-pack-lock.json"
+```
+
+or pass `--semantic-pack-lock <file>`. A lock is mutually exclusive with
+unlocked manifest paths and owns the full external pack set. nose validates all
+manifest, dependency, selection, channel, receipt, path, and conflict pins
+before lowering source. See
+the [project-lock guide](semantic-pack-project-lock.md) for the pinning model,
+commands, and failure behavior.
+
 ## Conformance entry point
 
 Pack authors and users can check the same local manifest paths without loading
@@ -55,6 +70,14 @@ fixture contents, and it does not certify semantic correctness. See [semantic-pa
 For v1, the command validates the closed Java/Maven package-API grammar and
 builds its canonical digest and indexes. v1 does not reuse v0's opaque row or
 fixture declarations. See [semantic-pack-extension-api-v1](semantic-pack-extension-api-v1.md).
+
+Create and inspect a local project authorization without fetching or installing
+anything:
+
+```sh
+nose semantic-pack lock semantic-packs/guava.json --dependency pom.xml
+nose semantic-pack status nose.semantic-pack-lock.json --format json
+```
 
 ## Trust policy
 
@@ -207,8 +230,10 @@ row-id conflicts with builtin or other external rows, and can run a data-only
 influence preflight report. It also validates fixed call result-domain
 declarations in `semantics.result_domain` against the known domain vocabulary
 and requires required `LibraryApi.Contract` evidence for those rows. Today that
-preflight blocks all external rows until dependency-backed evidence, explicit
-influence trust gates, and conflict-free row ids exist. Exact-capable rows also
+preflight blocks all external rows until dependency-backed occurrence evidence
+and lane consumers exist. A project lock now supplies explicit content/row/lane
+authorization and rejects semantic-coordinate conflicts before analysis, but it
+does not itself produce occurrence evidence or influence. Exact-capable rows also
 remain blocked until they have passed declarative executable conformance.
 `nose semantic-pack check --format json` exposes that row-level preflight to
 providers and integrations, but query, normalize, value-graph, exact, and
@@ -236,5 +261,7 @@ code execution, parser/lowering plugins, or manifest presence alone.
   before manifests are trusted for reporting.
 - [semantic-pack-compatibility](semantic-pack-compatibility.md) records version
   and output compatibility policy for loaded packs.
+- [semantic-pack-project-lock](semantic-pack-project-lock.md) records local
+  content pins, authorization, deterministic conflict handling, and rollback.
 - [semantic-kernel](semantic-kernel.md) owns the exact-admission boundary that
   loaded external manifests cannot bypass.

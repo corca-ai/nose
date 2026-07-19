@@ -12,6 +12,7 @@
 //! min-size = 30                             # minimum unit size in IL tokens
 //! ignore-file = "nose.ignore.json"
 //! semantic-packs = ["semantic-packs/python-math-prod.json"]
+//! semantic-pack-lock = "nose.semantic-pack-lock.json"
 //! ```
 
 use serde::Deserialize;
@@ -36,6 +37,8 @@ pub(crate) struct QueryConfig {
     pub ignore_file: Option<PathBuf>,
     /// Local semantic-pack v0/v1 manifest files or directories. These are explicit opt-ins.
     pub semantic_packs: Vec<PathBuf>,
+    /// Content-pinned v1 project lock. It is mutually exclusive with `semantic-packs`.
+    pub semantic_pack_lock: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Default)]
@@ -80,6 +83,11 @@ fn resolve_config_relative_paths(mut cfg: QueryConfig, path: &Path) -> QueryConf
     for pack in &mut cfg.semantic_packs {
         if pack.is_relative() {
             *pack = base.join(&pack);
+        }
+    }
+    if let Some(lock) = &mut cfg.semantic_pack_lock {
+        if lock.is_relative() {
+            *lock = base.join(&lock);
         }
     }
     cfg
@@ -130,5 +138,6 @@ mod tests {
             Some(p.parent().unwrap().join("nose.ignore.json"))
         );
         assert_eq!(cfg.semantic_packs, vec![p.parent().unwrap().join("packs")]);
+        assert!(cfg.semantic_pack_lock.is_none());
     }
 }

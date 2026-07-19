@@ -113,6 +113,8 @@ The semantic kernel owns the stable admission machinery:
 - fail-closed admission policy;
 - trust and channel policy;
 - pack loading, registry, capabilities, and provenance reporting.
+- content-addressed project locks, channel/row authorization, path containment,
+  and load-order-independent semantic-coordinate conflicts.
 
 Packs own language, library, and law knowledge:
 
@@ -195,6 +197,12 @@ Behavior-change defaults:
   precision fix or deferred recall with follow-up tracking.
 - Metadata-only external packs must not change families, ranking, witnesses,
   surfaces, or exact/near results.
+
+Locked external packs remain metadata-only until an issue explicitly opens a
+consumer lane. Lock validation finishes before lowering and may add only
+top-level pack/authorization metadata. Missing, stale, escaped, or conflicting
+configured locks fail before analysis rather than falling back to unlocked
+metadata or precedence.
 
 ## Performance Gate
 
@@ -410,7 +418,11 @@ previous semantic-kernel tranches.
    `.stream()` API occurrence provenance under the shared receiver-proof
    contract.
 7. **Phase 6, external influence:** only after the builtin path is proven, start with a
-   small data-only external row class behind explicit opt-in trust gates.
+   small data-only external row class behind explicit opt-in trust gates. The
+   first completed external boundary is the local
+   `nose.semantic-pack-lock.v1` project lock: it content-pins typed v1 rows,
+   channels, dependency inputs, and optional receipts, rejects path escapes and
+   overlapping coordinates, and still opens no analysis influence by itself.
 8. **Phase 7, adoption gates:** define `external-opt-in -> builtin-optional` and
    `builtin-optional -> builtin-default` promotion criteria, rollback behavior,
    corpus regression, docs, and performance budgets.
@@ -432,3 +444,6 @@ previous semantic-kernel tranches.
   until the external trust and evidence lanes are complete.
 - [semantic-pack-loading](semantic-pack-loading.md) describes manifest loading
   and the current metadata-only external behavior.
+- [semantic-pack-project-lock](semantic-pack-project-lock.md) defines the
+  content-addressed user authorization between manifest claims and future
+  evidence/influence consumers.

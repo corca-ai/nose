@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-const CAPABILITIES_SCHEMA_VERSION: u32 = 5;
+const CAPABILITIES_SCHEMA_VERSION: u32 = 6;
 
 #[derive(serde::Serialize)]
 struct Report {
@@ -47,6 +47,8 @@ struct Schemas {
     capabilities: Vec<u32>,
     query_json: Vec<u32>,
     semantic_packs: Vec<&'static str>,
+    semantic_pack_locks: Vec<&'static str>,
+    semantic_pack_lock_status: Vec<u32>,
     semantic_pack_conformance: Vec<u32>,
     semantic_pack_inventory: Vec<u32>,
     semantic_pack_adoption_gates: Vec<u32>,
@@ -66,7 +68,10 @@ struct QuerySurface {
 #[derive(serde::Serialize)]
 struct SemanticPacks {
     api_versions: Vec<&'static str>,
+    lock_api_versions: Vec<&'static str>,
     loading: Vec<&'static str>,
+    project_lock: Vec<&'static str>,
+    project_lock_output_formats: Vec<&'static str>,
     conformance: Vec<&'static str>,
     conformance_output_formats: Vec<&'static str>,
     inventory: Vec<&'static str>,
@@ -131,6 +136,7 @@ impl Report {
                     "min-value",
                     "mode",
                     "semantic-packs",
+                    "semantic-pack-lock",
                     "sort",
                 ],
                 capabilities: query_capability_flags(),
@@ -156,6 +162,8 @@ fn current_schemas() -> Schemas {
             crate::schema_versions::QUERY_BASE_JSON_SCHEMA_VERSION,
         ],
         semantic_packs: nose_semantics::SUPPORTED_SEMANTIC_PACK_API_VERSIONS.to_vec(),
+        semantic_pack_locks: vec![nose_semantics::SEMANTIC_PACK_LOCK_API_VERSION_V1],
+        semantic_pack_lock_status: vec![crate::semantic_pack::LOCK_STATUS_SCHEMA_VERSION],
         semantic_pack_conformance: vec![crate::semantic_pack::CONFORMANCE_SCHEMA_VERSION],
         semantic_pack_inventory: vec![crate::semantic_pack::INVENTORY_SCHEMA_VERSION],
         semantic_pack_adoption_gates: vec![crate::semantic_pack::ADOPTION_GATES_SCHEMA_VERSION],
@@ -166,11 +174,15 @@ fn current_schemas() -> Schemas {
 fn current_semantic_packs() -> SemanticPacks {
     SemanticPacks {
         api_versions: nose_semantics::SUPPORTED_SEMANTIC_PACK_API_VERSIONS.to_vec(),
+        lock_api_versions: vec![nose_semantics::SEMANTIC_PACK_LOCK_API_VERSION_V1],
         loading: vec![
             "compiled-builtin",
             "local-manifest-file",
             "local-manifest-directory",
+            "local-project-lock",
         ],
+        project_lock: vec!["create", "status"],
+        project_lock_output_formats: vec!["human", "json"],
         conformance: vec!["local-manifest-file", "local-manifest-directory"],
         conformance_output_formats: vec!["human", "json"],
         inventory: vec!["compiled-builtin"],
@@ -204,6 +216,7 @@ fn query_capability_flags() -> std::collections::BTreeMap<&'static str, bool> {
         ("query_base_structured_ignores", true),
         ("reinvented_view", true),
         ("semantic_pack_loading", true),
+        ("semantic_pack_project_lock", true),
         ("structured_ignores", true),
     ]
     .into_iter()

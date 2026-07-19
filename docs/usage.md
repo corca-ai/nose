@@ -37,6 +37,7 @@ from-source `./target/release/nose`.
 | Read the result as machine-readable JSON | `nose query <path> --format json` ([query-json](query-json.md)) |
 | Ask what an installed binary supports | `nose capabilities` |
 | Check a local semantic-pack manifest | `nose semantic-pack check <file-or-dir>` |
+| Create or inspect a content-pinned semantic-pack decision | `nose semantic-pack lock …` / `nose semantic-pack status <lock>` |
 | Inspect semantic-pack compatibility policy | `nose semantic-pack compatibility` |
 | Inspect lowering coverage for a language | `nose stats <paths...>` |
 | Find near-duplicate Markdown **prose** | `nose query <path>` — see [markdown-duplication](markdown-duplication.md) |
@@ -250,6 +251,7 @@ mode flags are documented under [Ranking](#ranking) and [Detection modes](#detec
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
 | `--ignore-file <file>` | suppress accepted families using a structured ignore file with reason/owner/expiry metadata |
 | `--semantic-pack <file-or-dir>` | load local semantic-pack v0 metadata or compile a typed v1 manifest for provenance/digest reporting; external packs are metadata-only today |
+| `--semantic-pack-lock <file>` | validate one content-pinned typed v1 project lock before analysis; mutually exclusive with unlocked semantic-pack paths |
 
 **Output**
 
@@ -261,7 +263,7 @@ Use terms for report shaping: `sort=KEY`, `top=N`, `scope=prod|test|mixed`, `gro
 `id=<fam> full`, and `reinvented`. `--format json` emits the stable
 [query-json](query-json.md) contract.
 
-**Workflow** (`--baseline`, `--write-baseline`, `--fail-on any|new`, `--ignore-file`, `--cache-dir`, `--config`, `--semantic-pack`) is covered in
+**Workflow** (`--baseline`, `--write-baseline`, `--fail-on any|new`, `--ignore-file`, `--cache-dir`, `--config`, `--semantic-pack`, `--semantic-pack-lock`) is covered in
 [continuous-integration](continuous-integration.md), [configuration](configuration.md), and [semantic-pack-loading](semantic-pack-loading.md).
 Structured suppressions are covered in [structured-ignores](structured-ignores.md).
 
@@ -295,6 +297,8 @@ and may change to improve readability. The stable contract is documented in
 - `nose semantic-pack check <file-or-dir> [--format human|json]` — validate local
   semantic-pack v0 structure/fixtures or compile a typed v1 manifest. It is a
   pack-author/user workflow, not external pack certification; see [semantic-pack-conformance](semantic-pack-conformance.md).
+- `nose semantic-pack lock <file-or-dir> --dependency <file> [--channel near|external-exact] [--row ID] [--output <file>] [--format human|json]` — create a local content-pinned v1 project lock without fetching or installing anything.
+- `nose semantic-pack status <lock> [--format human|json]` — revalidate pinned manifests, dependency inputs, selected rows/channels, optional receipts, path containment, and conflicts. See [semantic-pack-project-lock](semantic-pack-project-lock.md).
 - `nose semantic-pack inventory [--format human|json]` — inspect compiled
   builtin pack declarations, conformance refs, exact-capable coverage status,
   and coverage gaps without running a query.

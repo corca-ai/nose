@@ -4,7 +4,7 @@ pub(crate) fn semantic_packs_json(semantic_packs: &nose_semantics::SemanticPackS
     semantic_packs
         .packs()
         .iter()
-        .map(semantic_pack_summary_json)
+        .map(|pack| semantic_pack_summary_json(pack, semantic_packs))
         .collect()
 }
 
@@ -18,7 +18,10 @@ pub(crate) fn with_semantic_packs(mut report: Value, semantic_packs: &[Value]) -
     report
 }
 
-fn semantic_pack_summary_json(pack: &nose_semantics::SemanticPackSummary) -> Value {
+fn semantic_pack_summary_json(
+    pack: &nose_semantics::SemanticPackSummary,
+    semantic_packs: &nose_semantics::SemanticPackSet,
+) -> Value {
     let mut summary = json!({
         "id": &pack.id,
         "hash": pack.hash_hex(),
@@ -50,6 +53,33 @@ fn semantic_pack_summary_json(pack: &nose_semantics::SemanticPackSummary) -> Val
     }
     if let Some(semantic_digest) = &pack.semantic_digest {
         object.insert("semantic_digest".to_string(), json!(semantic_digest));
+    }
+    if let Some(authorization) = semantic_packs.external_v1_authorization(&pack.id) {
+        let project_lock = semantic_packs
+            .project_lock()
+            .expect("v1 authorization requires a validated project lock");
+        object.insert(
+            "lock".to_string(),
+            json!({
+                "status": "valid",
+                "api_version": project_lock.api_version(),
+                "decision_digest": project_lock.decision_digest(),
+                "allowed_channels": authorization
+                    .allowed_channels()
+                    .iter()
+                    .map(|channel| channel.as_str())
+                    .collect::<Vec<_>>(),
+                "selected_rows": authorization.selected_rows(),
+                "dependencies": authorization.dependencies().iter().map(|dependency| json!({
+                    "path": dependency.declared_path(),
+                    "content_digest": dependency.content_digest(),
+                })).collect::<Vec<_>>(),
+                "exact_receipt": authorization.exact_receipt().map(|receipt| json!({
+                    "path": receipt.declared_path(),
+                    "content_digest": receipt.content_digest(),
+                })),
+            }),
+        );
     }
     summary
 }

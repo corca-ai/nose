@@ -1,16 +1,18 @@
 # Typed semantic pack influence manifest v1
 
-Status: implemented typed manifest and deterministic compiler; influence is not
-enabled yet. `nose.semantic-pack.v0` remains permanently metadata-only.
+Status: implemented typed manifest, deterministic compiler, and content-pinned
+project authorization. Influence is not enabled yet.
+`nose.semantic-pack.v0` remains permanently metadata-only.
 
 ## Purpose
 
 v1 is the first semantic-pack format that nose can interpret without executing
 provider code. It replaces v0's opaque `surface` and `semantics` JSON with a
 small closed grammar. Loading a v1 file validates and compiles that grammar
-before analysis starts, but the compiled rows still have `metadata-only`
-influence until project locks, dependency and occurrence evidence, conflicts,
-and lane-specific conformance are implemented.
+before analysis starts. A validated project lock can now pin and authorize rows,
+channels, dependency files, and an optional receipt, but the compiled rows still
+have `metadata-only` influence until dependency/occurrence evidence and
+lane-specific consumers are implemented.
 
 The schema is [semantic-pack-v1.schema.json](schemas/semantic-pack-v1.schema.json).
 The [Guava example](examples/semantic-packs/v1/guava-immutable-collections.json)
@@ -104,9 +106,14 @@ their existing shape so no-pack product output is unchanged.
 `semantic_digest` for each manifest. For v1 it validates and compiles the typed
 content, but it does not invent v0 fixture rows or report an influence grant.
 
+The project-lock layer is now defined by
+[semantic-pack-project-lock](semantic-pack-project-lock.md). It pins API,
+pack/version, nose compatibility, semantic digest, selected rows/channels,
+dependency content, and optional receipts; it also rejects overlapping
+cross-pack coordinates independent of load order.
+
 The following work remains outside this slice:
 
-- content-pinned project locks, trust limits, and overlap conflicts;
 - dependency/version readers and occurrence evidence;
 - near consumers and the separate external-claim exact lane;
 - source-analyzing conformance receipts and a real external reference pack.

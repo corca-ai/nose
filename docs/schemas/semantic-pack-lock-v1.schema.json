@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/corca-ai/nose/docs/schemas/semantic-pack-lock-v1.schema.json",
+  "title": "nose semantic-pack project lock v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "dependencies", "packs"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "api_version": {
+      "const": "nose.semantic-pack-lock.v1"
+    },
+    "dependencies": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/file_pin"
+      }
+    },
+    "packs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/pack"
+      }
+    }
+  },
+  "$defs": {
+    "stable_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "file_pin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "content_digest"],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "content_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "pack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest",
+        "manifest_api_version",
+        "pack_id",
+        "pack_version",
+        "nose_compatibility",
+        "semantic_digest",
+        "allowed_channels",
+        "selected_rows"
+      ],
+      "properties": {
+        "manifest": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "manifest_api_version": {
+          "const": "nose.semantic-pack.v1"
+        },
+        "pack_id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "pack_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nose_compatibility": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantic_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "allowed_channels": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["near", "external-exact"]
+          }
+        },
+        "selected_rows": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/stable_id"
+          }
+        },
+        "exact_receipt": {
+          "$ref": "#/$defs/file_pin"
+        }
+      }
+    }
+  }
+}

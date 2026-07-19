@@ -198,3 +198,5 @@ mod builtin_report;
 mod external_cases_0;
 #[path = "config_packs/external_cases_v1.rs"]
 mod external_cases_v1;
+#[path = "config_packs/project_lock.rs"]
+mod project_lock;
