@@ -86,8 +86,7 @@ benchmark's clean/empty/history equality remains the product-output authority. S
 
 ## Checked #873 performance evidence
 
-The checked
-[`issue-873-portable-cas-sympy-paired-2026-07-20.v1.json`](../bench/cache/issue-873-portable-cas-sympy-paired-2026-07-20.v1.json)
+The checked [`issue-873-portable-cas-sympy-paired-2026-07-20.v1.json`](../bench/cache/issue-873-portable-cas-sympy-paired-2026-07-20.v1.json)
 contains 30 alternating AB/BA replays against the checksum-verified published v0.19.0
 `aarch64-apple-darwin` binary. Both roles independently passed exact clean/empty/history output
 equivalence across all 180 raw rows.
