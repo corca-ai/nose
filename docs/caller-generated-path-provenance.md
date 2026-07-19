@@ -83,3 +83,22 @@ would add a new lifecycle, source/output identity model, and schema without impr
 boundary. The path contract is therefore independently sufficient for this slice. A future
 manifest should start only from evidence that source/output relationships enable a safer
 decision the path contract cannot express; it is not part of #925.
+
+## Measured result
+
+The checked [#925 closeout artifact](../bench/recall_loss/issue-925-caller-generated-path-closeout-2026-07-19.v1.json)
+binds exact commits, binaries, field queries, output hashes, and performance reports.
+
+On the fresh Check checkout, `m4/**` moves all three Autoconf Archive HTML families from
+`default` to `generated`; the ordered family count stays 22, and deleting only `surface` and
+`generated_provenance` produces the same SHA-256 before and after. On Pydantic,
+`tests/mypy/outputs/**` moves no family: all four affected families also contain maintained
+`tests/mypy/modules` inputs and therefore fail open. Check output is byte-identical with
+`RAYON_NUM_THREADS=1` and `4`.
+
+The default query path was priced on the same frozen 66-repository cohort used by #891. The
+baseline is the published v0.19.0 binary and the control compares the candidate binary with
+itself, each with one warmup and three alternating iterations. The published comparison is
+`-41.42 ms / -0.263%`; the same-binary control is `-43.27 ms / -0.270%`, leaving a
+control-adjusted `+1.85 ms / +0.006%`. That is below both the unchanged `5 ms` and
+`5%` material-regression gates, so no focused escalation was taken.
