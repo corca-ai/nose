@@ -106,3 +106,35 @@ original r40 files:
 
 The implementation may be corrected if it fails this written contract, but the
 contract will not be tuned after observing which historical rows change decision.
+
+## Frozen replay outcome
+
+The policy was implemented after the preregistration commit and then replayed once on
+the two SHA-bound #892 r40 reports. The compact
+[decision ledger](../bench/recall_loss/issue-927-order-aware-control-decision-ledger-2026-07-21.v1.json)
+records all 226 runtime signals: 215 retain their legacy state and exactly 11 change.
+The four legacy triggers become three `within-threshold` rows and one `inconclusive`
+row. Seven formerly clear rows expose a material split between execution orders and
+therefore also become `inconclusive`; this is intentional fail-closed behavior, not a
+new regression claim.
+
+| Signal | Legacy | Order-aware | Why |
+| --- | --- | --- | --- |
+| `etcd:lower` | triggered | within threshold | negative control no longer inflates; both order medians are below threshold |
+| `etcd:parse+lower` | triggered | within threshold | negative control no longer inflates; both order medians are below threshold |
+| `guava:normalize+extract` | triggered | within threshold | order-neutral adjusted effect is 3.88 ms / 1.08% |
+| `minio:normalize+extract` | triggered | inconclusive | baseline-first is material; current-first moves in the opposite direction |
+| `alamofire:lower` | within threshold | inconclusive | only current-first is material |
+| `bat:parse+lower` | within threshold | inconclusive | only current-first is material |
+| `minio:lower` | within threshold | inconclusive | the two order medians have opposite signs |
+| `netty:normalize+extract` | within threshold | inconclusive | only current-first is material |
+| `regex:lower` | within threshold | inconclusive | only baseline-first is material |
+| `rxswift` | within threshold | inconclusive | repository medians split by execution order |
+| `rxswift:lower` | within threshold | inconclusive | the two order medians have opposite signs |
+
+The replay does not rewrite #892 or #907. Version 2 reports still use the legacy
+estimator by default; `--runtime-policy order-aware-v1` is an explicit historical
+evaluation switch. New version 3 reports record pair order and position directly and
+select the new policy automatically. The merge smoke now takes the minimum five
+eligible primary blocks; a material or inconclusive primary signal gets exactly one
+six-block focused rerun, after which a trigger or remaining inconclusive result fails.

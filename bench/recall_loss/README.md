@@ -14,6 +14,9 @@ and the resulting no-go optimization decision.
 `issue-908-normalize-extract-performance-2026-07-19.v1.json` binds the inherited Guava
 and MinIO rows to the shared MinHash hot path, the output-identical optimization, and
 the fixed r40 checker evidence.
+`issue-927-order-aware-control-decision-ledger-2026-07-21.v1.json` binds the original
+#892 r40 primary/control hashes to all 11 legacy-versus-order-aware decision changes;
+the other 215 runtime signals are explicitly accounted for as unchanged.
 `issue-925-caller-generated-path-closeout-2026-07-19.v1.json` binds the root-anchored
 caller provenance contract to fresh Check/Pydantic outcomes, determinism hashes, and its
 published-v0.19.0 66-repository runtime price with same-binary control.
