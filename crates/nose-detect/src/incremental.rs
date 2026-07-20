@@ -43,7 +43,7 @@ impl UnitPairKey {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 enum BucketKey {
     ValueBand(u64),
     ShapeBand(u64),

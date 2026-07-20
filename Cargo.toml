@@ -52,6 +52,7 @@ quick-xml = "0.41"
 rmp-serde = "1"
 zstd = "0.13.3"
 fs2 = "0.4"
+notify = "8.2"
 
 # Centralized lint policy — every crate opts in with `[lints] workspace = true`,
 # so the quality bar is defined once and enforced uniformly. CI runs clippy with

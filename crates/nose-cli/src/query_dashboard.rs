@@ -13,6 +13,60 @@ use crate::schema_versions;
 use crate::style;
 use crate::surfaces::{surface_omission_note, SurfaceOverrides};
 
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn query_dashboard_json(
+    families: &[nose_detect::RefactorFamily],
+    ov: &SurfaceOverrides,
+    opp: &OpportunityGroups,
+    scope: &QueryScope,
+    path: &str,
+    reinvented_prod: usize,
+    baseline_cmp: Option<&BaselineComparison>,
+    since: Option<&BaselineComparison>,
+    markdown: &markdown::QueryMarkdownReport,
+    semantic_packs: &[serde_json::Value],
+) -> serde_json::Value {
+    let def = families
+        .iter()
+        .filter(|family| is_default_surface(family, ov) && !opp.is_default_slice(family))
+        .collect::<Vec<_>>();
+    let count = |kind: &str| {
+        def.iter()
+            .filter(|family| {
+                witness_token(family.witness.as_ref().map(|witness| witness.kind)) == kind
+            })
+            .count()
+    };
+    let top = def
+        .iter()
+        .take(5)
+        .map(|family| query_family_json(family, ov, opp, false, baseline_cmp, since))
+        .collect::<Vec<_>>();
+    with_semantic_packs(
+        serde_json::json!({
+            "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
+            "tool": "nose",
+            "view": "dashboard",
+            "path": path,
+            "summary": {
+                "scanned_files": scope.files,
+                "families": def.len(),
+                "by_confidence": {"exact": count("exact"), "subdag": count("subdag"),
+                    "bounded_window": count("bounded-window"),
+                    "copy_paste": count("copy-paste"), "similar": count("similar")},
+                "reinvented": reinvented_prod,
+                "shown": top.len(),
+            },
+            "families": top,
+            "top_candidates": top,
+            "markdown": markdown.dashboard_json(),
+            "next": [format!("nose query {path} sort=extractability"), format!("nose query {path} group=dir"),
+                format!("nose query {path} witness=exact"), format!("nose query {path} all")],
+        }),
+        semantic_packs,
+    )
+}
+
 /// Print a block of candidate rows in aligned columns (location · metrics · drill command),
 /// coloured. Widths are computed from each cell's visible length so the ANSI codes never
 /// skew the columns. The drill command is dimmed; an overlapping-slice fold note, if any,
@@ -78,37 +132,19 @@ pub(super) fn render_query_dashboard(
             .count()
     };
     if json {
-        let top: Vec<_> = def
-            .iter()
-            .take(5)
-            .map(|f| query_family_json(f, ov, opp, false, baseline_cmp, since))
-            .collect();
         println!(
             "{}",
-            with_semantic_packs(
-                serde_json::json!({
-                    "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
-                    "tool": "nose",
-                    "view": "dashboard",
-                    "path": path,
-                    "summary": {
-                        "scanned_files": scope.files,
-                        "families": def.len(),
-                        "by_confidence": {"exact": count("exact"), "subdag": count("subdag"),
-                            "bounded_window": count("bounded-window"),
-                            "copy_paste": count("copy-paste"), "similar": count("similar")},
-                        "reinvented": reinvented_prod,
-                        "shown": top.len(),
-                    },
-                    "families": top,
-                    "top_candidates": top,
-                    // Markdown near-duplicate families (separate prose engine). Additive key —
-                    // query-JSON consumers that don't know it simply ignore it.
-                    "markdown": markdown.dashboard_json(),
-                    "next": [format!("nose query {path} sort=extractability"), format!("nose query {path} group=dir"),
-                        format!("nose query {path} witness=exact"), format!("nose query {path} all")],
-                }),
-                semantic_packs
+            query_dashboard_json(
+                families,
+                ov,
+                opp,
+                scope,
+                path,
+                reinvented_prod,
+                baseline_cmp,
+                since,
+                markdown,
+                semantic_packs,
             )
         );
         return;

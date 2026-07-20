@@ -102,9 +102,12 @@ pub(crate) enum Cmd {
         /// terms. With --root/-r, every bare argument is a query term.
         #[arg(value_name = "PATH_OR_TERM")]
         positionals: Vec<String>,
-        /// Output format (`human`, `json`, `markdown`, or `sarif`).
+        /// Output format (`human`, `json`, `jsonl`, `markdown`, or `sarif`).
         #[arg(long, default_value = "human")]
         format: ReportFormat,
+        /// Keep the query alive and emit an initial snapshot plus revisioned JSONL updates.
+        #[arg(long)]
+        watch: bool,
         /// Detection channels to run; omit for `syntax,semantic,near`. Pass a comma-list
         /// or repeat the flag; fuzzy channels take an inline threshold (`near:0.8`).
         #[arg(long, value_delimiter = ',')]
@@ -474,6 +477,7 @@ pub(crate) enum StatsFormat {
     Json,
 }
 
+#[derive(Clone)]
 pub(crate) struct QueryArgs {
     pub(crate) paths: Vec<PathBuf>,
     pub(crate) min_members: Option<usize>,

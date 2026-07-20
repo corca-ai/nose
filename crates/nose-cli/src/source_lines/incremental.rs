@@ -169,7 +169,7 @@ fn family_key(
 fn source_digests(context: &CachedLineContext) -> FxHashMap<String, [u8; 32]> {
     let mut digests = FxHashMap::default();
     let cwd = std::env::current_dir().ok();
-    for source in &context.source_files {
+    for source in context.source_files.iter() {
         digests.insert(source.path.clone(), source.digest);
         if let Ok(canonical) = std::fs::canonicalize(&source.path) {
             digests.insert(canonical.to_string_lossy().into_owned(), source.digest);

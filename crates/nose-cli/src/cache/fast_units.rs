@@ -22,6 +22,9 @@ use std::path::Path;
 
 const SNAPSHOT_SCHEMA: u32 = 1;
 
+mod session;
+pub(crate) use session::FastUnitSession;
+
 pub(crate) struct FastCachedUnits {
     pub(crate) cached: CachedUnits,
     pub(crate) report: InvalidationReport,
@@ -30,12 +33,20 @@ pub(crate) struct FastCachedUnits {
     pub(crate) source_files: Vec<CachedSourceFile>,
     pub(crate) run: CacheRun,
     pub(crate) langs: Vec<Lang>,
+    pub(super) snapshot: CachedUnitSnapshot,
+    pub(super) region_unit_counts: Vec<usize>,
 }
 
 #[derive(Deserialize, Serialize)]
 struct StoredSnapshot {
     schema: u32,
     snapshot: CachedUnitSnapshot,
+}
+
+#[derive(Serialize)]
+struct StoredSnapshotRef<'a> {
+    schema: u32,
+    snapshot: &'a CachedUnitSnapshot,
 }
 
 struct RestoredRegion {
@@ -47,17 +58,11 @@ struct RestoredRegion {
     written_bytes: u64,
 }
 
-pub(super) fn store_snapshot(
-    run: &CacheRun,
-    opts: &DetectOptions,
-    mut snapshot: CachedUnitSnapshot,
-    artifacts: &[[u8; 32]],
-) {
-    if !snapshot.fast_safe || snapshot.contexts.len() != artifacts.len() {
+pub(super) fn store_snapshot(run: &CacheRun, opts: &DetectOptions, snapshot: &CachedUnitSnapshot) {
+    if !snapshot.fast_safe || snapshot.contexts.len() != snapshot.artifacts.len() {
         return;
     }
-    snapshot.artifacts = artifacts.to_vec();
-    let stored = StoredSnapshot {
+    let stored = StoredSnapshotRef {
         schema: SNAPSHOT_SCHEMA,
         snapshot,
     };
@@ -111,6 +116,7 @@ pub(super) fn try_build(
     let mut read_bytes = 0;
     let mut written_bytes = 0;
     let mut artifacts = Vec::with_capacity(snapshot.contexts.len());
+    let mut region_unit_counts = Vec::with_capacity(snapshot.contexts.len());
 
     for (index, context) in snapshot.contexts.iter().enumerate() {
         let restored = replacements
@@ -127,6 +133,7 @@ pub(super) fn try_build(
             &context.region_path,
             restored.units.len(),
         );
+        region_unit_counts.push(restored.units.len());
         all_units.extend(restored.units);
         streams.push(restored.stream);
         artifacts.push(restored.artifact);
@@ -135,8 +142,14 @@ pub(super) fn try_build(
         return None;
     }
 
-    let langs = update_snapshot(&mut snapshot, &current_sources, changed_source.as_deref())?;
-    store_snapshot(&run, opts, snapshot, &artifacts);
+    let langs = update_snapshot(
+        &mut snapshot,
+        &current_sources,
+        changed_source.as_deref(),
+        None,
+    )?;
+    snapshot.artifacts = artifacts;
+    store_snapshot(&run, opts, &snapshot);
 
     let files = streams.len();
     if langs.len() != files {
@@ -162,6 +175,8 @@ pub(super) fn try_build(
         source_files: current_sources,
         run,
         langs,
+        snapshot,
+        region_unit_counts,
     })
 }
 
@@ -169,11 +184,17 @@ fn update_snapshot(
     snapshot: &mut CachedUnitSnapshot,
     current_sources: &[CachedSourceFile],
     changed_source: Option<&str>,
+    current_lines: Option<ContentDigest>,
 ) -> Option<Vec<Lang>> {
     if let Some(changed) = changed_source {
         let current = current_sources
             .iter()
             .find(|source| source.path == changed)?;
+        let stored = snapshot
+            .source_files
+            .iter_mut()
+            .find(|source| source.path == changed)?;
+        stored.clone_from(current);
         for context in &mut snapshot.contexts {
             if context.source_path == changed {
                 context.source_digest = current.digest;
@@ -186,10 +207,11 @@ fn update_snapshot(
         .iter()
         .map(|context| context.lang)
         .collect();
-    snapshot.source_files.clone_from_slice(current_sources);
-    snapshot.discovery_digest = *source::discovery_digest(current_sources).as_bytes();
-    snapshot.global_line_statistics_digest =
-        *source::global_line_statistics_digest(current_sources).as_bytes();
+    if changed_source.is_some() {
+        snapshot.global_line_statistics_digest = *current_lines
+            .unwrap_or_else(|| source::global_line_statistics_digest(current_sources))
+            .as_bytes();
+    }
     Some(langs)
 }
 

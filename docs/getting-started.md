@@ -146,6 +146,7 @@ Every run also prints a cheatsheet of the query grammar. The moves:
 | Open one family with its skeleton | `nose query src id=<id> full` |
 | A ranked report to paste into a PR/issue | `nose query src --format markdown` |
 | The versioned machine contract | `nose query src --format json` |
+| A live local integration stream | `nose query src --watch --format jsonl` |
 | Faster repeated runs | `nose query src --cache-dir .nose-cache` |
 
 Each result is a **pure function of (repo state, command)**, and an unknown field or value is a

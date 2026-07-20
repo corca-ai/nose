@@ -7,7 +7,7 @@ use crate::lsh::{band_hash, BUCKET_ALL_PAIRS_CAP};
 use crate::{DetectOptions, UnitFeat};
 use rayon::prelude::*;
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 type IndexedCandidates = (Vec<(usize, usize)>, Vec<u16>);
@@ -159,11 +159,26 @@ fn update_candidate_buckets(
         .filter(|key| !old_keys.contains(key))
         .copied()
         .collect::<BTreeSet<_>>();
-    let new_memberships =
-        candidate_memberships_selected(units, unit_keys, opts, 0..units.len(), Some(&new_keys));
+    let added_bucket_keys = additions.keys().copied().collect::<HashSet<_>>();
     let current_positions = unit_index(unit_keys);
+    let mut new_memberships = candidate_memberships_for_keys(units, unit_keys, opts, &new_keys);
+    for members in new_memberships.values_mut() {
+        members.sort_unstable_by_key(|member| current_positions[member]);
+    }
     let mut buckets = Vec::with_capacity(state.buckets.len() + new_memberships.len());
+    let positions_can_be_reused = state.units.len() == unit_keys.len();
     for old in std::mem::take(&mut state.buckets) {
+        if positions_can_be_reused
+            && !added_bucket_keys.contains(&old.key)
+            && old
+                .members
+                .iter()
+                .all(|&member| state.units.get(member as usize) == unit_keys.get(member as usize))
+        {
+            stats.buckets_reused += 1;
+            buckets.push(old);
+            continue;
+        }
         let old_members = old
             .members
             .iter()
@@ -202,6 +217,36 @@ fn update_candidate_buckets(
     }
     buckets.sort_unstable_by_key(|bucket| bucket.key);
     buckets
+}
+
+fn candidate_memberships_for_keys(
+    units: &[UnitFeat],
+    unit_keys: &[UnitKey],
+    opts: &DetectOptions,
+    target_keys: &BTreeSet<BucketKey>,
+) -> BTreeMap<BucketKey, Vec<UnitKey>> {
+    if target_keys.is_empty() {
+        return BTreeMap::new();
+    }
+    let value_rows = signature_rows(units, opts.bands, false);
+    let shape_rows = signature_rows(units, opts.bands, true);
+    units
+        .par_iter()
+        .zip(unit_keys.par_iter().copied())
+        .fold(BTreeMap::new, |mut buckets, (unit, key)| {
+            for_each_bucket_key(unit, opts, value_rows, shape_rows, |bucket| {
+                if target_keys.contains(&bucket) {
+                    buckets.entry(bucket).or_insert_with(Vec::new).push(key);
+                }
+            });
+            buckets
+        })
+        .reduce(BTreeMap::new, |mut left, right| {
+            for (bucket, members) in right {
+                left.entry(bucket).or_insert_with(Vec::new).extend(members);
+            }
+            left
+        })
 }
 
 fn adjust_pair_counts(

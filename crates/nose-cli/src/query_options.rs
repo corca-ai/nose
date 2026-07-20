@@ -7,6 +7,8 @@ pub(crate) enum ReportFormat {
     Human,
     /// Machine-readable JSON report with a versioned top-level schema.
     Json,
+    /// Revisioned newline-delimited JSON for `query --watch` sessions.
+    Jsonl,
     /// Markdown report (for PRs / issues / docs).
     Markdown,
     /// SARIF 2.1.0 (GitHub annotations).
