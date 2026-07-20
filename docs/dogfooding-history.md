@@ -1364,3 +1364,14 @@ the self-query fingerprints enough for the long-standing
 `aa2b95cf822a1cd2` to fall below value 40; neither numeric policy was changed.
 No replacement family appears, so the stale ID is removed without accepting
 new duplication.
+
+The #878 watch-session integration moves the reviewed count from 27 to 28. The
+new session and incremental-orchestration modules shift nose's self-query
+fingerprints enough for the same long-standing `interp/ops.rs::int_bin` /
+`float_bin` dispatcher representative `aa2b95cf822a1cd2` to cross value 40
+again; neither function was changed. The family shares ten dispatch lines, but
+integer wrapping, floor/modulo, bitwise, and unsupported-operation policy must
+remain separate from float IEEE arithmetic. Extracting a common dispatcher
+would couple those soundness boundaries for incidental structure, so the
+already reviewed family is restored to the baseline. No new avoidable
+duplication is accepted.

@@ -280,6 +280,11 @@ set -euo pipefail
 # `aa2b95cf822a1cd2` to cross value 40 again; neither member changed. Integer wrapping/floor/bitwise
 # and float IEEE policies remain deliberately separate, so no shared numeric dispatcher is accepted.
 # See docs/dogfooding-history.md.
+# 27 -> 28 (#878 watch-session integration): the session and incremental-orchestration source
+# layout shifts the self-query fingerprints enough for the same long-reviewed `int_bin` /
+# `float_bin` dispatcher family `aa2b95cf822a1cd2` to cross value 40 again. Neither numeric policy
+# changed; integer wrapping/floor/bitwise behavior remains intentionally separate from float IEEE
+# behavior, so no common dispatcher or new avoidable duplication is accepted.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 
