@@ -8,6 +8,7 @@
 //! module-binding seed can reuse its mutation and canonicalization logic.
 
 mod bindings;
+mod dependency;
 mod diagnostics;
 mod exports;
 mod modules;
@@ -17,12 +18,16 @@ mod snapshot;
 use bindings::{
     assignment_name, collect_top_level_statements, import_binding_proof, BindingUseIndex,
 };
+pub use dependency::{
+    resolution_dependency_summary, FileResolutionDependencySummary, ResolutionDependency,
+    ResolutionDependencyKind, ResolutionDependencySummary,
+};
 pub use diagnostics::{imported_immutable_snapshot_census, ImportSnapshotCensus};
 use exports::collect_literal_exports;
 use modules::{
     file_module_hashes, rust_importable_module_hashes, rust_module_identity, RustModuleIdentity,
 };
-use namespace_members::{collect_namespace_member_replacements, NamespaceMemberReplacement};
+use namespace_members::{collect_namespace_member_analyses, NamespaceMemberReplacement};
 use nose_il::{EvidenceId, Il, Interner, NodeId};
 use nose_semantics::semantics;
 use snapshot::{
@@ -35,6 +40,7 @@ use snapshot::{
 struct ExportedBinding {
     file_idx: usize,
     deps: Vec<SubtreeSnapshot>,
+    dependency_keys: Vec<(u64, u64)>,
     rhs: NodeId,
 }
 
@@ -48,7 +54,12 @@ struct ImportReplacement {
     rhs_snapshot: SubtreeSnapshot,
 }
 
-pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &Interner) {
+pub(crate) fn resolve_imported_immutable_bindings_affected(
+    files: &mut [Il],
+    interner: &Interner,
+    targets: &[bool],
+) {
+    debug_assert_eq!(files.len(), targets.len());
     let contexts: Vec<FileImportContext> = files
         .iter()
         .map(|il| FileImportContext::new(il, interner))
@@ -58,6 +69,9 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
         return;
     }
     for (&(module_hash, exported_hash), export) in exports.iter_keyed() {
+        if !targets[export.file_idx] {
+            continue;
+        }
         record_immutable_literal_export_evidence(
             &mut files[export.file_idx],
             export.rhs,
@@ -71,6 +85,9 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
         .iter()
         .enumerate()
         .map(|(file_idx, il)| {
+            if !targets[file_idx] {
+                return Vec::new();
+            }
             let context = &contexts[file_idx];
             let Some(top_level) = context.top_level.as_deref() else {
                 return Vec::new();
@@ -108,14 +125,30 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
         })
         .collect();
     let namespace_replacements =
-        collect_namespace_member_replacements(files, interner, &contexts, &exports);
+        collect_namespace_member_analyses(files, interner, &contexts, &exports)
+            .into_iter()
+            .map(|analysis| analysis.replacements)
+            .collect();
 
-    apply_import_replacements(files, replacements);
-    apply_namespace_member_replacements(files, namespace_replacements);
+    apply_import_replacements(files, replacements, targets);
+    apply_namespace_member_replacements(files, namespace_replacements, targets);
 }
 
-fn apply_import_replacements(files: &mut [Il], replacements: Vec<Vec<ImportReplacement>>) {
+#[cfg(test)]
+pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &Interner) {
+    let targets = vec![true; files.len()];
+    resolve_imported_immutable_bindings_affected(files, interner, &targets);
+}
+
+fn apply_import_replacements(
+    files: &mut [Il],
+    replacements: Vec<Vec<ImportReplacement>>,
+    targets: &[bool],
+) {
     for (file_idx, file_replacements) in replacements.into_iter().enumerate() {
+        if !targets[file_idx] {
+            continue;
+        }
         for replacement in file_replacements {
             let (rhs, snapshot_evidence) = append_replacement_snapshot(
                 &mut files[file_idx],
@@ -138,8 +171,12 @@ fn apply_import_replacements(files: &mut [Il], replacements: Vec<Vec<ImportRepla
 fn apply_namespace_member_replacements(
     files: &mut [Il],
     replacements: Vec<Vec<NamespaceMemberReplacement>>,
+    targets: &[bool],
 ) {
     for (file_idx, file_replacements) in replacements.into_iter().enumerate() {
+        if !targets[file_idx] {
+            continue;
+        }
         for replacement in file_replacements {
             let (rhs, snapshot_evidence) = append_replacement_snapshot(
                 &mut files[file_idx],

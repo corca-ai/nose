@@ -1,10 +1,12 @@
 use nose_il::{
-    stable_symbol_hash, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
-    EvidenceProvenance, EvidenceRecord, EvidenceStatus, Il, ImportEvidenceKind, Node, NodeId,
-    NodeKind, Payload, Span,
+    stable_symbol_hash, CallTargetEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId,
+    EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, GuardEvidenceKind,
+    Il, ImportEvidenceKind, Node, NodeId, NodeKind, Payload, PromiseSettledValueEvidenceKind, Span,
 };
 use nose_semantics::language_core_evidence_provenance;
 use rustc_hash::{FxHashMap, FxHashSet};
+use serde::Serialize;
+use sha2::{Digest as _, Sha256};
 
 #[derive(Clone)]
 pub(super) struct SnapshotNode {
@@ -34,6 +36,112 @@ pub(super) struct SnapshotEvidence {
 pub(super) struct AppendedSnapshot {
     pub(super) root: NodeId,
     pub(super) evidence: Vec<EvidenceId>,
+}
+
+#[derive(Serialize)]
+enum SurfacePayload<'a> {
+    Name(&'a str),
+    Value(Payload),
+}
+
+#[derive(Serialize)]
+struct SurfaceNode<'a> {
+    kind: NodeKind,
+    payload: SurfacePayload<'a>,
+    children: &'a [usize],
+}
+
+#[derive(Serialize)]
+struct SurfaceEvidence {
+    kind: EvidenceKind,
+    provenance: EvidenceProvenance,
+    dependencies: Vec<usize>,
+    status: EvidenceStatus,
+}
+
+/// Collision-resistant semantic identity of a copied export subtree. Source
+/// coordinates and process-local evidence ids are deliberately excluded: a
+/// provider may move an unchanged literal without changing what consumers see.
+pub(super) fn surface_fingerprint(
+    snapshot: &SubtreeSnapshot,
+    interner: &nose_il::Interner,
+) -> [u8; 32] {
+    let nodes = snapshot
+        .nodes
+        .iter()
+        .map(|node| SurfaceNode {
+            kind: node.kind,
+            payload: match node.payload {
+                Payload::Name(symbol) => SurfacePayload::Name(interner.resolve(symbol)),
+                payload => SurfacePayload::Value(payload),
+            },
+            children: &node.children,
+        })
+        .collect::<Vec<_>>();
+    let evidence_indexes = snapshot
+        .evidence
+        .iter()
+        .enumerate()
+        .map(|(index, evidence)| (evidence.source_id, index))
+        .collect::<FxHashMap<_, _>>();
+    let evidence = snapshot
+        .evidence
+        .iter()
+        .map(|record| SurfaceEvidence {
+            kind: surface_evidence_kind(record.kind),
+            provenance: record.provenance,
+            dependencies: record
+                .dependencies
+                .iter()
+                .filter_map(|dependency| evidence_indexes.get(dependency).copied())
+                .collect(),
+            status: record.status,
+        })
+        .collect::<Vec<_>>();
+    let payload = rmp_serde::to_vec(&(snapshot.root, nodes, evidence))
+        .expect("export surface is always MessagePack serializable");
+    Sha256::digest(payload).into()
+}
+
+fn surface_evidence_kind(kind: EvidenceKind) -> EvidenceKind {
+    let canonical = |_span: Span| Span::synthetic(FileId(0));
+    match kind {
+        EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {
+            lower_span,
+            upper_span,
+            activation,
+        }) => EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {
+            lower_span: canonical(lower_span),
+            upper_span: canonical(upper_span),
+            activation,
+        }),
+        EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
+            target_span,
+            name_hash,
+        }) => EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
+            target_span: canonical(target_span),
+            name_hash,
+        }),
+        EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectMethod {
+            target_span,
+            receiver_type_hash,
+            method_hash,
+        }) => EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectMethod {
+            target_span: canonical(target_span),
+            receiver_type_hash,
+            method_hash,
+        }),
+        EvidenceKind::PromiseSettledValue(PromiseSettledValueEvidenceKind {
+            channel,
+            payload_span,
+            payload_kind,
+        }) => EvidenceKind::PromiseSettledValue(PromiseSettledValueEvidenceKind {
+            channel,
+            payload_span: canonical(payload_span),
+            payload_kind,
+        }),
+        other => other,
+    }
 }
 
 pub(super) fn snapshot_subtree(il: &Il, root: NodeId) -> SubtreeSnapshot {

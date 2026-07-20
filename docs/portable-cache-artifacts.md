@@ -1,8 +1,8 @@
 # Portable cache artifacts
 
 The 0.20 Instant Monorepo cache uses one layered content-addressed store (CAS) contract for every
-analysis stage. This page defines the #873 boundary: what is portable now, what is actively reused,
-and what later dependency-aware issues may activate without changing the storage trust model.
+analysis stage. #873 defined the portable trust boundary; #874 activates dependency-aware source,
+raw-IL, export-summary, and resolved-IL reuse without changing that storage model.
 
 ## Layer contract
 
@@ -10,22 +10,54 @@ Every address is a SHA-256 digest over a domain separator, the stage id, that st
 length-framed semantic inputs. A stage cannot read another stage's entry, and a schema change lands
 at a different address. The six stable stage identities are:
 
-| Stage | #873 state | Next consumer |
+| Stage | 0.20 development state | Identity / consumer |
 | --- | --- | --- |
-| source snapshot | address space defined | #874 discovery/source inventory |
-| raw lowered IL | portable codec and round-trip gate complete | #874 parse/lower reuse |
-| export/dependency summary | address space defined | #874 dependency graph |
-| resolved IL | portable codec and round-trip gate complete | #874 affected-closure resolution |
-| units and syntax streams | actively read and written by `--cache-dir` | current query pipeline |
+| source snapshot | actively read and written | clean Git blob id or exact content SHA-256 |
+| raw lowered IL | actively read and written | source snapshot; current path/`FileId` rebound |
+| export/dependency summary | actively written and checksummed | deterministic export graph and SCC closure |
+| resolved IL | actively read and written | raw IL plus the region's dependency context |
+| units and syntax streams | actively read and written | resolved IL plus unit-affecting options |
 | global detection indexes | address space defined | #875 incremental detection |
 
-Defining a stage is not a claim that queries already skip it. At #873 only units and syntax streams
-are active, encoded as named MessagePack so serde-compatible schema evolution remains possible
-without JSON's repeated decimal expansion of feature hashes. Discovery, source reads, parsing,
-lowering, corpus resolution, global detection, and
-presentation still run as described by the [incremental benchmark](incremental-cache-benchmark.md).
-Raw/resolved payloads are not duplicated into the store before #874 can invalidate them precisely;
-that avoids knowingly worsening the cache-size ratio merely to populate unused artifacts.
+Raw and resolved IL use named MessagePack wrapped in fast LZ4 blocks; the decoder rejects a claimed
+region expansion above 512 MiB before allocation. The units layer stays named MessagePack without
+compression because those payloads are already compact feature hashes and dominate warm reads.
+Discovery still walks the selected roots so additions and deletions are visible, but a clean
+tracked raw hit needs no source read or parse in the lowering stage. Dependency summaries scan raw
+IL, compute consumer-visible literal surfaces, collapse cycles deterministically, and resolve
+imports against current module/package facts. Only resolved misses run corpus mutation; hits are
+rebound afterward. Global detection, source-line frequency reads, family construction/ranking,
+and presentation remain per-query work for #875.
+
+## Dependency-aware invalidation
+
+Each region's resolved address combines its path-independent raw semantic digest with a dependency
+context digest. That context contains its own export coordinates, resolved imported-binding and
+namespace-member surfaces, Rust module/re-export outcomes, Java/Go package facts, unresolved
+language catalogs, and the Swift global shadow/overload/conformance sentinel when applicable.
+Export surfaces hash copied literal structure and evidence but omit source coordinates and local
+evidence ids. Therefore changing private provider implementation does not invalidate importers;
+changing an exported literal does, including the #275 provider/importer case.
+
+The export graph incorporates imports used by exported values. Strongly connected components are
+collapsed before hashing, then the component DAG is resolved dependency-first. This gives cycles
+and re-exports a deterministic fixed point without depending on traversal order. Cache identities
+never include sorted corpus indexes, so adding or deleting an earlier path does not invalidate
+unrelated artifacts merely because `FileId`s moved.
+
+Unknown static dependencies include the language's export catalog in their key. This can invalidate
+more than necessary when an unrelated export changes, but it cannot reuse a stale unresolved fact;
+the path is listed under `over_invalidated`. Discovery membership, semantic-pack influence, and
+corpus-global line-statistics digests are carried in diagnostics now even though their downstream
+global stages remain #875 work.
+
+The mutable `state-v1` workspace record exists only to explain changes and deleted paths. It is not
+a cache-key or reuse input: deleting or corrupting it loses reason history, never correctness.
+Under `NOSE_CACHE_STATS=1`, stderr includes one `nose.invalidation/v1` JSON closure alongside the
+backward-compatible `[cache]` units line. Cold start is summarized globally instead of listing
+every file; history-bearing runs list the exact changed/deleted closure. Resolved `passthrough`
+counts identify regions whose raw IL is already the correct resolved form, so no duplicate payload
+is stored.
 
 ## Envelope and failure behavior
 
@@ -80,7 +112,9 @@ Focused tests prove:
 - script, style, and markup regions have stable distinct subidentities; and
 - corruption and truncation fail closed.
 
-The existing #275 provider/importer integration test remains the cross-file safety gate, and the
+The #275 provider/importer integration test remains the cross-file safety gate. Focused gates also
+cover unchanged export surfaces, shifted `FileId`s with an active import edge, Swift global
+barriers, unresolved-dependency over-invalidation, and Git-blob/content identity selection. The
 benchmark's clean/empty/history equality remains the product-output authority. See
 [continuous integration](continuous-integration.md) for current user-facing cache behavior.
 
@@ -100,5 +134,5 @@ equivalence across all 180 raw rows.
 The clean result remains within the epic's 5% gate. The warm delta prices full checksum validation
 instead of trusting file presence, while named MessagePack limits that cost: the store falls from
 380,153,028 to 190,665,950 bytes (-49.8%), and warm p50 RSS falls from 1,066,008,576 to 996,851,712
-bytes (-6.5%). This is foundation evidence, not an instant-cache claim; #874 and #875 own removal
-of repeated parse/resolve and global work.
+bytes (-6.5%). This remains the before-#874 foundation measurement; the #874 comparison below owns
+the activated parse/resolve result, while #875 owns repeated global work.

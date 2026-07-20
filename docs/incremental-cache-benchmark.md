@@ -85,19 +85,23 @@ issues remove repeated pipeline stages.
 
 ## What the current cache actually reuses
 
-The published v0.19.0 cache is schema v11 and the locked #872 candidate is schema v14. The current
-0.20 development tree migrates that same active units/syntax boundary to the #873 layered CAS v1.
-All three still rediscover, read, parse, and lower every selected source, rebuild corpus import
-facts, and repeat global detection, family construction/ranking, and presentation. In particular,
-a warm hit does **not** skip parsing.
+The published v0.19.0 cache is schema v11 and the locked #872 candidate is schema v14. #873 moved
+the 0.20 development tree to layered CAS v1 while keeping only units/syntax active. #874 now reuses
+source snapshots, raw lowering, dependency-aware resolved IL, and units/syntax. A warm clean-Git
+hit avoids source reads for lowering and skips parsing; the still-global line-frequency/ranking
+stage may read source later. Dirty, untracked, and non-Git inputs are read so their exact bytes,
+rather than mtime/size, establish identity.
 
 CAS v1 replaces the u64 entry name with a stage/schema-separated SHA-256 address over the complete
 post-resolution semantic/reporting identity and unit-affecting options. An independent payload
 SHA-256, exact length, and envelope identity make corrupt or misplaced bytes clean misses. Paths,
 `FileId`s, and interner ids are portable and rebound; names, spans, suppression, facets, and full
-evidence records remain identity-bearing. The raw/resolved portable codec is complete, but those
-layers are intentionally not written until #874 can invalidate them by affected closure instead
-of duplicating unused data. See [portable cache artifacts](portable-cache-artifacts.md).
+evidence records remain identity-bearing. Resolved entries add a deterministic
+consumer-visible export/dependency context, so provider-private changes leave importers hot while
+export, ambiguity, deletion/rename, and Swift-global changes reach their consumers. Global
+detection, source-line frequency reads, family construction/ranking, and presentation still
+repeat; #875 owns that boundary.
+See [portable cache artifacts](portable-cache-artifacts.md).
 
 #275 is the required cross-file regression. A provider literal and importer that converge with
 an inline literal must remain converged on an empty store, warm store, and after the provider
@@ -115,7 +119,10 @@ Each mutation replay has two revisions and five subprocesses:
 5. history-bearing scan using the store seeded in step 2, compared with both step-4 scans.
 
 `NOSE_TIME=1` supplies stage timings. Cache instrumentation reports files, hits, misses, bytes
-read, and bytes written; the harness also measures recursive regular-file store bytes and peak
+read, and bytes written. #874 additionally emits a `nose.invalidation/v1` JSON closure with
+source/raw/resolved counts, exact reasons, global dependency markers, and explicit fail-safe
+over-invalidation. The harness retains that object on cached candidate rows and also measures
+recursive regular-file store bytes and peak
 RSS for each subprocess. Report summaries use the ordinary median and nearest-rank p95
 (`ceil(0.95 * n)`, one-indexed) over at least 30 successful replays. Raw rows remain in the
 artifact; p50/p95 never replace them. A checked receipt may seal a large local raw report while

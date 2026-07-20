@@ -9,6 +9,7 @@ use nose_semantics::{
 use rustc_hash::FxHashSet;
 
 pub(super) struct NamespaceMemberReplacement {
+    pub(super) provider_file_idx: usize,
     pub(super) node: NodeId,
     pub(super) import_evidence: nose_il::EvidenceId,
     pub(super) module_hash: u64,
@@ -17,12 +18,18 @@ pub(super) struct NamespaceMemberReplacement {
     pub(super) rhs_snapshot: SubtreeSnapshot,
 }
 
-pub(super) fn collect_namespace_member_replacements(
+#[derive(Default)]
+pub(super) struct NamespaceMemberAnalysis {
+    pub(super) replacements: Vec<NamespaceMemberReplacement>,
+    pub(super) unresolved: Vec<(u64, u64)>,
+}
+
+pub(super) fn collect_namespace_member_analyses(
     files: &[Il],
     interner: &Interner,
     contexts: &[FileImportContext],
     exports: &LiteralExports,
-) -> Vec<Vec<NamespaceMemberReplacement>> {
+) -> Vec<NamespaceMemberAnalysis> {
     files
         .iter()
         .enumerate()
@@ -31,20 +38,20 @@ pub(super) fn collect_namespace_member_replacements(
                 .modules()
                 .go_import_namespace_facts()
             {
-                return Vec::new();
+                return NamespaceMemberAnalysis::default();
             }
             let context = &contexts[file_idx];
             let Some(top_level) = context.top_level.as_deref() else {
-                return Vec::new();
+                return NamespaceMemberAnalysis::default();
             };
-            collect_file_namespace_replacements(
+            collect_file_namespace_analysis(
                 files, interner, file_idx, il, top_level, context, exports,
             )
         })
         .collect()
 }
 
-fn collect_file_namespace_replacements(
+fn collect_file_namespace_analysis(
     files: &[Il],
     interner: &Interner,
     file_idx: usize,
@@ -52,7 +59,7 @@ fn collect_file_namespace_replacements(
     top_level: &[NodeId],
     context: &FileImportContext,
     exports: &LiteralExports,
-) -> Vec<NamespaceMemberReplacement> {
+) -> NamespaceMemberAnalysis {
     let namespace_imports: Vec<NamespaceImport> = top_level
         .iter()
         .copied()
@@ -68,7 +75,7 @@ fn collect_file_namespace_replacements(
         })
         .collect();
     if namespace_imports.is_empty() {
-        return Vec::new();
+        return NamespaceMemberAnalysis::default();
     }
     let binding_uses = context.binding_uses(il, interner);
     let imported_namespaces: FxHashSet<Symbol> = namespace_imports
@@ -79,7 +86,7 @@ fn collect_file_namespace_replacements(
     let unsafe_exports = unsafe_namespace_member_exports(il, interner, &imported_namespaces);
     let member_fields = namespace_member_fields(il, &imported_namespaces);
 
-    let mut out = Vec::new();
+    let mut out = NamespaceMemberAnalysis::default();
     for import in namespace_imports {
         if binding_uses.binding_mutated(il, import.namespace, import.stmt)
             || shadowed_namespaces.contains(&import.namespace)
@@ -95,12 +102,15 @@ fn collect_file_namespace_replacements(
             }
             let exported_hash = stable_symbol_hash(interner.resolve(exported));
             let Some(export) = exports.get_exact(import.module_hash, exported_hash) else {
+                out.unresolved.push((import.module_hash, exported_hash));
                 continue;
             };
             if export.file_idx == file_idx || files[export.file_idx].meta.lang != il.meta.lang {
+                out.unresolved.push((import.module_hash, exported_hash));
                 continue;
             }
-            out.push(NamespaceMemberReplacement {
+            out.replacements.push(NamespaceMemberReplacement {
+                provider_file_idx: export.file_idx,
                 node: field,
                 import_evidence: import.evidence,
                 module_hash: import.module_hash,
@@ -110,6 +120,8 @@ fn collect_file_namespace_replacements(
             });
         }
     }
+    out.unresolved.sort_unstable();
+    out.unresolved.dedup();
     out
 }
 

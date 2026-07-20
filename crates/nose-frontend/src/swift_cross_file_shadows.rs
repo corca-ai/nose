@@ -11,6 +11,8 @@ use nose_semantics::{
     SWIFT_NIL_LITERAL_CONFORMANCE_MARKER, SWIFT_NIL_LITERAL_PROOF_BARRIER_MARKER,
 };
 use rustc_hash::FxHashSet;
+use serde::Serialize;
+use sha2::{Digest as _, Sha256};
 
 const SWIFT_STDLIB_SHADOW_NAMES: &[&str] = &["Array", "Set", "Dictionary", "String", "Swift"];
 
@@ -36,7 +38,29 @@ pub(crate) fn close_local_dictionary_default_subscript(il: &mut Il, interner: &I
     close_shadowed_swift_string_parameters(il, string_shadowed, swift_shadowed);
 }
 
-pub(crate) fn close_shadowed_stdlib_apis(files: &mut [Il], interner: &Interner) {
+#[derive(Serialize)]
+struct SwiftGlobalFacts {
+    shadowed: Vec<u64>,
+    unproven_collection_parameter: bool,
+    compact_map_dispatch_ambiguous: bool,
+    flat_map_dispatch_ambiguous: bool,
+    all_satisfy_dispatch_ambiguous: bool,
+    nil_literal_conformance: bool,
+    dictionary_default_subscript_ambiguous: bool,
+}
+
+impl SwiftGlobalFacts {
+    fn is_active(&self) -> bool {
+        !self.shadowed.is_empty()
+            || self.compact_map_dispatch_ambiguous
+            || self.flat_map_dispatch_ambiguous
+            || self.all_satisfy_dispatch_ambiguous
+            || self.nil_literal_conformance
+            || self.dictionary_default_subscript_ambiguous
+    }
+}
+
+fn swift_global_facts(files: &[Il], interner: &Interner) -> SwiftGlobalFacts {
     let shadowed = shadowed_swift_stdlib_factory_name_hashes(files, interner);
     let unproven_collection_parameter = swift_unproven_collection_parameter_declared(files);
     let compact_map_dispatch_ambiguous =
@@ -49,40 +73,64 @@ pub(crate) fn close_shadowed_stdlib_apis(files: &mut [Il], interner: &Interner) 
     let nil_literal_conformance = swift_nil_literal_conformance_declared(files, interner);
     let dictionary_default_subscript_ambiguous =
         swift_dictionary_default_subscript_barrier_declared(files, interner);
+    let mut shadowed = shadowed.into_iter().collect::<Vec<_>>();
+    shadowed.sort_unstable();
+    SwiftGlobalFacts {
+        shadowed,
+        unproven_collection_parameter,
+        compact_map_dispatch_ambiguous,
+        flat_map_dispatch_ambiguous,
+        all_satisfy_dispatch_ambiguous,
+        nil_literal_conformance,
+        dictionary_default_subscript_ambiguous,
+    }
+}
+
+pub(crate) fn swift_global_dependency_state(files: &[Il], interner: &Interner) -> ([u8; 32], bool) {
+    let facts = swift_global_facts(files, interner);
+    let payload = rmp_serde::to_vec(&facts).expect("Swift global facts are serializable");
+    (Sha256::digest(payload).into(), facts.is_active())
+}
+
+pub(crate) fn close_shadowed_stdlib_apis_affected(
+    files: &mut [Il],
+    interner: &Interner,
+    targets: &[bool],
+) {
+    debug_assert_eq!(files.len(), targets.len());
+    let facts = swift_global_facts(files, interner);
+    if !facts.is_active() {
+        return;
+    }
+    let shadowed = facts.shadowed.into_iter().collect::<FxHashSet<_>>();
     let dictionary_name_shadowed = shadowed.contains(&stable_symbol_hash("Dictionary"));
     let string_name_shadowed = shadowed.contains(&stable_symbol_hash("String"));
     let swift_namespace_shadowed = shadowed.contains(&stable_symbol_hash("Swift"));
-    if shadowed.is_empty()
-        && !compact_map_dispatch_ambiguous
-        && !flat_map_dispatch_ambiguous
-        && !all_satisfy_dispatch_ambiguous
-        && !nil_literal_conformance
-        && !dictionary_default_subscript_ambiguous
-    {
-        return;
-    }
-    for il in files.iter_mut().filter(|il| il.meta.lang == Lang::Swift) {
+    for (index, il) in files.iter_mut().enumerate() {
+        if !targets[index] || il.meta.lang != Lang::Swift {
+            continue;
+        }
         close_shadowed_unshadowed_globals(il, &shadowed);
         if dictionary_name_shadowed
             || swift_namespace_shadowed
-            || dictionary_default_subscript_ambiguous
+            || facts.dictionary_default_subscript_ambiguous
         {
             close_shadowed_swift_dictionary_parameters(
                 il,
                 dictionary_name_shadowed,
                 swift_namespace_shadowed,
-                dictionary_default_subscript_ambiguous,
+                facts.dictionary_default_subscript_ambiguous,
             );
         }
         close_shadowed_swift_string_bindings(il, string_name_shadowed, swift_namespace_shadowed);
         close_shadowed_swift_string_parameters(il, string_name_shadowed, swift_namespace_shadowed);
-        if compact_map_dispatch_ambiguous || nil_literal_conformance {
+        if facts.compact_map_dispatch_ambiguous || facts.nil_literal_conformance {
             close_shadowed_compact_map(il);
         }
-        if flat_map_dispatch_ambiguous {
+        if facts.flat_map_dispatch_ambiguous {
             close_shadowed_flat_map(il);
         }
-        if all_satisfy_dispatch_ambiguous {
+        if facts.all_satisfy_dispatch_ambiguous {
             close_shadowed_swift_method(il, "allSatisfy", 1);
         }
     }

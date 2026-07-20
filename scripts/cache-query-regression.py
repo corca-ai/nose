@@ -36,6 +36,7 @@ CACHE_RE = re.compile(
     r"\[cache\]\s+files=(\d+)\s+hits=(\d+)\s+misses=(\d+)\s+"
     r"read_bytes=(\d+)\s+written_bytes=(\d+)"
 )
+INVALIDATION_PREFIX = "[invalidation] "
 DARWIN_RSS_RE = re.compile(r"^\s*(\d+)\s+maximum resident set size\s*$", re.MULTILINE)
 LINUX_RSS_RE = re.compile(
     r"^\s*Maximum resident set size \(kbytes\):\s*(\d+)\s*$", re.MULTILINE
@@ -317,6 +318,21 @@ def parse_cache_stats(stderr: str) -> dict[str, int] | None:
     return dict(zip(("files", "hits", "misses", "read_bytes", "written_bytes"), map(int, match.groups())))
 
 
+def parse_invalidation(stderr: str) -> dict[str, Any] | None:
+    for line in stderr.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith(INVALIDATION_PREFIX):
+            continue
+        try:
+            value = json.loads(stripped.removeprefix(INVALIDATION_PREFIX))
+        except json.JSONDecodeError as error:
+            raise SystemExit(f"invalid cache invalidation JSON: {error}") from error
+        if not isinstance(value, dict) or value.get("schema") != "nose.invalidation/v1":
+            raise SystemExit("cache invalidation evidence has an unsupported schema")
+        return value
+    return None
+
+
 def parse_rss(stderr: str) -> int:
     if sys.platform == "darwin":
         match = DARWIN_RSS_RE.search(stderr)
@@ -393,6 +409,9 @@ def run_query(
     cache_stats = parse_cache_stats(stderr)
     if cache is not None and require_cache_stats and cache_stats is None:
         raise SystemExit(f"{phase} replay {replay}: binary omitted NOSE_CACHE_STATS evidence")
+    invalidation = parse_invalidation(stderr)
+    if cache is not None and require_cache_stats and invalidation is None:
+        raise SystemExit(f"{phase} replay {replay}: binary omitted invalidation evidence")
     row = {
         "phase": phase,
         "replay": replay,
@@ -404,6 +423,7 @@ def run_query(
         "schema_version": payload.get("schema_version"),
         "stages_ms": parse_stages(stderr),
         "cache": cache_stats,
+        "invalidation": invalidation,
         "store": store_usage(cache) if cache is not None else None,
     }
     return row, result.stdout

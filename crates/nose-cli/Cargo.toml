@@ -30,6 +30,7 @@ ignore = { workspace = true }
 rustc-hash = { workspace = true }
 sha2 = { workspace = true }
 rmp-serde = { workspace = true }
+lz4_flex = { workspace = true }
 
 [dev-dependencies]
 nose-il = { workspace = true }

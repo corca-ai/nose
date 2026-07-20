@@ -14,6 +14,8 @@ ignore = { workspace = true }
 memchr = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
+sha2 = { workspace = true }
+rmp-serde = { workspace = true }
 
 # Core 0.25 accepts grammar ABI 14 AND 15, so the ABI-15 grammars below (python/
 # javascript 0.25, c 0.24, go 0.25, rust 0.24) load alongside the ABI-14 grammars

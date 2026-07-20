@@ -34,6 +34,21 @@ pub(super) fn import_dependency_snapshots(
         .collect()
 }
 
+pub(super) fn import_dependency_keys(
+    il: &Il,
+    rhs: NodeId,
+    top_level: &[NodeId],
+) -> Vec<(u64, u64)> {
+    top_level
+        .iter()
+        .copied()
+        .filter(|&stmt| {
+            assignment_name(il, stmt).is_some_and(|name| node_contains_symbol(il, rhs, name))
+        })
+        .filter_map(|stmt| import_binding_key(il, stmt))
+        .collect()
+}
+
 pub(super) fn collect_top_level_statements(il: &Il) -> Vec<NodeId> {
     let class_roots: FxHashSet<NodeId> = il
         .units

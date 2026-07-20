@@ -1,6 +1,6 @@
 use super::bindings::{
-    assignment_name, assignment_rhs, collect_statements_for_root, import_dependency_snapshots,
-    BindingUseIndex,
+    assignment_name, assignment_rhs, collect_statements_for_root, import_dependency_keys,
+    import_dependency_snapshots, BindingUseIndex,
 };
 use super::modules::java_class_module_hashes;
 use super::{ExportedBinding, FileImportContext};
@@ -17,9 +17,9 @@ pub(super) struct LiteralExports {
     reexports: Vec<ReExportRecord>,
 }
 
-struct LiteralExportRecord {
-    exported_hash: u64,
-    binding: ExportedBinding,
+pub(super) struct LiteralExportRecord {
+    pub(super) exported_hash: u64,
+    pub(super) binding: ExportedBinding,
 }
 
 pub(super) struct ReExportRecord {
@@ -37,6 +37,14 @@ impl LiteralExports {
 
     pub(super) fn iter_keyed(&self) -> impl Iterator<Item = (&(u64, u64), &ExportedBinding)> {
         self.by_key.iter()
+    }
+
+    pub(super) fn records(&self) -> &[LiteralExportRecord] {
+        &self.records
+    }
+
+    pub(super) fn reexports(&self) -> &[ReExportRecord] {
+        &self.reexports
     }
 
     pub(super) fn get(
@@ -321,11 +329,13 @@ fn collect_statement_exports(
         }
         let exported = stable_symbol_hash(interner.resolve(name));
         let deps = import_dependency_snapshots(il, rhs, scope.top_level);
+        let dependency_keys = import_dependency_keys(il, rhs, scope.top_level);
         out.records.push(LiteralExportRecord {
             exported_hash: exported,
             binding: ExportedBinding {
                 file_idx: scope.file_idx,
                 deps: deps.clone(),
+                dependency_keys: dependency_keys.clone(),
                 rhs,
             },
         });
@@ -338,6 +348,7 @@ fn collect_statement_exports(
                     ExportedBinding {
                         file_idx: scope.file_idx,
                         deps: deps.clone(),
+                        dependency_keys: dependency_keys.clone(),
                         rhs,
                     },
                 )

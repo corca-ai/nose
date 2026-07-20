@@ -319,21 +319,31 @@ for the recorded artifact and disposition shape.
 
 `--cache-dir <dir>` caches each file's analysis in the
 [portable layered CAS](portable-cache-artifacts.md), keyed by a SHA-256 digest of its complete
-post-resolution IL/reporting identity and unit-affecting options. Entries have stage/schema
-identity plus an independent payload checksum; corrupt or truncated bytes recompute. Unchanged
-files reuse [normalization](normalization.md), feature extraction, and syntax streams on the next
-run, including when the same relative source is checked out below another absolute root.
+source, consumer-visible dependency context, post-resolution IL/reporting identity, and
+unit-affecting options. Clean tracked files use Git blob ids without rereading source bytes for
+lowering;
+dirty, untracked, and non-Git files use exact content SHA-256. Unchanged files reuse raw lowering,
+resolved cross-file facts, [normalization](normalization.md), feature extraction, and syntax
+streams, including across checkout paths and after unrelated additions shift `FileId` indexes.
 
-The active cache layer still rediscovers, reads, parses, and lowers the whole selected corpus,
-resolves cross-file facts, and repeats global detection and presentation. Raw/resolved portable
-formats are ready for dependency-aware activation in #874, but #873 does not claim those stages
-are skipped. Point the directory at storage your CI preserves between runs; see the
+Importers are invalidated only when a provider's exported literal surface changes. Swift global
+shadow/overload/conformance barriers invalidate Swift dependents, and unresolved dependencies
+fail safe by over-invalidating their language export catalog. Global detection, line-frequency
+ranking reads, and presentation still run on every query; #875 owns the next reuse boundary. Point
+the directory at storage your
+CI preserves between runs; see the
 [incremental cache benchmark](incremental-cache-benchmark.md) for the exact performance and
 clean-scan-equivalence contract.
 
 ```sh
 nose query src --cache-dir .nose-cache --fail-on any
 ```
+
+Set `NOSE_CACHE_STATS=1` to retain the existing `[cache]` unit hit/miss line and add one
+`[invalidation]` JSON object (`nose.invalidation/v1`). It reports source/raw/resolved layer counts,
+the affected path closure and reasons, deleted sources, Git-blob versus content identities,
+explicit fail-safe over-invalidation, and digests/invalidation markers for discovery membership,
+semantic-pack influence, Swift global sentinels, and corpus-global line statistics.
 
 ---
 
