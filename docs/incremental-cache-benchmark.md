@@ -83,6 +83,38 @@ named-MessagePack store is 190,665,950 bytes, 49.8% smaller than the official 38
 store, while warm p50 RSS is 6.5% lower. Those numbers price the #873 trust boundary before later
 issues remove repeated pipeline stages.
 
+## Checked #874 evidence
+
+The checked [`issue-874-dependency-invalidation-sympy-paired-2026-07-20.v1.json`](../bench/cache/issue-874-dependency-invalidation-sympy-paired-2026-07-20.v1.json)
+contains 30 alternating AB/BA replays of implementation commit `e1617924` against the
+checksum-verified published v0.19.0 `aarch64-apple-darwin` binary. Both roles independently passed
+exact clean/empty/history output equivalence across all 180 rows.
+
+| Phase | Official p50 / p95 | #874 p50 / p95 | #874 delta p50 / p95 |
+| --- | ---: | ---: | ---: |
+| Clean | 1224.78 / 1472.50 ms | 1170.97 / 1367.38 ms | -4.39% / -7.14% |
+| Empty store | 1333.26 / 1628.77 ms | 1984.47 / 2382.15 ms | +48.84% / +46.25% |
+| Warm store | 843.82 / 985.50 ms | 839.03 / 1031.98 ms | -0.57% / +4.72% |
+
+The clean path remains inside the epic's 5% gate and is faster in this paired run. The empty-store
+cost is intentionally reported as a regression: #874 now writes source, raw-IL, dependency,
+resolved-IL, and units artifacts instead of only the published release's units cache. On a no-op
+warm run all 1,584 raw, resolved, and unit regions hit; 1,510 resolved regions are raw
+pass-throughs, so they do not duplicate payloads. Total warm p50 is effectively neutral while
+p95 is 4.72% higher because global detection and source-line ranking still repeat. #875 owns that
+remaining latency boundary.
+
+The added layers do not recreate the earlier uncompressed expansion: the #874 store is
+333,945,915 bytes versus the official 380,153,028 bytes (-12.15%). Warm p50/p95 peak RSS is
+841,506,816 / 850,673,664 bytes versus 1,066,860,544 / 1,090,748,416 bytes (-21.12% / -22.01%).
+
+The checked [`issue-874-mutation-matrix-receipt-2026-07-20.v1.json`](../bench/cache/issue-874-mutation-matrix-receipt-2026-07-20.v1.json)
+seals a 4,356,455-byte, 2,100-row raw report. All 14 mutations passed 30 replays with exact
+clean/empty/history equality. Representative history-bearing unit hit/miss closures are no-op
+`3/0`, leaf edit `2/1`, provider-private edit `2/1`, provider export edit `1/2`, high fan-out
+`1/33`, add/delete/rename `3/1`, embedded-region edit `5/1`, restored-mtime edit `3/1`, and Swift
+global barrier `0/3`.
+
 ## What the current cache actually reuses
 
 The published v0.19.0 cache is schema v11 and the locked #872 candidate is schema v14. #873 moved

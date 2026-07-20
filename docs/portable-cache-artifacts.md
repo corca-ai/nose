@@ -134,5 +134,7 @@ equivalence across all 180 raw rows.
 The clean result remains within the epic's 5% gate. The warm delta prices full checksum validation
 instead of trusting file presence, while named MessagePack limits that cost: the store falls from
 380,153,028 to 190,665,950 bytes (-49.8%), and warm p50 RSS falls from 1,066,008,576 to 996,851,712
-bytes (-6.5%). This remains the before-#874 foundation measurement; the #874 comparison below owns
-the activated parse/resolve result, while #875 owns repeated global work.
+bytes (-6.5%). This remains the before-#874 foundation measurement; the #874 comparison owns the
+activated parse/resolve result in the
+[incremental cache benchmark](incremental-cache-benchmark.md#checked-874-evidence), while #875
+owns repeated global work.
