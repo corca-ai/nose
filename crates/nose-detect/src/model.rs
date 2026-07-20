@@ -326,6 +326,7 @@ pub struct UnitLoc {
 /// Diagnostic dump: all extracted units and all LSH candidate index pairs (into
 /// `units`). Lets the evaluator split recall loss across extraction / candidate
 /// generation / scoring.
+#[derive(Default)]
 pub struct Dump {
     pub units: Vec<UnitLoc>,
     pub candidates: Vec<(u32, u32)>,

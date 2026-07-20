@@ -405,23 +405,14 @@ fn detect_cached_or_clean(
     let (Some(run), Some((workspace, pack_digest))) = (cache_run, cache_identity_parts) else {
         return nose_detect::detect_from_units_with_accepted_coverage(
             units, files, streams, opts, detector,
-        )
-        .0;
+        );
     };
     let identity = cache::DetectionCacheIdentity::new(workspace, pack_digest, opts, detector);
     let previous = cache::load_detection_state(run, &identity);
-    let (report, _dump, state, stats) =
-        nose_detect::detect_from_units_incremental_with_accepted_coverage(
-            units, files, streams, opts, detector, previous, unit_keys,
-        );
-    if !stats.state_hit
-        || stats.units_added > 0
-        || stats.units_removed > 0
-        || stats.buckets_rebuilt > 0
-        || stats.scores_evaluated > 0
-        || stats.connected_evaluations_evaluated > 0
-        || stats.contiguous_streams_rebuilt > 0
-    {
+    let (report, state, stats) = nose_detect::detect_from_units_incremental_with_accepted_coverage(
+        units, files, streams, opts, detector, previous, unit_keys,
+    );
+    if let Some(state) = state {
         cache::store_detection_state(run, &identity, &state);
     }
     if std::env::var_os("NOSE_CACHE_STATS").is_some() {
