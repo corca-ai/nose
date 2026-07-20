@@ -18,6 +18,9 @@ use std::collections::BTreeSet;
 
 include!("query_dataset/annotations.rs");
 
+mod session;
+pub(super) use session::QueryAnalysisSession;
+
 /// The ranked family dataset behind `nose query`: detect, rank,
 /// filter (min-members / min-value / scope), relativize paths, weight shared lines, and
 /// sort. It stops before query view selection, structured ignores, surface classification,
@@ -40,17 +43,30 @@ pub(super) fn build_query_dataset(
     let (settings, semantic_packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
     let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
     let detector = detection_engine(settings.channels, &opts);
+    let detection = query_detect_report(QueryDetectRequest {
+        args,
+        refs,
+        exclude: &settings.exclude,
+        opts: &opts,
+        detector: detector.as_ref(),
+        semantic_packs: &semantic_packs,
+        cache_max_bytes: settings.cache_max_bytes,
+        accepted_coverage: AcceptedCoverage::Query,
+    });
+    finish_query_dataset(args, refs, settings, semantic_packs, opts, detection, true)
+}
+
+fn finish_query_dataset(
+    args: &QueryArgs,
+    refs: &[&std::path::Path],
+    settings: QuerySettings,
+    semantic_packs: nose_semantics::SemanticPackSet,
+    opts: nose_detect::DetectOptions,
+    detection: DetectionReport,
+    finalize_cache: bool,
+) -> Result<QueryDataset> {
     let (mut report, scope, semantic_pack_near, semantic_pack_external_exact, line_context) =
-        query_detect_report(QueryDetectRequest {
-            args,
-            refs,
-            exclude: &settings.exclude,
-            opts: &opts,
-            detector: detector.as_ref(),
-            semantic_packs: &semantic_packs,
-            cache_max_bytes: settings.cache_max_bytes,
-            accepted_coverage: AcceptedCoverage::Query,
-        });
+        detection;
 
     let mut families = time_stage("rank_families", || nose_detect::rank_families(&report));
     annotate_semantic_pack_near(&mut families, &semantic_pack_near);
@@ -102,7 +118,9 @@ pub(super) fn build_query_dataset(
             line_context.as_ref(),
         )
     });
-    finish_cache_run(line_context);
+    if finalize_cache {
+        cache::finish_query_run(line_context);
+    }
     let sort = settings.sort;
     time_stage("query_rank_sort", || {
         families.sort_by(|a, b| {
@@ -162,23 +180,8 @@ pub(crate) fn build_divergence_families(
     if settings.channels.abstraction_only() {
         families.retain(|family| family.abstraction_witness.is_some());
     }
-    finish_cache_run(line_context);
+    cache::finish_query_run(line_context);
     Ok((families, opts))
-}
-
-fn finish_cache_run(context: Option<cache::CachedLineContext>) {
-    let Some(context) = context else { return };
-    if let Err(error) = context.run.commit() {
-        if std::env::var_os("NOSE_CACHE_STATS").is_some() {
-            eprintln!("  [cache-generation] commit skipped: {error}");
-        }
-    } else if std::env::var_os("NOSE_CACHE_STATS").is_some() {
-        eprintln!(
-            "  [cache-generation] written_bytes={}",
-            context.run.written_bytes()
-        );
-    }
-    cache::enforce_run_budget(context.run);
 }
 
 /// `direct_edges` is the richer representation needed by the `base=` divergence view.
@@ -449,7 +452,7 @@ fn prepare_query_corpus(request: &QueryDetectRequest<'_>) -> PreparedCorpus {
         )
     });
     let line_context = cache::CachedLineContext {
-        source_files: cached.source_files,
+        source_files: cached.source_files.into(),
         run: cached.run.clone(),
     };
     PreparedCorpus {
@@ -494,6 +497,7 @@ fn query_detect_report_fast(
         source_files,
         run,
         langs,
+        ..
     } = fast;
     print_invalidation(Some(&invalidation_report));
     let cache::CachedUnits {
@@ -524,7 +528,10 @@ fn query_detect_report_fast(
         QueryScope::from_langs(langs),
         nose_semantics::SemanticPackNearRegistry::default(),
         nose_semantics::SemanticPackExternalExactRegistry::default(),
-        Some(cache::CachedLineContext { source_files, run }),
+        Some(cache::CachedLineContext {
+            source_files: source_files.into(),
+            run,
+        }),
     )
 }
 

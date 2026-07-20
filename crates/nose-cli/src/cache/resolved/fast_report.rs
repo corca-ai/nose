@@ -5,10 +5,37 @@ pub(super) fn fast_invalidation_report(
 ) -> InvalidationReport {
     let current_discovery = super::source::discovery_digest(current_sources);
     let current_lines = super::source::global_line_statistics_digest(current_sources);
-    let current_identities = current_sources
-        .iter()
-        .map(|source| (source.path.as_str(), source.source_kind))
-        .collect::<BTreeMap<_, _>>();
+    fast_invalidation_report_with_digests(
+        snapshot,
+        current_sources,
+        changed_source,
+        current_discovery,
+        current_lines,
+    )
+}
+
+pub(super) fn fast_invalidation_report_for_leaf(
+    snapshot: &CachedUnitSnapshot,
+    current_sources: &[super::CachedSourceFile],
+    changed_source: &str,
+    current_lines: ContentDigest,
+) -> InvalidationReport {
+    fast_invalidation_report_with_digests(
+        snapshot,
+        current_sources,
+        Some(changed_source),
+        ContentDigest::from_bytes(snapshot.discovery_digest),
+        current_lines,
+    )
+}
+
+fn fast_invalidation_report_with_digests(
+    snapshot: &CachedUnitSnapshot,
+    current_sources: &[super::CachedSourceFile],
+    changed_source: Option<&str>,
+    current_discovery: ContentDigest,
+    current_lines: ContentDigest,
+) -> InvalidationReport {
     let changed_regions = changed_source.map_or(0, |changed| {
         snapshot
             .contexts
@@ -50,27 +77,13 @@ pub(super) fn fast_invalidation_report(
         swift_global_digest: hex(snapshot.swift_global_digest),
         global_invalidations,
         source_identities: SourceIdentityCounts {
-            git_blob: snapshot
-                .contexts
+            git_blob: current_sources
                 .iter()
-                .filter(|context| {
-                    current_identities
-                        .get(context.source_path.as_str())
-                        .copied()
-                        .unwrap_or(context.source_kind)
-                        == SourceIdentityKind::GitBlob
-                })
+                .filter(|source| source.source_kind == SourceIdentityKind::GitBlob)
                 .count(),
-            content_sha256: snapshot
-                .contexts
+            content_sha256: current_sources
                 .iter()
-                .filter(|context| {
-                    current_identities
-                        .get(context.source_path.as_str())
-                        .copied()
-                        .unwrap_or(context.source_kind)
-                        == SourceIdentityKind::ContentSha256
-                })
+                .filter(|source| source.source_kind == SourceIdentityKind::ContentSha256)
                 .count(),
         },
         source_snapshots: LayerStats {

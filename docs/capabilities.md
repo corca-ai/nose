@@ -51,6 +51,7 @@ nose capabilities
     "cache_prune": ["nose.cache-prune/v1"],
     "cache_clear": ["nose.cache-clear/v1"],
     "query_json": [8, 9],
+    "query_watch_jsonl": ["nose.query-watch/v1"],
     "semantic_packs": ["nose.semantic-pack.v0", "nose.semantic-pack.v1"],
     "semantic_pack_locks": ["nose.semantic-pack-lock.v1"],
     "semantic_pack_receipts": ["nose.semantic-pack-conformance-receipt.v1"],
@@ -63,7 +64,7 @@ nose capabilities
   "query": {
     "modes": ["syntax", "semantic", "near"],
     "default_modes": ["syntax", "semantic", "near"],
-    "output_formats": ["human", "json", "markdown", "sarif"],
+    "output_formats": ["human", "json", "jsonl", "markdown", "sarif"],
     "sort_keys": ["extractability", "value", "sites", "hazard"],
     "config_keys": [
       "cache-max-bytes",
@@ -94,6 +95,9 @@ nose capabilities
       "query_base_json_v8": true,
       "query_base_sarif": true,
       "query_base_structured_ignores": true,
+      "query_watch": true,
+      "query_watch_full_snapshot": true,
+      "query_watch_jsonl_v1": true,
       "reinvented_view": true,
       "semantic_pack_dependency_evidence": true,
       "semantic_pack_external_claim_exact": true,
@@ -188,6 +192,7 @@ only `tool.version` and the platform values are normalized for the local build.
 | `schemas.cache_prune` | array | Supported `nose cache prune --format json` schemas. |
 | `schemas.cache_clear` | array | Supported `nose cache clear --format json` schemas. |
 | `schemas.query_json` | array | Supported `nose query --format json` schema versions ([query-json](query-json.md)). |
+| `schemas.query_watch_jsonl` | array | Supported long-lived query stream schemas ([query-watch](query-watch.md)). |
 | `schemas.semantic_packs` | array | Supported semantic-pack manifest API versions, currently `nose.semantic-pack.v0` and `nose.semantic-pack.v1`. |
 | `schemas.semantic_pack_locks` | array | Supported project-lock API versions, currently `nose.semantic-pack-lock.v1`. |
 | `schemas.semantic_pack_receipts` | array | Supported kernel source-conformance receipt APIs, currently `nose.semantic-pack-conformance-receipt.v1`. |
@@ -260,6 +265,9 @@ Version 8 defines these `query.capabilities` keys:
 | `query_base_json_v8` | `base=<ref> --format json` emits schema v8. Wrappers should also verify `schemas.query_json` contains `8`. |
 | `query_base_sarif` | `base=<ref> --format sarif` emits divergent-edit SARIF results. Wrappers should also verify `query.output_formats` contains `sarif`. |
 | `query_base_structured_ignores` | Structured ignores are applied before the `base=<ref>` divergent-edit gate. |
+| `query_watch` | `nose query <root> --watch --format jsonl` is supported. |
+| `query_watch_full_snapshot` | Every watch revision embeds a complete dashboard query snapshot. |
+| `query_watch_jsonl_v1` | Watch records use `nose.query-watch/v1`; wrappers should also verify `schemas.query_watch_jsonl`. |
 | `reinvented_view` | The `reinvented` query view is supported. |
 | `semantic_pack_dependency_evidence` | A content-pinned v1 lock can build a local-only immutable Maven dependency/import/symbol/receiver/effect occurrence index; lane authorization and a consumer are still required for influence. |
 | `semantic_pack_external_claim_exact` | Receipt-backed, dependency-backed, user-authorized v1 collection-factory rows may enter the existing exact kernel and report distinct external-claim provenance. |

@@ -35,6 +35,7 @@ mod query_sarif;
 mod query_semantic_packs;
 mod query_terms;
 mod query_views;
+mod query_watch;
 mod query_witness;
 mod recall_loss_report;
 mod report_text;

@@ -36,6 +36,7 @@ from-source `./target/release/nose`.
 | Gate CI on duplication | `nose query <path> --fail-on any` |
 | Inspect or reclaim a query cache | `nose cache status|prune|clear --dir <cache>` |
 | Read the result as machine-readable JSON | `nose query <path> --format json` ([query-json](query-json.md)) |
+| Refresh a local integration after each save | `nose query <path> --watch --format jsonl` ([query-watch](query-watch.md)) |
 | Ask what an installed binary supports | `nose capabilities` |
 | Check a local semantic-pack manifest | `nose semantic-pack check <file-or-dir>` |
 | Create or inspect a content-pinned semantic-pack decision | `nose semantic-pack lock …` / `nose semantic-pack status <lock>` |
@@ -121,6 +122,12 @@ For jscpd-style copy-paste gates, pin `--mode syntax` and add size terms such as
 The `base=` view is the exception: it reuses only detection flags (`--mode`, `--min-size`,
 advanced `--min-lines`, `--exclude`, `--config`), `--ignore-file`, `--format`, `top=N`, and
 `--fail-on any`; report-shaping and baseline flags are rejected instead of ignored.
+
+For a foreground live session, use
+`nose query <path> --watch --format jsonl`. It emits an initial complete dashboard
+snapshot and then one revision per reconciled change. Watch v1 accepts analysis
+flags but no query terms, baselines, or CI gates; see [query watch](query-watch.md)
+for its schema, recovery behavior, and integration contract.
 
 A named path that doesn't exist is an error (exit non-zero) — a typo'd path in a
 CI gate must fail loudly. A path that exists but contains no supported source
@@ -262,7 +269,8 @@ mode flags are documented under [Ranking](#ranking) and [Detection modes](#detec
 
 | flag | effect |
 |---|---|
-| `--format human\|json\|markdown\|sarif` | output format (default `human`) |
+| `--format human\|json\|jsonl\|markdown\|sarif` | output format (default `human`); `jsonl` is paired with `--watch` |
+| `--watch` | keep a foreground query session alive and emit `nose.query-watch/v1` JSONL snapshots |
 
 Use terms for report shaping: `sort=KEY`, `top=N`, `scope=prod|test|mixed`, `group=dir`,
 `id=<fam> full`, and `reinvented`. `--format json` emits the stable

@@ -125,7 +125,7 @@ fn ensure_query_fail_on_is_valid(args: &QueryArgs) -> Result<()> {
     Ok(())
 }
 
-fn activate_query_families(
+pub(super) fn activate_query_families(
     args: &QueryArgs,
     dataset: &mut QueryDataset,
 ) -> Result<Option<BaselineComparison>> {
@@ -170,7 +170,7 @@ fn sort_query_families(q: &Query, families: &mut [nose_detect::RefactorFamily]) 
     }
 }
 
-fn query_opportunities(
+pub(super) fn query_opportunities(
     families: &[nose_detect::RefactorFamily],
     overrides: &SurfaceOverrides,
 ) -> OpportunityGroups {
@@ -183,17 +183,17 @@ fn query_opportunities(
     })
 }
 
-fn discard_accepted_coverage(families: &mut [nose_detect::RefactorFamily]) {
+pub(super) fn discard_accepted_coverage(families: &mut [nose_detect::RefactorFamily]) {
     for family in families {
         family.accepted_coverage.clear();
     }
 }
 
-fn semantic_packs_for_output(
+pub(super) fn semantic_packs_for_output(
     format: ReportFormat,
     dataset: &QueryDataset,
 ) -> Vec<serde_json::Value> {
-    if matches!(format, ReportFormat::Json) {
+    if matches!(format, ReportFormat::Json | ReportFormat::Jsonl) {
         semantic_packs_json(
             &dataset.semantic_packs,
             Some(&dataset.semantic_pack_near_report),
@@ -267,6 +267,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         roots,
         positionals,
         format,
+        watch,
         mode,
         min_size,
         min_lines,
@@ -316,9 +317,19 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         scope: ScopeFilter::All,
     };
     ensure_query_fail_on_is_valid(&args)?;
+    if watch {
+        return crate::query_watch::run(&args, &terms, &q, &path_arg);
+    }
+    if matches!(args.format, ReportFormat::Jsonl) {
+        anyhow::bail!("--format jsonl requires --watch");
+    }
     if let Some(base_ref) = &q.base {
         return run_query_base(&args, base_ref, &q, &path_arg);
     }
+    run_regular_query(args, &terms, &q, &path_arg)
+}
+
+fn run_regular_query(args: QueryArgs, terms: &[String], q: &Query, path_arg: &str) -> Result<()> {
     let mut dataset = build_query_dataset(&args, &paths_as_refs(&args.paths))?;
     if args.write_baseline {
         return write_query_baseline(&args, &dataset.families);
@@ -327,17 +338,17 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         activate_query_families(&args, &mut dataset)
     })?;
     let overrides = time_stage("query_surface", || query_surface_overrides(&mut dataset));
-    if query_needs_spotclass(&q) {
+    if query_needs_spotclass(q) {
         time_stage("query_spot", || {
             enrich_graded_witnesses(&mut dataset.families, &dataset.opts)
         });
     }
     let mut since_cmp = None;
     let since = time_stage("query_since", || {
-        query_since(&q, &dataset.families, &mut since_cmp)
+        query_since(q, &dataset.families, &mut since_cmp)
     })?;
     time_stage("query_sort", || {
-        sort_query_families(&q, &mut dataset.families)
+        sort_query_families(q, &mut dataset.families)
     });
     let opp = time_stage("query_opp", || {
         query_opportunities(&dataset.families, &overrides)
@@ -349,9 +360,9 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
     let semantic_packs_json = semantic_packs_for_output(args.format, &dataset);
     let output = QueryOutput {
         args: &args,
-        terms: &terms,
-        q: &q,
-        path_arg: &path_arg,
+        terms,
+        q,
+        path_arg,
         families: &dataset.families,
         reinvented: &dataset.reinvented,
         scope: &dataset.scope,
@@ -370,7 +381,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
     Ok(())
 }
 
-fn query_surface_overrides(dataset: &mut QueryDataset) -> SurfaceOverrides {
+pub(super) fn query_surface_overrides(dataset: &mut QueryDataset) -> SurfaceOverrides {
     classify_surface_overrides_with_generated_paths(
         &mut dataset.families,
         &dataset.settings.generated_paths,

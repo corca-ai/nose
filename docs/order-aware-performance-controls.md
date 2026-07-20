@@ -110,9 +110,9 @@ contract will not be tuned after observing which historical rows change decision
 ## Frozen replay outcome
 
 The policy was implemented after the preregistration commit and then replayed once on
-the two SHA-bound #892 r40 reports. The compact
-[decision ledger](../bench/recall_loss/issue-927-order-aware-control-decision-ledger-2026-07-21.v1.json)
-records all 226 runtime signals: 215 retain their legacy state and exactly 11 change.
+the two SHA-bound #892 r40 reports. The compact checked decision
+[ledger](../bench/recall_loss/issue-927-order-aware-control-decision-ledger-2026-07-21.v1.json) records
+all 226 runtime signals: 215 retain their legacy state and exactly 11 change.
 The four legacy triggers become three `within-threshold` rows and one `inconclusive`
 row. Seven formerly clear rows expose a material split between execution orders and
 therefore also become `inconclusive`; this is intentional fail-closed behavior, not a

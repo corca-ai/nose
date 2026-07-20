@@ -42,6 +42,7 @@ pub(crate) use self::detection::{
 };
 use self::digest::ContentDigest;
 pub(crate) use self::fast_units::FastCachedUnits;
+pub(crate) use self::fast_units::FastUnitSession;
 pub(crate) use self::lines::{build_line_index, LineIndexStats};
 pub(crate) use self::resolved::{CachedCorpus, InvalidationReport};
 use self::store::{ArtifactKey, ArtifactStage};
@@ -85,8 +86,23 @@ pub(crate) struct CachedUnitSnapshot {
 }
 
 pub(crate) struct CachedLineContext {
-    pub(crate) source_files: Vec<CachedSourceFile>,
+    pub(crate) source_files: std::sync::Arc<Vec<CachedSourceFile>>,
     pub(crate) run: CacheRun,
+}
+
+pub(crate) fn finish_query_run(context: Option<CachedLineContext>) {
+    let Some(context) = context else { return };
+    if let Err(error) = context.run.commit() {
+        if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+            eprintln!("  [cache-generation] commit skipped: {error}");
+        }
+    } else if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+        eprintln!(
+            "  [cache-generation] written_bytes={}",
+            context.run.written_bytes()
+        );
+    }
+    enforce_run_budget(context.run);
 }
 
 pub(crate) fn build_corpus_cached(
@@ -203,11 +219,12 @@ pub(crate) fn build_units_cached_with_context(
     corpus: &mut Corpus,
     opts: &DetectOptions,
     run: &CacheRun,
-    snapshot: CachedUnitSnapshot,
+    mut snapshot: CachedUnitSnapshot,
 ) -> CachedUnits {
     assert_eq!(corpus.files.len(), snapshot.contexts.len());
     let cached = build_units_cached_inner(corpus, opts, run, Some(&snapshot.contexts));
-    fast_units::store_snapshot(run, opts, snapshot, &cached.region_artifacts);
+    snapshot.artifacts.clone_from(&cached.region_artifacts);
+    fast_units::store_snapshot(run, opts, &snapshot);
     cached.into_public()
 }
 

@@ -24,6 +24,11 @@ use crate::incremental::{self, IncrementalDetectionState, IncrementalDetectionSt
 
 mod features;
 pub use features::{corpus_features, file_stream, units_of_file, CorpusFeatures};
+mod incremental_session;
+pub use incremental_session::{
+    detect_from_units_incremental_session_with_accepted_coverage,
+    detect_from_units_incremental_with_accepted_coverage,
+};
 
 pub fn detect(corpus: &Corpus, opts: &DetectOptions, detector: &dyn Detector) -> Report {
     detect_with_dump_inner(corpus, opts, detector, false, false, false).0
@@ -163,82 +168,6 @@ pub fn detect_from_units_with_direct_accepted_coverage(
     detect_from_units_inner(units, files, streams, opts, detector, true, true, false).0
 }
 
-/// Cached-query entry point with persistent candidate membership and pair-score
-/// reuse. The state is content-addressed by the CLI; this layer owns its schema.
-pub fn detect_from_units_incremental_with_accepted_coverage(
-    units: Vec<UnitFeat>,
-    files: usize,
-    streams: &[Stream],
-    opts: &DetectOptions,
-    detector: &dyn Detector,
-    previous: Option<IncrementalDetectionState>,
-    stable_unit_keys: Option<&[[u8; 32]]>,
-) -> (
-    Report,
-    Option<IncrementalDetectionState>,
-    IncrementalDetectionStats,
-) {
-    let mut clk = StageTimer::new();
-    let mut stats = IncrementalDetectionStats::new();
-    let mut prepared = incremental::prepare(&units, stable_unit_keys, opts, previous, &mut stats);
-    clk.lap("candidates");
-    let (scored, accepted) =
-        incremental::score(&units, &prepared, detector, opts.threshold, &mut stats);
-    let raw_groups = incremental::components(&prepared, &accepted, opts.threshold, &mut stats);
-    let mut connected =
-        incremental::connected(&units, &prepared, &scored, &accepted, opts, &mut stats);
-    let connected_override = Some((
-        std::mem::take(&mut connected.accepted),
-        std::mem::take(&mut connected.same_unit_accepted),
-    ));
-    let (contiguous_override, contiguous_state) = if opts.contiguous {
-        let (groups, edges, state, contiguous_stats) = contiguous::detect_incremental(
-            streams,
-            opts.contiguous_min_tokens,
-            opts.contiguous_min_lines,
-            false,
-            prepared.previous_contiguous.take(),
-        );
-        stats.contiguous_streams_reused = contiguous_stats.streams_reused;
-        stats.contiguous_streams_rebuilt = contiguous_stats.streams_rebuilt;
-        stats.contiguous_components_reused = contiguous_stats.components_reused;
-        stats.contiguous_components_rebuilt = contiguous_stats.components_rebuilt;
-        (Some((groups, edges)), Some(state))
-    } else {
-        (None, None)
-    };
-    let candidates = std::mem::take(&mut prepared.candidates);
-    let state_changed = !stats.state_hit
-        || stats.units_added > 0
-        || stats.units_removed > 0
-        || stats.buckets_rebuilt > 0
-        || stats.scores_evaluated > 0
-        || stats.connected_evaluations_evaluated > 0
-        || stats.contiguous_streams_rebuilt > 0;
-    let state = state_changed.then(|| {
-        incremental::finish_state(prepared, &scored, &raw_groups, connected, contiguous_state)
-    });
-    let report = finish_detection(
-        units,
-        files,
-        streams,
-        opts,
-        detector,
-        &candidates,
-        &scored,
-        accepted,
-        Some(raw_groups),
-        connected_override,
-        contiguous_override,
-        true,
-        false,
-        false,
-        &mut clk,
-    )
-    .0;
-    (report, state, stats)
-}
-
 #[allow(clippy::too_many_arguments)]
 fn detect_from_units_inner(
     units: Vec<UnitFeat>,
@@ -270,7 +199,7 @@ fn detect_from_units_inner(
     };
 
     finish_detection(
-        units,
+        &units,
         files,
         streams,
         opts,
@@ -290,7 +219,7 @@ fn detect_from_units_inner(
 
 #[allow(clippy::too_many_arguments)]
 fn finish_detection(
-    units: Vec<UnitFeat>,
+    units: &[UnitFeat],
     files: usize,
     streams: &[Stream],
     opts: &DetectOptions,
@@ -311,15 +240,15 @@ fn finish_detection(
         cached
     } else if opts.connected_witnesses {
         (
-            score_connected_candidates(&units, scored, &accepted, opts.threshold, !opts.emit_pairs),
-            score_same_unit_candidates(&units, opts.threshold, !opts.emit_pairs),
+            score_connected_candidates(units, scored, &accepted, opts.threshold, !opts.emit_pairs),
+            score_same_unit_candidates(units, opts.threshold, !opts.emit_pairs),
         )
     } else {
         (Vec::new(), Vec::new())
     };
 
     deduplicate_connected(&accepted, &mut connected_accepted, !opts.emit_pairs);
-    deduplicate_same_unit(&units, &mut same_unit_accepted, !opts.emit_pairs);
+    deduplicate_same_unit(units, &mut same_unit_accepted, !opts.emit_pairs);
     connected_accepted.extend(same_unit_accepted);
 
     clk.lap("score");
@@ -334,10 +263,10 @@ fn finish_detection(
     });
     clk.lap("cluster");
 
-    let enclosing = enclosing_units(&units);
+    let enclosing = enclosing_units(units);
 
     let duplicates = build_pair_output(
-        &units,
+        units,
         &enclosing,
         &accepted,
         &connected_accepted,
@@ -345,7 +274,7 @@ fn finish_detection(
     );
 
     let (mut groups, mut accepted_group_edges) = build_groups(
-        &units,
+        units,
         &accepted,
         &raw_groups,
         &enclosing,
@@ -353,7 +282,7 @@ fn finish_detection(
         trace_accepted_coverage,
     );
     let (connected_groups, connected_edges) = build_connected_groups(
-        &units,
+        units,
         &connected_accepted,
         &enclosing,
         opts,
@@ -364,7 +293,7 @@ fn finish_detection(
     clk.lap("groups");
 
     let reinvented = if opts.structural {
-        reinvented_helpers(&units)
+        reinvented_helpers(units)
     } else {
         Vec::new()
     };
@@ -390,26 +319,14 @@ fn finish_detection(
     // the same families — the cache supplies cached streams, otherwise this would
     // silently omit every contiguous clone.
     if let Some((groups, edges)) = contiguous_override {
-        append_contiguous_output(
-            &mut report,
-            groups,
-            edges,
-            &units,
-            trace_contiguous_coverage,
-        );
+        append_contiguous_output(&mut report, groups, edges, units, trace_contiguous_coverage);
     } else {
-        append_contiguous_groups(
-            &mut report,
-            streams,
-            opts,
-            &units,
-            trace_contiguous_coverage,
-        );
+        append_contiguous_groups(&mut report, streams, opts, units, trace_contiguous_coverage);
     }
     clk.lap("contiguous");
 
     let dump = if build_dump {
-        detection_dump(&units, candidates)
+        detection_dump(units, candidates)
     } else {
         Dump::default()
     };

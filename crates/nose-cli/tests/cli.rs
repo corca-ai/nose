@@ -26,3 +26,5 @@ mod semantic_boundaries;
 mod semantic_core;
 #[path = "cli/semantic_idioms.rs"]
 mod semantic_idioms;
+#[path = "cli/watch.rs"]
+mod watch;

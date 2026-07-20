@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DetectOptions {
     pub min_lines: u32,
     pub min_tokens: usize,

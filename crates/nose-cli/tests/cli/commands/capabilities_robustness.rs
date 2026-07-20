@@ -85,6 +85,10 @@ fn capabilities_command_lists_stable_commands_and_schemas() {
     );
     assert_eq!(json["schemas"]["query_json"], serde_json::json!([8, 9]));
     assert_eq!(
+        json["schemas"]["query_watch_jsonl"],
+        serde_json::json!(["nose.query-watch/v1"])
+    );
+    assert_eq!(
         json["schemas"]["semantic_packs"],
         serde_json::json!(["nose.semantic-pack.v0", "nose.semantic-pack.v1"])
     );
@@ -118,7 +122,7 @@ fn capabilities_command_reports_query_surface() {
     );
     assert_eq!(
         json_array_strings(&json["query"], "output_formats"),
-        vec!["human", "json", "markdown", "sarif"]
+        vec!["human", "json", "jsonl", "markdown", "sarif"]
     );
     assert_eq!(
         json_array_strings(&json["query"], "sort_keys"),
@@ -133,6 +137,7 @@ fn capabilities_command_reports_query_surface() {
     assert_eq!(json["query"]["capabilities"]["multi_root"], true);
     assert_eq!(json["query"]["capabilities"]["base_divergence"], true);
     assert_eq!(json["query"]["capabilities"]["query_base_json_v8"], true);
+    assert_query_watch_capability(&json);
     assert_eq!(
         json["query"]["capabilities"]["query_base_gate_fail_default"],
         true
@@ -160,6 +165,15 @@ fn capabilities_command_reports_query_surface() {
         true
     );
     assert_eq!(json["query"]["capabilities"]["structured_ignores"], true);
+}
+
+fn assert_query_watch_capability(json: &serde_json::Value) {
+    assert_eq!(json["query"]["capabilities"]["query_watch"], true);
+    assert_eq!(
+        json["query"]["capabilities"]["query_watch_full_snapshot"],
+        true
+    );
+    assert_eq!(json["query"]["capabilities"]["query_watch_jsonl_v1"], true);
 }
 
 fn assert_caller_generated_path_capability(json: &serde_json::Value) {
