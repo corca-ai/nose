@@ -1,0 +1,108 @@
+# Order-aware performance controls
+
+This document preregisters the prospective runtime decision contract for #927. It was
+committed before replaying the frozen #892 r40 primary and same-binary control through
+the new estimator. The existing 5% and 5 ms materiality thresholds do not change.
+
+## Applicability and compatibility
+
+The contract applies automatically to `nose.query_regression_harness.v3` reports.
+Historical v1 and v2 reports retain their original decisions unless an explicit
+historical-evaluation command selects this policy. Such a replay is a decision ledger,
+not a rewrite of the #892 or #907 conclusions.
+
+Product-output drift is evaluated before runtime. The code-identical-binary shortcut is
+also unchanged: two matching code identities cannot establish a code regression, even
+when full executable digests differ because of build metadata.
+
+## Measurement design
+
+Each repository is measured in alternating paired blocks. A block contains exactly one
+baseline and one current observation. Odd blocks run baseline first and even blocks run
+current first. Version 3 records the block number, position, and order explicitly rather
+than requiring a consumer to infer them from array position.
+
+A metric is eligible only when all of these conditions hold:
+
+- every included block has exactly one observation for each label;
+- at least five complete blocks exist, with at least two blocks in each order stratum;
+- the order-stratum counts differ by at most one;
+- aggregate rows have a complete repository set in every included block;
+- all elapsed and stage values are finite and non-negative.
+
+Missing, duplicate, or malformed blocks are insufficient evidence. They are never
+silently dropped. A primary run with insufficient evidence requests one focused rerun;
+insufficient focused evidence fails closed without starting another rerun loop.
+
+## Estimator
+
+For block `i`, let `d_i = current_i - baseline_i`. Compute the median `d_i` separately
+for baseline-first and current-first blocks, then average the two stratum medians. This
+is the order-neutral primary effect. Aggregate effects are computed from the per-block
+sum across repositories, not from independently aggregated side medians.
+
+The same estimator is applied independently to the same-binary control. Its adjustment
+is deliberately one-sided:
+
+```text
+control_correction = max(order_neutral_control_effect, 0)
+adjusted_effect = order_neutral_primary_effect - control_correction
+```
+
+A positive control movement estimates shared slowdown and may reduce an apparent
+product regression. A negative control remains visible as a diagnostic but contributes
+zero correction: an independently noisy speedup cannot manufacture evidence that the
+product became slower. Primary and control runs are not treated as paired with each
+other because they were not interleaved in one randomized block sequence.
+
+## Decision rule
+
+For each complete primary block, subtract the non-negative control correction from
+`d_i`. A block supports material regression only when the adjusted difference is
+strictly greater than both 5 ms and 5% of that block's baseline value. Let `k` be the
+number of supporting blocks among `n`. Evidence support is the exact one-sided sign
+test under `P(support) = 0.5`:
+
+```text
+p = sum(combination(n, j) for j in k..n) / 2^n
+```
+
+Support requires `p <= 0.05`. Both order strata must also have adjusted median movement
+strictly above both thresholds. A runtime signal triggers only when:
+
+1. the order-neutral adjusted point estimate exceeds 5 ms and 5%;
+2. the exact sign test supports it; and
+3. both execution orders independently agree on the direction and materiality.
+
+If the point estimate is material but support, order consistency, or required blocks
+are missing, the signal is `inconclusive`. A primary inconclusive signal requests the
+single focused rerun. A focused inconclusive signal fails as insufficient evidence;
+it does not pass and does not request another measurement.
+
+## Preregistered synthetic expectations
+
+- A stable true regression above both thresholds triggers in both orders.
+- Positive same-binary drift reduces the measured product effect but cannot increase it.
+- Negative same-binary drift is reported and contributes zero correction.
+- A pure first/second-position bias disagrees between order strata and is inconclusive.
+- High-variance mixed-sign measurements that produce a material point estimate without
+  sign-test support are inconclusive.
+- Missing or duplicate rounds are insufficient evidence.
+- A code-identical comparison passes through the existing shortcut.
+- Any product-output drift still follows the existing exact declaration gate regardless
+  of runtime evidence.
+
+## Frozen historical evaluation input
+
+The later evaluation is bound to the already-published #892 source artifact and these
+original r40 files:
+
+- source record:
+  `bench/recall_loss/issue-892-official-v0.19.0-performance-2026-07-18.v1.json`;
+- primary SHA-256:
+  `a539b07ede84b3531b28623a4b84278fe5225ad1c4327c5331a9d5e191fc948a`;
+- same-binary control SHA-256:
+  `a3e615b896b9520604ddcd19ed60e2a0e6390746179513c1ab5541e9f987fb63`.
+
+The implementation may be corrected if it fails this written contract, but the
+contract will not be tuned after observing which historical rows change decision.
