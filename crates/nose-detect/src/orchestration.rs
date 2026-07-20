@@ -26,7 +26,7 @@ mod features;
 pub use features::{corpus_features, file_stream, units_of_file, CorpusFeatures};
 
 pub fn detect(corpus: &Corpus, opts: &DetectOptions, detector: &dyn Detector) -> Report {
-    detect_with_dump_inner(corpus, opts, detector, false, false, false).0
+    detect_with_dump_inner(corpus, opts, detector, DetectionOutput::REPORT).0
 }
 
 /// Product-query detection with compact direct accepted-edge provenance retained
@@ -37,7 +37,7 @@ pub fn detect_with_accepted_coverage(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> Report {
-    detect_with_dump_inner(corpus, opts, detector, true, false, false).0
+    detect_with_dump_inner(corpus, opts, detector, DetectionOutput::ACCEPTED_COVERAGE).0
 }
 
 /// Divergent-edit detection counterpart that also retains direct copy-paste-run
@@ -48,7 +48,40 @@ pub fn detect_with_direct_accepted_coverage(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> Report {
-    detect_with_dump_inner(corpus, opts, detector, true, true, false).0
+    detect_with_dump_inner(
+        corpus,
+        opts,
+        detector,
+        DetectionOutput::DIRECT_ACCEPTED_COVERAGE,
+    )
+    .0
+}
+
+#[derive(Clone, Copy)]
+struct DetectionOutput {
+    trace_accepted_coverage: bool,
+    trace_contiguous_coverage: bool,
+    build_dump: bool,
+}
+
+impl DetectionOutput {
+    const REPORT: Self = Self {
+        trace_accepted_coverage: false,
+        trace_contiguous_coverage: false,
+        build_dump: false,
+    };
+    const ACCEPTED_COVERAGE: Self = Self {
+        trace_accepted_coverage: true,
+        ..Self::REPORT
+    };
+    const DIRECT_ACCEPTED_COVERAGE: Self = Self {
+        trace_contiguous_coverage: true,
+        ..Self::ACCEPTED_COVERAGE
+    };
+    const DUMP: Self = Self {
+        build_dump: true,
+        ..Self::REPORT
+    };
 }
 
 /// Per-stage wall-clock timing, printed to stderr when `NOSE_TIME` is set. A
@@ -86,16 +119,14 @@ pub fn detect_with_dump(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> (Report, Dump) {
-    detect_with_dump_inner(corpus, opts, detector, false, false, true)
+    detect_with_dump_inner(corpus, opts, detector, DetectionOutput::DUMP)
 }
 
 fn detect_with_dump_inner(
     corpus: &Corpus,
     opts: &DetectOptions,
     detector: &dyn Detector,
-    trace_accepted_coverage: bool,
-    trace_contiguous_coverage: bool,
-    build_dump: bool,
+    output: DetectionOutput,
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
@@ -112,16 +143,7 @@ fn detect_with_dump_inner(
     // `detect_from_units` runs its own `StageTimer` for the detection sub-phases
     // (candidates/score/groups/contiguous), so no lap here — a single outer lap would
     // mislabel the whole call (group scoring dwarfs contiguous) as "contiguous".
-    detect_from_units_inner(
-        units,
-        files,
-        &streams,
-        opts,
-        detector,
-        trace_accepted_coverage,
-        trace_contiguous_coverage,
-        build_dump,
-    )
+    detect_from_units_inner(units, files, &streams, opts, detector, output)
 }
 
 /// Run candidate-generation → scoring → clustering over already-built `units` (the
@@ -136,7 +158,7 @@ pub fn detect_from_units(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> (Report, Dump) {
-    detect_from_units_inner(units, files, streams, opts, detector, false, false, true)
+    detect_from_units_inner(units, files, streams, opts, detector, DetectionOutput::DUMP)
 }
 
 /// Cached-query counterpart to [`detect_with_accepted_coverage`].
@@ -147,7 +169,15 @@ pub fn detect_from_units_with_accepted_coverage(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> Report {
-    detect_from_units_inner(units, files, streams, opts, detector, true, false, false).0
+    detect_from_units_inner(
+        units,
+        files,
+        streams,
+        opts,
+        detector,
+        DetectionOutput::ACCEPTED_COVERAGE,
+    )
+    .0
 }
 
 /// Cached-query entry point with persistent candidate membership and pair-score
@@ -232,9 +262,7 @@ fn detect_from_units_inner(
     streams: &[Stream],
     opts: &DetectOptions,
     detector: &dyn Detector,
-    trace_accepted_coverage: bool,
-    trace_contiguous_coverage: bool,
-    build_dump: bool,
+    output: DetectionOutput,
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
@@ -267,9 +295,9 @@ fn detect_from_units_inner(
         None,
         None,
         None,
-        trace_accepted_coverage,
-        trace_contiguous_coverage,
-        build_dump,
+        output.trace_accepted_coverage,
+        output.trace_contiguous_coverage,
+        output.build_dump,
         &mut clk,
     )
 }
