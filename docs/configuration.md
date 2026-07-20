@@ -21,6 +21,7 @@ ignore-file = "nose.ignore.json"
 semantic-packs = ["semantic-packs/python-math-prod.json"]
 # Or, for content-pinned typed v1 authorization instead of unlocked paths:
 # semantic-pack-lock = "nose.semantic-pack-lock.json"
+cache-max-bytes = 5368709120 # 5 GiB; used when --cache-dir is present
 ```
 
 Pass an alternate file with `--config <file>`. A malformed config is a **hard
@@ -42,6 +43,7 @@ term — `nose query` spells `sort` as the DSL term `sort=`, not `--sort`).
 
 | key | type | default | CLI override |
 |---|---|---|---|
+| `cache-max-bytes` | int (bytes) | `5368709120` (5 GiB) | `--cache-max-bytes` |
 | `exclude` | list of globs | `[]` | `--exclude` |
 | `generated-paths` | list of root-anchored globs | `[]` | `--generated-path` |
 | `mode` | list of `syntax`\|`semantic`\|`near[:T]` | `["syntax", "semantic", "near"]` | `--mode` |
@@ -62,6 +64,11 @@ mode = ["syntax"]                          # jscpd-style gate (exact copy-paste 
 # mode = ["syntax", "semantic"]            # exact channels only, no fuzzy near
 # mode = ["syntax", "semantic", "near"]    # same as omitting mode (the default)
 ```
+
+`cache-max-bytes` bounds nose-managed files below `--cache-dir`. It does not choose or enable a
+cache directory; keep the location as a CLI/CI workflow choice. A run that writes cache data
+automatically prunes old schemas, superseded generations, orphaned state, and then the oldest
+artifacts until it reaches the limit. Eviction changes only future run time, never query output.
 
 `min-size` (and the advanced `min-lines`) apply to both structural units and the syntax
 copy-paste floor. For `--mode syntax`, they are the jscpd-style size gate.

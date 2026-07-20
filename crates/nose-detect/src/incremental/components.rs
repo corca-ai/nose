@@ -73,7 +73,7 @@ fn component_changes(
             score
                 .ordinary_score
                 .filter(|&value| value >= threshold)
-                .map(|_| score.pair)
+                .and_then(|_| score.pair(&prepared.previous_unit_keys))
         })
         .collect::<BTreeSet<_>>();
     let current_edges = accepted

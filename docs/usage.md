@@ -34,6 +34,7 @@ from-source `./target/release/nose`.
 | Open one family with its extraction skeleton | `nose query <path> id=<fam> full` |
 | Catch a missed sibling edit in a diff or PR | `nose query <path> base=<ref>` |
 | Gate CI on duplication | `nose query <path> --fail-on any` |
+| Inspect or reclaim a query cache | `nose cache status|prune|clear --dir <cache>` |
 | Read the result as machine-readable JSON | `nose query <path> --format json` ([query-json](query-json.md)) |
 | Ask what an installed binary supports | `nose capabilities` |
 | Check a local semantic-pack manifest | `nose semantic-pack check <file-or-dir>` |
@@ -109,7 +110,7 @@ A typical loop: `nose query .` → `nose query . witness=exact` → `nose query 
 
 `nose query` accepts the same **analysis flags** as the detection pipeline — `--mode`
 (see [Detection modes](#detection-modes)), `--min-size`, `--min-value`, `--min-members`, `--exclude`,
-`--cache-dir`, `--ignore-file`, `--semantic-pack`, `--config` — so the dataset it explores is
+`--cache-dir`, `--cache-max-bytes`, `--ignore-file`, `--semantic-pack`, `--config` — so the dataset it explores is
 configured by flag while scope/sort/top are the DSL's `scope=`/`sort=`/`top=`. It also takes the
 **CI gate** — `--fail-on any` / `--fail-on new` with `--baseline`/`--write-baseline` — and
 drops structured-ignored families. The gate follows the untruncated family selection addressed
@@ -251,6 +252,8 @@ mode flags are documented under [Ranking](#ranking) and [Detection modes](#detec
 | `--root <path>` / `-r <path>` | analyze another root; repeat for multi-root query runs. With `--root`, bare positional arguments are query terms. |
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
 | `--generated-path <glob>` | assert that files matching this root-anchored glob are generated; repeatable and recoverable with `all top=0` |
+| `--cache-dir <dir>` | reuse portable, checksummed analysis artifacts and transactional incremental state |
+| `--cache-max-bytes <SIZE>` | bound the managed cache (default `5GiB`; accepts bytes or KiB/MiB/GiB/TiB) |
 | `--ignore-file <file>` | suppress accepted families using a structured ignore file with reason/owner/expiry metadata |
 | `--semantic-pack <file-or-dir>` | load local semantic-pack v0 metadata or compile a typed v1 manifest for provenance/digest reporting; unlocked external packs are metadata-only |
 | `--semantic-pack-lock <file>` | validate one content-pinned typed v1 project lock before analysis; eligible rows may support near candidates or receipt-backed collection-factory exact claims, and unlocked pack paths cannot be mixed in |
@@ -265,7 +268,7 @@ Use terms for report shaping: `sort=KEY`, `top=N`, `scope=prod|test|mixed`, `gro
 `id=<fam> full`, and `reinvented`. `--format json` emits the stable
 [query-json](query-json.md) contract.
 
-**Workflow** (`--baseline`, `--write-baseline`, `--fail-on any|new`, `--ignore-file`, `--cache-dir`, `--config`, `--generated-path`, `--semantic-pack`, `--semantic-pack-lock`) is covered in
+**Workflow** (`--baseline`, `--write-baseline`, `--fail-on any|new`, `--ignore-file`, `--cache-dir`, `--cache-max-bytes`, `--config`, `--generated-path`, `--semantic-pack`, `--semantic-pack-lock`) is covered in
 [continuous-integration](continuous-integration.md), [configuration](configuration.md), and [semantic-pack-loading](semantic-pack-loading.md).
 Structured suppressions are covered in [structured-ignores](structured-ignores.md).
 
@@ -287,6 +290,14 @@ and may change to improve readability. The stable contract is documented in
 
 ## Other commands
 
+- `nose cache status --dir <dir> [--max-bytes 5GiB] [--format human|json]` — report managed
+  bytes/files, live and historical generations, and immediately reclaimable storage.
+- `nose cache prune --dir <dir> [--max-bytes 5GiB] [--format human|json]` — remove old schemas,
+  orphaned generations, and the oldest entries above the budget. Active queries finish before
+  pruning starts.
+- `nose cache clear --dir <dir> [--format human|json]` — remove only nose-managed cache data;
+  unrelated files under the directory are preserved. All three JSON forms carry the schemas
+  advertised by [`nose capabilities`](capabilities.md).
 - `nose query <paths> base=<ref>` — flags clones changed inconsistently in a diff
   (a copy edited, its siblings missed); use `base=HEAD` for uncommitted changes and
   `base=origin/main --mode syntax,semantic --fail-on any` for a PR gate; see

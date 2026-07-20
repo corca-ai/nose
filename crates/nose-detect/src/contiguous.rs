@@ -286,7 +286,10 @@ pub(in crate::contiguous) fn detect_primitives(
     // by the value-graph channel instead. Per-language keying also stops an unrelated
     // collision in one language from masking a real same-language match in another.
     let mut seen: FxHashMap<(u64, nose_il::Lang), (usize, usize)> = FxHashMap::default();
-    let ranges: Vec<LineRangeIndex> = streams.iter().map(LineRangeIndex::new).collect();
+    let mut ranges = (0..streams.len()).map(|_| None).collect::<Vec<_>>();
+    for &stream in stream_indices {
+        ranges[stream] = Some(LineRangeIndex::new(&streams[stream]));
+    }
 
     // Emitted clone instances and the pairs linking them (for union-find clustering).
     let mut locs: Vec<LocSeed> = Vec::new();
@@ -314,9 +317,23 @@ pub(in crate::contiguous) fn detect_primitives(
                             .iter()
                             .any(|&o| o);
                         if has_op {
-                            let lb = loc_seed(si, &ranges[si], streams, i, i + len);
+                            let lb = loc_seed(
+                                si,
+                                ranges[si]
+                                    .as_ref()
+                                    .expect("selected stream has a range index"),
+                                streams,
+                                i,
+                                i + len,
+                            );
                             if line_count(&lb) >= min_lines {
-                                let la = loc_seed(sj, &ranges[sj], streams, j, j + len);
+                                let la = loc_seed(
+                                    sj,
+                                    ranges[sj].as_ref().expect("seen stream has a range index"),
+                                    streams,
+                                    j,
+                                    j + len,
+                                );
                                 let a = intern_loc(&mut locs, &mut loc_id, la);
                                 let b = intern_loc(&mut locs, &mut loc_id, lb);
                                 if a != b {

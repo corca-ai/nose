@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-type IndexedCandidates = (Vec<(usize, usize)>, Vec<(UnitPairKey, u16)>);
+type IndexedCandidates = (Vec<(usize, usize)>, Vec<u16>);
 
 pub(crate) fn prepare(
     units: &[UnitFeat],
@@ -25,7 +25,7 @@ pub(crate) fn prepare(
     } else {
         units.par_iter().map(unit_key).collect::<Vec<_>>()
     };
-    let previous = previous.filter(|state| state.schema == STATE_SCHEMA);
+    let mut previous = previous.filter(IncrementalDetectionState::is_valid);
     stats.state_hit = previous.is_some();
     record_unit_churn(previous.as_ref(), &unit_keys, stats);
 
@@ -40,50 +40,35 @@ pub(crate) fn prepare(
         );
     }
 
-    let memberships = candidate_memberships(units, &unit_keys, opts);
-    let previous_buckets = previous
-        .as_ref()
-        .map(|state| {
-            state
-                .buckets
-                .iter()
-                .map(|bucket| (bucket.key, bucket))
-                .collect::<BTreeMap<_, _>>()
-        })
-        .unwrap_or_default();
     let mut counts = previous
         .as_ref()
         .into_iter()
-        .flat_map(|state| &state.scores)
-        .map(|score| (score.pair, score.bucket_count))
+        .flat_map(|state| {
+            state.scores.iter().filter_map(|score| {
+                score
+                    .pair(&state.units)
+                    .map(|pair| (pair, score.bucket_count))
+            })
+        })
         .collect::<BTreeMap<_, _>>();
-    let current_bucket_keys = memberships.keys().copied().collect::<BTreeSet<_>>();
-    let mut buckets = Vec::with_capacity(memberships.len());
-    for (key, members) in memberships {
-        if previous_buckets
-            .get(&key)
-            .filter(|old| old.members == members)
-            .is_some()
-        {
-            stats.buckets_reused += 1;
-        } else {
-            stats.buckets_rebuilt += 1;
-            if let Some(old) = previous_buckets.get(&key) {
-                adjust_pair_counts(&mut counts, key, &old.members, false);
-            }
-            adjust_pair_counts(&mut counts, key, &members, true);
+    let buckets = if let Some(state) = previous.as_mut() {
+        update_candidate_buckets(units, &unit_keys, opts, state, &mut counts, stats)
+    } else {
+        let memberships = candidate_memberships(units, &unit_keys, opts);
+        stats.buckets_rebuilt = memberships.len();
+        for (&key, members) in &memberships {
+            adjust_pair_counts(&mut counts, key, members, true);
         }
-        buckets.push(CandidateBucket { key, members });
-    }
-    for (&key, old) in &previous_buckets {
-        if !current_bucket_keys.contains(&key) {
-            stats.buckets_rebuilt += 1;
-            adjust_pair_counts(&mut counts, key, &old.members, false);
-        }
-    }
+        let positions = unit_index(&unit_keys);
+        memberships
+            .into_iter()
+            .map(|(key, members)| store_bucket(key, &members, &positions))
+            .collect()
+    };
     counts.retain(|_, count| *count > 0);
     let (candidates, candidate_counts) = index_candidates(&unit_keys, &counts);
     let (
+        previous_unit_keys,
         previous_scores,
         previous_components,
         previous_connected,
@@ -92,6 +77,7 @@ pub(crate) fn prepare(
     ) = previous
         .map(|state| {
             (
+                state.units,
                 state.scores,
                 state.components,
                 state.connected,
@@ -106,6 +92,8 @@ pub(crate) fn prepare(
         candidate_counts,
         buckets,
         previous_scores,
+        previous_unit_keys,
+        previous_scores_aligned: false,
         previous_components,
         previous_connected,
         previous_same_unit,
@@ -119,23 +107,101 @@ fn reuse_unchanged(
     stats: &mut IncrementalDetectionStats,
 ) -> PreparedDetection {
     stats.buckets_reused = state.buckets.len();
-    let counts = state
+    let candidates = state
         .scores
         .iter()
-        .map(|score| (score.pair, score.bucket_count))
-        .collect::<BTreeMap<_, _>>();
-    let (candidates, candidate_counts) = index_candidates(&unit_keys, &counts);
+        .map(|score| (score.left as usize, score.right as usize))
+        .collect();
+    let candidate_counts = state
+        .scores
+        .iter()
+        .map(|score| score.bucket_count)
+        .collect();
     PreparedDetection {
         unit_keys,
         candidates,
         candidate_counts,
         buckets: state.buckets,
         previous_scores: state.scores,
+        previous_unit_keys: state.units,
+        previous_scores_aligned: true,
         previous_components: state.components,
         previous_connected: state.connected,
         previous_same_unit: state.same_unit,
         previous_contiguous: state.contiguous,
     }
+}
+
+fn update_candidate_buckets(
+    units: &[UnitFeat],
+    unit_keys: &[UnitKey],
+    opts: &DetectOptions,
+    state: &mut IncrementalDetectionState,
+    counts: &mut BTreeMap<UnitPairKey, u16>,
+    stats: &mut IncrementalDetectionStats,
+) -> Vec<CandidateBucket> {
+    let current = unit_keys.iter().copied().collect::<BTreeSet<_>>();
+    let previous = state.units.iter().copied().collect::<BTreeSet<_>>();
+    let added_indices = unit_keys
+        .iter()
+        .enumerate()
+        .filter_map(|(index, key)| (!previous.contains(key)).then_some(index))
+        .collect::<Vec<_>>();
+    let mut additions =
+        candidate_memberships_selected(units, unit_keys, opts, added_indices.iter().copied(), None);
+    let old_keys = state
+        .buckets
+        .iter()
+        .map(|bucket| bucket.key)
+        .collect::<BTreeSet<_>>();
+    let new_keys = additions
+        .keys()
+        .filter(|key| !old_keys.contains(key))
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let new_memberships =
+        candidate_memberships_selected(units, unit_keys, opts, 0..units.len(), Some(&new_keys));
+    let current_positions = unit_index(unit_keys);
+    let mut buckets = Vec::with_capacity(state.buckets.len() + new_memberships.len());
+    for old in std::mem::take(&mut state.buckets) {
+        let old_members = old
+            .members
+            .iter()
+            .map(|&member| state.units[member as usize])
+            .collect::<Vec<_>>();
+        let added = additions.remove(&old.key).unwrap_or_default();
+        let removed = old_members.iter().any(|member| !current.contains(member));
+        if !removed && added.is_empty() {
+            stats.buckets_reused += 1;
+            buckets.push(store_bucket(old.key, &old_members, &current_positions));
+            continue;
+        }
+
+        let mut members = old_members
+            .iter()
+            .copied()
+            .filter(|member| current.contains(member))
+            .chain(added)
+            .collect::<Vec<_>>();
+        members.sort_unstable_by_key(|member| current_positions[member]);
+        members.dedup();
+        adjust_pair_counts(counts, old.key, &old_members, false);
+        if members.len() >= 2 {
+            adjust_pair_counts(counts, old.key, &members, true);
+            buckets.push(store_bucket(old.key, &members, &current_positions));
+        }
+        stats.buckets_rebuilt += 1;
+    }
+    for (key, members) in new_memberships {
+        if members.len() < 2 {
+            continue;
+        }
+        adjust_pair_counts(counts, key, &members, true);
+        buckets.push(store_bucket(key, &members, &current_positions));
+        stats.buckets_rebuilt += 1;
+    }
+    buckets.sort_unstable_by_key(|bucket| bucket.key);
+    buckets
 }
 
 fn adjust_pair_counts(
@@ -158,12 +224,7 @@ fn index_candidates(
     unit_keys: &[UnitKey],
     counts: &BTreeMap<UnitPairKey, u16>,
 ) -> IndexedCandidates {
-    let by_key = unit_keys
-        .iter()
-        .copied()
-        .enumerate()
-        .map(|(index, key)| (key, index))
-        .collect::<HashMap<_, _>>();
+    let by_key = unit_index(unit_keys);
     let mut rows = counts
         .iter()
         .filter_map(|(&pair, &count)| {
@@ -179,11 +240,31 @@ fn index_candidates(
         .collect::<Vec<_>>();
     rows.sort_unstable_by_key(|row| row.0);
     let candidates = rows.iter().map(|row| row.0).collect();
-    let candidate_counts = rows
-        .into_iter()
-        .map(|(_, pair, count)| (pair, count))
-        .collect();
+    let candidate_counts = rows.into_iter().map(|(_, _, count)| count).collect();
     (candidates, candidate_counts)
+}
+
+fn unit_index(unit_keys: &[UnitKey]) -> HashMap<UnitKey, usize> {
+    unit_keys
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(index, key)| (key, index))
+        .collect()
+}
+
+fn store_bucket(
+    key: BucketKey,
+    members: &[UnitKey],
+    positions: &HashMap<UnitKey, usize>,
+) -> CandidateBucket {
+    CandidateBucket {
+        key,
+        members: members
+            .iter()
+            .map(|member| positions[member] as u32)
+            .collect(),
+    }
 }
 
 pub(crate) fn score(
@@ -193,24 +274,45 @@ pub(crate) fn score(
     threshold: f64,
     stats: &mut IncrementalDetectionStats,
 ) -> (Vec<ScoredCandidate>, Vec<(usize, usize, f64)>) {
-    let previous = prepared
-        .previous_scores
-        .iter()
-        .map(|score| (score.pair, score.ordinary_score))
-        .collect::<HashMap<_, _>>();
+    let previous = (!prepared.previous_scores_aligned).then(|| {
+        prepared
+            .previous_scores
+            .iter()
+            .filter_map(|score| {
+                score
+                    .pair(&prepared.previous_unit_keys)
+                    .map(|pair| (pair, score.ordinary_score))
+            })
+            .collect::<HashMap<_, _>>()
+    });
     let reused = AtomicUsize::new(0);
     let evaluated = AtomicUsize::new(0);
     let scored = prepared
         .candidates
         .par_iter()
-        .map(|&(left, right)| {
+        .enumerate()
+        .map(|(index, &(left, right))| {
             let pair = UnitPairKey::new(prepared.unit_keys[left], prepared.unit_keys[right]);
-            let ordinary_score = previous.get(&pair).copied().unwrap_or_else(|| {
+            let cached = if prepared.previous_scores_aligned {
+                debug_assert_eq!(
+                    (
+                        prepared.previous_scores[index].left as usize,
+                        prepared.previous_scores[index].right as usize,
+                    ),
+                    (left, right)
+                );
+                Some(prepared.previous_scores[index].ordinary_score)
+            } else {
+                previous
+                    .as_ref()
+                    .and_then(|scores| scores.get(&pair).copied())
+            };
+            let ordinary_score = cached.unwrap_or_else(|| {
                 evaluated.fetch_add(1, Ordering::Relaxed);
                 (!is_nested(&units[left], &units[right]))
                     .then(|| detector.score(&units[left], &units[right]))
             });
-            if previous.contains_key(&pair) {
+            if cached.is_some() {
                 reused.fetch_add(1, Ordering::Relaxed);
             }
             ScoredCandidate {
@@ -253,73 +355,90 @@ fn candidate_memberships(
     unit_keys: &[UnitKey],
     opts: &DetectOptions,
 ) -> BTreeMap<BucketKey, Vec<UnitKey>> {
-    let mut buckets = BTreeMap::<BucketKey, Vec<UnitKey>>::new();
-    if opts.value_candidates {
-        append_lsh_memberships(&mut buckets, units, unit_keys, opts.bands, false);
-        for (unit, &key) in units.iter().zip(unit_keys) {
-            if exact_claim_eligible(unit) {
-                buckets
-                    .entry(BucketKey::ExactValue(digest_u64s(&unit.value)))
-                    .or_default()
-                    .push(key);
-            }
-        }
-    }
-    if opts.shape_candidates {
-        append_lsh_memberships(&mut buckets, units, unit_keys, opts.bands, true);
-        let floor = nose_normalize::anchor_min_weight();
-        for (unit, &key) in units.iter().zip(unit_keys) {
-            for anchor in &unit.anchors {
-                if anchor.weight >= floor {
-                    buckets
-                        .entry(BucketKey::Anchor(anchor.hash))
-                        .or_default()
-                        .push(key);
-                }
-            }
-        }
-    }
+    let mut buckets = candidate_memberships_selected(units, unit_keys, opts, 0..units.len(), None);
     buckets.retain(|_, members| members.len() >= 2);
     buckets
 }
 
-fn append_lsh_memberships(
-    buckets: &mut BTreeMap<BucketKey, Vec<UnitKey>>,
+fn candidate_memberships_selected(
     units: &[UnitFeat],
     unit_keys: &[UnitKey],
-    bands: usize,
-    shape: bool,
-) {
-    let Some(first) = units.first() else { return };
-    let first_signature = if shape {
+    opts: &DetectOptions,
+    indices: impl IntoIterator<Item = usize>,
+    target_keys: Option<&BTreeSet<BucketKey>>,
+) -> BTreeMap<BucketKey, Vec<UnitKey>> {
+    let mut buckets = BTreeMap::new();
+    let value_rows = signature_rows(units, opts.bands, false);
+    let shape_rows = signature_rows(units, opts.bands, true);
+    for index in indices {
+        let unit = &units[index];
+        let key = unit_keys[index];
+        for_each_bucket_key(unit, opts, value_rows, shape_rows, |bucket| {
+            if target_keys.is_none_or(|targets| targets.contains(&bucket)) {
+                buckets.entry(bucket).or_insert_with(Vec::new).push(key);
+            }
+        });
+    }
+    buckets
+}
+
+fn signature_rows(units: &[UnitFeat], bands: usize, shape: bool) -> Option<usize> {
+    let first = units.first()?;
+    let signature = if shape {
         &first.shape_minhash
     } else {
         &first.minhash
     };
-    if first_signature.is_empty() || bands == 0 {
-        return;
-    }
-    let rows = (first_signature.len() / bands).max(1);
-    for (unit, &key) in units.iter().zip(unit_keys) {
-        let signature = if shape {
-            &unit.shape_minhash
-        } else {
-            &unit.minhash
-        };
-        for band in 0..bands {
-            let start = band * rows;
-            if start >= signature.len() {
-                continue;
-            }
-            let end = (start + rows).min(signature.len());
-            let hash = band_hash(band, &signature[start..end]);
-            let bucket = if shape {
-                BucketKey::ShapeBand(hash)
-            } else {
-                BucketKey::ValueBand(hash)
-            };
-            buckets.entry(bucket).or_default().push(key);
+    (!signature.is_empty() && bands > 0).then(|| (signature.len() / bands).max(1))
+}
+
+fn for_each_bucket_key(
+    unit: &UnitFeat,
+    opts: &DetectOptions,
+    value_rows: Option<usize>,
+    shape_rows: Option<usize>,
+    mut visit: impl FnMut(BucketKey),
+) {
+    if opts.value_candidates {
+        if let Some(rows) = value_rows {
+            visit_lsh_buckets(&unit.minhash, opts.bands, rows, false, &mut visit);
         }
+        if exact_claim_eligible(unit) {
+            visit(BucketKey::ExactValue(digest_u64s(&unit.value)));
+        }
+    }
+    if opts.shape_candidates {
+        if let Some(rows) = shape_rows {
+            visit_lsh_buckets(&unit.shape_minhash, opts.bands, rows, true, &mut visit);
+        }
+        let floor = nose_normalize::anchor_min_weight();
+        for anchor in &unit.anchors {
+            if anchor.weight >= floor {
+                visit(BucketKey::Anchor(anchor.hash));
+            }
+        }
+    }
+}
+
+fn visit_lsh_buckets(
+    signature: &[u64],
+    bands: usize,
+    rows: usize,
+    shape: bool,
+    visit: &mut impl FnMut(BucketKey),
+) {
+    for band in 0..bands {
+        let start = band * rows;
+        if start >= signature.len() {
+            continue;
+        }
+        let end = (start + rows).min(signature.len());
+        let hash = band_hash(band, &signature[start..end]);
+        visit(if shape {
+            BucketKey::ShapeBand(hash)
+        } else {
+            BucketKey::ValueBand(hash)
+        });
     }
 }
 

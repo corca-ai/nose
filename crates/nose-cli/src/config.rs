@@ -14,6 +14,7 @@
 //! ignore-file = "nose.ignore.json"
 //! semantic-packs = ["semantic-packs/python-math-prod.json"]
 //! semantic-pack-lock = "nose.semantic-pack-lock.json"
+//! cache-max-bytes = 5368709120
 //! ```
 
 use serde::Deserialize;
@@ -42,6 +43,8 @@ pub(crate) struct QueryConfig {
     pub semantic_packs: Vec<PathBuf>,
     /// Content-pinned v1 project lock. It is mutually exclusive with `semantic-packs`.
     pub semantic_pack_lock: Option<PathBuf>,
+    /// Maximum managed `--cache-dir` storage. The default is 5GiB.
+    pub cache_max_bytes: Option<u64>,
 }
 
 #[derive(Deserialize, Default)]
@@ -131,11 +134,12 @@ mod tests {
     fn valid_config_still_loads() {
         let p = write_cfg(
             "ok",
-            "[query]\nmin-value = 200\nmin-size = 30\ngenerated-paths = [\"generated/**\"]\nignore-file = \"nose.ignore.json\"\nsemantic-packs = [\"packs\"]\n",
+            "[query]\nmin-value = 200\nmin-size = 30\ncache-max-bytes = 1048576\ngenerated-paths = [\"generated/**\"]\nignore-file = \"nose.ignore.json\"\nsemantic-packs = [\"packs\"]\n",
         );
         let cfg = load_query(Some(&p)).expect("valid config must load");
         assert_eq!(cfg.min_value, Some(200.0));
         assert_eq!(cfg.min_size, Some(30));
+        assert_eq!(cfg.cache_max_bytes, Some(1_048_576));
         assert_eq!(cfg.generated_paths, vec!["generated/**"]);
         assert_eq!(
             cfg.ignore_file,

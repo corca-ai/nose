@@ -45,6 +45,7 @@ pub(super) fn build_query_dataset(
             &opts,
             detector.as_ref(),
             &semantic_packs,
+            settings.cache_max_bytes,
         );
 
     let mut families = time_stage("rank_families", || nose_detect::rank_families(&report));
@@ -97,6 +98,7 @@ pub(super) fn build_query_dataset(
             line_context.as_ref(),
         )
     });
+    finish_cache_run(line_context);
     let sort = settings.sort;
     time_stage("query_rank_sort", || {
         families.sort_by(|a, b| {
@@ -127,6 +129,21 @@ pub(super) fn build_query_dataset(
         reinvented,
         opts,
     })
+}
+
+fn finish_cache_run(context: Option<cache::CachedLineContext>) {
+    let Some(context) = context else { return };
+    if let Err(error) = context.run.commit() {
+        if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+            eprintln!("  [cache-generation] commit skipped: {error}");
+        }
+    } else if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+        eprintln!(
+            "  [cache-generation] written_bytes={}",
+            context.run.written_bytes()
+        );
+    }
+    cache::enforce_run_budget(context.run);
 }
 
 /// `direct_edges` is the richer representation needed by the `base=` divergence view.
@@ -160,6 +177,7 @@ pub(super) struct QuerySettings {
     pub(super) exclude: Vec<String>,
     pub(super) generated_paths: GeneratedPathAssertions,
     pub(super) ignore_set: Option<ignores::IgnoreSet>,
+    pub(super) cache_max_bytes: u64,
 }
 
 pub(super) fn resolve_query_semantic_packs(
@@ -205,6 +223,10 @@ fn resolve_query_settings(
     let channels = DetectionChannels::resolve(args.mode.clone(), cfg.mode, QUERY_DEFAULT_MODES)?;
     let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
     let min_tokens = args.min_size.or(cfg.min_size).unwrap_or(24);
+    let cache_max_bytes = args
+        .cache_max_bytes
+        .or(cfg.cache_max_bytes)
+        .unwrap_or(cache::DEFAULT_MAX_BYTES);
     let ignore_file = args.ignore_file.clone().or(cfg.ignore_file);
     let semantic_packs = semantic_pack_set_from_inputs(
         cfg.semantic_packs,
@@ -234,6 +256,7 @@ fn resolve_query_settings(
             exclude,
             generated_paths,
             ignore_set,
+            cache_max_bytes,
         },
         semantic_packs,
     ))
@@ -241,6 +264,14 @@ fn resolve_query_settings(
 
 /// With --cache-dir, build units per file through the on-disk cache (skips
 /// normalize/extract for unchanged files); otherwise lower the whole corpus.
+type DetectionReport = (
+    nose_detect::Report,
+    QueryScope,
+    nose_semantics::SemanticPackNearRegistry,
+    nose_semantics::SemanticPackExternalExactRegistry,
+    Option<cache::CachedLineContext>,
+);
+
 fn query_detect_report(
     args: &QueryArgs,
     refs: &[&std::path::Path],
@@ -248,21 +279,17 @@ fn query_detect_report(
     opts: &nose_detect::DetectOptions,
     detector: &dyn nose_detect::Detector,
     semantic_packs: &nose_semantics::SemanticPackSet,
-) -> (
-    nose_detect::Report,
-    QueryScope,
-    nose_semantics::SemanticPackNearRegistry,
-    nose_semantics::SemanticPackExternalExactRegistry,
-    Option<cache::CachedLineContext>,
-) {
+    cache_max_bytes: u64,
+) -> DetectionReport {
     let (mut corpus, invalidation_report, unit_contexts, cache_identity_parts, line_context) =
         if let Some(dir) = &args.cache_dir {
-            let cached =
-                time_lower(|| cache::build_corpus_cached(refs, exclude, dir, semantic_packs));
+            let cached = time_lower(|| {
+                cache::build_corpus_cached(refs, exclude, dir, semantic_packs, cache_max_bytes)
+            });
+            let run = cached.run.clone();
             let line_context = cache::CachedLineContext {
-                cache_dir: dir.clone(),
-                workspace_digest: cached.workspace_digest,
                 source_files: cached.source_files,
+                run,
             };
             (
                 cached.corpus,
@@ -280,14 +307,7 @@ fn query_detect_report(
                 None,
             )
         };
-    if std::env::var_os("NOSE_CACHE_STATS").is_some() {
-        if let Some(report) = &invalidation_report {
-            eprintln!(
-                "  [invalidation] {}",
-                cache::invalidation_report_json(report)
-            );
-        }
-    }
+    print_invalidation(invalidation_report.as_ref());
     let scope = QueryScope::from_corpus(&corpus);
     let semantic_pack_evidence =
         nose_semantics::SemanticPackEvidenceIndex::build(semantic_packs, &corpus);
@@ -302,7 +322,7 @@ fn query_detect_report(
         &corpus,
     );
     semantic_pack_external_exact.apply(&mut corpus);
-    let (mut units, unit_keys, streams, files) = if let Some(dir) = &args.cache_dir {
+    let (mut units, unit_keys, streams, files) = if args.cache_dir.is_some() {
         let cache::CachedUnits {
             units,
             unit_keys,
@@ -311,9 +331,12 @@ fn query_detect_report(
             stats,
         } = time_stage("cache", || {
             cache::build_units_cached_with_context(
-                &corpus,
+                &mut corpus,
                 opts,
-                dir,
+                &line_context
+                    .as_ref()
+                    .expect("cached corpus includes a cache run")
+                    .run,
                 unit_contexts
                     .as_deref()
                     .expect("cached corpus includes unit contexts"),
@@ -338,9 +361,11 @@ fn query_detect_report(
                 semantic_pack_near.protocols_for_unit(&unit.path, unit.start_line, unit.end_line);
         }
     }
+    drop(semantic_pack_evidence);
+    drop(corpus);
     let report = detect_cached_or_clean(
-        args,
         cache_identity_parts,
+        line_context.as_ref().map(|context| &context.run),
         (units, unit_keys.as_deref()),
         files,
         &streams,
@@ -356,9 +381,20 @@ fn query_detect_report(
     )
 }
 
+fn print_invalidation(report: Option<&cache::InvalidationReport>) {
+    if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+        if let Some(report) = report {
+            eprintln!(
+                "  [invalidation] {}",
+                cache::invalidation_report_json(report)
+            );
+        }
+    }
+}
+
 fn detect_cached_or_clean(
-    args: &QueryArgs,
     cache_identity_parts: Option<([u8; 32], [u8; 32])>,
+    cache_run: Option<&cache::CacheRun>,
     detection_units: (Vec<nose_detect::UnitFeat>, Option<&[[u8; 32]]>),
     files: usize,
     streams: &[nose_detect::Stream],
@@ -366,15 +402,14 @@ fn detect_cached_or_clean(
     detector: &dyn nose_detect::Detector,
 ) -> nose_detect::Report {
     let (units, unit_keys) = detection_units;
-    let (Some(dir), Some((workspace, pack_digest))) = (&args.cache_dir, cache_identity_parts)
-    else {
+    let (Some(run), Some((workspace, pack_digest))) = (cache_run, cache_identity_parts) else {
         return nose_detect::detect_from_units_with_accepted_coverage(
             units, files, streams, opts, detector,
         )
         .0;
     };
     let identity = cache::DetectionCacheIdentity::new(workspace, pack_digest, opts, detector);
-    let previous = cache::load_detection_state(dir, &identity);
+    let previous = cache::load_detection_state(run, &identity);
     let (report, _dump, state, stats) =
         nose_detect::detect_from_units_incremental_with_accepted_coverage(
             units, files, streams, opts, detector, previous, unit_keys,
@@ -387,7 +422,7 @@ fn detect_cached_or_clean(
         || stats.connected_evaluations_evaluated > 0
         || stats.contiguous_streams_rebuilt > 0
     {
-        cache::store_detection_state(dir, &identity, &state);
+        cache::store_detection_state(run, &identity, &state);
     }
     if std::env::var_os("NOSE_CACHE_STATS").is_some() {
         eprintln!(

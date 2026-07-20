@@ -26,7 +26,7 @@ nose capabilities
 
 ```json
 {
-  "schema_version": 7,
+  "schema_version": 8,
   "tool": {
     "name": "nose",
     "version": "<version>"
@@ -42,11 +42,14 @@ nose capabilities
     "doctor_json": false
   },
   "commands": {
-    "stable": ["capabilities", "il", "query", "semantic-pack", "stats"],
+    "stable": ["cache", "capabilities", "il", "query", "semantic-pack", "stats"],
     "deprecated": []
   },
   "schemas": {
-    "capabilities": [7],
+    "capabilities": [8],
+    "cache_status": ["nose.cache-status/v1"],
+    "cache_prune": ["nose.cache-prune/v1"],
+    "cache_clear": ["nose.cache-clear/v1"],
     "query_json": [8, 9],
     "semantic_packs": ["nose.semantic-pack.v0", "nose.semantic-pack.v1"],
     "semantic_pack_locks": ["nose.semantic-pack-lock.v1"],
@@ -63,6 +66,7 @@ nose capabilities
     "output_formats": ["human", "json", "markdown", "sarif"],
     "sort_keys": ["extractability", "value", "sites", "hazard"],
     "config_keys": [
+      "cache-max-bytes",
       "exclude",
       "generated-paths",
       "ignore-file",
@@ -164,11 +168,11 @@ release so it can't drift.
 The JSON example above is compared against `nose capabilities` by the CLI integration test;
 only `tool.version` and the platform values are normalized for the local build.
 
-## Version 7 Fields
+## Version 8 Fields
 
 | field | type | meaning |
 |---|---|---|
-| `schema_version` | integer | Capabilities contract version. Version 7 is documented here. |
+| `schema_version` | integer | Capabilities contract version. Version 8 is documented here. |
 | `tool.name` | string | Always `nose`. |
 | `tool.version` | string | Package version of the installed binary. |
 | `platform.os` | string | Rust target OS name, such as `linux`, `macos`, or `windows`. |
@@ -178,8 +182,11 @@ only `tool.version` and the platform values are normalized for the local build.
 | `interfaces.version_json` | boolean | Whether `nose --version --json` is supported. Version 1 reports `false`. |
 | `interfaces.doctor_json` | boolean | Whether `nose doctor --json` is supported. Version 1 reports `false`. |
 | `commands.stable` | array | Stable user-facing commands that integrations may invoke (incl. `query`, the interactive exploration surface — see [usage › nose query](usage.md#nose-query), with its versioned [query-JSON](query-json.md) contract). Hidden research commands are intentionally omitted. |
-| `commands.deprecated` | array | Commands that still work but are being retired. Version 7 reports an empty array. |
+| `commands.deprecated` | array | Commands that still work but are being retired. Version 8 reports an empty array. |
 | `schemas.capabilities` | array | Supported capabilities schema versions. |
+| `schemas.cache_status` | array | Supported `nose cache status --format json` schemas. |
+| `schemas.cache_prune` | array | Supported `nose cache prune --format json` schemas. |
+| `schemas.cache_clear` | array | Supported `nose cache clear --format json` schemas. |
 | `schemas.query_json` | array | Supported `nose query --format json` schema versions ([query-json](query-json.md)). |
 | `schemas.semantic_packs` | array | Supported semantic-pack manifest API versions, currently `nose.semantic-pack.v0` and `nose.semantic-pack.v1`. |
 | `schemas.semantic_pack_locks` | array | Supported project-lock API versions, currently `nose.semantic-pack-lock.v1`. |
@@ -202,18 +209,18 @@ only `tool.version` and the platform values are normalized for the local build.
 | `semantic_packs.project_lock_output_formats` | array | Supported lock/status report formats. |
 | `semantic_packs.conformance` | array | Supported conformance input sources: local manifest files/directories. |
 | `semantic_packs.conformance_output_formats` | array | Supported `nose semantic-pack check --format` values. |
-| `semantic_packs.inventory` | array | Supported inventory sources. Version 7 reports `compiled-builtin`. |
+| `semantic_packs.inventory` | array | Supported inventory sources. Version 8 reports `compiled-builtin`. |
 | `semantic_packs.inventory_output_formats` | array | Supported `nose semantic-pack inventory --format` values. |
-| `semantic_packs.adoption_gates` | array | Supported adoption-gate report sources. Version 7 reports `compiled-builtin`. |
+| `semantic_packs.adoption_gates` | array | Supported adoption-gate report sources. Version 8 reports `compiled-builtin`. |
 | `semantic_packs.adoption_gate_output_formats` | array | Supported `nose semantic-pack adoption-gates --format` values. |
-| `semantic_packs.compatibility` | array | Supported compatibility report sources. Version 7 reports `policy`. |
+| `semantic_packs.compatibility` | array | Supported compatibility report sources. Version 8 reports `policy`. |
 | `semantic_packs.compatibility_output_formats` | array | Supported `nose semantic-pack compatibility --format` values. |
 | `semantic_packs.trust` | array | Supported trust policy labels. |
 | `semantic_packs.external_packs_enabled_by_default` | boolean | Always `false`; external packs require explicit CLI/config opt-in. |
 | `semantic_packs.external_pack_influence` | string | Current external boundary: unlocked/v0 metadata, dependency-backed locked v1 near influence, or receipt-backed external-claim exact. |
-| `semantic_packs.external_exact_operations` | array | Closed external-exact kernel operations; version 7 contains only `collection-factory`. |
+| `semantic_packs.external_exact_operations` | array | Closed external-exact kernel operations; version 8 contains only `collection-factory`. |
 | `semantic_packs.external_influence_blockers` | array | Stable blocker labels that currently prevent external rows from influencing analysis. |
-| `semantic_packs.external_pack_execution` | string | Current external pack execution support. Version 7 reports `none`; nose analyzes fixture source but never executes fixture programs, recognizers, parser/lowering plugins, producer code, or sandboxed code. |
+| `semantic_packs.external_pack_execution` | string | Current external pack execution support. Version 8 reports `none`; nose analyzes fixture source but never executes fixture programs, recognizers, parser/lowering plugins, producer code, or sandboxed code. |
 | `il.output_formats` | array | Supported `nose il --format` values. |
 | `il.normalized` | boolean | Whether `nose il --normalized` is supported. |
 | `il.cfg_norm_toggle` | boolean | Whether `nose il --no-cfg-norm` is supported. |
@@ -235,7 +242,7 @@ is limited to the operation advertised by `external_exact_operations`.
 
 ## Query Capability Flags
 
-Version 7 defines these `query.capabilities` keys:
+Version 8 defines these `query.capabilities` keys:
 
 | key | meaning |
 |---|---|

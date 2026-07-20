@@ -130,6 +130,9 @@ pub(crate) enum Cmd {
         /// Cache per-file analysis under this directory; re-runs reuse it for unchanged files.
         #[arg(long, value_name = "DIR")]
         cache_dir: Option<PathBuf>,
+        /// Maximum managed cache size; accepts byte counts or KiB/MiB/GiB suffixes. [default: 5GiB]
+        #[arg(long, value_name = "SIZE", requires = "cache_dir", value_parser = parse_byte_size)]
+        cache_max_bytes: Option<u64>,
         /// Structured-ignore file for suppressed families; auto-read `nose.ignore.json` when present.
         #[arg(long, value_name = "FILE")]
         ignore_file: Option<PathBuf>,
@@ -224,6 +227,11 @@ pub(crate) enum Cmd {
     },
     /// Emit the machine-readable capability contract for integrations.
     Capabilities,
+    /// Inspect or reclaim an incremental analysis cache.
+    Cache {
+        #[command(subcommand)]
+        cmd: CacheCmd,
+    },
     /// Validate semantic-pack v0 manifests/fixtures or compile typed v1 manifests.
     #[command(name = "semantic-pack")]
     SemanticPack {
@@ -345,6 +353,35 @@ pub(crate) enum Cmd {
 }
 
 #[derive(Subcommand)]
+pub(crate) enum CacheCmd {
+    /// Report active, historical, and reclaimable cache storage.
+    Status {
+        #[arg(long, value_name = "DIR")]
+        dir: PathBuf,
+        #[arg(long, default_value = "5GiB", value_name = "SIZE", value_parser = parse_byte_size)]
+        max_bytes: u64,
+        #[arg(long, value_enum, default_value_t = StatsFormat::Human)]
+        format: StatsFormat,
+    },
+    /// Remove old schemas, orphaned generations, and entries beyond the size limit.
+    Prune {
+        #[arg(long, value_name = "DIR")]
+        dir: PathBuf,
+        #[arg(long, default_value = "5GiB", value_name = "SIZE", value_parser = parse_byte_size)]
+        max_bytes: u64,
+        #[arg(long, value_enum, default_value_t = StatsFormat::Human)]
+        format: StatsFormat,
+    },
+    /// Remove every nose-managed entry while preserving unrelated files in the directory.
+    Clear {
+        #[arg(long, value_name = "DIR")]
+        dir: PathBuf,
+        #[arg(long, value_enum, default_value_t = StatsFormat::Human)]
+        format: StatsFormat,
+    },
+}
+
+#[derive(Subcommand)]
 pub(crate) enum SemanticPackCmd {
     /// Check local semantic-pack v0 manifests or compile typed v1 manifests.
     Check {
@@ -445,6 +482,7 @@ pub(crate) struct QueryArgs {
     pub(crate) config: Option<PathBuf>,
     pub(crate) mode: Vec<DetectionMode>,
     pub(crate) cache_dir: Option<PathBuf>,
+    pub(crate) cache_max_bytes: Option<u64>,
     pub(crate) fail_on: Option<FailOn>,
     pub(crate) baseline: Option<PathBuf>,
     pub(crate) ignore_file: Option<PathBuf>,
@@ -457,6 +495,32 @@ pub(crate) struct QueryArgs {
     pub(crate) min_size: Option<usize>,
     pub(crate) min_lines: Option<u32>,
     pub(crate) scope: ScopeFilter,
+}
+
+fn parse_byte_size(value: &str) -> Result<u64, String> {
+    let trimmed = value.trim();
+    let split = trimmed
+        .find(|character: char| !character.is_ascii_digit())
+        .unwrap_or(trimmed.len());
+    let (number, suffix) = trimmed.split_at(split);
+    let number = number
+        .parse::<u64>()
+        .map_err(|_| format!("invalid cache size `{value}`"))?;
+    let multiplier = match suffix.to_ascii_lowercase().as_str() {
+        "" | "b" => 1,
+        "kib" => 1024,
+        "mib" => 1024 * 1024,
+        "gib" => 1024 * 1024 * 1024,
+        "tib" => 1024_u64.pow(4),
+        _ => {
+            return Err(format!(
+                "invalid cache size suffix in `{value}`; use B, KiB, MiB, GiB, or TiB"
+            ))
+        }
+    };
+    number
+        .checked_mul(multiplier)
+        .ok_or_else(|| format!("cache size `{value}` is too large"))
 }
 
 /// `--scope`: which test-boundary side of the report to keep. An explicit
@@ -482,5 +546,18 @@ impl ScopeFilter {
             ScopeFilter::Prod => family.scope != "test",
             ScopeFilter::Test => family.scope == "test",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_byte_size;
+
+    #[test]
+    fn cache_sizes_accept_exact_binary_units_and_reject_ambiguous_suffixes() {
+        assert_eq!(parse_byte_size("512").unwrap(), 512);
+        assert_eq!(parse_byte_size("2GiB").unwrap(), 2 * 1024 * 1024 * 1024);
+        assert!(parse_byte_size("2GB").is_err());
+        assert!(parse_byte_size("18446744073709551615TiB").is_err());
     }
 }

@@ -2,7 +2,8 @@
 
 The 0.20 Instant Monorepo cache uses one layered content-addressed store (CAS) contract for every
 analysis stage. #873 defined the portable trust boundary, #874 activated dependency-aware source
-and IL reuse, and #875 adds delete-capable global detection and family-line state.
+and IL reuse, #875 added delete-capable global state, and #876 commits that state transactionally
+inside a bounded store.
 
 ## Layer contract
 
@@ -17,11 +18,12 @@ at a different address. The six stable stage identities are:
 | export/dependency summary | actively written and checksummed | deterministic export graph and SCC closure |
 | resolved IL | actively read and written | raw IL plus the region's dependency context |
 | units and syntax streams | actively read and written | resolved IL plus unit-affecting options |
-| global detection indexes | actively read and written | stable unit ids, bucket refcounts, pair scores, components, witnesses, syntax runs, line IDF, and family-line analyses |
+| transactional state | actively read and written | stable detection indexes, manifests, line IDF, family-line analyses, and diagnostics |
 
-Raw and resolved IL use named MessagePack wrapped in fast LZ4 blocks; the decoder rejects a claimed
-region expansion above 512 MiB before allocation. The units layer stays named MessagePack without
-compression because those payloads are already compact feature hashes and dominate warm reads.
+Raw and resolved IL use independently bounded Zstandard-framed MessagePack regions inside the
+shared envelope; the decoder rejects a region above 512 MiB before decompression. Keeping regions
+independent avoids inflating every file in a parallel warm load. Units and global acceleration
+state use envelope-level Zstandard compression because they dominate the remaining store size.
 Discovery still walks the selected roots so additions and deletions are visible, but a clean
 tracked raw hit needs no source read or parse in the lowering stage. Dependency summaries scan raw
 IL, compute consumer-visible literal surfaces, collapse cycles deterministically, and resolve
@@ -54,35 +56,48 @@ more than necessary when an unrelated export changes, but it cannot reuse a stal
 the path is listed under `over_invalidated`. Discovery membership, semantic-pack influence, and
 corpus-global line-statistics digests also drive the downstream incremental global stages.
 
-The mutable `state-v1` workspace record exists only to explain changes and deleted paths. It is not
-a cache-key or reuse input: deleting or corrupting it loses reason history, never correctness.
+The workspace diagnostic record exists only to explain changes and deleted paths. It is not a
+cache-key or reuse input: deleting or corrupting it loses reason history, never correctness.
 Under `NOSE_CACHE_STATS=1`, stderr includes one `nose.invalidation/v1` JSON closure alongside the
 backward-compatible `[cache]` units line. Cold start is summarized globally instead of listing
 every file; history-bearing runs list the exact changed/deleted closure. Resolved `passthrough`
 counts identify regions whose raw IL is already the correct resolved form, so no duplicate payload
 is stored.
 
-The #875 detection, line-index, and family-line records are schema-scoped mutable acceleration
-state. Exact unit/source identities guard reuse, and a missing, corrupt, or incompatible record
-falls back to clean recomputation. #876 owns committing these mutually dependent records as one
-bounded generation; until then each record is atomically replaced but the set is not one
-transaction.
+Detection, line-index, family-line, source-manifest, and diagnostic records are immutable
+MessagePack state objects. A generation manifest names one complete slot set and a checksummed
+`CURRENT` pointer is replaced last. An interrupted writer therefore leaves the previous generation
+visible; an unreferenced object or manifest is reclaimable. Concurrent processes share a run lease,
+serialize commits per workspace, reload the latest generation under that lock, and merge disjoint
+slot updates. `prune` and `clear` acquire the exclusive store lease only after active queries finish.
+Exact unit/source identities still guard reuse, so missing, evicted, corrupt, or incompatible state
+always falls back to clean recomputation.
 
 ## Envelope and failure behavior
 
-CAS v1 entries live below `cas-v1/<stage>/<digest-prefix>/`. A fixed binary header binds:
+CAS v2 entries live below `cas-v2/<stage>/<digest-prefix>/`; generation state lives below
+`state-v2/<workspace>/`. A fixed binary header binds:
 
-- the `NOSECAS1` magic and envelope schema;
+- the `NOSECAS2` magic and envelope schema;
 - stage id and stage-local schema;
 - the complete 256-bit requested address;
 - exact payload length; and
 - an independent SHA-256 checksum of the payload.
 
-Writers finish a private temporary file before atomic publication. Readers validate every header
-field, exact file length, and checksum before deserialization. A missing, truncated,
+Payloads are Zstandard-compressed only when that reduces their size. Stored and decoded lengths are
+bounded before allocation/decompression. Writers finish and sync a private temporary file before
+atomic publication, then sync the containing directory. Readers validate every header field,
+exact file length, decoded length, and checksum before deserialization. A missing, truncated,
 corrupt, wrong-stage, wrong-schema, or misplaced entry is a cache miss and recomputes; no failure
 path returns unchecked bytes. Concurrent writers of one address converge on complete envelopes,
 while a racing reader can at worst miss and recompute.
+
+The managed store defaults to 5 GiB and can be changed with `--cache-max-bytes` or
+`[query].cache-max-bytes`. Runs that wrote data remove old schema directories, temporary files,
+superseded generations, and orphaned state before evicting the oldest remaining artifacts to the
+budget. `nose cache status|prune|clear --dir <dir>` exposes the same lifecycle explicitly and never
+removes unrelated files below the chosen directory. Eviction can reduce reuse but cannot alter a
+query result.
 
 The payload checksum is deliberately separate from the semantic address. The address proves that
 the requested stage inputs match; the checksum proves that storage returned the exact bytes that
@@ -120,6 +135,10 @@ Focused tests prove:
 - raw and resolved portable round trips produce byte-identical detector JSON;
 - script, style, and markup regions have stable distinct subidentities; and
 - corruption and truncation fail closed.
+- interruption before/after manifest publication keeps the previous complete generation visible;
+- concurrent processes produce byte-identical output and leave a readable merged store;
+- oversized envelopes, bit flips, and truncation warn and recompute; and
+- read-only hits, read-only misses, explicit eviction, and tiny automatic budgets preserve output.
 
 The #275 provider/importer integration test remains the cross-file safety gate. Focused gates also
 cover unchanged export surfaces, shifted `FileId`s with an active import edge, Swift global

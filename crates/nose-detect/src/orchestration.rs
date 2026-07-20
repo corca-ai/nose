@@ -166,7 +166,7 @@ pub fn detect_from_units_incremental_with_accepted_coverage(
 ) {
     let mut clk = StageTimer::new();
     let mut stats = IncrementalDetectionStats::new();
-    let prepared = incremental::prepare(&units, stable_unit_keys, opts, previous, &mut stats);
+    let mut prepared = incremental::prepare(&units, stable_unit_keys, opts, previous, &mut stats);
     clk.lap("candidates");
     let (scored, accepted) =
         incremental::score(&units, &prepared, detector, opts.threshold, &mut stats);
@@ -183,7 +183,7 @@ pub fn detect_from_units_incremental_with_accepted_coverage(
             opts.contiguous_min_tokens,
             opts.contiguous_min_lines,
             false,
-            prepared.previous_contiguous.as_ref(),
+            prepared.previous_contiguous.take(),
         );
         stats.contiguous_streams_reused = contiguous_stats.streams_reused;
         stats.contiguous_streams_rebuilt = contiguous_stats.streams_rebuilt;

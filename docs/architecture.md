@@ -128,6 +128,10 @@ new code should follow the focused owners there rather than growing dispatcher o
   Connected/same-unit evidence includes its file-context digest, syntax runs are partitioned by
   shared k-grams, and line-IDF/family weights use source-frequency deltas. The full storage and
   invalidation contract is in [portable cache artifacts](portable-cache-artifacts.md).
+- **Transactional, bounded cache state.** Immutable, checksummed records are published before one
+  complete generation manifest; its `CURRENT` pointer is replaced last. Concurrent query processes
+  share the store while prune/clear wait for writers. Schema-scoped garbage collection and a 5 GiB
+  default budget make eviction a performance event rather than a correctness event.
 - **Determinism is a hard invariant.** Output is byte-identical across runs *and*
   thread counts. File ids come from a sorted path list; nothing iterates a
   `HashMap` into the output. There are tests for both.

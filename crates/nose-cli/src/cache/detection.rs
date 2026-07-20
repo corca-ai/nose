@@ -1,20 +1,18 @@
 //! Process-boundary persistence for `nose-detect`'s opaque incremental state.
 
 use super::digest::ContentDigest;
+use super::CacheRun;
 use nose_detect::{DetectOptions, IncrementalDetectionState};
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
 
-static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+const STATE_SCHEMA: u32 = 1;
 
 pub(crate) struct DetectionCacheIdentity {
-    workspace: [u8; 32],
     query: ContentDigest,
 }
 
 impl DetectionCacheIdentity {
     pub(crate) fn new(
-        workspace: [u8; 32],
+        _workspace: [u8; 32],
         semantic_packs: [u8; 32],
         opts: &DetectOptions,
         detector: &dyn nose_detect::Detector,
@@ -22,7 +20,6 @@ impl DetectionCacheIdentity {
         let options = options_bytes(opts);
         let environment = influential_environment();
         Self {
-            workspace,
             query: ContentDigest::derive(
                 b"nose.incremental-detection-query.v1",
                 &[
@@ -34,43 +31,29 @@ impl DetectionCacheIdentity {
             ),
         }
     }
+
+    fn slot(&self) -> String {
+        format!("detection/{}", self.query.hex())
+    }
 }
 
 pub(crate) fn load_detection_state(
-    root: &Path,
+    run: &CacheRun,
     identity: &DetectionCacheIdentity,
 ) -> Option<IncrementalDetectionState> {
-    let bytes = std::fs::read(state_path(root, identity)).ok()?;
+    let bytes = run.load(&identity.slot(), STATE_SCHEMA)?;
     rmp_serde::from_slice(&bytes).ok()
 }
 
 pub(crate) fn store_detection_state(
-    root: &Path,
+    run: &CacheRun,
     identity: &DetectionCacheIdentity,
     state: &IncrementalDetectionState,
 ) {
-    let path = state_path(root, identity);
-    let Some(parent) = path.parent() else { return };
-    if std::fs::create_dir_all(parent).is_err() {
-        return;
-    }
     let Ok(bytes) = rmp_serde::to_vec(state) else {
         return;
     };
-    let temp = parent.join(format!(
-        ".{}.{}.tmp",
-        std::process::id(),
-        TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
-    ));
-    if std::fs::write(&temp, bytes).is_ok() && std::fs::rename(&temp, &path).is_err() {
-        let _ = std::fs::remove_file(&temp);
-    }
-}
-
-fn state_path(root: &Path, identity: &DetectionCacheIdentity) -> PathBuf {
-    root.join("detection-state-v1")
-        .join(hex(&identity.workspace))
-        .join(format!("{}.msgpack", identity.query.hex()))
+    run.store(&identity.slot(), STATE_SCHEMA, &bytes);
 }
 
 fn options_bytes(opts: &DetectOptions) -> Vec<u8> {
@@ -112,15 +95,6 @@ fn influential_environment() -> Vec<u8> {
         .collect::<Vec<_>>();
     rows.sort();
     rows.into_iter().flatten().collect()
-}
-
-fn hex(bytes: &[u8; 32]) -> String {
-    let mut out = String::with_capacity(64);
-    for byte in bytes {
-        use std::fmt::Write as _;
-        write!(&mut out, "{byte:02x}").expect("writing to String cannot fail");
-    }
-    out
 }
 
 #[cfg(test)]
