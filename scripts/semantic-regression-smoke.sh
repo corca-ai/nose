@@ -142,9 +142,8 @@ if [[ -z "$baseline_binary" ]]; then
   # Cargo's package fingerprints do not distinguish two worktrees of the same
   # package version in one target directory. Without this workspace-only clean,
   # the head build can reuse a base-worktree rlib across an internal API change
-  # and fail (or, worse, produce a mixed-revision binary). Keep downloaded and
-  # third-party dependency artifacts, but rebuild every workspace member from
-  # the head tree.
+  # and fail (or, worse, produce a mixed-revision binary). Keep the Cargo cache,
+  # but rebuild the release target from the head tree.
   (
     cd "$worktree_root/head"
     cargo clean --release --workspace --target-dir "$cargo_target"
