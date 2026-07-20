@@ -1,6 +1,4 @@
-use super::*;
-
-pub(super) fn annotate_semantic_pack_near(
+fn annotate_semantic_pack_near(
     families: &mut [nose_detect::RefactorFamily],
     registry: &nose_semantics::SemanticPackNearRegistry,
 ) {
@@ -41,7 +39,7 @@ pub(super) fn annotate_semantic_pack_near(
     }
 }
 
-pub(super) fn annotate_semantic_pack_external_exact(
+fn annotate_semantic_pack_external_exact(
     families: &mut [nose_detect::RefactorFamily],
     registry: &nose_semantics::SemanticPackExternalExactRegistry,
 ) {
@@ -65,7 +63,7 @@ pub(super) fn annotate_semantic_pack_external_exact(
 /// Compute the honest shared-line count for each family, before ranking. This layer has
 /// source access; the detector deals only in IL. Cross-language families keep the
 /// detector's structural estimate because they have no shared source lines to diff.
-pub(super) fn weight_shared_lines(
+fn weight_shared_lines(
     families: &mut [nose_detect::RefactorFamily],
     refs: &[&std::path::Path],
     exclude: &[String],

@@ -16,10 +16,7 @@ use crate::timing::{time_lower, time_stage};
 use crate::{cache, config, ignores};
 use std::collections::BTreeSet;
 
-mod annotations;
-use annotations::{
-    annotate_semantic_pack_external_exact, annotate_semantic_pack_near, weight_shared_lines,
-};
+include!("query_dataset/annotations.rs");
 
 /// The ranked family dataset behind `nose query`: detect, rank,
 /// filter (min-members / min-value / scope), relativize paths, weight shared lines, and

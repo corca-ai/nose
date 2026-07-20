@@ -1,12 +1,10 @@
-use super::*;
-
-pub(crate) fn fast_invalidation_report(
+pub(super) fn fast_invalidation_report(
     snapshot: &CachedUnitSnapshot,
-    current_sources: &[super::super::CachedSourceFile],
+    current_sources: &[super::CachedSourceFile],
     changed_source: Option<&str>,
 ) -> InvalidationReport {
-    let current_discovery = super::super::source::discovery_digest(current_sources);
-    let current_lines = super::super::source::global_line_statistics_digest(current_sources);
+    let current_discovery = super::source::discovery_digest(current_sources);
+    let current_lines = super::source::global_line_statistics_digest(current_sources);
     let current_identities = current_sources
         .iter()
         .map(|source| (source.path.as_str(), source.source_kind))

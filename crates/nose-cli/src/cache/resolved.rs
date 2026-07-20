@@ -9,8 +9,7 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
-mod fast_report;
-pub(super) use fast_report::fast_invalidation_report;
+include!("resolved/fast_report.rs");
 
 const EXPORT_DEPENDENCY_SCHEMA: u32 = 1;
 const RESOLVED_IL_SCHEMA: u32 = 4;
