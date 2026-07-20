@@ -24,7 +24,8 @@ from query_regression_summary import summarize_runs
 
 
 DEFAULT_QUERY_ARGS = ("query", "{repo}", "all", "top=0", "--mode", "semantic", "--format", "json")
-SCHEMA = "nose.query_regression_harness.v2"
+SCHEMA = "nose.query_regression_harness.v3"
+PAIR_ORDERS = ("baseline-current", "current-baseline")
 TIME_RE = re.compile(r"\[time\]\s+([a-zA-Z0-9_+\-]+)\s+([0-9.]+)ms")
 
 
@@ -176,12 +177,16 @@ def run_once(
     observations = query_observations(
         result.stdout, source=f"{label} {repo_name} iteration {iteration}"
     )
+    pair_order = PAIR_ORDERS[0] if iteration % 2 else PAIR_ORDERS[1]
+    first_label = "baseline" if pair_order == PAIR_ORDERS[0] else "current"
     return {
         "bytes": len(result.stdout),
         "elapsed_ms": elapsed_ms,
         **observations,
         "iteration": iteration,
         "label": label,
+        "pair_order": pair_order,
+        "pair_position": 0 if label == first_label else 1,
         "repo": repo_name,
         "sha256": hashlib.sha256(result.stdout).hexdigest(),
         "stages_ms": parse_stage_timings(result.stderr),
@@ -371,6 +376,8 @@ def run_self_test() -> None:
             query_args=("-c", probe, "{repo}"),
         )
         assert observation["families"] == 0
+        assert observation["pair_order"] == "baseline-current"
+        assert observation["pair_position"] == 0
     print("query regression harness self-test passed")
 
 
@@ -461,7 +468,15 @@ def main() -> int:
         "command": "nose " + " ".join(query_args).replace("{repo}", "<repo>"),
         "corpus": corpus,
         "environment": measurement_environment(),
-        "measurement": {"iterations": args.iterations, "warmups": args.warmups},
+        "measurement": {
+            "iterations": args.iterations,
+            "warmups": args.warmups,
+            "design": {
+                "kind": "paired-alternating-blocks/v1",
+                "block": "iteration",
+                "orders": list(PAIR_ORDERS),
+            },
+        },
         "execution": {
             "repo_argument": "<repo-id>",
             "working_directory": repos_root.as_posix(),

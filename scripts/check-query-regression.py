@@ -12,11 +12,15 @@ from pathlib import Path
 from typing import Any
 
 from query_regression_summary import summarize_runs
+from query_regression_control import run_self_test as run_order_aware_self_test
+from query_regression_control import runtime_signals as order_aware_runtime_signals
 
 
 STATUS_SCHEMA = "nose.semantic_regression_check.v1"
 EXPECTED_DRIFT_SCHEMA = "nose.semantic_regression_expected_drift.v1"
-REPORT_SCHEMA = "nose.query_regression_harness.v2"
+REPORT_SCHEMA_V2 = "nose.query_regression_harness.v2"
+REPORT_SCHEMA_V3 = "nose.query_regression_harness.v3"
+REPORT_SCHEMAS = (REPORT_SCHEMA_V2, REPORT_SCHEMA_V3)
 OUTPUT_KEYS = ("hashes", "bytes", "families", "schema_versions", "surface_counts")
 HEX_RE = re.compile(r"^[0-9a-f]+$")
 
@@ -112,7 +116,7 @@ def require_nonnegative_int(parent: dict[str, Any], key: str, label: str) -> int
     return value
 
 
-def validate_v2_report(
+def validate_structured_report(
     report: dict[str, Any], label: str, *, require_corpus_provenance: bool = False
 ) -> None:
     repos = require_repos(report, label)
@@ -122,6 +126,15 @@ def validate_v2_report(
     if iterations == 0:
         raise CheckFailed(f"{label}.measurement.iterations: expected a positive integer")
     require_nonnegative_int(measurement, "warmups", f"{label}.measurement")
+    if report.get("schema") == REPORT_SCHEMA_V3:
+        design = require_object(measurement, "design", f"{label}.measurement")
+        expected_design = {
+            "kind": "paired-alternating-blocks/v1",
+            "block": "iteration",
+            "orders": ["baseline-current", "current-baseline"],
+        }
+        if design != expected_design:
+            raise CheckFailed(f"{label}.measurement.design: unsupported paired-block design")
 
     provenance = require_provenance(report, label)
     for key in ("baseline_binary_sha256", "current_binary_sha256"):
@@ -247,6 +260,16 @@ def validate_v2_report(
         if identity in observed_runs:
             raise CheckFailed(f"{run_label}: duplicate measurement identity {identity}")
         observed_runs.add(identity)
+        if report.get("schema") == REPORT_SCHEMA_V3:
+            pair_order = require_string(run, "pair_order", run_label)
+            expected_order = "baseline-current" if identity[2] % 2 else "current-baseline"
+            if pair_order != expected_order:
+                raise CheckFailed(f"{run_label}.pair_order: does not alternate by block")
+            pair_position = require_nonnegative_int(run, "pair_position", run_label)
+            first_label = "baseline" if pair_order == "baseline-current" else "current"
+            expected_position = 0 if identity[1] == first_label else 1
+            if pair_position != expected_position:
+                raise CheckFailed(f"{run_label}.pair_position: does not match pair order")
         require_nonnegative_int(run, "bytes", run_label)
         require_nonnegative_int(run, "families", run_label)
         require_nonnegative_int(run, "schema_version", run_label)
@@ -277,15 +300,15 @@ def validate_report_contract(
     report: dict[str, Any], label: str, *, require_corpus_provenance: bool = False
 ) -> str:
     schema = report.get("schema")
-    if schema == REPORT_SCHEMA:
-        validate_v2_report(
+    if schema in REPORT_SCHEMAS:
+        validate_structured_report(
             report, label, require_corpus_provenance=require_corpus_provenance
         )
-        return "v2"
+        return "v3" if schema == REPORT_SCHEMA_V3 else "v2"
     if schema is not None:
         raise CheckFailed(f"{label}.schema: unsupported query regression schema {schema!r}")
     if require_corpus_provenance:
-        raise CheckFailed(f"{label}: corpus provenance requires schema {REPORT_SCHEMA}")
+        raise CheckFailed(f"{label}: corpus provenance requires a structured report schema")
     forbidden = {"measurement", "environment", "execution", "corpus"} & report.keys()
     if forbidden:
         raise CheckFailed(f"{label}: schema-less report contains v2 fields: {sorted(forbidden)}")
@@ -343,7 +366,7 @@ def validate_same_binary_control(
         raise CheckFailed("same-binary control command does not match report command")
     if require_repos(report, "report") != require_repos(control, "same-binary control"):
         raise CheckFailed("same-binary control repo set does not match report repo set")
-    if report.get("schema") == REPORT_SCHEMA:
+    if report.get("schema") in REPORT_SCHEMAS:
         if control.get("schema") != report.get("schema"):
             raise CheckFailed("same-binary control harness schema does not match report")
         if report.get("measurement") != control.get("measurement"):
@@ -369,7 +392,7 @@ def validate_same_binary_control(
         raise CheckFailed(
             "same-binary control code identity must match the report baseline or current binary"
         )
-    if report_kind == "v2":
+    if report_kind in ("v2", "v3"):
         control_base_source = control_provenance.get("baseline_source_sha")
         control_current_source = control_provenance.get("current_source_sha")
         if control_base_source != control_current_source:
@@ -487,7 +510,7 @@ def time_signal(
     }
 
 
-def runtime_signals(
+def legacy_runtime_signals(
     report: dict[str, Any],
     control: dict[str, Any] | None,
     *,
@@ -528,7 +551,7 @@ def runtime_signals(
     ]
     # Historical v1 artifacts were explicitly aggregate-only. Keep those
     # reproducible; the v2 CI contract adds per-repo and per-stage enforcement.
-    if report.get("schema") != REPORT_SCHEMA:
+    if report.get("schema") not in REPORT_SCHEMAS:
         return signals
     for repo, rows in sorted(summary["by_repo"].items()):
         baseline = require_object(rows, "baseline", repo)
@@ -600,6 +623,51 @@ def runtime_signals(
                 )
             )
     return signals
+
+
+def uses_order_aware(report: dict[str, Any], runtime_policy: str) -> bool:
+    return runtime_policy == "order-aware-v1" or (
+        runtime_policy == "auto" and report.get("schema") == REPORT_SCHEMA_V3
+    )
+
+
+def runtime_signals(
+    report: dict[str, Any],
+    control: dict[str, Any] | None,
+    *,
+    max_delta_pct: float,
+    min_delta_ms: float,
+    runtime_policy: str,
+) -> list[dict[str, Any]]:
+    provenance = require_provenance(report, "report")
+    if binary_code_identity(provenance, "baseline") == binary_code_identity(
+        provenance, "current"
+    ):
+        return legacy_runtime_signals(
+            report,
+            report,
+            max_delta_pct=max_delta_pct,
+            min_delta_ms=min_delta_ms,
+        )
+    use_order_aware = uses_order_aware(report, runtime_policy)
+    if use_order_aware:
+        if report.get("schema") not in REPORT_SCHEMAS:
+            raise CheckFailed("order-aware runtime policy requires a v2 or v3 report")
+        try:
+            return order_aware_runtime_signals(
+                report,
+                control,
+                max_delta_pct=max_delta_pct,
+                min_delta_ms=min_delta_ms,
+            )
+        except ValueError as error:
+            raise CheckFailed(f"order-aware runtime evidence is malformed: {error}") from error
+    return legacy_runtime_signals(
+        report,
+        control,
+        max_delta_pct=max_delta_pct,
+        min_delta_ms=min_delta_ms,
+    )
 
 
 def validate_focused_report(
@@ -679,6 +747,7 @@ def report_phase(
     *,
     max_delta_pct: float,
     min_delta_ms: float,
+    runtime_policy: str,
     require_corpus_provenance: bool = False,
 ) -> dict[str, Any]:
     validate_report_contract(
@@ -694,18 +763,27 @@ def report_phase(
     drifts = output_drift_repos(require_summary(report, "report"))
     authorized, unexpected, unused = authorize_drifts(report, drifts, manifest)
     signals = runtime_signals(
-        report, control, max_delta_pct=max_delta_pct, min_delta_ms=min_delta_ms
+        report,
+        control,
+        max_delta_pct=max_delta_pct,
+        min_delta_ms=min_delta_ms,
+        runtime_policy=runtime_policy,
     )
+    runtime = {
+        "signals": signals,
+        "triggered": [signal for signal in signals if signal["triggered"]],
+    }
+    if uses_order_aware(report, runtime_policy):
+        runtime["inconclusive"] = [
+            signal for signal in signals if signal.get("inconclusive", False)
+        ]
     return {
         "output": {
             "authorized_drifts": authorized,
             "unexpected_drifts": unexpected,
             "unused_declarations": unused,
         },
-        "runtime": {
-            "signals": signals,
-            "triggered": [signal for signal in signals if signal["triggered"]],
-        },
+        "runtime": runtime,
     }
 
 
@@ -721,6 +799,7 @@ def evaluate_gate(
     min_focused_iterations: int = 5,
     require_same_binary_control: bool = False,
     require_corpus_provenance: bool = False,
+    runtime_policy: str = "auto",
 ) -> dict[str, Any]:
     max_runtime_delta_pct = finite_number(
         max_runtime_delta_pct, "max_runtime_delta_pct"
@@ -738,21 +817,29 @@ def evaluate_gate(
         raise CheckFailed("min_focused_iterations: expected a positive integer")
     if require_same_binary_control and same_binary_control is None:
         raise CheckFailed("same-binary control is required")
+    if runtime_policy not in ("auto", "legacy", "order-aware-v1"):
+        raise CheckFailed("runtime_policy: expected auto, legacy, or order-aware-v1")
     primary = report_phase(
         report,
         same_binary_control,
         expected_drift_manifest,
         max_delta_pct=max_runtime_delta_pct,
         min_delta_ms=min_runtime_delta_ms,
+        runtime_policy=runtime_policy,
         require_corpus_provenance=require_corpus_provenance,
     )
+    thresholds = {
+        "max_runtime_delta_pct": max_runtime_delta_pct,
+        "min_runtime_delta_ms": min_runtime_delta_ms,
+        "min_focused_iterations": min_focused_iterations,
+    }
+    if runtime_policy != "auto" or report.get("schema") == REPORT_SCHEMA_V3:
+        thresholds["runtime_policy"] = (
+            "order-aware-v1" if uses_order_aware(report, runtime_policy) else "legacy"
+        )
     status = {
         "schema": STATUS_SCHEMA,
-        "thresholds": {
-            "max_runtime_delta_pct": max_runtime_delta_pct,
-            "min_runtime_delta_ms": min_runtime_delta_ms,
-            "min_focused_iterations": min_focused_iterations,
-        },
+        "thresholds": thresholds,
         "primary": primary,
         "focused": None,
         "focused_repos": [],
@@ -775,16 +862,29 @@ def evaluate_gate(
         raise CheckFailed("; ".join(reasons), status=status)
 
     triggered = primary["runtime"]["triggered"]
-    if not triggered:
+    inconclusive = primary["runtime"].get("inconclusive", [])
+    needs_focus = triggered + inconclusive
+    if not needs_focus:
         return status
     all_repos = sorted(require_repos(report, "report"))
-    triggered_repos = sorted({signal["repo"] for signal in triggered if signal["repo"]})
-    focused_repos = all_repos if any(signal["scope"] == "aggregate" for signal in triggered) else triggered_repos
+    affected_repos = sorted({signal["repo"] for signal in needs_focus if signal["repo"]})
+    focused_repos = (
+        all_repos
+        if any(signal["scope"] == "aggregate" for signal in needs_focus)
+        else affected_repos
+    )
     status["focused_repos"] = focused_repos
     if focused_report is None:
         status["status"] = "focused-rerun-required"
+        if uses_order_aware(report, runtime_policy):
+            message = "runtime evidence needs a focused rerun for "
+        else:
+            # Preserve the checked schema-v2 closeout text byte-for-byte. The
+            # order-aware wording is prospective with schema v3; historical
+            # evidence chains remain reproducible under the legacy policy.
+            message = "runtime threshold crossed; focused rerun required for "
         raise CheckFailed(
-            "runtime threshold crossed; focused rerun required for " + ", ".join(focused_repos),
+            message + ", ".join(focused_repos),
             status=status,
             exit_code=3,
         )
@@ -803,6 +903,7 @@ def evaluate_gate(
         expected_drift_manifest,
         max_delta_pct=max_runtime_delta_pct,
         min_delta_ms=min_runtime_delta_ms,
+        runtime_policy=runtime_policy,
         require_corpus_provenance=require_corpus_provenance,
     )
     status["focused"] = focused
@@ -810,6 +911,18 @@ def evaluate_gate(
     if focused_output["unexpected_drifts"] or focused_output["unused_declarations"]:
         status["status"] = "fail"
         raise CheckFailed("focused rerun output drift is not exactly declared", status=status)
+    if focused["runtime"].get("inconclusive"):
+        status["status"] = "fail"
+        labels = [
+            signal["repo"] + (f":{signal['stage']}" if signal["stage"] else "")
+            if signal["repo"]
+            else "aggregate"
+            for signal in focused["runtime"]["inconclusive"]
+        ]
+        raise CheckFailed(
+            "focused runtime evidence remains insufficient in " + ", ".join(labels),
+            status=status,
+        )
     if focused["runtime"]["triggered"]:
         status["status"] = "fail"
         labels = [
@@ -860,7 +973,7 @@ def sample_report(
                 }
             )
     return {
-        "schema": REPORT_SCHEMA,
+        "schema": REPORT_SCHEMA_V2,
         "command": "nose query <repo> all top=0 --mode semantic --format json",
         "repos": ["repo-a"],
         "measurement": {"iterations": iterations, "warmups": 0},
@@ -923,6 +1036,25 @@ def sample_control(*, delta: float = 2.0, iterations: int = 1) -> dict[str, Any]
     return report
 
 
+def sample_v3(report: dict[str, Any]) -> dict[str, Any]:
+    report = json.loads(json.dumps(report))
+    report["schema"] = REPORT_SCHEMA_V3
+    report["measurement"]["design"] = {
+        "kind": "paired-alternating-blocks/v1",
+        "block": "iteration",
+        "orders": ["baseline-current", "current-baseline"],
+    }
+    for run in report["runs"]:
+        baseline_first = run["iteration"] % 2 == 1
+        run["pair_order"] = "baseline-current" if baseline_first else "current-baseline"
+        first_label = "baseline" if baseline_first else "current"
+        run["pair_position"] = 0 if run["label"] == first_label else 1
+    report["runs"].sort(
+        key=lambda run: (run["iteration"], run["repo"], run["pair_position"])
+    )
+    return report
+
+
 def expected_manifest(hash_current: str = SAMPLE_CHANGED_HASH) -> dict[str, Any]:
     return {
         "schema": EXPECTED_DRIFT_SCHEMA,
@@ -941,7 +1073,29 @@ def expected_manifest(hash_current: str = SAMPLE_CHANGED_HASH) -> dict[str, Any]
 
 
 def run_self_test() -> None:
+    run_order_aware_self_test()
     evaluate_gate(sample_report())
+    v3_primary = sample_v3(sample_report(delta=2.0, iterations=2))
+    v3_control = sample_v3(sample_control(delta=-3.0, iterations=2))
+    v3_focused = sample_v3(sample_report(delta=2.0, iterations=6))
+    v3_focused_control = sample_v3(sample_control(delta=-3.0, iterations=6))
+    v3_status = evaluate_gate(
+        v3_primary,
+        same_binary_control=v3_control,
+        focused_report=v3_focused,
+        focused_same_binary_control=v3_focused_control,
+    )
+    assert v3_status["status"] == "pass"
+    assert v3_status["focused"] is not None
+    assert evaluate_gate(
+        sample_v3(sample_report(delta=2.0, iterations=5)),
+        same_binary_control=sample_v3(sample_control(delta=0.0, iterations=5)),
+    )["status"] == "pass"
+    raw_sub_floor = sample_v3(sample_report(delta=2.5, iterations=6))
+    negative_control = sample_v3(sample_control(delta=-3.0, iterations=6))
+    assert evaluate_gate(
+        raw_sub_floor, same_binary_control=negative_control
+    )["status"] == "pass"
     tampered_run = sample_report()
     tampered_run["runs"][1]["sha256"] = SAMPLE_CHANGED_HASH
     try:
@@ -1011,7 +1165,7 @@ def run_self_test() -> None:
     try:
         evaluate_gate(legacy, require_corpus_provenance=True)
     except CheckFailed as error:
-        assert "corpus provenance requires schema" in str(error)
+        assert "corpus provenance requires a structured report schema" in str(error)
     else:
         raise AssertionError("semantic smoke mode must reject schema-less reports")
     for threshold_name, kwargs in (
@@ -1149,7 +1303,8 @@ def markdown_summary(status: dict[str, Any], report: dict[str, Any]) -> str:
             delta += f" / {pct:+.2f}%"
         lines.append(
             f"| `{label}` | {signal['baseline_ms']:.2f} ms | {signal['current_ms']:.2f} ms | "
-            f"{delta} | {'triggered' if signal['triggered'] else 'within threshold'} |"
+            f"{delta} | "
+            f"{'triggered' if signal['triggered'] else 'inconclusive' if signal.get('inconclusive') else 'within threshold'} |"
         )
     output = primary["output"]
     if status["focused"] is not None:
@@ -1183,6 +1338,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-focused-iterations", type=int, default=5)
     parser.add_argument("--require-same-binary-control", action="store_true")
     parser.add_argument("--require-corpus-provenance", action="store_true")
+    parser.add_argument(
+        "--runtime-policy",
+        choices=("auto", "legacy", "order-aware-v1"),
+        default="auto",
+    )
     parser.add_argument("--status-output", type=Path)
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--check-status", type=Path)
@@ -1229,6 +1389,7 @@ def main() -> int:
         "min_focused_iterations": args.min_focused_iterations,
         "require_same_binary_control": args.require_same_binary_control,
         "require_corpus_provenance": args.require_corpus_provenance,
+        "runtime_policy": args.runtime_policy,
     }
     try:
         status = evaluate_gate(report, **kwargs)
