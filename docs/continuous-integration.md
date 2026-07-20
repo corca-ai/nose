@@ -328,9 +328,11 @@ streams, including across checkout paths and after unrelated additions shift `Fi
 
 Importers are invalidated only when a provider's exported literal surface changes. Swift global
 shadow/overload/conformance barriers invalidate Swift dependents, and unresolved dependencies
-fail safe by over-invalidating their language export catalog. Global detection, line-frequency
-ranking reads, and presentation still run on every query; #875 owns the next reuse boundary. Point
-the directory at storage your
+fail safe by over-invalidating their language export catalog. Global candidate buckets, pair
+scores, delete-capable family components, connected/same-unit witnesses, syntax components,
+line-frequency deltas, and family source-line analyses are also reused. An unchanged run therefore
+does not reparse, normalize, rescore, or reread the full line index; query filtering and rendering
+remain request-local. Point the directory at storage your
 CI preserves between runs; see the
 [incremental cache benchmark](incremental-cache-benchmark.md) for the exact performance and
 clean-scan-equivalence contract.
@@ -344,6 +346,9 @@ Set `NOSE_CACHE_STATS=1` to retain the existing `[cache]` unit hit/miss line and
 the affected path closure and reasons, deleted sources, Git-blob versus content identities,
 explicit fail-safe over-invalidation, and digests/invalidation markers for discovery membership,
 semantic-pack influence, Swift global sentinels, and corpus-global line statistics.
+It also emits `[detection]` (`nose.detection-incremental/v1`), `[line-index]`
+(`nose.line-index/v1`), and `[family-lines]` (`nose.family-line-state/v1`) JSON objects so CI and
+benchmarks can distinguish reuse from recomputation without parsing human timing text.
 
 ---
 
