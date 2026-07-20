@@ -17,8 +17,11 @@ the deeper classification step after that bounded gate identifies a material sig
 The broad gate answers whether product output or runtime moved. Run
 `scripts/check-query-regression.py` on that artifact to make the no-behavior-change
 decision mechanical: hashes, byte counts, and family counts must stay identical, while
-runtime is compared against a configured percentage threshold after subtracting any
-same-binary control. Runtime triage answers why a remaining measured slowdown moved.
+runtime is compared against configured percentage and absolute thresholds using the
+[order-aware same-binary control contract](order-aware-performance-controls.md).
+Positive control drift may reduce a primary movement, while a negative independent
+control never inflates it. Runtime triage answers why a remaining measured slowdown
+moved.
 Do not skip the classification step just because a repo looks slow: capability-growth
 cost, measurement noise, lower/front-end cost, and value-graph hot paths call for
 different actions.

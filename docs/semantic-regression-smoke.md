@@ -74,13 +74,20 @@ declares its cost acceptable.
 
 ## Runtime policy
 
-The first pass takes two measurements, pairing base and head back-to-back within
-each repository and reversing that pair order on the next iteration. This prevents
-runner load or temperature changes across the corpus from accumulating on only one
-binary. It also runs a base-vs-base same-binary control with the same repo-local
-pairing. The harness records wall time and every stage emitted by `NOSE_TIME=1`.
-A signal crosses the material threshold only when its
-control-adjusted increase is both:
+The first pass takes five paired measurements, running base and head back-to-back
+within each repository and reversing that pair order on every iteration. Five is the
+smallest sample that can satisfy the exact one-sided sign test. This prevents runner
+load, process position, or temperature changes from accumulating on only one binary.
+It also runs a base-vs-base same-binary control with the same repo-local pairing. The
+harness records each block's order and position, wall time, and every stage emitted by
+`NOSE_TIME=1`.
+
+The [order-aware control contract](order-aware-performance-controls.md) computes the
+median current-minus-base movement within each execution order and averages those two
+strata. A positive same-binary movement may reduce the result; a negative control is
+diagnostic only and can never inflate it. A signal crosses the material threshold only
+when its adjusted point estimate, exact sign-test support, and both execution-order
+strata agree that the increase is both:
 
 - greater than 5%; and
 - greater than 5 ms.
@@ -89,12 +96,13 @@ The checker evaluates the aggregate, each repository, and each reported stage.
 A repository or stage can therefore fail even when faster controls dilute the
 aggregate.
 
-A first-pass threshold crossing is not yet a hard regression failure. It exits
-with the dedicated focused-rerun status, selects the affected repositories (or the
-whole slice for an aggregate signal), and repeats six measurements after one warmup
-with another same-binary control. Six samples give base and head exactly three
-first-in-pair measurements each. Only a material signal confirmed by that balanced
-focused run fails the runtime comparison.
+A first-pass threshold crossing or statistically inconclusive order split is not yet a
+hard regression failure. It exits with the dedicated focused-rerun status, selects the
+affected repositories (or the whole slice for an aggregate signal), and repeats six
+measurements after one warmup with another same-binary control. Six samples give base
+and head exactly three first-in-pair measurements each. A material signal confirmed by
+that balanced focused run fails, as does evidence that remains inconclusive. There is
+no second focused loop.
 
 ## Deterministic Ruby scaling tripwire
 

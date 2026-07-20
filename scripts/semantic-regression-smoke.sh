@@ -67,7 +67,8 @@ is_relevant_path() {
     bench/semantic_regression_corpus.v1.json|bench/setup_repos.sh|\
     bench/prune_corpus.py|bench/corpus_prune/*|\
     .github/semantic-regression-expected-drift.json|.github/workflows/ci.yml|\
-    scripts/query-regression-harness.py|scripts/check-query-regression.py|\
+    scripts/query-regression-harness.py|scripts/query_regression_control.py|\
+    scripts/check-query-regression.py|\
     scripts/ruby-redefinition-scaling.py|scripts/semantic-regression-smoke.sh|\
     scripts/semantic-regression-summary.py)
       return 0
@@ -268,11 +269,11 @@ scaling_rc=$?
 set -e
 
 run_harness \
-  "$artifact_dir/primary.json" "$baseline_binary" "$current_binary" 2 0 \
+  "$artifact_dir/primary.json" "$baseline_binary" "$current_binary" 5 0 \
   "$base_ref" "$head_ref" "$base_sha" "$head_sha" \
   "${repo_args[@]}"
 run_harness \
-  "$artifact_dir/primary-control.json" "$baseline_binary" "$baseline_binary" 2 0 \
+  "$artifact_dir/primary-control.json" "$baseline_binary" "$baseline_binary" 5 0 \
   "$base_ref" "$base_ref" "$base_sha" "$base_sha" \
   "${repo_args[@]}"
 
