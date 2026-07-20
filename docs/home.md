@@ -203,8 +203,9 @@ fundamentals; the rest is grouped by area.
 - [etcd Go frontend attribution](runtime-performance-issue-907-2026-07-19.md) — #907's frozen-r40 source, executable, machine-code, and profile evidence attributing the residual to build provenance plus control subtraction.
 - [normalize-and-extract closeout](runtime-performance-issue-908-2026-07-19.md) — #908's output-identical MinHash hot-loop optimization and frozen Guava/MinIO r40 closeout against official v0.19.0.
 - [incremental cache benchmark](incremental-cache-benchmark.md) — the #872 official-v0.19.0 binary pin, clean/cold/warm equivalence rule, mutation closure inventory, and real/synthetic workload contract for the Instant Monorepo engine.
-- [portable cache artifacts](portable-cache-artifacts.md) — the #873 SHA-256 layered CAS and #874
-  dependency-aware source/raw/resolved reuse, exact invalidation closure, and fail-safe reporting.
+- [portable cache artifacts](portable-cache-artifacts.md) — the #873 SHA-256 layered CAS, #874
+  dependency-aware source/raw/resolved reuse, and #877 bounded direct warm-leaf restoration with
+  exact invalidation closure and fail-safe reporting.
 - [experiments](experiments.md) — the measured log of what was tried and what happened.
 
 ### Field evidence & audits

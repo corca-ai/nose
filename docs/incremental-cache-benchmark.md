@@ -160,19 +160,45 @@ The active store is 148,668,018 bytes for 27,214,294 bytes of Python source: 5.4
 60.89% smaller than the official binary's 380,153,026-byte store. This passes both #876 disk
 gates. Clean p50/p95 RSS is 1.13%/2.39% below official, so the clean resource gate also passes.
 
-The remaining resource gate is deliberately not marked complete. Warm no-op p50/p95 RSS is
+The then-remaining resource gate was deliberately not marked complete. Warm no-op p50/p95 RSS is
 713,596,928/743,718,912 bytes, 66.91%/68.64% of official rather than the required ≤60%. A separate
 one-run leaf-edit characterization measured 809,074,688 bytes against official's 1,086,472,192
-bytes (74.47%); it is diagnostic, not 30-replay release evidence. The warm path still restores the
-whole corpus and every unit before applying the incremental global state. #877 owns eliminating
-that whole-corpus restoration while integrating policy and base/current views; #876 remains open
-until the leaf-update criterion is measured there.
+bytes (74.47%); it is diagnostic, not 30-replay release evidence. At that revision the warm path
+still restored the whole corpus and every unit before applying the incremental global state. The
+checked #877 leaf evidence below supersedes this characterization and closes the ≤60% gate.
 
 The first-generation cost is also visible rather than normalized away. Per-object filesystem sync
 was removed only for immutable, checksummed CAS entries—a lost or corrupt entry is a safe miss—while
 generation manifests and `CURRENT` retain file-and-directory sync. Compact serialization and
-compression still make the empty-store and warm runs slower than v0.19. #877 must avoid paying
-restore work on view-only changes and warm updates rather than weakening integrity or disk bounds.
+compression still make the empty-store and warm runs slower than v0.19. #877 avoids the
+whole-corpus restore for exact no-op and independently provable leaf updates without weakening
+integrity or disk bounds.
+
+## Checked #877 evidence
+
+The checked [`issue-877-policy-leaf-sympy-paired-2026-07-21.v1.json`](../bench/cache/issue-877-policy-leaf-sympy-paired-2026-07-21.v1.json)
+contains all 180 rows from 30 alternating AB/BA replays of implementation commit `42bfbdd5`
+against the checksum-verified published v0.19.0 binary. Each replay seeds a store on pinned SymPy
+commit `da4a5fa5`, changes one dependency-free production leaf, and independently proves
+clean/empty-store/history-store byte equality for both binaries.
+
+| Phase | Official p50 / p95 | #877 p50 / p95 | #877 delta p50 / p95 |
+| --- | ---: | ---: | ---: |
+| Clean | 1247.10 / 1586.36 ms | 1063.56 / 1337.27 ms | -14.72% / -15.70% |
+| Empty store | 1430.24 / 1749.78 ms | 8544.00 / 9270.56 ms | +497.38% / +429.81% |
+| Warm leaf | 933.86 / 1045.05 ms | 1680.05 / 2287.41 ms | +79.90% / +118.88% |
+
+Warm-leaf p50/p95 peak RSS is 345,186,304/347,062,272 bytes versus official
+1,069,785,088/1,084,768,256 bytes: **32.27%/31.99% of official**, comfortably inside #876's
+≤60% criterion. Clean RSS is 1.00%/2.41% lower than official, and clean time remains inside the
+#877 5% limit. Every candidate history row reports exactly 1,583 unit hits and one miss. The
+managed store is 148,899,990 bytes at p50 versus official 380,106,480 bytes (-60.83%). This closes
+#876's last resource gate.
+
+The latency debt is not hidden: direct per-region restoration keeps only compact units live, but
+its checksum, decompression, and deserialization work makes this leaf workload slower than the
+published cache. First-generation construction also remains much slower. Later #871 milestones
+may reduce that cost; neither latency is part of the closed #876 resource criterion.
 
 ## What the current cache actually reuses
 
@@ -180,8 +206,10 @@ The published v0.19.0 cache is schema v11 and the locked #872 candidate is schem
 the 0.20 development tree to layered CAS v1, #874 activated source/raw/resolved IL reuse, and #875
 now reuses global detection, syntax components, line document frequencies, and family-line
 analyses. A warm clean-Git hit avoids source reads for lowering and skips parsing; an unchanged
-line manifest also avoids loading the full line index. Dirty, untracked, and non-Git inputs are
-read so their exact bytes, rather than mtime/size, establish identity.
+line manifest also avoids loading the full line index. #877 additionally restores units directly
+without materializing the raw/resolved corpus for an exact no-op or one dependency-free leaf whose
+export and resolution summaries are unchanged. Dirty, untracked, and non-Git inputs are read so
+their exact bytes, rather than mtime/size, establish identity.
 
 CAS v1 replaces the u64 entry name with a stage/schema-separated SHA-256 address over the complete
 post-resolution semantic/reporting identity and unit-affecting options. An independent payload
@@ -271,6 +299,14 @@ python3 scripts/cache-query-regression.py \
   --official-archive target/v0.19.0/nose-cli-aarch64-apple-darwin.tar.xz \
   --root bench/repos/sympy --label sympy --replays 30 \
   --output target/cache-sympy-paired.json
+```
+
+To reproduce the checked leaf-update comparison, add a safe repository-relative replacement:
+
+```sh
+  --leaf-path sympy/plotting/pygletplot/plot_object.py \
+  --leaf-find 'if self.visible:' \
+  --leaf-replace 'if self.visible is True:'
 ```
 
 The harness verifies both official archive and executable checksums before starting. It gives
