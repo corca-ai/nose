@@ -146,7 +146,11 @@ Focused tests prove:
 The #275 provider/importer integration test remains the cross-file safety gate. Focused gates also
 cover unchanged export surfaces, shifted `FileId`s with an active import edge, Swift global
 barriers, unresolved-dependency over-invalidation, Git-blob/content identity selection, mutation
-order/thread-count independence, and same-unit witness deletion. The
+order/thread-count independence, same-unit witness deletion, and exact no-op/independent-leaf
+direct restoration. A direct leaf is admitted only when it has no incoming or outgoing resolution
+dependency, no fail-safe over-invalidation, stable export/resolution summaries, no Swift-global
+barrier, and no influential external semantic-pack path. Any failed proof or artifact read falls
+back to the ordinary full pipeline. The
 benchmark's clean/empty/history equality remains the product-output authority. See
 [continuous integration](continuous-integration.md) for current user-facing cache behavior.
 
@@ -208,6 +212,19 @@ The store falls to 148,668,018 bytes, 60.89% below official and 5.46× the workl
 27,214,294 source bytes. Clean p50/p95 RSS is 1.13%/2.39% below official. Warm no-op p50/p95 RSS
 falls by 33.09%/31.36%, but remains 66.91%/68.64% of official and therefore does not satisfy the
 ≤60% warm leaf gate. A separate one-run leaf-edit characterization reached only 74.47% of
-official RSS. #877 owns removing the remaining whole-corpus restoration and producing the checked
-leaf-update evidence before #876 closes. Empty-store compression and warm restore latency remain
-explicit in the table; neither is waived by the disk and clean-RSS passes.
+official RSS. The checked #877 evidence below supersedes that diagnostic result. Empty-store
+compression and warm restore latency remain explicit in the table; neither is waived by the disk
+and clean-RSS passes.
+
+## Checked #877 leaf evidence
+
+The checked [`issue-877-policy-leaf-sympy-paired-2026-07-21.v1.json`](../bench/cache/issue-877-policy-leaf-sympy-paired-2026-07-21.v1.json)
+contains 30 alternating AB/BA replays of one dependency-free SymPy production-leaf edit at
+implementation commit `42bfbdd5`. Candidate and official binaries each pass exact clean,
+empty-store, and history-store output equality.
+
+The candidate history path reuses 1,583 regions and rebuilds one. Its p50/p95 peak RSS is
+345,186,304/347,062,272 bytes, or 32.27%/31.99% of official, closing #876's ≤60% resource gate.
+Clean time is 14.72%/15.70% faster and clean RSS is 1.00%/2.41% lower. The explicit tradeoff is
+warm-leaf latency: 1680.05/2287.41 ms versus official 933.86/1045.05 ms. Direct restoration solves
+the whole-corpus memory overlap; it does not claim to have eliminated per-region decode cost.

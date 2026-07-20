@@ -252,7 +252,7 @@ mode flags are documented under [Ranking](#ranking) and [Detection modes](#detec
 | `--root <path>` / `-r <path>` | analyze another root; repeat for multi-root query runs. With `--root`, bare positional arguments are query terms. |
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
 | `--generated-path <glob>` | assert that files matching this root-anchored glob are generated; repeatable and recoverable with `all top=0` |
-| `--cache-dir <dir>` | reuse portable, checksummed analysis artifacts and transactional incremental state |
+| `--cache-dir <dir>` | reuse portable, checksummed analysis artifacts and transactional incremental state; exact no-op and independently provable one-leaf updates avoid restoring the whole IL corpus |
 | `--cache-max-bytes <SIZE>` | bound the managed cache (default `5GiB`; accepts bytes or KiB/MiB/GiB/TiB) |
 | `--ignore-file <file>` | suppress accepted families using a structured ignore file with reason/owner/expiry metadata |
 | `--semantic-pack <file-or-dir>` | load local semantic-pack v0 metadata or compile a typed v1 manifest for provenance/digest reporting; unlocked external packs are metadata-only |

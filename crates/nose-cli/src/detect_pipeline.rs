@@ -1,7 +1,5 @@
-use crate::path_utils::paths_as_refs;
-use crate::query_options::{DetectionChannels, DetectionMode, DIVERGENCE_DEFAULT_MODES};
+use crate::query_options::DetectionChannels;
 use anyhow::{Context, Result};
-use std::path::PathBuf;
 
 struct ChannelDetector {
     name: &'static str,
@@ -19,37 +17,6 @@ impl nose_detect::Detector for ChannelDetector {
             .map(|d| d.score(a, b))
             .fold(0.0, f64::max)
     }
-}
-
-/// Lower + detect + rank clone families for divergence's base tree. This keeps
-/// divergence's conservative default channel policy (`syntax,semantic`) explicit;
-/// query use their own dataset construction and default to `syntax,semantic,near`.
-pub(crate) fn detect_divergence_base_families(
-    paths: &[PathBuf],
-    exclude: &[String],
-    mode: Vec<DetectionMode>,
-    cfg_mode: Vec<DetectionMode>,
-    min_tokens: usize,
-    min_lines: u32,
-) -> Result<Vec<nose_detect::RefactorFamily>> {
-    validate_exclude_globs(exclude)?;
-    let refs = paths_as_refs(paths);
-    let channels = DetectionChannels::resolve(mode, cfg_mode, DIVERGENCE_DEFAULT_MODES)?;
-    let opts = detection_options(channels, min_tokens, min_lines);
-    let detector = detection_engine(channels, &opts);
-    let corpus = nose_frontend::lower_corpus_filtered(&refs, exclude);
-    // Divergence needs the detector's direct accepted edges: family membership is
-    // transitive and therefore cannot identify an exact propagation target.
-    let report =
-        nose_detect::detect_with_direct_accepted_coverage(&corpus, &opts, detector.as_ref());
-    let mut families = nose_detect::rank_families(&report);
-    if channels.abstraction_only() {
-        families.retain(|f| f.abstraction_witness.is_some());
-    }
-    // The graded witness is NOT attached here: `divergence` enriches only the *flagged*
-    // families (a small subset of a diff) in `flag_divergences`, not every near family
-    // in the repo — enriching all of them on every gate run would be wasted work.
-    Ok(families)
 }
 
 /// Detection options for the resolved query channels — shared by `analysis` and `divergence`.

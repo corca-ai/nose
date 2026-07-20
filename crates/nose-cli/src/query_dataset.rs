@@ -4,7 +4,8 @@ use crate::cli_args::QueryArgs;
 use crate::detect_pipeline::{detection_engine, detection_options, validate_exclude_globs};
 use crate::path_utils::{relativize, relativize_loc};
 use crate::query_options::{
-    validate_min_value, DetectionChannels, QueryScope, SortKey, QUERY_DEFAULT_MODES,
+    validate_min_value, DetectionChannels, QueryScope, SortKey, DIVERGENCE_DEFAULT_MODES,
+    QUERY_DEFAULT_MODES,
 };
 use crate::source_lines::{
     apply_cached_family_lines, cached_line_idf, corpus_line_idf, family_anchor, is_trivial_line,
@@ -14,6 +15,8 @@ use crate::surfaces::GeneratedPathAssertions;
 use crate::timing::{time_lower, time_stage};
 use crate::{cache, config, ignores};
 use std::collections::BTreeSet;
+
+include!("query_dataset/annotations.rs");
 
 /// The ranked family dataset behind `nose query`: detect, rank,
 /// filter (min-members / min-value / scope), relativize paths, weight shared lines, and
@@ -34,19 +37,20 @@ pub(super) fn build_query_dataset(
     args: &QueryArgs,
     refs: &[&std::path::Path],
 ) -> Result<QueryDataset> {
-    let (settings, semantic_packs) = resolve_query_settings(args)?;
+    let (settings, semantic_packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
     let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
     let detector = detection_engine(settings.channels, &opts);
     let (mut report, scope, semantic_pack_near, semantic_pack_external_exact, line_context) =
-        query_detect_report(
+        query_detect_report(QueryDetectRequest {
             args,
             refs,
-            &settings.exclude,
-            &opts,
-            detector.as_ref(),
-            &semantic_packs,
-            settings.cache_max_bytes,
-        );
+            exclude: &settings.exclude,
+            opts: &opts,
+            detector: detector.as_ref(),
+            semantic_packs: &semantic_packs,
+            cache_max_bytes: settings.cache_max_bytes,
+            accepted_coverage: AcceptedCoverage::Query,
+        });
 
     let mut families = time_stage("rank_families", || nose_detect::rank_families(&report));
     annotate_semantic_pack_near(&mut families, &semantic_pack_near);
@@ -129,6 +133,37 @@ pub(super) fn build_query_dataset(
         reinvented,
         opts,
     })
+}
+
+/// Run the `base=` detector through the same frontend, semantic-pack, and
+/// per-file cache engine as ordinary query while retaining pair-local edges for
+/// propagation targets. Divergence keeps its stricter default channel set.
+pub(crate) fn build_divergence_families(
+    args: &QueryArgs,
+    refs: &[&std::path::Path],
+) -> Result<(Vec<nose_detect::RefactorFamily>, nose_detect::DetectOptions)> {
+    let (settings, semantic_packs) = resolve_query_settings(args, DIVERGENCE_DEFAULT_MODES)?;
+    let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+    let detector = detection_engine(settings.channels, &opts);
+    let (report, _, semantic_pack_near, semantic_pack_external_exact, line_context) =
+        query_detect_report(QueryDetectRequest {
+            args,
+            refs,
+            exclude: &settings.exclude,
+            opts: &opts,
+            detector: detector.as_ref(),
+            semantic_packs: &semantic_packs,
+            cache_max_bytes: settings.cache_max_bytes,
+            accepted_coverage: AcceptedCoverage::Direct,
+        });
+    let mut families = nose_detect::rank_families(&report);
+    annotate_semantic_pack_near(&mut families, &semantic_pack_near);
+    annotate_semantic_pack_external_exact(&mut families, &semantic_pack_external_exact);
+    if settings.channels.abstraction_only() {
+        families.retain(|family| family.abstraction_witness.is_some());
+    }
+    finish_cache_run(line_context);
+    Ok((families, opts))
 }
 
 fn finish_cache_run(context: Option<cache::CachedLineContext>) {
@@ -215,12 +250,13 @@ fn semantic_pack_set_from_inputs(
 
 fn resolve_query_settings(
     args: &QueryArgs,
+    default_modes: &[crate::query_options::DetectionMode],
 ) -> Result<(QuerySettings, nose_semantics::SemanticPackSet)> {
     let cfg = config::load_query(args.config.as_deref())?;
     let min_members = args.min_members.or(cfg.min_members).unwrap_or(2);
     let min_value = validate_min_value(args.min_value.or(cfg.min_value).unwrap_or(0.0))?;
     let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Extractability);
-    let channels = DetectionChannels::resolve(args.mode.clone(), cfg.mode, QUERY_DEFAULT_MODES)?;
+    let channels = DetectionChannels::resolve(args.mode.clone(), cfg.mode, default_modes)?;
     let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
     let min_tokens = args.min_size.or(cfg.min_size).unwrap_or(24);
     let cache_max_bytes = args
@@ -272,41 +308,44 @@ type DetectionReport = (
     Option<cache::CachedLineContext>,
 );
 
-fn query_detect_report(
-    args: &QueryArgs,
-    refs: &[&std::path::Path],
-    exclude: &[String],
-    opts: &nose_detect::DetectOptions,
-    detector: &dyn nose_detect::Detector,
-    semantic_packs: &nose_semantics::SemanticPackSet,
+#[derive(Clone, Copy)]
+enum AcceptedCoverage {
+    Query,
+    Direct,
+}
+
+struct QueryDetectRequest<'a> {
+    args: &'a QueryArgs,
+    refs: &'a [&'a std::path::Path],
+    exclude: &'a [String],
+    opts: &'a nose_detect::DetectOptions,
+    detector: &'a dyn nose_detect::Detector,
+    semantic_packs: &'a nose_semantics::SemanticPackSet,
     cache_max_bytes: u64,
-) -> DetectionReport {
-    let (mut corpus, invalidation_report, unit_contexts, cache_identity_parts, line_context) =
-        if let Some(dir) = &args.cache_dir {
-            let cached = time_lower(|| {
-                cache::build_corpus_cached(refs, exclude, dir, semantic_packs, cache_max_bytes)
-            });
-            let run = cached.run.clone();
-            let line_context = cache::CachedLineContext {
-                source_files: cached.source_files,
-                run,
-            };
-            (
-                cached.corpus,
-                Some(cached.report),
-                Some(cached.unit_contexts),
-                Some((cached.workspace_digest, cached.semantic_pack_digest)),
-                Some(line_context),
-            )
-        } else {
-            (
-                time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude)),
-                None,
-                None,
-                None,
-                None,
-            )
-        };
+    accepted_coverage: AcceptedCoverage,
+}
+
+fn query_detect_report(request: QueryDetectRequest<'_>) -> DetectionReport {
+    if let Some(fast) = try_query_detect_report_fast(&request) {
+        return fast;
+    }
+    let PreparedCorpus {
+        mut corpus,
+        invalidation_report,
+        unit_snapshot,
+        cache_identity_parts,
+        line_context,
+    } = prepare_query_corpus(&request);
+    let QueryDetectRequest {
+        args,
+        refs: _,
+        exclude: _,
+        opts,
+        detector,
+        semantic_packs,
+        cache_max_bytes: _,
+        accepted_coverage,
+    } = request;
     print_invalidation(invalidation_report.as_ref());
     let scope = QueryScope::from_corpus(&corpus);
     let semantic_pack_evidence =
@@ -337,9 +376,7 @@ fn query_detect_report(
                     .as_ref()
                     .expect("cached corpus includes a cache run")
                     .run,
-                unit_contexts
-                    .as_deref()
-                    .expect("cached corpus includes unit contexts"),
+                unit_snapshot.expect("cached corpus includes unit contexts"),
             )
         });
         if std::env::var_os("NOSE_CACHE_STATS").is_some() {
@@ -363,21 +400,131 @@ fn query_detect_report(
     }
     drop(semantic_pack_evidence);
     drop(corpus);
-    let report = detect_cached_or_clean(
+    let report = detect_cached_or_clean(DetectCachedRequest {
         cache_identity_parts,
-        line_context.as_ref().map(|context| &context.run),
-        (units, unit_keys.as_deref()),
+        cache_run: line_context.as_ref().map(|context| &context.run),
+        detection_units: (units, unit_keys.as_deref()),
         files,
-        &streams,
+        streams: &streams,
         opts,
         detector,
-    );
+        accepted_coverage,
+    });
     (
         report,
         scope,
         semantic_pack_near,
         semantic_pack_external_exact,
         line_context,
+    )
+}
+
+struct PreparedCorpus {
+    corpus: nose_il::Corpus,
+    invalidation_report: Option<cache::InvalidationReport>,
+    unit_snapshot: Option<cache::CachedUnitSnapshot>,
+    cache_identity_parts: Option<([u8; 32], [u8; 32])>,
+    line_context: Option<cache::CachedLineContext>,
+}
+
+fn prepare_query_corpus(request: &QueryDetectRequest<'_>) -> PreparedCorpus {
+    let Some(dir) = &request.args.cache_dir else {
+        return PreparedCorpus {
+            corpus: time_lower(|| {
+                nose_frontend::lower_corpus_filtered(request.refs, request.exclude)
+            }),
+            invalidation_report: None,
+            unit_snapshot: None,
+            cache_identity_parts: None,
+            line_context: None,
+        };
+    };
+    let cached = time_lower(|| {
+        cache::build_corpus_cached(
+            request.refs,
+            request.exclude,
+            dir,
+            request.semantic_packs,
+            request.cache_max_bytes,
+        )
+    });
+    let line_context = cache::CachedLineContext {
+        source_files: cached.source_files,
+        run: cached.run.clone(),
+    };
+    PreparedCorpus {
+        corpus: cached.corpus,
+        invalidation_report: Some(cached.report),
+        unit_snapshot: Some(cached.unit_snapshot),
+        cache_identity_parts: Some((cached.workspace_digest, cached.semantic_pack_digest)),
+        line_context: Some(line_context),
+    }
+}
+
+fn try_query_detect_report_fast(request: &QueryDetectRequest<'_>) -> Option<DetectionReport> {
+    matches!(request.accepted_coverage, AcceptedCoverage::Query).then_some(())?;
+    let dir = request.args.cache_dir.as_ref()?;
+    let fast = time_lower(|| {
+        cache::try_build_units_fast(
+            request.refs,
+            request.exclude,
+            dir,
+            request.semantic_packs,
+            request.cache_max_bytes,
+            request.opts,
+        )
+    })?;
+    Some(query_detect_report_fast(
+        fast,
+        request.opts,
+        request.detector,
+    ))
+}
+
+fn query_detect_report_fast(
+    fast: cache::FastCachedUnits,
+    opts: &nose_detect::DetectOptions,
+    detector: &dyn nose_detect::Detector,
+) -> DetectionReport {
+    let cache::FastCachedUnits {
+        cached,
+        report: invalidation_report,
+        workspace_digest,
+        semantic_pack_digest,
+        source_files,
+        run,
+        langs,
+    } = fast;
+    print_invalidation(Some(&invalidation_report));
+    let cache::CachedUnits {
+        units,
+        unit_keys,
+        streams,
+        files,
+        stats,
+    } = cached;
+    if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+        eprintln!(
+            "  [cache] files={} hits={} misses={} read_bytes={} written_bytes={}",
+            stats.files, stats.hits, stats.misses, stats.read_bytes, stats.written_bytes
+        );
+    }
+    let report = detect_cached_or_clean(DetectCachedRequest {
+        cache_identity_parts: Some((workspace_digest, semantic_pack_digest)),
+        cache_run: Some(&run),
+        detection_units: (units, Some(&unit_keys)),
+        files,
+        streams: &streams,
+        opts,
+        detector,
+        accepted_coverage: AcceptedCoverage::Query,
+    });
+    (
+        report,
+        QueryScope::from_langs(langs),
+        nose_semantics::SemanticPackNearRegistry::default(),
+        nose_semantics::SemanticPackExternalExactRegistry::default(),
+        Some(cache::CachedLineContext { source_files, run }),
     )
 }
 
@@ -392,16 +539,34 @@ fn print_invalidation(report: Option<&cache::InvalidationReport>) {
     }
 }
 
-fn detect_cached_or_clean(
+struct DetectCachedRequest<'a> {
     cache_identity_parts: Option<([u8; 32], [u8; 32])>,
-    cache_run: Option<&cache::CacheRun>,
-    detection_units: (Vec<nose_detect::UnitFeat>, Option<&[[u8; 32]]>),
+    cache_run: Option<&'a cache::CacheRun>,
+    detection_units: (Vec<nose_detect::UnitFeat>, Option<&'a [[u8; 32]]>),
     files: usize,
-    streams: &[nose_detect::Stream],
-    opts: &nose_detect::DetectOptions,
-    detector: &dyn nose_detect::Detector,
-) -> nose_detect::Report {
+    streams: &'a [nose_detect::Stream],
+    opts: &'a nose_detect::DetectOptions,
+    detector: &'a dyn nose_detect::Detector,
+    accepted_coverage: AcceptedCoverage,
+}
+
+fn detect_cached_or_clean(request: DetectCachedRequest<'_>) -> nose_detect::Report {
+    let DetectCachedRequest {
+        cache_identity_parts,
+        cache_run,
+        detection_units,
+        files,
+        streams,
+        opts,
+        detector,
+        accepted_coverage,
+    } = request;
     let (units, unit_keys) = detection_units;
+    if matches!(accepted_coverage, AcceptedCoverage::Direct) {
+        return nose_detect::detect_from_units_with_direct_accepted_coverage(
+            units, files, streams, opts, detector,
+        );
+    }
     let (Some(run), Some((workspace, pack_digest))) = (cache_run, cache_identity_parts) else {
         return nose_detect::detect_from_units_with_accepted_coverage(
             units, files, streams, opts, detector,
@@ -422,164 +587,4 @@ fn detect_cached_or_clean(
         );
     }
     report
-}
-
-fn annotate_semantic_pack_near(
-    families: &mut [nose_detect::RefactorFamily],
-    registry: &nose_semantics::SemanticPackNearRegistry,
-) {
-    if !registry.is_active() {
-        return;
-    }
-    for family in families.iter_mut().filter(|family| {
-        family.witness.as_ref().map(|witness| witness.kind) == Some("structural-similarity")
-    }) {
-        let protocols = family
-            .locations
-            .iter()
-            .map(|location| {
-                registry.protocols_for_unit(&location.file, location.start_line, location.end_line)
-            })
-            .collect::<Vec<_>>();
-        let mut aggregate = BTreeSet::new();
-        for (index, location) in family.locations.iter_mut().enumerate() {
-            let mut member = BTreeSet::new();
-            for protocol in &protocols[index] {
-                let Some(provenance) = &protocol.provenance else {
-                    continue;
-                };
-                let supported = protocols.iter().enumerate().any(|(other_index, others)| {
-                    other_index != index
-                        && others
-                            .iter()
-                            .any(|other| other.operation == protocol.operation)
-                });
-                if supported {
-                    member.insert(provenance.clone());
-                    aggregate.insert(provenance.clone());
-                }
-            }
-            location.semantic_pack_near = member.into_iter().collect();
-        }
-        family.semantic_pack_near = aggregate.into_iter().collect();
-    }
-}
-
-fn annotate_semantic_pack_external_exact(
-    families: &mut [nose_detect::RefactorFamily],
-    registry: &nose_semantics::SemanticPackExternalExactRegistry,
-) {
-    if !registry.is_active() {
-        return;
-    }
-    for family in families.iter_mut().filter(|family| {
-        family.witness.as_ref().map(|witness| witness.kind) == Some("exact-value-graph")
-    }) {
-        let mut aggregate = BTreeSet::new();
-        for location in &mut family.locations {
-            let claims =
-                registry.claims_for_unit(&location.file, location.start_line, location.end_line);
-            aggregate.extend(claims.iter().cloned());
-            location.semantic_pack_external_exact = claims;
-        }
-        family.semantic_pack_external_exact = aggregate.into_iter().collect();
-    }
-}
-
-/// Compute the honest shared-line count for each family, before ranking. This layer has
-/// source access; the detector deals only in IL.
-///
-/// `shared_lines` (displayed) is the count of *all* lines invariant across the family
-/// — including boilerplate, so it matches what `--show proposal` shows. For *ranking*
-/// (`shared_weight`) we separate signal from noise: sum the IDF weight of the
-/// substantive lines (non-trivial, and rare across the corpus — a `if err != nil {`
-/// that appears in most files contributes ~0), then use that as a **gate** on the
-/// full block. A family whose shared lines are all boilerplate/idiom has ~0
-/// substantive weight → it scores ~0 however much it "shares"; a family with real
-/// shared content is credited for its whole extractable block (boilerplate included).
-/// Cross-language families have no shared *source* lines to diff, so they keep
-/// `shared_weight = 0` and fall back to the structural estimate in `extractability()`.
-/// Only same-language families with ≥2 sites get an honest shared-line count; the
-/// rest keep the detector's structural estimate. Computing the corpus line-IDF means
-/// re-reading every analyzed file, so skip it entirely when no family qualifies (a
-/// clean repo, or a run where `--min-value`/`--min-members` filtered everything) —
-/// otherwise a quiet analysis pays a full second corpus read for nothing.
-fn weight_shared_lines(
-    families: &mut [nose_detect::RefactorFamily],
-    refs: &[&std::path::Path],
-    exclude: &[String],
-    cached: Option<&cache::CachedLineContext>,
-) {
-    let needs_shared = |f: &nose_detect::RefactorFamily| f.languages == 1 && f.locations.len() >= 2;
-    if !families.iter().any(needs_shared) {
-        return;
-    }
-    let mut lines = FileLineCache::default();
-    if let Some(context) = cached {
-        let (mut idf, mut stats, mut changed_lines, mut file_count, complete) =
-            cached_line_idf(context, &mut lines, false);
-        let mut family_stats = apply_cached_family_lines(
-            families,
-            &idf,
-            &mut lines,
-            context,
-            &changed_lines,
-            file_count,
-            complete,
-        );
-        if family_stats.is_none() {
-            lines = FileLineCache::default();
-            let full = cached_line_idf(context, &mut lines, true);
-            idf = full.0;
-            stats = full.1;
-            changed_lines = full.2;
-            file_count = full.3;
-            family_stats = apply_cached_family_lines(
-                families,
-                &idf,
-                &mut lines,
-                context,
-                &changed_lines,
-                file_count,
-                true,
-            );
-        }
-        let family_stats = family_stats.expect("full line index covers every family");
-        if std::env::var_os("NOSE_CACHE_STATS").is_some() {
-            eprintln!("  [line-index] {}", cache::line_index_stats_json(&stats));
-            eprintln!(
-                "  [family-lines] {}",
-                serde_json::to_string(&family_stats)
-                    .expect("family line stats are JSON serializable")
-            );
-        }
-        return;
-    }
-    let idf = corpus_line_idf(refs, exclude, &mut lines);
-    for f in families.iter_mut().filter(|f| needs_shared(f)) {
-        // Difference evidence comes from the same first readable representative
-        // pair the `params` count uses (locations[0] vs the first member that
-        // reads), so the two fields stay mutually consistent.
-        f.varying_spots = f.locations[1..]
-            .iter()
-            .find_map(|b| varying_spots_of(&f.locations[0], b, &mut lines))
-            .unwrap_or_default();
-        if let Some(s) = shared_lines_of(&f.locations, &mut lines) {
-            let substantive: f64 = s
-                .rank_lines
-                .iter()
-                .filter(|l| !is_trivial_line(l))
-                .map(|l| idf.weight(l))
-                .sum();
-            // Gate ramps 0→1 as substantive shared content goes 0→2 lines.
-            let gate = (substantive / 2.0).clamp(0.0, 1.0);
-            // Display is the all-copies invariant count (#366); ranking weights the
-            // majority-voted set. `shared_weight` keeps using the rank set so the
-            // robust signal still drives the order, unchanged by the display basis.
-            f.shared_lines = s.display;
-            f.shared_weight = s.rank_lines.len() as f64 * gate;
-            f.params = s.params;
-            f.display_params = Some(s.display_params);
-        }
-    }
 }

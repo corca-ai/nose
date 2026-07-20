@@ -2,12 +2,14 @@ use super::digest::ContentDigest;
 use super::portable_il;
 use super::source::{RawCorpus, SourceIdentityKind};
 use super::store::{ArtifactKey, ArtifactStage, LayeredCas};
-use super::CacheRun;
+use super::{CacheRun, CachedUnitContext, CachedUnitSnapshot};
 use nose_frontend::ResolutionDependency;
 use nose_il::Corpus;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
+
+include!("resolved/fast_report.rs");
 
 const EXPORT_DEPENDENCY_SCHEMA: u32 = 1;
 const RESOLVED_IL_SCHEMA: u32 = 4;
@@ -16,7 +18,7 @@ const WORKSPACE_STATE_SCHEMA: u32 = 1;
 pub(crate) struct CachedCorpus {
     pub(crate) corpus: Corpus,
     pub(crate) report: InvalidationReport,
-    pub(crate) unit_contexts: Vec<[u8; 32]>,
+    pub(crate) unit_snapshot: CachedUnitSnapshot,
     pub(crate) workspace_digest: [u8; 32],
     pub(crate) semantic_pack_digest: [u8; 32],
     pub(crate) source_files: Vec<super::CachedSourceFile>,
@@ -121,6 +123,7 @@ pub(super) fn build_resolved_corpus_cached(
         nose_frontend::resolution_dependency_summary(&raw.corpus.files, &raw.corpus.interner);
     debug_assert_eq!(raw.corpus.files.len(), raw.regions.len());
     debug_assert_eq!(summary.files.len(), raw.regions.len());
+    let unit_contexts = unit_contexts(&raw, &summary);
     let previous_state = load_state(run);
     let current_state = workspace_state(&raw, &summary, semantic_pack_digest);
     store_dependency_summary(&cas, &raw, &summary);
@@ -142,11 +145,17 @@ pub(super) fn build_resolved_corpus_cached(
     );
     store_state(run, &current_state);
     CachedCorpus {
-        unit_contexts: summary
-            .files
-            .iter()
-            .map(|file| file.resolution_digest)
-            .collect(),
+        unit_snapshot: CachedUnitSnapshot {
+            contexts: unit_contexts,
+            source_files: source_files.clone(),
+            semantic_pack_digest: *semantic_pack_digest.as_bytes(),
+            discovery_digest: *raw.discovery_digest.as_bytes(),
+            global_line_statistics_digest: *raw.global_line_statistics_digest.as_bytes(),
+            swift_global_digest: summary.swift_global_digest,
+            swift_global_active: summary.swift_global_active,
+            fast_safe: false,
+            artifacts: Vec::new(),
+        },
         report,
         corpus: raw.corpus,
         workspace_digest,
@@ -154,6 +163,43 @@ pub(super) fn build_resolved_corpus_cached(
         source_files,
         run: run.clone(),
     }
+}
+
+fn unit_contexts(
+    raw: &RawCorpus,
+    summary: &nose_frontend::ResolutionDependencySummary,
+) -> Vec<CachedUnitContext> {
+    let mut depended_on = vec![false; summary.files.len()];
+    for file in &summary.files {
+        for provider in file
+            .dependencies
+            .iter()
+            .filter_map(|dependency| dependency.provider_file)
+        {
+            if let Some(depended_on) = depended_on.get_mut(provider) {
+                *depended_on = true;
+            }
+        }
+    }
+    raw.regions
+        .iter()
+        .zip(&raw.corpus.files)
+        .zip(&summary.files)
+        .zip(depended_on)
+        .map(|(((region, il), summary), depended_on)| CachedUnitContext {
+            region_path: il.meta.path.clone(),
+            region_id: region.region_id.clone(),
+            source_path: region.source_path.clone(),
+            source_digest: *region.source_digest.as_bytes(),
+            source_kind: region.source_kind,
+            lang: il.meta.lang,
+            resolution_digest: summary.resolution_digest,
+            export_digest: summary.export_digest,
+            requires_resolution: summary.requires_resolution,
+            over_invalidated: summary.over_invalidated,
+            depended_on,
+        })
+        .collect()
 }
 
 fn store_dependency_summary(

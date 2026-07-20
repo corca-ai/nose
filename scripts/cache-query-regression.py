@@ -72,6 +72,13 @@ class Scenario:
     restore_mtime: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True)
+class RealLeafMutation:
+    path: Path
+    find: str
+    replace: str
+
+
 def clone_source(name: str, operator: str = "+") -> str:
     return (
         f"def {name}(items):\n"
@@ -522,6 +529,66 @@ def run_noop_replay(
         require_cache_stats=require_cache_stats,
     )
     return [clean, cold_row, warm_row], clean_bytes == cold_bytes, clean_bytes == warm_bytes
+
+
+def run_real_leaf_replay(
+    binary: Path,
+    workspace: Path,
+    source_repo: Path,
+    mutation: RealLeafMutation,
+    replay: int,
+    require_cache_stats: bool,
+) -> tuple[list[dict[str, Any]], bool, bool, str, str]:
+    shutil.rmtree(workspace, ignore_errors=True)
+    workspace.mkdir(parents=True)
+    repo = workspace / "repo"
+    shutil.copytree(
+        source_repo,
+        repo,
+        symlinks=True,
+        ignore=shutil.ignore_patterns(".git"),
+    )
+    leaf = repo / mutation.path
+    try:
+        content = leaf.read_text(encoding="utf-8")
+    except OSError as error:
+        raise SystemExit(f"cannot read real leaf {leaf}: {error}") from error
+    if not mutation.find or content.count(mutation.find) != 1:
+        raise SystemExit(
+            f"real leaf {mutation.path}: --leaf-find must occur exactly once"
+        )
+    before_identity = source_identity(repo)
+    history = workspace / "history-cache"
+    cold = workspace / "cold-cache"
+    run_query(
+        binary=binary, cwd=workspace, repo_argument="repo", phase="empty-store-seed",
+        replay=replay, terms=DEFAULT_TERMS, flags=DEFAULT_FLAGS, cache=history,
+        require_cache_stats=require_cache_stats,
+    )
+    leaf.write_text(content.replace(mutation.find, mutation.replace), encoding="utf-8")
+    after_identity = source_identity(repo)
+    clean, clean_bytes = run_query(
+        binary=binary, cwd=workspace, repo_argument="repo", phase="clean-after",
+        replay=replay, terms=DEFAULT_TERMS, flags=DEFAULT_FLAGS, cache=None,
+        require_cache_stats=require_cache_stats,
+    )
+    cold_row, cold_bytes = run_query(
+        binary=binary, cwd=workspace, repo_argument="repo", phase="empty-store-after",
+        replay=replay, terms=DEFAULT_TERMS, flags=DEFAULT_FLAGS, cache=cold,
+        require_cache_stats=require_cache_stats,
+    )
+    warm_row, warm_bytes = run_query(
+        binary=binary, cwd=workspace, repo_argument="repo", phase="history-after",
+        replay=replay, terms=DEFAULT_TERMS, flags=DEFAULT_FLAGS, cache=history,
+        require_cache_stats=require_cache_stats,
+    )
+    return (
+        [clean, cold_row, warm_row],
+        clean_bytes == cold_bytes,
+        clean_bytes == warm_bytes,
+        before_identity,
+        after_identity,
+    )
 
 
 def nearest_rank_p95(values: list[float]) -> float:
@@ -1015,20 +1082,26 @@ def run_paired_comparison(
             f"{workload_id}: repository HEAD {observed} does not match {expected}"
         )
 
+    mutation = real_leaf_mutation(args)
     binaries = {"candidate": candidate, "official": official}
     rows: list[dict[str, Any]] = []
     equivalence = {"candidate": True, "official": True}
+    source_identities = set()
     for replay in range(1, args.replays + 1):
         first_role = "candidate" if replay % 2 else "official"
         second_role = "official" if first_role == "candidate" else "candidate"
         for role in (first_role, second_role):
-            replay_rows, cold_equal, warm_equal = run_noop_replay(
-                binaries[role],
-                workspace / role,
-                repo,
-                replay,
-                require_cache_stats=role == "candidate",
-            )
+            if mutation is None:
+                replay_rows, cold_equal, warm_equal = run_noop_replay(
+                    binaries[role], workspace / role, repo, replay,
+                    require_cache_stats=role == "candidate",
+                )
+            else:
+                replay_rows, cold_equal, warm_equal, before_id, after_id = run_real_leaf_replay(
+                    binaries[role], workspace / role, repo, mutation, replay,
+                    require_cache_stats=role == "candidate",
+                )
+                source_identities.add((before_id, after_id))
             if not cold_equal:
                 raise SystemExit(f"{role} cold no-op replay {replay}: output mismatch")
             if not warm_equal:
@@ -1043,6 +1116,8 @@ def run_paired_comparison(
                     }
                 )
             rows.extend(replay_rows)
+    if mutation is not None and len(source_identities) != 1:
+        raise SystemExit("real leaf source identities varied across roles or replays")
 
     candidate_identity = binary_identity(candidate)
     official_identity = binary_identity(official)
@@ -1054,10 +1129,22 @@ def run_paired_comparison(
             "id": workload_id,
             "path": portable_path(repo),
             "commit": observed,
+            "mutation": (
+                {
+                    "kind": "single-leaf-replace",
+                    "path": mutation.path.as_posix(),
+                    "find_sha256": hashlib.sha256(mutation.find.encode()).hexdigest(),
+                    "replace_sha256": hashlib.sha256(mutation.replace.encode()).hexdigest(),
+                }
+                if mutation is not None
+                else None
+            ),
         },
         "measurement": {
             "replays": args.replays,
-            "minimum_replays": manifest["minimum_replays"],
+            "minimum_replays": (
+                args.replays if args.allow_short_run else manifest["minimum_replays"]
+            ),
             "p95": "nearest-rank",
             "order": "alternating-ab-ba",
             "cache_stats_required": {"candidate": True, "official": False},
@@ -1085,7 +1172,14 @@ def run_paired_comparison(
             "official_baseline": portable_path(args.official_baseline),
             "official_baseline_sha256": sha256_file(args.official_baseline),
         },
-        "source_identity": source_identity(repo),
+        "source_identity": (
+            {
+                "before": next(iter(source_identities))[0],
+                "after": next(iter(source_identities))[1],
+            }
+            if mutation is not None
+            else source_identity(repo)
+        ),
         "equivalence": equivalence,
         "environment": measurement_environment(),
         "runs": rows,
@@ -1099,6 +1193,20 @@ def run_paired_comparison(
     args.output.write_text(
         json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+
+
+def real_leaf_mutation(args: argparse.Namespace) -> RealLeafMutation | None:
+    values = (args.leaf_path, args.leaf_find, args.leaf_replace)
+    if not any(value is not None for value in values):
+        return None
+    if not all(value is not None for value in values):
+        raise SystemExit("--leaf-path, --leaf-find, and --leaf-replace must be used together")
+    path = Path(args.leaf_path)
+    if path.is_absolute() or ".." in path.parts or path == Path("."):
+        raise SystemExit("--leaf-path must be a safe repository-relative path")
+    if args.leaf_find == args.leaf_replace:
+        raise SystemExit("--leaf-find and --leaf-replace must differ")
+    return RealLeafMutation(path=path, find=args.leaf_find, replace=args.leaf_replace)
 
 
 def measurement_environment() -> dict[str, Any]:
@@ -1151,6 +1259,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--official-archive", type=Path)
     parser.add_argument("--compare-official-binary", type=Path)
     parser.add_argument("--compare-official-revision")
+    parser.add_argument("--leaf-path")
+    parser.add_argument("--leaf-find")
+    parser.add_argument("--leaf-replace")
     parser.add_argument("--binary-revision")
     parser.add_argument("--work-dir", type=Path, default=ROOT / "target/cache-query-regression")
     parser.add_argument("--output", type=Path)
@@ -1181,6 +1292,9 @@ def main() -> int:
         raise SystemExit("--binary and --output are required")
     if args.fixture is None and args.root is None and args.synthetic_files is None:
         raise SystemExit("one of --fixture, --root, or --synthetic-files is required")
+    if any(value is not None for value in (args.leaf_path, args.leaf_find, args.leaf_replace)):
+        if args.compare_official_binary is None or args.root is None:
+            raise SystemExit("real leaf measurement requires paired comparison with --root")
     manifest, baseline = validate_manifests(
         args.manifest.resolve(), args.official_baseline.resolve()
     )
@@ -1303,7 +1417,7 @@ def main() -> int:
         "workload": workload,
         "measurement": {
             "replays": args.replays,
-            "minimum_replays": minimum,
+            "minimum_replays": args.replays if args.allow_short_run else minimum,
             "p95": "nearest-rank",
             "cache_stats_required": args.require_cache_stats,
             "characterization_only": args.characterize_equivalence_failures,

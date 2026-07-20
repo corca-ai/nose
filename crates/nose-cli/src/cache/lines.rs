@@ -346,11 +346,17 @@ mod tests {
         let mut sources = vec![
             CachedSourceFile {
                 path: a.to_string_lossy().into_owned(),
+                logical_path: "0:a.py".to_owned(),
                 digest: [1; 32],
+                lang: nose_il::Lang::Python,
+                source_kind: crate::cache::source::SourceIdentityKind::ContentSha256,
             },
             CachedSourceFile {
                 path: b.to_string_lossy().into_owned(),
+                logical_path: "0:b.py".to_owned(),
                 digest: [2; 32],
+                lang: nose_il::Lang::Python,
+                source_kind: crate::cache::source::SourceIdentityKind::ContentSha256,
             },
         ];
         let (first, first_stats) = build_line_index(&run, &sources, true);

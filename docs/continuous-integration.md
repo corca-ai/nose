@@ -332,7 +332,11 @@ fail safe by over-invalidating their language export catalog. Global candidate b
 scores, delete-capable family components, connected/same-unit witnesses, syntax components,
 line-frequency deltas, and family source-line analyses are also reused. An unchanged run therefore
 does not reparse, normalize, rescore, or reread the full line index; query filtering and rendering
-remain request-local. Point the directory at storage your
+remain request-local. Exact no-op runs and a single changed leaf can also restore unit artifacts
+without materializing the whole raw/resolved corpus. The changed leaf must have no incoming or
+outgoing resolution dependency and must preserve its export/resolution summaries; external pack
+influence, Swift-global state, multiple changes, or any missing/corrupt proof falls back to the
+ordinary full path. Point the directory at storage your
 CI preserves between runs; see the
 [incremental cache benchmark](incremental-cache-benchmark.md) for the exact performance and
 clean-scan-equivalence contract.
