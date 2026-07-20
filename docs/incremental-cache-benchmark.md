@@ -143,6 +143,37 @@ replays. Every clean/empty/history comparison passed byte-for-byte, including ad
 provider fan-out, semantic-pack and config changes, embedded regions, Swift global barriers, and
 same-size restored-mtime edits.
 
+## Checked #876 evidence
+
+The checked [`issue-876-transactional-store-sympy-paired-2026-07-20.v1.json`](../bench/cache/issue-876-transactional-store-sympy-paired-2026-07-20.v1.json)
+contains all 180 rows from 30 alternating AB/BA replays of implementation commit `6b13adaa`
+against the checksum-verified published v0.19.0 binary. Both roles independently passed exact
+clean/empty/history output equivalence.
+
+| Phase | Official p50 / p95 | #876 p50 / p95 | #876 delta p50 / p95 |
+| --- | ---: | ---: | ---: |
+| Clean | 1120.06 / 1480.92 ms | 1163.42 / 1388.26 ms | +3.87% / -6.26% |
+| Empty store | 1320.03 / 1662.34 ms | 8864.49 / 9388.52 ms | +571.54% / +464.78% |
+| Warm store | 893.96 / 1038.31 ms | 1866.58 / 1920.24 ms | +108.80% / +84.94% |
+
+The active store is 148,668,018 bytes for 27,214,294 bytes of Python source: 5.46× source and
+60.89% smaller than the official binary's 380,153,026-byte store. This passes both #876 disk
+gates. Clean p50/p95 RSS is 1.13%/2.39% below official, so the clean resource gate also passes.
+
+The remaining resource gate is deliberately not marked complete. Warm no-op p50/p95 RSS is
+713,596,928/743,718,912 bytes, 66.91%/68.64% of official rather than the required ≤60%. A separate
+one-run leaf-edit characterization measured 809,074,688 bytes against official's 1,086,472,192
+bytes (74.47%); it is diagnostic, not 30-replay release evidence. The warm path still restores the
+whole corpus and every unit before applying the incremental global state. #877 owns eliminating
+that whole-corpus restoration while integrating policy and base/current views; #876 remains open
+until the leaf-update criterion is measured there.
+
+The first-generation cost is also visible rather than normalized away. Per-object filesystem sync
+was removed only for immutable, checksummed CAS entries—a lost or corrupt entry is a safe miss—while
+generation manifests and `CURRENT` retain file-and-directory sync. Compact serialization and
+compression still make the empty-store and warm runs slower than v0.19. #877 must avoid paying
+restore work on view-only changes and warm updates rather than weakening integrity or disk bounds.
+
 ## What the current cache actually reuses
 
 The published v0.19.0 cache is schema v11 and the locked #872 candidate is schema v14. #873 moved

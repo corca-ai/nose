@@ -190,3 +190,24 @@ cost is first-generation construction: the store grows from 380,153,026 to 448,3
 (+17.93%), and cold latency more than doubles while the new global indexes are built. #876 owns
 transactional compact storage, bounded generations, and reclaiming that cold/store overhead; the
 regression is measured here rather than hidden.
+
+## Checked #876 performance evidence
+
+The checked [`issue-876-transactional-store-sympy-paired-2026-07-20.v1.json`](../bench/cache/issue-876-transactional-store-sympy-paired-2026-07-20.v1.json)
+contains 30 alternating AB/BA replays of implementation commit `6b13adaa` against the
+checksum-verified published v0.19.0 Apple Silicon binary. Both roles passed exact
+clean/empty/history output equivalence across all 180 rows.
+
+| Phase | Official p50 / p95 | #876 p50 / p95 | #876 delta p50 / p95 |
+| --- | ---: | ---: | ---: |
+| Clean | 1120.06 / 1480.92 ms | 1163.42 / 1388.26 ms | +3.87% / -6.26% |
+| Empty store | 1320.03 / 1662.34 ms | 8864.49 / 9388.52 ms | +571.54% / +464.78% |
+| Warm store | 893.96 / 1038.31 ms | 1866.58 / 1920.24 ms | +108.80% / +84.94% |
+
+The store falls to 148,668,018 bytes, 60.89% below official and 5.46× the workload's
+27,214,294 source bytes. Clean p50/p95 RSS is 1.13%/2.39% below official. Warm no-op p50/p95 RSS
+falls by 33.09%/31.36%, but remains 66.91%/68.64% of official and therefore does not satisfy the
+≤60% warm leaf gate. A separate one-run leaf-edit characterization reached only 74.47% of
+official RSS. #877 owns removing the remaining whole-corpus restoration and producing the checked
+leaf-update evidence before #876 closes. Empty-store compression and warm restore latency remain
+explicit in the table; neither is waived by the disk and clean-RSS passes.
