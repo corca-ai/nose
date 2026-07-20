@@ -200,6 +200,31 @@ its checksum, decompression, and deserialization work makes this leaf workload s
 published cache. First-generation construction also remains much slower. Later #871 milestones
 may reduce that cost; neither latency is part of the closed #876 resource criterion.
 
+## Checked #878 watch-session evidence
+
+The checked [`issue-878-watch-session-2026-07-21.v1.json`](../bench/cache/issue-878-watch-session-2026-07-21.v1.json)
+contains 30 leaf revisions at each deterministic session tier. Every one of the 60 emitted full
+dashboard snapshots equals a fresh no-cache query of that revision. Each tier is also killed
+mid-run with `SIGKILL`, reopened against the same transactional store, and compared with a fresh
+query before measurement continues.
+
+| Files | Ready p50 / p95 | End-to-end p50 / p95 | Active peak RSS | Store |
+| ---: | ---: | ---: | ---: | ---: |
+| 10,000 | 97.78 / 100.88 ms | 110.23 / 113.27 ms | 210.52 MB | 34.91 MB |
+| 100,000 | 597.80 / 631.48 ms | 610.39 / 789.56 ms | 1.93 GB | 360.75 MB |
+
+Ready latency runs from the first event in the debounced batch through the complete dashboard
+snapshot. End-to-end also includes JSON serialization and pipe delivery. Both p95 values pass the
+epic's 250ms/1s active-session gates with the full snapshot contract intact.
+
+The report verifies the downloaded v0.19.0 Apple Silicon archive (`097c7e76…`) and executable
+(`0f73ea54…`) against the published baseline manifest, and binds the passing #877 one-shot
+clean/history equivalence artifact. The synthetic files are intentionally tiny, so their per-file
+store ratios are not substituted for the real large-source resource gate: the #877 SymPy store is
+the checked 5.46×-or-better evidence. The active-session RSS above is reported separately and not
+normalized against a one-shot process; it is the cost of retaining units and detection state for
+sub-second revisions.
+
 ## What the current cache actually reuses
 
 The published v0.19.0 cache is schema v11 and the locked #872 candidate is schema v14. #873 moved
@@ -313,3 +338,17 @@ The harness verifies both official archive and executable checksums before start
 the two binaries separate stores, alternates their order on every replay, and requires exact
 same-binary equivalence. A failed phase or missing cache evidence never produces an output
 artifact.
+
+For the active-session tiers and crash replay:
+
+```sh
+python3 scripts/watch-session-benchmark.py \
+  --binary target/release/nose --replays 30 \
+  --output target/watch-session.json
+python3 scripts/watch-session-benchmark.py \
+  --validate-report target/watch-session.json
+```
+
+The runner requires the local published v0.19.0 archive and executable to match the baseline
+manifest before measuring. It records every raw revision row; a tier below 30 replays, any clean
+snapshot mismatch, a failed crash restart, or a p95 above its fixed target makes validation fail.

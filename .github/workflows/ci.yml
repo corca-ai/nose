@@ -123,6 +123,9 @@ jobs:
             bench/cache/issue-872-v0.19.0-vs-candidate-sympy-paired-2026-07-20.v1.json
           python3 scripts/cache-query-regression.py --validate-report \
             bench/cache/issue-873-portable-cas-sympy-paired-2026-07-20.v1.json
+          python3 scripts/watch-session-benchmark.py --self-test
+          python3 scripts/watch-session-benchmark.py --validate-report \
+            bench/cache/issue-878-watch-session-2026-07-21.v1.json
           python3 scripts/ruby-redefinition-scaling.py --self-test
           python3 scripts/semantic-regression-summary.py --self-test
           python3 scripts/recall-loss-diff.py --self-test

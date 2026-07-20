@@ -68,6 +68,8 @@ def official_identity(archive: Path | None, binary: Path | None) -> dict[str, An
     default_root = ROOT / "target/issue-875-baseline"
     archive = archive or default_root / row["archive"]
     binary = binary or default_root / row["archive"].removesuffix(".tar.xz") / "nose"
+    archive = archive.resolve()
+    binary = binary.resolve()
     for path, field in ((archive, "archive_sha256"), (binary, "binary_sha256")):
         if not path.is_file():
             raise SystemExit(f"missing official v0.19.0 {field}: {path}")
