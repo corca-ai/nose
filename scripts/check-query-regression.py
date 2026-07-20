@@ -876,8 +876,15 @@ def evaluate_gate(
     status["focused_repos"] = focused_repos
     if focused_report is None:
         status["status"] = "focused-rerun-required"
+        if uses_order_aware(report, runtime_policy):
+            message = "runtime evidence needs a focused rerun for "
+        else:
+            # Preserve the checked schema-v2 closeout text byte-for-byte. The
+            # order-aware wording is prospective with schema v3; historical
+            # evidence chains remain reproducible under the legacy policy.
+            message = "runtime threshold crossed; focused rerun required for "
         raise CheckFailed(
-            "runtime evidence needs a focused rerun for " + ", ".join(focused_repos),
+            message + ", ".join(focused_repos),
             status=status,
             exit_code=3,
         )
