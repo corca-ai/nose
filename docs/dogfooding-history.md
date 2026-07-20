@@ -1327,3 +1327,23 @@ self-query fingerprints enough for the same long-standing `int_bin` /
 `float_bin` dispatcher representative `aa2b95cf822a1cd2` to fall below value 40;
 neither numeric function changed. No replacement family appears, so the stale
 ID is removed and the budget tightens without accepting new duplication.
+
+The #874 dependency-aware invalidation closeout moves the reviewed count from
+27 to 28. Its first self-query exposed `feeab17bbf2ef795`, a real production
+duplication between export-surface canonicalization and portable-cache
+relocation: both independently enumerated every `EvidenceKind` payload that
+carries a source span. `EvidenceKind::map_spans` now owns that domain operation,
+so a new span-bearing evidence variant cannot make the two consumers drift and
+the avoidable family no longer reports.
+
+The two remaining deltas are previously reviewed families. The long-standing
+`interp/ops.rs::int_bin` / `float_bin` dispatcher `aa2b95cf822a1cd2` crosses
+value 40 again even though neither numeric function changed. Integer wrapping,
+floor/modulo, bitwise, and unsupported-operation policy remains intentionally
+separate from float IEEE behavior, so no common dispatcher is introduced. The
+context/export assignment-counting representative moves from
+`31843a5052bcb8fe` to `fbb4f5bc351a745e` after line movement in
+`module_imports/exports.rs`; its three members and all metrics are identical,
+including only two shared lines across 204 reported lines. No new avoidable
+duplication is accepted; the budget increase records only the returning numeric
+policy family.

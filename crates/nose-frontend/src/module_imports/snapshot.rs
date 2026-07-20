@@ -1,7 +1,7 @@
 use nose_il::{
-    stable_symbol_hash, CallTargetEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId,
-    EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, GuardEvidenceKind,
-    Il, ImportEvidenceKind, Node, NodeId, NodeKind, Payload, PromiseSettledValueEvidenceKind, Span,
+    stable_symbol_hash, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
+    EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, Il, ImportEvidenceKind, Node,
+    NodeId, NodeKind, Payload, Span,
 };
 use nose_semantics::language_core_evidence_provenance;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -104,44 +104,7 @@ pub(super) fn surface_fingerprint(
 }
 
 fn surface_evidence_kind(kind: EvidenceKind) -> EvidenceKind {
-    let canonical = |_span: Span| Span::synthetic(FileId(0));
-    match kind {
-        EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {
-            lower_span,
-            upper_span,
-            activation,
-        }) => EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {
-            lower_span: canonical(lower_span),
-            upper_span: canonical(upper_span),
-            activation,
-        }),
-        EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
-            target_span,
-            name_hash,
-        }) => EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
-            target_span: canonical(target_span),
-            name_hash,
-        }),
-        EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectMethod {
-            target_span,
-            receiver_type_hash,
-            method_hash,
-        }) => EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectMethod {
-            target_span: canonical(target_span),
-            receiver_type_hash,
-            method_hash,
-        }),
-        EvidenceKind::PromiseSettledValue(PromiseSettledValueEvidenceKind {
-            channel,
-            payload_span,
-            payload_kind,
-        }) => EvidenceKind::PromiseSettledValue(PromiseSettledValueEvidenceKind {
-            channel,
-            payload_span: canonical(payload_span),
-            payload_kind,
-        }),
-        other => other,
-    }
+    kind.map_spans(|_span| Span::synthetic(FileId(0)))
 }
 
 pub(super) fn snapshot_subtree(il: &Il, root: NodeId) -> SubtreeSnapshot {

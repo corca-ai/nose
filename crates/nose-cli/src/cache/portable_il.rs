@@ -6,8 +6,7 @@
 use super::digest::{ContentDigest, StableSha256};
 use anyhow::{bail, Context, Result};
 use nose_il::{
-    symbol_index, CallTargetEvidenceKind, EvidenceAnchor, EvidenceKind, EvidenceRecord, FileId,
-    GuardEvidenceKind, Il, Interner, Payload, PromiseSettledValueEvidenceKind, Span,
+    symbol_index, EvidenceAnchor, EvidenceKind, EvidenceRecord, FileId, Il, Interner, Payload, Span,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -271,50 +270,15 @@ fn rebind_anchor(anchor: EvidenceAnchor, file: FileId) -> EvidenceAnchor {
 }
 
 fn rebind_kind(kind: EvidenceKind, file: FileId) -> EvidenceKind {
-    match kind {
-        EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {
-            lower_span,
-            upper_span,
-            activation,
-        }) => EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {
-            lower_span: span_file(lower_span, file),
-            upper_span: span_file(upper_span, file),
-            activation,
-        }),
-        EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
-            target_span,
-            name_hash,
-        }) => EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
-            target_span: span_file(target_span, file),
-            name_hash,
-        }),
-        EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectMethod {
-            target_span,
-            receiver_type_hash,
-            method_hash,
-        }) => EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectMethod {
-            target_span: span_file(target_span, file),
-            receiver_type_hash,
-            method_hash,
-        }),
-        EvidenceKind::PromiseSettledValue(PromiseSettledValueEvidenceKind {
-            channel,
-            payload_span,
-            payload_kind,
-        }) => EvidenceKind::PromiseSettledValue(PromiseSettledValueEvidenceKind {
-            channel,
-            payload_span: span_file(payload_span, file),
-            payload_kind,
-        }),
-        other => other,
-    }
+    kind.map_spans(|span| span_file(span, file))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use nose_il::{
-        BoundOrderGuardActivation, Corpus, EvidenceId, EvidenceProvenance, EvidenceStatus, Lang,
+        BoundOrderGuardActivation, Corpus, EvidenceId, EvidenceProvenance, EvidenceStatus,
+        GuardEvidenceKind, Lang,
     };
 
     fn lower(file: FileId, path: &str, interner: &Interner) -> Il {
