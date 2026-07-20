@@ -6,11 +6,9 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
 
 const STATE_SCHEMA: u32 = 1;
-static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+const STATE_SLOT: &str = "family-lines";
 
 #[derive(Default, Deserialize, Serialize)]
 struct FamilyLineState {
@@ -43,8 +41,8 @@ pub(crate) fn apply_cached_family_lines(
     file_count: usize,
     line_index_complete: bool,
 ) -> Option<FamilyLineStats> {
-    let path = state_path(&context.cache_dir, context.workspace_digest);
-    let previous = load_state(&path);
+    let mut previous = load_state(&context.run);
+    let previous_len = previous.families.len();
     let digests = source_digests(context);
     if !line_index_complete
         && families
@@ -69,7 +67,7 @@ pub(crate) fn apply_cached_family_lines(
         .filter(|family| family.languages == 1 && family.locations.len() >= 2)
     {
         let key = family_key(family, &digests);
-        let analysis = if let Some(stored) = previous.families.get(&key) {
+        let analysis = if let Some(mut stored) = previous.families.remove(&key) {
             let needs_reweight = stored.file_count != file_count
                 || stored.shared.as_ref().is_some_and(|shared| {
                     shared
@@ -77,7 +75,6 @@ pub(crate) fn apply_cached_family_lines(
                         .iter()
                         .any(|line| changed_lines.contains(line))
                 });
-            let mut stored = stored.clone();
             if needs_reweight {
                 stored.shared_weight = stored
                     .shared
@@ -96,12 +93,10 @@ pub(crate) fn apply_cached_family_lines(
         apply_analysis(family, &analysis);
         current.insert(key, analysis);
     }
-    if stats.families_reweighted > 0
-        || stats.families_rebuilt > 0
-        || current.len() != previous.families.len()
+    if stats.families_reweighted > 0 || stats.families_rebuilt > 0 || current.len() != previous_len
     {
         store_state(
-            &path,
+            &context.run,
             &FamilyLineState {
                 schema: STATE_SCHEMA,
                 families: current,
@@ -208,47 +203,20 @@ fn hash_component(hasher: &mut Sha256, bytes: &[u8]) {
     hasher.update(bytes);
 }
 
-fn state_path(cache_dir: &Path, workspace: [u8; 32]) -> PathBuf {
-    cache_dir
-        .join("family-line-state-v1")
-        .join(format!("{}.msgpack", hex(&workspace)))
-}
-
-fn load_state(path: &Path) -> FamilyLineState {
-    std::fs::read(path)
-        .ok()
+fn load_state(run: &crate::cache::CacheRun) -> FamilyLineState {
+    run.load(STATE_SLOT, STATE_SCHEMA)
         .and_then(|bytes| rmp_serde::from_slice::<FamilyLineState>(&bytes).ok())
         .filter(|state| state.schema == STATE_SCHEMA)
         .unwrap_or_default()
 }
 
-fn store_state(path: &Path, state: &FamilyLineState) {
-    let Some(parent) = path.parent() else { return };
-    if std::fs::create_dir_all(parent).is_err() {
-        return;
-    }
+fn store_state(run: &crate::cache::CacheRun, state: &FamilyLineState) {
     // `VaryingSpot` omits empty optional fields, which requires a named map: compact
     // tuple encoding would shift the remaining fields and fail closed on reload.
     let Ok(bytes) = rmp_serde::to_vec_named(state) else {
         return;
     };
-    let temp = parent.join(format!(
-        ".{}.{}.tmp",
-        std::process::id(),
-        TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
-    ));
-    if std::fs::write(&temp, bytes).is_ok() && std::fs::rename(&temp, path).is_err() {
-        let _ = std::fs::remove_file(&temp);
-    }
-}
-
-fn hex(bytes: &[u8; 32]) -> String {
-    let mut out = String::with_capacity(64);
-    for byte in bytes {
-        use std::fmt::Write as _;
-        write!(&mut out, "{byte:02x}").expect("writing to String cannot fail");
-    }
-    out
+    run.store(STATE_SLOT, STATE_SCHEMA, &bytes);
 }
 
 #[cfg(test)]

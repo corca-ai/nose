@@ -139,6 +139,15 @@ if [[ -z "$baseline_binary" ]]; then
   )
   baseline_binary="$(pwd)/target/semantic-regression/baseline-nose"
   cp "$cargo_target/release/nose" "$baseline_binary"
+  # Cargo's package fingerprints do not distinguish two worktrees of the same
+  # package version in one target directory. Without this workspace-only clean,
+  # the head build can reuse a base-worktree rlib across an internal API change
+  # and fail (or, worse, produce a mixed-revision binary). Keep the Cargo cache,
+  # but rebuild the release target from the head tree.
+  (
+    cd "$worktree_root/head"
+    cargo clean --release --workspace --target-dir "$cargo_target"
+  )
   (
     cd "$worktree_root/head"
     cargo build --release --locked --target-dir "$cargo_target"
@@ -148,7 +157,7 @@ if [[ -z "$baseline_binary" ]]; then
   build_mode="worktrees"
   base_build_cwd="$worktree_root/base"
   head_build_cwd="$worktree_root/head"
-  build_command="cargo build --release --locked --target-dir $cargo_target"
+  build_command="cargo build --release --locked --target-dir $cargo_target (workspace artifacts cleaned between revisions)"
 else
   build_mode="prebuilt"
   base_build_cwd=""

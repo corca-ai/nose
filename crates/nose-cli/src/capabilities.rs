@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-const CAPABILITIES_SCHEMA_VERSION: u32 = 7;
+const CAPABILITIES_SCHEMA_VERSION: u32 = 8;
 
 #[derive(serde::Serialize)]
 struct Report {
@@ -45,6 +45,9 @@ struct Commands {
 #[derive(serde::Serialize)]
 struct Schemas {
     capabilities: Vec<u32>,
+    cache_status: Vec<&'static str>,
+    cache_prune: Vec<&'static str>,
+    cache_clear: Vec<&'static str>,
     query_json: Vec<u32>,
     semantic_packs: Vec<&'static str>,
     semantic_pack_locks: Vec<&'static str>,
@@ -120,7 +123,14 @@ impl Report {
                 doctor_json: false,
             },
             commands: Commands {
-                stable: vec!["capabilities", "il", "query", "semantic-pack", "stats"],
+                stable: vec![
+                    "cache",
+                    "capabilities",
+                    "il",
+                    "query",
+                    "semantic-pack",
+                    "stats",
+                ],
                 deprecated: Vec::new(),
             },
             schemas: current_schemas(),
@@ -130,6 +140,7 @@ impl Report {
                 output_formats: vec!["human", "json", "markdown", "sarif"],
                 sort_keys: vec!["extractability", "value", "sites", "hazard"],
                 config_keys: vec![
+                    "cache-max-bytes",
                     "exclude",
                     "generated-paths",
                     "ignore-file",
@@ -160,6 +171,9 @@ impl Report {
 fn current_schemas() -> Schemas {
     Schemas {
         capabilities: vec![CAPABILITIES_SCHEMA_VERSION],
+        cache_status: vec!["nose.cache-status/v1"],
+        cache_prune: vec!["nose.cache-prune/v1"],
+        cache_clear: vec!["nose.cache-clear/v1"],
         query_json: vec![
             crate::schema_versions::QUERY_BASE_JSON_SCHEMA_VERSION,
             crate::schema_versions::QUERY_JSON_SCHEMA_VERSION,

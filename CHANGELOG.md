@@ -7,6 +7,12 @@ break.
 ## [Unreleased]
 
 ### Added
+- Made `--cache-dir` transactional, corruption-safe, concurrent, compact, and bounded (#876).
+  Immutable checksummed records now commit through one complete generation pointer; interrupted
+  or concurrent writers cannot expose partial state, corrupt/oversized entries recompute, and
+  a 5 GiB default budget evicts performance data without changing results. New stable
+  `nose cache status|prune|clear` commands and `--cache-max-bytes` / `[query].cache-max-bytes`
+  expose storage control without deleting unrelated files.
 - Added local `nose.semantic-pack-lock.v1` project authorization for typed v1
   semantic packs. `nose semantic-pack lock/status` content-pin manifest identity,
   semantic digest, selected rows/channels, dependency files, and optional receipts;

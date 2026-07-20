@@ -2,17 +2,16 @@ use super::digest::ContentDigest;
 use super::portable_il;
 use super::source::{RawCorpus, SourceIdentityKind};
 use super::store::{ArtifactKey, ArtifactStage, LayeredCas};
+use super::CacheRun;
 use nose_frontend::ResolutionDependency;
 use nose_il::Corpus;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
 
 const EXPORT_DEPENDENCY_SCHEMA: u32 = 1;
-const RESOLVED_IL_SCHEMA: u32 = 3;
-static STATE_TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+const RESOLVED_IL_SCHEMA: u32 = 4;
+const WORKSPACE_STATE_SCHEMA: u32 = 1;
 
 pub(crate) struct CachedCorpus {
     pub(crate) corpus: Corpus,
@@ -21,6 +20,7 @@ pub(crate) struct CachedCorpus {
     pub(crate) workspace_digest: [u8; 32],
     pub(crate) semantic_pack_digest: [u8; 32],
     pub(crate) source_files: Vec<super::CachedSourceFile>,
+    pub(crate) run: CacheRun,
 }
 
 #[derive(Debug, Serialize)]
@@ -110,18 +110,18 @@ type CorpusFile = nose_il::Il;
 
 pub(super) fn build_resolved_corpus_cached(
     mut raw: RawCorpus,
-    dir: &Path,
+    run: &CacheRun,
     semantic_pack_digest: ContentDigest,
 ) -> CachedCorpus {
     let workspace_digest = *raw.workspace_digest.as_bytes();
     let source_files = raw.source_files.clone();
-    let cas = LayeredCas::new(dir);
+    run.set_workspace(workspace_digest);
+    let cas = run.cas();
     let summary =
         nose_frontend::resolution_dependency_summary(&raw.corpus.files, &raw.corpus.interner);
     debug_assert_eq!(raw.corpus.files.len(), raw.regions.len());
     debug_assert_eq!(summary.files.len(), raw.regions.len());
-    let state_path = state_path(dir, raw.workspace_digest);
-    let previous_state = load_state(&state_path);
+    let previous_state = load_state(run);
     let current_state = workspace_state(&raw, &summary, semantic_pack_digest);
     store_dependency_summary(&cas, &raw, &summary);
     let resolved_keys = resolved_artifact_keys(&raw, &summary.files);
@@ -140,7 +140,7 @@ pub(super) fn build_resolved_corpus_cached(
         &current_state,
         semantic_pack_digest,
     );
-    store_state(&state_path, &current_state);
+    store_state(run, &current_state);
     CachedCorpus {
         unit_contexts: summary
             .files
@@ -152,6 +152,7 @@ pub(super) fn build_resolved_corpus_cached(
         workspace_digest,
         semantic_pack_digest: *semantic_pack_digest.as_bytes(),
         source_files,
+        run: run.clone(),
     }
 }
 
@@ -521,33 +522,17 @@ fn global_invalidations(
     out
 }
 
-fn state_path(dir: &Path, workspace: ContentDigest) -> PathBuf {
-    dir.join("state-v1")
-        .join(format!("{}.json", workspace.hex()))
+fn load_state(run: &CacheRun) -> Option<WorkspaceState> {
+    let bytes = run.load("resolved-workspace", WORKSPACE_STATE_SCHEMA)?;
+    let state = rmp_serde::from_slice::<WorkspaceState>(&bytes).ok()?;
+    (state.schema == WORKSPACE_STATE_SCHEMA).then_some(state)
 }
 
-fn load_state(path: &Path) -> Option<WorkspaceState> {
-    let bytes = std::fs::read(path).ok()?;
-    let state = serde_json::from_slice::<WorkspaceState>(&bytes).ok()?;
-    (state.schema == 1).then_some(state)
-}
-
-fn store_state(path: &Path, state: &WorkspaceState) {
-    let Some(parent) = path.parent() else { return };
-    if std::fs::create_dir_all(parent).is_err() {
-        return;
-    }
-    let Ok(bytes) = serde_json::to_vec(state) else {
+fn store_state(run: &CacheRun, state: &WorkspaceState) {
+    let Ok(bytes) = rmp_serde::to_vec(state) else {
         return;
     };
-    let temp = parent.join(format!(
-        ".{}.{}.tmp",
-        std::process::id(),
-        STATE_TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
-    ));
-    if std::fs::write(&temp, bytes).is_ok() && std::fs::rename(&temp, path).is_err() {
-        let _ = std::fs::remove_file(&temp);
-    }
+    run.store("resolved-workspace", WORKSPACE_STATE_SCHEMA, &bytes);
 }
 
 fn hex(bytes: [u8; 32]) -> String {

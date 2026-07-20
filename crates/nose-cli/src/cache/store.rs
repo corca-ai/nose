@@ -1,16 +1,21 @@
 use super::digest::ContentDigest;
-use std::fs::OpenOptions;
+use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
-const MAGIC: &[u8; 8] = b"NOSECAS1";
-const FORMAT_SCHEMA: u32 = 1;
-const HEADER_LEN: usize = 8 + 4 + 1 + 3 + 4 + 32 + 8 + 32;
+const MAGIC: &[u8; 8] = b"NOSECAS2";
+const FORMAT_SCHEMA: u32 = 2;
+const FLAG_ZSTD: u8 = 1;
+const ZSTD_LEVEL: i32 = 7;
+const HEADER_LEN: usize = 8 + 4 + 1 + 1 + 2 + 4 + 32 + 8 + 8 + 32;
+const MAX_PAYLOAD_BYTES: usize = 1024 * 1024 * 1024;
+const MAX_STORED_BYTES: u64 = MAX_PAYLOAD_BYTES as u64 + HEADER_LEN as u64;
 static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
-/// Stable layer ids. All six #873 stages share one envelope and address space;
-/// later issues can activate layers without inventing another storage format.
+/// Stable layer ids. The layer schema in each key evolves independently from
+/// the shared envelope schema.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
 pub(super) enum ArtifactStage {
@@ -19,7 +24,7 @@ pub(super) enum ArtifactStage {
     ExportDependencySummary = 3,
     ResolvedIl = 4,
     UnitsSyntax = 5,
-    GlobalDetectionIndex = 6,
+    StateRecord = 6,
 }
 
 impl ArtifactStage {
@@ -30,7 +35,7 @@ impl ArtifactStage {
             3 => Self::ExportDependencySummary,
             4 => Self::ResolvedIl,
             5 => Self::UnitsSyntax,
-            6 => Self::GlobalDetectionIndex,
+            6 => Self::StateRecord,
             _ => return None,
         })
     }
@@ -42,7 +47,7 @@ impl ArtifactStage {
             Self::ExportDependencySummary => "export-dependency-summary",
             Self::ResolvedIl => "resolved-il",
             Self::UnitsSyntax => "units-syntax",
-            Self::GlobalDetectionIndex => "global-detection-index",
+            Self::StateRecord => "state-record",
         }
     }
 }
@@ -77,52 +82,66 @@ pub(super) struct CasRead {
 
 pub(super) struct LayeredCas {
     root: PathBuf,
+    written_bytes: Option<Arc<AtomicU64>>,
 }
 
 impl LayeredCas {
+    #[cfg(test)]
     pub(super) fn new(root: &Path) -> Self {
+        Self::tracked(root, None)
+    }
+
+    pub(super) fn with_write_counter(root: &Path, written_bytes: Arc<AtomicU64>) -> Self {
+        Self::tracked(root, Some(written_bytes))
+    }
+
+    fn tracked(root: &Path, written_bytes: Option<Arc<AtomicU64>>) -> Self {
         Self {
-            root: root.join("cas-v1"),
+            root: root.join("cas-v2"),
+            written_bytes,
         }
     }
 
     pub(super) fn load(&self, key: ArtifactKey) -> Option<CasRead> {
-        let bytes = std::fs::read(self.path(key)).ok()?;
-        let stored_bytes = bytes.len() as u64;
-        let payload = validate_envelope(&bytes, key)?;
+        let path = self.path(key);
+        let (payload, stored_bytes) = read_envelope_file(&path, key)?;
         Some(CasRead {
-            payload: payload.to_vec(),
+            payload,
             stored_bytes,
         })
     }
 
-    /// Atomically publish a complete checksummed envelope. An invalid existing
-    /// entry is replaced; readers that race the rename see either complete file.
+    /// Publish a complete checksummed envelope.
+    ///
+    /// The complete payload is written before the atomic rename. Neither the
+    /// immutable file nor its directory entry is individually synced: losing or
+    /// corrupting an entry in a machine crash is a verified cache miss, while
+    /// syncing thousands of objects serializes first-generation construction.
+    /// Mutable generation manifests retain the stronger sync boundary.
     pub(super) fn store(&self, key: ArtifactKey, payload: &[u8]) -> std::io::Result<u64> {
-        if let Some(existing) = self.load(key) {
-            let _ = existing;
+        if payload.len() > MAX_PAYLOAD_BYTES {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "cache payload exceeds the decoded-size limit",
+            ));
+        }
+        if self.load(key).is_some() {
             return Ok(0);
         }
         let target = self.path(key);
         let parent = target.parent().expect("CAS entries always have a parent");
         std::fs::create_dir_all(parent)?;
-        let bytes = envelope(key, payload);
-        let sequence = TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let temp = parent.join(format!(
-            ".{}.{}.{}.tmp",
-            std::process::id(),
-            sequence,
-            key.digest.hex()
-        ));
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&temp)?;
-        file.write_all(&bytes)?;
-        file.flush()?;
-        drop(file);
+        let bytes = encode_envelope(key, payload);
+        let temp = temporary_path(parent, &key.digest.hex());
+        write_complete(&temp, &bytes)?;
         match publish(&temp, &target) {
-            Ok(()) => Ok(bytes.len() as u64),
+            Ok(()) => {
+                let stored = bytes.len() as u64;
+                if let Some(counter) = &self.written_bytes {
+                    counter.fetch_add(stored, Ordering::Relaxed);
+                }
+                Ok(stored)
+            }
             Err(error) => {
                 let _ = std::fs::remove_file(&temp);
                 Err(error)
@@ -139,60 +158,139 @@ impl LayeredCas {
     }
 }
 
+pub(super) fn read_envelope_file(path: &Path, key: ArtifactKey) -> Option<(Vec<u8>, u64)> {
+    let stored_bytes = std::fs::metadata(path).ok()?.len();
+    if stored_bytes > MAX_STORED_BYTES {
+        warn_corrupt(path, "stored length exceeds the cache limit");
+        return None;
+    }
+    let bytes = std::fs::read(path).ok()?;
+    match decode_envelope(&bytes, key) {
+        Some(payload) => Some((payload, stored_bytes)),
+        None => {
+            warn_corrupt(path, "invalid header, checksum, or compressed payload");
+            None
+        }
+    }
+}
+
+pub(super) fn temporary_path(parent: &Path, suffix: &str) -> PathBuf {
+    parent.join(format!(
+        ".{}.{}.{}.tmp",
+        std::process::id(),
+        TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed),
+        suffix
+    ))
+}
+
+pub(super) fn write_synced(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    let file = write_complete(path, bytes)?;
+    file.sync_all()
+}
+
+fn write_complete(path: &Path, bytes: &[u8]) -> std::io::Result<File> {
+    let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
+    file.write_all(bytes)?;
+    Ok(file)
+}
+
 #[cfg(unix)]
-fn publish(temp: &Path, target: &Path) -> std::io::Result<()> {
-    // POSIX rename replaces atomically: concurrent readers never observe a
-    // partially written envelope, and concurrent writers of one key converge.
+pub(super) fn sync_parent(parent: &Path) -> std::io::Result<()> {
+    File::open(parent)?.sync_all()
+}
+
+#[cfg(not(unix))]
+pub(super) fn sync_parent(_parent: &Path) -> std::io::Result<()> {
+    Ok(())
+}
+
+#[cfg(unix)]
+pub(super) fn publish(temp: &Path, target: &Path) -> std::io::Result<()> {
+    // POSIX replacement is atomic. Concurrent writers of one content key
+    // converge on identical bytes.
     std::fs::rename(temp, target)
 }
 
 #[cfg(not(unix))]
-fn publish(temp: &Path, target: &Path) -> std::io::Result<()> {
-    // `rename` cannot replace on every supported non-Unix filesystem. A racing
-    // reader may conservatively miss during this repair window, but can never
-    // consume partial bytes because `temp` was fully synced first.
+pub(super) fn publish(temp: &Path, target: &Path) -> std::io::Result<()> {
     if target.exists() {
         std::fs::remove_file(target)?;
     }
     std::fs::rename(temp, target)
 }
 
-fn envelope(key: ArtifactKey, payload: &[u8]) -> Vec<u8> {
+pub(super) fn encode_envelope(key: ArtifactKey, payload: &[u8]) -> Vec<u8> {
+    // Portable IL regions already carry independently bounded Zstandard frames.
+    // Recompressing their bundle raises cold latency and warm peak memory without
+    // materially shrinking it.
+    let compressed = (!matches!(key.stage, ArtifactStage::RawIl | ArtifactStage::ResolvedIl))
+        .then(|| zstd::bulk::compress(payload, ZSTD_LEVEL).ok())
+        .flatten();
+    let (flags, stored) = if compressed
+        .as_ref()
+        .is_some_and(|compressed| compressed.len() < payload.len())
+    {
+        (FLAG_ZSTD, compressed.as_deref().unwrap_or_default())
+    } else {
+        (0, payload)
+    };
     let checksum = ContentDigest::sha256(payload);
-    let mut bytes = Vec::with_capacity(HEADER_LEN + payload.len());
+    let mut bytes = Vec::with_capacity(HEADER_LEN + stored.len());
     bytes.extend_from_slice(MAGIC);
     bytes.extend_from_slice(&FORMAT_SCHEMA.to_be_bytes());
     bytes.push(key.stage as u8);
-    bytes.extend_from_slice(&[0; 3]);
+    bytes.push(flags);
+    bytes.extend_from_slice(&[0; 2]);
     bytes.extend_from_slice(&key.schema.to_be_bytes());
     bytes.extend_from_slice(key.digest.as_bytes());
+    bytes.extend_from_slice(&(stored.len() as u64).to_be_bytes());
     bytes.extend_from_slice(&(payload.len() as u64).to_be_bytes());
     bytes.extend_from_slice(checksum.as_bytes());
-    bytes.extend_from_slice(payload);
+    bytes.extend_from_slice(stored);
     bytes
 }
 
-fn validate_envelope(bytes: &[u8], key: ArtifactKey) -> Option<&[u8]> {
+pub(super) fn decode_envelope(bytes: &[u8], key: ArtifactKey) -> Option<Vec<u8>> {
     if bytes.len() < HEADER_LEN || &bytes[..8] != MAGIC {
         return None;
     }
     let format = u32::from_be_bytes(bytes[8..12].try_into().ok()?);
     let stage = ArtifactStage::from_code(bytes[12])?;
+    let flags = bytes[13];
     let schema = u32::from_be_bytes(bytes[16..20].try_into().ok()?);
     let digest = ContentDigest::from_bytes(bytes[20..52].try_into().ok()?);
-    let payload_len = u64::from_be_bytes(bytes[52..60].try_into().ok()?);
-    let checksum = ContentDigest::from_bytes(bytes[60..92].try_into().ok()?);
+    let stored_len = u64::from_be_bytes(bytes[52..60].try_into().ok()?);
+    let payload_len = u64::from_be_bytes(bytes[60..68].try_into().ok()?);
+    let checksum = ContentDigest::from_bytes(bytes[68..100].try_into().ok()?);
     if format != FORMAT_SCHEMA
         || stage != key.stage
         || schema != key.schema
         || digest != key.digest
-        || payload_len > usize::MAX as u64
-        || HEADER_LEN.checked_add(payload_len as usize)? != bytes.len()
+        || flags & !FLAG_ZSTD != 0
+        || stored_len > MAX_STORED_BYTES
+        || payload_len > MAX_PAYLOAD_BYTES as u64
+        || HEADER_LEN.checked_add(stored_len as usize)? != bytes.len()
     {
         return None;
     }
-    let payload = &bytes[HEADER_LEN..];
-    (ContentDigest::sha256(payload) == checksum).then_some(payload)
+    let stored = &bytes[HEADER_LEN..];
+    let payload = if flags & FLAG_ZSTD != 0 {
+        zstd::bulk::decompress(stored, payload_len as usize).ok()?
+    } else {
+        if stored_len != payload_len {
+            return None;
+        }
+        stored.to_vec()
+    };
+    (payload.len() == payload_len as usize && ContentDigest::sha256(&payload) == checksum)
+        .then_some(payload)
+}
+
+fn warn_corrupt(path: &Path, reason: &str) {
+    eprintln!(
+        "warning: ignoring corrupt cache entry {}: {reason}; recomputing",
+        path.display()
+    );
 }
 
 #[cfg(test)]
@@ -215,7 +313,7 @@ mod tests {
             ArtifactStage::ExportDependencySummary,
             ArtifactStage::ResolvedIl,
             ArtifactStage::UnitsSyntax,
-            ArtifactStage::GlobalDetectionIndex,
+            ArtifactStage::StateRecord,
         ];
         let keys = stages.map(|stage| ArtifactKey::derive(stage, 1, &[b"same content"]));
         for (index, key) in keys.iter().enumerate() {
@@ -224,7 +322,16 @@ mod tests {
     }
 
     #[test]
-    fn corruption_and_truncation_are_cache_misses() {
+    fn compression_and_round_trip_preserve_payload() {
+        let key = ArtifactKey::derive(ArtifactStage::UnitsSyntax, 3, &[b"input"]);
+        let payload = vec![7; 64 * 1024];
+        let bytes = encode_envelope(key, &payload);
+        assert!(bytes.len() < payload.len() / 4);
+        assert_eq!(decode_envelope(&bytes, key), Some(payload));
+    }
+
+    #[test]
+    fn corruption_truncation_and_oversized_lengths_are_cache_misses() {
         let root = temp_store("corruption");
         let _ = std::fs::remove_dir_all(&root);
         let cas = LayeredCas::new(&root);
@@ -243,6 +350,10 @@ mod tests {
         truncated.truncate(HEADER_LEN + 3);
         std::fs::write(&path, truncated).unwrap();
         assert!(cas.load(key).is_none());
+
+        let mut oversized = encode_envelope(key, b"small");
+        oversized[60..68].copy_from_slice(&((MAX_PAYLOAD_BYTES as u64) + 1).to_be_bytes());
+        assert!(decode_envelope(&oversized, key).is_none());
         let _ = std::fs::remove_dir_all(&root);
     }
 }

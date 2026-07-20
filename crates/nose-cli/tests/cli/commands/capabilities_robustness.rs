@@ -12,7 +12,7 @@ fn capabilities_command_emits_machine_readable_contract() {
     let json: serde_json::Value =
         serde_json::from_str(&out).expect("capabilities must emit valid JSON");
 
-    assert_eq!(json["schema_version"], 7);
+    assert_eq!(json["schema_version"], 8);
     assert_eq!(json["tool"]["name"], "nose");
     assert_eq!(json["tool"]["version"], env!("CARGO_PKG_VERSION"));
     assert!(
@@ -60,10 +60,29 @@ fn capabilities_command_lists_stable_commands_and_schemas() {
 
     assert_eq!(
         json_array_strings(&json["commands"], "stable"),
-        vec!["capabilities", "il", "query", "semantic-pack", "stats"]
+        vec![
+            "cache",
+            "capabilities",
+            "il",
+            "query",
+            "semantic-pack",
+            "stats"
+        ]
     );
     assert!(json_array_strings(&json["commands"], "deprecated").is_empty());
-    assert_eq!(json["schemas"]["capabilities"][0], 7);
+    assert_eq!(json["schemas"]["capabilities"][0], 8);
+    assert_eq!(
+        json["schemas"]["cache_status"],
+        serde_json::json!(["nose.cache-status/v1"])
+    );
+    assert_eq!(
+        json["schemas"]["cache_prune"],
+        serde_json::json!(["nose.cache-prune/v1"])
+    );
+    assert_eq!(
+        json["schemas"]["cache_clear"],
+        serde_json::json!(["nose.cache-clear/v1"])
+    );
     assert_eq!(json["schemas"]["query_json"], serde_json::json!([8, 9]));
     assert_eq!(
         json["schemas"]["semantic_packs"],
@@ -144,6 +163,7 @@ fn capabilities_command_reports_query_surface() {
 }
 
 fn assert_caller_generated_path_capability(json: &serde_json::Value) {
+    assert!(json_array_strings(&json["query"], "config_keys").contains(&"cache-max-bytes"));
     assert!(json_array_strings(&json["query"], "config_keys").contains(&"generated-paths"));
     assert_eq!(
         json["query"]["capabilities"]["caller_generated_paths"],

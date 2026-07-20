@@ -12,8 +12,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::hash::{Hash, Hasher};
 
-const PORTABLE_IL_SCHEMA: u32 = 3;
+const PORTABLE_IL_SCHEMA: u32 = 4;
 const MAX_PORTABLE_IL_BYTES: usize = 512 * 1024 * 1024;
+const PORTABLE_ZSTD_LEVEL: i32 = 7;
 
 #[derive(Serialize, Deserialize)]
 struct PortableIl {
@@ -103,23 +104,30 @@ pub(super) fn encode(il: &Il, interner: &Interner) -> Result<Vec<u8>> {
     if bytes.len() > MAX_PORTABLE_IL_BYTES {
         bail!("portable IL exceeds the per-region cache safety limit");
     }
-    Ok(lz4_flex::compress_prepend_size(&bytes))
+    let compressed =
+        zstd::bulk::compress(&bytes, PORTABLE_ZSTD_LEVEL).context("compress portable IL")?;
+    let mut framed = Vec::with_capacity(8 + compressed.len());
+    framed.extend_from_slice(&(bytes.len() as u64).to_be_bytes());
+    framed.extend_from_slice(&compressed);
+    Ok(framed)
 }
 
 /// Restore an artifact into the caller's shared interner and current checkout.
 /// Invalid symbol ids, schema drift, or region corruption fail closed.
 pub(super) fn decode(bytes: &[u8], interner: &Interner, file: FileId, path: String) -> Result<Il> {
     let declared = bytes
-        .get(..4)
+        .get(..8)
         .and_then(|size| size.try_into().ok())
-        .map(u32::from_le_bytes)
-        .map(|size| size as usize)
-        .context("portable IL lacks an LZ4 size prefix")?;
-    if declared > MAX_PORTABLE_IL_BYTES {
+        .map(u64::from_be_bytes)
+        .context("portable IL lacks a decoded-size prefix")?;
+    if declared > MAX_PORTABLE_IL_BYTES as u64 {
         bail!("portable IL expands beyond the per-region safety limit");
     }
     let decompressed =
-        lz4_flex::decompress_size_prepended(bytes).context("decompress portable IL")?;
+        zstd::bulk::decompress(&bytes[8..], declared as usize).context("decompress portable IL")?;
+    if decompressed.len() != declared as usize {
+        bail!("portable IL decoded length does not match its prefix");
+    }
     let mut portable: PortableIl =
         rmp_serde::from_slice(&decompressed).context("deserialize portable IL")?;
     if portable.schema != PORTABLE_IL_SCHEMA {

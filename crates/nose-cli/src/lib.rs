@@ -1,6 +1,7 @@
 mod baseline;
 mod baseline_comparison;
 mod cache;
+mod cache_commands;
 mod capabilities;
 mod cli_args;
 mod command_dispatch;

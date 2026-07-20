@@ -26,7 +26,7 @@ mod features;
 pub use features::{corpus_features, file_stream, units_of_file, CorpusFeatures};
 
 pub fn detect(corpus: &Corpus, opts: &DetectOptions, detector: &dyn Detector) -> Report {
-    detect_with_dump(corpus, opts, detector).0
+    detect_with_dump_inner(corpus, opts, detector, false, false, false).0
 }
 
 /// Product-query detection with compact direct accepted-edge provenance retained
@@ -37,7 +37,7 @@ pub fn detect_with_accepted_coverage(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> Report {
-    detect_with_dump_inner(corpus, opts, detector, true, false).0
+    detect_with_dump_inner(corpus, opts, detector, true, false, false).0
 }
 
 /// Divergent-edit detection counterpart that also retains direct copy-paste-run
@@ -48,7 +48,7 @@ pub fn detect_with_direct_accepted_coverage(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> Report {
-    detect_with_dump_inner(corpus, opts, detector, true, true).0
+    detect_with_dump_inner(corpus, opts, detector, true, true, false).0
 }
 
 /// Per-stage wall-clock timing, printed to stderr when `NOSE_TIME` is set. A
@@ -86,7 +86,7 @@ pub fn detect_with_dump(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> (Report, Dump) {
-    detect_with_dump_inner(corpus, opts, detector, false, false)
+    detect_with_dump_inner(corpus, opts, detector, false, false, true)
 }
 
 fn detect_with_dump_inner(
@@ -95,6 +95,7 @@ fn detect_with_dump_inner(
     detector: &dyn Detector,
     trace_accepted_coverage: bool,
     trace_contiguous_coverage: bool,
+    build_dump: bool,
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
@@ -119,6 +120,7 @@ fn detect_with_dump_inner(
         detector,
         trace_accepted_coverage,
         trace_contiguous_coverage,
+        build_dump,
     )
 }
 
@@ -134,7 +136,7 @@ pub fn detect_from_units(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> (Report, Dump) {
-    detect_from_units_inner(units, files, streams, opts, detector, false, false)
+    detect_from_units_inner(units, files, streams, opts, detector, false, false, true)
 }
 
 /// Cached-query counterpart to [`detect_with_accepted_coverage`].
@@ -144,8 +146,8 @@ pub fn detect_from_units_with_accepted_coverage(
     streams: &[Stream],
     opts: &DetectOptions,
     detector: &dyn Detector,
-) -> (Report, Dump) {
-    detect_from_units_inner(units, files, streams, opts, detector, true, false)
+) -> Report {
+    detect_from_units_inner(units, files, streams, opts, detector, true, false, false).0
 }
 
 /// Cached-query entry point with persistent candidate membership and pair-score
@@ -160,13 +162,12 @@ pub fn detect_from_units_incremental_with_accepted_coverage(
     stable_unit_keys: Option<&[[u8; 32]]>,
 ) -> (
     Report,
-    Dump,
-    IncrementalDetectionState,
+    Option<IncrementalDetectionState>,
     IncrementalDetectionStats,
 ) {
     let mut clk = StageTimer::new();
     let mut stats = IncrementalDetectionStats::new();
-    let prepared = incremental::prepare(&units, stable_unit_keys, opts, previous, &mut stats);
+    let mut prepared = incremental::prepare(&units, stable_unit_keys, opts, previous, &mut stats);
     clk.lap("candidates");
     let (scored, accepted) =
         incremental::score(&units, &prepared, detector, opts.threshold, &mut stats);
@@ -183,7 +184,7 @@ pub fn detect_from_units_incremental_with_accepted_coverage(
             opts.contiguous_min_tokens,
             opts.contiguous_min_lines,
             false,
-            prepared.previous_contiguous.as_ref(),
+            prepared.previous_contiguous.take(),
         );
         stats.contiguous_streams_reused = contiguous_stats.streams_reused;
         stats.contiguous_streams_rebuilt = contiguous_stats.streams_rebuilt;
@@ -193,10 +194,18 @@ pub fn detect_from_units_incremental_with_accepted_coverage(
     } else {
         (None, None)
     };
-    let candidates = prepared.candidates.clone();
-    let state =
-        incremental::finish_state(prepared, &scored, &raw_groups, connected, contiguous_state);
-    let (report, dump) = finish_detection(
+    let candidates = std::mem::take(&mut prepared.candidates);
+    let state_changed = !stats.state_hit
+        || stats.units_added > 0
+        || stats.units_removed > 0
+        || stats.buckets_rebuilt > 0
+        || stats.scores_evaluated > 0
+        || stats.connected_evaluations_evaluated > 0
+        || stats.contiguous_streams_rebuilt > 0;
+    let state = state_changed.then(|| {
+        incremental::finish_state(prepared, &scored, &raw_groups, connected, contiguous_state)
+    });
+    let report = finish_detection(
         units,
         files,
         streams,
@@ -210,11 +219,14 @@ pub fn detect_from_units_incremental_with_accepted_coverage(
         contiguous_override,
         true,
         false,
+        false,
         &mut clk,
-    );
-    (report, dump, state, stats)
+    )
+    .0;
+    (report, state, stats)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn detect_from_units_inner(
     units: Vec<UnitFeat>,
     files: usize,
@@ -223,6 +235,7 @@ fn detect_from_units_inner(
     detector: &dyn Detector,
     trace_accepted_coverage: bool,
     trace_contiguous_coverage: bool,
+    build_dump: bool,
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
@@ -257,6 +270,7 @@ fn detect_from_units_inner(
         None,
         trace_accepted_coverage,
         trace_contiguous_coverage,
+        build_dump,
         &mut clk,
     )
 }
@@ -276,6 +290,7 @@ fn finish_detection(
     contiguous_override: Option<(Vec<crate::Group>, Vec<Vec<crate::AcceptedEdge>>)>,
     trace_accepted_coverage: bool,
     trace_contiguous_coverage: bool,
+    build_dump: bool,
     clk: &mut StageTimer,
 ) -> (Report, Dump) {
     let (mut connected_accepted, mut same_unit_accepted) = if let Some(cached) = connected_override
@@ -380,7 +395,12 @@ fn finish_detection(
     }
     clk.lap("contiguous");
 
-    (report, detection_dump(&units, candidates))
+    let dump = if build_dump {
+        detection_dump(&units, candidates)
+    } else {
+        Dump::default()
+    };
+    (report, dump)
 }
 
 fn detection_dump(units: &[UnitFeat], candidates: &[(usize, usize)]) -> Dump {

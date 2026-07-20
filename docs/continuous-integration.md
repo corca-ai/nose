@@ -341,6 +341,14 @@ clean-scan-equivalence contract.
 nose query src --cache-dir .nose-cache --fail-on any
 ```
 
+The cache defaults to a 5 GiB managed budget. Override it per run with
+`--cache-max-bytes 2GiB`, or commit the byte count as `[query].cache-max-bytes` in `nose.toml`.
+Only runs that write data trigger automatic pruning; fully warm runs avoid a storage scan. Use
+`nose cache status --dir .nose-cache --format json` to monitor usage, `nose cache prune` for an
+explicit budget pass, and `nose cache clear` to discard managed data. Prune/clear wait for active
+writers, preserve unrelated files, and can only make a later query slower: missing or evicted data
+is recomputed.
+
 Set `NOSE_CACHE_STATS=1` to retain the existing `[cache]` unit hit/miss line and add one
 `[invalidation]` JSON object (`nose.invalidation/v1`). It reports source/raw/resolved layer counts,
 the affected path closure and reasons, deleted sources, Git-blob versus content identities,

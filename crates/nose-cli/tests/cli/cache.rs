@@ -4,6 +4,8 @@ use std::process::Output;
 
 #[path = "cache/incremental.rs"]
 mod incremental;
+#[path = "cache/transactional.rs"]
+mod transactional;
 
 #[derive(Debug, Eq, PartialEq)]
 struct CacheStats {

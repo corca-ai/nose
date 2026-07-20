@@ -300,6 +300,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         exclude,
         generated_path,
         cache_dir,
+        cache_max_bytes,
         ignore_file,
         semantic_pack,
         semantic_pack_lock,
@@ -325,6 +326,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         config,
         mode,
         cache_dir,
+        cache_max_bytes,
         fail_on,
         baseline,
         ignore_file,
@@ -342,9 +344,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
     if let Some(base_ref) = &q.base {
         return run_query_base(&args, base_ref, &q, &path_arg);
     }
-
-    let refs = paths_as_refs(&args.paths);
-    let mut dataset = build_query_dataset(&args, &refs)?;
+    let mut dataset = build_query_dataset(&args, &paths_as_refs(&args.paths))?;
     if args.write_baseline {
         return write_query_baseline(&args, &dataset.families);
     }

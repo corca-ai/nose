@@ -12,10 +12,12 @@
 //! so checkout moves and sorted `FileId` shifts do not fan out invalidation.
 //!
 //! Every stage uses the checksummed CAS envelope. Corrupt, truncated, or misplaced
-//! entries are misses; the mutable workspace state is diagnostics-only and never a
-//! correctness input. `NOSE_CACHE_STATS` also emits a machine-readable
+//! entries are misses. Immutable state records commit through one complete workspace
+//! generation; exact identities keep them acceleration-only, never correctness inputs.
+//! `NOSE_CACHE_STATS` also emits a machine-readable
 //! `nose.invalidation/v1` closure with exact reasons and explicit over-invalidation.
 
+mod admin;
 mod detection;
 mod digest;
 mod lines;
@@ -23,20 +25,25 @@ mod portable_il;
 mod resolved;
 mod source;
 mod store;
+mod transaction;
 
 use nose_detect::{DetectOptions, Stream, UnitFeat};
 use nose_il::Corpus;
-use rayon::prelude::*;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
+pub(crate) use self::admin::{
+    clear as clear_store, prune as prune_store, status as store_status, PruneReport,
+    DEFAULT_MAX_BYTES,
+};
 pub(crate) use self::detection::{
     load_detection_state, store_detection_state, DetectionCacheIdentity,
 };
 use self::digest::ContentDigest;
 pub(crate) use self::lines::{build_line_index, LineIndexStats};
-pub(crate) use self::resolved::CachedCorpus;
-use self::store::{ArtifactKey, ArtifactStage, LayeredCas};
+pub(crate) use self::resolved::{CachedCorpus, InvalidationReport};
+use self::store::{ArtifactKey, ArtifactStage};
+pub(crate) use self::transaction::CacheRun;
 
 #[derive(Clone)]
 pub(crate) struct CachedSourceFile {
@@ -45,9 +52,8 @@ pub(crate) struct CachedSourceFile {
 }
 
 pub(crate) struct CachedLineContext {
-    pub(crate) cache_dir: std::path::PathBuf,
-    pub(crate) workspace_digest: [u8; 32],
     pub(crate) source_files: Vec<CachedSourceFile>,
+    pub(crate) run: CacheRun,
 }
 
 pub(crate) fn build_corpus_cached(
@@ -55,12 +61,14 @@ pub(crate) fn build_corpus_cached(
     exclude: &[String],
     dir: &Path,
     semantic_packs: &nose_semantics::SemanticPackSet,
+    max_bytes: u64,
 ) -> CachedCorpus {
-    let raw = source::build_raw_corpus_cached(roots, exclude, dir);
-    resolved::build_resolved_corpus_cached(raw, dir, semantic_pack_digest(semantic_packs))
+    let run = CacheRun::with_limit(dir, max_bytes);
+    let raw = source::build_raw_corpus_cached(roots, exclude, &run);
+    resolved::build_resolved_corpus_cached(raw, &run, semantic_pack_digest(semantic_packs))
 }
 
-pub(crate) fn invalidation_report_json(report: &resolved::InvalidationReport) -> String {
+pub(crate) fn invalidation_report_json(report: &InvalidationReport) -> String {
     serde_json::to_string(report).expect("invalidation report is always JSON serializable")
 }
 
@@ -72,6 +80,10 @@ pub(crate) fn incremental_detection_stats_json(
 
 pub(crate) fn line_index_stats_json(stats: &LineIndexStats) -> String {
     serde_json::to_string(stats).expect("line index stats are JSON serializable")
+}
+
+pub(crate) fn enforce_run_budget(run: CacheRun) {
+    admin::enforce_run_budget(run);
 }
 
 fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> ContentDigest {
@@ -121,83 +133,89 @@ pub(crate) struct CacheStats {
 /// normalize+extract step is cached. A cache hit needs no interner (features are
 /// content-derived); a miss recomputes and writes back.
 #[cfg(test)]
-fn build_units_cached(corpus: &Corpus, opts: &DetectOptions, dir: &Path) -> CachedUnits {
-    build_units_cached_inner(corpus, opts, dir, None)
+fn build_units_cached(mut corpus: Corpus, opts: &DetectOptions, dir: &Path) -> CachedUnits {
+    build_units_cached_inner(&mut corpus, opts, &CacheRun::new(dir), None)
 }
 
 pub(crate) fn build_units_cached_with_context(
-    corpus: &Corpus,
+    corpus: &mut Corpus,
     opts: &DetectOptions,
-    dir: &Path,
+    run: &CacheRun,
     resolution_contexts: &[[u8; 32]],
 ) -> CachedUnits {
     assert_eq!(corpus.files.len(), resolution_contexts.len());
-    build_units_cached_inner(corpus, opts, dir, Some(resolution_contexts))
+    build_units_cached_inner(corpus, opts, run, Some(resolution_contexts))
 }
 
 fn build_units_cached_inner(
-    corpus: &Corpus,
+    corpus: &mut Corpus,
     opts: &DetectOptions,
-    dir: &Path,
+    run: &CacheRun,
     resolution_contexts: Option<&[[u8; 32]]>,
 ) -> CachedUnits {
-    let cas = LayeredCas::new(dir);
+    let cas = run.cas();
     let options = options_digest(opts);
     let hits = AtomicUsize::new(0);
     let misses = AtomicUsize::new(0);
     let read_bytes = AtomicU64::new(0);
     let written_bytes = AtomicU64::new(0);
 
-    let per_file: Vec<(Vec<UnitFeat>, Stream, ContentDigest, String)> = corpus
-        .files
-        .par_iter()
+    // Detection owns the resolved IL after semantic-pack registries and query scope
+    // have been built. Drain it here so each file can be released as soon as its
+    // cached features are restored; retaining the whole resolved corpus alongside
+    // every UnitFeat makes warm cache hits peak near a clean scan's RSS.
+    let files = std::mem::take(&mut corpus.files);
+    let interner = &corpus.interner;
+    let restore = |(index, il): (usize, nose_il::Il)| {
+        let path = il.meta.path.clone();
+        let resolved = portable_il::semantic_digest(&il, interner);
+        let context = resolution_contexts.map(|contexts| contexts[index].as_slice());
+        let key = match context {
+            Some(context) => ArtifactKey::derive(
+                ArtifactStage::UnitsSyntax,
+                UNITS_SYNTAX_SCHEMA,
+                &[resolved.as_bytes(), options.as_bytes(), context],
+            ),
+            None => ArtifactKey::derive(
+                ArtifactStage::UnitsSyntax,
+                UNITS_SYNTAX_SCHEMA,
+                &[resolved.as_bytes(), options.as_bytes()],
+            ),
+        };
+
+        if let Some(entry) = cas.load(key) {
+            read_bytes.fetch_add(entry.stored_bytes, Ordering::Relaxed);
+            if let Ok((mut units, mut stream)) =
+                rmp_serde::from_slice::<(Vec<UnitFeat>, Stream)>(&entry.payload)
+            {
+                hits.fetch_add(1, Ordering::Relaxed);
+                retarget(&mut units, &mut stream, &path);
+                return (units, stream, key.digest, path);
+            }
+        }
+
+        misses.fetch_add(1, Ordering::Relaxed);
+        let mut units = nose_detect::units_of_file(&il, interner, opts);
+        let mut stream = nose_detect::file_stream(&il, interner);
+        // Checkout paths are presentation state, not payload identity. Blank
+        // them before serialization and restore them for this query.
+        retarget(&mut units, &mut stream, "");
+        // Named MessagePack preserves serde's default/skip compatibility
+        // while avoiding JSON's decimal expansion of feature hashes.
+        let payload = rmp_serde::to_vec_named(&(&units, &stream));
+        retarget(&mut units, &mut stream, &path);
+        if let Ok(payload) = payload {
+            if let Ok(bytes) = cas.store(key, &payload) {
+                written_bytes.fetch_add(bytes, Ordering::Relaxed);
+            }
+        }
+        (units, stream, key.digest, path)
+    };
+    let per_file = files
+        .into_iter()
         .enumerate()
-        .map(|(index, il)| {
-            let path = il.meta.path.clone();
-            let resolved = portable_il::semantic_digest(il, &corpus.interner);
-            let context = resolution_contexts.map(|contexts| contexts[index].as_slice());
-            let key = match context {
-                Some(context) => ArtifactKey::derive(
-                    ArtifactStage::UnitsSyntax,
-                    UNITS_SYNTAX_SCHEMA,
-                    &[resolved.as_bytes(), options.as_bytes(), context],
-                ),
-                None => ArtifactKey::derive(
-                    ArtifactStage::UnitsSyntax,
-                    UNITS_SYNTAX_SCHEMA,
-                    &[resolved.as_bytes(), options.as_bytes()],
-                ),
-            };
-
-            if let Some(entry) = cas.load(key) {
-                read_bytes.fetch_add(entry.stored_bytes, Ordering::Relaxed);
-                if let Ok((mut units, mut stream)) =
-                    rmp_serde::from_slice::<(Vec<UnitFeat>, Stream)>(&entry.payload)
-                {
-                    hits.fetch_add(1, Ordering::Relaxed);
-                    retarget(&mut units, &mut stream, &path);
-                    return (units, stream, key.digest, path);
-                }
-            }
-
-            misses.fetch_add(1, Ordering::Relaxed);
-            let mut units = nose_detect::units_of_file(il, &corpus.interner, opts);
-            let mut stream = nose_detect::file_stream(il, &corpus.interner);
-            // Checkout paths are presentation state, not payload identity. Blank
-            // them before serialization and restore them for this query.
-            retarget(&mut units, &mut stream, "");
-            // Named MessagePack preserves serde's default/skip compatibility
-            // while avoiding JSON's decimal expansion of feature hashes.
-            let payload = rmp_serde::to_vec_named(&(&units, &stream));
-            retarget(&mut units, &mut stream, &path);
-            if let Ok(payload) = payload {
-                if let Ok(bytes) = cas.store(key, &payload) {
-                    written_bytes.fetch_add(bytes, Ordering::Relaxed);
-                }
-            }
-            (units, stream, key.digest, path)
-        })
-        .collect();
+        .map(restore)
+        .collect::<Vec<_>>();
 
     let files = per_file.len();
     let mut all_units = Vec::new();
@@ -283,7 +301,7 @@ mod tests {
 
         let readable = std::fs::read(&bad).is_ok();
         let corpus = nose_frontend::lower_corpus_filtered(&[dir.as_path()], &[]);
-        let out = build_units_cached(&corpus, &DetectOptions::default(), &cache);
+        let out = build_units_cached(corpus, &DetectOptions::default(), &cache);
 
         let _ = std::fs::set_permissions(&bad, std::fs::Permissions::from_mode(0o644));
         let _ = std::fs::remove_dir_all(&dir);
@@ -315,12 +333,12 @@ mod tests {
         let stale = cache.join("v14-deadbeef");
         std::fs::create_dir_all(&stale).unwrap();
         std::fs::write(stale.join("legacy.json"), b"[]").unwrap();
-        let first = build_units_cached(&corpus, &options, &cache);
+        let first = build_units_cached(corpus.clone(), &options, &cache);
         assert!(!first.units.is_empty());
-        let second = build_units_cached(&corpus, &options, &cache);
+        let second = build_units_cached(corpus, &options, &cache);
         assert_eq!(second.units.len(), first.units.len());
         assert_eq!(second.stats.hits, 1);
-        assert!(cache.join("cas-v1/units-syntax").is_dir());
+        assert!(cache.join("cas-v2/units-syntax").is_dir());
         assert!(stale.is_dir(), "the legacy bucket should remain untouched");
 
         let _ = std::fs::remove_dir_all(&root);
@@ -341,10 +359,10 @@ mod tests {
 
         let options = DetectOptions::default();
         let first_corpus = nose_frontend::lower_corpus_filtered(&[source_a.as_path()], &[]);
-        let first = build_units_cached(&first_corpus, &options, &cache);
+        let first = build_units_cached(first_corpus, &options, &cache);
         assert_eq!((first.stats.hits, first.stats.misses), (0, 1));
         let second_corpus = nose_frontend::lower_corpus_filtered(&[source_b.as_path()], &[]);
-        let second = build_units_cached(&second_corpus, &options, &cache);
+        let second = build_units_cached(second_corpus, &options, &cache);
         assert_eq!((second.stats.hits, second.stats.misses), (1, 0));
         assert!(second
             .units
@@ -368,7 +386,7 @@ mod tests {
         std::fs::write(source.join("same.py"), "def f(x):\n    return x\n").unwrap();
         let options = DetectOptions::default();
         let corpus = nose_frontend::lower_corpus_filtered(&[source.as_path()], &[]);
-        let first = build_units_cached(&corpus, &options, &cache);
+        let first = build_units_cached(corpus.clone(), &options, &cache);
         assert_eq!((first.stats.hits, first.stats.misses), (0, 1));
 
         let mut changed = corpus.clone();
@@ -382,9 +400,9 @@ mod tests {
             Vec::new(),
             EvidenceStatus::Asserted,
         ));
-        let second = build_units_cached(&changed, &options, &cache);
+        let second = build_units_cached(changed.clone(), &options, &cache);
         assert_eq!((second.stats.hits, second.stats.misses), (0, 1));
-        let third = build_units_cached(&changed, &options, &cache);
+        let third = build_units_cached(changed, &options, &cache);
         assert_eq!((third.stats.hits, third.stats.misses), (1, 0));
         let _ = std::fs::remove_dir_all(&root);
     }

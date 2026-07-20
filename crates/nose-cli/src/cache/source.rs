@@ -1,7 +1,7 @@
 use super::digest::ContentDigest;
 use super::portable_il;
 use super::store::{ArtifactKey, ArtifactStage, LayeredCas};
-use super::CachedSourceFile;
+use super::{CacheRun, CachedSourceFile};
 use nose_il::{Corpus, FileId, Il, Interner, Lang};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const SOURCE_SNAPSHOT_SCHEMA: u32 = 1;
-const RAW_IL_SCHEMA: u32 = 3;
+const RAW_IL_SCHEMA: u32 = 4;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -63,11 +63,11 @@ struct SourceResult {
 pub(super) fn build_raw_corpus_cached(
     roots: &[&Path],
     exclude: &[String],
-    dir: &Path,
+    run: &CacheRun,
 ) -> RawCorpus {
     let paths = nose_frontend::discover_unique_paths(roots, exclude);
     let git = GitCatalog::new(roots);
-    let cas = LayeredCas::new(dir);
+    let cas = run.cas();
     let interner = Interner::new();
     let results = paths
         .par_iter()

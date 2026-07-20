@@ -438,12 +438,8 @@ pub(crate) fn cached_line_idf(
     usize,
     bool,
 ) {
-    let (index, stats) = crate::cache::build_line_index(
-        &context.cache_dir,
-        context.workspace_digest,
-        &context.source_files,
-        force_full,
-    );
+    let (index, stats) =
+        crate::cache::build_line_index(&context.run, &context.source_files, force_full);
     let mut files = index.files;
     let aliases = files
         .iter()
