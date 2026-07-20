@@ -145,7 +145,7 @@ fn stream_keys(streams: &[Stream]) -> Vec<StreamKey> {
     let digests = streams
         .iter()
         .map(|stream| {
-            let bytes = rmp_serde::to_vec_named(stream).expect("Stream serialization cannot fail");
+            let bytes = rmp_serde::to_vec(stream).expect("Stream serialization cannot fail");
             let mut hasher = Sha256::new();
             hasher.update(b"nose.incremental-stream.v1\0");
             hasher.update((bytes.len() as u64).to_be_bytes());

@@ -132,16 +132,16 @@ pub struct VaryingSpot {
     pub param: u32,
     /// Absolute `[start, end]` source lines of this spot in the FIRST
     /// representative copy (the family's `locations[0]`).
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub a_lines: Option<(u32, u32)>,
     /// Absolute `[start, end]` source lines in the second representative copy.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub b_lines: Option<(u32, u32)>,
     /// Trimmed, length-capped text of the spot in the first copy.
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub a_text: String,
     /// Trimmed, length-capped text of the spot in the second copy.
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub b_text: String,
 }
 

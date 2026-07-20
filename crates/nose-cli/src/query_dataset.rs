@@ -302,9 +302,10 @@ fn query_detect_report(
         &corpus,
     );
     semantic_pack_external_exact.apply(&mut corpus);
-    let (mut units, streams, files) = if let Some(dir) = &args.cache_dir {
+    let (mut units, unit_keys, streams, files) = if let Some(dir) = &args.cache_dir {
         let cache::CachedUnits {
             units,
+            unit_keys,
             streams,
             files,
             stats,
@@ -324,12 +325,12 @@ fn query_detect_report(
                 stats.files, stats.hits, stats.misses, stats.read_bytes, stats.written_bytes
             );
         }
-        (units, streams, files)
+        (units, Some(unit_keys), streams, files)
     } else {
         let features = time_stage("normalize+extract", || {
             nose_detect::corpus_features(&corpus, opts)
         });
-        (features.units, features.streams, features.files)
+        (features.units, None, features.streams, features.files)
     };
     if opts.shape_candidates && semantic_pack_near.is_active() {
         for unit in &mut units {
@@ -340,7 +341,7 @@ fn query_detect_report(
     let report = detect_cached_or_clean(
         args,
         cache_identity_parts,
-        units,
+        (units, unit_keys.as_deref()),
         files,
         &streams,
         opts,
@@ -358,12 +359,13 @@ fn query_detect_report(
 fn detect_cached_or_clean(
     args: &QueryArgs,
     cache_identity_parts: Option<([u8; 32], [u8; 32])>,
-    units: Vec<nose_detect::UnitFeat>,
+    detection_units: (Vec<nose_detect::UnitFeat>, Option<&[[u8; 32]]>),
     files: usize,
     streams: &[nose_detect::Stream],
     opts: &nose_detect::DetectOptions,
     detector: &dyn nose_detect::Detector,
 ) -> nose_detect::Report {
+    let (units, unit_keys) = detection_units;
     let (Some(dir), Some((workspace, pack_digest))) = (&args.cache_dir, cache_identity_parts)
     else {
         return nose_detect::detect_from_units_with_accepted_coverage(
@@ -375,9 +377,18 @@ fn detect_cached_or_clean(
     let previous = cache::load_detection_state(dir, &identity);
     let (report, _dump, state, stats) =
         nose_detect::detect_from_units_incremental_with_accepted_coverage(
-            units, files, streams, opts, detector, previous,
+            units, files, streams, opts, detector, previous, unit_keys,
         );
-    cache::store_detection_state(dir, &identity, &state);
+    if !stats.state_hit
+        || stats.units_added > 0
+        || stats.units_removed > 0
+        || stats.buckets_rebuilt > 0
+        || stats.scores_evaluated > 0
+        || stats.connected_evaluations_evaluated > 0
+        || stats.contiguous_streams_rebuilt > 0
+    {
+        cache::store_detection_state(dir, &identity, &state);
+    }
     if std::env::var_os("NOSE_CACHE_STATS").is_some() {
         eprintln!(
             "  [detection] {}",
@@ -479,19 +490,37 @@ fn weight_shared_lines(
     }
     let mut lines = FileLineCache::default();
     if let Some(context) = cached {
-        let (idf, stats, changed_lines, file_count) = cached_line_idf(context, &mut lines);
-        if std::env::var_os("NOSE_CACHE_STATS").is_some() {
-            eprintln!("  [line-index] {}", cache::line_index_stats_json(&stats));
-        }
-        let family_stats = apply_cached_family_lines(
+        let (mut idf, mut stats, mut changed_lines, mut file_count, complete) =
+            cached_line_idf(context, &mut lines, false);
+        let mut family_stats = apply_cached_family_lines(
             families,
             &idf,
             &mut lines,
             context,
             &changed_lines,
             file_count,
+            complete,
         );
+        if family_stats.is_none() {
+            lines = FileLineCache::default();
+            let full = cached_line_idf(context, &mut lines, true);
+            idf = full.0;
+            stats = full.1;
+            changed_lines = full.2;
+            file_count = full.3;
+            family_stats = apply_cached_family_lines(
+                families,
+                &idf,
+                &mut lines,
+                context,
+                &changed_lines,
+                file_count,
+                true,
+            );
+        }
+        let family_stats = family_stats.expect("full line index covers every family");
         if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+            eprintln!("  [line-index] {}", cache::line_index_stats_json(&stats));
             eprintln!(
                 "  [family-lines] {}",
                 serde_json::to_string(&family_stats)

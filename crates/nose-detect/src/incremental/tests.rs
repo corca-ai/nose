@@ -42,7 +42,7 @@ fn incremental_buckets_match_clean_candidate_generation() {
         &opts,
     );
     let mut stats = IncrementalDetectionStats::new();
-    let prepared = prepare(&units, &opts, None, &mut stats);
+    let prepared = prepare(&units, None, &opts, None, &mut stats);
     assert_eq!(prepared.candidates, structural_candidates(&units, &opts));
 }
 
@@ -58,7 +58,7 @@ fn unchanged_state_reuses_buckets_and_scores() {
     );
     let detector = StructuralDetector::strict(opts.jaccard_weight);
     let mut first_stats = IncrementalDetectionStats::new();
-    let first = prepare(&units, &opts, None, &mut first_stats);
+    let first = prepare(&units, None, &opts, None, &mut first_stats);
     let (scored, _) = score(&units, &first, &detector, opts.threshold, &mut first_stats);
     let components = components(&first, &[], opts.threshold, &mut first_stats);
     let state = finish_state(
@@ -70,7 +70,7 @@ fn unchanged_state_reuses_buckets_and_scores() {
     );
 
     let mut second_stats = IncrementalDetectionStats::new();
-    let second = prepare(&units, &opts, Some(state), &mut second_stats);
+    let second = prepare(&units, None, &opts, Some(state), &mut second_stats);
     let _ = score(
         &units,
         &second,
@@ -126,7 +126,7 @@ int set_option(const char *name, const char *value) {
 
     let first_units = features_in_lang(&[("options.c", repeated)], Lang::C, &opts);
     let mut first_stats = IncrementalDetectionStats::new();
-    let first = prepare(&first_units, &opts, None, &mut first_stats);
+    let first = prepare(&first_units, None, &opts, None, &mut first_stats);
     let first_connected = connected(&first_units, &first, &[], &[], &opts, &mut first_stats);
     assert!(
         !first_connected.same_unit_accepted.is_empty(),
@@ -136,7 +136,7 @@ int set_option(const char *name, const char *value) {
 
     let second_units = features_in_lang(&[("options.c", single)], Lang::C, &opts);
     let mut second_stats = IncrementalDetectionStats::new();
-    let second = prepare(&second_units, &opts, Some(state), &mut second_stats);
+    let second = prepare(&second_units, None, &opts, Some(state), &mut second_stats);
     let second_connected = connected(&second_units, &second, &[], &[], &opts, &mut second_stats);
     assert!(second_connected.same_unit_accepted.is_empty());
     assert!(second_stats.connected_evaluations_evaluated > 0);

@@ -54,7 +54,7 @@ pub(crate) fn store_detection_state(
     if std::fs::create_dir_all(parent).is_err() {
         return;
     }
-    let Ok(bytes) = rmp_serde::to_vec_named(state) else {
+    let Ok(bytes) = rmp_serde::to_vec(state) else {
         return;
     };
     let temp = parent.join(format!(

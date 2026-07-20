@@ -19,7 +19,7 @@ use crate::contiguous::IncrementalContiguousState;
 use crate::orchestration::ScoredCandidate;
 use serde::{Deserialize, Serialize};
 
-const STATE_SCHEMA: u32 = 3;
+const STATE_SCHEMA: u32 = 4;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub(crate) struct UnitKey([u8; 32]);
@@ -55,12 +55,12 @@ enum BucketKey {
 struct CandidateBucket {
     key: BucketKey,
     members: Vec<UnitKey>,
-    pairs: Vec<UnitPairKey>,
 }
 
 #[derive(Serialize, Deserialize)]
 struct StoredScore {
     pair: UnitPairKey,
+    bucket_count: u16,
     ordinary_score: Option<f64>,
 }
 
@@ -149,6 +149,7 @@ impl IncrementalDetectionStats {
 pub(crate) struct PreparedDetection {
     pub(crate) unit_keys: Vec<UnitKey>,
     pub(crate) candidates: Vec<(usize, usize)>,
+    candidate_counts: Vec<(UnitPairKey, u16)>,
     buckets: Vec<CandidateBucket>,
     previous_scores: Vec<StoredScore>,
     previous_components: Vec<Vec<UnitKey>>,
@@ -174,12 +175,20 @@ pub(crate) fn finish_state(
 ) -> IncrementalDetectionState {
     let scores = scored
         .iter()
-        .map(|candidate| StoredScore {
-            pair: UnitPairKey::new(
-                prepared.unit_keys[candidate.left],
-                prepared.unit_keys[candidate.right],
-            ),
-            ordinary_score: candidate.ordinary_score,
+        .zip(&prepared.candidate_counts)
+        .map(|(candidate, &(pair, bucket_count))| {
+            debug_assert_eq!(
+                pair,
+                UnitPairKey::new(
+                    prepared.unit_keys[candidate.left],
+                    prepared.unit_keys[candidate.right],
+                )
+            );
+            StoredScore {
+                pair,
+                bucket_count,
+                ordinary_score: candidate.ordinary_score,
+            }
         })
         .collect();
     let stored_components = components

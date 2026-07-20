@@ -22,11 +22,18 @@ struct StoredFileLines {
     unique_substantive: Vec<String>,
 }
 
+#[derive(Eq, PartialEq, Deserialize, Serialize)]
+struct LineIndexManifest {
+    schema: u32,
+    files: BTreeMap<String, [u8; 32]>,
+}
+
 pub(crate) struct CachedLineIndex {
     pub(crate) document_frequency: FxHashMap<String, u32>,
     pub(crate) files: FxHashMap<String, Option<Vec<String>>>,
     pub(crate) changed_lines: FxHashSet<String>,
     pub(crate) file_count: usize,
+    pub(crate) complete: bool,
 }
 
 #[derive(Default, serde::Serialize)]
@@ -42,9 +49,19 @@ pub(crate) fn build_line_index(
     cache_dir: &Path,
     workspace: [u8; 32],
     source_files: &[CachedSourceFile],
+    force_full: bool,
 ) -> (CachedLineIndex, LineIndexStats) {
     let path = state_path(cache_dir, workspace);
-    let previous = load_state(&path);
+    let manifest_path = manifest_path(cache_dir, workspace);
+    let manifest = current_manifest(source_files);
+    if !force_full {
+        if let Some(reused) = reuse_unchanged_index(&manifest_path, &manifest) {
+            return reused;
+        }
+    }
+    let loaded = load_state(&path);
+    let state_hit = loaded.is_some();
+    let previous = loaded.unwrap_or_default();
     let mut document_frequency = previous.document_frequency.clone();
     let current_paths = source_files
         .iter()
@@ -121,7 +138,30 @@ pub(crate) fn build_line_index(
         files,
         document_frequency,
     };
-    store_state(&path, &state);
+    finish_index(
+        &path,
+        &manifest_path,
+        &manifest,
+        state,
+        state_hit,
+        stats,
+        changed_lines,
+    )
+}
+
+fn finish_index(
+    path: &Path,
+    manifest_path: &Path,
+    manifest: &LineIndexManifest,
+    state: LineIndexState,
+    state_hit: bool,
+    stats: LineIndexStats,
+    changed_lines: FxHashSet<String>,
+) -> (CachedLineIndex, LineIndexStats) {
+    if !state_hit || stats.files_rebuilt > 0 || stats.files_removed > 0 {
+        store_state(path, &state);
+    }
+    store_manifest(manifest_path, manifest);
     let index = CachedLineIndex {
         document_frequency: state
             .document_frequency
@@ -135,8 +175,41 @@ pub(crate) fn build_line_index(
             .collect(),
         changed_lines,
         file_count: state.files.len(),
+        complete: true,
     };
     (index, stats)
+}
+
+fn current_manifest(source_files: &[CachedSourceFile]) -> LineIndexManifest {
+    LineIndexManifest {
+        schema: STATE_SCHEMA,
+        files: source_files
+            .iter()
+            .map(|file| (file.path.clone(), file.digest))
+            .collect(),
+    }
+}
+
+fn reuse_unchanged_index(
+    path: &Path,
+    current: &LineIndexManifest,
+) -> Option<(CachedLineIndex, LineIndexStats)> {
+    (load_manifest(path).as_ref() == Some(current)).then(|| {
+        (
+            CachedLineIndex {
+                document_frequency: FxHashMap::default(),
+                files: FxHashMap::default(),
+                changed_lines: FxHashSet::default(),
+                file_count: current.files.len(),
+                complete: false,
+            },
+            LineIndexStats {
+                schema: "nose.line-index/v1",
+                files_reused: current.files.len(),
+                ..LineIndexStats::default()
+            },
+        )
+    })
 }
 
 fn unique_substantive_lines(lines: &[String]) -> Vec<String> {
@@ -175,22 +248,40 @@ fn state_path(cache_dir: &Path, workspace: [u8; 32]) -> PathBuf {
         .join(format!("{}.msgpack", hex(&workspace)))
 }
 
-fn load_state(path: &Path) -> LineIndexState {
+fn manifest_path(cache_dir: &Path, workspace: [u8; 32]) -> PathBuf {
+    cache_dir
+        .join("line-index-manifest-v1")
+        .join(format!("{}.msgpack", hex(&workspace)))
+}
+
+fn load_state(path: &Path) -> Option<LineIndexState> {
     std::fs::read(path)
         .ok()
         .and_then(|bytes| rmp_serde::from_slice::<LineIndexState>(&bytes).ok())
         .filter(|state| state.schema == STATE_SCHEMA)
-        .unwrap_or_default()
+}
+
+fn load_manifest(path: &Path) -> Option<LineIndexManifest> {
+    std::fs::read(path)
+        .ok()
+        .and_then(|bytes| rmp_serde::from_slice(&bytes).ok())
+        .filter(|manifest: &LineIndexManifest| manifest.schema == STATE_SCHEMA)
+}
+
+fn store_manifest(path: &Path, manifest: &LineIndexManifest) {
+    store_bytes(path, rmp_serde::to_vec(manifest));
 }
 
 fn store_state(path: &Path, state: &LineIndexState) {
+    store_bytes(path, rmp_serde::to_vec(state));
+}
+
+fn store_bytes(path: &Path, bytes: Result<Vec<u8>, rmp_serde::encode::Error>) {
     let Some(parent) = path.parent() else { return };
     if std::fs::create_dir_all(parent).is_err() {
         return;
     }
-    let Ok(bytes) = rmp_serde::to_vec_named(state) else {
-        return;
-    };
+    let Ok(bytes) = bytes else { return };
     let temp = parent.join(format!(
         ".{}.{}.tmp",
         std::process::id(),

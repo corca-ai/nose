@@ -10,16 +10,35 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+type IndexedCandidates = (Vec<(usize, usize)>, Vec<(UnitPairKey, u16)>);
+
 pub(crate) fn prepare(
     units: &[UnitFeat],
+    stable_unit_keys: Option<&[[u8; 32]]>,
     opts: &DetectOptions,
     previous: Option<IncrementalDetectionState>,
     stats: &mut IncrementalDetectionStats,
 ) -> PreparedDetection {
-    let unit_keys = units.par_iter().map(unit_key).collect::<Vec<_>>();
+    let unit_keys = if let Some(keys) = stable_unit_keys {
+        assert_eq!(keys.len(), units.len());
+        keys.iter().copied().map(UnitKey).collect::<Vec<_>>()
+    } else {
+        units.par_iter().map(unit_key).collect::<Vec<_>>()
+    };
     let previous = previous.filter(|state| state.schema == STATE_SCHEMA);
     stats.state_hit = previous.is_some();
     record_unit_churn(previous.as_ref(), &unit_keys, stats);
+
+    if previous
+        .as_ref()
+        .is_some_and(|state| state.units == unit_keys)
+    {
+        return reuse_unchanged(
+            unit_keys,
+            previous.expect("checked incremental state"),
+            stats,
+        );
+    }
 
     let memberships = candidate_memberships(units, &unit_keys, opts);
     let previous_buckets = previous
@@ -32,49 +51,38 @@ pub(crate) fn prepare(
                 .collect::<BTreeMap<_, _>>()
         })
         .unwrap_or_default();
-    let buckets = memberships
+    let mut counts = previous
+        .as_ref()
         .into_iter()
-        .map(|(key, members)| {
-            if let Some(old) = previous_buckets
-                .get(&key)
-                .filter(|old| old.members == members)
-            {
-                stats.buckets_reused += 1;
-                return CandidateBucket {
-                    key,
-                    members,
-                    pairs: old.pairs.clone(),
-                };
-            }
+        .flat_map(|state| &state.scores)
+        .map(|score| (score.pair, score.bucket_count))
+        .collect::<BTreeMap<_, _>>();
+    let current_bucket_keys = memberships.keys().copied().collect::<BTreeSet<_>>();
+    let mut buckets = Vec::with_capacity(memberships.len());
+    for (key, members) in memberships {
+        if previous_buckets
+            .get(&key)
+            .filter(|old| old.members == members)
+            .is_some()
+        {
+            stats.buckets_reused += 1;
+        } else {
             stats.buckets_rebuilt += 1;
-            CandidateBucket {
-                key,
-                pairs: emit_bucket_pairs(key, &members),
-                members,
+            if let Some(old) = previous_buckets.get(&key) {
+                adjust_pair_counts(&mut counts, key, &old.members, false);
             }
-        })
-        .collect::<Vec<_>>();
-    let by_key = unit_keys
-        .iter()
-        .copied()
-        .enumerate()
-        .map(|(index, key)| (key, index))
-        .collect::<HashMap<_, _>>();
-    let mut candidates = buckets
-        .iter()
-        .flat_map(|bucket| &bucket.pairs)
-        .filter_map(|pair| {
-            let left = *by_key.get(&pair.left)?;
-            let right = *by_key.get(&pair.right)?;
-            Some(if left < right {
-                (left, right)
-            } else {
-                (right, left)
-            })
-        })
-        .collect::<Vec<_>>();
-    candidates.sort_unstable();
-    candidates.dedup();
+            adjust_pair_counts(&mut counts, key, &members, true);
+        }
+        buckets.push(CandidateBucket { key, members });
+    }
+    for (&key, old) in &previous_buckets {
+        if !current_bucket_keys.contains(&key) {
+            stats.buckets_rebuilt += 1;
+            adjust_pair_counts(&mut counts, key, &old.members, false);
+        }
+    }
+    counts.retain(|_, count| *count > 0);
+    let (candidates, candidate_counts) = index_candidates(&unit_keys, &counts);
     let (
         previous_scores,
         previous_components,
@@ -95,6 +103,7 @@ pub(crate) fn prepare(
     PreparedDetection {
         unit_keys,
         candidates,
+        candidate_counts,
         buckets,
         previous_scores,
         previous_components,
@@ -102,6 +111,79 @@ pub(crate) fn prepare(
         previous_same_unit,
         previous_contiguous,
     }
+}
+
+fn reuse_unchanged(
+    unit_keys: Vec<UnitKey>,
+    state: IncrementalDetectionState,
+    stats: &mut IncrementalDetectionStats,
+) -> PreparedDetection {
+    stats.buckets_reused = state.buckets.len();
+    let counts = state
+        .scores
+        .iter()
+        .map(|score| (score.pair, score.bucket_count))
+        .collect::<BTreeMap<_, _>>();
+    let (candidates, candidate_counts) = index_candidates(&unit_keys, &counts);
+    PreparedDetection {
+        unit_keys,
+        candidates,
+        candidate_counts,
+        buckets: state.buckets,
+        previous_scores: state.scores,
+        previous_components: state.components,
+        previous_connected: state.connected,
+        previous_same_unit: state.same_unit,
+        previous_contiguous: state.contiguous,
+    }
+}
+
+fn adjust_pair_counts(
+    counts: &mut BTreeMap<UnitPairKey, u16>,
+    key: BucketKey,
+    members: &[UnitKey],
+    add: bool,
+) {
+    for pair in emit_bucket_pairs(key, members) {
+        let count = counts.entry(pair).or_default();
+        if add {
+            *count = count.saturating_add(1);
+        } else {
+            *count = count.saturating_sub(1);
+        }
+    }
+}
+
+fn index_candidates(
+    unit_keys: &[UnitKey],
+    counts: &BTreeMap<UnitPairKey, u16>,
+) -> IndexedCandidates {
+    let by_key = unit_keys
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(index, key)| (key, index))
+        .collect::<HashMap<_, _>>();
+    let mut rows = counts
+        .iter()
+        .filter_map(|(&pair, &count)| {
+            let left = *by_key.get(&pair.left)?;
+            let right = *by_key.get(&pair.right)?;
+            let indexes = if left < right {
+                (left, right)
+            } else {
+                (right, left)
+            };
+            Some((indexes, pair, count))
+        })
+        .collect::<Vec<_>>();
+    rows.sort_unstable_by_key(|row| row.0);
+    let candidates = rows.iter().map(|row| row.0).collect();
+    let candidate_counts = rows
+        .into_iter()
+        .map(|(_, pair, count)| (pair, count))
+        .collect();
+    (candidates, candidate_counts)
 }
 
 pub(crate) fn score(
@@ -282,7 +364,7 @@ fn all_pairs_capped(members: &[UnitKey], cap: usize) -> Vec<UnitPairKey> {
 }
 
 fn unit_key(unit: &UnitFeat) -> UnitKey {
-    let bytes = rmp_serde::to_vec_named(unit).expect("UnitFeat serialization cannot fail");
+    let bytes = rmp_serde::to_vec(unit).expect("UnitFeat serialization cannot fail");
     UnitKey(digest(b"nose.incremental-unit.v1", &bytes))
 }
 

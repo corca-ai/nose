@@ -430,16 +430,19 @@ pub(crate) fn corpus_line_idf(
 pub(crate) fn cached_line_idf(
     context: &crate::cache::CachedLineContext,
     cache: &mut FileLineCache,
+    force_full: bool,
 ) -> (
     LineIdf,
     crate::cache::LineIndexStats,
     FxHashSet<String>,
     usize,
+    bool,
 ) {
     let (index, stats) = crate::cache::build_line_index(
         &context.cache_dir,
         context.workspace_digest,
         &context.source_files,
+        force_full,
     );
     let mut files = index.files;
     let aliases = files
@@ -458,12 +461,13 @@ pub(crate) fn cached_line_idf(
     files.extend(aliases);
     cache.0 = files;
     let file_count = index.file_count;
+    let complete = index.complete;
     let changed_lines = index.changed_lines;
     let idf = LineIdf {
         df: index.document_frequency,
         n_files: file_count.max(1) as f64,
     };
-    (idf, stats, changed_lines, file_count)
+    (idf, stats, changed_lines, file_count, complete)
 }
 
 /// Deterministic ranking tie-break: a family's first site `(file, start line)`.

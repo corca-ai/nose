@@ -157,6 +157,7 @@ pub fn detect_from_units_incremental_with_accepted_coverage(
     opts: &DetectOptions,
     detector: &dyn Detector,
     previous: Option<IncrementalDetectionState>,
+    stable_unit_keys: Option<&[[u8; 32]]>,
 ) -> (
     Report,
     Dump,
@@ -165,7 +166,7 @@ pub fn detect_from_units_incremental_with_accepted_coverage(
 ) {
     let mut clk = StageTimer::new();
     let mut stats = IncrementalDetectionStats::new();
-    let prepared = incremental::prepare(&units, opts, previous, &mut stats);
+    let prepared = incremental::prepare(&units, stable_unit_keys, opts, previous, &mut stats);
     clk.lap("candidates");
     let (scored, accepted) =
         incremental::score(&units, &prepared, detector, opts.threshold, &mut stats);

@@ -41,10 +41,24 @@ pub(crate) fn apply_cached_family_lines(
     context: &CachedLineContext,
     changed_lines: &FxHashSet<String>,
     file_count: usize,
-) -> FamilyLineStats {
+    line_index_complete: bool,
+) -> Option<FamilyLineStats> {
     let path = state_path(&context.cache_dir, context.workspace_digest);
     let previous = load_state(&path);
     let digests = source_digests(context);
+    if !line_index_complete
+        && families
+            .iter()
+            .filter(|family| family.languages == 1 && family.locations.len() >= 2)
+            .any(|family| {
+                previous
+                    .families
+                    .get(&family_key(family, &digests))
+                    .is_none_or(|stored| stored.file_count != file_count)
+            })
+    {
+        return None;
+    }
     let mut current = BTreeMap::new();
     let mut stats = FamilyLineStats {
         schema: "nose.family-line-state/v1",
@@ -82,14 +96,19 @@ pub(crate) fn apply_cached_family_lines(
         apply_analysis(family, &analysis);
         current.insert(key, analysis);
     }
-    store_state(
-        &path,
-        &FamilyLineState {
-            schema: STATE_SCHEMA,
-            families: current,
-        },
-    );
-    stats
+    if stats.families_reweighted > 0
+        || stats.families_rebuilt > 0
+        || current.len() != previous.families.len()
+    {
+        store_state(
+            &path,
+            &FamilyLineState {
+                schema: STATE_SCHEMA,
+                families: current,
+            },
+        );
+    }
+    Some(stats)
 }
 
 fn analyze_family(
@@ -208,6 +227,8 @@ fn store_state(path: &Path, state: &FamilyLineState) {
     if std::fs::create_dir_all(parent).is_err() {
         return;
     }
+    // `VaryingSpot` omits empty optional fields, which requires a named map: compact
+    // tuple encoding would shift the remaining fields and fail closed on reload.
     let Ok(bytes) = rmp_serde::to_vec_named(state) else {
         return;
     };
@@ -228,4 +249,38 @@ fn hex(bytes: &[u8; 32]) -> String {
         write!(&mut out, "{byte:02x}").expect("writing to String cannot fail");
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn omitted_empty_varying_spot_fields_round_trip() {
+        let state = FamilyLineState {
+            schema: STATE_SCHEMA,
+            families: BTreeMap::from([(
+                [7; 32],
+                StoredFamilyLines {
+                    shared: None,
+                    varying_spots: vec![nose_detect::VaryingSpot {
+                        param: 1,
+                        a_lines: None,
+                        b_lines: None,
+                        a_text: String::new(),
+                        b_text: String::new(),
+                    }],
+                    shared_weight: 0.0,
+                    file_count: 2,
+                },
+            )]),
+        };
+        let bytes = rmp_serde::to_vec_named(&state).expect("serialize family line state");
+        let restored: FamilyLineState =
+            rmp_serde::from_slice(&bytes).expect("deserialize family line state");
+        let spot = &restored.families[&[7; 32]].varying_spots[0];
+        assert_eq!(spot.param, 1);
+        assert!(spot.a_lines.is_none());
+        assert!(spot.a_text.is_empty());
+    }
 }
