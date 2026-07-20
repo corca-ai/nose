@@ -12,9 +12,9 @@ use std::process::Command;
 const SOURCE_SNAPSHOT_SCHEMA: u32 = 1;
 const RAW_IL_SCHEMA: u32 = 4;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub(super) enum SourceIdentityKind {
+pub(crate) enum SourceIdentityKind {
     GitBlob,
     ContentSha256,
 }
@@ -25,6 +25,8 @@ pub(super) struct RawRegion {
     pub(super) raw_hit: bool,
     pub(super) source_kind: SourceIdentityKind,
     pub(super) logical_path: String,
+    pub(super) source_path: String,
+    pub(super) source_digest: ContentDigest,
 }
 
 pub(super) struct RawCorpus {
@@ -44,6 +46,8 @@ pub(super) struct RawRegionMetadata {
     pub(super) source_kind: SourceIdentityKind,
     pub(super) logical_path: String,
     pub(super) region_id: String,
+    pub(super) source_path: String,
+    pub(super) source_digest: ContentDigest,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -55,6 +59,7 @@ struct PortableRawBundle {
 struct SourceResult {
     regions: Vec<RawRegion>,
     source_digest: Option<ContentDigest>,
+    source_kind: Option<SourceIdentityKind>,
     logical_path: String,
     lang: Lang,
     snapshot_hit: bool,
@@ -93,22 +98,18 @@ pub(super) fn build_raw_corpus_cached(
         .filter_map(|((path, _), result)| {
             result.source_digest.map(|digest| CachedSourceFile {
                 path: path.clone(),
+                logical_path: result.logical_path.clone(),
                 digest: *digest.as_bytes(),
+                lang: result.lang,
+                source_kind: result
+                    .source_kind
+                    .expect("readable sources have an identity kind"),
             })
         })
-        .collect();
-    let mut discovery_rows = Vec::new();
-    let mut line_rows = Vec::new();
+        .collect::<Vec<_>>();
     let mut files = Vec::new();
     let mut regions = Vec::new();
     for result in results {
-        if let Some(digest) = result.source_digest {
-            discovery_rows.push(framed(&[
-                result.logical_path.as_bytes(),
-                result.lang.name().as_bytes(),
-            ]));
-            line_rows.push(framed(&[result.logical_path.as_bytes(), digest.as_bytes()]));
-        }
         for region in result.regions {
             regions.push(RawRegionMetadata {
                 raw_digest: region.raw_digest,
@@ -116,22 +117,17 @@ pub(super) fn build_raw_corpus_cached(
                 source_kind: region.source_kind,
                 logical_path: region.logical_path,
                 region_id: portable_il::region_identity(&region.il).hex(),
+                source_path: region.source_path,
+                source_digest: region.source_digest,
             });
             files.push(region.il);
         }
     }
-    discovery_rows.sort();
-    line_rows.sort();
-    let discovery_refs = discovery_rows.iter().map(Vec::as_slice).collect::<Vec<_>>();
-    let line_refs = line_rows.iter().map(Vec::as_slice).collect::<Vec<_>>();
     RawCorpus {
         corpus: Corpus::new(interner, files),
         regions,
-        discovery_digest: ContentDigest::derive(b"nose.discovery-membership.v1", &discovery_refs),
-        global_line_statistics_digest: ContentDigest::derive(
-            b"nose.corpus-global-line-statistics.v1",
-            &line_refs,
-        ),
+        discovery_digest: discovery_digest(&source_files),
+        global_line_statistics_digest: global_line_statistics_digest(&source_files),
         workspace_digest: workspace_digest(roots),
         source_hits,
         source_misses,
@@ -139,7 +135,66 @@ pub(super) fn build_raw_corpus_cached(
     }
 }
 
-fn workspace_digest(roots: &[&Path]) -> ContentDigest {
+pub(super) fn discovery_digest(sources: &[CachedSourceFile]) -> ContentDigest {
+    let mut rows = sources
+        .iter()
+        .map(|source| {
+            framed(&[
+                source.logical_path.as_bytes(),
+                source.lang.name().as_bytes(),
+            ])
+        })
+        .collect::<Vec<_>>();
+    rows.sort();
+    let rows = rows.iter().map(Vec::as_slice).collect::<Vec<_>>();
+    ContentDigest::derive(b"nose.discovery-membership.v1", &rows)
+}
+
+pub(super) fn global_line_statistics_digest(sources: &[CachedSourceFile]) -> ContentDigest {
+    let mut rows = sources
+        .iter()
+        .map(|source| framed(&[source.logical_path.as_bytes(), &source.digest]))
+        .collect::<Vec<_>>();
+    rows.sort();
+    let rows = rows.iter().map(Vec::as_slice).collect::<Vec<_>>();
+    ContentDigest::derive(b"nose.corpus-global-line-statistics.v1", &rows)
+}
+
+/// Resolve exact source identities without parsing or restoring IL. This is the
+/// admission check for the bounded warm-unit path; any unreadable source or
+/// membership mismatch makes that path fall back to the full pipeline.
+pub(super) fn discover_source_files(roots: &[&Path], exclude: &[String]) -> Vec<CachedSourceFile> {
+    let paths = nose_frontend::discover_unique_paths(roots, exclude);
+    let git = GitCatalog::new(roots);
+    paths
+        .into_par_iter()
+        .filter_map(|(path, lang)| {
+            let clean_blob = git.clean_blob(Path::new(&path));
+            let (digest, source_kind) = match clean_blob {
+                Some(blob) if std::fs::metadata(&path).is_ok() => (
+                    ContentDigest::derive(
+                        b"nose.source-snapshot.git-blob.v1",
+                        &[lang.name().as_bytes(), blob.as_bytes()],
+                    ),
+                    SourceIdentityKind::GitBlob,
+                ),
+                _ => (
+                    portable_il::source_digest(lang, &std::fs::read(&path).ok()?),
+                    SourceIdentityKind::ContentSha256,
+                ),
+            };
+            Some(CachedSourceFile {
+                logical_path: logical_path(roots, Path::new(&path)),
+                path,
+                digest: *digest.as_bytes(),
+                lang,
+                source_kind,
+            })
+        })
+        .collect()
+}
+
+pub(super) fn workspace_digest(roots: &[&Path]) -> ContentDigest {
     let rows = roots
         .iter()
         .map(|root| {
@@ -185,6 +240,7 @@ fn load_source(
                 return SourceResult {
                     regions: Vec::new(),
                     source_digest: None,
+                    source_kind: None,
                     logical_path,
                     lang,
                     snapshot_hit: false,
@@ -223,9 +279,12 @@ fn load_source(
                                 raw_hit: true,
                                 source_kind,
                                 logical_path: logical_path.clone(),
+                                source_path: path.to_owned(),
+                                source_digest,
                             })
                             .collect(),
                         source_digest: Some(source_digest),
+                        source_kind: Some(source_kind),
                         logical_path,
                         lang,
                         snapshot_hit,
@@ -243,6 +302,7 @@ fn load_source(
                 return SourceResult {
                     regions: Vec::new(),
                     source_digest: None,
+                    source_kind: None,
                     logical_path,
                     lang,
                     snapshot_hit,
@@ -277,9 +337,12 @@ fn load_source(
                 raw_hit: false,
                 source_kind,
                 logical_path: logical_path.clone(),
+                source_path: path.to_owned(),
+                source_digest,
             })
             .collect(),
         source_digest: Some(source_digest),
+        source_kind: Some(source_kind),
         logical_path,
         lang,
         snapshot_hit,

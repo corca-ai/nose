@@ -39,16 +39,16 @@ pub(super) fn build_query_dataset(
     let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
     let detector = detection_engine(settings.channels, &opts);
     let (mut report, scope, semantic_pack_near, semantic_pack_external_exact, line_context) =
-        query_detect_report(
+        query_detect_report(QueryDetectRequest {
             args,
             refs,
-            &settings.exclude,
-            &opts,
-            detector.as_ref(),
-            &semantic_packs,
-            settings.cache_max_bytes,
-            AcceptedCoverage::Query,
-        );
+            exclude: &settings.exclude,
+            opts: &opts,
+            detector: detector.as_ref(),
+            semantic_packs: &semantic_packs,
+            cache_max_bytes: settings.cache_max_bytes,
+            accepted_coverage: AcceptedCoverage::Query,
+        });
 
     let mut families = time_stage("rank_families", || nose_detect::rank_families(&report));
     annotate_semantic_pack_near(&mut families, &semantic_pack_near);
@@ -144,16 +144,16 @@ pub(crate) fn build_divergence_families(
     let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
     let detector = detection_engine(settings.channels, &opts);
     let (report, _, semantic_pack_near, semantic_pack_external_exact, line_context) =
-        query_detect_report(
+        query_detect_report(QueryDetectRequest {
             args,
             refs,
-            &settings.exclude,
-            &opts,
-            detector.as_ref(),
-            &semantic_packs,
-            settings.cache_max_bytes,
-            AcceptedCoverage::Direct,
-        );
+            exclude: &settings.exclude,
+            opts: &opts,
+            detector: detector.as_ref(),
+            semantic_packs: &semantic_packs,
+            cache_max_bytes: settings.cache_max_bytes,
+            accepted_coverage: AcceptedCoverage::Direct,
+        });
     let mut families = nose_detect::rank_families(&report);
     annotate_semantic_pack_near(&mut families, &semantic_pack_near);
     annotate_semantic_pack_external_exact(&mut families, &semantic_pack_external_exact);
@@ -312,42 +312,38 @@ enum AcceptedCoverage {
     Direct,
 }
 
-fn query_detect_report(
-    args: &QueryArgs,
-    refs: &[&std::path::Path],
-    exclude: &[String],
-    opts: &nose_detect::DetectOptions,
-    detector: &dyn nose_detect::Detector,
-    semantic_packs: &nose_semantics::SemanticPackSet,
+struct QueryDetectRequest<'a> {
+    args: &'a QueryArgs,
+    refs: &'a [&'a std::path::Path],
+    exclude: &'a [String],
+    opts: &'a nose_detect::DetectOptions,
+    detector: &'a dyn nose_detect::Detector,
+    semantic_packs: &'a nose_semantics::SemanticPackSet,
     cache_max_bytes: u64,
     accepted_coverage: AcceptedCoverage,
-) -> DetectionReport {
-    let (mut corpus, invalidation_report, unit_contexts, cache_identity_parts, line_context) =
-        if let Some(dir) = &args.cache_dir {
-            let cached = time_lower(|| {
-                cache::build_corpus_cached(refs, exclude, dir, semantic_packs, cache_max_bytes)
-            });
-            let run = cached.run.clone();
-            let line_context = cache::CachedLineContext {
-                source_files: cached.source_files,
-                run,
-            };
-            (
-                cached.corpus,
-                Some(cached.report),
-                Some(cached.unit_contexts),
-                Some((cached.workspace_digest, cached.semantic_pack_digest)),
-                Some(line_context),
-            )
-        } else {
-            (
-                time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude)),
-                None,
-                None,
-                None,
-                None,
-            )
-        };
+}
+
+fn query_detect_report(request: QueryDetectRequest<'_>) -> DetectionReport {
+    if let Some(fast) = try_query_detect_report_fast(&request) {
+        return fast;
+    }
+    let PreparedCorpus {
+        mut corpus,
+        invalidation_report,
+        unit_snapshot,
+        cache_identity_parts,
+        line_context,
+    } = prepare_query_corpus(&request);
+    let QueryDetectRequest {
+        args,
+        refs: _,
+        exclude: _,
+        opts,
+        detector,
+        semantic_packs,
+        cache_max_bytes: _,
+        accepted_coverage,
+    } = request;
     print_invalidation(invalidation_report.as_ref());
     let scope = QueryScope::from_corpus(&corpus);
     let semantic_pack_evidence =
@@ -378,9 +374,7 @@ fn query_detect_report(
                     .as_ref()
                     .expect("cached corpus includes a cache run")
                     .run,
-                unit_contexts
-                    .as_deref()
-                    .expect("cached corpus includes unit contexts"),
+                unit_snapshot.expect("cached corpus includes unit contexts"),
             )
         });
         if std::env::var_os("NOSE_CACHE_STATS").is_some() {
@@ -404,22 +398,131 @@ fn query_detect_report(
     }
     drop(semantic_pack_evidence);
     drop(corpus);
-    let report = detect_cached_or_clean(
+    let report = detect_cached_or_clean(DetectCachedRequest {
         cache_identity_parts,
-        line_context.as_ref().map(|context| &context.run),
-        (units, unit_keys.as_deref()),
+        cache_run: line_context.as_ref().map(|context| &context.run),
+        detection_units: (units, unit_keys.as_deref()),
         files,
-        &streams,
+        streams: &streams,
         opts,
         detector,
         accepted_coverage,
-    );
+    });
     (
         report,
         scope,
         semantic_pack_near,
         semantic_pack_external_exact,
         line_context,
+    )
+}
+
+struct PreparedCorpus {
+    corpus: nose_il::Corpus,
+    invalidation_report: Option<cache::InvalidationReport>,
+    unit_snapshot: Option<cache::CachedUnitSnapshot>,
+    cache_identity_parts: Option<([u8; 32], [u8; 32])>,
+    line_context: Option<cache::CachedLineContext>,
+}
+
+fn prepare_query_corpus(request: &QueryDetectRequest<'_>) -> PreparedCorpus {
+    let Some(dir) = &request.args.cache_dir else {
+        return PreparedCorpus {
+            corpus: time_lower(|| {
+                nose_frontend::lower_corpus_filtered(request.refs, request.exclude)
+            }),
+            invalidation_report: None,
+            unit_snapshot: None,
+            cache_identity_parts: None,
+            line_context: None,
+        };
+    };
+    let cached = time_lower(|| {
+        cache::build_corpus_cached(
+            request.refs,
+            request.exclude,
+            dir,
+            request.semantic_packs,
+            request.cache_max_bytes,
+        )
+    });
+    let line_context = cache::CachedLineContext {
+        source_files: cached.source_files,
+        run: cached.run.clone(),
+    };
+    PreparedCorpus {
+        corpus: cached.corpus,
+        invalidation_report: Some(cached.report),
+        unit_snapshot: Some(cached.unit_snapshot),
+        cache_identity_parts: Some((cached.workspace_digest, cached.semantic_pack_digest)),
+        line_context: Some(line_context),
+    }
+}
+
+fn try_query_detect_report_fast(request: &QueryDetectRequest<'_>) -> Option<DetectionReport> {
+    matches!(request.accepted_coverage, AcceptedCoverage::Query).then_some(())?;
+    let dir = request.args.cache_dir.as_ref()?;
+    let fast = time_lower(|| {
+        cache::try_build_units_fast(
+            request.refs,
+            request.exclude,
+            dir,
+            request.semantic_packs,
+            request.cache_max_bytes,
+            request.opts,
+        )
+    })?;
+    Some(query_detect_report_fast(
+        fast,
+        request.opts,
+        request.detector,
+    ))
+}
+
+fn query_detect_report_fast(
+    fast: cache::FastCachedUnits,
+    opts: &nose_detect::DetectOptions,
+    detector: &dyn nose_detect::Detector,
+) -> DetectionReport {
+    let cache::FastCachedUnits {
+        cached,
+        report: invalidation_report,
+        workspace_digest,
+        semantic_pack_digest,
+        source_files,
+        run,
+        langs,
+    } = fast;
+    print_invalidation(Some(&invalidation_report));
+    let cache::CachedUnits {
+        units,
+        unit_keys,
+        streams,
+        files,
+        stats,
+    } = cached;
+    if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+        eprintln!(
+            "  [cache] files={} hits={} misses={} read_bytes={} written_bytes={}",
+            stats.files, stats.hits, stats.misses, stats.read_bytes, stats.written_bytes
+        );
+    }
+    let report = detect_cached_or_clean(DetectCachedRequest {
+        cache_identity_parts: Some((workspace_digest, semantic_pack_digest)),
+        cache_run: Some(&run),
+        detection_units: (units, Some(&unit_keys)),
+        files,
+        streams: &streams,
+        opts,
+        detector,
+        accepted_coverage: AcceptedCoverage::Query,
+    });
+    (
+        report,
+        QueryScope::from_langs(langs),
+        nose_semantics::SemanticPackNearRegistry::default(),
+        nose_semantics::SemanticPackExternalExactRegistry::default(),
+        Some(cache::CachedLineContext { source_files, run }),
     )
 }
 
@@ -434,16 +537,28 @@ fn print_invalidation(report: Option<&cache::InvalidationReport>) {
     }
 }
 
-fn detect_cached_or_clean(
+struct DetectCachedRequest<'a> {
     cache_identity_parts: Option<([u8; 32], [u8; 32])>,
-    cache_run: Option<&cache::CacheRun>,
-    detection_units: (Vec<nose_detect::UnitFeat>, Option<&[[u8; 32]]>),
+    cache_run: Option<&'a cache::CacheRun>,
+    detection_units: (Vec<nose_detect::UnitFeat>, Option<&'a [[u8; 32]]>),
     files: usize,
-    streams: &[nose_detect::Stream],
-    opts: &nose_detect::DetectOptions,
-    detector: &dyn nose_detect::Detector,
+    streams: &'a [nose_detect::Stream],
+    opts: &'a nose_detect::DetectOptions,
+    detector: &'a dyn nose_detect::Detector,
     accepted_coverage: AcceptedCoverage,
-) -> nose_detect::Report {
+}
+
+fn detect_cached_or_clean(request: DetectCachedRequest<'_>) -> nose_detect::Report {
+    let DetectCachedRequest {
+        cache_identity_parts,
+        cache_run,
+        detection_units,
+        files,
+        streams,
+        opts,
+        detector,
+        accepted_coverage,
+    } = request;
     let (units, unit_keys) = detection_units;
     if matches!(accepted_coverage, AcceptedCoverage::Direct) {
         return nose_detect::detect_from_units_with_direct_accepted_coverage(

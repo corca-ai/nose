@@ -20,6 +20,7 @@
 mod admin;
 mod detection;
 mod digest;
+mod fast_units;
 mod lines;
 mod portable_il;
 mod resolved;
@@ -28,7 +29,7 @@ mod store;
 mod transaction;
 
 use nose_detect::{DetectOptions, Stream, UnitFeat};
-use nose_il::Corpus;
+use nose_il::{Corpus, Lang};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
@@ -40,15 +41,47 @@ pub(crate) use self::detection::{
     load_detection_state, store_detection_state, DetectionCacheIdentity,
 };
 use self::digest::ContentDigest;
+pub(crate) use self::fast_units::FastCachedUnits;
 pub(crate) use self::lines::{build_line_index, LineIndexStats};
 pub(crate) use self::resolved::{CachedCorpus, InvalidationReport};
 use self::store::{ArtifactKey, ArtifactStage};
 pub(crate) use self::transaction::CacheRun;
 
-#[derive(Clone)]
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub(crate) struct CachedSourceFile {
     pub(crate) path: String,
+    pub(crate) logical_path: String,
     pub(crate) digest: [u8; 32],
+    pub(crate) lang: Lang,
+    pub(crate) source_kind: source::SourceIdentityKind,
+}
+
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+pub(crate) struct CachedUnitContext {
+    pub(crate) region_path: String,
+    pub(crate) region_id: String,
+    pub(crate) source_path: String,
+    pub(crate) source_digest: [u8; 32],
+    pub(crate) source_kind: source::SourceIdentityKind,
+    pub(crate) lang: Lang,
+    pub(crate) resolution_digest: [u8; 32],
+    pub(crate) export_digest: [u8; 32],
+    pub(crate) requires_resolution: bool,
+    pub(crate) over_invalidated: bool,
+    pub(crate) depended_on: bool,
+}
+
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+pub(crate) struct CachedUnitSnapshot {
+    pub(crate) contexts: Vec<CachedUnitContext>,
+    pub(crate) source_files: Vec<CachedSourceFile>,
+    pub(crate) semantic_pack_digest: [u8; 32],
+    pub(crate) discovery_digest: [u8; 32],
+    pub(crate) global_line_statistics_digest: [u8; 32],
+    pub(crate) swift_global_digest: [u8; 32],
+    pub(crate) swift_global_active: bool,
+    pub(crate) fast_safe: bool,
+    pub(crate) artifacts: Vec<[u8; 32]>,
 }
 
 pub(crate) struct CachedLineContext {
@@ -65,7 +98,36 @@ pub(crate) fn build_corpus_cached(
 ) -> CachedCorpus {
     let run = CacheRun::with_limit(dir, max_bytes);
     let raw = source::build_raw_corpus_cached(roots, exclude, &run);
-    resolved::build_resolved_corpus_cached(raw, &run, semantic_pack_digest(semantic_packs))
+    let mut cached =
+        resolved::build_resolved_corpus_cached(raw, &run, semantic_pack_digest(semantic_packs));
+    cached.unit_snapshot.fast_safe = semantic_packs_allow_fast_units(semantic_packs);
+    cached
+}
+
+pub(crate) fn try_build_units_fast(
+    roots: &[&Path],
+    exclude: &[String],
+    dir: &Path,
+    semantic_packs: &nose_semantics::SemanticPackSet,
+    max_bytes: u64,
+    opts: &DetectOptions,
+) -> Option<FastCachedUnits> {
+    semantic_packs_allow_fast_units(semantic_packs).then_some(())?;
+    fast_units::try_build(
+        roots,
+        exclude,
+        dir,
+        max_bytes,
+        opts,
+        *semantic_pack_digest(semantic_packs).as_bytes(),
+    )
+}
+
+fn semantic_packs_allow_fast_units(packs: &nose_semantics::SemanticPackSet) -> bool {
+    packs.external_evidence_producer_rows().is_empty()
+        && packs.external_contract_rows().is_empty()
+        && packs.external_value_law_rows().is_empty()
+        && packs.compiled_external_v1_packs().is_empty()
 }
 
 pub(crate) fn invalidation_report_json(report: &InvalidationReport) -> String {
@@ -134,25 +196,38 @@ pub(crate) struct CacheStats {
 /// content-derived); a miss recomputes and writes back.
 #[cfg(test)]
 fn build_units_cached(mut corpus: Corpus, opts: &DetectOptions, dir: &Path) -> CachedUnits {
-    build_units_cached_inner(&mut corpus, opts, &CacheRun::new(dir), None)
+    build_units_cached_inner(&mut corpus, opts, &CacheRun::new(dir), None).into_public()
 }
 
 pub(crate) fn build_units_cached_with_context(
     corpus: &mut Corpus,
     opts: &DetectOptions,
     run: &CacheRun,
-    resolution_contexts: &[[u8; 32]],
+    snapshot: CachedUnitSnapshot,
 ) -> CachedUnits {
-    assert_eq!(corpus.files.len(), resolution_contexts.len());
-    build_units_cached_inner(corpus, opts, run, Some(resolution_contexts))
+    assert_eq!(corpus.files.len(), snapshot.contexts.len());
+    let cached = build_units_cached_inner(corpus, opts, run, Some(&snapshot.contexts));
+    fast_units::store_snapshot(run, opts, snapshot, &cached.region_artifacts);
+    cached.into_public()
+}
+
+struct CachedUnitsInner {
+    public: CachedUnits,
+    region_artifacts: Vec<[u8; 32]>,
+}
+
+impl CachedUnitsInner {
+    fn into_public(self) -> CachedUnits {
+        self.public
+    }
 }
 
 fn build_units_cached_inner(
     corpus: &mut Corpus,
     opts: &DetectOptions,
     run: &CacheRun,
-    resolution_contexts: Option<&[[u8; 32]]>,
-) -> CachedUnits {
+    contexts: Option<&[CachedUnitContext]>,
+) -> CachedUnitsInner {
     let cas = run.cas();
     let options = options_digest(opts);
     let hits = AtomicUsize::new(0);
@@ -169,7 +244,7 @@ fn build_units_cached_inner(
     let restore = |(index, il): (usize, nose_il::Il)| {
         let path = il.meta.path.clone();
         let resolved = portable_il::semantic_digest(&il, interner);
-        let context = resolution_contexts.map(|contexts| contexts[index].as_slice());
+        let context = contexts.map(|contexts| contexts[index].resolution_digest.as_slice());
         let key = match context {
             Some(context) => ArtifactKey::derive(
                 ArtifactStage::UnitsSyntax,
@@ -218,6 +293,10 @@ fn build_units_cached_inner(
         .collect::<Vec<_>>();
 
     let files = per_file.len();
+    let region_artifacts = per_file
+        .iter()
+        .map(|(_, _, artifact, _)| *artifact.as_bytes())
+        .collect();
     let mut all_units = Vec::new();
     let mut unit_keys = Vec::new();
     let mut all_streams = Vec::new();
@@ -235,18 +314,21 @@ fn build_units_cached_inner(
         all_units.extend(u);
         all_streams.push(s);
     }
-    CachedUnits {
-        units: all_units,
-        unit_keys,
-        streams: all_streams,
-        files,
-        stats: CacheStats {
+    CachedUnitsInner {
+        public: CachedUnits {
+            units: all_units,
+            unit_keys,
+            streams: all_streams,
             files,
-            hits: hits.load(Ordering::Relaxed),
-            misses: misses.load(Ordering::Relaxed),
-            read_bytes: read_bytes.load(Ordering::Relaxed),
-            written_bytes: written_bytes.load(Ordering::Relaxed),
+            stats: CacheStats {
+                files,
+                hits: hits.load(Ordering::Relaxed),
+                misses: misses.load(Ordering::Relaxed),
+                read_bytes: read_bytes.load(Ordering::Relaxed),
+                written_bytes: written_bytes.load(Ordering::Relaxed),
+            },
         },
+        region_artifacts,
     }
 }
 

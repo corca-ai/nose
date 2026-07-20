@@ -327,18 +327,21 @@ pub(crate) struct QueryScope {
 
 impl QueryScope {
     pub(crate) fn from_corpus(corpus: &Corpus) -> Self {
+        Self::from_langs(corpus.files.iter().map(|file| file.meta.lang))
+    }
+
+    pub(crate) fn from_langs(langs: impl IntoIterator<Item = nose_il::Lang>) -> Self {
         let mut counts: std::collections::HashMap<&'static str, usize> =
             std::collections::HashMap::new();
-        for f in &corpus.files {
-            *counts.entry(f.meta.lang.name()).or_insert(0) += 1;
+        let mut files = 0;
+        for lang in langs {
+            files += 1;
+            *counts.entry(lang.name()).or_insert(0) += 1;
         }
         let mut langs: Vec<(&'static str, usize)> = counts.into_iter().collect();
         // Largest language first; name as a stable tie-break for deterministic output.
         langs.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
-        QueryScope {
-            files: corpus.files.len(),
-            langs,
-        }
+        QueryScope { files, langs }
     }
 
     /// `analyzed 1113 files · typescript 900 · tsx 213` (languages omitted when unknown).
