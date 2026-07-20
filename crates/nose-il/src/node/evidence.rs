@@ -378,6 +378,52 @@ pub enum EvidenceKind {
     ParameterShape(ParameterShapeEvidenceKind),
 }
 
+impl EvidenceKind {
+    /// Transform every source span carried inside this evidence payload.
+    ///
+    /// Anchors are intentionally separate: callers that relocate a complete
+    /// evidence record must transform both the anchor and the kind.
+    pub fn map_spans(self, mut map: impl FnMut(Span) -> Span) -> Self {
+        match self {
+            EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {
+                lower_span,
+                upper_span,
+                activation,
+            }) => EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {
+                lower_span: map(lower_span),
+                upper_span: map(upper_span),
+                activation,
+            }),
+            EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
+                target_span,
+                name_hash,
+            }) => EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
+                target_span: map(target_span),
+                name_hash,
+            }),
+            EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectMethod {
+                target_span,
+                receiver_type_hash,
+                method_hash,
+            }) => EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectMethod {
+                target_span: map(target_span),
+                receiver_type_hash,
+                method_hash,
+            }),
+            EvidenceKind::PromiseSettledValue(PromiseSettledValueEvidenceKind {
+                channel,
+                payload_span,
+                payload_kind,
+            }) => EvidenceKind::PromiseSettledValue(PromiseSettledValueEvidenceKind {
+                channel,
+                payload_span: map(payload_span),
+                payload_kind,
+            }),
+            other => other,
+        }
+    }
+}
+
 /// Pack-facing semantic evidence record. It is evidence, not a verdict: exact
 /// consumers must check contracts, provenance, dependencies, and ambiguity.
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]

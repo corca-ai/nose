@@ -30,6 +30,66 @@ fn span_contains_only_nested_ranges_in_the_same_file() {
 }
 
 #[test]
+fn evidence_kind_maps_every_embedded_span() {
+    let first = Span::new(FileId(1), 10, 20, 2, 3);
+    let second = Span::new(FileId(1), 30, 40, 4, 5);
+    let kinds = [
+        (
+            EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {
+                lower_span: first,
+                upper_span: second,
+                activation: BoundOrderGuardActivation::WhenTrue,
+            }),
+            2,
+        ),
+        (
+            EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
+                target_span: first,
+                name_hash: 1,
+            }),
+            1,
+        ),
+        (
+            EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectMethod {
+                target_span: first,
+                receiver_type_hash: 2,
+                method_hash: 3,
+            }),
+            1,
+        ),
+        (
+            EvidenceKind::PromiseSettledValue(PromiseSettledValueEvidenceKind {
+                channel: PromiseSettlementChannel::Fulfilled,
+                payload_span: first,
+                payload_kind: NodeKind::Lit,
+            }),
+            1,
+        ),
+    ];
+
+    for (kind, expected_spans) in kinds {
+        let mut mapped_spans = 0;
+        let mapped = kind.map_spans(|mut span| {
+            mapped_spans += 1;
+            span.file = FileId(9);
+            span
+        });
+        assert_eq!(mapped_spans, expected_spans);
+
+        let mut verified_spans = 0;
+        mapped.map_spans(|span| {
+            verified_spans += 1;
+            assert_eq!(span.file, FileId(9));
+            span
+        });
+        assert_eq!(verified_spans, expected_spans);
+    }
+
+    let unchanged = EvidenceKind::Domain(DomainEvidence::Collection);
+    assert_eq!(unchanged.map_spans(|_| unreachable!()), unchanged);
+}
+
+#[test]
 fn dangling_child_is_caught() {
     let mut il = leaf_il();
     il.edges.push(NodeId(999)); // child id past the arena
