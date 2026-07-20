@@ -85,12 +85,15 @@ CAS v2 entries live below `cas-v2/<stage>/<digest-prefix>/`; generation state li
 - an independent SHA-256 checksum of the payload.
 
 Payloads are Zstandard-compressed only when that reduces their size. Stored and decoded lengths are
-bounded before allocation/decompression. Writers finish and sync a private temporary file before
-atomic publication, then sync the containing directory. Readers validate every header field,
-exact file length, decoded length, and checksum before deserialization. A missing, truncated,
-corrupt, wrong-stage, wrong-schema, or misplaced entry is a cache miss and recomputes; no failure
-path returns unchecked bytes. Concurrent writers of one address converge on complete envelopes,
-while a racing reader can at worst miss and recompute.
+bounded before allocation/decompression. Writers finish a private temporary file before atomic
+publication. Immutable CAS files and directory entries are not individually synced: losing or
+corrupting one in a machine crash is a verified cache miss, while serially syncing thousands of
+objects makes first-generation construction scale with filesystem flush latency. Mutable
+generation manifests and `CURRENT` retain the stronger file-and-directory sync boundary. Readers
+validate every header field, exact file length, decoded length, and checksum before deserialization.
+A missing, truncated, corrupt, wrong-stage, wrong-schema, or misplaced entry is a cache miss and
+recomputes; no failure path returns unchecked bytes. Concurrent writers of one address converge on
+complete envelopes, while a racing reader can at worst miss and recompute.
 
 The managed store defaults to 5 GiB and can be changed with `--cache-max-bytes` or
 `[query].cache-max-bytes`. Runs that wrote data remove old schema directories, temporary files,

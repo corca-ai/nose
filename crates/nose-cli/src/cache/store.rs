@@ -111,8 +111,13 @@ impl LayeredCas {
         })
     }
 
-    /// Publish a complete checksummed envelope. A successful return means the
-    /// payload and its directory entry have been synced before readers can see it.
+    /// Publish a complete checksummed envelope.
+    ///
+    /// The complete payload is written before the atomic rename. Neither the
+    /// immutable file nor its directory entry is individually synced: losing or
+    /// corrupting an entry in a machine crash is a verified cache miss, while
+    /// syncing thousands of objects serializes first-generation construction.
+    /// Mutable generation manifests retain the stronger sync boundary.
     pub(super) fn store(&self, key: ArtifactKey, payload: &[u8]) -> std::io::Result<u64> {
         if payload.len() > MAX_PAYLOAD_BYTES {
             return Err(std::io::Error::new(
@@ -128,10 +133,9 @@ impl LayeredCas {
         std::fs::create_dir_all(parent)?;
         let bytes = encode_envelope(key, payload);
         let temp = temporary_path(parent, &key.digest.hex());
-        write_synced(&temp, &bytes)?;
+        write_complete(&temp, &bytes)?;
         match publish(&temp, &target) {
             Ok(()) => {
-                sync_parent(parent)?;
                 let stored = bytes.len() as u64;
                 if let Some(counter) = &self.written_bytes {
                     counter.fetch_add(stored, Ordering::Relaxed);
@@ -180,9 +184,14 @@ pub(super) fn temporary_path(parent: &Path, suffix: &str) -> PathBuf {
 }
 
 pub(super) fn write_synced(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    let file = write_complete(path, bytes)?;
+    file.sync_all()
+}
+
+fn write_complete(path: &Path, bytes: &[u8]) -> std::io::Result<File> {
     let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
     file.write_all(bytes)?;
-    file.sync_all()
+    Ok(file)
 }
 
 #[cfg(unix)]
