@@ -115,14 +115,42 @@ clean/empty/history equality. Representative history-bearing unit hit/miss closu
 `1/33`, add/delete/rename `3/1`, embedded-region edit `5/1`, restored-mtime edit `3/1`, and Swift
 global barrier `0/3`.
 
+## Checked #875 evidence
+
+The checked [`issue-875-incremental-global-sympy-paired-2026-07-20.v1.json`](../bench/cache/issue-875-incremental-global-sympy-paired-2026-07-20.v1.json)
+contains all 180 rows from 30 alternating AB/BA replays of implementation commit `e93bdc05`
+against the checksum-verified published v0.19.0 binary. Both roles independently passed exact
+clean/empty/history output equivalence.
+
+| Phase | Official p50 / p95 | #875 p50 / p95 | #875 delta p50 / p95 |
+| --- | ---: | ---: | ---: |
+| Clean | 1194.41 / 1451.44 ms | 1193.42 / 1428.13 ms | -0.08% / -1.61% |
+| Empty store | 1353.92 / 1667.48 ms | 3080.78 / 3572.17 ms | +127.54% / +114.23% |
+| Warm store | 887.12 / 991.24 ms | 917.04 / 970.76 ms | +3.37% / -2.07% |
+
+The no-op warm path reuses all 318,443 candidate buckets, 647,289 scores, 26,356 connected
+evaluations, 1,584 syntax streams, and 5,172 family-line analyses in the pinned SymPy workload.
+Its candidate stage is 34.0 ms p50 and source-line stage 22.7 ms p50. Warm p95 improves 2.07%,
+while p50 is 3.37% slower; warm p50/p95 RSS improves 19.97%/19.55%. Clean remains neutral.
+
+The empty-store regression is intentionally not normalized away: building the new global state
+more than doubles cold latency and grows the store 17.93% to 448,315,564 bytes. #876 owns compact,
+transactional, bounded generations and must price this measured debt directly.
+
+The checked [`issue-875-mutation-matrix-receipt-2026-07-20.v1.json`](../bench/cache/issue-875-mutation-matrix-receipt-2026-07-20.v1.json)
+seals a 4,356,466-byte, 2,100-row raw report (`e66a61fa…`) covering all 14 mutations over 30
+replays. Every clean/empty/history comparison passed byte-for-byte, including add/delete/rename,
+provider fan-out, semantic-pack and config changes, embedded regions, Swift global barriers, and
+same-size restored-mtime edits.
+
 ## What the current cache actually reuses
 
 The published v0.19.0 cache is schema v11 and the locked #872 candidate is schema v14. #873 moved
-the 0.20 development tree to layered CAS v1 while keeping only units/syntax active. #874 now reuses
-source snapshots, raw lowering, dependency-aware resolved IL, and units/syntax. A warm clean-Git
-hit avoids source reads for lowering and skips parsing; the still-global line-frequency/ranking
-stage may read source later. Dirty, untracked, and non-Git inputs are read so their exact bytes,
-rather than mtime/size, establish identity.
+the 0.20 development tree to layered CAS v1, #874 activated source/raw/resolved IL reuse, and #875
+now reuses global detection, syntax components, line document frequencies, and family-line
+analyses. A warm clean-Git hit avoids source reads for lowering and skips parsing; an unchanged
+line manifest also avoids loading the full line index. Dirty, untracked, and non-Git inputs are
+read so their exact bytes, rather than mtime/size, establish identity.
 
 CAS v1 replaces the u64 entry name with a stage/schema-separated SHA-256 address over the complete
 post-resolution semantic/reporting identity and unit-affecting options. An independent payload
@@ -131,8 +159,9 @@ SHA-256, exact length, and envelope identity make corrupt or misplaced bytes cle
 evidence records remain identity-bearing. Resolved entries add a deterministic
 consumer-visible export/dependency context, so provider-private changes leave importers hot while
 export, ambiguity, deletion/rename, and Swift-global changes reach their consumers. Global
-detection, source-line frequency reads, family construction/ranking, and presentation still
-repeat; #875 owns that boundary.
+detection buckets/pair scores/components, connected and same-unit witnesses, syntax components,
+line frequencies, and family diffs/weights update from persistent state. Query filters, rendering,
+and final presentation remain request-local.
 See [portable cache artifacts](portable-cache-artifacts.md).
 
 #275 is the required cross-file regression. A provider literal and importer that converge with

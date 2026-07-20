@@ -2,11 +2,30 @@ use super::*;
 use serde::Deserialize;
 use std::process::Output;
 
+#[path = "cache/incremental.rs"]
+mod incremental;
+
 #[derive(Debug, Eq, PartialEq)]
 struct CacheStats {
     files: usize,
     hits: usize,
     misses: usize,
+}
+
+#[derive(Debug, Deserialize)]
+struct DetectionStats {
+    schema: String,
+    state_hit: bool,
+    units_reused: usize,
+    units_added: usize,
+    units_removed: usize,
+    buckets_rebuilt: usize,
+    scores_reused: usize,
+    scores_evaluated: usize,
+    connected_evaluations_reused: usize,
+    connected_evaluations_evaluated: usize,
+    contiguous_streams_reused: usize,
+    contiguous_streams_rebuilt: usize,
 }
 
 #[derive(Debug, Deserialize)]
@@ -101,6 +120,31 @@ fn invalidation_report(output: &Output) -> InvalidationReport {
     serde_json::from_str(json).expect("valid invalidation JSON")
 }
 
+fn detection_stats(output: &Output) -> DetectionStats {
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let line = stderr
+        .lines()
+        .find(|line| line.trim_start().starts_with("[detection]"))
+        .unwrap_or_else(|| panic!("missing detection stats in stderr: {stderr}"));
+    let json = line
+        .trim_start()
+        .strip_prefix("[detection] ")
+        .expect("detection stats prefix");
+    serde_json::from_str(json).expect("valid incremental detection JSON")
+}
+
+fn assert_warm_detection_reused(output: &Output) {
+    let stats = detection_stats(output);
+    assert_eq!(stats.schema, "nose.detection-incremental/v1");
+    assert!(stats.state_hit);
+    assert!(stats.units_reused > 0);
+    assert_eq!(stats.units_added, 0);
+    assert_eq!(stats.units_removed, 0);
+    assert_eq!(stats.buckets_rebuilt, 0);
+    assert_eq!(stats.scores_evaluated, 0);
+    assert!(stats.scores_reused > 0);
+}
+
 #[test]
 fn clone_shaped_files_keep_their_own_names_on_a_warm_hit() {
     let project = TempProject::new("cache_reporting_identity");
@@ -120,6 +164,7 @@ fn clone_shaped_files_keep_their_own_names_on_a_warm_hit() {
 
     assert_eq!(cold.stdout, clean.stdout);
     assert_eq!(warm.stdout, clean.stdout);
+    assert_warm_detection_reused(&warm);
     let warm_invalidation = invalidation_report(&warm);
     assert_eq!(
         (
@@ -144,6 +189,11 @@ fn clone_shaped_files_keep_their_own_names_on_a_warm_hit() {
     let cached_after = query(project.path(), Some(&cache));
     assert_ne!(clean_after.stdout, clean.stdout);
     assert_eq!(cached_after.stdout, clean_after.stdout);
+    let changed_detection = detection_stats(&cached_after);
+    assert!(changed_detection.state_hit);
+    assert!(changed_detection.units_added > 0);
+    assert!(changed_detection.units_removed > 0);
+    assert!(changed_detection.buckets_rebuilt > 0);
     assert_eq!(
         cache_stats(&cached_after),
         CacheStats {

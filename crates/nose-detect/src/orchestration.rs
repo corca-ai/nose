@@ -11,23 +11,19 @@ use crate::{
         attach_enclosing_units, connected_loc_of, enclosing_unit_indices, enclosing_units,
         is_nested, loc_of,
     },
-    minhash,
     model::{Dump, DupPair, EnclosingUnit, LineSpan, Metrics, Report, UnitLoc},
     options::DetectOptions,
     reinvented::reinvented_helpers,
-    units::{self, UnitFeat},
+    units::UnitFeat,
 };
-use nose_il::{Corpus, Il, Interner};
-use nose_normalize::NormalizeOptions;
+use nose_il::Corpus;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 
-/// Build one file's syntax-channel token stream from its (raw) IL. Exposed so the
-/// CLI's `--cache-dir` can cache it per file and pass it to [`detect_from_units`] — the
-/// counterpart to [`units_of_file`] for the syntax channel.
-pub fn file_stream(il: &Il, interner: &Interner) -> Stream {
-    contiguous::stream(il, interner)
-}
+use crate::incremental::{self, IncrementalDetectionState, IncrementalDetectionStats};
+
+mod features;
+pub use features::{corpus_features, file_stream, units_of_file, CorpusFeatures};
 
 pub fn detect(corpus: &Corpus, opts: &DetectOptions, detector: &dyn Detector) -> Report {
     detect_with_dump(corpus, opts, detector).0
@@ -83,106 +79,6 @@ impl StageTimer {
         }
         self.last = now;
     }
-}
-
-/// Like [`detect`] but also returns the unit/candidate [`Dump`] for diagnostics.
-/// Normalize one file and extract its detection units. The resulting [`UnitFeat`]s
-/// are interner-independent (every feature is a content-derived hash), so a caller
-/// may pass a throwaway per-file interner — which is exactly what makes caching a
-/// file's units by its source-content hash sound.
-pub fn units_of_file(il: &Il, interner: &Interner, opts: &DetectOptions) -> Vec<UnitFeat> {
-    let norm_opts = NormalizeOptions {
-        cfg_norm: opts.cfg_norm,
-        dce: opts.dce,
-        ..Default::default()
-    };
-    let seeds = minhash::seeds(opts.minhash_k);
-    extract_units_of_file(il, interner, opts, &norm_opts, &seeds)
-}
-
-/// Corpus features ready for detection. The caller may attach query-local evidence to
-/// `units` before handing the immutable feature set to [`detect_from_units`].
-pub struct CorpusFeatures {
-    pub units: Vec<UnitFeat>,
-    pub streams: Vec<Stream>,
-    pub files: usize,
-}
-
-pub fn corpus_features(corpus: &Corpus, opts: &DetectOptions) -> CorpusFeatures {
-    let norm_opts = NormalizeOptions {
-        cfg_norm: opts.cfg_norm,
-        dce: opts.dce,
-        ..Default::default()
-    };
-    let seeds = minhash::seeds(opts.minhash_k);
-    let per_file: Vec<(Vec<UnitFeat>, Option<Stream>)> = corpus
-        .files
-        .par_iter()
-        .map(|il| {
-            let units = if opts.structural {
-                extract_units_of_file(il, &corpus.interner, opts, &norm_opts, &seeds)
-            } else {
-                Vec::new()
-            };
-            // Build contiguous copy-paste streams from raw IL. Alpha-renaming is
-            // function-scoped, so normalized identifiers would vary by enclosing unit;
-            // renamed Type-2/3/4 matches remain the structural channel's job.
-            let stream = opts
-                .contiguous
-                .then(|| contiguous::stream(il, &corpus.interner));
-            (units, stream)
-        })
-        .collect();
-    let unit_count = per_file.iter().map(|(units, _)| units.len()).sum();
-    let stream_count = per_file
-        .iter()
-        .filter(|(_, stream)| stream.is_some())
-        .count();
-    let mut units = Vec::with_capacity(unit_count);
-    let mut streams = Vec::with_capacity(stream_count);
-    for (file_units, stream) in per_file {
-        units.extend(file_units);
-        if let Some(stream) = stream {
-            streams.push(stream);
-        }
-    }
-    CorpusFeatures {
-        units,
-        streams,
-        files: corpus.files.len(),
-    }
-}
-
-/// Keep the normalization/extraction body out of the Rayon closure. This path
-/// is large and hot; sharing one non-inlined implementation with the cached
-/// per-file entry point avoids code-layout-sensitive copies while preserving
-/// the fused normalize-then-extract lifetime.
-#[inline(never)]
-fn extract_units_of_file(
-    il: &Il,
-    interner: &Interner,
-    opts: &DetectOptions,
-    norm_opts: &NormalizeOptions,
-    seeds: &[u64],
-) -> Vec<UnitFeat> {
-    if units::raw_il_is_empty_module(il) || units::large_test_file(il) {
-        return Vec::new();
-    }
-    let n = nose_normalize::normalize(il, interner, norm_opts);
-    let block_units = units::block_units_for_file(&n, opts);
-    units::extract(
-        &n,
-        interner,
-        seeds,
-        opts.min_lines,
-        opts.min_tokens,
-        block_units,
-        units::ExtractFeatures {
-            shape_features: opts.shape_features,
-            abstraction_witnesses: opts.abstraction_witnesses,
-            connected_witnesses: opts.connected_witnesses,
-        },
-    )
 }
 
 pub fn detect_with_dump(
@@ -252,6 +148,73 @@ pub fn detect_from_units_with_accepted_coverage(
     detect_from_units_inner(units, files, streams, opts, detector, true, false)
 }
 
+/// Cached-query entry point with persistent candidate membership and pair-score
+/// reuse. The state is content-addressed by the CLI; this layer owns its schema.
+pub fn detect_from_units_incremental_with_accepted_coverage(
+    units: Vec<UnitFeat>,
+    files: usize,
+    streams: &[Stream],
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+    previous: Option<IncrementalDetectionState>,
+    stable_unit_keys: Option<&[[u8; 32]]>,
+) -> (
+    Report,
+    Dump,
+    IncrementalDetectionState,
+    IncrementalDetectionStats,
+) {
+    let mut clk = StageTimer::new();
+    let mut stats = IncrementalDetectionStats::new();
+    let prepared = incremental::prepare(&units, stable_unit_keys, opts, previous, &mut stats);
+    clk.lap("candidates");
+    let (scored, accepted) =
+        incremental::score(&units, &prepared, detector, opts.threshold, &mut stats);
+    let raw_groups = incremental::components(&prepared, &accepted, opts.threshold, &mut stats);
+    let mut connected =
+        incremental::connected(&units, &prepared, &scored, &accepted, opts, &mut stats);
+    let connected_override = Some((
+        std::mem::take(&mut connected.accepted),
+        std::mem::take(&mut connected.same_unit_accepted),
+    ));
+    let (contiguous_override, contiguous_state) = if opts.contiguous {
+        let (groups, edges, state, contiguous_stats) = contiguous::detect_incremental(
+            streams,
+            opts.contiguous_min_tokens,
+            opts.contiguous_min_lines,
+            false,
+            prepared.previous_contiguous.as_ref(),
+        );
+        stats.contiguous_streams_reused = contiguous_stats.streams_reused;
+        stats.contiguous_streams_rebuilt = contiguous_stats.streams_rebuilt;
+        stats.contiguous_components_reused = contiguous_stats.components_reused;
+        stats.contiguous_components_rebuilt = contiguous_stats.components_rebuilt;
+        (Some((groups, edges)), Some(state))
+    } else {
+        (None, None)
+    };
+    let candidates = prepared.candidates.clone();
+    let state =
+        incremental::finish_state(prepared, &scored, &raw_groups, connected, contiguous_state);
+    let (report, dump) = finish_detection(
+        units,
+        files,
+        streams,
+        opts,
+        detector,
+        &candidates,
+        &scored,
+        accepted,
+        Some(raw_groups),
+        connected_override,
+        contiguous_override,
+        true,
+        false,
+        &mut clk,
+    );
+    (report, dump, state, stats)
+}
+
 fn detect_from_units_inner(
     units: Vec<UnitFeat>,
     files: usize,
@@ -263,8 +226,7 @@ fn detect_from_units_inner(
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
-    let (candidates, accepted, mut connected_accepted, mut same_unit_accepted) = if opts.structural
-    {
+    let (candidates, scored, accepted) = if opts.structural {
         // 3. LSH candidate generation. Semantic runs use the value-graph signature;
         //    near-duplicate runs also use shape signatures so Type-3 edits that
         //    change behavior-defining values still reach the scorer. When both
@@ -275,20 +237,57 @@ fn detect_from_units_inner(
         // 4. Score candidates in parallel; keep accepted pairs.
         let (scored, accepted) =
             score_ordinary_candidates(&units, &candidates, detector, opts.threshold);
-        let connected = if opts.connected_witnesses {
-            score_connected_candidates(&units, &scored, &accepted, opts.threshold, !opts.emit_pairs)
-        } else {
-            Vec::new()
-        };
-        let same_unit = if opts.connected_witnesses {
-            score_same_unit_candidates(&units, opts.threshold, !opts.emit_pairs)
-        } else {
-            Vec::new()
-        };
-        (candidates, accepted, connected, same_unit)
+        (candidates, scored, accepted)
     } else {
         clk.lap("candidates");
-        (Vec::new(), Vec::new(), Vec::new(), Vec::new())
+        (Vec::new(), Vec::new(), Vec::new())
+    };
+
+    finish_detection(
+        units,
+        files,
+        streams,
+        opts,
+        detector,
+        &candidates,
+        &scored,
+        accepted,
+        None,
+        None,
+        None,
+        trace_accepted_coverage,
+        trace_contiguous_coverage,
+        &mut clk,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn finish_detection(
+    units: Vec<UnitFeat>,
+    files: usize,
+    streams: &[Stream],
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+    candidates: &[(usize, usize)],
+    scored: &[ScoredCandidate],
+    accepted: Vec<AcceptedPair>,
+    raw_groups: Option<Vec<Vec<usize>>>,
+    connected_override: Option<(Vec<ConnectedAccepted>, Vec<ConnectedAccepted>)>,
+    contiguous_override: Option<(Vec<crate::Group>, Vec<Vec<crate::AcceptedEdge>>)>,
+    trace_accepted_coverage: bool,
+    trace_contiguous_coverage: bool,
+    clk: &mut StageTimer,
+) -> (Report, Dump) {
+    let (mut connected_accepted, mut same_unit_accepted) = if let Some(cached) = connected_override
+    {
+        cached
+    } else if opts.connected_witnesses {
+        (
+            score_connected_candidates(&units, scored, &accepted, opts.threshold, !opts.emit_pairs),
+            score_same_unit_candidates(&units, opts.threshold, !opts.emit_pairs),
+        )
+    } else {
+        (Vec::new(), Vec::new())
     };
 
     deduplicate_connected(&accepted, &mut connected_accepted, !opts.emit_pairs);
@@ -298,11 +297,13 @@ fn detect_from_units_inner(
     clk.lap("score");
 
     // 5. Cluster.
-    let mut uf = UnionFind::new(units.len());
-    for &(i, j, _) in &accepted {
-        uf.union(i, j);
-    }
-    let raw_groups = uf.groups(units.len());
+    let raw_groups = raw_groups.unwrap_or_else(|| {
+        let mut union = UnionFind::new(units.len());
+        for &(left, right, _) in &accepted {
+            union.union(left, right);
+        }
+        union.groups(units.len())
+    });
     clk.lap("cluster");
 
     let enclosing = enclosing_units(&units);
@@ -318,7 +319,6 @@ fn detect_from_units_inner(
     let (mut groups, mut accepted_group_edges) = build_groups(
         &units,
         &accepted,
-        &mut uf,
         &raw_groups,
         &enclosing,
         opts,
@@ -361,16 +361,26 @@ fn detect_from_units_inner(
     // value-graph channel, so both `detect` and the CLI's `--cache-dir` path produce
     // the same families — the cache supplies cached streams, otherwise this would
     // silently omit every contiguous clone.
-    append_contiguous_groups(
-        &mut report,
-        streams,
-        opts,
-        &units,
-        trace_contiguous_coverage,
-    );
+    if let Some((groups, edges)) = contiguous_override {
+        append_contiguous_output(
+            &mut report,
+            groups,
+            edges,
+            &units,
+            trace_contiguous_coverage,
+        );
+    } else {
+        append_contiguous_groups(
+            &mut report,
+            streams,
+            opts,
+            &units,
+            trace_contiguous_coverage,
+        );
+    }
     clk.lap("contiguous");
 
-    (report, detection_dump(&units, &candidates))
+    (report, detection_dump(&units, candidates))
 }
 
 fn detection_dump(units: &[UnitFeat], candidates: &[(usize, usize)]) -> Dump {
@@ -392,14 +402,14 @@ fn detection_dump(units: &[UnitFeat], candidates: &[(usize, usize)]) -> Dump {
     }
 }
 
-type AcceptedPair = (usize, usize, f64);
+pub(crate) type AcceptedPair = (usize, usize, f64);
 
 #[derive(Clone, Copy, Debug)]
-struct ScoredCandidate {
-    left: usize,
-    right: usize,
+pub(crate) struct ScoredCandidate {
+    pub(crate) left: usize,
+    pub(crate) right: usize,
     /// Nested pairs are intentionally not scored by the ordinary detector.
-    ordinary_score: Option<f64>,
+    pub(crate) ordinary_score: Option<f64>,
 }
 
 fn score_ordinary_candidates(
@@ -472,7 +482,7 @@ fn build_pair_output(
     output
 }
 
-mod connected_pricing;
+pub(crate) mod connected_pricing;
 use connected_pricing::{
     deduplicate_connected, deduplicate_same_unit, score_connected_candidates,
     score_same_unit_candidates,
@@ -488,15 +498,31 @@ fn append_contiguous_groups(
     if !opts.contiguous {
         return;
     }
-    let (mut extra, accepted_edges) = contiguous::detect(
+    let (extra, accepted_edges) = contiguous::detect(
         streams,
         opts.contiguous_min_tokens,
         opts.contiguous_min_lines,
         trace_accepted_coverage,
     );
-    attach_enclosing_units(&mut extra, units);
-    report.metrics.groups += extra.len();
-    report.groups.extend(extra);
+    append_contiguous_output(
+        report,
+        extra,
+        accepted_edges,
+        units,
+        trace_accepted_coverage,
+    );
+}
+
+fn append_contiguous_output(
+    report: &mut Report,
+    mut groups: Vec<crate::Group>,
+    accepted_edges: Vec<Vec<crate::AcceptedEdge>>,
+    units: &[UnitFeat],
+    trace_accepted_coverage: bool,
+) {
+    attach_enclosing_units(&mut groups, units);
+    report.metrics.groups += groups.len();
+    report.groups.extend(groups);
     if trace_accepted_coverage {
         report.accepted_group_edges.extend(accepted_edges);
     }

@@ -122,6 +122,12 @@ new code should follow the focused owners there rather than growing dispatcher o
 - **Interner-independent features.** A unit's features are content-derived
   hashes, not interner ids, so they're portable across runs — the basis for the
   content-hash cache.
+- **Delete-capable incremental detection.** Cached unit-artifact identities feed persistent LSH
+  bucket membership and pair contribution counts. Additions update their buckets; removed scores
+  dirty and rebuild the old connected components instead of relying on append-only union-find.
+  Connected/same-unit evidence includes its file-context digest, syntax runs are partitioned by
+  shared k-grams, and line-IDF/family weights use source-frequency deltas. The full storage and
+  invalidation contract is in [portable cache artifacts](portable-cache-artifacts.md).
 - **Determinism is a hard invariant.** Output is byte-identical across runs *and*
   thread counts. File ids come from a sorted path list; nothing iterates a
   `HashMap` into the output. There are tests for both.

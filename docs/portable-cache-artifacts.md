@@ -1,8 +1,8 @@
 # Portable cache artifacts
 
 The 0.20 Instant Monorepo cache uses one layered content-addressed store (CAS) contract for every
-analysis stage. #873 defined the portable trust boundary; #874 activates dependency-aware source,
-raw-IL, export-summary, and resolved-IL reuse without changing that storage model.
+analysis stage. #873 defined the portable trust boundary, #874 activated dependency-aware source
+and IL reuse, and #875 adds delete-capable global detection and family-line state.
 
 ## Layer contract
 
@@ -17,7 +17,7 @@ at a different address. The six stable stage identities are:
 | export/dependency summary | actively written and checksummed | deterministic export graph and SCC closure |
 | resolved IL | actively read and written | raw IL plus the region's dependency context |
 | units and syntax streams | actively read and written | resolved IL plus unit-affecting options |
-| global detection indexes | address space defined | #875 incremental detection |
+| global detection indexes | actively read and written | stable unit ids, bucket refcounts, pair scores, components, witnesses, syntax runs, line IDF, and family-line analyses |
 
 Raw and resolved IL use named MessagePack wrapped in fast LZ4 blocks; the decoder rejects a claimed
 region expansion above 512 MiB before allocation. The units layer stays named MessagePack without
@@ -26,8 +26,12 @@ Discovery still walks the selected roots so additions and deletions are visible,
 tracked raw hit needs no source read or parse in the lowering stage. Dependency summaries scan raw
 IL, compute consumer-visible literal surfaces, collapse cycles deterministically, and resolve
 imports against current module/package facts. Only resolved misses run corpus mutation; hits are
-rebound afterward. Global detection, source-line frequency reads, family construction/ranking,
-and presentation remain per-query work for #875.
+rebound afterward. Global detection state uses CAS-derived per-unit identities, updates changed
+bucket memberships, stores one pair plus its bucket contribution count, and rebuilds components
+whose accepted edges changed or disappeared. Syntax runs use the same delete-capable rule over
+shared k-grams. A small source manifest lets an unchanged run reuse line-IDF and family
+diff/weight state without rereading the full line index. Query filtering, formatting, and final
+presentation remain per invocation.
 
 ## Dependency-aware invalidation
 
@@ -48,8 +52,7 @@ unrelated artifacts merely because `FileId`s moved.
 Unknown static dependencies include the language's export catalog in their key. This can invalidate
 more than necessary when an unrelated export changes, but it cannot reuse a stale unresolved fact;
 the path is listed under `over_invalidated`. Discovery membership, semantic-pack influence, and
-corpus-global line-statistics digests are carried in diagnostics now even though their downstream
-global stages remain #875 work.
+corpus-global line-statistics digests also drive the downstream incremental global stages.
 
 The mutable `state-v1` workspace record exists only to explain changes and deleted paths. It is not
 a cache-key or reuse input: deleting or corrupting it loses reason history, never correctness.
@@ -58,6 +61,12 @@ backward-compatible `[cache]` units line. Cold start is summarized globally inst
 every file; history-bearing runs list the exact changed/deleted closure. Resolved `passthrough`
 counts identify regions whose raw IL is already the correct resolved form, so no duplicate payload
 is stored.
+
+The #875 detection, line-index, and family-line records are schema-scoped mutable acceleration
+state. Exact unit/source identities guard reuse, and a missing, corrupt, or incompatible record
+falls back to clean recomputation. #876 owns committing these mutually dependent records as one
+bounded generation; until then each record is atomically replaced but the set is not one
+transaction.
 
 ## Envelope and failure behavior
 
@@ -114,7 +123,8 @@ Focused tests prove:
 
 The #275 provider/importer integration test remains the cross-file safety gate. Focused gates also
 cover unchanged export surfaces, shifted `FileId`s with an active import edge, Swift global
-barriers, unresolved-dependency over-invalidation, and Git-blob/content identity selection. The
+barriers, unresolved-dependency over-invalidation, Git-blob/content identity selection, mutation
+order/thread-count independence, and same-unit witness deletion. The
 benchmark's clean/empty/history equality remains the product-output authority. See
 [continuous integration](continuous-integration.md) for current user-facing cache behavior.
 
@@ -138,3 +148,23 @@ bytes (-6.5%). This remains the before-#874 foundation measurement; the #874 com
 activated parse/resolve result in the
 [incremental cache benchmark](incremental-cache-benchmark.md#checked-874-evidence), while #875
 owns repeated global work.
+
+## Checked #875 performance evidence
+
+The checked [`issue-875-incremental-global-sympy-paired-2026-07-20.v1.json`](../bench/cache/issue-875-incremental-global-sympy-paired-2026-07-20.v1.json)
+contains 30 alternating AB/BA replays of implementation commit `e93bdc05` against the
+checksum-verified published v0.19.0 Apple Silicon binary. Both roles independently passed exact
+clean/empty/history output equivalence across all 180 rows.
+
+| Phase | Official p50 / p95 | #875 p50 / p95 | #875 delta p50 / p95 |
+| --- | ---: | ---: | ---: |
+| Clean | 1194.41 / 1451.44 ms | 1193.42 / 1428.13 ms | -0.08% / -1.61% |
+| Empty store | 1353.92 / 1667.48 ms | 3080.78 / 3572.17 ms | +127.54% / +114.23% |
+| Warm store | 887.12 / 991.24 ms | 917.04 / 970.76 ms | +3.37% / -2.07% |
+
+Warm p95 improves while clean performance remains neutral. Warm p50 RSS falls from 1019.16 MiB to
+815.59 MiB (-19.97%), and p95 RSS falls from 1033.39 MiB to 831.33 MiB (-19.55%). The explicit
+cost is first-generation construction: the store grows from 380,153,026 to 448,315,564 bytes
+(+17.93%), and cold latency more than doubles while the new global indexes are built. #876 owns
+transactional compact storage, bounded generations, and reclaiming that cold/store overhead; the
+regression is measured here rather than hidden.

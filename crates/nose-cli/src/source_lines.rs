@@ -1,6 +1,9 @@
 use rayon::prelude::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 
+mod incremental;
+pub(crate) use incremental::apply_cached_family_lines;
+
 /// Anti-unify N line-blocks at line granularity. Anchored on the first (largest) copy,
 /// a line *survives* into the shared body only if it is matched in *every* other copy
 /// (each copy votes via a pairwise `line_diff` against the anchor); any maximal run of
@@ -113,6 +116,7 @@ pub(crate) fn classify_param(lines: &[&str]) -> &'static str {
 /// *ranking* weight, the *displayed* invariant-line count, and the parameter
 /// count — kept as three values because the display count and the ranking set
 /// answer different questions (coevo S4-C2).
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub(crate) struct SharedLines {
     /// Majority-voted invariant lines (deduped, sorted) — the robust signal the
     /// ranking weights by IDF. Robustness is the point: a 6-copy family isn't
@@ -421,6 +425,49 @@ pub(crate) fn corpus_line_idf(
         df,
         n_files: n_files.max(1) as f64,
     }
+}
+
+pub(crate) fn cached_line_idf(
+    context: &crate::cache::CachedLineContext,
+    cache: &mut FileLineCache,
+    force_full: bool,
+) -> (
+    LineIdf,
+    crate::cache::LineIndexStats,
+    FxHashSet<String>,
+    usize,
+    bool,
+) {
+    let (index, stats) = crate::cache::build_line_index(
+        &context.cache_dir,
+        context.workspace_digest,
+        &context.source_files,
+        force_full,
+    );
+    let mut files = index.files;
+    let aliases = files
+        .iter()
+        .flat_map(|(path, lines)| {
+            let mut aliases = Vec::new();
+            if let Ok(canonical) = std::fs::canonicalize(path) {
+                aliases.push((canonical.to_string_lossy().into_owned(), lines.clone()));
+            }
+            if let Ok(cwd) = std::env::current_dir() {
+                aliases.push((crate::path_utils::relativize(path, &cwd), lines.clone()));
+            }
+            aliases
+        })
+        .collect::<Vec<_>>();
+    files.extend(aliases);
+    cache.0 = files;
+    let file_count = index.file_count;
+    let complete = index.complete;
+    let changed_lines = index.changed_lines;
+    let idf = LineIdf {
+        df: index.document_frequency,
+        n_files: file_count.max(1) as f64,
+    };
+    (idf, stats, changed_lines, file_count, complete)
 }
 
 /// Deterministic ranking tie-break: a family's first site `(file, start line)`.

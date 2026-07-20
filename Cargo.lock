@@ -545,8 +545,10 @@ dependencies = [
  "nose-normalize",
  "nose-semantics",
  "rayon",
+ "rmp-serde",
  "rustc-hash",
  "serde",
+ "sha2",
 ]
 
 [[package]]

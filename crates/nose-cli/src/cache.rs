@@ -16,7 +16,9 @@
 //! correctness input. `NOSE_CACHE_STATS` also emits a machine-readable
 //! `nose.invalidation/v1` closure with exact reasons and explicit over-invalidation.
 
+mod detection;
 mod digest;
+mod lines;
 mod portable_il;
 mod resolved;
 mod source;
@@ -28,9 +30,25 @@ use rayon::prelude::*;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
+pub(crate) use self::detection::{
+    load_detection_state, store_detection_state, DetectionCacheIdentity,
+};
 use self::digest::ContentDigest;
+pub(crate) use self::lines::{build_line_index, LineIndexStats};
 pub(crate) use self::resolved::CachedCorpus;
 use self::store::{ArtifactKey, ArtifactStage, LayeredCas};
+
+#[derive(Clone)]
+pub(crate) struct CachedSourceFile {
+    pub(crate) path: String,
+    pub(crate) digest: [u8; 32],
+}
+
+pub(crate) struct CachedLineContext {
+    pub(crate) cache_dir: std::path::PathBuf,
+    pub(crate) workspace_digest: [u8; 32],
+    pub(crate) source_files: Vec<CachedSourceFile>,
+}
 
 pub(crate) fn build_corpus_cached(
     roots: &[&Path],
@@ -44,6 +62,16 @@ pub(crate) fn build_corpus_cached(
 
 pub(crate) fn invalidation_report_json(report: &resolved::InvalidationReport) -> String {
     serde_json::to_string(report).expect("invalidation report is always JSON serializable")
+}
+
+pub(crate) fn incremental_detection_stats_json(
+    stats: &nose_detect::IncrementalDetectionStats,
+) -> String {
+    serde_json::to_string(stats).expect("incremental detection stats are JSON serializable")
+}
+
+pub(crate) fn line_index_stats_json(stats: &LineIndexStats) -> String {
+    serde_json::to_string(stats).expect("line index stats are JSON serializable")
 }
 
 fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> ContentDigest {
@@ -70,6 +98,7 @@ const UNITS_SYNTAX_SCHEMA: u32 = 2;
 
 pub(crate) struct CachedUnits {
     pub units: Vec<UnitFeat>,
+    pub unit_keys: Vec<[u8; 32]>,
     pub streams: Vec<Stream>,
     pub files: usize,
     pub stats: CacheStats,
@@ -119,7 +148,7 @@ fn build_units_cached_inner(
     let read_bytes = AtomicU64::new(0);
     let written_bytes = AtomicU64::new(0);
 
-    let per_file: Vec<(Vec<UnitFeat>, Stream)> = corpus
+    let per_file: Vec<(Vec<UnitFeat>, Stream, ContentDigest, String)> = corpus
         .files
         .par_iter()
         .enumerate()
@@ -147,7 +176,7 @@ fn build_units_cached_inner(
                 {
                     hits.fetch_add(1, Ordering::Relaxed);
                     retarget(&mut units, &mut stream, &path);
-                    return (units, stream);
+                    return (units, stream, key.digest, path);
                 }
             }
 
@@ -166,19 +195,31 @@ fn build_units_cached_inner(
                     written_bytes.fetch_add(bytes, Ordering::Relaxed);
                 }
             }
-            (units, stream)
+            (units, stream, key.digest, path)
         })
         .collect();
 
     let files = per_file.len();
     let mut all_units = Vec::new();
+    let mut unit_keys = Vec::new();
     let mut all_streams = Vec::new();
-    for (u, s) in per_file {
+    for (u, s, artifact, path) in per_file {
+        for index in 0..u.len() {
+            let ordinal = (index as u64).to_be_bytes();
+            unit_keys.push(
+                *ContentDigest::derive(
+                    b"nose.cached-unit-identity.v1",
+                    &[artifact.as_bytes(), path.as_bytes(), &ordinal],
+                )
+                .as_bytes(),
+            );
+        }
         all_units.extend(u);
         all_streams.push(s);
     }
     CachedUnits {
         units: all_units,
+        unit_keys,
         streams: all_streams,
         files,
         stats: CacheStats {
