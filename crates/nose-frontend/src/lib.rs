@@ -30,7 +30,11 @@ mod semantic_pack_evidence_tests;
 pub use coverage::{coverage, raw_node_surface, CoverageReport, RawSurface};
 pub use declaration_facts::{declaration_facts, DeclarationFacts};
 pub use discover::{discover_paths, discover_unique_paths};
-pub use module_imports::{imported_immutable_snapshot_census, ImportSnapshotCensus};
+pub use module_imports::{
+    imported_immutable_snapshot_census, resolution_dependency_summary,
+    FileResolutionDependencySummary, ImportSnapshotCensus, ResolutionDependency,
+    ResolutionDependencyKind, ResolutionDependencySummary,
+};
 
 use nose_il::{Corpus, FileId, Il, Interner, Lang};
 use rayon::prelude::*;
@@ -137,6 +141,13 @@ pub fn is_intentional_raw_boundary_tag(tag: &str) -> bool {
     lower::is_intentional_raw_boundary_tag(tag)
 }
 
+/// Whether a discovered source buffer should enter the analysis corpus. Cache
+/// loaders use the same generated/binary artifact gate as the uncached path so
+/// an artifact never becomes analyzable merely because it was cached.
+pub fn source_is_analyzable(path: &Path, lang: Lang, source: &[u8]) -> bool {
+    source_artifacts::skip_reason(path, lang, source).is_none()
+}
+
 /// Lower every analyzable region of a file into separate [`Il`]s. For most languages
 /// this is one `Il` (delegating to [`lower_source`]); for `<script>`/`<style>`-bearing
 /// containers (Vue/Svelte/HTML) it is one per embedded region (JS/TS for `<script>`, CSS
@@ -233,10 +244,28 @@ pub fn lower_corpus_raw_filtered(roots: &[&Path], exclude: &[String]) -> Corpus 
 /// this boundary explicit lets raw and resolved artifacts round-trip separately
 /// without changing the clean-scan pipeline.
 pub fn resolve_corpus(corpus: &mut Corpus) {
+    let targets = vec![true; corpus.files.len()];
+    resolve_corpus_affected(corpus, &targets);
+}
+
+/// Resolve only the selected raw IL regions while reading dependency facts from
+/// the complete raw corpus. Callers can then replace unselected regions with
+/// previously resolved portable artifacts without making dependency discovery
+/// depend on stale resolved evidence.
+pub fn resolve_corpus_affected(corpus: &mut Corpus, targets: &[bool]) {
+    assert_eq!(corpus.files.len(), targets.len());
     let timing = std::env::var_os("NOSE_TIME").is_some();
     let started = std::time::Instant::now();
-    module_imports::resolve_imported_immutable_bindings(&mut corpus.files, &corpus.interner);
-    swift_cross_file_shadows::close_shadowed_stdlib_apis(&mut corpus.files, &corpus.interner);
+    module_imports::resolve_imported_immutable_bindings_affected(
+        &mut corpus.files,
+        &corpus.interner,
+        targets,
+    );
+    swift_cross_file_shadows::close_shadowed_stdlib_apis_affected(
+        &mut corpus.files,
+        &corpus.interner,
+        targets,
+    );
     if timing {
         eprintln!(
             "  [time] {:<12} {:>7.1}ms  (corpus import facts)",

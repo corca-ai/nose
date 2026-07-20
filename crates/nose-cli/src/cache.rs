@@ -1,25 +1,25 @@
-//! Optional layered content-addressed cache. The currently active product layer
-//! stores per-file detection units keyed by the **resolved IL and reporting
-//! metadata** SHA-256 digest. Re-running nose on a project where
-//! most files are unchanged then skips the dominant cost (normalize + extract)
-//! for those files and deserializes their units instead.
+//! Optional dependency-aware layered content-addressed cache. Clean Git-tracked
+//! sources use blob identities; dirty, untracked, and non-Git sources use exact
+//! SHA-256 content identities. Raw IL, consumer-visible export/dependency summaries,
+//! affected resolved IL, and detection units are separate stages.
 //!
-//! The corpus is lowered AND cross-file-resolved every run
-//! (`lower_corpus_filtered` — parse + lower + `resolve_imported_immutable_bindings`,
-//! the smaller half of the work per experiments §BQ); only the dominant
-//! normalize+extract step is cached. The key is a content hash of each file's
-//! *post-resolve* IL, so a file whose imported-immutable-literal context changed
-//! (its provider edited) gets a different key and recomputes — fixing #275, where
-//! the old source-content key skipped resolution entirely and the cached analysis
-//! under-merged cross-file imported-literal convergence. A [`UnitFeat`]'s features
-//! are interner-independent content hashes, so a hit needs no interner. The key
-//! covers nodes, edges, spans, facets, symbol strings, suppression, and complete
-//! semantic evidence plus stage/schema/options identity. Paths and process-local
-//! ids stay outside the key and are rebound on a hit. A checksummed envelope makes
-//! corrupt, truncated, or misplaced entries clean misses rather than silent reuse.
+//! A resolved key contains the raw IL identity plus only facts that can affect that
+//! region: imported literal/namespace export surfaces, Rust/Java/Go module outcomes,
+//! unresolved-dependency catalogs, and Swift corpus-global sentinels. Provider
+//! implementation edits therefore leave importer keys stable when the export
+//! surface is unchanged, while export edits still invalidate #275 consumers.
+//! Paths and process-local ids stay outside portable keys and are rebound on a hit,
+//! so checkout moves and sorted `FileId` shifts do not fan out invalidation.
+//!
+//! Every stage uses the checksummed CAS envelope. Corrupt, truncated, or misplaced
+//! entries are misses; the mutable workspace state is diagnostics-only and never a
+//! correctness input. `NOSE_CACHE_STATS` also emits a machine-readable
+//! `nose.invalidation/v1` closure with exact reasons and explicit over-invalidation.
 
 mod digest;
 mod portable_il;
+mod resolved;
+mod source;
 mod store;
 
 use nose_detect::{DetectOptions, Stream, UnitFeat};
@@ -29,7 +29,41 @@ use std::path::Path;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
 use self::digest::ContentDigest;
+pub(crate) use self::resolved::CachedCorpus;
 use self::store::{ArtifactKey, ArtifactStage, LayeredCas};
+
+pub(crate) fn build_corpus_cached(
+    roots: &[&Path],
+    exclude: &[String],
+    dir: &Path,
+    semantic_packs: &nose_semantics::SemanticPackSet,
+) -> CachedCorpus {
+    let raw = source::build_raw_corpus_cached(roots, exclude, dir);
+    resolved::build_resolved_corpus_cached(raw, dir, semantic_pack_digest(semantic_packs))
+}
+
+pub(crate) fn invalidation_report_json(report: &resolved::InvalidationReport) -> String {
+    serde_json::to_string(report).expect("invalidation report is always JSON serializable")
+}
+
+fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> ContentDigest {
+    let mut rows = packs
+        .packs()
+        .iter()
+        .map(|pack| {
+            format!(
+                "{}\0{}\0{}\0{}",
+                pack.id,
+                pack.version,
+                pack.hash_hex(),
+                pack.semantic_digest.as_deref().unwrap_or("")
+            )
+        })
+        .collect::<Vec<_>>();
+    rows.sort();
+    let rows = rows.iter().map(String::as_bytes).collect::<Vec<_>>();
+    ContentDigest::derive(b"nose.semantic-pack-influence.v1", &rows)
+}
 
 /// Bump when unit/stream serialization, extraction, or feature hashing changes.
 const UNITS_SYNTAX_SCHEMA: u32 = 2;
@@ -57,7 +91,27 @@ pub(crate) struct CacheStats {
 /// cache keys on that *post-resolve* IL (fixing #275) and only the dominant
 /// normalize+extract step is cached. A cache hit needs no interner (features are
 /// content-derived); a miss recomputes and writes back.
-pub(crate) fn build_units_cached(corpus: &Corpus, opts: &DetectOptions, dir: &Path) -> CachedUnits {
+#[cfg(test)]
+fn build_units_cached(corpus: &Corpus, opts: &DetectOptions, dir: &Path) -> CachedUnits {
+    build_units_cached_inner(corpus, opts, dir, None)
+}
+
+pub(crate) fn build_units_cached_with_context(
+    corpus: &Corpus,
+    opts: &DetectOptions,
+    dir: &Path,
+    resolution_contexts: &[[u8; 32]],
+) -> CachedUnits {
+    assert_eq!(corpus.files.len(), resolution_contexts.len());
+    build_units_cached_inner(corpus, opts, dir, Some(resolution_contexts))
+}
+
+fn build_units_cached_inner(
+    corpus: &Corpus,
+    opts: &DetectOptions,
+    dir: &Path,
+    resolution_contexts: Option<&[[u8; 32]]>,
+) -> CachedUnits {
     let cas = LayeredCas::new(dir);
     let options = options_digest(opts);
     let hits = AtomicUsize::new(0);
@@ -68,14 +122,23 @@ pub(crate) fn build_units_cached(corpus: &Corpus, opts: &DetectOptions, dir: &Pa
     let per_file: Vec<(Vec<UnitFeat>, Stream)> = corpus
         .files
         .par_iter()
-        .map(|il| {
+        .enumerate()
+        .map(|(index, il)| {
             let path = il.meta.path.clone();
             let resolved = portable_il::semantic_digest(il, &corpus.interner);
-            let key = ArtifactKey::derive(
-                ArtifactStage::UnitsSyntax,
-                UNITS_SYNTAX_SCHEMA,
-                &[resolved.as_bytes(), options.as_bytes()],
-            );
+            let context = resolution_contexts.map(|contexts| contexts[index].as_slice());
+            let key = match context {
+                Some(context) => ArtifactKey::derive(
+                    ArtifactStage::UnitsSyntax,
+                    UNITS_SYNTAX_SCHEMA,
+                    &[resolved.as_bytes(), options.as_bytes(), context],
+                ),
+                None => ArtifactKey::derive(
+                    ArtifactStage::UnitsSyntax,
+                    UNITS_SYNTAX_SCHEMA,
+                    &[resolved.as_bytes(), options.as_bytes()],
+                ),
+            };
 
             if let Some(entry) = cas.load(key) {
                 read_bytes.fetch_add(entry.stored_bytes, Ordering::Relaxed);

@@ -248,9 +248,28 @@ fn query_detect_report(
     nose_semantics::SemanticPackNearRegistry,
     nose_semantics::SemanticPackExternalExactRegistry,
 ) {
-    // Lower AND cross-file-resolve every run. The cache skips only the dominant
-    // normalize/extract step and therefore stays identical to the uncached path.
-    let mut corpus = time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude));
+    let (mut corpus, invalidation_report, unit_contexts) = if let Some(dir) = &args.cache_dir {
+        let cached = time_lower(|| cache::build_corpus_cached(refs, exclude, dir, semantic_packs));
+        (
+            cached.corpus,
+            Some(cached.report),
+            Some(cached.unit_contexts),
+        )
+    } else {
+        (
+            time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude)),
+            None,
+            None,
+        )
+    };
+    if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+        if let Some(report) = &invalidation_report {
+            eprintln!(
+                "  [invalidation] {}",
+                cache::invalidation_report_json(report)
+            );
+        }
+    }
     let scope = QueryScope::from_corpus(&corpus);
     let semantic_pack_evidence =
         nose_semantics::SemanticPackEvidenceIndex::build(semantic_packs, &corpus);
@@ -271,7 +290,16 @@ fn query_detect_report(
             streams,
             files,
             stats,
-        } = time_stage("cache", || cache::build_units_cached(&corpus, opts, dir));
+        } = time_stage("cache", || {
+            cache::build_units_cached_with_context(
+                &corpus,
+                opts,
+                dir,
+                unit_contexts
+                    .as_deref()
+                    .expect("cached corpus includes unit contexts"),
+            )
+        });
         if std::env::var_os("NOSE_CACHE_STATS").is_some() {
             eprintln!(
                 "  [cache] files={} hits={} misses={} read_bytes={} written_bytes={}",

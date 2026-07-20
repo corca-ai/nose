@@ -112,3 +112,23 @@ fn go_namespace_import_without_member_use_does_not_snapshot_export() {
         "the namespace import assignment should remain as an import proof anchor"
     );
 }
+
+#[test]
+fn go_namespace_dependency_summary_keeps_mixed_unresolved_members_fail_safe() {
+    let interner = Interner::new();
+    let provider_src = "package tables\nvar Lookup = map[string]int{\"red\": 1}\n";
+    let importer_src = "package consumer\nimport \"tables\"\nfunc value(key string) int { return tables.Lookup[key] + tables.Missing[key] }\n";
+    let (provider, importer) = go_provider_and_importer(provider_src, importer_src, &interner);
+
+    let summary = super::super::resolution_dependency_summary(&[provider, importer], &interner);
+    let importer = &summary.files[1];
+    assert!(importer.dependencies.iter().any(|dependency| {
+        dependency.kind == super::super::ResolutionDependencyKind::ImportedNamespaceMember
+            && dependency.exported_hash == Some(stable_symbol_hash("Lookup"))
+    }));
+    assert!(importer.dependencies.iter().any(|dependency| {
+        dependency.kind == super::super::ResolutionDependencyKind::UnknownNamespace
+            && dependency.exported_hash == Some(stable_symbol_hash("Missing"))
+    }));
+    assert!(importer.over_invalidated);
+}

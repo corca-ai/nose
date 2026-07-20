@@ -17,9 +17,9 @@ pub(super) struct LiteralExports {
     reexports: Vec<ReExportRecord>,
 }
 
-struct LiteralExportRecord {
-    exported_hash: u64,
-    binding: ExportedBinding,
+pub(super) struct LiteralExportRecord {
+    pub(super) exported_hash: u64,
+    pub(super) binding: ExportedBinding,
 }
 
 pub(super) struct ReExportRecord {
@@ -37,6 +37,14 @@ impl LiteralExports {
 
     pub(super) fn iter_keyed(&self) -> impl Iterator<Item = (&(u64, u64), &ExportedBinding)> {
         self.by_key.iter()
+    }
+
+    pub(super) fn records(&self) -> &[LiteralExportRecord] {
+        &self.records
+    }
+
+    pub(super) fn reexports(&self) -> &[ReExportRecord] {
+        &self.reexports
     }
 
     pub(super) fn get(

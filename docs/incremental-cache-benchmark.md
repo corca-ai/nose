@@ -83,21 +83,57 @@ named-MessagePack store is 190,665,950 bytes, 49.8% smaller than the official 38
 store, while warm p50 RSS is 6.5% lower. Those numbers price the #873 trust boundary before later
 issues remove repeated pipeline stages.
 
+## Checked #874 evidence
+
+The checked [`issue-874-dependency-invalidation-sympy-paired-2026-07-20.v1.json`](../bench/cache/issue-874-dependency-invalidation-sympy-paired-2026-07-20.v1.json)
+contains 30 alternating AB/BA replays of implementation commit `e1617924` against the
+checksum-verified published v0.19.0 `aarch64-apple-darwin` binary. Both roles independently passed
+exact clean/empty/history output equivalence across all 180 rows.
+
+| Phase | Official p50 / p95 | #874 p50 / p95 | #874 delta p50 / p95 |
+| --- | ---: | ---: | ---: |
+| Clean | 1224.78 / 1472.50 ms | 1170.97 / 1367.38 ms | -4.39% / -7.14% |
+| Empty store | 1333.26 / 1628.77 ms | 1984.47 / 2382.15 ms | +48.84% / +46.25% |
+| Warm store | 843.82 / 985.50 ms | 839.03 / 1031.98 ms | -0.57% / +4.72% |
+
+The clean path remains inside the epic's 5% gate and is faster in this paired run. The empty-store
+cost is intentionally reported as a regression: #874 now writes source, raw-IL, dependency,
+resolved-IL, and units artifacts instead of only the published release's units cache. On a no-op
+warm run all 1,584 raw, resolved, and unit regions hit; 1,510 resolved regions are raw
+pass-throughs, so they do not duplicate payloads. Total warm p50 is effectively neutral while
+p95 is 4.72% higher because global detection and source-line ranking still repeat. #875 owns that
+remaining latency boundary.
+
+The added layers do not recreate the earlier uncompressed expansion: the #874 store is
+333,945,915 bytes versus the official 380,153,028 bytes (-12.15%). Warm p50/p95 peak RSS is
+841,506,816 / 850,673,664 bytes versus 1,066,860,544 / 1,090,748,416 bytes (-21.12% / -22.01%).
+
+The checked [`issue-874-mutation-matrix-receipt-2026-07-20.v1.json`](../bench/cache/issue-874-mutation-matrix-receipt-2026-07-20.v1.json)
+seals a 4,356,455-byte, 2,100-row raw report. All 14 mutations passed 30 replays with exact
+clean/empty/history equality. Representative history-bearing unit hit/miss closures are no-op
+`3/0`, leaf edit `2/1`, provider-private edit `2/1`, provider export edit `1/2`, high fan-out
+`1/33`, add/delete/rename `3/1`, embedded-region edit `5/1`, restored-mtime edit `3/1`, and Swift
+global barrier `0/3`.
+
 ## What the current cache actually reuses
 
-The published v0.19.0 cache is schema v11 and the locked #872 candidate is schema v14. The current
-0.20 development tree migrates that same active units/syntax boundary to the #873 layered CAS v1.
-All three still rediscover, read, parse, and lower every selected source, rebuild corpus import
-facts, and repeat global detection, family construction/ranking, and presentation. In particular,
-a warm hit does **not** skip parsing.
+The published v0.19.0 cache is schema v11 and the locked #872 candidate is schema v14. #873 moved
+the 0.20 development tree to layered CAS v1 while keeping only units/syntax active. #874 now reuses
+source snapshots, raw lowering, dependency-aware resolved IL, and units/syntax. A warm clean-Git
+hit avoids source reads for lowering and skips parsing; the still-global line-frequency/ranking
+stage may read source later. Dirty, untracked, and non-Git inputs are read so their exact bytes,
+rather than mtime/size, establish identity.
 
 CAS v1 replaces the u64 entry name with a stage/schema-separated SHA-256 address over the complete
 post-resolution semantic/reporting identity and unit-affecting options. An independent payload
 SHA-256, exact length, and envelope identity make corrupt or misplaced bytes clean misses. Paths,
 `FileId`s, and interner ids are portable and rebound; names, spans, suppression, facets, and full
-evidence records remain identity-bearing. The raw/resolved portable codec is complete, but those
-layers are intentionally not written until #874 can invalidate them by affected closure instead
-of duplicating unused data. See [portable cache artifacts](portable-cache-artifacts.md).
+evidence records remain identity-bearing. Resolved entries add a deterministic
+consumer-visible export/dependency context, so provider-private changes leave importers hot while
+export, ambiguity, deletion/rename, and Swift-global changes reach their consumers. Global
+detection, source-line frequency reads, family construction/ranking, and presentation still
+repeat; #875 owns that boundary.
+See [portable cache artifacts](portable-cache-artifacts.md).
 
 #275 is the required cross-file regression. A provider literal and importer that converge with
 an inline literal must remain converged on an empty store, warm store, and after the provider
@@ -115,7 +151,10 @@ Each mutation replay has two revisions and five subprocesses:
 5. history-bearing scan using the store seeded in step 2, compared with both step-4 scans.
 
 `NOSE_TIME=1` supplies stage timings. Cache instrumentation reports files, hits, misses, bytes
-read, and bytes written; the harness also measures recursive regular-file store bytes and peak
+read, and bytes written. #874 additionally emits a `nose.invalidation/v1` JSON closure with
+source/raw/resolved counts, exact reasons, global dependency markers, and explicit fail-safe
+over-invalidation. The harness retains that object on cached candidate rows and also measures
+recursive regular-file store bytes and peak
 RSS for each subprocess. Report summaries use the ordinary median and nearest-rank p95
 (`ceil(0.95 * n)`, one-indexed) over at least 30 successful replays. Raw rows remain in the
 artifact; p50/p95 never replace them. A checked receipt may seal a large local raw report while

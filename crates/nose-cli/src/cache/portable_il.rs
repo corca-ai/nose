@@ -13,7 +13,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::hash::{Hash, Hasher};
 
-const PORTABLE_IL_SCHEMA: u32 = 1;
+const PORTABLE_IL_SCHEMA: u32 = 3;
+const MAX_PORTABLE_IL_BYTES: usize = 512 * 1024 * 1024;
 
 #[derive(Serialize, Deserialize)]
 struct PortableIl {
@@ -99,14 +100,29 @@ pub(super) fn encode(il: &Il, interner: &Interner) -> Result<Vec<u8>> {
         symbols,
         il: canonical,
     };
-    serde_json::to_vec(&portable).context("serialize portable IL")
+    let bytes = rmp_serde::to_vec_named(&portable).context("serialize portable IL")?;
+    if bytes.len() > MAX_PORTABLE_IL_BYTES {
+        bail!("portable IL exceeds the per-region cache safety limit");
+    }
+    Ok(lz4_flex::compress_prepend_size(&bytes))
 }
 
 /// Restore an artifact into the caller's shared interner and current checkout.
 /// Invalid symbol ids, schema drift, or region corruption fail closed.
 pub(super) fn decode(bytes: &[u8], interner: &Interner, file: FileId, path: String) -> Result<Il> {
+    let declared = bytes
+        .get(..4)
+        .and_then(|size| size.try_into().ok())
+        .map(u32::from_le_bytes)
+        .map(|size| size as usize)
+        .context("portable IL lacks an LZ4 size prefix")?;
+    if declared > MAX_PORTABLE_IL_BYTES {
+        bail!("portable IL expands beyond the per-region safety limit");
+    }
+    let decompressed =
+        lz4_flex::decompress_size_prepended(bytes).context("decompress portable IL")?;
     let mut portable: PortableIl =
-        serde_json::from_slice(bytes).context("deserialize portable IL")?;
+        rmp_serde::from_slice(&decompressed).context("deserialize portable IL")?;
     if portable.schema != PORTABLE_IL_SCHEMA {
         bail!(
             "portable IL schema {} is not supported (expected {})",
