@@ -1356,3 +1356,11 @@ the already reviewed cross-engine candidate enumeration family from
 `nose-detect::candidates::anchor_candidates`; the family still shares ten lines
 across independent Markdown and semantic-detection candidate engines. No new
 duplication or budget is accepted.
+
+The #877 policy-base integration closeout tightens the reviewed count from 28
+to 27. Splitting the cache implementation into focused source modules changes
+the self-query fingerprints enough for the long-standing
+`interp/ops.rs::int_bin` / `float_bin` dispatcher representative
+`aa2b95cf822a1cd2` to fall below value 40; neither numeric policy was changed.
+No replacement family appears, so the stale ID is removed without accepting
+new duplication.
