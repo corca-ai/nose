@@ -1347,3 +1347,12 @@ context/export assignment-counting representative moves from
 including only two shared lines across 204 reported lines. No new avoidable
 duplication is accepted; the budget increase records only the returning numeric
 policy family.
+
+The #876 transactional-store closeout keeps the reviewed count at 28. The
+cache and accepted-coverage source movement changes the representative ID of
+the already reviewed cross-engine candidate enumeration family from
+`3fefab5ac16598ec` to `0225963d07a476fe`. Its only members remain
+`nose-markdown::fingerprint::candidate_pairs` and
+`nose-detect::candidates::anchor_candidates`; the family still shares ten lines
+across independent Markdown and semantic-detection candidate engines. No new
+duplication or budget is accepted.
