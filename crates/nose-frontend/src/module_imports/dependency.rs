@@ -1,4 +1,4 @@
-use super::bindings::{assignment_name, import_binding_proof};
+use super::bindings::{assignment_name, import_binding_proof, import_dependency_keys};
 use super::exports::{collect_literal_exports, LiteralExports};
 use super::namespace_members::collect_namespace_member_analyses;
 use super::snapshot::{snapshot_subtree, surface_fingerprint};
@@ -149,8 +149,14 @@ fn binding_graph(
             );
             let refs = components.iter().map(Vec::as_slice).collect::<Vec<_>>();
             let base = derive(b"nose.export-surface.base.v1", &refs);
-            let mut edges = binding
-                .dependency_keys
+            let dependency_keys = contexts[binding.file_idx]
+                .top_level
+                .as_deref()
+                .map(|top_level| {
+                    import_dependency_keys(&files[binding.file_idx], binding.rhs, top_level)
+                })
+                .unwrap_or_default();
+            let mut edges = dependency_keys
                 .iter()
                 .filter_map(|&(module_hash, exported_hash)| {
                     let target =

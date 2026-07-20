@@ -1,6 +1,6 @@
 use super::bindings::{
-    assignment_name, assignment_rhs, collect_statements_for_root, import_dependency_keys,
-    import_dependency_snapshots, BindingUseIndex,
+    assignment_name, assignment_rhs, collect_statements_for_root, import_dependency_snapshots,
+    BindingUseIndex,
 };
 use super::modules::java_class_module_hashes;
 use super::{ExportedBinding, FileImportContext};
@@ -329,13 +329,11 @@ fn collect_statement_exports(
         }
         let exported = stable_symbol_hash(interner.resolve(name));
         let deps = import_dependency_snapshots(il, rhs, scope.top_level);
-        let dependency_keys = import_dependency_keys(il, rhs, scope.top_level);
         out.records.push(LiteralExportRecord {
             exported_hash: exported,
             binding: ExportedBinding {
                 file_idx: scope.file_idx,
                 deps: deps.clone(),
-                dependency_keys: dependency_keys.clone(),
                 rhs,
             },
         });
@@ -348,7 +346,6 @@ fn collect_statement_exports(
                     ExportedBinding {
                         file_idx: scope.file_idx,
                         deps: deps.clone(),
-                        dependency_keys: dependency_keys.clone(),
                         rhs,
                     },
                 )

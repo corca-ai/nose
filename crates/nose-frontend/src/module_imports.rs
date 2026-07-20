@@ -40,7 +40,6 @@ use snapshot::{
 struct ExportedBinding {
     file_idx: usize,
     deps: Vec<SubtreeSnapshot>,
-    dependency_keys: Vec<(u64, u64)>,
     rhs: NodeId,
 }
 
