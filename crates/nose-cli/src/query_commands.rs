@@ -39,18 +39,8 @@ fn run_query_base(args: &QueryArgs, base_ref: &str, q: &Query, path_arg: &str) -
     } else {
         Vec::new()
     };
-    let divergence_args = divergence::DivergenceArgs {
-        paths: args.paths.clone(),
-        base: base_ref.to_string(),
-        mode: args.mode.clone(),
-        min_size: args.min_size,
-        min_lines: args.min_lines,
-        exclude: args.exclude.clone(),
-        config: args.config.clone(),
-        ignore_file: args.ignore_file.clone(),
-    };
     let (flagged, changed_files) =
-        divergence::detect_divergences(&divergence_args)?.unwrap_or_default();
+        divergence::detect_divergences(args, base_ref)?.unwrap_or_default();
     match args.format {
         ReportFormat::Json => render_query_base(
             &flagged,
@@ -104,27 +94,12 @@ fn validate_base_query(q: &Query, args: &QueryArgs) -> Result<()> {
     if args.min_value.is_some() {
         unsupported_flags.push("--min-value");
     }
-    if args.cache_dir.is_some() {
-        unsupported_flags.push("--cache-dir");
-    }
     let cfg = crate::config::load_query(args.config.as_deref())?;
-    if !cfg.semantic_packs.is_empty() {
-        unsupported_flags.push("semantic-packs config");
-    }
-    if !args.semantic_pack.is_empty() {
-        unsupported_flags.push("--semantic-pack");
-    }
     if !cfg.generated_paths.is_empty() {
         unsupported_flags.push("generated-paths config");
     }
     if !args.generated_path.is_empty() {
         unsupported_flags.push("--generated-path");
-    }
-    if cfg.semantic_pack_lock.is_some() {
-        unsupported_flags.push("semantic-pack-lock config");
-    }
-    if args.semantic_pack_lock.is_some() {
-        unsupported_flags.push("--semantic-pack-lock");
     }
     if args.baseline.is_some() {
         unsupported_flags.push("--baseline");

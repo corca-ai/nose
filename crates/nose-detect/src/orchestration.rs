@@ -150,6 +150,19 @@ pub fn detect_from_units_with_accepted_coverage(
     detect_from_units_inner(units, files, streams, opts, detector, true, false, false).0
 }
 
+/// Cached-unit counterpart to [`detect_with_direct_accepted_coverage`].
+/// Divergent-edit propagation needs contiguous copy-paste edges as well as the
+/// structural accepted edges retained by the ordinary query surface.
+pub fn detect_from_units_with_direct_accepted_coverage(
+    units: Vec<UnitFeat>,
+    files: usize,
+    streams: &[Stream],
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+) -> Report {
+    detect_from_units_inner(units, files, streams, opts, detector, true, true, false).0
+}
+
 /// Cached-query entry point with persistent candidate membership and pair-score
 /// reuse. The state is content-addressed by the CLI; this layer owns its schema.
 pub fn detect_from_units_incremental_with_accepted_coverage(

@@ -4,7 +4,8 @@ use crate::cli_args::QueryArgs;
 use crate::detect_pipeline::{detection_engine, detection_options, validate_exclude_globs};
 use crate::path_utils::{relativize, relativize_loc};
 use crate::query_options::{
-    validate_min_value, DetectionChannels, QueryScope, SortKey, QUERY_DEFAULT_MODES,
+    validate_min_value, DetectionChannels, QueryScope, SortKey, DIVERGENCE_DEFAULT_MODES,
+    QUERY_DEFAULT_MODES,
 };
 use crate::source_lines::{
     apply_cached_family_lines, cached_line_idf, corpus_line_idf, family_anchor, is_trivial_line,
@@ -34,7 +35,7 @@ pub(super) fn build_query_dataset(
     args: &QueryArgs,
     refs: &[&std::path::Path],
 ) -> Result<QueryDataset> {
-    let (settings, semantic_packs) = resolve_query_settings(args)?;
+    let (settings, semantic_packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
     let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
     let detector = detection_engine(settings.channels, &opts);
     let (mut report, scope, semantic_pack_near, semantic_pack_external_exact, line_context) =
@@ -46,6 +47,7 @@ pub(super) fn build_query_dataset(
             detector.as_ref(),
             &semantic_packs,
             settings.cache_max_bytes,
+            AcceptedCoverage::Query,
         );
 
     let mut families = time_stage("rank_families", || nose_detect::rank_families(&report));
@@ -129,6 +131,37 @@ pub(super) fn build_query_dataset(
         reinvented,
         opts,
     })
+}
+
+/// Run the `base=` detector through the same frontend, semantic-pack, and
+/// per-file cache engine as ordinary query while retaining pair-local edges for
+/// propagation targets. Divergence keeps its stricter default channel set.
+pub(crate) fn build_divergence_families(
+    args: &QueryArgs,
+    refs: &[&std::path::Path],
+) -> Result<(Vec<nose_detect::RefactorFamily>, nose_detect::DetectOptions)> {
+    let (settings, semantic_packs) = resolve_query_settings(args, DIVERGENCE_DEFAULT_MODES)?;
+    let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+    let detector = detection_engine(settings.channels, &opts);
+    let (report, _, semantic_pack_near, semantic_pack_external_exact, line_context) =
+        query_detect_report(
+            args,
+            refs,
+            &settings.exclude,
+            &opts,
+            detector.as_ref(),
+            &semantic_packs,
+            settings.cache_max_bytes,
+            AcceptedCoverage::Direct,
+        );
+    let mut families = nose_detect::rank_families(&report);
+    annotate_semantic_pack_near(&mut families, &semantic_pack_near);
+    annotate_semantic_pack_external_exact(&mut families, &semantic_pack_external_exact);
+    if settings.channels.abstraction_only() {
+        families.retain(|family| family.abstraction_witness.is_some());
+    }
+    finish_cache_run(line_context);
+    Ok((families, opts))
 }
 
 fn finish_cache_run(context: Option<cache::CachedLineContext>) {
@@ -215,12 +248,13 @@ fn semantic_pack_set_from_inputs(
 
 fn resolve_query_settings(
     args: &QueryArgs,
+    default_modes: &[crate::query_options::DetectionMode],
 ) -> Result<(QuerySettings, nose_semantics::SemanticPackSet)> {
     let cfg = config::load_query(args.config.as_deref())?;
     let min_members = args.min_members.or(cfg.min_members).unwrap_or(2);
     let min_value = validate_min_value(args.min_value.or(cfg.min_value).unwrap_or(0.0))?;
     let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Extractability);
-    let channels = DetectionChannels::resolve(args.mode.clone(), cfg.mode, QUERY_DEFAULT_MODES)?;
+    let channels = DetectionChannels::resolve(args.mode.clone(), cfg.mode, default_modes)?;
     let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
     let min_tokens = args.min_size.or(cfg.min_size).unwrap_or(24);
     let cache_max_bytes = args
@@ -272,6 +306,12 @@ type DetectionReport = (
     Option<cache::CachedLineContext>,
 );
 
+#[derive(Clone, Copy)]
+enum AcceptedCoverage {
+    Query,
+    Direct,
+}
+
 fn query_detect_report(
     args: &QueryArgs,
     refs: &[&std::path::Path],
@@ -280,6 +320,7 @@ fn query_detect_report(
     detector: &dyn nose_detect::Detector,
     semantic_packs: &nose_semantics::SemanticPackSet,
     cache_max_bytes: u64,
+    accepted_coverage: AcceptedCoverage,
 ) -> DetectionReport {
     let (mut corpus, invalidation_report, unit_contexts, cache_identity_parts, line_context) =
         if let Some(dir) = &args.cache_dir {
@@ -371,6 +412,7 @@ fn query_detect_report(
         &streams,
         opts,
         detector,
+        accepted_coverage,
     );
     (
         report,
@@ -400,8 +442,14 @@ fn detect_cached_or_clean(
     streams: &[nose_detect::Stream],
     opts: &nose_detect::DetectOptions,
     detector: &dyn nose_detect::Detector,
+    accepted_coverage: AcceptedCoverage,
 ) -> nose_detect::Report {
     let (units, unit_keys) = detection_units;
+    if matches!(accepted_coverage, AcceptedCoverage::Direct) {
+        return nose_detect::detect_from_units_with_direct_accepted_coverage(
+            units, files, streams, opts, detector,
+        );
+    }
     let (Some(run), Some((workspace, pack_digest))) = (cache_run, cache_identity_parts) else {
         return nose_detect::detect_from_units_with_accepted_coverage(
             units, files, streams, opts, detector,

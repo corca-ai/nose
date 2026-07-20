@@ -25,7 +25,6 @@ use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::query_options::DetectionMode;
 use nose_detect::{EnclosingUnit, FragmentKind, Loc, RefactorFamily};
 
 pub(crate) use detect::{detect_divergences, divergences_fire};
@@ -70,17 +69,6 @@ pub(crate) fn divergence_sarif(
     top_zero_spelling: &str,
 ) -> Result<String> {
     output::divergence_sarif(flagged, top, top_zero_spelling)
-}
-
-pub(crate) struct DivergenceArgs {
-    pub paths: Vec<PathBuf>,
-    pub base: String,
-    pub mode: Vec<DetectionMode>,
-    pub min_size: Option<usize>,
-    pub min_lines: Option<u32>,
-    pub exclude: Vec<String>,
-    pub config: Option<PathBuf>,
-    pub ignore_file: Option<PathBuf>,
 }
 
 /// A flagged family: a clone whose copies were edited apart in this change set. Locations

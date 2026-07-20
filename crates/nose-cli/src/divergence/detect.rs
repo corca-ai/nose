@@ -4,7 +4,8 @@ use super::git::{
 };
 use super::targets::{direct_targets, same_loc};
 use super::*;
-use crate::detect_pipeline::detect_divergence_base_families;
+use crate::cli_args::QueryArgs;
+use crate::query_dataset::build_divergence_families;
 use crate::query_witness::enrich_graded_witnesses;
 use crate::source_lines::{varying_spots_of, FileLineCache};
 use std::collections::{HashMap, HashSet};
@@ -16,7 +17,8 @@ const NEW_COPY_SOURCE_FILE_BUDGET: usize = 2;
 /// The temporary base worktree is created and torn down inside; returned `Divergence`s own
 /// their data.
 pub(crate) fn detect_divergences(
-    args: &DivergenceArgs,
+    args: &QueryArgs,
+    base_ref: &str,
 ) -> Result<Option<(Vec<Divergence>, usize)>> {
     let root = git_repo_root().context(
         "nose needs a git repository to compare the working tree to a git ref (`base=`/`--base`)",
@@ -33,38 +35,22 @@ pub(crate) fn detect_divergences(
     }
 
     let divergence_paths = repo_relative_paths(&args.paths, &root);
-    ensure_base_ref_available(&root, &args.base)?;
+    ensure_base_ref_available(&root, base_ref)?;
     let (changed, current_changed, diff_entries) =
-        git_changed_ranges_and_entries(&root, &args.base, &divergence_paths)?;
+        git_changed_ranges_and_entries(&root, base_ref, &divergence_paths)?;
     let current_lane_requested = has_current_tree_new_copy_trigger(&diff_entries);
     if changed.is_empty() && !current_lane_requested {
         return Ok(None);
     }
     // Detect clone families at the base, where every copy is still intact. A temporary
     // worktree gives the base tree on disk without disturbing the user's working tree.
-    let base_tree = BaseWorktree::create(&root, &args.base)?;
-    let mut exclude = cfg.exclude.clone();
-    exclude.extend(args.exclude.iter().cloned());
-    let min_tokens = args.min_size.or(cfg.min_size).unwrap_or(24);
-    let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
+    let base_tree = BaseWorktree::create(&root, base_ref)?;
     let base_paths = reroot_paths(&divergence_paths, &base_tree.path);
-    let families = detect_divergence_base_families(
-        &base_paths,
-        &exclude,
-        args.mode.clone(),
-        cfg.mode.clone(),
-        min_tokens,
-        min_lines,
-    )?;
+    let base_refs = base_paths.iter().map(PathBuf::as_path).collect::<Vec<_>>();
+    let (families, enrich_opts) = build_divergence_families(args, &base_refs)?;
 
-    // Normalization knobs for the per-flagged-family graded-witness enrichment; must
-    // match how `detect_divergence_base_families` lowered (cfg_norm/dce/block_units default), so the
-    // re-derived unit roots line up with the family locations' spans.
-    let enrich_opts = nose_detect::DetectOptions {
-        min_lines,
-        min_tokens,
-        ..Default::default()
-    };
+    // Reuse the resolved options for per-flagged-family graded-witness enrichment,
+    // so re-derived unit roots line up with the family locations' spans.
     let mut flagged = flag_divergences(
         &families,
         ignore_set.as_ref(),
@@ -83,14 +69,11 @@ pub(crate) fn detect_divergences(
     );
     if current_lane_requested {
         let current_paths = reroot_paths(&divergence_paths, &root);
-        let mut current_families = detect_divergence_base_families(
-            &current_paths,
-            &exclude,
-            args.mode.clone(),
-            cfg.mode,
-            min_tokens,
-            min_lines,
-        )?;
+        let current_refs = current_paths
+            .iter()
+            .map(PathBuf::as_path)
+            .collect::<Vec<_>>();
+        let (mut current_families, _) = build_divergence_families(args, &current_refs)?;
         let current_prefix = canonical(&root);
         for family in &mut current_families {
             for loc in &mut family.locations {
