@@ -16,7 +16,9 @@
 //! correctness input. `NOSE_CACHE_STATS` also emits a machine-readable
 //! `nose.invalidation/v1` closure with exact reasons and explicit over-invalidation.
 
+mod detection;
 mod digest;
+mod lines;
 mod portable_il;
 mod resolved;
 mod source;
@@ -28,9 +30,25 @@ use rayon::prelude::*;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
+pub(crate) use self::detection::{
+    load_detection_state, store_detection_state, DetectionCacheIdentity,
+};
 use self::digest::ContentDigest;
+pub(crate) use self::lines::{build_line_index, LineIndexStats};
 pub(crate) use self::resolved::CachedCorpus;
 use self::store::{ArtifactKey, ArtifactStage, LayeredCas};
+
+#[derive(Clone)]
+pub(crate) struct CachedSourceFile {
+    pub(crate) path: String,
+    pub(crate) digest: [u8; 32],
+}
+
+pub(crate) struct CachedLineContext {
+    pub(crate) cache_dir: std::path::PathBuf,
+    pub(crate) workspace_digest: [u8; 32],
+    pub(crate) source_files: Vec<CachedSourceFile>,
+}
 
 pub(crate) fn build_corpus_cached(
     roots: &[&Path],
@@ -44,6 +62,16 @@ pub(crate) fn build_corpus_cached(
 
 pub(crate) fn invalidation_report_json(report: &resolved::InvalidationReport) -> String {
     serde_json::to_string(report).expect("invalidation report is always JSON serializable")
+}
+
+pub(crate) fn incremental_detection_stats_json(
+    stats: &nose_detect::IncrementalDetectionStats,
+) -> String {
+    serde_json::to_string(stats).expect("incremental detection stats are JSON serializable")
+}
+
+pub(crate) fn line_index_stats_json(stats: &LineIndexStats) -> String {
+    serde_json::to_string(stats).expect("line index stats are JSON serializable")
 }
 
 fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> ContentDigest {

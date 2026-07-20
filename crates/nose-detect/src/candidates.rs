@@ -1,6 +1,5 @@
 use crate::{
     align,
-    cluster::UnionFind,
     detectors::env_or,
     exact_policy::exact_claim_eligible,
     locations::{connected_loc_of, loc_of},
@@ -12,7 +11,7 @@ use crate::{
 use nose_semantics::ValueLaw;
 use rustc_hash::FxHashMap;
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ConnectedRoute {
     Mapped,
     CompleteExit,
@@ -70,7 +69,7 @@ fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
     }
 }
 
-const EXACT_VALUE_BUCKET_ALL_PAIRS_CAP: usize = 48;
+pub(crate) const EXACT_VALUE_BUCKET_ALL_PAIRS_CAP: usize = 48;
 
 pub(crate) fn structural_candidates(
     units: &[UnitFeat],
@@ -113,23 +112,31 @@ pub(crate) fn structural_candidates(
 pub(crate) fn build_groups(
     units: &[UnitFeat],
     accepted: &[(usize, usize, f64)],
-    uf: &mut UnionFind,
     raw_groups: &[Vec<usize>],
     enclosing: &[Option<EnclosingUnit>],
     opts: &DetectOptions,
     trace_accepted_coverage: bool,
 ) -> (Vec<Group>, Vec<Vec<crate::AcceptedEdge>>) {
-    let mut by_root: FxHashMap<usize, (f64, u32)> = FxHashMap::default();
+    let mut member_group = vec![None; units.len()];
+    for (group_index, members) in raw_groups.iter().enumerate() {
+        for &member in members {
+            member_group[member] = Some(group_index);
+        }
+    }
+    let mut by_group = vec![(0.0, 0u32); raw_groups.len()];
     for &(i, _j, s) in accepted {
-        let e = by_root.entry(uf.find(i)).or_insert((0.0, 0));
+        let Some(group_index) = member_group[i] else {
+            continue;
+        };
+        let e = &mut by_group[group_index];
         e.0 += s;
         e.1 += 1;
     }
     let groups = raw_groups
         .iter()
-        .map(|members| {
-            let root = uf.find(members[0]);
-            let (sum, n) = by_root.get(&root).copied().unwrap_or((0.0, 0));
+        .enumerate()
+        .map(|(group_index, members)| {
+            let (sum, n) = by_group[group_index];
             let score = if n == 0 { 0.0 } else { sum / n as f64 };
             let mut locs: Vec<Loc> = members
                 .iter()
@@ -312,13 +319,13 @@ fn exact_value_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
 
 /// An anchor present in more than this many units is boilerplate (a common idiom), not a
 /// specific extractable sub-computation — skip it. Env-overridable.
-fn anchor_max_df() -> usize {
+pub(crate) fn anchor_max_df() -> usize {
     use std::sync::OnceLock;
     static D: OnceLock<usize> = OnceLock::new();
     *D.get_or_init(|| env_or("NOSE_ANCHOR_MAX_DF", 6.0) as usize)
 }
 
-const ANCHOR_PAIR_CAP: usize = 64;
+pub(crate) const ANCHOR_PAIR_CAP: usize = 64;
 
 /// Partial / sub-DAG clone candidates: units that share a RARE heavy anchor — an extractable
 /// common sub-computation that whole-unit Jaccard misses. Index anchor → units; for anchors

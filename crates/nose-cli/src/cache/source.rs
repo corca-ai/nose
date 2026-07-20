@@ -1,6 +1,7 @@
 use super::digest::ContentDigest;
 use super::portable_il;
 use super::store::{ArtifactKey, ArtifactStage, LayeredCas};
+use super::CachedSourceFile;
 use nose_il::{Corpus, FileId, Il, Interner, Lang};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -34,6 +35,7 @@ pub(super) struct RawCorpus {
     pub(super) workspace_digest: ContentDigest,
     pub(super) source_hits: usize,
     pub(super) source_misses: usize,
+    pub(super) source_files: Vec<CachedSourceFile>,
 }
 
 pub(super) struct RawRegionMetadata {
@@ -85,6 +87,16 @@ pub(super) fn build_raw_corpus_cached(
 
     let source_hits = results.iter().filter(|result| result.snapshot_hit).count();
     let source_misses = results.len() - source_hits;
+    let source_files = paths
+        .iter()
+        .zip(&results)
+        .filter_map(|((path, _), result)| {
+            result.source_digest.map(|digest| CachedSourceFile {
+                path: path.clone(),
+                digest: *digest.as_bytes(),
+            })
+        })
+        .collect();
     let mut discovery_rows = Vec::new();
     let mut line_rows = Vec::new();
     let mut files = Vec::new();
@@ -123,6 +135,7 @@ pub(super) fn build_raw_corpus_cached(
         workspace_digest: workspace_digest(roots),
         source_hits,
         source_misses,
+        source_files,
     }
 }
 

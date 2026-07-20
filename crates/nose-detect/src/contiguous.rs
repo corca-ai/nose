@@ -17,6 +17,9 @@ use nose_il::{Il, Interner, NodeId, UnitKind};
 use nose_normalize::node_tag_valued;
 use rustc_hash::FxHashMap;
 
+mod incremental;
+pub(crate) use incremental::{detect_incremental, IncrementalContiguousState};
+
 /// One file's normalized-IL token stream, in source (pre-order) order.
 ///
 /// Public + serializable because the CLI's `--cache-dir` stores it per file alongside
@@ -190,7 +193,7 @@ impl LineRangeIndex {
 }
 
 #[derive(Clone)]
-struct LocSeed {
+pub(in crate::contiguous) struct LocSeed {
     stream: usize,
     start_line: u32,
     end_line: u32,
@@ -258,6 +261,23 @@ pub(crate) fn detect(
     trace_accepted_coverage: bool,
 ) -> (Vec<crate::Group>, Vec<Vec<crate::AcceptedEdge>>) {
     let (k, mint, minl) = (k(), min_tokens, min_lines);
+    let grams = streams
+        .iter()
+        .map(|stream| kgrams(&stream.tags, k))
+        .collect::<Vec<_>>();
+    let indices = (0..streams.len()).collect::<Vec<_>>();
+    let (locs, pairs) = detect_primitives(streams, &grams, &indices, k, mint, minl);
+    groups_from_primitives(locs, pairs, streams, trace_accepted_coverage)
+}
+
+pub(in crate::contiguous) fn detect_primitives(
+    streams: &[Stream],
+    grams: &[Vec<u64>],
+    stream_indices: &[usize],
+    k: usize,
+    min_tokens: usize,
+    min_lines: u32,
+) -> (Vec<LocSeed>, Vec<(usize, usize)>) {
     // First occurrence of each k-gram, keyed by (hash, language): `(hash, lang) ->
     // (stream, pos)`. Keying on language makes the contiguous channel **same-language
     // by construction** — literal copy-paste (Type-1/2) doesn't cross languages, so a
@@ -266,7 +286,6 @@ pub(crate) fn detect(
     // by the value-graph channel instead. Per-language keying also stops an unrelated
     // collision in one language from masking a real same-language match in another.
     let mut seen: FxHashMap<(u64, nose_il::Lang), (usize, usize)> = FxHashMap::default();
-    let grams: Vec<Vec<u64>> = streams.iter().map(|s| kgrams(&s.tags, k)).collect();
     let ranges: Vec<LineRangeIndex> = streams.iter().map(LineRangeIndex::new).collect();
 
     // Emitted clone instances and the pairs linking them (for union-find clustering).
@@ -275,7 +294,8 @@ pub(crate) fn detect(
     // Dedup identical (file,start,end) instances to one node id.
     let mut loc_id: FxHashMap<(usize, u32, u32), usize> = FxHashMap::default();
 
-    for (si, g) in grams.iter().enumerate() {
+    for &si in stream_indices {
+        let g = &grams[si];
         let lang = streams[si].lang;
         let mut i = 0;
         while i < g.len() {
@@ -286,7 +306,7 @@ pub(crate) fn detect(
                 let self_overlap = sj == si && i.abs_diff(j) < k;
                 if !self_overlap {
                     let len = extend(&streams[sj], j, &streams[si], i);
-                    if len >= mint {
+                    if len >= min_tokens {
                         // Require the run to contain at least one operation — a flat
                         // name/field/literal list (prop list, destructure, import/enum list)
                         // is not extractable logic, however literally it repeats.
@@ -295,7 +315,7 @@ pub(crate) fn detect(
                             .any(|&o| o);
                         if has_op {
                             let lb = loc_seed(si, &ranges[si], streams, i, i + len);
-                            if line_count(&lb) >= minl {
+                            if line_count(&lb) >= min_lines {
                                 let la = loc_seed(sj, &ranges[sj], streams, j, j + len);
                                 let a = intern_loc(&mut locs, &mut loc_id, la);
                                 let b = intern_loc(&mut locs, &mut loc_id, lb);
@@ -316,6 +336,15 @@ pub(crate) fn detect(
         }
     }
 
+    (locs, pairs)
+}
+
+pub(in crate::contiguous) fn groups_from_primitives(
+    locs: Vec<LocSeed>,
+    pairs: Vec<(usize, usize)>,
+    streams: &[Stream],
+    trace_accepted_coverage: bool,
+) -> (Vec<crate::Group>, Vec<Vec<crate::AcceptedEdge>>) {
     if locs.is_empty() {
         return (Vec::new(), Vec::new());
     }

@@ -18,6 +18,9 @@ pub(crate) struct CachedCorpus {
     pub(crate) corpus: Corpus,
     pub(crate) report: InvalidationReport,
     pub(crate) unit_contexts: Vec<[u8; 32]>,
+    pub(crate) workspace_digest: [u8; 32],
+    pub(crate) semantic_pack_digest: [u8; 32],
+    pub(crate) source_files: Vec<super::CachedSourceFile>,
 }
 
 #[derive(Debug, Serialize)]
@@ -110,6 +113,8 @@ pub(super) fn build_resolved_corpus_cached(
     dir: &Path,
     semantic_pack_digest: ContentDigest,
 ) -> CachedCorpus {
+    let workspace_digest = *raw.workspace_digest.as_bytes();
+    let source_files = raw.source_files.clone();
     let cas = LayeredCas::new(dir);
     let summary =
         nose_frontend::resolution_dependency_summary(&raw.corpus.files, &raw.corpus.interner);
@@ -144,6 +149,9 @@ pub(super) fn build_resolved_corpus_cached(
             .collect(),
         report,
         corpus: raw.corpus,
+        workspace_digest,
+        semantic_pack_digest: *semantic_pack_digest.as_bytes(),
+        source_files,
     }
 }
 

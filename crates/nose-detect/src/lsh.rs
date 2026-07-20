@@ -16,7 +16,7 @@ const SEED: u64 = 0xA24B_AED4_963E_E407;
 /// Hash one band's rows, folding the band index in so band *b*'s hash never aliases
 /// band *b'*'s — a single `u64` key then identifies the whole `(band, value)` bucket.
 #[inline]
-fn band_hash(band: usize, slice: &[u64]) -> u64 {
+pub(crate) fn band_hash(band: usize, slice: &[u64]) -> u64 {
     let mut h = SEED ^ (band as u64).wrapping_mul(0x100_0000_01B3);
     for &x in slice {
         h = (h ^ x).wrapping_mul(0x1000_0000_01B3);
@@ -112,7 +112,7 @@ pub(crate) fn candidates<'a>(
 
 /// Above this bucket size, switch from O(k²) all-pairs to an O(k) connectivity
 /// skeleton (chain + star) — bounds candidate-gen on dense corpora.
-const BUCKET_ALL_PAIRS_CAP: usize = 48;
+pub(crate) const BUCKET_ALL_PAIRS_CAP: usize = 48;
 
 #[inline]
 fn ordered(i: u32, j: u32) -> (u32, u32) {

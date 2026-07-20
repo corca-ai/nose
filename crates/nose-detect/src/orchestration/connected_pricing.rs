@@ -75,7 +75,7 @@ pub(super) fn score_same_unit_candidates(
         .collect()
 }
 
-fn same_unit_seed_indices(units: &[UnitFeat], bound_product_work: bool) -> Vec<usize> {
+pub(crate) fn same_unit_seed_indices(units: &[UnitFeat], bound_product_work: bool) -> Vec<usize> {
     const MIN_SELF_UNIT_NODES: usize = 20;
     const PRODUCT_PER_FILE_CAP: usize = 2;
     const PRODUCT_GLOBAL_CAP: usize = 4_096;
@@ -127,7 +127,7 @@ fn same_unit_seed_indices(units: &[UnitFeat], bound_product_work: bool) -> Vec<u
 /// expensive pair-local proof only for the strongest ordinary near misses, while always
 /// retaining nested seeds because they are the sole route to disjoint descendants.
 /// Endpoints below 18 nodes cannot meet the matcher's lowest complete-exit threshold.
-pub(super) fn connected_seed_indices(
+pub(crate) fn connected_seed_indices(
     candidates: &[ScoredCandidate],
     unit_paths: &[&str],
     unit_weights: &[usize],
@@ -230,7 +230,7 @@ fn record_scored_seed<'a>(
     best.truncate(cap);
 }
 
-fn evaluate_connected_candidate(
+pub(crate) fn evaluate_connected_candidate(
     units: &[UnitFeat],
     enclosing_indices: &[Option<usize>],
     same_file: &[usize],

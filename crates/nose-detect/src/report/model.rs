@@ -126,7 +126,7 @@ pub struct RefactorFamily {
 /// One varying spot between a family's two representative copies — the hole an
 /// extracted helper would parameterize. Sides may be one-sided (a pure
 /// insertion/deletion run has lines in only one copy).
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct VaryingSpot {
     /// 1-based parameter index, matching the family's `params` count.
     pub param: u32,

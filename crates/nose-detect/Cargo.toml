@@ -12,6 +12,8 @@ nose-normalize = { workspace = true }
 rustc-hash = { workspace = true }
 rayon = { workspace = true }
 serde = { workspace = true }
+sha2 = { workspace = true }
+rmp-serde = { workspace = true }
 
 [dev-dependencies]
 nose-frontend = { workspace = true }
