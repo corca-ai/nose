@@ -198,16 +198,33 @@ def measurement_order(repo_names: list[str], iteration: int) -> list[tuple[str, 
     return [(label, repo_name) for repo_name in repo_names for label in labels]
 
 
+def measurement_schedule(
+    repo_names: list[str], iterations: int
+) -> list[tuple[int, str, str]]:
+    """Keep a repository's alternating blocks adjacent before moving on.
+
+    The pair order still alternates by iteration. Repository-local scheduling
+    prevents the first process in every block from paying a repeated cold-file
+    penalty after all other repositories have displaced its pages.
+    """
+    return [
+        (iteration, label, repo_name)
+        for repo_name in repo_names
+        for iteration in range(1, iterations + 1)
+        for label, _ in measurement_order([repo_name], iteration)
+    ]
+
+
 def warmup(
     *,
     binaries: dict[str, Path],
-    repos: list[tuple[str, Path]],
+    repo_names: list[str],
     repos_root: Path,
     warmups: int,
     query_args: tuple[str, ...],
 ) -> None:
     for iteration in range(1, warmups + 1):
-        for label, repo_name in measurement_order([name for name, _ in repos], iteration):
+        for label, repo_name in measurement_order(repo_names, iteration):
             run_once(
                 binary=binaries[label],
                 label=label,
@@ -328,6 +345,16 @@ def run_self_test() -> None:
         ("baseline", "a"), ("current", "a"), ("baseline", "b"), ("current", "b")
     ]
     assert measurement_order(["a"], 2) == [("current", "a"), ("baseline", "a")]
+    assert measurement_schedule(["a", "b"], 2) == [
+        (1, "baseline", "a"),
+        (1, "current", "a"),
+        (2, "current", "a"),
+        (2, "baseline", "a"),
+        (1, "baseline", "b"),
+        (1, "current", "b"),
+        (2, "current", "b"),
+        (2, "baseline", "b"),
+    ]
 
     def row(repo: str, label: str, elapsed_ms: float, size: int, stage_ms: float) -> dict[str, Any]:
         return {
@@ -440,17 +467,16 @@ def main() -> int:
 
     binaries = {"baseline": baseline_binary, "current": current_binary}
     repo_names = [repo for repo, _ in repos]
-    warmup(
-        binaries=binaries,
-        repos=repos,
-        repos_root=repos_root,
-        warmups=args.warmups,
-        query_args=query_args,
-    )
-
     runs: list[dict[str, Any]] = []
-    for iteration in range(1, args.iterations + 1):
-        for label, repo_name in measurement_order(repo_names, iteration):
+    for repo_name in repo_names:
+        warmup(
+            binaries=binaries,
+            repo_names=[repo_name],
+            repos_root=repos_root,
+            warmups=args.warmups,
+            query_args=query_args,
+        )
+        for iteration, label, _ in measurement_schedule([repo_name], args.iterations):
             runs.append(
                 run_once(
                     binary=binaries[label],

@@ -22,6 +22,12 @@ baseline and one current observation. Odd blocks run baseline first and even blo
 current first. Version 3 records the block number, position, and order explicitly rather
 than requiring a consumer to infer them from array position.
 
+The harness completes a repository's warmup and alternating blocks before moving to the
+next repository. Keeping those blocks adjacent prevents the first process in every block
+from repeatedly paying a cold-file penalty after the rest of a large corpus has displaced
+that repository's pages. This scheduling detail does not change the paired observations,
+the alternating orders, or any decision threshold.
+
 A metric is eligible only when all of these conditions hold:
 
 - every included block has exactly one observation for each label;
