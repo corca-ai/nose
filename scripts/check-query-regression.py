@@ -131,11 +131,12 @@ def validate_structured_report(
     if (
         isinstance(samples_per_observation, bool)
         or not isinstance(samples_per_observation, int)
-        or samples_per_observation <= 0
+        or (samples_per_observation != 1 and samples_per_observation < 5)
         or samples_per_observation % 2 == 0
     ):
         raise CheckFailed(
-            f"{label}.measurement.samples_per_observation: expected a positive odd integer"
+            f"{label}.measurement.samples_per_observation: expected 1 or an odd integer "
+            "of at least 5"
         )
     if report.get("schema") == REPORT_SCHEMA_V3:
         design = require_object(measurement, "design", f"{label}.measurement")
@@ -1196,9 +1197,9 @@ def run_self_test() -> None:
         same_binary_control=sample_v3(sample_control(delta=0.0, iterations=5)),
     )["status"] == "pass"
     sampled_v3 = sample_v3(sample_report(delta=2.0, iterations=5))
-    sampled_v3["measurement"]["samples_per_observation"] = 3
+    sampled_v3["measurement"]["samples_per_observation"] = 5
     for run in sampled_v3["runs"]:
-        run["observation_samples"] = 3
+        run["observation_samples"] = 5
         run["sample_timings"] = [
             {
                 "actual_process_position": (
@@ -1207,11 +1208,11 @@ def run_self_test() -> None:
                 "elapsed_ms": run["elapsed_ms"],
                 "stages_ms": run["stages_ms"],
             }
-            for sample_index in range(3)
+            for sample_index in range(5)
         ]
     assert evaluate_gate(sampled_v3)["status"] == "pass"
     tampered_samples = json.loads(json.dumps(sampled_v3))
-    tampered_samples["runs"][0]["sample_timings"][0]["elapsed_ms"] += 1.0
+    tampered_samples["runs"][0]["elapsed_ms"] += 1.0
     try:
         evaluate_gate(tampered_samples)
     except CheckFailed as error:

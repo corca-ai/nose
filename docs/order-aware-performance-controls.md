@@ -28,14 +28,16 @@ from repeatedly paying a cold-file penalty after the rest of a large corpus has 
 that repository's pages. This scheduling detail does not change the paired observations,
 the alternating orders, or any decision threshold.
 
-An observation may use a declared odd number of consecutive command samples when the
-single-process timing variance is too large for the 5 ms floor. Within a block, odd
-samples follow the declared pair order and even samples mirror it. For each label, the
-harness takes the median elapsed and per-stage time at each actual process position, then
-averages the two position medians. This exposes both labels to both positions and makes
-the observation position-neutral while retaining the declared order as the odd-sample
-majority. The report records the sample count and every raw elapsed/stage timing with its
-actual process position; the checker reconstructs each aggregate from those values.
+An observation may use a declared odd number of at least five consecutive command samples
+when the single-process timing variance is too large for the 5 ms floor. A single sample
+remains valid for ordinary runs; the unsupported three-sample middle ground would leave
+one process position with only one value. Within a block, odd samples follow the declared
+pair order and even samples mirror it. For each label, the harness takes the median
+elapsed and per-stage time at each actual process position, then averages the two position
+medians. This exposes both labels to both positions and makes the observation
+position-neutral while retaining the declared order as the odd-sample majority. The
+report records the sample count and every raw elapsed/stage timing with its actual process
+position; the checker reconstructs each aggregate from those values.
 Every sample must produce identical product-output observations; any mismatch fails the
 harness. Primary, same-binary control, and focused reports must use the same
 samples-per-observation setting.

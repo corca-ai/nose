@@ -462,15 +462,21 @@ def run_self_test() -> None:
                 "sha256": "a" * 64,
                 "stages_ms": {"lower": lower},
             }
-            for position, elapsed, lower in [(0, 12.0, 3.0), (1, 10.0, 1.0), (0, 11.0, 2.0)]
+            for position, elapsed, lower in [
+                (0, 12.0, 3.0),
+                (1, 10.0, 1.0),
+                (0, 11.0, 2.0),
+                (1, 14.0, 5.0),
+                (0, 13.0, 4.0),
+            ]
         ]
     )
-    assert collapsed["elapsed_ms"] == 10.75
-    assert collapsed["stages_ms"] == {"lower": 1.75}
-    assert collapsed["observation_samples"] == 3
+    assert collapsed["elapsed_ms"] == 12.0
+    assert collapsed["stages_ms"] == {"lower": 3.0}
+    assert collapsed["observation_samples"] == 5
     assert [
         timing["actual_process_position"] for timing in collapsed["sample_timings"]
-    ] == [0, 1, 0]
+    ] == [0, 1, 0, 1, 0]
     changed_sample = dict(collapsed)
     changed_sample["sha256"] = "b" * 64
     changed_sample["_sample_position"] = 1
@@ -575,11 +581,12 @@ def main() -> int:
     if (
         args.iterations <= 0
         or args.warmups < 0
-        or args.samples_per_observation <= 0
+        or (args.samples_per_observation != 1 and args.samples_per_observation < 5)
         or args.samples_per_observation % 2 == 0
     ):
         raise SystemExit(
-            "--iterations must be positive, --samples-per-observation must be positive and odd; "
+            "--iterations must be positive, --samples-per-observation must be 1 or an odd "
+            "integer of at least 5; "
             "--warmups must be non-negative"
         )
 
