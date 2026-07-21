@@ -22,7 +22,14 @@ impl<'a> Builder<'a> {
         timer.mark_immutable();
         match context {
             Some(context) => {
-                self.adopt_inline_candidates(root, Cow::Borrowed(context.inline_candidates()));
+                self.adopt_inline_candidates(
+                    root,
+                    Cow::Borrowed(context.inline_candidates(
+                        self.il,
+                        self.interner,
+                        self.await_transparent,
+                    )),
+                );
             }
             None => {
                 let candidates = self.collect_inline_candidates();

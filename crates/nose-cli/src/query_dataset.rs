@@ -65,8 +65,14 @@ fn finish_query_dataset(
     detection: DetectionReport,
     finalize_cache: bool,
 ) -> Result<QueryDataset> {
-    let (mut report, scope, semantic_pack_near, semantic_pack_external_exact, line_context) =
-        detection;
+    let (
+        mut report,
+        scope,
+        semantic_pack_near,
+        semantic_pack_external_exact,
+        line_context,
+        _retained_normalized,
+    ) = detection;
 
     let mut families = time_stage("rank_families", || nose_detect::rank_families(&report));
     annotate_semantic_pack_near(&mut families, &semantic_pack_near);
@@ -158,24 +164,60 @@ fn finish_query_dataset(
 /// Run the `base=` detector through the same frontend, semantic-pack, and
 /// per-file cache engine as ordinary query while retaining pair-local edges for
 /// propagation targets. Divergence keeps its stricter default channel set.
+pub(crate) struct DivergenceQueryPlan {
+    settings: QuerySettings,
+    semantic_packs: nose_semantics::SemanticPackSet,
+    opts: nose_detect::DetectOptions,
+}
+
+impl DivergenceQueryPlan {
+    pub(crate) fn options(&self) -> &nose_detect::DetectOptions {
+        &self.opts
+    }
+}
+
+pub(crate) fn prepare_divergence_query(args: &QueryArgs) -> Result<DivergenceQueryPlan> {
+    let (settings, semantic_packs) = resolve_query_settings(args, DIVERGENCE_DEFAULT_MODES)?;
+    let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+    Ok(DivergenceQueryPlan {
+        settings,
+        semantic_packs,
+        opts,
+    })
+}
+
 pub(crate) fn build_divergence_families(
     args: &QueryArgs,
     refs: &[&std::path::Path],
-) -> Result<(Vec<nose_detect::RefactorFamily>, nose_detect::DetectOptions)> {
-    let (settings, semantic_packs) = resolve_query_settings(args, DIVERGENCE_DEFAULT_MODES)?;
-    let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+    plan: DivergenceQueryPlan,
+) -> Result<(
+    Vec<nose_detect::RefactorFamily>,
+    nose_detect::DetectOptions,
+    Option<RetainedNormalizedCorpus>,
+)> {
+    let DivergenceQueryPlan {
+        settings,
+        semantic_packs,
+        opts,
+    } = plan;
     let detector = detection_engine(settings.channels, &opts);
-    let (report, _, semantic_pack_near, semantic_pack_external_exact, line_context) =
-        query_detect_report(QueryDetectRequest {
-            args,
-            refs,
-            exclude: &settings.exclude,
-            opts: &opts,
-            detector: detector.as_ref(),
-            semantic_packs: &semantic_packs,
-            cache_max_bytes: settings.cache_max_bytes,
-            accepted_coverage: AcceptedCoverage::Direct,
-        });
+    let (
+        report,
+        _,
+        semantic_pack_near,
+        semantic_pack_external_exact,
+        line_context,
+        retained_normalized,
+    ) = query_detect_report(QueryDetectRequest {
+        args,
+        refs,
+        exclude: &settings.exclude,
+        opts: &opts,
+        detector: detector.as_ref(),
+        semantic_packs: &semantic_packs,
+        cache_max_bytes: settings.cache_max_bytes,
+        accepted_coverage: AcceptedCoverage::Direct,
+    });
     let mut families = nose_detect::rank_families(&report);
     annotate_semantic_pack_near(&mut families, &semantic_pack_near);
     annotate_semantic_pack_external_exact(&mut families, &semantic_pack_external_exact);
@@ -183,7 +225,7 @@ pub(crate) fn build_divergence_families(
         families.retain(|family| family.abstraction_witness.is_some());
     }
     time_stage("cache_commit", || cache::finish_query_run(line_context));
-    Ok((families, opts))
+    Ok((families, opts, retained_normalized))
 }
 
 /// `direct_edges` is the richer representation needed by the `base=` divergence view.
@@ -305,12 +347,27 @@ fn resolve_query_settings(
 
 /// With --cache-dir, build units per file through the on-disk cache (skips
 /// normalize/extract for unchanged files); otherwise lower the whole corpus.
+pub(crate) struct RetainedNormalizedCorpus {
+    pub(crate) corpus: nose_il::Corpus,
+    pub(crate) exact_safety: Vec<RetainedExactSafety>,
+    pub(crate) value_contexts: Vec<(String, nose_normalize::ValueFingerprintContext)>,
+}
+
+pub(crate) struct RetainedExactSafety {
+    pub(crate) path: String,
+    pub(crate) kind: nose_il::UnitKind,
+    pub(crate) start_line: u32,
+    pub(crate) end_line: u32,
+    pub(crate) exact_safe: bool,
+}
+
 type DetectionReport = (
     nose_detect::Report,
     QueryScope,
     nose_semantics::SemanticPackNearRegistry,
     nose_semantics::SemanticPackExternalExactRegistry,
     Option<cache::CachedLineContext>,
+    Option<RetainedNormalizedCorpus>,
 );
 
 #[derive(Clone, Copy)]
@@ -328,6 +385,14 @@ struct QueryDetectRequest<'a> {
     semantic_packs: &'a nose_semantics::SemanticPackSet,
     cache_max_bytes: u64,
     accepted_coverage: AcceptedCoverage,
+}
+
+struct PreparedDetectionFeatures {
+    units: Vec<nose_detect::UnitFeat>,
+    unit_keys: Option<Vec<[u8; 32]>>,
+    streams: Vec<nose_detect::Stream>,
+    files: usize,
+    retained_normalized: Option<RetainedNormalizedCorpus>,
 }
 
 fn query_detect_report(request: QueryDetectRequest<'_>) -> DetectionReport {
@@ -366,37 +431,20 @@ fn query_detect_report(request: QueryDetectRequest<'_>) -> DetectionReport {
         &corpus,
     );
     semantic_pack_external_exact.apply(&mut corpus);
-    let (mut units, unit_keys, streams, files) = if args.cache_dir.is_some() {
-        let cache::CachedUnits {
-            units,
-            unit_keys,
-            streams,
-            files,
-            stats,
-        } = time_stage("cache", || {
-            cache::build_units_cached_with_context(
-                &mut corpus,
-                opts,
-                &line_context
-                    .as_ref()
-                    .expect("cached corpus includes a cache run")
-                    .run,
-                unit_snapshot.expect("cached corpus includes unit contexts"),
-            )
-        });
-        if std::env::var_os("NOSE_CACHE_STATS").is_some() {
-            eprintln!(
-                "  [cache] files={} hits={} misses={} read_bytes={} written_bytes={}",
-                stats.files, stats.hits, stats.misses, stats.read_bytes, stats.written_bytes
-            );
-        }
-        (units, Some(unit_keys), streams, files)
-    } else {
-        let features = time_stage("normalize+extract", || {
-            nose_detect::corpus_features(&corpus, opts)
-        });
-        (features.units, None, features.streams, features.files)
-    };
+    let PreparedDetectionFeatures {
+        mut units,
+        unit_keys,
+        streams,
+        files,
+        retained_normalized,
+    } = prepare_detection_features(
+        &mut corpus,
+        opts,
+        args.cache_dir.is_some(),
+        line_context.as_ref(),
+        unit_snapshot,
+        accepted_coverage,
+    );
     if opts.shape_candidates && semantic_pack_near.is_active() {
         for unit in &mut units {
             unit.semantic_pack_near_protocols =
@@ -421,7 +469,86 @@ fn query_detect_report(request: QueryDetectRequest<'_>) -> DetectionReport {
         semantic_pack_near,
         semantic_pack_external_exact,
         line_context,
+        retained_normalized,
     )
+}
+
+fn prepare_detection_features(
+    corpus: &mut nose_il::Corpus,
+    opts: &nose_detect::DetectOptions,
+    cached: bool,
+    line_context: Option<&cache::CachedLineContext>,
+    unit_snapshot: Option<cache::CachedUnitSnapshot>,
+    accepted_coverage: AcceptedCoverage,
+) -> PreparedDetectionFeatures {
+    if cached {
+        let cache::CachedUnits {
+            units,
+            unit_keys,
+            streams,
+            files,
+            stats,
+        } = time_stage("cache", || {
+            cache::build_units_cached_with_context(
+                corpus,
+                opts,
+                &line_context
+                    .expect("cached corpus includes a cache run")
+                    .run,
+                unit_snapshot.expect("cached corpus includes unit contexts"),
+            )
+        });
+        if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+            eprintln!(
+                "  [cache] files={} hits={} misses={} read_bytes={} written_bytes={}",
+                stats.files, stats.hits, stats.misses, stats.read_bytes, stats.written_bytes
+            );
+        }
+        PreparedDetectionFeatures {
+            units,
+            unit_keys: Some(unit_keys),
+            streams,
+            files,
+            retained_normalized: None,
+        }
+    } else if matches!(accepted_coverage, AcceptedCoverage::Direct) {
+        let (features, normalized, value_contexts) = time_stage("normalize+extract", || {
+            nose_detect::corpus_features_with_normalized(corpus, opts)
+        });
+        let exact_safety = features
+            .units
+            .iter()
+            .map(|unit| RetainedExactSafety {
+                path: unit.path.clone(),
+                kind: unit.kind,
+                start_line: unit.start_line,
+                end_line: unit.end_line,
+                exact_safe: unit.exact_safe,
+            })
+            .collect();
+        PreparedDetectionFeatures {
+            units: features.units,
+            unit_keys: None,
+            streams: features.streams,
+            files: features.files,
+            retained_normalized: Some(RetainedNormalizedCorpus {
+                corpus: normalized,
+                exact_safety,
+                value_contexts,
+            }),
+        }
+    } else {
+        let features = time_stage("normalize+extract", || {
+            nose_detect::corpus_features(corpus, opts)
+        });
+        PreparedDetectionFeatures {
+            units: features.units,
+            unit_keys: None,
+            streams: features.streams,
+            files: features.files,
+            retained_normalized: None,
+        }
+    }
 }
 
 struct PreparedCorpus {
@@ -534,6 +661,7 @@ fn query_detect_report_fast(
             source_files: source_files.into(),
             run,
         }),
+        None,
     )
 }
 

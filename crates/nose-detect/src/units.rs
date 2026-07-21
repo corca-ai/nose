@@ -140,6 +140,30 @@ pub(crate) fn extract(
     block_units: bool,
     features: ExtractFeatures,
 ) -> Vec<UnitFeat> {
+    extract_with_context(
+        il,
+        interner,
+        seeds,
+        min_lines,
+        min_tokens,
+        block_units,
+        features,
+    )
+    .0
+}
+
+pub(crate) fn extract_with_context(
+    il: &Il,
+    interner: &Interner,
+    seeds: &[u64],
+    min_lines: u32,
+    min_tokens: usize,
+    block_units: bool,
+    features: ExtractFeatures,
+) -> (
+    Vec<UnitFeat>,
+    Option<nose_normalize::ValueFingerprintContext>,
+) {
     // Frontend-tagged functions/methods/classes, and (when enabled) substantial
     // sub-function blocks (loops / ifs / try) plus exact-safe statement fragments.
     // The ceiling funnel showed ~56% of gold pairs have a region that is a
@@ -149,36 +173,39 @@ pub(crate) fn extract(
     // expression without expanding the fuzzy surface.
     let (roots, parents) = collect_unit_roots(il, interner, block_units);
     if roots.is_empty() {
-        return Vec::new();
+        return (Vec::new(), None);
     }
 
     let facts = StrictFacts::collect(il, interner);
     let value_context = value_fingerprint_context_for_roots(il, interner, roots.len());
-    let ctx = UnitExtractCtx {
-        il,
-        interner,
-        seeds,
-        min_lines,
-        min_tokens,
-        features,
-        parents: parents.as_deref(),
-        facts: &facts,
-        value_context: value_context.as_ref(),
-        large_test_file: large_test_file(il),
-    };
-    let mut unit_timer = UnitTimer::new();
-    let mut out = Vec::new();
-    let mut emitted_roots: Vec<NodeId> = Vec::new();
-    for unit_root in roots {
-        let root = unit_root.root;
-        if let Some(unit) = extract_unit(&ctx, unit_root, &mut unit_timer) {
-            out.push(unit);
-            emitted_roots.push(root);
+    let (mut out, emitted_roots, unit_timer) = {
+        let ctx = UnitExtractCtx {
+            il,
+            interner,
+            seeds,
+            min_lines,
+            min_tokens,
+            features,
+            parents: parents.as_deref(),
+            facts: &facts,
+            value_context: value_context.as_ref(),
+            large_test_file: large_test_file(il),
+        };
+        let mut unit_timer = UnitTimer::new();
+        let mut out = Vec::new();
+        let mut emitted_roots: Vec<NodeId> = Vec::new();
+        for unit_root in roots {
+            let root = unit_root.root;
+            if let Some(unit) = extract_unit(&ctx, unit_root, &mut unit_timer) {
+                out.push(unit);
+                emitted_roots.push(root);
+            }
         }
-    }
+        (out, emitted_roots, unit_timer)
+    };
     if out.is_empty() {
         unit_timer.report_summary(&il.meta.path);
-        return out;
+        return (out, value_context);
     }
     let test_module_spans = inline_test_module_spans(il, interner);
     for unit in &mut out {
@@ -188,7 +215,7 @@ pub(crate) fn extract(
     }
     fill_called_helper_returns(il, interner, &mut out, &emitted_roots);
     unit_timer.report_summary(&il.meta.path);
-    out
+    (out, value_context)
 }
 
 /// Above this many normalized nodes a file is treated as pathological for witness

@@ -14,46 +14,40 @@ pub(super) fn source_signals(
         let (start, end) = effective_span(changed);
         (start, end.saturating_add(32))
     });
-    let changed_lines = site_lines(
+    let changed_source = site_source(
         current_path,
         current_start,
         current_end,
         context.current_root,
         context.lines,
+        &changed.lang,
+        changed.enclosing_unit.is_some() || changed.kind != nose_il::UnitKind::Block,
     );
     let (skipped_start, skipped_end) = effective_span(skipped);
-    let skipped_lines = site_lines(
+    let skipped_source = site_source(
         &skipped.file,
         skipped_start,
         skipped_end,
         context.base_root,
         context.lines,
+        &skipped.lang,
+        skipped.enclosing_unit.is_some() || skipped.kind != nose_il::UnitKind::Block,
     );
-    let (Some(changed_lines), Some(skipped_lines)) = (changed_lines, skipped_lines) else {
+    let (Some(changed_source), Some(skipped_source)) = (changed_source, skipped_source) else {
         evidence.caveat(VariantCaveatCode::SourceUnavailable, std::iter::empty());
         return;
     };
-    let changed_decorators = decorator_lines(
-        &changed.lang,
-        &changed_lines,
-        changed.enclosing_unit.is_some() || changed.kind != nose_il::UnitKind::Block,
-    );
-    let skipped_decorators = decorator_lines(
-        &skipped.lang,
-        &skipped_lines,
-        skipped.enclosing_unit.is_some() || skipped.kind != nose_il::UnitKind::Block,
-    );
-    if changed_decorators != skipped_decorators
-        && (!changed_decorators.is_empty() || !skipped_decorators.is_empty())
+    if changed_source.decorators != skipped_source.decorators
+        && (!changed_source.decorators.is_empty() || !skipped_source.decorators.is_empty())
     {
         evidence.signal(
             VariantSignalCode::DecoratorMismatch,
             VariantEvidenceStrength::Strong,
-            changed_decorators,
-            skipped_decorators,
+            changed_source.decorators,
+            skipped_source.decorators,
         );
     }
-    compare_platform_guards(evidence, &changed_lines, &skipped_lines);
+    compare_platform_guard_sets(evidence, changed_source.guards, skipped_source.guards);
 }
 
 fn effective_span(site: &Site) -> (u32, u32) {
@@ -63,15 +57,29 @@ fn effective_span(site: &Site) -> (u32, u32) {
         .unwrap_or((site.start_line, site.end_line))
 }
 
-fn site_lines(
+struct SiteSource {
+    decorators: Vec<String>,
+    guards: PlatformGuards,
+}
+
+fn site_source(
     file: &str,
     start: u32,
     end: u32,
     root: &Path,
     lines: &mut FileLineCache,
-) -> Option<Vec<String>> {
+    lang: &str,
+    prefix_only: bool,
+) -> Option<SiteSource> {
     let path = root.join(file).to_string_lossy().into_owned();
-    lines.slice(&path, start, end)
+    let all = lines.whole(&path)?;
+    let start = start.saturating_sub(1) as usize;
+    let end = (end as usize).min(all.len());
+    let slice = (start < end).then(|| &all[start..end])?;
+    Some(SiteSource {
+        decorators: decorator_lines(lang, slice, prefix_only),
+        guards: platform_guards(slice),
+    })
 }
 
 fn decorator_lines(lang: &str, lines: &[String], prefix_only: bool) -> Vec<String> {
@@ -115,13 +123,24 @@ struct PlatformGuards {
     source: Vec<String>,
 }
 
+#[cfg(test)]
 fn compare_platform_guards(
     evidence: &mut VariantEvidence,
     changed_lines: &[String],
     skipped_lines: &[String],
 ) {
-    let changed = platform_guards(changed_lines);
-    let skipped = platform_guards(skipped_lines);
+    compare_platform_guard_sets(
+        evidence,
+        platform_guards(changed_lines),
+        platform_guards(skipped_lines),
+    );
+}
+
+fn compare_platform_guard_sets(
+    evidence: &mut VariantEvidence,
+    changed: PlatformGuards,
+    skipped: PlatformGuards,
+) {
     let mut comparable = false;
     let mut disjoint = false;
     let mut conflict = false;

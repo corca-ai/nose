@@ -260,9 +260,7 @@ fn content_hash(il: &Il, node: NodeId, interner: &Interner, memo: &mut FxHashMap
 /// (the maps are O(file), so rebuilding them per unit is what made huge generated
 /// files pathological). Construct with [`FileReferents::new`], then call
 /// [`FileReferents::of`] per unit root.
-pub struct FileReferents<'a> {
-    il: &'a Il,
-    interner: &'a Interner,
+pub struct FileReferents {
     def_by_span: FxHashMap<(u32, u32), NodeId>,
     def_by_name: FxHashMap<Symbol, Vec<NodeId>>,
     /// Unit name keyed by definition start-byte, for `def_name` — avoids an O(units)
@@ -277,8 +275,8 @@ pub struct FileReferents<'a> {
     memo: std::cell::RefCell<FxHashMap<u32, u64>>,
 }
 
-impl<'a> FileReferents<'a> {
-    pub fn new(il: &'a Il, interner: &'a Interner) -> Self {
+impl FileReferents {
+    pub fn new(il: &Il, interner: &Interner) -> Self {
         let mut def_by_span: FxHashMap<(u32, u32), NodeId> = FxHashMap::default();
         let mut def_by_name: FxHashMap<Symbol, Vec<NodeId>> = FxHashMap::default();
         let mut name_by_start: FxHashMap<u32, Symbol> = FxHashMap::default();
@@ -318,8 +316,6 @@ impl<'a> FileReferents<'a> {
             .collect();
         call_evidence.sort_by_key(|(s, _)| s.start_byte);
         FileReferents {
-            il,
-            interner,
             def_by_span,
             def_by_name,
             name_by_start,
@@ -329,8 +325,8 @@ impl<'a> FileReferents<'a> {
         }
     }
 
-    fn content(&self, def: NodeId) -> u64 {
-        content_hash(self.il, def, self.interner, &mut self.memo.borrow_mut())
+    fn content(&self, il: &Il, interner: &Interner, def: NodeId) -> u64 {
+        content_hash(il, def, interner, &mut self.memo.borrow_mut())
     }
 
     /// An import-bound name's referent is its module COORDINATE — not the content hash
@@ -359,18 +355,18 @@ impl<'a> FileReferents<'a> {
             })
     }
 
-    fn def_name(&self, span: Span) -> Option<String> {
+    fn def_name(&self, interner: &Interner, span: Span) -> Option<String> {
         self.name_by_start
             .get(&span.start_byte)
-            .map(|&s| self.interner.resolve(s).to_string())
+            .map(|&s| interner.resolve(s).to_string())
     }
 
     /// The names the unit rooted at `root` consumes, each with a resolved referent.
     /// Sources: `CallTarget` evidence anchored inside the unit, and bare free `Var`
     /// names resolved against the file's units and module-level assignments.
-    pub fn of(&self, root: NodeId) -> Vec<VgReferent> {
-        let mut out = self.call_target_referents(root);
-        self.free_name_referents(root, &mut out);
+    pub fn of(&self, il: &Il, root: NodeId, interner: &Interner) -> Vec<VgReferent> {
+        let mut out = self.call_target_referents(il, root, interner);
+        self.free_name_referents(il, root, interner, &mut out);
         out.sort_by_key(|r| (r.name_key, r.referent));
         out.dedup_by(|a, b| a.name_key == b.name_key && a.referent == b.referent);
         out
@@ -379,8 +375,7 @@ impl<'a> FileReferents<'a> {
     /// Referents from `CallTarget` evidence anchored inside the unit. `call_evidence` is
     /// sorted by anchor start-byte, so we binary-search to the unit's span and walk only
     /// that window instead of walking all of `il.evidence` per unit.
-    fn call_target_referents(&self, root: NodeId) -> Vec<VgReferent> {
-        let il = self.il;
+    fn call_target_referents(&self, il: &Il, root: NodeId, interner: &Interner) -> Vec<VgReferent> {
         let unit_span = il.node(root).span;
         let mut out: Vec<VgReferent> = Vec::new();
         let lo = self
@@ -404,9 +399,9 @@ impl<'a> FileReferents<'a> {
                     } else {
                         self.def_by_span
                             .get(&(target_span.start_byte, target_span.end_byte))
-                            .map(|&n| self.content(n))
+                            .map(|&n| self.content(il, interner, n))
                     };
-                    (name_hash, r, self.def_name(target_span))
+                    (name_hash, r, self.def_name(interner, target_span))
                 }
                 CallTargetEvidenceKind::DirectMethod {
                     target_span,
@@ -418,9 +413,9 @@ impl<'a> FileReferents<'a> {
                     } else {
                         self.def_by_span
                             .get(&(target_span.start_byte, target_span.end_byte))
-                            .map(|&n| fxh(&[self.content(n), receiver_type_hash]))
+                            .map(|&n| fxh(&[self.content(il, interner, n), receiver_type_hash]))
                     };
-                    (method_hash, r, self.def_name(target_span))
+                    (method_hash, r, self.def_name(interner, target_span))
                 }
                 CallTargetEvidenceKind::ImportedFunction {
                     module_hash,
@@ -457,8 +452,13 @@ impl<'a> FileReferents<'a> {
     /// Referents from bare free `Var` names inside the unit (post-alpha, locals are
     /// `Cid`s; surviving `Var` name nodes are free/global references — field names are
     /// excluded by the kind gate), appended to `out`.
-    fn free_name_referents(&self, root: NodeId, out: &mut Vec<VgReferent>) {
-        let il = self.il;
+    fn free_name_referents(
+        &self,
+        il: &Il,
+        root: NodeId,
+        interner: &Interner,
+        out: &mut Vec<VgReferent>,
+    ) {
         let own_name = il
             .units
             .iter()
@@ -474,10 +474,10 @@ impl<'a> FileReferents<'a> {
             }
             stack.extend(il.children(n).iter().copied());
         }
-        free.sort_unstable_by_key(|s| self.interner.resolve(*s).to_string());
+        free.sort_unstable_by_key(|s| interner.resolve(*s).to_string());
         free.dedup();
         for sym in free {
-            let name = self.interner.resolve(sym).to_string();
+            let name = interner.resolve(sym).to_string();
             // Receiver keywords are scope-bound, not referent-bearing names.
             if matches!(name.as_str(), "this" | "self" | "super") {
                 continue;
@@ -497,7 +497,7 @@ impl<'a> FileReferents<'a> {
                     for def in defs {
                         let r = self
                             .import_referent(il.node(def).span, &name)
-                            .unwrap_or_else(|| self.content(def));
+                            .unwrap_or_else(|| self.content(il, interner, def));
                         out.push(VgReferent {
                             name: name.clone(),
                             name_key,
@@ -524,7 +524,7 @@ pub fn value_dag(
     root: NodeId,
     interner: &Interner,
     context: Option<&ValueFingerprintContext>,
-    referents: &FileReferents<'_>,
+    referents: &FileReferents,
 ) -> ValueDag {
     let mut b = match context {
         Some(ctx) => Builder::new_with_context(il, interner, ctx),
@@ -566,6 +566,6 @@ pub fn value_dag(
     ValueDag {
         nodes,
         sinks,
-        referents: referents.of(root),
+        referents: referents.of(il, root, interner),
     }
 }

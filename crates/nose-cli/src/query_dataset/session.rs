@@ -116,6 +116,7 @@ impl QueryAnalysisSession {
             nose_semantics::SemanticPackNearRegistry::default(),
             nose_semantics::SemanticPackExternalExactRegistry::default(),
             Some(self.units.line_context()),
+            None,
         );
         finish_query_dataset(args, refs, settings, semantic_packs, opts, detection, false)
     }

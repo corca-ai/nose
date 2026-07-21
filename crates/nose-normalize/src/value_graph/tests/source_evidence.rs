@@ -107,6 +107,122 @@ fn pure_inline_direct_il(interner: &Interner) -> (Il, NodeId) {
     (il, caller)
 }
 
+fn async_inline_caller_il(interner: &Interner) -> (Il, NodeId) {
+    let helper_name = interner.intern("resolve");
+    let caller_name = interner.intern("load");
+    let await_name = interner.intern("await");
+    let mut b = IlBuilder::new(FileId(0));
+
+    let helper_param = b.add(NodeKind::Param, Payload::Cid(0), sp(1), &[]);
+    let helper_arg = b.add(NodeKind::Var, Payload::Cid(0), sp(2), &[]);
+    let awaited = b.add(
+        NodeKind::Raw,
+        Payload::Name(await_name),
+        sp(3),
+        &[helper_arg],
+    );
+    let helper_ret = b.add(NodeKind::Return, Payload::None, sp(4), &[awaited]);
+    let helper_body = b.add(NodeKind::Block, Payload::None, sp(5), &[helper_ret]);
+    let helper = b.add(
+        NodeKind::Func,
+        Payload::None,
+        Span::new(FileId(0), 1, 6, 1, 6),
+        &[helper_param, helper_body],
+    );
+
+    let caller_param = b.add(NodeKind::Param, Payload::Cid(0), sp(10), &[]);
+    let callee = b.add(NodeKind::Var, Payload::Name(helper_name), sp(11), &[]);
+    let caller_arg = b.add(NodeKind::Var, Payload::Cid(0), sp(12), &[]);
+    let call = b.add(NodeKind::Call, Payload::None, sp(13), &[callee, caller_arg]);
+    let caller_ret = b.add(NodeKind::Return, Payload::None, sp(14), &[call]);
+    let caller_body = b.add(NodeKind::Block, Payload::None, sp(15), &[caller_ret]);
+    let caller = b.add(
+        NodeKind::Func,
+        Payload::None,
+        Span::new(FileId(0), 10, 16, 10, 16),
+        &[caller_param, caller_body],
+    );
+    let module = b.add(NodeKind::Module, Payload::None, sp(20), &[helper, caller]);
+    let mut il = b.finish(
+        module,
+        FileMeta {
+            path: "t.rs".into(),
+            lang: Lang::Rust,
+        },
+        vec![
+            Unit {
+                root: helper,
+                kind: UnitKind::Function,
+                name: Some(helper_name),
+                origin: Default::default(),
+            },
+            Unit {
+                root: caller,
+                kind: UnitKind::Function,
+                name: Some(caller_name),
+                origin: Default::default(),
+            },
+        ],
+        Vec::new(),
+    );
+    il.evidence.push(language_core_evidence(
+        0,
+        Lang::Rust,
+        EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
+        EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
+            target_span: il.node(helper).span,
+            name_hash: interner.symbol_hash(helper_name),
+        }),
+    ));
+    (il, caller)
+}
+
+#[test]
+fn cached_value_dag_preserves_witness_async_protocol_nodes() {
+    let interner = Interner::new();
+    let (il, _) = async_inline_caller_il(&interner);
+    let root = il.units[0].root;
+    let referents = FileReferents::new(&il, &interner);
+    let uncached = value_dag(&il, root, &interner, None, &referents);
+    let context = ValueFingerprintContext::new(&il, &interner);
+    let cached = value_dag(&il, root, &interner, Some(&context), &referents);
+
+    let node_signature = |dag: &ValueDag| {
+        dag.nodes
+            .iter()
+            .map(|node| {
+                (
+                    node.op,
+                    node.key,
+                    node.args.clone(),
+                    node.hash,
+                    node.line_start,
+                    node.line_end,
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    let sink_signature = |dag: &ValueDag| {
+        dag.sinks
+            .iter()
+            .map(|sink| (sink.kind, sink.value, sink.effect_ord))
+            .collect::<Vec<_>>()
+    };
+    let referent_signature = |dag: &ValueDag| {
+        dag.referents
+            .iter()
+            .map(|referent| (referent.name.clone(), referent.name_key, referent.referent))
+            .collect::<Vec<_>>()
+    };
+
+    assert_eq!(node_signature(&uncached), node_signature(&cached));
+    assert_eq!(sink_signature(&uncached), sink_signature(&cached));
+    assert_eq!(referent_signature(&uncached), referent_signature(&cached));
+    assert!(cached.nodes.iter().any(|node| {
+        node.op == VgOp::Opaque && node.key == VG_PROTOCOL_AWAIT && node.args.len() == 1
+    }));
+}
+
 #[test]
 fn pure_inline_consumes_call_target_evidence_not_raw_callee_name() {
     let interner = Interner::new();

@@ -246,6 +246,41 @@ pub(super) fn project_file(
             ..Default::default()
         },
     );
+    finish_file_projection(interner, normalized, HashMap::new(), None)
+}
+
+pub(super) fn project_normalized_file(
+    absolute_path: &Path,
+    interner: Interner,
+    normalized: nose_il::Il,
+    known_exact_safety: HashMap<(UnitKind, u32, u32), bool>,
+    value_context: Option<nose_normalize::ValueFingerprintContext>,
+) -> LoadState {
+    let Some(lang) = Lang::from_file_path(absolute_path) else {
+        return LoadState::Failed(SemanticProjectionStatus::Unsupported);
+    };
+    if matches!(lang, Lang::Css | Lang::Vue | Lang::Svelte | Lang::Html) {
+        return LoadState::Failed(SemanticProjectionStatus::Unsupported);
+    }
+    match fs::metadata(absolute_path) {
+        Ok(metadata) if metadata.len() > MAX_FILE_BYTES as u64 => {
+            return LoadState::Failed(SemanticProjectionStatus::CapExceeded)
+        }
+        Ok(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return LoadState::Failed(SemanticProjectionStatus::Missing)
+        }
+        Err(_) => return LoadState::Failed(SemanticProjectionStatus::ReadFailed),
+    }
+    finish_file_projection(interner, normalized, known_exact_safety, value_context)
+}
+
+fn finish_file_projection(
+    interner: Interner,
+    normalized: nose_il::Il,
+    known_exact_safety: HashMap<(UnitKind, u32, u32), bool>,
+    value_context: Option<nose_normalize::ValueFingerprintContext>,
+) -> LoadState {
     if normalized.units.len() > MAX_UNITS_PER_FILE {
         return LoadState::Failed(SemanticProjectionStatus::CapExceeded);
     }
@@ -266,23 +301,63 @@ pub(super) fn project_file(
         interner,
         normalized,
         units,
+        known_exact_safety,
+        value_context,
+        exact_safety: OnceLock::new(),
+        referents: OnceLock::new(),
+        prepared_units: HashMap::new(),
     }))
+}
+
+pub(super) fn prepare_file_projection(state: &mut LoadState, changed_ranges: &[(u32, u32)]) {
+    let LoadState::Ready(file) = state else {
+        return;
+    };
+    let _ = file.exact_safety.get_or_init(|| {
+        let roots = file.units.iter().map(|unit| unit.root).collect::<Vec<_>>();
+        nose_detect::exact_safe_roots_by_span(&file.normalized, &file.interner, &roots)
+    });
+    let _ = file
+        .referents
+        .get_or_init(|| FileReferents::new(&file.normalized, &file.interner));
+    let wanted = file
+        .units
+        .iter()
+        .filter(|unit| ranges_touch_skeleton(changed_ranges, unit))
+        .cloned()
+        .collect::<Vec<_>>();
+    let prepared = wanted
+        .into_iter()
+        .map(|unit| (unit.root, Arc::new(project_unit(file, &unit))))
+        .collect::<Vec<_>>();
+    file.prepared_units.extend(prepared);
 }
 
 pub(super) fn project_unit(file: &FileProjection, unit: &UnitSkeleton) -> UnitProjection {
     let span = file.normalized.node(unit.root).span;
-    let exact_safe =
-        nose_detect::exact_safe_roots_by_span(&file.normalized, &file.interner, &[unit.root])
-            .get(&(span.start_byte, span.end_byte))
-            .copied()
-            .unwrap_or(false);
-    let referents = FileReferents::new(&file.normalized, &file.interner);
+    let exact_safe = file
+        .known_exact_safety
+        .get(&(unit.kind, unit.start_line, unit.end_line))
+        .copied()
+        .unwrap_or_else(|| {
+            file.exact_safety
+                .get_or_init(|| {
+                    let roots = file.units.iter().map(|unit| unit.root).collect::<Vec<_>>();
+                    nose_detect::exact_safe_roots_by_span(&file.normalized, &file.interner, &roots)
+                })
+                .get(&(span.start_byte, span.end_byte))
+                .copied()
+                .unwrap_or(false)
+        });
+    let referents = file
+        .referents
+        .get_or_init(|| FileReferents::new(&file.normalized, &file.interner));
     let dag = nose_normalize::value_dag(
         &file.normalized,
         unit.root,
         &file.interner,
-        None,
-        &referents,
+        file.value_context.as_ref(),
+        referents,
     );
     let truncated = dag.nodes.len() > MAX_NODES_PER_UNIT;
     let unresolved_referent = dag

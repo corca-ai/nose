@@ -8,12 +8,14 @@ mod analysis;
 mod variant_projection;
 
 use self::analysis::{
-    analyze_change, caveat_for_projection, finish_witness, node_hashes, project_file, project_unit,
-    projected, select_current_by_change_or_distance, unavailable, unit_matches_enclosing,
-    unit_matches_site, PreparedChange, SharedHashes,
+    analyze_change, caveat_for_projection, finish_witness, node_hashes, prepare_file_projection,
+    project_file, project_normalized_file, project_unit, projected,
+    select_current_by_change_or_distance, unavailable, unit_matches_enclosing, unit_matches_site,
+    PreparedChange, SharedHashes,
 };
 use super::git::DiffEntry;
 use super::*;
+use crate::query_dataset::RetainedNormalizedCorpus;
 use crate::source_lines::FileLineCache;
 use nose_il::{FileId, Interner, Lang, NodeId, UnitKind, UnitOrigin};
 use nose_normalize::{FileReferents, ValueDag};
@@ -21,7 +23,7 @@ use rayon::prelude::*;
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
 const MAX_FILES: usize = 64;
@@ -42,27 +44,53 @@ const CAPS: SemanticWitnessCaps = SemanticWitnessCaps {
     max_nodes_per_unit: MAX_NODES_PER_UNIT,
 };
 
+pub(super) struct PreprojectedCurrentFiles(HashMap<String, LoadState>);
+
+pub(super) struct SemanticWitnessInputs<'a> {
+    pub(super) base_root: &'a Path,
+    pub(super) current_root: &'a Path,
+    pub(super) base_changed: &'a HashMap<String, Vec<(u32, u32)>>,
+    pub(super) current_changed: &'a HashMap<String, Vec<(u32, u32)>>,
+    pub(super) diff_entries: &'a [DiffEntry],
+    pub(super) opts: &'a nose_detect::DetectOptions,
+    pub(super) retained_base: Option<RetainedNormalizedCorpus>,
+    pub(super) preprojected_current: PreprojectedCurrentFiles,
+}
+
+pub(super) fn preproject_current_files(
+    current_root: &Path,
+    changed: &HashMap<String, Vec<(u32, u32)>>,
+    opts: &nose_detect::DetectOptions,
+) -> PreprojectedCurrentFiles {
+    let mut paths = changed.keys().cloned().collect::<Vec<_>>();
+    paths.sort();
+    let files = paths
+        .into_iter()
+        .take(MAX_FILES)
+        .collect::<Vec<_>>()
+        .into_par_iter()
+        .map(|path| {
+            let mut state = project_file(&current_root.join(&path), &path, opts);
+            prepare_file_projection(
+                &mut state,
+                changed.get(&path).map(Vec::as_slice).unwrap_or(&[]),
+            );
+            (path, state)
+        })
+        .collect();
+    PreprojectedCurrentFiles(files)
+}
+
 pub(super) fn enrich_semantic_change_witnesses(
     flagged: &mut [Divergence],
-    base_root: &Path,
-    current_root: &Path,
-    base_changed: &HashMap<String, Vec<(u32, u32)>>,
-    current_changed: &HashMap<String, Vec<(u32, u32)>>,
-    diff_entries: &[DiffEntry],
-    opts: &nose_detect::DetectOptions,
+    inputs: SemanticWitnessInputs<'_>,
 ) {
     let timed = std::env::var_os("NOSE_TIME").is_some();
     let mut family_elapsed = Duration::ZERO;
     let mut target_elapsed = Duration::ZERO;
-    let mut builder = WitnessBuilder::new(
-        base_root,
-        current_root,
-        base_changed,
-        current_changed,
-        diff_entries,
-        opts,
-    );
+    let mut builder = WitnessBuilder::new(inputs);
     builder.preload_files(flagged);
+    builder.preload_variant_sources(flagged);
     for divergence in flagged
         .iter_mut()
         .filter(|d| d.lane == DivergenceLane::BaseDivergence)
@@ -155,6 +183,11 @@ struct FileProjection {
     interner: Interner,
     normalized: nose_il::Il,
     units: Vec<UnitSkeleton>,
+    known_exact_safety: HashMap<(UnitKind, u32, u32), bool>,
+    value_context: Option<nose_normalize::ValueFingerprintContext>,
+    exact_safety: OnceLock<HashMap<(u32, u32), bool>>,
+    referents: OnceLock<FileReferents>,
+    prepared_units: HashMap<NodeId, Arc<UnitProjection>>,
 }
 
 #[derive(Clone)]
@@ -203,6 +236,11 @@ struct WitnessBuilder<'a> {
     current_changed: &'a HashMap<String, Vec<(u32, u32)>>,
     diff_entries: &'a [DiffEntry],
     opts: nose_detect::DetectOptions,
+    retained_base_interner: Option<Interner>,
+    retained_base_files: HashMap<String, nose_il::Il>,
+    retained_base_exact_safety: HashMap<String, HashMap<(UnitKind, u32, u32), bool>>,
+    retained_base_value_contexts: HashMap<String, nose_normalize::ValueFingerprintContext>,
+    preprojected_current_files: HashMap<String, LoadState>,
     files: HashMap<(Tree, String), LoadState>,
     projections: HashMap<(Tree, String, NodeId), Arc<UnitProjection>>,
     prepared: HashMap<String, PreparedChange>,
@@ -223,14 +261,17 @@ impl UnavailableChange {
 }
 
 impl<'a> WitnessBuilder<'a> {
-    fn new(
-        base_root: &'a Path,
-        current_root: &'a Path,
-        base_changed: &'a HashMap<String, Vec<(u32, u32)>>,
-        current_changed: &'a HashMap<String, Vec<(u32, u32)>>,
-        diff_entries: &'a [DiffEntry],
-        opts: &nose_detect::DetectOptions,
-    ) -> Self {
+    fn new(inputs: SemanticWitnessInputs<'a>) -> Self {
+        let SemanticWitnessInputs {
+            base_root,
+            current_root,
+            base_changed,
+            current_changed,
+            diff_entries,
+            opts,
+            retained_base,
+            preprojected_current,
+        } = inputs;
         let mut opts = *opts;
         // A current unit may shrink below the query's candidate floor after an edit. The
         // witness still needs to align it, so extraction here has no size floor.
@@ -238,6 +279,43 @@ impl<'a> WitnessBuilder<'a> {
         opts.min_tokens = 0;
         opts.contiguous_min_lines = 0;
         opts.contiguous_min_tokens = 0;
+        let (
+            retained_base_interner,
+            retained_base_files,
+            retained_base_exact_safety,
+            retained_base_value_contexts,
+        ) = retained_base
+            .map(|retained| {
+                let mut exact_safety =
+                    HashMap::<String, HashMap<(UnitKind, u32, u32), bool>>::new();
+                for unit in retained.exact_safety {
+                    let Some(path) = relative_retained_path(base_root, &unit.path) else {
+                        continue;
+                    };
+                    exact_safety
+                        .entry(path)
+                        .or_default()
+                        .insert((unit.kind, unit.start_line, unit.end_line), unit.exact_safe);
+                }
+                let value_contexts = retained
+                    .value_contexts
+                    .into_iter()
+                    .filter_map(|(path, context)| {
+                        Some((relative_retained_path(base_root, &path)?, context))
+                    })
+                    .collect();
+                let corpus = retained.corpus;
+                let nose_il::Corpus { interner, files } = corpus;
+                let files = files
+                    .into_iter()
+                    .filter_map(|file| {
+                        let relative = relative_retained_path(base_root, &file.meta.path)?;
+                        Some((relative, file))
+                    })
+                    .collect();
+                (Some(interner), files, exact_safety, value_contexts)
+            })
+            .unwrap_or_default();
         Self {
             base_root,
             current_root,
@@ -245,6 +323,11 @@ impl<'a> WitnessBuilder<'a> {
             current_changed,
             diff_entries,
             opts,
+            retained_base_interner,
+            retained_base_files,
+            retained_base_exact_safety,
+            retained_base_value_contexts,
+            preprojected_current_files: preprojected_current.0,
             files: HashMap::new(),
             projections: HashMap::new(),
             prepared: HashMap::new(),
@@ -319,18 +402,127 @@ impl<'a> WitnessBuilder<'a> {
         let base_root = self.base_root;
         let current_root = self.current_root;
         let opts = self.opts;
-        let loaded = keys
-            .into_par_iter()
+        let retained_base_interner = self.retained_base_interner.clone();
+        let jobs = keys
+            .into_iter()
             .map(|(tree, path)| {
-                let root = match tree {
-                    Tree::Base => base_root,
-                    Tree::Current => current_root,
-                };
-                let state = project_file(&root.join(&path), &path, &opts);
-                ((tree, path), state)
+                let normalized = (tree == Tree::Base)
+                    .then(|| self.retained_base_files.remove(&path))
+                    .flatten();
+                let known_exact_safety = (tree == Tree::Base)
+                    .then(|| self.retained_base_exact_safety.remove(&path))
+                    .flatten()
+                    .unwrap_or_default();
+                let value_context = (tree == Tree::Base)
+                    .then(|| self.retained_base_value_contexts.remove(&path))
+                    .flatten();
+                let preprojected = (tree == Tree::Current)
+                    .then(|| self.preprojected_current_files.remove(&path))
+                    .flatten();
+                (
+                    tree,
+                    path,
+                    normalized,
+                    known_exact_safety,
+                    value_context,
+                    preprojected,
+                )
             })
             .collect::<Vec<_>>();
+        let loaded = jobs
+            .into_par_iter()
+            .map(
+                |(tree, path, normalized, known_exact_safety, value_context, preprojected)| {
+                    let root = match tree {
+                        Tree::Base => base_root,
+                        Tree::Current => current_root,
+                    };
+                    let state = match preprojected {
+                        Some(state) => state,
+                        None => match (normalized, retained_base_interner.as_ref()) {
+                            (Some(normalized), Some(interner)) => project_normalized_file(
+                                &root.join(&path),
+                                interner.clone(),
+                                normalized,
+                                known_exact_safety,
+                                value_context,
+                            ),
+                            _ => project_file(&root.join(&path), &path, &opts),
+                        },
+                    };
+                    ((tree, path), state)
+                },
+            )
+            .collect::<Vec<_>>();
         self.files.extend(loaded);
+        self.preload_base_unit_projections(flagged);
+    }
+
+    fn preload_base_unit_projections(&mut self, flagged: &[Divergence]) {
+        let mut units_by_path = BTreeMap::<String, Vec<UnitSkeleton>>::new();
+        for divergence in flagged
+            .iter()
+            .filter(|divergence| divergence.lane == DivergenceLane::BaseDivergence)
+        {
+            for site in divergence
+                .changed
+                .iter()
+                .chain(&divergence.not_updated)
+                .chain(
+                    divergence
+                        .targets
+                        .iter()
+                        .flat_map(|target| [&target.changed, &target.skipped]),
+                )
+            {
+                if !projection_may_load(site) {
+                    continue;
+                }
+                let key = (Tree::Base, site.file.clone());
+                let Some(LoadState::Ready(file)) = self.files.get(&key) else {
+                    continue;
+                };
+                if let Ok(unit) = select_base_unit(file, site) {
+                    units_by_path
+                        .entry(site.file.clone())
+                        .or_default()
+                        .push(unit);
+                }
+            }
+        }
+        for units in units_by_path.values_mut() {
+            units.sort_by_key(|unit| unit.root.0);
+            units.dedup_by_key(|unit| unit.root);
+        }
+        let jobs = units_by_path
+            .into_iter()
+            .filter_map(|(path, units)| {
+                let key = (Tree::Base, path);
+                self.files.remove(&key).map(|state| (key, state, units))
+            })
+            .collect::<Vec<_>>();
+        let loaded = jobs
+            .into_par_iter()
+            .map(|(key, state, units)| {
+                let projections = match &state {
+                    LoadState::Ready(file) => units
+                        .into_iter()
+                        .map(|unit| {
+                            (
+                                (key.0, key.1.clone(), unit.root),
+                                Arc::new(project_unit(file, &unit)),
+                            )
+                        })
+                        .collect(),
+                    LoadState::Failed(_) => Vec::new(),
+                };
+                (key, state, projections)
+            })
+            .collect::<Vec<_>>();
+        for (key, state, projections) in loaded {
+            self.files.insert(key, state);
+            self.projections.extend(projections);
+        }
     }
 
     fn prepare_change(&mut self, site: &Site) -> Result<PreparedChange, UnavailableChange> {
@@ -392,6 +584,31 @@ impl<'a> WitnessBuilder<'a> {
         })
     }
 
+    fn preload_variant_sources(&mut self, flagged: &[Divergence]) {
+        let mut paths = Vec::new();
+        for target in flagged
+            .iter()
+            .filter(|divergence| divergence.lane == DivergenceLane::BaseDivergence)
+            .flat_map(|divergence| &divergence.targets)
+        {
+            if let Some(current_path) = self.current_path(&target.changed.file) {
+                paths.push(
+                    self.current_root
+                        .join(current_path)
+                        .to_string_lossy()
+                        .into_owned(),
+                );
+            }
+            paths.push(
+                self.base_root
+                    .join(&target.skipped.file)
+                    .to_string_lossy()
+                    .into_owned(),
+            );
+        }
+        self.source_lines.preload(paths);
+    }
+
     fn current_path(&self, base_path: &str) -> Option<String> {
         self.diff_entries
             .iter()
@@ -401,45 +618,21 @@ impl<'a> WitnessBuilder<'a> {
     }
 
     fn project_base(&mut self, site: &Site) -> ProjectionAttempt {
-        // Detector-added block roots are not frontend units in the normalized IL. Without
-        // an enclosing frontend unit there is nothing this projection can align, so avoid
-        // normalizing a potentially large file only to return the same `unit-missing` result.
-        if site.kind == UnitKind::Block && site.enclosing_unit.is_none() {
-            return ProjectionAttempt::failed(SemanticProjectionStatus::UnitMissing);
-        }
-        let selected = {
-            let file = match self.load_file(Tree::Base, &site.file) {
-                Ok(file) => file,
-                Err(status) => return ProjectionAttempt::failed(status),
-            };
-            let mut candidates = file
-                .units
-                .iter()
-                .filter(|unit| unit_matches_site(unit, site, true))
-                .cloned()
-                .collect::<Vec<_>>();
-            if candidates.is_empty() {
-                if let Some(enclosing) = &site.enclosing_unit {
-                    candidates = file
-                        .units
-                        .iter()
-                        .filter(|unit| unit_matches_enclosing(unit, enclosing))
-                        .cloned()
-                        .collect();
-                }
-            }
-            match candidates.as_slice() {
-                [unit] => Ok(unit.clone()),
-                [] => Err(SemanticProjectionStatus::UnitMissing),
-                _ => Err(SemanticProjectionStatus::AmbiguousUnit),
-            }
-        };
+        let selected = self.base_unit(site);
         match selected {
             Ok(unit) => {
                 self.project_selected(Tree::Base, &site.file, unit, SemanticAlignment::ExactSpan)
             }
             Err(status) => ProjectionAttempt::failed(status),
         }
+    }
+
+    fn base_unit(&mut self, site: &Site) -> Result<UnitSkeleton, SemanticProjectionStatus> {
+        if site.kind == UnitKind::Block && site.enclosing_unit.is_none() {
+            return Err(SemanticProjectionStatus::UnitMissing);
+        }
+        let file = self.load_file(Tree::Base, &site.file)?;
+        select_base_unit(file, site)
     }
 
     fn project_current(
@@ -509,7 +702,10 @@ impl<'a> WitnessBuilder<'a> {
                 Ok(file) => file,
                 Err(status) => return ProjectionAttempt::failed(status),
             };
-            Arc::new(project_unit(file, &unit))
+            file.prepared_units
+                .get(&unit.root)
+                .cloned()
+                .unwrap_or_else(|| Arc::new(project_unit(file, &unit)))
         };
         self.projections.insert(key, Arc::clone(&projection));
         projected(projection, alignment)
@@ -556,7 +752,29 @@ impl<'a> WitnessBuilder<'a> {
                 Tree::Base => self.base_root,
                 Tree::Current => self.current_root,
             };
-            let state = project_file(&root.join(relative_path), relative_path, &self.opts);
+            let state = if tree == Tree::Base {
+                match (
+                    self.retained_base_files.remove(relative_path),
+                    self.retained_base_interner.as_ref(),
+                ) {
+                    (Some(normalized), Some(interner)) => project_normalized_file(
+                        &root.join(relative_path),
+                        interner.clone(),
+                        normalized,
+                        self.retained_base_exact_safety
+                            .remove(relative_path)
+                            .unwrap_or_default(),
+                        self.retained_base_value_contexts.remove(relative_path),
+                    ),
+                    _ => project_file(&root.join(relative_path), relative_path, &self.opts),
+                }
+            } else {
+                self.preprojected_current_files
+                    .remove(relative_path)
+                    .unwrap_or_else(|| {
+                        project_file(&root.join(relative_path), relative_path, &self.opts)
+                    })
+            };
             self.files.insert(key.clone(), state);
         }
         match self.files.get(&key).expect("file projection was inserted") {
@@ -568,6 +786,43 @@ impl<'a> WitnessBuilder<'a> {
 
 fn projection_may_load(site: &Site) -> bool {
     !(site.is_fragment || site.kind == UnitKind::Block && site.enclosing_unit.is_none())
+}
+
+fn relative_retained_path(base_root: &Path, raw_path: &str) -> Option<String> {
+    let path = Path::new(raw_path);
+    let relative = if path.is_absolute() {
+        path.strip_prefix(base_root).ok()?
+    } else {
+        path
+    };
+    Some(relative.to_string_lossy().into_owned())
+}
+
+fn select_base_unit(
+    file: &FileProjection,
+    site: &Site,
+) -> Result<UnitSkeleton, SemanticProjectionStatus> {
+    let mut candidates = file
+        .units
+        .iter()
+        .filter(|unit| unit_matches_site(unit, site, true))
+        .cloned()
+        .collect::<Vec<_>>();
+    if candidates.is_empty() {
+        if let Some(enclosing) = &site.enclosing_unit {
+            candidates = file
+                .units
+                .iter()
+                .filter(|unit| unit_matches_enclosing(unit, enclosing))
+                .cloned()
+                .collect();
+        }
+    }
+    match candidates.as_slice() {
+        [unit] => Ok(unit.clone()),
+        [] => Err(SemanticProjectionStatus::UnitMissing),
+        _ => Err(SemanticProjectionStatus::AmbiguousUnit),
+    }
 }
 
 fn tree_order(tree: Tree) -> u8 {

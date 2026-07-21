@@ -20,6 +20,11 @@ pub struct ValueFingerprintContext {
     /// Per-file pure-inline candidates (see [`InlineCandidate`]);
     /// shared by every unit builder instead of rebuilding the registry per unit.
     inline_candidates: Vec<InlineCandidate>,
+    /// The witness graph deliberately preserves async protocol wrappers, unlike the
+    /// normal fingerprint graph. Its inline candidates must therefore be collected
+    /// with the same setting. Keep that second registry lazy because most files never
+    /// need a change witness.
+    witness_inline_candidates: OnceLock<Vec<InlineCandidate>>,
     subtree_hashes: OnceLock<Vec<u64>>,
 }
 
@@ -44,6 +49,7 @@ impl ValueFingerprintContext {
             module,
             function_bindings,
             inline_candidates,
+            witness_inline_candidates: OnceLock::new(),
             subtree_hashes,
         }
     }
@@ -165,8 +171,26 @@ fn evidence_backed_raw_assignment_name(il: &Il, stmt: NodeId) -> Option<Symbol> 
 }
 
 impl ValueFingerprintContext {
-    pub(super) fn inline_candidates(&self) -> &[InlineCandidate] {
-        &self.inline_candidates
+    pub(super) fn inline_candidates(
+        &self,
+        il: &Il,
+        interner: &Interner,
+        await_transparent: bool,
+    ) -> &[InlineCandidate] {
+        if await_transparent {
+            return &self.inline_candidates;
+        }
+        self.witness_inline_candidates.get_or_init(|| {
+            let mut b = Builder::new_with_local_scope_nodes(
+                il,
+                interner,
+                Cow::Borrowed(&self.module.local_scope),
+            )
+            .with_shared_subtree_hashes(&self.subtree_hashes);
+            b.await_transparent = false;
+            b.seed_module_value_bindings_from_context(&self.module, None);
+            b.collect_inline_candidates()
+        })
     }
 }
 
@@ -198,8 +222,15 @@ impl<'a> Builder<'a> {
     ) {
         if let Some(context) = context {
             if !context.module.assignment_counts.is_empty() {
-                let required = context.module.required_bindings_for(self.il, root);
-                self.seed_module_value_bindings_from_context(&context.module, Some(&required));
+                if self.await_transparent {
+                    let required = context.module.required_bindings_for(self.il, root);
+                    self.seed_module_value_bindings_from_context(&context.module, Some(&required));
+                } else {
+                    // The historical witness build seeded every immutable module value.
+                    // Preserve that exported-DAG contract; dependency pruning is a
+                    // fingerprint-only optimization until witness equivalence is proved.
+                    self.seed_module_value_bindings_from_context(&context.module, None);
+                }
             }
         } else {
             self.seed_module_value_bindings();

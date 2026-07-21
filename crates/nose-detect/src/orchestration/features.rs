@@ -32,6 +32,13 @@ pub struct CorpusFeatures {
     pub files: usize,
 }
 
+type RetainedFileFeatures = (
+    Vec<UnitFeat>,
+    Option<Stream>,
+    Option<Il>,
+    Option<nose_normalize::ValueFingerprintContext>,
+);
+
 pub fn corpus_features(corpus: &Corpus, opts: &DetectOptions) -> CorpusFeatures {
     let norm_opts = NormalizeOptions {
         cfg_norm: opts.cfg_norm,
@@ -77,6 +84,82 @@ pub fn corpus_features(corpus: &Corpus, opts: &DetectOptions) -> CorpusFeatures 
     }
 }
 
+/// Build detection features while retaining the normalized IL that produced
+/// structural units. Divergent-edit queries use the retained corpus for their
+/// downstream semantic witness instead of parsing and normalizing the base files
+/// a second time. Ordinary detection keeps using [`corpus_features`] so its hot
+/// path and peak lifetime stay unchanged.
+pub fn corpus_features_with_normalized(
+    corpus: &Corpus,
+    opts: &DetectOptions,
+) -> (
+    CorpusFeatures,
+    Corpus,
+    Vec<(String, nose_normalize::ValueFingerprintContext)>,
+) {
+    let norm_opts = NormalizeOptions {
+        cfg_norm: opts.cfg_norm,
+        dce: opts.dce,
+        ..Default::default()
+    };
+    let seeds = minhash::seeds(opts.minhash_k);
+    let per_file: Vec<RetainedFileFeatures> = corpus
+        .files
+        .par_iter()
+        .map(|il| {
+            let (units, normalized, context) = if opts.structural {
+                extract_units_of_file_with_normalized(
+                    il,
+                    &corpus.interner,
+                    opts,
+                    &norm_opts,
+                    &seeds,
+                )
+            } else {
+                (Vec::new(), None, None)
+            };
+            let stream = opts
+                .contiguous
+                .then(|| contiguous::stream(il, &corpus.interner));
+            (units, stream, normalized, context)
+        })
+        .collect();
+    let unit_count = per_file.iter().map(|(units, _, _, _)| units.len()).sum();
+    let stream_count = per_file
+        .iter()
+        .filter(|(_, stream, _, _)| stream.is_some())
+        .count();
+    let normalized_count = per_file
+        .iter()
+        .filter(|(_, _, normalized, _)| normalized.is_some())
+        .count();
+    let mut units = Vec::with_capacity(unit_count);
+    let mut streams = Vec::with_capacity(stream_count);
+    let mut normalized = Vec::with_capacity(normalized_count);
+    let mut contexts = Vec::new();
+    for (file_units, stream, file_normalized, context) in per_file {
+        units.extend(file_units);
+        if let Some(stream) = stream {
+            streams.push(stream);
+        }
+        if let (Some(file_normalized), context) = (file_normalized, context) {
+            if let Some(context) = context {
+                contexts.push((file_normalized.meta.path.clone(), context));
+            }
+            normalized.push(file_normalized);
+        }
+    }
+    (
+        CorpusFeatures {
+            units,
+            streams,
+            files: corpus.files.len(),
+        },
+        Corpus::new(corpus.interner.clone(), normalized),
+        contexts,
+    )
+}
+
 /// Keep the normalization/extraction body out of the Rayon closure. This path
 /// is large and hot; sharing one non-inlined implementation with the cached
 /// per-file entry point avoids code-layout-sensitive copies while preserving
@@ -107,4 +190,37 @@ fn extract_units_of_file(
             connected_witnesses: opts.connected_witnesses,
         },
     )
+}
+
+#[inline(never)]
+fn extract_units_of_file_with_normalized(
+    il: &Il,
+    interner: &Interner,
+    opts: &DetectOptions,
+    norm_opts: &NormalizeOptions,
+    seeds: &[u64],
+) -> (
+    Vec<UnitFeat>,
+    Option<Il>,
+    Option<nose_normalize::ValueFingerprintContext>,
+) {
+    if units::raw_il_is_empty_module(il) || units::large_test_file(il) {
+        return (Vec::new(), None, None);
+    }
+    let normalized = nose_normalize::normalize(il, interner, norm_opts);
+    let block_units = units::block_units_for_file(&normalized, opts);
+    let (extracted, context) = units::extract_with_context(
+        &normalized,
+        interner,
+        seeds,
+        opts.min_lines,
+        opts.min_tokens,
+        block_units,
+        units::ExtractFeatures {
+            shape_features: opts.shape_features,
+            abstraction_witnesses: opts.abstraction_witnesses,
+            connected_witnesses: opts.connected_witnesses,
+        },
+    );
+    (extracted, Some(normalized), context)
 }

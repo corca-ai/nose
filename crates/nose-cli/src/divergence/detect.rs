@@ -5,7 +5,7 @@ use super::git::{
 use super::targets::{direct_targets, same_loc};
 use super::*;
 use crate::cli_args::QueryArgs;
-use crate::query_dataset::build_divergence_families;
+use crate::query_dataset::{build_divergence_families, prepare_divergence_query};
 use crate::query_witness::enrich_graded_witnesses;
 use crate::source_lines::{varying_spots_of, FileLineCache};
 use crate::timing::time_stage;
@@ -50,9 +50,21 @@ pub(crate) fn detect_divergences(
     let base_tree = BaseWorktree::create(&root, base_ref)?;
     let base_paths = reroot_paths(&divergence_paths, &base_tree.path);
     let base_refs = base_paths.iter().map(PathBuf::as_path).collect::<Vec<_>>();
-    let (families, enrich_opts) = time_stage("base_detect", || {
-        build_divergence_families(args, &base_refs)
-    })?;
+    let plan = prepare_divergence_query(args)?;
+    let current_projection_opts = *plan.options();
+    let (detected, preprojected_current) = time_stage("base_detect", || {
+        rayon::join(
+            || build_divergence_families(args, &base_refs, plan),
+            || {
+                change_witness::preproject_current_files(
+                    &root,
+                    &current_changed,
+                    &current_projection_opts,
+                )
+            },
+        )
+    });
+    let (families, enrich_opts, retained_base) = detected?;
 
     // Reuse the resolved options for per-flagged-family graded-witness enrichment,
     // so re-derived unit roots line up with the family locations' spans.
@@ -68,12 +80,16 @@ pub(crate) fn detect_divergences(
     time_stage("base_witness", || {
         change_witness::enrich_semantic_change_witnesses(
             &mut flagged,
-            &base_tree.path,
-            &root,
-            &changed,
-            &current_changed,
-            &diff_entries,
-            &enrich_opts,
+            change_witness::SemanticWitnessInputs {
+                base_root: &base_tree.path,
+                current_root: &root,
+                base_changed: &changed,
+                current_changed: &current_changed,
+                diff_entries: &diff_entries,
+                opts: &enrich_opts,
+                retained_base,
+                preprojected_current,
+            },
         )
     });
     if current_lane_requested {
@@ -82,7 +98,9 @@ pub(crate) fn detect_divergences(
             .iter()
             .map(PathBuf::as_path)
             .collect::<Vec<_>>();
-        let (mut current_families, _) = build_divergence_families(args, &current_refs)?;
+        let current_plan = prepare_divergence_query(args)?;
+        let (mut current_families, _, _) =
+            build_divergence_families(args, &current_refs, current_plan)?;
         let current_prefix = canonical(&root);
         for family in &mut current_families {
             for loc in &mut family.locations {

@@ -51,7 +51,7 @@ pub use model::{
 };
 pub use options::DetectOptions;
 pub use orchestration::{
-    corpus_features, detect, detect_from_units,
+    corpus_features, corpus_features_with_normalized, detect, detect_from_units,
     detect_from_units_incremental_session_with_accepted_coverage,
     detect_from_units_incremental_with_accepted_coverage, detect_from_units_with_accepted_coverage,
     detect_from_units_with_direct_accepted_coverage, detect_with_accepted_coverage,

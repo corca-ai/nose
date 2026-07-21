@@ -23,7 +23,9 @@ use std::collections::{HashMap, HashSet};
 use crate::incremental::{self, IncrementalDetectionState, IncrementalDetectionStats};
 
 mod features;
-pub use features::{corpus_features, file_stream, units_of_file, CorpusFeatures};
+pub use features::{
+    corpus_features, corpus_features_with_normalized, file_stream, units_of_file, CorpusFeatures,
+};
 mod incremental_session;
 pub use incremental_session::{
     detect_from_units_incremental_session_with_accepted_coverage,
