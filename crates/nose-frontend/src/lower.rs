@@ -184,6 +184,11 @@ pub(crate) struct Lowering<'a> {
         rustc_hash::FxHashMap<EvidenceAnchor, Vec<(DomainEvidence, EvidenceId)>>,
     pub type_domain_aliases: TypeDomainAliases,
     pub unsigned_32_aliases: Vec<Unsigned32Alias>,
+    /// Whether a JavaScript/TypeScript file contains a binding for a queried
+    /// static-global name. Global-symbol lowering asks the same question at
+    /// many source positions; caching the whole-file prescreen avoids
+    /// repeatedly rescanning large files that never bind that name.
+    pub js_file_binding_cache: std::cell::RefCell<rustc_hash::FxHashMap<Symbol, bool>>,
     /// Stack of `global`-declared names per enclosing function scope (Python). An
     /// assignment to a name on the top frame REBINDS the module binding, not a local —
     /// the frontend records that as a `ModuleRebind` source fact so the (otherwise
@@ -210,6 +215,7 @@ impl<'a> Lowering<'a> {
             domain_evidence_by_anchor: rustc_hash::FxHashMap::default(),
             type_domain_aliases: TypeDomainAliases::default(),
             unsigned_32_aliases: Vec::new(),
+            js_file_binding_cache: std::cell::RefCell::new(rustc_hash::FxHashMap::default()),
             global_decls: Vec::new(),
         }
     }

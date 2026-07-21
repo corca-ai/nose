@@ -58,6 +58,22 @@ pub(super) fn file_prefix_has_binding_ident(lo: &Lowering, node: TsNode, ident: 
     if end > lo.src.len() {
         return false;
     }
+    // Most static-global names are never rebound in a given file. Establish
+    // that once per name and turn every later source-position check into a
+    // hash lookup. If the file does contain a binding, retain the existing
+    // prefix scan so uses before and after that binding keep their semantics.
+    if let Ok(text) = std::str::from_utf8(lo.src) {
+        let symbol = lo.sym(ident);
+        let cached = lo.js_file_binding_cache.borrow().get(&symbol).copied();
+        let file_has_binding = cached.unwrap_or_else(|| {
+            let found = contains_js_binding_ident(text, ident);
+            lo.js_file_binding_cache.borrow_mut().insert(symbol, found);
+            found
+        });
+        if !file_has_binding {
+            return false;
+        }
+    }
     let prefix = std::str::from_utf8(&lo.src[..end]).unwrap_or("");
     contains_js_binding_ident(prefix, ident)
 }
@@ -123,17 +139,31 @@ fn destructuring_pattern_binds_ident(text: &str, ident: &str) -> bool {
 }
 
 fn contains_import_binding(text: &str, ident: &str) -> bool {
-    text.match_indices("import").any(|(idx, _)| {
+    let mut earliest_rest = None;
+    for (idx, _) in text.match_indices("import") {
         let before = text[..idx].chars().next_back();
         if before.is_some_and(is_js_identifier_continue) {
-            return false;
+            continue;
         }
         let rest = text[idx + "import".len()..].trim_start();
-        starts_with_js_ident(rest, ident)
-            || rest.contains(&format!("{{ {ident}"))
-            || rest.contains(&format!("{{{ident}"))
-            || rest.contains(&format!(", {ident}"))
-            || rest.contains(&format!(" as {ident}"))
+        earliest_rest.get_or_insert(rest);
+        if starts_with_js_ident(rest, ident) {
+            return true;
+        }
+    }
+
+    // The legacy prefix check deliberately treats these spellings anywhere
+    // after an import keyword as a binding. Search the largest such suffix
+    // once instead of allocating four needles and rescanning a shrinking file
+    // suffix for every import declaration.
+    earliest_rest.is_some_and(|rest| {
+        rest.match_indices(ident).any(|(idx, _)| {
+            let before = &rest[..idx];
+            before.ends_with("{ ")
+                || before.ends_with('{')
+                || before.ends_with(", ")
+                || before.ends_with(" as ")
+        })
     })
 }
 
@@ -209,4 +239,35 @@ fn js_static_global_unshadowed_at(lo: &Lowering, node: TsNode, name: &str) -> bo
     }
     !file_prefix_has_binding_ident(lo, node, contract.name)
         && !enclosing_function_prefix_has_binding_ident(lo, node, contract.name)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::contains_import_binding;
+
+    #[test]
+    fn import_binding_scan_preserves_supported_spellings() {
+        for source in [
+            "import Promise from 'pkg'",
+            "import { Promise } from 'pkg'",
+            "import {Promise} from 'pkg'",
+            "import { value, Promise } from 'pkg'",
+            "import { value as Promise } from 'pkg'",
+        ] {
+            assert!(contains_import_binding(source, "Promise"), "{source}");
+        }
+    }
+
+    #[test]
+    fn import_binding_scan_checks_later_default_imports_and_boundaries() {
+        assert!(contains_import_binding(
+            "import value from 'a'; import Promise from 'b'",
+            "Promise"
+        ));
+        assert!(!contains_import_binding(
+            "const reimport = true; import PromiseLike from 'b'",
+            "Promise"
+        ));
+        assert!(!contains_import_binding("const Promise = 1", "Promise"));
+    }
 }
