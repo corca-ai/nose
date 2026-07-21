@@ -42,6 +42,13 @@ Every sample must produce identical product-output observations; any mismatch fa
 harness. Primary, same-binary control, and focused reports must use the same
 samples-per-observation setting.
 
+The final v0.20 qualification uses five samples per observation for every ordinary
+query and base-view primary, control, and focused report. This choice is fixed before
+measuring the replacement candidate: a preceding single-sample candidate exposed
+process-position conflicts and failed its only focused rerun, despite recording no
+triggered regression. Its failed artifacts remain part of the release audit and are
+not reused in the replacement decision.
+
 The v0.20 release qualification also applies this design to the frozen 17-repository
 `base=<ref>` workload in `bench/base_view_release_workload.v1.json`. The manifest binds
 each repository to an exact checked-out commit, ancestor base, source sample, and source
@@ -130,10 +137,13 @@ strictly above both thresholds. A runtime signal triggers only when:
 2. the exact sign test supports it; and
 3. both execution orders independently agree on the direction and materiality.
 
-If the point estimate is material but support, order consistency, or required blocks
-are missing, the signal is `inconclusive`. A primary inconclusive signal requests the
-single focused rerun. A focused inconclusive signal fails as insufficient evidence;
-it does not pass and does not request another measurement.
+For a single-sample report, a material median in either order with a non-material
+median in the other is also `inconclusive`, even when the combined point estimate is
+below threshold; this is the order-conflict rule stated above. Otherwise, if the point
+estimate is material but support, order consistency, or required blocks are missing,
+the signal is `inconclusive`. A primary inconclusive signal requests the single focused
+rerun. A focused inconclusive signal fails as insufficient evidence; it does not pass
+and does not request another measurement.
 
 ## Preregistered synthetic expectations
 
