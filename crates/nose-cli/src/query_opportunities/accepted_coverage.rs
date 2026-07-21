@@ -110,18 +110,16 @@ fn edges_covered_by_family(
 
 pub(super) fn accepted_edges_covered_by_roots(
     carrier: &nose_detect::RefactorFamily,
-    families: &[&nose_detect::RefactorFamily],
     coverage_roots: &[bool],
     by_file: &FxHashMap<&str, FileOpportunityBucket>,
 ) -> bool {
     edges_covered_by_roots(
         &carrier.locations,
         &carrier.direct_edges,
-        families,
         coverage_roots,
         by_file,
     ) && carrier.accepted_coverage.iter().all(|obligation| {
-        let roots_by_site = roots_by_site(&obligation.sites, families, coverage_roots, by_file);
+        let roots_by_site = roots_by_site(&obligation.sites, coverage_roots, by_file);
         obligation.edges.iter().all(|edge| {
             let Some(left_roots) = roots_by_site.get(edge.left as usize) else {
                 return false;
@@ -137,11 +135,10 @@ pub(super) fn accepted_edges_covered_by_roots(
 fn edges_covered_by_roots(
     sites: &[nose_detect::Loc],
     edges: &[nose_detect::AcceptedEdge],
-    families: &[&nose_detect::RefactorFamily],
     coverage_roots: &[bool],
     by_file: &FxHashMap<&str, FileOpportunityBucket>,
 ) -> bool {
-    let roots_by_site = roots_by_site(sites, families, coverage_roots, by_file);
+    let roots_by_site = roots_by_site(sites, coverage_roots, by_file);
     edges.iter().all(|edge| {
         let Some(left_roots) = roots_by_site.get(edge.left as usize) else {
             return false;
@@ -155,27 +152,43 @@ fn edges_covered_by_roots(
 
 fn roots_by_site(
     sites: &[nose_detect::Loc],
-    families: &[&nose_detect::RefactorFamily],
     coverage_roots: &[bool],
     by_file: &FxHashMap<&str, FileOpportunityBucket>,
 ) -> Vec<Vec<usize>> {
     sites
         .iter()
         .map(|site| {
-            by_file
-                .get(site.file.as_str())
-                .into_iter()
-                .flat_map(|bucket| bucket.families.iter().copied())
-                .filter(|&family_index| {
-                    coverage_roots[family_index]
-                        && families[family_index]
-                            .locations
-                            .iter()
-                            .any(|loc| site_is_covered(loc, site))
-                })
-                .collect()
+            let mut roots = Vec::new();
+            let Some(bucket) = by_file.get(site.file.as_str()) else {
+                return roots;
+            };
+            // `bucket.intervals` already contains every location in this file in family-rank
+            // order. Query it directly instead of visiting each root and rescanning all of that
+            // family's locations across every file. A family is appended once even when several
+            // of its same-file members cover the site.
+            for interval in &bucket.intervals {
+                if !coverage_roots[interval.family]
+                    || roots.last() == Some(&interval.family)
+                    || !lines_cover_site(interval.start, interval.end, site)
+                {
+                    continue;
+                }
+                roots.push(interval.family);
+            }
+            roots
         })
         .collect()
+}
+
+fn lines_cover_site(start: u32, end: u32, site: &nose_detect::Loc) -> bool {
+    let lo = start.max(site.start_line);
+    let hi = end.min(site.end_line);
+    if lo > hi {
+        return false;
+    }
+    let overlap = hi - lo + 1;
+    let site_len = site.end_line - site.start_line + 1;
+    overlap * 2 >= site_len
 }
 
 fn sorted_lists_intersect(left: &[usize], right: &[usize]) -> bool {

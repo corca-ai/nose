@@ -144,8 +144,7 @@ impl OpportunityGroups {
             {
                 continue;
             }
-            if accepted_edges_covered_by_roots(families[index], families, &coverage_roots, &by_file)
-            {
+            if accepted_edges_covered_by_roots(families[index], &coverage_roots, &by_file) {
                 primary_index[index] = direct_parent[index];
             } else {
                 coverage_roots[index] = true;
