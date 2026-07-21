@@ -243,7 +243,9 @@ unit and snapshot state but does not publish the fallback portable-IL layer or p
 dictionary; line weighting uses the same clean parallel implementation. Large cold scans publish
 those unit payloads as one chunk-verified pack instead of one filesystem object per region. The
 pack's SHA-256-bound table records the ordered region keys, offsets, lengths, and per-region CRC32;
-a damaged table or used region is a miss and the exact source regenerates the pack. A miss still
+a damaged table or used region is a miss and the exact source regenerates the pack. Pack
+publication overlaps later detection and ranking work, but the transactional generation commit
+joins the publication first, so a snapshot can never reference an unfinished pack. A miss still
 lowers and resolves exact source, so this boundary changes only performance and cache
 observability, never query output. Watch sessions always retain their in-memory incremental line
 state, and small provider/high-fanout workloads keep the full dependency history.

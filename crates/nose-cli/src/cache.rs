@@ -258,6 +258,14 @@ struct RestoredUnitFile {
     payload_checksum: Option<u32>,
 }
 
+struct PreparedUnitPack {
+    key: ArtifactKey,
+    header: Vec<u8>,
+    table: Vec<u8>,
+    payloads: Vec<Vec<u8>>,
+    stored_bytes: u64,
+}
+
 impl CachedUnitsInner {
     fn into_public(self) -> CachedUnits {
         self.public
@@ -353,7 +361,7 @@ fn build_units_cached_inner(
     // checkout into dozens of mostly serial normalization waves. Moving the
     // ILs into the parallel iterator still lets each file be released as soon
     // as its cached features have been produced.
-    let per_file = files
+    let mut per_file = files
         .into_par_iter()
         .enumerate()
         .map(restore)
@@ -364,10 +372,13 @@ fn build_units_cached_inner(
         .map(|region| *region.artifact.as_bytes())
         .collect::<Vec<_>>();
     let unit_pack = pack_units
-        .then(|| store_unit_pack(&cas, &region_artifacts, &per_file))
+        .then(|| prepare_unit_pack(&region_artifacts, &mut per_file))
         .flatten()
-        .map(|(digest, bytes)| {
-            written_bytes.fetch_add(bytes, Ordering::Relaxed);
+        .map(|pack| {
+            let digest = *pack.key.digest.as_bytes();
+            written_bytes.fetch_add(pack.stored_bytes, Ordering::Relaxed);
+            let pack_cas = run.cas();
+            run.spawn_write(move || publish_unit_pack(&pack_cas, pack));
             digest
         });
     let files = per_file.len();
@@ -421,17 +432,16 @@ fn assemble_cached_units(
     }
 }
 
-fn store_unit_pack(
-    cas: &store::LayeredCas,
+fn prepare_unit_pack(
     artifacts: &[[u8; 32]],
-    regions: &[RestoredUnitFile],
-) -> Option<([u8; 32], u64)> {
+    regions: &mut [RestoredUnitFile],
+) -> Option<PreparedUnitPack> {
     let count = u32::try_from(regions.len()).ok()?;
     let table_len =
         UNITS_PACK_HEADER_LEN.checked_add(UNITS_PACK_ENTRY_LEN.checked_mul(regions.len())?)?;
     let mut table = Vec::with_capacity(table_len);
     let mut offset = 0u64;
-    for (artifact, region) in artifacts.iter().zip(regions) {
+    for (artifact, region) in artifacts.iter().zip(regions.iter()) {
         let payload = region.packed_payload.as_deref()?;
         let payload_checksum = region.payload_checksum?;
         let len = u64::try_from(payload.len()).ok()?;
@@ -452,14 +462,31 @@ fn store_unit_pack(
     header.extend_from_slice(&count.to_be_bytes());
     header.extend_from_slice(key.digest.as_bytes());
     header.extend_from_slice(table_digest.as_bytes());
-    let mut parts = Vec::with_capacity(regions.len() + 2);
-    parts.push(header.as_slice());
-    parts.push(table.as_slice());
-    for region in regions {
-        parts.push(region.packed_payload.as_deref()?);
+    let payloads = regions
+        .iter_mut()
+        .map(|region| region.packed_payload.take())
+        .collect::<Option<Vec<_>>>()?;
+    let stored_bytes = header
+        .len()
+        .checked_add(table.len())?
+        .checked_add(payloads.iter().map(Vec::len).sum::<usize>())?;
+    Some(PreparedUnitPack {
+        key,
+        header,
+        table,
+        payloads,
+        stored_bytes: u64::try_from(stored_bytes).ok()?,
+    })
+}
+
+fn publish_unit_pack(cas: &store::LayeredCas, pack: PreparedUnitPack) -> std::io::Result<u64> {
+    let mut parts = Vec::with_capacity(pack.payloads.len() + 2);
+    parts.push(pack.header.as_slice());
+    parts.push(pack.table.as_slice());
+    for payload in &pack.payloads {
+        parts.push(payload.as_slice());
     }
-    let bytes = cas.store_chunked(key, &parts).ok()?;
-    Some((*key.digest.as_bytes(), bytes))
+    cas.store_chunked(pack.key, &parts)
 }
 
 fn unit_artifact_key(context: &CachedUnitContext, options: ContentDigest) -> ArtifactKey {

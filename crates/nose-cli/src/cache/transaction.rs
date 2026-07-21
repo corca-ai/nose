@@ -16,6 +16,7 @@ use std::fs::{File, OpenOptions};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
 
 const GENERATION_SCHEMA: u32 = 1;
 const POINTER_SCHEMA: u32 = 1;
@@ -30,6 +31,8 @@ pub(crate) struct CacheRun {
     read_existing_cas: bool,
     managed_store_existed: bool,
     inner: Arc<Mutex<RunState>>,
+    pending_writes: Arc<Mutex<Vec<JoinHandle<std::io::Result<u64>>>>>,
+    commit_lock: Arc<Mutex<()>>,
     // Keep pruning and clearing out of the interval between publishing an
     // immutable record and committing the generation that references it.
     _store_lease: Option<Arc<File>>,
@@ -102,6 +105,8 @@ impl CacheRun {
             read_existing_cas,
             managed_store_existed,
             inner: Arc::new(Mutex::new(RunState::default())),
+            pending_writes: Arc::new(Mutex::new(Vec::new())),
+            commit_lock: Arc::new(Mutex::new(())),
             _store_lease: shared_store_lease(root).map(Arc::new),
         }
     }
@@ -197,7 +202,19 @@ impl CacheRun {
     }
 
     pub(crate) fn commit(&self) -> std::io::Result<()> {
+        let _commit = self
+            .commit_lock
+            .lock()
+            .expect("cache commit mutex poisoned");
+        self.finish_pending_writes()?;
         self.commit_inner(None)
+    }
+
+    pub(super) fn spawn_write(&self, job: impl FnOnce() -> std::io::Result<u64> + Send + 'static) {
+        self.pending_writes
+            .lock()
+            .expect("cache pending-write mutex poisoned")
+            .push(std::thread::spawn(job));
     }
 
     pub(crate) fn written_bytes(&self) -> u64 {
@@ -256,6 +273,21 @@ impl CacheRun {
         let mut inner = self.inner.lock().expect("cache run mutex poisoned");
         inner.base = next;
         inner.pending.clear();
+        Ok(())
+    }
+
+    fn finish_pending_writes(&self) -> std::io::Result<()> {
+        let writes = std::mem::take(
+            &mut *self
+                .pending_writes
+                .lock()
+                .expect("cache pending-write mutex poisoned"),
+        );
+        for write in writes {
+            write.join().map_err(|_| {
+                std::io::Error::other("background cache publication thread panicked")
+            })??;
+        }
         Ok(())
     }
 }
@@ -501,6 +533,38 @@ mod tests {
         reader.set_workspace([4; 32]);
         assert_eq!(reader.load("a", 1).as_deref(), Some(b"alpha".as_slice()));
         assert_eq!(reader.load("b", 1).as_deref(), Some(b"beta".as_slice()));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn commit_joins_background_publication_before_exposing_state() {
+        let root = temp_store("background");
+        let marker = root.join("pack-published");
+        let _ = std::fs::remove_dir_all(&root);
+        let run = CacheRun::new(&root);
+        run.set_workspace([6; 32]);
+        run.store("unit-snapshot", 1, b"snapshot");
+        let barrier = Arc::new(std::sync::Barrier::new(2));
+        let writer_barrier = Arc::clone(&barrier);
+        let writer_marker = marker.clone();
+        run.spawn_write(move || {
+            writer_barrier.wait();
+            std::fs::write(writer_marker, b"complete")?;
+            Ok(8)
+        });
+
+        let committer = run.clone();
+        let commit = std::thread::spawn(move || committer.commit());
+        barrier.wait();
+        commit.join().unwrap().unwrap();
+
+        assert_eq!(std::fs::read(marker).unwrap(), b"complete");
+        let reader = CacheRun::new(&root);
+        reader.set_workspace([6; 32]);
+        assert_eq!(
+            reader.load("unit-snapshot", 1).as_deref(),
+            Some(b"snapshot".as_slice())
+        );
         let _ = std::fs::remove_dir_all(root);
     }
 
