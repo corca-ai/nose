@@ -28,44 +28,56 @@ pub(crate) struct ConnectedAccepted {
     pub route: ConnectedRoute,
 }
 
-fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
+fn witness_kind(members: &[usize], units: &[UnitFeat]) -> &'static str {
     let first = &units[members[0]];
     if members.iter().all(|&m| {
         let u = &units[m];
         exact_claim_eligible(u) && u.value == first.value
     }) {
-        return EquivalenceWitness {
+        "exact-value-graph"
+    } else if members.len() >= 2 && shared_subdag_hash(members, units).is_some() {
+        "shared-sub-dag"
+    } else {
+        "structural-similarity"
+    }
+}
+
+fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
+    match witness_kind(members, units) {
+        "exact-value-graph" => EquivalenceWitness {
             kind: "exact-value-graph",
-            value_nodes: Some(first.value.len()),
+            value_nodes: Some(units[members[0]].value.len()),
             mean_value_jaccard: None,
             mean_shape_jaccard: None,
             graded: None,
             graded_pair: None,
-        };
-    }
-    if members.len() >= 2 && shared_subdag_hash(members, units).is_some() {
-        return EquivalenceWitness {
+        },
+        "shared-sub-dag" => EquivalenceWitness {
             kind: "shared-sub-dag",
             value_nodes: None,
             mean_value_jaccard: None,
             mean_shape_jaccard: None,
             graded: None,
             graded_pair: None,
-        };
-    }
-    let (mut vj, mut sj) = (0.0, 0.0);
-    for &m in &members[1..] {
-        vj += align::multiset_jaccard(&first.value, &units[m].value);
-        sj += align::multiset_jaccard(&first.shapes, &units[m].shapes);
-    }
-    let n = (members.len().saturating_sub(1)).max(1) as f64;
-    EquivalenceWitness {
-        kind: "structural-similarity",
-        value_nodes: None,
-        mean_value_jaccard: Some(round3(vj / n)),
-        mean_shape_jaccard: Some(round3(sj / n)),
-        graded: None,
-        graded_pair: None,
+        },
+        "structural-similarity" => {
+            let first = &units[members[0]];
+            let (mut vj, mut sj) = (0.0, 0.0);
+            for &m in &members[1..] {
+                vj += align::multiset_jaccard(&first.value, &units[m].value);
+                sj += align::multiset_jaccard(&first.shapes, &units[m].shapes);
+            }
+            let n = (members.len().saturating_sub(1)).max(1) as f64;
+            EquivalenceWitness {
+                kind: "structural-similarity",
+                value_nodes: None,
+                mean_value_jaccard: Some(round3(vj / n)),
+                mean_shape_jaccard: Some(round3(sj / n)),
+                graded: None,
+                graded_pair: None,
+            }
+        }
+        _ => unreachable!("witness_kind returns a closed set of witness categories"),
     }
 }
 
@@ -270,7 +282,10 @@ fn accepted_edges_by_group(
                 left: left_local,
                 right: right_local,
                 score: round3(score),
-                witness_kind: group_witness(&[left, right], units).kind,
+                // Accepted-edge diagnostics only retain the category. Building a full two-member
+                // witness here would compute and immediately discard both Jaccard means for every
+                // accepted edge; the final group witness below still computes the reported means.
+                witness_kind: witness_kind(&[left, right], units),
             });
         }
     }
