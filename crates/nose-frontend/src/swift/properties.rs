@@ -128,11 +128,10 @@ fn record_explicit_binding_type(lo: &mut Lowering, name_node: TsNode, name: &str
         EvidenceKind::Type(TypeEvidenceKind::SwiftExplicitBindingType),
         "swift_explicit_binding_type",
     );
-    let compact: String = type_text.chars().filter(|ch| !ch.is_whitespace()).collect();
-    let kind = match compact.as_str() {
-        "String" => TypeEvidenceKind::SwiftUnqualifiedStringBinding,
-        "Swift.String" => TypeEvidenceKind::SwiftQualifiedStringBinding,
-        _ => return,
+    let kind = match swift_string_spelling(type_text) {
+        Some(SwiftStringSpelling::Unqualified) => TypeEvidenceKind::SwiftUnqualifiedStringBinding,
+        Some(SwiftStringSpelling::Qualified) => TypeEvidenceKind::SwiftQualifiedStringBinding,
+        None => return,
     };
     lo.record_evidence(
         anchor,

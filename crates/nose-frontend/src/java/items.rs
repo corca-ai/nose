@@ -302,8 +302,11 @@ pub(super) fn lower_compact_constructor(lo: &mut Lowering, node: TsNode) -> Node
     func
 }
 pub(super) fn java_type_origin(node: TsNode) -> UnitOrigin {
-    let has_method_body = java_node_has_method_body(node);
-    let has_runtime_initializer = java_node_has_field_initializer(node);
+    let (has_method_body, has_runtime_initializer) = match node.kind() {
+        "interface_declaration" => java_node_behavior(node),
+        "annotation_type_declaration" => (false, java_node_behavior(node).1),
+        _ => (java_node_has_method_body(node), false),
+    };
     match node.kind() {
         "interface_declaration" => java_interface_origin(has_method_body, has_runtime_initializer),
         // An annotation type (`@interface`) is a declaration-only type contract, not an
@@ -444,7 +447,8 @@ pub(super) fn java_method_origin(node: TsNode, has_body: bool) -> UnitOrigin {
     )
 }
 pub(super) fn java_node_has_method_body(node: TsNode) -> bool {
-    Lowering::named_children(node).into_iter().any(|child| {
+    let mut cursor = node.walk();
+    let found = node.named_children(&mut cursor).any(|child| {
         if java_is_nested_type_decl(child.kind()) {
             return false;
         }
@@ -453,16 +457,36 @@ pub(super) fn java_node_has_method_body(node: TsNode) -> bool {
             "method_declaration" | "constructor_declaration"
         ) && child.child_by_field_name("body").is_some()
             || java_node_has_method_body(child)
-    })
+    });
+    found
 }
-fn java_node_has_field_initializer(node: TsNode) -> bool {
-    Lowering::named_children(node).into_iter().any(|child| {
+
+fn java_node_behavior(node: TsNode) -> (bool, bool) {
+    let mut has_method_body = false;
+    let mut has_runtime_initializer = false;
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
         if java_is_nested_type_decl(child.kind()) {
-            return false;
+            continue;
         }
-        child.kind() == "variable_declarator" && child.child_by_field_name("value").is_some()
-            || java_node_has_field_initializer(child)
-    })
+        if matches!(
+            child.kind(),
+            "method_declaration" | "constructor_declaration"
+        ) {
+            has_method_body |= child.child_by_field_name("body").is_some();
+        }
+        has_runtime_initializer |=
+            child.kind() == "variable_declarator" && child.child_by_field_name("value").is_some();
+        if !has_method_body || !has_runtime_initializer {
+            let nested = java_node_behavior(child);
+            has_method_body |= nested.0;
+            has_runtime_initializer |= nested.1;
+        }
+        if has_method_body && has_runtime_initializer {
+            break;
+        }
+    }
+    (has_method_body, has_runtime_initializer)
 }
 pub(super) fn java_is_nested_type_decl(kind: &str) -> bool {
     matches!(

@@ -1,5 +1,26 @@
 use super::*;
 
+#[derive(Clone, Copy)]
+pub(super) enum SwiftStringSpelling {
+    Unqualified,
+    Qualified,
+}
+
+pub(super) fn swift_string_spelling(text: &str) -> Option<SwiftStringSpelling> {
+    let matches = |expected: &str| {
+        text.chars()
+            .filter(|ch| !ch.is_whitespace())
+            .eq(expected.chars())
+    };
+    if matches("String") {
+        Some(SwiftStringSpelling::Unqualified)
+    } else if matches("Swift.String") {
+        Some(SwiftStringSpelling::Qualified)
+    } else {
+        None
+    }
+}
+
 #[cold]
 #[inline(never)]
 pub(super) fn record_selective_import_shadow(lo: &mut Lowering, node: TsNode) {
@@ -54,16 +75,13 @@ pub(super) fn swift_string_parameter_evidence(
     param: TsNode,
     type_node: TsNode,
 ) -> Option<TypeEvidenceKind> {
-    let (kind, shadow_name) = match lo
-        .text(type_node)
-        .chars()
-        .filter(|ch| !ch.is_whitespace())
-        .collect::<String>()
-        .as_str()
-    {
-        "String" => (TypeEvidenceKind::SwiftUnqualifiedStringParameter, "String"),
-        "Swift.String" => (TypeEvidenceKind::SwiftQualifiedStringParameter, "Swift"),
-        _ => return None,
+    let (kind, shadow_name) = match swift_string_spelling(lo.text(type_node))? {
+        SwiftStringSpelling::Unqualified => {
+            (TypeEvidenceKind::SwiftUnqualifiedStringParameter, "String")
+        }
+        SwiftStringSpelling::Qualified => {
+            (TypeEvidenceKind::SwiftQualifiedStringParameter, "Swift")
+        }
     };
     if swift_lexical_type_shadow(param, lo, shadow_name) {
         None
@@ -116,11 +134,10 @@ fn swift_generic_header_declares(node: TsNode, lo: &Lowering, name: &str) -> boo
             .strip_prefix("each ")
             .unwrap_or(parameter.trim())
             .trim_start_matches('`');
-        let declared = parameter
+        let mut declared = parameter
             .chars()
-            .take_while(|ch| *ch == '_' || ch.is_alphanumeric())
-            .collect::<String>();
-        declared == name
+            .take_while(|ch| *ch == '_' || ch.is_alphanumeric());
+        declared.by_ref().eq(name.chars())
     })
 }
 
