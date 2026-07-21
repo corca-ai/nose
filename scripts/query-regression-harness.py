@@ -11,6 +11,7 @@ import os
 import platform
 import re
 import shlex
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -193,14 +194,108 @@ def run_once(
     }
 
 
+def collapse_observation_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
+    if not samples:
+        raise SystemExit("cannot collapse an empty observation sample")
+    identity_keys = (
+        "bytes",
+        "families",
+        "schema_version",
+        "surface_counts",
+        "iteration",
+        "label",
+        "pair_order",
+        "pair_position",
+        "repo",
+        "sha256",
+    )
+    first = samples[0]
+    for index, sample in enumerate(samples[1:], start=2):
+        if any(sample.get(key) != first.get(key) for key in identity_keys):
+            raise SystemExit(
+                f"{first['label']} {first['repo']} iteration {first['iteration']} "
+                f"sample {index} changed product output"
+            )
+        if sample["stages_ms"].keys() != first["stages_ms"].keys():
+            raise SystemExit(
+                f"{first['label']} {first['repo']} iteration {first['iteration']} "
+                f"sample {index} changed timing stages"
+            )
+    positions = {sample.get("_sample_position") for sample in samples}
+    if len(samples) > 1 and positions != {0, 1}:
+        raise SystemExit(
+            f"{first['label']} {first['repo']} iteration {first['iteration']} "
+            "did not cover both process positions"
+        )
+
+    def position_neutral(values: list[tuple[int | None, float]]) -> float:
+        if len(samples) == 1:
+            return values[0][1]
+        by_position = [
+            statistics.median(value for position, value in values if position == expected)
+            for expected in (0, 1)
+        ]
+        return statistics.fmean(by_position)
+
+    collapsed = dict(first)
+    collapsed.pop("_sample_position", None)
+    collapsed["elapsed_ms"] = position_neutral(
+        [(sample.get("_sample_position"), sample["elapsed_ms"]) for sample in samples]
+    )
+    collapsed["stages_ms"] = {
+        stage: position_neutral(
+            [
+                (sample.get("_sample_position"), sample["stages_ms"][stage])
+                for sample in samples
+            ]
+        )
+        for stage in first["stages_ms"]
+    }
+    collapsed["observation_samples"] = len(samples)
+    collapsed["sample_timings"] = [
+        {
+            "actual_process_position": sample["_sample_position"],
+            "elapsed_ms": sample["elapsed_ms"],
+            "stages_ms": sample["stages_ms"],
+        }
+        for sample in samples
+    ]
+    return collapsed
+
+
+def run_paired_block(
+    *,
+    binaries: dict[str, Path],
+    repo_name: str,
+    repos_root: Path,
+    iteration: int,
+    query_args: tuple[str, ...],
+    samples: int,
+) -> list[dict[str, Any]]:
+    logical_order = [label for label, _ in measurement_order([repo_name], iteration)]
+    by_label = {label: [] for label in logical_order}
+    for sample_index in range(samples):
+        sample_order = logical_order if sample_index % 2 == 0 else list(reversed(logical_order))
+        for sample_position, label in enumerate(sample_order):
+            sample = run_once(
+                binary=binaries[label],
+                label=label,
+                repo_name=repo_name,
+                repos_root=repos_root,
+                iteration=iteration,
+                query_args=query_args,
+            )
+            sample["_sample_position"] = sample_position
+            by_label[label].append(sample)
+    return [collapse_observation_samples(by_label[label]) for label in logical_order]
+
+
 def measurement_order(repo_names: list[str], iteration: int) -> list[tuple[str, str]]:
     labels = ("baseline", "current") if iteration % 2 else ("current", "baseline")
     return [(label, repo_name) for repo_name in repo_names for label in labels]
 
 
-def measurement_schedule(
-    repo_names: list[str], iterations: int
-) -> list[tuple[int, str, str]]:
+def measurement_blocks(repo_names: list[str], iterations: int) -> list[tuple[int, str]]:
     """Keep a repository's alternating blocks adjacent before moving on.
 
     The pair order still alternates by iteration. Repository-local scheduling
@@ -208,10 +303,9 @@ def measurement_schedule(
     penalty after all other repositories have displaced its pages.
     """
     return [
-        (iteration, label, repo_name)
+        (iteration, repo_name)
         for repo_name in repo_names
         for iteration in range(1, iterations + 1)
-        for label, _ in measurement_order([repo_name], iteration)
     ]
 
 
@@ -345,16 +439,55 @@ def run_self_test() -> None:
         ("baseline", "a"), ("current", "a"), ("baseline", "b"), ("current", "b")
     ]
     assert measurement_order(["a"], 2) == [("current", "a"), ("baseline", "a")]
-    assert measurement_schedule(["a", "b"], 2) == [
-        (1, "baseline", "a"),
-        (1, "current", "a"),
-        (2, "current", "a"),
-        (2, "baseline", "a"),
-        (1, "baseline", "b"),
-        (1, "current", "b"),
-        (2, "current", "b"),
-        (2, "baseline", "b"),
+    assert measurement_blocks(["a", "b"], 2) == [
+        (1, "a"),
+        (2, "a"),
+        (1, "b"),
+        (2, "b"),
     ]
+    collapsed = collapse_observation_samples(
+        [
+            {
+                "bytes": 1,
+                "elapsed_ms": elapsed,
+                "families": 0,
+                "schema_version": 7,
+                "surface_counts": {},
+                "iteration": 1,
+                "label": "baseline",
+                "pair_order": "baseline-current",
+                "pair_position": 0,
+                "_sample_position": position,
+                "repo": "a",
+                "sha256": "a" * 64,
+                "stages_ms": {"lower": lower},
+            }
+            for position, elapsed, lower in [(0, 12.0, 3.0), (1, 10.0, 1.0), (0, 11.0, 2.0)]
+        ]
+    )
+    assert collapsed["elapsed_ms"] == 10.75
+    assert collapsed["stages_ms"] == {"lower": 1.75}
+    assert collapsed["observation_samples"] == 3
+    assert [
+        timing["actual_process_position"] for timing in collapsed["sample_timings"]
+    ] == [0, 1, 0]
+    changed_sample = dict(collapsed)
+    changed_sample["sha256"] = "b" * 64
+    changed_sample["_sample_position"] = 1
+    try:
+        collapse_observation_samples(
+            [
+                {
+                    **collapsed,
+                    "_sample_position": 0,
+                },
+                changed_sample,
+            ]
+        )
+    except SystemExit as error:
+        assert "changed product output" in str(error)
+    else:
+        raise AssertionError("observation samples with output drift must fail")
 
     def row(repo: str, label: str, elapsed_ms: float, size: int, stage_ms: float) -> dict[str, Any]:
         return {
@@ -421,6 +554,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--all-repos", action="store_true")
     parser.add_argument("--iterations", type=int, default=9)
     parser.add_argument("--warmups", type=int, default=1)
+    parser.add_argument("--samples-per-observation", type=int, default=1)
     parser.add_argument("--query-args", default=" ".join(DEFAULT_QUERY_ARGS))
     parser.add_argument("--corpus-manifest", type=Path)
     parser.add_argument("--prune-manifest", type=Path)
@@ -438,8 +572,16 @@ def main() -> int:
         return 0
     if not args.baseline_binary or not args.current_binary or not args.output:
         raise SystemExit("--baseline-binary, --current-binary, and --output are required")
-    if args.iterations <= 0 or args.warmups < 0:
-        raise SystemExit("--iterations must be positive and --warmups must be non-negative")
+    if (
+        args.iterations <= 0
+        or args.warmups < 0
+        or args.samples_per_observation <= 0
+        or args.samples_per_observation % 2 == 0
+    ):
+        raise SystemExit(
+            "--iterations must be positive, --samples-per-observation must be positive and odd; "
+            "--warmups must be non-negative"
+        )
 
     baseline_binary = args.baseline_binary.resolve()
     current_binary = args.current_binary.resolve()
@@ -476,15 +618,15 @@ def main() -> int:
             warmups=args.warmups,
             query_args=query_args,
         )
-        for iteration, label, _ in measurement_schedule([repo_name], args.iterations):
-            runs.append(
-                run_once(
-                    binary=binaries[label],
-                    label=label,
+        for iteration, _ in measurement_blocks([repo_name], args.iterations):
+            runs.extend(
+                run_paired_block(
+                    binaries=binaries,
                     repo_name=repo_name,
                     repos_root=repos_root,
                     iteration=iteration,
                     query_args=query_args,
+                    samples=args.samples_per_observation,
                 )
             )
     baseline_identity = binary_identity(baseline_binary)
@@ -497,6 +639,7 @@ def main() -> int:
         "measurement": {
             "iterations": args.iterations,
             "warmups": args.warmups,
+            "samples_per_observation": args.samples_per_observation,
             "design": {
                 "kind": "paired-alternating-blocks/v1",
                 "block": "iteration",

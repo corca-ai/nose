@@ -7,6 +7,7 @@ import argparse
 import json
 import math
 import re
+import statistics
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -126,6 +127,16 @@ def validate_structured_report(
     if iterations == 0:
         raise CheckFailed(f"{label}.measurement.iterations: expected a positive integer")
     require_nonnegative_int(measurement, "warmups", f"{label}.measurement")
+    samples_per_observation = measurement.get("samples_per_observation", 1)
+    if (
+        isinstance(samples_per_observation, bool)
+        or not isinstance(samples_per_observation, int)
+        or samples_per_observation <= 0
+        or samples_per_observation % 2 == 0
+    ):
+        raise CheckFailed(
+            f"{label}.measurement.samples_per_observation: expected a positive odd integer"
+        )
     if report.get("schema") == REPORT_SCHEMA_V3:
         design = require_object(measurement, "design", f"{label}.measurement")
         expected_design = {
@@ -274,7 +285,17 @@ def validate_structured_report(
         require_nonnegative_int(run, "families", run_label)
         require_nonnegative_int(run, "schema_version", run_label)
         require_hex(run, "sha256", 64, run_label)
-        if finite_number(run.get("elapsed_ms"), f"{run_label}.elapsed_ms") <= 0:
+        observation_samples = run.get("observation_samples", 1)
+        if (
+            isinstance(observation_samples, bool)
+            or not isinstance(observation_samples, int)
+            or observation_samples != samples_per_observation
+        ):
+            raise CheckFailed(
+                f"{run_label}.observation_samples: does not match measurement settings"
+            )
+        elapsed_ms = finite_number(run.get("elapsed_ms"), f"{run_label}.elapsed_ms")
+        if elapsed_ms <= 0:
             raise CheckFailed(f"{run_label}.elapsed_ms: expected a positive number")
         surfaces = require_object(run, "surface_counts", run_label)
         for surface, count in surfaces.items():
@@ -289,6 +310,82 @@ def validate_structured_report(
                 raise CheckFailed(f"{run_label}.stages_ms: invalid stage name")
             if finite_number(value, f"{run_label}.stages_ms.{stage}") < 0:
                 raise CheckFailed(f"{run_label}.stages_ms.{stage}: expected non-negative time")
+        sample_timings = run.get("sample_timings")
+        if sample_timings is None:
+            if "samples_per_observation" in measurement:
+                raise CheckFailed(f"{run_label}.sample_timings: missing raw sample timings")
+            continue
+        if not isinstance(sample_timings, list) or len(sample_timings) != observation_samples:
+            raise CheckFailed(
+                f"{run_label}.sample_timings: expected {observation_samples} samples"
+            )
+        timing_values: list[tuple[int, float, dict[str, float]]] = []
+        for sample_index, timing in enumerate(sample_timings):
+            timing_label = f"{run_label}.sample_timings[{sample_index}]"
+            if not isinstance(timing, dict):
+                raise CheckFailed(f"{timing_label}: expected an object")
+            position = require_nonnegative_int(
+                timing, "actual_process_position", timing_label
+            )
+            if position not in (0, 1):
+                raise CheckFailed(
+                    f"{timing_label}.actual_process_position: expected 0 or 1"
+                )
+            sample_elapsed = finite_number(timing.get("elapsed_ms"), f"{timing_label}.elapsed_ms")
+            if sample_elapsed <= 0:
+                raise CheckFailed(f"{timing_label}.elapsed_ms: expected a positive number")
+            sample_stages = require_object(timing, "stages_ms", timing_label)
+            if sample_stages.keys() != stages.keys():
+                raise CheckFailed(f"{timing_label}.stages_ms: stage set does not match observation")
+            checked_stages = {
+                stage: finite_number(value, f"{timing_label}.stages_ms.{stage}")
+                for stage, value in sample_stages.items()
+            }
+            if any(value < 0 for value in checked_stages.values()):
+                raise CheckFailed(f"{timing_label}.stages_ms: expected non-negative times")
+            timing_values.append((position, sample_elapsed, checked_stages))
+        positions = [position for position, _, _ in timing_values]
+        if observation_samples > 1 and set(positions) != {0, 1}:
+            raise CheckFailed(f"{run_label}.sample_timings: both process positions are required")
+        if report.get("schema") == REPORT_SCHEMA_V3:
+            expected_positions = [
+                run["pair_position"] if sample_index % 2 == 0 else 1 - run["pair_position"]
+                for sample_index in range(observation_samples)
+            ]
+            if positions != expected_positions:
+                raise CheckFailed(
+                    f"{run_label}.sample_timings: positions do not follow mirrored sample order"
+                )
+
+        def position_neutral(values: list[tuple[int, float]]) -> float:
+            if observation_samples == 1:
+                return values[0][1]
+            return statistics.fmean(
+                statistics.median(value for position, value in values if position == expected)
+                for expected in (0, 1)
+            )
+
+        rebuilt_elapsed = position_neutral(
+            [(position, sample_elapsed) for position, sample_elapsed, _ in timing_values]
+        )
+        rebuilt_stages = {
+            stage: position_neutral(
+                [(position, sample_stages[stage]) for position, _, sample_stages in timing_values]
+            )
+            for stage in stages
+        }
+        if not math.isclose(elapsed_ms, rebuilt_elapsed, rel_tol=1e-12, abs_tol=1e-9):
+            raise CheckFailed(f"{run_label}.elapsed_ms: does not match raw sample timings")
+        for stage, rebuilt_value in rebuilt_stages.items():
+            if not math.isclose(
+                finite_number(stages[stage], f"{run_label}.stages_ms.{stage}"),
+                rebuilt_value,
+                rel_tol=1e-12,
+                abs_tol=1e-9,
+            ):
+                raise CheckFailed(
+                    f"{run_label}.stages_ms.{stage}: does not match raw sample timings"
+                )
     if observed_runs != expected_runs:
         raise CheckFailed(f"{label}.runs: measurements do not match repos/iterations")
     rebuilt_summary = summarize_runs(runs, repos)
@@ -738,6 +835,13 @@ def validate_focused_report(
         raise CheckFailed("primary report needs an integer measurement iteration count")
     if iterations <= primary_iterations:
         raise CheckFailed("focused rerun must use more measured iterations than the primary report")
+    primary_samples = require_object(primary, "measurement", "primary report").get(
+        "samples_per_observation", 1
+    )
+    if measurement.get("samples_per_observation", 1) != primary_samples:
+        raise CheckFailed(
+            "focused rerun samples-per-observation does not match primary report"
+        )
 
 
 def report_phase(
@@ -1091,6 +1195,37 @@ def run_self_test() -> None:
         sample_v3(sample_report(delta=2.0, iterations=5)),
         same_binary_control=sample_v3(sample_control(delta=0.0, iterations=5)),
     )["status"] == "pass"
+    sampled_v3 = sample_v3(sample_report(delta=2.0, iterations=5))
+    sampled_v3["measurement"]["samples_per_observation"] = 3
+    for run in sampled_v3["runs"]:
+        run["observation_samples"] = 3
+        run["sample_timings"] = [
+            {
+                "actual_process_position": (
+                    run["pair_position"] if sample_index % 2 == 0 else 1 - run["pair_position"]
+                ),
+                "elapsed_ms": run["elapsed_ms"],
+                "stages_ms": run["stages_ms"],
+            }
+            for sample_index in range(3)
+        ]
+    assert evaluate_gate(sampled_v3)["status"] == "pass"
+    tampered_samples = json.loads(json.dumps(sampled_v3))
+    tampered_samples["runs"][0]["sample_timings"][0]["elapsed_ms"] += 1.0
+    try:
+        evaluate_gate(tampered_samples)
+    except CheckFailed as error:
+        assert "does not match raw sample timings" in str(error)
+    else:
+        raise AssertionError("sample aggregate must be rebuilt from raw timings")
+    missing_samples = json.loads(json.dumps(sampled_v3))
+    del missing_samples["runs"][0]["sample_timings"]
+    try:
+        evaluate_gate(missing_samples)
+    except CheckFailed as error:
+        assert "missing raw sample timings" in str(error)
+    else:
+        raise AssertionError("declared observation samples must retain raw timings")
     raw_sub_floor = sample_v3(sample_report(delta=2.5, iterations=6))
     negative_control = sample_v3(sample_control(delta=-3.0, iterations=6))
     assert evaluate_gate(
