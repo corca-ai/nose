@@ -190,13 +190,18 @@ def estimate_metric(
     adjusted_effect = raw_effect - correction
     baseline_ms = _median([block.baseline for block in blocks])
     adjusted_pct = (adjusted_effect / baseline_ms) * 100.0 if baseline_ms > 0 else None
-    point_material = adjusted_effect > min_delta_ms and (
-        adjusted_pct is None or adjusted_pct > max_delta_pct
+    # Materiality is the conjunction of the absolute and relative thresholds.
+    # A zero baseline has no finite relative increase, so it cannot satisfy both.
+    point_material = (
+        adjusted_effect > min_delta_ms
+        and adjusted_pct is not None
+        and adjusted_pct > max_delta_pct
     )
     adjusted_blocks = [(block, block.delta - correction) for block in blocks]
     successes = sum(
         delta > min_delta_ms
-        and (block.baseline <= 0 or (delta / block.baseline) * 100.0 > max_delta_pct)
+        and block.baseline > 0
+        and (delta / block.baseline) * 100.0 > max_delta_pct
         for block, delta in adjusted_blocks
     )
     sign_p = _sign_tail(successes, len(blocks))
@@ -208,8 +213,10 @@ def estimate_metric(
         order_delta = _median([delta for _, delta in order_blocks])
         order_baseline = _median([block.baseline for block, _ in order_blocks])
         order_pct = (order_delta / order_baseline) * 100.0 if order_baseline > 0 else None
-        material = order_delta > min_delta_ms and (
-            order_pct is None or order_pct > max_delta_pct
+        material = (
+            order_delta > min_delta_ms
+            and order_pct is not None
+            and order_pct > max_delta_pct
         )
         any_order_material = any_order_material or material
         order_consistent = order_consistent and material
@@ -369,6 +376,15 @@ def run_self_test() -> None:
         blocks([12.0] * 4), blocks([0.0] * 4), max_delta_pct=5.0, min_delta_ms=5.0
     )
     assert missing["state"] == "insufficient"
+    zero_baseline = estimate_metric(
+        blocks([12.0] * 6, baseline=0.0),
+        blocks([0.0] * 6, baseline=0.0),
+        max_delta_pct=5.0,
+        min_delta_ms=5.0,
+    )
+    assert zero_baseline["adjusted_effect_pct"] is None
+    assert zero_baseline["supporting_blocks"] == 0
+    assert zero_baseline["state"] == "within-threshold"
 
     def run(iteration: int, label: str) -> dict[str, Any]:
         return {

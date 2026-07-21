@@ -113,6 +113,12 @@ strictly greater than both 5 ms and 5% of that block's baseline value. Let `k` b
 number of supporting blocks among `n`. Evidence support is the exact one-sided sign
 test under `P(support) = 0.5`:
 
+A metric with a zero baseline has no finite relative increase and therefore cannot
+satisfy both thresholds by itself. This matters for timing labels introduced after the
+baseline release: their time remains included in repository and aggregate elapsed
+signals, while the new label's zero-denominator diagnostic is not misclassified as an
+independent stage regression.
+
 ```text
 p = sum(combination(n, j) for j in k..n) / 2^n
 ```
