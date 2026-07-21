@@ -9,6 +9,7 @@ from typing import Any
 
 
 POLICY = "paired-alternating-sign-v1"
+POSITION_NEUTRAL_POLICY = "paired-position-neutral-sign-v2"
 MIN_BLOCKS = 5
 MIN_BLOCKS_PER_ORDER = 2
 ORDERS = ("baseline-current", "current-baseline")
@@ -160,12 +161,14 @@ def estimate_metric(
     *,
     max_delta_pct: float,
     min_delta_ms: float,
+    position_neutral: bool = False,
 ) -> dict[str, Any]:
+    policy = POSITION_NEUTRAL_POLICY if position_neutral else POLICY
     eligible, reason = _eligible(blocks)
     control_eligible, control_reason = _eligible(control_blocks)
     if not eligible or not control_eligible:
         return {
-            "policy": POLICY,
+            "policy": policy,
             "state": "insufficient",
             "reason": reason or f"control: {control_reason}",
             "blocks": len(blocks),
@@ -175,7 +178,7 @@ def estimate_metric(
         (block.iteration, block.order) for block in control_blocks
     ]:
         return {
-            "policy": POLICY,
+            "policy": policy,
             "state": "insufficient",
             "reason": "primary and control block designs differ",
             "blocks": len(blocks),
@@ -217,17 +220,17 @@ def estimate_metric(
             "material": material,
         }
     supported = sign_p <= 0.05
-    triggered = point_material and supported and order_consistent
+    triggered = point_material and supported and (position_neutral or order_consistent)
     order_conflict = any_order_material and not order_consistent
     state = (
         "triggered"
         if triggered
         else "inconclusive"
-        if point_material or order_conflict
+        if point_material or (order_conflict and not position_neutral)
         else "within-threshold"
     )
     return {
-        "policy": POLICY,
+        "policy": policy,
         "state": state,
         "blocks": len(blocks),
         "raw_effect_ms": raw_effect,
@@ -240,8 +243,18 @@ def estimate_metric(
         "supported": supported,
         "order_consistent": order_consistent,
         "order_conflict": order_conflict,
+        "declared_order_conflict_ignored": position_neutral and order_conflict,
+        "position_neutral_samples": position_neutral,
         "by_order": order_rows,
     }
+
+
+def _uses_position_neutral_samples(report: dict[str, Any]) -> bool:
+    measurement = report.get("measurement")
+    if not isinstance(measurement, dict):
+        return False
+    samples = measurement.get("samples_per_observation", 1)
+    return isinstance(samples, int) and not isinstance(samples, bool) and samples >= 5
 
 
 def runtime_signals(
@@ -251,6 +264,9 @@ def runtime_signals(
     max_delta_pct: float,
     min_delta_ms: float,
 ) -> list[dict[str, Any]]:
+    position_neutral = _uses_position_neutral_samples(report)
+    if control is not None and _uses_position_neutral_samples(control) != position_neutral:
+        raise ControlEvidenceError("primary and control sample aggregation designs differ")
     specifications: list[tuple[str, str | None, str | None]] = [("aggregate", None, None)]
     for repo in sorted(report.get("repos", [])):
         specifications.append(("repo", repo, None))
@@ -276,6 +292,7 @@ def runtime_signals(
             control_blocks,
             max_delta_pct=max_delta_pct,
             min_delta_ms=min_delta_ms,
+            position_neutral=position_neutral,
         )
         baseline_ms = _median([block.baseline for block in blocks]) if blocks else 0.0
         current_ms = _median([block.current for block in blocks]) if blocks else 0.0
@@ -332,6 +349,15 @@ def run_self_test() -> None:
         min_delta_ms=5.0,
     )
     assert order_bias["state"] == "inconclusive" and order_bias["order_conflict"]
+    neutral_order_bias = estimate_metric(
+        blocks([12.0, -12.0] * 3),
+        blocks([0.0] * 6),
+        max_delta_pct=5.0,
+        min_delta_ms=5.0,
+        position_neutral=True,
+    )
+    assert neutral_order_bias["state"] == "within-threshold"
+    assert neutral_order_bias["declared_order_conflict_ignored"]
     noisy = estimate_metric(
         blocks([20.0, 20.0, -5.0, 20.0, -5.0, 20.0]),
         blocks([0.0] * 6),

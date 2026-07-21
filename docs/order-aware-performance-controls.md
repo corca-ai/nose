@@ -42,6 +42,22 @@ Every sample must produce identical product-output observations; any mismatch fa
 harness. Primary, same-binary control, and focused reports must use the same
 samples-per-observation setting.
 
+For a single-sample observation, a material median in only one declared pair order is
+still an inconclusive order conflict. A multi-sample position-neutral observation has
+already exposed each label to both actual process positions and averaged their position
+medians. Splitting those collapsed observations by the declared odd-sample majority would
+apply the same order safeguard twice and can turn sub-threshold noise into a false
+conflict. For these observations, the checker retains the declared-order strata as
+diagnostics but decides from the position-neutral effect and block support. A material
+effect without sufficient block support remains inconclusive.
+
+If one physical focused run contains a superset of the repositories requested by the
+final policy, the checker records that measured superset and derives the decision from an
+exact projection onto the requested repositories. It rebuilds the projected raw-run
+summary and corpus selection identity before validation. This permits reuse of the one
+allowed focused run after a fail-closed policy correction without diluting an aggregate
+signal with unrelated repositories or silently dropping a requested repository.
+
 A metric is eligible only when all of these conditions hold:
 
 - every included block has exactly one observation for each label;

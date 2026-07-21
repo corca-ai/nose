@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import re
@@ -790,8 +791,9 @@ def validate_focused_report(
         raise CheckFailed("focused rerun report schema does not match primary report")
     if focused.get("command") != primary.get("command"):
         raise CheckFailed("focused rerun command does not match primary report")
-    if sorted(focused.get("repos", [])) != expected_repos:
-        raise CheckFailed("focused rerun repo set does not match triggered repositories")
+    measured_repos = sorted(focused.get("repos", []))
+    if not set(expected_repos) <= set(measured_repos):
+        raise CheckFailed("focused rerun does not cover every triggered repository")
     provenance_keys = [
         "baseline_binary_sha256",
         "current_binary_sha256",
@@ -843,6 +845,30 @@ def validate_focused_report(
         raise CheckFailed(
             "focused rerun samples-per-observation does not match primary report"
         )
+
+
+def project_report_repos(report: dict[str, Any], repos: list[str]) -> dict[str, Any]:
+    """Derive an exact checked view from a measured focused-report superset."""
+    selected = set(repos)
+    measured = set(report.get("repos", []))
+    if not selected <= measured:
+        raise CheckFailed("cannot project repositories absent from focused report")
+    projected = json.loads(json.dumps(report))
+    projected["repos"] = list(repos)
+    projected["runs"] = [run for run in projected["runs"] if run.get("repo") in selected]
+    projected["summary"] = summarize_runs(projected["runs"], repos)
+    corpus = projected.get("corpus")
+    if isinstance(corpus, dict):
+        revisions = [
+            revision
+            for revision in corpus.get("repositories", [])
+            if revision.get("repo") in selected
+        ]
+        corpus["repositories"] = revisions
+        corpus["selection_sha256"] = hashlib.sha256(
+            json.dumps(revisions, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+    return projected
 
 
 def report_phase(
@@ -1002,6 +1028,20 @@ def evaluate_gate(
     )
     if require_same_binary_control and focused_same_binary_control is None:
         raise CheckFailed("focused same-binary control is required", status=status)
+    measured_focused_repos = sorted(require_repos(focused_report, "focused report"))
+    if focused_same_binary_control is not None:
+        validate_same_binary_control(
+            focused_report,
+            focused_same_binary_control,
+            require_corpus_provenance=require_corpus_provenance,
+        )
+    if measured_focused_repos != focused_repos:
+        status["focused_measured_repos"] = measured_focused_repos
+        focused_report = project_report_repos(focused_report, focused_repos)
+        if focused_same_binary_control is not None:
+            focused_same_binary_control = project_report_repos(
+                focused_same_binary_control, focused_repos
+            )
     focused = report_phase(
         focused_report,
         focused_same_binary_control,
@@ -1211,6 +1251,23 @@ def run_self_test() -> None:
             for sample_index in range(5)
         ]
     assert evaluate_gate(sampled_v3)["status"] == "pass"
+    superset = sample_v3(sample_report(delta=2.0, iterations=2))
+    superset["repos"].append("repo-b")
+    extra_runs = json.loads(json.dumps(superset["runs"]))
+    for run in extra_runs:
+        run["repo"] = "repo-b"
+    superset["runs"].extend(extra_runs)
+    superset["runs"].sort(
+        key=lambda run: (run["iteration"], run["repo"], run["pair_position"])
+    )
+    superset["corpus"]["repositories"].append(
+        {"commit": "8" * 40, "repo": "repo-b"}
+    )
+    superset["summary"] = summarize_runs(superset["runs"], superset["repos"])
+    projected = project_report_repos(superset, ["repo-a"])
+    assert projected["repos"] == ["repo-a"]
+    assert {run["repo"] for run in projected["runs"]} == {"repo-a"}
+    validate_structured_report(projected, "projected self-test")
     tampered_samples = json.loads(json.dumps(sampled_v3))
     tampered_samples["runs"][0]["elapsed_ms"] += 1.0
     try:
