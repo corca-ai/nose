@@ -29,6 +29,7 @@ rayon = { workspace = true }
 ignore = { workspace = true }
 rustc-hash = { workspace = true }
 sha2 = { workspace = true }
+crc32fast = { workspace = true }
 rmp-serde = { workspace = true }
 zstd = { workspace = true }
 fs2 = { workspace = true }

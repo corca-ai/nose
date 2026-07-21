@@ -147,6 +147,83 @@ fn assert_warm_detection_reused(output: &Output) {
     assert!(stats.scores_reused > 0);
 }
 
+fn artifact_paths(path: &Path) -> Vec<PathBuf> {
+    let Ok(entries) = fs::read_dir(path) else {
+        return Vec::new();
+    };
+    entries
+        .filter_map(Result::ok)
+        .flat_map(|entry| {
+            let path = entry.path();
+            if path.is_dir() {
+                artifact_paths(&path)
+            } else if path.extension().is_some_and(|ext| ext == "artifact") {
+                vec![path]
+            } else {
+                Vec::new()
+            }
+        })
+        .collect()
+}
+
+#[test]
+fn large_cold_store_consolidates_units_and_restores_every_region() {
+    let project = TempProject::new("cache_large_unit_pack");
+    for index in 0..513 {
+        project.write(
+            &format!("src/file_{index:04}.py"),
+            &format!("def value_{index}():\n    return {index}\n"),
+        );
+    }
+    let cache = project.path().join(".cache");
+
+    let clean = query(project.path(), None);
+    let cold = query(project.path(), Some(&cache));
+    let warm = query(project.path(), Some(&cache));
+
+    assert_eq!(cold.stdout, clean.stdout);
+    assert_eq!(warm.stdout, clean.stdout);
+    let packs = artifact_paths(&cache.join("cas-v2/units-syntax"));
+    assert_eq!(
+        packs.len(),
+        1,
+        "large foreground scans should publish one checksummed unit pack"
+    );
+    assert_eq!(
+        cache_stats(&warm),
+        CacheStats {
+            files: 513,
+            hits: 513,
+            misses: 0,
+        }
+    );
+
+    let mut corrupted = fs::read(&packs[0]).unwrap();
+    *corrupted.last_mut().unwrap() ^= 0xff;
+    fs::write(&packs[0], corrupted).unwrap();
+    let recovered = query(project.path(), Some(&cache));
+    assert_eq!(recovered.stdout, clean.stdout);
+    assert_eq!(
+        cache_stats(&recovered),
+        CacheStats {
+            files: 513,
+            hits: 0,
+            misses: 513,
+        },
+        "a corrupt pack must be a miss and be regenerated"
+    );
+    let warm_after_recovery = query(project.path(), Some(&cache));
+    assert_eq!(warm_after_recovery.stdout, clean.stdout);
+    assert_eq!(
+        cache_stats(&warm_after_recovery),
+        CacheStats {
+            files: 513,
+            hits: 513,
+            misses: 0,
+        }
+    );
+}
+
 #[test]
 fn clone_shaped_files_keep_their_own_names_on_a_warm_hit() {
     let project = TempProject::new("cache_reporting_identity");

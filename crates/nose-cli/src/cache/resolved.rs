@@ -169,6 +169,7 @@ pub(super) fn build_resolved_corpus_cached(
             swift_global_active: summary.swift_global_active,
             fast_safe: false,
             artifacts: Vec::new(),
+            unit_pack: None,
         },
         report,
         corpus: raw.corpus,

@@ -3,7 +3,7 @@ use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 const MAGIC: &[u8; 8] = b"NOSECAS2";
 const FORMAT_SCHEMA: u32 = 2;
@@ -89,6 +89,7 @@ pub(super) struct LayeredCas {
     written_bytes: Option<Arc<AtomicU64>>,
     write_portable_il: bool,
     read_existing: bool,
+    ready_prefixes: [OnceLock<std::io::Result<()>>; 6 * 256],
 }
 
 impl LayeredCas {
@@ -117,6 +118,7 @@ impl LayeredCas {
             written_bytes,
             write_portable_il,
             read_existing,
+            ready_prefixes: std::array::from_fn(|_| OnceLock::new()),
         }
     }
 
@@ -151,9 +153,11 @@ impl LayeredCas {
             ));
         }
         let target = self.path(key);
-        if (self.read_existing && self.load(key).is_some())
-            || (!self.read_existing && target.is_file())
-        {
+        if self.read_existing && self.load(key).is_some() {
+            return Ok(0);
+        }
+        #[cfg(not(unix))]
+        if target.is_file() {
             return Ok(0);
         }
         if !self.write_portable_il
@@ -162,7 +166,12 @@ impl LayeredCas {
             return Ok(0);
         }
         let parent = target.parent().expect("CAS entries always have a parent");
-        std::fs::create_dir_all(parent)?;
+        let prefix = ((key.stage as usize - 1) * 256) + key.digest.as_bytes()[0] as usize;
+        if let Err(error) =
+            self.ready_prefixes[prefix].get_or_init(|| std::fs::create_dir_all(parent))
+        {
+            return Err(std::io::Error::new(error.kind(), error.to_string()));
+        }
         let temp = temporary_path(parent, &key.digest.hex());
         let stored = if matches!(
             key.stage,
@@ -186,6 +195,81 @@ impl LayeredCas {
                 Err(error)
             }
         }
+    }
+
+    /// Publish a caller-verified chunked artifact from discontiguous slices.
+    ///
+    /// The caller's format must bind `key` and carry checksums for its table and
+    /// chunks. This avoids a second serial hash over a large pack whose chunks
+    /// were already checksummed in parallel.
+    pub(super) fn store_chunked(&self, key: ArtifactKey, parts: &[&[u8]]) -> std::io::Result<u64> {
+        let stored_len = parts.iter().try_fold(0usize, |total, part| {
+            total.checked_add(part.len()).ok_or_else(|| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "cache payload length overflow",
+                )
+            })
+        })?;
+        if stored_len > MAX_PAYLOAD_BYTES {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "cache payload exceeds the decoded-size limit",
+            ));
+        }
+        let target = self.path(key);
+        let parent = target.parent().expect("CAS entries always have a parent");
+        let prefix = ((key.stage as usize - 1) * 256) + key.digest.as_bytes()[0] as usize;
+        if let Err(error) =
+            self.ready_prefixes[prefix].get_or_init(|| std::fs::create_dir_all(parent))
+        {
+            return Err(std::io::Error::new(error.kind(), error.to_string()));
+        }
+        let temp = temporary_path(parent, &key.digest.hex());
+        let write_result = (|| {
+            let mut file = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&temp)?;
+            for part in parts {
+                file.write_all(part)?;
+            }
+            Ok::<(), std::io::Error>(())
+        })();
+        if let Err(error) = write_result {
+            let _ = std::fs::remove_file(&temp);
+            return Err(error);
+        }
+        let stored = stored_len as u64;
+        match publish(&temp, &target) {
+            Ok(()) => {
+                if let Some(counter) = &self.written_bytes {
+                    counter.fetch_add(stored, Ordering::Relaxed);
+                }
+                Ok(stored)
+            }
+            Err(error) => {
+                let _ = std::fs::remove_file(&temp);
+                Err(error)
+            }
+        }
+    }
+
+    pub(super) fn load_chunked(&self, key: ArtifactKey) -> Option<CasRead> {
+        if !self.read_existing {
+            return None;
+        }
+        let path = self.path(key);
+        let stored_bytes = std::fs::metadata(&path).ok()?.len();
+        if stored_bytes > MAX_STORED_BYTES {
+            warn_corrupt(&path, "chunked artifact exceeds the cache limit");
+            return None;
+        }
+        let payload = std::fs::read(&path).ok()?;
+        Some(CasRead {
+            payload,
+            stored_bytes,
+        })
     }
 
     fn path(&self, key: ArtifactKey) -> PathBuf {
@@ -391,6 +475,24 @@ mod tests {
         let unit_bytes = encode_envelope(unit_key, &payload);
         assert_eq!(unit_bytes.len(), HEADER_LEN + payload.len());
         assert_eq!(decode_envelope(&unit_bytes, unit_key), Some(payload));
+    }
+
+    #[test]
+    fn discontiguous_chunked_artifact_preserves_exact_bytes() {
+        let root = temp_store("parts");
+        let _ = std::fs::remove_dir_all(&root);
+        let cas = LayeredCas::new(&root);
+        let key = ArtifactKey::derive(ArtifactStage::UnitsSyntax, 4, &[b"pack"]);
+        let parts = [b"unit-a".as_slice(), b"".as_slice(), b"unit-b".as_slice()];
+
+        let stored = cas.store_chunked(key, &parts).unwrap();
+        let loaded = LayeredCas::tracked(&root, None, true, true)
+            .load_chunked(key)
+            .unwrap();
+
+        assert_eq!(loaded.payload, b"unit-aunit-b");
+        assert_eq!(loaded.stored_bytes, stored);
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]

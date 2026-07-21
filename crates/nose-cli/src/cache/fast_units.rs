@@ -21,7 +21,7 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-const SNAPSHOT_SCHEMA: u32 = 1;
+const SNAPSHOT_SCHEMA: u32 = 2;
 
 mod session;
 pub(crate) use session::FastUnitSession;
@@ -57,6 +57,19 @@ struct RestoredRegion {
     hit: bool,
     read_bytes: u64,
     written_bytes: u64,
+}
+
+struct UnitPackEntry {
+    artifact: [u8; 32],
+    payload_checksum: u32,
+    start: usize,
+    end: usize,
+}
+
+struct LoadedUnitPack {
+    payload: Vec<u8>,
+    entries: Vec<UnitPackEntry>,
+    stored_bytes: u64,
 }
 
 pub(super) fn store_snapshot(run: &CacheRun, opts: &DetectOptions, snapshot: &CachedUnitSnapshot) {
@@ -105,7 +118,7 @@ pub(super) fn try_build(
     );
 
     let cas = run.cas();
-    let restored = restore_snapshot_regions(
+    let (restored, pack_read_bytes) = restore_snapshot_regions(
         &snapshot,
         &current_sources,
         changed_source.as_deref(),
@@ -117,7 +130,7 @@ pub(super) fn try_build(
     let mut streams = Vec::with_capacity(snapshot.contexts.len());
     let mut hits = 0;
     let mut misses = 0;
-    let mut read_bytes = 0;
+    let mut read_bytes = pack_read_bytes;
     let mut written_bytes = 0;
     let mut artifacts = Vec::with_capacity(snapshot.contexts.len());
     let mut region_unit_counts = Vec::with_capacity(snapshot.contexts.len());
@@ -182,7 +195,11 @@ fn restore_snapshot_regions(
     changed_source: Option<&str>,
     cas: &LayeredCas,
     opts: &DetectOptions,
-) -> Option<Vec<RestoredRegion>> {
+) -> Option<(Vec<RestoredRegion>, u64)> {
+    let pack = snapshot
+        .unit_pack
+        .and_then(|digest| load_unit_pack(cas, digest, snapshot.contexts.len()));
+    let pack_read_bytes = pack.as_ref().map_or(0, |pack| pack.stored_bytes);
     let mut replacements = match changed_source {
         Some(path) => {
             let current = current_sources.iter().find(|source| source.path == path)?;
@@ -199,12 +216,122 @@ fn restore_snapshot_regions(
     if !replacements.is_empty() {
         return None;
     }
-    jobs.into_par_iter()
+    let restored = jobs
+        .into_par_iter()
         .map(|(index, context, replacement)| {
             replacement
+                .or_else(|| {
+                    pack.as_ref().and_then(|pack| {
+                        load_packed_region(
+                            pack,
+                            index,
+                            snapshot.artifacts[index],
+                            &context.region_path,
+                        )
+                    })
+                })
                 .or_else(|| load_region(cas, snapshot.artifacts[index], &context.region_path))
         })
-        .collect()
+        .collect::<Option<Vec<_>>>()?;
+    Some((restored, pack_read_bytes))
+}
+
+fn load_unit_pack(
+    cas: &LayeredCas,
+    digest: [u8; 32],
+    expected_regions: usize,
+) -> Option<LoadedUnitPack> {
+    let key = ArtifactKey {
+        stage: ArtifactStage::UnitsSyntax,
+        schema: super::UNITS_PACK_SCHEMA,
+        digest: ContentDigest::from_bytes(digest),
+    };
+    let entry = cas.load_chunked(key)?;
+    let payload = entry.payload;
+    if payload.len() < super::UNITS_PACK_HEADER_LEN || &payload[..8] != super::UNITS_PACK_MAGIC {
+        return None;
+    }
+    let count = u32::from_be_bytes(payload[8..12].try_into().ok()?) as usize;
+    let stored_key: [u8; 32] = payload[12..44].try_into().ok()?;
+    let table_digest: [u8; 32] = payload[44..76].try_into().ok()?;
+    if count != expected_regions || stored_key != digest {
+        return None;
+    }
+    let data_start = super::UNITS_PACK_HEADER_LEN
+        .checked_add(super::UNITS_PACK_ENTRY_LEN.checked_mul(count)?)?;
+    if data_start > payload.len() {
+        return None;
+    }
+    if ContentDigest::sha256(&payload[super::UNITS_PACK_HEADER_LEN..data_start]).as_bytes()
+        != &table_digest
+    {
+        return None;
+    }
+    let mut entries = Vec::with_capacity(count);
+    let mut expected_offset = 0usize;
+    for index in 0..count {
+        let cursor = super::UNITS_PACK_HEADER_LEN + index * super::UNITS_PACK_ENTRY_LEN;
+        let artifact = payload[cursor..cursor + 32].try_into().ok()?;
+        let payload_checksum =
+            u32::from_be_bytes(payload[cursor + 32..cursor + 36].try_into().ok()?);
+        let offset = usize::try_from(u64::from_be_bytes(
+            payload[cursor + 36..cursor + 44].try_into().ok()?,
+        ))
+        .ok()?;
+        let len = usize::try_from(u64::from_be_bytes(
+            payload[cursor + 44..cursor + 52].try_into().ok()?,
+        ))
+        .ok()?;
+        if offset != expected_offset {
+            return None;
+        }
+        let start = data_start.checked_add(offset)?;
+        let end = start.checked_add(len)?;
+        if end > payload.len() {
+            return None;
+        }
+        expected_offset = offset.checked_add(len)?;
+        entries.push(UnitPackEntry {
+            artifact,
+            payload_checksum,
+            start,
+            end,
+        });
+    }
+    if data_start.checked_add(expected_offset)? != payload.len() {
+        return None;
+    }
+    Some(LoadedUnitPack {
+        payload,
+        entries,
+        stored_bytes: entry.stored_bytes,
+    })
+}
+
+fn load_packed_region(
+    pack: &LoadedUnitPack,
+    index: usize,
+    artifact: [u8; 32],
+    path: &str,
+) -> Option<RestoredRegion> {
+    let entry = pack.entries.get(index)?;
+    if entry.artifact != artifact {
+        return None;
+    }
+    let payload = &pack.payload[entry.start..entry.end];
+    if crc32fast::hash(payload) != entry.payload_checksum {
+        return None;
+    }
+    let (mut units, mut stream) = rmp_serde::from_slice::<(Vec<UnitFeat>, Stream)>(payload).ok()?;
+    super::retarget(&mut units, &mut stream, path);
+    Some(RestoredRegion {
+        units,
+        stream,
+        artifact,
+        hit: true,
+        read_bytes: 0,
+        written_bytes: 0,
+    })
 }
 
 fn update_snapshot(

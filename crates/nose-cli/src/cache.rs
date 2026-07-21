@@ -84,6 +84,7 @@ pub(crate) struct CachedUnitSnapshot {
     pub(crate) swift_global_active: bool,
     pub(crate) fast_safe: bool,
     pub(crate) artifacts: Vec<[u8; 32]>,
+    pub(crate) unit_pack: Option<[u8; 32]>,
 }
 
 pub(crate) struct CachedLineContext {
@@ -189,6 +190,10 @@ fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> ContentDiges
 
 /// Bump when unit/stream serialization, extraction, or feature hashing changes.
 const UNITS_SYNTAX_SCHEMA: u32 = 3;
+const UNITS_PACK_SCHEMA: u32 = 4;
+const UNITS_PACK_MAGIC: &[u8; 8] = b"NOSEUPK2";
+const UNITS_PACK_HEADER_LEN: usize = 8 + 4 + 32 + 32;
+const UNITS_PACK_ENTRY_LEN: usize = 32 + 4 + 8 + 8;
 
 /// Portable raw/resolved IL is a fallback cache below the bounded unit fast
 /// path. On large one-shot scans, publishing one artifact per source costs more
@@ -233,6 +238,7 @@ pub(crate) fn build_units_cached_with_context(
     assert_eq!(corpus.files.len(), snapshot.contexts.len());
     let cached = build_units_cached_inner(corpus, opts, run, Some(&snapshot.contexts));
     snapshot.artifacts.clone_from(&cached.region_artifacts);
+    snapshot.unit_pack = cached.unit_pack;
     fast_units::store_snapshot(run, opts, &snapshot);
     cached.into_public()
 }
@@ -240,6 +246,16 @@ pub(crate) fn build_units_cached_with_context(
 struct CachedUnitsInner {
     public: CachedUnits,
     region_artifacts: Vec<[u8; 32]>,
+    unit_pack: Option<[u8; 32]>,
+}
+
+struct RestoredUnitFile {
+    units: Vec<UnitFeat>,
+    stream: Stream,
+    artifact: ContentDigest,
+    path: String,
+    packed_payload: Option<Vec<u8>>,
+    payload_checksum: Option<u32>,
 }
 
 impl CachedUnitsInner {
@@ -260,6 +276,7 @@ fn build_units_cached_inner(
     let misses = AtomicUsize::new(0);
     let read_bytes = AtomicU64::new(0);
     let written_bytes = AtomicU64::new(0);
+    let pack_units = contexts.is_some() && !run.writes_portable_il();
 
     // Detection owns the resolved IL after semantic-pack registries and query scope
     // have been built. Drain it here so each file can be released as soon as its
@@ -289,7 +306,16 @@ fn build_units_cached_inner(
             {
                 hits.fetch_add(1, Ordering::Relaxed);
                 retarget(&mut units, &mut stream, &path);
-                return (units, stream, key.digest, path);
+                let payload_checksum = pack_units.then(|| crc32fast::hash(&entry.payload));
+                let payload = pack_units.then_some(entry.payload);
+                return RestoredUnitFile {
+                    units,
+                    stream,
+                    artifact: key.digest,
+                    path,
+                    packed_payload: payload,
+                    payload_checksum,
+                };
             }
         }
 
@@ -303,12 +329,24 @@ fn build_units_cached_inner(
         // stage schema, so compact MessagePack avoids repeating field names.
         let payload = rmp_serde::to_vec(&(&units, &stream));
         retarget(&mut units, &mut stream, &path);
+        let mut packed_payload = None;
+        let mut payload_checksum = None;
         if let Ok(payload) = payload {
-            if let Ok(bytes) = cas.store(key, &payload) {
+            if pack_units {
+                payload_checksum = Some(crc32fast::hash(&payload));
+                packed_payload = Some(payload);
+            } else if let Ok(bytes) = cas.store(key, &payload) {
                 written_bytes.fetch_add(bytes, Ordering::Relaxed);
             }
         }
-        (units, stream, key.digest, path)
+        RestoredUnitFile {
+            units,
+            stream,
+            artifact: key.digest,
+            path,
+            packed_payload,
+            payload_checksum,
+        }
     };
     // Match the clean scan's work-stealing granularity. Artificial batch
     // barriers leave cores idle behind a few expensive files and turn a large
@@ -321,44 +359,107 @@ fn build_units_cached_inner(
         .map(restore)
         .collect::<Vec<_>>();
 
-    let files = per_file.len();
     let region_artifacts = per_file
         .iter()
-        .map(|(_, _, artifact, _)| *artifact.as_bytes())
-        .collect();
+        .map(|region| *region.artifact.as_bytes())
+        .collect::<Vec<_>>();
+    let unit_pack = pack_units
+        .then(|| store_unit_pack(&cas, &region_artifacts, &per_file))
+        .flatten()
+        .map(|(digest, bytes)| {
+            written_bytes.fetch_add(bytes, Ordering::Relaxed);
+            digest
+        });
+    let files = per_file.len();
+    assemble_cached_units(
+        per_file,
+        region_artifacts,
+        unit_pack,
+        CacheStats {
+            files,
+            hits: hits.load(Ordering::Relaxed),
+            misses: misses.load(Ordering::Relaxed),
+            read_bytes: read_bytes.load(Ordering::Relaxed),
+            written_bytes: written_bytes.load(Ordering::Relaxed),
+        },
+    )
+}
+
+fn assemble_cached_units(
+    per_file: Vec<RestoredUnitFile>,
+    region_artifacts: Vec<[u8; 32]>,
+    unit_pack: Option<[u8; 32]>,
+    stats: CacheStats,
+) -> CachedUnitsInner {
     let mut all_units = Vec::new();
     let mut unit_keys = Vec::new();
     let mut all_streams = Vec::new();
-    for (u, s, artifact, path) in per_file {
-        for index in 0..u.len() {
+    for region in per_file {
+        for index in 0..region.units.len() {
             let ordinal = (index as u64).to_be_bytes();
             unit_keys.push(
                 *ContentDigest::derive(
                     b"nose.cached-unit-identity.v1",
-                    &[artifact.as_bytes(), path.as_bytes(), &ordinal],
+                    &[region.artifact.as_bytes(), region.path.as_bytes(), &ordinal],
                 )
                 .as_bytes(),
             );
         }
-        all_units.extend(u);
-        all_streams.push(s);
+        all_units.extend(region.units);
+        all_streams.push(region.stream);
     }
     CachedUnitsInner {
         public: CachedUnits {
             units: all_units,
             unit_keys,
             streams: all_streams,
-            files,
-            stats: CacheStats {
-                files,
-                hits: hits.load(Ordering::Relaxed),
-                misses: misses.load(Ordering::Relaxed),
-                read_bytes: read_bytes.load(Ordering::Relaxed),
-                written_bytes: written_bytes.load(Ordering::Relaxed),
-            },
+            files: stats.files,
+            stats,
         },
         region_artifacts,
+        unit_pack,
     }
+}
+
+fn store_unit_pack(
+    cas: &store::LayeredCas,
+    artifacts: &[[u8; 32]],
+    regions: &[RestoredUnitFile],
+) -> Option<([u8; 32], u64)> {
+    let count = u32::try_from(regions.len()).ok()?;
+    let table_len =
+        UNITS_PACK_HEADER_LEN.checked_add(UNITS_PACK_ENTRY_LEN.checked_mul(regions.len())?)?;
+    let mut table = Vec::with_capacity(table_len);
+    let mut offset = 0u64;
+    for (artifact, region) in artifacts.iter().zip(regions) {
+        let payload = region.packed_payload.as_deref()?;
+        let payload_checksum = region.payload_checksum?;
+        let len = u64::try_from(payload.len()).ok()?;
+        table.extend_from_slice(artifact);
+        table.extend_from_slice(&payload_checksum.to_be_bytes());
+        table.extend_from_slice(&offset.to_be_bytes());
+        table.extend_from_slice(&len.to_be_bytes());
+        offset = offset.checked_add(len)?;
+    }
+    let key = ArtifactKey::derive(
+        ArtifactStage::UnitsSyntax,
+        UNITS_PACK_SCHEMA,
+        &[b"nose.unit-pack.v2", &table],
+    );
+    let table_digest = ContentDigest::sha256(&table);
+    let mut header = Vec::with_capacity(UNITS_PACK_HEADER_LEN);
+    header.extend_from_slice(UNITS_PACK_MAGIC);
+    header.extend_from_slice(&count.to_be_bytes());
+    header.extend_from_slice(key.digest.as_bytes());
+    header.extend_from_slice(table_digest.as_bytes());
+    let mut parts = Vec::with_capacity(regions.len() + 2);
+    parts.push(header.as_slice());
+    parts.push(table.as_slice());
+    for region in regions {
+        parts.push(region.packed_payload.as_deref()?);
+    }
+    let bytes = cas.store_chunked(key, &parts).ok()?;
+    Some((*key.digest.as_bytes(), bytes))
 }
 
 fn unit_artifact_key(context: &CachedUnitContext, options: ContentDigest) -> ArtifactKey {

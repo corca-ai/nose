@@ -237,21 +237,26 @@ export and resolution summaries are unchanged. Dirty, untracked, and non-Git inp
 their exact bytes, rather than mtime/size, establish identity.
 
 The foreground policy is bounded by reuse value. One-shot scans of at most 512 discovered source
-regions retain the complete source/raw/resolved and line-index history used by dependency-aware
+files retain the complete source/raw/resolved and line-index history used by dependency-aware
 invalidation. Above that boundary, the common exact no-op/independent-leaf path retains compact
 unit and snapshot state but does not publish the fallback portable-IL layer or persistent line
-dictionary; line weighting uses the same clean parallel implementation. A miss still lowers and
-resolves exact source, so this boundary changes only performance and cache observability, never
-query output. Watch sessions always retain their in-memory incremental line state, and small
-provider/high-fanout workloads keep the full dependency history. First-generation persistent
-detection state is similarly capped at 20,000 units; large one-shot runs use the clean detector
-while the unit cache and active watch session remain available.
+dictionary; line weighting uses the same clean parallel implementation. Large cold scans publish
+those unit payloads as one chunk-verified pack instead of one filesystem object per region. The
+pack's SHA-256-bound table records the ordered region keys, offsets, lengths, and per-region CRC32;
+a damaged table or used region is a miss and the exact source regenerates the pack. A miss still
+lowers and resolves exact source, so this boundary changes only performance and cache
+observability, never query output. Watch sessions always retain their in-memory incremental line
+state, and small provider/high-fanout workloads keep the full dependency history.
+First-generation persistent detection state is similarly capped at 20,000 units; large one-shot
+runs use the clean detector while the unit cache and active watch session remain available.
 
 CAS v1 replaces the u64 entry name with a stage/schema-separated SHA-256 address over the complete
-post-resolution semantic/reporting identity and unit-affecting options. An independent payload
-SHA-256, exact length, and envelope identity make corrupt or misplaced bytes clean misses. Paths,
-`FileId`s, and interner ids are portable and rebound; names, spans, suppression, facets, and full
-evidence records remain identity-bearing. Resolved entries add a deterministic
+post-resolution semantic/reporting identity and unit-affecting options. Ordinary entries use an
+independent payload SHA-256, exact length, and envelope identity; the large unit pack uses its
+SHA-256 table identity plus exact bounds and per-region checksums. Corrupt or misplaced bytes are
+clean misses in either representation. Paths, `FileId`s, and interner ids are portable and
+rebound; names, spans, suppression, facets, and full evidence records remain identity-bearing.
+Resolved entries add a deterministic
 consumer-visible export/dependency context, so provider-private changes leave importers hot while
 export, ambiguity, deletion/rename, and Swift-global changes reach their consumers. Global
 detection buckets/pair scores/components, connected and same-unit witnesses, syntax components,
