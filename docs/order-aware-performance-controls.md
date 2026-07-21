@@ -42,6 +42,20 @@ Every sample must produce identical product-output observations; any mismatch fa
 harness. Primary, same-binary control, and focused reports must use the same
 samples-per-observation setting.
 
+The v0.20 release qualification also applies this design to the frozen 17-repository
+`base=<ref>` workload in `bench/base_view_release_workload.v1.json`. The manifest binds
+each repository to an exact checked-out commit, ancestor base, source sample, and source
+digest. The harness validates those Git objects and the source-row selection before
+creating an isolated detached worktree. `--repo` selects an exact focused subset from
+the same manifest; it cannot introduce a new workload after the primary measurement.
+
+Base-view output has intentional additive evidence relative to v0.19.0. With
+`--output-normalizer base-v0.19`, every raw output remains hash-accounted for the exact
+drift declaration, while a second hash removes only `targets` and per-site
+`semantic_change` fields. The checker reconstructs these normalized hash sets from all
+raw observations and fails if baseline and candidate differ after that projection.
+Timing never waives either the raw drift declaration or normalized equality.
+
 For a single-sample observation, a material median in only one declared pair order is
 still an inconclusive order conflict. A multi-sample position-neutral observation has
 already exposed each label to both actual process positions and averaged their position

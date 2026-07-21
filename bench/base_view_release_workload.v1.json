@@ -1,0 +1,112 @@
+{
+  "schema": "nose.base_view_release_workload.v1",
+  "source": {
+    "path": "eval/divergence_fire/sampled_findings_2026_07_06.jsonl",
+    "selection": "first current-v2-strict default-arm finding per repository",
+    "sha256": "05be2f55e0ef4aa810fffd741cd7c39b840a92ed2b7cc055164496a74108c288"
+  },
+  "workloads": [
+    {
+      "base": "a9f47afbf3224d2ca987dbd8188789c7ea853c5d",
+      "commit": "c959ff29013a3bc90cde3ac7ea2d9a3f9c08974b",
+      "repo": "axios",
+      "sample_id": "rv2-225"
+    },
+    {
+      "base": "87ec1ad80dc174563cba130772823562e4427560",
+      "commit": "c96f222c35c4ef4bd3ab9927809b2724532a8f6e",
+      "repo": "clap",
+      "sample_id": "rv2t1-101"
+    },
+    {
+      "base": "9ed1d713d619c428c8a8adcd13667d6b3f54b247",
+      "commit": "02a0d2fbc9e61d26f8e5979749f6030964a55a3e",
+      "repo": "cobra",
+      "sample_id": "rv2t1-003"
+    },
+    {
+      "base": "28341c303d6fdaabb5a9c97abc3ae04614e70693",
+      "commit": "ba600296d2a1d8a4e53a36eb4bd30c1f0d0152cc",
+      "repo": "curl",
+      "sample_id": "rv2t1-004"
+    },
+    {
+      "base": "db4804f94731abd42228f0a1a25e97d013147216",
+      "commit": "99bd2e773962f5c574684e9685abaef102b7409b",
+      "repo": "date-fns",
+      "sample_id": "rv2-228"
+    },
+    {
+      "base": "7b2bccb0d58d4f24705bf985de1f4612e4cf06e5",
+      "commit": "341be27dfef8aba66f10be58aec1395075081e85",
+      "repo": "git",
+      "sample_id": "rv2t1-008"
+    },
+    {
+      "base": "afed86beaddf0812f4cdd038d99f461295e67a8a",
+      "commit": "9471163df1f972975878784d9fd3c646c8d0b840",
+      "repo": "gson",
+      "sample_id": "rv2-362"
+    },
+    {
+      "base": "572dbae747d8b2c0cc8ddca6e2739b3764401069",
+      "commit": "7a1588e41bfaff92742865c716776cead0d62e86",
+      "repo": "jest",
+      "sample_id": "rv2t1-012"
+    },
+    {
+      "base": "e216d307ef2c0018c3b833249a12ef8485ceefa9",
+      "commit": "9a85f9f25cd580e4f971deb6ea19f7b8af1c6e0d",
+      "repo": "netty",
+      "sample_id": "rv2t1-066"
+    },
+    {
+      "base": "9c89645d8714add0e0660695be060d340a4f03df",
+      "commit": "551b5b1c565215536b46a648300d53acf968ea61",
+      "repo": "prometheus",
+      "sample_id": "rv2-231"
+    },
+    {
+      "base": "8773579baf55bc801c32d5e4c20293baf75d325e",
+      "commit": "95a745ecb619c2cb5e83fddb9445cf3bb2db2408",
+      "repo": "regex",
+      "sample_id": "rv2-161"
+    },
+    {
+      "base": "a559d62f17c0c3129029870146b74da50a81d433",
+      "commit": "e976ea839b55e07f01a962c5bb38bedb543a2df7",
+      "repo": "requests",
+      "sample_id": "rv2t1-019"
+    },
+    {
+      "base": "1ec05543769f7cd7b89bf9bf2d6c0e2f071af6a1",
+      "commit": "810c790a68123a8c4aae6607bfa792e9d9275585",
+      "repo": "rubocop",
+      "sample_id": "rv2t1-020"
+    },
+    {
+      "base": "9ed54168db22da80c5c75495ab3dde9a64faa06d",
+      "commit": "1cf5b9d072b912a6bcb3ba6a16368ed3a55d3c84",
+      "repo": "rxjava",
+      "sample_id": "rv2-409"
+    },
+    {
+      "base": "0c82341b0d4d482394bc6551bc3d6c911ac6df7b",
+      "commit": "414a692db7744d9ec2e3d8ac14536fd48d65dc14",
+      "repo": "rxjs",
+      "sample_id": "rv2t1-022"
+    },
+    {
+      "base": "5a7e132486f3337956f684fffcac77cb6ad5a8d2",
+      "commit": "180ca39b230590a2a2862c8d18c574661b1d16ad",
+      "repo": "scrapy",
+      "sample_id": "rv2-202"
+    },
+    {
+      "base": "654d38b13228a13498e793d8bb4f6ba50fd1016a",
+      "commit": "ad8c59add6a1988d8c327fb3358beeeae3bbb5cd",
+      "repo": "tokio",
+      "sample_id": "rv2t1-075"
+    }
+  ]
+}

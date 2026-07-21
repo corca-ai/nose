@@ -118,6 +118,62 @@ def require_nonnegative_int(parent: dict[str, Any], key: str, label: str) -> int
     return value
 
 
+def validate_output_compatibility(
+    report: dict[str, Any], label: str, repos: list[str], runs: list[dict[str, Any]]
+) -> None:
+    compatibility = report.get("output_compatibility")
+    if compatibility is None:
+        return
+    if not isinstance(compatibility, dict):
+        raise CheckFailed(f"{label}.output_compatibility: expected an object")
+    normalizer = require_string(
+        compatibility, "normalizer", f"{label}.output_compatibility"
+    )
+    by_repo = compatibility.get("by_repo")
+    if not isinstance(by_repo, dict) or list(by_repo) != repos:
+        raise CheckFailed(
+            f"{label}.output_compatibility.by_repo: selection does not match repos"
+        )
+    rebuilt = {}
+    for repo in repos:
+        hashes = {}
+        for run_label in ("baseline", "current"):
+            selected = [
+                (index, run)
+                for index, run in enumerate(runs)
+                if run.get("repo") == repo and run.get("label") == run_label
+            ]
+            hashes[run_label] = sorted(
+                {
+                    require_hex(
+                        run,
+                        "normalized_sha256",
+                        64,
+                        f"{label}.runs[{index}]",
+                    )
+                    for index, run in selected
+                }
+            )
+        rebuilt[repo] = {
+            "baseline_hashes": hashes["baseline"],
+            "current_hashes": hashes["current"],
+            "equal": (
+                hashes["baseline"] == hashes["current"]
+                and len(hashes["baseline"]) == 1
+            ),
+        }
+    expected = {
+        "all_equal": all(row["equal"] for row in rebuilt.values()),
+        "by_repo": rebuilt,
+        "normalizer": normalizer,
+    }
+    if compatibility != expected:
+        raise CheckFailed(f"{label}.output_compatibility: does not match raw runs")
+    if not expected["all_equal"]:
+        failed = ", ".join(repo for repo, row in rebuilt.items() if not row["equal"])
+        raise CheckFailed(f"{label}: normalized output compatibility failed for {failed}")
+
+
 def validate_structured_report(
     report: dict[str, Any], label: str, *, require_corpus_provenance: bool = False
 ) -> None:
@@ -393,6 +449,7 @@ def validate_structured_report(
     rebuilt_summary = summarize_runs(runs, repos)
     if report.get("summary") != rebuilt_summary:
         raise CheckFailed(f"{label}.summary: does not match raw runs")
+    validate_output_compatibility(report, label, repos, runs)
 
 
 def validate_report_contract(
@@ -470,6 +527,13 @@ def validate_same_binary_control(
             raise CheckFailed("same-binary control harness schema does not match report")
         if report.get("measurement") != control.get("measurement"):
             raise CheckFailed("same-binary control measurement settings do not match report")
+        report_compatibility = report.get("output_compatibility")
+        control_compatibility = control.get("output_compatibility")
+        if (report_compatibility is None) != (control_compatibility is None):
+            raise CheckFailed("same-binary control output normalizer does not match report")
+        if isinstance(report_compatibility, dict) and isinstance(control_compatibility, dict):
+            if report_compatibility.get("normalizer") != control_compatibility.get("normalizer"):
+                raise CheckFailed("same-binary control output normalizer does not match report")
     report_provenance = require_provenance(report, "report")
     control_provenance = require_provenance(control, "same-binary control")
     baseline_sha = control_provenance.get("baseline_binary_sha256")
@@ -865,9 +929,32 @@ def project_report_repos(report: dict[str, Any], repos: list[str]) -> dict[str, 
             if revision.get("repo") in selected
         ]
         corpus["repositories"] = revisions
+        if isinstance(corpus.get("base_revisions"), list):
+            corpus["base_revisions"] = [
+                revision
+                for revision in corpus["base_revisions"]
+                if revision.get("repo") in selected
+            ]
+        selection_rows = revisions
+        if isinstance(corpus.get("base_revisions"), list):
+            bases = {
+                revision["repo"]: revision["base"]
+                for revision in corpus["base_revisions"]
+            }
+            selection_rows = [
+                {**revision, "base": bases[revision["repo"]]} for revision in revisions
+            ]
         corpus["selection_sha256"] = hashlib.sha256(
-            json.dumps(revisions, sort_keys=True, separators=(",", ":")).encode()
+            json.dumps(selection_rows, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest()
+    compatibility = projected.get("output_compatibility")
+    if isinstance(compatibility, dict) and isinstance(compatibility.get("by_repo"), dict):
+        compatibility["by_repo"] = {
+            repo: compatibility["by_repo"][repo] for repo in repos
+        }
+        compatibility["all_equal"] = all(
+            row.get("equal") is True for row in compatibility["by_repo"].values()
+        )
     return projected
 
 
@@ -1251,6 +1338,50 @@ def run_self_test() -> None:
             for sample_index in range(5)
         ]
     assert evaluate_gate(sampled_v3)["status"] == "pass"
+    compatible = sample_report()
+    for run in compatible["runs"]:
+        run["normalized_sha256"] = "9" * 64
+    compatible["output_compatibility"] = {
+        "all_equal": True,
+        "by_repo": {
+            "repo-a": {
+                "baseline_hashes": ["9" * 64],
+                "current_hashes": ["9" * 64],
+                "equal": True,
+            }
+        },
+        "normalizer": "base-v0.19",
+    }
+    assert evaluate_gate(compatible)["status"] == "pass"
+    incompatible = json.loads(json.dumps(compatible))
+    for run in incompatible["runs"]:
+        if run["label"] == "current":
+            run["normalized_sha256"] = "8" * 64
+    incompatible["output_compatibility"] = {
+        "all_equal": False,
+        "by_repo": {
+            "repo-a": {
+                "baseline_hashes": ["9" * 64],
+                "current_hashes": ["8" * 64],
+                "equal": False,
+            }
+        },
+        "normalizer": "base-v0.19",
+    }
+    try:
+        evaluate_gate(incompatible)
+    except CheckFailed as error:
+        assert "normalized output compatibility failed" in str(error)
+    else:
+        raise AssertionError("normalized output inequality must fail")
+    tampered_compatibility = json.loads(json.dumps(compatible))
+    tampered_compatibility["output_compatibility"]["all_equal"] = False
+    try:
+        evaluate_gate(tampered_compatibility)
+    except CheckFailed as error:
+        assert "does not match raw runs" in str(error)
+    else:
+        raise AssertionError("normalized output summary must be rebuilt from raw runs")
     superset = sample_v3(sample_report(delta=2.0, iterations=2))
     superset["repos"].append("repo-b")
     extra_runs = json.loads(json.dumps(superset["runs"]))

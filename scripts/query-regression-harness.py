@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
+from contextlib import contextmanager, nullcontext
 import hashlib
 import json
 import os
@@ -24,10 +25,13 @@ from binary_identity import sha256_file
 from query_regression_summary import summarize_runs
 
 
+ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_QUERY_ARGS = ("query", "{repo}", "all", "top=0", "--mode", "semantic", "--format", "json")
 SCHEMA = "nose.query_regression_harness.v3"
+BASE_WORKLOAD_SCHEMA = "nose.base_view_release_workload.v1"
 PAIR_ORDERS = ("baseline-current", "current-baseline")
 TIME_RE = re.compile(r"\[time\]\s+([a-zA-Z0-9_+\-]+)\s+([0-9.]+)ms")
+HEX40_RE = re.compile(r"[0-9a-f]{40}")
 
 
 def git_output(args: list[str]) -> str:
@@ -86,12 +90,14 @@ def measurement_environment() -> dict[str, Any]:
     }
 
 
-def parse_query_args(raw: str) -> tuple[str, ...]:
+def parse_query_args(raw: str, *, require_base: bool = False) -> tuple[str, ...]:
     if not raw:
         return DEFAULT_QUERY_ARGS
     args = tuple(shlex.split(raw))
     if "{repo}" not in args:
         raise SystemExit("--query-args must contain {repo}")
+    if require_base and not any("{base}" in arg for arg in args):
+        raise SystemExit("base workload --query-args must contain {base}")
     return args
 
 
@@ -115,8 +121,38 @@ def selected_repos(args: argparse.Namespace) -> list[tuple[str, Path]]:
     return repos
 
 
-def command_for(binary: Path, repo_argument: str, query_args: tuple[str, ...]) -> list[str]:
-    return [str(binary), *[repo_argument if arg == "{repo}" else arg for arg in query_args]]
+def command_for(
+    binary: Path,
+    repo_argument: str,
+    query_args: tuple[str, ...],
+    *,
+    base_ref: str | None = None,
+) -> list[str]:
+    return [
+        str(binary),
+        *[
+            arg.replace("{repo}", repo_argument).replace("{base}", base_ref or "")
+            for arg in query_args
+        ],
+    ]
+
+
+def normalize_query_output(stdout: bytes, mode: str) -> str:
+    if mode == "none":
+        return hashlib.sha256(stdout).hexdigest()
+    try:
+        document = json.loads(stdout)
+    except json.JSONDecodeError as error:
+        raise SystemExit(f"cannot normalize invalid query JSON: {error}") from error
+    if mode != "base-v0.19":
+        raise SystemExit(f"unsupported output normalizer: {mode}")
+    for finding in document.get("items", []):
+        finding.pop("targets", None)
+        for key in ("changed", "not_updated", "current_only"):
+            for site in finding.get(key, []):
+                site.pop("semantic_change", None)
+    normalized = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(normalized).hexdigest()
 
 
 def query_observations(stdout: bytes, *, source: str) -> dict[str, Any]:
@@ -124,18 +160,29 @@ def query_observations(stdout: bytes, *, source: str) -> dict[str, Any]:
         payload = json.loads(stdout)
     except json.JSONDecodeError as error:
         raise SystemExit(f"{source}: invalid query JSON: {error}") from error
-    if not isinstance(payload, dict) or not isinstance(payload.get("families"), list):
-        raise SystemExit(f"{source}: query JSON must be an object with a families array")
+    if not isinstance(payload, dict):
+        raise SystemExit(f"{source}: query JSON must be an object")
+    collection = payload.get("families")
+    collection_name = "families"
+    if not isinstance(collection, list):
+        collection = payload.get("items")
+        collection_name = "items"
+    if not isinstance(collection, list):
+        raise SystemExit(f"{source}: query JSON must contain a families or items array")
     surfaces: Counter[str] = Counter()
-    for index, family in enumerate(payload["families"]):
-        if not isinstance(family, dict) or not isinstance(family.get("surface"), str):
+    for index, family in enumerate(collection):
+        if not isinstance(family, dict):
+            raise SystemExit(f"{source}: {collection_name}[{index}] must be an object")
+        surface = family.get("surface")
+        if collection_name == "families" and not isinstance(surface, str):
             raise SystemExit(f"{source}: families[{index}].surface must be a string")
-        surfaces[family["surface"]] += 1
+        if isinstance(surface, str):
+            surfaces[surface] += 1
     schema_version = payload.get("schema_version")
     if isinstance(schema_version, bool) or not isinstance(schema_version, int):
         raise SystemExit(f"{source}: schema_version must be an integer")
     return {
-        "families": len(payload["families"]),
+        "families": len(collection),
         "schema_version": schema_version,
         "surface_counts": dict(sorted(surfaces.items())),
     }
@@ -154,11 +201,19 @@ def run_once(
     repos_root: Path,
     iteration: int,
     query_args: tuple[str, ...],
+    repo_argument: str | None = None,
+    base_ref: str | None = None,
+    output_normalizer: str = "none",
 ) -> dict[str, Any]:
     # Invoke every checkout as its repo id from the repos-root directory. Family
     # and member ids include path identity, so this stable relative argument is
     # what makes exact output hashes portable across local and CI workspaces.
-    command = command_for(binary, repo_name, query_args)
+    command = command_for(
+        binary,
+        repo_argument or repo_name,
+        query_args,
+        base_ref=base_ref,
+    )
     env = dict(os.environ, NOSE_TIME="1")
     start = time.perf_counter()
     result = subprocess.run(
@@ -180,7 +235,7 @@ def run_once(
     )
     pair_order = PAIR_ORDERS[0] if iteration % 2 else PAIR_ORDERS[1]
     first_label = "baseline" if pair_order == PAIR_ORDERS[0] else "current"
-    return {
+    observation = {
         "bytes": len(result.stdout),
         "elapsed_ms": elapsed_ms,
         **observations,
@@ -192,6 +247,11 @@ def run_once(
         "sha256": hashlib.sha256(result.stdout).hexdigest(),
         "stages_ms": parse_stage_timings(result.stderr),
     }
+    if output_normalizer != "none":
+        observation["normalized_sha256"] = normalize_query_output(
+            result.stdout, output_normalizer
+        )
+    return observation
 
 
 def collapse_observation_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
@@ -207,6 +267,7 @@ def collapse_observation_samples(samples: list[dict[str, Any]]) -> dict[str, Any
         "pair_order",
         "pair_position",
         "repo",
+        "normalized_sha256",
         "sha256",
     )
     first = samples[0]
@@ -271,6 +332,9 @@ def run_paired_block(
     iteration: int,
     query_args: tuple[str, ...],
     samples: int,
+    repo_argument: str | None = None,
+    base_ref: str | None = None,
+    output_normalizer: str = "none",
 ) -> list[dict[str, Any]]:
     logical_order = [label for label, _ in measurement_order([repo_name], iteration)]
     by_label = {label: [] for label in logical_order}
@@ -284,6 +348,9 @@ def run_paired_block(
                 repos_root=repos_root,
                 iteration=iteration,
                 query_args=query_args,
+                repo_argument=repo_argument,
+                base_ref=base_ref,
+                output_normalizer=output_normalizer,
             )
             sample["_sample_position"] = sample_position
             by_label[label].append(sample)
@@ -316,6 +383,9 @@ def warmup(
     repos_root: Path,
     warmups: int,
     query_args: tuple[str, ...],
+    repo_argument: str | None = None,
+    base_ref: str | None = None,
+    output_normalizer: str = "none",
 ) -> None:
     for iteration in range(1, warmups + 1):
         for label, repo_name in measurement_order(repo_names, iteration):
@@ -326,7 +396,201 @@ def warmup(
                 repos_root=repos_root,
                 iteration=-iteration,
                 query_args=query_args,
+                repo_argument=repo_argument,
+                base_ref=base_ref,
+                output_normalizer=output_normalizer,
             )
+
+
+def run_git(repo: Path, args: list[str], *, source: str) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise SystemExit(f"{source}: git {' '.join(args)} failed: {result.stderr.strip()}")
+    return result.stdout.strip()
+
+
+def load_base_workloads(
+    manifest: Path,
+    repos_root: Path,
+    selected: list[str],
+) -> tuple[list[dict[str, str]], dict[str, Any]]:
+    try:
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SystemExit(f"cannot read base workload manifest {manifest}: {error}") from error
+    if payload.get("schema") != BASE_WORKLOAD_SCHEMA:
+        raise SystemExit(f"{manifest}: unsupported base workload schema")
+    source = payload.get("source")
+    if not isinstance(source, dict):
+        raise SystemExit(f"{manifest}: missing source provenance")
+    source_path_raw = source.get("path")
+    source_sha = source.get("sha256")
+    if not isinstance(source_path_raw, str) or not isinstance(source_sha, str):
+        raise SystemExit(f"{manifest}: invalid source provenance")
+    source_path = Path(source_path_raw)
+    if not source_path.is_absolute():
+        source_path = ROOT / source_path
+    source_path = source_path.resolve()
+    if sha256_file(source_path) != source_sha:
+        raise SystemExit(f"{manifest}: source workload digest does not match")
+    selection = source.get("selection")
+    if not isinstance(selection, str) or not selection:
+        raise SystemExit(f"{manifest}: invalid source selection")
+    try:
+        source_rows = {
+            row["sid"]: row
+            for row in (
+                json.loads(line)
+                for line in source_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            )
+        }
+    except (KeyError, json.JSONDecodeError) as error:
+        raise SystemExit(f"{manifest}: invalid source workload rows: {error}") from error
+    raw_workloads = payload.get("workloads")
+    if not isinstance(raw_workloads, list) or not raw_workloads:
+        raise SystemExit(f"{manifest}: workloads must be a non-empty array")
+    workloads: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for index, row in enumerate(raw_workloads):
+        if not isinstance(row, dict):
+            raise SystemExit(f"{manifest}: workloads[{index}] must be an object")
+        checked: dict[str, str] = {}
+        for key in ("repo", "commit", "base", "sample_id"):
+            value = row.get(key)
+            if not isinstance(value, str) or not value:
+                raise SystemExit(f"{manifest}: workloads[{index}].{key} is invalid")
+            checked[key] = value
+        if not HEX40_RE.fullmatch(checked["commit"]) or not HEX40_RE.fullmatch(checked["base"]):
+            raise SystemExit(f"{manifest}: workloads[{index}] has an invalid Git object id")
+        if checked["repo"] in seen:
+            raise SystemExit(f"{manifest}: duplicate repository {checked['repo']}")
+        sample = source_rows.get(checked["sample_id"])
+        if not isinstance(sample, dict):
+            raise SystemExit(f"{manifest}: unknown sample {checked['sample_id']}")
+        expected = {
+            "repo": checked["repo"],
+            "commit": checked["commit"],
+            "parent": checked["base"],
+            "arm": "default",
+        }
+        if any(sample.get(key) != value for key, value in expected.items()):
+            raise SystemExit(f"{manifest}: sample {checked['sample_id']} does not match workload")
+        if not (
+            sample.get("scope") == "prod"
+            and sample.get("fire_eligible") is True
+            and any(site.get("touches_shared") is True for site in sample.get("changed", []))
+        ):
+            raise SystemExit(f"{manifest}: sample {checked['sample_id']} is not current-v2-strict")
+        seen.add(checked["repo"])
+        workloads.append(checked)
+    if [row["repo"] for row in workloads] != sorted(seen):
+        raise SystemExit(f"{manifest}: workloads must be sorted by repository")
+    requested = sorted(set(selected))
+    unknown = sorted(set(requested) - seen)
+    if unknown:
+        raise SystemExit(f"{manifest}: requested repositories are absent: {', '.join(unknown)}")
+    if requested:
+        workloads = [row for row in workloads if row["repo"] in requested]
+    for row in workloads:
+        repo = repos_root / row["repo"]
+        if not repo.is_dir():
+            raise SystemExit(f"missing repo path: {repo}")
+        for key in ("commit", "base"):
+            actual = run_git(repo, ["rev-parse", f"{row[key]}^{{commit}}"], source=row["repo"])
+            if actual != row[key]:
+                raise SystemExit(f"{row['repo']}: {key} does not resolve exactly")
+        result = subprocess.run(
+            ["git", "-C", str(repo), "merge-base", "--is-ancestor", row["base"], row["commit"]],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if result.returncode != 0:
+            raise SystemExit(f"{row['repo']}: base is not an ancestor of workload commit")
+    selection_rows = [
+        {"repo": row["repo"], "commit": row["commit"], "base": row["base"]}
+        for row in workloads
+    ]
+    provenance = {
+        "corpus_manifest": manifest.as_posix(),
+        "corpus_manifest_sha256": sha256_file(manifest),
+        "prune_manifest": source_path.as_posix(),
+        "prune_manifest_sha256": source_sha,
+        "repositories": [
+            {"repo": row["repo"], "commit": row["commit"]} for row in workloads
+        ],
+        "selection_sha256": hashlib.sha256(
+            json.dumps(selection_rows, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest(),
+        "base_revisions": [
+            {"repo": row["repo"], "base": row["base"]} for row in workloads
+        ],
+        "selection": selection,
+    }
+    return workloads, provenance
+
+
+@contextmanager
+def detached_worktree(repo: Path, commit: str):
+    with tempfile.TemporaryDirectory(prefix=f"nose-query-regression-{repo.name}-") as temporary:
+        worktree = Path(temporary) / "worktree"
+        run_git(
+            repo,
+            ["worktree", "add", "--detach", "--quiet", str(worktree), commit],
+            source=repo.name,
+        )
+        try:
+            yield worktree
+        finally:
+            subprocess.run(
+                ["git", "-C", str(repo), "worktree", "remove", "--force", str(worktree)],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            subprocess.run(
+                ["git", "-C", str(repo), "worktree", "prune"],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+
+def output_compatibility(
+    runs: list[dict[str, Any]], repos: list[str], normalizer: str
+) -> dict[str, Any]:
+    by_repo = {}
+    for repo in repos:
+        hashes = {
+            label: sorted(
+                {
+                    run["normalized_sha256"]
+                    for run in runs
+                    if run["repo"] == repo and run["label"] == label
+                }
+            )
+            for label in ("baseline", "current")
+        }
+        by_repo[repo] = {
+            "baseline_hashes": hashes["baseline"],
+            "current_hashes": hashes["current"],
+            "equal": (
+                hashes["baseline"] == hashes["current"]
+                and len(hashes["baseline"]) == 1
+            ),
+        }
+    return {
+        "all_equal": all(row["equal"] for row in by_repo.values()),
+        "by_repo": by_repo,
+        "normalizer": normalizer,
+    }
 
 
 def repo_git_sha(repo_path: Path) -> str:
@@ -524,6 +788,17 @@ def run_self_test() -> None:
     )
     assert parsed == {"families": 1, "schema_version": 7, "surface_counts": {"default": 1}}
     assert parse_query_args("query '{repo}' all top=0 --mode semantic --format json")[1] == "{repo}"
+    assert parse_query_args(
+        "query '{repo}' 'base={base}' top=0 --format json", require_base=True
+    )[2] == "base={base}"
+    base_output = (
+        b'{"schema_version":8,"items":[{"changed":[{"semantic_change":{}}],'
+        b'"targets":[]}]} '
+    )
+    stripped_output = b'{"schema_version":8,"items":[{"changed":[{}]}]} '
+    assert normalize_query_output(base_output, "base-v0.19") == normalize_query_output(
+        stripped_output, "base-v0.19"
+    )
     with tempfile.TemporaryDirectory() as temporary:
         repos_root = Path(temporary)
         nested_repo = repos_root / "crates/nose-cli/src"
@@ -562,6 +837,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--samples-per-observation", type=int, default=1)
     parser.add_argument("--query-args", default=" ".join(DEFAULT_QUERY_ARGS))
+    parser.add_argument("--base-workload-manifest", type=Path)
+    parser.add_argument("--output-normalizer", choices=("none", "base-v0.19"), default="none")
     parser.add_argument("--corpus-manifest", type=Path)
     parser.add_argument("--prune-manifest", type=Path)
     parser.add_argument("--corpus-state", type=Path)
@@ -593,15 +870,25 @@ def main() -> int:
     baseline_binary = args.baseline_binary.resolve()
     current_binary = args.current_binary.resolve()
     repos_root = args.repos_root.resolve()
-    repos = selected_repos(args)
-    query_args = parse_query_args(args.query_args)
+    if args.base_workload_manifest and args.all_repos:
+        raise SystemExit("--base-workload-manifest cannot be combined with --all-repos")
+    workloads = None
+    workload_corpus = None
+    if args.base_workload_manifest:
+        workloads, workload_corpus = load_base_workloads(
+            args.base_workload_manifest.resolve(), repos_root, args.repos
+        )
+        repos = [(row["repo"], repos_root / row["repo"]) for row in workloads]
+    else:
+        repos = selected_repos(args)
+    query_args = parse_query_args(args.query_args, require_base=workloads is not None)
     if (args.corpus_manifest is None) != (args.prune_manifest is None):
         raise SystemExit("--corpus-manifest and --prune-manifest must be provided together")
     if args.corpus_state is not None and args.corpus_manifest is None:
         raise SystemExit("--corpus-state requires --corpus-manifest and --prune-manifest")
     if args.expected_corpus_state is not None and args.corpus_state is None:
         raise SystemExit("--expected-corpus-state requires --corpus-state")
-    corpus = (
+    corpus = workload_corpus or (
         corpus_provenance(
             repos,
             args.corpus_manifest.resolve(),
@@ -617,30 +904,49 @@ def main() -> int:
     binaries = {"baseline": baseline_binary, "current": current_binary}
     repo_names = [repo for repo, _ in repos]
     runs: list[dict[str, Any]] = []
+    workload_by_repo = {row["repo"]: row for row in workloads or []}
     for repo_name in repo_names:
-        warmup(
-            binaries=binaries,
-            repo_names=[repo_name],
-            repos_root=repos_root,
-            warmups=args.warmups,
-            query_args=query_args,
+        workload = workload_by_repo.get(repo_name)
+        workspace = (
+            detached_worktree(repos_root / repo_name, workload["commit"])
+            if workload is not None
+            else nullcontext(repos_root)
         )
-        for iteration, _ in measurement_blocks([repo_name], args.iterations):
-            runs.extend(
-                run_paired_block(
-                    binaries=binaries,
-                    repo_name=repo_name,
-                    repos_root=repos_root,
-                    iteration=iteration,
-                    query_args=query_args,
-                    samples=args.samples_per_observation,
-                )
+        with workspace as working_directory:
+            repo_argument = "." if workload is not None else repo_name
+            base_ref = workload["base"] if workload is not None else None
+            warmup(
+                binaries=binaries,
+                repo_names=[repo_name],
+                repos_root=working_directory,
+                warmups=args.warmups,
+                query_args=query_args,
+                repo_argument=repo_argument,
+                base_ref=base_ref,
+                output_normalizer=args.output_normalizer,
             )
+            for iteration, _ in measurement_blocks([repo_name], args.iterations):
+                runs.extend(
+                    run_paired_block(
+                        binaries=binaries,
+                        repo_name=repo_name,
+                        repos_root=working_directory,
+                        iteration=iteration,
+                        query_args=query_args,
+                        samples=args.samples_per_observation,
+                        repo_argument=repo_argument,
+                        base_ref=base_ref,
+                        output_normalizer=args.output_normalizer,
+                    )
+                )
     baseline_identity = binary_identity(baseline_binary)
     current_identity = binary_identity(current_binary)
     output = {
         "schema": SCHEMA,
-        "command": "nose " + " ".join(query_args).replace("{repo}", "<repo>"),
+        "command": (
+            "nose "
+            + " ".join(query_args).replace("{repo}", "<repo>").replace("{base}", "<base>")
+        ),
         "corpus": corpus,
         "environment": measurement_environment(),
         "measurement": {
@@ -673,11 +979,25 @@ def main() -> int:
             "harness": "scripts/query-regression-harness.py",
             "harness_command": shlex.join(["python3", *sys.argv]),
             "working_tree_status_before_measurement": working_tree_status_before_measurement,
+            "base_workload_manifest": (
+                args.base_workload_manifest.resolve().as_posix()
+                if args.base_workload_manifest
+                else None
+            ),
+            "base_workload_manifest_sha256": (
+                sha256_file(args.base_workload_manifest.resolve())
+                if args.base_workload_manifest
+                else None
+            ),
         },
         "repos": repo_names,
         "runs": runs,
         "summary": summarize_runs(runs, repo_names),
     }
+    if args.output_normalizer != "none":
+        output["output_compatibility"] = output_compatibility(
+            runs, repo_names, args.output_normalizer
+        )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0
