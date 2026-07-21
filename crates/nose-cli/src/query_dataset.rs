@@ -111,15 +111,17 @@ fn finish_query_dataset(
         }
     }
     time_stage("shared_lines", || {
-        weight_shared_lines(
-            &mut families,
-            refs,
-            &settings.exclude,
-            line_context.as_ref(),
-        )
+        // The persistent line dictionary is valuable for watch sessions and
+        // small one-shot projects. Rebuilding and serializing it for a large
+        // foreground scan costs more than the clean parallel implementation;
+        // the line weighting itself remains identical in either path.
+        let cached_lines = line_context.as_ref().filter(|context| {
+            !finalize_cache || context.source_files.len() <= cache::MAX_FOREGROUND_PORTABLE_IL_FILES
+        });
+        weight_shared_lines(&mut families, refs, &settings.exclude, cached_lines)
     });
     if finalize_cache {
-        cache::finish_query_run(line_context);
+        time_stage("cache_commit", || cache::finish_query_run(line_context));
     }
     let sort = settings.sort;
     time_stage("query_rank_sort", || {
@@ -180,7 +182,7 @@ pub(crate) fn build_divergence_families(
     if settings.channels.abstraction_only() {
         families.retain(|family| family.abstraction_witness.is_some());
     }
-    cache::finish_query_run(line_context);
+    time_stage("cache_commit", || cache::finish_query_run(line_context));
     Ok((families, opts))
 }
 
@@ -558,6 +560,7 @@ struct DetectCachedRequest<'a> {
 }
 
 fn detect_cached_or_clean(request: DetectCachedRequest<'_>) -> nose_detect::Report {
+    const MAX_PERSISTENT_DETECTION_UNITS: usize = 20_000;
     let DetectCachedRequest {
         cache_identity_parts,
         cache_run,
@@ -581,6 +584,16 @@ fn detect_cached_or_clean(request: DetectCachedRequest<'_>) -> nose_detect::Repo
     };
     let identity = cache::DetectionCacheIdentity::new(workspace, pack_digest, opts, detector);
     let previous = cache::load_detection_state(run, &identity);
+    // Building the persistent bucket graph is deliberately more expensive than
+    // the clean sort-based detector. Above this bound its first-generation cost
+    // and state write exceed the savings from many no-op process invocations;
+    // the unit cache still avoids normalization, while watch sessions retain
+    // their in-memory incremental detector without this cap.
+    if previous.is_none() && units.len() > MAX_PERSISTENT_DETECTION_UNITS {
+        return nose_detect::detect_from_units_with_accepted_coverage(
+            units, files, streams, opts, detector,
+        );
+    }
     let (report, state, stats) = nose_detect::detect_from_units_incremental_with_accepted_coverage(
         units, files, streams, opts, detector, previous, unit_keys,
     );

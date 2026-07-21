@@ -1,9 +1,9 @@
 use super::bindings::{assignment_name, import_binding_proof, import_dependency_keys};
-use super::exports::{collect_literal_exports, LiteralExports};
-use super::namespace_members::collect_namespace_member_analyses;
+use super::exports::LiteralExports;
 use super::snapshot::{snapshot_subtree, surface_fingerprint};
-use super::{ExportedBinding, FileImportContext};
+use super::{ExportedBinding, FileImportContext, PreparedImportResolution};
 use nose_il::{Il, Interner, Lang};
+use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use sha2::{Digest as _, Sha256};
@@ -76,23 +76,28 @@ pub fn resolution_dependency_summary(
     files: &[Il],
     interner: &Interner,
 ) -> ResolutionDependencySummary {
-    let contexts = files
-        .iter()
-        .map(|il| FileImportContext::new(il, interner))
-        .collect::<Vec<_>>();
-    let exports = collect_literal_exports(files, interner, &contexts);
-    let (nodes, binding_indexes) = binding_graph(files, interner, &contexts, &exports);
+    let prepared = super::prepare_import_resolution(files, interner);
+    resolution_dependency_summary_prepared(files, interner, &prepared)
+}
+
+pub(super) fn resolution_dependency_summary_prepared(
+    files: &[Il],
+    interner: &Interner,
+    prepared: &PreparedImportResolution,
+) -> ResolutionDependencySummary {
+    let contexts = &prepared.contexts;
+    let exports = &prepared.exports;
+    let (nodes, binding_indexes) = binding_graph(files, interner, contexts, exports);
     let binding_digests = binding_digests(&nodes);
     let (file_export_digests, file_has_exports) =
-        file_export_digests(files.len(), &exports, &binding_indexes, &binding_digests);
+        file_export_digests(files.len(), exports, &binding_indexes, &binding_digests);
     let language_catalogs = language_catalogs(files, &file_export_digests);
     let (swift_global_digest, swift_global_active) =
         crate::swift_cross_file_shadows::swift_global_dependency_state(files, interner);
-    let namespace_analyses =
-        collect_namespace_member_analyses(files, interner, &contexts, &exports);
+    let namespace_analyses = &prepared.namespace_analyses;
 
     let summaries = files
-        .iter()
+        .par_iter()
         .enumerate()
         .map(|(file_idx, il)| {
             summarize_file(
@@ -100,8 +105,8 @@ pub fn resolution_dependency_summary(
                 il,
                 files,
                 interner,
-                &contexts,
-                &exports,
+                contexts,
+                exports,
                 &binding_indexes,
                 &binding_digests,
                 &file_export_digests,

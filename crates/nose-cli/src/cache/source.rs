@@ -70,25 +70,31 @@ pub(super) fn build_raw_corpus_cached(
     exclude: &[String],
     run: &CacheRun,
 ) -> RawCorpus {
-    let paths = nose_frontend::discover_unique_paths(roots, exclude);
-    let git = GitCatalog::new(roots);
+    let paths = crate::timing::time_stage("cache_discover", || {
+        nose_frontend::discover_unique_paths(roots, exclude)
+    });
+    run.set_portable_il_enabled(paths.len() <= super::MAX_FOREGROUND_PORTABLE_IL_FILES);
+    let git = crate::timing::time_stage("cache_git", || GitCatalog::new(roots));
+    let logical_roots = LogicalRoots::new(roots);
     let cas = run.cas();
     let interner = Interner::new();
-    let results = paths
-        .par_iter()
-        .enumerate()
-        .map(|(index, (path, lang))| {
-            load_source(
-                index,
-                path,
-                *lang,
-                logical_path(roots, Path::new(path)),
-                &git,
-                &cas,
-                &interner,
-            )
-        })
-        .collect::<Vec<_>>();
+    let results = crate::timing::time_stage("cache_source", || {
+        paths
+            .par_iter()
+            .enumerate()
+            .map(|(index, (path, lang))| {
+                load_source(
+                    index,
+                    path,
+                    *lang,
+                    logical_roots.path(Path::new(path)),
+                    &git,
+                    &cas,
+                    &interner,
+                )
+            })
+            .collect::<Vec<_>>()
+    });
 
     let source_hits = results.iter().filter(|result| result.snapshot_hit).count();
     let source_misses = results.len() - source_hits;
@@ -166,6 +172,7 @@ pub(super) fn global_line_statistics_digest(sources: &[CachedSourceFile]) -> Con
 pub(super) fn discover_source_files(roots: &[&Path], exclude: &[String]) -> Vec<CachedSourceFile> {
     let paths = nose_frontend::discover_unique_paths(roots, exclude);
     let git = GitCatalog::new(roots);
+    let logical_roots = LogicalRoots::new(roots);
     paths
         .into_par_iter()
         .filter_map(|(path, lang)| {
@@ -184,7 +191,7 @@ pub(super) fn discover_source_files(roots: &[&Path], exclude: &[String]) -> Vec<
                 ),
             };
             Some(CachedSourceFile {
-                logical_path: logical_path(roots, Path::new(&path)),
+                logical_path: logical_roots.path(Path::new(&path)),
                 path,
                 digest: *digest.as_bytes(),
                 lang,
@@ -315,17 +322,19 @@ fn load_source(
     } else {
         Vec::new()
     };
-    let bundle = PortableRawBundle {
-        schema: RAW_IL_SCHEMA,
-        regions: lowered
-            .iter()
-            .filter_map(|il| portable_il::encode(il, interner).ok())
-            .collect(),
-    };
-    if bundle.regions.len() == lowered.len() {
-        if let Ok(payload) = rmp_serde::to_vec(&bundle) {
-            let _ = cas.store(raw_key, &payload);
-            let _ = cas.store(snapshot_key, b"nose-source-snapshot-v1");
+    if cas.writes_portable_il() {
+        let bundle = PortableRawBundle {
+            schema: RAW_IL_SCHEMA,
+            regions: lowered
+                .iter()
+                .filter_map(|il| portable_il::encode(il, interner).ok())
+                .collect(),
+        };
+        if bundle.regions.len() == lowered.len() {
+            if let Ok(payload) = rmp_serde::to_vec(&bundle) {
+                let _ = cas.store(raw_key, &payload);
+                let _ = cas.store(snapshot_key, b"nose-source-snapshot-v1");
+            }
         }
     }
     SourceResult {
@@ -349,20 +358,66 @@ fn load_source(
     }
 }
 
-fn logical_path(roots: &[&Path], path: &Path) -> String {
-    let canonical = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
-    for (index, root) in roots.iter().enumerate() {
-        let canonical_root = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
-        let base = if canonical_root.is_file() {
-            canonical_root.parent().unwrap_or(&canonical_root)
-        } else {
-            &canonical_root
-        };
-        if let Ok(relative) = canonical.strip_prefix(base) {
-            return format!("{index}:{}", relative.to_string_lossy());
+struct LogicalRoot {
+    lexical_base: PathBuf,
+    canonical_base: PathBuf,
+}
+
+struct LogicalRoots {
+    roots: Vec<LogicalRoot>,
+    cwd: PathBuf,
+}
+
+impl LogicalRoots {
+    fn new(roots: &[&Path]) -> Self {
+        let cwd = std::env::current_dir().unwrap_or_default();
+        Self {
+            roots: roots
+                .iter()
+                .map(|root| {
+                    let lexical = if root.is_absolute() {
+                        root.to_path_buf()
+                    } else {
+                        cwd.join(root)
+                    };
+                    let canonical = std::fs::canonicalize(root).unwrap_or_else(|_| lexical.clone());
+                    LogicalRoot {
+                        lexical_base: root_base(lexical),
+                        canonical_base: root_base(canonical),
+                    }
+                })
+                .collect(),
+            cwd,
         }
     }
-    canonical.to_string_lossy().to_string()
+
+    fn path(&self, path: &Path) -> String {
+        let lexical = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            self.cwd.join(path)
+        };
+        for (index, root) in self.roots.iter().enumerate() {
+            if let Ok(relative) = lexical.strip_prefix(&root.lexical_base) {
+                return format!("{index}:{}", relative.to_string_lossy());
+            }
+        }
+        let canonical = std::fs::canonicalize(path).unwrap_or(lexical);
+        for (index, root) in self.roots.iter().enumerate() {
+            if let Ok(relative) = canonical.strip_prefix(&root.canonical_base) {
+                return format!("{index}:{}", relative.to_string_lossy());
+            }
+        }
+        canonical.to_string_lossy().to_string()
+    }
+}
+
+fn root_base(root: PathBuf) -> PathBuf {
+    if root.is_file() {
+        root.parent().unwrap_or(&root).to_path_buf()
+    } else {
+        root
+    }
 }
 
 fn framed(components: &[&[u8]]) -> Vec<u8> {
@@ -380,43 +435,53 @@ struct GitInventory {
     dirty: BTreeSet<PathBuf>,
 }
 
-struct GitCatalog(Vec<GitInventory>);
+struct GitCatalog {
+    inventories: Vec<GitInventory>,
+    cwd: PathBuf,
+}
 
 impl GitCatalog {
     fn new(roots: &[&Path]) -> Self {
-        let mut git_roots = BTreeSet::new();
+        let mut git_roots: BTreeMap<PathBuf, BTreeSet<PathBuf>> = BTreeMap::new();
         for root in roots {
             let base = if root.is_file() {
                 root.parent().unwrap_or(root)
             } else {
                 root
             };
-            let output = Command::new("git")
-                .args([
-                    "-C",
-                    &base.to_string_lossy(),
-                    "rev-parse",
-                    "--show-toplevel",
-                ])
-                .output();
-            if let Ok(output) = output {
-                if output.status.success() {
-                    let root = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-                    git_roots.insert(PathBuf::from(root));
-                }
-            }
+            let Some(git_root) = find_git_root(base) else {
+                continue;
+            };
+            let scope = std::fs::canonicalize(base)
+                .ok()
+                .and_then(|root| root.strip_prefix(&git_root).ok().map(Path::to_path_buf))
+                .unwrap_or_default();
+            git_roots.entry(git_root).or_default().insert(scope);
         }
-        Self(
-            git_roots
+        Self {
+            inventories: git_roots
                 .into_iter()
-                .filter_map(GitInventory::load)
+                .filter_map(|(root, scopes)| GitInventory::load(root, &scopes))
                 .collect(),
-        )
+            cwd: std::env::current_dir().unwrap_or_default(),
+        }
     }
 
     fn clean_blob(&self, path: &Path) -> Option<&str> {
+        let lexical = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            self.cwd.join(path)
+        };
+        for git in &self.inventories {
+            if let Ok(relative) = lexical.strip_prefix(&git.root) {
+                return (!git.dirty.contains(relative))
+                    .then(|| git.tracked.get(relative).map(String::as_str))
+                    .flatten();
+            }
+        }
         let canonical = std::fs::canonicalize(path).ok()?;
-        self.0.iter().find_map(|git| {
+        self.inventories.iter().find_map(|git| {
             let relative = canonical.strip_prefix(&git.root).ok()?;
             (!git.dirty.contains(relative))
                 .then(|| git.tracked.get(relative).map(String::as_str))
@@ -426,23 +491,33 @@ impl GitCatalog {
 }
 
 impl GitInventory {
-    fn load(root: PathBuf) -> Option<Self> {
+    fn load(root: PathBuf, scopes: &BTreeSet<PathBuf>) -> Option<Self> {
         let root = std::fs::canonicalize(root).ok()?;
-        let listed = Command::new("git")
-            .args(["-C", &root.to_string_lossy(), "ls-files", "--stage", "-z"])
-            .output()
-            .ok()?;
-        let status = Command::new("git")
-            .args([
-                "-C",
-                &root.to_string_lossy(),
-                "status",
-                "--porcelain=v1",
-                "-z",
-                "--untracked-files=no",
-            ])
-            .output()
-            .ok()?;
+        let mut listed = Command::new("git");
+        listed.args(["-C", &root.to_string_lossy(), "ls-files", "--stage", "-z"]);
+        append_scopes(&mut listed, scopes);
+        let listed = listed.output().ok()?;
+        if !listed.status.success() {
+            return None;
+        }
+        if listed.stdout.is_empty() {
+            return Some(Self {
+                root,
+                tracked: BTreeMap::new(),
+                dirty: BTreeSet::new(),
+            });
+        }
+        let mut status = Command::new("git");
+        status.args([
+            "-C",
+            &root.to_string_lossy(),
+            "status",
+            "--porcelain=v1",
+            "-z",
+            "--untracked-files=no",
+        ]);
+        append_scopes(&mut status, scopes);
+        let status = status.output().ok()?;
         if !listed.status.success() || !status.status.success() {
             return None;
         }
@@ -495,6 +570,27 @@ impl GitInventory {
             dirty,
         })
     }
+}
+
+fn find_git_root(base: &Path) -> Option<PathBuf> {
+    let canonical = std::fs::canonicalize(base).ok()?;
+    let start = if canonical.is_file() {
+        canonical.parent()?
+    } else {
+        canonical.as_path()
+    };
+    start
+        .ancestors()
+        .find(|ancestor| ancestor.join(".git").exists())
+        .map(Path::to_path_buf)
+}
+
+fn append_scopes(command: &mut Command, scopes: &BTreeSet<PathBuf>) {
+    if scopes.iter().any(|scope| scope.as_os_str().is_empty()) {
+        return;
+    }
+    command.arg("--");
+    command.args(scopes);
 }
 
 #[cfg(test)]

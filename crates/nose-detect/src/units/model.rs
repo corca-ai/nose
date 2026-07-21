@@ -7,7 +7,7 @@ use nose_semantics::ValueLaw;
 /// so the detector can flatten units from many files into one vector. All feature
 /// vectors are content-derived hashes (interner-independent), so a `UnitFeat` is
 /// portable across runs — which is what lets the CLI cache it by source-content hash.
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Deserialize)]
 pub struct UnitFeat {
     pub path: String,
     pub lang: Lang,
@@ -41,7 +41,7 @@ pub struct UnitFeat {
     /// Unlike `linear`, this keeps a value-sensitive literal tag so a pair that differs
     /// only by `0` vs `1` can be explained as one literal hole without weakening the
     /// exact semantic fingerprint.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(crate) abstraction_tokens: Vec<abstraction::WitnessToken>,
     /// Sorted multiset of literal (`Const`) value hashes. A high `lits/value`
     /// ratio marks a "data-table" unit (constant-dominated, e.g. a locale map),
@@ -91,7 +91,7 @@ pub struct UnitFeat {
     pub semantic_laws: Vec<ValueLaw>,
     /// Query-local, dependency-backed protocol evidence for the external near lane.
     /// Empty in cached units and every no-pack or exact-only run.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub semantic_pack_near_protocols: Vec<nose_semantics::SemanticPackNearProtocol>,
     /// Whether the value fingerprint is safe to use as a strict semantic proof.
     ///
@@ -112,6 +112,73 @@ pub struct UnitFeat {
     /// [`fragment_kind`](Self::fragment_kind) is `Some`.
     #[serde(default)]
     pub proof_facts: Option<ProofFacts>,
+}
+
+// Cache payloads use MessagePack's compact struct representation. Serialize
+// every field so defaults in the middle of the record cannot shift later
+// values; the cache stage schema owns compatibility across field changes.
+impl serde::Serialize for UnitFeat {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+
+        let mut state = serializer.serialize_struct("UnitFeat", 28)?;
+        state.serialize_field("path", &self.path)?;
+        state.serialize_field("lang", &self.lang)?;
+        state.serialize_field("kind", &self.kind)?;
+        state.serialize_field("origin", &CompactUnitOrigin(self.origin))?;
+        state.serialize_field("name", &self.name)?;
+        state.serialize_field("start_line", &self.start_line)?;
+        state.serialize_field("end_line", &self.end_line)?;
+        state.serialize_field("token_count", &self.token_count)?;
+        state.serialize_field("shapes", &self.shapes)?;
+        state.serialize_field("shape_minhash", &self.shape_minhash)?;
+        state.serialize_field("value", &self.value)?;
+        state.serialize_field("minhash", &self.minhash)?;
+        state.serialize_field("linear", &self.linear)?;
+        state.serialize_field("connected_tokens", &self.connected_tokens)?;
+        state.serialize_field("abstraction_tokens", &self.abstraction_tokens)?;
+        state.serialize_field("lits", &self.lits)?;
+        state.serialize_field("returns", &self.returns)?;
+        state.serialize_field("pure_single_return", &self.pure_single_return)?;
+        state.serialize_field("cond_sinks", &self.cond_sinks)?;
+        state.serialize_field("used_length_contract", &self.used_length_contract)?;
+        state.serialize_field("called_helper_returns", &self.called_helper_returns)?;
+        state.serialize_field("anchors", &self.anchors)?;
+        state.serialize_field("in_test_module", &self.in_test_module)?;
+        state.serialize_field("semantic_laws", &self.semantic_laws)?;
+        state.serialize_field(
+            "semantic_pack_near_protocols",
+            &self.semantic_pack_near_protocols,
+        )?;
+        state.serialize_field("exact_safe", &self.exact_safe)?;
+        state.serialize_field("fragment_kind", &self.fragment_kind)?;
+        state.serialize_field("proof_facts", &self.proof_facts)?;
+        state.end()
+    }
+}
+
+struct CompactUnitOrigin(UnitOrigin);
+
+impl serde::Serialize for CompactUnitOrigin {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeTuple;
+
+        let mut tuple = serializer.serialize_tuple(7)?;
+        tuple.serialize_element(&self.0.domains)?;
+        tuple.serialize_element(&self.0.subkind)?;
+        tuple.serialize_element(&self.0.body_kind)?;
+        tuple.serialize_element(&self.0.source_granularity)?;
+        tuple.serialize_element(&self.0.region_kind)?;
+        tuple.serialize_element(&self.0.container_kind)?;
+        tuple.serialize_element(&self.0.evidence_flags)?;
+        tuple.end()
+    }
 }
 
 pub(crate) fn abstraction_family_witness<'a>(

@@ -275,6 +275,50 @@ pub fn resolve_corpus_affected(corpus: &mut Corpus, targets: &[bool]) {
     }
 }
 
+/// Raw-corpus dependency analysis retained for a later selective resolution.
+/// The layered cache uses the summary to choose exact resolved-artifact hits,
+/// then applies the already prepared import analysis only to misses.
+pub struct PreparedCorpusResolution {
+    pub summary: ResolutionDependencySummary,
+    imports: module_imports::PreparedImportResolution,
+}
+
+pub fn prepare_corpus_resolution(corpus: &Corpus) -> PreparedCorpusResolution {
+    let imports = module_imports::prepare_import_resolution(&corpus.files, &corpus.interner);
+    let summary =
+        module_imports::dependency_summary_prepared(&corpus.files, &corpus.interner, &imports);
+    PreparedCorpusResolution { summary, imports }
+}
+
+pub fn resolve_corpus_prepared(
+    corpus: &mut Corpus,
+    targets: &[bool],
+    prepared: PreparedCorpusResolution,
+) -> ResolutionDependencySummary {
+    assert_eq!(corpus.files.len(), targets.len());
+    let timing = std::env::var_os("NOSE_TIME").is_some();
+    let started = std::time::Instant::now();
+    module_imports::apply_import_resolution(
+        &mut corpus.files,
+        &corpus.interner,
+        targets,
+        prepared.imports,
+    );
+    swift_cross_file_shadows::close_shadowed_stdlib_apis_affected(
+        &mut corpus.files,
+        &corpus.interner,
+        targets,
+    );
+    if timing {
+        eprintln!(
+            "  [time] {:<12} {:>7.1}ms  (prepared corpus import facts)",
+            "import-resolve",
+            started.elapsed().as_secs_f64() * 1e3
+        );
+    }
+    prepared.summary
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -6,6 +6,7 @@ use nose_il::{stable_symbol_hash, Il, Interner, NodeId, NodeKind, Payload, Symbo
 use nose_semantics::{
     binding_write_target, opaque_argument_escape_args, receiver_mutation_call_receiver, semantics,
 };
+use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 
 pub(super) struct NamespaceMemberReplacement {
@@ -31,7 +32,7 @@ pub(super) fn collect_namespace_member_analyses(
     exports: &LiteralExports,
 ) -> Vec<NamespaceMemberAnalysis> {
     files
-        .iter()
+        .par_iter()
         .enumerate()
         .map(|(file_idx, il)| {
             if !semantics(il.meta.lang)

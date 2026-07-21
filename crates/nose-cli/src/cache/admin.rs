@@ -154,10 +154,17 @@ pub(super) fn enforce_run_budget(run: CacheRun) {
     let written_bytes = run.written_bytes();
     let root = run.root().to_path_buf();
     let max_bytes = run.max_bytes();
+    let started_empty = run.started_empty();
     // Releasing the run's shared lease before acquiring the exclusive prune
     // lease avoids self-deadlock and lets all concurrent writers finish first.
     drop(run);
     if written_bytes == 0 {
+        return;
+    }
+    // A newly created managed store has no hidden prior bytes to account for.
+    // Avoid immediately walking every object we just wrote when the run's own
+    // exact byte counter proves it is still below budget.
+    if started_empty && written_bytes <= max_bytes {
         return;
     }
     if let Err(error) = prune(&root, max_bytes) {

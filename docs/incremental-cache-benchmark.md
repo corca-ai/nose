@@ -236,6 +236,17 @@ without materializing the raw/resolved corpus for an exact no-op or one dependen
 export and resolution summaries are unchanged. Dirty, untracked, and non-Git inputs are read so
 their exact bytes, rather than mtime/size, establish identity.
 
+The foreground policy is bounded by reuse value. One-shot scans of at most 512 discovered source
+regions retain the complete source/raw/resolved and line-index history used by dependency-aware
+invalidation. Above that boundary, the common exact no-op/independent-leaf path retains compact
+unit and snapshot state but does not publish the fallback portable-IL layer or persistent line
+dictionary; line weighting uses the same clean parallel implementation. A miss still lowers and
+resolves exact source, so this boundary changes only performance and cache observability, never
+query output. Watch sessions always retain their in-memory incremental line state, and small
+provider/high-fanout workloads keep the full dependency history. First-generation persistent
+detection state is similarly capped at 20,000 units; large one-shot runs use the clean detector
+while the unit cache and active watch session remain available.
+
 CAS v1 replaces the u64 entry name with a stage/schema-separated SHA-256 address over the complete
 post-resolution semantic/reporting identity and unit-affecting options. An independent payload
 SHA-256, exact length, and envelope identity make corrupt or misplaced bytes clean misses. Paths,

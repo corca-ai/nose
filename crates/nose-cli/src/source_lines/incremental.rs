@@ -57,6 +57,28 @@ pub(crate) fn apply_cached_family_lines(
     {
         return None;
     }
+    let missing = families
+        .iter()
+        .filter(|family| family.languages == 1 && family.locations.len() >= 2)
+        .filter(|family| {
+            !previous
+                .families
+                .contains_key(&family_key(family, &digests))
+        })
+        .collect::<Vec<_>>();
+    if missing.len() >= 32 {
+        lines.preload(
+            missing
+                .into_iter()
+                .flat_map(|family| {
+                    family
+                        .locations
+                        .iter()
+                        .map(|location| location.file.clone())
+                })
+                .collect(),
+        );
+    }
     let mut current = BTreeMap::new();
     let mut stats = FamilyLineStats {
         schema: "nose.family-line-state/v1",

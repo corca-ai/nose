@@ -77,7 +77,7 @@ impl FastUnitSession {
         }
 
         let cas = self.run.cas();
-        let replacements = rebuild_leaf(&path, &self.snapshot, &cas, opts)?;
+        let replacements = rebuild_leaf(&path, &self.snapshot, &current, &cas, opts)?;
         Arc::make_mut(&mut self.source_files)[source_index] = current;
         let current_lines = source::global_line_statistics_digest(&self.source_files);
         let invalidation = super::super::resolved::fast_invalidation_report_for_leaf(

@@ -14,7 +14,9 @@ use std::hash::{Hash, Hasher};
 
 const PORTABLE_IL_SCHEMA: u32 = 4;
 const MAX_PORTABLE_IL_BYTES: usize = 512 * 1024 * 1024;
-const PORTABLE_ZSTD_LEVEL: i32 = 7;
+// Portable IL is written on the foreground query path. Level 1 retains most of
+// the space saving for syntax trees while avoiding a large cold-cache CPU tax.
+const PORTABLE_ZSTD_LEVEL: i32 = 1;
 
 #[derive(Serialize, Deserialize)]
 struct PortableIl {

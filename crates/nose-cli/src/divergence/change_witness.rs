@@ -17,6 +17,7 @@ use super::*;
 use crate::source_lines::FileLineCache;
 use nose_il::{FileId, Interner, Lang, NodeId, UnitKind, UnitOrigin};
 use nose_normalize::{FileReferents, ValueDag};
+use rayon::prelude::*;
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::path::Path;
@@ -61,6 +62,7 @@ pub(super) fn enrich_semantic_change_witnesses(
         diff_entries,
         opts,
     );
+    builder.preload_files(flagged);
     for divergence in flagged
         .iter_mut()
         .filter(|d| d.lane == DivergenceLane::BaseDivergence)
@@ -267,6 +269,68 @@ impl<'a> WitnessBuilder<'a> {
                 .expect("prepared change was inserted"),
             &sibling_hashes,
         )
+    }
+
+    /// Lower independent witness files concurrently. The lazy path below still owns
+    /// cap behavior; preloading is used only when the complete unique set fits under
+    /// the same cap, so result availability and cap ordering cannot change.
+    fn preload_files(&mut self, flagged: &[Divergence]) {
+        let mut keys = Vec::new();
+        for divergence in flagged
+            .iter()
+            .filter(|divergence| divergence.lane == DivergenceLane::BaseDivergence)
+        {
+            let base_sites = divergence
+                .changed
+                .iter()
+                .chain(&divergence.not_updated)
+                .chain(
+                    divergence
+                        .targets
+                        .iter()
+                        .flat_map(|target| [&target.changed, &target.skipped]),
+                );
+            for site in base_sites {
+                if projection_may_load(site) {
+                    keys.push((Tree::Base, site.file.clone()));
+                }
+            }
+            for site in divergence
+                .changed
+                .iter()
+                .chain(divergence.targets.iter().map(|target| &target.changed))
+            {
+                if projection_may_load(site) {
+                    if let Some(path) = self.current_path(&site.file) {
+                        keys.push((Tree::Current, path));
+                    }
+                }
+            }
+        }
+        keys.sort_by(|left, right| {
+            tree_order(left.0)
+                .cmp(&tree_order(right.0))
+                .then_with(|| left.1.cmp(&right.1))
+        });
+        keys.dedup();
+        if keys.len() > MAX_FILES {
+            return;
+        }
+        let base_root = self.base_root;
+        let current_root = self.current_root;
+        let opts = self.opts;
+        let loaded = keys
+            .into_par_iter()
+            .map(|(tree, path)| {
+                let root = match tree {
+                    Tree::Base => base_root,
+                    Tree::Current => current_root,
+                };
+                let state = project_file(&root.join(&path), &path, &opts);
+                ((tree, path), state)
+            })
+            .collect::<Vec<_>>();
+        self.files.extend(loaded);
     }
 
     fn prepare_change(&mut self, site: &Site) -> Result<PreparedChange, UnavailableChange> {
@@ -499,6 +563,17 @@ impl<'a> WitnessBuilder<'a> {
             LoadState::Ready(file) => Ok(file.as_ref()),
             LoadState::Failed(status) => Err(*status),
         }
+    }
+}
+
+fn projection_may_load(site: &Site) -> bool {
+    !(site.is_fragment || site.kind == UnitKind::Block && site.enclosing_unit.is_none())
+}
+
+fn tree_order(tree: Tree) -> u8 {
+    match tree {
+        Tree::Base => 0,
+        Tree::Current => 1,
     }
 }
 

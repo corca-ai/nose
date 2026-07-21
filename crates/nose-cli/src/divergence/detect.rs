@@ -8,7 +8,9 @@ use crate::cli_args::QueryArgs;
 use crate::query_dataset::build_divergence_families;
 use crate::query_witness::enrich_graded_witnesses;
 use crate::source_lines::{varying_spots_of, FileLineCache};
+use crate::timing::time_stage;
 use std::collections::{HashMap, HashSet};
+use std::time::{Duration, Instant};
 
 const NEW_COPY_SOURCE_FILE_BUDGET: usize = 2;
 
@@ -36,8 +38,9 @@ pub(crate) fn detect_divergences(
 
     let divergence_paths = repo_relative_paths(&args.paths, &root);
     ensure_base_ref_available(&root, base_ref)?;
-    let (changed, current_changed, diff_entries) =
-        git_changed_ranges_and_entries(&root, base_ref, &divergence_paths)?;
+    let (changed, current_changed, diff_entries) = time_stage("base_diff", || {
+        git_changed_ranges_and_entries(&root, base_ref, &divergence_paths)
+    })?;
     let current_lane_requested = has_current_tree_new_copy_trigger(&diff_entries);
     if changed.is_empty() && !current_lane_requested {
         return Ok(None);
@@ -47,26 +50,32 @@ pub(crate) fn detect_divergences(
     let base_tree = BaseWorktree::create(&root, base_ref)?;
     let base_paths = reroot_paths(&divergence_paths, &base_tree.path);
     let base_refs = base_paths.iter().map(PathBuf::as_path).collect::<Vec<_>>();
-    let (families, enrich_opts) = build_divergence_families(args, &base_refs)?;
+    let (families, enrich_opts) = time_stage("base_detect", || {
+        build_divergence_families(args, &base_refs)
+    })?;
 
     // Reuse the resolved options for per-flagged-family graded-witness enrichment,
     // so re-derived unit roots line up with the family locations' spans.
-    let mut flagged = flag_divergences(
-        &families,
-        ignore_set.as_ref(),
-        &changed,
-        &base_tree.path,
-        &enrich_opts,
-    );
-    change_witness::enrich_semantic_change_witnesses(
-        &mut flagged,
-        &base_tree.path,
-        &root,
-        &changed,
-        &current_changed,
-        &diff_entries,
-        &enrich_opts,
-    );
+    let mut flagged = time_stage("base_flag", || {
+        flag_divergences(
+            &families,
+            ignore_set.as_ref(),
+            &changed,
+            &base_tree.path,
+            &enrich_opts,
+        )
+    });
+    time_stage("base_witness", || {
+        change_witness::enrich_semantic_change_witnesses(
+            &mut flagged,
+            &base_tree.path,
+            &root,
+            &changed,
+            &current_changed,
+            &diff_entries,
+            &enrich_opts,
+        )
+    });
     if current_lane_requested {
         let current_paths = reroot_paths(&divergence_paths, &root);
         let current_refs = current_paths
@@ -77,7 +86,7 @@ pub(crate) fn detect_divergences(
         let current_prefix = canonical(&root);
         for family in &mut current_families {
             for loc in &mut family.locations {
-                repo_relative_loc(loc, &current_prefix);
+                repo_relative_loc(loc, &root, &current_prefix);
             }
         }
         flagged.extend(flag_new_copy_divergences(
@@ -114,8 +123,15 @@ fn flag_divergences(
     let prefix = canonical(base_root);
     let mut lines = FileLineCache::default();
     let mut flagged: Vec<Divergence> = Vec::new();
+    let mut graded_inputs = Vec::new();
+    let timed = std::env::var_os("NOSE_TIME").is_some();
+    let mut relative_elapsed = Duration::ZERO;
+    let mut target_elapsed = Duration::ZERO;
+    let mut touch_elapsed = Duration::ZERO;
     for orig in families {
-        let fam = repo_relative(orig, &prefix);
+        let started = Instant::now();
+        let fam = repo_relative(orig, base_root, &prefix);
+        relative_elapsed += started.elapsed();
         if ignore_set.is_some_and(|set| set.match_family(&fam).is_some()) {
             continue;
         }
@@ -126,19 +142,18 @@ fn flag_divergences(
         if changed_members.is_empty() || untouched.is_empty() {
             continue;
         }
-        // This family is flagged; only now compute the graded witness — on a clone with
-        // the original ABSOLUTE base-worktree paths (enrichment re-reads source), so the
-        // cost is paid per flagged family, not per family in the repo.
-        let graded = {
-            let mut abs = orig.clone();
-            enrich_graded_witnesses(std::slice::from_mut(&mut abs), enrich_opts);
-            abs.witness.and_then(|w| w.graded)
-        };
+        // Keep the original ABSOLUTE base-worktree paths for graded enrichment. We enrich
+        // all flagged families together below so a file shared by several families is
+        // lowered once, rather than once per family.
+        graded_inputs.push(orig.clone());
         let witness_kind = fam.witness.as_ref().map(|w| w.kind);
         // A family is a transitive component, not a propagation-target list. Build
         // only changed -> skipped pairs that the detector accepted directly, then
         // compute shared-line contact against that exact sibling.
+        let started = Instant::now();
         let targets = direct_targets(&fam, base_root, &mut lines, changed);
+        target_elapsed += started.elapsed();
+        let started = Instant::now();
         let touches: Vec<Option<bool>> = changed_members
             .iter()
             .map(|member| {
@@ -161,6 +176,7 @@ fn flag_divergences(
                 )
             })
             .collect();
+        touch_elapsed += started.elapsed();
         // All-test families are divergence context, not gate material: §BG-audit
         // found test variants legitimately diverge, and on the §BR labels the
         // scope term doubled gate precision at zero true-positive cost.
@@ -179,7 +195,7 @@ fn flag_divergences(
             scope: fam.scope,
             witness_kind,
             fire_eligible,
-            graded,
+            graded: None,
             changed: changed_members
                 .iter()
                 .zip(&touches)
@@ -189,6 +205,19 @@ fn flag_divergences(
             targets,
         });
     }
+    let graded_started = Instant::now();
+    enrich_graded_witnesses(&mut graded_inputs, enrich_opts);
+    let graded_elapsed = graded_started.elapsed();
+    for (divergence, family) in flagged.iter_mut().zip(graded_inputs) {
+        divergence.graded = family.witness.and_then(|witness| witness.graded);
+    }
+    log_base_stage_timings(
+        timed,
+        relative_elapsed,
+        target_elapsed,
+        touch_elapsed,
+        graded_elapsed,
+    );
     // Most likely un-propagated fix first.
     flagged.sort_by(|a, b| {
         b.divergence_priority
@@ -198,6 +227,26 @@ fn flag_divergences(
             .then(b.similarity.total_cmp(&a.similarity))
     });
     flagged
+}
+
+fn log_base_stage_timings(
+    timed: bool,
+    relative: Duration,
+    targets: Duration,
+    touches: Duration,
+    graded: Duration,
+) {
+    if !timed {
+        return;
+    }
+    for (stage, elapsed) in [
+        ("base-relative", relative),
+        ("base-targets ", targets),
+        ("base-touches ", touches),
+        ("base-graded  ", graded),
+    ] {
+        eprintln!("  [time] {stage} {:>7.1}ms", elapsed.as_secs_f64() * 1e3);
+    }
 }
 
 fn flag_new_copy_divergences(
@@ -213,7 +262,7 @@ fn flag_new_copy_divergences(
     let base_prefix = canonical(base_root);
     let base_relative: Vec<RefactorFamily> = base_families
         .iter()
-        .map(|fam| repo_relative(fam, &base_prefix))
+        .map(|fam| repo_relative(fam, base_root, &base_prefix))
         .collect();
     let base_signatures = family_signatures(&base_relative, &HashMap::new(), true);
     let base_identity_signatures = family_signatures(&base_relative, &HashMap::new(), false);
@@ -384,31 +433,42 @@ fn member_signature(
 
 /// Clone the family with every member path made repo-relative (stripping the base-worktree
 /// prefix), so the family_id is stable across runs and the paths read naturally in reports.
-fn repo_relative(fam: &RefactorFamily, base_prefix: &Path) -> RefactorFamily {
+fn repo_relative(
+    fam: &RefactorFamily,
+    lexical_prefix: &Path,
+    canonical_prefix: &Path,
+) -> RefactorFamily {
     let mut fam = fam.clone();
     for loc in &mut fam.locations {
-        repo_relative_loc(loc, base_prefix);
+        repo_relative_loc(loc, lexical_prefix, canonical_prefix);
     }
     for obligation in &mut fam.accepted_coverage {
         for loc in &mut obligation.sites {
-            repo_relative_loc(loc, base_prefix);
+            repo_relative_loc(loc, lexical_prefix, canonical_prefix);
         }
     }
     fam
 }
 
-fn repo_relative_loc(loc: &mut Loc, base_prefix: &Path) {
-    loc.file = repo_relative_file(&loc.file, base_prefix);
+fn repo_relative_loc(loc: &mut Loc, lexical_prefix: &Path, canonical_prefix: &Path) {
+    loc.file = repo_relative_file(&loc.file, lexical_prefix, canonical_prefix);
     if let Some(parent) = &mut loc.enclosing_unit {
-        parent.file = repo_relative_file(&parent.file, base_prefix);
+        parent.file = repo_relative_file(&parent.file, lexical_prefix, canonical_prefix);
         parent.refresh_unit_key();
     }
 }
 
-fn repo_relative_file(file: &str, base_prefix: &Path) -> String {
-    canonical(Path::new(file))
-        .strip_prefix(base_prefix)
-        .map(|p| p.to_string_lossy().into_owned())
+fn repo_relative_file(file: &str, lexical_prefix: &Path, canonical_prefix: &Path) -> String {
+    let path = Path::new(file);
+    if let Ok(relative) = path.strip_prefix(lexical_prefix) {
+        return relative.to_string_lossy().into_owned();
+    }
+    if let Ok(relative) = path.strip_prefix(canonical_prefix) {
+        return relative.to_string_lossy().into_owned();
+    }
+    canonical(path)
+        .strip_prefix(canonical_prefix)
+        .map(|relative| relative.to_string_lossy().into_owned())
         .unwrap_or_else(|_| file.to_string())
 }
 
@@ -535,4 +595,30 @@ pub(super) fn site_touched_loc(loc: &Loc, changed: &HashMap<String, Vec<(u32, u3
 /// test only matches a span that strictly straddles the gap — not one that merely ends at a.
 pub(super) fn ranges_touch(ranges: &[(u32, u32)], start: u32, end: u32) -> bool {
     ranges.iter().any(|&(s, e)| start <= e && s <= end)
+}
+
+#[cfg(test)]
+mod path_tests {
+    use super::repo_relative_file;
+    use std::path::Path;
+
+    #[test]
+    fn relative_paths_accept_the_lexical_worktree_spelling_before_canonicalizing() {
+        assert_eq!(
+            repo_relative_file(
+                "/var/folders/worktree/src/main.rs",
+                Path::new("/var/folders/worktree"),
+                Path::new("/private/var/folders/worktree"),
+            ),
+            "src/main.rs"
+        );
+        assert_eq!(
+            repo_relative_file(
+                "/private/var/folders/worktree/src/main.rs",
+                Path::new("/var/folders/worktree"),
+                Path::new("/private/var/folders/worktree"),
+            ),
+            "src/main.rs"
+        );
+    }
 }

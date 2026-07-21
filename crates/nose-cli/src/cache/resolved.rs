@@ -119,22 +119,30 @@ pub(super) fn build_resolved_corpus_cached(
     let source_files = raw.source_files.clone();
     run.set_workspace(workspace_digest);
     let cas = run.cas();
-    let summary =
-        nose_frontend::resolution_dependency_summary(&raw.corpus.files, &raw.corpus.interner);
+    let prepared = crate::timing::time_stage("cache_summary", || {
+        nose_frontend::prepare_corpus_resolution(&raw.corpus)
+    });
+    let summary = &prepared.summary;
     debug_assert_eq!(raw.corpus.files.len(), raw.regions.len());
     debug_assert_eq!(summary.files.len(), raw.regions.len());
-    let unit_contexts = unit_contexts(&raw, &summary);
+    let unit_contexts = unit_contexts(&raw, summary);
     let previous_state = load_state(run);
-    let current_state = workspace_state(&raw, &summary, semantic_pack_digest);
-    store_dependency_summary(&cas, &raw, &summary);
+    let current_state = workspace_state(&raw, summary, semantic_pack_digest);
+    store_dependency_summary(&cas, &raw, summary);
     let resolved_keys = resolved_artifact_keys(&raw, &summary.files);
-    let resolved_reuse = load_resolved_reuse(&cas, &raw, &summary.files, &resolved_keys);
+    let resolved_reuse = crate::timing::time_stage("cache_restore", || {
+        load_resolved_reuse(&cas, &raw, &summary.files, &resolved_keys)
+    });
     let affected = resolved_reuse
         .iter()
         .map(|reuse| matches!(reuse, ResolvedReuse::Miss))
         .collect::<Vec<_>>();
-    nose_frontend::resolve_corpus_affected(&mut raw.corpus, &affected);
-    apply_resolved_reuse(&cas, &mut raw, &resolved_keys, resolved_reuse);
+    let summary = crate::timing::time_stage("cache_resolve", || {
+        nose_frontend::resolve_corpus_prepared(&mut raw.corpus, &affected, prepared)
+    });
+    crate::timing::time_stage("cache_publish", || {
+        apply_resolved_reuse(&cas, &mut raw, &resolved_keys, resolved_reuse)
+    });
     let report = build_invalidation_report(
         &raw,
         &summary,
@@ -143,7 +151,13 @@ pub(super) fn build_resolved_corpus_cached(
         &current_state,
         semantic_pack_digest,
     );
-    store_state(run, &current_state);
+    // The workspace record is diagnostic history, not a reuse key. The
+    // foreground lightweight policy has the exact snapshot contexts needed by
+    // its fast invalidation report and avoids publishing a redundant global
+    // record; full layered-cache runs retain it for fallback diagnostics.
+    if run.writes_portable_il() {
+        store_state(run, &current_state);
+    }
     CachedCorpus {
         unit_snapshot: CachedUnitSnapshot {
             contexts: unit_contexts,
@@ -299,6 +313,9 @@ fn apply_resolved_reuse(
                 continue;
             }
             ResolvedReuse::Miss => {}
+        }
+        if !cas.writes_portable_il() {
+            continue;
         }
         if let Ok(payload) = portable_il::encode(&raw.corpus.files[index], &raw.corpus.interner) {
             let _ = cas.store(keys[index], &payload);

@@ -60,9 +60,10 @@ pub(crate) fn build_line_index(
     let loaded = load_state(run);
     let state_hit = loaded.is_some();
     let previous = loaded.unwrap_or_default();
-    let mut registry = previous
-        .lines
-        .into_iter()
+    let mut lines = previous.lines;
+    let mut registry = lines
+        .iter()
+        .cloned()
         .enumerate()
         .map(|(index, line)| (line, index as u32))
         .collect::<FxHashMap<_, _>>();
@@ -94,6 +95,7 @@ pub(crate) fn build_line_index(
         let unique_substantive = intern_lines(
             unique_substantive_lines(&text),
             &mut registry,
+            &mut lines,
             &mut document_frequency,
         );
         apply_frequency_delta(
@@ -120,8 +122,26 @@ pub(crate) fn build_line_index(
         );
         stats.files_removed += 1;
     }
-    let (lines, document_frequency, files, changed_lines) =
-        compact_lines(registry, document_frequency, files, &changed_ids);
+    // Keep existing ids stable for ordinary edits. Compacting on every removed
+    // line remapped every id in every file, turning a one-line leaf mutation into
+    // an O(corpus) rewrite. Tombstones are harmless because zero-frequency rows
+    // are omitted from the runtime IDF map; compact only when they become a
+    // meaningful fraction of persistent state.
+    let tombstones = document_frequency
+        .iter()
+        .filter(|frequency| **frequency == 0)
+        .count();
+    let should_compact =
+        tombstones > 4096 && tombstones.saturating_mul(10) > document_frequency.len();
+    let (lines, document_frequency, files, changed_lines) = if should_compact {
+        compact_lines(registry, document_frequency, files, &changed_ids)
+    } else {
+        let changed_lines = changed_ids
+            .iter()
+            .filter_map(|id| lines.get(*id as usize).cloned())
+            .collect();
+        (lines, document_frequency, files, changed_lines)
+    };
     stats.changed_document_frequencies = changed_lines.len();
     let state = LineIndexState {
         schema: STATE_SCHEMA,
@@ -152,7 +172,11 @@ fn finish_index(
     } = state;
     let file_count = files.len();
     let index = CachedLineIndex {
-        document_frequency: lines.into_iter().zip(document_frequency).collect(),
+        document_frequency: lines
+            .into_iter()
+            .zip(document_frequency)
+            .filter(|(_, frequency)| *frequency > 0)
+            .collect(),
         // Source slices are needed only for families that cannot reuse their
         // analysis. FileLineCache reads those few files lazily; duplicating every
         // source line in both persistent state and the query heap dominated leaf RSS.
@@ -212,6 +236,7 @@ fn unique_substantive_lines(text: &str) -> Vec<String> {
 fn intern_lines(
     lines: Vec<String>,
     registry: &mut FxHashMap<String, u32>,
+    registered_lines: &mut Vec<String>,
     frequencies: &mut Vec<u32>,
 ) -> Vec<u32> {
     lines
@@ -221,6 +246,7 @@ fn intern_lines(
             std::collections::hash_map::Entry::Vacant(entry) => {
                 let id = frequencies.len() as u32;
                 frequencies.push(0);
+                registered_lines.push(entry.key().clone());
                 entry.insert(id);
                 id
             }

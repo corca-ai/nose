@@ -480,6 +480,29 @@ pub(crate) fn family_anchor(f: &nose_detect::RefactorFamily) -> (&str, u32) {
 pub(crate) struct FileLineCache(pub(crate) FxHashMap<String, Option<Vec<String>>>);
 
 impl FileLineCache {
+    /// Read a set of files concurrently before a batch of family analyses.
+    /// Incremental updates normally stay lazy, but a mutation can create many
+    /// new families at once; serial first-touch reads then cost more than the
+    /// clean path's parallel corpus preload.
+    pub(crate) fn preload(&mut self, paths: Vec<String>) {
+        let paths = paths
+            .into_iter()
+            .filter(|path| !self.0.contains_key(path))
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let loaded = paths
+            .into_par_iter()
+            .map(|path| {
+                let lines = std::fs::read_to_string(&path)
+                    .ok()
+                    .map(|text| text.lines().map(str::to_string).collect());
+                (path, lines)
+            })
+            .collect::<Vec<_>>();
+        self.0.extend(loaded);
+    }
+
     /// All lines of `file`, reading and caching on first touch. `None` if unreadable.
     pub(crate) fn whole(&mut self, file: &str) -> Option<&[String]> {
         self.0

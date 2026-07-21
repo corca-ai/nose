@@ -8,7 +8,11 @@ use std::sync::Arc;
 const MAGIC: &[u8; 8] = b"NOSECAS2";
 const FORMAT_SCHEMA: u32 = 2;
 const FLAG_ZSTD: u8 = 1;
-const ZSTD_LEVEL: i32 = 7;
+// Cache entries trade a little more disk space for latency. The payload is
+// checksummed independently, so a high compression level buys no additional
+// correctness and makes first-generation construction CPU-bound on large
+// repositories.
+const ZSTD_LEVEL: i32 = 1;
 const HEADER_LEN: usize = 8 + 4 + 1 + 1 + 2 + 4 + 32 + 8 + 8 + 32;
 const MAX_PAYLOAD_BYTES: usize = 1024 * 1024 * 1024;
 const MAX_STORED_BYTES: u64 = MAX_PAYLOAD_BYTES as u64 + HEADER_LEN as u64;
@@ -83,26 +87,43 @@ pub(super) struct CasRead {
 pub(super) struct LayeredCas {
     root: PathBuf,
     written_bytes: Option<Arc<AtomicU64>>,
+    write_portable_il: bool,
+    read_existing: bool,
 }
 
 impl LayeredCas {
     #[cfg(test)]
     pub(super) fn new(root: &Path) -> Self {
-        Self::tracked(root, None)
+        Self::tracked(root, None, true, true)
     }
 
-    pub(super) fn with_write_counter(root: &Path, written_bytes: Arc<AtomicU64>) -> Self {
-        Self::tracked(root, Some(written_bytes))
+    pub(super) fn with_write_counter(
+        root: &Path,
+        written_bytes: Arc<AtomicU64>,
+        write_portable_il: bool,
+        read_existing: bool,
+    ) -> Self {
+        Self::tracked(root, Some(written_bytes), write_portable_il, read_existing)
     }
 
-    fn tracked(root: &Path, written_bytes: Option<Arc<AtomicU64>>) -> Self {
+    fn tracked(
+        root: &Path,
+        written_bytes: Option<Arc<AtomicU64>>,
+        write_portable_il: bool,
+        read_existing: bool,
+    ) -> Self {
         Self {
             root: root.join("cas-v2"),
             written_bytes,
+            write_portable_il,
+            read_existing,
         }
     }
 
     pub(super) fn load(&self, key: ArtifactKey) -> Option<CasRead> {
+        if !self.read_existing {
+            return None;
+        }
         let path = self.path(key);
         let (payload, stored_bytes) = read_envelope_file(&path, key)?;
         Some(CasRead {
@@ -111,13 +132,17 @@ impl LayeredCas {
         })
     }
 
+    pub(super) fn writes_portable_il(&self) -> bool {
+        self.write_portable_il
+    }
+
     /// Publish a complete checksummed envelope.
     ///
     /// The complete payload is written before the atomic rename. Neither the
     /// immutable file nor its directory entry is individually synced: losing or
     /// corrupting an entry in a machine crash is a verified cache miss, while
     /// syncing thousands of objects serializes first-generation construction.
-    /// Mutable generation manifests retain the stronger sync boundary.
+    /// Transactional state uses the same verified-miss recovery rule.
     pub(super) fn store(&self, key: ArtifactKey, payload: &[u8]) -> std::io::Result<u64> {
         if payload.len() > MAX_PAYLOAD_BYTES {
             return Err(std::io::Error::new(
@@ -125,18 +150,32 @@ impl LayeredCas {
                 "cache payload exceeds the decoded-size limit",
             ));
         }
-        if self.load(key).is_some() {
+        let target = self.path(key);
+        if (self.read_existing && self.load(key).is_some())
+            || (!self.read_existing && target.is_file())
+        {
             return Ok(0);
         }
-        let target = self.path(key);
+        if !self.write_portable_il
+            && matches!(key.stage, ArtifactStage::RawIl | ArtifactStage::ResolvedIl)
+        {
+            return Ok(0);
+        }
         let parent = target.parent().expect("CAS entries always have a parent");
         std::fs::create_dir_all(parent)?;
-        let bytes = encode_envelope(key, payload);
         let temp = temporary_path(parent, &key.digest.hex());
-        write_complete(&temp, &bytes)?;
+        let stored = if matches!(
+            key.stage,
+            ArtifactStage::RawIl | ArtifactStage::ResolvedIl | ArtifactStage::UnitsSyntax
+        ) {
+            write_uncompressed_envelope(&temp, key, payload)?
+        } else {
+            let bytes = encode_envelope(key, payload);
+            write_complete(&temp, &bytes)?;
+            bytes.len() as u64
+        };
         match publish(&temp, &target) {
             Ok(()) => {
-                let stored = bytes.len() as u64;
                 if let Some(counter) = &self.written_bytes {
                     counter.fetch_add(stored, Ordering::Relaxed);
                 }
@@ -183,25 +222,10 @@ pub(super) fn temporary_path(parent: &Path, suffix: &str) -> PathBuf {
     ))
 }
 
-pub(super) fn write_synced(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    let file = write_complete(path, bytes)?;
-    file.sync_all()
-}
-
-fn write_complete(path: &Path, bytes: &[u8]) -> std::io::Result<File> {
+pub(super) fn write_complete(path: &Path, bytes: &[u8]) -> std::io::Result<File> {
     let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
     file.write_all(bytes)?;
     Ok(file)
-}
-
-#[cfg(unix)]
-pub(super) fn sync_parent(parent: &Path) -> std::io::Result<()> {
-    File::open(parent)?.sync_all()
-}
-
-#[cfg(not(unix))]
-pub(super) fn sync_parent(_parent: &Path) -> std::io::Result<()> {
-    Ok(())
 }
 
 #[cfg(unix)]
@@ -221,11 +245,15 @@ pub(super) fn publish(temp: &Path, target: &Path) -> std::io::Result<()> {
 
 pub(super) fn encode_envelope(key: ArtifactKey, payload: &[u8]) -> Vec<u8> {
     // Portable IL regions already carry independently bounded Zstandard frames.
-    // Recompressing their bundle raises cold latency and warm peak memory without
-    // materially shrinking it.
-    let compressed = (!matches!(key.stage, ArtifactStage::RawIl | ArtifactStage::ResolvedIl))
-        .then(|| zstd::bulk::compress(payload, ZSTD_LEVEL).ok())
-        .flatten();
+    // Unit payloads remain below the official release's cache footprint even
+    // uncompressed; compressing either foreground layer raises cold latency and
+    // warm peak memory without a required space benefit.
+    let compressed = (!matches!(
+        key.stage,
+        ArtifactStage::RawIl | ArtifactStage::ResolvedIl | ArtifactStage::UnitsSyntax
+    ))
+    .then(|| zstd::bulk::compress(payload, ZSTD_LEVEL).ok())
+    .flatten();
     let (flags, stored) = if compressed
         .as_ref()
         .is_some_and(|compressed| compressed.len() < payload.len())
@@ -235,7 +263,25 @@ pub(super) fn encode_envelope(key: ArtifactKey, payload: &[u8]) -> Vec<u8> {
         (0, payload)
     };
     let checksum = ContentDigest::sha256(payload);
-    let mut bytes = Vec::with_capacity(HEADER_LEN + stored.len());
+    let mut bytes = encode_header(
+        key,
+        flags,
+        stored.len() as u64,
+        payload.len() as u64,
+        checksum,
+    );
+    bytes.extend_from_slice(stored);
+    bytes
+}
+
+fn encode_header(
+    key: ArtifactKey,
+    flags: u8,
+    stored_len: u64,
+    payload_len: u64,
+    checksum: ContentDigest,
+) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(HEADER_LEN);
     bytes.extend_from_slice(MAGIC);
     bytes.extend_from_slice(&FORMAT_SCHEMA.to_be_bytes());
     bytes.push(key.stage as u8);
@@ -243,11 +289,23 @@ pub(super) fn encode_envelope(key: ArtifactKey, payload: &[u8]) -> Vec<u8> {
     bytes.extend_from_slice(&[0; 2]);
     bytes.extend_from_slice(&key.schema.to_be_bytes());
     bytes.extend_from_slice(key.digest.as_bytes());
-    bytes.extend_from_slice(&(stored.len() as u64).to_be_bytes());
-    bytes.extend_from_slice(&(payload.len() as u64).to_be_bytes());
+    bytes.extend_from_slice(&stored_len.to_be_bytes());
+    bytes.extend_from_slice(&payload_len.to_be_bytes());
     bytes.extend_from_slice(checksum.as_bytes());
-    bytes.extend_from_slice(stored);
     bytes
+}
+
+fn write_uncompressed_envelope(
+    path: &Path,
+    key: ArtifactKey,
+    payload: &[u8],
+) -> std::io::Result<u64> {
+    let checksum = ContentDigest::sha256(payload);
+    let header = encode_header(key, 0, payload.len() as u64, payload.len() as u64, checksum);
+    let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
+    file.write_all(&header)?;
+    file.write_all(payload)?;
+    Ok((header.len() + payload.len()) as u64)
 }
 
 pub(super) fn decode_envelope(bytes: &[u8], key: ArtifactKey) -> Option<Vec<u8>> {
@@ -323,11 +381,16 @@ mod tests {
 
     #[test]
     fn compression_and_round_trip_preserve_payload() {
-        let key = ArtifactKey::derive(ArtifactStage::UnitsSyntax, 3, &[b"input"]);
+        let key = ArtifactKey::derive(ArtifactStage::StateRecord, 3, &[b"input"]);
         let payload = vec![7; 64 * 1024];
         let bytes = encode_envelope(key, &payload);
         assert!(bytes.len() < payload.len() / 4);
-        assert_eq!(decode_envelope(&bytes, key), Some(payload));
+        assert_eq!(decode_envelope(&bytes, key), Some(payload.clone()));
+
+        let unit_key = ArtifactKey::derive(ArtifactStage::UnitsSyntax, 3, &[b"input"]);
+        let unit_bytes = encode_envelope(unit_key, &payload);
+        assert_eq!(unit_bytes.len(), HEADER_LEN + payload.len());
+        assert_eq!(decode_envelope(&unit_bytes, unit_key), Some(payload));
     }
 
     #[test]

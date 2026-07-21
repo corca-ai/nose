@@ -17,6 +17,7 @@ use super::{
 };
 use nose_detect::{DetectOptions, Stream, UnitFeat};
 use nose_il::{Corpus, FileId, Interner, Lang};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -104,10 +105,13 @@ pub(super) fn try_build(
     );
 
     let cas = run.cas();
-    let mut replacements = match changed_source.as_deref() {
-        Some(path) => Some(rebuild_leaf(path, &snapshot, &cas, opts)?),
-        None => None,
-    };
+    let restored = restore_snapshot_regions(
+        &snapshot,
+        &current_sources,
+        changed_source.as_deref(),
+        &cas,
+        opts,
+    )?;
     let mut all_units = Vec::new();
     let mut unit_keys = Vec::new();
     let mut streams = Vec::with_capacity(snapshot.contexts.len());
@@ -118,11 +122,7 @@ pub(super) fn try_build(
     let mut artifacts = Vec::with_capacity(snapshot.contexts.len());
     let mut region_unit_counts = Vec::with_capacity(snapshot.contexts.len());
 
-    for (index, context) in snapshot.contexts.iter().enumerate() {
-        let restored = replacements
-            .as_mut()
-            .and_then(|replacements| replacements.remove(&index))
-            .or_else(|| load_region(&cas, snapshot.artifacts[index], &context.region_path))?;
+    for (context, restored) in snapshot.contexts.iter().zip(restored) {
         hits += usize::from(restored.hit);
         misses += usize::from(!restored.hit);
         read_bytes += restored.read_bytes;
@@ -138,10 +138,6 @@ pub(super) fn try_build(
         streams.push(restored.stream);
         artifacts.push(restored.artifact);
     }
-    if replacements.is_some_and(|replacements| !replacements.is_empty()) {
-        return None;
-    }
-
     let langs = update_snapshot(
         &mut snapshot,
         &current_sources,
@@ -178,6 +174,37 @@ pub(super) fn try_build(
         snapshot,
         region_unit_counts,
     })
+}
+
+fn restore_snapshot_regions(
+    snapshot: &CachedUnitSnapshot,
+    current_sources: &[CachedSourceFile],
+    changed_source: Option<&str>,
+    cas: &LayeredCas,
+    opts: &DetectOptions,
+) -> Option<Vec<RestoredRegion>> {
+    let mut replacements = match changed_source {
+        Some(path) => {
+            let current = current_sources.iter().find(|source| source.path == path)?;
+            rebuild_leaf(path, snapshot, current, cas, opts)?
+        }
+        None => std::collections::BTreeMap::new(),
+    };
+    let jobs = snapshot
+        .contexts
+        .iter()
+        .enumerate()
+        .map(|(index, context)| (index, context, replacements.remove(&index)))
+        .collect::<Vec<_>>();
+    if !replacements.is_empty() {
+        return None;
+    }
+    jobs.into_par_iter()
+        .map(|(index, context, replacement)| {
+            replacement
+                .or_else(|| load_region(cas, snapshot.artifacts[index], &context.region_path))
+        })
+        .collect()
 }
 
 fn update_snapshot(
@@ -243,6 +270,7 @@ fn compare_sources(
 fn rebuild_leaf(
     path: &str,
     snapshot: &CachedUnitSnapshot,
+    source_file: &CachedSourceFile,
     cas: &LayeredCas,
     opts: &DetectOptions,
 ) -> Option<std::collections::BTreeMap<usize, RestoredRegion>> {
@@ -263,10 +291,9 @@ fn rebuild_leaf(
         return None;
     }
     let source = std::fs::read(path).ok()?;
-    let source_file = snapshot
-        .source_files
-        .iter()
-        .find(|source| source.path == path)?;
+    if source_file.path != path {
+        return None;
+    }
     if !nose_frontend::source_is_analyzable(Path::new(path), source_file.lang, &source) {
         return None;
     }
@@ -293,9 +320,12 @@ fn rebuild_leaf(
         {
             return None;
         }
+        let mut current = old.clone();
+        current.source_digest = source_file.digest;
+        current.source_kind = source_file.source_kind;
         rebuilt.insert(
             index,
-            restore_or_build_region(cas, il, &corpus.interner, opts, old.resolution_digest),
+            restore_or_build_region(cas, il, &corpus.interner, opts, &current),
         );
     }
     Some(rebuilt)
@@ -326,22 +356,17 @@ fn restore_or_build_region(
     il: &nose_il::Il,
     interner: &Interner,
     opts: &DetectOptions,
-    resolution_digest: [u8; 32],
+    context: &super::CachedUnitContext,
 ) -> RestoredRegion {
-    let resolved = portable_il::semantic_digest(il, interner);
     let options = super::options_digest(opts);
-    let key = ArtifactKey::derive(
-        ArtifactStage::UnitsSyntax,
-        UNITS_SYNTAX_SCHEMA,
-        &[resolved.as_bytes(), options.as_bytes(), &resolution_digest],
-    );
+    let key = super::unit_artifact_key(context, options);
     if let Some(restored) = load_region(cas, *key.digest.as_bytes(), &il.meta.path) {
         return restored;
     }
     let mut units = nose_detect::units_of_file(il, interner, opts);
     let mut stream = nose_detect::file_stream(il, interner);
     super::retarget(&mut units, &mut stream, "");
-    let payload = rmp_serde::to_vec_named(&(&units, &stream));
+    let payload = rmp_serde::to_vec(&(&units, &stream));
     super::retarget(&mut units, &mut stream, &il.meta.path);
     let written_bytes = payload
         .ok()

@@ -30,6 +30,7 @@ use modules::{
 use namespace_members::{collect_namespace_member_analyses, NamespaceMemberReplacement};
 use nose_il::{EvidenceId, Il, Interner, NodeId};
 use nose_semantics::semantics;
+use rayon::prelude::*;
 use snapshot::{
     append_snapshot, prepend_root_statement, record_immutable_literal_export_evidence,
     record_imported_literal_snapshot_evidence, replace_assignment_rhs, replace_node_references,
@@ -59,11 +60,56 @@ pub(crate) fn resolve_imported_immutable_bindings_affected(
     targets: &[bool],
 ) {
     debug_assert_eq!(files.len(), targets.len());
-    let contexts: Vec<FileImportContext> = files
-        .iter()
+    let prepared = prepare_import_resolution(files, interner);
+    apply_import_resolution(files, interner, targets, prepared);
+}
+
+pub(crate) struct PreparedImportResolution {
+    contexts: Vec<FileImportContext>,
+    exports: exports::LiteralExports,
+    namespace_analyses: Vec<namespace_members::NamespaceMemberAnalysis>,
+}
+
+pub(crate) fn prepare_import_resolution(
+    files: &[Il],
+    interner: &Interner,
+) -> PreparedImportResolution {
+    let contexts = files
+        .par_iter()
         .map(|il| FileImportContext::new(il, interner))
-        .collect();
+        .collect::<Vec<_>>();
     let exports = collect_literal_exports(files, interner, &contexts);
+    let namespace_analyses = if exports.is_empty() {
+        (0..files.len()).map(|_| Default::default()).collect()
+    } else {
+        collect_namespace_member_analyses(files, interner, &contexts, &exports)
+    };
+    PreparedImportResolution {
+        contexts,
+        exports,
+        namespace_analyses,
+    }
+}
+
+pub(crate) fn dependency_summary_prepared(
+    files: &[Il],
+    interner: &Interner,
+    prepared: &PreparedImportResolution,
+) -> ResolutionDependencySummary {
+    dependency::resolution_dependency_summary_prepared(files, interner, prepared)
+}
+
+pub(crate) fn apply_import_resolution(
+    files: &mut [Il],
+    interner: &Interner,
+    targets: &[bool],
+    prepared: PreparedImportResolution,
+) {
+    let PreparedImportResolution {
+        contexts,
+        exports,
+        namespace_analyses,
+    } = prepared;
     if exports.is_empty() {
         return;
     }
@@ -123,11 +169,10 @@ pub(crate) fn resolve_imported_immutable_bindings_affected(
                 .collect()
         })
         .collect();
-    let namespace_replacements =
-        collect_namespace_member_analyses(files, interner, &contexts, &exports)
-            .into_iter()
-            .map(|analysis| analysis.replacements)
-            .collect();
+    let namespace_replacements = namespace_analyses
+        .into_iter()
+        .map(|analysis| analysis.replacements)
+        .collect();
 
     apply_import_replacements(files, replacements, targets);
     apply_namespace_member_replacements(files, namespace_replacements, targets);

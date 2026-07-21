@@ -6,15 +6,15 @@
 
 use super::digest::ContentDigest;
 use super::store::{
-    encode_envelope, publish, read_envelope_file, sync_parent, temporary_path, write_synced,
-    ArtifactKey, ArtifactStage, LayeredCas,
+    encode_envelope, publish, read_envelope_file, temporary_path, write_complete, ArtifactKey,
+    ArtifactStage, LayeredCas,
 };
 use fs2::FileExt;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fs::{File, OpenOptions};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 const GENERATION_SCHEMA: u32 = 1;
@@ -26,6 +26,9 @@ pub(crate) struct CacheRun {
     root: PathBuf,
     max_bytes: u64,
     written_bytes: Arc<AtomicU64>,
+    write_portable_il: Arc<AtomicBool>,
+    read_existing_cas: bool,
+    managed_store_existed: bool,
     inner: Arc<Mutex<RunState>>,
     // Keep pruning and clearing out of the interval between publishing an
     // immutable record and committing the generation that references it.
@@ -74,17 +77,42 @@ impl CacheRun {
     }
 
     pub(crate) fn with_limit(root: &Path, max_bytes: u64) -> Self {
+        Self::with_policy(root, max_bytes, true)
+    }
+
+    fn with_policy(root: &Path, max_bytes: u64, write_portable_il: bool) -> Self {
+        let read_existing_cas = root.join("cas-v2").is_dir();
+        let managed_store_existed = [
+            "cas-v2",
+            "state-v2",
+            "cas-v1",
+            "state-v1",
+            "detection-state-v1",
+            "line-index-state-v1",
+            "line-index-manifest-v1",
+            "family-line-state-v1",
+        ]
+        .iter()
+        .any(|name| root.join(name).exists());
         Self {
             root: root.to_path_buf(),
             max_bytes,
             written_bytes: Arc::new(AtomicU64::new(0)),
+            write_portable_il: Arc::new(AtomicBool::new(write_portable_il)),
+            read_existing_cas,
+            managed_store_existed,
             inner: Arc::new(Mutex::new(RunState::default())),
             _store_lease: shared_store_lease(root).map(Arc::new),
         }
     }
 
     pub(super) fn cas(&self) -> LayeredCas {
-        LayeredCas::with_write_counter(&self.root, Arc::clone(&self.written_bytes))
+        LayeredCas::with_write_counter(
+            &self.root,
+            Arc::clone(&self.written_bytes),
+            self.write_portable_il.load(Ordering::Relaxed),
+            self.read_existing_cas,
+        )
     }
 
     pub(crate) fn set_workspace(&self, workspace: [u8; 32]) {
@@ -141,11 +169,11 @@ impl CacheRun {
             }
             let bytes = encode_envelope(key, payload);
             let temp = temporary_path(parent, &key.digest.hex());
-            if write_synced(&temp, &bytes).is_err() {
+            if write_complete(&temp, &bytes).is_err() {
                 let _ = std::fs::remove_file(&temp);
                 return;
             }
-            if publish(&temp, &path).is_err() || sync_parent(parent).is_err() {
+            if publish(&temp, &path).is_err() {
                 let _ = std::fs::remove_file(&temp);
                 return;
             }
@@ -176,12 +204,24 @@ impl CacheRun {
         self.written_bytes.load(Ordering::Relaxed)
     }
 
+    pub(super) fn writes_portable_il(&self) -> bool {
+        self.write_portable_il.load(Ordering::Relaxed)
+    }
+
+    pub(super) fn set_portable_il_enabled(&self, enabled: bool) {
+        self.write_portable_il.store(enabled, Ordering::Relaxed);
+    }
+
     pub(super) fn root(&self) -> &Path {
         &self.root
     }
 
     pub(super) fn max_bytes(&self) -> u64 {
         self.max_bytes
+    }
+
+    pub(super) fn started_empty(&self) -> bool {
+        !self.managed_store_existed
     }
 
     fn commit_inner(&self, fault: Option<CommitFault>) -> std::io::Result<()> {
@@ -321,9 +361,8 @@ fn write_manifest(
     if read_envelope_file(&target, key).is_none() {
         let bytes = encode_envelope(key, &payload);
         let temp = temporary_path(&dir, &key.digest.hex());
-        write_synced(&temp, &bytes)?;
+        write_complete(&temp, &bytes)?;
         publish(&temp, &target)?;
-        sync_parent(&dir)?;
     }
     Ok((generation, *key.digest.as_bytes()))
 }
@@ -345,9 +384,8 @@ fn write_current(
     let dir = workspace_dir(root, workspace);
     let target = dir.join("CURRENT");
     let temp = temporary_path(&dir, "CURRENT");
-    write_synced(&temp, &bytes)?;
-    publish(&temp, &target)?;
-    sync_parent(&dir)
+    write_complete(&temp, &bytes)?;
+    publish(&temp, &target)
 }
 
 fn pointer_key(workspace: [u8; 32]) -> ArtifactKey {

@@ -6,6 +6,7 @@ use crate::locations::is_nested;
 use crate::lsh::{band_hash, BUCKET_ALL_PAIRS_CAP};
 use crate::{DetectOptions, UnitFeat};
 use rayon::prelude::*;
+use rustc_hash::FxHashMap;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -50,7 +51,7 @@ pub(crate) fn prepare(
                     .map(|pair| (pair, score.bucket_count))
             })
         })
-        .collect::<BTreeMap<_, _>>();
+        .collect::<FxHashMap<_, _>>();
     let buckets = if let Some(state) = previous.as_mut() {
         update_candidate_buckets(units, &unit_keys, opts, state, &mut counts, stats)
     } else {
@@ -137,7 +138,7 @@ fn update_candidate_buckets(
     unit_keys: &[UnitKey],
     opts: &DetectOptions,
     state: &mut IncrementalDetectionState,
-    counts: &mut BTreeMap<UnitPairKey, u16>,
+    counts: &mut FxHashMap<UnitPairKey, u16>,
     stats: &mut IncrementalDetectionStats,
 ) -> Vec<CandidateBucket> {
     let current = unit_keys.iter().copied().collect::<BTreeSet<_>>();
@@ -250,7 +251,7 @@ fn candidate_memberships_for_keys(
 }
 
 fn adjust_pair_counts(
-    counts: &mut BTreeMap<UnitPairKey, u16>,
+    counts: &mut FxHashMap<UnitPairKey, u16>,
     key: BucketKey,
     members: &[UnitKey],
     add: bool,
@@ -267,7 +268,7 @@ fn adjust_pair_counts(
 
 fn index_candidates(
     unit_keys: &[UnitKey],
-    counts: &BTreeMap<UnitPairKey, u16>,
+    counts: &FxHashMap<UnitPairKey, u16>,
 ) -> IndexedCandidates {
     let by_key = unit_index(unit_keys);
     let mut rows = counts
@@ -400,8 +401,41 @@ fn candidate_memberships(
     unit_keys: &[UnitKey],
     opts: &DetectOptions,
 ) -> BTreeMap<BucketKey, Vec<UnitKey>> {
-    let mut buckets = candidate_memberships_selected(units, unit_keys, opts, 0..units.len(), None);
-    buckets.retain(|_, members| members.len() >= 2);
+    let value_rows = signature_rows(units, opts.bands, false);
+    let shape_rows = signature_rows(units, opts.bands, true);
+    // Build flat rows and sort once, mirroring the clean detector's fast LSH
+    // path. Merging a BTreeMap per Rayon worker performed millions of tree
+    // insertions and made first-generation incremental state much slower than
+    // clean candidate generation.
+    let mut entries = units
+        .par_iter()
+        .zip(unit_keys.par_iter().copied())
+        .enumerate()
+        .flat_map_iter(|(index, (unit, key))| {
+            let mut entries = Vec::new();
+            for_each_bucket_key(unit, opts, value_rows, shape_rows, |bucket| {
+                entries.push((bucket, index as u32, key));
+            });
+            entries
+        })
+        .collect::<Vec<_>>();
+    entries.par_sort_unstable_by_key(|entry| (entry.0, entry.1));
+    let mut buckets = BTreeMap::new();
+    let mut start = 0;
+    while start < entries.len() {
+        let bucket = entries[start].0;
+        let mut end = start + 1;
+        while end < entries.len() && entries[end].0 == bucket {
+            end += 1;
+        }
+        if end - start >= 2 {
+            buckets.insert(
+                bucket,
+                entries[start..end].iter().map(|entry| entry.2).collect(),
+            );
+        }
+        start = end;
+    }
     buckets
 }
 

@@ -30,6 +30,7 @@ mod transaction;
 
 use nose_detect::{DetectOptions, Stream, UnitFeat};
 use nose_il::{Corpus, Lang};
+use rayon::prelude::*;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
@@ -112,6 +113,9 @@ pub(crate) fn build_corpus_cached(
     semantic_packs: &nose_semantics::SemanticPackSet,
     max_bytes: u64,
 ) -> CachedCorpus {
+    // Raw/resolved artifacts and the dependency snapshot are part of the
+    // incremental-cache contract: provider changes, path additions, and watch
+    // restarts all depend on that history to make precise invalidation choices.
     let run = CacheRun::with_limit(dir, max_bytes);
     let raw = source::build_raw_corpus_cached(roots, exclude, &run);
     let mut cached =
@@ -184,7 +188,12 @@ fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> ContentDiges
 }
 
 /// Bump when unit/stream serialization, extraction, or feature hashing changes.
-const UNITS_SYNTAX_SCHEMA: u32 = 2;
+const UNITS_SYNTAX_SCHEMA: u32 = 3;
+
+/// Portable raw/resolved IL is a fallback cache below the bounded unit fast
+/// path. On large one-shot scans, publishing one artifact per source costs more
+/// than re-lowering on the uncommon fallback, so keep that layer bounded.
+pub(super) const MAX_FOREGROUND_PORTABLE_IL_FILES: usize = 512;
 
 pub(crate) struct CachedUnits {
     pub units: Vec<UnitFeat>,
@@ -260,19 +269,17 @@ fn build_units_cached_inner(
     let interner = &corpus.interner;
     let restore = |(index, il): (usize, nose_il::Il)| {
         let path = il.meta.path.clone();
-        let resolved = portable_il::semantic_digest(&il, interner);
-        let context = contexts.map(|contexts| contexts[index].resolution_digest.as_slice());
+        let context = contexts.map(|contexts| &contexts[index]);
         let key = match context {
-            Some(context) => ArtifactKey::derive(
-                ArtifactStage::UnitsSyntax,
-                UNITS_SYNTAX_SCHEMA,
-                &[resolved.as_bytes(), options.as_bytes(), context],
-            ),
-            None => ArtifactKey::derive(
-                ArtifactStage::UnitsSyntax,
-                UNITS_SYNTAX_SCHEMA,
-                &[resolved.as_bytes(), options.as_bytes()],
-            ),
+            Some(context) => unit_artifact_key(context, options),
+            None => {
+                let resolved = portable_il::semantic_digest(&il, interner);
+                ArtifactKey::derive(
+                    ArtifactStage::UnitsSyntax,
+                    UNITS_SYNTAX_SCHEMA,
+                    &[resolved.as_bytes(), options.as_bytes()],
+                )
+            }
         };
 
         if let Some(entry) = cas.load(key) {
@@ -292,9 +299,9 @@ fn build_units_cached_inner(
         // Checkout paths are presentation state, not payload identity. Blank
         // them before serialization and restore them for this query.
         retarget(&mut units, &mut stream, "");
-        // Named MessagePack preserves serde's default/skip compatibility
-        // while avoiding JSON's decimal expansion of feature hashes.
-        let payload = rmp_serde::to_vec_named(&(&units, &stream));
+        // UnitFeat's cache representation is a fixed-width record owned by this
+        // stage schema, so compact MessagePack avoids repeating field names.
+        let payload = rmp_serde::to_vec(&(&units, &stream));
         retarget(&mut units, &mut stream, &path);
         if let Ok(payload) = payload {
             if let Ok(bytes) = cas.store(key, &payload) {
@@ -303,8 +310,13 @@ fn build_units_cached_inner(
         }
         (units, stream, key.digest, path)
     };
+    // Match the clean scan's work-stealing granularity. Artificial batch
+    // barriers leave cores idle behind a few expensive files and turn a large
+    // checkout into dozens of mostly serial normalization waves. Moving the
+    // ILs into the parallel iterator still lets each file be released as soon
+    // as its cached features have been produced.
     let per_file = files
-        .into_iter()
+        .into_par_iter()
         .enumerate()
         .map(restore)
         .collect::<Vec<_>>();
@@ -347,6 +359,19 @@ fn build_units_cached_inner(
         },
         region_artifacts,
     }
+}
+
+fn unit_artifact_key(context: &CachedUnitContext, options: ContentDigest) -> ArtifactKey {
+    ArtifactKey::derive(
+        ArtifactStage::UnitsSyntax,
+        UNITS_SYNTAX_SCHEMA,
+        &[
+            &context.source_digest,
+            context.region_id.as_bytes(),
+            &context.resolution_digest,
+            options.as_bytes(),
+        ],
+    )
 }
 
 fn retarget(units: &mut [UnitFeat], stream: &mut Stream, path: &str) {
