@@ -9,6 +9,7 @@ use crate::{
     units::{self, UnitFeat},
 };
 use nose_semantics::ValueLaw;
+use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -35,7 +36,10 @@ fn witness_kind(members: &[usize], units: &[UnitFeat]) -> &'static str {
         exact_claim_eligible(u) && u.value == first.value
     }) {
         "exact-value-graph"
-    } else if members.len() >= 2 && shared_subdag_hash(members, units).is_some() {
+    } else if (members.len() == 2
+        && shared_anchor_weight(&units[members[0]].anchors, &units[members[1]].anchors) > 0)
+        || (members.len() > 2 && shared_subdag_hash(members, units).is_some())
+    {
         "shared-sub-dag"
     } else {
         "structural-similarity"
@@ -145,7 +149,7 @@ pub(crate) fn build_groups(
         e.1 += 1;
     }
     let groups = raw_groups
-        .iter()
+        .par_iter()
         .enumerate()
         .map(|(group_index, members)| {
             let (sum, n) = by_group[group_index];
@@ -269,25 +273,34 @@ fn accepted_edges_by_group(
             member_position[unit_index] = Some((group_index, local_index as u32));
         }
     }
+    let classified = accepted
+        .par_iter()
+        .filter_map(|&(left, right, score)| {
+            let (Some((left_group, left_local)), Some((right_group, right_local))) =
+                (member_position[left], member_position[right])
+            else {
+                return None;
+            };
+            debug_assert_eq!(left_group, right_group);
+            (left_group == right_group).then(|| {
+                (
+                    left_group,
+                    crate::AcceptedEdge {
+                        left: left_local,
+                        right: right_local,
+                        score: round3(score),
+                        // Accepted-edge diagnostics only retain the category. Building a full two-member
+                        // witness here would compute and immediately discard both Jaccard means for every
+                        // accepted edge; the final group witness below still computes the reported means.
+                        witness_kind: witness_kind(&[left, right], units),
+                    },
+                )
+            })
+        })
+        .collect::<Vec<_>>();
     let mut edges = vec![Vec::new(); raw_groups.len()];
-    for &(left, right, score) in accepted {
-        let (Some((left_group, left_local)), Some((right_group, right_local))) =
-            (member_position[left], member_position[right])
-        else {
-            continue;
-        };
-        debug_assert_eq!(left_group, right_group);
-        if left_group == right_group {
-            edges[left_group].push(crate::AcceptedEdge {
-                left: left_local,
-                right: right_local,
-                score: round3(score),
-                // Accepted-edge diagnostics only retain the category. Building a full two-member
-                // witness here would compute and immediately discard both Jaccard means for every
-                // accepted edge; the final group witness below still computes the reported means.
-                witness_kind: witness_kind(&[left, right], units),
-            });
-        }
+    for (group, edge) in classified {
+        edges[group].push(edge);
     }
     edges
 }
