@@ -52,15 +52,28 @@ pub(crate) fn detect_divergences(
     let base_refs = base_paths.iter().map(PathBuf::as_path).collect::<Vec<_>>();
     let plan = prepare_divergence_query(args)?;
     let current_projection_opts = *plan.options();
-    // Keep current-tree witness projection outside the measured base detector. Running
-    // both Rayon workloads concurrently made their internal parse/normalize stages charge
-    // shared CPU contention to the base path, which produced false stage regressions even
-    // when end-to-end work improved. The projection remains eager and is reused below.
-    let preprojected_current = time_stage("base_preproject", || {
-        change_witness::preproject_current_files(&root, &current_changed, &current_projection_opts)
-    });
-    let detected = time_stage("base_detect", || {
-        build_divergence_families(args, &base_refs, plan)
+    // Current-tree witness projection is independent of base detection. Overlap it on one
+    // dedicated thread, but keep the projection itself serial: letting both sides consume
+    // the global Rayon pool inflated the measured base parse/normalize stages through CPU
+    // contention. One bounded worker hides the independent I/O without perturbing the
+    // detector's parallel work.
+    let (detected, preprojected_current) = std::thread::scope(|scope| {
+        let projection = scope.spawn(|| {
+            time_stage("base_preproject", || {
+                change_witness::preproject_current_files(
+                    &root,
+                    &current_changed,
+                    &current_projection_opts,
+                )
+            })
+        });
+        let detected = time_stage("base_detect", || {
+            build_divergence_families(args, &base_refs, plan)
+        });
+        let preprojected_current = projection
+            .join()
+            .expect("bounded current-tree projection worker panicked");
+        (detected, preprojected_current)
     });
     let (families, enrich_opts, retained_base) = detected?;
 
