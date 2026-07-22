@@ -1,0 +1,3527 @@
+{
+  "schema": "nose.semantic_regression_expected_drift.v1",
+  "entries": [
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "60fa4483780df00b0edaccf4335833820dc43818fbc749dc8a64e56118851108"
+          ],
+          "current": [
+            "9bede8d6600d92d3464aaf8268f5bc7f4e786e69ef2c7a5ba1e0c4013ccf10a3"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "alacritty",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            27265632
+          ],
+          "current": [
+            27560812
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "a81888f48395a1e35e10badd409be1059ddba4695f8f7773336eacbd43d7be2c"
+          ],
+          "current": [
+            "3187e7a0b981776c4a0973a842359f88a163993d0ddf3bb2c31801d2357758e4"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 3524,
+              "generated": 78,
+              "hidden": 461
+            }
+          ],
+          "current": [
+            {
+              "default": 198,
+              "generated": 3830,
+              "hidden": 35
+            }
+          ]
+        }
+      },
+      "repo": "alamofire",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            268812
+          ],
+          "current": [
+            268822
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "4de9fb605e8964b0c146415d09917f42cab294ad28ae98778e11cda659e62525"
+          ],
+          "current": [
+            "a46ce34668e8b9322ca992b1af77a3ba7fd169187955dd7e4bcd3f5e5f53f2ff"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "antlr4",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "166c1b65cd3cb1bf85340553376b997b07ec56885899d3a67ed0c5bcd99e2e68"
+          ],
+          "current": [
+            "286347c66f6bb3d4169662a802c01dd18a6e55a4101766559db17ab9468cec9c"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "arrow",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            230789
+          ],
+          "current": [
+            241664
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "7a598367716e80f9dfde8dec53d65d97a768e5628c1c28d91137bd1f37e8ab3a"
+          ],
+          "current": [
+            "1d4d6339b3856f842116bc1866a08ae1e3925ee8331979748bcdc73502420317"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "asciidoctor",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "53d7a9e9bd87e87cbf2b949b11a9d888ca69904f21c3904c9a8e10e713738cae"
+          ],
+          "current": [
+            "7b9d54510bdb6bca657dc19d6c6113c06db23b6c353bdb1be7527ba05968a8a7"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "axios",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            31943
+          ],
+          "current": [
+            31945
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "1d2bdf937967c23090b3caf786a50c99258988c900a30f9e8865084a235b5ea4"
+          ],
+          "current": [
+            "4bcffb140a6e64a9c79b441a097f5ec213bef6cf302278e5b9213bee547b9cd5"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "badger",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "559c79767b6812e1cc01dbfdc29ed842135e4d94cda853829e564cb3ce6a735e"
+          ],
+          "current": [
+            "ffa702bdbc8dfc19fc93cd9a3391d6d6da109ab052289c2b46e25c6908de4d81"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "bat",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "c5e1af22941421555b8e8b704b2ac2ac4f9efefcdf5e0ac3720ffd4b285c8c30"
+          ],
+          "current": [
+            "b9610a799e8bddf658eeb246334abb9adf27a69187fa78d02646cfe75ce4d5d8"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "black",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "28fd84d07b03d8871ee0d01ba083f3f2a93758beeb8d2a8ef5af34fcd4075697"
+          ],
+          "current": [
+            "ee7fa1b62e4925820d57b0bc394e686466b7556ff9fcb33cade4f1422dfe16a7"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "boltons",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "64d2fb54b2c892cb54b2ef01a4526133ba95416d147bb05b68a60c18bf5e54f8"
+          ],
+          "current": [
+            "d0d47830eaece12c854082932eb37a7446c4d10074c923584d5fc77eae864bae"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "chi",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "f1f3ebca46f2ec541c3786785daaef167d7383f76f3ef330713b3974cee9e85d"
+          ],
+          "current": [
+            "4a8926fdca04095e1a60d3cff2ba2a98946cc6513563e06e75032b252e4df9c1"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "clap",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "daeefd20803a17d26b2f872ae81227f65588d56348e10b91b7279327f9985b5d"
+          ],
+          "current": [
+            "e5a7c8679efc97c2b304406e39d8fd3d92cd49e2b59dff337e8b26a144cf46f6"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "click",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "0089d52df969ed9f8851caf3a60b72e88f8454479bfefa24a7b493448410fe45"
+          ],
+          "current": [
+            "11ea05a9f7967e624aa51c8c503d9defc350ee6a3cbcbaf3256c981607bb8f88"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "cmark",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "b4e685567962c81d93987d1b7166d222a5febd231bc380e974c2c7c6db6aeb42"
+          ],
+          "current": [
+            "1ae5bd6eab7525e4990c1a79b9084a4580282b28b79ab99b8305e4a7c2714b13"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "cobra",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            247272
+          ],
+          "current": [
+            248799
+          ]
+        },
+        "families": {
+          "baseline": [
+            156
+          ],
+          "current": [
+            157
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "63554dc80717f2d5c1bf7426256453cb9377dd1fcc78613e6d539e663116fd31"
+          ],
+          "current": [
+            "c61e7b77caee6bd6e4819ab9d5f128d5c1ca383fb27ba9f4dfcc79b683b744ff"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 37,
+              "divergence": 5,
+              "hidden": 114
+            }
+          ],
+          "current": [
+            {
+              "default": 37,
+              "divergence": 5,
+              "hidden": 115
+            }
+          ]
+        }
+      },
+      "repo": "commons-lang",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            166996
+          ],
+          "current": [
+            167000
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "a4576c2514cee1e8d56ed5d9089905caf4490bcc9c18dab93872ec710c8095e6"
+          ],
+          "current": [
+            "09d687c5d9c24a2486c405a56a12c3e1b52c51d59694c9686ccfa4a05d23e48f"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "curl",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "d16bc0c906c6ed7375cd0e671932cfc90cb91e019dd6db1cf9e38af17909be34"
+          ],
+          "current": [
+            "9240ab2b5153e9b324b780b608c304b09c29be648df8248b66f254db84f11b2e"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "date-fns",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            63917
+          ],
+          "current": [
+            63921
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "cd3c0a4c42b4dcfe2ca6127a268e445be846fca2d6a4410bcaaf865a5a2b2fd3"
+          ],
+          "current": [
+            "1652f40969f273ed920c80420cb883c4eef8cc51d44057eac6cc0c81812c285d"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "delve",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "ce56ea0f35d3a2fc12db29b2107219ba0d1779af3cd7e282eb09827ec90a5944"
+          ],
+          "current": [
+            "a7d4f44ed0b8070fccacad0d91c1144d4cef0b5466c8ddef65f75050ebd13311"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "devise",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            111214
+          ],
+          "current": [
+            111218
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "5282cba8bdfe511c0d8d866d6310ae0c218e602e7ab294e471c0e0198de0d017"
+          ],
+          "current": [
+            "1064db767bf99d8ecdc42f63d778babe02d9c0ece1bb5eb68abf1578bfa1e1ca"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "drizzle-orm",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            53246
+          ],
+          "current": [
+            53252
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "6fe59c0e61db16cc336d7d09acf40b2f91c7731384189d0d3fe1028061479515"
+          ],
+          "current": [
+            "f1f252e300275d5db77b88336adf605b824840576d33a602c898ee679792f575"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "esbuild",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "a3921cce7e61799ffc5bedb7fb5d1eddb3030aab9d45437ae05af44c7c9cfe3a"
+          ],
+          "current": [
+            "11fe78684bb9287a79f8e80921c4b0c7d4b3d5de7d1d84a2ac250763091f062d"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "etcd",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "d9436622195effd03b5e923a1b916e88b0c2c43ba700d6fb071f668851d6eeb3"
+          ],
+          "current": [
+            "6b276f57ae771073643b86501fbf072955d72687c7333be32a350153b8d9f22a"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "execa",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "fde6c1b42dea82836a8d2236c1ddeeb39a9e810725d9f000f33192e95d93a622"
+          ],
+          "current": [
+            "1c7898c3bd7321ece076c4b0fda3d5ab7fbaf590ff747ed375d8ce577a3fb315"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "faraday",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            70299
+          ],
+          "current": [
+            70301
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "92778e916bfd64c0dbc0b0fb1da45a42d3fc6a234924b2157106c9ce0ed068c6"
+          ],
+          "current": [
+            "2e802a05ce764225386251069045160ac174cdcb8deec3cc0f63386f8d5381ae"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "fastlane",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "e7879057f4d1c219ed19e833eed39053ab82a0119fda75055e1c5317868e55c3"
+          ],
+          "current": [
+            "39d2c86ce07134a6225a17d88687164f402ad22fa3be3d7a1292a4c715b0a829"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "fd",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "1873bdcb58d4e95906a1f6ae1850e46104ac901541284c663ebd3bc931a8ce39"
+          ],
+          "current": [
+            "4878e8882e1c3ae218a72681254e7edb66a73306aa9b8985299122e9b9d8e9cb"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "flask",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "9eafdcf0e59c8f9720cf824dccad0dd298b160e1ba6f1a694131989081f51d94"
+          ],
+          "current": [
+            "847afcf116592d7b6794f55901a092b4e430146d8141795b021db40a5984724e"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "fzf",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "b3ad1a015bae3bc83190607ec5b6c14a888d619b036805401a7af12b2cce3b64"
+          ],
+          "current": [
+            "5cbfda4f4d92b8d09cbcc992b6fcd98943e66c664af5ddbde9c2f253ba6f981c"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "gin",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            142590
+          ],
+          "current": [
+            142596
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "22febef7ca00d58bf385402441fec8992eaed896b048d3991cfee1a9ca42dfde"
+          ],
+          "current": [
+            "454073d6a9d28c37088217529bfe081823f407473997fb246e00af17a1593e7c"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "git",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "74e3420b36c5fd0511b535b6ba049b782b54047df99fbeb4f3af5f07b8cd1730"
+          ],
+          "current": [
+            "33cd7f40be3c635b457f151a36f4f9f6561645a003ab7ee31c511d6be969660c"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "gorm",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            298898
+          ],
+          "current": [
+            298902
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "bc2af5d7e4272df77ec3e834c23a074ffc94a65e0acb2964b90d21dfa5919940"
+          ],
+          "current": [
+            "2e3e7b0bed167f66b1fab21ffffc04ee5c79c2c225d9a8ac7cb12d947379f759"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "graphhopper",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "2739a7f28cd875bbff23127ff4aa01d6f363a87e927a8fda809df15b6c9f2ea5"
+          ],
+          "current": [
+            "a66a3ac760d44d750b5e4cd9231f53e1637d3e3f5e7fa28d892eb89b7df73e85"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "gson",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            2558218
+          ],
+          "current": [
+            2558242
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "c6aa28c55efe0b8753dbd2d3b4e9085fbca27b32f9e3d33401046fd006482fc6"
+          ],
+          "current": [
+            "4ac2825bd789c95fa1cb6d596bb931e1bc86dad99c6a319665e3390fc78969c2"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "guava",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            629387
+          ],
+          "current": [
+            629054
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "8c8b12d83d7170e842c47dc731188ea82449af1181ac2d203612d73605d3dcce"
+          ],
+          "current": [
+            "5cf402bf0ac15fbba4d87bb10057d3127da5b7071250421dcc9e7d609059d932"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 123,
+              "divergence": 12,
+              "hidden": 381
+            }
+          ],
+          "current": [
+            {
+              "default": 122,
+              "divergence": 12,
+              "hidden": 382
+            }
+          ]
+        }
+      },
+      "repo": "h2database",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            41486
+          ],
+          "current": [
+            41488
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "1720144c002ae101c95869349295362f5f4e7e08537442b5d67caf3e5df2ed18"
+          ],
+          "current": [
+            "4a4aab9b08390e5f63de3e357c07b94e22db353d4b541fcaf6e8a8758f5eff17"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "httpie",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "e1b10009e6605ff35b53b055d161649e2c9179407f9eff3e2bb18104b8b9528c"
+          ],
+          "current": [
+            "70bedfde028020e12b5f076a3c0d0f0a09ad456926596623dc63bfd08b574d28"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "httpx",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            206446
+          ],
+          "current": [
+            206454
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "801f01086ca5361d8b7e36f40686b9249c017fb46c559271c600e5cfe27b1630"
+          ],
+          "current": [
+            "6be702ff542a05c62b5739e2f9c2b1021255af7cda88528b25b2e4eac86b9bda"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "hugo",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "1f041d6ce2b28a02d5b28e8ed5af04076cba36b28fbb2793ed07f823984847dd"
+          ],
+          "current": [
+            "5da21d15040604a427997e450d8b2417abc21c8e98695bfc2370c921d46a78db"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "hyperfine",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "5b886ed584486f3fd828c8a77f26dc3382306d83f30cdc58d45761e2ea9b6367"
+          ],
+          "current": [
+            "664f5db1afbcbd86f8af6feaab85658f33757e073d114589754544d24e070fab"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "image",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "69e856aaf023478c7c26a3b3f84a1974dd3e4dac177b1aa92a6383e9cb98d717"
+          ],
+          "current": [
+            "f386c355e0bcf7e105ec92dc9fcb3bd014ee1aa8f32511551ba525db1f1ede70"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "jackson-core",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "ee8e4607aefab17ea32d0225817eb62f3f8b13b2137502ee6b3a7b5e817ac32f"
+          ],
+          "current": [
+            "346b5fca59231fc19079332cb28469e056a6384ae910dce40b1610c54f5377ca"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "jedis",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "39aa9b0f8e1037f3fb2f0bdd9335b3af613f4360e814ffad8c0d2286557b3d6f"
+          ],
+          "current": [
+            "4fcc94165c9e26cb6da147c025d8781526c419747716d5e6f30ae747b01a1a81"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "jekyll",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            73499
+          ],
+          "current": [
+            74665
+          ]
+        },
+        "families": {
+          "baseline": [
+            45
+          ],
+          "current": [
+            46
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "d0f3521a68707df85fa1444aa62646653a16b029cb54366aa0f0ab70329b619e"
+          ],
+          "current": [
+            "e2b0d1818a83546c94466557e793819b7a96b784bca6741839f5f3d2fdff8cea"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 28,
+              "divergence": 1,
+              "hidden": 16
+            }
+          ],
+          "current": [
+            {
+              "default": 29,
+              "divergence": 1,
+              "hidden": 16
+            }
+          ]
+        }
+      },
+      "repo": "jest",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "2a4bafa92d6d5cbdef106a028c863aeb7089ca7c45ae9de8ed8856d7002f8022"
+          ],
+          "current": [
+            "50018db1b83564f7b493549edacd08944c500c073eefec316fdfcb83a83ad797"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "jq",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            109564
+          ],
+          "current": [
+            109228
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "4cd6dc1e5693a2e7a3237461ad004a2fc7953e005fd1840cf6bfbde56c1f620f"
+          ],
+          "current": [
+            "764af143a9302702f2b8d96263d01cf36cb81cb8910048f5678c5a1cef80b000"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 11,
+              "divergence": 1,
+              "hidden": 52
+            }
+          ],
+          "current": [
+            {
+              "default": 10,
+              "divergence": 1,
+              "hidden": 53
+            }
+          ]
+        }
+      },
+      "repo": "jsoup",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            500732
+          ],
+          "current": [
+            500736
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "14b3e4eb6d27e6c73963471e90a886d564e929e8fbedd331bf7e3f26cc679944"
+          ],
+          "current": [
+            "6cf04f15c7fdf419e799643d669fb2cdf7c2f1299c18db186d22784dedf60ca0"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "junit5",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "93d4f930ce96c5fd07104da4304a7a5a475cd6a726b0c50b203cf763af2c4faf"
+          ],
+          "current": [
+            "dda92c66d63d32259623db960580c485f31002ef87f23acdcb17fdd9a91be039"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "kingfisher",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "96dacafe01bb80afbbdcaa8bef110ab9fbec433471b7c05495f25c49849c54b6"
+          ],
+          "current": [
+            "66caac6eeca01c93d672b8be146eb339c52bafbc5c8f00d59e03f8f602c23ac4"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "kramdown",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "5a1fb80692552fd815accf18f8640a603ee8f2e9068735b18f251367e6f96816"
+          ],
+          "current": [
+            "3a574c901224e28df86fca530b878db07a093dd6536ba6ca5792aab0db499bd3"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "ky",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            2057380
+          ],
+          "current": [
+            2059295
+          ]
+        },
+        "families": {
+          "baseline": [
+            1067
+          ],
+          "current": [
+            1068
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "e05c0ac8fad20964f27da6ddc6fffc97353176d3e69bc838bf363efb0dfba638"
+          ],
+          "current": [
+            "fa8c3df38052165d0224eb59c77a5002a12cfc7179c321a63c7e33e355e69fbd"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 474,
+              "divergence": 53,
+              "generated": 21,
+              "hidden": 519
+            }
+          ],
+          "current": [
+            {
+              "default": 475,
+              "divergence": 53,
+              "generated": 21,
+              "hidden": 519
+            }
+          ]
+        }
+      },
+      "repo": "libgdx",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            51620
+          ],
+          "current": [
+            52790
+          ]
+        },
+        "families": {
+          "baseline": [
+            22
+          ],
+          "current": [
+            23
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "f1f8816a54cabc8a207abdd4d29798e5d615cc91ddd769daafd89c47e95313b4"
+          ],
+          "current": [
+            "19f224484090ea5bcafca68374957279f5496564be24584fe69d7a742c685b95"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 12,
+              "hidden": 10
+            }
+          ],
+          "current": [
+            {
+              "default": 12,
+              "hidden": 11
+            }
+          ]
+        }
+      },
+      "repo": "libsodium",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            54127
+          ],
+          "current": [
+            54135
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "d6abb30729f05027aea8f36a10605a621c4993c629a193e4329c7f822fdd1ea1"
+          ],
+          "current": [
+            "09e4e5d4fe223832100637f344c2f40e8fd4270c06a915f0a53ccabb37f92ad8"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "libuv",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "9a1897d5f33cc03df7f73edc3414c4618b17ff9b11de23ecfe26797dd611e8cb"
+          ],
+          "current": [
+            "a3036d1517cc623335690e896948557de9dc76199919071d39367d7c49ed959f"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "liquid",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "1afc51a1ad77afeff04e352461f1ceee239cef66492ad15f2c956f5202fc81ee"
+          ],
+          "current": [
+            "8d9c88e3e43e51414f347cf51e877273127997976ee4aac24d443767837ba3c9"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "lua",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            229939
+          ],
+          "current": [
+            230164
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "04d2881561757b59dc3c38d173b423c3b84ac955c44f7d8082f76cdb7e25c8b4"
+          ],
+          "current": [
+            "de2be8ec067cc337a334198f23d0c3c291bb9887368198ac96c8d3f43b4e9d5f"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "marked",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            43744
+          ],
+          "current": [
+            43412
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "2f48db6cbb58b4739c4f17546034c7830f04a1449256c5e7c8b7f3a154931976"
+          ],
+          "current": [
+            "c3e76ee1f6d5d97f9b0125bf29fb1cf074696954e8d987c7a3658943c356716b"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 9,
+              "hidden": 8
+            }
+          ],
+          "current": [
+            {
+              "default": 8,
+              "hidden": 9
+            }
+          ]
+        }
+      },
+      "repo": "marshmallow",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "34e299d6dcb2aeb80e57d978af44a6b80aafeb988c7db3fb4643887593fbe080"
+          ],
+          "current": [
+            "8d1f6f9eefd8d23883c885117822c35fb8fd398b9ab7a9f41ee176e84a7fca32"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "meilisearch",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            81920
+          ],
+          "current": [
+            81922
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "74d5510c78a3cc35d506904de155a3710d1f9377c1ebfc23ebdf7bf897d5bb5c"
+          ],
+          "current": [
+            "9077e83b6022e59489270e701098e8a8d5724241da40d7887ad8010fd5139564"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "minio",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "ad320bf8c8b9aaaa4a3e2ad7bf37df9bfea3bcb39d7970bf2f3e7586a3ef7c23"
+          ],
+          "current": [
+            "9454ad819872b671e73d7e982625a5943b02c153cb7743aa01fc0acbe83ac1e2"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "mockito",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            61802
+          ],
+          "current": [
+            61804
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "aa347ce8a69749da78e6fb0eaf4381f5c3e02f67b9a0eaf54ded7dbe70d4c7f3"
+          ],
+          "current": [
+            "da13e1c66c34de592f3703ec26d20a6f74316b9449e9a9d57a8ef7fdd8570e22"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "nats-server",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            1307943
+          ],
+          "current": [
+            1307925
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "742cebff5bdd7303179a174cc92e2e03341f24e068e2d7d8f0bd6a29dfdcbcf0"
+          ],
+          "current": [
+            "cb3c8a3923bce5c57b4fd47b4fcc0bd06eabe6e3af94177e6ab6dc5e30022430"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "netty",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "411330c38814484e263aec78a6b422fae1ac5bf7e07eef72de39ea1c901c9b18"
+          ],
+          "current": [
+            "b1243f8414aed3a530333ca0bc9a885919a21d1603c604f7575192a14454381e"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "nginx",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "c42ddd8afce9c55acb16af60041614223224413521af6dd07182b897efc6ff01"
+          ],
+          "current": [
+            "f6a8cfe2eb52c62b21a814ced301e476284ee5cffe2fec9ce1eff0d67c6dc1b1"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "nimble",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "2196a9c4642c1d79fe10629992e38edef8b9be0aaf552c08b92aea5839e2e90b"
+          ],
+          "current": [
+            "4c93c9e93731a26eaabf1285d961b076af64ba2d3af613ef3120dfb7a0f9ab43"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "nushell",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            50592
+          ],
+          "current": [
+            50594
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "f36d22755cca8af76bad66749a21a58d5327c568623340d2341c9147044d27ce"
+          ],
+          "current": [
+            "a110a8c2f4c110e64425725684b933f9f84e2370683d125466aa982a56cc6974"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "packaging",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            81955
+          ],
+          "current": [
+            82782
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "59d82cc3227b4438fbedfe8f5fd073ad0e2aa350d3a453674fdde4fb39d9622e"
+          ],
+          "current": [
+            "b826c630d695da2797648fa3f8d411ac28171f8e04e1290eeb826aa5338b4ff9"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "pixijs",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "0a9db3c25682d9bb822ae8ccfc45e1e561ee66ddef1729d8f62aff6231ab9742"
+          ],
+          "current": [
+            "9b8ca6a63c88c483a7045f0855c15067a9089b1319ae477d06ea2a99edba2b54"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "poetry",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            221088
+          ],
+          "current": [
+            220766
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "519f2ff026ea1d7b51204891ab25d9034348c3d99ca8ea394c7b25058049be05"
+          ],
+          "current": [
+            "bf3f06cfa15711c18d4ad9b5c2e7e499447ccc3dacb7e4bd76d5885d161272ca"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 94,
+              "divergence": 7,
+              "hidden": 41
+            }
+          ],
+          "current": [
+            {
+              "default": 93,
+              "divergence": 7,
+              "hidden": 42
+            }
+          ]
+        }
+      },
+      "repo": "prettier",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            142392
+          ],
+          "current": [
+            142400
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "e5983586571506d7cf9a86ed0284168976632de87ffc8dd637ad2d063375aae3"
+          ],
+          "current": [
+            "87cce664e88e663efe4f655b66751840b98da1b5e8f39c200a5eec374e649b22"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "prometheus",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            31376
+          ],
+          "current": [
+            31378
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "8dc1e855d197d6073f909c5a9d1850f391bb3c0666e1fca17aace020ff277121"
+          ],
+          "current": [
+            "0df33166d1679d962c9a09b80719c4079639f2db9e3fd41b526941a9e7583d0a"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "pry",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "d51ef9ebdf0d1c5e5056d794f9304f741c9a57acfb58c9aca2478ad6203e04cf"
+          ],
+          "current": [
+            "b11ea7bdb4b1ebeb50d10510db8800481010ec0c489d634a4b253914ff3cc476"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "puma",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            1532910
+          ],
+          "current": [
+            1570993
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "daff743b9eed6bade9c8f6ffc8816ed6412f8f8f494c09ae4fec4673125b87e5"
+          ],
+          "current": [
+            "8dbd563a39eb50b71e3c7f34ac6a1da2d92207caccb2f0aa41381f6bd6b15196"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 435,
+              "generated": 75,
+              "hidden": 49
+            }
+          ],
+          "current": [
+            {
+              "default": 55,
+              "generated": 496,
+              "hidden": 8
+            }
+          ]
+        }
+      },
+      "repo": "quick",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "6e7da58d8fc4d1805d65e338cadaf8dec6aaab92ff4baf9d6f1441a156e16173"
+          ],
+          "current": [
+            "569e3ab8162cb21c5e12ab04a2859e372c039ef11935ea84863930c0a9629cbe"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "rack",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            52136
+          ],
+          "current": [
+            52140
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "b66a975b27530008dc833baa0154ca1da9d38b086fb8da52f6ce1437a868de8e"
+          ],
+          "current": [
+            "1b317ab3ae711ea98b55cc8c78251a1fc3a7b3c221b2d595489b0084480d95ef"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "radash",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            239502
+          ],
+          "current": [
+            240504
+          ]
+        },
+        "families": {
+          "baseline": [
+            148
+          ],
+          "current": [
+            149
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "6e55a7698a1d45aedb48b409e89a1661c9cf3ba59d3f2c0379b726f175e45ecc"
+          ],
+          "current": [
+            "4e3c831071e98df10911e5834dfefb8f72bcd6722c7179dd3ca10ed20be76326"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 114,
+              "hidden": 34
+            }
+          ],
+          "current": [
+            {
+              "default": 115,
+              "hidden": 34
+            }
+          ]
+        }
+      },
+      "repo": "raylib",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            57108
+          ],
+          "current": [
+            55968
+          ]
+        },
+        "families": {
+          "baseline": [
+            29
+          ],
+          "current": [
+            28
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "8a60296a51bc81b01c66e5f6f687661bf256c0a505da367f0e075317b1d98b1e"
+          ],
+          "current": [
+            "e423c6f152a21d4500e3cce9e8b161c39c2ffdcc2569b7b19aec0f9dc552c597"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 12,
+              "hidden": 17
+            }
+          ],
+          "current": [
+            {
+              "default": 11,
+              "hidden": 17
+            }
+          ]
+        }
+      },
+      "repo": "redis",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            68904
+          ],
+          "current": [
+            68908
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "d225c848a295237e4821bec4fecc6598d6612212651b343a65ec577b04a664b8"
+          ],
+          "current": [
+            "068c398524317bf733ca6feac4f09ddaa0744367c51ce58db1b44f8a202b30e2"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "regex",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "0aa530a54b23f06611fa854a1a072dc1c78340c82e68da61ecd679ea5c0932de"
+          ],
+          "current": [
+            "5e74f1993ca080d7a05ef881ba607d7b2c79fda30b0d657318fa5abd07aa44a5"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "requests",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            120648
+          ],
+          "current": [
+            120798
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "0ba1eeab5332088e80ae3520508eefd30d20c6ee903e48859dac0d8deb6b7a3f"
+          ],
+          "current": [
+            "d11313b58899dd43fe04835e68db3bae78d2ba708f9d6f1f47ef8a493e4d3cdf"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "retrofit",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "188fb6f700a14691a0b00fa69be594c40bf746d28bde7e3c846ef8e31a451587"
+          ],
+          "current": [
+            "dba508b29d5573263b80cacaea653ac0f7260515e4c731615818b973b73fc2bb"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "rich",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "ead4945ffe4d1907caa2ea7cd3600a0afbe938f48b14191b6faeb964bdd01abd"
+          ],
+          "current": [
+            "79ed794ac4db7873be9d3d3e87fa5765737c4405de79d49e84260ba43431e09b"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "ripgrep",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "11fd525a0020d78b20738e5ffa80159da9c434700b24b2e8debdc861465fcf83"
+          ],
+          "current": [
+            "f42cb84b837f10956453aabbdf7f16efe19a3df0635444407e24e5b8752b18f8"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "rspec-core",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            134193
+          ],
+          "current": [
+            134201
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "0c75e29fe664a92cc7791bef576bc1969cd235b83a8a2ca65a77baa0bd6c5ae8"
+          ],
+          "current": [
+            "77369a7c8f713d070adc7c387ad40dac8c0356ab60b2da0b118867c011737bae"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "rubocop",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "50028d9061a0edfd2cdeb7fbd115fe2baf4fa629388e0c9be3f16990d95d4f78"
+          ],
+          "current": [
+            "e335ae84bb4c20c6bb78ef97688592c49750901e4b9015bbcda228974ce0740e"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "rustls",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            1128709
+          ],
+          "current": [
+            1128711
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "3c0a654334c28a50ee7f4182831e0452a733bffadd59b4742f55f32a6c42ec27"
+          ],
+          "current": [
+            "77d00993350f6a65dcd0043283b46c29c44f7931dcaca2031a482fbe05047b00"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "rxjava",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "94ac1785e29e0528aaefd45471fad1a6d69a1390459e89132327610c1e56fd76"
+          ],
+          "current": [
+            "b3b0b436434e98b1ec076257ac50032e1e73e183dd36a63a88592c61f922af59"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "rxjs",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            2702748
+          ],
+          "current": [
+            2746048
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "a2a6c4239af84e16e86dd36e9318890c4a702a6d74dd8edc7a10486175f5397d"
+          ],
+          "current": [
+            "49ec41c1182a9b8c4e55855eccc9c6230fb2cf2f9f5b98d55b70a773c70b6f2b"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 493,
+              "generated": 3,
+              "hidden": 117
+            }
+          ],
+          "current": [
+            {
+              "default": 44,
+              "generated": 561,
+              "hidden": 8
+            }
+          ]
+        }
+      },
+      "repo": "rxswift",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "ffd54c87bd9576bca99a4d4e9d8ff18f13341616cbbc0ed356835f70fa7699db"
+          ],
+          "current": [
+            "2ae5d0c4c5257cce1df395d272511107f08e0e0f057566cab4354c03fc710751"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "scrapy",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "74426b6c7bb036f0f726f0cb2f0c334b1db629e0ebe87126922f8d5464e8621a"
+          ],
+          "current": [
+            "f194d697b264a1f2563453b99212fcc71770453743d0d09c535abb22c18e5c06"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "serde_json",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            31950
+          ],
+          "current": [
+            31952
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "4979fbbb7c6a2d2009ec22cca5d3c987456faffa8b943ba9b1727bdc240591a8"
+          ],
+          "current": [
+            "29f0d972f3145856e2072b14ecf3a7dd265da835768ed6fab915f5003b9ded7e"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "sidekiq",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "be8af13abf21ec2273f349a539acff34c4a1961014456880fd33f858b8c7ce45"
+          ],
+          "current": [
+            "65df554f526cf0d78dd086432c59b047c94c7711a4542af9d6eb4b88ec686451"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "sinatra",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "23f9ae9147384c39b42a29882ec2ce60cf6dbb907d3f49872f6d0775502d61e8"
+          ],
+          "current": [
+            "572aff38f336e21c52ca4fbbb8346d5d90ff1432e658d4f6852544d37e6a0812"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "sled",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            511055
+          ],
+          "current": [
+            511071
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "c9572a18f6e735ff00e232255c75375be56ebd4592333e167b3c6450dae27af9"
+          ],
+          "current": [
+            "0c4b5adfe545c71aa3f9afd3a033df626ab8d73f1062b9ee5f5296a9d1c3dfba"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "sqlalchemy",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "00e394f171da462e961fe4e804ff56a9351533f93c7d625b10be36a36f0e869d"
+          ],
+          "current": [
+            "b87acb2ee533fd05fcb88b7505ec62b58f31f75e5c2c0efd89a6c5177d2514e3"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "sqlite",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "2b318d2ceb3bd60f8f66abecd7c4ae6551752346c0777db49460c35a2ef919f6"
+          ],
+          "current": [
+            "b74df57e071ef5178e511c44e227cf0fd4a09398f314843719610a4fc269fb31"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "swift-algorithms",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "896fa3004f71225e0ef54dc06639ac1da8e288a3e7719171f31a10500ba64cf3"
+          ],
+          "current": [
+            "2f416da99261c56e230521743e23aa5469556fd8ffa5c6aa02c8cbc3f3be0f03"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "swift-argument-parser",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            100379
+          ],
+          "current": [
+            100389
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "43085a108d40e5da948c722130f204d2696c09298e39ad64391adbb6033e861f"
+          ],
+          "current": [
+            "3b6a1466be2abe5e3d0bddf37f2b3219650d9711c81c1d1543e32a1ee9e5aa99"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "swift-collections",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "636be3d6c89b73a4dc59fada9343c33da02adc35124cee4355c2d2802d386354"
+          ],
+          "current": [
+            "83ca2927a1e03332ba947dd6738df7760c9310f363d6f2e9495a61c5d41ab553"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "swift-composable-architecture",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "e310b3bed1a220fbac300bf21e38ec279df848ecd8aad5ccc1cbd18b2e26a2a6"
+          ],
+          "current": [
+            "d0771143caaf0da370d5ce9aef9bbd768679ec6097e207f9d9a84086e37695c6"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "swift-log",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "5a0fe848fa8421c76f664dfe426aa8c7ddfff1aab3ca5cc8520afce9a386322a"
+          ],
+          "current": [
+            "d4f6386c745f4e92d0509a349386582a7ae7a8bcbe91b8ded6703cb4b676c2cb"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "swift-metrics",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "4c41d3bdad7256dd2c9bfe4a8bb8afba3630070da08fc90c0bf68b6e259b8576"
+          ],
+          "current": [
+            "3c9d858739da32bef035ab760d4d1eeb88909d05515ada67b7fb305f3c46c167"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "swift-nio",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "4c76512cc0942a0215943f6ce49ef4bb09cdd9b6a032590a881197b3b038260f"
+          ],
+          "current": [
+            "7bb90d9d1f7f2d9d8bed1f73bc1b72ad78628c9b9f5d70e6a5b6a5ba0ea54137"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "swift-service-lifecycle",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "80f0a8b407ebf83c8b6490952e2988cf85fee92686546a9f6f0f565a0b571eec"
+          ],
+          "current": [
+            "976110b49cf374cd0cb246e95df768a76dc78b1ab3b825679a737fbe1081ebd1"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "swiftlint",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "9f0b813e54c709c40ea4d974badde67c83237fc4316b2204c5b8d14ce4912530"
+          ],
+          "current": [
+            "77f5e2ce16b296e90d55e5d2ecfd82390dbf343ecc4f89553b06b39cccd6b0cd"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "swr",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            828781
+          ],
+          "current": [
+            828448
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "3194fe3eb9b6d81f08d1a7a6a0bbe36e808c77b8d17da521a4dc30f507edd40e"
+          ],
+          "current": [
+            "a38fcabf8962dd81519f38a46fef65cc5d844e6d8ad9714f7dbc4d80a909661e"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 398,
+              "divergence": 4,
+              "hidden": 244
+            }
+          ],
+          "current": [
+            {
+              "default": 397,
+              "divergence": 4,
+              "hidden": 245
+            }
+          ]
+        }
+      },
+      "repo": "sympy",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "c9c0a26db10c58411124f497d3b63d5fc588b5cff5e6c3fd1fe6da7b055959b1"
+          ],
+          "current": [
+            "29770306dbe0414200c70768a53ddbd329e27ccf775c2afc4e7068b0892d3c3c"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "thor",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            50010
+          ],
+          "current": [
+            50020
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "677a2f0c6a4a05121f0f9e18b6f3b8674001e425ed77e3a7411b6a31fd86582e"
+          ],
+          "current": [
+            "7eaa1db649967a2fc0cef9bc38a70acaaec0f8e8d6a3db0c7c412a9142b84e86"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "tmux",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "b74f1e48324c91bc70e29d7a40e52538025ca71de6a61564834b6a86bd9960e3"
+          ],
+          "current": [
+            "7c9cae35463df05a13dd3a7022a3624c299ee53fcca91c2461636cc0ad579204"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "tokei",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "aed5a203a798b3676fdb255d1738e0206f5cbe80386d368afea1a787e44d926a"
+          ],
+          "current": [
+            "2a6b674051931fd4b9c99fc6967ce14360b1d3b1a486b27e644cdfb3f0fb6872"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "tokio",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            125427
+          ],
+          "current": [
+            126177
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "ee768ebda012a90eadfc2b3a5c855e9af3b6b87e2be2f5b97de4d4344bda14c3"
+          ],
+          "current": [
+            "7b506012009a9683da01c3ed3c60c64ce40fe8cea272ddda66bd96a16079615c"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "trpc",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "09a23a87febfff6d3a2d18f040ea9ea27033906638509c356e2bd3c4833aa0b7"
+          ],
+          "current": [
+            "993d9128445f81d99664f9f647e8463ac5caa76c89b47b8157370748a9a874ab"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "urfave-cli",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "9cad301e76728a6816125231c7f6465d8f03d51679a2b3287777e3202d953c18"
+          ],
+          "current": [
+            "883df52f6d3b8787fbc243be9f0dc483149b75ffe6c8c809e3683d528a1c877c"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "vapor",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "e3e5c9d08a5c120b8f50cf742d9489f663eff1a3b2f783e4b9d5d3f9c8b517a6"
+          ],
+          "current": [
+            "13dea58e033a72993e3b6db2adf7e749dbebed38eab741660f10179bc7bb3acb"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "vim",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "98d42d6f87cbcbeb7370e687a413fae0eaed7d849b21d029441743ca430516d1"
+          ],
+          "current": [
+            "3bc31d3169580e711c33e95d7debae78bc4419e7ff3d6cc761dad275d8d1ce0c"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "wrk",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "f1981518c0638d2fce8aa0addcf748c8638011fc423791a4d8b3bcb261bc57a7"
+          ],
+          "current": [
+            "62b109327c74cd7adda8eeb845d23ad82a245716e0267a8c61daa60f91f1c571"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "zap",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "f1e07a63a6a7e2c72c58487a883d02c3c3d8fb068e30b406445948c79dca4cca"
+          ],
+          "current": [
+            "402652e6d9ee56fc82637e209f96b3d62871d773b1f53741e79c02c24c9f6047"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "zod",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "9f595682228febe635454ffcdde50c98fa982a39a7d5c1b2274bcd7a249474c9"
+          ],
+          "current": [
+            "1055f8a3ca30caebedb8191bc281930bb53d65af6598cfaecde559a943600203"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "zstd",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    },
+    {
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "0b0aa998bf1a08380cabbac2b728d1442bc4e684b5c42346d22632d5ae9f9766"
+          ],
+          "current": [
+            "8679fb5e52ae44885d23fc8e1f30d80798a14d10067364ddea6d13328e296529"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            7
+          ],
+          "current": [
+            9
+          ]
+        }
+      },
+      "repo": "zustand",
+      "baseline_source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "issue": "https://github.com/corca-ai/nose/issues/943",
+      "reason": "Intentional v0.20 schema, surface, reporting, and detection changes delivered by the completed 0.20 feature epics; this entry freezes the exact final-candidate semantic-mode output delta."
+    }
+  ]
+}
