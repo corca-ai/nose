@@ -71,7 +71,7 @@ fn finish_query_dataset(
         semantic_pack_near,
         semantic_pack_external_exact,
         line_context,
-        _retained_normalized,
+        _retained_resolved,
     ) = detection;
 
     let mut families = time_stage("rank_families", || nose_detect::rank_families(&report));
@@ -193,7 +193,7 @@ pub(crate) fn build_divergence_families(
 ) -> Result<(
     Vec<nose_detect::RefactorFamily>,
     nose_detect::DetectOptions,
-    Option<RetainedNormalizedCorpus>,
+    Option<RetainedResolvedCorpus>,
 )> {
     let DivergenceQueryPlan {
         settings,
@@ -207,7 +207,7 @@ pub(crate) fn build_divergence_families(
         semantic_pack_near,
         semantic_pack_external_exact,
         line_context,
-        retained_normalized,
+        retained_resolved,
     ) = query_detect_report(QueryDetectRequest {
         args,
         refs,
@@ -225,7 +225,7 @@ pub(crate) fn build_divergence_families(
         families.retain(|family| family.abstraction_witness.is_some());
     }
     time_stage("cache_commit", || cache::finish_query_run(line_context));
-    Ok((families, opts, retained_normalized))
+    Ok((families, opts, retained_resolved))
 }
 
 /// `direct_edges` is the richer representation needed by the `base=` divergence view.
@@ -345,30 +345,18 @@ fn resolve_query_settings(
     ))
 }
 
-/// With --cache-dir, build units per file through the on-disk cache (skips
-/// normalize/extract for unchanged files); otherwise lower the whole corpus.
-pub(crate) struct RetainedNormalizedCorpus {
-    pub(crate) corpus: nose_il::Corpus,
-    pub(crate) exact_safety: Vec<RetainedExactSafety>,
-    pub(crate) value_contexts: Vec<(String, nose_normalize::ValueFingerprintContext)>,
-}
-
-pub(crate) struct RetainedExactSafety {
-    pub(crate) path: String,
-    pub(crate) kind: nose_il::UnitKind,
-    pub(crate) start_line: u32,
-    pub(crate) end_line: u32,
-    pub(crate) exact_safe: bool,
-}
-
 type DetectionReport = (
     nose_detect::Report,
     QueryScope,
     nose_semantics::SemanticPackNearRegistry,
     nose_semantics::SemanticPackExternalExactRegistry,
     Option<cache::CachedLineContext>,
-    Option<RetainedNormalizedCorpus>,
+    Option<RetainedResolvedCorpus>,
 );
+
+pub(crate) struct RetainedResolvedCorpus {
+    pub(crate) corpus: nose_il::Corpus,
+}
 
 #[derive(Clone, Copy)]
 enum AcceptedCoverage {
@@ -392,7 +380,6 @@ struct PreparedDetectionFeatures {
     unit_keys: Option<Vec<[u8; 32]>>,
     streams: Vec<nose_detect::Stream>,
     files: usize,
-    retained_normalized: Option<RetainedNormalizedCorpus>,
 }
 
 fn query_detect_report(request: QueryDetectRequest<'_>) -> DetectionReport {
@@ -436,14 +423,12 @@ fn query_detect_report(request: QueryDetectRequest<'_>) -> DetectionReport {
         unit_keys,
         streams,
         files,
-        retained_normalized,
     } = prepare_detection_features(
         &mut corpus,
         opts,
         args.cache_dir.is_some(),
         line_context.as_ref(),
         unit_snapshot,
-        accepted_coverage,
     );
     if opts.shape_candidates && semantic_pack_near.is_active() {
         for unit in &mut units {
@@ -452,7 +437,15 @@ fn query_detect_report(request: QueryDetectRequest<'_>) -> DetectionReport {
         }
     }
     drop(semantic_pack_evidence);
-    drop(corpus);
+    // Divergence witnesses need corpus-wide import/pack evidence, but retaining the
+    // normalized detector corpus extends thousands of fresh arena lifetimes. Keep the
+    // smaller resolved raw corpus and normalize only the bounded flagged-file set later.
+    let retained_resolved = if matches!(accepted_coverage, AcceptedCoverage::Direct) {
+        Some(RetainedResolvedCorpus { corpus })
+    } else {
+        drop(corpus);
+        None
+    };
     let report = detect_cached_or_clean(DetectCachedRequest {
         cache_identity_parts,
         cache_run: line_context.as_ref().map(|context| &context.run),
@@ -469,7 +462,7 @@ fn query_detect_report(request: QueryDetectRequest<'_>) -> DetectionReport {
         semantic_pack_near,
         semantic_pack_external_exact,
         line_context,
-        retained_normalized,
+        retained_resolved,
     )
 }
 
@@ -479,7 +472,6 @@ fn prepare_detection_features(
     cached: bool,
     line_context: Option<&cache::CachedLineContext>,
     unit_snapshot: Option<cache::CachedUnitSnapshot>,
-    accepted_coverage: AcceptedCoverage,
 ) -> PreparedDetectionFeatures {
     if cached {
         let cache::CachedUnits {
@@ -509,35 +501,12 @@ fn prepare_detection_features(
             unit_keys: Some(unit_keys),
             streams,
             files,
-            retained_normalized: None,
-        }
-    } else if matches!(accepted_coverage, AcceptedCoverage::Direct) {
-        let (features, normalized, value_contexts) = time_stage("normalize+extract", || {
-            nose_detect::corpus_features_with_normalized(corpus, opts)
-        });
-        let exact_safety = features
-            .units
-            .iter()
-            .map(|unit| RetainedExactSafety {
-                path: unit.path.clone(),
-                kind: unit.kind,
-                start_line: unit.start_line,
-                end_line: unit.end_line,
-                exact_safe: unit.exact_safe,
-            })
-            .collect();
-        PreparedDetectionFeatures {
-            units: features.units,
-            unit_keys: None,
-            streams: features.streams,
-            files: features.files,
-            retained_normalized: Some(RetainedNormalizedCorpus {
-                corpus: normalized,
-                exact_safety,
-                value_contexts,
-            }),
         }
     } else {
+        // Semantic-change projection is capped to the already-flagged files. Retaining
+        // every normalized arena here extends a corpus-sized allocation lifetime and
+        // makes the later witness path index thousands of files it will never inspect.
+        // Re-project the bounded target set there instead.
         let features = time_stage("normalize+extract", || {
             nose_detect::corpus_features(corpus, opts)
         });
@@ -546,7 +515,6 @@ fn prepare_detection_features(
             unit_keys: None,
             streams: features.streams,
             files: features.files,
-            retained_normalized: None,
         }
     }
 }

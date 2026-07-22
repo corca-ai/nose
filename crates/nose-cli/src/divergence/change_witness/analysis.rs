@@ -249,12 +249,11 @@ pub(super) fn project_file(
     finish_file_projection(interner, normalized, HashMap::new(), None)
 }
 
-pub(super) fn project_normalized_file(
+pub(super) fn project_resolved_file(
     absolute_path: &Path,
     interner: Interner,
-    normalized: nose_il::Il,
-    known_exact_safety: HashMap<(UnitKind, u32, u32), bool>,
-    value_context: Option<nose_normalize::ValueFingerprintContext>,
+    raw: nose_il::Il,
+    opts: &nose_detect::DetectOptions,
 ) -> LoadState {
     let Some(lang) = Lang::from_file_path(absolute_path) else {
         return LoadState::Failed(SemanticProjectionStatus::Unsupported);
@@ -272,7 +271,18 @@ pub(super) fn project_normalized_file(
         }
         Err(_) => return LoadState::Failed(SemanticProjectionStatus::ReadFailed),
     }
-    finish_file_projection(interner, normalized, known_exact_safety, value_context)
+    let normalized = nose_normalize::normalize(
+        &raw,
+        &interner,
+        &nose_normalize::NormalizeOptions {
+            cfg_norm: opts.cfg_norm,
+            dce: opts.dce,
+            ..Default::default()
+        },
+    );
+    let value_context =
+        nose_detect::default_product_value_fingerprint_context(&normalized, &interner);
+    finish_file_projection(interner, normalized, HashMap::new(), value_context)
 }
 
 fn finish_file_projection(

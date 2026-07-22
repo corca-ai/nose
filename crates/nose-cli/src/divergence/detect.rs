@@ -52,17 +52,15 @@ pub(crate) fn detect_divergences(
     let base_refs = base_paths.iter().map(PathBuf::as_path).collect::<Vec<_>>();
     let plan = prepare_divergence_query(args)?;
     let current_projection_opts = *plan.options();
-    let (detected, preprojected_current) = time_stage("base_detect", || {
-        rayon::join(
-            || build_divergence_families(args, &base_refs, plan),
-            || {
-                change_witness::preproject_current_files(
-                    &root,
-                    &current_changed,
-                    &current_projection_opts,
-                )
-            },
-        )
+    // Keep current-tree witness projection outside the measured base detector. Running
+    // both Rayon workloads concurrently made their internal parse/normalize stages charge
+    // shared CPU contention to the base path, which produced false stage regressions even
+    // when end-to-end work improved. The projection remains eager and is reused below.
+    let preprojected_current = time_stage("base_preproject", || {
+        change_witness::preproject_current_files(&root, &current_changed, &current_projection_opts)
+    });
+    let detected = time_stage("base_detect", || {
+        build_divergence_families(args, &base_refs, plan)
     });
     let (families, enrich_opts, retained_base) = detected?;
 
