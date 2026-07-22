@@ -1375,3 +1375,23 @@ remain separate from float IEEE arithmetic. Extracting a common dispatcher
 would couple those soundness boundaries for incidental structure, so the
 already reviewed family is restored to the baseline. No new avoidable
 duplication is accepted.
+
+The #943 final release candidate keeps the reviewed count at 28. Two deltas are
+representative churn with identical members and metrics: the Markdown/detect
+candidate enumeration family moves from `0225963d07a476fe` to
+`0fba8db9b311bd86`, and the context/export assignment-counting family moves
+from `fbb4f5bc351a745e` to `fa4513e797e66fbd`. The former still contains only
+`fingerprint.rs::candidate_pairs` and `candidates.rs::anchor_candidates`; the
+latter still contains the value-graph context impl,
+`collect_statement_exports`, and `assignment_name_counts` with two shared
+lines across 204 reported lines.
+
+The previous builder/value-DAG whole-impl span `c7af525b1b9ed3af` falls below
+the substantial threshold. Its replacement `22b278f1f3e6c0e7` contains
+`preload_files` and `preload_base_unit_projections`, the two sequential phases
+of divergence witness preloading. They share the bounded base-site traversal
+but own different work: the first materializes whole file projections and the
+second projects selected units from those files. Keeping the phases explicit
+avoids hiding their different caps, caches, and parallel work behind a release-
+only abstraction. This is accepted same-file performance-pipeline debt on the
+already measured candidate, not a budget increase; the gate remains at 28.

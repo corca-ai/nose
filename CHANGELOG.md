@@ -6,7 +6,15 @@ break.
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-07-22
+
 ### Added
+- Qualified the final v0.20.0 product tree against the checksum-verified published
+  v0.19.0 binary (#943). The checked [release evidence](docs/release-evidence-0.20.0.md)
+  binds all-120 default/semantic/no-pack and frozen base-view query gates, 30-replay
+  cache and watch campaigns, and complete same-commit Soundness Lab nightly/deep
+  evidence; every blocking gate passes with no unresolved runtime signal, false
+  merge, canon violation, cache-history mismatch, or material performance regression.
 - Made `--cache-dir` transactional, corruption-safe, concurrent, compact, and bounded (#876).
   Immutable checksummed records now commit through one complete generation pointer; interrupted
   or concurrent writers cannot expose partial state, corrupt/oversized entries recompute, and

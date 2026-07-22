@@ -391,6 +391,21 @@ same-binary control, the aggregate runtime delta is `+1.63%`, within the `5%` ga
 [`performance receipt`](../bench/recall_loss/issue-862-official-v0.19.0-performance-2026-07-18.v1.json) records
 both raw-run hashes and the exact corpus and binary identities.
 
+Issue #943 replaces that development binding for the final release decision without rewriting
+the #862 history. The checked
+[`release-binding-943.v1.json`](../bench/soundness/0.20.0/release-binding-943.v1.json) binds source
+`a544d03b6801871dbcd90bcb370825942d6851c8`, product tree
+`6d38b79884a44d1fe38a47cec19ca4d9a2ef7570`, and binary SHA-256
+`ad1f3fa3695168083be85ed81b199e059c91c45dcff769e1c9d99e6597081328` to the final four-workload
+query receipt. The checked
+[`release-nightly-943.v1.json`](../bench/soundness/0.20.0/release-nightly-943.v1.json) covers all 120
+repositories with zero failures, false merges, or canon violations; the
+[`release-deep-943.v1.json`](../bench/soundness/0.20.0/release-deep-943.v1.json) deep campaign and
+[`release-gate-943.v1.json`](../bench/soundness/0.20.0/release-gate-943.v1.json) composer both pass
+for that same commit. Current exclusion attribution covers 12,133 exclusions with zero generic
+or unattributed units. See the [0.20.0 release evidence](release-evidence-0.20.0.md) for the full
+decision and reproduction commands.
+
 ## Reproduce and validate
 
 Use the published binary, the exact release source tree, and all pinned

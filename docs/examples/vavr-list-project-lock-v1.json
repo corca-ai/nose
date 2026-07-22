@@ -24,7 +24,7 @@
       ],
       "exact_receipt": {
         "path": "semantic-pack-receipts/vavr-list.v1.json",
-        "content_digest": "sha256:90e1f1fb4df090cfac2ca1134556a4c1ff78b5dae9819774b79e468b1340955e"
+        "content_digest": "sha256:38804aef24c7487cada2eb9f524a86e3803dc5999ad080f68a3a834d80b53003"
       }
     }
   ]

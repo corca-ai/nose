@@ -285,6 +285,12 @@ set -euo pipefail
 # `float_bin` dispatcher family `aa2b95cf822a1cd2` to cross value 40 again. Neither numeric policy
 # changed; integer wrapping/floor/bitwise behavior remains intentionally separate from float IEEE
 # behavior, so no common dispatcher or new avoidable duplication is accepted.
+# 28 -> 28 (#943 release candidate): the measured performance changes and file-length split move
+# the reviewed Markdown/detect candidate-pair and context/export representatives without changing
+# their members. The old builder/value-DAG whole-impl span falls below the threshold while the two
+# deliberately separate divergence preload phases become visible as one same-file family. The
+# preload phases own file materialization versus unit projection and remain separate candidate
+# debt; no budget increase is accepted. See docs/dogfooding-history.md.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

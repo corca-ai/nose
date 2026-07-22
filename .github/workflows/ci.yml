@@ -126,6 +126,8 @@ jobs:
           python3 scripts/watch-session-benchmark.py --self-test
           python3 scripts/watch-session-benchmark.py --validate-report \
             bench/cache/issue-878-watch-session-2026-07-21.v1.json
+          python3 scripts/check-release-evidence-0.20.0.py --self-test
+          python3 scripts/check-release-evidence-0.20.0.py
           python3 scripts/ruby-redefinition-scaling.py --self-test
           python3 scripts/semantic-regression-summary.py --self-test
           python3 scripts/recall-loss-diff.py --self-test
@@ -133,6 +135,8 @@ jobs:
           python3 scripts/check-recall-loss-baselines.py --self-test
           python3 scripts/check-soundness-scorecard.py --self-test
           python3 scripts/check-soundness-scorecard.py
+          python3 scripts/soundness-lab-gate.py self-test
+          python3 scripts/soundness-lab-gate.py check
           python3 scripts/soundness_exclusions.py --self-test
           python3 scripts/soundness_exclusions.py
       - name: current missed-worthy frontier artifacts

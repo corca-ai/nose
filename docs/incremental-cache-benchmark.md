@@ -225,6 +225,25 @@ the checked 5.46×-or-better evidence. The active-session RSS above is reported 
 normalized against a one-shot process; it is the cost of retaining units and detection state for
 sub-second revisions.
 
+## Checked #943 release evidence
+
+The final 0.20 candidate reruns the release conditions rather than inheriting the development
+receipts above. The checked
+[`release-0.20.0-cache-943.v1.json`](../bench/cache/release-0.20.0-cache-943.v1.json) seals two
+30-replay SymPy comparisons against the checksum-verified published v0.19.0 binary, candidate-only
+no-op equivalence on Prettier, Netty, and Fastlane, and the complete 14-workload/2,100-row mutation
+matrix. No phase has a material p50 or p95 regression. Warm SymPy history is about 62% faster,
+store p95 is 5.54× source and 39.67% of official, and warm-leaf RSS p50/p95 is 45.05%/44.85% of
+official.
+
+The checked
+[`release-0.20.0-watch-943.v1.json`](../bench/cache/release-0.20.0-watch-943.v1.json) contains 30
+revisions each at 10k and 100k files, clean-query equality for every snapshot, and passing crash
+recovery. Ready p95 is 100.37 ms and 588.84 ms respectively; end-to-end p95 is 113.05 ms and
+601.47 ms. Unlike the earlier report, the one-shot evidence is explicitly bound to the same exact
+candidate source and binary. The integrated [0.20.0 release evidence](release-evidence-0.20.0.md)
+records the final decision.
+
 ## What the current cache actually reuses
 
 The published v0.19.0 cache is schema v11 and the locked #872 candidate is schema v14. #873 moved

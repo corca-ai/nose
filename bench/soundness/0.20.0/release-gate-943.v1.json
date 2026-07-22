@@ -1,0 +1,1247 @@
+{
+  "advisory": {
+    "baseline_total": 4756,
+    "blocking": false,
+    "candidate_total": 12016,
+    "delta": 7260,
+    "per_repository_diff": [
+      {
+        "baseline": 11,
+        "candidate": 21,
+        "delta": 10,
+        "id": "alacritty"
+      },
+      {
+        "baseline": 30,
+        "candidate": 57,
+        "delta": 27,
+        "id": "alamofire"
+      },
+      {
+        "baseline": 119,
+        "candidate": 372,
+        "delta": 253,
+        "id": "antlr4"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "arrow"
+      },
+      {
+        "baseline": 0,
+        "candidate": 1,
+        "delta": 1,
+        "id": "asciidoctor"
+      },
+      {
+        "baseline": 0,
+        "candidate": 6,
+        "delta": 6,
+        "id": "axios"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "badger"
+      },
+      {
+        "baseline": 0,
+        "candidate": 3,
+        "delta": 3,
+        "id": "bat"
+      },
+      {
+        "baseline": 66,
+        "candidate": 69,
+        "delta": 3,
+        "id": "black"
+      },
+      {
+        "baseline": 3,
+        "candidate": 26,
+        "delta": 23,
+        "id": "boltons"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "chi"
+      },
+      {
+        "baseline": 8,
+        "candidate": 31,
+        "delta": 23,
+        "id": "clap"
+      },
+      {
+        "baseline": 0,
+        "candidate": 12,
+        "delta": 12,
+        "id": "click"
+      },
+      {
+        "baseline": 0,
+        "candidate": 1,
+        "delta": 1,
+        "id": "cmark"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "cobra"
+      },
+      {
+        "baseline": 142,
+        "candidate": 282,
+        "delta": 140,
+        "id": "commons-lang"
+      },
+      {
+        "baseline": 1,
+        "candidate": 55,
+        "delta": 54,
+        "id": "curl"
+      },
+      {
+        "baseline": 0,
+        "candidate": 28,
+        "delta": 28,
+        "id": "date-fns"
+      },
+      {
+        "baseline": 19,
+        "candidate": 58,
+        "delta": 39,
+        "id": "delve"
+      },
+      {
+        "baseline": 0,
+        "candidate": 4,
+        "delta": 4,
+        "id": "devise"
+      },
+      {
+        "baseline": 4,
+        "candidate": 41,
+        "delta": 37,
+        "id": "drizzle-orm"
+      },
+      {
+        "baseline": 3,
+        "candidate": 9,
+        "delta": 6,
+        "id": "esbuild"
+      },
+      {
+        "baseline": 32,
+        "candidate": 116,
+        "delta": 84,
+        "id": "etcd"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "execa"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "faraday"
+      },
+      {
+        "baseline": 0,
+        "candidate": 6,
+        "delta": 6,
+        "id": "fastlane"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "fd"
+      },
+      {
+        "baseline": 0,
+        "candidate": 23,
+        "delta": 23,
+        "id": "flask"
+      },
+      {
+        "baseline": 0,
+        "candidate": 1,
+        "delta": 1,
+        "id": "fzf"
+      },
+      {
+        "baseline": 2,
+        "candidate": 8,
+        "delta": 6,
+        "id": "gin"
+      },
+      {
+        "baseline": 15,
+        "candidate": 86,
+        "delta": 71,
+        "id": "git"
+      },
+      {
+        "baseline": 11,
+        "candidate": 10,
+        "delta": -1,
+        "id": "gorm"
+      },
+      {
+        "baseline": 45,
+        "candidate": 193,
+        "delta": 148,
+        "id": "graphhopper"
+      },
+      {
+        "baseline": 17,
+        "candidate": 79,
+        "delta": 62,
+        "id": "gson"
+      },
+      {
+        "baseline": 775,
+        "candidate": 1810,
+        "delta": 1035,
+        "id": "guava"
+      },
+      {
+        "baseline": 154,
+        "candidate": 540,
+        "delta": 386,
+        "id": "h2database"
+      },
+      {
+        "baseline": 0,
+        "candidate": 17,
+        "delta": 17,
+        "id": "httpie"
+      },
+      {
+        "baseline": 0,
+        "candidate": 18,
+        "delta": 18,
+        "id": "httpx"
+      },
+      {
+        "baseline": 18,
+        "candidate": 56,
+        "delta": 38,
+        "id": "hugo"
+      },
+      {
+        "baseline": 0,
+        "candidate": 1,
+        "delta": 1,
+        "id": "hyperfine"
+      },
+      {
+        "baseline": 6,
+        "candidate": 14,
+        "delta": 8,
+        "id": "image"
+      },
+      {
+        "baseline": 45,
+        "candidate": 124,
+        "delta": 79,
+        "id": "jackson-core"
+      },
+      {
+        "baseline": 999,
+        "candidate": 1208,
+        "delta": 209,
+        "id": "jedis"
+      },
+      {
+        "baseline": 0,
+        "candidate": 1,
+        "delta": 1,
+        "id": "jekyll"
+      },
+      {
+        "baseline": 3,
+        "candidate": 22,
+        "delta": 19,
+        "id": "jest"
+      },
+      {
+        "baseline": 0,
+        "candidate": 5,
+        "delta": 5,
+        "id": "jq"
+      },
+      {
+        "baseline": 8,
+        "candidate": 97,
+        "delta": 89,
+        "id": "jsoup"
+      },
+      {
+        "baseline": 137,
+        "candidate": 602,
+        "delta": 465,
+        "id": "junit5"
+      },
+      {
+        "baseline": 5,
+        "candidate": 5,
+        "delta": 0,
+        "id": "kingfisher"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "kramdown"
+      },
+      {
+        "baseline": 0,
+        "candidate": 1,
+        "delta": 1,
+        "id": "ky"
+      },
+      {
+        "baseline": 703,
+        "candidate": 1797,
+        "delta": 1094,
+        "id": "libgdx"
+      },
+      {
+        "baseline": 0,
+        "candidate": 1,
+        "delta": 1,
+        "id": "libsodium"
+      },
+      {
+        "baseline": 6,
+        "candidate": 32,
+        "delta": 26,
+        "id": "libuv"
+      },
+      {
+        "baseline": 1,
+        "candidate": 2,
+        "delta": 1,
+        "id": "liquid"
+      },
+      {
+        "baseline": 2,
+        "candidate": 5,
+        "delta": 3,
+        "id": "lua"
+      },
+      {
+        "baseline": 0,
+        "candidate": 6,
+        "delta": 6,
+        "id": "marked"
+      },
+      {
+        "baseline": 3,
+        "candidate": 17,
+        "delta": 14,
+        "id": "marshmallow"
+      },
+      {
+        "baseline": 10,
+        "candidate": 39,
+        "delta": 29,
+        "id": "meilisearch"
+      },
+      {
+        "baseline": 6,
+        "candidate": 46,
+        "delta": 40,
+        "id": "minio"
+      },
+      {
+        "baseline": 19,
+        "candidate": 56,
+        "delta": 37,
+        "id": "mockito"
+      },
+      {
+        "baseline": 2,
+        "candidate": 14,
+        "delta": 12,
+        "id": "nats-server"
+      },
+      {
+        "baseline": 611,
+        "candidate": 1480,
+        "delta": 869,
+        "id": "netty"
+      },
+      {
+        "baseline": 0,
+        "candidate": 6,
+        "delta": 6,
+        "id": "nginx"
+      },
+      {
+        "baseline": 2,
+        "candidate": 5,
+        "delta": 3,
+        "id": "nimble"
+      },
+      {
+        "baseline": 44,
+        "candidate": 146,
+        "delta": 102,
+        "id": "nushell"
+      },
+      {
+        "baseline": 0,
+        "candidate": 44,
+        "delta": 44,
+        "id": "packaging"
+      },
+      {
+        "baseline": 0,
+        "candidate": 17,
+        "delta": 17,
+        "id": "pixijs"
+      },
+      {
+        "baseline": 3,
+        "candidate": 29,
+        "delta": 26,
+        "id": "poetry"
+      },
+      {
+        "baseline": 0,
+        "candidate": 16,
+        "delta": 16,
+        "id": "prettier"
+      },
+      {
+        "baseline": 29,
+        "candidate": 69,
+        "delta": 40,
+        "id": "prometheus"
+      },
+      {
+        "baseline": 1,
+        "candidate": 1,
+        "delta": 0,
+        "id": "pry"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "puma"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "quick"
+      },
+      {
+        "baseline": 1,
+        "candidate": 3,
+        "delta": 2,
+        "id": "rack"
+      },
+      {
+        "baseline": 0,
+        "candidate": 22,
+        "delta": 22,
+        "id": "radash"
+      },
+      {
+        "baseline": 16,
+        "candidate": 18,
+        "delta": 2,
+        "id": "raylib"
+      },
+      {
+        "baseline": 9,
+        "candidate": 110,
+        "delta": 101,
+        "id": "redis"
+      },
+      {
+        "baseline": 42,
+        "candidate": 97,
+        "delta": 55,
+        "id": "regex"
+      },
+      {
+        "baseline": 2,
+        "candidate": 12,
+        "delta": 10,
+        "id": "requests"
+      },
+      {
+        "baseline": 0,
+        "candidate": 7,
+        "delta": 7,
+        "id": "retrofit"
+      },
+      {
+        "baseline": 0,
+        "candidate": 17,
+        "delta": 17,
+        "id": "rich"
+      },
+      {
+        "baseline": 0,
+        "candidate": 6,
+        "delta": 6,
+        "id": "ripgrep"
+      },
+      {
+        "baseline": 0,
+        "candidate": 1,
+        "delta": 1,
+        "id": "rspec-core"
+      },
+      {
+        "baseline": 2,
+        "candidate": 4,
+        "delta": 2,
+        "id": "rubocop"
+      },
+      {
+        "baseline": 8,
+        "candidate": 42,
+        "delta": 34,
+        "id": "rustls"
+      },
+      {
+        "baseline": 129,
+        "candidate": 246,
+        "delta": 117,
+        "id": "rxjava"
+      },
+      {
+        "baseline": 1,
+        "candidate": 25,
+        "delta": 24,
+        "id": "rxjs"
+      },
+      {
+        "baseline": 192,
+        "candidate": 102,
+        "delta": -90,
+        "id": "rxswift"
+      },
+      {
+        "baseline": 5,
+        "candidate": 81,
+        "delta": 76,
+        "id": "scrapy"
+      },
+      {
+        "baseline": 1,
+        "candidate": 21,
+        "delta": 20,
+        "id": "serde_json"
+      },
+      {
+        "baseline": 1,
+        "candidate": 4,
+        "delta": 3,
+        "id": "sidekiq"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "sinatra"
+      },
+      {
+        "baseline": 1,
+        "candidate": 3,
+        "delta": 2,
+        "id": "sled"
+      },
+      {
+        "baseline": 16,
+        "candidate": 354,
+        "delta": 338,
+        "id": "sqlalchemy"
+      },
+      {
+        "baseline": 32,
+        "candidate": 102,
+        "delta": 70,
+        "id": "sqlite"
+      },
+      {
+        "baseline": 1,
+        "candidate": 2,
+        "delta": 1,
+        "id": "swift-algorithms"
+      },
+      {
+        "baseline": 4,
+        "candidate": 12,
+        "delta": 8,
+        "id": "swift-argument-parser"
+      },
+      {
+        "baseline": 26,
+        "candidate": 74,
+        "delta": 48,
+        "id": "swift-collections"
+      },
+      {
+        "baseline": 5,
+        "candidate": 12,
+        "delta": 7,
+        "id": "swift-composable-architecture"
+      },
+      {
+        "baseline": 0,
+        "candidate": 1,
+        "delta": 1,
+        "id": "swift-log"
+      },
+      {
+        "baseline": 2,
+        "candidate": 4,
+        "delta": 2,
+        "id": "swift-metrics"
+      },
+      {
+        "baseline": 6,
+        "candidate": 32,
+        "delta": 26,
+        "id": "swift-nio"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "swift-service-lifecycle"
+      },
+      {
+        "baseline": 1,
+        "candidate": 4,
+        "delta": 3,
+        "id": "swiftlint"
+      },
+      {
+        "baseline": 2,
+        "candidate": 1,
+        "delta": -1,
+        "id": "swr"
+      },
+      {
+        "baseline": 67,
+        "candidate": 494,
+        "delta": 427,
+        "id": "sympy"
+      },
+      {
+        "baseline": 0,
+        "candidate": 1,
+        "delta": 1,
+        "id": "thor"
+      },
+      {
+        "baseline": 0,
+        "candidate": 4,
+        "delta": 4,
+        "id": "tmux"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "tokei"
+      },
+      {
+        "baseline": 13,
+        "candidate": 51,
+        "delta": 38,
+        "id": "tokio"
+      },
+      {
+        "baseline": 7,
+        "candidate": 14,
+        "delta": 7,
+        "id": "trpc"
+      },
+      {
+        "baseline": 15,
+        "candidate": 21,
+        "delta": 6,
+        "id": "urfave-cli"
+      },
+      {
+        "baseline": 0,
+        "candidate": 1,
+        "delta": 1,
+        "id": "vapor"
+      },
+      {
+        "baseline": 18,
+        "candidate": 32,
+        "delta": 14,
+        "id": "vim"
+      },
+      {
+        "baseline": 0,
+        "candidate": 5,
+        "delta": 5,
+        "id": "wrk"
+      },
+      {
+        "baseline": 1,
+        "candidate": 1,
+        "delta": 0,
+        "id": "zap"
+      },
+      {
+        "baseline": 5,
+        "candidate": 11,
+        "delta": 6,
+        "id": "zod"
+      },
+      {
+        "baseline": 5,
+        "candidate": 15,
+        "delta": 10,
+        "id": "zstd"
+      },
+      {
+        "baseline": 0,
+        "candidate": 0,
+        "delta": 0,
+        "id": "zustand"
+      }
+    ]
+  },
+  "gate_passed": true,
+  "hard_gates": {
+    "attributed_exclusions": true,
+    "blind_attack": {
+      "canon_preservation_violations": 0,
+      "false_merges": 0,
+      "fingerprint_groups": 54,
+      "gate_passed": true
+    },
+    "deep_campaign": {
+      "metamorphic_equivalence": true,
+      "multi_seed_falsification": true,
+      "source_runtime_calibration": true
+    },
+    "focused_falsification": {
+      "advisory_disagreements": 59,
+      "canon_checked": 304,
+      "canon_preservation_violations": 0,
+      "eligible_pairs": 63,
+      "executed_cases": 25766,
+      "false_merges": 0,
+      "interpretable_units": 2520,
+      "new_distinguishers": 0,
+      "searched_pairs": 63,
+      "skipped_pairs": 0,
+      "total_units": 13283
+    },
+    "guarded_tier_a_cells": true,
+    "pinned_corpus": {
+      "advisory": 12016,
+      "canon_changes": 0,
+      "failed_repositories": 0,
+      "false_merges": 0,
+      "repositories": 120
+    },
+    "registered_claims": true
+  },
+  "language_floors": [
+    {
+      "baseline_macro_ppm": 525000,
+      "candidate_macro_ppm": 850000,
+      "language": "cross-language",
+      "passed": true
+    },
+    {
+      "baseline_macro_ppm": 500000,
+      "candidate_macro_ppm": 1000000,
+      "language": "python",
+      "passed": true
+    },
+    {
+      "baseline_macro_ppm": 666666,
+      "candidate_macro_ppm": 666666,
+      "language": "ruby",
+      "passed": true
+    },
+    {
+      "baseline_macro_ppm": 0,
+      "candidate_macro_ppm": 191176,
+      "language": "rust",
+      "passed": true
+    },
+    {
+      "baseline_macro_ppm": 0,
+      "candidate_macro_ppm": 125000,
+      "language": "typescript",
+      "passed": true
+    }
+  ],
+  "official_baseline": {
+    "corpus": {
+      "advisory_disagreements": 4756,
+      "canonical_gate_result_algorithm": "sha256(sorted repo,status,exit,false-merges,canon,advisory; timing omitted)",
+      "canonical_gate_result_sha256": "0b79e40d7de019cfee9d5f6606d607665c89ed66437d812ef5c91b76eded11ab",
+      "manifest": "bench/goldens/corpus.json",
+      "prune_manifest": "bench/labels/prune_manifest.json",
+      "prune_manifest_sha256": "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980",
+      "pruned_corpus_digest_sha256": "7247d64112bc20749de43d91fb86c6f288ae09271a08d67b68aa252d5abb5804",
+      "repository_count": 120,
+      "selection_sha256": "ece26b22cf7662592cfc1e051f778b4dc73c3eb9899e3f47749464dc6c5ce9ac"
+    },
+    "published_binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3",
+    "risk_weighted_coverage": {
+      "baseline_pair_mass": 97,
+      "by_language": {
+        "cross-language": {
+          "macro_ppm": 525000,
+          "pair_micro_ppm": 666666
+        },
+        "python": {
+          "macro_ppm": 500000,
+          "pair_micro_ppm": 500000
+        },
+        "ruby": {
+          "macro_ppm": 666666,
+          "pair_micro_ppm": 666666
+        },
+        "rust": {
+          "macro_ppm": 0,
+          "pair_micro_ppm": 0
+        },
+        "typescript": {
+          "macro_ppm": 0,
+          "pair_micro_ppm": 0
+        }
+      },
+      "cell_count": 8,
+      "exact_unsafe_pair_mass": 80,
+      "macro_ppm": 233333,
+      "pair_micro_ppm": 175257,
+      "release_target_ppm": 424999,
+      "verified_pair_mass": 17
+    },
+    "source_commit": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+    "version": "0.19.0"
+  },
+  "performance": {
+    "baseline": {
+      "archive_sha256": "097c7e766e9ab756a32cec715897067d1360e145074715168a653962be409981",
+      "binary_code_sha256": "e55d0e989993ff1d1d6b4e933dbd3f5ade38203368b8321d3a7842799a95aca6",
+      "binary_sha256": "0f73ea544da06cc175e01c31c383cc4cb86daf3d37a49d74de61dea3724fe0f3",
+      "published_and_checksum_verified": true,
+      "source_sha": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+      "target": "aarch64-apple-darwin"
+    },
+    "candidate": {
+      "archive_sha256": "7187ac4d634ab64519827f7bd92604fb7d9c0a5f9f161ae0337904b39d6011c4",
+      "binary_code_sha256": "4dc1b4e18bf11777f1319d4ca89df35c582d1619ea56cd3f713f8f987f9613ac",
+      "binary_sha256": "ad1f3fa3695168083be85ed81b199e059c91c45dcff769e1c9d99e6597081328",
+      "crates_tree": "6d38b79884a44d1fe38a47cec19ca4d9a2ef7570",
+      "lockfile_sha256": "02e8398ae87566d48ad4d04a168a521bb2cba38485d3339705941a022952bfa0",
+      "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+      "sdk": "macOS 26.2",
+      "source_sha": "a544d03b6801871dbcd90bcb370825942d6851c8",
+      "target": "aarch64-apple-darwin",
+      "xcode": "26.3 (17C528)"
+    },
+    "corpus": {
+      "base_repositories": 17,
+      "base_workload": "bench/base_view_release_workload.v1.json",
+      "base_workload_sha256": "ed76a6a2b5b2551dfd61f627998c6db50e0be70fb479067ccabf7b42f97b2ad6",
+      "expected_state": "bench/default_head_closeout_corpus.v1.json",
+      "expected_state_sha256": "b28d7245aa34d7e0320d0c80ef988803ba6acb65b63eaf1bae6d7ac840b168e0",
+      "manifest": "bench/goldens/corpus.json",
+      "manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
+      "prune_manifest": "bench/labels/prune_manifest.json",
+      "prune_manifest_sha256": "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980",
+      "repositories": 120
+    },
+    "issue": 943,
+    "policy": {
+      "focused_blocks": 6,
+      "material_only_if_delta_ms_gt": 5.0,
+      "material_only_if_delta_pct_gt": 5.0,
+      "primary_blocks": 5,
+      "runtime": "order-aware-v3",
+      "single_focused_rerun": true
+    },
+    "release": "0.20.0",
+    "schema": "nose.release_query_performance/v1",
+    "status": "pass",
+    "workloads": [
+      {
+        "aggregate": {
+          "aggregate_baseline_median_ms": 10070.81729103811,
+          "aggregate_current_median_ms": 9349.832395440899,
+          "aggregate_delta_ms": -720.984895597212,
+          "aggregate_delta_pct": -7.159149796499705
+        },
+        "artifacts": {
+          "control": {
+            "bytes": 1084644,
+            "path": "target/issue-943-final5-query-base-control-five-s5.json",
+            "retention": "local-target",
+            "sha256": "161a8394babcb4231bc43ad2da1783a10b305d66b3718f1eb484cc1c069c0206"
+          },
+          "expected_drift": {
+            "bytes": 12974,
+            "path": "bench/recall_loss/release-0.20.0-base-expected-drift.v1.json",
+            "retention": "checked",
+            "sha256": "2429df5c146532a93f1a8d7ae12df738008c8001a108c138301825d9d7d67096"
+          },
+          "primary": {
+            "bytes": 860493,
+            "path": "target/issue-943-final5-query-base-primary-five-s5.json",
+            "retention": "local-target",
+            "sha256": "6fc15f82c435ce32e2a234c831b3b40fe880ce63ecc56afc6f666c7a9302b807"
+          },
+          "status": {
+            "bytes": 715918,
+            "path": "target/issue-943-final5-query-base-status.json",
+            "retention": "local-target",
+            "sha256": "2787bb9f6f30213377a1fad8629f34678305471ae1f18c9bc6f3052f8b0e03dd"
+          }
+        },
+        "final_unresolved": {
+          "inconclusive": 0,
+          "triggered": 0,
+          "unexpected_output_drifts": 0,
+          "unused_output_declarations": 0
+        },
+        "focused_repositories": [],
+        "id": "base",
+        "measurement": {
+          "design": {
+            "block": "iteration",
+            "kind": "paired-alternating-blocks/v1",
+            "orders": [
+              "baseline-current",
+              "current-baseline"
+            ]
+          },
+          "iterations": 5,
+          "samples_per_observation": 5,
+          "warmups": 1
+        },
+        "primary_signals": {
+          "inconclusive": 0,
+          "triggered": 0,
+          "unexpected_output_drifts": 0,
+          "unused_output_declarations": 0
+        },
+        "repositories": 17,
+        "status": "pass"
+      },
+      {
+        "aggregate": {
+          "aggregate_baseline_median_ms": 37589.783846226055,
+          "aggregate_current_median_ms": 36355.13591952622,
+          "aggregate_delta_ms": -1234.6479266998358,
+          "aggregate_delta_pct": -3.28453053029139
+        },
+        "artifacts": {
+          "control": {
+            "bytes": 7570146,
+            "path": "target/issue-943-final5-query-default-control-five-s5.json",
+            "retention": "local-target",
+            "sha256": "10238e67caae3c43ccb2c6355cb91b501c795cefb45060eb81be08bd9e6c939e"
+          },
+          "expected_drift": {
+            "bytes": 123671,
+            "path": "bench/recall_loss/release-0.20.0-default-expected-drift.v1.json",
+            "retention": "checked",
+            "sha256": "de2b3cc4d46efca471d39dd57fbfc8891067d2c7a78591d98cfacfac194060cb"
+          },
+          "focused": {
+            "bytes": 155109,
+            "path": "target/issue-943-final5-query-default-focused-six-s5.json",
+            "retention": "local-target",
+            "sha256": "25c23d1d630d954ec34f73ffcf2b52f4cb216ee16df0d205ca32edc50ae9f262"
+          },
+          "focused_control": {
+            "bytes": 157591,
+            "path": "target/issue-943-final5-query-default-focused-control-six-s5.json",
+            "retention": "local-target",
+            "sha256": "7e7a80fe4d2a6a81004282289f412645d0efdd4886b30685b1ad0e92187e3d95"
+          },
+          "primary": {
+            "bytes": 7444677,
+            "path": "target/issue-943-final5-query-default-primary-five-s5.json",
+            "retention": "local-target",
+            "sha256": "8a2b49da02c2d35fc1c035636ad7e3947b3f4ee8275d76363ea0f0c12332dae6"
+          },
+          "status": {
+            "bytes": 5295555,
+            "path": "target/issue-943-final5-query-default-status.json",
+            "retention": "local-target",
+            "sha256": "f5bc93cd75d69902148df83cde4415ff50656abda479a51d09478e24c13b8e23"
+          }
+        },
+        "final_unresolved": {
+          "inconclusive": 0,
+          "triggered": 0,
+          "unexpected_output_drifts": 0,
+          "unused_output_declarations": 0
+        },
+        "focused_repositories": [
+          "swift-composable-architecture",
+          "sympy"
+        ],
+        "id": "default",
+        "measurement": {
+          "design": {
+            "block": "iteration",
+            "kind": "paired-alternating-blocks/v1",
+            "orders": [
+              "baseline-current",
+              "current-baseline"
+            ]
+          },
+          "iterations": 5,
+          "samples_per_observation": 5,
+          "warmups": 1
+        },
+        "primary_signals": {
+          "inconclusive": 4,
+          "triggered": 0,
+          "unexpected_output_drifts": 0,
+          "unused_output_declarations": 0
+        },
+        "repositories": 120,
+        "status": "pass"
+      },
+      {
+        "aggregate": {
+          "aggregate_baseline_median_ms": 27471.478748542722,
+          "aggregate_current_median_ms": 26205.056885199156,
+          "aggregate_delta_ms": -1266.4218633435667,
+          "aggregate_delta_pct": -4.609951560801023
+        },
+        "artifacts": {
+          "control": {
+            "bytes": 7475770,
+            "path": "target/issue-943-final5-query-semantic-control-five-s5.json",
+            "retention": "local-target",
+            "sha256": "c63a094325197b6cca1808c586837990f98bd4c796a956e817be5f64cc14e559"
+          },
+          "expected_drift": {
+            "bytes": 108883,
+            "path": "bench/recall_loss/release-0.20.0-semantic-expected-drift.v1.json",
+            "retention": "checked",
+            "sha256": "bb32f6723a184cd69501283af625caaee258318a2af96a334911c1e86d8d838f"
+          },
+          "focused": {
+            "bytes": 154550,
+            "path": "target/issue-943-final5-query-semantic-focused-six-s5.json",
+            "retention": "local-target",
+            "sha256": "f8bb724f8cf75bdc933b62b1a2ae60872ca900cb4e6bebf1980d19041598f70b"
+          },
+          "focused_control": {
+            "bytes": 156943,
+            "path": "target/issue-943-final5-query-semantic-focused-control-six-s5.json",
+            "retention": "local-target",
+            "sha256": "e986de3488b65b59b6606aa8ff5048bf93d464461450c7caea25c398c2665887"
+          },
+          "primary": {
+            "bytes": 7354044,
+            "path": "target/issue-943-final5-query-semantic-primary-five-s5.json",
+            "retention": "local-target",
+            "sha256": "902c16c227de15633458dd2a8fc1b7672b81dd8262102bdd06245701e8027226"
+          },
+          "status": {
+            "bytes": 5157978,
+            "path": "target/issue-943-final5-query-semantic-status.json",
+            "retention": "local-target",
+            "sha256": "ac393f077eec88e3bf5d8ddae840188730c558b50a1f7be64fdadc1933f2cf11"
+          }
+        },
+        "final_unresolved": {
+          "inconclusive": 0,
+          "triggered": 0,
+          "unexpected_output_drifts": 0,
+          "unused_output_declarations": 0
+        },
+        "focused_repositories": [
+          "alamofire",
+          "sympy"
+        ],
+        "id": "semantic",
+        "measurement": {
+          "design": {
+            "block": "iteration",
+            "kind": "paired-alternating-blocks/v1",
+            "orders": [
+              "baseline-current",
+              "current-baseline"
+            ]
+          },
+          "iterations": 5,
+          "samples_per_observation": 5,
+          "warmups": 1
+        },
+        "primary_signals": {
+          "inconclusive": 3,
+          "triggered": 0,
+          "unexpected_output_drifts": 0,
+          "unused_output_declarations": 0
+        },
+        "repositories": 120,
+        "status": "pass"
+      },
+      {
+        "aggregate": {
+          "aggregate_baseline_median_ms": 34154.929648095276,
+          "aggregate_current_median_ms": 32631.97845534887,
+          "aggregate_delta_ms": -1522.9511927464046,
+          "aggregate_delta_pct": -4.458949874696449
+        },
+        "artifacts": {
+          "control": {
+            "bytes": 7545329,
+            "path": "target/issue-943-final5-query-near-no-pack-control-five-s5.json",
+            "retention": "local-target",
+            "sha256": "577763462d45f97b0a6bdee6bd212927cdcb4c23d2b8c1777dad77da7ed23a87"
+          },
+          "expected_drift": {
+            "bytes": 128993,
+            "path": "bench/recall_loss/release-0.20.0-near-no-pack-expected-drift.v1.json",
+            "retention": "checked",
+            "sha256": "733977a6d787c2f36064b06354ba1690a70eb1e0630be82d6d884870dc4a6523"
+          },
+          "focused": {
+            "bytes": 155597,
+            "path": "target/issue-943-final5-query-near-no-pack-focused-six-s5.json",
+            "retention": "local-target",
+            "sha256": "5d00069b92bffb51c2ca4ad6ca60f2f8654a43a99729aa93a905b32f5e3f2e7a"
+          },
+          "focused_control": {
+            "bytes": 158062,
+            "path": "target/issue-943-final5-query-near-no-pack-focused-control-six-s5.json",
+            "retention": "local-target",
+            "sha256": "8814968897c2284807ce3d72347da13dd4e3766408cd6d65ba5823756b550a47"
+          },
+          "primary": {
+            "bytes": 7419681,
+            "path": "target/issue-943-final5-query-near-no-pack-primary-five-s5.json",
+            "retention": "local-target",
+            "sha256": "dcc74406c953acfe4c6fd435d1e94baa81763ccc0228f5dd2031b87742d09c30"
+          },
+          "status": {
+            "bytes": 5254651,
+            "path": "target/issue-943-final5-query-near-no-pack-status.json",
+            "retention": "local-target",
+            "sha256": "cca64f3a531281beec63d3706020070fb05994bc361250500a57968772ef8539"
+          }
+        },
+        "final_unresolved": {
+          "inconclusive": 0,
+          "triggered": 0,
+          "unexpected_output_drifts": 0,
+          "unused_output_declarations": 0
+        },
+        "focused_repositories": [
+          "alamofire",
+          "h2database"
+        ],
+        "id": "near-no-pack",
+        "measurement": {
+          "design": {
+            "block": "iteration",
+            "kind": "paired-alternating-blocks/v1",
+            "orders": [
+              "baseline-current",
+              "current-baseline"
+            ]
+          },
+          "iterations": 5,
+          "samples_per_observation": 5,
+          "warmups": 1
+        },
+        "primary_signals": {
+          "inconclusive": 3,
+          "triggered": 0,
+          "unexpected_output_drifts": 0,
+          "unused_output_declarations": 0
+        },
+        "repositories": 120,
+        "status": "pass"
+      }
+    ]
+  },
+  "proof_coverage": {
+    "obligations": 30,
+    "preconditions": {
+      "empirical": 67
+    },
+    "product_surfaces": {
+      "canonicalization": 5,
+      "exact-normalization": 18,
+      "near-witness": 1,
+      "structural-invariant": 2,
+      "verification-boundary": 4
+    },
+    "theorems": {
+      "empirical": 3,
+      "proven": 27
+    }
+  },
+  "risk_weighted_coverage": {
+    "baseline_pair_mass": 97,
+    "by_language": {
+      "cross-language": {
+        "macro_ppm": 850000,
+        "pair_micro_ppm": 809523
+      },
+      "python": {
+        "macro_ppm": 1000000,
+        "pair_micro_ppm": 1000000
+      },
+      "ruby": {
+        "macro_ppm": 666666,
+        "pair_micro_ppm": 666666
+      },
+      "rust": {
+        "macro_ppm": 191176,
+        "pair_micro_ppm": 206349
+      },
+      "typescript": {
+        "macro_ppm": 125000,
+        "pair_micro_ppm": 125000
+      }
+    },
+    "cell_count": 8,
+    "exact_unsafe_pair_mass": 62,
+    "macro_ppm": 457620,
+    "pair_micro_ppm": 360824,
+    "release_target_ppm": 424999,
+    "verified_pair_mass": 35
+  },
+  "schema": "nose-soundness-release-gate/v1",
+  "source_commit": "a544d03b6801871dbcd90bcb370825942d6851c8",
+  "type4_claim_perimeter": {
+    "axes": 24,
+    "closed_cells": 55,
+    "exact_cells": 104,
+    "unguarded_tier_a_cells": []
+  }
+}

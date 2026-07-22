@@ -195,6 +195,7 @@ fundamentals; the rest is grouped by area.
 - [hazard-release-checklist](hazard-release-checklist.md) — what to do for the hazard ranking on every new nose release (one-page runbook: refresh the dataset, re-tune, re-validate).
 - [runtime triage](runtime-triage.md) — reproducible query-runtime regression triage: harness, classification policy, timing knobs, and when not to optimize.
 - [order-aware performance controls](order-aware-performance-controls.md) — the preregistered paired-block estimator, one-sided same-binary correction, exact sign-test decision rule, and frozen #892 decision ledger.
+- [0.20.0 release evidence](release-evidence-0.20.0.md) — #943's exact candidate identity, all-corpus query gates, 30-replay cache and watch campaigns, and complete Soundness Lab release decision against published v0.19.0.
 - [Ruby redefinition runtime triage](runtime-triage-ruby-redefinitions-2026-07-10.md) — #807 diagnosis, indexed same-file facts, focused noise control, and all-corpus output evidence.
 - [0.19.0 release evidence](release-evidence-0.19.0.md) — the official v0.18.0 baseline comparison, accepted-coverage reporting hot-path fix, v6 product-quality reproduction, and recall-loss gate for the 0.19.0 release candidate.
 - [0.18.0 release evidence](release-evidence-0.18.0.md) — the pre-release performance pass, all-corpus query-regression, and recall-loss gate for the 0.18.0 release candidate.

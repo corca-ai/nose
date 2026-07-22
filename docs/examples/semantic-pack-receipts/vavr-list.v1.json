@@ -1,6 +1,6 @@
 {
   "api_version": "nose.semantic-pack-conformance-receipt.v1",
-  "nose_version": "0.19.0",
+  "nose_version": "0.20.0",
   "kernel_capability": "nose.kernel.external-collection-factory-exact.v1",
   "pack_id": "org.corca.reference.java-vavr-list",
   "pack_version": "1.0.0",

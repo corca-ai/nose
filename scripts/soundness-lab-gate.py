@@ -28,7 +28,7 @@ TYPE4 = ROOT / "bench/type4"
 FORMAL = ROOT / "formal/obligations"
 WORKFLOW = ROOT / ".github/workflows/corpus-verify.yml"
 ADVISORY_BASELINE = CURRENT / "nightly-advisory-baseline.v1.json"
-PERFORMANCE = ROOT / "bench/recall_loss/issue-862-official-v0.19.0-performance-2026-07-18.v1.json"
+PERFORMANCE = ROOT / "bench/release/0.20.0/query-performance-943.v1.json"
 DEEP_CHECKS = {
     "source_runtime_calibration",
     "metamorphic_equivalence",
@@ -157,10 +157,10 @@ def type4_coverage() -> dict[str, Any]:
 def static_snapshot() -> dict[str, Any]:
     manifest = load(BASELINE / "manifest.v1.json")
     baseline = load(BASELINE / "scorecard.v1.json")
-    overlay = load(CURRENT / "release-overlay-862.v1.json")
-    receipt = load(CURRENT / "release-binding-862.v1.json")
-    attribution = load(CURRENT / "current-exclusion-attribution-862.v1.json")
-    blind = load(TYPE4 / "blind_attack.v1.json")
+    overlay = load(CURRENT / "release-overlay-943.v1.json")
+    receipt = load(CURRENT / "release-binding-943.v1.json")
+    attribution = load(CURRENT / "current-exclusion-attribution-943.v1.json")
+    blind = load(CURRENT / "release-blind-attack-943.v1.json")
     performance = load(PERFORMANCE)
     return {
         "official_baseline": {
@@ -175,10 +175,7 @@ def static_snapshot() -> dict[str, Any]:
             "coverage_gates": overlay["gates"],
             "focused_falsification": receipt["falsification"],
             "blind_attack": blind["hard_gate"],
-            "performance": {
-                "gate": performance["gate"],
-                "measurement": performance["measurement"],
-            },
+            "performance": performance,
         },
         "formal": formal_coverage(),
         "type4": type4_coverage(),
@@ -216,7 +213,20 @@ def validate_snapshot(snapshot: dict[str, Any], corpus: dict[str, Any] | None = 
         if canon:
             errors.append(f"{label} has a canon-preservation violation")
     performance = candidate["performance"]
-    if (
+    if performance.get("schema") == "nose.release_query_performance/v1":
+        workloads = performance.get("workloads", [])
+        if (
+            performance.get("status") != "pass"
+            or [row.get("id") for row in workloads]
+            != ["base", "default", "semantic", "near-no-pack"]
+            or any(
+                row.get("status") != "pass"
+                or any(row.get("final_unresolved", {}).values())
+                for row in workloads
+            )
+        ):
+            errors.append("official-v0.19.0 query-performance gate failed")
+    elif (
         performance["gate"].get("passed") is not True
         or performance["measurement"].get("adjusted_delta_pct", math.inf)
         >= performance["gate"].get("adjusted_delta_pct_limit", -math.inf)
@@ -526,7 +536,16 @@ def markdown_summary(report: dict[str, Any]) -> str:
         )
     coverage = report["risk_weighted_coverage"]
     proof = report["proof_coverage"]
-    performance = report["performance"]["measurement"]
+    performance = report["performance"]
+    if performance.get("schema") == "nose.release_query_performance/v1":
+        performance_line = ", ".join(
+            f"{row['id']} {row['aggregate']['aggregate_delta_pct']:+.2f}%"
+            for row in performance["workloads"]
+        )
+    else:
+        performance_line = (
+            f"adjusted {performance['measurement']['adjusted_delta_pct']:+.2f}%"
+        )
     return (
         "## Soundness Lab 0.20 release gate\n\n"
         f"- result: **{'PASS' if report['gate_passed'] else 'FAIL'}**\n"
@@ -534,7 +553,7 @@ def markdown_summary(report: dict[str, Any]) -> str:
         f"- risk-weighted coverage: {coverage['macro_ppm'] / 10000:.2f}% "
         f"(target {coverage['release_target_ppm'] / 10000:.2f}%)\n"
         f"- frozen verified pairs: {coverage['verified_pair_mass']}/{coverage['baseline_pair_mass']}\n"
-        f"- official-v0.19.0 adjusted runtime delta: {performance['adjusted_delta_pct']:+.2f}%\n"
+        f"- official-v0.19.0 runtime deltas: {performance_line}\n"
         f"- proof coverage: {proof['theorems']}\n"
         f"- precondition coverage: {proof['preconditions']}\n"
     )

@@ -64,6 +64,12 @@ EXPECTED_RELEASE_METRICS = {
 }
 
 
+def release_binding_path() -> Path:
+    current = ROOT / "bench/soundness/0.20.0/release-binding-943.v1.json"
+    historical = ROOT / "bench/soundness/0.20.0/release-binding-862.v1.json"
+    return current if current.is_file() else historical
+
+
 def canonical_bytes(value: Any) -> bytes:
     return (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
 
@@ -973,9 +979,10 @@ def verify_release_binding(
     frozen: dict[str, Any], binding_path: Path, release_commit: str | None = None
 ) -> dict[str, Any]:
     binding = load(binding_path)
+    binding_issue = binding.get("issue")
     if (
         binding.get("schema") != RELEASE_BINDING_SCHEMA
-        or binding.get("issue") != 862
+        or binding_issue not in (862, 943)
         or binding.get("parent_issue") != 855
         or binding.get("release_tree") != scorecard_repo_pin(frozen)
     ):
@@ -990,8 +997,47 @@ def verify_release_binding(
         raise ValueError("release binding source does not match its crates tree")
     if release_commit is not None:
         candidate = require_git_oid(release_commit, "release candidate commit")
-        if git_rev_parse(f"{candidate}:crates") != crates_tree:
-            raise ValueError("release candidate product crates do not match the release binding")
+        candidate_crates = git_rev_parse(f"{candidate}:crates")
+        if candidate_crates != crates_tree:
+            transition = binding.get("release_transition", {})
+            allowed = transition.get("allowed_crates_changes", [])
+            if (
+                binding_issue != 943
+                or transition.get("measured_crates_tree") != crates_tree
+                or transition.get("release_crates_tree") != candidate_crates
+                or transition.get("product_code_changed") is not False
+                or not isinstance(allowed, list)
+                or not allowed
+            ):
+                raise ValueError(
+                    "release candidate product crates do not match the release binding"
+                )
+            completed = subprocess.run(
+                ["git", "diff", "--name-only", source, candidate, "--", "crates"],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            if completed.returncode:
+                raise ValueError("could not audit the release crates transition")
+            changed = [line for line in completed.stdout.splitlines() if line]
+            expected = [row.get("path") for row in allowed]
+            if changed != expected or any(
+                not isinstance(path, str)
+                or ("/tests/" not in path and not path.endswith("/tests.rs"))
+                for path in expected
+            ):
+                raise ValueError("release crates transition contains a non-test change")
+            for row in allowed:
+                path = row["path"]
+                if (
+                    git_rev_parse(f"{source}:{path}") != row.get("before_blob")
+                    or git_rev_parse(f"{candidate}:{path}") != row.get("after_blob")
+                    or not isinstance(row.get("reason"), str)
+                    or not row["reason"]
+                ):
+                    raise ValueError("release crates transition blob identity drifted")
     require_sha256(implementation.get("binary_sha256"), "release binding binary")
     require_sha256(implementation.get("raw_units_sha256"), "release binding raw units")
 
@@ -1102,47 +1148,118 @@ def verify_release_binding(
     performance = load(loaded["performance"])
     baseline = performance.get("baseline", {})
     candidate = performance.get("candidate", {})
-    if (
-        performance.get("schema") != "nose.issue-862.performance/v1"
-        or performance.get("issue") != 862
-        or performance.get("parent_issue") != 855
-        or baseline.get("source_sha") != binding["release_tree"]
-        or baseline.get("binary_sha256") != OFFICIAL_BINARY_SHA256
-        or candidate.get("source_sha") != source
-        or candidate.get("crates_tree") != crates_tree
-        or candidate.get("binary_sha256") != implementation["binary_sha256"]
-    ):
-        raise ValueError("release performance provenance drifted")
-    for side in (baseline, candidate):
-        require_sha256(side.get("binary_code_sha256"), "release performance code identity")
-    expected_repositories = [
-        "alamofire", "guava", "hugo", "netty", "rxjava", "sqlalchemy", "sympy"
-    ]
-    corpus = performance.get("corpus", {})
-    if corpus.get("repositories") != expected_repositories:
-        raise ValueError("release performance corpus changed")
-    for key, value in corpus.items():
-        if key.endswith("sha256"):
-            require_sha256(value, f"release performance corpus {key}")
-    measurement = performance.get("measurement", {})
-    for key in ("primary_raw_sha256", "control_raw_sha256"):
-        require_sha256(measurement.get(key), f"release performance {key}")
-    baseline_ms = measurement.get("aggregate_baseline_median_ms", 0.0)
-    raw_delta = measurement.get("aggregate_current_median_ms", 0.0) - baseline_ms
-    adjusted = raw_delta - measurement.get("control_delta_ms", math.inf)
-    adjusted_pct = adjusted / baseline_ms * 100.0 if baseline_ms > 0 else math.inf
-    performance_gate = performance.get("gate", {})
-    limit = performance_gate.get("adjusted_delta_pct_limit", -math.inf)
-    if (
-        measurement.get("iterations", 0) < 9
-        or measurement.get("warmups", 0) < 2
-        or not math.isclose(raw_delta, measurement.get("aggregate_raw_delta_ms", math.inf))
-        or not math.isclose(adjusted, measurement.get("adjusted_delta_ms", math.inf))
-        or not math.isclose(adjusted_pct, measurement.get("adjusted_delta_pct", math.inf))
-        or adjusted_pct >= limit
-        or performance_gate.get("passed") is not True
-    ):
-        raise ValueError("release performance gate failed or drifted")
+    if binding_issue == 862:
+        if (
+            performance.get("schema") != "nose.issue-862.performance/v1"
+            or performance.get("issue") != 862
+            or performance.get("parent_issue") != 855
+            or baseline.get("source_sha") != binding["release_tree"]
+            or baseline.get("binary_sha256") != OFFICIAL_BINARY_SHA256
+            or candidate.get("source_sha") != source
+            or candidate.get("crates_tree") != crates_tree
+            or candidate.get("binary_sha256") != implementation["binary_sha256"]
+        ):
+            raise ValueError("release performance provenance drifted")
+        for side in (baseline, candidate):
+            require_sha256(
+                side.get("binary_code_sha256"), "release performance code identity"
+            )
+        expected_repositories = [
+            "alamofire", "guava", "hugo", "netty", "rxjava", "sqlalchemy", "sympy"
+        ]
+        corpus = performance.get("corpus", {})
+        if corpus.get("repositories") != expected_repositories:
+            raise ValueError("release performance corpus changed")
+        for key, value in corpus.items():
+            if key.endswith("sha256"):
+                require_sha256(value, f"release performance corpus {key}")
+        measurement = performance.get("measurement", {})
+        for key in ("primary_raw_sha256", "control_raw_sha256"):
+            require_sha256(measurement.get(key), f"release performance {key}")
+        baseline_ms = measurement.get("aggregate_baseline_median_ms", 0.0)
+        raw_delta = measurement.get("aggregate_current_median_ms", 0.0) - baseline_ms
+        adjusted = raw_delta - measurement.get("control_delta_ms", math.inf)
+        adjusted_pct = adjusted / baseline_ms * 100.0 if baseline_ms > 0 else math.inf
+        performance_gate = performance.get("gate", {})
+        limit = performance_gate.get("adjusted_delta_pct_limit", -math.inf)
+        if (
+            measurement.get("iterations", 0) < 9
+            or measurement.get("warmups", 0) < 2
+            or not math.isclose(
+                raw_delta, measurement.get("aggregate_raw_delta_ms", math.inf)
+            )
+            or not math.isclose(adjusted, measurement.get("adjusted_delta_ms", math.inf))
+            or not math.isclose(
+                adjusted_pct, measurement.get("adjusted_delta_pct", math.inf)
+            )
+            or adjusted_pct >= limit
+            or performance_gate.get("passed") is not True
+        ):
+            raise ValueError("release performance gate failed or drifted")
+    else:
+        if (
+            performance.get("schema") != "nose.release_query_performance/v1"
+            or performance.get("issue") != 943
+            or performance.get("release") != "0.20.0"
+            or performance.get("status") != "pass"
+            or baseline.get("source_sha") != binding["release_tree"]
+            or baseline.get("binary_sha256") != OFFICIAL_BINARY_SHA256
+            or baseline.get("published_and_checksum_verified") is not True
+            or candidate.get("source_sha") != source
+            or candidate.get("crates_tree") != crates_tree
+            or candidate.get("binary_sha256") != implementation["binary_sha256"]
+        ):
+            raise ValueError("release query-performance provenance drifted")
+        for side in (baseline, candidate):
+            require_sha256(
+                side.get("binary_code_sha256"), "release performance code identity"
+            )
+            require_sha256(side.get("archive_sha256"), "release archive identity")
+        policy = performance.get("policy", {})
+        if (
+            policy.get("runtime") != "order-aware-v3"
+            or policy.get("material_only_if_delta_pct_gt") != 5.0
+            or policy.get("material_only_if_delta_ms_gt") != 5.0
+            or policy.get("primary_blocks") != 5
+            or policy.get("focused_blocks") != 6
+            or policy.get("single_focused_rerun") is not True
+        ):
+            raise ValueError("release query-performance policy drifted")
+        corpus = performance.get("corpus", {})
+        if (
+            corpus.get("manifest_sha256")
+            != "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8"
+            or corpus.get("prune_manifest_sha256")
+            != "c22f34d3ab4da9b89b5938140bbfdf7664178b3b7b57e5ea3937ba0bb47c2980"
+            or corpus.get("expected_state_sha256")
+            != "b28d7245aa34d7e0320d0c80ef988803ba6acb65b63eaf1bae6d7ac840b168e0"
+            or corpus.get("base_workload_sha256")
+            != "ed76a6a2b5b2551dfd61f627998c6db50e0be70fb479067ccabf7b42f97b2ad6"
+            or corpus.get("repositories") != 120
+            or corpus.get("base_repositories") != 17
+        ):
+            raise ValueError("release query-performance corpus drifted")
+        workloads = performance.get("workloads", [])
+        expected = {
+            "base": 17,
+            "default": 120,
+            "semantic": 120,
+            "near-no-pack": 120,
+        }
+        if [row.get("id") for row in workloads] != list(expected):
+            raise ValueError("release query-performance workloads drifted")
+        for row in workloads:
+            measurement = row.get("measurement", {})
+            if (
+                row.get("repositories") != expected[row["id"]]
+                or row.get("status") != "pass"
+                or any(row.get("final_unresolved", {}).values())
+                or measurement.get("iterations") != 5
+                or measurement.get("samples_per_observation") != 5
+            ):
+                raise ValueError(f"release query-performance workload failed: {row['id']}")
+            for evidence in row.get("artifacts", {}).values():
+                require_sha256(evidence.get("sha256"), "release query artifact")
     return overlay
 
 
@@ -1608,7 +1725,7 @@ def self_test() -> None:
                         raise
                 else:
                     raise AssertionError("tampered expansion aggregate passed replay")
-            release_binding = ROOT / "bench/soundness/0.20.0/release-binding-862.v1.json"
+            release_binding = release_binding_path()
             if release_binding.is_file():
                 verify_release_binding(scorecard, release_binding)
     print("ok soundness scorecard self-test")
@@ -1697,7 +1814,7 @@ def main() -> int:
         if expansion_overlay.is_file():
             verify_expansion_receipt(scorecard, expansion_overlay, expansion_receipt)
             expansion_summary = load(expansion_overlay)["summary"]
-        release_binding = ROOT / "bench/soundness/0.20.0/release-binding-862.v1.json"
+        release_binding = release_binding_path()
         if release_binding.is_file():
             expansion_summary = verify_release_binding(
                 scorecard, release_binding, args.release_commit

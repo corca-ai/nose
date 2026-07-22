@@ -1,0 +1,115 @@
+{
+  "artifacts": {
+    "blind_attack": {
+      "path": "release-blind-attack-943.v1.json",
+      "sha256": "2057e361707af7bf078a86e916b79167b3226abf96952b441e4f5bdcba00d225"
+    },
+    "current_exclusion_attribution": {
+      "path": "current-exclusion-attribution-943.v1.json",
+      "sha256": "9d2a3637db3a40d60ad196f7411cfcd7ef1c54e79ba30a0d92ef170308178c7a"
+    },
+    "expansion_receipt": {
+      "path": "oracle-expansion-859.v1.json",
+      "sha256": "92d991811e8c93948ca0276e661a407b8b6c0fbf20f27c2fd71ffea5103aded0"
+    },
+    "falsification": {
+      "path": "release-falsification-943.v1.txt",
+      "sha256": "ae2c7ff917435871701481c0541f5cca75591d34bb944f3c231776386771647f"
+    },
+    "historical_overlay": {
+      "path": "oracle-expansion-overlay.v2.json",
+      "sha256": "7f29837556de24e3abd0628a6def5ae1e3b882c5954a2ae4d7c1a3158933309c"
+    },
+    "overlay": {
+      "path": "release-overlay-943.v1.json",
+      "sha256": "802ecee41defb6cef5f7970d1fc3e2c8f8d63dbf9318ae94b75397fcb6e9de08"
+    },
+    "performance": {
+      "path": "../../release/0.20.0/query-performance-943.v1.json",
+      "sha256": "7445c789bee456f6dea06d170d6a87a5093cc36b60e4d828f21fdfc373ee3bff"
+    }
+  },
+  "completeness": {
+    "behavior_equal_pairs": 222,
+    "fingerprint_equal_pairs": 108,
+    "structurally_near_under_merged_groups": 0,
+    "under_merged_behavior_groups": 8
+  },
+  "continuity": {
+    "reason": "The exact issue-943 release candidate preserves every frozen pair decision, coverage aggregate, and language floor from the completed issue-859 expansion.",
+    "score_and_pair_status_unchanged": true
+  },
+  "falsification": {
+    "advisory_disagreements": 59,
+    "canon_checked": 304,
+    "canon_preservation_violations": 0,
+    "eligible_pairs": 63,
+    "executed_cases": 25766,
+    "false_merges": 0,
+    "interpretable_units": 2520,
+    "new_distinguishers": 0,
+    "searched_pairs": 63,
+    "skipped_pairs": 0,
+    "total_units": 13283
+  },
+  "implementation": {
+    "binary_sha256": "ad1f3fa3695168083be85ed81b199e059c91c45dcff769e1c9d99e6597081328",
+    "crates_tree": "6d38b79884a44d1fe38a47cec19ca4d9a2ef7570",
+    "raw_units_sha256": "ddbf5e83f194a28f5607a1eb4c15523c0d448d877fc834968d39f8c9ecc41341",
+    "source_sha": "a544d03b6801871dbcd90bcb370825942d6851c8"
+  },
+  "issue": 943,
+  "parent_issue": 855,
+  "release_tree": "0985e6963c58d5a97e523bc532b88aa5e34f2ef9",
+  "release_transition": {
+    "allowed_crates_changes": [
+      {
+        "after_blob": "8bfd3997fb78e98d3f9c88735c73ffaf507d4736",
+        "before_blob": "9d044c52b68d821f35fe7400c0eba919657829a3",
+        "path": "crates/nose-semantics/src/packs/tests.rs",
+        "reason": "Extend generated semantic-pack test fixtures through the v0.20 release line."
+      },
+      {
+        "after_blob": "3658306e89a474928c2d7be1443b08b010b5e76d",
+        "before_blob": "f86aeb3cc48ca59e817ad3d3dbfd5cfd5c54c35a",
+        "path": "crates/nose-semantics/src/packs/tests/manifest_cases_2.rs",
+        "reason": "Keep semver syntax fixtures valid for both the measured v0.19 candidate and the v0.20 release binary."
+      }
+    ],
+    "measured_crates_tree": "6d38b79884a44d1fe38a47cec19ca4d9a2ef7570",
+    "product_code_changed": false,
+    "release_crates_tree": "c1935323e5d046c9f8600b2d91c082e2cefbd3c7"
+  },
+  "reproduction": {
+    "falsification_argv": [
+      "verify",
+      "crates",
+      "--max-violations",
+      "0",
+      "--falsify"
+    ],
+    "rayon_num_threads": 1,
+    "units_argv": [
+      "verify",
+      "crates",
+      "--json",
+      "--max-violations",
+      "0",
+      "--soundness-tranche",
+      "unused-trailing-parameters"
+    ]
+  },
+  "result": {
+    "baseline_verified_pair_regressions": [],
+    "candidate_cohort_sha256": "218f1aa3b3c58fe9f832eddf3c05b423f97f5a0ed31ed26bcfe8a0159e7ecb79",
+    "denominator_unchanged": true,
+    "exact_unsafe_pair_mass": 62,
+    "gate_passed": true,
+    "language_regressions": [],
+    "macro_ppm": 457620,
+    "pair_micro_ppm": 360824,
+    "release_target_met": true,
+    "verified_pair_mass": 35
+  },
+  "schema": "nose-soundness-release-binding/v1"
+}
