@@ -447,16 +447,26 @@ pub(super) fn java_method_origin(node: TsNode, has_body: bool) -> UnitOrigin {
     )
 }
 pub(super) fn java_node_has_method_body(node: TsNode) -> bool {
-    let mut cursor = node.walk();
-    let found = node.named_children(&mut cursor).any(|child| {
-        if java_is_nested_type_decl(child.kind()) {
-            return false;
+    node.child_by_field_name("body")
+        .is_some_and(java_members_have_method_body)
+}
+
+fn java_members_have_method_body(container: TsNode) -> bool {
+    let mut cursor = container.walk();
+    let found = container.named_children(&mut cursor).any(|member| {
+        match member.kind() {
+            "method_declaration" | "constructor_declaration" => {
+                member.child_by_field_name("body").is_some()
+            }
+            // Enum declarations wrap their ordinary members once more, and an
+            // enum constant may own an anonymous class body. Those are the only
+            // non-type containers that can contribute a method body to the enum.
+            "enum_body_declarations" => java_members_have_method_body(member),
+            "enum_constant" => member
+                .child_by_field_name("body")
+                .is_some_and(java_members_have_method_body),
+            _ => false,
         }
-        matches!(
-            child.kind(),
-            "method_declaration" | "constructor_declaration"
-        ) && child.child_by_field_name("body").is_some()
-            || java_node_has_method_body(child)
     });
     found
 }
