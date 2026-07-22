@@ -1,3 +1,6 @@
+use self::state::{
+    global_invalidations, load_state, region_key, store_state, workspace_state, WorkspaceState,
+};
 use super::digest::ContentDigest;
 use super::portable_il;
 use super::source::{RawCorpus, SourceIdentityKind};
@@ -7,13 +10,13 @@ use nose_frontend::ResolutionDependency;
 use nose_il::Corpus;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 include!("resolved/fast_report.rs");
+mod state;
 
 const EXPORT_DEPENDENCY_SCHEMA: u32 = 1;
 const RESOLVED_IL_SCHEMA: u32 = 4;
-const WORKSPACE_STATE_SCHEMA: u32 = 1;
 
 pub(crate) struct CachedCorpus {
     pub(crate) corpus: Corpus,
@@ -61,26 +64,6 @@ struct InvalidatedRegion {
     reasons: Vec<&'static str>,
     dependency_providers: Vec<String>,
     source_identity: Option<SourceIdentityKind>,
-}
-
-#[derive(Default, Deserialize, Serialize)]
-struct WorkspaceState {
-    schema: u32,
-    discovery_membership_digest: String,
-    corpus_global_line_statistics_digest: String,
-    semantic_pack_digest: String,
-    swift_global_digest: String,
-    regions: BTreeMap<String, RegionState>,
-}
-
-#[derive(Deserialize, Serialize)]
-struct RegionState {
-    path: String,
-    language: String,
-    raw_digest: String,
-    export_digest: String,
-    resolution_digest: String,
-    over_invalidated: bool,
 }
 
 #[derive(Serialize)]
@@ -518,85 +501,6 @@ fn invalidated_region(
         dependency_providers,
         source_identity: Some(region.source_kind),
     }
-}
-
-fn workspace_state(
-    raw: &RawCorpus,
-    summary: &nose_frontend::ResolutionDependencySummary,
-    semantic_pack_digest: ContentDigest,
-) -> WorkspaceState {
-    let regions = raw
-        .regions
-        .iter()
-        .zip(&raw.corpus.files)
-        .zip(&summary.files)
-        .enumerate()
-        .map(|(index, ((region, il), summary))| {
-            (
-                region_key(raw, index),
-                RegionState {
-                    path: region.logical_path.clone(),
-                    language: il.meta.lang.name().to_owned(),
-                    raw_digest: region.raw_digest.hex(),
-                    export_digest: hex(summary.export_digest),
-                    resolution_digest: hex(summary.resolution_digest),
-                    over_invalidated: summary.over_invalidated,
-                },
-            )
-        })
-        .collect();
-    WorkspaceState {
-        schema: 1,
-        discovery_membership_digest: raw.discovery_digest.hex(),
-        corpus_global_line_statistics_digest: raw.global_line_statistics_digest.hex(),
-        semantic_pack_digest: semantic_pack_digest.hex(),
-        swift_global_digest: hex(summary.swift_global_digest),
-        regions,
-    }
-}
-
-fn region_key(raw: &RawCorpus, index: usize) -> String {
-    let region = &raw.regions[index];
-    format!(
-        "{}\0{}\0{}",
-        region.logical_path,
-        raw.corpus.files[index].meta.lang.name(),
-        region.region_id
-    )
-}
-
-fn global_invalidations(
-    previous: Option<&WorkspaceState>,
-    current: &WorkspaceState,
-) -> Vec<&'static str> {
-    let Some(previous) = previous else {
-        return vec!["cold-start"];
-    };
-    let mut out = Vec::new();
-    if previous.discovery_membership_digest != current.discovery_membership_digest {
-        out.push("discovery-membership");
-    }
-    if previous.corpus_global_line_statistics_digest != current.corpus_global_line_statistics_digest
-    {
-        out.push("corpus-global-line-statistics");
-    }
-    if previous.semantic_pack_digest != current.semantic_pack_digest {
-        out.push("semantic-pack-influence");
-    }
-    out
-}
-
-fn load_state(run: &CacheRun) -> Option<WorkspaceState> {
-    let bytes = run.load("resolved-workspace", WORKSPACE_STATE_SCHEMA)?;
-    let state = rmp_serde::from_slice::<WorkspaceState>(&bytes).ok()?;
-    (state.schema == WORKSPACE_STATE_SCHEMA).then_some(state)
-}
-
-fn store_state(run: &CacheRun, state: &WorkspaceState) {
-    let Ok(bytes) = rmp_serde::to_vec(state) else {
-        return;
-    };
-    run.store("resolved-workspace", WORKSPACE_STATE_SCHEMA, &bytes);
 }
 
 fn hex(bytes: [u8; 32]) -> String {
