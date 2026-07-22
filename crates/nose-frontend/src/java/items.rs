@@ -464,26 +464,26 @@ pub(super) fn java_node_has_method_body(node: TsNode) -> bool {
 fn java_node_behavior(node: TsNode) -> (bool, bool) {
     let mut has_method_body = false;
     let mut has_runtime_initializer = false;
-    let mut cursor = node.walk();
-    for child in node.named_children(&mut cursor) {
-        if java_is_nested_type_decl(child.kind()) {
-            continue;
-        }
-        if matches!(
-            child.kind(),
-            "method_declaration" | "constructor_declaration"
-        ) {
-            has_method_body |= child.child_by_field_name("body").is_some();
-        }
-        has_runtime_initializer |=
-            child.kind() == "variable_declarator" && child.child_by_field_name("value").is_some();
-        if !has_method_body || !has_runtime_initializer {
-            let nested = java_node_behavior(child);
-            has_method_body |= nested.0;
-            has_runtime_initializer |= nested.1;
+    let Some(body) = node.child_by_field_name("body") else {
+        return (false, false);
+    };
+    let mut body_cursor = body.walk();
+    for member in body.named_children(&mut body_cursor) {
+        match member.kind() {
+            "method_declaration" | "constructor_declaration" => {
+                has_method_body |= member.child_by_field_name("body").is_some();
+            }
+            "constant_declaration" => {
+                let mut declaration_cursor = member.walk();
+                has_runtime_initializer |= member
+                    .named_children(&mut declaration_cursor)
+                    .filter(|child| child.kind() == "variable_declarator")
+                    .any(|declarator| declarator.child_by_field_name("value").is_some());
+            }
+            _ => {}
         }
         if has_method_body && has_runtime_initializer {
-            break;
+            return (true, true);
         }
     }
     (has_method_body, has_runtime_initializer)
