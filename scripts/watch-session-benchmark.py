@@ -56,6 +56,29 @@ def load_object(path: Path) -> dict[str, Any]:
     return value
 
 
+def one_shot_identity(
+    path: Path, candidate_sha256: str, candidate_revision: str
+) -> dict[str, Any]:
+    report = load_object(path)
+    candidate = report.get("provenance", {}).get("candidate", {})
+    equivalence = report.get("equivalence", {})
+    if report.get("status") != "passed" or equivalence.get("candidate") is not True:
+        raise SystemExit(f"{path}: one-shot candidate equivalence did not pass")
+    if candidate.get("binary_sha256") != candidate_sha256:
+        raise SystemExit(f"{path}: one-shot evidence names a different candidate binary")
+    if candidate.get("binary_revision") != candidate_revision:
+        raise SystemExit(f"{path}: one-shot evidence names a different candidate revision")
+    return {
+        "path": str(path.relative_to(ROOT)),
+        "sha256": sha256_file(path),
+        "same_binary_equivalence": equivalence,
+        "status": report.get("status"),
+        "candidate_binary_sha256": candidate_sha256,
+        "candidate_revision": candidate_revision,
+        "exact_candidate_binding": True,
+    }
+
+
 def official_identity(archive: Path | None, binary: Path | None) -> dict[str, Any]:
     manifest = load_object(BASELINE)
     triple = target_triple()
@@ -309,6 +332,17 @@ def validate_report(path: Path) -> None:
         raise SystemExit(f"{path}: watch benchmark is not passing")
     if not report.get("provenance", {}).get("official_v0_19", {}).get("verified"):
         raise SystemExit(f"{path}: official v0.19.0 binary was not verified")
+    provenance = report["provenance"]
+    one_shot = provenance.get("one_shot_evidence", {})
+    if one_shot.get("exact_candidate_binding"):
+        if (
+            one_shot.get("status") != "passed"
+            or one_shot.get("same_binary_equivalence", {}).get("candidate") is not True
+            or one_shot.get("candidate_binary_sha256")
+            != provenance.get("candidate_binary_sha256")
+            or one_shot.get("candidate_revision") != provenance.get("candidate_revision")
+        ):
+            raise SystemExit(f"{path}: one-shot evidence is not bound to the watch candidate")
     tiers = report.get("tiers")
     if not isinstance(tiers, list) or [tier.get("files") for tier in tiers] != list(TARGETS):
         raise SystemExit(f"{path}: expected 10k and 100k tiers")
@@ -337,6 +371,8 @@ def main() -> None:
     parser.add_argument("--replays", type=int, default=30)
     parser.add_argument("--official-archive", type=Path)
     parser.add_argument("--official-binary", type=Path)
+    parser.add_argument("--candidate-revision")
+    parser.add_argument("--one-shot-evidence", type=Path, default=ONE_SHOT)
     parser.add_argument("--validate-report", type=Path)
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
@@ -349,10 +385,18 @@ def main() -> None:
         return
     if args.output is None or args.replays < 30 or not args.binary.is_file():
         raise SystemExit("measurement requires --output, --replays >=30, and an existing --binary")
-    one_shot = load_object(ONE_SHOT)
+    candidate_binary = args.binary.resolve()
+    candidate_sha256 = sha256_file(candidate_binary)
+    candidate_revision = args.candidate_revision or subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True,
+        stdout=subprocess.PIPE, check=True,
+    ).stdout.strip()
+    one_shot = one_shot_identity(
+        args.one_shot_evidence.resolve(), candidate_sha256, candidate_revision
+    )
     with tempfile.TemporaryDirectory(prefix="nose-watch-benchmark-") as temp:
         tiers = [
-            run_tier(args.binary.resolve(), files, args.replays, Path(temp) / str(files))
+            run_tier(candidate_binary, files, args.replays, Path(temp) / str(files))
             for files in TARGETS
         ]
     report = {
@@ -371,21 +415,13 @@ def main() -> None:
             "snapshot_equivalence": "parsed-full-dashboard-equality",
         },
         "provenance": {
-            "candidate_binary": str(args.binary),
-            "candidate_binary_sha256": sha256_file(args.binary),
-            "candidate_revision": subprocess.run(
-                ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True,
-                stdout=subprocess.PIPE, check=True,
-            ).stdout.strip(),
+            "candidate_binary": str(candidate_binary),
+            "candidate_binary_sha256": candidate_sha256,
+            "candidate_revision": candidate_revision,
             "harness": str(Path(__file__).relative_to(ROOT)),
             "harness_sha256": sha256_file(Path(__file__)),
             "official_v0_19": official_identity(args.official_archive, args.official_binary),
-            "one_shot_evidence": {
-                "path": str(ONE_SHOT.relative_to(ROOT)),
-                "sha256": sha256_file(ONE_SHOT),
-                "same_binary_equivalence": one_shot.get("equivalence"),
-                "status": one_shot.get("status"),
-            },
+            "one_shot_evidence": one_shot,
         },
         "tiers": tiers,
     }

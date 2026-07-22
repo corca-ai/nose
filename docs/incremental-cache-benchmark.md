@@ -361,7 +361,8 @@ For the active-session tiers and crash replay:
 
 ```sh
 python3 scripts/watch-session-benchmark.py \
-  --binary target/release/nose --replays 30 \
+  --binary target/release/nose --candidate-revision "$REVISION" \
+  --one-shot-evidence target/cache-sympy-paired.json --replays 30 \
   --output target/watch-session.json
 python3 scripts/watch-session-benchmark.py \
   --validate-report target/watch-session.json
