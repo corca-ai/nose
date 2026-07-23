@@ -15,6 +15,28 @@ format remain unchanged. The command is self-contained: it does not start a
 daemon, open a network port, or require a service. Stop it with the usual
 process interrupt.
 
+## Should I use watch mode?
+
+Use watch mode when an editor, dashboard, or local automation needs a fresh
+machine-readable result after each save. Each line is a complete JSON snapshot,
+so the consumer can replace its state instead of merging partial updates.
+
+For a person running occasional terminal checks, repeated cached queries are
+simpler:
+
+```sh
+nose query src --cache-dir .nose-cache
+```
+
+To make a watch session reuse earlier work after a restart, combine both
+features:
+
+```sh
+nose query src --cache-dir .nose-cache --watch --format jsonl
+```
+
+See [faster repeated queries](query-cache.md) for cache storage and cleanup.
+
 ## Stream contract
 
 Each stdout line is one JSON object with schema `nose.query-watch/v1`:

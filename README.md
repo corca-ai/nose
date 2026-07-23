@@ -26,14 +26,11 @@ def b(xs):
     return True
 ```
 
-Under the tracked proof conditions, these functions are the same computation for
-pure scalar comparisons where `==` and `!=` are complementary. `b` searches for a
-counterexample: if any element is `0` or `1`, the answer is false; otherwise true.
-That is exactly `all(not (x == 0 or x == 1) for x in xs)`, and De Morgan reduces
-the predicate to `x != 0 and x != 1`. This exact same-language case is tracked as
-the `python-loop-demorgan-all-2026-07-07` proof-carrying Type-4 frontier packet, so
-the required loop, vacuous-truth, short-circuit, and boolean-only proof conditions
-are auditable before detector admission.
+Both functions answer the same question: does every item avoid `0` and `1`?
+nose reports this as an exact match only when it can prove the required language
+conditions. When behavior could differ, it leaves the pair out of the verified
+channel. See [clone types](docs/clone-types.md) for the distinction between
+verified and similarity-based findings.
 
 ## Install
 
@@ -95,10 +92,26 @@ pass `--mode` to run exactly the channels you list. See
 [continuous integration](docs/continuous-integration.md) for stable copy-paste-only gates,
 baselines, and SARIF.
 
+## Faster local feedback
+
+Reuse unchanged analysis when you rerun a query, or keep a foreground JSONL
+session open for an editor or local tool:
+
+```sh
+nose query . --cache-dir .nose-cache
+nose query . --cache-dir .nose-cache --watch --format jsonl
+```
+
+Caching is explicit and does not change the findings. Watch mode starts no
+daemon or network service. See [query cache](docs/query-cache.md) and
+[watch mode](docs/query-watch.md).
+
 ## Documentation
 
 - [Getting started](docs/getting-started.md) — your first `nose query` and how to read the report.
-- [Documentation home](docs/home.md) — entry point for using, integrating, and contributing.
+- [Documentation home](docs/home.md) — a guided path from first run to team adoption.
+- [Query cache](docs/query-cache.md) — faster repeated runs and safe cache cleanup.
+- [Watch mode](docs/query-watch.md) — live snapshots for editors and local tools.
 - [Usage](docs/usage.md) — command and flag reference.
 - [Configuration](docs/configuration.md) — `nose.toml`, excludes, modes, thresholds, ignores.
 - [Contributing](CONTRIBUTING.md) — development workflow and quality gates.
@@ -113,8 +126,6 @@ wiki so claims have one source of truth:
 - [Markdown duplication](docs/markdown-duplication.md)
 - [Clone types](docs/clone-types.md)
 - [Benchmark](docs/benchmark.md)
-- [Architecture](docs/architecture.md)
-- [Semantic kernel](docs/semantic-kernel.md)
 - [Query JSON contract](docs/query-json.md)
 
 ## License

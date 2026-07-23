@@ -277,7 +277,8 @@ Use terms for report shaping: `sort=KEY`, `top=N`, `scope=prod|test|mixed`, `gro
 [query-json](query-json.md) contract.
 
 **Workflow** (`--baseline`, `--write-baseline`, `--fail-on any|new`, `--ignore-file`, `--cache-dir`, `--cache-max-bytes`, `--config`, `--generated-path`, `--semantic-pack`, `--semantic-pack-lock`) is covered in
-[continuous-integration](continuous-integration.md), [configuration](configuration.md), and [semantic-pack-loading](semantic-pack-loading.md).
+[continuous integration](continuous-integration.md), [query cache](query-cache.md),
+[configuration](configuration.md), and the [semantic-pack overview](semantic-packs.md).
 Structured suppressions are covered in [structured-ignores](structured-ignores.md).
 
 ## Integrating with nose
@@ -305,7 +306,8 @@ and may change to improve readability. The stable contract is documented in
   pruning starts.
 - `nose cache clear --dir <dir> [--format human|json]` — remove only nose-managed cache data;
   unrelated files under the directory are preserved. All three JSON forms carry the schemas
-  advertised by [`nose capabilities`](capabilities.md).
+  advertised by [`nose capabilities`](capabilities.md). Start with the
+  [query cache guide](query-cache.md) for the everyday workflow.
 - `nose query <paths> base=<ref>` — flags clones changed inconsistently in a diff
   (a copy edited, its siblings missed); use `base=HEAD` for uncommitted changes and
   `base=origin/main --mode syntax,semantic --fail-on any` for a PR gate; see

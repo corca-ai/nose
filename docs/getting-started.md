@@ -158,6 +158,33 @@ same-logic clones — the Type-4 case: the same computation written differently)
 (fuzzy near-duplicates). Pass `--mode` to run exactly the channels you list — see
 [clone-types](clone-types.md) for what each finds.
 
+## Keep the feedback loop fast
+
+For occasional checks, keep running `nose query .`; it writes nothing to disk.
+When you rerun the same analysis often, opt into a persistent cache:
+
+```sh
+nose query . --cache-dir .nose-cache
+```
+
+The first run fills the cache. Later runs reuse unchanged analysis and
+recalculate changed inputs without changing the findings. Add `.nose-cache` to
+your repository's ignore file. The [query cache guide](query-cache.md) explains
+storage limits, interruption safety, and the `status`, `prune`, and `clear`
+commands.
+
+If an editor or local tool needs a new machine-readable result after every save,
+keep one foreground watch session open:
+
+```sh
+nose query . --cache-dir .nose-cache --watch --format jsonl
+```
+
+Watch mode emits one complete JSON snapshot per revision. It starts no daemon or
+network service; stop it with the normal process interrupt. Human terminal use
+is usually simpler with repeated cached queries. See [watch mode](query-watch.md)
+for supported options and the JSONL contract.
+
 ## Catch a missed sibling edit: `nose query base=<ref>`
 
 Once a codebase has clones, the risky moment is editing one of them: a fix applied to one copy
@@ -200,6 +227,10 @@ The full gate, baselines, SARIF, and fast re-runs are in [continuous-integration
   don't retype long flag lists.
 - **[continuous-integration](continuous-integration.md)** — turn a query into a
   pass/fail gate that flags new or changed duplication, with baselines and SARIF.
+- **[query cache](query-cache.md)** — speed up repeated local and CI queries,
+  inspect storage, and recover safely after interruption.
+- **[watch mode](query-watch.md)** — feed complete snapshots to an editor or
+  local integration after source changes.
 - **[clone-types](clone-types.md)** — what `syntax` / `semantic` / `near` cover
   across the Type-1–4 taxonomy, and the honest limits.
 - **[languages](languages.md)** — the supported languages, declarative CSS and HTML

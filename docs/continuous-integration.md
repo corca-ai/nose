@@ -189,91 +189,30 @@ versioned contract is [query-json](query-json.md) (`nose query --format json`; s
 for `base=<ref>`, schema v9 for the other query views).
 It is truncated by the active top limit in the same way.
 
-## Divergent-edit v2 gate tiers
+## Divergent edits in pull requests
 
 The divergent-edit gate (`nose query . base=<ref>`) is an opt-in PR review gate.
-It uses an explicit tiered contract so CI wrappers can distinguish default-failing
-items from review-only context without re-running nose internals:
+It finds a change applied to one clone but not its siblings:
 
 ```sh
 nose query . base="origin/${GITHUB_BASE_REF}" --mode syntax,semantic --fail-on any
 nose query . base="origin/${GITHUB_BASE_REF}" --mode syntax,semantic --format sarif top=0 > nose-divergence.sarif
 ```
 
-Wrappers should preflight the installed binary with `nose capabilities` before
-running this gate. Require `schemas.query_json` to contain `8`,
-`query.output_formats` to contain `sarif` when uploading SARIF, and these
-query capability flags to be true: `base_divergence`, `query_base_json_v8`,
-`query_base_gate_fail_default`, `query_base_sarif`, `structured_ignores`, and
-`query_base_structured_ignores`. Reject older binaries instead of inferring
-support from `nose --help` or from the package version alone.
-
 The `base=` default is already the conservative `syntax,semantic` mix, but pinning
 `--mode` keeps CI diffs explicit across upgrades. `top=0` should be used for SARIF
 uploads; otherwise only the active row limit is emitted, with a truncation note in
 the SARIF invocation.
 
-| tier | default CI effect | SARIF rule id | SARIF level |
-|---|---|---|---|
-| `strict` | fails only when `properties.gate.fail_default == true` | `nose.divergent.strict` | `error` |
-| `review` | visible, non-failing by default | `nose.divergent.review` | `warning` |
-| `report-only` | visible advisory, never default-failing | `nose.divergent.report-only` | `note` |
-| `suppressed` | omitted from active output and never failing | not emitted in normal SARIF | none |
+Only `strict` findings with `gate.fail_default=true` fail the gate. `review` and
+`report-only` findings remain visible but non-blocking; structured ignores remove
+accepted findings before the decision. Machine wrappers must use
+`items[].gate.fail_default` instead of inferring pass/fail from labels, scores, or
+SARIF severity.
 
-For v2 SARIF, each result's rule id and `properties.tier` agree. Results also carry
-`properties.tier_reasons`, `properties.taxonomy_hint`, `properties.gate`,
-`properties.policy`, `properties.lane`, `properties.family_id`, and optional
-`properties.base_family_id`. `properties.gate.fail_default` is the authoritative default
-CI decision: it is true only for unsuppressed `strict` results. Normal SARIF omits
-suppressed results; a future suppressed/debug SARIF surface must emit
-`properties.tier="suppressed"` and `properties.suppression` with the structured-ignore
-metadata.
-
-The legacy `fire_eligible` field remains in JSON as the serialized v1 conservative
-verdict. In the current implementation it is computed from proven shared-logic touch on
-at least one direct `targets[]` edge and not-all-test scope, so mixed-scope findings may
-still be `fire_eligible=true`.
-Wrappers should display `tier`, but decide pass/fail only from `gate.fail_default`.
-They should not reconstruct gate behavior from raw fields such as `touches_shared`,
-`scope`, `witness_kind`, or `graded` when a `tier` is present.
-
-JSON and SARIF keep one finding/result per family and carry the same `targets[]` target IDs.
-SARIF target-backed primary and related locations repeat `target_id` in location properties,
-so an annotation identifies the exact skipped sibling and changed source without promoting a
-bridge member reached only through transitive family closure.
-Each target also mirrors the same closed `variant_evidence`: strong pair evidence is separated
-from weak name/path/version hints and explicit caveats. It is development evidence in v2, not
-another CI authority; wrappers must still decide only from `gate.fail_default`.
-
-Structured ignores apply before the gate: a suppressed divergent-edit family must not
-produce a `strict` failure, and report-only lanes such as newly added clone evidence
-must not fail default CI. Newly added clone evidence appears as `lane="new-copy"`,
-`tier="report-only"`, `base_family_id=null`, and current-tree `current_only[]` sites;
-`properties.gate.fail_default` remains `false` in SARIF.
-
-Checked closeout evidence supports opt-in enforcement, not default-on blocking. The
-v2 replay records strict precision 0.562 while retaining 45/45 confirmed v1
-missed-propagation positives. The #847 precision-first cycle added target-local semantic,
-direct-edge, and variant evidence, but no admissible v3 policy had development support;
-the blind population therefore remains sealed and the final official-v0.19.0 comparison
-also misses the 5% runtime budget at 8.74% control-adjusted
-([results](../eval/divergence_fire/RESULTS.md), [#854 closeout](divergent-gate-closeout-854.md)).
-The [CI examples](examples/ci/divergent-edit-observe-only.yml) and
-[enforcing workflow](examples/ci/divergent-edit-enforcing.yml) show the recommended
-observe-only-to-enforcing rollout, the [#687 pilot](divergent-history-mining-pilot-687.md)
-keeps history mining offline, and the [#688 evidence](divergent-gate-product-runtime-688.md)
-records non-`base=` product-output stability plus runtime checks.
-
-When a strict divergent-edit finding is accepted as intentional, commit a structured
-ignore with a reason/owner/expiry instead of teaching the wrapper to reinterpret the
-finding. The `base=` view auto-reads `nose.ignore.json`, accepts `--ignore-file`, and
-honors `[query] ignore-file = "..."` from `nose.toml`; path and language selectors must
-cover every member of the reported family before they suppress it.
-
-Base-divergence SARIF locations point at the skipped sibling, where a propagated edit
-may be missing; changed copies are attached as related locations. `new-copy` report-only
-SARIF locations point at the current-tree added/copied/renamed copy and link its clone
-siblings as related locations.
+Start with the [divergent edits guide](divergent-edits.md), including the measured
+precision caveat. The [policy record](divergent-edits-policy.md) contains schema
+fields, qualification history, and release evidence for maintainers.
 
 ### GitHub Actions rollout examples
 
@@ -300,46 +239,11 @@ decision themselves from `gate.fail_default`. That preserves upload-before-fail 
 and avoids accidental failures from `fire_eligible`, SARIF severity, human output,
 `summary.strict`, `scope`, `touches_shared`, or `tier` alone.
 
-### Maintainer observe-only pilot
-
-For an adoption pilot, start with the observe-only workflow as a non-required PR
-check. Record the number of scanned PRs, PRs with findings, findings reviewed,
-strict/default-failing findings, report-only findings, structured ignores added,
-and maintainer disposition buckets such as `should-propagate`,
-`intentional-variant`, `no-propagation-needed`, `test-scaffolding`, and
-`unclear`.
-
-Keep the pilot language narrow: a strict finding "would fail under the opt-in
-enforcing workflow"; it is not a default-on readiness claim. History mining is a
-separate offline maintainer tool and should not be added to PR-time CI. See the
-checked #687 nose-on-nose [divergent history pilot](divergent-history-mining-pilot-687.md)
-for the recorded artifact and disposition shape.
-
 ## Fast re-runs: `--cache-dir`
 
-`--cache-dir <dir>` caches each file's analysis in the
-[portable layered CAS](portable-cache-artifacts.md), keyed by a SHA-256 digest of its complete
-source, consumer-visible dependency context, post-resolution IL/reporting identity, and
-unit-affecting options. Clean tracked files use Git blob ids without rereading source bytes for
-lowering;
-dirty, untracked, and non-Git files use exact content SHA-256. Unchanged files reuse raw lowering,
-resolved cross-file facts, [normalization](normalization.md), feature extraction, and syntax
-streams, including across checkout paths and after unrelated additions shift `FileId` indexes.
-
-Importers are invalidated only when a provider's exported literal surface changes. Swift global
-shadow/overload/conformance barriers invalidate Swift dependents, and unresolved dependencies
-fail safe by over-invalidating their language export catalog. Global candidate buckets, pair
-scores, delete-capable family components, connected/same-unit witnesses, syntax components,
-line-frequency deltas, and family source-line analyses are also reused. An unchanged run therefore
-does not reparse, normalize, rescore, or reread the full line index; query filtering and rendering
-remain request-local. Exact no-op runs and a single changed leaf can also restore unit artifacts
-without materializing the whole raw/resolved corpus. The changed leaf must have no incoming or
-outgoing resolution dependency and must preserve its export/resolution summaries; external pack
-influence, Swift-global state, multiple changes, or any missing/corrupt proof falls back to the
-ordinary full path. Point the directory at storage your
-CI preserves between runs; see the
-[incremental cache benchmark](incremental-cache-benchmark.md) for the exact performance and
-clean-scan-equivalence contract.
+Point `--cache-dir` at a directory that the CI system restores between jobs.
+Unchanged analysis is reused; changed, missing, stale, or damaged entries are
+recomputed without changing query output.
 
 ```sh
 nose query src --cache-dir .nose-cache --fail-on any
@@ -347,20 +251,10 @@ nose query src --cache-dir .nose-cache --fail-on any
 
 The cache defaults to a 5 GiB managed budget. Override it per run with
 `--cache-max-bytes 2GiB`, or commit the byte count as `[query].cache-max-bytes` in `nose.toml`.
-Only runs that write data trigger automatic pruning; fully warm runs avoid a storage scan. Use
-`nose cache status --dir .nose-cache --format json` to monitor usage, `nose cache prune` for an
-explicit budget pass, and `nose cache clear` to discard managed data. Prune/clear wait for active
-writers, preserve unrelated files, and can only make a later query slower: missing or evicted data
-is recomputed.
-
-Set `NOSE_CACHE_STATS=1` to retain the existing `[cache]` unit hit/miss line and add one
-`[invalidation]` JSON object (`nose.invalidation/v1`). It reports source/raw/resolved layer counts,
-the affected path closure and reasons, deleted sources, Git-blob versus content identities,
-explicit fail-safe over-invalidation, and digests/invalidation markers for discovery membership,
-semantic-pack influence, Swift global sentinels, and corpus-global line statistics.
-It also emits `[detection]` (`nose.detection-incremental/v1`), `[line-index]`
-(`nose.line-index/v1`), and `[family-lines]` (`nose.family-line-state/v1`) JSON objects so CI and
-benchmarks can distinguish reuse from recomputation without parsing human timing text.
+Use `nose cache status`, `prune`, and `clear` to manage storage. The
+[query cache guide](query-cache.md) explains recovery and cleanup; the internal
+[cache benchmark](incremental-cache-benchmark.md) records equivalence and
+performance evidence.
 
 ---
 

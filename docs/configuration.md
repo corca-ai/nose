@@ -69,6 +69,8 @@ mode = ["syntax"]                          # jscpd-style gate (exact copy-paste 
 cache directory; keep the location as a CLI/CI workflow choice. A run that writes cache data
 automatically prunes old schemas, superseded generations, orphaned state, and then the oldest
 artifacts until it reaches the limit. Eviction changes only future run time, never query output.
+See [faster repeated queries](query-cache.md) for when to enable a cache and how to inspect or
+clean it.
 
 `min-size` (and the advanced `min-lines`) apply to both structural units and the syntax
 copy-paste floor. For `--mode syntax`, they are the jscpd-style size gate.
@@ -98,21 +100,20 @@ file paths: they are always anchored to each analyzed root.
 
 `semantic-packs` is additive with repeated `--semantic-pack` flags. Each entry is
 an explicit local opt-in to a semantic-pack v0 or v1 manifest file, or a
-directory of direct `*.json` manifests. v0 rows remain data-only; v1 rows
-compile to typed indexes and a semantic digest. Unlocked external packs are
-`metadata-only`: they do not emit evidence or enable near/exact contracts. A
-valid `semantic-pack-lock` may authorize eligible v1 rows to support existing
-near candidates or, with a matching kernel receipt, the closed
-collection-factory external-claim exact operation. The
-[semantic-pack loading guide](semantic-pack-loading.md) defines the full boundary.
+directory of direct `*.json` manifests. Unlocked packs are metadata-only: nose
+validates and reports them but they do not change analysis results.
 
 `semantic-pack-lock` selects one content-pinned
 [`nose.semantic-pack-lock.v1`](semantic-pack-project-lock.md) file. It is
-mutually exclusive with `semantic-packs` and `--semantic-pack`: the validated
-lock owns the complete manifest set and cannot be extended by an unlocked path.
+the reviewed way to let eligible v1 rows influence results. It is mutually
+exclusive with `semantic-packs` and `--semantic-pack`: the lock owns the complete
+manifest set and cannot be extended by an unlocked path.
 A missing, stale, altered, incompatible, conflicting, or path-escaped lock is a
 hard error before analysis. The CLI `--semantic-pack-lock` value overrides a
 configured lock, while the same no-mixing rule remains in force.
+
+See the [semantic-pack overview](semantic-packs.md) before configuring either
+option. Pack-author details are in the [loading and trust policy](semantic-pack-loading.md).
 
 ## Excludes
 

@@ -1,0 +1,112 @@
+# Reinvented-helper implementation and evidence
+
+This maintainer reference records the containment proof, exclusions, surface
+policy, and field measurements behind reinvented-helper findings. For the
+user-facing workflow, start with [reinvented helpers](reinvented-helpers.md).
+
+An exact-grade finding class — on by default for non-test findings: a function that
+**reimplements an existing pure helper inline instead of calling it**. It is the dual of the
+clone channels — not
+"these two units are alike" but "this unit *contains*, as an interior sub-computation,
+exactly the whole body of that helper". The actionable fix is the inverse of
+extract-method: replace the matched lines with a call to the helper that already exists.
+
+## The claim, precisely
+
+For a finding `container ⟵ helper`:
+
+- the **helper** is a function/method whose value-graph build produced exactly one
+  `Return` sink and nothing irreversible (loop iteration `Cond` guards allowed; no
+  effects, throws, or breaks), passing the strict exact gate;
+- the **container** passes the strict exact gate and carries an interior sub-DAG
+  [anchor](normalization.md) whose hash equals the helper's whole return-value hash —
+  the same hash-consed canonical-structure guarantee the exact `semantic` channel
+  rides, so the matched sub-computation and the helper body are *the same
+  computation*, never merely similar;
+- every loop-guard (`Cond`) hash of the helper is also present in the container's
+  fingerprint — matching a fold while iterating differently is not containment;
+- the helper did **not** rely on a pointer-length contract (a free-param loop bound
+  `while i < n` assumed to be `len(array)`). Such a bound is dropped from BOTH the
+  guard set and the value hash, so two folds with different bounds (`i < n` vs `i < n-1`)
+  would share a return hash though they compute different values — and the guard-
+  inclusion check above is then vacuous. Contract-bound helpers are excluded fail-closed;
+  genuine length iteration (`for x in xs`, `while i < len(xs)`) records no contract and
+  stays eligible.
+
+Two exclusions keep the surface honest:
+
+- **Callers are never findings.** [Generalized pure inlining](normalization.md) splices
+  a callee's value graph into its caller's fingerprint, so every well-behaved caller
+  would otherwise "contain" its helper. Two guards exclude callers: a unit's provable
+  same-file call targets (`CallTarget::DirectFunction`) are recorded and a match on a
+  called helper's return hash — directly or via a behaviorally-equal twin — is skipped;
+  and a matched anchor carrying a REAL source span OUTSIDE the container's own line
+  range is rejected, since that span belongs to a different (inlined) function the unit
+  merely calls — the case a one-level call-target record misses on a two-hop chain.
+  Calling is the fix, not the smell.
+- **Idiom-sized helpers are never matched.** The helper must clear both a value-graph
+  floor (≥ 8 nodes) and a source floor (≥ 20 tokens). Value-graph weight alone cannot
+  tell a compressed accumulator loop (a whole loop canonicalizes to a ~4-node `Reduce`
+  — semantically rich) from a one-line delegation idiom (`self._print(expr.args[0])` —
+  trivial to re-type); the source floor is the honest "is calling it actually better"
+  proxy. Calibrated on sympy: the delegation-noise band sits at ≤ 12 tokens, real
+  helpers at ≥ 25 (108 raw matches → 2 true findings).
+
+## Surface
+
+- **`nose query <path> reinvented`** (primary): the forward exploration view — the action
+  is "call it". It lists production findings only when the helper being called is also
+  production code; test-container and production-to-test-helper findings are summarized as
+  omitted counts.
+- **Human report**: the default report LISTS the non-test findings (top by weight) —
+  promoted from a one-line count after the [2026-06-13 field audit](reinvented-helper-audit-2026-06-13.md)
+  ([design §2c](design.md)); the audit's precision figures are in the Measured section below.
+  Findings whose CONTAINER is a test file (`container_in_test`) are a decidable
+  judgment-deep class ([design §2b](design.md)) — a test asserting the helper's value as a literal would be
+  circular to "fix" — so they are excluded from the default and shown only by the `reinvented`
+  view. Findings whose helper is test-only (`helper.in_test` / `test_helper` count) are also
+  excluded from the call-it surface for production containers; the safe action is to rehome or
+  extract a production helper before calling it.
+- **Machine JSON**: query-JSON's `reinvented` view (`items[]`, each
+  `{helper, site, value, approximate}`) is the forward contract; `summary.test_helper` counts
+  production containers omitted because their existing helper is test-only —
+  see [query-json](query-json.md#views).
+- A **vendored** (non-test) container is, like a test container, a consumer judgment
+  call — but unlike `container_in_test` it is *not* auto-excluded from the default: nose
+  lists it and carries the locations, so the consumer filters by path.
+
+## The suggested fix is advisory, not mechanical
+
+The finding says *this computation already exists as a helper* — it does **not** promise
+that mechanically replacing the reported lines compiles or preserves behavior. Two
+boundaries the consumer must check:
+
+- **Approximate site.** When the matched computation is a synthesized loop fold (a
+  `Reduce` with no precise source span), the site falls back to the WHOLE container range
+  and `approximate` is `true` in the JSON.
+  The helper's computation is then a
+  *sub-part* of those lines (the container does more — e.g. `total * extra + 9` around
+  the fold), so the fix is "call the helper for the matched part", not "delete these
+  lines". The flagship `mean = sum(xs) / len(xs)` is exactly this shape: `sum` is the
+  reinvented helper; `/ len` stays.
+- **Types are erased.** The value model abstracts away nominal types
+  ([clone-types](clone-types.md)), so a container over one struct type can value-exactly
+  contain a helper taking a *different* struct type with same-named fields. In a
+  statically-typed language (Go/Java/Rust/C) the suggested call may not type-check — the
+  consumer must confirm the helper is callable with the container's operands.
+
+## Measured (2026-06-12, the 105-repo corpus)
+
+16 findings across 8 repos ([experiments §CF](experiments.md)): 16/16 value-exact on
+hand-labeling, ~13/16 directly actionable; the remainder are test/vendored containers.
+This was the initial §CF pass; the later [2026-06-13 field audit](reinvented-helper-audit-2026-06-13.md)
+re-ran the channel on the same corpus (17 findings / 9 repos; 94% genuine value-duplication,
+71% directly actionable on the non-test default surface) and is what drove the default-list
+promotion described in [Surface](#surface).
+One finding surfaced a real upstream bug — h2database's `getGarbageCollectionCount()`
+copy-pasted from the time variant and still calls `getCollectionTime()`, which is
+*why* it exactly contains the time helper's computation. Tuning knob:
+`NOSE_REINVENTED_MIN_WEIGHT` (research surface) adjusts the anchor collection floor.
+
+*See also: [normalization](normalization.md) · [clone-types](clone-types.md) ·
+[query-json](query-json.md) · [design](design.md) · [experiments](experiments.md).*
