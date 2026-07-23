@@ -20,6 +20,7 @@ mod rust;
 mod source_artifacts;
 mod swift;
 mod swift_cross_file_shadows;
+mod tree_sitter_ext;
 mod type_domain_aliases;
 
 #[cfg(test)]

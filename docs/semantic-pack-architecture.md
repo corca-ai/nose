@@ -104,6 +104,12 @@ updates checked-in IL/test fixtures. Until then, new code should treat
 `nose.first_party` as compatibility-only and link a follow-up issue if it must
 temporarily add active semantics there.
 
+The post-v0.20 cleanup audit confirmed that active producers use the builtin
+vocabulary. The remaining first-party spellings are confined to public helper
+aliases, legacy wire/parser acceptance, and compatibility tests. Keep that
+surface throughout the 0.20.x line; remove it as one migration with the v0
+schema/capabilities spellings, never piecemeal from normalization or lowering.
+
 ## Boundary
 
 The semantic kernel owns the stable admission machinery:

@@ -1395,3 +1395,20 @@ second projects selected units from those files. Keeping the phases explicit
 avoids hiding their different caps, caches, and parallel work behind a release-
 only abstraction. This is accepted same-file performance-pipeline debt on the
 already measured candidate, not a budget increase; the gate remains at 28.
+
+The post-v0.20 quality cleanup moves the reviewed count from 28 to 29. The
+tree-sitter 0.26 migration centralizes dynamic child-index conversion in a
+frontend adapter. Its added imports move two existing cross-frontend
+representatives without changing their members or metrics:
+`1c0371a3681dc8ca` becomes `0ad48a9c8c816e67` for expression dispatch, and
+`f6d422cfc56ae976` becomes `3157af5787fd407a` for
+call/constructor/enum-constant lowering.
+
+The remaining new representative, `c2698e293c4c4d57`, appears after
+declaration classification moves out of `surfaces.rs`. It groups seven
+pre-existing surface-policy functions on only two shared function-signature
+lines; the functions otherwise decide distinct generated, declaration,
+actionability, and CSS-pipeline policies. A common helper would join unrelated
+policy boundaries without owning shared behavior, so this span noise is
+reviewed instead of extracted. No avoidable duplication is accepted; the
+explicit baseline rises by one to 29.

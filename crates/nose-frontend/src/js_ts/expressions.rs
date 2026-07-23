@@ -10,6 +10,7 @@ use super::record_guard::lower_record_shape_guard;
 use super::syntax::static_string_key;
 use super::types::is_ts_type;
 use crate::lower::Lowering;
+use crate::tree_sitter_ext::child_at;
 use nose_il::{
     LitClass, NodeId, NodeKind, Op, Payload, SourceCallKind, SourceFactKind, SourceLiteralKind,
     SourceOperatorKind, Span,
@@ -135,7 +136,7 @@ fn lower_array(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn js_array_has_elision(node: TsNode) -> bool {
     let mut slot_has_element = false;
     for idx in 0..node.child_count() {
-        let Some(child) = node.child(idx) else {
+        let Some(child) = child_at(node, idx) else {
             continue;
         };
         match child.kind() {

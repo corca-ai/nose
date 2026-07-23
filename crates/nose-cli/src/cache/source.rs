@@ -2,12 +2,13 @@ use super::digest::ContentDigest;
 use super::portable_il;
 use super::store::{ArtifactKey, ArtifactStage, LayeredCas};
 use super::{CacheRun, CachedSourceFile};
+use inventory::{GitCatalog, LogicalRoots};
 use nose_il::{Corpus, FileId, Il, Interner, Lang};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::path::Path;
+
+mod inventory;
 
 const SOURCE_SNAPSHOT_SCHEMA: u32 = 1;
 const RAW_IL_SCHEMA: u32 = 4;
@@ -65,6 +66,63 @@ struct SourceResult {
     snapshot_hit: bool,
 }
 
+struct SourceLoad<'a> {
+    index: usize,
+    path: &'a str,
+    lang: Lang,
+    logical_path: String,
+    git: &'a GitCatalog,
+    cas: &'a LayeredCas,
+    interner: &'a Interner,
+}
+
+struct SourceSnapshot {
+    digest: ContentDigest,
+    kind: SourceIdentityKind,
+    bytes: Option<Vec<u8>>,
+}
+
+impl SourceResult {
+    fn unreadable(request: &SourceLoad<'_>, snapshot_hit: bool) -> Self {
+        Self {
+            regions: Vec::new(),
+            source_digest: None,
+            source_kind: None,
+            logical_path: request.logical_path.clone(),
+            lang: request.lang,
+            snapshot_hit,
+        }
+    }
+
+    fn from_lowered(
+        request: &SourceLoad<'_>,
+        snapshot: &SourceSnapshot,
+        lowered: Vec<Il>,
+        raw_hit: bool,
+        snapshot_hit: bool,
+    ) -> Self {
+        Self {
+            regions: lowered
+                .into_iter()
+                .map(|il| RawRegion {
+                    raw_digest: portable_il::semantic_digest(&il, request.interner),
+                    il,
+                    raw_hit,
+                    source_kind: snapshot.kind,
+                    logical_path: request.logical_path.clone(),
+                    source_path: request.path.to_owned(),
+                    source_digest: snapshot.digest,
+                })
+                .collect(),
+            source_digest: Some(snapshot.digest),
+            source_kind: Some(snapshot.kind),
+            logical_path: request.logical_path.clone(),
+            lang: request.lang,
+            snapshot_hit,
+        }
+    }
+}
+
 pub(super) fn build_raw_corpus_cached(
     roots: &[&Path],
     exclude: &[String],
@@ -83,15 +141,15 @@ pub(super) fn build_raw_corpus_cached(
             .par_iter()
             .enumerate()
             .map(|(index, (path, lang))| {
-                load_source(
+                load_source(SourceLoad {
                     index,
                     path,
-                    *lang,
-                    logical_roots.path(Path::new(path)),
-                    &git,
-                    &cas,
-                    &interner,
-                )
+                    lang: *lang,
+                    logical_path: logical_roots.path(Path::new(path)),
+                    git: &git,
+                    cas: &cas,
+                    interner: &interner,
+                })
             })
             .collect::<Vec<_>>()
     });
@@ -215,208 +273,108 @@ pub(super) fn workspace_digest(roots: &[&Path]) -> ContentDigest {
     ContentDigest::derive(b"nose.workspace-state.v1", &rows)
 }
 
-// Keep the hit and miss paths together: both must construct exactly the same
-// region metadata before the parallel results are flattened into one corpus.
-#[allow(clippy::too_many_lines)]
-fn load_source(
-    index: usize,
-    path: &str,
-    lang: Lang,
-    logical_path: String,
-    git: &GitCatalog,
-    cas: &LayeredCas,
-    interner: &Interner,
-) -> SourceResult {
-    let clean_blob = git.clean_blob(Path::new(path));
-    let (source_digest, source_kind, source) = match clean_blob {
-        Some(blob) if std::fs::metadata(path).is_ok() => (
-            ContentDigest::derive(
-                b"nose.source-snapshot.git-blob.v1",
-                &[lang.name().as_bytes(), blob.as_bytes()],
-            ),
-            SourceIdentityKind::GitBlob,
-            None,
-        ),
-        _ => match std::fs::read(path) {
-            Ok(source) => (
-                portable_il::source_digest(lang, &source),
-                SourceIdentityKind::ContentSha256,
-                Some(source),
-            ),
-            Err(_) => {
-                return SourceResult {
-                    regions: Vec::new(),
-                    source_digest: None,
-                    source_kind: None,
-                    logical_path,
-                    lang,
-                    snapshot_hit: false,
-                };
-            }
-        },
+fn load_source(request: SourceLoad<'_>) -> SourceResult {
+    let Some(mut snapshot) = source_snapshot(&request) else {
+        return SourceResult::unreadable(&request, false);
     };
     let snapshot_key = ArtifactKey::derive(
         ArtifactStage::SourceSnapshot,
         SOURCE_SNAPSHOT_SCHEMA,
-        &[source_digest.as_bytes()],
+        &[snapshot.digest.as_bytes()],
     );
-    let snapshot_hit = cas.load(snapshot_key).is_some();
+    let snapshot_hit = request.cas.load(snapshot_key).is_some();
     let raw_key = ArtifactKey::derive(
         ArtifactStage::RawIl,
         RAW_IL_SCHEMA,
-        &[source_digest.as_bytes()],
+        &[snapshot.digest.as_bytes()],
     );
-    if let Some(entry) = cas.load(raw_key) {
-        if let Ok(bundle) = rmp_serde::from_slice::<PortableRawBundle>(&entry.payload) {
-            if bundle.schema == RAW_IL_SCHEMA {
-                let decoded = bundle
-                    .regions
-                    .iter()
-                    .map(|bytes| {
-                        portable_il::decode(bytes, interner, FileId(index as u32), path.to_owned())
-                    })
-                    .collect::<anyhow::Result<Vec<_>>>();
-                if let Ok(decoded) = decoded {
-                    return SourceResult {
-                        regions: decoded
-                            .into_iter()
-                            .map(|il| RawRegion {
-                                raw_digest: portable_il::semantic_digest(&il, interner),
-                                il,
-                                raw_hit: true,
-                                source_kind,
-                                logical_path: logical_path.clone(),
-                                source_path: path.to_owned(),
-                                source_digest,
-                            })
-                            .collect(),
-                        source_digest: Some(source_digest),
-                        source_kind: Some(source_kind),
-                        logical_path,
-                        lang,
-                        snapshot_hit,
-                    };
-                }
-            }
-        }
+    if let Some(restored) = restore_raw_bundle(&request, raw_key) {
+        return SourceResult::from_lowered(&request, &snapshot, restored, true, snapshot_hit);
     }
 
-    let source = match source {
+    let source = match snapshot.bytes.take() {
         Some(source) => source,
-        None => match std::fs::read(path) {
+        None => match std::fs::read(request.path) {
             Ok(source) => source,
-            Err(_) => {
-                return SourceResult {
-                    regions: Vec::new(),
-                    source_digest: None,
-                    source_kind: None,
-                    logical_path,
-                    lang,
-                    snapshot_hit,
-                };
-            }
+            Err(_) => return SourceResult::unreadable(&request, snapshot_hit),
         },
     };
-    let lowered = if nose_frontend::source_is_analyzable(Path::new(path), lang, &source) {
-        nose_frontend::lower_source_regions(FileId(index as u32), path, &source, lang, interner)
-    } else {
-        Vec::new()
-    };
-    if cas.writes_portable_il() {
+    let lowered =
+        if nose_frontend::source_is_analyzable(Path::new(request.path), request.lang, &source) {
+            nose_frontend::lower_source_regions(
+                FileId(request.index as u32),
+                request.path,
+                &source,
+                request.lang,
+                request.interner,
+            )
+        } else {
+            Vec::new()
+        };
+    store_raw_bundle(&request, raw_key, snapshot_key, &lowered);
+    SourceResult::from_lowered(&request, &snapshot, lowered, false, snapshot_hit)
+}
+
+fn source_snapshot(request: &SourceLoad<'_>) -> Option<SourceSnapshot> {
+    match request.git.clean_blob(Path::new(request.path)) {
+        Some(blob) if std::fs::metadata(request.path).is_ok() => Some(SourceSnapshot {
+            digest: ContentDigest::derive(
+                b"nose.source-snapshot.git-blob.v1",
+                &[request.lang.name().as_bytes(), blob.as_bytes()],
+            ),
+            kind: SourceIdentityKind::GitBlob,
+            bytes: None,
+        }),
+        _ => {
+            let bytes = std::fs::read(request.path).ok()?;
+            Some(SourceSnapshot {
+                digest: portable_il::source_digest(request.lang, &bytes),
+                kind: SourceIdentityKind::ContentSha256,
+                bytes: Some(bytes),
+            })
+        }
+    }
+}
+
+fn restore_raw_bundle(request: &SourceLoad<'_>, raw_key: ArtifactKey) -> Option<Vec<Il>> {
+    let entry = request.cas.load(raw_key)?;
+    let bundle = rmp_serde::from_slice::<PortableRawBundle>(&entry.payload).ok()?;
+    (bundle.schema == RAW_IL_SCHEMA).then_some(())?;
+    bundle
+        .regions
+        .iter()
+        .map(|bytes| {
+            portable_il::decode(
+                bytes,
+                request.interner,
+                FileId(request.index as u32),
+                request.path.to_owned(),
+            )
+        })
+        .collect::<anyhow::Result<Vec<_>>>()
+        .ok()
+}
+
+fn store_raw_bundle(
+    request: &SourceLoad<'_>,
+    raw_key: ArtifactKey,
+    snapshot_key: ArtifactKey,
+    lowered: &[Il],
+) {
+    if request.cas.writes_portable_il() {
         let bundle = PortableRawBundle {
             schema: RAW_IL_SCHEMA,
             regions: lowered
                 .iter()
-                .filter_map(|il| portable_il::encode(il, interner).ok())
+                .filter_map(|il| portable_il::encode(il, request.interner).ok())
                 .collect(),
         };
         if bundle.regions.len() == lowered.len() {
             if let Ok(payload) = rmp_serde::to_vec(&bundle) {
-                let _ = cas.store(raw_key, &payload);
-                let _ = cas.store(snapshot_key, b"nose-source-snapshot-v1");
+                let _ = request.cas.store(raw_key, &payload);
+                let _ = request.cas.store(snapshot_key, b"nose-source-snapshot-v1");
             }
         }
-    }
-    SourceResult {
-        regions: lowered
-            .into_iter()
-            .map(|il| RawRegion {
-                raw_digest: portable_il::semantic_digest(&il, interner),
-                il,
-                raw_hit: false,
-                source_kind,
-                logical_path: logical_path.clone(),
-                source_path: path.to_owned(),
-                source_digest,
-            })
-            .collect(),
-        source_digest: Some(source_digest),
-        source_kind: Some(source_kind),
-        logical_path,
-        lang,
-        snapshot_hit,
-    }
-}
-
-struct LogicalRoot {
-    lexical_base: PathBuf,
-    canonical_base: PathBuf,
-}
-
-struct LogicalRoots {
-    roots: Vec<LogicalRoot>,
-    cwd: PathBuf,
-}
-
-impl LogicalRoots {
-    fn new(roots: &[&Path]) -> Self {
-        let cwd = std::env::current_dir().unwrap_or_default();
-        Self {
-            roots: roots
-                .iter()
-                .map(|root| {
-                    let lexical = if root.is_absolute() {
-                        root.to_path_buf()
-                    } else {
-                        cwd.join(root)
-                    };
-                    let canonical = std::fs::canonicalize(root).unwrap_or_else(|_| lexical.clone());
-                    LogicalRoot {
-                        lexical_base: root_base(lexical),
-                        canonical_base: root_base(canonical),
-                    }
-                })
-                .collect(),
-            cwd,
-        }
-    }
-
-    fn path(&self, path: &Path) -> String {
-        let lexical = if path.is_absolute() {
-            path.to_path_buf()
-        } else {
-            self.cwd.join(path)
-        };
-        for (index, root) in self.roots.iter().enumerate() {
-            if let Ok(relative) = lexical.strip_prefix(&root.lexical_base) {
-                return format!("{index}:{}", relative.to_string_lossy());
-            }
-        }
-        let canonical = std::fs::canonicalize(path).unwrap_or(lexical);
-        for (index, root) in self.roots.iter().enumerate() {
-            if let Ok(relative) = canonical.strip_prefix(&root.canonical_base) {
-                return format!("{index}:{}", relative.to_string_lossy());
-            }
-        }
-        canonical.to_string_lossy().to_string()
-    }
-}
-
-fn root_base(root: PathBuf) -> PathBuf {
-    if root.is_file() {
-        root.parent().unwrap_or(&root).to_path_buf()
-    } else {
-        root
     }
 }
 
@@ -427,170 +385,6 @@ fn framed(components: &[&[u8]]) -> Vec<u8> {
         out.extend_from_slice(component);
     }
     out
-}
-
-struct GitInventory {
-    root: PathBuf,
-    tracked: BTreeMap<PathBuf, String>,
-    dirty: BTreeSet<PathBuf>,
-}
-
-struct GitCatalog {
-    inventories: Vec<GitInventory>,
-    cwd: PathBuf,
-}
-
-impl GitCatalog {
-    fn new(roots: &[&Path]) -> Self {
-        let mut git_roots: BTreeMap<PathBuf, BTreeSet<PathBuf>> = BTreeMap::new();
-        for root in roots {
-            let base = if root.is_file() {
-                root.parent().unwrap_or(root)
-            } else {
-                root
-            };
-            let Some(git_root) = find_git_root(base) else {
-                continue;
-            };
-            let scope = std::fs::canonicalize(base)
-                .ok()
-                .and_then(|root| root.strip_prefix(&git_root).ok().map(Path::to_path_buf))
-                .unwrap_or_default();
-            git_roots.entry(git_root).or_default().insert(scope);
-        }
-        Self {
-            inventories: git_roots
-                .into_iter()
-                .filter_map(|(root, scopes)| GitInventory::load(root, &scopes))
-                .collect(),
-            cwd: std::env::current_dir().unwrap_or_default(),
-        }
-    }
-
-    fn clean_blob(&self, path: &Path) -> Option<&str> {
-        let lexical = if path.is_absolute() {
-            path.to_path_buf()
-        } else {
-            self.cwd.join(path)
-        };
-        for git in &self.inventories {
-            if let Ok(relative) = lexical.strip_prefix(&git.root) {
-                return (!git.dirty.contains(relative))
-                    .then(|| git.tracked.get(relative).map(String::as_str))
-                    .flatten();
-            }
-        }
-        let canonical = std::fs::canonicalize(path).ok()?;
-        self.inventories.iter().find_map(|git| {
-            let relative = canonical.strip_prefix(&git.root).ok()?;
-            (!git.dirty.contains(relative))
-                .then(|| git.tracked.get(relative).map(String::as_str))
-                .flatten()
-        })
-    }
-}
-
-impl GitInventory {
-    fn load(root: PathBuf, scopes: &BTreeSet<PathBuf>) -> Option<Self> {
-        let root = std::fs::canonicalize(root).ok()?;
-        let mut listed = Command::new("git");
-        listed.args(["-C", &root.to_string_lossy(), "ls-files", "--stage", "-z"]);
-        append_scopes(&mut listed, scopes);
-        let listed = listed.output().ok()?;
-        if !listed.status.success() {
-            return None;
-        }
-        if listed.stdout.is_empty() {
-            return Some(Self {
-                root,
-                tracked: BTreeMap::new(),
-                dirty: BTreeSet::new(),
-            });
-        }
-        let mut status = Command::new("git");
-        status.args([
-            "-C",
-            &root.to_string_lossy(),
-            "status",
-            "--porcelain=v1",
-            "-z",
-            "--untracked-files=no",
-        ]);
-        append_scopes(&mut status, scopes);
-        let status = status.output().ok()?;
-        if !listed.status.success() || !status.status.success() {
-            return None;
-        }
-        let mut tracked = BTreeMap::new();
-        for record in listed
-            .stdout
-            .split(|byte| *byte == 0)
-            .filter(|row| !row.is_empty())
-        {
-            let Some(tab) = record.iter().position(|byte| *byte == b'\t') else {
-                continue;
-            };
-            let header = String::from_utf8_lossy(&record[..tab]);
-            let mut fields = header.split_whitespace();
-            let _mode = fields.next();
-            let Some(oid) = fields.next() else { continue };
-            if fields.next() != Some("0") {
-                continue;
-            }
-            tracked.insert(
-                PathBuf::from(String::from_utf8_lossy(&record[tab + 1..]).as_ref()),
-                oid.to_owned(),
-            );
-        }
-        let mut dirty = BTreeSet::new();
-        let records = status
-            .stdout
-            .split(|byte| *byte == 0)
-            .filter(|row| !row.is_empty())
-            .collect::<Vec<_>>();
-        let mut index = 0;
-        while index < records.len() {
-            let record = records[index];
-            if record.len() >= 4 {
-                dirty.insert(PathBuf::from(
-                    String::from_utf8_lossy(&record[3..]).as_ref(),
-                ));
-                if matches!(record[0], b'R' | b'C') || matches!(record[1], b'R' | b'C') {
-                    index += 1;
-                    if let Some(old) = records.get(index) {
-                        dirty.insert(PathBuf::from(String::from_utf8_lossy(old).as_ref()));
-                    }
-                }
-            }
-            index += 1;
-        }
-        Some(Self {
-            root,
-            tracked,
-            dirty,
-        })
-    }
-}
-
-fn find_git_root(base: &Path) -> Option<PathBuf> {
-    let canonical = std::fs::canonicalize(base).ok()?;
-    let start = if canonical.is_file() {
-        canonical.parent()?
-    } else {
-        canonical.as_path()
-    };
-    start
-        .ancestors()
-        .find(|ancestor| ancestor.join(".git").exists())
-        .map(Path::to_path_buf)
-}
-
-fn append_scopes(command: &mut Command, scopes: &BTreeSet<PathBuf>) {
-    if scopes.iter().any(|scope| scope.as_os_str().is_empty()) {
-        return;
-    }
-    command.arg("--");
-    command.args(scopes);
 }
 
 #[cfg(test)]

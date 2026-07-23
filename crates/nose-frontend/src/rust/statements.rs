@@ -1,4 +1,5 @@
 use super::*;
+use crate::tree_sitter_ext::last_named_child;
 
 /// A block's trailing expression (no semicolon, not a statement/item/comment).
 pub(super) fn is_tail_expr(k: &str) -> bool {
@@ -143,7 +144,7 @@ pub(super) fn lower_let_condition(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let Some(value_node) = node
         .child_by_field_name("value")
-        .or_else(|| node.named_child(node.named_child_count().saturating_sub(1)))
+        .or_else(|| last_named_child(node))
     else {
         return lower_expr(lo, node);
     };

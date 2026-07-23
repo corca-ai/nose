@@ -3,6 +3,7 @@ use super::globals::{enclosing_function_prefix_has_binding_ident, file_prefix_ha
 use super::syntax::static_string_key;
 use super::{lower_block, lower_stmt};
 use crate::lower::Lowering;
+use crate::tree_sitter_ext::child_at;
 use nose_il::{
     stable_symbol_hash, EvidenceAnchor, EvidenceKind, LitClass, NodeId, NodeKind, Payload,
     RegionKind, SourceBindingKind, SourceFactKind, SourceGranularity, SourceProtocolKind, Span,
@@ -453,10 +454,8 @@ fn static_property_key(lo: &Lowering, node: TsNode) -> Option<String> {
 
 fn is_const_lexical_declaration(node: TsNode) -> bool {
     node.kind() == "lexical_declaration"
-        && (0..node.child_count()).any(|index| {
-            node.child(index)
-                .is_some_and(|child| child.kind() == "const")
-        })
+        && (0..node.child_count())
+            .any(|index| child_at(node, index).is_some_and(|child| child.kind() == "const"))
 }
 
 fn static_require_module<'a>(lo: &Lowering<'a>, value: TsNode<'a>) -> Option<(String, TsNode<'a>)> {

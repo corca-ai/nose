@@ -1,4 +1,5 @@
 use super::*;
+use crate::tree_sitter_ext::child_at;
 
 pub(super) fn lower_func(lo: &mut Lowering, node: TsNode, method: bool) -> NodeId {
     let is_async = rust_function_has_async_modifier(node);
@@ -19,7 +20,7 @@ pub(super) fn lower_func(lo: &mut Lowering, node: TsNode, method: bool) -> NodeI
 }
 fn rust_function_has_async_modifier(node: TsNode) -> bool {
     (0..node.child_count()).any(|index| {
-        node.child(index).is_some_and(|child| {
+        child_at(node, index).is_some_and(|child| {
             child.kind() == "async"
                 || (child.kind() == "function_modifiers"
                     && crate::lower::node_has_child_kind(child, "async"))

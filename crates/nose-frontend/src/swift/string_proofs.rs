@@ -1,4 +1,5 @@
 use super::*;
+use crate::tree_sitter_ext::child_at;
 
 #[derive(Clone, Copy)]
 pub(super) enum SwiftStringSpelling {
@@ -25,7 +26,7 @@ pub(super) fn swift_string_spelling(text: &str) -> Option<SwiftStringSpelling> {
 #[inline(never)]
 pub(super) fn record_selective_import_shadow(lo: &mut Lowering, node: TsNode) {
     let selective = (0..node.child_count()).any(|index| {
-        node.child(index).is_some_and(|child| {
+        child_at(node, index).is_some_and(|child| {
             matches!(
                 child.kind(),
                 "typealias" | "struct" | "class" | "enum" | "protocol" | "let" | "var" | "func"

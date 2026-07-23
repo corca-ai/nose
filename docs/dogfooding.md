@@ -28,14 +28,13 @@ cannot mask a newly introduced duplicate.
 
 ## Current baseline
 
-The current reviewed default-surface budget is 26 families, matching
-`scripts/duplication-baseline.json`. The latest budget-tightening cleanup is the
-#679 admission-resolver dogfooding debt burn-down, which tightened the budget
-from 29 to 26 by sharing narrow provenance-test helpers for Rust
-`HashMap::from`, Java `Map.of`, and JavaScript `Set`/`Map` constructor
-scenarios. The latest documented representative movement is the Java collection
-factory call/span scaffold moving from `e3fa2e4c707e342a` to
-`eb2f9fe7da72f8dd` after line movement; its judgment is unchanged.
+The current reviewed default-surface budget is 29 families, matching
+`scripts/duplication-baseline.json`. The #943 release closeout kept the budget
+at 28 while recording representative movement for the cross-engine candidate
+enumeration, context/export assignment counting, and divergence preload
+families. The post-v0.20 cleanup moved two existing frontend representatives
+and added one reviewed two-line surface-policy span; the detailed judgment is
+recorded in the history below.
 
 The accepted family IDs are intentionally kept in the
 [`scripts/duplication-baseline.json`](../scripts/duplication-baseline.json) baseline

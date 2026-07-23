@@ -1,4 +1,5 @@
 use super::*;
+use crate::tree_sitter_ext::{child_at, last_named_child};
 
 pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
@@ -256,7 +257,7 @@ pub(super) fn lower_store_target(lo: &mut Lowering, node: TsNode) -> NodeId {
         node,
         |lo, n| {
             (n.kind() == "unary_expression" && lo.text(n).starts_with('*'))
-                .then(|| n.named_child(n.named_child_count().saturating_sub(1)))
+                .then(|| last_named_child(n))
                 .flatten()
         },
         lower_expr,
@@ -474,10 +475,8 @@ pub(super) fn lower_closure(lo: &mut Lowering, node: TsNode) -> NodeId {
     }
 }
 fn rust_closure_has_async_modifier(node: TsNode) -> bool {
-    (0..node.child_count()).any(|index| {
-        node.child(index)
-            .is_some_and(|child| child.kind() == "async")
-    })
+    (0..node.child_count())
+        .any(|index| child_at(node, index).is_some_and(|child| child.kind() == "async"))
 }
 pub(super) fn lower_negative_literal(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
