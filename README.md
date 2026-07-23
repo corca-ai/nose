@@ -15,22 +15,34 @@ Other copy-paste detectors compare token runs. `nose` lowers code into a
 normalized semantic IL, so it can catch repeated computation even when the code
 does not look copied:
 
-```python
-def a(xs):
-    return all(x != 0 and x != 1 for x in xs)
+```java
+import java.util.Arrays;
 
-def b(xs):
-    for x in xs:
-        if x == 0 or x == 1:
-            return False
-    return True
+class PairTotals {
+    static int nested(int[] xs, int[] ys) {
+        int total = 0;
+        for (int x : xs) {
+            for (int y : ys) {
+                total += x + y;
+            }
+        }
+        return total;
+    }
+
+    static int streamed(int[] xs, int[] ys) {
+        return Arrays.stream(xs)
+            .flatMap(x -> Arrays.stream(ys).map(y -> x + y))
+            .reduce(0, (total, value) -> total + value);
+    }
+}
 ```
 
-Both functions answer the same question: does every item avoid `0` and `1`?
-nose reports this as an exact match only when it can prove the required language
-conditions. When behavior could differ, it leaves the pair out of the verified
-channel. See [clone types](docs/clone-types.md) for the distinction between
-verified and similarity-based findings.
+The methods look unrelated as text, but both visit the same ordered pairs and
+sum `x + y` from zero. nose reports them as one exact family only when it can
+prove the stream source, flattening, reduction seed and step, and callback
+effects. Change one of those and the methods stay separate. See
+[clone types](docs/clone-types.md) for the distinction between verified and
+similarity-based findings.
 
 ## Install
 
