@@ -291,6 +291,12 @@ set -euo pipefail
 # deliberately separate divergence preload phases become visible as one same-file family. The
 # preload phases own file materialization versus unit projection and remain separate candidate
 # debt; no budget increase is accepted. See docs/dogfooding-history.md.
+# 28 -> 29 (post-v0.20 quality cleanup): the tree-sitter 0.26 index adapter moves two reviewed
+# cross-frontend lowering representatives without changing their members or metrics. Splitting
+# declaration classification out of `surfaces.rs` also makes a pre-existing two-line function-
+# signature overlap across seven unrelated surface-policy functions visible. Sharing those
+# policies would mix distinct responsibilities, so the span-noise family is reviewed rather than
+# extracted. See docs/dogfooding-history.md.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

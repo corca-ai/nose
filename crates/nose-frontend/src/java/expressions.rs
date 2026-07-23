@@ -1,4 +1,5 @@
 use super::*;
+use crate::tree_sitter_ext::last_named_child;
 
 pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
@@ -160,8 +161,7 @@ fn anonymous_body_is_substantive(body: TsNode) -> bool {
 pub(super) fn lower_expr_rest(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     match node.kind() {
-        "parenthesized_expression" | "cast_expression" => node
-            .named_child(node.named_child_count().saturating_sub(1))
+        "parenthesized_expression" | "cast_expression" => last_named_child(node)
             .map(|c| lower_expr(lo, c))
             .unwrap_or_else(|| lo.empty_block(span)),
         "ternary_expression" => {

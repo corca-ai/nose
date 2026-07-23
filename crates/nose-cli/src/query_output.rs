@@ -224,29 +224,29 @@ fn render_query_list_or_group(ctx: &QueryOutput<'_>, json: bool) -> Result<()> {
         ctx.since,
     )?;
     match &ctx.q.group {
-        Some(field) => render_query_group(
-            &sel,
+        Some(field) => render_query_group(QueryGroupView {
+            selection: &sel,
             field,
-            ctx.terms,
-            ctx.path_arg,
+            terms: ctx.terms,
+            path: ctx.path_arg,
             json,
-            ctx.baseline_comparison,
-            ctx.since,
-            ctx.semantic_packs,
-        ),
-        None => render_query_list(
-            &sel,
-            ctx.overrides,
-            ctx.opp,
-            ctx.q,
-            ctx.terms,
-            ctx.path_arg,
+            baseline_comparison: ctx.baseline_comparison,
+            since: ctx.since,
+            semantic_packs: ctx.semantic_packs,
+        }),
+        None => render_query_list(QueryListView {
+            selection: &sel,
+            overrides: ctx.overrides,
+            opportunities: ctx.opp,
+            query: ctx.q,
+            terms: ctx.terms,
+            path: ctx.path_arg,
             widen,
             json,
-            ctx.baseline_comparison,
-            ctx.since,
-            ctx.semantic_packs,
-        ),
+            baseline_comparison: ctx.baseline_comparison,
+            since: ctx.since,
+            semantic_packs: ctx.semantic_packs,
+        }),
     }
     Ok(())
 }

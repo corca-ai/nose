@@ -1,4 +1,5 @@
 use super::*;
+use crate::tree_sitter_ext::last_named_child;
 
 pub(super) fn lower_assign(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
@@ -301,8 +302,7 @@ pub(super) fn ruby_bin_op(text: &str) -> Option<Op> {
 }
 pub(super) fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let operand = node
-        .named_child(node.named_child_count().saturating_sub(1))
+    let operand = last_named_child(node)
         .map(|o| lower_expr(lo, o))
         .unwrap_or_else(|| lo.empty_block(span));
     // Map by the operator token, not the leading byte: `+`→Pos, `-`→Neg,

@@ -1,4 +1,5 @@
 use super::*;
+use crate::tree_sitter_ext::last_named_child;
 
 pub(super) fn lower_if(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
@@ -148,8 +149,7 @@ pub(super) fn lower_range_binding(lo: &mut Lowering, node: TsNode) -> NodeId {
 /// `_, x` → `x`; `i, v` → `v`; `x` → `x` (a lone var is the index, kept as-is).
 pub(super) fn range_value_var(node: TsNode) -> TsNode {
     if node.kind() == "expression_list" {
-        node.named_child(node.named_child_count().saturating_sub(1))
-            .unwrap_or(node)
+        last_named_child(node).unwrap_or(node)
     } else {
         node
     }

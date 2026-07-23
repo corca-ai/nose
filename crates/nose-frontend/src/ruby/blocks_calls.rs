@@ -1,4 +1,5 @@
 use super::*;
+use crate::tree_sitter_ext::child_at;
 
 pub(super) fn lower_block_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
     lower_block_lambda_with_unit(lo, node, None)
@@ -24,7 +25,7 @@ pub(super) fn lower_block_lambda_with_unit(
 fn lower_block_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
     let mut has_block_locals = false;
     for index in 0..params.child_count() {
-        let Some(param) = params.child(index) else {
+        let Some(param) = child_at(params, index) else {
             continue;
         };
         if !param.is_named() {

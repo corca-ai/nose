@@ -1,4 +1,5 @@
 use super::*;
+use crate::tree_sitter_ext::last_named_child;
 
 pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
@@ -158,7 +159,7 @@ fn lower_expr_core(lo: &mut Lowering, node: TsNode, span: Span) -> Option<NodeId
         "pointer_expression" | "parenthesized_expression" => node
             .child_by_field_name("argument")
             .or_else(|| node.child_by_field_name("value"))
-            .or_else(|| node.named_child(node.named_child_count().saturating_sub(1)))
+            .or_else(|| last_named_child(node))
             .map(|c| lower_expr(lo, c))
             .unwrap_or_else(|| lo.empty_block(span)),
         "assignment_expression" => lower_assignment(lo, node),
@@ -258,7 +259,7 @@ pub(super) fn lower_store_target(lo: &mut Lowering, node: TsNode) -> NodeId {
             (n.kind() == "pointer_expression" && crate::lower::has_direct_token(n, "*"))
                 .then(|| {
                     n.child_by_field_name("argument")
-                        .or_else(|| n.named_child(n.named_child_count().saturating_sub(1)))
+                        .or_else(|| last_named_child(n))
                 })
                 .flatten()
         },
@@ -349,7 +350,7 @@ pub(super) fn lower_cast(lo: &mut Lowering, node: TsNode) -> NodeId {
     let value = node
         .child_by_field_name("argument")
         .or_else(|| node.child_by_field_name("value"))
-        .or_else(|| node.named_child(node.named_child_count().saturating_sub(1)));
+        .or_else(|| last_named_child(node));
     let lowered = value
         .map(|c| lower_expr(lo, c))
         .unwrap_or_else(|| lo.empty_block(span));
@@ -404,7 +405,7 @@ pub(super) fn c_cast_operand_may_be_byte_lane(node: TsNode) -> bool {
         "parenthesized_expression" | "pointer_expression" => node
             .child_by_field_name("argument")
             .or_else(|| node.child_by_field_name("value"))
-            .or_else(|| node.named_child(node.named_child_count().saturating_sub(1)))
+            .or_else(|| last_named_child(node))
             .is_some_and(c_cast_operand_may_be_byte_lane),
         _ => false,
     }

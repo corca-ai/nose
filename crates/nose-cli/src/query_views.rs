@@ -1,4 +1,7 @@
 mod base_json;
+mod group;
+
+pub(super) use group::{render_query_group, QueryGroupView};
 
 use super::query_model::*;
 use crate::baseline;
@@ -291,33 +294,48 @@ pub(super) fn render_query_reinvented(
 
 /// A ranked list of the current selection: each row carries its own `id=` drill link,
 /// plus a reasoned `next:`.
-#[allow(clippy::too_many_arguments)]
-fn query_list_json(
-    sel: &[&nose_detect::RefactorFamily],
-    ov: &SurfaceOverrides,
-    opp: &OpportunityGroups,
-    q: &Query,
-    path: &str,
-    widen: bool,
-    baseline_cmp: Option<&BaselineComparison>,
-    since: Option<&BaselineComparison>,
-    semantic_packs: &[serde_json::Value],
-) -> serde_json::Value {
-    let top = query_row_limit(q.top);
-    let shown = sel.len().min(top);
+pub(super) struct QueryListView<'a> {
+    pub(super) selection: &'a [&'a nose_detect::RefactorFamily],
+    pub(super) overrides: &'a SurfaceOverrides,
+    pub(super) opportunities: &'a OpportunityGroups,
+    pub(super) query: &'a Query,
+    pub(super) terms: &'a [String],
+    pub(super) path: &'a str,
+    pub(super) widen: bool,
+    pub(super) json: bool,
+    pub(super) baseline_comparison: Option<&'a BaselineComparison>,
+    pub(super) since: Option<&'a BaselineComparison>,
+    pub(super) semantic_packs: &'a [serde_json::Value],
+}
+
+fn query_list_json(view: &QueryListView<'_>) -> serde_json::Value {
+    let QueryListView {
+        selection,
+        overrides,
+        opportunities,
+        query,
+        path,
+        widen,
+        baseline_comparison,
+        since,
+        semantic_packs,
+        ..
+    } = view;
+    let top = query_row_limit(query.top);
+    let shown = selection.len().min(top);
     let mut lines = FileLineCache::default();
-    let fams: Vec<_> = sel
+    let fams: Vec<_> = selection
         .iter()
         .take(top)
         .map(|f| {
             let (shared, params) = all_copies_shared_cached(f, &mut lines);
             query_family_json_with_counts(
                 f,
-                ov,
-                opp,
-                q.id_full,
-                baseline_cmp,
-                since,
+                overrides,
+                opportunities,
+                query.id_full,
+                *baseline_comparison,
+                *since,
                 shared,
                 params,
             )
@@ -329,7 +347,7 @@ fn query_list_json(
             "tool": "nose",
             "view": "list",
             "path": path,
-            "summary": { "families": sel.len(), "shown": shown, "widened": widen },
+            "summary": { "families": selection.len(), "shown": shown, "widened": widen },
             "families": fams,
             "next": [format!("nose query {path} group=dir"), format!("nose query {path} group=witness")],
         }),
@@ -337,45 +355,19 @@ fn query_list_json(
     )
 }
 
-#[allow(clippy::too_many_arguments)] // dataset + view + selection state for one list render
-pub(super) fn render_query_list(
-    sel: &[&nose_detect::RefactorFamily],
-    ov: &SurfaceOverrides,
-    opp: &OpportunityGroups,
-    q: &Query,
-    terms: &[String],
-    path: &str,
-    widen: bool,
-    json: bool,
-    baseline_cmp: Option<&BaselineComparison>,
-    since: Option<&BaselineComparison>,
-    semantic_packs: &[serde_json::Value],
-) {
-    let top = query_row_limit(q.top);
-    let shown = sel.len().min(top);
-    if json {
-        println!(
-            "{}",
-            query_list_json(
-                sel,
-                ov,
-                opp,
-                q,
-                path,
-                widen,
-                baseline_cmp,
-                since,
-                semantic_packs,
-            )
-        );
+pub(super) fn render_query_list(view: QueryListView<'_>) {
+    let top = query_row_limit(view.query.top);
+    let shown = view.selection.len().min(top);
+    if view.json {
+        println!("{}", query_list_json(&view));
         return;
     }
     println!(
         "{} {}{}{}:",
-        sel.len(),
-        plural(sel.len(), "family", "families"),
-        if widen { " (full surface)" } else { "" },
-        if shown < sel.len() {
+        view.selection.len(),
+        plural(view.selection.len(), "family", "families"),
+        if view.widen { " (full surface)" } else { "" },
+        if shown < view.selection.len() {
             format!(" (showing {shown})")
         } else {
             String::new()
@@ -384,7 +376,8 @@ pub(super) fn render_query_list(
     // Align the location and metrics columns across the shown rows so the drill commands
     // line up (widths from the visible text, so colour never skews them — same as the
     // dashboard's `print_candidates`).
-    let shown_rows: Vec<&nose_detect::RefactorFamily> = sel.iter().take(top).copied().collect();
+    let shown_rows: Vec<&nose_detect::RefactorFamily> =
+        view.selection.iter().take(top).copied().collect();
     let cells: Vec<(String, usize, String, usize)> = shown_rows
         .iter()
         .map(|f| {
@@ -397,27 +390,28 @@ pub(super) fn render_query_list(
     let wm = cells.iter().map(|c| c.3).max().unwrap_or(0);
     for (f, (loc, lw, metrics, mw)) in shown_rows.iter().zip(&cells) {
         // When widened past the default surface, label why a demoted family is here.
-        let surf = if widen {
-            match effective_surface(f, ov) {
+        let surf = if view.widen {
+            match effective_surface(f, view.overrides) {
                 "default" => String::new(),
                 s => format!(" [{s}]"),
             }
         } else {
             String::new()
         };
-        let fold = match opp.slices(f) {
+        let fold = match view.opportunities.slices(f) {
             Some(s) if !s.is_empty() => format!("\n       ↳ +{} overlapping slice folds", s.len()),
             _ => String::new(),
         };
         // With `since=`, tag the actionable changes (new/changed) so the diff against the
         // snapshot is visible inline; unchanged families stay untagged (the common case).
-        let status_cmp = since.or(baseline_cmp);
+        let status_cmp = view.since.or(view.baseline_comparison);
         let status = match status_cmp.map(|c| family_status(f, c)) {
             Some(s @ ("new" | "changed")) => format!(" [{s}]"),
             _ => String::new(),
         };
         let cmd = style::dim(&format!(
-            "nose query {path} id={}",
+            "nose query {} id={}",
+            view.path,
             short_id(&baseline::family_id(f))
         ));
         println!(
@@ -427,152 +421,27 @@ pub(super) fn render_query_list(
         );
         // `full` on a list/filter batches the extraction skeletons — triage N candidates
         // in one stateless call (no per-family id= round-trip).
-        if q.id_full {
+        if view.query.id_full {
             print_member_proposal(&f.locations, proposal_action_label(f));
         }
     }
-    if !q.id_full {
+    if !view.query.id_full {
         println!(
-            "  nose query {path} ... full   # add `full` to show the extraction skeletons inline"
+            "  nose query {} ... full   # add `full` to show the extraction skeletons inline",
+            view.path
         );
     }
     println!("\nnext:");
-    if !terms.iter().any(|t| t.starts_with("group=")) {
+    if !view.terms.iter().any(|term| term.starts_with("group=")) {
         println!(
             "  {} group=dir       # where this selection concentrates",
-            base_cmd(terms, path)
+            base_cmd(view.terms, view.path)
         );
     }
     println!(
         "  {} group=witness   # by confidence",
-        base_cmd(terms, path)
+        base_cmd(view.terms, view.path)
     );
-}
-
-/// Facet the current selection by a discrete field, with a top exemplar per bucket and
-/// the "see all" command for each.
-/// One `group=` bucket's aggregate: how many families, how many removable lines they carry,
-/// and an exemplar. Economics-per-bucket is what turns `group=dir`/`group=file` into a
-/// duplication hotspot map (where the volume is), not just a tally.
-#[derive(Default)]
-struct GroupAgg {
-    count: usize,
-    removable: u32,
-    exemplar_id: String,
-    exemplar_row: String,
-}
-
-#[allow(clippy::too_many_arguments)]
-pub(super) fn render_query_group(
-    sel: &[&nose_detect::RefactorFamily],
-    field: &str,
-    terms: &[String],
-    path: &str,
-    json: bool,
-    baseline_cmp: Option<&BaselineComparison>,
-    since: Option<&BaselineComparison>,
-    semantic_packs: &[serde_json::Value],
-) {
-    use std::collections::HashMap;
-    let key = |f: &nose_detect::RefactorFamily| -> String {
-        match field {
-            "scope" => f.scope.to_string(),
-            "witness" => witness_token(f.witness.as_ref().map(|w| w.kind)).to_string(),
-            "lang" | "language" => f
-                .locations
-                .first()
-                .map(|l| l.lang.as_str().to_string())
-                .unwrap_or_default(),
-            "dir" => family_dir(f),
-            "file" => f
-                .locations
-                .first()
-                .map(|l| l.file.clone())
-                .unwrap_or_default(),
-            "shape" | "extraction_shape" => f.extraction_shape().to_string(),
-            "same_symbol" => family_same_symbol(f).to_string(),
-            "spotclass" => family_spotclass(f).unwrap_or("unwitnessed").to_string(),
-            "status" => since
-                .or(baseline_cmp)
-                .map_or_else(|| "?".to_string(), |c| family_status(f, c).to_string()),
-            _ => "?".to_string(),
-        }
-    };
-    // Aggregate each bucket's payoff, not just its count — so the facet ranks by impact and
-    // `group=dir`/`group=file` reads as a hotspot map. `removable_lines` is the cheap detector
-    // estimate (no source read), so summing over every family stays bounded.
-    let mut buckets: HashMap<String, GroupAgg> = HashMap::new();
-    for f in sel {
-        let e = buckets.entry(key(f)).or_default();
-        if e.count == 0 {
-            e.exemplar_id = baseline::family_id(f);
-            e.exemplar_row = query_row(f);
-        }
-        e.count += 1;
-        e.removable += removable_lines(f);
-    }
-    let mut rows: Vec<(String, GroupAgg)> = buckets.into_iter().collect();
-    // Rank by removable volume (the hotspot order), then count, then key — deterministic.
-    rows.sort_by(|a, b| {
-        b.1.removable
-            .cmp(&a.1.removable)
-            .then(b.1.count.cmp(&a.1.count))
-            .then(a.0.cmp(&b.0))
-    });
-    if json {
-        let groups: Vec<_> = rows
-            .iter()
-            .map(|(k, g)| {
-                serde_json::json!({
-                    "key": k, "count": g.count, "removable": g.removable,
-                    "exemplar_id": g.exemplar_id,
-                })
-            })
-            .collect();
-        println!(
-            "{}",
-            with_semantic_packs(
-                serde_json::json!({
-                    "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION, "tool": "nose", "view": "group", "path": path,
-                    "field": field, "groups": groups,
-                }),
-                semantic_packs
-            )
-        );
-        return;
-    }
-    println!(
-        "{} {} by {field} (most removable first):",
-        sel.len(),
-        plural(sel.len(), "family", "families")
-    );
-    let other: Vec<&str> = terms
-        .iter()
-        .filter(|t| !t.starts_with("group="))
-        .map(String::as_str)
-        .collect();
-    let base = if other.is_empty() {
-        format!("nose query {path}")
-    } else {
-        format!("nose query {path} {}", other.join(" "))
-    };
-    for (k, g) in &rows {
-        // Display the friendly witness label (`subdag` → `shared-core`); the JSON `key`
-        // above stays the machine token. `witness=shared-core` is an accepted filter alias.
-        let label = if field == "witness" && k == "subdag" {
-            "shared-core"
-        } else {
-            k.as_str()
-        };
-        println!(
-            "  {label:<16} ({:>3} {} · ~{} removable)  e.g. {}",
-            g.count,
-            plural(g.count, "family", "families"),
-            g.removable,
-            g.exemplar_row
-        );
-        println!("        {base} {field}={label}");
-    }
 }
 
 /// `nose query` with the current selection's terms minus any view term — the prefix the

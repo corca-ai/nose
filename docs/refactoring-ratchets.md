@@ -94,6 +94,9 @@ and behavior easier to reason about:
   dispatcher; detection, scope extraction, source-line weighting, query terms,
   semantic-pack metadata, and family drilldown now live in
   `nose-cli/src/query_{commands,dataset,terms,semantic_packs,open}.rs`;
+- keep query dataset construction split from its inputs: divergence planning and
+  layered query settings live under `nose-cli/src/query_dataset/`, while the
+  dataset root owns detection and assembly;
 - keep query option parsing and report model types outside the dispatcher; mode
   parsing, report formats, ranking keys, gate selectors, and scope summaries now
   live in `nose-cli/src/{query_options,query_model}.rs`;
@@ -103,6 +106,16 @@ and behavior easier to reason about:
   JSON/markdown/SARIF renderers, opportunities, witness enrichment, and
   baseline/divergence gate output now live in
   `nose-cli/src/query_{output,dashboard,views,markdown,sarif,family_text,opportunities,witness,baseline_gate}.rs`;
+- keep grouped query rendering behind a request object in
+  `nose-cli/src/query_views/group.rs`; the views root owns list selection and
+  delegates group construction and presentation;
+- keep source loading separate from repository inventory: `cache/source.rs`
+  owns cache orchestration and source snapshots, while
+  `cache/source/inventory.rs` owns logical roots and Git/process discovery;
+- keep surface classification split by policy domain: declaration-run and
+  declaration-only type-contract classification live in
+  `nose-cli/src/surfaces/declarations.rs`, while `surfaces.rs` composes the
+  user-facing surface decisions;
 - keep the query-facing Markdown prose domain adapter in `nose-cli/src/markdown.rs`;
   `query_dashboard` receives its report object and should not reach into
   `nose_markdown::Family` or duplicate Markdown JSON/rendering details;
@@ -122,6 +135,9 @@ and behavior easier to reason about:
   IL builders, semantic-evidence recording, import facts, parse/file setup,
   post-lower evidence helpers, expression helpers, and lowering tests now live
   in focused `nose-frontend/src/lower/*` modules;
+- keep tree-sitter API-width adaptation at the frontend boundary;
+  `nose-frontend/src/tree_sitter_ext.rs` owns `usize`-to-parser-index conversion
+  instead of scattering version-specific casts through language lowerers;
 - keep wide frontend language roots as dispatch surfaces instead of mixed
   parser-policy files; JS/TS import parsing, type declarations, declarations,
   control-flow rewrites, expression lowering, global-symbol proof, record-shape

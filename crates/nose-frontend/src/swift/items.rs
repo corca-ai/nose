@@ -1,4 +1,5 @@
 use super::*;
+use crate::tree_sitter_ext::child_at;
 
 pub(super) fn lower_items(lo: &mut Lowering, node: TsNode) -> NodeId {
     crate::lower::collect_into(lo, node, NodeKind::Module, lower_item)
@@ -218,7 +219,7 @@ fn swift_function_protocol_modifiers(node: TsNode) -> SwiftFunctionProtocolModif
         is_throwing: false,
     };
     for index in 0..node.child_count() {
-        let Some(child) = node.child(index) else {
+        let Some(child) = child_at(node, index) else {
             continue;
         };
         match child.kind() {

@@ -1,4 +1,5 @@
 use super::*;
+use crate::tree_sitter_ext::child_at;
 
 /// Lower each named child of `node` with `lower_one`, keeping the `Some` results,
 /// and wrap them in a `kind` node (`Module` for a file root, `Block` for a body).
@@ -21,7 +22,8 @@ pub(crate) fn collect_into(
 }
 
 pub(crate) fn node_has_child_kind(node: TsNode, kind: &str) -> bool {
-    (0..node.child_count()).any(|index| node.child(index).is_some_and(|child| child.kind() == kind))
+    (0..node.child_count())
+        .any(|index| child_at(node, index).is_some_and(|child| child.kind() == kind))
 }
 
 /// Build a `Func` unit from a `name`/`parameters`/`body`-shaped node and register

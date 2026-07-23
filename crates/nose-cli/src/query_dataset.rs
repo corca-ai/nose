@@ -1,29 +1,30 @@
 use anyhow::Result;
 
+use crate::cache;
 use crate::cli_args::QueryArgs;
-use crate::detect_pipeline::{detection_engine, detection_options, validate_exclude_globs};
+use crate::detect_pipeline::{detection_engine, detection_options};
 use crate::path_utils::{relativize, relativize_loc};
-use crate::query_options::{
-    validate_min_value, DetectionChannels, QueryScope, SortKey, DIVERGENCE_DEFAULT_MODES,
-    QUERY_DEFAULT_MODES,
-};
+use crate::query_options::{QueryScope, QUERY_DEFAULT_MODES};
 use crate::source_lines::{
     apply_cached_family_lines, cached_line_idf, corpus_line_idf, family_anchor, is_trivial_line,
     shared_lines_of, varying_spots_of, FileLineCache,
 };
-use crate::surfaces::GeneratedPathAssertions;
 use crate::timing::{time_lower, time_stage};
-use crate::{cache, config, ignores};
 use std::collections::BTreeSet;
 
 include!("query_dataset/annotations.rs");
 
 mod detection;
+mod divergence;
 mod session;
+mod settings;
 use detection::{
     detect_cached_or_clean, print_invalidation, try_query_detect_report_fast, DetectCachedRequest,
 };
+pub(crate) use divergence::{build_divergence_families, prepare_divergence_query};
 pub(super) use session::QueryAnalysisSession;
+use settings::resolve_query_settings;
+pub(super) use settings::{resolve_query_semantic_packs, QuerySettings};
 
 /// The ranked family dataset behind `nose query`: detect, rank,
 /// filter (min-members / min-value / scope), relativize paths, weight shared lines, and
@@ -165,73 +166,6 @@ fn finish_query_dataset(
     })
 }
 
-/// Run the `base=` detector through the same frontend, semantic-pack, and
-/// per-file cache engine as ordinary query while retaining pair-local edges for
-/// propagation targets. Divergence keeps its stricter default channel set.
-pub(crate) struct DivergenceQueryPlan {
-    settings: QuerySettings,
-    semantic_packs: nose_semantics::SemanticPackSet,
-    opts: nose_detect::DetectOptions,
-}
-
-impl DivergenceQueryPlan {
-    pub(crate) fn options(&self) -> &nose_detect::DetectOptions {
-        &self.opts
-    }
-}
-
-pub(crate) fn prepare_divergence_query(args: &QueryArgs) -> Result<DivergenceQueryPlan> {
-    let (settings, semantic_packs) = resolve_query_settings(args, DIVERGENCE_DEFAULT_MODES)?;
-    let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
-    Ok(DivergenceQueryPlan {
-        settings,
-        semantic_packs,
-        opts,
-    })
-}
-
-pub(crate) fn build_divergence_families(
-    args: &QueryArgs,
-    refs: &[&std::path::Path],
-    plan: DivergenceQueryPlan,
-) -> Result<(
-    Vec<nose_detect::RefactorFamily>,
-    nose_detect::DetectOptions,
-    Option<RetainedNormalizedCorpus>,
-)> {
-    let DivergenceQueryPlan {
-        settings,
-        semantic_packs,
-        opts,
-    } = plan;
-    let detector = detection_engine(settings.channels, &opts);
-    let (
-        report,
-        _,
-        semantic_pack_near,
-        semantic_pack_external_exact,
-        line_context,
-        retained_normalized,
-    ) = query_detect_report(QueryDetectRequest {
-        args,
-        refs,
-        exclude: &settings.exclude,
-        opts: &opts,
-        detector: detector.as_ref(),
-        semantic_packs: &semantic_packs,
-        cache_max_bytes: settings.cache_max_bytes,
-        accepted_coverage: AcceptedCoverage::Direct,
-    });
-    let mut families = nose_detect::rank_families(&report);
-    annotate_semantic_pack_near(&mut families, &semantic_pack_near);
-    annotate_semantic_pack_external_exact(&mut families, &semantic_pack_external_exact);
-    if settings.channels.abstraction_only() {
-        families.retain(|family| family.abstraction_witness.is_some());
-    }
-    time_stage("cache_commit", || cache::finish_query_run(line_context));
-    Ok((families, opts, retained_normalized))
-}
-
 /// `direct_edges` is the richer representation needed by the `base=` divergence view.
 /// Ordinary query opportunity folding predates that representation and must keep treating
 /// the same detector pairs as accepted-coverage obligations; otherwise adding target evidence
@@ -249,104 +183,6 @@ pub(crate) fn preserve_query_accepted_coverage(families: &mut [nose_detect::Refa
             },
         );
     }
-}
-
-/// The query settings after layering: CLI flag wins, else config file, else built-in
-/// default.
-pub(super) struct QuerySettings {
-    pub(super) min_members: usize,
-    pub(super) min_value: f64,
-    pub(super) sort: SortKey,
-    pub(super) channels: DetectionChannels,
-    pub(super) min_lines: u32,
-    pub(super) min_tokens: usize,
-    pub(super) exclude: Vec<String>,
-    pub(super) generated_paths: GeneratedPathAssertions,
-    pub(super) ignore_set: Option<ignores::IgnoreSet>,
-    pub(super) cache_max_bytes: u64,
-}
-
-pub(super) fn resolve_query_semantic_packs(
-    args: &QueryArgs,
-) -> Result<nose_semantics::SemanticPackSet> {
-    let cfg = config::load_query(args.config.as_deref())?;
-    semantic_pack_set_from_inputs(
-        cfg.semantic_packs,
-        &args.semantic_pack,
-        cfg.semantic_pack_lock,
-        args.semantic_pack_lock.as_ref(),
-    )
-}
-
-fn semantic_pack_set_from_inputs(
-    mut semantic_pack_paths: Vec<std::path::PathBuf>,
-    cli_semantic_pack_paths: &[std::path::PathBuf],
-    config_lock: Option<std::path::PathBuf>,
-    cli_lock: Option<&std::path::PathBuf>,
-) -> Result<nose_semantics::SemanticPackSet> {
-    semantic_pack_paths.extend(cli_semantic_pack_paths.iter().cloned());
-    let lock = cli_lock.cloned().or(config_lock);
-    if let Some(lock) = lock {
-        if !semantic_pack_paths.is_empty() {
-            anyhow::bail!(
-                "a semantic-pack project lock is mutually exclusive with `--semantic-pack` and `[query].semantic-packs`; the lock owns the complete manifest set"
-            );
-        }
-        return Ok(nose_semantics::SemanticPackSet::new_locked(&lock)?);
-    }
-    Ok(nose_semantics::SemanticPackSet::new_local(
-        &semantic_pack_paths,
-    )?)
-}
-
-fn resolve_query_settings(
-    args: &QueryArgs,
-    default_modes: &[crate::query_options::DetectionMode],
-) -> Result<(QuerySettings, nose_semantics::SemanticPackSet)> {
-    let cfg = config::load_query(args.config.as_deref())?;
-    let min_members = args.min_members.or(cfg.min_members).unwrap_or(2);
-    let min_value = validate_min_value(args.min_value.or(cfg.min_value).unwrap_or(0.0))?;
-    let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Extractability);
-    let channels = DetectionChannels::resolve(args.mode.clone(), cfg.mode, default_modes)?;
-    let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
-    let min_tokens = args.min_size.or(cfg.min_size).unwrap_or(24);
-    let cache_max_bytes = args
-        .cache_max_bytes
-        .or(cfg.cache_max_bytes)
-        .unwrap_or(cache::DEFAULT_MAX_BYTES);
-    let ignore_file = args.ignore_file.clone().or(cfg.ignore_file);
-    let semantic_packs = semantic_pack_set_from_inputs(
-        cfg.semantic_packs,
-        &args.semantic_pack,
-        cfg.semantic_pack_lock,
-        args.semantic_pack_lock.as_ref(),
-    )?;
-    // Excludes are additive: config patterns plus any given on the command line.
-    let mut exclude = cfg.exclude;
-    exclude.extend(args.exclude.iter().cloned());
-    validate_exclude_globs(&exclude)?;
-    let mut generated_path_patterns = cfg.generated_paths;
-    generated_path_patterns.extend(args.generated_path.iter().cloned());
-    let generated_paths = GeneratedPathAssertions::new(&args.paths, generated_path_patterns)?;
-    let ignore_set = ignores::load_for_query(ignore_file.as_deref())?;
-    if let Some(ignore_set) = &ignore_set {
-        ignore_set.warn_expired();
-    }
-    Ok((
-        QuerySettings {
-            min_members,
-            min_value,
-            sort,
-            channels,
-            min_lines,
-            min_tokens,
-            exclude,
-            generated_paths,
-            ignore_set,
-            cache_max_bytes,
-        },
-        semantic_packs,
-    ))
 }
 
 type DetectionReport = (
