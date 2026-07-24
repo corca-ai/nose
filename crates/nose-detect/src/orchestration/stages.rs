@@ -1,7 +1,21 @@
 use super::{AcceptedPair, ConnectedAccepted, ScoredCandidate};
 
-pub(super) type ConnectedStage = (Vec<ConnectedAccepted>, Vec<ConnectedAccepted>);
-type ContiguousStage = (Vec<crate::Group>, Vec<Vec<crate::AcceptedEdge>>);
+#[derive(Default)]
+pub(super) struct ConnectedStage {
+    pub(super) cross_unit: Vec<ConnectedAccepted>,
+    pub(super) same_unit: Vec<ConnectedAccepted>,
+}
+
+pub(super) struct ContiguousStage {
+    pub(super) groups: Vec<crate::Group>,
+    pub(super) accepted_edges: Vec<Vec<crate::AcceptedEdge>>,
+}
+
+pub(super) struct ResolvedDetectionStages {
+    pub(super) raw_groups: Option<Vec<Vec<usize>>>,
+    pub(super) connected: Option<ConnectedStage>,
+    pub(super) contiguous: Option<ContiguousStage>,
+}
 
 pub(super) struct DetectionStages {
     pub(super) candidates: Vec<(usize, usize)>,
@@ -35,20 +49,22 @@ impl DetectionStages {
 }
 
 impl DetectionStageSource {
-    pub(super) fn into_cached(
-        self,
-    ) -> (
-        Option<Vec<Vec<usize>>>,
-        Option<ConnectedStage>,
-        Option<ContiguousStage>,
-    ) {
+    pub(super) fn resolve(self) -> ResolvedDetectionStages {
         match self {
-            Self::Fresh => (None, None, None),
+            Self::Fresh => ResolvedDetectionStages {
+                raw_groups: None,
+                connected: None,
+                contiguous: None,
+            },
             Self::Incremental {
                 raw_groups,
                 connected,
                 contiguous,
-            } => (Some(raw_groups), Some(connected), contiguous),
+            } => ResolvedDetectionStages {
+                raw_groups: Some(raw_groups),
+                connected: Some(connected),
+                contiguous,
+            },
         }
     }
 }

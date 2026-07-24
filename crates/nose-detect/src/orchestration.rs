@@ -32,7 +32,9 @@ pub use incremental_session::{
     detect_from_units_incremental_session_with_accepted_coverage,
     detect_from_units_incremental_with_accepted_coverage,
 };
-use stages::{ConnectedStage, DetectionStageSource, DetectionStages};
+use stages::{
+    ConnectedStage, ContiguousStage, DetectionStageSource, DetectionStages, ResolvedDetectionStages,
+};
 
 pub fn detect(corpus: &Corpus, opts: &DetectOptions, detector: &dyn Detector) -> Report {
     detect_with_dump_inner(corpus, opts, detector, DetectionOutput::REPORT).0
@@ -158,12 +160,18 @@ fn score_fresh_connected(
     opts: &DetectOptions,
 ) -> ConnectedStage {
     if !opts.connected_witnesses {
-        return (Vec::new(), Vec::new());
+        return ConnectedStage::default();
     }
-    (
-        score_connected_candidates(units, scored, accepted, opts.threshold, !opts.emit_pairs),
-        score_same_unit_candidates(units, opts.threshold, !opts.emit_pairs),
-    )
+    ConnectedStage {
+        cross_unit: score_connected_candidates(
+            units,
+            scored,
+            accepted,
+            opts.threshold,
+            !opts.emit_pairs,
+        ),
+        same_unit: score_same_unit_candidates(units, opts.threshold, !opts.emit_pairs),
+    }
 }
 
 pub fn detect_with_dump(
@@ -316,9 +324,15 @@ fn finish_detection(
     let trace_accepted_coverage = output.traces_structural_coverage();
     let trace_contiguous_coverage = output.traces_contiguous_coverage();
 
-    let (raw_groups, connected, contiguous) = source.into_cached();
-    let (mut connected_accepted, mut same_unit_accepted) =
-        connected.unwrap_or_else(|| score_fresh_connected(units, &scored, &accepted, opts));
+    let ResolvedDetectionStages {
+        raw_groups,
+        connected,
+        contiguous,
+    } = source.resolve();
+    let ConnectedStage {
+        cross_unit: mut connected_accepted,
+        same_unit: mut same_unit_accepted,
+    } = connected.unwrap_or_else(|| score_fresh_connected(units, &scored, &accepted, opts));
 
     deduplicate_connected(&accepted, &mut connected_accepted, !opts.emit_pairs);
     deduplicate_same_unit(units, &mut same_unit_accepted, !opts.emit_pairs);
@@ -391,11 +405,14 @@ fn finish_detection(
     // value-graph channel, so both `detect` and the CLI's `--cache-dir` path produce
     // the same families — the cache supplies cached streams, otherwise this would
     // silently omit every contiguous clone.
-    if let Some((groups, edges)) = contiguous {
-        append_contiguous_output(&mut report, groups, edges, units, trace_contiguous_coverage);
-    } else {
-        append_contiguous_groups(&mut report, streams, opts, units, trace_contiguous_coverage);
-    }
+    append_resolved_contiguous(
+        &mut report,
+        contiguous,
+        streams,
+        opts,
+        units,
+        trace_contiguous_coverage,
+    );
     clk.lap("contiguous");
 
     let dump = if matches!(output.dump, DumpSelection::Candidates) {
@@ -534,6 +551,31 @@ fn append_contiguous_groups(
         units,
         trace_accepted_coverage,
     );
+}
+
+fn append_resolved_contiguous(
+    report: &mut Report,
+    contiguous: Option<ContiguousStage>,
+    streams: &[Stream],
+    opts: &DetectOptions,
+    units: &[UnitFeat],
+    trace_accepted_coverage: bool,
+) {
+    if let Some(ContiguousStage {
+        groups,
+        accepted_edges,
+    }) = contiguous
+    {
+        append_contiguous_output(
+            report,
+            groups,
+            accepted_edges,
+            units,
+            trace_accepted_coverage,
+        );
+    } else {
+        append_contiguous_groups(report, streams, opts, units, trace_accepted_coverage);
+    }
 }
 
 fn append_contiguous_output(

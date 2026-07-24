@@ -1,3 +1,4 @@
+use super::stages::{ConnectedStage, ContiguousStage};
 use super::*;
 
 /// Cached-query entry point with persistent candidate membership and pair-score
@@ -76,10 +77,10 @@ fn detect_inner(
     let raw_groups = incremental::components(&prepared, &accepted, opts.threshold, &mut stats);
     let mut connected =
         incremental::connected(units, &prepared, &scored, &accepted, opts, &mut stats);
-    let connected_stage = (
-        std::mem::take(&mut connected.accepted),
-        std::mem::take(&mut connected.same_unit_accepted),
-    );
+    let connected_stage = ConnectedStage {
+        cross_unit: std::mem::take(&mut connected.accepted),
+        same_unit: std::mem::take(&mut connected.same_unit_accepted),
+    };
     let (contiguous_stage, contiguous_state) = if opts.contiguous {
         let (groups, edges, state, contiguous_stats) = contiguous::detect_incremental(
             streams,
@@ -92,7 +93,13 @@ fn detect_inner(
         stats.contiguous_streams_rebuilt = contiguous_stats.streams_rebuilt;
         stats.contiguous_components_reused = contiguous_stats.components_reused;
         stats.contiguous_components_rebuilt = contiguous_stats.components_rebuilt;
-        (Some((groups, edges)), Some(state))
+        (
+            Some(ContiguousStage {
+                groups,
+                accepted_edges: edges,
+            }),
+            Some(state),
+        )
     } else {
         (None, None)
     };
