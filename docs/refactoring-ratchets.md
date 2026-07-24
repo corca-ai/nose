@@ -219,7 +219,9 @@ and behavior easier to reason about:
   orchestration, candidate/group construction, report ranking/path policy, report test
   suites, and graded-witness anti-unification now live in focused
   `nose-detect/src/{options,detectors,model,locations,reinvented,orchestration,candidates,report/*,witness/*}.rs`
-  modules;
+  modules. Within orchestration, named output policies own coverage/dump choices,
+  and one request plus one stage-state value carry data into finalization; do not
+  reintroduce positional boolean or optional-stage argument lists;
 - move reusable semantic or detection rules toward the owning library crate
   instead of keeping them in `nose-cli`;
 - split wide language and IL dispatch only around real concepts, such as
