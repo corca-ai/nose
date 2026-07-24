@@ -338,7 +338,7 @@ pub fn library_static_collection_adapter_contract(
         pack_id: JAVA_STDLIB_STATIC_COLLECTION_ADAPTER_PACK_ID,
         id: LibraryApiContractId::StaticCollectionAdapter,
         callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-            receiver: result.exported,
+            owner: JavaTypeReference::imported_unshadowed(result.module, result.exported, None),
             method: "stream",
         },
         result,

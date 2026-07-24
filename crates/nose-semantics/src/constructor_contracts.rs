@@ -190,13 +190,64 @@ pub enum JavaCollectionConstructorKind {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct JavaCollectionConstructorContract {
-    pub simple_type: &'static str,
-    pub qualified_type: &'static str,
+pub enum JavaSimpleTypeResolution {
+    ImportedAndUnshadowed,
+    Unshadowed,
+    QualifiedOnly,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct JavaTypeReference {
     pub module: &'static str,
+    pub simple_type: &'static str,
+    pub qualified_type: Option<&'static str>,
+    pub simple_resolution: JavaSimpleTypeResolution,
+}
+
+impl JavaTypeReference {
+    pub const fn imported_unshadowed(
+        module: &'static str,
+        simple_type: &'static str,
+        qualified_type: Option<&'static str>,
+    ) -> Self {
+        Self {
+            module,
+            simple_type,
+            qualified_type,
+            simple_resolution: JavaSimpleTypeResolution::ImportedAndUnshadowed,
+        }
+    }
+
+    pub const fn simple_name_requires_import(self) -> bool {
+        matches!(
+            self.simple_resolution,
+            JavaSimpleTypeResolution::ImportedAndUnshadowed
+        )
+    }
+
+    pub const fn simple_name_is_allowed(self) -> bool {
+        !matches!(
+            self.simple_resolution,
+            JavaSimpleTypeResolution::QualifiedOnly
+        )
+    }
+
+    pub const fn simple_name_rejects_local_shadow(self) -> bool {
+        matches!(
+            self.simple_resolution,
+            JavaSimpleTypeResolution::ImportedAndUnshadowed | JavaSimpleTypeResolution::Unshadowed
+        )
+    }
+
+    pub fn matches_qualified_name(self, actual: &str) -> bool {
+        self.qualified_type.is_some_and(|name| actual == name)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct JavaCollectionConstructorContract {
+    pub type_ref: JavaTypeReference,
     pub kind: JavaCollectionConstructorKind,
-    pub requires_import_for_simple_type: bool,
-    pub requires_no_local_type_shadow: bool,
 }
 
 pub fn java_collection_constructor_contract(
@@ -213,16 +264,16 @@ pub fn java_collection_constructor_contract(
         _ => return None,
     };
     Some(JavaCollectionConstructorContract {
-        simple_type,
-        qualified_type: match simple_type {
-            "ArrayList" => "java.util.ArrayList",
-            "LinkedList" => "java.util.LinkedList",
-            _ => return None,
-        },
-        module: "java.util",
+        type_ref: JavaTypeReference::imported_unshadowed(
+            "java.util",
+            simple_type,
+            Some(match simple_type {
+                "ArrayList" => "java.util.ArrayList",
+                "LinkedList" => "java.util.LinkedList",
+                _ => return None,
+            }),
+        ),
         kind: JavaCollectionConstructorKind::EmptyList,
-        requires_import_for_simple_type: true,
-        requires_no_local_type_shadow: true,
     })
 }
 

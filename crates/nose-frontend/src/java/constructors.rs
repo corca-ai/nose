@@ -14,25 +14,23 @@ pub(super) fn lower_empty_java_collection_constructor(
     let type_span = lo.span(ty);
     let type_name = java_constructor_type_name(lo.text(ty));
     let contract = library_java_collection_constructor_contract(lo.lang, &type_name, args.len())?;
-    let LibraryApiCalleeContract::JavaUtilConstructor {
-        simple_type,
-        module,
-        requires_import_for_simple_type,
-        requires_no_local_type_shadow,
-        ..
-    } = contract.callee
-    else {
+    let LibraryApiCalleeContract::JavaUtilConstructor { type_ref } = contract.callee else {
         return None;
     };
-    let uses_simple_type = type_name == simple_type;
+    let uses_simple_type = type_name == type_ref.simple_type;
     if uses_simple_type {
+        if !type_ref.simple_name_is_allowed() {
+            return None;
+        }
         let root = java_root(node);
-        if requires_import_for_simple_type
-            && !java_tree_resolves_simple_type(lo, root, module, simple_type)
+        if type_ref.simple_name_requires_import()
+            && !java_tree_resolves_simple_type(lo, root, type_ref.module, type_ref.simple_type)
         {
             return None;
         }
-        if requires_no_local_type_shadow && java_tree_declares_type(lo, root, simple_type) {
+        if type_ref.simple_name_rejects_local_shadow()
+            && java_tree_declares_type(lo, root, type_ref.simple_type)
+        {
             return None;
         }
     }

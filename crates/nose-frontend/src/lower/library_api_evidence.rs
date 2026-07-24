@@ -324,15 +324,16 @@ impl<'a> Lowering<'a> {
         result_domain: Option<DomainEvidence>,
     ) -> Option<LibraryApiEvidencePlan> {
         let (module, expected_receiver, requires_import) = match callee_contract {
-            LibraryApiCalleeContract::JavaUtilStaticMember { receiver, .. } => {
-                ("java.util", receiver, true)
-            }
-            LibraryApiCalleeContract::JavaStaticMember {
-                module,
-                receiver,
-                requires_import_for_simple_receiver,
-                ..
-            } => (module, receiver, requires_import_for_simple_receiver),
+            LibraryApiCalleeContract::JavaUtilStaticMember { owner, .. } => (
+                owner.module,
+                owner.simple_type,
+                owner.simple_name_requires_import(),
+            ),
+            LibraryApiCalleeContract::JavaStaticMember { owner, .. } => (
+                owner.module,
+                owner.simple_type,
+                owner.simple_name_requires_import(),
+            ),
             _ => return None,
         };
         let dependencies = if requires_import {

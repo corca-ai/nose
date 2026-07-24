@@ -249,58 +249,29 @@ pub(in crate::library_api) fn library_api_dependencies_match_static_import_calle
     record: &EvidenceRecord,
 ) -> bool {
     match callee {
-        LibraryApiCalleeContract::JavaUtilStaticMember { receiver, .. } => {
+        LibraryApiCalleeContract::JavaUtilStaticMember { owner, .. } => {
             static_receiver_dependency_safe_at_span(
                 il,
                 interner,
                 record,
                 receiver_span,
-                StaticReceiverDependency {
-                    module: "java.util",
-                    receiver,
-                    import_required: true,
-                    shadow_required: true,
-                },
+                StaticReceiverDependency { owner },
             )
         }
-        LibraryApiCalleeContract::JavaStaticMember {
-            module,
-            receiver,
-            requires_import_for_simple_receiver,
-            requires_no_local_type_shadow,
-            ..
-        } => static_receiver_dependency_safe_at_span(
-            il,
-            interner,
-            record,
-            receiver_span,
-            StaticReceiverDependency {
-                module,
-                receiver,
-                import_required: requires_import_for_simple_receiver,
-                shadow_required: requires_no_local_type_shadow,
-            },
-        ),
-        LibraryApiCalleeContract::JavaUtilConstructor {
-            simple_type,
-            qualified_type,
-            module,
-            requires_import_for_simple_type,
-            requires_no_local_type_shadow,
-        } => {
+        LibraryApiCalleeContract::JavaStaticMember { owner, .. } => {
+            static_receiver_dependency_safe_at_span(
+                il,
+                interner,
+                record,
+                receiver_span,
+                StaticReceiverDependency { owner },
+            )
+        }
+        LibraryApiCalleeContract::JavaUtilConstructor { type_ref } => {
             dependency_has_source_call(il, record, call_span, SourceCallKind::Construct)
                 && callee_span.is_some_and(|span| {
                     java_constructor_dependencies_match_at_span(
-                        il,
-                        interner,
-                        record,
-                        span,
-                        call_span,
-                        simple_type,
-                        qualified_type,
-                        module,
-                        requires_import_for_simple_type,
-                        requires_no_local_type_shadow,
+                        il, interner, record, span, call_span, type_ref,
                     )
                 })
         }
@@ -327,10 +298,7 @@ pub(in crate::library_api) fn library_api_dependencies_match_static_import_calle
 
 #[derive(Clone, Copy)]
 struct StaticReceiverDependency {
-    module: &'static str,
-    receiver: &'static str,
-    import_required: bool,
-    shadow_required: bool,
+    owner: JavaTypeReference,
 }
 
 fn static_receiver_dependency_safe_at_span(
@@ -345,15 +313,15 @@ fn static_receiver_dependency_safe_at_span(
         interner,
         record,
         receiver_span,
-        dependency.module,
-        dependency.receiver,
-        dependency.import_required,
+        dependency.owner.module,
+        dependency.owner.simple_type,
+        dependency.owner.simple_name_requires_import(),
     ) && static_receiver_shadow_safe_at_span(
         il,
         interner,
         receiver_span,
-        dependency.receiver,
-        dependency.shadow_required,
+        dependency.owner.simple_type,
+        dependency.owner.simple_name_rejects_local_shadow(),
     )
 }
 

@@ -221,21 +221,19 @@ pub(super) fn library_api_callee_contract_key(callee: LibraryApiCalleeContract) 
         LibraryApiCalleeContract::ImportedBinding { module, exported } => {
             format!("imported_binding:{module}:{exported}")
         }
-        LibraryApiCalleeContract::JavaUtilStaticMember { receiver, method } => {
-            format!("java_util_static_member:{receiver}:{method}")
+        LibraryApiCalleeContract::JavaUtilStaticMember { owner, method } => {
+            format!("java_util_static_member:{}:{method}", owner.simple_type)
         }
-        LibraryApiCalleeContract::JavaStaticMember {
-            module,
-            receiver,
-            method,
-            ..
-        } => format!("java_static_member:{module}:{receiver}:{method}"),
-        LibraryApiCalleeContract::JavaUtilConstructor {
-            simple_type,
-            qualified_type,
-            module,
-            ..
-        } => format!("java_util_constructor:{module}:{simple_type}:{qualified_type}"),
+        LibraryApiCalleeContract::JavaStaticMember { owner, method, .. } => format!(
+            "java_static_member:{}:{}:{method}",
+            owner.module, owner.simple_type
+        ),
+        LibraryApiCalleeContract::JavaUtilConstructor { type_ref } => format!(
+            "java_util_constructor:{}:{}:{}",
+            type_ref.module,
+            type_ref.simple_type,
+            type_ref.qualified_type.unwrap_or("")
+        ),
         LibraryApiCalleeContract::RubyRequireStaticMember {
             receiver,
             method,

@@ -237,7 +237,7 @@ fn library_iterator_adapter_and_method_call_contracts_carry_obligations() {
             pack_id: JAVA_STDLIB_STATIC_COLLECTION_ADAPTER_PACK_ID,
             id: LibraryApiContractId::StaticCollectionAdapter,
             callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-                receiver: "Arrays",
+                owner: JavaTypeReference::imported_unshadowed("java.util", "Arrays", None),
                 method: "stream",
             },
             result: StaticCollectionAdapterContract {

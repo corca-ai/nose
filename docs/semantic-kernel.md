@@ -237,6 +237,11 @@ receiver-domain consumers admit chains such as Java `keySet().contains(...)`,
 Rust `abs().max(...)`, Rust `and_then(...).and_then(...)`, and JavaScript
 `then(...).then(...)` without adding a primitive per chain. The #509 blocker
 packet, hard boundaries, and builtin rollout are recorded in [semantic-kernel-builtin-expansion-509](semantic-kernel-builtin-expansion-509.md).
+Java constructor and static-factory rows likewise carry one typed
+`JavaTypeReference`: module, simple/qualified coordinates, and the simple-name
+resolution policy. Source lowering, post-lower evidence, and occurrence
+admission all consume that same policy, so import and local-shadow requirements
+cannot drift between stages.
 The #511 R1-R3 cycles generalize the same primitive from receiver-only emission
 to a shared admitted-API materializer for fixed-result call rows such as
 collection/map factories, `Array.from`, `Promise.resolve`, and Rust `Some(...)`,
