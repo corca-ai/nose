@@ -6,6 +6,13 @@ break.
 
 ## [Unreleased]
 
+### Changed
+- Collapsed the public `JavaTypeReference` simple-name resolution model to its
+  only supported policy: an imported, unshadowed type name. Removed
+  `JavaSimpleTypeResolution`, made the reference coordinates private, and
+  exposed read-only accessors; downstream struct literals and direct field
+  access must use `JavaTypeReference::imported_unshadowed` and its accessors.
+
 ## [0.20.0] - 2026-07-22
 
 ### Added

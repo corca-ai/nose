@@ -189,22 +189,18 @@ pub enum JavaCollectionConstructorKind {
     EmptyList,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum JavaSimpleTypeResolution {
-    ImportedAndUnshadowed,
-    Unshadowed,
-    QualifiedOnly,
-}
-
+/// A Java type coordinate whose simple spelling requires an import and must not
+/// be shadowed by a visible local type declaration.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct JavaTypeReference {
-    pub module: &'static str,
-    pub simple_type: &'static str,
-    pub qualified_type: Option<&'static str>,
-    pub simple_resolution: JavaSimpleTypeResolution,
+    module: &'static str,
+    simple_type: &'static str,
+    qualified_type: Option<&'static str>,
 }
 
 impl JavaTypeReference {
+    /// Creates the only simple-name resolution policy supported by library API
+    /// contracts.
     pub const fn imported_unshadowed(
         module: &'static str,
         simple_type: &'static str,
@@ -214,29 +210,19 @@ impl JavaTypeReference {
             module,
             simple_type,
             qualified_type,
-            simple_resolution: JavaSimpleTypeResolution::ImportedAndUnshadowed,
         }
     }
 
-    pub const fn simple_name_requires_import(self) -> bool {
-        matches!(
-            self.simple_resolution,
-            JavaSimpleTypeResolution::ImportedAndUnshadowed
-        )
+    pub const fn module(self) -> &'static str {
+        self.module
     }
 
-    pub const fn simple_name_is_allowed(self) -> bool {
-        !matches!(
-            self.simple_resolution,
-            JavaSimpleTypeResolution::QualifiedOnly
-        )
+    pub const fn simple_type(self) -> &'static str {
+        self.simple_type
     }
 
-    pub const fn simple_name_rejects_local_shadow(self) -> bool {
-        matches!(
-            self.simple_resolution,
-            JavaSimpleTypeResolution::ImportedAndUnshadowed | JavaSimpleTypeResolution::Unshadowed
-        )
+    pub const fn qualified_type(self) -> Option<&'static str> {
+        self.qualified_type
     }
 
     pub fn matches_qualified_name(self, actual: &str) -> bool {

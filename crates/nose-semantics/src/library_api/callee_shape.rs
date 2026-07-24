@@ -31,7 +31,7 @@ pub(in crate::library_api) fn library_api_callee_shape_matches(
             else {
                 return false;
             };
-            ((actual_receiver == owner.simple_type && owner.simple_name_is_allowed())
+            ((actual_receiver == owner.simple_type())
                 || owner.matches_qualified_name(actual_receiver))
                 && actual_method == method
         }
@@ -41,15 +41,14 @@ pub(in crate::library_api) fn library_api_callee_shape_matches(
             else {
                 return false;
             };
-            ((actual_receiver == owner.simple_type && owner.simple_name_is_allowed())
+            ((actual_receiver == owner.simple_type())
                 || owner.matches_qualified_name(actual_receiver))
                 && actual_method == method
         }
         LibraryApiCalleeContract::JavaUtilConstructor { type_ref } => {
-            (type_ref.simple_name_is_allowed()
-                && var_name_matches(il, interner, callee_node, type_ref.simple_type))
+            var_name_matches(il, interner, callee_node, type_ref.simple_type())
                 || type_ref
-                    .qualified_type
+                    .qualified_type()
                     .is_some_and(|name| var_name_matches(il, interner, callee_node, name))
         }
         LibraryApiCalleeContract::RubyRequireStaticMember { method, .. } => {

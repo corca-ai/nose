@@ -17,20 +17,13 @@ pub(super) fn lower_empty_java_collection_constructor(
     let LibraryApiCalleeContract::JavaUtilConstructor { type_ref } = contract.callee else {
         return None;
     };
-    let uses_simple_type = type_name == type_ref.simple_type;
+    let uses_simple_type = type_name == type_ref.simple_type();
     if uses_simple_type {
-        if !type_ref.simple_name_is_allowed() {
-            return None;
-        }
         let root = java_root(node);
-        if type_ref.simple_name_requires_import()
-            && !java_tree_resolves_simple_type(lo, root, type_ref.module, type_ref.simple_type)
-        {
+        if !java_tree_resolves_simple_type(lo, root, type_ref.module(), type_ref.simple_type()) {
             return None;
         }
-        if type_ref.simple_name_rejects_local_shadow()
-            && java_tree_declares_type(lo, root, type_ref.simple_type)
-        {
+        if java_tree_declares_type(lo, root, type_ref.simple_type()) {
             return None;
         }
     }

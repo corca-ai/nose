@@ -231,29 +231,15 @@ fn java_factory_contracts_are_language_receiver_and_selector_constrained() {
 }
 
 #[test]
-fn java_simple_type_resolution_policy_is_table_driven() {
-    for (resolution, allowed, import_required, rejects_shadow) in [
-        (
-            JavaSimpleTypeResolution::ImportedAndUnshadowed,
-            true,
-            true,
-            true,
-        ),
-        (JavaSimpleTypeResolution::Unshadowed, true, false, true),
-        (JavaSimpleTypeResolution::QualifiedOnly, false, false, false),
-    ] {
-        let reference = JavaTypeReference {
-            module: "example",
-            simple_type: "Widget",
-            qualified_type: Some("example.Widget"),
-            simple_resolution: resolution,
-        };
-        assert_eq!(reference.simple_name_is_allowed(), allowed);
-        assert_eq!(reference.simple_name_requires_import(), import_required);
-        assert_eq!(reference.simple_name_rejects_local_shadow(), rejects_shadow);
-        assert!(reference.matches_qualified_name("example.Widget"));
-        assert!(!reference.matches_qualified_name("other.Widget"));
-    }
+fn java_type_reference_exposes_only_supported_coordinates() {
+    let reference =
+        JavaTypeReference::imported_unshadowed("example", "Widget", Some("example.Widget"));
+
+    assert_eq!(reference.module(), "example");
+    assert_eq!(reference.simple_type(), "Widget");
+    assert_eq!(reference.qualified_type(), Some("example.Widget"));
+    assert!(reference.matches_qualified_name("example.Widget"));
+    assert!(!reference.matches_qualified_name("other.Widget"));
 }
 
 #[test]

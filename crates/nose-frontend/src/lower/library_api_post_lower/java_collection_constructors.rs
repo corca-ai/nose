@@ -27,41 +27,30 @@ pub(super) fn record_post_lower_java_collection_constructor_library_api(
         return false;
     };
     let mut dependencies = vec![source_dependency];
-    if type_name == type_ref.simple_type {
-        if !type_ref.simple_name_is_allowed() {
-            return false;
-        }
-        if type_ref.simple_name_rejects_local_shadow()
-            && post_lower_unit_defines_name(
-                il,
-                interner,
-                type_ref.simple_type,
-                il.node(callee).span,
-            )
+    if type_name == type_ref.simple_type() {
+        if post_lower_unit_defines_name(il, interner, type_ref.simple_type(), il.node(callee).span)
         {
             return false;
         }
-        if type_ref.simple_name_requires_import() {
-            if let Some(dependency) = post_lower_imported_binding_symbol_evidence_id(
+        if let Some(dependency) = post_lower_imported_binding_symbol_evidence_id(
+            il,
+            interner,
+            callee,
+            type_ref.module(),
+            type_ref.simple_type(),
+        ) {
+            dependencies.push(dependency);
+        } else {
+            let Some(dependency) = post_lower_java_wildcard_import_evidence_id(
                 il,
                 interner,
-                callee,
-                type_ref.module,
-                type_ref.simple_type,
-            ) {
-                dependencies.push(dependency);
-            } else {
-                let Some(dependency) = post_lower_java_wildcard_import_evidence_id(
-                    il,
-                    interner,
-                    type_ref.module,
-                    type_ref.simple_type,
-                    il.node(call).span,
-                ) else {
-                    return false;
-                };
-                dependencies.push(dependency);
-            }
+                type_ref.module(),
+                type_ref.simple_type(),
+                il.node(call).span,
+            ) else {
+                return false;
+            };
+            dependencies.push(dependency);
         }
     } else if !type_ref.matches_qualified_name(type_name) {
         return false;

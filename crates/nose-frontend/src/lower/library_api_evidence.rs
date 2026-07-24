@@ -323,28 +323,20 @@ impl<'a> Lowering<'a> {
         rule: &'static str,
         result_domain: Option<DomainEvidence>,
     ) -> Option<LibraryApiEvidencePlan> {
-        let (module, expected_receiver, requires_import) = match callee_contract {
-            LibraryApiCalleeContract::JavaUtilStaticMember { owner, .. } => (
-                owner.module,
-                owner.simple_type,
-                owner.simple_name_requires_import(),
-            ),
-            LibraryApiCalleeContract::JavaStaticMember { owner, .. } => (
-                owner.module,
-                owner.simple_type,
-                owner.simple_name_requires_import(),
-            ),
+        let (module, expected_receiver) = match callee_contract {
+            LibraryApiCalleeContract::JavaUtilStaticMember { owner, .. } => {
+                (owner.module(), owner.simple_type())
+            }
+            LibraryApiCalleeContract::JavaStaticMember { owner, .. } => {
+                (owner.module(), owner.simple_type())
+            }
             _ => return None,
         };
-        let dependencies = if requires_import {
-            vec![self.record_imported_binding_symbol_for_node(
-                receiver_node,
-                module,
-                expected_receiver,
-            )?]
-        } else {
-            Vec::new()
-        };
+        let dependencies = vec![self.record_imported_binding_symbol_for_node(
+            receiver_node,
+            module,
+            expected_receiver,
+        )?];
         Some(LibraryApiEvidencePlan {
             id,
             callee: callee_contract,
