@@ -85,7 +85,7 @@ pub(super) use exclusions::{
     RuntimeDiagnosticSource, VerifyExcludedUnit, VerifyExclusionReason, VerifyExclusions,
 };
 mod fragments;
-use fragments::collect_product_fragment_verify_rec;
+use fragments::{collect_product_fragment_verify_rec, FragmentVerifyRequest};
 
 /// The oracle's interpretation pass: every interpretable unit's record, plus the
 /// CANON PRESERVATION tallies — a stricter, pair-free soundness check: does the full
@@ -101,6 +101,30 @@ pub(super) struct VerifyOracle {
     pub(super) census: Vec<verify_census::CensusUnit>,
     census_enabled: bool,
     pub(super) exclusions: VerifyExclusions,
+}
+
+impl VerifyOracle {
+    fn new(census_enabled: bool) -> Self {
+        Self {
+            recs: Vec::new(),
+            total: 0,
+            canon_checked: 0,
+            canon_violations: Vec::new(),
+            census: Vec::new(),
+            census_enabled,
+            exclusions: VerifyExclusions::default(),
+        }
+    }
+
+    fn append(&mut self, mut other: Self) {
+        self.total += other.total;
+        self.canon_checked += other.canon_checked;
+        self.recs.append(&mut other.recs);
+        self.census.append(&mut other.census);
+        self.canon_violations.append(&mut other.canon_violations);
+        self.canon_violations.truncate(20);
+        self.exclusions.append(other.exclusions);
+    }
 }
 
 pub(super) fn collect_verify_recs(
@@ -125,15 +149,7 @@ pub(super) fn collect_verify_recs(
             // behavior-changing canon can't mask itself), matched to each fully-normalized
             // unit by source span.
             let core = nose_normalize::normalize(il, &corpus.interner, &oracle_opts);
-            let mut oracle = VerifyOracle {
-                recs: Vec::new(),
-                total: 0,
-                canon_checked: 0,
-                canon_violations: Vec::new(),
-                census: Vec::new(),
-                census_enabled: census,
-                exclusions: VerifyExclusions::default(),
-            };
+            let mut oracle = VerifyOracle::new(census);
             let value_context =
                 nose_detect::default_product_value_fingerprint_context(&n, &corpus.interner);
             let exact_safe_roots: Vec<_> = n
@@ -153,43 +169,27 @@ pub(super) fn collect_verify_recs(
             let exact_safe_by_span =
                 nose_detect::exact_safe_roots_by_span(&n, &corpus.interner, &exact_safe_roots);
             collect_file_verify_recs(
-                il,
-                &n,
-                &core,
-                value_context.as_ref(),
-                &corpus.interner,
-                battery,
+                FileVerifyRequest {
+                    raw: il,
+                    normalized: &n,
+                    core: &core,
+                    value_context: value_context.as_ref(),
+                    interner: &corpus.interner,
+                    battery,
+                    exact_safe_by_span: &exact_safe_by_span,
+                    file_idx,
+                    admission_context: &admission_context,
+                    tranche,
+                },
                 &mut oracle,
-                &exact_safe_by_span,
-                file_idx,
-                &admission_context,
-                tranche,
             );
             oracle
         })
         .collect();
 
-    let mut oracle = VerifyOracle {
-        recs: Vec::new(),
-        total: 0,
-        canon_checked: 0,
-        canon_violations: Vec::new(),
-        census: Vec::new(),
-        census_enabled: census,
-        exclusions: VerifyExclusions::default(),
-    };
-    for mut file_oracle in per_file {
-        oracle.total += file_oracle.total;
-        oracle.canon_checked += file_oracle.canon_checked;
-        oracle.recs.append(&mut file_oracle.recs);
-        oracle.census.append(&mut file_oracle.census);
-        oracle
-            .canon_violations
-            .append(&mut file_oracle.canon_violations);
-        if oracle.canon_violations.len() > 20 {
-            oracle.canon_violations.truncate(20);
-        }
-        oracle.exclusions.append(file_oracle.exclusions);
+    let mut oracle = VerifyOracle::new(census);
+    for file_oracle in per_file {
+        oracle.append(file_oracle);
     }
     oracle
 }
@@ -214,21 +214,33 @@ fn canon_changed_behavior(
             .any(|(c, f)| !nose_normalize::behavior_equiv(c, f))
 }
 
-#[allow(clippy::too_many_lines)]
-#[allow(clippy::too_many_arguments)]
-fn collect_file_verify_recs(
-    raw: &nose_il::Il,
-    n: &nose_il::Il,
-    core: &nose_il::Il,
-    value_context: Option<&nose_normalize::ValueFingerprintContext>,
-    interner: &Interner,
-    battery: &[Vec<nose_normalize::Value>],
-    oracle: &mut VerifyOracle,
-    exact_safe_by_span: &std::collections::HashMap<(u32, u32), bool>,
+struct FileVerifyRequest<'a> {
+    raw: &'a nose_il::Il,
+    normalized: &'a nose_il::Il,
+    core: &'a nose_il::Il,
+    value_context: Option<&'a nose_normalize::ValueFingerprintContext>,
+    interner: &'a Interner,
+    battery: &'a [Vec<nose_normalize::Value>],
+    exact_safe_by_span: &'a std::collections::HashMap<(u32, u32), bool>,
     file_idx: usize,
-    admission_context: &AdmissionContext,
+    admission_context: &'a AdmissionContext,
     tranche: OracleTranche,
-) {
+}
+
+#[allow(clippy::too_many_lines)]
+fn collect_file_verify_recs(request: FileVerifyRequest<'_>, oracle: &mut VerifyOracle) {
+    let FileVerifyRequest {
+        raw,
+        normalized: n,
+        core,
+        value_context,
+        interner,
+        battery,
+        exact_safe_by_span,
+        file_idx,
+        admission_context,
+        tranche,
+    } = request;
     let file_path = &n.meta.path;
     let raw_func = func_span_index(raw);
     let core_func = func_span_index(core);
@@ -484,15 +496,17 @@ fn collect_file_verify_recs(
 
     for fragment in nose_detect::default_product_oracle_fragment_candidates(raw, n, interner) {
         collect_product_fragment_verify_rec(
-            n,
-            core,
-            interner,
-            battery,
+            FragmentVerifyRequest {
+                normalized: n,
+                core,
+                interner,
+                battery,
+                core_fragments: &core_fragments,
+                file_idx,
+                fragment,
+                tranche,
+            },
             oracle,
-            &core_fragments,
-            file_idx,
-            fragment,
-            tranche,
         );
     }
 }

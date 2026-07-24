@@ -159,10 +159,8 @@ fn string_order_witness_is_seeded_shrunk_and_deterministic() {
     set_param_domain(&mut il_a, root_a, DomainEvidence::String);
     set_param_domain(&mut il_b, root_b, DomainEvidence::String);
     let first = falsify_pair(
-        &il_a,
-        root_a,
-        &il_b,
-        root_b,
+        (&il_a, root_a),
+        (&il_b, root_b),
         &interner,
         &[],
         4096,
@@ -170,10 +168,8 @@ fn string_order_witness_is_seeded_shrunk_and_deterministic() {
     )
     .expect("string order must have a concrete witness");
     let second = falsify_pair(
-        &il_a,
-        root_a,
-        &il_b,
-        root_b,
+        (&il_a, root_a),
+        (&il_b, root_b),
         &interner,
         &[],
         4096,
@@ -202,10 +198,8 @@ fn float_associativity_hard_negative_is_found_automatically() {
         set_param_domain(&mut il_a, root_a, domain);
         set_param_domain(&mut il_b, root_b, domain);
         let witness = falsify_pair(
-            &il_a,
-            root_a,
-            &il_b,
-            root_b,
+            (&il_a, root_a),
+            (&il_b, root_b),
             &interner,
             &[],
             64,
@@ -227,10 +221,8 @@ fn javascript_int32_width_difference_is_found_automatically() {
     set_param_domain(&mut js, js_root, DomainEvidence::Integer);
     set_param_domain(&mut python, python_root, DomainEvidence::Integer);
     let witness = falsify_pair(
-        &js,
-        js_root,
-        &python,
-        python_root,
+        (&js, js_root),
+        (&python, python_root),
         &interner,
         &[],
         64,
@@ -264,10 +256,8 @@ fn mutation_coordinates_are_falsified_with_collection_inputs() {
         Value::Int(9),
     ]));
     let witness = falsify_pair(
-        &first,
-        first_root,
-        &second,
-        second_root,
+        (&first, first_root),
+        (&second, second_root),
         &interner,
         &[],
         64,
@@ -286,10 +276,8 @@ fn incompatible_declared_domains_never_produce_a_hard_witness() {
     set_param_domain(&mut string, string_root, DomainEvidence::String);
 
     assert!(falsify_pair(
-        &integer,
-        integer_root,
-        &string,
-        string_root,
+        (&integer, integer_root),
+        (&string, string_root),
         &interner,
         &[],
         4096,
@@ -341,10 +329,8 @@ fn signed_zero_outputs_are_observable_but_nan_payloads_are_canonical() {
     };
     assert!(replay.concrete_disagreement(&[Value::Float(F64(0.0))]));
     assert!(falsify_pair(
-        &identity,
-        identity_root,
-        &negate,
-        negate_root,
+        (&identity, identity_root),
+        (&negate, negate_root),
         &interner,
         &[],
         64,
@@ -360,10 +346,8 @@ fn unhosted_domains_and_missing_static_evidence_never_produce_a_hard_witness() {
     set_param_domain(&mut map_a, map_a_root, DomainEvidence::Map);
     set_param_domain(&mut map_b, map_b_root, DomainEvidence::Map);
     assert!(falsify_pair(
-        &map_a,
-        map_a_root,
-        &map_b,
-        map_b_root,
+        (&map_a, map_a_root),
+        (&map_b, map_b_root),
         &interner,
         &[],
         64,
@@ -374,10 +358,8 @@ fn unhosted_domains_and_missing_static_evidence_never_produce_a_hard_witness() {
     let (static_a, interner, static_a_root) = two_arg_binop(Op::Add, (0, 1), Lang::Rust);
     let (static_b, _, static_b_root) = two_arg_binop(Op::Add, (1, 0), Lang::Rust);
     assert!(falsify_pair(
-        &static_a,
-        static_a_root,
-        &static_b,
-        static_b_root,
+        (&static_a, static_a_root),
+        (&static_b, static_b_root),
         &interner,
         &[],
         64,
@@ -388,10 +370,8 @@ fn unhosted_domains_and_missing_static_evidence_never_produce_a_hard_witness() {
     let (dynamic_a, interner, dynamic_a_root) = two_arg_binop(Op::Add, (0, 1), Lang::Python);
     let (dynamic_b, _, dynamic_b_root) = two_arg_binop(Op::Add, (1, 0), Lang::Python);
     assert!(falsify_pair(
-        &dynamic_a,
-        dynamic_a_root,
-        &dynamic_b,
-        dynamic_b_root,
+        (&dynamic_a, dynamic_a_root),
+        (&dynamic_b, dynamic_b_root),
         &interner,
         &[],
         64,
@@ -512,10 +492,8 @@ fn identical_units_have_no_distinguisher() {
     let (il_a, interner, root_a) = two_arg_binop(Op::Add, (0, 1), Lang::Python);
     let (il_b, _, root_b) = two_arg_binop(Op::Add, (0, 1), Lang::Python);
     assert!(falsify_pair(
-        &il_a,
-        root_a,
-        &il_b,
-        root_b,
+        (&il_a, root_a),
+        (&il_b, root_b),
         &interner,
         &[],
         4096,

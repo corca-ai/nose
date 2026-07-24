@@ -88,7 +88,10 @@ and behavior easier to reason about:
   `nose-cli/src/verify_report.rs`;
 - keep the verify oracle's per-file collection path separate from command
   parsing; interpreted records, exclusion accounting, and canon-preservation
-  collection now live in `nose-cli/src/verify_collect.rs`;
+  collection now live in `nose-cli/src/verify_collect.rs`. File and fragment
+  collection receive named request contexts, `VerifyOracle` owns cross-file
+  accumulation, and falsification validates one typed pair contract before the
+  replay search returns its pure outcome;
 - keep hidden diagnostic and benchmark commands outside the dispatcher; `features`,
   `value-census`, `stats`, `eval`, and `ceiling` now live in
   `nose-cli/src/diagnostic_commands.rs`;

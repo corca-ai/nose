@@ -27,56 +27,68 @@ fn falsifier_replays_asymmetric_arity_only_after_a_trailing_unused_proof() {
     let (short, interner, short_root) = identity_with_arity(1, false);
     let (long_different, _, long_different_root) = identity_with_arity(2, true);
     assert!(matches!(
-        falsify_pair_with_projections(
-            &short,
-            short_root,
-            &long_different,
-            long_different_root,
-            &interner,
-            &[],
-            256,
-            DEFAULT_FALSIFY_SEED,
-            &[Declared],
-            &[Declared, UnusedTrailing],
-            false,
-            true,
-        ),
+        falsify_pair_with_projections(FalsifyRequest {
+            left: FalsifyTarget {
+                il: &short,
+                root: short_root,
+                projections: &[Declared],
+            },
+            right: FalsifyTarget {
+                il: &long_different,
+                root: long_different_root,
+                projections: &[Declared, UnusedTrailing],
+            },
+            interner: &interner,
+            probes: &[],
+            budget: 256,
+            seed: DEFAULT_FALSIFY_SEED,
+            observation: FalsifyObservation::Behavior,
+            module_strings: ModuleStringBindings::Include,
+        }),
         FalsifyOutcome::Witness(_)
     ));
 
     let (long_equal, _, long_equal_root) = identity_with_arity(2, false);
     assert!(matches!(
-        falsify_pair_with_projections(
-            &short,
-            short_root,
-            &long_equal,
-            long_equal_root,
-            &interner,
-            &[],
-            256,
-            DEFAULT_FALSIFY_SEED,
-            &[Declared],
-            &[Declared, UnusedTrailing],
-            false,
-            true,
-        ),
+        falsify_pair_with_projections(FalsifyRequest {
+            left: FalsifyTarget {
+                il: &short,
+                root: short_root,
+                projections: &[Declared],
+            },
+            right: FalsifyTarget {
+                il: &long_equal,
+                root: long_equal_root,
+                projections: &[Declared, UnusedTrailing],
+            },
+            interner: &interner,
+            probes: &[],
+            budget: 256,
+            seed: DEFAULT_FALSIFY_SEED,
+            observation: FalsifyObservation::Behavior,
+            module_strings: ModuleStringBindings::Include,
+        }),
         FalsifyOutcome::Exhausted { cases } if cases > 0
     ));
     assert!(matches!(
-        falsify_pair_with_projections(
-            &short,
-            short_root,
-            &long_equal,
-            long_equal_root,
-            &interner,
-            &[],
-            256,
-            DEFAULT_FALSIFY_SEED,
-            &[Declared],
-            &[UnusedTrailing, Declared],
-            false,
-            true,
-        ),
+        falsify_pair_with_projections(FalsifyRequest {
+            left: FalsifyTarget {
+                il: &short,
+                root: short_root,
+                projections: &[Declared],
+            },
+            right: FalsifyTarget {
+                il: &long_equal,
+                root: long_equal_root,
+                projections: &[UnusedTrailing, Declared],
+            },
+            interner: &interner,
+            probes: &[],
+            budget: 256,
+            seed: DEFAULT_FALSIFY_SEED,
+            observation: FalsifyObservation::Behavior,
+            module_strings: ModuleStringBindings::Include,
+        }),
         FalsifyOutcome::Skipped { .. }
     ));
 }
