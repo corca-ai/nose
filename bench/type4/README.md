@@ -10,8 +10,8 @@ The factory is evidence-carrying by design:
 - `generate.py` is the CLI/import compatibility entry point for emitting positive
   and hard-negative source pairs for every supported language surface;
 - `type4gen/` contains the shared model/config, axis proposal metadata, aggregate
-  spec/emitter helpers, and source templates grouped by scalar/null,
-  record/string, membership, map, and boundary/import semantics;
+  spec/emitter helpers, evidence and case assembly, and source templates grouped
+  by scalar/null, record/string, membership, map, and boundary/import semantics;
 - positives carry same-spec/spec-interpreter evidence;
 - negatives carry concrete counterexamples;
 - evidence is level-tagged (`E0` unproven/unsafe boundary, `E1` same-spec/property
@@ -45,7 +45,26 @@ The manifest is written to `/tmp/nose-type4-seed/manifest.json`; source files li
 
 Keep invoking the generator through `bench/type4/generate.py`. Other tools also
 import that module for `AXIS_PROPOSALS`, so the entry point re-exports the stable
-generator API while the implementation lives in focused `type4gen/` modules.
+generator API while the implementation lives in focused `type4gen/` modules:
+
+- `case_io.py` owns stable case IDs, generated-source records, and cross-surface
+  pair selection;
+- `axis_evidence.py` owns data-shape and semantic-evidence metadata;
+- `axis_case_builder.py` owns domain-independent same-surface and cross-surface
+  materialization, while `axis_cases.py` is the compatibility facade for shared
+  axis generation;
+- `axis_*_policy.py` modules own each domain's surface support, source-variant
+  selection, data shape, and same-surface case plan; `axis_registry.py` validates
+  that every proposal axis has exactly one owner;
+- `axis_collection_cases.py`, `axis_membership_cases.py`,
+  `axis_map_cases.py`, and `axis_scalar_cases.py` own their domain-specific
+  cross-surface case matrices;
+- the existing `axis_*.py` template modules own surface support checks and source
+  variants.
+
+`generator_selftest.py` pins representative membership, map, and scalar filters
+across `none`, `ring`, and `all` cross modes, checks unique case IDs, and protects
+the documented `generate.py` import surface.
 
 By default the generator emits:
 

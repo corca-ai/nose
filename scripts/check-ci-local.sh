@@ -105,6 +105,7 @@ run_semantic_pack_pricing_selftest() {
 
 run_type4_frontier_evidence_checks() {
     need_cmd python3
+    python3 bench/type4/generator_selftest.py
     python3 bench/type4/frontier_platform.py --selftest
     python3 bench/type4/frontier_platform.py --check
     python3 bench/type4/python_loop_demorgan_proof_facts.py --selftest
