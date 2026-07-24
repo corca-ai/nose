@@ -27,13 +27,15 @@ pub use features::{
     corpus_features, corpus_features_with_normalized, file_stream, units_of_file, CorpusFeatures,
 };
 mod incremental_session;
+mod stages;
 pub use incremental_session::{
     detect_from_units_incremental_session_with_accepted_coverage,
     detect_from_units_incremental_with_accepted_coverage,
 };
+use stages::{ConnectedStage, DetectionStageSource, DetectionStages};
 
 pub fn detect(corpus: &Corpus, opts: &DetectOptions, detector: &dyn Detector) -> Report {
-    detect_with_dump_inner(corpus, opts, detector, false, false, false).0
+    detect_with_dump_inner(corpus, opts, detector, DetectionOutput::REPORT).0
 }
 
 /// Product-query detection with compact direct accepted-edge provenance retained
@@ -44,7 +46,7 @@ pub fn detect_with_accepted_coverage(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> Report {
-    detect_with_dump_inner(corpus, opts, detector, true, false, false).0
+    detect_with_dump_inner(corpus, opts, detector, DetectionOutput::ACCEPTED_COVERAGE).0
 }
 
 /// Divergent-edit detection counterpart that also retains direct copy-paste-run
@@ -55,7 +57,13 @@ pub fn detect_with_direct_accepted_coverage(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> Report {
-    detect_with_dump_inner(corpus, opts, detector, true, true, false).0
+    detect_with_dump_inner(
+        corpus,
+        opts,
+        detector,
+        DetectionOutput::DIRECT_ACCEPTED_COVERAGE,
+    )
+    .0
 }
 
 /// Per-stage wall-clock timing, printed to stderr when `NOSE_TIME` is set. A
@@ -88,21 +96,89 @@ impl StageTimer {
     }
 }
 
+#[derive(Clone, Copy)]
+enum CoverageTrace {
+    None,
+    Structural,
+    StructuralAndContiguous,
+}
+
+#[derive(Clone, Copy)]
+enum DumpSelection {
+    None,
+    Candidates,
+}
+
+#[derive(Clone, Copy)]
+struct DetectionOutput {
+    coverage: CoverageTrace,
+    dump: DumpSelection,
+}
+
+impl DetectionOutput {
+    const REPORT: Self = Self {
+        coverage: CoverageTrace::None,
+        dump: DumpSelection::None,
+    };
+    const ACCEPTED_COVERAGE: Self = Self {
+        coverage: CoverageTrace::Structural,
+        dump: DumpSelection::None,
+    };
+    const DIRECT_ACCEPTED_COVERAGE: Self = Self {
+        coverage: CoverageTrace::StructuralAndContiguous,
+        dump: DumpSelection::None,
+    };
+    const DUMP: Self = Self {
+        coverage: CoverageTrace::None,
+        dump: DumpSelection::Candidates,
+    };
+
+    fn traces_structural_coverage(self) -> bool {
+        !matches!(self.coverage, CoverageTrace::None)
+    }
+
+    fn traces_contiguous_coverage(self) -> bool {
+        matches!(self.coverage, CoverageTrace::StructuralAndContiguous)
+    }
+}
+
+struct DetectionRequest<'a> {
+    units: &'a [UnitFeat],
+    files: usize,
+    streams: &'a [Stream],
+    opts: &'a DetectOptions,
+    detector: &'a dyn Detector,
+    output: DetectionOutput,
+}
+
+fn score_fresh_connected(
+    units: &[UnitFeat],
+    scored: &[ScoredCandidate],
+    accepted: &[AcceptedPair],
+    opts: &DetectOptions,
+) -> ConnectedStage {
+    if !opts.connected_witnesses {
+        return (Vec::new(), Vec::new());
+    }
+    (
+        score_connected_candidates(units, scored, accepted, opts.threshold, !opts.emit_pairs),
+        score_same_unit_candidates(units, opts.threshold, !opts.emit_pairs),
+    )
+}
+
 pub fn detect_with_dump(
     corpus: &Corpus,
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> (Report, Dump) {
-    detect_with_dump_inner(corpus, opts, detector, false, false, true)
+    detect_with_dump_inner(corpus, opts, detector, DetectionOutput::DUMP)
 }
 
 fn detect_with_dump_inner(
     corpus: &Corpus,
     opts: &DetectOptions,
     detector: &dyn Detector,
-    trace_accepted_coverage: bool,
-    trace_contiguous_coverage: bool,
-    build_dump: bool,
+    output: DetectionOutput,
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
@@ -119,16 +195,14 @@ fn detect_with_dump_inner(
     // `detect_from_units` runs its own `StageTimer` for the detection sub-phases
     // (candidates/score/groups/contiguous), so no lap here — a single outer lap would
     // mislabel the whole call (group scoring dwarfs contiguous) as "contiguous".
-    detect_from_units_inner(
-        units,
+    detect_from_units_inner(DetectionRequest {
+        units: &units,
         files,
-        &streams,
+        streams: &streams,
         opts,
         detector,
-        trace_accepted_coverage,
-        trace_contiguous_coverage,
-        build_dump,
-    )
+        output,
+    })
 }
 
 /// Run candidate-generation → scoring → clustering over already-built `units` (the
@@ -143,7 +217,14 @@ pub fn detect_from_units(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> (Report, Dump) {
-    detect_from_units_inner(units, files, streams, opts, detector, false, false, true)
+    detect_from_units_inner(DetectionRequest {
+        units: &units,
+        files,
+        streams,
+        opts,
+        detector,
+        output: DetectionOutput::DUMP,
+    })
 }
 
 /// Cached-query counterpart to [`detect_with_accepted_coverage`].
@@ -154,7 +235,15 @@ pub fn detect_from_units_with_accepted_coverage(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> Report {
-    detect_from_units_inner(units, files, streams, opts, detector, true, false, false).0
+    detect_from_units_inner(DetectionRequest {
+        units: &units,
+        files,
+        streams,
+        opts,
+        detector,
+        output: DetectionOutput::ACCEPTED_COVERAGE,
+    })
+    .0
 }
 
 /// Cached-unit counterpart to [`detect_with_direct_accepted_coverage`].
@@ -167,87 +256,69 @@ pub fn detect_from_units_with_direct_accepted_coverage(
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> Report {
-    detect_from_units_inner(units, files, streams, opts, detector, true, true, false).0
-}
-
-#[allow(clippy::too_many_arguments)]
-fn detect_from_units_inner(
-    units: Vec<UnitFeat>,
-    files: usize,
-    streams: &[Stream],
-    opts: &DetectOptions,
-    detector: &dyn Detector,
-    trace_accepted_coverage: bool,
-    trace_contiguous_coverage: bool,
-    build_dump: bool,
-) -> (Report, Dump) {
-    let mut clk = StageTimer::new();
-
-    let (candidates, scored, accepted) = if opts.structural {
-        // 3. LSH candidate generation. Semantic runs use the value-graph signature;
-        //    near-duplicate runs also use shape signatures so Type-3 edits that
-        //    change behavior-defining values still reach the scorer. When both
-        //    channels run, score the union once.
-        let candidates = structural_candidates(&units, opts);
-        clk.lap("candidates");
-
-        // 4. Score candidates in parallel; keep accepted pairs.
-        let (scored, accepted) =
-            score_ordinary_candidates(&units, &candidates, detector, opts.threshold);
-        (candidates, scored, accepted)
-    } else {
-        clk.lap("candidates");
-        (Vec::new(), Vec::new(), Vec::new())
-    };
-
-    finish_detection(
-        &units,
+    detect_from_units_inner(DetectionRequest {
+        units: &units,
         files,
         streams,
         opts,
         detector,
-        &candidates,
-        &scored,
-        accepted,
-        None,
-        None,
-        None,
-        trace_accepted_coverage,
-        trace_contiguous_coverage,
-        build_dump,
-        &mut clk,
-    )
+        output: DetectionOutput::DIRECT_ACCEPTED_COVERAGE,
+    })
+    .0
 }
 
-#[allow(clippy::too_many_arguments)]
+fn detect_from_units_inner(request: DetectionRequest<'_>) -> (Report, Dump) {
+    let mut clk = StageTimer::new();
+
+    let stages = if request.opts.structural {
+        // 3. LSH candidate generation. Semantic runs use the value-graph signature;
+        //    near-duplicate runs also use shape signatures so Type-3 edits that
+        //    change behavior-defining values still reach the scorer. When both
+        //    channels run, score the union once.
+        let candidates = structural_candidates(request.units, request.opts);
+        clk.lap("candidates");
+
+        // 4. Score candidates in parallel; keep accepted pairs.
+        let (scored, accepted) = score_ordinary_candidates(
+            request.units,
+            &candidates,
+            request.detector,
+            request.opts.threshold,
+        );
+        DetectionStages::fresh(candidates, scored, accepted)
+    } else {
+        clk.lap("candidates");
+        DetectionStages::fresh(Vec::new(), Vec::new(), Vec::new())
+    };
+
+    finish_detection(request, stages, &mut clk)
+}
+
 fn finish_detection(
-    units: &[UnitFeat],
-    files: usize,
-    streams: &[Stream],
-    opts: &DetectOptions,
-    detector: &dyn Detector,
-    candidates: &[(usize, usize)],
-    scored: &[ScoredCandidate],
-    accepted: Vec<AcceptedPair>,
-    raw_groups: Option<Vec<Vec<usize>>>,
-    connected_override: Option<(Vec<ConnectedAccepted>, Vec<ConnectedAccepted>)>,
-    contiguous_override: Option<(Vec<crate::Group>, Vec<Vec<crate::AcceptedEdge>>)>,
-    trace_accepted_coverage: bool,
-    trace_contiguous_coverage: bool,
-    build_dump: bool,
+    request: DetectionRequest<'_>,
+    stages: DetectionStages,
     clk: &mut StageTimer,
 ) -> (Report, Dump) {
-    let (mut connected_accepted, mut same_unit_accepted) = if let Some(cached) = connected_override
-    {
-        cached
-    } else if opts.connected_witnesses {
-        (
-            score_connected_candidates(units, scored, &accepted, opts.threshold, !opts.emit_pairs),
-            score_same_unit_candidates(units, opts.threshold, !opts.emit_pairs),
-        )
-    } else {
-        (Vec::new(), Vec::new())
-    };
+    let DetectionRequest {
+        units,
+        files,
+        streams,
+        opts,
+        detector,
+        output,
+    } = request;
+    let DetectionStages {
+        candidates,
+        scored,
+        accepted,
+        source,
+    } = stages;
+    let trace_accepted_coverage = output.traces_structural_coverage();
+    let trace_contiguous_coverage = output.traces_contiguous_coverage();
+
+    let (raw_groups, connected, contiguous) = source.into_cached();
+    let (mut connected_accepted, mut same_unit_accepted) =
+        connected.unwrap_or_else(|| score_fresh_connected(units, &scored, &accepted, opts));
 
     deduplicate_connected(&accepted, &mut connected_accepted, !opts.emit_pairs);
     deduplicate_same_unit(units, &mut same_unit_accepted, !opts.emit_pairs);
@@ -320,15 +391,15 @@ fn finish_detection(
     // value-graph channel, so both `detect` and the CLI's `--cache-dir` path produce
     // the same families — the cache supplies cached streams, otherwise this would
     // silently omit every contiguous clone.
-    if let Some((groups, edges)) = contiguous_override {
+    if let Some((groups, edges)) = contiguous {
         append_contiguous_output(&mut report, groups, edges, units, trace_contiguous_coverage);
     } else {
         append_contiguous_groups(&mut report, streams, opts, units, trace_contiguous_coverage);
     }
     clk.lap("contiguous");
 
-    let dump = if build_dump {
-        detection_dump(units, candidates)
+    let dump = if matches!(output.dump, DumpSelection::Candidates) {
+        detection_dump(units, &candidates)
     } else {
         Dump::default()
     };

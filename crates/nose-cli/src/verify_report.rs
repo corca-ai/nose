@@ -4,7 +4,7 @@ use crate::verify_collect::{
     verify_record_behavior_is_trivial, OracleTranche, VerifyExclusions, VerifyOracle, VerifyRec,
 };
 use crate::verify_soundness::{
-    classify_verify_soundness, hard_gate_equal_behavior_representative_pairs,
+    classify_verify_soundness, hard_gate_equal_behavior_representative_pairs, VerifyRecPair,
 };
 use anyhow::Result;
 use nose_detect::multiset_jaccard;
@@ -172,10 +172,16 @@ pub(super) fn report_falsify(
     seed: u64,
     tranche: OracleTranche,
 ) -> Result<usize> {
-    const PER_PAIR_BUDGET: usize = 4096;
     let oracle_opts = nose_normalize::NormalizeOptions {
         oracle: true,
         ..*opts
+    };
+    let context = ReportFalsifyContext {
+        corpus,
+        oracle_opts: &oracle_opts,
+        probes,
+        seed,
+        tranche,
     };
     let mut core_cache: std::collections::HashMap<usize, nose_il::Il> =
         std::collections::HashMap::new();
@@ -188,67 +194,7 @@ pub(super) fn report_falsify(
         // The battery already found these EQUAL; only such groups need a deeper search.
         // Restrict to hard-gate-eligible pairs (claimable, comparable declarations) so a hit
         // is a real false merge, not an advisory/lossy diagnostic.
-        for &idx in &[pair.first.file_idx, pair.other.file_idx] {
-            core_cache.entry(idx).or_insert_with(|| {
-                nose_normalize::normalize(&corpus.files[idx], &corpus.interner, &oracle_opts)
-            });
-        }
-        let il_a = &core_cache[&pair.first.file_idx];
-        let il_b = &core_cache[&pair.other.file_idx];
-        let wrapped_a = if let Some(contract) = pair.first.core_fragment.as_ref() {
-            let Some(wrapper) = nose_detect::synthesize_wrapper_with_module_strings(
-                il_a,
-                &corpus.interner,
-                contract,
-                tranche.includes_swift_module_strings(),
-            ) else {
-                anyhow::bail!(
-                    "falsification invariant: eligible fragment {} could not be wrapped",
-                    pair.first.loc
-                );
-            };
-            Some(wrapper)
-        } else {
-            None
-        };
-        let wrapped_b = if let Some(contract) = pair.other.core_fragment.as_ref() {
-            let Some(wrapper) = nose_detect::synthesize_wrapper_with_module_strings(
-                il_b,
-                &corpus.interner,
-                contract,
-                tranche.includes_swift_module_strings(),
-            ) else {
-                anyhow::bail!(
-                    "falsification invariant: eligible fragment {} could not be wrapped",
-                    pair.other.loc
-                );
-            };
-            Some(wrapper)
-        } else {
-            None
-        };
-        let (target_il_a, target_root_a) = match wrapped_a.as_ref() {
-            Some((wrapper, root)) => (wrapper, *root),
-            None => (il_a, pair.first.core_root),
-        };
-        let (target_il_b, target_root_b) = match wrapped_b.as_ref() {
-            Some((wrapper, root)) => (wrapper, *root),
-            None => (il_b, pair.other.core_root),
-        };
-        let outcome = falsify::falsify_pair_with_projections(
-            target_il_a,
-            target_root_a,
-            target_il_b,
-            target_root_b,
-            &corpus.interner,
-            probes,
-            PER_PAIR_BUDGET,
-            seed,
-            &pair.first.input_projections,
-            &pair.other.input_projections,
-            pair.first.core_fragment.is_some() && pair.other.core_fragment.is_some(),
-            tranche.includes_swift_module_strings(),
-        );
+        let outcome = falsify_representative_pair(&context, &mut core_cache, &pair)?;
         searched_pairs += 1;
         match outcome {
             falsify::FalsifyOutcome::Witness(witness) => {
@@ -265,6 +211,109 @@ pub(super) fn report_falsify(
     }
     print_falsification_outcome(&mut found, eligible_pairs, searched_pairs, executed_cases);
     Ok(found.len())
+}
+
+struct ReportFalsifyContext<'a> {
+    corpus: &'a Corpus,
+    oracle_opts: &'a nose_normalize::NormalizeOptions,
+    probes: &'a [nose_normalize::Value],
+    seed: u64,
+    tranche: OracleTranche,
+}
+
+fn falsify_representative_pair(
+    context: &ReportFalsifyContext<'_>,
+    core_cache: &mut std::collections::HashMap<usize, nose_il::Il>,
+    pair: &VerifyRecPair<'_>,
+) -> Result<falsify::FalsifyOutcome> {
+    const PER_PAIR_BUDGET: usize = 4096;
+    for &idx in &[pair.first.file_idx, pair.other.file_idx] {
+        core_cache.entry(idx).or_insert_with(|| {
+            nose_normalize::normalize(
+                &context.corpus.files[idx],
+                &context.corpus.interner,
+                context.oracle_opts,
+            )
+        });
+    }
+    let il_a = &core_cache[&pair.first.file_idx];
+    let il_b = &core_cache[&pair.other.file_idx];
+    let module_strings = context.tranche.includes_swift_module_strings();
+    let wrapped_a = if let Some(contract) = pair.first.core_fragment.as_ref() {
+        Some(
+            nose_detect::synthesize_wrapper_with_module_strings(
+                il_a,
+                &context.corpus.interner,
+                contract,
+                module_strings,
+            )
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "falsification invariant: eligible fragment {} could not be wrapped",
+                    pair.first.loc
+                )
+            })?,
+        )
+    } else {
+        None
+    };
+    let wrapped_b = if let Some(contract) = pair.other.core_fragment.as_ref() {
+        Some(
+            nose_detect::synthesize_wrapper_with_module_strings(
+                il_b,
+                &context.corpus.interner,
+                contract,
+                module_strings,
+            )
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "falsification invariant: eligible fragment {} could not be wrapped",
+                    pair.other.loc
+                )
+            })?,
+        )
+    } else {
+        None
+    };
+    let (target_il_a, target_root_a) = wrapped_a
+        .as_ref()
+        .map_or((il_a, pair.first.core_root), |(wrapper, root)| {
+            (wrapper, *root)
+        });
+    let (target_il_b, target_root_b) = wrapped_b
+        .as_ref()
+        .map_or((il_b, pair.other.core_root), |(wrapper, root)| {
+            (wrapper, *root)
+        });
+    Ok(falsify::falsify_pair_with_projections(
+        falsify::FalsifyRequest {
+            left: falsify::FalsifyTarget {
+                il: target_il_a,
+                root: target_root_a,
+                projections: &pair.first.input_projections,
+            },
+            right: falsify::FalsifyTarget {
+                il: target_il_b,
+                root: target_root_b,
+                projections: &pair.other.input_projections,
+            },
+            interner: &context.corpus.interner,
+            probes: context.probes,
+            budget: PER_PAIR_BUDGET,
+            seed: context.seed,
+            observation: if pair.first.core_fragment.is_some() && pair.other.core_fragment.is_some()
+            {
+                falsify::FalsifyObservation::BehaviorAndExit
+            } else {
+                falsify::FalsifyObservation::Behavior
+            },
+            module_strings: if module_strings {
+                falsify::ModuleStringBindings::Include
+            } else {
+                falsify::ModuleStringBindings::Exclude
+            },
+        },
+    ))
 }
 
 fn print_falsification_outcome(

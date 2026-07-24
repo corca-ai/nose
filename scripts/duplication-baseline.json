@@ -8,10 +8,10 @@
     "90373a49a4b8174d",
     "3cdf8f9a869d1932",
     "5ad08a3c9ab9f5c3",
-    "770bd29db214f114",
+    "0b51b6310b2f7504",
     "0fba8db9b311bd86",
     "8d3e36bdd11cf2c0",
-    "95e83331abfa623f",
+    "6f76ca34bf54735e",
     "2bca2e8582b7d7a7",
     "a679fd9cdbda1be2",
     "aa2b95cf822a1cd2",
@@ -28,7 +28,7 @@
     "f6a2c8af9c3fd791",
     "3157af5787fd407a",
     "c2698e293c4c4d57",
-    "f918559454acf9c4"
+    "9cc68991edd9e364"
   ],
   "budget": 29,
   "generated_by": "target/release/nose query crates all top=0 --mode near --min-value 40 --format json",

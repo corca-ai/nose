@@ -35,6 +35,36 @@ pub(crate) enum FalsifyOutcome {
     Skipped { reason: &'static str },
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum FalsifyObservation {
+    Behavior,
+    BehaviorAndExit,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum ModuleStringBindings {
+    Exclude,
+    Include,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct FalsifyTarget<'a> {
+    pub(crate) il: &'a Il,
+    pub(crate) root: NodeId,
+    pub(crate) projections: &'a [nose_detect::OracleInputProjection],
+}
+
+pub(crate) struct FalsifyRequest<'a> {
+    pub(crate) left: FalsifyTarget<'a>,
+    pub(crate) right: FalsifyTarget<'a>,
+    pub(crate) interner: &'a Interner,
+    pub(crate) probes: &'a [Value],
+    pub(crate) budget: usize,
+    pub(crate) seed: u64,
+    pub(crate) observation: FalsifyObservation,
+    pub(crate) module_strings: ModuleStringBindings,
+}
+
 fn rotate<T>(values: &mut [T], seed: u64) {
     if !values.is_empty() {
         values.rotate_left((splitmix64(seed) as usize) % values.len());
@@ -155,18 +185,17 @@ fn shrink(
 
 /// Search for a concrete distinguishing input. Declared domains must agree exactly; callers may
 /// not use a hash collision or a cross-domain execution as hard soundness evidence.
-#[allow(clippy::too_many_arguments)]
 #[cfg(test)]
 pub(crate) fn falsify_pair(
-    il_a: &Il,
-    root_a: NodeId,
-    il_b: &Il,
-    root_b: NodeId,
+    left: (&Il, NodeId),
+    right: (&Il, NodeId),
     interner: &Interner,
     probes: &[Value],
     budget: usize,
     seed: u64,
 ) -> Option<FalsifyWitness> {
+    let (il_a, root_a) = left;
+    let (il_b, root_b) = right;
     let domains_a = parameter_domains(il_a, root_a);
     let domains_b = parameter_domains(il_b, root_b);
     if !domains_are_hosted(il_a.meta.lang, &domains_a)
@@ -176,116 +205,102 @@ pub(crate) fn falsify_pair(
     }
     let projections_a = vec![nose_detect::OracleInputProjection::Declared; domains_a.len()];
     let projections_b = vec![nose_detect::OracleInputProjection::Declared; domains_b.len()];
-    match falsify_pair_inner(
-        il_a,
-        root_a,
-        il_b,
-        root_b,
+    match falsify_pair_with_projections(FalsifyRequest {
+        left: FalsifyTarget {
+            il: il_a,
+            root: root_a,
+            projections: &projections_a,
+        },
+        right: FalsifyTarget {
+            il: il_b,
+            root: root_b,
+            projections: &projections_b,
+        },
         interner,
         probes,
         budget,
         seed,
-        &domains_a,
-        &projections_a,
-        &domains_b,
-        &projections_b,
-        false,
-        true,
-    ) {
+        observation: FalsifyObservation::Behavior,
+        module_strings: ModuleStringBindings::Include,
+    }) {
         FalsifyOutcome::Witness(witness) => Some(witness),
         FalsifyOutcome::Exhausted { .. } | FalsifyOutcome::Skipped { .. } => None,
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn falsify_pair_with_projections(
-    il_a: &Il,
-    root_a: NodeId,
-    il_b: &Il,
-    root_b: NodeId,
-    interner: &Interner,
-    probes: &[Value],
-    budget: usize,
-    seed: u64,
-    projections_a: &[nose_detect::OracleInputProjection],
-    projections_b: &[nose_detect::OracleInputProjection],
-    observe_exit: bool,
-    include_immutable_module_strings: bool,
+pub(crate) fn falsify_pair_with_projections(request: FalsifyRequest<'_>) -> FalsifyOutcome {
+    let contract = match validate_falsify_contract(request.left, request.right) {
+        Ok(contract) => contract,
+        Err(reason) => return FalsifyOutcome::Skipped { reason },
+    };
+    run_falsification_search(request, &contract)
+}
+
+struct FalsifyContract {
+    domains: Vec<Option<DomainEvidence>>,
+    projections: Vec<nose_detect::OracleInputProjection>,
+}
+
+fn validate_falsify_contract(
+    left: FalsifyTarget<'_>,
+    right: FalsifyTarget<'_>,
+) -> Result<FalsifyContract, &'static str> {
+    let domains_a = parameter_domains(left.il, left.root);
+    let domains_b = parameter_domains(right.il, right.root);
+    let (domains, projections) = effective_domain_contract(&domains_a, left.projections)
+        .ok_or("invalid left projection contract")?;
+    let (other_domains, other_projections) =
+        effective_domain_contract(&domains_b, right.projections)
+            .ok_or("invalid right projection contract")?;
+    if domains != other_domains || projections != other_projections {
+        return Err("effective domain contracts differ");
+    }
+    if !domains_are_hosted_with_projections(left.il.meta.lang, &domains_a, left.projections) {
+        return Err("left domain contract is not hosted");
+    }
+    if !domains_are_hosted_with_projections(right.il.meta.lang, &domains_b, right.projections) {
+        return Err("right domain contract is not hosted");
+    }
+    Ok(FalsifyContract {
+        domains: domains.to_vec(),
+        projections: projections.to_vec(),
+    })
+}
+
+fn run_falsification_search(
+    request: FalsifyRequest<'_>,
+    contract: &FalsifyContract,
 ) -> FalsifyOutcome {
-    let domains_a = parameter_domains(il_a, root_a);
-    let domains_b = parameter_domains(il_b, root_b);
-    falsify_pair_inner(
-        il_a,
-        root_a,
-        il_b,
-        root_b,
+    let FalsifyRequest {
+        left,
+        right,
         interner,
         probes,
         budget,
         seed,
-        &domains_a,
-        projections_a,
-        &domains_b,
-        projections_b,
-        observe_exit,
-        include_immutable_module_strings,
-    )
-}
-
-#[allow(clippy::too_many_arguments)]
-fn falsify_pair_inner(
-    il_a: &Il,
-    root_a: NodeId,
-    il_b: &Il,
-    root_b: NodeId,
-    interner: &Interner,
-    probes: &[Value],
-    budget: usize,
-    seed: u64,
-    domains_a: &[Option<DomainEvidence>],
-    projections_a: &[nose_detect::OracleInputProjection],
-    domains_b: &[Option<DomainEvidence>],
-    projections_b: &[nose_detect::OracleInputProjection],
-    observe_exit: bool,
-    include_immutable_module_strings: bool,
-) -> FalsifyOutcome {
-    let Some((domains, projections)) = effective_domain_contract(domains_a, projections_a) else {
-        return FalsifyOutcome::Skipped {
-            reason: "invalid left projection contract",
-        };
-    };
-    let Some((other_domains, other_projections)) =
-        effective_domain_contract(domains_b, projections_b)
-    else {
-        return FalsifyOutcome::Skipped {
-            reason: "invalid right projection contract",
-        };
-    };
-    if domains != other_domains || projections != other_projections {
-        return FalsifyOutcome::Skipped {
-            reason: "effective domain contracts differ",
-        };
-    }
-    if !domains_are_hosted_with_projections(il_a.meta.lang, domains_a, projections_a) {
-        return FalsifyOutcome::Skipped {
-            reason: "left domain contract is not hosted",
-        };
-    }
-    if !domains_are_hosted_with_projections(il_b.meta.lang, domains_b, projections_b) {
-        return FalsifyOutcome::Skipped {
-            reason: "right domain contract is not hosted",
-        };
-    }
+        observation,
+        module_strings,
+    } = request;
+    let domains = &contract.domains;
+    let projections = &contract.projections;
     let replay = ReplayPair {
         left: ReplayUnit {
-            interpreter: PreparedInterpreter::new(il_a, interner, include_immutable_module_strings),
-            root: root_a,
+            interpreter: PreparedInterpreter::new(
+                left.il,
+                interner,
+                matches!(module_strings, ModuleStringBindings::Include),
+            ),
+            root: left.root,
         },
         right: ReplayUnit {
-            interpreter: PreparedInterpreter::new(il_b, interner, include_immutable_module_strings),
-            root: root_b,
+            interpreter: PreparedInterpreter::new(
+                right.il,
+                interner,
+                matches!(module_strings, ModuleStringBindings::Include),
+            ),
+            root: right.root,
         },
-        observe_exit,
+        observe_exit: matches!(observation, FalsifyObservation::BehaviorAndExit),
     };
     let arity = domains.len().max(1);
     let mut pools: Vec<Vec<Value>> = (0..arity)

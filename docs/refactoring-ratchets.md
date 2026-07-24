@@ -4,6 +4,11 @@ nose keeps code quality pressure as ratchets: existing debt can be carried
 temporarily, but it must not grow, and any real improvement should lower the
 accepted ceiling in the same change.
 
+Repository gate commands have the same single-owner rule: their implementations
+live as named entries in `scripts/check-ci-local.sh`. The GitHub workflow owns
+runner-only setup and invokes those entries, so local and remote checks cannot
+silently evolve into different policies.
+
 The repository already ratchets function complexity and length through
 [`clippy.toml`](../clippy.toml), test coverage through `cargo llvm-cov`, and
 self-duplication through [`scripts/check-duplication.sh`](../scripts/check-duplication.sh).
@@ -83,7 +88,10 @@ and behavior easier to reason about:
   `nose-cli/src/verify_report.rs`;
 - keep the verify oracle's per-file collection path separate from command
   parsing; interpreted records, exclusion accounting, and canon-preservation
-  collection now live in `nose-cli/src/verify_collect.rs`;
+  collection now live in `nose-cli/src/verify_collect.rs`. File and fragment
+  collection receive named request contexts, `VerifyOracle` owns cross-file
+  accumulation, and falsification validates one typed pair contract before the
+  replay search returns its pure outcome;
 - keep hidden diagnostic and benchmark commands outside the dispatcher; `features`,
   `value-census`, `stats`, `eval`, and `ceiling` now live in
   `nose-cli/src/diagnostic_commands.rs`;
@@ -214,7 +222,9 @@ and behavior easier to reason about:
   orchestration, candidate/group construction, report ranking/path policy, report test
   suites, and graded-witness anti-unification now live in focused
   `nose-detect/src/{options,detectors,model,locations,reinvented,orchestration,candidates,report/*,witness/*}.rs`
-  modules;
+  modules. Within orchestration, named output policies own coverage/dump choices,
+  and one request plus one stage-state value carry data into finalization; do not
+  reintroduce positional boolean or optional-stage argument lists;
 - move reusable semantic or detection rules toward the owning library crate
   instead of keeping them in `nose-cli`;
 - split wide language and IL dispatch only around real concepts, such as

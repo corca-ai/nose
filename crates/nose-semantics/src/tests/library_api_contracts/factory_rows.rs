@@ -1,5 +1,16 @@
 use super::*;
+mod java_type_policy;
 mod materialized_result_domains;
+
+fn java_util_static_member(
+    receiver: &'static str,
+    method: &'static str,
+) -> LibraryApiCalleeContract {
+    LibraryApiCalleeContract::JavaUtilStaticMember {
+        owner: JavaTypeReference::imported_unshadowed("java.util", receiver, None),
+        method,
+    }
+}
 
 #[test]
 fn free_name_contracts_are_behavior_equivalent_tables() {
@@ -192,10 +203,7 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
         Some(LibraryCollectionFactoryContract {
             pack_id: JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
             id: LibraryApiContractId::JavaCollectionFactory(JavaCollectionFactoryKind::ListOf),
-            callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-                receiver: "List",
-                method: "of",
-            },
+            callee: java_util_static_member("List", "of"),
             result: LibraryCollectionFactoryResult::VariadicElements {
                 single_arg_spreads_array: false,
             },
@@ -206,10 +214,7 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
         Some(LibraryCollectionFactoryContract {
             pack_id: JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
             id: LibraryApiContractId::JavaCollectionFactory(JavaCollectionFactoryKind::SetOf),
-            callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-                receiver: "Set",
-                method: "of",
-            },
+            callee: java_util_static_member("Set", "of"),
             result: LibraryCollectionFactoryResult::VariadicElements {
                 single_arg_spreads_array: false,
             },
@@ -222,10 +227,7 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
             id: LibraryApiContractId::JavaCollectionFactory(
                 JavaCollectionFactoryKind::ArraysAsList,
             ),
-            callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-                receiver: "Arrays",
-                method: "asList",
-            },
+            callee: java_util_static_member("Arrays", "asList"),
             result: LibraryCollectionFactoryResult::VariadicElements {
                 single_arg_spreads_array: true,
             },
@@ -238,10 +240,7 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
             id: LibraryApiContractId::JavaCollectionFactory(
                 JavaCollectionFactoryKind::CollectionsEmptySet,
             ),
-            callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-                receiver: "Collections",
-                method: "emptySet",
-            },
+            callee: java_util_static_member("Collections", "emptySet"),
             result: LibraryCollectionFactoryResult::EmptySequence,
         })
     );
@@ -252,10 +251,7 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
             id: LibraryApiContractId::JavaCollectionFactory(
                 JavaCollectionFactoryKind::CollectionsSingletonList,
             ),
-            callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-                receiver: "Collections",
-                method: "singletonList",
-            },
+            callee: java_util_static_member("Collections", "singletonList"),
             result: LibraryCollectionFactoryResult::ElementArguments,
         })
     );
@@ -267,11 +263,12 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
                 JavaCollectionFactoryKind::GuavaImmutableListOf,
             ),
             callee: LibraryApiCalleeContract::JavaStaticMember {
-                module: "com.google.common.collect",
-                receiver: "ImmutableList",
+                owner: JavaTypeReference::imported_unshadowed(
+                    "com.google.common.collect",
+                    "ImmutableList",
+                    None,
+                ),
                 method: "of",
-                requires_import_for_simple_receiver: true,
-                requires_no_local_type_shadow: true,
             },
             result: LibraryCollectionFactoryResult::VariadicElements {
                 single_arg_spreads_array: false,
@@ -300,11 +297,11 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
                 JavaCollectionConstructorKind::EmptyList,
             ),
             callee: LibraryApiCalleeContract::JavaUtilConstructor {
-                simple_type: "ArrayList",
-                qualified_type: "java.util.ArrayList",
-                module: "java.util",
-                requires_import_for_simple_type: true,
-                requires_no_local_type_shadow: true,
+                type_ref: JavaTypeReference::imported_unshadowed(
+                    "java.util",
+                    "ArrayList",
+                    Some("java.util.ArrayList"),
+                ),
             },
             result: LibraryCollectionFactoryResult::EmptySequence,
         })
@@ -352,10 +349,7 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
         Some(LibraryMapFactoryContract {
             pack_id: JAVA_STDLIB_MAP_FACTORY_PACK_ID,
             id: LibraryApiContractId::JavaMapFactory(JavaMapFactoryKind::Of),
-            callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-                receiver: "Map",
-                method: "of",
-            },
+            callee: java_util_static_member("Map", "of"),
             result: LibraryMapFactoryResult::JavaFactory {
                 kind: JavaMapFactoryKind::Of,
             },
@@ -366,10 +360,7 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
         Some(LibraryMapFactoryContract {
             pack_id: JAVA_STDLIB_MAP_FACTORY_PACK_ID,
             id: LibraryApiContractId::JavaMapFactory(JavaMapFactoryKind::OfEntries),
-            callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-                receiver: "Map",
-                method: "ofEntries",
-            },
+            callee: java_util_static_member("Map", "ofEntries"),
             result: LibraryMapFactoryResult::JavaFactory {
                 kind: JavaMapFactoryKind::OfEntries,
             },
@@ -380,10 +371,7 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
         Some(LibraryMapFactoryContract {
             pack_id: JAVA_STDLIB_MAP_FACTORY_PACK_ID,
             id: LibraryApiContractId::JavaMapFactory(JavaMapFactoryKind::CollectionsSingletonMap),
-            callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-                receiver: "Collections",
-                method: "singletonMap",
-            },
+            callee: java_util_static_member("Collections", "singletonMap"),
             result: LibraryMapFactoryResult::JavaFactory {
                 kind: JavaMapFactoryKind::CollectionsSingletonMap,
             },
@@ -395,11 +383,12 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
             pack_id: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
             id: LibraryApiContractId::JavaMapFactory(JavaMapFactoryKind::GuavaImmutableMapOf),
             callee: LibraryApiCalleeContract::JavaStaticMember {
-                module: "com.google.common.collect",
-                receiver: "ImmutableMap",
+                owner: JavaTypeReference::imported_unshadowed(
+                    "com.google.common.collect",
+                    "ImmutableMap",
+                    None,
+                ),
                 method: "of",
-                requires_import_for_simple_receiver: true,
-                requires_no_local_type_shadow: true,
             },
             result: LibraryMapFactoryResult::JavaFactory {
                 kind: JavaMapFactoryKind::GuavaImmutableMapOf,
@@ -415,10 +404,7 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
         Some(LibraryMapEntryFactoryContract {
             pack_id: JAVA_STDLIB_MAP_ENTRY_PACK_ID,
             id: LibraryApiContractId::JavaMapEntryFactory,
-            callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-                receiver: "Map",
-                method: "entry",
-            },
+            callee: java_util_static_member("Map", "entry"),
         })
     );
     assert_eq!(

@@ -313,7 +313,9 @@ The stable roles are:
 - synthetic generation and manifest evaluation:
   `generate.py`, `type4gen/`, `select_cases.py`, `eval_manifest.py`, and
   `schema.json`. `generate.py` remains the stable CLI/import entry point, while
-  `type4gen/` owns generator model/config, axis metadata, and aggregate emitters;
+  `type4gen/` owns generator model/config, axis metadata, aggregate emitters, and
+  source-template modules split by scalar/null, record/string, membership, map,
+  and boundary/import semantics;
 - coverage matrix and proof-fact capability tracking:
   `coverage_matrix.v1.json`, `coverage_evidence.v1.json`, `coverage_matrix.py`, and
   `capabilities.v1.json`;

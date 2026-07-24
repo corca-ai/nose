@@ -76,11 +76,11 @@ fn detect_inner(
     let raw_groups = incremental::components(&prepared, &accepted, opts.threshold, &mut stats);
     let mut connected =
         incremental::connected(units, &prepared, &scored, &accepted, opts, &mut stats);
-    let connected_override = Some((
+    let connected_stage = (
         std::mem::take(&mut connected.accepted),
         std::mem::take(&mut connected.same_unit_accepted),
-    ));
-    let (contiguous_override, contiguous_state) = if opts.contiguous {
+    );
+    let (contiguous_stage, contiguous_state) = if opts.contiguous {
         let (groups, edges, state, contiguous_stats) = contiguous::detect_incremental(
             streams,
             opts.contiguous_min_tokens,
@@ -107,20 +107,24 @@ fn detect_inner(
     let state =
         incremental::finish_state(prepared, &scored, &raw_groups, connected, contiguous_state);
     let report = finish_detection(
-        units,
-        files,
-        streams,
-        opts,
-        detector,
-        &candidates,
-        &scored,
-        accepted,
-        Some(raw_groups),
-        connected_override,
-        contiguous_override,
-        true,
-        false,
-        false,
+        DetectionRequest {
+            units,
+            files,
+            streams,
+            opts,
+            detector,
+            output: DetectionOutput::ACCEPTED_COVERAGE,
+        },
+        DetectionStages {
+            candidates,
+            scored,
+            accepted,
+            source: DetectionStageSource::Incremental {
+                raw_groups,
+                connected: connected_stage,
+                contiguous: contiguous_stage,
+            },
+        },
         &mut clk,
     )
     .0;

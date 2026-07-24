@@ -118,12 +118,12 @@ fn java_factory_contracts_are_language_receiver_and_selector_constrained() {
     assert_eq!(
         java_collection_constructor_contract(Lang::Java, "ArrayList", 0),
         Some(JavaCollectionConstructorContract {
-            simple_type: "ArrayList",
-            qualified_type: "java.util.ArrayList",
-            module: "java.util",
+            type_ref: JavaTypeReference::imported_unshadowed(
+                "java.util",
+                "ArrayList",
+                Some("java.util.ArrayList"),
+            ),
             kind: JavaCollectionConstructorKind::EmptyList,
-            requires_import_for_simple_type: true,
-            requires_no_local_type_shadow: true,
         })
     );
     assert_eq!(
@@ -228,6 +228,32 @@ fn java_factory_contracts_are_language_receiver_and_selector_constrained() {
         "Map",
         stable_symbol_hash("entry")
     ));
+}
+
+#[test]
+fn java_simple_type_resolution_policy_is_table_driven() {
+    for (resolution, allowed, import_required, rejects_shadow) in [
+        (
+            JavaSimpleTypeResolution::ImportedAndUnshadowed,
+            true,
+            true,
+            true,
+        ),
+        (JavaSimpleTypeResolution::Unshadowed, true, false, true),
+        (JavaSimpleTypeResolution::QualifiedOnly, false, false, false),
+    ] {
+        let reference = JavaTypeReference {
+            module: "example",
+            simple_type: "Widget",
+            qualified_type: Some("example.Widget"),
+            simple_resolution: resolution,
+        };
+        assert_eq!(reference.simple_name_is_allowed(), allowed);
+        assert_eq!(reference.simple_name_requires_import(), import_required);
+        assert_eq!(reference.simple_name_rejects_local_shadow(), rejects_shadow);
+        assert!(reference.matches_qualified_name("example.Widget"));
+        assert!(!reference.matches_qualified_name("other.Widget"));
+    }
 }
 
 #[test]

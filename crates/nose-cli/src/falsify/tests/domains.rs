@@ -49,10 +49,8 @@ fn erased_static_width_and_payload_domains_fail_closed() {
     set_param_domain(&mut rust_a, rust_a_root, D::Integer);
     set_param_domain(&mut rust_b, rust_b_root, D::Integer);
     assert!(falsify_pair(
-        &rust_a,
-        rust_a_root,
-        &rust_b,
-        rust_b_root,
+        (&rust_a, rust_a_root),
+        (&rust_b, rust_b_root),
         &interner,
         &[],
         64,

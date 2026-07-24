@@ -1412,3 +1412,14 @@ actionability, and CSS-pipeline policies. A common helper would join unrelated
 policy boundaries without owning shared behavior, so this span noise is
 reviewed instead of extracted. No avoidable duplication is accepted; the
 explicit baseline rises by one to 29.
+
+The five-part post-v0.20 quality follow-up keeps the reviewed count at 29.
+Typed Java API reference policy moves three existing representatives without
+changing any family members. The method-receiver policy-table family moves
+from `770bd29db214f114` to `0b51b6310b2f7504`, and the four-member Java map
+factory projection family moves from `f918559454acf9c4` to
+`9cc68991edd9e364`; both retain identical metrics. The callee-dependency
+matcher family moves from `95e83331abfa623f` to `6f76ca34bf54735e` with the
+same two functions and 18 shared lines, while the typed request refactor
+reduces its reported duplicate span from 81 to 66 lines. No new family or
+avoidable duplication is accepted, so the budget remains 29.

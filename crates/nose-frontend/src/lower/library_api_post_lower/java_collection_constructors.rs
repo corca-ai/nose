@@ -18,14 +18,7 @@ pub(super) fn record_post_lower_java_collection_constructor_library_api(
     else {
         return false;
     };
-    let LibraryApiCalleeContract::JavaUtilConstructor {
-        simple_type,
-        qualified_type,
-        module,
-        requires_import_for_simple_type,
-        requires_no_local_type_shadow,
-    } = contract.callee
-    else {
+    let LibraryApiCalleeContract::JavaUtilConstructor { type_ref } = contract.callee else {
         return false;
     };
     let Some(source_dependency) =
@@ -34,27 +27,35 @@ pub(super) fn record_post_lower_java_collection_constructor_library_api(
         return false;
     };
     let mut dependencies = vec![source_dependency];
-    if type_name == simple_type {
-        if requires_no_local_type_shadow
-            && post_lower_unit_defines_name(il, interner, simple_type, il.node(callee).span)
+    if type_name == type_ref.simple_type {
+        if !type_ref.simple_name_is_allowed() {
+            return false;
+        }
+        if type_ref.simple_name_rejects_local_shadow()
+            && post_lower_unit_defines_name(
+                il,
+                interner,
+                type_ref.simple_type,
+                il.node(callee).span,
+            )
         {
             return false;
         }
-        if requires_import_for_simple_type {
+        if type_ref.simple_name_requires_import() {
             if let Some(dependency) = post_lower_imported_binding_symbol_evidence_id(
                 il,
                 interner,
                 callee,
-                module,
-                simple_type,
+                type_ref.module,
+                type_ref.simple_type,
             ) {
                 dependencies.push(dependency);
             } else {
                 let Some(dependency) = post_lower_java_wildcard_import_evidence_id(
                     il,
                     interner,
-                    module,
-                    simple_type,
+                    type_ref.module,
+                    type_ref.simple_type,
                     il.node(call).span,
                 ) else {
                     return false;
@@ -62,7 +63,7 @@ pub(super) fn record_post_lower_java_collection_constructor_library_api(
                 dependencies.push(dependency);
             }
         }
-    } else if type_name != qualified_type {
+    } else if !type_ref.matches_qualified_name(type_name) {
         return false;
     }
     let api = post_lower_library_api_evidence_with_pack_id(

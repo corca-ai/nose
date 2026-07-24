@@ -10,22 +10,35 @@ fn independently_observes_mixed_exit(exits: &[nose_normalize::UnitExit]) -> bool
         })
 }
 
-#[allow(clippy::too_many_arguments)]
-#[allow(clippy::too_many_lines)]
-pub(super) fn collect_product_fragment_verify_rec(
-    n: &nose_il::Il,
-    core: &nose_il::Il,
-    interner: &Interner,
-    battery: &[Vec<nose_normalize::Value>],
-    oracle: &mut VerifyOracle,
-    core_fragments: &std::collections::HashMap<
+pub(super) struct FragmentVerifyRequest<'a> {
+    pub(super) normalized: &'a nose_il::Il,
+    pub(super) core: &'a nose_il::Il,
+    pub(super) interner: &'a Interner,
+    pub(super) battery: &'a [Vec<nose_normalize::Value>],
+    pub(super) core_fragments: &'a std::collections::HashMap<
         (u32, u32, nose_detect::FragmentKind),
         Vec<nose_detect::FragmentContract>,
     >,
-    file_idx: usize,
-    fragment: nose_detect::ProductOracleFragment,
-    tranche: OracleTranche,
+    pub(super) file_idx: usize,
+    pub(super) fragment: nose_detect::ProductOracleFragment,
+    pub(super) tranche: OracleTranche,
+}
+
+#[allow(clippy::too_many_lines)]
+pub(super) fn collect_product_fragment_verify_rec(
+    request: FragmentVerifyRequest<'_>,
+    oracle: &mut VerifyOracle,
 ) {
+    let FragmentVerifyRequest {
+        normalized: n,
+        core,
+        interner,
+        battery,
+        core_fragments,
+        file_idx,
+        fragment,
+        tranche,
+    } = request;
     let file_path = &n.meta.path;
     let span = n.node(fragment.root).span;
     let fp = fragment.value;
@@ -92,6 +105,18 @@ pub(super) fn collect_product_fragment_verify_rec(
             .record_core_missing(file_path, span, fragment.token_count);
         return;
     };
+    let exclusion = FragmentExclusionContext {
+        location: &location,
+        core,
+        core_root: core_contract.root,
+        fingerprint: &fp,
+        exact_safe: fragment.exact_safe,
+        product_admission,
+        claimable,
+        file_path,
+        span,
+        tokens: fragment.token_count,
+    };
 
     if verify_battery_over_budget(fragment.token_count, battery.len()) {
         let blocker = synthetic_blocker(
@@ -134,18 +159,8 @@ pub(super) fn collect_product_fragment_verify_rec(
         return;
     }
     let Some(contracts) = fragment.oracle_contracts.as_deref() else {
-        record_fragment_oracle_exclusion(
+        exclusion.record(
             oracle,
-            &location,
-            core,
-            core_contract.root,
-            &fp,
-            fragment.exact_safe,
-            product_admission,
-            claimable,
-            file_path,
-            span,
-            fragment.token_count,
             synthetic_blocker(
                 "contract",
                 "oracle.fragment-contract-coordinate",
@@ -160,18 +175,8 @@ pub(super) fn collect_product_fragment_verify_rec(
         core_contract,
         tranche.includes_swift_module_strings(),
     ) else {
-        record_fragment_oracle_exclusion(
+        exclusion.record(
             oracle,
-            &location,
-            core,
-            core_contract.root,
-            &fp,
-            fragment.exact_safe,
-            product_admission,
-            claimable,
-            file_path,
-            span,
-            fragment.token_count,
             synthetic_blocker(
                 "contract",
                 "oracle.fragment-wrapper-synthesis",
@@ -186,18 +191,8 @@ pub(super) fn collect_product_fragment_verify_rec(
         &fragment.contract,
         tranche.includes_swift_module_strings(),
     ) else {
-        record_fragment_oracle_exclusion(
+        exclusion.record(
             oracle,
-            &location,
-            core,
-            core_contract.root,
-            &fp,
-            fragment.exact_safe,
-            product_admission,
-            claimable,
-            file_path,
-            span,
-            fragment.token_count,
             synthetic_blocker(
                 "contract",
                 "oracle.fragment-wrapper-synthesis",
@@ -218,18 +213,8 @@ pub(super) fn collect_product_fragment_verify_rec(
         vec![nose_detect::OracleInputProjection::Declared; core_contract.inputs.len()]
     };
     if input_projections != core_input_projections {
-        record_fragment_oracle_exclusion(
+        exclusion.record(
             oracle,
-            &location,
-            core,
-            core_contract.root,
-            &fp,
-            fragment.exact_safe,
-            product_admission,
-            claimable,
-            file_path,
-            span,
-            fragment.token_count,
             synthetic_blocker(
                 "contract",
                 "oracle.fragment-input-projection-drift",
@@ -246,18 +231,8 @@ pub(super) fn collect_product_fragment_verify_rec(
     if product_observes_mixed_exit
         != nose_detect::fragment_observes_mixed_exit(core, core_contract.root, core_contract.kind)
     {
-        record_fragment_oracle_exclusion(
+        exclusion.record(
             oracle,
-            &location,
-            core,
-            core_contract.root,
-            &fp,
-            fragment.exact_safe,
-            product_admission,
-            claimable,
-            file_path,
-            span,
-            fragment.token_count,
             synthetic_blocker(
                 "contract",
                 "oracle.fragment-control-observation-drift",
@@ -276,20 +251,7 @@ pub(super) fn collect_product_fragment_verify_rec(
     ) {
         Ok(result) => result,
         Err(blocker) => {
-            record_fragment_oracle_exclusion(
-                oracle,
-                &location,
-                core,
-                core_contract.root,
-                &fp,
-                fragment.exact_safe,
-                product_admission,
-                claimable,
-                file_path,
-                span,
-                fragment.token_count,
-                blocker,
-            );
+            exclusion.record(oracle, blocker);
             return;
         }
     };
@@ -360,39 +322,47 @@ pub(super) fn collect_product_fragment_verify_rec(
     });
 }
 
-#[allow(clippy::too_many_arguments)]
-fn record_fragment_oracle_exclusion(
-    oracle: &mut VerifyOracle,
-    location: &CensusLocation,
-    core: &nose_il::Il,
+struct FragmentExclusionContext<'a> {
+    location: &'a CensusLocation,
+    core: &'a nose_il::Il,
     core_root: nose_il::NodeId,
-    fp: &[u64],
+    fingerprint: &'a [u64],
     exact_safe: bool,
     product_admission: &'static str,
     claimable: bool,
-    file_path: &str,
+    file_path: &'a str,
     span: nose_il::Span,
     tokens: usize,
-    blocker: nose_normalize::InterpreterBlocker,
-) {
-    let path_cap = blocker.capability_id == "budget.symbolic-branch-sites";
-    let (reason, exclusion) = if path_cap {
-        ("path-bail", VerifyExclusionReason::PathBail)
-    } else {
-        ("battery-bail", VerifyExclusionReason::Uninterpretable)
-    };
-    let outcome = census_outcome(
-        reason,
-        exact_safe,
-        product_admission,
-        claimable,
-        None,
-        Some(blocker),
-    );
-    push_verify_census(oracle, location, core, core_root, fp, outcome);
-    oracle
-        .exclusions
-        .record(exclusion, file_path, span, tokens, None);
+}
+
+impl FragmentExclusionContext<'_> {
+    fn record(&self, oracle: &mut VerifyOracle, blocker: nose_normalize::InterpreterBlocker) {
+        let path_cap = blocker.capability_id == "budget.symbolic-branch-sites";
+        let (reason, exclusion) = if path_cap {
+            ("path-bail", VerifyExclusionReason::PathBail)
+        } else {
+            ("battery-bail", VerifyExclusionReason::Uninterpretable)
+        };
+        let outcome = census_outcome(
+            reason,
+            self.exact_safe,
+            self.product_admission,
+            self.claimable,
+            None,
+            Some(blocker),
+        );
+        push_verify_census(
+            oracle,
+            self.location,
+            self.core,
+            self.core_root,
+            self.fingerprint,
+            outcome,
+        );
+        oracle
+            .exclusions
+            .record(exclusion, self.file_path, self.span, self.tokens, None);
+    }
 }
 
 #[cfg(test)]

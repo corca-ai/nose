@@ -25,24 +25,32 @@ pub(in crate::library_api) fn library_api_callee_shape_matches(
         LibraryApiCalleeContract::ImportedBinding { exported, .. } => {
             imported_member_callee_shape_matches(il, interner, callee_node, exported)
         }
-        LibraryApiCalleeContract::JavaUtilStaticMember { receiver, method }
-        | LibraryApiCalleeContract::JavaStaticMember {
-            receiver, method, ..
-        } => {
+        LibraryApiCalleeContract::JavaUtilStaticMember { owner, method } => {
             let Some((actual_receiver, actual_method)) =
                 static_member_callee_parts(il, interner, callee_node)
             else {
                 return false;
             };
-            actual_receiver == receiver && actual_method == method
+            ((actual_receiver == owner.simple_type && owner.simple_name_is_allowed())
+                || owner.matches_qualified_name(actual_receiver))
+                && actual_method == method
         }
-        LibraryApiCalleeContract::JavaUtilConstructor {
-            simple_type,
-            qualified_type,
-            ..
-        } => {
-            var_name_matches(il, interner, callee_node, simple_type)
-                || var_name_matches(il, interner, callee_node, qualified_type)
+        LibraryApiCalleeContract::JavaStaticMember { owner, method } => {
+            let Some((actual_receiver, actual_method)) =
+                static_member_callee_parts(il, interner, callee_node)
+            else {
+                return false;
+            };
+            ((actual_receiver == owner.simple_type && owner.simple_name_is_allowed())
+                || owner.matches_qualified_name(actual_receiver))
+                && actual_method == method
+        }
+        LibraryApiCalleeContract::JavaUtilConstructor { type_ref } => {
+            (type_ref.simple_name_is_allowed()
+                && var_name_matches(il, interner, callee_node, type_ref.simple_type))
+                || type_ref
+                    .qualified_type
+                    .is_some_and(|name| var_name_matches(il, interner, callee_node, name))
         }
         LibraryApiCalleeContract::RubyRequireStaticMember { method, .. } => {
             if il.kind(callee_node) != NodeKind::Field {

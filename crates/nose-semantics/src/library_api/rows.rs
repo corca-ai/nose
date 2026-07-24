@@ -284,16 +284,13 @@ pub fn library_java_collection_factory_contract(
     let id = LibraryApiContractId::JavaCollectionFactory(contract.kind);
     let callee = if contract.module == "java.util" {
         LibraryApiCalleeContract::JavaUtilStaticMember {
-            receiver: contract.receiver,
+            owner: JavaTypeReference::imported_unshadowed(contract.module, contract.receiver, None),
             method: contract.method,
         }
     } else {
         LibraryApiCalleeContract::JavaStaticMember {
-            module: contract.module,
-            receiver: contract.receiver,
+            owner: JavaTypeReference::imported_unshadowed(contract.module, contract.receiver, None),
             method: contract.method,
-            requires_import_for_simple_receiver: true,
-            requires_no_local_type_shadow: true,
         }
     };
     Some(LibraryCollectionFactoryContract {
@@ -354,11 +351,7 @@ pub fn library_java_collection_constructor_contract(
         pack_id: library_collection_factory_pack_id(id),
         id,
         callee: LibraryApiCalleeContract::JavaUtilConstructor {
-            simple_type: contract.simple_type,
-            qualified_type: contract.qualified_type,
-            module: contract.module,
-            requires_import_for_simple_type: contract.requires_import_for_simple_type,
-            requires_no_local_type_shadow: contract.requires_no_local_type_shadow,
+            type_ref: contract.type_ref,
         },
         result: LibraryCollectionFactoryResult::EmptySequence,
     })
@@ -373,16 +366,13 @@ pub fn library_java_map_factory_contract(
     let id = LibraryApiContractId::JavaMapFactory(contract.kind);
     let callee = if contract.module == "java.util" {
         LibraryApiCalleeContract::JavaUtilStaticMember {
-            receiver: contract.receiver,
+            owner: JavaTypeReference::imported_unshadowed(contract.module, contract.receiver, None),
             method: contract.method,
         }
     } else {
         LibraryApiCalleeContract::JavaStaticMember {
-            module: contract.module,
-            receiver: contract.receiver,
+            owner: JavaTypeReference::imported_unshadowed(contract.module, contract.receiver, None),
             method: contract.method,
-            requires_import_for_simple_receiver: true,
-            requires_no_local_type_shadow: true,
         }
     };
     Some(LibraryMapFactoryContract {
@@ -418,7 +408,7 @@ pub fn library_java_map_entry_contract(
         pack_id: library_map_factory_pack_id(LibraryApiContractId::JavaMapEntryFactory),
         id: LibraryApiContractId::JavaMapEntryFactory,
         callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-            receiver: "Map",
+            owner: JavaTypeReference::imported_unshadowed("java.util", "Map", None),
             method: "entry",
         },
     })
