@@ -202,11 +202,7 @@ fn static_receiver_import_proven_at_span(
     receiver_span: Option<Span>,
     module: &str,
     receiver: &str,
-    required: bool,
 ) -> bool {
-    if !required {
-        return true;
-    }
     if let Some(span) = receiver_span {
         dependency_has_imported_binding_anchor(
             il,
@@ -227,11 +223,7 @@ fn static_receiver_shadow_safe_at_span(
     interner: &Interner,
     receiver_span: Option<Span>,
     receiver: &str,
-    required: bool,
 ) -> bool {
-    if !required {
-        return true;
-    }
     if let Some(span) = receiver_span {
         !unit_defines_hash_visible_at(il, interner, stable_symbol_hash(receiver), span)
     } else {
@@ -313,15 +305,13 @@ fn static_receiver_dependency_safe_at_span(
         interner,
         record,
         receiver_span,
-        dependency.owner.module,
-        dependency.owner.simple_type,
-        dependency.owner.simple_name_requires_import(),
+        dependency.owner.module(),
+        dependency.owner.simple_type(),
     ) && static_receiver_shadow_safe_at_span(
         il,
         interner,
         receiver_span,
-        dependency.owner.simple_type,
-        dependency.owner.simple_name_rejects_local_shadow(),
+        dependency.owner.simple_type(),
     )
 }
 

@@ -56,21 +56,16 @@ fn java_constructor_dependencies_match_for_name(
     if type_ref.matches_qualified_name(occurrence.actual) {
         return true;
     }
-    if occurrence.actual != type_ref.simple_type || !type_ref.simple_name_is_allowed() {
+    if occurrence.actual != type_ref.simple_type() {
         return false;
     }
-    if type_ref.simple_name_rejects_local_shadow()
-        && unit_defines_hash_visible_at(
-            il,
-            interner,
-            stable_symbol_hash(type_ref.simple_type),
-            occurrence.callee_span,
-        )
-    {
+    if unit_defines_hash_visible_at(
+        il,
+        interner,
+        stable_symbol_hash(type_ref.simple_type()),
+        occurrence.callee_span,
+    ) {
         return false;
-    }
-    if !type_ref.simple_name_requires_import() {
-        return true;
     }
     let explicit_import = occurrence.callee_node.is_some_and(|node| {
         dependency_has_imported_binding_node(
@@ -78,8 +73,8 @@ fn java_constructor_dependencies_match_for_name(
             interner,
             record,
             node,
-            type_ref.module,
-            type_ref.simple_type,
+            type_ref.module(),
+            type_ref.simple_type(),
         )
     });
     explicit_import
@@ -87,8 +82,8 @@ fn java_constructor_dependencies_match_for_name(
             il,
             interner,
             record,
-            type_ref.module,
-            type_ref.simple_type,
+            type_ref.module(),
+            type_ref.simple_type(),
             occurrence.call_span,
         )
 }
