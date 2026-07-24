@@ -76,10 +76,10 @@ fn detect_inner(
     let raw_groups = incremental::components(&prepared, &accepted, opts.threshold, &mut stats);
     let mut connected =
         incremental::connected(units, &prepared, &scored, &accepted, opts, &mut stats);
-    let connected_stage = Some((
+    let connected_stage = (
         std::mem::take(&mut connected.accepted),
         std::mem::take(&mut connected.same_unit_accepted),
-    ));
+    );
     let (contiguous_stage, contiguous_state) = if opts.contiguous {
         let (groups, edges, state, contiguous_stats) = contiguous::detect_incremental(
             streams,
@@ -119,9 +119,11 @@ fn detect_inner(
             candidates,
             scored,
             accepted,
-            raw_groups: Some(raw_groups),
-            connected: connected_stage,
-            contiguous: contiguous_stage,
+            source: DetectionStageSource::Incremental {
+                raw_groups,
+                connected: connected_stage,
+                contiguous: contiguous_stage,
+            },
         },
         &mut clk,
     )

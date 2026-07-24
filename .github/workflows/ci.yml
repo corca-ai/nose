@@ -223,6 +223,7 @@ jobs:
     name: formal obligations · lean proofs
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       # The formal obligation registry maps proof-sensitive semantic surfaces to Lean
       # proof files and counterexamples. Shared Lean models are compiled under target/lean;
       # each proof must type-check with warnings promoted to errors. See formal/README.md.

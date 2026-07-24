@@ -27,10 +27,12 @@ pub use features::{
     corpus_features, corpus_features_with_normalized, file_stream, units_of_file, CorpusFeatures,
 };
 mod incremental_session;
+mod stages;
 pub use incremental_session::{
     detect_from_units_incremental_session_with_accepted_coverage,
     detect_from_units_incremental_with_accepted_coverage,
 };
+use stages::{ConnectedStage, DetectionStageSource, DetectionStages};
 
 pub fn detect(corpus: &Corpus, opts: &DetectOptions, detector: &dyn Detector) -> Report {
     detect_with_dump_inner(corpus, opts, detector, DetectionOutput::REPORT).0
@@ -149,14 +151,19 @@ struct DetectionRequest<'a> {
     output: DetectionOutput,
 }
 
-#[derive(Default)]
-struct DetectionStages {
-    candidates: Vec<(usize, usize)>,
-    scored: Vec<ScoredCandidate>,
-    accepted: Vec<AcceptedPair>,
-    raw_groups: Option<Vec<Vec<usize>>>,
-    connected: Option<(Vec<ConnectedAccepted>, Vec<ConnectedAccepted>)>,
-    contiguous: Option<(Vec<crate::Group>, Vec<Vec<crate::AcceptedEdge>>)>,
+fn score_fresh_connected(
+    units: &[UnitFeat],
+    scored: &[ScoredCandidate],
+    accepted: &[AcceptedPair],
+    opts: &DetectOptions,
+) -> ConnectedStage {
+    if !opts.connected_witnesses {
+        return (Vec::new(), Vec::new());
+    }
+    (
+        score_connected_candidates(units, scored, accepted, opts.threshold, !opts.emit_pairs),
+        score_same_unit_candidates(units, opts.threshold, !opts.emit_pairs),
+    )
 }
 
 pub fn detect_with_dump(
@@ -278,15 +285,10 @@ fn detect_from_units_inner(request: DetectionRequest<'_>) -> (Report, Dump) {
             request.detector,
             request.opts.threshold,
         );
-        DetectionStages {
-            candidates,
-            scored,
-            accepted,
-            ..DetectionStages::default()
-        }
+        DetectionStages::fresh(candidates, scored, accepted)
     } else {
         clk.lap("candidates");
-        DetectionStages::default()
+        DetectionStages::fresh(Vec::new(), Vec::new(), Vec::new())
     };
 
     finish_detection(request, stages, &mut clk)
@@ -309,23 +311,14 @@ fn finish_detection(
         candidates,
         scored,
         accepted,
-        raw_groups,
-        connected,
-        contiguous,
+        source,
     } = stages;
     let trace_accepted_coverage = output.traces_structural_coverage();
     let trace_contiguous_coverage = output.traces_contiguous_coverage();
 
-    let (mut connected_accepted, mut same_unit_accepted) = if let Some(cached) = connected {
-        cached
-    } else if opts.connected_witnesses {
-        (
-            score_connected_candidates(units, &scored, &accepted, opts.threshold, !opts.emit_pairs),
-            score_same_unit_candidates(units, opts.threshold, !opts.emit_pairs),
-        )
-    } else {
-        (Vec::new(), Vec::new())
-    };
+    let (raw_groups, connected, contiguous) = source.into_cached();
+    let (mut connected_accepted, mut same_unit_accepted) =
+        connected.unwrap_or_else(|| score_fresh_connected(units, &scored, &accepted, opts));
 
     deduplicate_connected(&accepted, &mut connected_accepted, !opts.emit_pairs);
     deduplicate_same_unit(units, &mut same_unit_accepted, !opts.emit_pairs);
