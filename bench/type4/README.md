@@ -9,8 +9,9 @@ The factory is evidence-carrying by design:
 - the capability matrix records which proof facts each supported surface currently emits;
 - `generate.py` is the CLI/import compatibility entry point for emitting positive
   and hard-negative source pairs for every supported language surface;
-- `type4gen/` contains the generator's shared model/config, axis proposal metadata,
-  and aggregate spec/emitter helpers;
+- `type4gen/` contains the shared model/config, axis proposal metadata, aggregate
+  spec/emitter helpers, and source templates grouped by scalar/null,
+  record/string, membership, map, and boundary/import semantics;
 - positives carry same-spec/spec-interpreter evidence;
 - negatives carry concrete counterexamples;
 - evidence is level-tagged (`E0` unproven/unsafe boundary, `E1` same-spec/property
