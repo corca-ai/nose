@@ -34,26 +34,28 @@ Run everything CI runs, locally, with one command:
 ```
 
 `./scripts/check.sh` is kept as a backwards-compatible alias for `--full`. A green
-full run here is a green CI. The full gates are:
+full run here is a green CI. The gate implementations live in
+`scripts/check-ci-local.sh`; GitHub Actions supplies runner setup and invokes the
+same internal `--gate <name>` entries instead of maintaining a second command
+list. The full gates are:
 
-| gate | command | what it enforces |
+| gate | named entry | what it enforces |
 |---|---|---|
-| **shell scripts** | `shellcheck -x .githooks/pre-commit .githooks/pre-push scripts/*.sh` | hook and shell helper scripts stay lint-clean |
-| **format** | `cargo fmt --all --check` | canonical rustfmt formatting |
-| **file length** | `python3 scripts/check-file-lengths.py` | Rust files under `crates/` stay under the 600-line target unless they are existing ratcheted debt |
-| **CLI prelude** | `python3 scripts/check-legacy-prelude.py` | the retired `nose-cli` legacy prelude is not reintroduced |
-| **lints** | `cargo clippy --all-targets --all-features -- -D warnings` | clippy clean; warnings are errors |
-| **docs** | `RUSTDOCFLAGS=-D warnings cargo doc --no-deps --workspace` | no broken/private intra-doc links |
-| **build** | `cargo build --release` | the workspace compiles in release |
-| **tests** | `cargo test --release` | the full suite, incl. cross-language convergence |
-| **coverage** | `./scripts/check-ci-local.sh --full` / CI | line coverage stays above the ratchet floor owned by CI and the local check script; runs before PR merge and release publishing |
-| **copy-paste** | `./scripts/check-duplication.sh` | nose run on its own source, including tests — substantial duplicate family IDs match the reviewed baseline |
-| **MSRV** | `cargo +$MSRV check --workspace --all-targets` | the crates still build on the declared minimum Rust (`rust-version` in `Cargo.toml`) |
-| **unused deps** | `cargo machete` | no dependency declared but unused (à la *knip*) |
-| **supply chain** | `cargo deny check` | no advisories/yanked crates, only allowed licenses, no dup/wildcard deps, crates.io-only |
-| **docs wiki** | `./scripts/check-docs.sh` | the `docs/` wiki is one connected graph — no orphan pages or islands |
-| **formal obligations** | `python3 scripts/check-formal-obligations.py --self-test && python3 scripts/check-formal-obligations.py` | proof-sensitive Rust markers are registered, theorem names exist, and counterexample files are tracked |
-| **formal proofs** | `./scripts/check-lean-proofs.sh` | Lean shared models and obligation proofs type-check with warnings, including `sorry`, treated as errors |
+| **shell scripts** | `shell-lint` | hook and shell helper scripts stay lint-clean |
+| **format** | `format` | canonical rustfmt formatting |
+| **file length** | `file-length` | Rust files under `crates/` stay under the 600-line target unless they are existing ratcheted debt |
+| **CLI prelude** | `legacy-prelude` | the retired `nose-cli` legacy prelude is not reintroduced |
+| **lints** | `clippy` | clippy clean; warnings are errors |
+| **docs** | `doc` | no broken/private intra-doc links |
+| **build** | `build-release` | the workspace compiles in release |
+| **tests** | `test-release` | the full suite, incl. cross-language convergence |
+| **coverage** | `coverage` | line coverage stays above the shared ratchet floor; runs before PR merge and release publishing |
+| **copy-paste** | `duplication` | nose run on its own source, including tests — substantial duplicate family IDs match the reviewed baseline |
+| **MSRV** | `msrv` | the crates still build on the declared minimum Rust (`rust-version` in `Cargo.toml`) |
+| **unused deps / supply chain** | `supply-chain` | no unused dependencies, advisories, yanked crates, disallowed licenses, duplicate/wildcard dependencies, or non-crates.io sources |
+| **docs wiki** | `docs` | the `docs/` wiki is one connected graph — no orphan pages or islands |
+| **formal obligations** | `formal-obligations` | proof-sensitive Rust markers are registered, theorem names exist, and counterexample files are tracked |
+| **formal proofs** | `formal-lean` | Lean shared models and obligation proofs type-check with warnings, including `sorry`, treated as errors |
 
 The dev/CI toolchain is pinned in `rust-toolchain.toml` (rustup installs it
 automatically); the **MSRV** (`rust-version`, currently 1.85) is deliberately older

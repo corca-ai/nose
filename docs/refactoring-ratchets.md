@@ -4,6 +4,11 @@ nose keeps code quality pressure as ratchets: existing debt can be carried
 temporarily, but it must not grow, and any real improvement should lower the
 accepted ceiling in the same change.
 
+Repository gate commands have the same single-owner rule: their implementations
+live as named entries in `scripts/check-ci-local.sh`. The GitHub workflow owns
+runner-only setup and invokes those entries, so local and remote checks cannot
+silently evolve into different policies.
+
 The repository already ratchets function complexity and length through
 [`clippy.toml`](../clippy.toml), test coverage through `cargo llvm-cov`, and
 self-duplication through [`scripts/check-duplication.sh`](../scripts/check-duplication.sh).

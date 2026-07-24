@@ -2,12 +2,16 @@
 # Local CI preflight.
 #
 # Modes:
-#   --fast  PR/push preflight: catches the common CI failures quickly.
-#   --full  Full local mirror of the GitHub Actions gates.
+#   --fast        PR/push preflight: catches the common CI failures quickly.
+#   --full        Full local mirror of the GitHub Actions gates.
+#   --gate <name> Run one named gate. GitHub Actions uses this internal surface
+#                 so local and remote checks have one command owner.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 mode="fast"
+gate_name=""
+gate_args=()
 case "${1:-}" in
     "" | --fast)
         mode="fast"
@@ -15,9 +19,19 @@ case "${1:-}" in
     --full)
         mode="full"
         ;;
+    --gate)
+        if [[ -z "${2:-}" ]]; then
+            echo "missing gate name" >&2
+            exit 2
+        fi
+        mode="gate"
+        gate_name="$2"
+        gate_args=("${@:3}")
+        ;;
     -h | --help)
         cat <<'EOF'
 usage: ./scripts/check-ci-local.sh [--fast|--full]
+       ./scripts/check-ci-local.sh --gate <name> [gate arguments...]
 
   --fast  corpus and semantic-pack self-tests, Type-4 packet/replay checks,
           rustfmt, file-length ratchet, legacy-prelude guard, shellcheck,
@@ -25,6 +39,7 @@ usage: ./scripts/check-ci-local.sh [--fast|--full]
   --full  full local mirror of CI: format, clippy, docs, release build/tests,
           file-length ratchet, duplication, MSRV, supply-chain, docs wiki,
           formal obligation lint, and Lean proofs
+  --gate  internal named-gate surface shared with GitHub Actions
 EOF
         exit 0
         ;;
@@ -68,12 +83,12 @@ run_file_length_ratchet() {
     python3 scripts/check-file-lengths.py --self-test
 
     need_cmd git
-    if ! git rev-parse --verify origin/main >/dev/null 2>&1; then
-        echo "missing origin/main; fetch it before running the local file-length ratchet" >&2
-        echo "try: git fetch origin main" >&2
+    local ratchet_base="${1:-origin/main}"
+    if ! git rev-parse --verify "$ratchet_base" >/dev/null 2>&1; then
+        echo "missing file-length ratchet base: $ratchet_base" >&2
         exit 127
     fi
-    python3 scripts/check-file-lengths.py --ratchet-base origin/main
+    python3 scripts/check-file-lengths.py --ratchet-base "$ratchet_base"
 }
 
 run_legacy_prelude_guard() {
@@ -112,15 +127,17 @@ run_type4_executable_expectations() {
 
 run_type4_axis_language_claims() {
     need_cmd python3
+    local nose_bin="$1"
+    local ratchet_base="${2:-origin/main}"
     python3 bench/type4/coverage_probe.py \
-        --nose "${1}" \
+        --nose "$nose_bin" \
         --blind-report bench/type4/blind_attack.v1.json
-    python3 bench/type4/coverage_sweep.py --nose "${1}" --quiet
+    python3 bench/type4/coverage_sweep.py --nose "$nose_bin" --quiet
     python3 bench/type4/coverage_matrix.py matrix
     python3 bench/type4/check_axis_language_claims.py --self-test
     python3 bench/type4/check_axis_language_claims.py \
-        --nose "${1}" \
-        --ratchet-base origin/main
+        --nose "$nose_bin" \
+        --ratchet-base "$ratchet_base"
     git diff --exit-code -- \
         bench/type4/coverage_evidence.v1.json \
         bench/type4/coverage_matrix.v1.json \
@@ -155,6 +172,27 @@ run_regression_checker_selftests() {
     python3 bench/labels/default_head_heldout.py self-test
     python3 bench/labels/default_head_heldout_commitment_receipt.py validate
     python3 bench/labels/default_head_heldout_commitment_receipt.py self-test
+    python3 bench/labels/default_head_heldout_panel.py self-test
+    python3 bench/labels/default_head_heldout_vote_receipt.py validate
+    python3 bench/labels/default_head_heldout_vote_receipt.py self-test
+    python3 bench/labels/default_head_heldout_arbitration.py self-test
+    python3 bench/labels/default_head_heldout_arbitration.py validate
+    python3 bench/labels/default_head_heldout_arbitration_receipt.py validate
+    python3 bench/labels/default_head_heldout_arbitration_receipt.py self-test
+    python3 bench/labels/default_head_heldout_arbitration_result.py self-test
+    python3 bench/labels/default_head_heldout_arbitration_result.py validate-public \
+        bench/labels/default_head_heldout_arbitration_result_2026_07_14.heldout.v3.json
+    python3 bench/labels/default_head_heldout_arbitration_result_receipt.py validate
+    python3 bench/labels/default_head_heldout_arbitration_result_receipt.py self-test
+    python3 bench/labels/default_head_heldout_reveal.py self-test
+    test ! -e bench/labels/.default_head_heldout_reveal.transaction.json
+    test ! -L bench/labels/.default_head_heldout_reveal.transaction.json
+    local reveal=bench/labels/default_head_heldout_reveal_2026_07_14.heldout.v3.json
+    if [[ -e "$reveal" || -L "$reveal" ]]; then
+        python3 bench/labels/default_head_heldout_reveal.py validate
+        python3 bench/labels/default_head_heldout_reveal_receipt.py validate
+        python3 bench/labels/default_head_heldout_reveal_receipt.py self-test
+    fi
     python3 bench/labels/proof_actionability_no_go.py --self-test
     python3 bench/labels/residual_ranking.py validate
     python3 bench/labels/residual_ranking.py self-test
@@ -200,6 +238,11 @@ run_regression_checker_selftests() {
         bench/cache/issue-872-v0.19.0-vs-candidate-sympy-paired-2026-07-20.v1.json
     python3 scripts/cache-query-regression.py --validate-report \
         bench/cache/issue-873-portable-cas-sympy-paired-2026-07-20.v1.json
+    python3 scripts/watch-session-benchmark.py --self-test
+    python3 scripts/watch-session-benchmark.py --validate-report \
+        bench/cache/issue-878-watch-session-2026-07-21.v1.json
+    python3 scripts/check-release-evidence-0.20.0.py --self-test
+    python3 scripts/check-release-evidence-0.20.0.py
     python3 scripts/ruby-redefinition-scaling.py --self-test
     python3 scripts/semantic-regression-summary.py --self-test
     python3 scripts/recall-loss-diff.py --self-test
@@ -207,6 +250,8 @@ run_regression_checker_selftests() {
     python3 scripts/check-recall-loss-baselines.py --self-test
     python3 scripts/check-soundness-scorecard.py --self-test
     python3 scripts/check-soundness-scorecard.py
+    python3 scripts/soundness-lab-gate.py self-test
+    python3 scripts/soundness-lab-gate.py check
     python3 scripts/soundness_exclusions.py --self-test
     python3 scripts/soundness_exclusions.py
 }
@@ -312,124 +357,250 @@ run_msrv_check() {
     cargo "+${msrv}" check --workspace --all-targets
 }
 
+run_semantic_pack_example_conformance() {
+    local nose_bin="$1"
+    "$nose_bin" semantic-pack check \
+        docs/examples/semantic-packs/v0 \
+        docs/examples/semantic-packs/v1 \
+        --format json
+    "$nose_bin" semantic-pack status \
+        docs/examples/semantic-pack-lock-v1.json \
+        --format json
+}
+
+run_coverage_gate() {
+    need_cmd cargo
+    need_cmd cargo-llvm-cov "install it with: cargo install cargo-llvm-cov"
+    source scripts/coverage-threshold.env
+    cargo llvm-cov \
+        --workspace \
+        --summary-only \
+        --fail-under-lines "${NOSE_COVERAGE_FAIL_UNDER_LINES}"
+}
+
+run_supply_chain_checks() {
+    need_cmd cargo-machete "install it with: cargo install cargo-machete"
+    need_cmd cargo-deny "install it with: cargo install cargo-deny"
+    cargo machete
+    cargo deny check
+}
+
+run_named_gate() {
+    local name="$1"
+    shift
+    case "$name" in
+        corpus-prune-selftest)
+            need_cmd python3
+            python3 bench/prune_corpus.py --self-test
+            ;;
+        corpus-verify-selftest)
+            ./scripts/corpus-verify-nightly.sh --self-test
+            ;;
+        semantic-pack-pricing)
+            run_semantic_pack_pricing_selftest
+            ;;
+        type4-frontier)
+            run_type4_frontier_evidence_checks
+            ;;
+        regression-selftests)
+            run_regression_checker_selftests
+            ;;
+        missed-worthy-frontier)
+            run_missed_worthy_frontier_checks
+            ;;
+        accepted-pair-coverage)
+            run_accepted_pair_coverage_checks
+            ;;
+        cargo-target-prune-selftest)
+            ./scripts/prune-cargo-target.sh --self-test
+            ;;
+        shell-lint)
+            run_shell_script_lint
+            ;;
+        format)
+            need_cmd cargo
+            cargo fmt --all --check
+            ;;
+        file-length)
+            run_file_length_ratchet "${1:-origin/main}"
+            ;;
+        legacy-prelude)
+            run_legacy_prelude_guard
+            ;;
+        clippy)
+            need_cmd cargo
+            cargo clippy --all-targets --all-features -- -D warnings
+            ;;
+        doc)
+            need_cmd cargo
+            RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --workspace --quiet
+            ;;
+        build-debug-cli)
+            need_cmd cargo
+            cargo build -p nose-cli
+            ;;
+        build-release)
+            need_cmd cargo
+            cargo build --release
+            ;;
+        test-debug-cli)
+            need_cmd cargo
+            cargo test -p nose-cli
+            ;;
+        test-release)
+            need_cmd cargo
+            cargo test --release
+            ;;
+        product-query-schema)
+            run_product_query_schema_live_check "$1"
+            ;;
+        semantic-pack-examples)
+            run_semantic_pack_example_conformance "$1"
+            ;;
+        type4-executable)
+            run_type4_executable_expectations "$1"
+            ;;
+        type4-axis-language)
+            run_type4_axis_language_claims "$1" "${2:-origin/main}"
+            ;;
+        coverage)
+            run_coverage_gate
+            ;;
+        duplication)
+            ./scripts/check-duplication.sh
+            ;;
+        msrv)
+            run_msrv_check
+            ;;
+        supply-chain)
+            run_supply_chain_checks
+            ;;
+        docs)
+            run_docs_wiki_lint
+            ;;
+        formal-obligations)
+            run_formal_obligations_lint
+            ;;
+        formal-lean)
+            run_formal_lean
+            ;;
+        *)
+            echo "unknown CI gate: $name" >&2
+            exit 2
+            ;;
+    esac
+}
+
+if [[ "$mode" == "gate" ]]; then
+    run_named_gate "$gate_name" "${gate_args[@]}"
+    exit 0
+fi
+
 need_cmd cargo
 source scripts/coverage-threshold.env
 
 step "corpus prune self-test"
-need_cmd python3
-python3 bench/prune_corpus.py --self-test
+run_named_gate corpus-prune-selftest
 
 step "corpus verify runner self-test"
-./scripts/corpus-verify-nightly.sh --self-test
+run_named_gate corpus-verify-selftest
 
 step "semantic-pack pricing self-test"
-run_semantic_pack_pricing_selftest
+run_named_gate semantic-pack-pricing
 
 step "Type-4 frontier evidence checks"
-run_type4_frontier_evidence_checks
+run_named_gate type4-frontier
 
 step "regression checker self-tests"
-run_regression_checker_selftests
+run_named_gate regression-selftests
 
 step "current missed-worthy frontier artifacts"
-run_missed_worthy_frontier_checks
+run_named_gate missed-worthy-frontier
 
 step "current accepted-pair coverage artifacts"
-run_accepted_pair_coverage_checks
+run_named_gate accepted-pair-coverage
 
 step "Cargo target prune self-test"
-./scripts/prune-cargo-target.sh --self-test
+run_named_gate cargo-target-prune-selftest
 
 step "shell scripts (shellcheck)"
-run_shell_script_lint
+run_named_gate shell-lint
 
 step "rustfmt (formatting)"
-cargo fmt --all --check
+run_named_gate format
 
 step "Rust file-length ratchet"
-run_file_length_ratchet
+run_named_gate file-length origin/main
 
 step "CLI legacy-prelude guard"
-run_legacy_prelude_guard
+run_named_gate legacy-prelude
 
 step "clippy (lints, -D warnings)"
-cargo clippy --all-targets --all-features -- -D warnings
+run_named_gate clippy
 
 if [[ "$mode" == "fast" ]]; then
     step "nose-cli tests"
-    cargo test -p nose-cli
+    run_named_gate test-debug-cli
 
     step "product query JSON schema"
-    cargo build -p nose-cli
-    run_product_query_schema_live_check target/debug/nose
+    run_named_gate build-debug-cli
+    run_named_gate product-query-schema target/debug/nose
 
     step "Type-4 executable focused expectations"
-    run_type4_executable_expectations target/debug/nose
+    run_named_gate type4-executable target/debug/nose
 
     step "Type-4 axis-language claim perimeter"
-    run_type4_axis_language_claims target/debug/nose
+    run_named_gate type4-axis-language target/debug/nose origin/main
 
     step "docs wiki connectivity (awiki)"
-    run_docs_wiki_lint
+    run_named_gate docs
 
     printf '\n\033[1;32mFast local CI gates passed.\033[0m\n'
     exit 0
 fi
 
 step "doc (rustdoc warnings)"
-RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --workspace --quiet
+run_named_gate doc
 
 step "build (release)"
-cargo build --release
+run_named_gate build-release
 
 step "product query JSON schema"
-run_product_query_schema_live_check target/release/nose
+run_named_gate product-query-schema target/release/nose
 
 step "semantic-pack example conformance"
-target/release/nose semantic-pack check \
-  docs/examples/semantic-packs/v0 \
-  docs/examples/semantic-packs/v1 \
-  --format json
-target/release/nose semantic-pack status \
-  docs/examples/semantic-pack-lock-v1.json \
-  --format json
+run_named_gate semantic-pack-examples target/release/nose
 
 step "Type-4 executable focused expectations"
-run_type4_executable_expectations target/release/nose
+run_named_gate type4-executable target/release/nose
 
 step "Type-4 axis-language claim perimeter"
-run_type4_axis_language_claims target/release/nose
+run_named_gate type4-axis-language target/release/nose origin/main
 
 step "test (release)"
-cargo test --release
+run_named_gate test-release
 
 # CI runs the same coverage ratchet before PR merge and before release publishing.
 # Keep it here so --full stays a complete local mirror.
 step "coverage gate (cargo-llvm-cov, >= ${NOSE_COVERAGE_FAIL_UNDER_LINES}% lines)"
-need_cmd cargo-llvm-cov "install it with: cargo install cargo-llvm-cov"
-cargo llvm-cov --workspace --summary-only --fail-under-lines "${NOSE_COVERAGE_FAIL_UNDER_LINES}"
+run_named_gate coverage
 
 step "duplication gate (nose on itself)"
-./scripts/check-duplication.sh
+run_named_gate duplication
 
 step "MSRV (minimum supported rust version)"
-run_msrv_check
+run_named_gate msrv
 
-step "cargo-machete (unused dependencies)"
-need_cmd cargo-machete "install it with: cargo install cargo-machete"
-cargo machete
-
-step "cargo-deny (advisories / licenses / bans / sources)"
-need_cmd cargo-deny "install it with: cargo install cargo-deny"
-cargo deny check
+step "supply chain (unused dependencies / advisories / licenses)"
+run_named_gate supply-chain
 
 step "docs wiki connectivity (awiki)"
-run_docs_wiki_lint
+run_named_gate docs
 
 step "formal obligation registry"
-run_formal_obligations_lint
+run_named_gate formal-obligations
 
 step "Lean proofs (formal soundness)"
-run_formal_lean
+run_named_gate formal-lean
 
 printf '\n\033[1;32mFull local CI gates passed.\033[0m\n'
