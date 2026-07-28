@@ -1423,3 +1423,15 @@ matcher family moves from `95e83331abfa623f` to `6f76ca34bf54735e` with the
 same two functions and 18 shared lines, while the typed request refactor
 reduces its reported duplicate span from 81 to 66 lines. No new family or
 avoidable duplication is accepted, so the budget remains 29.
+
+The final post-v0.20 quality follow-up also keeps the reviewed count at 29.
+Collapsing Java type resolution to the single policy supported by library API
+contracts moves the same three representatives again. The method-receiver
+policy-table family moves from `0b51b6310b2f7504` to `faaaa56b67e0870a`, and
+the four-member Java map factory projection family moves from
+`9cc68991edd9e364` to `8d25d95857065748`; both retain identical members and
+metrics. The callee-dependency matcher family moves from `6f76ca34bf54735e` to
+`6ea43f3112542ece` with the same two functions, 66 duplicate lines, 18 shared
+lines, and value 48.114. Removing the unused policy branches reduces only its
+mean semantic size from 89 to 85. No new family or avoidable duplication is
+accepted, so the budget remains 29.
