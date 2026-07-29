@@ -103,6 +103,12 @@ outer plan is sequential. Set
 Each worker writes only to its own temporary log or the self-test's own
 temporary directory; output is replayed in declaration order.
 
+The serial phase validates the residual-ranking artifact chain once through the
+aggregate default-head closeout. That closeout rebuilds the calibration, top-up
+selection, blind panel, arbitration, decisions, label component, and residual
+closeout, so the local plan does not repeat their focused validation commands
+before running the same aggregate check.
+
 ## Worktree effects
 
 Most gates are `read-only`: build/test output is confined to ignored caches such

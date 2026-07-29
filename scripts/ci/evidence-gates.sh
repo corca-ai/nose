@@ -148,16 +148,12 @@ run_default_head_evidence_checks() {
         python3 bench/labels/default_head_heldout_reveal_receipt.py self-test
     fi
     python3 bench/labels/proof_actionability_no_go.py --self-test
-    python3 bench/labels/residual_ranking.py validate
-    python3 bench/labels/residual_ranking_topup.py validate
-    python3 bench/labels/residual_ranking_panel.py validate-arbitration
-    python3 bench/labels/residual_ranking_panel.py validate-decisions
-    python3 bench/labels/residual_ranking_panel.py validate-component
-    python3 bench/labels/residual_ranking_closeout.py validate
     python3 bench/labels/default_head_fresh_repository_audit.py
     python3 bench/labels/default_head_fresh_repository_audit.py --self-test
     python3 bench/labels/default_head_measurement_replay.py validate
     python3 bench/labels/default_head_measurement_replay.py self-test
+    # This aggregate rebuilds and validates the complete residual ranking,
+    # top-up selection, panel, arbitration, decision, component, and closeout chain.
     python3 bench/labels/default_head_closeout.py
     run_bounded_evidence_checks "${NOSE_DEFAULT_HEAD_JOBS:-3}" \
         run_default_head_residual_ranking_selftest \
