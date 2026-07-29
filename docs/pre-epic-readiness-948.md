@@ -150,6 +150,16 @@ with zero failures and zero worktree drift. The four evidence gates total
 237.326 seconds in the clean local sequence, while their longest independent
 job is the 213.988-second default-head gate.
 
+A later cache-isolation follow-up at source commit `9481f3ec` removed the
+duplicate frontier-platform corpus check from the docs gate while retaining it
+under `type4-frontier`, and moved MSRV artifacts to `target/msrv/`. Its checked
+receipt records clean fast at 412.252 seconds, clean full at 382.548 seconds,
+and no-change fast at 364.204 seconds, again with complete gates, no failures,
+and no worktree drift. The docs gate fell from 45.948 to 0.583 seconds; the
+warm isolated MSRV gate fell from 224.451 to 0.170 seconds, while a focused
+empty-cache MSRV run took 17.343 seconds. The next measured bottleneck is
+`default-head-evidence` at 214.754 seconds on clean fast.
+
 The 599-line `crates/nose-cli/tests/cli/support.rs` test helper is now a
 13-line façade over focused `fixtures.rs` (210 lines), `process.rs` (149
 lines), and `query.rs` (245 lines). Existing `support::*` call sites remain

@@ -152,6 +152,11 @@ can be checked without rewriting them:
 python3 bench/type4/frontier_platform.py --check
 ```
 
+The repository policy owner for this check is the `type4-frontier` gate. The
+documentation gate validates the wiki, executable examples, and its other
+documentation-owned generated surfaces without repeating the corpus-backed
+frontier check.
+
 ## Proof-carrying admission
 
 Target packets are necessary but not sufficient to open exact semantic behavior.

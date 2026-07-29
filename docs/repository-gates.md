@@ -76,9 +76,12 @@ large evidence batch with a misleading error.
 ## Worktree effects
 
 Most gates are `read-only`: build/test output is confined to ignored caches such
-as `target/`. A `verify-checked-output` gate may deterministically regenerate a
-tracked receipt or evidence file, but it must compare that output and leave the
-worktree unchanged when the checked artifact is current.
+as `target/`. The MSRV gate uses `target/msrv/` so switching compilers does not
+invalidate the stable toolchain's incremental artifacts; set
+`NOSE_MSRV_TARGET_DIR` only when a different isolated cache location is needed.
+A `verify-checked-output` gate may deterministically regenerate a tracked receipt
+or evidence file, but it must compare that output and leave the worktree
+unchanged when the checked artifact is current.
 
 The timing harness fingerprints the complete tracked/untracked status before
 and after every gate. A successful gate that changes the worktree makes the
@@ -126,36 +129,38 @@ tracked path would make the later `evidence-artifacts` gate observe inventory
 drift. After installation, refresh that inventory digest and run the artifact
 lifecycle validator.
 
-### Recorded post-readiness follow-up
+### Recorded cache-isolation follow-up
 
-The receipt recorded at `1bfce491` uses arm64 macOS, Python 3.14.6, and
-Rust/Cargo 1.96.0. It covers all 33 registered gates:
+The current receipt records source commit `9481f3ec` on arm64 macOS with Python
+3.14.6 and Rust/Cargo 1.96.0. It covers all 33 registered gates:
 
 | Profile | Plan | Gates | Wall time | Failures | Worktree drift |
 |---|---|---:|---:|---:|---:|
-| clean-tree | fast | 23/23 | 458.469 s | 0 | 0 |
-| clean-tree | full | 31/31 | 621.739 s | 0 | 0 |
-| no-change | fast | 23/23 | 460.272 s | 0 | 0 |
+| clean-tree | fast | 23/23 | 412.252 s | 0 | 0 |
+| clean-tree | full | 31/31 | 382.548 s | 0 | 0 |
+| no-change | fast | 23/23 | 364.204 s | 0 | 0 |
 
-The former aggregate regression check is now four named gates. On the clean
-fast run, `default-head-evidence` took 213.988 seconds,
-`runtime-soundness-evidence` 18.042 seconds, `divergence-evidence` 3.230
-seconds, and `surface-recall-evidence` 2.066 seconds. Their local sequential
-sum is 237.326 seconds; dedicated hosted jobs can overlap them, with the
-213.988-second default-head job as the measured lower bound before runner setup
-and scheduling overhead. The full plan's leading costs are `msrv` (224.451
-seconds), `default-head-evidence` (213.403 seconds), `docs` (45.727 seconds),
-`type4-frontier` (44.923 seconds), and `coverage` (40.921 seconds).
+Compared with the preceding `1bfce491` receipt, clean fast is 46.217 seconds
+(10.1%) faster and clean full is 239.191 seconds (38.5%) faster. The docs gate
+no longer repeats the corpus-backed frontier-platform check owned by
+`type4-frontier`; its clean fast time fell from 45.948 to 0.583 seconds while
+`type4-frontier` still passed in 45.670 seconds. The MSRV gate now writes to the
+isolated `target/msrv/` cache. With that cache already warm, its clean full time
+fell from 224.451 to 0.170 seconds without invalidating stable-toolchain
+artifacts. A focused empty-cache MSRV run took 17.343 seconds; the warm result
+is not a cold-bootstrap claim.
 
-The timing does not identify a duplicated policy command that can be removed:
-the long gates qualify distinct product, regression, release, or compiler
-contracts. Registry validation, artifact validation, formatting, shell lint,
-and file-length policy are all sub-second on the recorded machine, so moving
-them out of fast feedback would save little while delaying actionable failures.
+The dominant remaining clean-fast costs are `default-head-evidence` (214.754
+seconds), `test-debug-cli` (96.670 seconds), `type4-frontier` (45.670 seconds),
+and `runtime-soundness-evidence` (18.058 seconds). Registry validation,
+artifact validation, formatting, shell lint, and file-length policy remain
+sub-second or low-single-digit work, so removing them from fast feedback would
+save little while delaying actionable failures.
 
 Use measurements to find duplicated setup or a gate assigned to the wrong lane.
 Do not remove validation or move release/soundness qualification to a faster
 lane merely to improve the aggregate time.
 
-The original 30-gate #949 measurement remains in the
+The preceding 33-gate `1bfce491` result and the original 30-gate #949
+measurement remain in the
 [pre-epic readiness record](pre-epic-readiness-948.md) as historical evidence.
