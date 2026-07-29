@@ -196,6 +196,21 @@ artifact validation, formatting, shell lint, and file-length policy remain
 sub-second or low-single-digit work, so removing them from fast feedback would
 save little while delaying actionable failures.
 
+### Recorded parallel-planning follow-up
+
+At source commit `b8db7fda`, a focused three-worker
+`default-head-evidence` run on the same arm64 macOS environment took 143.550
+seconds and passed without worktree drift. That is 71.204 seconds (33.2%) below
+the preceding receipt's 214.754-second serial result. The five independent
+mutation self-tests account for the change; all artifact validation remains
+serial and runs before the worker pool.
+
+No aggregate `--jobs 2` wall-time claim is recorded for this follow-up. During
+measurement, macOS policy inspection delayed each locally built Rust test
+binary independently of the planner, making the result non-representative.
+Planner behavior is covered by its scheduling and real-dispatch self-tests;
+the complete gate results are qualified by the hosted CI lanes.
+
 Use measurements to find duplicated setup or a gate assigned to the wrong lane.
 Do not remove validation or move release/soundness qualification to a faster
 lane merely to improve the aggregate time.
