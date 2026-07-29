@@ -1,7 +1,7 @@
 //! End-to-end CLI tests: run the built `nose` binary against temp projects and
 //! check user-visible behavior.
 
-#[path = "cli/support.rs"]
+#[path = "cli/support/mod.rs"]
 mod support;
 
 pub(crate) use support::*;

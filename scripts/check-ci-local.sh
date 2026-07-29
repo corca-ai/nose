@@ -286,8 +286,17 @@ run_named_gate() {
         type4-frontier)
             run_type4_frontier_evidence_checks
             ;;
-        regression-selftests)
-            run_regression_checker_selftests
+        default-head-evidence)
+            run_default_head_evidence_checks
+            ;;
+        divergence-evidence)
+            run_divergence_evidence_checks
+            ;;
+        surface-recall-evidence)
+            run_surface_and_recall_evidence_checks
+            ;;
+        runtime-soundness-evidence)
+            run_runtime_and_soundness_evidence_checks
             ;;
         evidence-artifacts)
             run_evidence_artifact_lifecycle
