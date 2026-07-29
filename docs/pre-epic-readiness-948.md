@@ -160,6 +160,17 @@ warm isolated MSRV gate fell from 224.451 to 0.170 seconds, while a focused
 empty-cache MSRV run took 17.343 seconds. The next measured bottleneck is
 `default-head-evidence` at 214.754 seconds on clean fast.
 
+A parallel-planning follow-up at source commit `b8db7fda` moved the five
+independent default-head mutation self-tests behind a bounded three-worker pool.
+A focused run passed in 143.550 seconds, 71.204 seconds (33.2%) below the
+preceding 214.754-second serial result. Local fast/full plans remain sequential
+by default; `--jobs N` opts into the registry planner, whose declared
+dependencies, parallel-safety barriers, and resource groups prevent build
+consumers and shared-output owners from colliding. Aggregate local timing was
+not recorded because macOS policy inspection independently delayed locally
+built Rust test binaries during the measurement; hosted CI owns the complete
+gate qualification.
+
 The 599-line `crates/nose-cli/tests/cli/support.rs` test helper is now a
 13-line façade over focused `fixtures.rs` (210 lines), `process.rs` (149
 lines), and `query.rs` (245 lines). Existing `support::*` call sites remain

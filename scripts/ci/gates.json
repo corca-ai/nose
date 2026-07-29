@@ -1,5 +1,5 @@
 {
-  "schema": "nose.ci-gates.v1",
+  "schema": "nose.ci-gates.v2",
   "lanes": {
     "local-fast": "Common pre-push feedback with debug product-contract checks.",
     "local-full": "Complete local mirror of repository quality policy.",
@@ -17,12 +17,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Cheap mutation self-test for the pinned-corpus selection boundary.",
       "focused_command": "./scripts/check-ci-local.sh --gate corpus-prune-selftest",
       "plans": {
-        "fast": {"order": 10, "label": "corpus prune self-test", "args": []},
-        "full": {"order": 10, "label": "corpus prune self-test", "args": []}
+        "fast": {"order": 10, "label": "corpus prune self-test", "args": [], "depends_on": []},
+        "full": {"order": 10, "label": "corpus prune self-test", "args": [], "depends_on": []}
       }
     },
     {
@@ -34,12 +36,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Tests nightly orchestration without checking out or executing the corpus.",
       "focused_command": "./scripts/check-ci-local.sh --gate corpus-verify-selftest",
       "plans": {
-        "fast": {"order": 20, "label": "corpus verify runner self-test", "args": []},
-        "full": {"order": 20, "label": "corpus verify runner self-test", "args": []}
+        "fast": {"order": 20, "label": "corpus verify runner self-test", "args": [], "depends_on": []},
+        "full": {"order": 20, "label": "corpus verify runner self-test", "args": [], "depends_on": []}
       }
     },
     {
@@ -51,12 +55,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Keeps checked semantic-pack pricing evidence reproducible on every change.",
       "focused_command": "./scripts/check-ci-local.sh --gate semantic-pack-pricing",
       "plans": {
-        "fast": {"order": 30, "label": "semantic-pack pricing self-test", "args": []},
-        "full": {"order": 30, "label": "semantic-pack pricing self-test", "args": []}
+        "fast": {"order": 30, "label": "semantic-pack pricing self-test", "args": [], "depends_on": []},
+        "full": {"order": 30, "label": "semantic-pack pricing self-test", "args": [], "depends_on": []}
       }
     },
     {
@@ -68,12 +74,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": "type4-evidence",
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Validates proof-carrying frontier packets and generators before product tests.",
       "focused_command": "./scripts/check-ci-local.sh --gate type4-frontier",
       "plans": {
-        "fast": {"order": 40, "label": "Type-4 frontier evidence checks", "args": []},
-        "full": {"order": 40, "label": "Type-4 frontier evidence checks", "args": []}
+        "fast": {"order": 40, "label": "Type-4 frontier evidence checks", "args": [], "depends_on": []},
+        "full": {"order": 40, "label": "Type-4 frontier evidence checks", "args": [], "depends_on": []}
       }
     },
     {
@@ -85,12 +93,14 @@
       "worktree_effect": "verify-checked-output",
       "outputs": ["bench/labels/"],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": "labels-evidence",
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Mutation-tests and validates the checked default-head label, reveal, calibration, and closeout chain.",
       "focused_command": "./scripts/check-ci-local.sh --gate default-head-evidence",
       "plans": {
-        "fast": {"order": 50, "label": "default-head evidence checks", "args": []},
-        "full": {"order": 50, "label": "default-head evidence checks", "args": []}
+        "fast": {"order": 50, "label": "default-head evidence checks", "args": [], "depends_on": []},
+        "full": {"order": 50, "label": "default-head evidence checks", "args": [], "depends_on": []}
       }
     },
     {
@@ -102,12 +112,14 @@
       "worktree_effect": "verify-checked-output",
       "outputs": ["eval/divergence_fire/"],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Replays and validates the checked divergence-fire precision protocol and receipt.",
       "focused_command": "./scripts/check-ci-local.sh --gate divergence-evidence",
       "plans": {
-        "fast": {"order": 51, "label": "divergence evidence checks", "args": []},
-        "full": {"order": 51, "label": "divergence evidence checks", "args": []}
+        "fast": {"order": 51, "label": "divergence evidence checks", "args": [], "depends_on": []},
+        "full": {"order": 51, "label": "divergence evidence checks", "args": [], "depends_on": []}
       }
     },
     {
@@ -119,12 +131,14 @@
       "worktree_effect": "verify-checked-output",
       "outputs": ["bench/labels/"],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": "labels-evidence",
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Mutation-tests generated-surface contracts and the recall-frontier evidence helpers.",
       "focused_command": "./scripts/check-ci-local.sh --gate surface-recall-evidence",
       "plans": {
-        "fast": {"order": 52, "label": "generated surface and recall evidence checks", "args": []},
-        "full": {"order": 52, "label": "generated surface and recall evidence checks", "args": []}
+        "fast": {"order": 52, "label": "generated surface and recall evidence checks", "args": [], "depends_on": []},
+        "full": {"order": 52, "label": "generated surface and recall evidence checks", "args": [], "depends_on": []}
       }
     },
     {
@@ -136,12 +150,14 @@
       "worktree_effect": "verify-checked-output",
       "outputs": ["bench/cache/", "bench/release/", "bench/soundness/"],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Mutation-tests and validates checked runtime, cache, release, and soundness receipts.",
       "focused_command": "./scripts/check-ci-local.sh --gate runtime-soundness-evidence",
       "plans": {
-        "fast": {"order": 53, "label": "runtime and soundness evidence checks", "args": []},
-        "full": {"order": 53, "label": "runtime and soundness evidence checks", "args": []}
+        "fast": {"order": 53, "label": "runtime and soundness evidence checks", "args": [], "depends_on": []},
+        "full": {"order": 53, "label": "runtime and soundness evidence checks", "args": [], "depends_on": []}
       }
     },
     {
@@ -153,12 +169,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": false,
+      "resource_group": null,
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Fail-closes ownership coverage, large-file identity, retention, and receipt/seal/baseline bindings.",
       "focused_command": "./scripts/check-ci-local.sh --gate evidence-artifacts",
       "plans": {
-        "fast": {"order": 55, "label": "evidence artifact lifecycle", "args": []},
-        "full": {"order": 55, "label": "evidence artifact lifecycle", "args": []}
+        "fast": {"order": 55, "label": "evidence artifact lifecycle", "args": [], "depends_on": []},
+        "full": {"order": 55, "label": "evidence artifact lifecycle", "args": [], "depends_on": []}
       }
     },
     {
@@ -170,12 +188,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": "labels-evidence",
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Fail-closes the checked recall-frontier decision chain.",
       "focused_command": "./scripts/check-ci-local.sh --gate missed-worthy-frontier",
       "plans": {
-        "fast": {"order": 60, "label": "current missed-worthy frontier artifacts", "args": []},
-        "full": {"order": 60, "label": "current missed-worthy frontier artifacts", "args": []}
+        "fast": {"order": 60, "label": "current missed-worthy frontier artifacts", "args": [], "depends_on": []},
+        "full": {"order": 60, "label": "current missed-worthy frontier artifacts", "args": [], "depends_on": []}
       }
     },
     {
@@ -187,12 +207,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": "labels-evidence",
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Validates accepted-edge coverage and its runtime/output price.",
       "focused_command": "./scripts/check-ci-local.sh --gate accepted-pair-coverage",
       "plans": {
-        "fast": {"order": 70, "label": "current accepted-pair coverage artifacts", "args": []},
-        "full": {"order": 70, "label": "current accepted-pair coverage artifacts", "args": []}
+        "fast": {"order": 70, "label": "current accepted-pair coverage artifacts", "args": [], "depends_on": []},
+        "full": {"order": 70, "label": "current accepted-pair coverage artifacts", "args": [], "depends_on": []}
       }
     },
     {
@@ -204,12 +226,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "temporary-directory",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Protects the pre-push target-pruning helper with a cheap isolated self-test.",
       "focused_command": "./scripts/check-ci-local.sh --gate cargo-target-prune-selftest",
       "plans": {
-        "fast": {"order": 80, "label": "Cargo target prune self-test", "args": []},
-        "full": {"order": 80, "label": "Cargo target prune self-test", "args": []}
+        "fast": {"order": 80, "label": "Cargo target prune self-test", "args": [], "depends_on": []},
+        "full": {"order": 80, "label": "Cargo target prune self-test", "args": [], "depends_on": []}
       }
     },
     {
@@ -221,12 +245,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Cheap syntax and portability feedback for executable repository tooling.",
       "focused_command": "./scripts/check-ci-local.sh --gate shell-lint",
       "plans": {
-        "fast": {"order": 90, "label": "shell scripts (shellcheck)", "args": []},
-        "full": {"order": 90, "label": "shell scripts (shellcheck)", "args": []}
+        "fast": {"order": 90, "label": "shell scripts (shellcheck)", "args": [], "depends_on": []},
+        "full": {"order": 90, "label": "shell scripts (shellcheck)", "args": [], "depends_on": []}
       }
     },
     {
@@ -238,12 +264,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Fast canonical formatting check.",
       "focused_command": "./scripts/check-ci-local.sh --gate format",
       "plans": {
-        "fast": {"order": 100, "label": "rustfmt (formatting)", "args": []},
-        "full": {"order": 100, "label": "rustfmt (formatting)", "args": []}
+        "fast": {"order": 100, "label": "rustfmt (formatting)", "args": [], "depends_on": []},
+        "full": {"order": 100, "label": "rustfmt (formatting)", "args": [], "depends_on": []}
       }
     },
     {
@@ -255,12 +283,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Cheap no-loosening check for module ownership pressure.",
       "focused_command": "./scripts/check-ci-local.sh --gate file-length <base-ref>",
       "plans": {
-        "fast": {"order": 110, "label": "Rust file-length ratchet", "args": ["origin/main"]},
-        "full": {"order": 110, "label": "Rust file-length ratchet", "args": ["origin/main"]}
+        "fast": {"order": 110, "label": "Rust file-length ratchet", "args": ["origin/main"], "depends_on": []},
+        "full": {"order": 110, "label": "Rust file-length ratchet", "args": ["origin/main"], "depends_on": []}
       }
     },
     {
@@ -272,12 +302,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Prevents reintroduction of the retired ambient CLI prelude.",
       "focused_command": "./scripts/check-ci-local.sh --gate legacy-prelude",
       "plans": {
-        "fast": {"order": 120, "label": "CLI legacy-prelude guard", "args": []},
-        "full": {"order": 120, "label": "CLI legacy-prelude guard", "args": []}
+        "fast": {"order": 120, "label": "CLI legacy-prelude guard", "args": [], "depends_on": []},
+        "full": {"order": 120, "label": "CLI legacy-prelude guard", "args": [], "depends_on": []}
       }
     },
     {
@@ -289,12 +321,14 @@
       "worktree_effect": "read-only",
       "outputs": ["target/"],
       "cache": "cargo",
+      "parallel_safe": true,
+      "resource_group": "cargo-stable",
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "High-value compiler feedback required before push and merge.",
       "focused_command": "./scripts/check-ci-local.sh --gate clippy",
       "plans": {
-        "fast": {"order": 130, "label": "clippy (lints, -D warnings)", "args": []},
-        "full": {"order": 130, "label": "clippy (lints, -D warnings)", "args": []}
+        "fast": {"order": 130, "label": "clippy (lints, -D warnings)", "args": [], "depends_on": []},
+        "full": {"order": 130, "label": "clippy (lints, -D warnings)", "args": [], "depends_on": []}
       }
     },
     {
@@ -306,11 +340,13 @@
       "worktree_effect": "read-only",
       "outputs": ["target/doc/"],
       "cache": "cargo",
+      "parallel_safe": true,
+      "resource_group": "cargo-stable",
       "lanes": ["local-full", "pull-request", "release"],
       "lane_reason": "Full/merge gate for Rust documentation links and warnings.",
       "focused_command": "./scripts/check-ci-local.sh --gate doc",
       "plans": {
-        "full": {"order": 140, "label": "doc (rustdoc warnings)", "args": []}
+        "full": {"order": 140, "label": "doc (rustdoc warnings)", "args": [], "depends_on": []}
       }
     },
     {
@@ -322,11 +358,13 @@
       "worktree_effect": "read-only",
       "outputs": ["target/debug/nose"],
       "cache": "cargo",
+      "parallel_safe": true,
+      "resource_group": "cargo-stable",
       "lanes": ["local-fast"],
       "lane_reason": "Builds the debug binary used by fast live product-contract checks.",
       "focused_command": "./scripts/check-ci-local.sh --gate build-debug-cli",
       "plans": {
-        "fast": {"order": 150, "label": "build debug CLI", "args": []}
+        "fast": {"order": 150, "label": "build debug CLI", "args": [], "depends_on": []}
       }
     },
     {
@@ -338,11 +376,13 @@
       "worktree_effect": "read-only",
       "outputs": ["target/release/nose"],
       "cache": "cargo",
+      "parallel_safe": true,
+      "resource_group": "cargo-stable",
       "lanes": ["local-full", "pull-request", "release"],
       "lane_reason": "Produces the optimized binary used by full product-contract gates.",
       "focused_command": "./scripts/check-ci-local.sh --gate build-release",
       "plans": {
-        "full": {"order": 150, "label": "build (release)", "args": []}
+        "full": {"order": 150, "label": "build (release)", "args": [], "depends_on": []}
       }
     },
     {
@@ -354,11 +394,13 @@
       "worktree_effect": "read-only",
       "outputs": ["target/debug/"],
       "cache": "cargo",
+      "parallel_safe": true,
+      "resource_group": "cargo-stable",
       "lanes": ["local-fast"],
       "lane_reason": "Representative no-optimization test feedback for pre-push use.",
       "focused_command": "./scripts/check-ci-local.sh --gate test-debug-cli",
       "plans": {
-        "fast": {"order": 140, "label": "nose-cli tests", "args": []}
+        "fast": {"order": 140, "label": "nose-cli tests", "args": [], "depends_on": []}
       }
     },
     {
@@ -370,11 +412,13 @@
       "worktree_effect": "read-only",
       "outputs": ["target/release/"],
       "cache": "cargo",
+      "parallel_safe": true,
+      "resource_group": "cargo-stable",
       "lanes": ["local-full", "pull-request", "release"],
       "lane_reason": "Complete optimized workspace test suite before merge and release.",
       "focused_command": "./scripts/check-ci-local.sh --gate test-release",
       "plans": {
-        "full": {"order": 200, "label": "test (release)", "args": []}
+        "full": {"order": 200, "label": "test (release)", "args": [], "depends_on": ["build-release"]}
       }
     },
     {
@@ -386,12 +430,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Executes the versioned machine contract against the just-built binary.",
       "focused_command": "./scripts/check-ci-local.sh --gate product-query-schema <nose-bin>",
       "plans": {
-        "fast": {"order": 160, "label": "product query JSON schema", "args": ["target/debug/nose"]},
-        "full": {"order": 160, "label": "product query JSON schema", "args": ["target/release/nose"]}
+        "fast": {"order": 160, "label": "product query JSON schema", "args": ["target/debug/nose"], "depends_on": ["build-debug-cli"]},
+        "full": {"order": 160, "label": "product query JSON schema", "args": ["target/release/nose"], "depends_on": ["build-release"]}
       }
     },
     {
@@ -403,11 +449,13 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-full", "pull-request", "release"],
       "lane_reason": "Full/merge executable check for published semantic-pack examples.",
       "focused_command": "./scripts/check-ci-local.sh --gate semantic-pack-examples <nose-bin>",
       "plans": {
-        "full": {"order": 170, "label": "semantic-pack example conformance", "args": ["target/release/nose"]}
+        "full": {"order": 170, "label": "semantic-pack example conformance", "args": ["target/release/nose"], "depends_on": ["build-release"]}
       }
     },
     {
@@ -419,12 +467,14 @@
       "worktree_effect": "verify-checked-output",
       "outputs": ["bench/type4/executable_expectations.v1.json"],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": "type4-evidence",
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Runs focused executable convergence checks and verifies the checked receipt.",
       "focused_command": "./scripts/check-ci-local.sh --gate type4-executable <nose-bin>",
       "plans": {
-        "fast": {"order": 170, "label": "Type-4 executable focused expectations", "args": ["target/debug/nose"]},
-        "full": {"order": 180, "label": "Type-4 executable focused expectations", "args": ["target/release/nose"]}
+        "fast": {"order": 170, "label": "Type-4 executable focused expectations", "args": ["target/debug/nose"], "depends_on": ["build-debug-cli"]},
+        "full": {"order": 180, "label": "Type-4 executable focused expectations", "args": ["target/release/nose"], "depends_on": ["build-release"]}
       }
     },
     {
@@ -436,12 +486,14 @@
       "worktree_effect": "verify-checked-output",
       "outputs": ["bench/type4/coverage_evidence.v1.json", "bench/type4/coverage_matrix.v1.json", "bench/type4/blind_attack.v1.json"],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": "type4-evidence",
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Regenerates and compares the checked claim perimeter against a ratchet base.",
       "focused_command": "./scripts/check-ci-local.sh --gate type4-axis-language <nose-bin> <base-ref>",
       "plans": {
-        "fast": {"order": 180, "label": "Type-4 axis-language claim perimeter", "args": ["target/debug/nose", "origin/main"]},
-        "full": {"order": 190, "label": "Type-4 axis-language claim perimeter", "args": ["target/release/nose", "origin/main"]}
+        "fast": {"order": 180, "label": "Type-4 axis-language claim perimeter", "args": ["target/debug/nose", "origin/main"], "depends_on": ["type4-executable"]},
+        "full": {"order": 190, "label": "Type-4 axis-language claim perimeter", "args": ["target/release/nose", "origin/main"], "depends_on": ["type4-executable"]}
       }
     },
     {
@@ -453,11 +505,13 @@
       "worktree_effect": "read-only",
       "outputs": ["target/llvm-cov-target/"],
       "cache": "cargo-llvm-cov",
+      "parallel_safe": true,
+      "resource_group": "cargo-coverage",
       "lanes": ["local-full", "pull-request", "release"],
       "lane_reason": "Slower quality ratchet required before merge and release, not pre-push.",
       "focused_command": "./scripts/check-ci-local.sh --gate coverage",
       "plans": {
-        "full": {"order": 210, "label": "coverage gate", "args": []}
+        "full": {"order": 210, "label": "coverage gate", "args": [], "depends_on": []}
       }
     },
     {
@@ -469,11 +523,13 @@
       "worktree_effect": "read-only",
       "outputs": ["target/duplication-gate/"],
       "cache": "cargo",
+      "parallel_safe": true,
+      "resource_group": "cargo-stable",
       "lanes": ["local-full", "pull-request", "release"],
       "lane_reason": "Full/merge review ratchet; changes require explicit family-level judgment.",
       "focused_command": "./scripts/check-ci-local.sh --gate duplication",
       "plans": {
-        "full": {"order": 220, "label": "duplication gate (nose on itself)", "args": []}
+        "full": {"order": 220, "label": "duplication gate (nose on itself)", "args": [], "depends_on": ["build-release"]}
       }
     },
     {
@@ -485,11 +541,13 @@
       "worktree_effect": "read-only",
       "outputs": ["target/msrv/"],
       "cache": "cargo (isolated target/msrv)",
+      "parallel_safe": true,
+      "resource_group": "cargo-msrv",
       "lanes": ["local-full", "pull-request", "release"],
       "lane_reason": "Compatibility check is required before merge/release and keeps its separate compiler artifacts under target/msrv.",
       "focused_command": "./scripts/check-ci-local.sh --gate msrv",
       "plans": {
-        "full": {"order": 230, "label": "MSRV (minimum supported rust version)", "args": []}
+        "full": {"order": 230, "label": "MSRV (minimum supported rust version)", "args": [], "depends_on": []}
       }
     },
     {
@@ -501,11 +559,13 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "cargo-index",
+      "parallel_safe": true,
+      "resource_group": "cargo-metadata",
       "lanes": ["local-full", "pull-request", "release"],
       "lane_reason": "Network/index-sensitive dependency policy runs before merge and release.",
       "focused_command": "./scripts/check-ci-local.sh --gate supply-chain",
       "plans": {
-        "full": {"order": 240, "label": "supply chain (unused dependencies / advisories / licenses)", "args": []}
+        "full": {"order": 240, "label": "supply chain (unused dependencies / advisories / licenses)", "args": [], "depends_on": []}
       }
     },
     {
@@ -517,12 +577,14 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
       "lane_reason": "Contributor-facing docs and executable examples must stay connected on every change.",
       "focused_command": "./scripts/check-ci-local.sh --gate docs",
       "plans": {
-        "fast": {"order": 190, "label": "docs wiki connectivity (awiki)", "args": []},
-        "full": {"order": 250, "label": "docs wiki connectivity (awiki)", "args": []}
+        "fast": {"order": 190, "label": "docs wiki connectivity (awiki)", "args": [], "depends_on": []},
+        "full": {"order": 250, "label": "docs wiki connectivity (awiki)", "args": [], "depends_on": []}
       }
     },
     {
@@ -534,11 +596,13 @@
       "worktree_effect": "read-only",
       "outputs": [],
       "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
       "lanes": ["local-full", "pull-request", "release"],
       "lane_reason": "Proof-sensitive markers and counterexamples must be registered before merge.",
       "focused_command": "./scripts/check-ci-local.sh --gate formal-obligations",
       "plans": {
-        "full": {"order": 260, "label": "formal obligation registry", "args": []}
+        "full": {"order": 260, "label": "formal obligation registry", "args": [], "depends_on": []}
       }
     },
     {
@@ -550,11 +614,13 @@
       "worktree_effect": "read-only",
       "outputs": ["target/lean/"],
       "cache": "lean",
+      "parallel_safe": true,
+      "resource_group": "formal-lean",
       "lanes": ["local-full", "pull-request", "release"],
       "lane_reason": "Proof compilation is required before merge/release but is not a pre-push default.",
       "focused_command": "./scripts/check-ci-local.sh --gate formal-lean",
       "plans": {
-        "full": {"order": 270, "label": "Lean proofs (formal soundness)", "args": []}
+        "full": {"order": 270, "label": "Lean proofs (formal soundness)", "args": [], "depends_on": ["formal-obligations"]}
       }
     }
   ]
