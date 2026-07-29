@@ -43,10 +43,12 @@ timing receipt, lane policy, and drift validation. This generated view replaces
 a hand-maintained table here so the contributor guide cannot silently diverge
 from executable policy.
 
-The dev/CI toolchain is pinned in `rust-toolchain.toml` (rustup installs it
-automatically); the **MSRV** (`rust-version`, currently 1.85) is deliberately older
-and checked by its own CI job. Bumping the MSRV is a conscious change — update
-`Cargo.toml` and note why.
+The dev/CI Rust toolchain is pinned in `rust-toolchain.toml` (rustup installs it
+automatically). Repository evidence tools require Python 3.10 or newer; the
+local gate checks this before dispatch because several validators rely on
+equal-length `zip(..., strict=True)` invariants. The **MSRV** (`rust-version`,
+currently 1.85) is deliberately older and checked by its own CI job. Bumping
+the MSRV is a conscious change — update `Cargo.toml` and note why.
 
 The lint policy is defined once in the root `Cargo.toml` under `[workspace.lints]`
 and inherited by every crate via `[lints] workspace = true`. The tunable
@@ -92,14 +94,15 @@ can distinguish expected semantic expansion cost from accidental degradation.
 
 ### One-time tool install
 
-`cargo-machete`, `cargo-deny`, `cargo-llvm-cov`, `shellcheck`,
+Python 3.10 or newer, `cargo-machete`, `cargo-deny`, `cargo-llvm-cov`, `shellcheck`,
 [`awiki`](https://github.com/corca-ai/awiki), `elan`, and the MSRV Rust
 toolchain are required for `--full`. `--fast` requires the Rust toolchain plus
-`awiki` and `shellcheck`. Install the local CI tools with:
+Python 3.10 or newer, `awiki`, and `shellcheck`. Install the local CI tools with:
 
 ```sh
 cargo install cargo-machete cargo-deny cargo-llvm-cov
 rustup component add llvm-tools-preview   # cargo-llvm-cov needs this
+brew install python@3.14
 brew install shellcheck
 brew install corca-ai/tap/awiki   # or: go install github.com/corca-ai/awiki/cmd/awiki@latest
 curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh

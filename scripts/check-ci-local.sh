@@ -88,6 +88,15 @@ need_cmd() {
     fi
 }
 
+need_python3() {
+    need_cmd python3
+    if ! python3 -c 'import sys; raise SystemExit(sys.version_info < (3, 10))'; then
+        echo "Python 3.10 or newer is required for repository quality gates." >&2
+        echo "observed: $(python3 --version 2>&1)" >&2
+        exit 127
+    fi
+}
+
 run_docs_wiki_lint() {
     need_cmd awiki "install it with: brew install corca-ai/tap/awiki"
     need_cmd python3
@@ -229,7 +238,7 @@ run_supply_chain_checks() {
 }
 
 run_gate_registry_validation() {
-    need_cmd python3
+    need_python3
     python3 scripts/ci/gate_registry.py validate
 }
 
@@ -380,7 +389,7 @@ if [[ "$mode" == "gate" ]]; then
 fi
 
 if [[ "$mode" == "list" ]]; then
-    need_cmd python3
+    need_python3
     python3 scripts/ci/gate_registry.py list --format "$list_format"
     exit 0
 fi

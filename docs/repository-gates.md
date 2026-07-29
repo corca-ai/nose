@@ -42,6 +42,11 @@ The registry owns selection, ordering, and descriptive metadata. The shell
 dispatcher owns executable commands and diagnostics. The cross-check prevents
 either side from silently becoming an independent policy.
 
+Repository evidence validators require Python 3.10 or newer. The dispatcher
+checks the selected `python3` before any named gate runs and reports the
+observed version, so a system Python that is too old cannot fail later inside a
+large evidence batch with a misleading error.
+
 ## Lanes
 
 `local-fast`

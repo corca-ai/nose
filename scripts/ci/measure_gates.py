@@ -22,6 +22,7 @@ import gate_registry
 ROOT = Path(__file__).resolve().parents[2]
 CHECK_SCRIPT = ROOT / "scripts/check-ci-local.sh"
 SCHEMA = "nose.ci-gate-timings.v1"
+MINIMUM_PYTHON = (3, 10)
 
 
 def run_text(command: list[str]) -> str:
@@ -286,6 +287,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    if sys.version_info < MINIMUM_PYTHON:
+        observed = ".".join(str(part) for part in sys.version_info[:3])
+        print(
+            "CI gate measurement requires Python 3.10 or newer "
+            f"(observed {observed})",
+            file=sys.stderr,
+        )
+        return 127
     args = parse_args()
     if args.self_test:
         self_test()
