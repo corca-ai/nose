@@ -1435,3 +1435,11 @@ metrics. The callee-dependency matcher family moves from `6f76ca34bf54735e` to
 lines, and value 48.114. Removing the unused policy branches reduces only its
 mean semantic size from 89 to 85. No new family or avoidable duplication is
 accepted, so the budget remains 29.
+
+The post-readiness CI and CLI-test-support cleanup tightens the reviewed count
+from 29 to 28. Splitting the CLI test-support facade into focused fixture,
+process, and query modules changes the self-query corpus enough for the
+long-standing `interp/ops.rs::int_bin` / `float_bin` dispatcher representative
+`aa2b95cf822a1cd2` to fall below value 40; neither numeric function changed.
+No replacement family appears, so the stale ID is removed without accepting
+new duplication.
