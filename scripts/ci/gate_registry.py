@@ -22,6 +22,7 @@ DEFAULT_RELEASE_WORKFLOW = ROOT / ".github/workflows/release.yml"
 SCHEMA = "nose.ci-gates.v2"
 WORKTREE_EFFECTS = {"read-only", "verify-checked-output"}
 LOCAL_PLAN_LANES = {"fast": "local-fast", "full": "local-full"}
+LIFECYCLE_GATE = "evidence-artifacts"
 REQUIRED_GATE_FIELDS = {
     "name",
     "owner",
@@ -222,6 +223,34 @@ def validate_model(registry: dict[str, Any]) -> list[dict[str, Any]]:
                     f"gate {name}: {mode} dependencies must have lower order: {sorted(late)}"
                 )
 
+    gates_by_name = {gate["name"]: gate for gate in gates}
+    lifecycle = gates_by_name.get(LIFECYCLE_GATE)
+    if lifecycle is not None:
+        if lifecycle["parallel_safe"]:
+            raise RegistryError(
+                f"gate {LIFECYCLE_GATE}: lifecycle join must remain an ordering barrier"
+            )
+        for mode in LOCAL_PLAN_LANES:
+            checked_output_gates = {
+                gate["name"]
+                for gate in gates
+                if gate["worktree_effect"] == "verify-checked-output"
+                and mode in gate["plans"]
+            }
+            if mode not in lifecycle["plans"]:
+                if checked_output_gates:
+                    raise RegistryError(
+                        f"gate {LIFECYCLE_GATE}: missing {mode} lifecycle join"
+                    )
+                continue
+            dependencies = set(plan_dependencies[mode][LIFECYCLE_GATE])
+            missing = checked_output_gates - dependencies
+            if missing:
+                raise RegistryError(
+                    f"gate {LIFECYCLE_GATE}: {mode} must depend on every "
+                    f"checked-output gate: missing {sorted(missing)}"
+                )
+
     return gates
 
 
@@ -411,6 +440,41 @@ def self_test() -> None:
         assert "resource_group" in str(exc)
     else:
         raise AssertionError("invalid resource group passed")
+
+    lifecycle_join = copy.deepcopy(sample)
+    producer = lifecycle_join["gates"][0]
+    producer["worktree_effect"] = "verify-checked-output"
+    producer["outputs"] = ["checked.json"]
+    lifecycle = copy.deepcopy(producer)
+    lifecycle.update(
+        {
+            "name": LIFECYCLE_GATE,
+            "owner": "artifact lifecycle",
+            "worktree_effect": "read-only",
+            "outputs": [],
+            "parallel_safe": False,
+            "focused_command": (
+                f"./scripts/check-ci-local.sh --gate {LIFECYCLE_GATE}"
+            ),
+        }
+    )
+    lifecycle["plans"]["fast"] = {
+        "order": 20,
+        "label": "artifact lifecycle",
+        "args": [],
+        "depends_on": ["sample"],
+    }
+    lifecycle_join["gates"].append(lifecycle)
+    validate_model(lifecycle_join)
+
+    missing_join = copy.deepcopy(lifecycle_join)
+    missing_join["gates"][1]["plans"]["fast"]["depends_on"] = []
+    try:
+        validate_model(missing_join)
+    except RegistryError as exc:
+        assert "must depend on every checked-output gate" in str(exc)
+    else:
+        raise AssertionError("lifecycle join without checked-output dependency passed")
 
     print("CI gate registry self-test passed")
 

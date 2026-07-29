@@ -175,8 +175,32 @@
       "lane_reason": "Fail-closes ownership coverage, large-file identity, retention, and receipt/seal/baseline bindings.",
       "focused_command": "./scripts/check-ci-local.sh --gate evidence-artifacts",
       "plans": {
-        "fast": {"order": 55, "label": "evidence artifact lifecycle", "args": [], "depends_on": []},
-        "full": {"order": 55, "label": "evidence artifact lifecycle", "args": [], "depends_on": []}
+        "fast": {
+          "order": 200,
+          "label": "evidence artifact lifecycle",
+          "args": [],
+          "depends_on": [
+            "default-head-evidence",
+            "divergence-evidence",
+            "surface-recall-evidence",
+            "runtime-soundness-evidence",
+            "type4-executable",
+            "type4-axis-language"
+          ]
+        },
+        "full": {
+          "order": 280,
+          "label": "evidence artifact lifecycle",
+          "args": [],
+          "depends_on": [
+            "default-head-evidence",
+            "divergence-evidence",
+            "surface-recall-evidence",
+            "runtime-soundness-evidence",
+            "type4-executable",
+            "type4-axis-language"
+          ]
+        }
       }
     },
     {

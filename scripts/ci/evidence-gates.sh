@@ -21,6 +21,128 @@ run_default_head_closeout_selftest() {
     python3 bench/labels/default_head_closeout.py --self-test
 }
 
+run_default_head_closeout_validate() {
+    python3 bench/labels/default_head_closeout.py
+}
+
+run_default_head_label_refresh_selftest() {
+    python3 bench/labels/label_refresh.py --self-test
+}
+
+run_default_head_taxonomy_selftest() {
+    python3 bench/labels/default_head_taxonomy.py --self-test
+}
+
+run_default_head_runway_validate() {
+    python3 bench/labels/label_refresh.py validate-runway \
+        --dev-candidates bench/labels/default_head_label_runway_2026_07_13.dev.v1.json \
+        --heldout-seal bench/labels/default_head_label_runway_2026_07_13.heldout.seal.v1.json \
+        --labelset bench/labels/refactoring_families.v7.json \
+        --evaluation bench/labels/product_quality_evaluation_v7_dev_runway_2026_07_13.v1.json
+}
+
+run_default_head_taxonomy_validate() {
+    python3 bench/labels/default_head_taxonomy.py validate \
+        bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json \
+        --pragmatic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.pragmatic.v1.json \
+        --dedupe bench/labels/default_head_taxonomy_votes_2026_07_13.dev.dedupe.v1.json \
+        --skeptic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.skeptic.v1.json
+}
+
+run_default_head_heldout_validate() {
+    python3 bench/labels/default_head_heldout.py validate
+}
+
+run_default_head_heldout_selftest() {
+    python3 bench/labels/default_head_heldout.py self-test
+}
+
+run_default_head_commitment_receipt_validate() {
+    python3 bench/labels/default_head_heldout_commitment_receipt.py validate
+}
+
+run_default_head_commitment_receipt_selftest() {
+    python3 bench/labels/default_head_heldout_commitment_receipt.py self-test
+}
+
+run_default_head_panel_selftest() {
+    python3 bench/labels/default_head_heldout_panel.py self-test
+}
+
+run_default_head_vote_receipt_validate() {
+    python3 bench/labels/default_head_heldout_vote_receipt.py validate
+}
+
+run_default_head_vote_receipt_selftest() {
+    python3 bench/labels/default_head_heldout_vote_receipt.py self-test
+}
+
+run_default_head_arbitration_validate() {
+    python3 bench/labels/default_head_heldout_arbitration.py validate
+}
+
+run_default_head_arbitration_selftest() {
+    python3 bench/labels/default_head_heldout_arbitration.py self-test
+}
+
+run_default_head_arbitration_receipt_validate() {
+    python3 bench/labels/default_head_heldout_arbitration_receipt.py validate
+}
+
+run_default_head_arbitration_receipt_selftest() {
+    python3 bench/labels/default_head_heldout_arbitration_receipt.py self-test
+}
+
+run_default_head_arbitration_result_validate() {
+    python3 bench/labels/default_head_heldout_arbitration_result.py validate-public \
+        bench/labels/default_head_heldout_arbitration_result_2026_07_14.heldout.v3.json
+}
+
+run_default_head_arbitration_result_selftest() {
+    python3 bench/labels/default_head_heldout_arbitration_result.py self-test
+}
+
+run_default_head_arbitration_result_receipt_validate() {
+    python3 bench/labels/default_head_heldout_arbitration_result_receipt.py validate
+}
+
+run_default_head_arbitration_result_receipt_selftest() {
+    python3 bench/labels/default_head_heldout_arbitration_result_receipt.py self-test
+}
+
+run_default_head_reveal_validate() {
+    python3 bench/labels/default_head_heldout_reveal.py validate
+}
+
+run_default_head_reveal_selftest() {
+    python3 bench/labels/default_head_heldout_reveal.py self-test
+}
+
+run_default_head_reveal_receipt_validate() {
+    python3 bench/labels/default_head_heldout_reveal_receipt.py validate
+}
+
+run_default_head_reveal_receipt_selftest() {
+    python3 bench/labels/default_head_heldout_reveal_receipt.py self-test
+}
+
+require_no_default_head_reveal_transaction() {
+    test ! -e bench/labels/.default_head_heldout_reveal.transaction.json
+    test ! -L bench/labels/.default_head_heldout_reveal.transaction.json
+}
+
+run_release_evidence_validate() {
+    python3 scripts/check-release-evidence-0.20.0.py
+}
+
+run_soundness_scorecard_validate() {
+    python3 scripts/check-soundness-scorecard.py
+}
+
+run_soundness_exclusions_validate() {
+    python3 scripts/soundness_exclusions.py
+}
+
 run_bounded_evidence_checks() {
     local max_jobs="$1"
     shift
@@ -110,57 +232,60 @@ run_default_head_evidence_checks() {
     python3 bench/labels/check_default_head_baseline.py --self-test
     python3 bench/labels/check_default_head_baseline.py
     python3 bench/labels/labelset.py --self-test
-    python3 bench/labels/label_refresh.py --self-test
-    python3 bench/labels/default_head_taxonomy.py --self-test
-    python3 bench/labels/label_refresh.py validate-runway \
-        --dev-candidates bench/labels/default_head_label_runway_2026_07_13.dev.v1.json \
-        --heldout-seal bench/labels/default_head_label_runway_2026_07_13.heldout.seal.v1.json \
-        --labelset bench/labels/refactoring_families.v7.json \
-        --evaluation bench/labels/product_quality_evaluation_v7_dev_runway_2026_07_13.v1.json
-    python3 bench/labels/default_head_taxonomy.py validate \
-        bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json \
-        --pragmatic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.pragmatic.v1.json \
-        --dedupe bench/labels/default_head_taxonomy_votes_2026_07_13.dev.dedupe.v1.json \
-        --skeptic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.skeptic.v1.json
-    python3 bench/labels/default_head_heldout.py validate
-    python3 bench/labels/default_head_heldout.py self-test
-    python3 bench/labels/default_head_heldout_commitment_receipt.py validate
-    python3 bench/labels/default_head_heldout_commitment_receipt.py self-test
-    python3 bench/labels/default_head_heldout_panel.py self-test
-    python3 bench/labels/default_head_heldout_vote_receipt.py validate
-    python3 bench/labels/default_head_heldout_vote_receipt.py self-test
-    python3 bench/labels/default_head_heldout_arbitration.py self-test
-    python3 bench/labels/default_head_heldout_arbitration.py validate
-    python3 bench/labels/default_head_heldout_arbitration_receipt.py validate
-    python3 bench/labels/default_head_heldout_arbitration_receipt.py self-test
-    python3 bench/labels/default_head_heldout_arbitration_result.py self-test
-    python3 bench/labels/default_head_heldout_arbitration_result.py validate-public \
-        bench/labels/default_head_heldout_arbitration_result_2026_07_14.heldout.v3.json
-    python3 bench/labels/default_head_heldout_arbitration_result_receipt.py validate
-    python3 bench/labels/default_head_heldout_arbitration_result_receipt.py self-test
-    python3 bench/labels/default_head_heldout_reveal.py self-test
-    test ! -e bench/labels/.default_head_heldout_reveal.transaction.json
-    test ! -L bench/labels/.default_head_heldout_reveal.transaction.json
+    local evidence_jobs="${NOSE_DEFAULT_HEAD_JOBS:-3}"
+    run_bounded_evidence_checks "$evidence_jobs" \
+        run_default_head_label_refresh_selftest \
+        run_default_head_taxonomy_selftest \
+        run_default_head_runway_validate \
+        run_default_head_taxonomy_validate
+
+    require_no_default_head_reveal_transaction
     local reveal=bench/labels/default_head_heldout_reveal_2026_07_14.heldout.v3.json
+    local -a heldout_validators=(
+        run_default_head_heldout_validate
+        run_default_head_commitment_receipt_validate
+        run_default_head_vote_receipt_validate
+        run_default_head_arbitration_validate
+        run_default_head_arbitration_receipt_validate
+        run_default_head_arbitration_result_validate
+        run_default_head_arbitration_result_receipt_validate
+    )
+    local -a heldout_selftests=(
+        run_default_head_heldout_selftest
+        run_default_head_commitment_receipt_selftest
+        run_default_head_panel_selftest
+        run_default_head_vote_receipt_selftest
+        run_default_head_arbitration_selftest
+        run_default_head_arbitration_receipt_selftest
+        run_default_head_arbitration_result_selftest
+        run_default_head_arbitration_result_receipt_selftest
+        run_default_head_reveal_selftest
+    )
     if [[ -e "$reveal" || -L "$reveal" ]]; then
-        python3 bench/labels/default_head_heldout_reveal.py validate
-        python3 bench/labels/default_head_heldout_reveal_receipt.py validate
-        python3 bench/labels/default_head_heldout_reveal_receipt.py self-test
+        heldout_validators+=(
+            run_default_head_reveal_validate
+            run_default_head_reveal_receipt_validate
+        )
+        heldout_selftests+=(run_default_head_reveal_receipt_selftest)
     fi
+    run_bounded_evidence_checks "$evidence_jobs" "${heldout_validators[@]}"
+    run_bounded_evidence_checks "$evidence_jobs" "${heldout_selftests[@]}"
+    require_no_default_head_reveal_transaction
+
     python3 bench/labels/proof_actionability_no_go.py --self-test
     python3 bench/labels/default_head_fresh_repository_audit.py
     python3 bench/labels/default_head_fresh_repository_audit.py --self-test
     python3 bench/labels/default_head_measurement_replay.py validate
     python3 bench/labels/default_head_measurement_replay.py self-test
-    # This aggregate rebuilds and validates the complete residual ranking,
-    # top-up selection, panel, arbitration, decision, component, and closeout chain.
-    python3 bench/labels/default_head_closeout.py
-    run_bounded_evidence_checks "${NOSE_DEFAULT_HEAD_JOBS:-3}" \
+    # Longest-first ordering keeps the three-worker final stage balanced. Every
+    # self-test validates its checked source before exercising mutations.
+    run_bounded_evidence_checks "$evidence_jobs" \
+        run_default_head_closeout_selftest \
+        run_default_head_closeout_validate \
+        run_default_head_residual_closeout_selftest \
         run_default_head_residual_ranking_selftest \
         run_default_head_residual_topup_selftest \
-        run_default_head_residual_panel_selftest \
-        run_default_head_residual_closeout_selftest \
-        run_default_head_closeout_selftest
+        run_default_head_residual_panel_selftest
 }
 
 run_divergence_evidence_checks() {
@@ -205,18 +330,19 @@ run_runtime_and_soundness_evidence_checks() {
     python3 scripts/watch-session-benchmark.py --validate-report \
         bench/cache/issue-878-watch-session-2026-07-21.v1.json
     python3 scripts/check-release-evidence-0.20.0.py --self-test
-    python3 scripts/check-release-evidence-0.20.0.py
     python3 scripts/ruby-redefinition-scaling.py --self-test
     python3 scripts/semantic-regression-summary.py --self-test
     python3 scripts/recall-loss-diff.py --self-test
     python3 scripts/check-query-regression.py --self-test
     python3 scripts/check-recall-loss-baselines.py --self-test
     python3 scripts/check-soundness-scorecard.py --self-test
-    python3 scripts/check-soundness-scorecard.py
     python3 scripts/soundness-lab-gate.py self-test
     python3 scripts/soundness-lab-gate.py check
     python3 scripts/soundness_exclusions.py --self-test
-    python3 scripts/soundness_exclusions.py
+    run_bounded_evidence_checks "${NOSE_RUNTIME_SOUNDNESS_JOBS:-3}" \
+        run_release_evidence_validate \
+        run_soundness_scorecard_validate \
+        run_soundness_exclusions_validate
 }
 
 run_accepted_pair_coverage_checks() {

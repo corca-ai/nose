@@ -95,19 +95,26 @@ must finish before it starts, and later work waits until it completes. Stable
 Cargo work shares `cargo-stable`; MSRV, coverage, checked label evidence, and
 checked Type-4 evidence use separate groups that match their isolated outputs.
 
-The `default-head-evidence` gate also runs its five independent mutation
-self-tests through a bounded worker pool after all checked artifacts validate.
-It fills each free slot immediately and defaults to three workers even when the
-outer plan is sequential. Set
-`NOSE_DEFAULT_HEAD_JOBS=1` to reproduce the former serial diagnostic order.
-Each worker writes only to its own temporary log or the self-test's own
-temporary directory; output is replayed in declaration order.
+The `default-head-evidence` gate uses dependency-preserving bounded stages for
+taxonomy derivation, heldout artifact validation, heldout mutation self-tests,
+and final closeout checks. A stage must finish before its consumers start, but
+independent commands within it fill each free slot immediately. The stages
+default to three workers even when the outer plan is sequential; set
+`NOSE_DEFAULT_HEAD_JOBS=1` to serialize each stage. Every worker writes only to
+its own temporary log or the self-test's own temporary directory, and output is
+replayed in declaration order.
 
-The serial phase validates the residual-ranking artifact chain once through the
-aggregate default-head closeout. That closeout rebuilds the calibration, top-up
-selection, blind panel, arbitration, decisions, label component, and residual
-closeout, so the local plan does not repeat their focused validation commands
-before running the same aggregate check.
+The final default-head stage includes the aggregate closeout and its mutation
+self-test alongside the independent residual ranking, top-up, panel, and
+closeout mutation tests. The aggregate closeout rebuilds the calibration,
+top-up selection, blind panel, arbitration, decisions, label component, and
+residual closeout. Each mutation test validates its checked source before
+exercising isolated changes, so the stage does not skip source validation.
+
+The `runtime-soundness-evidence` gate likewise runs its three independent live
+release-evidence, scorecard, and exclusion validators in a final three-worker
+stage after their self-tests and shared prerequisites pass. Set
+`NOSE_RUNTIME_SOUNDNESS_JOBS=1` to serialize that stage.
 
 ## Worktree effects
 
@@ -118,6 +125,11 @@ invalidate the stable toolchain's incremental artifacts; set
 A `verify-checked-output` gate may deterministically regenerate a tracked receipt
 or evidence file, but it must compare that output and leave the worktree
 unchanged when the checked artifact is current.
+
+`evidence-artifacts` is the final lifecycle join for both local plans. It waits
+for every planned `verify-checked-output` producer, then checks the resulting
+inventory once. Registry validation rejects a parallel lifecycle join or one
+that omits any checked-output producer dependency.
 
 The timing harness fingerprints the complete tracked/untracked status before
 and after every gate. A successful gate that changes the worktree makes the
@@ -237,6 +249,23 @@ seconds and `--check --jobs 4` took 12.91 seconds. Both paths accepted the
 same checked JSON, Markdown, and packet artifacts; the corpus-free self-test
 also compares serial and parallel projections with an order-sensitive sample
 limit. The complete `type4-frontier` gate passed in 13.74 seconds.
+
+### Dependency-stage follow-up
+
+The follow-up based on source commit `afcf8b8a` moved
+`evidence-artifacts` from an early global barrier to the final checked-output
+join. This lets independent formatting, lint, test, and documentation gates
+start while evidence producers are still finishing, without allowing lifecycle
+validation to race any producer.
+
+The default-head workflow now exposes four bounded stages whose dependencies
+were previously encoded only by serial command order. Its focused gate passed
+in 23.99 seconds, 17.54 seconds (42.2%) below the preceding 41.53-second
+focused run. The runtime/soundness workflow now closes with three independent
+live validators in parallel; its focused gate passed in 10.67 seconds, 7.39
+seconds (40.9%) below the checked receipt's 18.058-second result. No validation
+was removed, domain evidence reproduced unchanged, and worker logs were
+replayed in declaration order.
 
 No aggregate `--jobs 2` wall-time claim is recorded for this follow-up. During
 measurement, macOS policy inspection delayed each locally built Rust test
