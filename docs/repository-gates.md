@@ -211,6 +211,13 @@ the preceding receipt's 214.754-second serial result. The five independent
 mutation self-tests account for the change; all artifact validation remains
 serial and runs before the worker pool.
 
+At source commit `9d5be0b7`, the serial phase stopped invoking six focused
+residual-chain validators that the aggregate default-head closeout already
+rebuilds and validates. The same focused gate passed in 98.060 seconds: 45.490
+seconds (31.7%) below the three-worker result and 116.694 seconds (54.3%) below
+the original 214.754-second result. The aggregate artifact validation and all
+five mutation self-tests remain in the gate.
+
 No aggregate `--jobs 2` wall-time claim is recorded for this follow-up. During
 measurement, macOS policy inspection delayed each locally built Rust test
 binary independently of the planner, making the result non-representative.

@@ -171,6 +171,13 @@ not recorded because macOS policy inspection independently delayed locally
 built Rust test binaries during the measurement; hosted CI owns the complete
 gate qualification.
 
+A subsequent serial-path cleanup at source commit `9d5be0b7` removed six
+standalone residual-chain validations already owned transitively by the
+aggregate default-head closeout. The same focused gate passed in 98.060 seconds,
+45.490 seconds (31.7%) below the three-worker result and 116.694 seconds (54.3%)
+below the original serial result. No artifact validator or mutation self-test
+was removed.
+
 The 599-line `crates/nose-cli/tests/cli/support.rs` test helper is now a
 13-line façade over focused `fixtures.rs` (210 lines), `process.rs` (149
 lines), and `query.rs` (245 lines). Existing `support::*` call sites remain
