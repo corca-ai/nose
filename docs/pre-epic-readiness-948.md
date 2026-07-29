@@ -35,6 +35,19 @@ immediate no-change rerun. It records each named gate reached by `--fast` and
 `--full`, plus total wall time and the local environment. Build/setup time
 remains visible rather than being folded into policy claims.
 
+The checked receipt at `ea4afaf3` covers all 30 registered gates with zero
+failures and zero worktree drift. On the recorded arm64 macOS environment,
+clean-tree fast took 943.682 seconds, clean-tree full took 940.274 seconds, and
+the immediate no-change fast rerun took 861.685 seconds. Debug CLI tests
+(523.703/509.551 seconds) and regression self-tests
+(236.791/238.501 seconds) dominate both fast runs. The 82-second incremental
+improvement is primarily the cached clippy gate (68.772 to 0.208 seconds), not
+removed validation. The full-only leading costs are MSRV qualification
+(303.229 seconds), release tests (109.171 seconds), and release build
+(78.857 seconds). These measurements support the current tiering: the expensive
+checks are product-contract or qualification work, while orchestration and
+artifact checks remain sub-second and are worth keeping in fast feedback.
+
 ## Rust cohort contract (#950)
 
 The cohort was selected before implementation from production files at least
@@ -110,7 +123,7 @@ Retention is conservative:
 
 The implemented
 [`scripts/evidence/artifacts.json`](../scripts/evidence/artifacts.json) catalog
-owns 17 exact-inventory sets covering 510 checked JSON, JSONL, and checksum
+owns 17 exact-inventory sets covering 511 checked JSON, JSONL, and checksum
 artifacts. It explicitly binds all 19 files at least 1 MiB and records 28
 receipt, seal, checksum, baseline, supersession, closeout, provenance, and
 soundness-manifest relations. The

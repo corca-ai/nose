@@ -62,6 +62,11 @@ a fixed self marker to avoid a self-referential digest. Consequently, adding,
 removing, renaming, or changing any checked artifact requires an explicit
 catalog review even when the file is below 1 MiB.
 
+The #951 audit covers 511 checked JSON, JSONL, and checksum artifacts in 17
+non-overlapping owning sets. The count includes the repository gate-timing
+receipt, which is retained with repository policy so future reviews can
+reconstruct the measured commit and environment.
+
 The focused gate is:
 
 ```sh

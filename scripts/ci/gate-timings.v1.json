@@ -1,0 +1,549 @@
+{
+  "schema": "nose.ci-gate-timings.v1",
+  "generated_at": "2026-07-29T01:05:14.667131+00:00",
+  "source_commit": "ea4afaf3e7621306c5a0922ba5aa1e7bd8151476",
+  "environment": {
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.14.6",
+    "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "cargo": "cargo 1.96.0 (30a34c682 2026-05-25)"
+  },
+  "runs": [
+    {
+      "profile": "clean-tree",
+      "mode": "fast",
+      "started_at": "2026-07-29T00:33:41.930517+00:00",
+      "seconds": 943.682,
+      "completed_gates": 20,
+      "planned_gates": 20,
+      "gates": [
+        {
+          "name": "corpus-prune-selftest",
+          "args": [],
+          "seconds": 0.095,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "corpus-verify-selftest",
+          "args": [],
+          "seconds": 2.681,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "semantic-pack-pricing",
+          "args": [],
+          "seconds": 0.138,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "type4-frontier",
+          "args": [],
+          "seconds": 45.661,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "regression-selftests",
+          "args": [],
+          "seconds": 236.791,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "evidence-artifacts",
+          "args": [],
+          "seconds": 0.228,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "missed-worthy-frontier",
+          "args": [],
+          "seconds": 3.717,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "accepted-pair-coverage",
+          "args": [],
+          "seconds": 0.251,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "cargo-target-prune-selftest",
+          "args": [],
+          "seconds": 0.141,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "shell-lint",
+          "args": [],
+          "seconds": 0.449,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "format",
+          "args": [],
+          "seconds": 0.972,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "file-length",
+          "args": [
+            "origin/main"
+          ],
+          "seconds": 0.188,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "legacy-prelude",
+          "args": [],
+          "seconds": 0.111,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "clippy",
+          "args": [],
+          "seconds": 68.772,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "test-debug-cli",
+          "args": [],
+          "seconds": 523.703,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "build-debug-cli",
+          "args": [],
+          "seconds": 0.145,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "product-query-schema",
+          "args": [
+            "target/debug/nose"
+          ],
+          "seconds": 1.447,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "type4-executable",
+          "args": [
+            "target/debug/nose"
+          ],
+          "seconds": 2.177,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "type4-axis-language",
+          "args": [
+            "target/debug/nose",
+            "origin/main"
+          ],
+          "seconds": 9.193,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "docs",
+          "args": [],
+          "seconds": 45.819,
+          "exit_code": 0,
+          "worktree_changed": false
+        }
+      ]
+    },
+    {
+      "profile": "clean-tree",
+      "mode": "full",
+      "started_at": "2026-07-29T00:49:25.616021+00:00",
+      "seconds": 940.274,
+      "completed_gates": 28,
+      "planned_gates": 28,
+      "gates": [
+        {
+          "name": "corpus-prune-selftest",
+          "args": [],
+          "seconds": 0.099,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "corpus-verify-selftest",
+          "args": [],
+          "seconds": 2.66,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "semantic-pack-pricing",
+          "args": [],
+          "seconds": 0.142,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "type4-frontier",
+          "args": [],
+          "seconds": 44.393,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "regression-selftests",
+          "args": [],
+          "seconds": 235.242,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "evidence-artifacts",
+          "args": [],
+          "seconds": 0.228,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "missed-worthy-frontier",
+          "args": [],
+          "seconds": 3.728,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "accepted-pair-coverage",
+          "args": [],
+          "seconds": 0.245,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "cargo-target-prune-selftest",
+          "args": [],
+          "seconds": 0.135,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "shell-lint",
+          "args": [],
+          "seconds": 0.445,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "format",
+          "args": [],
+          "seconds": 0.978,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "file-length",
+          "args": [
+            "origin/main"
+          ],
+          "seconds": 0.187,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "legacy-prelude",
+          "args": [],
+          "seconds": 0.112,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "clippy",
+          "args": [],
+          "seconds": 0.194,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "doc",
+          "args": [],
+          "seconds": 51.796,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "build-release",
+          "args": [],
+          "seconds": 78.857,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "product-query-schema",
+          "args": [
+            "target/release/nose"
+          ],
+          "seconds": 0.875,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "semantic-pack-examples",
+          "args": [
+            "target/release/nose"
+          ],
+          "seconds": 0.076,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "type4-executable",
+          "args": [
+            "target/release/nose"
+          ],
+          "seconds": 1.349,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "type4-axis-language",
+          "args": [
+            "target/release/nose",
+            "origin/main"
+          ],
+          "seconds": 4.901,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "test-release",
+          "args": [],
+          "seconds": 109.171,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "coverage",
+          "args": [],
+          "seconds": 42.31,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "duplication",
+          "args": [],
+          "seconds": 0.503,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "msrv",
+          "args": [],
+          "seconds": 303.229,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "supply-chain",
+          "args": [],
+          "seconds": 1.749,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "docs",
+          "args": [],
+          "seconds": 46.89,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "formal-obligations",
+          "args": [],
+          "seconds": 0.404,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "formal-lean",
+          "args": [],
+          "seconds": 8.021,
+          "exit_code": 0,
+          "worktree_changed": false
+        }
+      ]
+    },
+    {
+      "profile": "no-change",
+      "mode": "fast",
+      "started_at": "2026-07-29T01:05:14.667244+00:00",
+      "seconds": 861.685,
+      "completed_gates": 20,
+      "planned_gates": 20,
+      "gates": [
+        {
+          "name": "corpus-prune-selftest",
+          "args": [],
+          "seconds": 0.097,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "corpus-verify-selftest",
+          "args": [],
+          "seconds": 2.557,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "semantic-pack-pricing",
+          "args": [],
+          "seconds": 0.142,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "type4-frontier",
+          "args": [],
+          "seconds": 44.555,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "regression-selftests",
+          "args": [],
+          "seconds": 238.501,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "evidence-artifacts",
+          "args": [],
+          "seconds": 0.227,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "missed-worthy-frontier",
+          "args": [],
+          "seconds": 3.741,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "accepted-pair-coverage",
+          "args": [],
+          "seconds": 0.243,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "cargo-target-prune-selftest",
+          "args": [],
+          "seconds": 0.16,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "shell-lint",
+          "args": [],
+          "seconds": 0.422,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "format",
+          "args": [],
+          "seconds": 0.972,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "file-length",
+          "args": [
+            "origin/main"
+          ],
+          "seconds": 0.193,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "legacy-prelude",
+          "args": [],
+          "seconds": 0.123,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "clippy",
+          "args": [],
+          "seconds": 0.208,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "test-debug-cli",
+          "args": [],
+          "seconds": 509.551,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "build-debug-cli",
+          "args": [],
+          "seconds": 0.163,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "product-query-schema",
+          "args": [
+            "target/debug/nose"
+          ],
+          "seconds": 1.63,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "type4-executable",
+          "args": [
+            "target/debug/nose"
+          ],
+          "seconds": 2.125,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "type4-axis-language",
+          "args": [
+            "target/debug/nose",
+            "origin/main"
+          ],
+          "seconds": 9.155,
+          "exit_code": 0,
+          "worktree_changed": false
+        },
+        {
+          "name": "docs",
+          "args": [],
+          "seconds": 45.877,
+          "exit_code": 0,
+          "worktree_changed": false
+        }
+      ]
+    }
+  ]
+}

@@ -44,8 +44,8 @@
       "validator": "./scripts/check-ci-local.sh --gate evidence-artifacts",
       "consumers": ["local and hosted quality-gate orchestration"],
       "retention_policy": "Keep current policy plus any receipt required to interpret a checked release or gate result.",
-      "artifact_count": 5,
-      "inventory_sha256": "70518190cc2fb01a7b709ef960023d0ddd66c4511ad885022e500be5b6cc9eaf"
+      "artifact_count": 6,
+      "inventory_sha256": "8a37f2ea41fcd93470774a1429979ef775fac8de53be3dae30758e132d2c58dd"
     },
     {
       "id": "benchmark-root",
