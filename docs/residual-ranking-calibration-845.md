@@ -97,6 +97,15 @@ This is a real no-go rather than a missing-label proxy. Issue #846 may measure a
 the unchanged product, including its frozen held-out and fresh-repository audit, but it
 must not turn held-out evidence into another ranking-tuning round.
 
+The reproducer ranks each `(repository, proposal)` pair once and aggregates those
+immutable top-ten projections for the full dataset and repository-CV folds. The
+top-up, panel, and closeout mutation self-tests likewise validate their checked
+source chain once per process and reuse an explicit validation context for the
+mutated projection under test. Standalone `validate` commands still traverse the
+complete source chain. The checked artifacts retain the hashes of the historical
+collector and closeout tools at their frozen commits; the current validators
+reproduce their complete evaluation and reject any semantic drift.
+
 ## Reproduction
 
 ```sh

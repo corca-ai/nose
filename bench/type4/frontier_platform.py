@@ -40,8 +40,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import sys
+import tempfile
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -53,6 +56,7 @@ import frontier_axes as fa  # noqa: E402  (Team B extra axes, kept out of the fr
 
 TOOL_VERSION = "frontier-platform/1"
 SCHEMA_VERSION = 1
+DEFAULT_JOBS = min(4, os.cpu_count() or 1)
 DEFAULT_JSON_OUT = HERE / "frontier_platform.v1.json"
 DEFAULT_MARKDOWN_OUT = HERE / "frontier_platform.md"
 DEFAULT_PACKETS_JSON_OUT = HERE / "frontier_target_packets.v1.json"
@@ -320,14 +324,8 @@ def union_signature() -> str:
 # ---------------------------------------------------------------------------
 # Presence-based corpus query (queue signal layer).
 # ---------------------------------------------------------------------------
-def presence_query(repos: list[dict], max_bytes: int, sample_limit: int) -> dict:
-    """Accumulate per-axis REPO PRESENCE (binary per repo) plus uncovered-probe gaps.
-
-    Unlike ``prioritize_frontier.analyze`` (which sums occurrences), this records the SET
-    of repos / languages / splits where each axis appears, so breadth can be normalized
-    independently of how often an idiom recurs inside any one repo or language.
-    """
-    buckets = {
+def empty_presence_buckets() -> dict:
+    return {
         c.candidate_id: {
             "repos": {},  # repo_id -> {split, primary_language, langs:set, raw}
             "languages": set(),
@@ -337,77 +335,132 @@ def presence_query(repos: list[dict], max_bytes: int, sample_limit: int) -> dict
         }
         for c in ALL_CANDIDATES
     }
-    # The corpus source-language universe (file-extension languages actually present), so
-    # the diagnostic source-language breadth denominator is derived, not hard-coded.
-    corpus_source_languages: set[str] = set()
 
-    for repo in repos:
-        repo_path = repo["path"]
-        split = repo.get("split") or "unknown"
-        for path, lang in pf.iter_source_files(repo_path, max_bytes):
-            corpus_source_languages.add(lang)
-            try:
-                text = path.read_text(errors="ignore")
-            except OSError:
+
+def scan_repository(
+    repo: dict, max_bytes: int, sample_limit: int
+) -> tuple[dict, set[str]]:
+    """Produce one repository's independent presence projection."""
+    buckets = empty_presence_buckets()
+    corpus_source_languages: set[str] = set()
+    repo_path = repo["path"]
+    split = repo.get("split") or "unknown"
+    for path, lang in pf.iter_source_files(repo_path, max_bytes):
+        corpus_source_languages.add(lang)
+        try:
+            text = path.read_text(errors="ignore")
+        except OSError:
+            continue
+        rel = str(path.relative_to(repo_path))
+        for candidate in ALL_CANDIDATES:
+            specs = [s for s in candidate.patterns if s.lang == lang]
+            probes = [
+                s
+                for s in ALL_PROBES.get(candidate.candidate_id, ())
+                if s.lang == lang
+            ]
+            if not specs and not probes:
                 continue
-            rel = str(path.relative_to(repo_path))
-            for candidate in ALL_CANDIDATES:
-                specs = [s for s in candidate.patterns if s.lang == lang]
-                probes = [
-                    s
-                    for s in ALL_PROBES.get(candidate.candidate_id, ())
-                    if s.lang == lang
-                ]
-                if not specs and not probes:
-                    continue
-                bucket = buckets[candidate.candidate_id]
-                extracted_spans = []
-                raw_for_file = 0
-                for spec in specs:
-                    for match in spec.regex.finditer(text):
-                        if pf.is_comment_only_line(text, match.start(), lang):
-                            continue
-                        if pf.match_filter_reason(candidate.candidate_id, lang, match):
-                            continue
-                        raw_for_file += 1
-                        extracted_spans.append((match.start(), match.end()))
-                        if len(bucket["samples"]) < sample_limit:
-                            sample = pf.make_sample(
-                                repo, rel, lang, text, match.start(), match.end()
-                            )
-                            sample["pattern_id"] = spec.pattern_id
-                            bucket["samples"].append(sample)
-                if raw_for_file:
-                    rstat = bucket["repos"].setdefault(
-                        repo["id"],
-                        {
-                            "split": split,
-                            "primary_language": repo.get("primary_language") or "",
-                            "langs": set(),
-                            "raw": 0,
-                        },
-                    )
-                    rstat["langs"].add(lang)
-                    rstat["raw"] += raw_for_file
-                    bucket["languages"].add(lang)
-                # Broad-probe gap: a probe hit not covered by any extraction span is a
-                # real-code form the current detector may not capture — an AUDIT cue only.
-                for probe_spec in probes:
-                    for match in probe_spec.regex.finditer(text):
-                        if pf.is_comment_only_line(text, match.start(), lang):
-                            continue
-                        if pf.match_filter_reason(candidate.candidate_id, lang, match):
-                            continue
-                        span = (match.start(), match.end())
-                        if any(pf.spans_overlap(span, e) for e in extracted_spans):
-                            continue
-                        bucket["gap_repos"].add(repo["id"])
-                        if len(bucket["gap_samples"]) < sample_limit:
-                            sample = pf.make_sample(
-                                repo, rel, lang, text, match.start(), match.end()
-                            )
-                            sample["probe_id"] = probe_spec.probe_id
-                            bucket["gap_samples"].append(sample)
+            bucket = buckets[candidate.candidate_id]
+            extracted_spans = []
+            raw_for_file = 0
+            for spec in specs:
+                for match in spec.regex.finditer(text):
+                    if pf.is_comment_only_line(text, match.start(), lang):
+                        continue
+                    if pf.match_filter_reason(candidate.candidate_id, lang, match):
+                        continue
+                    raw_for_file += 1
+                    extracted_spans.append((match.start(), match.end()))
+                    if len(bucket["samples"]) < sample_limit:
+                        sample = pf.make_sample(
+                            repo, rel, lang, text, match.start(), match.end()
+                        )
+                        sample["pattern_id"] = spec.pattern_id
+                        bucket["samples"].append(sample)
+            if raw_for_file:
+                rstat = bucket["repos"].setdefault(
+                    repo["id"],
+                    {
+                        "split": split,
+                        "primary_language": repo.get("primary_language") or "",
+                        "langs": set(),
+                        "raw": 0,
+                    },
+                )
+                rstat["langs"].add(lang)
+                rstat["raw"] += raw_for_file
+                bucket["languages"].add(lang)
+            # Broad-probe gap: a probe hit not covered by any extraction span is a
+            # real-code form the current detector may not capture — an AUDIT cue only.
+            for probe_spec in probes:
+                for match in probe_spec.regex.finditer(text):
+                    if pf.is_comment_only_line(text, match.start(), lang):
+                        continue
+                    if pf.match_filter_reason(candidate.candidate_id, lang, match):
+                        continue
+                    span = (match.start(), match.end())
+                    if any(
+                        pf.spans_overlap(span, extracted)
+                        for extracted in extracted_spans
+                    ):
+                        continue
+                    bucket["gap_repos"].add(repo["id"])
+                    if len(bucket["gap_samples"]) < sample_limit:
+                        sample = pf.make_sample(
+                            repo, rel, lang, text, match.start(), match.end()
+                        )
+                        sample["probe_id"] = probe_spec.probe_id
+                        bucket["gap_samples"].append(sample)
+    return buckets, corpus_source_languages
+
+
+def merge_presence_buckets(target: dict, source: dict, sample_limit: int) -> None:
+    for candidate in ALL_CANDIDATES:
+        candidate_id = candidate.candidate_id
+        into = target[candidate_id]
+        partial = source[candidate_id]
+        duplicate_repos = set(into["repos"]) & set(partial["repos"])
+        if duplicate_repos:
+            raise ValueError(
+                f"{candidate_id}: duplicate repository projections {sorted(duplicate_repos)}"
+            )
+        into["repos"].update(partial["repos"])
+        into["languages"].update(partial["languages"])
+        into["gap_repos"].update(partial["gap_repos"])
+        for field in ("samples", "gap_samples"):
+            remaining = sample_limit - len(into[field])
+            if remaining > 0:
+                into[field].extend(partial[field][:remaining])
+
+
+def presence_query(
+    repos: list[dict], max_bytes: int, sample_limit: int, jobs: int = 1
+) -> tuple[dict, list[str]]:
+    """Accumulate deterministic presence breadth, optionally scanning repos in parallel."""
+    if jobs < 1:
+        raise ValueError("jobs must be at least 1")
+    buckets = empty_presence_buckets()
+    corpus_source_languages: set[str] = set()
+    if jobs == 1 or len(repos) < 2:
+        projections = (
+            scan_repository(repo, max_bytes, sample_limit) for repo in repos
+        )
+        for partial, source_languages in projections:
+            merge_presence_buckets(buckets, partial, sample_limit)
+            corpus_source_languages.update(source_languages)
+    else:
+        with ProcessPoolExecutor(max_workers=min(jobs, len(repos))) as executor:
+            projections = executor.map(
+                scan_repository,
+                repos,
+                [max_bytes] * len(repos),
+                [sample_limit] * len(repos),
+            )
+            # executor.map yields in corpus order, preserving the serial sample-limit rule.
+            for partial, source_languages in projections:
+                merge_presence_buckets(buckets, partial, sample_limit)
+                corpus_source_languages.update(source_languages)
     return buckets, sorted(corpus_source_languages)
 
 
@@ -684,6 +737,7 @@ def build(
     nose_binary: Path | None,
     detector_probe_limit: int,
     build_ref: str | None,
+    jobs: int = 1,
 ) -> dict:
     validate_vocab()
     validate_conclusion()
@@ -699,7 +753,9 @@ def build(
     corpus_primary_languages = sorted(
         {r["primary_language"] for r in repos if r.get("primary_language")}
     )
-    buckets, corpus_source_languages = presence_query(repos, max_bytes, sample_limit)
+    buckets, corpus_source_languages = presence_query(
+        repos, max_bytes, sample_limit, jobs
+    )
     evidence = load_frontier_evidence(real_frontier)
 
     candidates_out = []
@@ -2468,6 +2524,32 @@ def selftest() -> int:
     assert both["dev_breadth"] == 0.5 and both["heldout_breadth"] == 0.5
     assert both["primary_language_presence"] == 2
 
+    # Repository workers may finish out of order, but reduction follows corpus order so
+    # sample limits and every emitted field stay identical to the serial projection.
+    with tempfile.TemporaryDirectory(prefix="nose-frontier-platform-") as directory:
+        root = Path(directory)
+        repos = []
+        for repo_id in ("first", "second"):
+            repo_path = root / repo_id
+            repo_path.mkdir()
+            (repo_path / "sample.py").write_text(
+                "def contains(value):\n    return value in [1, 2]\n"
+            )
+            repos.append(
+                {
+                    "id": repo_id,
+                    "split": "dev",
+                    "primary_language": "python",
+                    "path": repo_path,
+                }
+            )
+        serial = presence_query(repos, 512_000, 1, jobs=1)
+        parallel = presence_query(repos, 512_000, 1, jobs=2)
+        assert parallel == serial, "parallel presence projection must equal serial"
+        assert (
+            serial[0]["membership_contains"]["samples"][0]["repo"] == "first"
+        ), "sample limit must retain corpus order"
+
     # Family-on-line detection (the detector-suggested probe's covered/miss kernel).
     report = json.dumps({"families": [{"locations": [
         {"file": "src/x.go", "start_line": 10, "end_line": 12}]}]})
@@ -2559,6 +2641,12 @@ def main() -> int:
     ap.add_argument("--max-bytes", type=int, default=512_000)
     ap.add_argument("--sample-limit", type=int, default=8)
     ap.add_argument(
+        "--jobs",
+        type=int,
+        default=DEFAULT_JOBS,
+        help=f"repository scan workers (default: {DEFAULT_JOBS}; use 1 for serial)",
+    )
+    ap.add_argument(
         "--real-frontier", type=Path, default=HERE / "real_frontier.v1.json"
     )
     ap.add_argument("--nose-binary", type=Path, default=None)
@@ -2612,6 +2700,7 @@ def main() -> int:
         nose_binary=nose_binary,
         detector_probe_limit=args.detector_probe_limit if nose_binary else 0,
         build_ref=args.build_ref,
+        jobs=args.jobs,
     )
 
     text = json.dumps(result, indent=2, sort_keys=True) + "\n"

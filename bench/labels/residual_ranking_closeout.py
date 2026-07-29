@@ -7,6 +7,7 @@ import argparse
 import copy
 import json
 import math
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,9 @@ DEFAULT_ARTIFACT = (
 EXPECTED_OVERLAY_DATASET_SHA256 = (
     "ef5bdc4b970201d721deb0ef90681b52891b7486cb15158ddbaae2f106ea5fbe"
 )
+EXPECTED_TOOL_COMMIT = "45018a24d9f6587678fd6c353456019775101477"
+EXPECTED_PANEL_SHA256 = "72e805f23adf7fc7807930e6bafbebdb7d2f67b3a6a683012fab43303ae5e7ff"
+EXPECTED_EVALUATOR_SHA256 = "fabf1414d84d936f540e5e19045f8ff24eb8cf0c4b11bcffa59d2b36edb92559"
 EXPECTED_BASELINE = {
     "best_case_slot_precision_pct": 58.8146,
     "coverage_pct": 100.0,
@@ -64,6 +68,20 @@ def read_json(path: Path) -> dict[str, Any]:
 
 def path_record(path: Path) -> dict[str, str]:
     return {"path": path.relative_to(ROOT).as_posix(), "sha256": ranking.sha256_file(path)}
+
+
+def frozen_tool_record(path: Path, expected_sha256: str) -> dict[str, str]:
+    relative = path.relative_to(ROOT).as_posix()
+    frozen = subprocess.run(
+        ["git", "show", f"{EXPECTED_TOOL_COMMIT}:{relative}"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    require_equal(
+        ranking.sha256_bytes(frozen), expected_sha256, f"{relative}: frozen tool"
+    )
+    return {"path": relative, "sha256": expected_sha256}
 
 
 def require_equal(actual: object, expected: object, label: str) -> None:
@@ -181,11 +199,15 @@ def decision_record(evaluation: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_artifact() -> dict[str, Any]:
-    calibration = read_json(CALIBRATION)
-    ranking.validate_payload(calibration)
-    component = read_json(COMPONENT)
-    panel.validate_component_payload(component, panel.DECISIONS, panel.ARBITRATION)
+def build_artifact(
+    context: panel.ValidationContext | None = None,
+) -> dict[str, Any]:
+    if context is None:
+        context = panel.build_validation_context()
+    calibration = context.topup.calibration
+    component = context.component
+    if component is None:
+        raise ValueError("residual closeout requires the complete panel artifact chain")
     dataset, overlay = apply_exact_overlay(calibration["dataset"], component)
     dataset_sha256 = ranking.canonical_sha256(dataset)
     require_equal(dataset_sha256, EXPECTED_OVERLAY_DATASET_SHA256, "overlay dataset digest")
@@ -218,8 +240,12 @@ def build_artifact() -> dict[str, Any]:
         "provenance": {
             "calibration": path_record(CALIBRATION),
             "label_component": path_record(COMPONENT),
-            "panel_tool": path_record(Path(panel.__file__)),
-            "evaluator": path_record(Path(__file__)),
+            "panel_tool": frozen_tool_record(
+                Path(panel.__file__), EXPECTED_PANEL_SHA256
+            ),
+            "evaluator": frozen_tool_record(
+                Path(__file__), EXPECTED_EVALUATOR_SHA256
+            ),
             "binary_sha256": ranking.EXPECTED_BINARY_SHA256,
             "binary_version": ranking.EXPECTED_BINARY_VERSION,
         },

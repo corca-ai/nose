@@ -218,6 +218,26 @@ seconds (31.7%) below the three-worker result and 116.694 seconds (54.3%) below
 the original 214.754-second result. The aggregate artifact validation and all
 five mutation self-tests remain in the gate.
 
+### Calculation-reuse follow-up
+
+The residual-ranking evaluator now computes each repository/proposal order once
+and aggregates it for the full dataset and all repository-CV folds. Run-scoped
+validation contexts also keep the top-up/panel/closeout mutation tests from
+rebuilding an already validated source chain. Focused arm64 macOS measurements
+with Python 3.14.6 reduced calibration validation from 6.61 to 1.22 seconds,
+the panel mutation self-test from its previously observed 56–58 seconds to
+1.77 seconds, and residual closeout self-test from its previously observed
+16–21 seconds to 3.04 seconds. All checked evaluation and closeout artifacts
+reproduced exactly. The complete focused `default-head-evidence` gate passed in
+41.53 seconds, down from the preceding 98.060-second focused run.
+
+The frontier platform now scans pinned repositories through a deterministic
+four-worker map/reduce. On the same corpus, `--check --jobs 1` took 50.90
+seconds and `--check --jobs 4` took 12.91 seconds. Both paths accepted the
+same checked JSON, Markdown, and packet artifacts; the corpus-free self-test
+also compares serial and parallel projections with an order-sensitive sample
+limit. The complete `type4-frontier` gate passed in 13.74 seconds.
+
 No aggregate `--jobs 2` wall-time claim is recorded for this follow-up. During
 measurement, macOS policy inspection delayed each locally built Rust test
 binary independently of the planner, making the result non-representative.

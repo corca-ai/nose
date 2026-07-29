@@ -207,6 +207,12 @@ Add `--with-detector-probe --nose-binary ./target/release/nose` to attach the
 detector-*suggested* tier; it records the nose binary identity and never finalizes a
 status. `--selftest` runs corpus-free correctness checks.
 
+Corpus scanning uses up to four repository workers by default. Each worker emits an
+independent repository projection, and the parent reduces those projections in the
+original corpus order. Consequently sample limits and generated JSON/Markdown remain
+byte-identical to `--jobs 1`; use that option when diagnosing a single serial scan.
+The detector-suggested probe remains outside this worker pool.
+
 The committed artifacts are **machine-independent**: paths are repo-root-relative and
 `build_ref` defaults to `null` (embedding the live `git HEAD` would make an artifact stale
 the moment it is committed). So they regenerate byte-identically from the command above. The

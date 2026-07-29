@@ -40,6 +40,8 @@ EXPECTED_BASE_TREE = "399b5b816c4c19a61b549445111356921d69c3cb"
 EXPECTED_BINARY_SHA256 = "f7fcda30aa63662f95000af7029eaf028c71ef074a18ba5e1e2048fe27c47fd0"
 EXPECTED_BINARY_VERSION = "nose 0.19.0"
 EXPECTED_DATASET_SHA256 = "dd8832fe094f97d85ab34a09af5adc7d7db3e763b53a562eb463465cd0de0299"
+EXPECTED_COLLECTOR_COMMIT = "6e9a2d08903b34f35ef6e5e6f007b9185378dbc1"
+EXPECTED_COLLECTOR_SHA256 = "6dd2ab081187ce92586eec44c88106a91d9af9818de1f2aee5da0b413af7595c"
 EXPECTED_NEXT_STEP = (
     "Freeze and independently panel-label the complete unresolved top-10 union of the "
     "46 pre-registered formulas before deciding go or no-go; keep held-out closed."
@@ -87,6 +89,14 @@ class Proposal:
     param_coefficient: float = 0.5
     tightness_exponent: float = 1.0
     homogeneity_exponent: float = 1.0
+
+
+@dataclass(frozen=True)
+class RepositoryRanking:
+    hits: int
+    matched: int
+    reported: int
+    top_keys: tuple[str, ...]
 
 
 BASELINE = Proposal("current")
@@ -459,8 +469,35 @@ def add_counts(left: dict[str, int], right: dict[str, int]) -> None:
         left[key] += right[key]
 
 
+def rank_repository(row: dict[str, Any], proposal: Proposal) -> RepositoryRanking:
+    top = order_families(row["families"], proposal)[:10]
+    return RepositoryRanking(
+        hits=sum(family["truth"] is True for family in top),
+        matched=sum(family["truth"] is not None for family in top),
+        reported=len(top),
+        top_keys=tuple(family["key"] for family in top),
+    )
+
+
+def precompute_rankings(
+    dataset: dict[str, Any],
+) -> dict[str, dict[str, RepositoryRanking]]:
+    """Rank each repository/proposal pair once for full and fold aggregation."""
+    return {
+        proposal.id: {
+            repo: rank_repository(row, proposal)
+            for repo, row in sorted(dataset["repositories"].items())
+        }
+        for proposal in PROPOSALS
+    }
+
+
 def metrics_for(
-    dataset: dict[str, Any], proposal: Proposal, repositories: Iterable[str] | None = None
+    dataset: dict[str, Any],
+    proposal: Proposal,
+    repositories: Iterable[str] | None = None,
+    *,
+    rankings: dict[str, dict[str, RepositoryRanking]] | None = None,
 ) -> dict[str, Any]:
     selected = set(dataset["repositories"]) if repositories is None else set(repositories)
     aggregate = empty_counts()
@@ -468,16 +505,19 @@ def metrics_for(
     per_repository: dict[str, dict[str, Any]] = {}
     for repo in sorted(selected):
         row = dataset["repositories"][repo]
-        ordered = order_families(row["families"], proposal)
-        top = ordered[:10]
+        ranked = (
+            rank_repository(row, proposal)
+            if rankings is None
+            else rankings[proposal.id][repo]
+        )
         counts = {
-            "hits": sum(family["truth"] is True for family in top),
-            "matched": sum(family["truth"] is not None for family in top),
-            "reported": len(top),
+            "hits": ranked.hits,
+            "matched": ranked.matched,
+            "reported": ranked.reported,
         }
         add_counts(aggregate, counts)
         add_counts(languages[row["language"]], counts)
-        per_repository[repo] = {"counts": counts, "top_keys": [family["key"] for family in top]}
+        per_repository[repo] = {"counts": counts, "top_keys": list(ranked.top_keys)}
     return {
         "overall": metric_record(aggregate),
         "languages": {
@@ -606,7 +646,12 @@ def fold_assignment(dataset: dict[str, Any]) -> dict[str, int]:
     return assignments
 
 
-def cross_validate(dataset: dict[str, Any]) -> dict[str, Any]:
+def cross_validate(
+    dataset: dict[str, Any],
+    rankings: dict[str, dict[str, RepositoryRanking]] | None = None,
+) -> dict[str, Any]:
+    if rankings is None:
+        rankings = precompute_rankings(dataset)
     assignments = fold_assignment(dataset)
     all_repos = set(dataset["repositories"])
     folds = []
@@ -616,10 +661,10 @@ def cross_validate(dataset: dict[str, Any]) -> dict[str, Any]:
     for fold in range(FOLD_COUNT):
         validation = sorted(repo for repo, value in assignments.items() if value == fold)
         training = sorted(all_repos - set(validation))
-        baseline_train = metrics_for(dataset, BASELINE, training)
+        baseline_train = metrics_for(dataset, BASELINE, training, rankings=rankings)
         candidates = []
         for proposal in PROPOSALS:
-            result = metrics_for(dataset, proposal, training)
+            result = metrics_for(dataset, proposal, training, rankings=rankings)
             if candidate_eligible(result, baseline_train):
                 candidates.append((proposal, result))
         if not candidates:
@@ -627,7 +672,7 @@ def cross_validate(dataset: dict[str, Any]) -> dict[str, Any]:
         else:
             selected = sorted(candidates, key=result_order)[0][0]
         selections[selected.id] = selections.get(selected.id, 0) + 1
-        measured = metrics_for(dataset, selected, validation)
+        measured = metrics_for(dataset, selected, validation, rankings=rankings)
         fold_counts = {
             key: measured["overall"][key] for key in ("hits", "matched", "reported")
         }
@@ -663,8 +708,12 @@ def cross_validate(dataset: dict[str, Any]) -> dict[str, Any]:
 
 def evaluate_dataset(dataset: dict[str, Any]) -> dict[str, Any]:
     by_id = {proposal.id: proposal for proposal in PROPOSALS}
-    baseline = metrics_for(dataset, BASELINE)
-    results = {proposal.id: metrics_for(dataset, proposal) for proposal in PROPOSALS}
+    rankings = precompute_rankings(dataset)
+    baseline = metrics_for(dataset, BASELINE, rankings=rankings)
+    results = {
+        proposal.id: metrics_for(dataset, proposal, rankings=rankings)
+        for proposal in PROPOSALS
+    }
     eligible = [
         (by_id[proposal_id], result)
         for proposal_id, result in results.items()
@@ -740,7 +789,7 @@ def evaluate_dataset(dataset: dict[str, Any]) -> dict[str, Any]:
             proposal_id: public_metrics(result) for proposal_id, result in results.items()
         },
         "successful_proposals": [proposal.id for proposal, _ in successes],
-        "cross_validation": cross_validate(dataset),
+        "cross_validation": cross_validate(dataset, rankings),
     }
 
 
@@ -840,10 +889,7 @@ def freeze(args: argparse.Namespace) -> None:
                 "path": str(PARENT_QUALITY.relative_to(ROOT)),
                 "sha256": sha256_file(PARENT_QUALITY),
             },
-            "collector": {
-                "path": "bench/labels/residual_ranking.py",
-                "sha256": sha256_file(Path(__file__)),
-            },
+            "collector": frozen_collector_record(),
         },
         "dataset_sha256": dataset_sha,
         "dataset": dataset,
@@ -881,6 +927,20 @@ def expected_path_record(path: Path) -> dict[str, str]:
     return {"path": path.relative_to(ROOT).as_posix(), "sha256": sha256_file(path)}
 
 
+def frozen_collector_record() -> dict[str, str]:
+    path = Path(__file__).relative_to(ROOT).as_posix()
+    frozen = subprocess.run(
+        ["git", "show", f"{EXPECTED_COLLECTOR_COMMIT}:{path}"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    require_equal(
+        sha256_bytes(frozen), EXPECTED_COLLECTOR_SHA256, "frozen collector blob"
+    )
+    return {"path": path, "sha256": EXPECTED_COLLECTOR_SHA256}
+
+
 def validate_current_order(dataset: dict[str, Any]) -> None:
     for repo, row in dataset["repositories"].items():
         families = row["families"]
@@ -899,7 +959,9 @@ def validate_current_order(dataset: dict[str, Any]) -> None:
             require_equal(family["key"], expected_key, f"{repo}: family key")
 
 
-def validate_payload(artifact: dict[str, Any]) -> None:
+def validate_payload(
+    artifact: dict[str, Any], *, expected_evaluation: dict[str, Any] | None = None
+) -> None:
     require_exact_keys(
         artifact,
         {
@@ -945,7 +1007,7 @@ def validate_payload(artifact: dict[str, Any]) -> None:
     expected_corpus = expected_path_record(CORPUS)
     expected_parent = expected_path_record(PARENT_QUALITY)
     expected_labels = [expected_path_record(path) for path in DEV_LABELS]
-    expected_collector = expected_path_record(Path(__file__))
+    expected_collector = frozen_collector_record()
     require_equal(provenance["corpus"], expected_corpus, "corpus provenance")
     require_equal(provenance["parent_quality"], expected_parent, "parent provenance")
     require_equal(provenance["dev_labels"], expected_labels, "dev-label provenance")
@@ -954,7 +1016,6 @@ def validate_payload(artifact: dict[str, Any]) -> None:
         ("corpus", expected_corpus),
         ("parent quality", expected_parent),
         *[(f"dev label {index}", record) for index, record in enumerate(expected_labels)],
-        ("collector", expected_collector),
     ):
         require_exact_keys(record, {"path", "sha256"}, label)
         require_equal(sha256_file(ROOT / record["path"]), record["sha256"], label)
@@ -971,7 +1032,11 @@ def validate_payload(artifact: dict[str, Any]) -> None:
         "family count",
     )
     validate_current_order(artifact["dataset"])
-    reproduced = evaluate_dataset(artifact["dataset"])
+    reproduced = (
+        evaluate_dataset(artifact["dataset"])
+        if expected_evaluation is None
+        else expected_evaluation
+    )
     require_equal(reproduced, artifact["evaluation"], "evaluation")
     require_equal(artifact["decision"], "evidence-incomplete", "decision")
     require_equal(
@@ -1004,6 +1069,7 @@ def validate(args: argparse.Namespace) -> None:
 def self_test(args: argparse.Namespace) -> None:
     artifact = read_json(args.artifact)
     validate_payload(artifact)
+    expected_evaluation = artifact["evaluation"]
     mutations = []
     changed = copy.deepcopy(artifact)
     changed["heldout_policy"]["labels_opened"] = True
@@ -1035,7 +1101,7 @@ def self_test(args: argparse.Namespace) -> None:
     mutations.append(changed)
     for mutation in mutations:
         try:
-            validate_payload(mutation)
+            validate_payload(mutation, expected_evaluation=expected_evaluation)
         except ValueError:
             pass
         else:
@@ -1072,12 +1138,23 @@ def self_test(args: argparse.Namespace) -> None:
             "modules": 1,
             "witness": None,
             "implementation_type": False,
+            "truth": rank == 1,
         }
         for rank, key in ((2, "b"), (1, "a"))
     ]
     experimental = next(proposal for proposal in PROPOSALS if proposal.id != "current")
     assert [family["key"] for family in order_families(synthetic, experimental)] == ["a", "b"]
     assert [family["key"] for family in order_families(reversed(synthetic), experimental)] == ["a", "b"]
+    synthetic_dataset = {
+        "repositories": {
+            "repo": {"language": "Rust", "families": synthetic},
+        }
+    }
+    rankings = precompute_rankings(synthetic_dataset)
+    for proposal in (BASELINE, experimental):
+        assert metrics_for(synthetic_dataset, proposal) == metrics_for(
+            synthetic_dataset, proposal, rankings=rankings
+        )
     print("residual-ranking self-test passed")
 
 

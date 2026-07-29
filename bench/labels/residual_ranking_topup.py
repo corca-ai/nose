@@ -13,6 +13,7 @@ import argparse
 import copy
 import hashlib
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -54,6 +55,14 @@ CONTRACT = {
     "top_k": 10,
     "unresolved_statuses": ["conflicting-best-overlap", "unmatched"],
 }
+
+
+@dataclass(frozen=True)
+class ValidationContext:
+    calibration: dict[str, Any]
+    dataset: dict[str, Any]
+    expected_membership: dict[str, list[dict[str, object]]]
+    labels: dict[str, list[dict[str, Any]]]
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -247,7 +256,23 @@ def freeze(args: argparse.Namespace) -> None:
     print(f"candidate_key_sha256={result['selection']['candidate_key_sha256']}")
 
 
-def validate_payload(payload: dict[str, Any]) -> None:
+def build_validation_context() -> ValidationContext:
+    calibration = read_json(CALIBRATION)
+    ranking.validate_payload(calibration)
+    dataset = calibration["dataset"]
+    expected_membership = unresolved_membership(dataset)
+    require_equal(len(expected_membership), EXPECTED_SELECTED, "derived selection count")
+    return ValidationContext(
+        calibration=calibration,
+        dataset=dataset,
+        expected_membership=expected_membership,
+        labels=ranking.load_dev_labels(),
+    )
+
+
+def validate_payload(
+    payload: dict[str, Any], *, context: ValidationContext | None = None
+) -> None:
     require_exact_keys(
         payload,
         {
@@ -305,11 +330,10 @@ def validate_payload(payload: dict[str, Any]) -> None:
             EXPECTED_COLLECTION_PROJECTION_SHA256,
             "collection projection digest",
         )
-    calibration = read_json(CALIBRATION)
-    ranking.validate_payload(calibration)
-    dataset = calibration["dataset"]
-    expected_membership = unresolved_membership(dataset)
-    require_equal(len(expected_membership), EXPECTED_SELECTED, "derived selection count")
+    if context is None:
+        context = build_validation_context()
+    dataset = context.dataset
+    expected_membership = context.expected_membership
     require_equal(
         [candidate["candidate_key"] for candidate in payload["candidates"]],
         list(expected_membership),
@@ -320,7 +344,7 @@ def validate_payload(payload: dict[str, Any]) -> None:
         for repo, row in dataset["repositories"].items()
         for family in row["families"]
     }
-    labels = ranking.load_dev_labels()
+    labels = context.labels
     for order, candidate in enumerate(payload["candidates"], start=1):
         require_exact_keys(
             candidate,
@@ -402,7 +426,8 @@ def validate(args: argparse.Namespace) -> None:
 
 def self_test(args: argparse.Namespace) -> None:
     payload = read_json(args.selection)
-    validate_payload(payload)
+    context = build_validation_context()
+    validate_payload(payload, context=context)
     mutations = []
     changed = copy.deepcopy(payload)
     changed["heldout_result"] = {"precision_at_10": 100}
@@ -427,7 +452,7 @@ def self_test(args: argparse.Namespace) -> None:
     mutations.append(changed)
     for mutation in mutations:
         try:
-            validate_payload(mutation)
+            validate_payload(mutation, context=context)
         except ValueError:
             continue
         raise AssertionError("invalid selection mutation was accepted")

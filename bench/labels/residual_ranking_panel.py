@@ -8,6 +8,7 @@ import copy
 import hashlib
 import json
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +37,16 @@ NOT_WORTHY_REASONS = {
     "type-def",
 }
 ALL_REASONS = WORTHY_REASONS | NOT_WORTHY_REASONS
+
+
+@dataclass(frozen=True)
+class ValidationContext:
+    topup: topup.ValidationContext
+    blind: dict[str, Any]
+    rows: list[dict[str, Any]]
+    arbitration: dict[str, Any] | None
+    decisions: dict[str, Any] | None
+    component: dict[str, Any] | None
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -114,8 +125,7 @@ def blind_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_blind(selection: dict[str, Any]) -> dict[str, Any]:
-    topup.validate_payload(selection)
+def blind_projection(selection: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema": "nose.residual_ranking_blind_panel.v1",
         "issue": 845,
@@ -140,6 +150,11 @@ def build_blind(selection: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_blind(selection: dict[str, Any]) -> dict[str, Any]:
+    topup.validate_payload(selection)
+    return blind_projection(selection)
+
+
 def freeze_blind(args: argparse.Namespace) -> None:
     validate_selection_receipt()
     payload = build_blind(read_json(SELECTION))
@@ -150,7 +165,12 @@ def freeze_blind(args: argparse.Namespace) -> None:
     print(f"blind candidates={len(payload['candidates'])}")
 
 
-def validate_blind_payload(payload: dict[str, Any], *, live_sources: bool = False) -> None:
+def validate_blind_projection(
+    payload: dict[str, Any],
+    expected: dict[str, Any],
+    *,
+    live_sources: bool = False,
+) -> None:
     require_exact_keys(
         payload,
         {
@@ -171,11 +191,9 @@ def validate_blind_payload(payload: dict[str, Any], *, live_sources: bool = Fals
     require_equal(payload["issue"], 845, "issue")
     require_equal(payload["split"], "dev", "split")
     require_equal(payload["heldout_policy"], ranking.HELDOUT_POLICY, "held-out policy")
-    validate_selection_receipt()
     require_equal(payload["selection_receipt"], selection_receipt(), "selection receipt")
     require_equal(payload["source_artifact"], path_record(SELECTION), "source artifact")
     require_equal(payload["rubric"], path_record(topup.RUBRIC), "rubric")
-    expected = build_blind(read_json(SELECTION))
     require_equal(payload, expected, "blind projection")
     serialized = canonical_bytes(payload["candidates"])
     for hidden in payload["blinding"]["hidden_fields"]:
@@ -184,6 +202,12 @@ def validate_blind_payload(payload: dict[str, Any], *, live_sources: bool = Fals
     if live_sources:
         for record in payload["source_files"]:
             require_equal(sha256_file(ROOT / record["path"]), record["sha256"], record["path"])
+
+
+def validate_blind_payload(payload: dict[str, Any], *, live_sources: bool = False) -> None:
+    validate_selection_receipt()
+    expected = build_blind(read_json(SELECTION))
+    validate_blind_projection(payload, expected, live_sources=live_sources)
 
 
 def validate_blind(args: argparse.Namespace) -> None:
@@ -228,10 +252,9 @@ def validate_vote(args: argparse.Namespace) -> None:
     print(f"validated {args.persona} vote: {args.vote}")
 
 
-def panel_rows() -> list[dict[str, Any]]:
-    blind = read_json(BLIND)
-    validate_blind_payload(blind)
-    payloads = {persona: read_json(vote_path(persona)) for persona in PERSONAS}
+def panel_rows_from(
+    blind: dict[str, Any], payloads: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
     for persona, payload in payloads.items():
         validate_vote_payload(payload, persona, blind=blind)
     rows = []
@@ -248,6 +271,13 @@ def panel_rows() -> list[dict[str, Any]]:
             }
         )
     return rows
+
+
+def panel_rows() -> list[dict[str, Any]]:
+    blind = read_json(BLIND)
+    validate_blind_payload(blind)
+    payloads = {persona: read_json(vote_path(persona)) for persona in PERSONAS}
+    return panel_rows_from(blind, payloads)
 
 
 def vote_inputs() -> dict[str, dict[str, str]]:
@@ -307,10 +337,11 @@ def validate_arbitration(args: argparse.Namespace) -> None:
     print(f"validated arbitration: {args.arbitration}")
 
 
-def build_decisions(arbitration_path: Path) -> dict[str, Any]:
-    arbitration = read_json(arbitration_path)
-    rows = panel_rows()
-    validate_arbitration_payload(arbitration, rows=rows)
+def decisions_projection(
+    rows: list[dict[str, Any]],
+    arbitration: dict[str, Any],
+    arbitration_path: Path,
+) -> dict[str, Any]:
     resolutions = {
         row["candidate_key"]: row for row in arbitration["arbitrations"]
     }
@@ -360,6 +391,13 @@ def build_decisions(arbitration_path: Path) -> dict[str, Any]:
     }
 
 
+def build_decisions(arbitration_path: Path) -> dict[str, Any]:
+    arbitration = read_json(arbitration_path)
+    rows = panel_rows()
+    validate_arbitration_payload(arbitration, rows=rows)
+    return decisions_projection(rows, arbitration, arbitration_path)
+
+
 def freeze_decisions(args: argparse.Namespace) -> None:
     payload = build_decisions(args.arbitration)
     args.output.write_text(
@@ -372,8 +410,15 @@ def freeze_decisions(args: argparse.Namespace) -> None:
     )
 
 
-def validate_decisions_payload(payload: dict[str, Any], arbitration_path: Path) -> None:
-    require_equal(payload, build_decisions(arbitration_path), "decisions artifact")
+def validate_decisions_payload(
+    payload: dict[str, Any],
+    arbitration_path: Path,
+    *,
+    expected: dict[str, Any] | None = None,
+) -> None:
+    if expected is None:
+        expected = build_decisions(arbitration_path)
+    require_equal(payload, expected, "decisions artifact")
 
 
 def validate_decisions(args: argparse.Namespace) -> None:
@@ -387,10 +432,11 @@ def final_judgment(decision: dict[str, Any]) -> tuple[dict[str, Any], str]:
     return next(iter(decision["votes"].values())), "panel"
 
 
-def build_component(decisions_path: Path, arbitration_path: Path) -> dict[str, Any]:
-    decisions_payload = read_json(decisions_path)
-    validate_decisions_payload(decisions_payload, arbitration_path)
-    blind = read_json(BLIND)
+def component_projection(
+    blind: dict[str, Any],
+    decisions_payload: dict[str, Any],
+    decisions_path: Path,
+) -> dict[str, Any]:
     labels = []
     for candidate, decision in zip(
         blind["candidates"], decisions_payload["decisions"], strict=True
@@ -442,6 +488,13 @@ def build_component(decisions_path: Path, arbitration_path: Path) -> dict[str, A
     }
 
 
+def build_component(decisions_path: Path, arbitration_path: Path) -> dict[str, Any]:
+    decisions_payload = read_json(decisions_path)
+    validate_decisions_payload(decisions_payload, arbitration_path)
+    blind = read_json(BLIND)
+    return component_projection(blind, decisions_payload, decisions_path)
+
+
 def freeze_component(args: argparse.Namespace) -> None:
     payload = build_component(args.decisions, args.arbitration)
     args.output.write_text(
@@ -452,13 +505,15 @@ def freeze_component(args: argparse.Namespace) -> None:
 
 
 def validate_component_payload(
-    payload: dict[str, Any], decisions_path: Path, arbitration_path: Path
+    payload: dict[str, Any],
+    decisions_path: Path,
+    arbitration_path: Path,
+    *,
+    expected: dict[str, Any] | None = None,
 ) -> None:
-    require_equal(
-        payload,
-        build_component(decisions_path, arbitration_path),
-        "label component",
-    )
+    if expected is None:
+        expected = build_component(decisions_path, arbitration_path)
+    require_equal(payload, expected, "label component")
 
 
 def validate_component(args: argparse.Namespace) -> None:
@@ -466,9 +521,67 @@ def validate_component(args: argparse.Namespace) -> None:
     print(f"validated component: {args.component}")
 
 
+def build_validation_context(
+    blind_path: Path = BLIND,
+    arbitration_path: Path = ARBITRATION,
+    decisions_path: Path = DECISIONS,
+    component_path: Path = COMPONENT,
+) -> ValidationContext:
+    validate_selection_receipt()
+    topup_context = topup.build_validation_context()
+    selection = read_json(SELECTION)
+    topup.validate_payload(selection, context=topup_context)
+
+    blind = read_json(blind_path)
+    validate_blind_projection(blind, blind_projection(selection))
+    vote_payloads = {
+        persona: read_json(vote_path(persona)) for persona in PERSONAS
+    }
+    rows = panel_rows_from(blind, vote_payloads)
+
+    if not (
+        arbitration_path.exists()
+        and decisions_path.exists()
+        and component_path.exists()
+    ):
+        return ValidationContext(
+            topup=topup_context,
+            blind=blind,
+            rows=rows,
+            arbitration=None,
+            decisions=None,
+            component=None,
+        )
+
+    arbitration = read_json(arbitration_path)
+    validate_arbitration_payload(arbitration, rows=rows)
+    expected_decisions = decisions_projection(rows, arbitration, arbitration_path)
+    decisions = read_json(decisions_path)
+    validate_decisions_payload(
+        decisions, arbitration_path, expected=expected_decisions
+    )
+
+    expected_component = component_projection(blind, decisions, decisions_path)
+    component = read_json(component_path)
+    validate_component_payload(
+        component,
+        decisions_path,
+        arbitration_path,
+        expected=expected_component,
+    )
+    return ValidationContext(
+        topup=topup_context,
+        blind=blind,
+        rows=rows,
+        arbitration=arbitration,
+        decisions=decisions,
+        component=component,
+    )
+
+
 def self_test(args: argparse.Namespace) -> None:
-    payload = read_json(args.blind)
-    validate_blind_payload(payload)
+    context = build_validation_context(args.blind)
+    payload = context.blind
     mutations = []
     changed = copy.deepcopy(payload)
     changed["candidates"][0]["current_rank"] = 1
@@ -484,29 +597,30 @@ def self_test(args: argparse.Namespace) -> None:
     mutations.append(changed)
     for mutation in mutations:
         try:
-            validate_blind_payload(mutation)
+            validate_blind_projection(mutation, context.blind)
         except (ValueError, subprocess.CalledProcessError):
             continue
         raise AssertionError("invalid blind-panel mutation was accepted")
     if ARBITRATION.exists() and DECISIONS.exists() and COMPONENT.exists():
-        arbitration = read_json(ARBITRATION)
-        decisions = read_json(DECISIONS)
-        component = read_json(COMPONENT)
-        validate_arbitration_payload(arbitration)
-        validate_decisions_payload(decisions, ARBITRATION)
-        validate_component_payload(component, DECISIONS, ARBITRATION)
-        changed = copy.deepcopy(arbitration)
+        assert context.arbitration is not None
+        assert context.component is not None
+        changed = copy.deepcopy(context.arbitration)
         changed["arbitrations"][0]["candidate_key"] = "wrong"
         try:
-            validate_arbitration_payload(changed)
+            validate_arbitration_payload(changed, rows=context.rows)
         except ValueError:
             pass
         else:
             raise AssertionError("invalid arbitration mutation was accepted")
-        changed = copy.deepcopy(component)
+        changed = copy.deepcopy(context.component)
         changed["labels"][0]["worthy"] = not changed["labels"][0]["worthy"]
         try:
-            validate_component_payload(changed, DECISIONS, ARBITRATION)
+            validate_component_payload(
+                changed,
+                DECISIONS,
+                ARBITRATION,
+                expected=context.component,
+            )
         except ValueError:
             pass
         else:
