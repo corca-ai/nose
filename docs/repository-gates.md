@@ -98,16 +98,18 @@ Refresh it from a clean worktree with existing build caches:
 python3 scripts/ci/measure_gates.py \
   --profile clean-tree \
   --mode fast --mode full \
-  --output scripts/ci/gate-timings.v1.json
+  --output target/gate-timings.v1.json
 
 python3 scripts/ci/measure_gates.py \
   --profile no-change \
   --mode fast \
-  --output scripts/ci/gate-timings.v1.json \
+  --output target/gate-timings.v1.json \
   --append
 
 python3 scripts/ci/measure_gates.py \
-  --validate scripts/ci/gate-timings.v1.json
+  --validate target/gate-timings.v1.json
+
+cp target/gate-timings.v1.json scripts/ci/gate-timings.v1.json
 ```
 
 The `clean-tree` profile means source and checked evidence have no pending
@@ -117,24 +119,33 @@ incremental feedback measurement. The validator requires complete clean-tree
 fast/full runs, a complete no-change fast run, coverage of every registered
 gate, zero failed gates, and zero worktree drift.
 
-### Recorded pre-epic baseline
+Build the complete receipt under ignored `target/` and install it only after
+validation. The timing receipt belongs to the lifecycle catalog's
+`repository-policy` inventory, so writing the first partial run directly to the
+tracked path would make the later `evidence-artifacts` gate observe inventory
+drift. After installation, refresh that inventory digest and run the artifact
+lifecycle validator.
 
-The receipt recorded for #949 uses arm64 macOS, Python 3.14.6, and Rust/Cargo
-1.96.0. It covers all 30 registered gates:
+### Recorded post-readiness follow-up
+
+The receipt recorded at `1bfce491` uses arm64 macOS, Python 3.14.6, and
+Rust/Cargo 1.96.0. It covers all 33 registered gates:
 
 | Profile | Plan | Gates | Wall time | Failures | Worktree drift |
 |---|---|---:|---:|---:|---:|
-| clean-tree | fast | 20/20 | 943.682 s | 0 | 0 |
-| clean-tree | full | 28/28 | 940.274 s | 0 | 0 |
-| no-change | fast | 20/20 | 861.685 s | 0 | 0 |
+| clean-tree | fast | 23/23 | 458.469 s | 0 | 0 |
+| clean-tree | full | 31/31 | 621.739 s | 0 | 0 |
+| no-change | fast | 23/23 | 460.272 s | 0 | 0 |
 
-The clean and no-change fast runs are dominated by `test-debug-cli`
-(523.703/509.551 seconds) and `regression-selftests`
-(236.791/238.501 seconds). Most of the immediate-rerun improvement comes from
-`clippy` falling from 68.772 to 0.208 seconds after its build cache is populated.
-The full plan's leading costs are `msrv` (303.229 seconds),
-`regression-selftests` (235.242 seconds), `test-release` (109.171 seconds), and
-`build-release` (78.857 seconds).
+The former aggregate regression check is now four named gates. On the clean
+fast run, `default-head-evidence` took 213.988 seconds,
+`runtime-soundness-evidence` 18.042 seconds, `divergence-evidence` 3.230
+seconds, and `surface-recall-evidence` 2.066 seconds. Their local sequential
+sum is 237.326 seconds; dedicated hosted jobs can overlap them, with the
+213.988-second default-head job as the measured lower bound before runner setup
+and scheduling overhead. The full plan's leading costs are `msrv` (224.451
+seconds), `default-head-evidence` (213.403 seconds), `docs` (45.727 seconds),
+`type4-frontier` (44.923 seconds), and `coverage` (40.921 seconds).
 
 The timing does not identify a duplicated policy command that can be removed:
 the long gates qualify distinct product, regression, release, or compiler
@@ -145,3 +156,6 @@ them out of fast feedback would save little while delaying actionable failures.
 Use measurements to find duplicated setup or a gate assigned to the wrong lane.
 Do not remove validation or move release/soundness qualification to a faster
 lane merely to improve the aggregate time.
+
+The original 30-gate #949 measurement remains in the
+[pre-epic readiness record](pre-epic-readiness-948.md) as historical evidence.

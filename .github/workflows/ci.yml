@@ -29,8 +29,6 @@ jobs:
         run: ./scripts/check-ci-local.sh --gate semantic-pack-pricing
       - name: Type-4 frontier evidence checks
         run: ./scripts/check-ci-local.sh --gate type4-frontier
-      - name: regression checker self-tests
-        run: ./scripts/check-ci-local.sh --gate regression-selftests
       - name: evidence artifact lifecycle
         run: ./scripts/check-ci-local.sh --gate evidence-artifacts
       - name: current missed-worthy frontier artifacts
@@ -93,6 +91,46 @@ jobs:
         run: ./scripts/check-ci-local.sh --gate test-release
       - name: duplication gate (nose on itself)
         run: ./scripts/check-ci-local.sh --gate duplication
+
+  default-head-evidence:
+    name: default-head evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: default-head evidence checks
+        run: ./scripts/check-ci-local.sh --gate default-head-evidence
+
+  divergence-evidence:
+    name: divergence evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: divergence evidence checks
+        run: ./scripts/check-ci-local.sh --gate divergence-evidence
+
+  surface-recall-evidence:
+    name: generated surface · recall evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: generated surface and recall evidence checks
+        run: ./scripts/check-ci-local.sh --gate surface-recall-evidence
+
+  runtime-soundness-evidence:
+    name: runtime · soundness evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: runtime and soundness evidence checks
+        run: ./scripts/check-ci-local.sh --gate runtime-soundness-evidence
 
   semantic-regression:
     name: semantic output · runtime smoke

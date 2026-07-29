@@ -132,6 +132,41 @@ why all 19 large artifacts remain: every candidate still carries gold, sealed,
 baseline, closeout, release-reconstruction, or published-claim value, so no
 deletion met the conservative removal contract.
 
+## Post-readiness follow-up
+
+The next-epic handoff cleanup preserved every unmerged line of work while
+removing 28 merged local branches and six merged remote branches. `main` was
+fast-forwarded and pruned before the implementation branch was created.
+
+The monolithic `regression-selftests` gate is replaced by four ownership-based
+gates: `default-head-evidence`, `divergence-evidence`,
+`surface-recall-evidence`, and `runtime-soundness-evidence`. Local fast/full
+plans retain the complete checks in deterministic order, while GitHub Actions
+runs the four gates as independent jobs. The registry now contains 33 gates;
+fast covers 23 and full covers 31. The checked post-readiness measurement at
+`1bfce491` records 23/23 clean fast gates in 458.469 seconds, 31/31 clean full
+gates in 621.739 seconds, and 23/23 no-change fast gates in 460.272 seconds,
+with zero failures and zero worktree drift. The four evidence gates total
+237.326 seconds in the clean local sequence, while their longest independent
+job is the 213.988-second default-head gate.
+
+The 599-line `crates/nose-cli/tests/cli/support.rs` test helper is now a
+13-line façade over focused `fixtures.rs` (210 lines), `process.rs` (149
+lines), and `query.rs` (245 lines). Existing `support::*` call sites remain
+valid through crate-visible re-exports. Process-diagnostic tests stay beside
+their owner and continue to execute real CLI processes rather than mock command
+results.
+
+Because the support split changes the complete `crates/` Git tree identity, the
+Type-4 blind-attacker receipt was replayed. Only `product_crates_tree` changed,
+from `e45a98a6c5f20aa71068fa93b42104551f3e50e0` to
+`ab781571dd0a1513e2a7e4239b606e9bd0d307af`; the result remains 54 exact
+groups, zero false merges, zero canon-preservation violations, and 86 advisory
+disagreements. The self-query corpus also moved the already reviewed
+`int_bin`/`float_bin` family below the value-40 threshold, so its stale
+duplication ID was removed and the accepted count tightened from 29 to 28
+without adding a replacement family.
+
 ## Completion evidence
 
 The tranche closes only when:

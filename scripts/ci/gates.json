@@ -77,20 +77,71 @@
       }
     },
     {
-      "name": "regression-selftests",
-      "owner": "cross-domain checked evidence",
-      "implementation": "run_regression_checker_selftests",
+      "name": "default-head-evidence",
+      "owner": "default-head product-quality evidence",
+      "implementation": "run_default_head_evidence_checks",
       "tools": ["python3 >= 3.10", "node"],
-      "inputs": ["bench/labels/", "bench/cache/", "eval/divergence_fire/", "scripts/ci/evidence-gates.sh"],
+      "inputs": ["bench/labels/default_head_*", "bench/labels/residual_ranking*", "scripts/check-domain-calibration.py"],
       "worktree_effect": "verify-checked-output",
-      "outputs": ["bench/labels/", "bench/cache/", "eval/divergence_fire/"],
+      "outputs": ["bench/labels/"],
       "cache": "none",
       "lanes": ["local-fast", "local-full", "pull-request", "release"],
-      "lane_reason": "Mutation-tests and validates the checked product, runtime, cache, and soundness receipts.",
-      "focused_command": "./scripts/check-ci-local.sh --gate regression-selftests",
+      "lane_reason": "Mutation-tests and validates the checked default-head label, reveal, calibration, and closeout chain.",
+      "focused_command": "./scripts/check-ci-local.sh --gate default-head-evidence",
       "plans": {
-        "fast": {"order": 50, "label": "regression checker self-tests", "args": []},
-        "full": {"order": 50, "label": "regression checker self-tests", "args": []}
+        "fast": {"order": 50, "label": "default-head evidence checks", "args": []},
+        "full": {"order": 50, "label": "default-head evidence checks", "args": []}
+      }
+    },
+    {
+      "name": "divergence-evidence",
+      "owner": "divergence-fire evidence",
+      "implementation": "run_divergence_evidence_checks",
+      "tools": ["python3 >= 3.10"],
+      "inputs": ["eval/divergence_fire/"],
+      "worktree_effect": "verify-checked-output",
+      "outputs": ["eval/divergence_fire/"],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Replays and validates the checked divergence-fire precision protocol and receipt.",
+      "focused_command": "./scripts/check-ci-local.sh --gate divergence-evidence",
+      "plans": {
+        "fast": {"order": 51, "label": "divergence evidence checks", "args": []},
+        "full": {"order": 51, "label": "divergence evidence checks", "args": []}
+      }
+    },
+    {
+      "name": "surface-recall-evidence",
+      "owner": "generated-surface and recall evidence",
+      "implementation": "run_surface_and_recall_evidence_checks",
+      "tools": ["python3 >= 3.10"],
+      "inputs": ["bench/labels/generated_provenance_*", "bench/labels/declaration_type_contract_*", "bench/labels/*recall*", "bench/labels/missed_worthy_*"],
+      "worktree_effect": "verify-checked-output",
+      "outputs": ["bench/labels/"],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Mutation-tests generated-surface contracts and the recall-frontier evidence helpers.",
+      "focused_command": "./scripts/check-ci-local.sh --gate surface-recall-evidence",
+      "plans": {
+        "fast": {"order": 52, "label": "generated surface and recall evidence checks", "args": []},
+        "full": {"order": 52, "label": "generated surface and recall evidence checks", "args": []}
+      }
+    },
+    {
+      "name": "runtime-soundness-evidence",
+      "owner": "runtime, cache, release, and soundness evidence",
+      "implementation": "run_runtime_and_soundness_evidence_checks",
+      "tools": ["python3 >= 3.10"],
+      "inputs": ["bench/cache/", "bench/release/", "bench/soundness/", "scripts/*regression*.py", "scripts/*soundness*.py"],
+      "worktree_effect": "verify-checked-output",
+      "outputs": ["bench/cache/", "bench/release/", "bench/soundness/"],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Mutation-tests and validates checked runtime, cache, release, and soundness receipts.",
+      "focused_command": "./scripts/check-ci-local.sh --gate runtime-soundness-evidence",
+      "plans": {
+        "fast": {"order": 53, "label": "runtime and soundness evidence checks", "args": []},
+        "full": {"order": 53, "label": "runtime and soundness evidence checks", "args": []}
       }
     },
     {

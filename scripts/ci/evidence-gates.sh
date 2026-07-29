@@ -2,6 +2,8 @@
 # Domain-owned command batches behind check-ci-local.sh named evidence gates.
 
 run_default_head_evidence_checks() {
+    need_cmd python3
+    need_cmd node
     python3 scripts/check-domain-calibration.py
     python3 scripts/check-domain-calibration.py --self-test
     python3 bench/labels/query_schema.py --self-test
@@ -68,6 +70,7 @@ run_default_head_evidence_checks() {
 }
 
 run_divergence_evidence_checks() {
+    need_cmd python3
     python3 eval/divergence_fire/replay.py selftest
     python3 eval/divergence_fire/replay.py check-artifacts
     python3 eval/divergence_fire/precision_protocol.py validate
@@ -77,6 +80,7 @@ run_divergence_evidence_checks() {
 }
 
 run_surface_and_recall_evidence_checks() {
+    need_cmd python3
     python3 bench/labels/generated_provenance_behavior.py --self-test
     python3 bench/labels/generated_provenance_behavior.py validate
     python3 bench/labels/generated_provenance_closeout.py --self-test
@@ -93,6 +97,7 @@ run_surface_and_recall_evidence_checks() {
 }
 
 run_runtime_and_soundness_evidence_checks() {
+    need_cmd python3
     python3 scripts/binary_identity.py --self-test
     python3 scripts/query-regression-harness.py --self-test
     python3 scripts/cache-query-regression.py --self-test
@@ -118,15 +123,6 @@ run_runtime_and_soundness_evidence_checks() {
     python3 scripts/soundness-lab-gate.py check
     python3 scripts/soundness_exclusions.py --self-test
     python3 scripts/soundness_exclusions.py
-}
-
-run_regression_checker_selftests() {
-    need_cmd python3
-    need_cmd node
-    run_default_head_evidence_checks
-    run_divergence_evidence_checks
-    run_surface_and_recall_evidence_checks
-    run_runtime_and_soundness_evidence_checks
 }
 
 run_accepted_pair_coverage_checks() {
