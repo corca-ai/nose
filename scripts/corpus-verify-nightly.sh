@@ -148,6 +148,16 @@ fi
 
 self_test() {
     local script_path tmp fake_nose code
+    assert_contains() {
+        local pattern="$1"
+        local path="$2"
+        if ! grep -q "$pattern" "$path"; then
+            cat "$path" >&2
+            echo "self-test expected '$pattern' in $path" >&2
+            return 1
+        fi
+    }
+
     script_path="$(pwd)/${BASH_SOURCE[0]}"
     tmp="$(mktemp -d "${TMPDIR:-/tmp}/nose-corpus-verify-test.XXXXXX")"
     trap 'rm -rf "$tmp"' RETURN
@@ -233,7 +243,7 @@ EOF
         echo "self-test expected binary hash failure, got exit $code" >&2
         exit 1
     }
-    grep -q 'binary SHA-256 mismatch' "$tmp/hash-out"
+    assert_contains 'binary SHA-256 mismatch' "$tmp/hash-out"
 
     set +e
     "$script_path" \
@@ -251,11 +261,11 @@ EOF
         echo "self-test expected aggregate failure, got exit $code" >&2
         exit 1
     }
-    grep -q 'failed repos: 1' "$tmp/out"
-    grep -q 'canon-preservation changes: 1' "$tmp/out"
-    grep -q 'advisory symbolic-trace disagreements: 2' "$tmp/out"
-    grep -q 'black' "$tmp/logs/summary.md"
-    grep -q 'arrow' "$tmp/logs/summary.md"
+    assert_contains 'failed repos: 1' "$tmp/out"
+    assert_contains 'canon-preservation changes: 1' "$tmp/out"
+    assert_contains 'advisory symbolic-trace disagreements: 2' "$tmp/out"
+    assert_contains 'black' "$tmp/logs/summary.md"
+    assert_contains 'arrow' "$tmp/logs/summary.md"
     python3 - "$tmp/logs/evidence.json" <<'PY'
 import json
 import sys
@@ -303,7 +313,7 @@ PY
         echo "self-test expected missing repository failure, got exit $code" >&2
         exit 1
     }
-    grep -q 'missing pinned corpus repo' "$tmp/missing-logs/black.log"
+    assert_contains 'missing pinned corpus repo' "$tmp/missing-logs/black.log"
 
     git -C "$tmp/repos" clone -q "$tmp/repos/arrow" black
     black_commit="$(git -C "$tmp/repos/black" rev-parse HEAD)"
@@ -335,7 +345,7 @@ PY
         echo "self-test expected timeout failure, got exit $code" >&2
         exit 1
     }
-    grep -q 'timeout after 1 seconds' "$tmp/timeout-logs/black.log"
+    assert_contains 'timeout after 1 seconds' "$tmp/timeout-logs/black.log"
 
     rm -rf "$tmp/repos/black"
     git -C "$tmp/repos" clone -q "$tmp/repos/arrow" black
@@ -359,7 +369,7 @@ PY
         echo "self-test expected changed pin failure, got exit $code" >&2
         exit 1
     }
-    grep -q 'wrong commit' "$tmp/pin-logs/arrow.log"
+    assert_contains 'wrong commit' "$tmp/pin-logs/arrow.log"
     echo "ok corpus verify runner self-test"
 }
 
@@ -496,7 +506,11 @@ rm -rf "$logs_dir"
 mkdir -p "$logs_dir/status"
 
 repo_list="$logs_dir/repos.txt"
-python3 - "$corpus_manifest" "${repo_filters[@]}" >"$repo_list" <<'PY'
+repo_list_command=(python3 - "$corpus_manifest")
+if [[ "${#repo_filters[@]}" -gt 0 ]]; then
+    repo_list_command+=("${repo_filters[@]}")
+fi
+"${repo_list_command[@]}" >"$repo_list" <<'PY'
 import json
 import sys
 
