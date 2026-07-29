@@ -73,6 +73,16 @@ without a named consumer, and leave each selected root more than 20 lines below
 the 599-line ceiling. The global ceiling is lowered only if the complete
 near-cap cohort, not just these two files, makes that honest.
 
+The implemented boundaries leave `units.rs` at 503 lines and `packs.rs` at 209
+lines; the four new owned modules are all below the existing ceiling. The
+public `unit_dags_at` and semantic-pack paths remain available through façade
+re-exports. The Type-4 blind-attacker receipt was replayed because it binds the
+complete `crates/` Git tree identity: only `product_crates_tree` changed from
+`dc4e9280eed90ba7ec090473bc47086ab735a89f` to
+`e45a98a6c5f20aa71068fa93b42104551f3e50e0`. The replay retained 54 exact
+groups, 0 false merges, 0 canon-preservation violations, 86 advisory
+disagreements, and all summary/exclusion counts exactly.
+
 ## Evidence lifecycle contract (#951)
 
 The lifecycle catalog covers every tracked file at least 1 MiB and every
