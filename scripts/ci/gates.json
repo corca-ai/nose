@@ -1,0 +1,510 @@
+{
+  "schema": "nose.ci-gates.v1",
+  "lanes": {
+    "local-fast": "Common pre-push feedback with debug product-contract checks.",
+    "local-full": "Complete local mirror of repository quality policy.",
+    "pull-request": "Named gates invoked by .github/workflows/ci.yml.",
+    "release": "The pull-request policy reused by the release quality-gate job.",
+    "nightly": "Reserved for named gates called by the Soundness Lab workflow."
+  },
+  "gates": [
+    {
+      "name": "corpus-prune-selftest",
+      "owner": "benchmark corpus pruning",
+      "implementation": "bench/prune_corpus.py --self-test",
+      "tools": ["python3 >= 3.10"],
+      "inputs": ["bench/prune_corpus.py", "bench/corpus_prune/"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Cheap mutation self-test for the pinned-corpus selection boundary.",
+      "focused_command": "./scripts/check-ci-local.sh --gate corpus-prune-selftest",
+      "plans": {
+        "fast": {"order": 10, "label": "corpus prune self-test", "args": []},
+        "full": {"order": 10, "label": "corpus prune self-test", "args": []}
+      }
+    },
+    {
+      "name": "corpus-verify-selftest",
+      "owner": "Soundness Lab runner",
+      "implementation": "scripts/corpus-verify-nightly.sh --self-test",
+      "tools": ["bash", "python3 >= 3.10"],
+      "inputs": ["scripts/corpus-verify-nightly.sh", "scripts/soundness-lab-gate.py"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Tests nightly orchestration without checking out or executing the corpus.",
+      "focused_command": "./scripts/check-ci-local.sh --gate corpus-verify-selftest",
+      "plans": {
+        "fast": {"order": 20, "label": "corpus verify runner self-test", "args": []},
+        "full": {"order": 20, "label": "corpus verify runner self-test", "args": []}
+      }
+    },
+    {
+      "name": "semantic-pack-pricing",
+      "owner": "semantic-pack evidence",
+      "implementation": "run_semantic_pack_pricing_selftest",
+      "tools": ["python3 >= 3.10"],
+      "inputs": ["bench/semantic_pack/"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Keeps checked semantic-pack pricing evidence reproducible on every change.",
+      "focused_command": "./scripts/check-ci-local.sh --gate semantic-pack-pricing",
+      "plans": {
+        "fast": {"order": 30, "label": "semantic-pack pricing self-test", "args": []},
+        "full": {"order": 30, "label": "semantic-pack pricing self-test", "args": []}
+      }
+    },
+    {
+      "name": "type4-frontier",
+      "owner": "Type-4 frontier evidence",
+      "implementation": "run_type4_frontier_evidence_checks",
+      "tools": ["python3 >= 3.10"],
+      "inputs": ["bench/type4/"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Validates proof-carrying frontier packets and generators before product tests.",
+      "focused_command": "./scripts/check-ci-local.sh --gate type4-frontier",
+      "plans": {
+        "fast": {"order": 40, "label": "Type-4 frontier evidence checks", "args": []},
+        "full": {"order": 40, "label": "Type-4 frontier evidence checks", "args": []}
+      }
+    },
+    {
+      "name": "regression-selftests",
+      "owner": "cross-domain checked evidence",
+      "implementation": "run_regression_checker_selftests",
+      "tools": ["python3 >= 3.10", "node"],
+      "inputs": ["bench/labels/", "bench/cache/", "eval/divergence_fire/", "scripts/ci/evidence-gates.sh"],
+      "worktree_effect": "verify-checked-output",
+      "outputs": ["bench/labels/", "bench/cache/", "eval/divergence_fire/"],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Mutation-tests and validates the checked product, runtime, cache, and soundness receipts.",
+      "focused_command": "./scripts/check-ci-local.sh --gate regression-selftests",
+      "plans": {
+        "fast": {"order": 50, "label": "regression checker self-tests", "args": []},
+        "full": {"order": 50, "label": "regression checker self-tests", "args": []}
+      }
+    },
+    {
+      "name": "evidence-artifacts",
+      "owner": "evidence artifact lifecycle",
+      "implementation": "scripts/evidence/validate_artifacts.py --self-test",
+      "tools": ["python3 >= 3.10", "git"],
+      "inputs": ["scripts/evidence/artifacts.json", "repository JSON/JSONL/checksum artifacts"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Fail-closes ownership coverage, large-file identity, retention, and receipt/seal/baseline bindings.",
+      "focused_command": "./scripts/check-ci-local.sh --gate evidence-artifacts",
+      "plans": {
+        "fast": {"order": 55, "label": "evidence artifact lifecycle", "args": []},
+        "full": {"order": 55, "label": "evidence artifact lifecycle", "args": []}
+      }
+    },
+    {
+      "name": "missed-worthy-frontier",
+      "owner": "missed-worthy frontier evidence",
+      "implementation": "run_missed_worthy_frontier_checks",
+      "tools": ["python3 >= 3.10"],
+      "inputs": ["bench/labels/missed_worthy_*", "bench/labels/recall_ceiling_*"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Fail-closes the checked recall-frontier decision chain.",
+      "focused_command": "./scripts/check-ci-local.sh --gate missed-worthy-frontier",
+      "plans": {
+        "fast": {"order": 60, "label": "current missed-worthy frontier artifacts", "args": []},
+        "full": {"order": 60, "label": "current missed-worthy frontier artifacts", "args": []}
+      }
+    },
+    {
+      "name": "accepted-pair-coverage",
+      "owner": "accepted-pair coverage evidence",
+      "implementation": "run_accepted_pair_coverage_checks",
+      "tools": ["python3 >= 3.10"],
+      "inputs": ["bench/labels/accepted_pair_coverage_*"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Validates accepted-edge coverage and its runtime/output price.",
+      "focused_command": "./scripts/check-ci-local.sh --gate accepted-pair-coverage",
+      "plans": {
+        "fast": {"order": 70, "label": "current accepted-pair coverage artifacts", "args": []},
+        "full": {"order": 70, "label": "current accepted-pair coverage artifacts", "args": []}
+      }
+    },
+    {
+      "name": "cargo-target-prune-selftest",
+      "owner": "local build-cache maintenance",
+      "implementation": "scripts/prune-cargo-target.sh --self-test",
+      "tools": ["bash"],
+      "inputs": ["scripts/prune-cargo-target.sh"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "temporary-directory",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Protects the pre-push target-pruning helper with a cheap isolated self-test.",
+      "focused_command": "./scripts/check-ci-local.sh --gate cargo-target-prune-selftest",
+      "plans": {
+        "fast": {"order": 80, "label": "Cargo target prune self-test", "args": []},
+        "full": {"order": 80, "label": "Cargo target prune self-test", "args": []}
+      }
+    },
+    {
+      "name": "shell-lint",
+      "owner": "repository shell tooling",
+      "implementation": "run_shell_script_lint",
+      "tools": ["shellcheck"],
+      "inputs": [".githooks/", "scripts/*.sh"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Cheap syntax and portability feedback for executable repository tooling.",
+      "focused_command": "./scripts/check-ci-local.sh --gate shell-lint",
+      "plans": {
+        "fast": {"order": 90, "label": "shell scripts (shellcheck)", "args": []},
+        "full": {"order": 90, "label": "shell scripts (shellcheck)", "args": []}
+      }
+    },
+    {
+      "name": "format",
+      "owner": "Rust formatting",
+      "implementation": "cargo fmt --all --check",
+      "tools": ["cargo", "rustfmt"],
+      "inputs": ["crates/**/*.rs"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Fast canonical formatting check.",
+      "focused_command": "./scripts/check-ci-local.sh --gate format",
+      "plans": {
+        "fast": {"order": 100, "label": "rustfmt (formatting)", "args": []},
+        "full": {"order": 100, "label": "rustfmt (formatting)", "args": []}
+      }
+    },
+    {
+      "name": "file-length",
+      "owner": "Rust module-design ratchet",
+      "implementation": "run_file_length_ratchet",
+      "tools": ["python3 >= 3.10", "git"],
+      "inputs": ["crates/**/*.rs", "scripts/file-length-budgets.json"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Cheap no-loosening check for module ownership pressure.",
+      "focused_command": "./scripts/check-ci-local.sh --gate file-length <base-ref>",
+      "plans": {
+        "fast": {"order": 110, "label": "Rust file-length ratchet", "args": ["origin/main"]},
+        "full": {"order": 110, "label": "Rust file-length ratchet", "args": ["origin/main"]}
+      }
+    },
+    {
+      "name": "legacy-prelude",
+      "owner": "nose-cli dependency hygiene",
+      "implementation": "run_legacy_prelude_guard",
+      "tools": ["python3 >= 3.10"],
+      "inputs": ["crates/nose-cli/src/", "scripts/check-legacy-prelude.py"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Prevents reintroduction of the retired ambient CLI prelude.",
+      "focused_command": "./scripts/check-ci-local.sh --gate legacy-prelude",
+      "plans": {
+        "fast": {"order": 120, "label": "CLI legacy-prelude guard", "args": []},
+        "full": {"order": 120, "label": "CLI legacy-prelude guard", "args": []}
+      }
+    },
+    {
+      "name": "clippy",
+      "owner": "Rust lint policy",
+      "implementation": "cargo clippy --all-targets --all-features -- -D warnings",
+      "tools": ["cargo", "clippy"],
+      "inputs": ["Cargo.toml", "clippy.toml", "crates/"],
+      "worktree_effect": "read-only",
+      "outputs": ["target/"],
+      "cache": "cargo",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "High-value compiler feedback required before push and merge.",
+      "focused_command": "./scripts/check-ci-local.sh --gate clippy",
+      "plans": {
+        "fast": {"order": 130, "label": "clippy (lints, -D warnings)", "args": []},
+        "full": {"order": 130, "label": "clippy (lints, -D warnings)", "args": []}
+      }
+    },
+    {
+      "name": "doc",
+      "owner": "Rust API documentation",
+      "implementation": "cargo doc --no-deps --workspace",
+      "tools": ["cargo", "rustdoc"],
+      "inputs": ["crates/**/*.rs"],
+      "worktree_effect": "read-only",
+      "outputs": ["target/doc/"],
+      "cache": "cargo",
+      "lanes": ["local-full", "pull-request", "release"],
+      "lane_reason": "Full/merge gate for Rust documentation links and warnings.",
+      "focused_command": "./scripts/check-ci-local.sh --gate doc",
+      "plans": {
+        "full": {"order": 140, "label": "doc (rustdoc warnings)", "args": []}
+      }
+    },
+    {
+      "name": "build-debug-cli",
+      "owner": "debug product binary",
+      "implementation": "cargo build -p nose-cli",
+      "tools": ["cargo"],
+      "inputs": ["Cargo.toml", "Cargo.lock", "crates/"],
+      "worktree_effect": "read-only",
+      "outputs": ["target/debug/nose"],
+      "cache": "cargo",
+      "lanes": ["local-fast"],
+      "lane_reason": "Builds the debug binary used by fast live product-contract checks.",
+      "focused_command": "./scripts/check-ci-local.sh --gate build-debug-cli",
+      "plans": {
+        "fast": {"order": 150, "label": "build debug CLI", "args": []}
+      }
+    },
+    {
+      "name": "build-release",
+      "owner": "release product binary",
+      "implementation": "cargo build --release",
+      "tools": ["cargo"],
+      "inputs": ["Cargo.toml", "Cargo.lock", "crates/"],
+      "worktree_effect": "read-only",
+      "outputs": ["target/release/nose"],
+      "cache": "cargo",
+      "lanes": ["local-full", "pull-request", "release"],
+      "lane_reason": "Produces the optimized binary used by full product-contract gates.",
+      "focused_command": "./scripts/check-ci-local.sh --gate build-release",
+      "plans": {
+        "full": {"order": 150, "label": "build (release)", "args": []}
+      }
+    },
+    {
+      "name": "test-debug-cli",
+      "owner": "nose-cli debug tests",
+      "implementation": "cargo test -p nose-cli",
+      "tools": ["cargo"],
+      "inputs": ["crates/"],
+      "worktree_effect": "read-only",
+      "outputs": ["target/debug/"],
+      "cache": "cargo",
+      "lanes": ["local-fast"],
+      "lane_reason": "Representative no-optimization test feedback for pre-push use.",
+      "focused_command": "./scripts/check-ci-local.sh --gate test-debug-cli",
+      "plans": {
+        "fast": {"order": 140, "label": "nose-cli tests", "args": []}
+      }
+    },
+    {
+      "name": "test-release",
+      "owner": "workspace release tests",
+      "implementation": "cargo test --release",
+      "tools": ["cargo"],
+      "inputs": ["crates/"],
+      "worktree_effect": "read-only",
+      "outputs": ["target/release/"],
+      "cache": "cargo",
+      "lanes": ["local-full", "pull-request", "release"],
+      "lane_reason": "Complete optimized workspace test suite before merge and release.",
+      "focused_command": "./scripts/check-ci-local.sh --gate test-release",
+      "plans": {
+        "full": {"order": 200, "label": "test (release)", "args": []}
+      }
+    },
+    {
+      "name": "product-query-schema",
+      "owner": "query JSON product contract",
+      "implementation": "run_product_query_schema_live_check",
+      "tools": ["python3 >= 3.10", "nose binary"],
+      "inputs": ["bench/labels/live_query_schema.py", "examples/"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Executes the versioned machine contract against the just-built binary.",
+      "focused_command": "./scripts/check-ci-local.sh --gate product-query-schema <nose-bin>",
+      "plans": {
+        "fast": {"order": 160, "label": "product query JSON schema", "args": ["target/debug/nose"]},
+        "full": {"order": 160, "label": "product query JSON schema", "args": ["target/release/nose"]}
+      }
+    },
+    {
+      "name": "semantic-pack-examples",
+      "owner": "semantic-pack user examples",
+      "implementation": "run_semantic_pack_example_conformance",
+      "tools": ["nose binary"],
+      "inputs": ["docs/examples/semantic-packs/", "docs/examples/semantic-pack-lock-v1.json"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-full", "pull-request", "release"],
+      "lane_reason": "Full/merge executable check for published semantic-pack examples.",
+      "focused_command": "./scripts/check-ci-local.sh --gate semantic-pack-examples <nose-bin>",
+      "plans": {
+        "full": {"order": 170, "label": "semantic-pack example conformance", "args": ["target/release/nose"]}
+      }
+    },
+    {
+      "name": "type4-executable",
+      "owner": "Type-4 executable expectations",
+      "implementation": "run_type4_executable_expectations",
+      "tools": ["python3 >= 3.10", "nose binary"],
+      "inputs": ["bench/type4/adversarial/", "bench/type4/executable_expectations.v1.json"],
+      "worktree_effect": "verify-checked-output",
+      "outputs": ["bench/type4/executable_expectations.v1.json"],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Runs focused executable convergence checks and verifies the checked receipt.",
+      "focused_command": "./scripts/check-ci-local.sh --gate type4-executable <nose-bin>",
+      "plans": {
+        "fast": {"order": 170, "label": "Type-4 executable focused expectations", "args": ["target/debug/nose"]},
+        "full": {"order": 180, "label": "Type-4 executable focused expectations", "args": ["target/release/nose"]}
+      }
+    },
+    {
+      "name": "type4-axis-language",
+      "owner": "Type-4 axis-language claim perimeter",
+      "implementation": "run_type4_axis_language_claims",
+      "tools": ["python3 >= 3.10", "git", "nose binary"],
+      "inputs": ["bench/type4/", "formal/"],
+      "worktree_effect": "verify-checked-output",
+      "outputs": ["bench/type4/coverage_evidence.v1.json", "bench/type4/coverage_matrix.v1.json", "bench/type4/blind_attack.v1.json"],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Regenerates and compares the checked claim perimeter against a ratchet base.",
+      "focused_command": "./scripts/check-ci-local.sh --gate type4-axis-language <nose-bin> <base-ref>",
+      "plans": {
+        "fast": {"order": 180, "label": "Type-4 axis-language claim perimeter", "args": ["target/debug/nose", "origin/main"]},
+        "full": {"order": 190, "label": "Type-4 axis-language claim perimeter", "args": ["target/release/nose", "origin/main"]}
+      }
+    },
+    {
+      "name": "coverage",
+      "owner": "Rust line-coverage ratchet",
+      "implementation": "run_coverage_gate",
+      "tools": ["cargo", "cargo-llvm-cov"],
+      "inputs": ["crates/", "scripts/coverage-threshold.env"],
+      "worktree_effect": "read-only",
+      "outputs": ["target/llvm-cov-target/"],
+      "cache": "cargo-llvm-cov",
+      "lanes": ["local-full", "pull-request", "release"],
+      "lane_reason": "Slower quality ratchet required before merge and release, not pre-push.",
+      "focused_command": "./scripts/check-ci-local.sh --gate coverage",
+      "plans": {
+        "full": {"order": 210, "label": "coverage gate", "args": []}
+      }
+    },
+    {
+      "name": "duplication",
+      "owner": "nose-on-nose duplication ratchet",
+      "implementation": "scripts/check-duplication.sh",
+      "tools": ["cargo", "nose binary", "python3 >= 3.10"],
+      "inputs": ["crates/", "scripts/duplication-baseline.json"],
+      "worktree_effect": "read-only",
+      "outputs": ["target/duplication-gate/"],
+      "cache": "cargo",
+      "lanes": ["local-full", "pull-request", "release"],
+      "lane_reason": "Full/merge review ratchet; changes require explicit family-level judgment.",
+      "focused_command": "./scripts/check-ci-local.sh --gate duplication",
+      "plans": {
+        "full": {"order": 220, "label": "duplication gate (nose on itself)", "args": []}
+      }
+    },
+    {
+      "name": "msrv",
+      "owner": "Rust compatibility floor",
+      "implementation": "run_msrv_check",
+      "tools": ["rustup", "cargo"],
+      "inputs": ["Cargo.toml", "Cargo.lock", "crates/"],
+      "worktree_effect": "read-only",
+      "outputs": ["target/"],
+      "cache": "cargo",
+      "lanes": ["local-full", "pull-request", "release"],
+      "lane_reason": "Compatibility check is required before merge/release but uses a separate toolchain.",
+      "focused_command": "./scripts/check-ci-local.sh --gate msrv",
+      "plans": {
+        "full": {"order": 230, "label": "MSRV (minimum supported rust version)", "args": []}
+      }
+    },
+    {
+      "name": "supply-chain",
+      "owner": "dependency and license policy",
+      "implementation": "run_supply_chain_checks",
+      "tools": ["cargo-machete", "cargo-deny"],
+      "inputs": ["Cargo.toml", "Cargo.lock", "deny.toml", "crates/"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "cargo-index",
+      "lanes": ["local-full", "pull-request", "release"],
+      "lane_reason": "Network/index-sensitive dependency policy runs before merge and release.",
+      "focused_command": "./scripts/check-ci-local.sh --gate supply-chain",
+      "plans": {
+        "full": {"order": 240, "label": "supply chain (unused dependencies / advisories / licenses)", "args": []}
+      }
+    },
+    {
+      "name": "docs",
+      "owner": "documentation wiki and examples",
+      "implementation": "run_docs_wiki_lint",
+      "tools": ["awiki", "python3 >= 3.10"],
+      "inputs": ["docs/", "scripts/check-docs.sh"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Contributor-facing docs and executable examples must stay connected on every change.",
+      "focused_command": "./scripts/check-ci-local.sh --gate docs",
+      "plans": {
+        "fast": {"order": 190, "label": "docs wiki connectivity (awiki)", "args": []},
+        "full": {"order": 250, "label": "docs wiki connectivity (awiki)", "args": []}
+      }
+    },
+    {
+      "name": "formal-obligations",
+      "owner": "formal claim registry",
+      "implementation": "run_formal_obligations_lint",
+      "tools": ["python3 >= 3.10"],
+      "inputs": ["formal/obligations/", "scripts/check-formal-obligations.py"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "lanes": ["local-full", "pull-request", "release"],
+      "lane_reason": "Proof-sensitive markers and counterexamples must be registered before merge.",
+      "focused_command": "./scripts/check-ci-local.sh --gate formal-obligations",
+      "plans": {
+        "full": {"order": 260, "label": "formal obligation registry", "args": []}
+      }
+    },
+    {
+      "name": "formal-lean",
+      "owner": "Lean proof suite",
+      "implementation": "run_formal_lean",
+      "tools": ["elan", "lake"],
+      "inputs": ["formal/", "lean-toolchain", "scripts/check-lean-proofs.sh"],
+      "worktree_effect": "read-only",
+      "outputs": ["target/lean/"],
+      "cache": "lean",
+      "lanes": ["local-full", "pull-request", "release"],
+      "lane_reason": "Proof compilation is required before merge/release but is not a pre-push default.",
+      "focused_command": "./scripts/check-ci-local.sh --gate formal-lean",
+      "plans": {
+        "full": {"order": 270, "label": "Lean proofs (formal soundness)", "args": []}
+      }
+    }
+  ]
+}

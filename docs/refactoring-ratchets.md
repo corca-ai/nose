@@ -5,9 +5,12 @@ temporarily, but it must not grow, and any real improvement should lower the
 accepted ceiling in the same change.
 
 Repository gate commands have the same single-owner rule: their implementations
-live as named entries in `scripts/check-ci-local.sh`. The GitHub workflow owns
-runner-only setup and invokes those entries, so local and remote checks cannot
-silently evolve into different policies.
+live as named entries in `scripts/check-ci-local.sh`. The checked
+[`scripts/ci/gates.json`](../scripts/ci/gates.json) registry owns selection and
+descriptive metadata, and its validator compares the shell dispatcher, local
+plans, and GitHub workflow membership. The workflow owns runner-only setup and
+invokes the named entries, so local and remote checks cannot silently evolve
+into different policies. See the [repository gate inventory](repository-gates.md).
 
 The repository already ratchets function complexity and length through
 [`clippy.toml`](../clippy.toml), test coverage through `cargo llvm-cov`, and
@@ -203,6 +206,9 @@ and behavior easier to reason about:
 - keep compiled semantic-pack count helpers split by ownership surface; protocol
   pack counts live under `nose-semantics/src/packs/compiled/counts/protocols.rs`
   instead of growing the count-suite root;
+- keep `nose-semantics/src/packs.rs` as the stable public façade;
+  manifest-facing models and summary conversion live in `packs/model.rs`, while
+  local/builtin/locked pack-set assembly lives in `packs/set.rs`;
 - keep value-graph tests as a thin suite root plus domain modules; builder,
   factory, guard, library API, membership, promise, sequence-surface, source
   evidence, and shared fixture helpers now live under
@@ -212,6 +218,9 @@ and behavior easier to reason about:
   exact-fragment root dispatch, ordered effect sequences, Java self-field
   fragments, loop-effect fragments, fragment context-safety, and unit tests now
   live in focused `nose-detect/src/units/*` modules;
+- keep the independently callable graded-witness value-DAG adapter under
+  `nose-detect/src/units/dags.rs`; `units/roots.rs` owns shared root discovery
+  and value-context selection, while `units.rs` owns the extraction funnel;
 - keep strict exact-safety policy fail-closed but locally owned; fact collection,
   tree entry points, HoF/comprehension safety, primitive literal/sequence gates,
   static index membership, call dispatch, collection/map receivers, factory/map

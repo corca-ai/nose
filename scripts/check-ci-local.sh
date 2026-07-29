@@ -6,18 +6,22 @@
 #   --full        Full local mirror of the GitHub Actions gates.
 #   --gate <name> Run one named gate. GitHub Actions uses this internal surface
 #                 so local and remote checks have one command owner.
+#   --list-gates  Render the checked gate inventory.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 mode="fast"
 gate_name=""
 gate_args=()
+list_format="text"
 case "${1:-}" in
     "" | --fast)
         mode="fast"
+        shift $#
         ;;
     --full)
         mode="full"
+        shift
         ;;
     --gate)
         if [[ -z "${2:-}" ]]; then
@@ -28,10 +32,28 @@ case "${1:-}" in
         gate_name="$2"
         gate_args=("${@:3}")
         ;;
+    --list-gates)
+        mode="list"
+        if [[ "${2:-}" == "--format" ]]; then
+            list_format="${3:-}"
+            if [[ "$list_format" != "text" && "$list_format" != "json" ]]; then
+                echo "--list-gates format must be text or json" >&2
+                exit 2
+            fi
+        elif [[ -n "${2:-}" ]]; then
+            echo "unknown --list-gates argument: $2" >&2
+            exit 2
+        fi
+        ;;
+    --validate-gates)
+        mode="validate"
+        ;;
     -h | --help)
         cat <<'EOF'
 usage: ./scripts/check-ci-local.sh [--fast|--full]
        ./scripts/check-ci-local.sh --gate <name> [gate arguments...]
+       ./scripts/check-ci-local.sh --list-gates [--format text|json]
+       ./scripts/check-ci-local.sh --validate-gates
 
   --fast  corpus and semantic-pack self-tests, Type-4 packet/replay checks,
           rustfmt, file-length ratchet, legacy-prelude guard, shellcheck,
@@ -40,6 +62,10 @@ usage: ./scripts/check-ci-local.sh [--fast|--full]
           file-length ratchet, duplication, MSRV, supply-chain, docs wiki,
           formal obligation lint, and Lean proofs
   --gate  internal named-gate surface shared with GitHub Actions
+  --list-gates
+          authoritative owner, lane, effect, cache, and focused-command inventory
+  --validate-gates
+          verify registry, dispatcher, local plans, and workflow membership
 EOF
         exit 0
         ;;
@@ -58,6 +84,15 @@ need_cmd() {
         if [[ -n "${2:-}" ]]; then
             echo "$2" >&2
         fi
+        exit 127
+    fi
+}
+
+need_python3() {
+    need_cmd python3
+    if ! python3 -c 'import sys; raise SystemExit(sys.version_info < (3, 10))'; then
+        echo "Python 3.10 or newer is required for repository quality gates." >&2
+        echo "observed: $(python3 --version 2>&1)" >&2
         exit 127
     fi
 }
@@ -114,6 +149,11 @@ run_type4_frontier_evidence_checks() {
     python3 bench/type4/proof_carrying_frontier.py --check
 }
 
+run_evidence_artifact_lifecycle() {
+    need_cmd python3
+    python3 scripts/evidence/validate_artifacts.py --self-test
+}
+
 run_type4_executable_expectations() {
     need_cmd python3
     NOSE_BIN="${1}" bench/type4/adversarial/scripts/type4-exec-check \
@@ -145,196 +185,7 @@ run_type4_axis_language_claims() {
         bench/type4/blind_attack.v1.json
 }
 
-run_regression_checker_selftests() {
-    need_cmd python3
-    need_cmd node
-    python3 scripts/check-domain-calibration.py
-    python3 scripts/check-domain-calibration.py --self-test
-    python3 bench/labels/query_schema.py --self-test
-    python3 bench/labels/default_head_query_schema.py --self-test
-    python3 bench/labels/live_query_schema.py --self-test
-    python3 bench/labels/eval_by_language.py --self-test
-    python3 bench/labels/check_default_head_baseline.py --self-test
-    python3 bench/labels/check_default_head_baseline.py
-    python3 bench/labels/labelset.py --self-test
-    python3 bench/labels/label_refresh.py --self-test
-    python3 bench/labels/default_head_taxonomy.py --self-test
-    python3 bench/labels/label_refresh.py validate-runway \
-        --dev-candidates bench/labels/default_head_label_runway_2026_07_13.dev.v1.json \
-        --heldout-seal bench/labels/default_head_label_runway_2026_07_13.heldout.seal.v1.json \
-        --labelset bench/labels/refactoring_families.v7.json \
-        --evaluation bench/labels/product_quality_evaluation_v7_dev_runway_2026_07_13.v1.json
-    python3 bench/labels/default_head_taxonomy.py validate \
-        bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json \
-        --pragmatic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.pragmatic.v1.json \
-        --dedupe bench/labels/default_head_taxonomy_votes_2026_07_13.dev.dedupe.v1.json \
-        --skeptic bench/labels/default_head_taxonomy_votes_2026_07_13.dev.skeptic.v1.json
-    python3 bench/labels/default_head_heldout.py validate
-    python3 bench/labels/default_head_heldout.py self-test
-    python3 bench/labels/default_head_heldout_commitment_receipt.py validate
-    python3 bench/labels/default_head_heldout_commitment_receipt.py self-test
-    python3 bench/labels/default_head_heldout_panel.py self-test
-    python3 bench/labels/default_head_heldout_vote_receipt.py validate
-    python3 bench/labels/default_head_heldout_vote_receipt.py self-test
-    python3 bench/labels/default_head_heldout_arbitration.py self-test
-    python3 bench/labels/default_head_heldout_arbitration.py validate
-    python3 bench/labels/default_head_heldout_arbitration_receipt.py validate
-    python3 bench/labels/default_head_heldout_arbitration_receipt.py self-test
-    python3 bench/labels/default_head_heldout_arbitration_result.py self-test
-    python3 bench/labels/default_head_heldout_arbitration_result.py validate-public \
-        bench/labels/default_head_heldout_arbitration_result_2026_07_14.heldout.v3.json
-    python3 bench/labels/default_head_heldout_arbitration_result_receipt.py validate
-    python3 bench/labels/default_head_heldout_arbitration_result_receipt.py self-test
-    python3 bench/labels/default_head_heldout_reveal.py self-test
-    test ! -e bench/labels/.default_head_heldout_reveal.transaction.json
-    test ! -L bench/labels/.default_head_heldout_reveal.transaction.json
-    local reveal=bench/labels/default_head_heldout_reveal_2026_07_14.heldout.v3.json
-    if [[ -e "$reveal" || -L "$reveal" ]]; then
-        python3 bench/labels/default_head_heldout_reveal.py validate
-        python3 bench/labels/default_head_heldout_reveal_receipt.py validate
-        python3 bench/labels/default_head_heldout_reveal_receipt.py self-test
-    fi
-    python3 bench/labels/proof_actionability_no_go.py --self-test
-    python3 bench/labels/residual_ranking.py validate
-    python3 bench/labels/residual_ranking.py self-test
-    python3 bench/labels/residual_ranking_topup.py validate
-    python3 bench/labels/residual_ranking_topup.py self-test
-    python3 bench/labels/residual_ranking_panel.py validate-arbitration
-    python3 bench/labels/residual_ranking_panel.py validate-decisions
-    python3 bench/labels/residual_ranking_panel.py validate-component
-    python3 bench/labels/residual_ranking_panel.py self-test
-    python3 bench/labels/residual_ranking_closeout.py validate
-    python3 bench/labels/residual_ranking_closeout.py self-test
-    python3 bench/labels/default_head_fresh_repository_audit.py
-    python3 bench/labels/default_head_fresh_repository_audit.py --self-test
-    python3 bench/labels/default_head_measurement_replay.py validate
-    python3 bench/labels/default_head_measurement_replay.py self-test
-    python3 bench/labels/default_head_closeout.py
-    python3 bench/labels/default_head_closeout.py --self-test
-    python3 eval/divergence_fire/replay.py selftest
-    python3 eval/divergence_fire/replay.py check-artifacts
-    python3 eval/divergence_fire/precision_protocol.py validate
-    python3 eval/divergence_fire/precision_protocol.py self-test
-    python3 eval/divergence_fire/precision_protocol_receipt.py validate
-    python3 eval/divergence_fire/precision_protocol_receipt.py self-test
-    python3 bench/labels/generated_provenance_behavior.py --self-test
-    python3 bench/labels/generated_provenance_behavior.py validate
-    python3 bench/labels/generated_provenance_closeout.py --self-test
-    python3 bench/labels/generated_provenance_closeout.py
-    python3 bench/labels/declaration_type_contract_behavior.py --self-test
-    python3 bench/labels/declaration_type_contract_behavior.py validate
-    python3 bench/labels/declaration_type_contract_closeout.py --self-test
-    python3 bench/labels/declaration_type_contract_closeout.py
-    python3 bench/labels/recall_ceiling_probe.py --self-test
-    python3 bench/labels/missed_worthy_stage_audit.py --self-test
-    python3 bench/labels/missed_worthy_heldout_confirmation.py --self-test
-    python3 bench/labels/missed_worthy_source_bounds.py --self-test
-    python3 bench/labels/accepted_pair_coverage.py --self-test
-    python3 scripts/binary_identity.py --self-test
-    python3 scripts/query-regression-harness.py --self-test
-    python3 scripts/cache-query-regression.py --self-test
-    python3 scripts/cache-query-regression.py --validate-receipt \
-        bench/cache/issue-872-mutation-matrix-receipt-2026-07-20.v1.json
-    python3 scripts/cache-query-regression.py --validate-report \
-        bench/cache/issue-872-v0.19.0-vs-candidate-sympy-paired-2026-07-20.v1.json
-    python3 scripts/cache-query-regression.py --validate-report \
-        bench/cache/issue-873-portable-cas-sympy-paired-2026-07-20.v1.json
-    python3 scripts/watch-session-benchmark.py --self-test
-    python3 scripts/watch-session-benchmark.py --validate-report \
-        bench/cache/issue-878-watch-session-2026-07-21.v1.json
-    python3 scripts/check-release-evidence-0.20.0.py --self-test
-    python3 scripts/check-release-evidence-0.20.0.py
-    python3 scripts/ruby-redefinition-scaling.py --self-test
-    python3 scripts/semantic-regression-summary.py --self-test
-    python3 scripts/recall-loss-diff.py --self-test
-    python3 scripts/check-query-regression.py --self-test
-    python3 scripts/check-recall-loss-baselines.py --self-test
-    python3 scripts/check-soundness-scorecard.py --self-test
-    python3 scripts/check-soundness-scorecard.py
-    python3 scripts/soundness-lab-gate.py self-test
-    python3 scripts/soundness-lab-gate.py check
-    python3 scripts/soundness_exclusions.py --self-test
-    python3 scripts/soundness_exclusions.py
-}
-
-run_accepted_pair_coverage_checks() {
-    need_cmd python3
-    python3 bench/labels/accepted_pair_coverage.py \
-        --validate bench/labels/accepted_pair_coverage_2026_07_11.dev.baseline.v2.json
-    python3 bench/labels/accepted_pair_coverage.py \
-        --validate bench/labels/accepted_pair_coverage_2026_07_11.dev.head.v2.json
-    python3 scripts/check-query-regression.py \
-        bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.primary.v3.json \
-        --same-binary-control bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.control.v3.json \
-        --expected-drift-manifest bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.expected-drift.v1.json \
-        --focused-report bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.focused.v3.json \
-        --focused-same-binary-control bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.focused-control.v3.json \
-        --require-same-binary-control \
-        --max-runtime-delta-pct 5 \
-        --min-runtime-delta-ms 5 \
-        --check-status bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.status.v3.json \
-        --check-markdown bench/labels/accepted_pair_coverage_pricing_2026_07_11.semantic.summary.v3.md
-    python3 scripts/check-query-regression.py \
-        bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.primary.v3.json \
-        --same-binary-control bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.control.v3.json \
-        --expected-drift-manifest bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.expected-drift.v1.json \
-        --focused-report bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.focused.v3.json \
-        --focused-same-binary-control bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.focused-control.v3.json \
-        --require-same-binary-control \
-        --max-runtime-delta-pct 5 \
-        --min-runtime-delta-ms 5 \
-        --check-status bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.status.v3.json \
-        --check-markdown bench/labels/accepted_pair_coverage_pricing_2026_07_11.default.summary.v3.md
-}
-
-run_missed_worthy_frontier_checks() {
-    need_cmd python3
-    python3 bench/labels/recall_ceiling_probe.py \
-        --validate bench/labels/recall_ceiling_probe_2026_07_11.v2.json
-    python3 bench/labels/missed_worthy_stage_audit.py \
-        --validate bench/labels/missed_worthy_stage_audit_2026_07_11.dev.v1.json
-    python3 bench/labels/recall_ceiling_probe.py \
-        --validate-decisions bench/labels/missed_worthy_audit_decisions_2026_07_11.dev.v1.json \
-        --artifact bench/labels/recall_ceiling_probe_2026_07_11.v2.json
-    python3 bench/labels/missed_worthy_heldout_confirmation.py \
-        --validate bench/labels/missed_worthy_stage_confirmation_2026_07_11.heldout.v1.json
-    python3 bench/labels/missed_worthy_source_bounds.py \
-        --validate bench/labels/missed_worthy_audit_source_bounds_2026_07_11.dev.v1.json
-    python3 scripts/check-query-regression.py \
-        bench/labels/missed_worthy_grouping_pricing_2026_07_11.primary.v1.json \
-        --same-binary-control bench/labels/missed_worthy_grouping_pricing_2026_07_11.control.v1.json \
-        --require-same-binary-control \
-        --max-runtime-delta-pct 5 \
-        --min-runtime-delta-ms 5 \
-        --check-status bench/labels/missed_worthy_grouping_pricing_2026_07_11.status.v1.json \
-        --check-markdown bench/labels/missed_worthy_grouping_pricing_2026_07_11.summary.md
-    python3 bench/labels/recall_ceiling_probe.py \
-        --validate-closeout bench/labels/missed_worthy_frontier_closeout_2026_07_11.v1.json
-    python3 bench/labels/recall_ceiling_probe.py \
-        --validate bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json
-    python3 bench/labels/missed_worthy_stage_audit.py \
-        --validate bench/labels/missed_worthy_stage_audit_post_817_2026_07_12.dev.v1.json \
-        --artifact bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json
-    python3 bench/labels/recall_ceiling_probe.py \
-        --validate-decisions bench/labels/missed_worthy_audit_decisions_post_817_2026_07_12.dev.v2.json \
-        --artifact bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json
-    python3 bench/labels/missed_worthy_source_bounds.py \
-        --validate bench/labels/missed_worthy_audit_source_bounds_post_817_2026_07_12.dev.v1.json \
-        --artifact bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json \
-        --decisions bench/labels/missed_worthy_audit_decisions_post_817_2026_07_12.dev.v2.json
-    python3 bench/labels/missed_worthy_heldout_confirmation.py \
-        --validate bench/labels/missed_worthy_stage_confirmation_post_817_2026_07_12.heldout.v2.json \
-        --artifact bench/labels/recall_ceiling_probe_post_817_2026_07_12.v1.json \
-        --decisions bench/labels/missed_worthy_audit_decisions_post_817_2026_07_12.dev.v2.json
-    python3 bench/labels/recall_ceiling_probe.py \
-        --validate bench/labels/recall_ceiling_probe_post_821_2026_07_13.v1.json
-    python3 bench/labels/missed_worthy_stage_audit.py \
-        --validate bench/labels/missed_worthy_stage_audit_post_821_2026_07_13.dev.v1.json \
-        --artifact bench/labels/recall_ceiling_probe_post_821_2026_07_13.v1.json
-    python3 bench/labels/missed_worthy_stage_audit.py \
-        --validate bench/labels/missed_worthy_stage_audit_issue_832_2026_07_13.dev.v1.json \
-        --artifact bench/labels/recall_ceiling_probe_post_821_2026_07_13.v1.json
-}
+source scripts/ci/evidence-gates.sh
 
 run_product_query_schema_live_check() {
     need_cmd python3
@@ -343,7 +194,7 @@ run_product_query_schema_live_check() {
 
 run_shell_script_lint() {
     need_cmd shellcheck "install it with: brew install shellcheck"
-    shellcheck -x .githooks/pre-commit .githooks/pre-push scripts/*.sh
+    shellcheck -x .githooks/pre-commit .githooks/pre-push scripts/*.sh scripts/ci/*.sh
 }
 
 run_msrv_check() {
@@ -386,6 +237,38 @@ run_supply_chain_checks() {
     cargo deny check
 }
 
+run_gate_registry_validation() {
+    need_python3
+    python3 scripts/ci/gate_registry.py validate
+}
+
+run_local_plan() {
+    local plan_mode="$1"
+    local planned_name
+    local planned_label
+    local planned_arg_one
+    local planned_arg_two
+    local planned_args
+
+    while IFS='|' read -r \
+        planned_name planned_label planned_arg_one planned_arg_two; do
+        [[ -n "$planned_name" ]] || continue
+        planned_args=()
+        if [[ -n "$planned_arg_one" ]]; then
+            planned_args+=("$planned_arg_one")
+        fi
+        if [[ -n "$planned_arg_two" ]]; then
+            planned_args+=("$planned_arg_two")
+        fi
+        step "$planned_label"
+        if [[ "${#planned_args[@]}" -eq 0 ]]; then
+            run_named_gate "$planned_name"
+        else
+            run_named_gate "$planned_name" "${planned_args[@]}"
+        fi
+    done < <(python3 scripts/ci/gate_registry.py plan --mode "$plan_mode")
+}
+
 run_named_gate() {
     local name="$1"
     shift
@@ -405,6 +288,9 @@ run_named_gate() {
             ;;
         regression-selftests)
             run_regression_checker_selftests
+            ;;
+        evidence-artifacts)
+            run_evidence_artifact_lifecycle
             ;;
         missed-worthy-frontier)
             run_missed_worthy_frontier_checks
@@ -493,115 +379,31 @@ run_named_gate() {
 }
 
 if [[ "$mode" == "gate" ]]; then
-    run_named_gate "$gate_name" "${gate_args[@]}"
+    run_gate_registry_validation
+    if [[ "${#gate_args[@]}" -eq 0 ]]; then
+        run_named_gate "$gate_name"
+    else
+        run_named_gate "$gate_name" "${gate_args[@]}"
+    fi
     exit 0
 fi
 
-need_cmd cargo
-source scripts/coverage-threshold.env
+if [[ "$mode" == "list" ]]; then
+    need_python3
+    python3 scripts/ci/gate_registry.py list --format "$list_format"
+    exit 0
+fi
 
-step "corpus prune self-test"
-run_named_gate corpus-prune-selftest
+if [[ "$mode" == "validate" ]]; then
+    run_gate_registry_validation
+    python3 scripts/ci/gate_registry.py validate --self-test
+    exit 0
+fi
 
-step "corpus verify runner self-test"
-run_named_gate corpus-verify-selftest
-
-step "semantic-pack pricing self-test"
-run_named_gate semantic-pack-pricing
-
-step "Type-4 frontier evidence checks"
-run_named_gate type4-frontier
-
-step "regression checker self-tests"
-run_named_gate regression-selftests
-
-step "current missed-worthy frontier artifacts"
-run_named_gate missed-worthy-frontier
-
-step "current accepted-pair coverage artifacts"
-run_named_gate accepted-pair-coverage
-
-step "Cargo target prune self-test"
-run_named_gate cargo-target-prune-selftest
-
-step "shell scripts (shellcheck)"
-run_named_gate shell-lint
-
-step "rustfmt (formatting)"
-run_named_gate format
-
-step "Rust file-length ratchet"
-run_named_gate file-length origin/main
-
-step "CLI legacy-prelude guard"
-run_named_gate legacy-prelude
-
-step "clippy (lints, -D warnings)"
-run_named_gate clippy
-
+run_gate_registry_validation
+run_local_plan "$mode"
 if [[ "$mode" == "fast" ]]; then
-    step "nose-cli tests"
-    run_named_gate test-debug-cli
-
-    step "product query JSON schema"
-    run_named_gate build-debug-cli
-    run_named_gate product-query-schema target/debug/nose
-
-    step "Type-4 executable focused expectations"
-    run_named_gate type4-executable target/debug/nose
-
-    step "Type-4 axis-language claim perimeter"
-    run_named_gate type4-axis-language target/debug/nose origin/main
-
-    step "docs wiki connectivity (awiki)"
-    run_named_gate docs
-
     printf '\n\033[1;32mFast local CI gates passed.\033[0m\n'
-    exit 0
+else
+    printf '\n\033[1;32mFull local CI gates passed.\033[0m\n'
 fi
-
-step "doc (rustdoc warnings)"
-run_named_gate doc
-
-step "build (release)"
-run_named_gate build-release
-
-step "product query JSON schema"
-run_named_gate product-query-schema target/release/nose
-
-step "semantic-pack example conformance"
-run_named_gate semantic-pack-examples target/release/nose
-
-step "Type-4 executable focused expectations"
-run_named_gate type4-executable target/release/nose
-
-step "Type-4 axis-language claim perimeter"
-run_named_gate type4-axis-language target/release/nose origin/main
-
-step "test (release)"
-run_named_gate test-release
-
-# CI runs the same coverage ratchet before PR merge and before release publishing.
-# Keep it here so --full stays a complete local mirror.
-step "coverage gate (cargo-llvm-cov, >= ${NOSE_COVERAGE_FAIL_UNDER_LINES}% lines)"
-run_named_gate coverage
-
-step "duplication gate (nose on itself)"
-run_named_gate duplication
-
-step "MSRV (minimum supported rust version)"
-run_named_gate msrv
-
-step "supply chain (unused dependencies / advisories / licenses)"
-run_named_gate supply-chain
-
-step "docs wiki connectivity (awiki)"
-run_named_gate docs
-
-step "formal obligation registry"
-run_named_gate formal-obligations
-
-step "Lean proofs (formal soundness)"
-run_named_gate formal-lean
-
-printf '\n\033[1;32mFull local CI gates passed.\033[0m\n'
