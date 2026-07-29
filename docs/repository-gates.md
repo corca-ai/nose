@@ -76,9 +76,12 @@ large evidence batch with a misleading error.
 ## Worktree effects
 
 Most gates are `read-only`: build/test output is confined to ignored caches such
-as `target/`. A `verify-checked-output` gate may deterministically regenerate a
-tracked receipt or evidence file, but it must compare that output and leave the
-worktree unchanged when the checked artifact is current.
+as `target/`. The MSRV gate uses `target/msrv/` so switching compilers does not
+invalidate the stable toolchain's incremental artifacts; set
+`NOSE_MSRV_TARGET_DIR` only when a different isolated cache location is needed.
+A `verify-checked-output` gate may deterministically regenerate a tracked receipt
+or evidence file, but it must compare that output and leave the worktree
+unchanged when the checked artifact is current.
 
 The timing harness fingerprints the complete tracked/untracked status before
 and after every gate. A successful gate that changes the worktree makes the

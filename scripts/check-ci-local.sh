@@ -200,13 +200,15 @@ run_shell_script_lint() {
 run_msrv_check() {
     need_cmd rustup
     local msrv
+    local msrv_target_dir="${NOSE_MSRV_TARGET_DIR:-target/msrv}"
     msrv="$(grep -m1 '^rust-version' Cargo.toml | sed -E 's/.*"(.*)".*/\1/')"
     if ! rustup toolchain list 2>/dev/null | grep -q "^${msrv}"; then
         echo "missing Rust MSRV toolchain: ${msrv}" >&2
         echo "install it with: rustup toolchain install ${msrv}" >&2
         exit 127
     fi
-    cargo "+${msrv}" check --workspace --all-targets
+    CARGO_TARGET_DIR="$msrv_target_dir" \
+        cargo "+${msrv}" check --workspace --all-targets
 }
 
 run_semantic_pack_example_conformance() {

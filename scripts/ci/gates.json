@@ -483,10 +483,10 @@
       "tools": ["rustup", "cargo"],
       "inputs": ["Cargo.toml", "Cargo.lock", "crates/"],
       "worktree_effect": "read-only",
-      "outputs": ["target/"],
-      "cache": "cargo",
+      "outputs": ["target/msrv/"],
+      "cache": "cargo (isolated target/msrv)",
       "lanes": ["local-full", "pull-request", "release"],
-      "lane_reason": "Compatibility check is required before merge/release but uses a separate toolchain.",
+      "lane_reason": "Compatibility check is required before merge/release and keeps its separate compiler artifacts under target/msrv.",
       "focused_command": "./scripts/check-ci-local.sh --gate msrv",
       "plans": {
         "full": {"order": 230, "label": "MSRV (minimum supported rust version)", "args": []}
