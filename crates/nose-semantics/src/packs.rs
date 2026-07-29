@@ -101,7 +101,6 @@ use crate::{
 };
 use nose_il::stable_symbol_hash;
 use serde::Deserialize;
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 mod compiled;
 mod conformance;
@@ -111,9 +110,11 @@ mod external;
 mod loading;
 mod lock;
 mod manifest;
+mod model;
 mod near_registry;
 mod receipt;
 mod result_domain_semantics;
+mod set;
 mod v1;
 mod validation;
 pub use compiled::{
@@ -152,6 +153,12 @@ pub use lock::{
     ValidatedSemanticPackProjectLock, SEMANTIC_PACK_LOCK_API_VERSION_V1,
 };
 use manifest::*;
+pub use model::{
+    semantic_pack_hash, SemanticPackAnchor, SemanticPackChannel, SemanticPackCounts,
+    SemanticPackInfluence, SemanticPackKind, SemanticPackProofStatus, SemanticPackSource,
+    SemanticPackSummary,
+};
+use model::{SemanticPackSchemaVersion, SemanticPackStatus};
 pub use near_registry::{
     SemanticPackNearDependency, SemanticPackNearPackCounts, SemanticPackNearProtocol,
     SemanticPackNearProvenance, SemanticPackNearRegistry, SemanticPackNearReport,
@@ -165,6 +172,7 @@ pub use receipt::{
     MAX_SEMANTIC_PACK_FIXTURE_FILES, SEMANTIC_PACK_EXACT_KERNEL_CAPABILITY_V1,
     SEMANTIC_PACK_RECEIPT_API_VERSION_V1,
 };
+pub use set::SemanticPackSet;
 use v1::{compile_manifest_v1, SemanticPackManifestV1};
 pub use v1::{
     CompiledSemanticPackV1, SemanticPackV1Anchor, SemanticPackV1Arity, SemanticPackV1ArityKind,
@@ -178,8 +186,6 @@ pub use v1::{
     SemanticPackV1ReceiverRole, SemanticPackV1ResultDomain, SEMANTIC_PACK_API_VERSION_V1,
 };
 
-use compiled::compiled_builtin_packs;
-use validation::validate_manifest;
 pub const SEMANTIC_PACK_API_VERSION: &str = "nose.semantic-pack.v0";
 pub const SUPPORTED_SEMANTIC_PACK_API_VERSIONS: &[&str] =
     &[SEMANTIC_PACK_API_VERSION, SEMANTIC_PACK_API_VERSION_V1];
@@ -198,402 +204,6 @@ const ALLOWED_REQUIREMENT_PREFIXES: &[&str] = &[
     "SequenceSurface.",
     "nose.",
 ];
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum SemanticPackSource {
-    CompiledBuiltin,
-    LocalManifest,
-}
-
-impl SemanticPackSource {
-    #[allow(non_upper_case_globals)]
-    #[deprecated(note = "use SemanticPackSource::CompiledBuiltin")]
-    pub const CompiledFirstParty: Self = Self::CompiledBuiltin;
-
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            SemanticPackSource::CompiledBuiltin => "compiled-builtin",
-            SemanticPackSource::LocalManifest => "local-manifest",
-        }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum SemanticPackInfluence {
-    EvidenceAndContracts,
-    ExternalClaimExact,
-    NearOnly,
-    MetadataOnly,
-}
-
-impl SemanticPackInfluence {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            SemanticPackInfluence::EvidenceAndContracts => "evidence-and-contracts",
-            SemanticPackInfluence::ExternalClaimExact => "external-claim-exact",
-            SemanticPackInfluence::NearOnly => "near-only",
-            SemanticPackInfluence::MetadataOnly => "metadata-only",
-        }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize)]
-pub enum SemanticPackKind {
-    LanguagePack,
-    StdlibPack,
-    LibraryPack,
-    ProtocolPack,
-    LawPack,
-}
-
-impl SemanticPackKind {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            SemanticPackKind::LanguagePack => "LanguagePack",
-            SemanticPackKind::StdlibPack => "StdlibPack",
-            SemanticPackKind::LibraryPack => "LibraryPack",
-            SemanticPackKind::ProtocolPack => "ProtocolPack",
-            SemanticPackKind::LawPack => "LawPack",
-        }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum SemanticPackAnchor {
-    SourceSpan,
-    Node,
-    Param,
-    Binding,
-    Sequence,
-    Module,
-    Package,
-}
-
-impl SemanticPackAnchor {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            SemanticPackAnchor::SourceSpan => "source-span",
-            SemanticPackAnchor::Node => "node",
-            SemanticPackAnchor::Param => "param",
-            SemanticPackAnchor::Binding => "binding",
-            SemanticPackAnchor::Sequence => "sequence",
-            SemanticPackAnchor::Module => "module",
-            SemanticPackAnchor::Package => "package",
-        }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum SemanticPackChannel {
-    SyntaxOnly,
-    NearOnly,
-    AbstractionWitness,
-    ExactEmpirical,
-    ExactProven,
-}
-
-impl SemanticPackChannel {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            SemanticPackChannel::SyntaxOnly => "syntax-only",
-            SemanticPackChannel::NearOnly => "near-only",
-            SemanticPackChannel::AbstractionWitness => "abstraction-witness",
-            SemanticPackChannel::ExactEmpirical => "exact-empirical",
-            SemanticPackChannel::ExactProven => "exact-proven",
-        }
-    }
-
-    pub const fn exact_capable(self) -> bool {
-        matches!(
-            self,
-            SemanticPackChannel::ExactEmpirical | SemanticPackChannel::ExactProven
-        )
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum SemanticPackProofStatus {
-    Proven,
-    Covered,
-    Missing,
-    EmpiricalOnly,
-    RejectedCounterexample,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-enum SemanticPackStatus {
-    DraftExample,
-    Experimental,
-    Stable,
-    Deprecated,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-enum SemanticPackSchemaVersion {
-    V0,
-}
-
-impl PackTrust {
-    #[allow(non_upper_case_globals)]
-    #[deprecated(note = "use PackTrust::BuiltinDefault")]
-    pub const DefaultFirstParty: Self = Self::BuiltinDefault;
-
-    #[allow(non_upper_case_globals)]
-    #[deprecated(note = "use PackTrust::BuiltinOptional")]
-    pub const FirstPartyOptional: Self = Self::BuiltinOptional;
-
-    pub const fn as_manifest_str(self) -> &'static str {
-        match self {
-            PackTrust::BuiltinDefault => "builtin-default",
-            PackTrust::BuiltinOptional => "builtin-optional",
-            PackTrust::ExternalOptIn => "external-opt-in",
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for PackTrust {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        match String::deserialize(deserializer)?.as_str() {
-            "builtin-default" => Ok(PackTrust::BuiltinDefault),
-            "default-first-party" => Ok(PackTrust::BuiltinDefault),
-            "builtin-optional" => Ok(PackTrust::BuiltinOptional),
-            "first-party-optional" => Ok(PackTrust::BuiltinOptional),
-            "external-opt-in" => Ok(PackTrust::ExternalOptIn),
-            other => Err(serde::de::Error::custom(format!(
-                "unknown pack trust `{other}`"
-            ))),
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct SemanticPackCounts {
-    pub evidence_producers: usize,
-    pub contracts: usize,
-    pub value_laws: usize,
-    pub positive_fixtures: usize,
-    pub hard_negatives: usize,
-}
-
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct SemanticPackSummary {
-    pub id: String,
-    pub hash: u64,
-    pub kind: SemanticPackKind,
-    pub version: String,
-    pub display_name: String,
-    pub trust: PackTrust,
-    pub enabled_by_default: bool,
-    pub source: SemanticPackSource,
-    pub influence: SemanticPackInfluence,
-    pub manifest_path: Option<PathBuf>,
-    pub provider: String,
-    pub repository: String,
-    pub license: String,
-    pub supported_languages: Vec<String>,
-    pub counts: SemanticPackCounts,
-    pub api_version: Option<&'static str>,
-    pub semantic_digest: Option<String>,
-}
-
-impl SemanticPackSummary {
-    pub fn hash_hex(&self) -> String {
-        format!("{:016x}", self.hash)
-    }
-
-    fn from_manifest_v0(path: PathBuf, manifest: SemanticPackManifest) -> Result<Self, String> {
-        validate_manifest(&manifest).map_err(|err| err.to_string())?;
-        let id = manifest.pack.id;
-        let supported_languages = manifest
-            .supported_languages
-            .into_iter()
-            .map(|language| language.id)
-            .collect();
-        let counts = SemanticPackCounts {
-            evidence_producers: manifest.declares.evidence_producers.len(),
-            contracts: manifest.declares.contracts.len(),
-            value_laws: manifest.declares.value_laws.len(),
-            positive_fixtures: manifest.conformance.positive_fixtures.len(),
-            hard_negatives: manifest.conformance.hard_negatives.len(),
-        };
-        Ok(Self {
-            hash: semantic_pack_hash(&id),
-            id,
-            kind: manifest.pack.kind,
-            version: manifest.pack.version,
-            display_name: manifest.pack.display_name,
-            trust: manifest.pack.trust,
-            enabled_by_default: manifest.pack.enabled_by_default,
-            source: SemanticPackSource::LocalManifest,
-            influence: SemanticPackInfluence::MetadataOnly,
-            manifest_path: Some(path),
-            provider: manifest.provenance.provider.name,
-            repository: manifest.provenance.repository,
-            license: manifest.provenance.license,
-            supported_languages,
-            counts,
-            api_version: Some(SEMANTIC_PACK_API_VERSION),
-            semantic_digest: None,
-        })
-    }
-
-    fn from_manifest_v1(
-        path: PathBuf,
-        manifest: &SemanticPackManifestV1,
-        compiled: &CompiledSemanticPackV1,
-    ) -> Self {
-        Self {
-            id: manifest.pack.id.clone(),
-            hash: semantic_pack_hash(&manifest.pack.id),
-            kind: manifest.pack.kind,
-            version: manifest.pack.version.clone(),
-            display_name: manifest.pack.display_name.clone(),
-            trust: PackTrust::ExternalOptIn,
-            enabled_by_default: false,
-            source: SemanticPackSource::LocalManifest,
-            influence: SemanticPackInfluence::MetadataOnly,
-            manifest_path: Some(path),
-            provider: manifest.provenance.provider.name.clone(),
-            repository: manifest.provenance.repository.clone(),
-            license: manifest.provenance.license.clone(),
-            supported_languages: manifest
-                .supported_languages
-                .iter()
-                .map(|language| match language {
-                    SemanticPackV1Language::Java => "java".to_string(),
-                })
-                .collect(),
-            counts: SemanticPackCounts {
-                evidence_producers: 0,
-                contracts: manifest.declares.api_contracts.len(),
-                value_laws: 0,
-                positive_fixtures: compiled
-                    .conformance_fixtures()
-                    .iter()
-                    .filter(|fixture| fixture.kind == SemanticPackV1FixtureKind::Positive)
-                    .count(),
-                hard_negatives: compiled
-                    .conformance_fixtures()
-                    .iter()
-                    .filter(|fixture| fixture.kind == SemanticPackV1FixtureKind::HardNegative)
-                    .count(),
-            },
-            api_version: Some(SEMANTIC_PACK_API_VERSION_V1),
-            semantic_digest: Some(compiled.semantic_digest().to_string()),
-        }
-    }
-}
-
-pub fn semantic_pack_hash(pack_id: &str) -> u64 {
-    stable_symbol_hash(pack_id)
-}
-
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct SemanticPackSet {
-    packs: Vec<SemanticPackSummary>,
-    external_evidence_producer_rows: Vec<ExternalEvidenceProducerRow>,
-    external_contract_rows: Vec<ExternalContractRow>,
-    external_value_law_rows: Vec<ExternalValueLawRow>,
-    compiled_external_v1_packs: Vec<CompiledSemanticPackV1>,
-    external_v1_authorizations: BTreeMap<String, SemanticPackV1Authorization>,
-    project_lock: Option<SemanticPackProjectLockSummary>,
-}
-
-impl SemanticPackSet {
-    pub fn new_locked(lock_path: &std::path::Path) -> Result<Self, SemanticPackLockError> {
-        Ok(validate_project_lock(lock_path)?.into_semantic_packs())
-    }
-
-    pub fn new_local(paths: &[PathBuf]) -> Result<Self, SemanticPackLoadError> {
-        let manifest_paths = discover_manifest_paths(paths)?;
-        let mut packs = compiled_builtin_packs();
-        let mut external_evidence_producer_rows = Vec::new();
-        let mut external_contract_rows = Vec::new();
-        let mut external_value_law_rows = Vec::new();
-        let mut compiled_external_v1_packs = Vec::new();
-        for path in manifest_paths {
-            let loaded = loading::load_local_manifest_with_rows(&path)?;
-            if let Some(existing) = packs
-                .iter()
-                .find(|existing| existing.id == loaded.summary.id)
-            {
-                return Err(SemanticPackLoadError::DuplicatePackId {
-                    id: loaded.summary.id,
-                    first_path: existing.manifest_path.clone(),
-                    second_path: Some(path),
-                });
-            }
-            external_evidence_producer_rows.extend(loaded.external_evidence_producer_rows);
-            external_contract_rows.extend(loaded.external_contract_rows);
-            external_value_law_rows.extend(loaded.external_value_law_rows);
-            if let Some(compiled) = loaded.compiled_v1 {
-                compiled_external_v1_packs.push(compiled);
-            }
-            packs.push(loaded.summary);
-        }
-        Ok(Self {
-            packs,
-            external_evidence_producer_rows,
-            external_contract_rows,
-            external_value_law_rows,
-            compiled_external_v1_packs,
-            external_v1_authorizations: BTreeMap::new(),
-            project_lock: None,
-        })
-    }
-
-    pub fn builtin_only() -> Self {
-        Self {
-            packs: compiled_builtin_packs(),
-            external_evidence_producer_rows: Vec::new(),
-            external_contract_rows: Vec::new(),
-            external_value_law_rows: Vec::new(),
-            compiled_external_v1_packs: Vec::new(),
-            external_v1_authorizations: BTreeMap::new(),
-            project_lock: None,
-        }
-    }
-
-    pub fn first_party_only() -> Self {
-        Self::builtin_only()
-    }
-
-    pub fn packs(&self) -> &[SemanticPackSummary] {
-        &self.packs
-    }
-
-    pub fn external_evidence_producer_rows(&self) -> &[ExternalEvidenceProducerRow] {
-        &self.external_evidence_producer_rows
-    }
-
-    pub fn external_contract_rows(&self) -> &[ExternalContractRow] {
-        &self.external_contract_rows
-    }
-
-    pub fn external_value_law_rows(&self) -> &[ExternalValueLawRow] {
-        &self.external_value_law_rows
-    }
-
-    pub fn compiled_external_v1_packs(&self) -> &[CompiledSemanticPackV1] {
-        &self.compiled_external_v1_packs
-    }
-
-    pub fn external_v1_authorization(&self, pack_id: &str) -> Option<&SemanticPackV1Authorization> {
-        self.external_v1_authorizations.get(pack_id)
-    }
-
-    pub fn project_lock(&self) -> Option<&SemanticPackProjectLockSummary> {
-        self.project_lock.as_ref()
-    }
-}
 
 #[cfg(test)]
 mod tests;

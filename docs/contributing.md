@@ -21,11 +21,9 @@ Run the fast PR/push preflight locally before opening or updating a PR:
 ./scripts/check-ci-local.sh --fast
 ```
 
-That runs rustfmt, shellcheck, the Rust file-length ratchet, the CLI
-legacy-prelude guard, clippy with warnings as errors, the `nose-cli` test suite, and the
-docs wiki lint. It also self-tests the nightly corpus-verify runner without
-checking out the full corpus. It is the gate meant to catch the common CI
-failures quickly.
+That runs the common source-quality checks, cheap checked-evidence and runner
+self-tests, the `nose-cli` test suite, and live debug-binary product-contract
+checks. It is the gate meant to catch common CI failures before push.
 
 Run everything CI runs, locally, with one command:
 
@@ -33,29 +31,17 @@ Run everything CI runs, locally, with one command:
 ./scripts/check-ci-local.sh --full
 ```
 
-`./scripts/check.sh` is kept as a backwards-compatible alias for `--full`. A green
-full run here is a green CI. The gate implementations live in
-`scripts/check-ci-local.sh`; GitHub Actions supplies runner setup and invokes the
-same internal `--gate <name>` entries instead of maintaining a second command
-list. The full gates are:
+`./scripts/check.sh` is kept as a backwards-compatible alias for `--full`. A
+green full run here is a green CI. The gate implementations live behind named
+`scripts/check-ci-local.sh --gate <name>` entries; GitHub Actions supplies
+runner setup and invokes the same entries.
 
-| gate | named entry | what it enforces |
-|---|---|---|
-| **shell scripts** | `shell-lint` | hook and shell helper scripts stay lint-clean |
-| **format** | `format` | canonical rustfmt formatting |
-| **file length** | `file-length` | Rust files under `crates/` stay under the 600-line target unless they are existing ratcheted debt |
-| **CLI prelude** | `legacy-prelude` | the retired `nose-cli` legacy prelude is not reintroduced |
-| **lints** | `clippy` | clippy clean; warnings are errors |
-| **docs** | `doc` | no broken/private intra-doc links |
-| **build** | `build-release` | the workspace compiles in release |
-| **tests** | `test-release` | the full suite, incl. cross-language convergence |
-| **coverage** | `coverage` | line coverage stays above the shared ratchet floor; runs before PR merge and release publishing |
-| **copy-paste** | `duplication` | nose run on its own source, including tests — substantial duplicate family IDs match the reviewed baseline |
-| **MSRV** | `msrv` | the crates still build on the declared minimum Rust (`rust-version` in `Cargo.toml`) |
-| **unused deps / supply chain** | `supply-chain` | no unused dependencies, advisories, yanked crates, disallowed licenses, duplicate/wildcard dependencies, or non-crates.io sources |
-| **docs wiki** | `docs` | the `docs/` wiki is one connected graph — no orphan pages or islands |
-| **formal obligations** | `formal-obligations` | proof-sensitive Rust markers are registered, theorem names exist, and counterexample files are tracked |
-| **formal proofs** | `formal-lean` | Lean shared models and obligation proofs type-check with warnings, including `sorry`, treated as errors |
+Use `./scripts/check-ci-local.sh --list-gates` for the complete current list,
+owners, lanes, worktree effects, caches, and focused rerun commands. The
+[repository gate inventory](repository-gates.md) documents the checked registry,
+timing receipt, lane policy, and drift validation. This generated view replaces
+a hand-maintained table here so the contributor guide cannot silently diverge
+from executable policy.
 
 The dev/CI toolchain is pinned in `rust-toolchain.toml` (rustup installs it
 automatically); the **MSRV** (`rust-version`, currently 1.85) is deliberately older

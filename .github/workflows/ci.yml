@@ -27,8 +27,12 @@ jobs:
         run: ./scripts/check-ci-local.sh --gate corpus-verify-selftest
       - name: semantic-pack pricing artifact check
         run: ./scripts/check-ci-local.sh --gate semantic-pack-pricing
+      - name: Type-4 frontier evidence checks
+        run: ./scripts/check-ci-local.sh --gate type4-frontier
       - name: regression checker self-tests
         run: ./scripts/check-ci-local.sh --gate regression-selftests
+      - name: evidence artifact lifecycle
+        run: ./scripts/check-ci-local.sh --gate evidence-artifacts
       - name: current missed-worthy frontier artifacts
         run: ./scripts/check-ci-local.sh --gate missed-worthy-frontier
       - name: current accepted-pair coverage artifacts

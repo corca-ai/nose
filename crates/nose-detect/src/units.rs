@@ -3,11 +3,13 @@
 //! tag combined with its children's tags), a pre-order **linearization** of node
 //! tags for alignment, and a **MinHash** signature for candidate generation.
 
+mod dags;
 mod features;
 mod fragments;
 mod gates;
 mod model;
 mod product;
+mod roots;
 mod timing;
 mod tree;
 
@@ -15,11 +17,12 @@ mod tree;
 pub(crate) use crate::exact_policy::EXACT_VALUE_MIN;
 use crate::fragment::{FragmentKind, ProofFacts};
 use crate::strict_exact::{strict_exact_safe_tree, StrictFacts};
+pub use dags::unit_dags_at;
 use features::{unit_minhash, unit_shape_features};
 #[cfg(test)]
 pub(crate) use fragments::exact_statement_fragment_root;
+use fragments::strict_exact_self_field_fragment_safe;
 pub(crate) use fragments::top_level_statement_fragment_context_safe;
-use fragments::{collect_extra_unit_roots, strict_exact_self_field_fragment_safe};
 pub(crate) use gates::large_test_file;
 pub use gates::ProductUnitAdmission;
 use gates::{
@@ -28,7 +31,7 @@ use gates::{
 };
 pub(crate) use model::abstraction_family_witness;
 pub use model::UnitFeat;
-use nose_il::{Il, Interner, NodeId, NodeKind, Payload, Span, Symbol, UnitKind, UnitOrigin};
+use nose_il::{Il, Interner, NodeId, NodeKind, Payload, Span, UnitKind};
 use nose_semantics::ValueLaw;
 #[cfg(test)]
 pub(crate) use product::default_product_oracle_fragments;
@@ -37,57 +40,11 @@ pub use product::{
     default_product_oracle_fragment_candidates, default_product_unit_admission,
     default_product_value_fingerprint_context, ProductOracleFragment, ProductUnitAdmissionInput,
 };
+use roots::{collect_unit_roots, value_fingerprint_context_for_roots, UnitRoot};
 use std::time::Instant;
 use timing::{UnitTimer, UnitTimingSample, UnitTimingSkipSample};
 use tree::collect_pre;
 pub(crate) use tree::{build_parent_index, subtree_spans_within};
-
-#[derive(Clone, Copy)]
-struct UnitRoot {
-    root: NodeId,
-    kind: UnitKind,
-    name: Option<Symbol>,
-    origin: UnitOrigin,
-    /// The exact-fragment classification, when this root was admitted as an exact
-    /// sub-function fragment. `None` for ordinary function/method/class/block units.
-    /// `Some(_)` is the authoritative "this is an exact fragment" signal; the boolean
-    /// `fragment_kind.is_some()` replaces the previous standalone `exact_fragment` flag.
-    fragment_kind: Option<FragmentKind>,
-}
-
-fn collect_unit_roots(
-    il: &Il,
-    interner: &Interner,
-    block_units: bool,
-) -> (Vec<UnitRoot>, Option<Vec<Option<NodeId>>>) {
-    let mut roots: Vec<UnitRoot> = il
-        .units
-        .iter()
-        .map(|u| UnitRoot {
-            root: u.root,
-            kind: u.kind,
-            name: u.name,
-            origin: u.origin,
-            fragment_kind: None,
-        })
-        .collect();
-    let parents = if block_units {
-        let parents = build_parent_index(il);
-        collect_extra_unit_roots(il, il.root, &parents, interner, &mut roots);
-        Some(parents)
-    } else {
-        None
-    };
-    (roots, parents)
-}
-
-fn value_fingerprint_context_for_roots(
-    il: &Il,
-    interner: &Interner,
-    root_count: usize,
-) -> Option<nose_normalize::ValueFingerprintContext> {
-    (root_count > 1).then(|| nose_normalize::ValueFingerprintContext::new(il, interner))
-}
 
 #[derive(Clone, Copy)]
 pub(crate) struct ExtractFeatures {
@@ -216,56 +173,6 @@ pub(crate) fn extract_with_context(
     fill_called_helper_returns(il, interner, &mut out, &emitted_roots);
     unit_timer.report_summary(&il.meta.path);
     (out, value_context)
-}
-
-/// Above this many normalized nodes a file is treated as pathological for witness
-/// purposes (generated/minified): the graded witness is best-effort enrichment, so it
-/// is skipped rather than paying an outsized cost on a file no one refactors by hand.
-const WITNESS_MAX_FILE_NODES: usize = 60_000;
-
-/// Export the value DAGs of the units at the given `(start_line, end_line)` spans, for
-/// the #315 graded witness. `il` is the file's RAW IL (this normalizes it the same way
-/// detection does), and the result is aligned with `wanted`: `Some((dag, exact_safe))`
-/// when a unit root matches the span, `None` otherwise (no match, or a pathological
-/// file skipped wholesale). The per-file resolution context (referents, inline/global
-/// context) is built once and shared across the requested roots.
-pub fn unit_dags_at(
-    il: &Il,
-    interner: &Interner,
-    opts: &crate::DetectOptions,
-    wanted: &[(u32, u32)],
-) -> Vec<Option<(nose_normalize::ValueDag, bool)>> {
-    if large_test_file(il) {
-        return vec![None; wanted.len()];
-    }
-    let norm_opts = nose_normalize::NormalizeOptions {
-        cfg_norm: opts.cfg_norm,
-        dce: opts.dce,
-        ..Default::default()
-    };
-    let n = nose_normalize::normalize(il, interner, &norm_opts);
-    if n.nodes.len() > WITNESS_MAX_FILE_NODES {
-        return vec![None; wanted.len()];
-    }
-    let (roots, _) = collect_unit_roots(&n, interner, opts.block_units);
-    let facts = StrictFacts::collect(&n, interner);
-    let context = value_fingerprint_context_for_roots(&n, interner, roots.len());
-    let referents = nose_normalize::FileReferents::new(&n, interner);
-    // Span -> root (first wins, matching extraction order).
-    let mut by_lines: rustc_hash::FxHashMap<(u32, u32), NodeId> = rustc_hash::FxHashMap::default();
-    for r in &roots {
-        let s = n.node(r.root).span;
-        by_lines.entry((s.start_line, s.end_line)).or_insert(r.root);
-    }
-    wanted
-        .iter()
-        .map(|&span| {
-            let root = *by_lines.get(&span)?;
-            let exact_safe = strict_exact_safe_tree(&n, interner, &facts, root);
-            let dag = nose_normalize::value_dag(&n, root, interner, context.as_ref(), &referents);
-            Some((dag, exact_safe))
-        })
-        .collect()
 }
 
 /// Record, on every unit that could be a containment CONTAINER (it has anchors), the
