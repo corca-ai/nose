@@ -31,6 +31,19 @@ Run everything CI runs, locally, with one command:
 ./scripts/check-ci-local.sh --full
 ```
 
+On a machine with spare CPU and memory, opt into the registry's bounded
+parallel planner:
+
+```sh
+./scripts/check-ci-local.sh --fast --jobs 2
+./scripts/check-ci-local.sh --full --jobs 2
+```
+
+The default remains one outer worker for predictable diagnostics and resource
+use. `NOSE_CI_JOBS=2` sets the same local default. Declared dependencies,
+parallel-safety, and resource groups keep binary consumers behind their build,
+stable Cargo work serial, and checked-output owners from colliding.
+
 `./scripts/check.sh` is kept as a backwards-compatible alias for `--full`. A
 green full run here is a green CI. The gate implementations live behind named
 `scripts/check-ci-local.sh --gate <name>` entries; GitHub Actions supplies

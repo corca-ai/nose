@@ -19,7 +19,7 @@ DEFAULT_CI_WORKFLOW = ROOT / ".github/workflows/ci.yml"
 DEFAULT_NIGHTLY_WORKFLOW = ROOT / ".github/workflows/corpus-verify.yml"
 DEFAULT_RELEASE_WORKFLOW = ROOT / ".github/workflows/release.yml"
 
-SCHEMA = "nose.ci-gates.v1"
+SCHEMA = "nose.ci-gates.v2"
 WORKTREE_EFFECTS = {"read-only", "verify-checked-output"}
 LOCAL_PLAN_LANES = {"fast": "local-fast", "full": "local-full"}
 REQUIRED_GATE_FIELDS = {
@@ -31,6 +31,8 @@ REQUIRED_GATE_FIELDS = {
     "worktree_effect",
     "outputs",
     "cache",
+    "parallel_safe",
+    "resource_group",
     "lanes",
     "lane_reason",
     "focused_command",
@@ -86,6 +88,12 @@ def validate_model(registry: dict[str, Any]) -> list[dict[str, Any]]:
 
     seen_names: set[str] = set()
     plan_orders: dict[str, set[int]] = {mode: set() for mode in LOCAL_PLAN_LANES}
+    plan_order_by_name: dict[str, dict[str, int]] = {
+        mode: {} for mode in LOCAL_PLAN_LANES
+    }
+    plan_dependencies: dict[str, dict[str, list[str]]] = {
+        mode: {} for mode in LOCAL_PLAN_LANES
+    }
     for index, gate in enumerate(gates):
         if not isinstance(gate, dict):
             raise RegistryError(f"gate at index {index} must be an object")
@@ -124,6 +132,16 @@ def validate_model(registry: dict[str, Any]) -> list[dict[str, Any]]:
             )
         if gate["worktree_effect"] == "verify-checked-output" and not gate["outputs"]:
             raise RegistryError(f"gate {name}: checked-output gate must name its outputs")
+        if not isinstance(gate["parallel_safe"], bool):
+            raise RegistryError(f"gate {name}: parallel_safe must be boolean")
+        resource_group = gate["resource_group"]
+        if resource_group is not None and (
+            not isinstance(resource_group, str)
+            or re.fullmatch(r"[a-z0-9-]+", resource_group) is None
+        ):
+            raise RegistryError(
+                f"gate {name}: resource_group must be null or a kebab-case name"
+            )
         focused_prefix = f"./scripts/check-ci-local.sh --gate {name}"
         if not gate["focused_command"].startswith(focused_prefix):
             raise RegistryError(
@@ -142,9 +160,14 @@ def validate_model(registry: dict[str, Any]) -> list[dict[str, Any]]:
             if not planned:
                 continue
             plan = plans[mode]
-            if not isinstance(plan, dict) or set(plan) != {"order", "label", "args"}:
+            if not isinstance(plan, dict) or set(plan) != {
+                "order",
+                "label",
+                "args",
+                "depends_on",
+            }:
                 raise RegistryError(
-                    f"gate {name}: {mode} plan needs order, label, and args"
+                    f"gate {name}: {mode} plan needs order, label, args, and depends_on"
                 )
             order = plan["order"]
             if not isinstance(order, int) or order <= 0:
@@ -152,6 +175,7 @@ def validate_model(registry: dict[str, Any]) -> list[dict[str, Any]]:
             if order in plan_orders[mode]:
                 raise RegistryError(f"{mode} plan reuses order {order}")
             plan_orders[mode].add(order)
+            plan_order_by_name[mode][name] = order
             if not isinstance(plan["label"], str) or not plan["label"]:
                 raise RegistryError(f"gate {name}: {mode} label must be non-empty")
             args = plan["args"]
@@ -162,6 +186,40 @@ def validate_model(registry: dict[str, Any]) -> list[dict[str, Any]]:
             ):
                 raise RegistryError(
                     f"gate {name}: {mode} args must contain at most two strings"
+                )
+            dependencies = plan["depends_on"]
+            if (
+                not isinstance(dependencies, list)
+                or any(
+                    not isinstance(dependency, str)
+                    or re.fullmatch(r"[a-z0-9-]+", dependency) is None
+                    for dependency in dependencies
+                )
+                or len(dependencies) != len(set(dependencies))
+            ):
+                raise RegistryError(
+                    f"gate {name}: {mode} depends_on must contain unique gate names"
+                )
+            if name in dependencies:
+                raise RegistryError(f"gate {name}: {mode} cannot depend on itself")
+            plan_dependencies[mode][name] = dependencies
+
+    for mode in LOCAL_PLAN_LANES:
+        planned_names = set(plan_order_by_name[mode])
+        for name, dependencies in plan_dependencies[mode].items():
+            unknown = set(dependencies) - planned_names
+            if unknown:
+                raise RegistryError(
+                    f"gate {name}: {mode} depends on unplanned gates {sorted(unknown)}"
+                )
+            late = [
+                dependency
+                for dependency in dependencies
+                if plan_order_by_name[mode][dependency] >= plan_order_by_name[mode][name]
+            ]
+            if late:
+                raise RegistryError(
+                    f"gate {name}: {mode} dependencies must have lower order: {sorted(late)}"
                 )
 
     return gates
@@ -219,7 +277,12 @@ def validate_live_registry(
 def plan_rows(gates: list[dict[str, Any]], mode: str) -> list[dict[str, Any]]:
     return sorted(
         (
-            {"name": gate["name"], **gate["plans"][mode]}
+            {
+                "name": gate["name"],
+                "parallel_safe": gate["parallel_safe"],
+                "resource_group": gate["resource_group"],
+                **gate["plans"][mode],
+            }
             for gate in gates
             if mode in gate["plans"]
         ),
@@ -244,7 +307,9 @@ def print_list(gates: list[dict[str, Any]], output_format: str) -> None:
         json.dump(gates, sys.stdout, indent=2)
         print()
         return
-    print("gate\tlanes\tworktree\tcache\towner\tfocused command")
+    print(
+        "gate\tlanes\tworktree\tparallel\tresource group\tcache\towner\tfocused command"
+    )
     for gate in gates:
         print(
             "\t".join(
@@ -252,6 +317,8 @@ def print_list(gates: list[dict[str, Any]], output_format: str) -> None:
                     gate["name"],
                     ",".join(gate["lanes"]),
                     gate["worktree_effect"],
+                    str(gate["parallel_safe"]).lower(),
+                    gate["resource_group"] or "-",
                     gate["cache"],
                     gate["owner"],
                     gate["focused_command"],
@@ -280,11 +347,18 @@ def self_test() -> None:
                 "worktree_effect": "read-only",
                 "outputs": [],
                 "cache": "none",
+                "parallel_safe": True,
+                "resource_group": None,
                 "lanes": ["local-fast"],
                 "lane_reason": "sample rationale",
                 "focused_command": "./scripts/check-ci-local.sh --gate sample",
                 "plans": {
-                    "fast": {"order": 10, "label": "sample", "args": []}
+                    "fast": {
+                        "order": 10,
+                        "label": "sample",
+                        "args": [],
+                        "depends_on": [],
+                    }
                 },
             }
         ],
@@ -319,6 +393,24 @@ def self_test() -> None:
         assert "must agree" in str(exc)
     else:
         raise AssertionError("plan/lane drift passed")
+
+    bad_dependency = copy.deepcopy(sample)
+    bad_dependency["gates"][0]["plans"]["fast"]["depends_on"] = ["missing"]
+    try:
+        validate_model(bad_dependency)
+    except RegistryError as exc:
+        assert "unplanned gates" in str(exc)
+    else:
+        raise AssertionError("unknown plan dependency passed")
+
+    bad_group = copy.deepcopy(sample)
+    bad_group["gates"][0]["resource_group"] = "not_a_group"
+    try:
+        validate_model(bad_group)
+    except RegistryError as exc:
+        assert "resource_group" in str(exc)
+    else:
+        raise AssertionError("invalid resource group passed")
 
     print("CI gate registry self-test passed")
 

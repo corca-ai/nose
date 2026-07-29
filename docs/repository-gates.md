@@ -7,8 +7,9 @@ The repository's executable quality-policy boundary is:
 ```
 
 GitHub Actions supplies runner setup and calls that same boundary. Local plans,
-gate ownership, required tools, inputs, worktree effects, cache behavior, lane
-rationale, and focused commands are declared in the checked
+gate ownership, required tools, inputs, worktree effects, cache behavior,
+dependencies, parallel-safety, resource groups, lane rationale, and focused
+commands are declared in the checked
 [`scripts/ci/gates.json`](../scripts/ci/gates.json) registry.
 
 ## Discover and validate gates
@@ -37,6 +38,9 @@ runs. The validator fails if:
 - the Soundness Lab starts calling named gates without declaring the nightly
   lane;
 - a checked-output gate does not name the output it verifies.
+- a plan dependency is absent, ordered after its consumer, or names the
+  consumer itself;
+- a parallel-safety or resource-group declaration is malformed.
 
 The registry owns selection, ordering, and descriptive metadata. The shell
 dispatcher owns executable commands and diagnostics. The cross-check prevents
@@ -73,6 +77,32 @@ large evidence batch with a misleading error.
   is assigned to this lane. Its cheap runner mutation test is the separate
   `corpus-verify-selftest` pull-request gate.
 
+## Local execution
+
+Local plans remain sequential by default. Opt into bounded parallel execution
+when the machine has enough CPU and memory:
+
+```sh
+./scripts/check-ci-local.sh --fast --jobs 2
+./scripts/check-ci-local.sh --full --jobs 2
+```
+
+`NOSE_CI_JOBS` supplies the same default without changing the checked command.
+The planner starts only gates declared `parallel_safe`, waits for their
+mode-specific `depends_on` gates, and never overlaps members of one
+`resource_group`. A non-parallel-safe gate is an ordering barrier: earlier work
+must finish before it starts, and later work waits until it completes. Stable
+Cargo work shares `cargo-stable`; MSRV, coverage, checked label evidence, and
+checked Type-4 evidence use separate groups that match their isolated outputs.
+
+The `default-head-evidence` gate also runs its five independent mutation
+self-tests through a bounded worker pool after all checked artifacts validate.
+It fills each free slot immediately and defaults to three workers even when the
+outer plan is sequential. Set
+`NOSE_DEFAULT_HEAD_JOBS=1` to reproduce the former serial diagnostic order.
+Each worker writes only to its own temporary log or the self-test's own
+temporary directory; output is replayed in declaration order.
+
 ## Worktree effects
 
 Most gates are `read-only`: build/test output is confined to ignored caches such
@@ -94,6 +124,15 @@ Gate time depends on machine, compiler cache, and corpus state. The checked
 records its commit, environment, profile, mode, total time, per-gate time, exit
 status, and worktree-drift result instead of presenting one duration as a
 universal SLA.
+
+The checked per-gate receipt uses the default sequential outer plan so each
+gate retains an attributable duration. Measure the opt-in parallel plan
+separately:
+
+```sh
+/usr/bin/time -p ./scripts/check-ci-local.sh --fast --jobs 2
+/usr/bin/time -p ./scripts/check-ci-local.sh --full --jobs 2
+```
 
 Refresh it from a clean worktree with existing build caches:
 

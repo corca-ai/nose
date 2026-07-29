@@ -14,10 +14,14 @@ mode="fast"
 gate_name=""
 gate_args=()
 list_format="text"
+parallel_jobs="${NOSE_CI_JOBS:-1}"
 case "${1:-}" in
-    "" | --fast)
+    "")
         mode="fast"
-        shift $#
+        ;;
+    --fast)
+        mode="fast"
+        shift
         ;;
     --full)
         mode="full"
@@ -50,7 +54,7 @@ case "${1:-}" in
         ;;
     -h | --help)
         cat <<'EOF'
-usage: ./scripts/check-ci-local.sh [--fast|--full]
+usage: ./scripts/check-ci-local.sh [--fast|--full] [--jobs <count>]
        ./scripts/check-ci-local.sh --gate <name> [gate arguments...]
        ./scripts/check-ci-local.sh --list-gates [--format text|json]
        ./scripts/check-ci-local.sh --validate-gates
@@ -61,6 +65,7 @@ usage: ./scripts/check-ci-local.sh [--fast|--full]
   --full  full local mirror of CI: format, clippy, docs, release build/tests,
           file-length ratchet, duplication, MSRV, supply-chain, docs wiki,
           formal obligation lint, and Lean proofs
+  --jobs  opt into bounded parallel local-plan execution; default: 1
   --gate  internal named-gate surface shared with GitHub Actions
   --list-gates
           authoritative owner, lane, effect, cache, and focused-command inventory
@@ -75,6 +80,25 @@ EOF
         exit 2
         ;;
 esac
+
+if [[ "$mode" == "fast" || "$mode" == "full" ]]; then
+    if [[ "${1:-}" == "--jobs" ]]; then
+        if [[ -z "${2:-}" ]]; then
+            echo "--jobs requires a positive integer" >&2
+            exit 2
+        fi
+        parallel_jobs="$2"
+        shift 2
+    fi
+    if [[ "$#" -ne 0 ]]; then
+        echo "unknown local-plan argument: $1" >&2
+        exit 2
+    fi
+    if [[ ! "$parallel_jobs" =~ ^[1-9][0-9]*$ ]]; then
+        echo "--jobs must be a positive integer: $parallel_jobs" >&2
+        exit 2
+    fi
+fi
 
 step() { printf '\n\033[1m== %s ==\033[0m\n' "$1"; }
 
@@ -271,6 +295,13 @@ run_local_plan() {
     done < <(python3 scripts/ci/gate_registry.py plan --mode "$plan_mode")
 }
 
+run_parallel_local_plan() {
+    local plan_mode="$1"
+    local jobs="$2"
+    need_python3
+    python3 scripts/ci/run_plan.py --mode "$plan_mode" --jobs "$jobs"
+}
+
 run_named_gate() {
     local name="$1"
     shift
@@ -408,11 +439,16 @@ fi
 if [[ "$mode" == "validate" ]]; then
     run_gate_registry_validation
     python3 scripts/ci/gate_registry.py validate --self-test
+    python3 scripts/ci/run_plan.py --self-test
     exit 0
 fi
 
 run_gate_registry_validation
-run_local_plan "$mode"
+if [[ "$parallel_jobs" -eq 1 ]]; then
+    run_local_plan "$mode"
+else
+    run_parallel_local_plan "$mode" "$parallel_jobs"
+fi
 if [[ "$mode" == "fast" ]]; then
     printf '\n\033[1;32mFast local CI gates passed.\033[0m\n'
 else
