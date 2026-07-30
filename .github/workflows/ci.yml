@@ -9,6 +9,16 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+permissions:
+  contents: read
+
+concurrency:
+  group: >-
+    ci-${{ github.event_name == 'pull_request'
+      && format('pr-{0}', github.event.pull_request.number)
+      || format('{0}-{1}', github.event_name, github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     name: build · test · lint · dup-gate
@@ -21,32 +31,32 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - name: corpus prune self-test
+      - name: gate · corpus-prune-selftest
         run: ./scripts/check-ci-local.sh --gate corpus-prune-selftest
-      - name: corpus verify runner self-test
+      - name: gate · corpus-verify-selftest
         run: ./scripts/check-ci-local.sh --gate corpus-verify-selftest
-      - name: semantic-pack pricing artifact check
+      - name: gate · semantic-pack-pricing
         run: ./scripts/check-ci-local.sh --gate semantic-pack-pricing
-      - name: Type-4 frontier evidence checks
+      - name: gate · type4-frontier
         run: ./scripts/check-ci-local.sh --gate type4-frontier
-      - name: evidence artifact lifecycle
+      - name: gate · evidence-artifacts
         run: ./scripts/check-ci-local.sh --gate evidence-artifacts
-      - name: current missed-worthy frontier artifacts
+      - name: gate · missed-worthy-frontier
         run: ./scripts/check-ci-local.sh --gate missed-worthy-frontier
-      - name: current accepted-pair coverage artifacts
+      - name: gate · accepted-pair-coverage
         run: ./scripts/check-ci-local.sh --gate accepted-pair-coverage
-      - name: Cargo target prune self-test
+      - name: gate · cargo-target-prune-selftest
         run: ./scripts/check-ci-local.sh --gate cargo-target-prune-selftest
-      - name: shell scripts
+      - name: gate · shell-lint
         run: |
           if ! command -v shellcheck >/dev/null 2>&1; then
             sudo apt-get update
             sudo apt-get install -y shellcheck
           fi
           ./scripts/check-ci-local.sh --gate shell-lint
-      - name: format
+      - name: gate · format
         run: ./scripts/check-ci-local.sh --gate format
-      - name: file-length ratchet
+      - name: gate · file-length
         env:
           PUSH_BEFORE: ${{ github.event.before }}
         run: |
@@ -62,21 +72,21 @@ jobs:
             fi
           fi
           ./scripts/check-ci-local.sh --gate file-length "$ratchet_base"
-      - name: legacy-prelude guard
+      - name: gate · legacy-prelude
         run: ./scripts/check-ci-local.sh --gate legacy-prelude
-      - name: clippy
+      - name: gate · clippy
         run: ./scripts/check-ci-local.sh --gate clippy
-      - name: doc
+      - name: gate · doc
         run: ./scripts/check-ci-local.sh --gate doc
-      - name: build
+      - name: gate · build-release
         run: ./scripts/check-ci-local.sh --gate build-release
-      - name: product query JSON schema
+      - name: gate · product-query-schema
         run: ./scripts/check-ci-local.sh --gate product-query-schema target/release/nose
-      - name: semantic-pack example conformance
+      - name: gate · semantic-pack-examples
         run: ./scripts/check-ci-local.sh --gate semantic-pack-examples target/release/nose
-      - name: Type-4 executable focused expectations
+      - name: gate · type4-executable
         run: ./scripts/check-ci-local.sh --gate type4-executable target/release/nose
-      - name: Type-4 axis-language claim perimeter
+      - name: gate · type4-axis-language
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PUSH_BEFORE: ${{ github.event.before }}
@@ -87,9 +97,9 @@ jobs:
             ratchet_base="HEAD^"
           fi
           ./scripts/check-ci-local.sh --gate type4-axis-language target/release/nose "$ratchet_base"
-      - name: test
+      - name: gate · test-release
         run: ./scripts/check-ci-local.sh --gate test-release
-      - name: duplication gate (nose on itself)
+      - name: gate · duplication
         run: ./scripts/check-ci-local.sh --gate duplication
 
   default-head-evidence:
@@ -99,7 +109,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: default-head evidence checks
+      - name: gate · default-head-evidence
         run: ./scripts/check-ci-local.sh --gate default-head-evidence
 
   divergence-evidence:
@@ -109,7 +119,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: divergence evidence checks
+      - name: gate · divergence-evidence
         run: ./scripts/check-ci-local.sh --gate divergence-evidence
 
   surface-recall-evidence:
@@ -119,7 +129,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: generated surface and recall evidence checks
+      - name: gate · surface-recall-evidence
         run: ./scripts/check-ci-local.sh --gate surface-recall-evidence
 
   runtime-soundness-evidence:
@@ -129,7 +139,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: runtime and soundness evidence checks
+      - name: gate · runtime-soundness-evidence
         run: ./scripts/check-ci-local.sh --gate runtime-soundness-evidence
 
   semantic-regression:
@@ -214,7 +224,7 @@ jobs:
           tool: cargo-llvm-cov
       # Line-coverage ratchet. The bar starts lenient; raise the shared
       # threshold over time as coverage improves.
-      - name: coverage gate
+      - name: gate · coverage
         run: ./scripts/check-ci-local.sh --gate coverage
 
   msrv:
@@ -231,7 +241,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       # The shared gate reads Cargo.toml and uses `+toolchain`, overriding
       # rust-toolchain.toml so we really test the MSRV.
-      - run: ./scripts/check-ci-local.sh --gate msrv
+      - name: gate · msrv
+        run: ./scripts/check-ci-local.sh --gate msrv
 
   supply-chain:
     name: unused-deps · advisories · licenses
@@ -243,7 +254,7 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-machete,cargo-deny
-      - name: supply-chain checks
+      - name: gate · supply-chain
         run: ./scripts/check-ci-local.sh --gate supply-chain
 
   docs:
@@ -258,7 +269,7 @@ jobs:
       # awiki lints the docs/ wiki: fails on orphan pages or disconnected islands.
       - name: install awiki
         run: go install github.com/corca-ai/awiki/cmd/awiki@v0.1.4
-      - name: lint docs and semantic pack examples
+      - name: gate · docs
         run: ./scripts/check-ci-local.sh --gate docs
 
   formal:
@@ -275,7 +286,82 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
             | sh -s -- -y --default-toolchain "$toolchain"
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-      - name: lint proof obligations
+      - name: gate · formal-obligations
         run: ./scripts/check-ci-local.sh --gate formal-obligations
-      - name: check proofs
+      - name: gate · formal-lean
         run: ./scripts/check-ci-local.sh --gate formal-lean
+
+  hosted-timing:
+    name: hosted CI timing
+    if: ${{ always() }}
+    needs:
+      - test
+      - default-head-evidence
+      - divergence-evidence
+      - surface-recall-evidence
+      - runtime-soundness-evidence
+      - semantic-regression
+      - coverage
+      - msrv
+      - supply-chain
+      - docs
+      - formal
+    permissions:
+      actions: read
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Fetch Actions timing metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p target/hosted-ci
+          mkdir -p target/hosted-ci/history-jobs
+          gh api --method GET \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+            > target/hosted-ci/jobs.json
+          gh api --method GET \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?status=success&event=${GITHUB_EVENT_NAME}&per_page=20" \
+            > target/hosted-ci/runs.json
+          jq -r '.workflow_runs[].id' target/hosted-ci/runs.json |
+            while read -r historical_run_id; do
+              gh api --method GET \
+                "repos/${GITHUB_REPOSITORY}/actions/runs/${historical_run_id}/jobs?per_page=100" \
+                > "target/hosted-ci/history-jobs/${historical_run_id}.json"
+            done
+
+      - name: Build and validate hosted timing receipt
+        run: |
+          python3 scripts/ci/hosted_timing.py --self-test
+          python3 scripts/ci/hosted_timing.py \
+            --jobs target/hosted-ci/jobs.json \
+            --runs target/hosted-ci/runs.json \
+            --history-jobs target/hosted-ci/history-jobs \
+            --output target/hosted-ci/receipt.json \
+            --summary target/hosted-ci/summary.md \
+            --repository "$GITHUB_REPOSITORY" \
+            --workflow "$GITHUB_WORKFLOW" \
+            --run-id "$GITHUB_RUN_ID" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --head-sha "$GITHUB_SHA" \
+            --event "$GITHUB_EVENT_NAME" \
+            --runner-os "$RUNNER_OS" \
+            --runner-arch "$RUNNER_ARCH" \
+            --image-os "${ImageOS:-}" \
+            --image-version "${ImageVersion:-}"
+          python3 scripts/ci/hosted_timing.py \
+            --validate target/hosted-ci/receipt.json
+          cat target/hosted-ci/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload hosted timing evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: hosted-ci-timing-${{ github.run_id }}-${{ github.run_attempt }}
+          path: target/hosted-ci
+          if-no-files-found: error
+          retention-days: 30

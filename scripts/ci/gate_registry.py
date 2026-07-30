@@ -8,6 +8,7 @@ import copy
 import json
 import re
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,7 @@ SCHEMA = "nose.ci-gates.v2"
 WORKTREE_EFFECTS = {"read-only", "verify-checked-output"}
 LOCAL_PLAN_LANES = {"fast": "local-fast", "full": "local-full"}
 LIFECYCLE_GATE = "evidence-artifacts"
+HOSTED_GATE_PREFIX = "gate · "
 REQUIRED_GATE_FIELDS = {
     "name",
     "owner",
@@ -69,6 +71,110 @@ def gate_names_from_dispatcher(path: Path = DEFAULT_DISPATCHER) -> set[str]:
 
 def gate_names_from_workflow(path: Path) -> set[str]:
     return set(re.findall(r"--gate\s+([a-z0-9-]+)", path.read_text()))
+
+
+def hosted_gate_names_from_workflow(path: Path) -> set[str]:
+    text = path.read_text()
+    names: set[str] = set()
+    current_name: str | None = None
+    current_body: list[str] = []
+
+    def validate_step() -> None:
+        if not current_body:
+            return
+        called = re.findall(r"--gate\s+([a-z0-9-]+)", "\n".join(current_body))
+        if not called:
+            return
+        if len(called) != 1:
+            raise RegistryError(
+                f"hosted workflow step {current_name!r} must call exactly one named gate"
+            )
+        expected_name = f"{HOSTED_GATE_PREFIX}{called[0]}"
+        if current_name != expected_name:
+            raise RegistryError(
+                f"hosted workflow gate {called[0]} must use step name {expected_name!r}"
+            )
+        if called[0] in names:
+            raise RegistryError(f"hosted workflow calls gate {called[0]} more than once")
+        names.add(called[0])
+
+    for line in text.splitlines():
+        if re.match(r"^ {6}- ", line):
+            validate_step()
+            name_match = re.match(r"^ {6}- name:\s*(.+?)\s*$", line)
+            current_name = name_match.group(1) if name_match else None
+            current_body = [line]
+        elif current_body:
+            current_body.append(line)
+    validate_step()
+    return names
+
+
+def workflow_job_blocks(path: Path) -> dict[str, str]:
+    blocks: dict[str, list[str]] = {}
+    current: str | None = None
+    in_jobs = False
+    for line in path.read_text().splitlines():
+        if line == "jobs:":
+            in_jobs = True
+            continue
+        if not in_jobs:
+            continue
+        job_match = re.match(r"^ {2}([a-z0-9-]+):\s*$", line)
+        if job_match:
+            current = job_match.group(1)
+            blocks[current] = [line]
+        elif current is not None:
+            blocks[current].append(line)
+    return {name: "\n".join(lines) for name, lines in blocks.items()}
+
+
+def validate_hosted_timing_policy(path: Path) -> None:
+    text = path.read_text()
+    blocks = workflow_job_blocks(path)
+    timing = blocks.get("hosted-timing")
+    if timing is None:
+        raise RegistryError("hosted workflow must define the hosted-timing job")
+    if "    if: ${{ always() }}" not in timing:
+        raise RegistryError("hosted-timing must run with always()")
+
+    needs_match = re.search(
+        r"^ {4}needs:\n(?P<rows>(?:^ {6}- [a-z0-9-]+\n?)+)",
+        timing,
+        re.MULTILINE,
+    )
+    if needs_match is None:
+        raise RegistryError("hosted-timing must list every quality job in needs")
+    needs = set(re.findall(r"^ {6}- ([a-z0-9-]+)$", needs_match.group("rows"), re.MULTILINE))
+    expected = set(blocks) - {"hosted-timing"}
+    if needs != expected:
+        raise RegistryError(
+            "hosted-timing needs mismatch: "
+            f"missing={sorted(expected - needs)}, extra={sorted(needs - expected)}"
+        )
+
+    header = text.split("\njobs:", maxsplit=1)[0]
+    if re.search(r"^ {2}actions:\s*", header, re.MULTILINE):
+        raise RegistryError("Actions permission must not be granted workflow-wide")
+    if (
+        "    permissions:\n"
+        "      actions: read\n"
+        "      contents: read\n" not in timing
+    ):
+        raise RegistryError("hosted-timing requires job-local read-only permissions")
+    if "          persist-credentials: false" not in timing:
+        raise RegistryError("hosted-timing checkout must not persist credentials")
+    required_concurrency_tokens = {
+        "github.event_name == 'pull_request'",
+        "github.event.pull_request.number",
+        "github.run_id",
+        "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+    }
+    missing_tokens = sorted(token for token in required_concurrency_tokens if token not in text)
+    if missing_tokens:
+        raise RegistryError(
+            f"hosted PR-only concurrency policy drifted: missing {missing_tokens}"
+        )
 
 
 def _require_non_empty_text(gate: dict[str, Any], field: str, name: str) -> None:
@@ -282,6 +388,14 @@ def validate_live_registry(
             f"registry-only={sorted(pull_request_names - workflow_names)}, "
             f"workflow-only={sorted(workflow_names - pull_request_names)}"
         )
+    hosted_workflow_names = hosted_gate_names_from_workflow(ci_workflow)
+    if hosted_workflow_names != pull_request_names:
+        raise RegistryError(
+            "hosted timing step names/pull-request lane mismatch: "
+            f"registry-only={sorted(pull_request_names - hosted_workflow_names)}, "
+            f"workflow-only={sorted(hosted_workflow_names - pull_request_names)}"
+        )
+    validate_hosted_timing_policy(ci_workflow)
 
     nightly_names = {gate["name"] for gate in gates if "nightly" in gate["lanes"]}
     nightly_workflow_names = gate_names_from_workflow(nightly_workflow)
@@ -300,6 +414,10 @@ def validate_live_registry(
     release_text = release_workflow.read_text()
     if "uses: ./.github/workflows/ci.yml" not in release_text:
         raise RegistryError("release workflow no longer reuses .github/workflows/ci.yml")
+    if '"actions": "read"' not in release_text:
+        raise RegistryError(
+            "release workflow must grant read-only Actions access to hosted timing"
+        )
     return gates
 
 
@@ -440,6 +558,105 @@ def self_test() -> None:
         assert "resource_group" in str(exc)
     else:
         raise AssertionError("invalid resource group passed")
+
+    with tempfile.TemporaryDirectory() as directory:
+        workflow = Path(directory) / "ci.yml"
+        workflow.write_text(
+            "jobs:\n"
+            "  test:\n"
+            "    steps:\n"
+            f"      - name: {HOSTED_GATE_PREFIX}sample\n"
+            "        run: ./scripts/check-ci-local.sh --gate sample\n"
+        )
+        assert hosted_gate_names_from_workflow(workflow) == {"sample"}
+        workflow.write_text(
+            "jobs:\n"
+            "  test:\n"
+            "    steps:\n"
+            "      - name: wrong\n"
+            "        run: ./scripts/check-ci-local.sh --gate sample\n"
+        )
+        try:
+            hosted_gate_names_from_workflow(workflow)
+        except RegistryError as exc:
+            assert "must use step name" in str(exc)
+        else:
+            raise AssertionError("misnamed hosted timing step passed")
+
+        valid_workflow = (
+            "name: ci\n"
+            "permissions:\n"
+            "  contents: read\n"
+            "concurrency:\n"
+            "  group: ci-${{ github.event_name == 'pull_request' "
+            "&& github.event.pull_request.number || github.run_id }}\n"
+            "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}\n"
+            "jobs:\n"
+            "  test:\n"
+            "    steps:\n"
+            f"      - name: {HOSTED_GATE_PREFIX}sample\n"
+            "        run: ./scripts/check-ci-local.sh --gate sample\n"
+            "  hosted-timing:\n"
+            "    if: ${{ always() }}\n"
+            "    needs:\n"
+            "      - test\n"
+            "    permissions:\n"
+            "      actions: read\n"
+            "      contents: read\n"
+            "    steps:\n"
+            "      - uses: actions/checkout@v7\n"
+            "        with:\n"
+            "          persist-credentials: false\n"
+        )
+        workflow.write_text(valid_workflow)
+        validate_hosted_timing_policy(workflow)
+        policy_mutations = [
+            (
+                "missing complete needs",
+                valid_workflow.replace("      - test\n", ""),
+                "must list every quality job",
+            ),
+            (
+                "missing Actions permission",
+                valid_workflow.replace("      actions: read\n", ""),
+                "job-local read-only permissions",
+            ),
+            (
+                "workflow-wide Actions permission",
+                valid_workflow.replace(
+                    "permissions:\n",
+                    "permissions:\n  actions: read\n",
+                    1,
+                ),
+                "must not be granted workflow-wide",
+            ),
+            (
+                "persisted checkout credential",
+                valid_workflow.replace("          persist-credentials: false\n", ""),
+                "must not persist credentials",
+            ),
+            (
+                "broad cancellation",
+                valid_workflow.replace(
+                    "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+                    "cancel-in-progress: true",
+                ),
+                "PR-only concurrency policy drifted",
+            ),
+            (
+                "shared non-PR key",
+                valid_workflow.replace("github.run_id", "'shared'"),
+                "PR-only concurrency policy drifted",
+            ),
+        ]
+        for name, mutated, expected in policy_mutations:
+            workflow.write_text(mutated)
+            try:
+                validate_hosted_timing_policy(workflow)
+            except RegistryError as exc:
+                assert expected in str(exc), (name, exc)
+            else:
+                raise AssertionError(f"{name} passed")
 
     lifecycle_join = copy.deepcopy(sample)
     producer = lifecycle_join["gates"][0]

@@ -15,6 +15,7 @@
 
 name: Release
 permissions:
+  "actions": "read"
   "contents": "write"
 
 # This task will run whenever you push a git tag that looks like a version

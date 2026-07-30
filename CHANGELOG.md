@@ -7,6 +7,10 @@ break.
 ## [Unreleased]
 
 ### Changed
+- Added job-scoped, read-only hosted CI timing receipts and summaries with job,
+  named-gate, fan-in wall-time limiter, runner/toolchain, and recent p50/p95
+  data. Superseded commits now cancel only within the same pull request; main,
+  release, scheduled, and unrelated runs retain full execution.
 - Collapsed the public `JavaTypeReference` simple-name resolution model to its
   only supported policy: an imported, unshadowed type name. Removed
   `JavaSimpleTypeResolution`, made the reference coordinates private, and
