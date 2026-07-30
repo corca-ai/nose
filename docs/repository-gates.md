@@ -123,6 +123,19 @@ finished in about 5 seconds. The split spends additional runner startup and
 Cargo-cache storage to shorten the PR critical path; the hosted timing receipt
 is the authority for deciding whether that trade remains worthwhile.
 
+The after measurement is PR run
+[`30507374469`](https://github.com/corca-ai/nose/actions/runs/30507374469):
+the `ci-test` job took 95 seconds including setup, with 47 seconds in the
+compile-link gate and 23 seconds in the follow-on Cargo test gate. Their
+70-second combined gate time is 246 seconds (77.8%) below the old 316-second
+release-test step. The independent optimized-product job took 257 seconds,
+including a 215-second release build. Overall quality-job wall time was 546
+seconds versus 543 seconds before because the 539-second semantic regression
+job became the limiter; the PR test lane finished with 450 seconds of slack.
+This single run proves the test lane is no longer the limiter, but not an
+overall wall-time improvement. Repeated receipts, rather than this sample
+alone, should determine whether the extra runner and cache cost remains useful.
+
 ## Local execution
 
 Local plans remain sequential by default. Opt into bounded parallel execution
