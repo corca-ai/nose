@@ -13,6 +13,7 @@ mod cluster;
 mod connected;
 mod contiguous;
 mod detectors;
+mod divergence_policy;
 mod exact_policy;
 mod fragment;
 mod il_utils;
@@ -36,6 +37,11 @@ pub(crate) use detectors::env_or;
 pub use detectors::{
     exact_safe_roots_by_span, CopyPasteDetector, Detector, ExactBehaviorDetector,
     StructuralDetector,
+};
+pub use divergence_policy::{
+    divergence_policy, DivergenceGateDecision, DivergenceLane, DivergencePolicyDecision,
+    DivergencePolicyInput, DivergenceScope, DivergenceTier, SharedLogicEvidence,
+    DIVERGENT_EDIT_V2_POLICY,
 };
 pub use exact_policy::{exact_claim_eligible, exact_claim_eligible_parts};
 pub use fragment::{

@@ -1,5 +1,42 @@
 use super::*;
 
+pub(crate) fn lane_value(lane: DivergenceLane) -> &'static str {
+    match lane {
+        DivergenceLane::BaseDivergence => "base-divergence",
+        DivergenceLane::NewCopy => "new-copy",
+    }
+}
+
+fn base_family_id(lane: DivergenceLane, family_id: &str) -> Option<&str> {
+    match lane {
+        DivergenceLane::BaseDivergence => Some(family_id),
+        DivergenceLane::NewCopy => None,
+    }
+}
+
+fn site_tree(lane: DivergenceLane) -> &'static str {
+    match lane {
+        DivergenceLane::BaseDivergence => "base",
+        DivergenceLane::NewCopy => "current",
+    }
+}
+
+fn tier_value(tier: DivergenceTier) -> &'static str {
+    match tier {
+        DivergenceTier::Strict => "strict",
+        DivergenceTier::Review => "review",
+        DivergenceTier::ReportOnly => "report-only",
+    }
+}
+
+fn gate_json(gate: nose_detect::DivergenceGateDecision) -> serde_json::Value {
+    serde_json::json!({
+        "eligible": gate.eligible,
+        "fail_default": gate.fail_default,
+        "policy": gate.policy,
+    })
+}
+
 fn site_label(s: &Site) -> String {
     match &s.name {
         Some(n) if !n.is_empty() => format!("{} ({}:{}-{})", n, s.file, s.start_line, s.end_line),
@@ -77,17 +114,17 @@ pub(crate) fn divergence_items_json(flagged: &[Divergence]) -> Vec<serde_json::V
             let decision = d.policy_decision();
             let mut item = json!({
                 "family_id": d.family_id,
-                "lane": d.lane.as_str(),
-                "base_family_id": d.lane.base_family_id(&d.family_id),
+                "lane": lane_value(d.lane),
+                "base_family_id": base_family_id(d.lane, &d.family_id),
                 "similarity": d.similarity,
                 "complexity": d.complexity,
                 "scope": d.scope,
                 "witness_kind": d.witness_kind,
                 "fire_eligible": d.fire_eligible,
-                "tier": decision.tier,
+                "tier": tier_value(decision.tier),
                 "tier_reasons": decision.tier_reasons,
                 "taxonomy_hint": decision.taxonomy_hint,
-                "gate": decision.gate,
+                "gate": gate_json(decision.gate),
                 "suppression": null,
                 "graded": d.graded,
                 "targets": d.targets.iter().map(target_json).collect::<Vec<_>>(),
@@ -97,18 +134,18 @@ pub(crate) fn divergence_items_json(flagged: &[Divergence]) -> Vec<serde_json::V
                     item["changed"] = json!(d
                         .changed
                         .iter()
-                        .map(|s| site_json(s, d.lane.site_tree()))
+                        .map(|s| site_json(s, site_tree(d.lane)))
                         .collect::<Vec<_>>());
                     item["not_updated"] = json!(d
                         .not_updated
                         .iter()
-                        .map(|s| site_json(s, d.lane.site_tree()))
+                        .map(|s| site_json(s, site_tree(d.lane)))
                         .collect::<Vec<_>>());
                 }
                 DivergenceLane::NewCopy => {
                     let current_only = d.changed.iter().chain(&d.not_updated);
                     item["current_only"] = json!(current_only
-                        .map(|s| site_json(s, d.lane.site_tree()))
+                        .map(|s| site_json(s, site_tree(d.lane)))
                         .collect::<Vec<_>>());
                 }
             }
@@ -149,6 +186,30 @@ fn tier_label(tier: DivergenceTier) -> &'static str {
         DivergenceTier::Strict => "Strict",
         DivergenceTier::Review => "Review-only",
         DivergenceTier::ReportOnly => "Report-only",
+    }
+}
+
+fn sarif_rule_id(tier: DivergenceTier) -> &'static str {
+    match tier {
+        DivergenceTier::Strict => "nose.divergent.strict",
+        DivergenceTier::Review => "nose.divergent.review",
+        DivergenceTier::ReportOnly => "nose.divergent.report-only",
+    }
+}
+
+fn sarif_rule_name(tier: DivergenceTier) -> &'static str {
+    match tier {
+        DivergenceTier::Strict => "DivergentEditStrict",
+        DivergenceTier::Review => "DivergentEditReview",
+        DivergenceTier::ReportOnly => "DivergentEditReportOnly",
+    }
+}
+
+fn sarif_level(tier: DivergenceTier) -> &'static str {
+    match tier {
+        DivergenceTier::Strict => "error",
+        DivergenceTier::Review => "warning",
+        DivergenceTier::ReportOnly => "note",
     }
 }
 
@@ -214,19 +275,19 @@ fn divergence_sarif_result(d: &Divergence) -> serde_json::Value {
         ),
     };
     json!({
-        "ruleId": tier.sarif_rule_id(),
-        "level": tier.sarif_level(),
+        "ruleId": sarif_rule_id(tier),
+        "level": sarif_level(tier),
         "message": { "text": message },
         "locations": locations,
         "relatedLocations": related_locations,
         "properties": {
             "family_id": d.family_id,
-            "base_family_id": d.lane.base_family_id(&d.family_id),
-            "lane": d.lane.as_str(),
-            "tier": decision.tier,
+            "base_family_id": base_family_id(d.lane, &d.family_id),
+            "lane": lane_value(d.lane),
+            "tier": tier_value(decision.tier),
             "tier_reasons": decision.tier_reasons,
             "taxonomy_hint": decision.taxonomy_hint,
-            "gate": decision.gate,
+            "gate": gate_json(decision.gate),
             "policy": decision.gate.policy,
             "fire_eligible": d.fire_eligible,
             "targets": d.targets.iter().map(target_json).collect::<Vec<_>>(),
@@ -247,8 +308,8 @@ fn divergence_sarif_rules() -> Vec<serde_json::Value> {
     .into_iter()
     .map(|tier| {
         json!({
-            "id": tier.sarif_rule_id(),
-            "name": tier.sarif_rule_name(),
+            "id": sarif_rule_id(tier),
+            "name": sarif_rule_name(tier),
             "shortDescription": { "text": match tier {
                 DivergenceTier::Strict => "A likely missed clone-sibling edit",
                 DivergenceTier::Review => "A divergent clone edit needing review",

@@ -7,6 +7,9 @@ break.
 ## [Unreleased]
 
 ### Changed
+- Moved divergent-edit tier, taxonomy, reason, and default-gate decisions into
+  a deterministic `nose-detect` policy boundary with focused owner tests, while
+  retaining CLI JSON/SARIF, Git, exit-status, and user-workflow contracts.
 - Added fail-closed, report-only pull-request change routing backed by the
   checked gate registry, historical/synthetic path matrices, auditable route
   receipts, and a stable aggregate qualification result. Main, release,

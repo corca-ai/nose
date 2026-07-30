@@ -141,7 +141,7 @@ pub(super) fn render_query_base(
             (_, _, "test_scaffolding") => "report-only (test/mixed scope)",
             _ => "report-only (advisory)",
         };
-        let lane = d.lane.as_str();
+        let lane = divergence::lane_value(d.lane);
         println!(
             "  {}  {} · {} · {lane} · {propagation}",
             short_id(&d.family_id),

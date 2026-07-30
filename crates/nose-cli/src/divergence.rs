@@ -25,13 +25,17 @@ use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use nose_detect::{EnclosingUnit, FragmentKind, Loc, RefactorFamily};
+#[cfg(test)]
+pub(crate) use nose_detect::DIVERGENT_EDIT_V2_POLICY;
+use nose_detect::{
+    divergence_policy, DivergencePolicyInput, DivergenceScope, EnclosingUnit, FragmentKind, Loc,
+    RefactorFamily, SharedLogicEvidence,
+};
+pub(crate) use nose_detect::{DivergenceLane, DivergencePolicyDecision, DivergenceTier};
 
 pub(crate) use detect::{detect_divergences, divergences_fire};
-pub(crate) use output::divergence_items_json;
+pub(crate) use output::{divergence_items_json, lane_value};
 
-pub(crate) const DIVERGENT_EDIT_V2_POLICY: &str = "divergent-edit-v2-strict";
-const ACTIVE_DIVERGENT_EDIT_POLICY: &str = DIVERGENT_EDIT_V2_POLICY;
 #[cfg(test)]
 pub(crate) const DIVERGENCE_LANE_VALUES: &[&str] = &["base-divergence", "new-copy"];
 #[cfg(test)]
@@ -127,158 +131,37 @@ pub(crate) struct DirectPairWitness {
     pub(crate) similarity: f64,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum DivergenceLane {
-    BaseDivergence,
-    NewCopy,
-}
-
-impl DivergenceLane {
-    pub(crate) fn as_str(self) -> &'static str {
-        match self {
-            Self::BaseDivergence => "base-divergence",
-            Self::NewCopy => "new-copy",
-        }
-    }
-
-    pub(crate) fn base_family_id(self, family_id: &str) -> Option<&str> {
-        match self {
-            Self::BaseDivergence => Some(family_id),
-            Self::NewCopy => None,
-        }
-    }
-
-    pub(crate) fn site_tree(self) -> &'static str {
-        match self {
-            Self::BaseDivergence => "base",
-            Self::NewCopy => "current",
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub(crate) enum DivergenceTier {
-    Strict,
-    Review,
-    ReportOnly,
-}
-
-/// The one active policy decision consumed by human, JSON, SARIF, and exit-status
-/// surfaces. Keeping the gate fields together prevents a renderer from silently
-/// re-deriving a different hard-block decision.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
-pub(crate) struct DivergenceGateDecision {
-    pub(crate) eligible: bool,
-    pub(crate) fail_default: bool,
-    pub(crate) policy: &'static str,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct DivergencePolicyDecision {
-    pub(crate) tier: DivergenceTier,
-    pub(crate) tier_reasons: Vec<&'static str>,
-    pub(crate) taxonomy_hint: &'static str,
-    pub(crate) gate: DivergenceGateDecision,
-}
-
-impl DivergenceTier {
-    pub(crate) fn sarif_rule_id(self) -> &'static str {
-        match self {
-            Self::Strict => "nose.divergent.strict",
-            Self::Review => "nose.divergent.review",
-            Self::ReportOnly => "nose.divergent.report-only",
-        }
-    }
-
-    pub(crate) fn sarif_rule_name(self) -> &'static str {
-        match self {
-            Self::Strict => "DivergentEditStrict",
-            Self::Review => "DivergentEditReview",
-            Self::ReportOnly => "DivergentEditReportOnly",
-        }
-    }
-
-    pub(crate) fn sarif_level(self) -> &'static str {
-        match self {
-            Self::Strict => "error",
-            Self::Review => "warning",
-            Self::ReportOnly => "note",
-        }
-    }
-
-    pub(crate) fn gate_eligible(self) -> bool {
-        matches!(self, Self::Strict | Self::Review)
-    }
-}
-
 impl Divergence {
     pub(crate) fn policy_decision(&self) -> DivergencePolicyDecision {
-        let tier = if self.lane == DivergenceLane::NewCopy || self.scope != "prod" {
-            DivergenceTier::ReportOnly
-        } else if self.fire_eligible {
-            DivergenceTier::Strict
+        let scope = if self.scope == "prod" {
+            DivergenceScope::Production
         } else {
-            DivergenceTier::Review
+            DivergenceScope::TestOrMixed
         };
-        let taxonomy_hint = if self.lane == DivergenceLane::NewCopy {
-            "unclear"
-        } else if self.scope != "prod" {
-            "test_scaffolding"
-        } else if self.fire_eligible {
-            "missed_propagation"
-        } else if self.changed.iter().any(|s| s.touches_shared == Some(false)) {
-            "no_propagation_needed"
+        let shared_logic = if self
+            .changed
+            .iter()
+            .any(|site| site.touches_shared == Some(true))
+        {
+            SharedLogicEvidence::Touched
+        } else if self
+            .changed
+            .iter()
+            .any(|site| site.touches_shared == Some(false))
+        {
+            SharedLogicEvidence::NotTouched
         } else {
-            "unclear"
+            SharedLogicEvidence::Unproven
         };
-        let mut reasons = Vec::with_capacity(3);
-        if self.lane == DivergenceLane::NewCopy {
-            reasons.push("new_copy_no_base_member");
-        } else {
-            if self.changed.iter().any(|s| s.touches_shared == Some(true)) {
-                reasons.push("shared_logic_touched");
-            } else if self.changed.iter().any(|s| s.touches_shared == Some(false)) {
-                reasons.push("shared_logic_not_touched");
-            } else {
-                reasons.push("shared_logic_unproven");
-            }
-        }
-        if self.scope == "prod" {
-            reasons.push("non_test_scope");
-        } else {
-            reasons.push("test_scope");
-            reasons.push("test_scaffolding");
-        }
-        DivergencePolicyDecision {
-            tier,
-            tier_reasons: reasons,
-            taxonomy_hint,
-            gate: DivergenceGateDecision {
-                eligible: tier.gate_eligible(),
-                fail_default: tier == DivergenceTier::Strict,
-                policy: ACTIVE_DIVERGENT_EDIT_POLICY,
-            },
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn tier(&self) -> DivergenceTier {
-        self.policy_decision().tier
+        divergence_policy(DivergencePolicyInput {
+            lane: self.lane,
+            scope,
+            shared_logic,
+        })
     }
 
     pub(crate) fn gate_fail_default(&self) -> bool {
         self.policy_decision().gate.fail_default
-    }
-
-    #[cfg(test)]
-    pub(crate) fn taxonomy_hint(&self) -> &'static str {
-        self.policy_decision().taxonomy_hint
-    }
-
-    #[cfg(test)]
-    pub(crate) fn tier_reasons(&self) -> Vec<&'static str> {
-        self.policy_decision().tier_reasons
     }
 }
 
@@ -302,7 +185,8 @@ pub(crate) struct Site {
     /// not-updated site.
     pub(crate) touches_shared: Option<bool>,
     /// Bounded base-to-current semantic change evidence (#849). This is deliberately
-    /// presentation-only in v2: neither `tier()` nor `gate_fail_default()` reads it.
+    /// presentation-only in v2: neither `policy_decision()` nor
+    /// `gate_fail_default()` reads it.
     pub(crate) semantic_change: Option<SemanticChangeWitness>,
 }
 

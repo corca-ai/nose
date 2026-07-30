@@ -7,9 +7,7 @@ use super::git::{
 };
 use super::output::{divergence_items_json, divergence_sarif, fragment_context};
 use super::{
-    Divergence, DivergenceLane, DivergenceTier, SemanticAlignment, SemanticChangeKind,
-    SemanticChangeWitness, SemanticProjectionStatus, SemanticWitnessCaps, SemanticWitnessCaveat,
-    SemanticWitnessCoverage, SemanticWitnessStatus, Site, DIVERGENCE_LANE_VALUES,
+    Divergence, DivergenceLane, DivergenceTier, Site, DIVERGENCE_LANE_VALUES,
     DIVERGENCE_SUPPRESSION_KIND_VALUES, DIVERGENCE_TAXONOMY_HINT_VALUES,
     DIVERGENCE_TIER_REASON_VALUES, DIVERGENCE_TIER_VALUES, DIVERGENT_EDIT_V2_POLICY,
 };
@@ -304,68 +302,49 @@ fn tier_divergence(scope: &'static str, fire_eligible: bool, touch: Option<bool>
 }
 
 #[test]
-fn v2_tier_routes_new_copy_lane_to_report_only() {
-    let mut d = tier_divergence("prod", false, None);
-    d.lane = DivergenceLane::NewCopy;
-    assert_eq!(d.tier(), DivergenceTier::ReportOnly);
-    assert!(!d.gate_fail_default(), "new-copy lane is advisory");
-    assert_eq!(d.taxonomy_hint(), "unclear");
-    assert_eq!(
-        d.tier_reasons(),
-        vec!["new_copy_no_base_member", "non_test_scope"]
-    );
-}
+fn policy_adapter_normalizes_cli_scope_and_site_evidence() {
+    let unproven = tier_divergence("prod", false, None);
+    let not_touched = tier_divergence("prod", false, Some(false));
+    let mut touched = tier_divergence("prod", true, Some(false));
+    touched.changed.push(tier_site("c.py", Some(true)));
+    let mixed = tier_divergence("mixed", true, Some(true));
 
-#[test]
-fn v2_tier_routes_unknown_shared_evidence_to_review() {
-    let mut d = tier_divergence("prod", false, None);
-    d.changed[0].semantic_change = Some(SemanticChangeWitness {
-        status: SemanticWitnessStatus::Unavailable,
-        change_kind: SemanticChangeKind::Unknown,
-        facets: Vec::new(),
-        alignment: SemanticAlignment::None,
-        base_projection: SemanticProjectionStatus::Ok,
-        current_projection: SemanticProjectionStatus::UnitMissing,
-        coverage: SemanticWitnessCoverage {
-            base_affected_nodes: 0,
-            current_affected_nodes: 0,
-            mapped_shared_nodes: 0,
-            sibling_units_checked: 0,
-        },
-        sink_deltas: Vec::new(),
-        caveats: vec![SemanticWitnessCaveat::MissingCurrentUnit],
-        caps: SemanticWitnessCaps {
-            max_files: 64,
-            max_file_bytes: 2 * 1024 * 1024,
-            max_changed_sites_per_family: 16,
-            max_siblings_per_family: 16,
-            max_targets_per_family: 64,
-            max_units_per_file: 512,
-            max_nodes_per_unit: 2_048,
-        },
-    });
-    assert_eq!(d.tier(), DivergenceTier::Review);
-    assert!(
-        !d.gate_fail_default(),
-        "an unavailable semantic witness cannot promote the v2 gate"
-    );
-    assert_eq!(d.taxonomy_hint(), "unclear");
-    assert_eq!(
-        d.tier_reasons(),
-        vec!["shared_logic_unproven", "non_test_scope"]
-    );
-}
-
-#[test]
-fn v2_tier_routes_mixed_scope_to_report_only_even_when_legacy_fire_eligible() {
-    let d = tier_divergence("mixed", true, Some(true));
-    assert_eq!(d.tier(), DivergenceTier::ReportOnly);
-    assert!(!d.gate_fail_default(), "report-only never fails default CI");
-    assert_eq!(d.taxonomy_hint(), "test_scaffolding");
-    assert_eq!(
-        d.tier_reasons(),
-        vec!["shared_logic_touched", "test_scope", "test_scaffolding"]
-    );
+    for (divergence, tier, taxonomy, reasons, fail_default) in [
+        (
+            unproven,
+            DivergenceTier::Review,
+            "unclear",
+            vec!["shared_logic_unproven", "non_test_scope"],
+            false,
+        ),
+        (
+            not_touched,
+            DivergenceTier::Review,
+            "no_propagation_needed",
+            vec!["shared_logic_not_touched", "non_test_scope"],
+            false,
+        ),
+        (
+            touched,
+            DivergenceTier::Strict,
+            "missed_propagation",
+            vec!["shared_logic_touched", "non_test_scope"],
+            true,
+        ),
+        (
+            mixed,
+            DivergenceTier::ReportOnly,
+            "test_scaffolding",
+            vec!["shared_logic_touched", "test_scope", "test_scaffolding"],
+            false,
+        ),
+    ] {
+        let decision = divergence.policy_decision();
+        assert_eq!(decision.tier, tier);
+        assert_eq!(decision.taxonomy_hint, taxonomy);
+        assert_eq!(decision.tier_reasons, reasons);
+        assert_eq!(decision.gate.fail_default, fail_default);
+    }
 }
 
 #[test]
@@ -468,22 +447,5 @@ fn v8_json_and_sarif_share_policy_fields() {
             item["suppression"].is_null(),
             "active v8 output omits suppressed rows by default: {item}"
         );
-    }
-}
-
-#[test]
-fn active_policy_decision_is_the_single_gate_authority() {
-    for divergence in [
-        tier_divergence("prod", true, Some(true)),
-        tier_divergence("prod", false, Some(false)),
-        tier_divergence("mixed", true, Some(true)),
-    ] {
-        let decision = divergence.policy_decision();
-        assert_eq!(divergence.tier(), decision.tier);
-        assert_eq!(divergence.tier_reasons(), decision.tier_reasons);
-        assert_eq!(divergence.taxonomy_hint(), decision.taxonomy_hint);
-        assert_eq!(divergence.gate_fail_default(), decision.gate.fail_default);
-        assert_eq!(decision.gate.eligible, decision.tier.gate_eligible());
-        assert_eq!(decision.gate.policy, DIVERGENT_EDIT_V2_POLICY);
     }
 }

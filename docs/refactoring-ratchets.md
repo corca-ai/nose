@@ -75,8 +75,10 @@ and behavior easier to reason about:
 - keep the `nose-cli` crate root free of ambient helper imports. The legacy
   compatibility prelude has been retired; new module dependencies should name
   their actual owner with `crate::<module>::...`;
-- keep divergent-edit review split by adapter boundary; detection policy,
-  git/worktree diff plumbing, output formats, and tests now live under
+- keep divergent-edit review split by adapter boundary: normalized
+  evidence-to-tier/taxonomy/gate policy lives in
+  `nose-detect/src/divergence_policy.rs`; finding projection, Git/worktree diff
+  plumbing, output formats, and public-contract tests stay under
   `nose-cli/src/divergence/`, with the `base=<ref>` query adapter in
   `nose-cli/src/{query_commands,query_views}.rs`;
 - keep `nose-il` roots as API indexes; units/domains/evidence facets, the arena
