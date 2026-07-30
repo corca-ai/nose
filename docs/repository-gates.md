@@ -137,6 +137,61 @@ measurement fail, so artifact production cannot hide behind a green command.
 
 ## Timing protocol
 
+### Hosted workflow timing
+
+The final `hosted CI timing` job depends on every quality job and runs with
+`always()`, so an earlier failure still produces timing evidence. It reads
+GitHub Actions job and step timestamps through a job-local, read-only Actions
+token, writes a `nose.hosted-ci-timings.v1` receipt, uploads the receipt and raw
+API inputs for 30 days, and adds the slowest jobs and named gates to the step
+summary. The timing checkout does not persist that token, and quality jobs never
+receive Actions API permission.
+
+Hosted gate steps use the checked `gate · <gate-name>` naming convention.
+Registry validation binds that structured step name to the gate invoked in the
+same step, so timing collection does not scrape command logs or maintain a
+second gate-name map. The receipt also records the runner image, checked
+Rust/MSRV/Lean identities, and p50/p95 over the quality-job wall time of the
+latest 20 successful runs for the same event type. Percentiles use the
+deterministic nearest-rank method over those recorded samples.
+
+The reported critical path uses the workflow's fan-out/fan-in shape: the
+quality job that completes last is the current wall-time limiter. Its start
+offset and every job's completion slack distinguish a long job from one that
+started late because of runner scheduling. Named gates on the limiting job also
+record their percentage of that job's duration. This is a hosted wall-clock
+diagnostic, not a claim about a more detailed dependency DAG or product runtime.
+
+Hosted timing is diagnostic. A single noisy sample never changes a gate result,
+and untrusted pull requests do not commit timing data. The uploaded hosted
+receipt is intentionally separate from the checked local timing receipt below:
+the hosted record describes an individual Actions run, while the checked receipt
+describes reproducible local clean-tree and no-change profiles.
+
+Treat a slowdown as actionable only when comparable runs repeat it: use the
+same event type, runner label/image, and toolchain, then look for a sustained
+p50 shift or several samples beyond the recent p95. Inspect the per-job and
+named-gate rows before changing a gate; one outlier is evidence to remeasure,
+not evidence to relax or fail a quality gate.
+
+This timing-protocol section is the repository policy owner. The executable
+schema and workflow-binding checks live in `scripts/ci/hosted_timing.py` and
+`scripts/ci/gate_registry.py`, respectively.
+
+CI concurrency cancels only an older run for the same pull request when a newer
+commit arrives. Main pushes, reusable release-workflow calls, release tags,
+scheduled campaigns, and unrelated pull requests receive unique concurrency
+keys and are never cancelled by this policy.
+
+Validate the hosted receipt builder and workflow bindings locally:
+
+```sh
+python3 scripts/ci/hosted_timing.py --self-test
+./scripts/check-ci-local.sh --validate-gates
+```
+
+### Local gate timing
+
 Gate time depends on machine, compiler cache, and corpus state. The checked
 [`gate-timings.v1.json`](../scripts/ci/gate-timings.v1.json) receipt therefore
 records its commit, environment, profile, mode, total time, per-gate time, exit
