@@ -25,10 +25,13 @@ on:
       - "scripts/check-formal-obligations.py"
       - "scripts/check-lean-proofs.sh"
       - "scripts/check-soundness-scorecard.py"
+      - "scripts/aux_tools.py"
+      - "scripts/bootstrap-tools.sh"
       - "scripts/corpus-verify-nightly.sh"
       - "scripts/formal_claim_schema.py"
       - "scripts/soundness-lab-gate.py"
       - "scripts/soundness_exclusions.py"
+      - "tools/auxiliary-tools.json"
   schedule:
     # Full pinned corpus every night; deeper independent campaigns every Sunday.
     - cron: "17 18 * * *"
@@ -77,14 +80,15 @@ jobs:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: install Lean
+      - name: install pinned elan and Lean
         id: lean
         continue-on-error: true
         run: |
+          ./scripts/bootstrap-tools.sh --only elan --bin-dir "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           toolchain="$(cat lean-toolchain)"
-          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
-            | sh -s -- -y --default-toolchain "$toolchain"
-          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/elan" toolchain install "$toolchain"
+          PATH="$HOME/.local/bin:$PATH" python3 scripts/aux_tools.py doctor --only elan
       - name: index touched claims
         id: plan
         if: ${{ failure() || success() }}

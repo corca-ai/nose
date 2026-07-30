@@ -60,7 +60,8 @@ usage: ./scripts/check-ci-local.sh [--fast|--full] [--jobs <count>]
        ./scripts/check-ci-local.sh --validate-gates
 
   --fast  corpus and semantic-pack self-tests, Type-4 packet/replay checks,
-          rustfmt, file-length ratchet, legacy-prelude guard, shellcheck,
+          auxiliary-tool policy, rustfmt, file-length ratchet,
+          legacy-prelude guard, shellcheck,
           clippy -D warnings, nose-cli tests, docs wiki lint
   --full  full local mirror of CI: format, clippy, docs, release build/tests,
           file-length ratchet, duplication, MSRV, supply-chain, docs wiki,
@@ -114,16 +115,15 @@ need_cmd() {
 
 need_python3() {
     need_cmd python3
-    if ! python3 -c 'import sys; raise SystemExit(sys.version_info < (3, 10))'; then
-        echo "Python 3.10 or newer is required for repository quality gates." >&2
+    if ! python3 -c 'import sys; raise SystemExit(sys.version_info < (3, 10, 0))'; then
+        echo "Python 3.10.0 or newer is required for repository quality gates." >&2
         echo "observed: $(python3 --version 2>&1)" >&2
         exit 127
     fi
 }
 
 run_docs_wiki_lint() {
-    need_cmd awiki "install it with: brew install corca-ai/tap/awiki"
-    need_cmd python3
+    audit_aux_tools awiki
     ./scripts/check-docs.sh
 }
 
@@ -134,6 +134,7 @@ run_formal_obligations_lint() {
 }
 
 run_formal_lean() {
+    audit_aux_tools elan
     ./scripts/check-lean-proofs.sh
 }
 
@@ -217,8 +218,19 @@ run_product_query_schema_live_check() {
 }
 
 run_shell_script_lint() {
-    need_cmd shellcheck "install it with: brew install shellcheck"
+    audit_aux_tools shellcheck
     shellcheck -x .githooks/pre-commit .githooks/pre-push scripts/*.sh scripts/ci/*.sh
+}
+
+audit_aux_tools() {
+    need_python3
+    python3 scripts/aux_tools.py doctor --only "$1"
+}
+
+run_aux_tool_policy() {
+    need_python3
+    python3 scripts/aux_tools.py selftest
+    python3 scripts/aux_tools.py check-policy
 }
 
 run_msrv_check() {
@@ -248,7 +260,7 @@ run_semantic_pack_example_conformance() {
 
 run_coverage_gate() {
     need_cmd cargo
-    need_cmd cargo-llvm-cov "install it with: cargo install cargo-llvm-cov"
+    audit_aux_tools cargo-llvm-cov
     source scripts/coverage-threshold.env
     cargo llvm-cov \
         --workspace \
@@ -257,8 +269,7 @@ run_coverage_gate() {
 }
 
 run_supply_chain_checks() {
-    need_cmd cargo-machete "install it with: cargo install cargo-machete"
-    need_cmd cargo-deny "install it with: cargo install cargo-deny"
+    audit_aux_tools cargo-machete,cargo-deny
     cargo machete
     cargo deny check
 }
@@ -348,6 +359,9 @@ run_named_gate() {
             ;;
         cargo-target-prune-selftest)
             ./scripts/prune-cargo-target.sh --self-test
+            ;;
+        aux-tool-policy)
+            run_aux_tool_policy
             ;;
         shell-lint)
             run_shell_script_lint

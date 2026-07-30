@@ -590,6 +590,25 @@
       }
     },
     {
+      "name": "aux-tool-policy",
+      "owner": "repository development environment policy",
+      "implementation": "run_aux_tool_policy",
+      "tools": ["python3 >= 3.10"],
+      "inputs": ["tools/auxiliary-tools.json", "scripts/aux_tools.py", "scripts/bootstrap-tools.sh", ".github/workflows/", "docs/tooling.md", "docs/contributing.md"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Rejects moving setup dependencies and drift between the checked pins, hosted workflows, bootstrap, and contributor guidance.",
+      "focused_command": "./scripts/check-ci-local.sh --gate aux-tool-policy",
+      "plans": {
+        "fast": {"order": 85, "label": "auxiliary-tool policy and self-tests", "args": [], "depends_on": []},
+        "full": {"order": 85, "label": "auxiliary-tool policy and self-tests", "args": [], "depends_on": []}
+      }
+    },
+    {
       "name": "shell-lint",
       "owner": "repository shell tooling",
       "implementation": "run_shell_script_lint",
