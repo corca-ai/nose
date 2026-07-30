@@ -630,10 +630,10 @@ This issue is complete when:
 
 ## See also
 
-Back to [semantic-kernel](semantic-kernel.md). Current implementation status is
-in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and remaining
-work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The
-internal evidence substrate is described in
+Back to [semantic-kernel](semantic-kernel.md) for the maintained contract.
+Dated implementation and migration records are retained in the
+[historical records index](historical-records.md). The internal evidence
+substrate is described in
 [evidence-records](evidence-records.md), and source-origin evidence is described
 in [source-facts](source-facts.md).
 

@@ -256,6 +256,6 @@ work includes:
 - [semantic-kernel](semantic-kernel.md) defines the exact-admission boundary that
   consumes demand and effect evidence.
 - [scheduling-channel-callback-obligations-594](scheduling-channel-callback-obligations-594.md) defines the #594 cross-language obligation vocabulary that maps scheduling, channel, callback, lifecycle, and mutation surfaces onto this substrate.
-- The implemented code shape is summarized in
-  [semantic-kernel-snapshot](semantic-kernel-snapshot.md); remaining work is
-  tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md).
+- The maintained kernel contract is summarized in
+  [semantic kernel](semantic-kernel.md); active migration and pricing work is
+  routed from [development and evidence](development-and-evidence.md#planning-and-pricing).

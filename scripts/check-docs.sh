@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Docs quality gate. The semantic-pack example check keeps checked-in v0
-# and v1 manifests and fixture paths structurally honest. Set NOSE_BIN to run the
-# product CLI conformance check from this script; CI and `check-ci-local --full`
-# run that check after a fresh release build. awiki checks the docs/ wiki is a
-# single connected graph with no orphan pages or disconnected islands.
+# Docs quality gate. The lifecycle check classifies the exact Markdown inventory
+# and rejects unowned or stale active pages. The semantic-pack example check
+# keeps checked-in v0 and v1 manifests and fixture paths structurally honest.
+# Set NOSE_BIN to run the product CLI conformance check from this script; CI and
+# `check-ci-local --full` run that check after a fresh release build. awiki
+# checks the docs/ wiki is a single connected graph with no orphan pages or
+# disconnected islands.
 #
 #   ./scripts/check-docs.sh
 #
@@ -17,6 +19,8 @@ cd "$(dirname "$0")/.."
 semantic_pack_examples=(docs/examples/semantic-packs/v0 docs/examples/semantic-packs/v1)
 
 if command -v python3 >/dev/null 2>&1; then
+    python3 scripts/check-doc-lifecycle.py --selftest
+    python3 scripts/check-doc-lifecycle.py
     python3 scripts/check-semantic-pack-examples.py
     python3 scripts/check-ci-examples.py
     python3 scripts/check-divergent-history-artifacts.py

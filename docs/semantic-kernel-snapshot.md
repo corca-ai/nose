@@ -1,6 +1,13 @@
 # Semantic kernel snapshot
 
-Snapshot date: 2026-07-02. The current implementation has an internal
+> **Historical record.** The baseline snapshot date is 2026-07-02. Later
+> append-only implementation notes extend through 2026-07-19, so this page is a
+> migration chronology rather than a current inventory. Existing headings and
+> anchors remain stable. Use [semantic kernel](semantic-kernel.md) and
+> [semantic-pack architecture](semantic-pack-architecture.md) for maintained
+> contracts.
+
+Snapshot date: 2026-07-02. The implementation at that baseline had an internal
 semantic-kernel facade, evidence-gated field state, sequence-surface contracts,
 proof-backed append fragment evidence, operator-law contracts, typed import
 facts, source-fact gates for construct/macro/literal/operator provenance,

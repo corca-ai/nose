@@ -2,7 +2,9 @@
 
 This page preserves the detailed nose-on-nose duplication review trail. The
 current gate, current baseline source of truth, and baseline-update workflow
-live in [dogfooding](dogfooding.md).
+live in [dogfooding](dogfooding.md). This append-only page is retained through
+the [historical records index](historical-records.md); its existing headings
+remain stable for baseline and source-code citations.
 
 ## Original critical review
 

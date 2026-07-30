@@ -451,8 +451,9 @@ previous semantic-kernel tranches.
 
 - [semantic-kernel](semantic-kernel.md) owns the exact-admission semantics that
   packs must not bypass.
-- [semantic-kernel-roadmap](semantic-kernel-roadmap.md) records kernel work that
-  should precede wider pack influence.
+- [semantic-pack candidate pricing](semantic-pack-candidate-pricing.md) and
+  [ecosystem candidates](semantic-pack-ecosystem-candidates.md) own active work
+  that should precede wider pack influence.
 - [semantic-pack-adoption](semantic-pack-adoption.md) defines promotion gates
   from experimental rows to builtin defaults.
 - [semantic-pack-ecosystem-candidates](semantic-pack-ecosystem-candidates.md) lists

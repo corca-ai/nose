@@ -391,10 +391,11 @@ It should be:
 
 ## See also
 
-Back to [home](home.md). Current implementation status is in
-[semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and remaining
-work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The
-post-PR #147 raw/local pocket audit is recorded in
+Back to [home](home.md). Dated implementation snapshots and the closed #473
+migration roadmap are retained in the
+[historical records index](historical-records.md); active pack pricing is
+routed from [development and evidence](development-and-evidence.md#planning-and-pricing).
+The post-PR #147 raw/local pocket audit is recorded in
 [semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md), and the
 #109 closeout is recorded in the [semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md)
 tranche note.

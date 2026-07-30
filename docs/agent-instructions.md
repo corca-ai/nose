@@ -27,7 +27,9 @@ entry-point links themselves need to change.
 ## Docs checks
 
 Use [`scripts/check-docs.sh`](../scripts/check-docs.sh) for the repository docs
-gate. It wraps the installed `awiki` version and the semantic-pack examples check.
+gate. It validates the exact Markdown inventory and active-page freshness
+through the [documentation lifecycle](documentation-lifecycle.md), then wraps
+the installed `awiki` version and the semantic-pack examples check.
 
 When running `awiki` directly, use `docs/` as the wiki root with syntax supported
 by the installed `awiki` version.
