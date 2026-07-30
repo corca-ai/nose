@@ -7,6 +7,10 @@ break.
 ## [Unreleased]
 
 ### Changed
+- Split hosted workspace test compilation from execution: pull requests use a
+  dev-semantic `ci-test` profile without unused debug data, while main,
+  nightly, local-full, and release qualification retain the full optimized
+  workspace suite. Optimized executable contracts now build in parallel.
 - Added job-scoped, read-only hosted CI timing receipts and summaries with job,
   named-gate, fan-in wall-time limiter, runner/toolchain, and recent p50/p95
   data. Superseded commits now cancel only within the same pull request; main,

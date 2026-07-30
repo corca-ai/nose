@@ -118,6 +118,7 @@ def quality_job_seconds(
             parse_timestamp(job["completed_at"], f"{context}.{index}.completed_at"),
         )
         for index, job in enumerate(raw_jobs)
+        if job.get("conclusion") != "skipped"
         if job.get("started_at") is not None
         and job.get("completed_at") is not None
     ]
@@ -209,10 +210,18 @@ def normalized_job(raw: dict[str, Any], index: int) -> dict[str, Any]:
     name = raw.get("name")
     if not isinstance(name, str) or not name:
         raise TimingError(f"jobs[{index}] must have a name")
-    seconds = elapsed_seconds(
-        raw.get("started_at"),
-        raw.get("completed_at"),
-        f"job {name}",
+    conclusion = raw.get("conclusion")
+    # GitHub may give skipped jobs synthetic timestamps with completion before
+    # start. Preserve those API values for auditability, but do not present
+    # them as elapsed timing data.
+    seconds = (
+        None
+        if conclusion == "skipped"
+        else elapsed_seconds(
+            raw.get("started_at"),
+            raw.get("completed_at"),
+            f"job {name}",
+        )
     )
     raw_steps = raw.get("steps")
     if not isinstance(raw_steps, list):
@@ -225,7 +234,7 @@ def normalized_job(raw: dict[str, Any], index: int) -> dict[str, Any]:
     return {
         "id": raw.get("id"),
         "name": name,
-        "conclusion": raw.get("conclusion"),
+        "conclusion": conclusion,
         "started_at": raw.get("started_at"),
         "completed_at": raw.get("completed_at"),
         "seconds": seconds,
@@ -369,6 +378,11 @@ def collect_receipt(
     return {
         "schema": SCHEMA,
         "generated_at": metadata["generated_at"],
+        "gate_contract": {
+            "source": "scripts/ci/gates.json",
+            "lane": hosted_lane(metadata["event"]),
+            "expected_gates": sorted(expected_gates),
+        },
         "run": {
             "repository": metadata["repository"],
             "workflow": metadata["workflow"],
@@ -431,7 +445,10 @@ def require_text(value: Any, context: str, *, allow_empty: bool = False) -> None
         raise TimingError(f"{context} must be {qualifier}")
 
 
-def validate_receipt(receipt: dict[str, Any], expected_gates: set[str]) -> None:
+def validate_receipt(
+    receipt: dict[str, Any],
+    expected_gates: set[str] | None = None,
+) -> None:
     if receipt.get("schema") != SCHEMA:
         raise TimingError(f"timing receipt schema must be {SCHEMA}")
     parse_timestamp(receipt.get("generated_at"), "generated_at")
@@ -502,6 +519,17 @@ def validate_receipt(receipt: dict[str, Any], expected_gates: set[str]) -> None:
                 round((completed - job_completed).total_seconds(), 3),
                 f"job {job['name']}.completion_slack_seconds",
             )
+        else:
+            for field in (
+                "seconds",
+                "start_offset_seconds",
+                "completion_offset_seconds",
+                "completion_slack_seconds",
+            ):
+                if job.get(field) is not None:
+                    raise TimingError(
+                        f"job {job['name']}.{field} must be null without timing"
+                    )
     if run.get("observed_conclusion") != observed_conclusion(jobs):
         raise TimingError("run.observed_conclusion does not match recorded jobs")
 
@@ -539,6 +567,31 @@ def validate_receipt(receipt: dict[str, Any], expected_gates: set[str]) -> None:
     actual_gates = set(gate_names)
     if len(gate_names) != len(actual_gates):
         raise TimingError("timing receipt contains duplicate hosted gates")
+    gate_contract = receipt.get("gate_contract")
+    contract_gates: set[str] | None = None
+    if gate_contract is not None:
+        if not isinstance(gate_contract, dict):
+            raise TimingError("timing receipt gate_contract must be an object")
+        if gate_contract.get("source") != "scripts/ci/gates.json":
+            raise TimingError("gate_contract.source is unsupported")
+        if gate_contract.get("lane") != hosted_lane(run["event"]):
+            raise TimingError("gate_contract.lane does not match run.event")
+        sealed_gates = gate_contract.get("expected_gates")
+        if (
+            not isinstance(sealed_gates, list)
+            or any(not isinstance(name, str) or not name for name in sealed_gates)
+            or sealed_gates != sorted(set(sealed_gates))
+        ):
+            raise TimingError(
+                "gate_contract.expected_gates must be sorted unique gate names"
+            )
+        contract_gates = set(sealed_gates)
+    if expected_gates is None:
+        # Receipts created before gate_contract was added remain independently
+        # verifiable from their recorded, creation-time gate inventory.
+        expected_gates = contract_gates or actual_gates
+    elif contract_gates is not None and contract_gates != expected_gates:
+        raise TimingError("gate_contract does not match the expected hosted gates")
     if actual_gates != expected_gates:
         raise TimingError(
             "timing receipt gate coverage mismatch: "
@@ -747,6 +800,17 @@ def sample_inputs() -> tuple[dict[str, Any], dict[str, Any]]:
                 "steps": [],
             },
             {
+                "id": 4,
+                "name": "event-inapplicable tests",
+                "conclusion": "skipped",
+                "started_at": "2026-01-01T00:02:00Z",
+                "completed_at": "2026-01-01T00:01:59Z",
+                "runner_name": None,
+                "runner_group_name": None,
+                "labels": ["ubuntu-latest"],
+                "steps": [],
+            },
+            {
                 "id": 3,
                 "name": TIMING_JOB_NAME,
                 "conclusion": None,
@@ -829,7 +893,15 @@ def self_test() -> None:
     )
     assert receipt["history"]["sample_count"] == 1
     assert receipt["history"]["p50_seconds"] == 120.0
+    skipped = next(
+        job for job in receipt["jobs"] if job["conclusion"] == "skipped"
+    )
+    assert skipped["timing_available"] is False
+    assert skipped["seconds"] is None
     assert "sample" in render_summary(receipt)
+    historical_receipt = json.loads(json.dumps(receipt))
+    historical_receipt.pop("gate_contract")
+    validate_receipt(historical_receipt)
 
     reusable_jobs = json.loads(json.dumps(jobs))
     reusable_jobs["jobs"].insert(
@@ -932,9 +1004,14 @@ def self_test() -> None:
     print("hosted CI timing self-test passed")
 
 
-def expected_pull_request_gates() -> set[str]:
+def hosted_lane(event: str) -> str:
+    return "pull-request" if event == "pull_request" else "release"
+
+
+def expected_hosted_gates(event: str) -> set[str]:
     gates = gate_registry.validate_live_registry(gate_registry.load_registry())
-    return {gate["name"] for gate in gates if "pull-request" in gate["lanes"]}
+    lane = hosted_lane(event)
+    return {gate["name"] for gate in gates if lane in gate["lanes"]}
 
 
 def load_history_jobs(path: Path) -> dict[int, dict[str, Any]]:
@@ -981,9 +1058,9 @@ def main() -> int:
         if args.self_test:
             self_test()
             return 0
-        expected_gates = expected_pull_request_gates()
         if args.validate is not None:
-            validate_receipt(load_object(args.validate, "timing receipt"), expected_gates)
+            receipt = load_object(args.validate, "timing receipt")
+            validate_receipt(receipt)
             print(f"hosted CI timing receipt OK: {args.validate}")
             return 0
         required = {
@@ -1004,6 +1081,7 @@ def main() -> int:
         missing = [name for name, value in required.items() if value is None]
         if missing:
             raise TimingError(f"missing required arguments: {', '.join(missing)}")
+        expected_gates = expected_hosted_gates(args.event)
         metadata = {
             "generated_at": datetime.now().astimezone().isoformat(),
             "repository": args.repository,
@@ -1025,7 +1103,7 @@ def main() -> int:
             expected_gates=expected_gates,
             toolchains=read_checked_toolchains(ROOT),
         )
-        validate_receipt(receipt, expected_gates)
+        validate_receipt(receipt)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(receipt, indent=2) + "\n")
         args.summary.parent.mkdir(parents=True, exist_ok=True)

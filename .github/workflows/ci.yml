@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   test:
-    name: build · test · lint · dup-gate
+    name: policy · lint · rustdoc
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -78,6 +78,16 @@ jobs:
         run: ./scripts/check-ci-local.sh --gate clippy
       - name: gate · doc
         run: ./scripts/check-ci-local.sh --gate doc
+
+  release-product:
+    name: optimized product contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: gate · build-release
         run: ./scripts/check-ci-local.sh --gate build-release
       - name: gate · product-query-schema
@@ -97,10 +107,34 @@ jobs:
             ratchet_base="HEAD^"
           fi
           ./scripts/check-ci-local.sh --gate type4-axis-language target/release/nose "$ratchet_base"
-      - name: gate · test-release
-        run: ./scripts/check-ci-local.sh --gate test-release
       - name: gate · duplication
         run: ./scripts/check-ci-local.sh --gate duplication
+
+  workspace-tests-pr:
+    name: workspace tests · ci-test profile
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: gate · test-ci-compile
+        run: ./scripts/check-ci-local.sh --gate test-ci-compile
+      - name: gate · test-ci
+        run: ./scripts/check-ci-local.sh --gate test-ci
+
+  workspace-tests-protected:
+    name: workspace tests · release profile
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: gate · test-release-compile
+        run: ./scripts/check-ci-local.sh --gate test-release-compile
+      - name: gate · test-release
+        run: ./scripts/check-ci-local.sh --gate test-release
 
   default-head-evidence:
     name: default-head evidence
@@ -296,6 +330,9 @@ jobs:
     if: ${{ always() }}
     needs:
       - test
+      - release-product
+      - workspace-tests-pr
+      - workspace-tests-protected
       - default-head-evidence
       - divergence-evidence
       - surface-recall-evidence

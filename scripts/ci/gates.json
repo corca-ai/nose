@@ -3,9 +3,9 @@
   "lanes": {
     "local-fast": "Common pre-push feedback with debug product-contract checks.",
     "local-full": "Complete local mirror of repository quality policy.",
-    "pull-request": "Named gates invoked by .github/workflows/ci.yml.",
-    "release": "The pull-request policy reused by the release quality-gate job.",
-    "nightly": "Reserved for named gates called by the Soundness Lab workflow."
+    "pull-request": "Named gates selected for pull requests by .github/workflows/ci.yml.",
+    "release": "Protected non-PR gates selected for main and reusable release qualification.",
+    "nightly": "Named gates called by the scheduled Soundness Lab workflow."
   },
   "gates": [
     {
@@ -428,21 +428,71 @@
       }
     },
     {
-      "name": "test-release",
-      "owner": "workspace release tests",
-      "implementation": "cargo test --release",
+      "name": "test-ci-compile",
+      "owner": "pull-request workspace test compilation",
+      "implementation": "cargo test --workspace --profile ci-test --no-run",
       "tools": ["cargo"],
-      "inputs": ["crates/"],
+      "inputs": ["Cargo.toml", "Cargo.lock", "crates/"],
+      "worktree_effect": "read-only",
+      "outputs": ["target/ci-test/"],
+      "cache": "cargo",
+      "parallel_safe": true,
+      "resource_group": "cargo-stable",
+      "lanes": ["pull-request"],
+      "lane_reason": "Compiles and links every non-doctest workspace test target with dev/test semantics and without unused hosted debug information.",
+      "focused_command": "./scripts/check-ci-local.sh --gate test-ci-compile",
+      "plans": {}
+    },
+    {
+      "name": "test-ci",
+      "owner": "pull-request workspace test execution",
+      "implementation": "cargo test --workspace --profile ci-test",
+      "tools": ["cargo"],
+      "inputs": ["Cargo.toml", "Cargo.lock", "crates/", "target/ci-test/"],
+      "worktree_effect": "read-only",
+      "outputs": ["target/ci-test/"],
+      "cache": "cargo",
+      "parallel_safe": true,
+      "resource_group": "cargo-stable",
+      "lanes": ["pull-request"],
+      "lane_reason": "Runs the full workspace suite after the separately timed unit/integration compile-link gate; Cargo also compiles and runs doctests here.",
+      "focused_command": "./scripts/check-ci-local.sh --gate test-ci",
+      "plans": {}
+    },
+    {
+      "name": "test-release-compile",
+      "owner": "protected workspace release-test compilation",
+      "implementation": "cargo test --workspace --release --no-run",
+      "tools": ["cargo"],
+      "inputs": ["Cargo.toml", "Cargo.lock", "crates/"],
       "worktree_effect": "read-only",
       "outputs": ["target/release/"],
       "cache": "cargo",
       "parallel_safe": true,
       "resource_group": "cargo-stable",
-      "lanes": ["local-full", "pull-request", "release"],
-      "lane_reason": "Complete optimized workspace test suite before merge and release.",
+      "lanes": ["local-full", "release", "nightly"],
+      "lane_reason": "Compiles and links every optimized non-doctest workspace test target on each protected qualification lane.",
+      "focused_command": "./scripts/check-ci-local.sh --gate test-release-compile",
+      "plans": {
+        "full": {"order": 195, "label": "compile tests (release)", "args": [], "depends_on": ["build-release"]}
+      }
+    },
+    {
+      "name": "test-release",
+      "owner": "workspace release tests",
+      "implementation": "cargo test --workspace --release",
+      "tools": ["cargo"],
+      "inputs": ["Cargo.toml", "Cargo.lock", "crates/", "target/release/"],
+      "worktree_effect": "read-only",
+      "outputs": ["target/release/"],
+      "cache": "cargo",
+      "parallel_safe": true,
+      "resource_group": "cargo-stable",
+      "lanes": ["local-full", "release", "nightly"],
+      "lane_reason": "Runs the full optimized workspace suite on main, nightly, local-full, and release; Cargo also compiles and runs doctests here.",
       "focused_command": "./scripts/check-ci-local.sh --gate test-release",
       "plans": {
-        "full": {"order": 200, "label": "test (release)", "args": [], "depends_on": ["build-release"]}
+        "full": {"order": 200, "label": "execute tests (release)", "args": [], "depends_on": ["test-release-compile"]}
       }
     },
     {
