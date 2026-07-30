@@ -19,12 +19,21 @@ DEFAULT_DISPATCHER = ROOT / "scripts/check-ci-local.sh"
 DEFAULT_CI_WORKFLOW = ROOT / ".github/workflows/ci.yml"
 DEFAULT_NIGHTLY_WORKFLOW = ROOT / ".github/workflows/corpus-verify.yml"
 DEFAULT_RELEASE_WORKFLOW = ROOT / ".github/workflows/release.yml"
+DEFAULT_CARGO_MANIFEST = ROOT / "Cargo.toml"
 
 SCHEMA = "nose.ci-gates.v2"
 WORKTREE_EFFECTS = {"read-only", "verify-checked-output"}
 LOCAL_PLAN_LANES = {"fast": "local-fast", "full": "local-full"}
 LIFECYCLE_GATE = "evidence-artifacts"
 HOSTED_GATE_PREFIX = "gate · "
+PR_TEST_GATES = {"test-ci-compile", "test-ci"}
+PROTECTED_TEST_GATES = {"test-release-compile", "test-release"}
+TEST_GATE_COMMANDS = {
+    "test-ci-compile": "cargo test --workspace --profile ci-test --no-run",
+    "test-ci": "cargo test --workspace --profile ci-test",
+    "test-release-compile": "cargo test --workspace --release --no-run",
+    "test-release": "cargo test --workspace --release",
+}
 REQUIRED_GATE_FIELDS = {
     "name",
     "owner",
@@ -67,6 +76,23 @@ def gate_names_from_dispatcher(path: Path = DEFAULT_DISPATCHER) -> set[str]:
     if match is None:
         raise RegistryError(f"cannot locate run_named_gate dispatcher in {path}")
     return set(re.findall(r"^ {8}([a-z0-9-]+)\)$", match.group("body"), re.MULTILINE))
+
+
+def dispatcher_gate_commands(path: Path, name: str) -> list[str]:
+    match = re.search(
+        rf"^ {{8}}{re.escape(name)}\)\n"
+        r"(?P<body>.*?)"
+        r"(?=^ {8}[a-z0-9-]+\)\n|^ {4}esac$)",
+        path.read_text(),
+        re.MULTILINE | re.DOTALL,
+    )
+    if match is None:
+        raise RegistryError(f"cannot locate dispatcher branch for gate {name}")
+    return [
+        line.strip()
+        for line in match.group("body").splitlines()
+        if line.strip() and line.strip() != ";;"
+    ]
 
 
 def gate_names_from_workflow(path: Path) -> set[str]:
@@ -174,6 +200,100 @@ def validate_hosted_timing_policy(path: Path) -> None:
     if missing_tokens:
         raise RegistryError(
             f"hosted PR-only concurrency policy drifted: missing {missing_tokens}"
+        )
+
+
+def validate_test_qualification_policy(
+    gates: list[dict[str, Any]],
+    ci_workflow: Path,
+    cargo_manifest: Path,
+    dispatcher: Path,
+) -> None:
+    gates_by_name = {gate["name"]: gate for gate in gates}
+    for name in PR_TEST_GATES | PROTECTED_TEST_GATES:
+        if name not in gates_by_name:
+            raise RegistryError(f"test qualification gate is missing: {name}")
+        command = TEST_GATE_COMMANDS[name]
+        if gates_by_name[name].get("implementation") != command:
+            raise RegistryError(f"gate {name} must declare exact command: {command}")
+        if dispatcher_gate_commands(dispatcher, name) != ["need_cmd cargo", command]:
+            raise RegistryError(f"dispatcher gate {name} must run exact command: {command}")
+    for name in PR_TEST_GATES:
+        if set(gates_by_name[name]["lanes"]) != {"pull-request"}:
+            raise RegistryError(f"gate {name} must be pull-request-only")
+    for name in PROTECTED_TEST_GATES:
+        if set(gates_by_name[name]["lanes"]) != {
+            "local-full",
+            "release",
+            "nightly",
+        }:
+            raise RegistryError(
+                f"gate {name} must remain on local-full, release, and nightly"
+            )
+
+    blocks = workflow_job_blocks(ci_workflow)
+    expected_jobs = {
+        "workspace-tests-pr": (
+            "    if: ${{ github.event_name == 'pull_request' }}",
+            PR_TEST_GATES,
+        ),
+        "workspace-tests-protected": (
+            "    if: ${{ github.event_name != 'pull_request' }}",
+            PROTECTED_TEST_GATES,
+        ),
+    }
+    for job_name, (condition, expected_gates) in expected_jobs.items():
+        block = blocks.get(job_name)
+        if block is None or condition not in block:
+            raise RegistryError(f"{job_name} must keep its event selection condition")
+        actual_gates = set(re.findall(r"--gate\s+([a-z0-9-]+)", block))
+        if actual_gates != expected_gates:
+            raise RegistryError(
+                f"{job_name} gate mismatch: "
+                f"missing={sorted(expected_gates - actual_gates)}, "
+                f"extra={sorted(actual_gates - expected_gates)}"
+            )
+
+    product = blocks.get("release-product")
+    product_gates = {
+        "build-release",
+        "product-query-schema",
+        "semantic-pack-examples",
+        "type4-executable",
+        "type4-axis-language",
+        "duplication",
+    }
+    if product is None or set(
+        re.findall(r"--gate\s+([a-z0-9-]+)", product)
+    ) != product_gates:
+        raise RegistryError(
+            "release-product must own the optimized executable contract gates"
+        )
+
+    profile_match = re.search(
+        r"^\[profile\.ci-test\]\n(?P<body>(?:^(?!\[).*(?:\n|$))*)",
+        cargo_manifest.read_text(),
+        re.MULTILINE,
+    )
+    required_profile_rows = {
+        'inherits = "dev"',
+        "debug = 0",
+        "incremental = false",
+    }
+    profile_rows = (
+        []
+        if profile_match is None
+        else [
+            line.strip()
+            for line in profile_match.group("body").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+    )
+    if len(profile_rows) != len(required_profile_rows) or set(
+        profile_rows
+    ) != required_profile_rows:
+        raise RegistryError(
+            "ci-test profile must contain only the reviewed dev-semantic overrides"
         )
 
 
@@ -367,6 +487,7 @@ def validate_live_registry(
     ci_workflow: Path = DEFAULT_CI_WORKFLOW,
     nightly_workflow: Path = DEFAULT_NIGHTLY_WORKFLOW,
     release_workflow: Path = DEFAULT_RELEASE_WORKFLOW,
+    cargo_manifest: Path = DEFAULT_CARGO_MANIFEST,
 ) -> list[dict[str, Any]]:
     gates = validate_model(registry)
     registry_names = {gate["name"] for gate in gates}
@@ -381,21 +502,29 @@ def validate_live_registry(
     pull_request_names = {
         gate["name"] for gate in gates if "pull-request" in gate["lanes"]
     }
+    release_names = {gate["name"] for gate in gates if "release" in gate["lanes"]}
+    hosted_names = pull_request_names | release_names
     workflow_names = gate_names_from_workflow(ci_workflow)
-    if pull_request_names != workflow_names:
+    if hosted_names != workflow_names:
         raise RegistryError(
-            "pull-request lane/.github workflow mismatch: "
-            f"registry-only={sorted(pull_request_names - workflow_names)}, "
-            f"workflow-only={sorted(workflow_names - pull_request_names)}"
+            "hosted lanes/.github workflow mismatch: "
+            f"registry-only={sorted(hosted_names - workflow_names)}, "
+            f"workflow-only={sorted(workflow_names - hosted_names)}"
         )
     hosted_workflow_names = hosted_gate_names_from_workflow(ci_workflow)
-    if hosted_workflow_names != pull_request_names:
+    if hosted_workflow_names != hosted_names:
         raise RegistryError(
-            "hosted timing step names/pull-request lane mismatch: "
-            f"registry-only={sorted(pull_request_names - hosted_workflow_names)}, "
-            f"workflow-only={sorted(hosted_workflow_names - pull_request_names)}"
+            "hosted timing step names/lane mismatch: "
+            f"registry-only={sorted(hosted_names - hosted_workflow_names)}, "
+            f"workflow-only={sorted(hosted_workflow_names - hosted_names)}"
         )
     validate_hosted_timing_policy(ci_workflow)
+    validate_test_qualification_policy(
+        gates,
+        ci_workflow,
+        cargo_manifest,
+        dispatcher,
+    )
 
     nightly_names = {gate["name"] for gate in gates if "nightly" in gate["lanes"]}
     nightly_workflow_names = gate_names_from_workflow(nightly_workflow)
@@ -406,11 +535,6 @@ def validate_live_registry(
             f"workflow-only={sorted(nightly_workflow_names - nightly_names)}"
         )
 
-    release_names = {gate["name"] for gate in gates if "release" in gate["lanes"]}
-    if release_names != pull_request_names:
-        raise RegistryError(
-            "release lane must equal pull-request lane while release reuses ci.yml"
-        )
     release_text = release_workflow.read_text()
     if "uses: ./.github/workflows/ci.yml" not in release_text:
         raise RegistryError("release workflow no longer reuses .github/workflows/ci.yml")
@@ -657,6 +781,154 @@ def self_test() -> None:
                 assert expected in str(exc), (name, exc)
             else:
                 raise AssertionError(f"{name} passed")
+
+        test_workflow = (
+            "jobs:\n"
+            "  release-product:\n"
+            "    steps:\n"
+            "      - run: ./scripts/check-ci-local.sh --gate build-release\n"
+            "      - run: ./scripts/check-ci-local.sh --gate product-query-schema\n"
+            "      - run: ./scripts/check-ci-local.sh --gate semantic-pack-examples\n"
+            "      - run: ./scripts/check-ci-local.sh --gate type4-executable\n"
+            "      - run: ./scripts/check-ci-local.sh --gate type4-axis-language\n"
+            "      - run: ./scripts/check-ci-local.sh --gate duplication\n"
+            "  workspace-tests-pr:\n"
+            "    if: ${{ github.event_name == 'pull_request' }}\n"
+            "    steps:\n"
+            "      - run: ./scripts/check-ci-local.sh --gate test-ci-compile\n"
+            "      - run: ./scripts/check-ci-local.sh --gate test-ci\n"
+            "  workspace-tests-protected:\n"
+            "    if: ${{ github.event_name != 'pull_request' }}\n"
+            "    steps:\n"
+            "      - run: ./scripts/check-ci-local.sh --gate test-release-compile\n"
+            "      - run: ./scripts/check-ci-local.sh --gate test-release\n"
+        )
+        cargo_manifest = Path(directory) / "Cargo.toml"
+        cargo_profile = (
+            "[profile.ci-test]\n"
+            'inherits = "dev"\n'
+            "debug = 0\n"
+            "incremental = false\n"
+        )
+        test_dispatcher = Path(directory) / "check-ci-local.sh"
+        test_dispatcher_text = "run_named_gate() {\n    case \"$1\" in\n"
+        for gate_name, command in TEST_GATE_COMMANDS.items():
+            test_dispatcher_text += (
+                f"        {gate_name})\n"
+                "            need_cmd cargo\n"
+                f"            {command}\n"
+                "            ;;\n"
+            )
+        test_dispatcher_text += "    esac\n}\n"
+        test_gates = [
+            {
+                "name": "test-ci-compile",
+                "implementation": TEST_GATE_COMMANDS["test-ci-compile"],
+                "lanes": ["pull-request"],
+            },
+            {
+                "name": "test-ci",
+                "implementation": TEST_GATE_COMMANDS["test-ci"],
+                "lanes": ["pull-request"],
+            },
+            {
+                "name": "test-release-compile",
+                "implementation": TEST_GATE_COMMANDS["test-release-compile"],
+                "lanes": ["local-full", "release", "nightly"],
+            },
+            {
+                "name": "test-release",
+                "implementation": TEST_GATE_COMMANDS["test-release"],
+                "lanes": ["local-full", "release", "nightly"],
+            },
+        ]
+        workflow.write_text(test_workflow)
+        cargo_manifest.write_text(cargo_profile)
+        test_dispatcher.write_text(test_dispatcher_text)
+        validate_test_qualification_policy(
+            test_gates,
+            workflow,
+            cargo_manifest,
+            test_dispatcher,
+        )
+        test_policy_mutations = [
+            (
+                "PR test condition",
+                test_workflow.replace(
+                    "github.event_name == 'pull_request'",
+                    "github.event_name != 'pull_request'",
+                    1,
+                ),
+                cargo_profile,
+                test_gates,
+                "event selection condition",
+            ),
+            (
+                "ci-test profile",
+                test_workflow,
+                cargo_profile.replace("debug = 0", "debug = 1"),
+                test_gates,
+                "ci-test profile",
+            ),
+            (
+                "ci-test semantic override",
+                test_workflow,
+                cargo_profile + "debug-assertions = false\n",
+                test_gates,
+                "ci-test profile",
+            ),
+            (
+                "PR test lane",
+                test_workflow,
+                cargo_profile,
+                [
+                    (
+                        dict(gate, lanes=["pull-request", "release"])
+                        if gate["name"] == "test-ci"
+                        else gate
+                    )
+                    for gate in test_gates
+                ],
+                "pull-request-only",
+            ),
+        ]
+        for name, workflow_text, profile_text, gates_value, expected in (
+            test_policy_mutations
+        ):
+            workflow.write_text(workflow_text)
+            cargo_manifest.write_text(profile_text)
+            try:
+                validate_test_qualification_policy(
+                    gates_value,
+                    workflow,
+                    cargo_manifest,
+                    test_dispatcher,
+                )
+            except RegistryError as exc:
+                assert expected in str(exc), (name, exc)
+            else:
+                raise AssertionError(f"{name} mutation passed")
+
+        workflow.write_text(test_workflow)
+        cargo_manifest.write_text(cargo_profile)
+        test_dispatcher.write_text(
+            test_dispatcher_text.replace(
+                TEST_GATE_COMMANDS["test-ci-compile"],
+                "cargo test --profile ci-test --no-run",
+                1,
+            )
+        )
+        try:
+            validate_test_qualification_policy(
+                test_gates,
+                workflow,
+                cargo_manifest,
+                test_dispatcher,
+            )
+        except RegistryError as exc:
+            assert "must run exact command" in str(exc), exc
+        else:
+            raise AssertionError("test dispatcher command mutation passed")
 
     lifecycle_join = copy.deepcopy(sample)
     producer = lifecycle_join["gates"][0]

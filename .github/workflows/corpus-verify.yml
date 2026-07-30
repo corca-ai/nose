@@ -52,6 +52,20 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  workspace-release-tests:
+    name: protected workspace tests · release profile
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: gate · test-release-compile
+        run: ./scripts/check-ci-local.sh --gate test-release-compile
+      - name: gate · test-release
+        run: ./scripts/check-ci-local.sh --gate test-release
+
   pr-claims:
     name: touched claims · batteries · proofs · scorecard
     if: ${{ github.event_name == 'pull_request' }}

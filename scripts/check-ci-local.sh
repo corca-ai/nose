@@ -376,9 +376,21 @@ run_named_gate() {
             need_cmd cargo
             cargo test -p nose-cli
             ;;
+        test-ci-compile)
+            need_cmd cargo
+            cargo test --workspace --profile ci-test --no-run
+            ;;
+        test-ci)
+            need_cmd cargo
+            cargo test --workspace --profile ci-test
+            ;;
+        test-release-compile)
+            need_cmd cargo
+            cargo test --workspace --release --no-run
+            ;;
         test-release)
             need_cmd cargo
-            cargo test --release
+            cargo test --workspace --release
             ;;
         product-query-schema)
             run_product_query_schema_live_check "$1"

@@ -60,22 +60,81 @@ large evidence batch with a misleading error.
 
 `local-full`
 : Complete local mirror of repository quality policy. It adds release builds
-  and tests, coverage, duplication, MSRV, supply-chain, Rust documentation, and
-  formal proof gates.
+  and separately timed release-test compile-link/follow-on execution, coverage,
+  duplication, MSRV, supply-chain, Rust documentation, and formal proof gates.
 
 `pull-request`
-: Named gates invoked by `.github/workflows/ci.yml`, including gates split into
-  dedicated coverage, MSRV, supply-chain, documentation, and formal jobs.
+: Named gates selected by `.github/workflows/ci.yml` for pull requests. Every
+  workspace test runs under the `ci-test` profile, while optimized executable
+  product contracts retain the release profile.
 
 `release`
-: The same named quality policy, reused through the release workflow's
-  `quality-gate` call to `ci.yml`. Packaging remains owned by `cargo-dist`.
+: Protected non-PR gates selected by `ci.yml` for main pushes and for the
+  release workflow's `quality-gate` call. These lanes compile and execute every
+  workspace test under the full release profile. Packaging remains owned by
+  `cargo-dist`.
 
 `nightly`
-: Named gates invoked directly by the Soundness Lab workflow. The current
-  Soundness Lab owns its campaign commands directly, so no named repository gate
-  is assigned to this lane. Its cheap runner mutation test is the separate
-  `corpus-verify-selftest` pull-request gate.
+: Named gates invoked directly by the Soundness Lab workflow. Scheduled and
+  manually dispatched campaigns compile and execute every workspace test under
+  the full release profile in parallel with campaign work. The Soundness Lab
+  continues to own its other campaign commands directly.
+
+### Hosted test qualification
+
+The custom Cargo `ci-test` profile inherits `dev`, the same semantic base as the
+built-in `test` profile. It preserves debug assertions, overflow checks, panic
+behavior, zero optimization, and the full workspace target selection. It
+disables only debug information and incremental compilation, neither of which
+is consumed by a fresh hosted runner:
+
+```sh
+cargo test --workspace --profile ci-test --no-run
+cargo test --workspace --profile ci-test
+```
+
+PR CI runs those commands as separate named compile/link and follow-on Cargo
+test gates. Stable Cargo's `--no-run` compiles and links unit and integration
+test targets, but it does not precompile doctests. The second gate therefore
+runs the cached test binaries and also performs any doctest compilation and
+execution. The receipt reports those two stable-Cargo boundaries; it does not
+claim to split compiler time from linker time or doctest compilation from
+doctest execution. The current workspace has no executable doctest cases.
+
+The optimized product-contract job independently builds `target/release/nose`
+and runs query-schema, semantic-pack, Type-4, and duplication checks against it.
+Both jobs start with the other quality jobs instead of waiting behind policy,
+lint, and Rust documentation steps.
+
+Main, release, nightly, and local-full qualification use the corresponding
+full-release pair:
+
+```sh
+cargo test --workspace --release --no-run
+cargo test --workspace --release
+```
+
+The before measurement is PR run
+[`30503434259`](https://github.com/corca-ai/nose/actions/runs/30503434259):
+quality-job wall time was 543 seconds, optimized product build was 150 seconds,
+and the combined release-test step was 316 seconds. Cargo reported 309 seconds
+of compile/link work; the complete workspace test and doctest execution then
+finished in about 5 seconds. The split spends additional runner startup and
+Cargo-cache storage to shorten the PR critical path; the hosted timing receipt
+is the authority for deciding whether that trade remains worthwhile.
+
+The after measurement is PR run
+[`30507374469`](https://github.com/corca-ai/nose/actions/runs/30507374469):
+the `ci-test` job took 95 seconds including setup, with 47 seconds in the
+compile-link gate and 23 seconds in the follow-on Cargo test gate. Their
+70-second combined gate time is 246 seconds (77.8%) below the old 316-second
+release-test step. The independent optimized-product job took 257 seconds,
+including a 215-second release build. Overall quality-job wall time was 546
+seconds versus 543 seconds before because the 539-second semantic regression
+job became the limiter; the PR test lane finished with 450 seconds of slack.
+This single run proves the test lane is no longer the limiter, but not an
+overall wall-time improvement. Repeated receipts, rather than this sample
+alone, should determine whether the extra runner and cache cost remains useful.
 
 ## Local execution
 
@@ -154,6 +213,14 @@ second gate-name map. The receipt also records the runner image, checked
 Rust/MSRV/Lean identities, and p50/p95 over the quality-job wall time of the
 latest 20 successful runs for the same event type. Percentiles use the
 deterministic nearest-rank method over those recorded samples.
+
+Each new receipt seals its creation-time lane and expected named-gate set.
+Offline validation uses that sealed contract rather than the current checkout's
+registry, so an older receipt remains verifiable after an intentional lane
+change. Legacy v1 receipts created before that field retain their recorded gate
+inventory as the historical contract. Event-inapplicable jobs remain visible
+as `skipped`, but their synthetic API timestamps are marked unavailable and do
+not influence wall time; GitHub may report those timestamps in reverse order.
 
 The reported critical path uses the workflow's fan-out/fan-in shape: the
 quality job that completes last is the current wall-time limiter. Its start
