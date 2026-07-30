@@ -17,6 +17,7 @@ specific decision or measurement, not a user-facing feature contract.
 - [normalization](normalization.md) — the passes that make behaviorally-equivalent code converge (the hard part).
 - [refactoring-ratchets](refactoring-ratchets.md) — repository quality ratchets for incremental design cleanup, including Rust file-length and the CLI prelude guard.
 - [repository gate inventory](repository-gates.md) — authoritative named-gate ownership, lane selection, worktree effects, and timing protocol.
+- [test ownership: divergent-edit policy](test-ownership-963.md) — #963's CLI test inventory, bounded pure-policy move, preserved process/output contracts, and honest compile/link timing.
 - [evidence artifact lifecycle](evidence-artifact-lifecycle.md) — lifecycle classes, exact inventory drift checks, receipt/seal/baseline bindings, and conservative retention policy.
 - [semantic-regression-smoke](semantic-regression-smoke.md) — base/head semantic output and runtime tripwire, exact intentional-drift declarations, focused reruns, and pinned evidence.
 
