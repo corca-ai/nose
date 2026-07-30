@@ -7,6 +7,11 @@ break.
 ## [Unreleased]
 
 ### Changed
+- Added fail-closed, report-only pull-request change routing backed by the
+  checked gate registry, historical/synthetic path matrices, auditable route
+  receipts, and a stable aggregate qualification result. Main, release,
+  unknown, deleted, renamed, dependency/toolchain, CI-policy, and shared
+  semantic changes retain complete qualification; no gate skips are enabled.
 - Split hosted workspace test compilation from execution: pull requests use a
   dev-semantic `ci-test` profile without unused debug data, while main,
   nightly, local-full, and release qualification retain the full optimized

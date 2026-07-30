@@ -20,6 +20,57 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  route:
+    name: change routing · report-only
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.route.outputs.mode }}
+      decision: ${{ steps.route.outputs.decision }}
+      proposed_jobs: ${{ steps.route.outputs.proposed_jobs }}
+      enforced_jobs: ${{ steps.route.outputs.enforced_jobs }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Compute fail-closed proposed route
+        id: route
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mkdir -p target/change-routing
+          route_args=()
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            route_head="${PR_HEAD_SHA:-HEAD}"
+            if git rev-parse --verify -q "${PR_BASE_SHA}^{commit}" >/dev/null &&
+               git rev-parse --verify -q "${route_head}^{commit}" >/dev/null &&
+               git diff --name-status -z --find-renames \
+                 "$PR_BASE_SHA" "$route_head" \
+                 > target/change-routing/changes.z; then
+              route_args+=(--changes-z target/change-routing/changes.z)
+            else
+              rm -f target/change-routing/changes.z
+            fi
+          fi
+          python3 scripts/ci/change_routing.py route \
+            --event "$GITHUB_EVENT_NAME" \
+            "${route_args[@]}" \
+            --output target/change-routing/route.json \
+            --summary target/change-routing/route.md \
+            --github-output "$GITHUB_OUTPUT"
+          cat target/change-routing/route.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload proposed routing evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: change-routing-${{ github.run_id }}-${{ github.run_attempt }}
+          path: target/change-routing
+          if-no-files-found: error
+          retention-days: 30
+
   test:
     name: policy · lint · rustdoc
     runs-on: ubuntu-latest
@@ -31,6 +82,8 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      - name: gate · change-routing-selftest
+        run: ./scripts/check-ci-local.sh --gate change-routing-selftest
       - name: gate · corpus-prune-selftest
         run: ./scripts/check-ci-local.sh --gate corpus-prune-selftest
       - name: gate · corpus-verify-selftest
@@ -400,5 +453,58 @@ jobs:
         with:
           name: hosted-ci-timing-${{ github.run_id }}-${{ github.run_attempt }}
           path: target/hosted-ci
+          if-no-files-found: error
+          retention-days: 30
+
+  qualification:
+    name: repository qualification
+    if: ${{ always() }}
+    needs:
+      - route
+      - test
+      - release-product
+      - workspace-tests-pr
+      - workspace-tests-protected
+      - default-head-evidence
+      - divergence-evidence
+      - surface-recall-evidence
+      - runtime-soundness-evidence
+      - semantic-regression
+      - coverage
+      - msrv
+      - supply-chain
+      - docs
+      - formal
+      - hosted-timing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Verify selected results and aggregate qualification
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          ROUTING_MODE: ${{ needs.route.outputs.mode }}
+          ENFORCED_JOBS_JSON: ${{ needs.route.outputs.enforced_jobs }}
+        run: |
+          mkdir -p target/change-routing
+          qualification_status=0
+          python3 scripts/ci/qualification.py \
+            --event "$GITHUB_EVENT_NAME" \
+            --mode "$ROUTING_MODE" \
+            --enforced-jobs "$ENFORCED_JOBS_JSON" \
+            --output target/change-routing/qualification.json \
+            --summary target/change-routing/qualification.md \
+            || qualification_status=$?
+          cat target/change-routing/qualification.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$qualification_status"
+
+      - name: Upload qualification evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: repository-qualification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: target/change-routing
           if-no-files-found: error
           retention-days: 30
