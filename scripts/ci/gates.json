@@ -7,7 +7,336 @@
     "release": "Protected non-PR gates selected for main and reusable release qualification.",
     "nightly": "Named gates called by the scheduled Soundness Lab workflow."
   },
+  "change_routing": {
+    "schema": "nose.ci-change-routing.v1",
+    "mode": "report-only",
+    "full_events": [
+      "push",
+      "workflow_call"
+    ],
+    "always_required_jobs": [
+      "route",
+      "hosted-timing"
+    ],
+    "global_patterns": [
+      ".github/**",
+      ".githooks/**",
+      ".coderabbit.yaml",
+      ".gitignore",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "Cargo.lock",
+      "Cargo.toml",
+      "clippy.toml",
+      "deny.toml",
+      "dist-workspace.toml",
+      "lean-toolchain",
+      "rust-toolchain.toml",
+      "scripts/**",
+      "crates/nose-frontend/**",
+      "crates/nose-il/**",
+      "crates/nose-normalize/**",
+      "crates/nose-semantics/**"
+    ],
+    "rules": [
+      {
+        "class": "documentation",
+        "patterns": [
+          "CHANGELOG.md",
+          "CONTRIBUTING.md",
+          "LICENSE",
+          "README.md",
+          "docs/**"
+        ],
+        "gates": [
+          "docs"
+        ],
+        "jobs": []
+      },
+      {
+        "class": "semantic-pack-examples",
+        "patterns": [
+          "docs/examples/semantic-pack-lock-v1.json",
+          "docs/examples/semantic-packs/**"
+        ],
+        "gates": [
+          "semantic-pack-examples"
+        ],
+        "jobs": []
+      },
+      {
+        "class": "label-evidence",
+        "patterns": [
+          "bench/labels/**"
+        ],
+        "gates": [
+          "default-head-evidence",
+          "surface-recall-evidence",
+          "evidence-artifacts",
+          "missed-worthy-frontier",
+          "accepted-pair-coverage",
+          "product-query-schema"
+        ],
+        "jobs": []
+      },
+      {
+        "class": "type4-evidence",
+        "patterns": [
+          "bench/type4/**"
+        ],
+        "gates": [
+          "type4-frontier",
+          "type4-executable",
+          "type4-axis-language",
+          "evidence-artifacts"
+        ],
+        "jobs": []
+      },
+      {
+        "class": "corpus-evidence",
+        "patterns": [
+          "bench/corpus_prune/**",
+          "bench/goldens/**",
+          "bench/prune_corpus.py",
+          "bench/semantic_regression_corpus.v1.json",
+          "bench/setup_repos.sh"
+        ],
+        "gates": [
+          "corpus-prune-selftest",
+          "corpus-verify-selftest",
+          "evidence-artifacts"
+        ],
+        "jobs": [
+          "semantic-regression"
+        ]
+      },
+      {
+        "class": "semantic-pack-evidence",
+        "patterns": [
+          "bench/semantic_pack/**"
+        ],
+        "gates": [
+          "semantic-pack-pricing",
+          "semantic-pack-examples",
+          "evidence-artifacts"
+        ],
+        "jobs": []
+      },
+      {
+        "class": "runtime-soundness-evidence",
+        "patterns": [
+          "bench/cache/**",
+          "bench/release/**",
+          "bench/soundness/**"
+        ],
+        "gates": [
+          "runtime-soundness-evidence",
+          "evidence-artifacts"
+        ],
+        "jobs": [
+          "semantic-regression"
+        ]
+      },
+      {
+        "class": "divergence-evidence",
+        "patterns": [
+          "eval/divergence_fire/**"
+        ],
+        "gates": [
+          "divergence-evidence",
+          "evidence-artifacts"
+        ],
+        "jobs": []
+      },
+      {
+        "class": "formal-model",
+        "patterns": [
+          "formal/**"
+        ],
+        "gates": [
+          "formal-obligations",
+          "formal-lean",
+          "type4-axis-language"
+        ],
+        "jobs": []
+      },
+      {
+        "class": "product-examples",
+        "patterns": [
+          "examples/**"
+        ],
+        "gates": [
+          "product-query-schema"
+        ],
+        "jobs": []
+      },
+      {
+        "class": "product-source",
+        "patterns": [
+          "crates/**"
+        ],
+        "gates": [
+          "format",
+          "file-length",
+          "legacy-prelude",
+          "clippy",
+          "doc",
+          "build-release",
+          "test-ci-compile",
+          "test-ci",
+          "product-query-schema",
+          "semantic-pack-examples",
+          "type4-executable",
+          "type4-axis-language",
+          "formal-obligations",
+          "coverage",
+          "duplication",
+          "msrv",
+          "supply-chain"
+        ],
+        "jobs": [
+          "semantic-regression"
+        ]
+      }
+    ],
+    "historical_cases": [
+      {
+        "name": "docs-only-result-note",
+        "commit": "de873534c361cd08e03ee838bf0e589d85f4ff7c",
+        "expected_full": false,
+        "required_classes": [
+          "documentation"
+        ],
+        "required_gates": [
+          "docs"
+        ],
+        "required_jobs": [
+          "docs"
+        ]
+      },
+      {
+        "name": "evidence-domain-optimization",
+        "commit": "afcf8b8a763fcf7affd496d5d13e5b889dba9e4c",
+        "expected_full": false,
+        "required_classes": [
+          "documentation",
+          "label-evidence",
+          "type4-evidence"
+        ],
+        "required_gates": [
+          "docs",
+          "default-head-evidence",
+          "type4-frontier",
+          "evidence-artifacts"
+        ],
+        "required_jobs": [
+          "docs",
+          "test",
+          "default-head-evidence",
+          "surface-recall-evidence",
+          "release-product"
+        ]
+      },
+      {
+        "name": "product-source-optimization",
+        "commit": "f6f7b2ed8e120c9e25baf398f31a75df8b97b30b",
+        "expected_full": false,
+        "required_classes": [
+          "product-source"
+        ],
+        "required_gates": [
+          "format",
+          "clippy",
+          "build-release",
+          "test-ci",
+          "formal-obligations",
+          "coverage",
+          "duplication"
+        ],
+        "required_jobs": [
+          "test",
+          "release-product",
+          "workspace-tests-pr",
+          "semantic-regression",
+          "formal",
+          "coverage",
+          "msrv",
+          "supply-chain"
+        ]
+      },
+      {
+        "name": "dependency-security-update",
+        "commit": "99fe1d2a6896c10d739be09777e5dcfab7721c3d",
+        "expected_full": true,
+        "required_classes": [],
+        "required_gates": [
+          "test-ci",
+          "supply-chain"
+        ],
+        "required_jobs": [
+          "workspace-tests-pr",
+          "supply-chain"
+        ]
+      },
+      {
+        "name": "ci-policy-update",
+        "commit": "964bcb75b8d20a5916a67f34258b50eedc99c5d2",
+        "expected_full": true,
+        "required_classes": [],
+        "required_gates": [
+          "change-routing-selftest"
+        ],
+        "required_jobs": [
+          "test",
+          "workspace-tests-pr"
+        ]
+      },
+      {
+        "name": "deleted-test-support",
+        "commit": "38087d9db9ebdc36eda7e3235fbb3c0c8c66af90",
+        "expected_full": true,
+        "required_classes": [],
+        "required_gates": [
+          "test-ci"
+        ],
+        "required_jobs": [
+          "workspace-tests-pr"
+        ]
+      },
+      {
+        "name": "renamed-evidence-records",
+        "commit": "aed5ed58ec51ac4490063957a031b130ba8e46c8",
+        "expected_full": true,
+        "required_classes": [],
+        "required_gates": [
+          "evidence-artifacts"
+        ],
+        "required_jobs": [
+          "test"
+        ]
+      }
+    ]
+  },
   "gates": [
+    {
+      "name": "change-routing-selftest",
+      "owner": "change-aware CI routing",
+      "implementation": "scripts/ci/change_routing.py validate --self-test && scripts/ci/qualification.py --self-test",
+      "tools": ["python3 >= 3.10", "git"],
+      "inputs": ["scripts/ci/gates.json", "scripts/ci/change_routing.py", "scripts/ci/change_routing_selftest.py", "scripts/ci/qualification.py", ".github/workflows/ci.yml"],
+      "worktree_effect": "read-only",
+      "outputs": [],
+      "cache": "none",
+      "parallel_safe": true,
+      "resource_group": null,
+      "lanes": ["local-fast", "local-full", "pull-request", "release"],
+      "lane_reason": "Mutation-tests fail-closed path selection and the stable aggregate result.",
+      "focused_command": "./scripts/check-ci-local.sh --gate change-routing-selftest",
+      "plans": {
+        "fast": {"order": 5, "label": "change-aware CI routing self-test", "args": [], "depends_on": []},
+        "full": {"order": 5, "label": "change-aware CI routing self-test", "args": [], "depends_on": []}
+      }
+    },
     {
       "name": "corpus-prune-selftest",
       "owner": "benchmark corpus pruning",

@@ -46,6 +46,11 @@ The registry owns selection, ordering, and descriptive metadata. The shell
 dispatcher owns executable commands and diagnostics. The cross-check prevents
 either side from silently becoming an independent policy.
 
+The same registry owns change-aware routing under `change_routing`. Its
+validator binds every selected gate to the workflow job that invokes it and
+rejects unknown gates, jobs, path classes, conditions, or aggregate
+dependencies. Workflow YAML does not maintain a second path-to-gate map.
+
 Repository evidence validators require Python 3.10 or newer. The dispatcher
 checks the selected `python3` before any named gate runs and reports the
 observed version, so a system Python that is too old cannot fail later inside a
@@ -79,6 +84,73 @@ large evidence batch with a misleading error.
   manually dispatched campaigns compile and execute every workspace test under
   the full release profile in parallel with campaign work. The Soundness Lab
   continues to own its other campaign commands directly.
+
+## Change-aware pull-request routing
+
+Pull requests compute and publish a proposed route in parallel with the
+unchanged quality fan-out. The checked policy maps documentation, label
+evidence, Type-4 evidence, corpus evidence, semantic-pack evidence,
+runtime/soundness evidence, divergence evidence, formal models, product
+examples, and Rust product source to named gates. The router then derives
+workflow jobs from the actual `--gate` invocations in `ci.yml`; multi-step
+semantic regression is the only explicitly named extra job.
+
+The current mode is deliberately `report-only`. Every event-eligible quality
+job still runs, and `repository qualification` requires all of them to succeed.
+The route receipt nevertheless records the smaller proposed job set and is
+published as both a step summary and a 30-day artifact. Checked self-tests
+replay representative historical documentation, evidence, Rust product,
+dependency, CI-policy, deletion, and rename diffs.
+
+Routing fails closed to the complete PR gate set when:
+
+- a changed path is unclassified or malformed;
+- a file is deleted, renamed, copied, type-changed, conflicted, or carries an
+  unfamiliar change status;
+- Cargo manifests/lockfiles, workflows, scripts, toolchain/policy files, agent
+  instructions, or shared frontend/IL/normalization/semantic layers change;
+- comparison data is absent or malformed.
+
+Main pushes and reusable `workflow_call` qualification always select the
+complete release lane. Release tags reach `ci.yml` through the release
+workflow's reusable call, so they also remain complete. No workflow uses
+top-level `paths` filtering: the routing and stable aggregate checks therefore
+always exist, and branch protection cannot be left pending because a workflow
+was never created.
+
+The final `repository qualification` job runs with `always()` and consumes the
+complete `needs` result map. In report-only mode it rejects a missing, skipped,
+cancelled, failed, or malformed result for any event-eligible quality job, the
+route job, or hosted timing. The event-inapplicable workspace-test profile is
+the only expected skipped CI job and is not selected. The same aggregate logic
+can later accept unselected skips only after enforcing mode is deliberately
+enabled.
+
+### Rollout and rollback
+
+Do not enable skips from one successful sample. First retain report-only
+receipts across documentation-only, evidence-only, Rust/product, CI-policy,
+dependency/toolchain, mixed, and unknown changes. Audit every proposed route
+against the gates that actually ran, extend the checked historical matrix for
+any missed class, and require repeated evidence that no materially affected
+gate was omitted.
+
+An enforcing change must be a separate reviewed PR. It must:
+
+1. change the checked policy and validator together;
+2. make each conditional quality job depend on routing and use `always()` so it
+   runs when routing fails, the mode is `report-only`, or that job is selected,
+   without adding workflow-level `paths` filters;
+3. retain `repository qualification` as the stable branch-protection result
+   and keep unexpected selected skips fail-closed;
+4. demonstrate complete main, reusable release, and release-tag qualification;
+5. preserve the report artifact so skipped-job decisions remain auditable.
+
+Rollback does not require changing branch protection. Restore `report-only`
+mode (which makes every eligible job run), or revert the enforcing PR; the
+stable aggregate check remains present in either case. If the router itself
+cannot produce a valid decision, its failed result makes repository
+qualification fail while the independent quality jobs still run.
 
 ### Hosted test qualification
 
@@ -198,13 +270,14 @@ measurement fail, so artifact production cannot hide behind a green command.
 
 ### Hosted workflow timing
 
-The final `hosted CI timing` job depends on every quality job and runs with
-`always()`, so an earlier failure still produces timing evidence. It reads
-GitHub Actions job and step timestamps through a job-local, read-only Actions
-token, writes a `nose.hosted-ci-timings.v1` receipt, uploads the receipt and raw
-API inputs for 30 days, and adds the slowest jobs and named gates to the step
-summary. The timing checkout does not persist that token, and quality jobs never
-receive Actions API permission.
+The final `hosted CI timing` job depends on every timed quality job and runs
+with `always()`, so an earlier failure still produces timing evidence. Routing
+and aggregate-control jobs are excluded from the comparable quality timing
+window. It reads GitHub Actions job and step timestamps through a job-local,
+read-only Actions token, writes a `nose.hosted-ci-timings.v1` receipt, uploads
+the receipt and raw API inputs for 30 days, and adds the slowest jobs and named
+gates to the step summary. The timing checkout does not persist that token, and
+quality jobs never receive Actions API permission.
 
 Hosted gate steps use the checked `gate · <gate-name>` naming convention.
 Registry validation binds that structured step name to the gate invoked in the

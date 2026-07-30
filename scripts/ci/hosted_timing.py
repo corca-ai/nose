@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = "nose.hosted-ci-timings.v1"
 MINIMUM_PYTHON = (3, 10)
 TIMING_JOB_NAME = "hosted CI timing"
+UNTIMED_CONTROL_JOB_NAMES = set(gate_registry.UNTIMED_HOSTED_JOB_NAMES.values())
 
 
 class TimingError(ValueError):
@@ -98,6 +99,7 @@ def scoped_quality_jobs(
         if job is not timing_jobs[0]
         and isinstance(job.get("name"), str)
         and job["name"].startswith(prefix)
+        and job["name"][len(prefix) :] not in UNTIMED_CONTROL_JOB_NAMES
     ]
 
 
@@ -770,6 +772,17 @@ def sample_inputs() -> tuple[dict[str, Any], dict[str, Any]]:
     jobs = {
         "jobs": [
             {
+                "id": 5,
+                "name": "change routing · report-only",
+                "conclusion": "success",
+                "started_at": "2025-12-31T23:59:50Z",
+                "completed_at": "2026-01-01T00:00:08Z",
+                "runner_name": "runner",
+                "runner_group_name": "GitHub Actions",
+                "labels": ["ubuntu-latest"],
+                "steps": [],
+            },
+            {
                 "id": 1,
                 "name": "build and test",
                 "conclusion": "success",
@@ -818,6 +831,17 @@ def sample_inputs() -> tuple[dict[str, Any], dict[str, Any]]:
                 "completed_at": None,
                 "runner_name": "runner",
                 "runner_group_name": "GitHub Actions",
+                "labels": ["ubuntu-latest"],
+                "steps": [],
+            },
+            {
+                "id": 6,
+                "name": "repository qualification",
+                "conclusion": None,
+                "started_at": None,
+                "completed_at": None,
+                "runner_name": None,
+                "runner_group_name": None,
                 "labels": ["ubuntu-latest"],
                 "steps": [],
             },
@@ -893,6 +917,10 @@ def self_test() -> None:
     )
     assert receipt["history"]["sample_count"] == 1
     assert receipt["history"]["p50_seconds"] == 120.0
+    assert {
+        "change routing · report-only",
+        "repository qualification",
+    }.isdisjoint(job["name"] for job in receipt["jobs"])
     skipped = next(
         job for job in receipt["jobs"] if job["conclusion"] == "skipped"
     )

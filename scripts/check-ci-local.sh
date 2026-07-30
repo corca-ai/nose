@@ -266,6 +266,7 @@ run_supply_chain_checks() {
 run_gate_registry_validation() {
     need_python3
     python3 scripts/ci/gate_registry.py validate
+    python3 scripts/ci/change_routing.py validate
 }
 
 run_local_plan() {
@@ -306,6 +307,11 @@ run_named_gate() {
     local name="$1"
     shift
     case "$name" in
+        change-routing-selftest)
+            need_python3
+            python3 scripts/ci/change_routing.py validate --self-test
+            python3 scripts/ci/qualification.py --self-test
+            ;;
         corpus-prune-selftest)
             need_cmd python3
             python3 bench/prune_corpus.py --self-test

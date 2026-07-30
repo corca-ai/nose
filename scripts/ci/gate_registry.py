@@ -26,6 +26,11 @@ WORKTREE_EFFECTS = {"read-only", "verify-checked-output"}
 LOCAL_PLAN_LANES = {"fast": "local-fast", "full": "local-full"}
 LIFECYCLE_GATE = "evidence-artifacts"
 HOSTED_GATE_PREFIX = "gate · "
+HOSTED_TIMING_EXCLUDED_JOBS = {"route", "qualification"}
+UNTIMED_HOSTED_JOB_NAMES = {
+    "route": "change routing · report-only",
+    "qualification": "repository qualification",
+}
 PR_TEST_GATES = {"test-ci-compile", "test-ci"}
 PROTECTED_TEST_GATES = {"test-release-compile", "test-release"}
 TEST_GATE_COMMANDS = {
@@ -172,7 +177,7 @@ def validate_hosted_timing_policy(path: Path) -> None:
     if needs_match is None:
         raise RegistryError("hosted-timing must list every quality job in needs")
     needs = set(re.findall(r"^ {6}- ([a-z0-9-]+)$", needs_match.group("rows"), re.MULTILINE))
-    expected = set(blocks) - {"hosted-timing"}
+    expected = set(blocks) - {"hosted-timing"} - HOSTED_TIMING_EXCLUDED_JOBS
     if needs != expected:
         raise RegistryError(
             "hosted-timing needs mismatch: "
