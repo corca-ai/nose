@@ -232,7 +232,8 @@ and must be explicitly enabled by the user.
   classify missed semantic opportunities.
 - [recall-loss-recovery-loop](recall-loss-recovery-loop.md) uses source facts to
   recover recall without weakening strictness.
-- Current implementation status is recorded in
-  [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and remaining
-  work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md).
+- The maintained implementation contract is recorded in
+  [semantic kernel](semantic-kernel.md); dated snapshots and the closed
+  migration roadmap are retained in
+  [historical records](historical-records.md) as evidence.
 - The shared internal record shape for all semantic evidence is described in [evidence-records](evidence-records.md).

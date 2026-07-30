@@ -72,7 +72,12 @@ These pages are not required reading for users:
 - [Development and evidence index](development-and-evidence.md) — internal
   proof contracts, semantic-kernel design, benchmarks, audits, and release
   evidence.
+- [Documentation lifecycle](documentation-lifecycle.md) — how current guides,
+  maintained references, decisions, active roadmaps, and historical records are
+  classified and reviewed.
 - [Agent instructions](agent-instructions.md) — repository-specific instructions
   for coding agents.
 
-Release history is in the [changelog](../CHANGELOG.md).
+Release history is in the [changelog](../CHANGELOG.md). Dated audits, closed
+issue records, and append-only research ledgers are retained separately in the
+[historical records index](historical-records.md) with their evidence context.

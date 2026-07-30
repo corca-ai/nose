@@ -1078,8 +1078,7 @@ manifest loading are still open work.
 
 ## See also
 
-Back to [semantic-kernel](semantic-kernel.md). Current implementation status is
-recorded in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and
-remaining work are tracked in
-[semantic-kernel-roadmap](semantic-kernel-roadmap.md). Source-origin facts are
-covered in [source-facts](source-facts.md).
+Back to [semantic-kernel](semantic-kernel.md) for the maintained contract.
+The dated implementation chronology and closed migration roadmap are retained
+in the [historical records index](historical-records.md). Source-origin facts
+are covered in [source-facts](source-facts.md).

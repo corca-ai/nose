@@ -103,7 +103,9 @@ A Cargo workspace; data flows left-to-right through them.
 | `nose-markdown` | self-contained same-language Markdown prose near-duplicate domain (char-n-gram MinHash-LSH + winnowing + containment → TF-IDF rank → span witness), distinct from the value-graph code engine — see [markdown-duplication](markdown-duplication.md) |
 | `nose-cli` | the `nose` binary and process boundary: argument models, command dispatch, config/cache/baseline plumbing, query dashboard/JSON/open views, verify/oracle reporting, recall-loss reports, and local diagnostics |
 
-The current semantic assumptions these crates share are summarized in [semantic-kernel-snapshot](semantic-kernel-snapshot.md).
+The current semantic assumptions these crates share are maintained in
+[semantic kernel](semantic-kernel.md) and
+[semantic-pack architecture](semantic-pack-architecture.md) as current contracts.
 The incremental crate/module split is ratcheted in [refactoring-ratchets](refactoring-ratchets.md);
 new code should follow the focused owners there rather than growing dispatcher or facade roots.
 

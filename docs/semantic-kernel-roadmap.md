@@ -1,7 +1,17 @@
 # Semantic kernel roadmap
 
-This page tracks decisions, history, and remaining work for the semantic kernel
-and pack ecosystem.
+> **Historical record.** This page preserves the #473 migration decisions,
+> completed tranches, phase notes, and then-open questions. #473 closed on
+> 2026-06-21; headings and anchors remain unchanged for existing citations.
+> Use [semantic kernel](semantic-kernel.md) and
+> [semantic-pack architecture](semantic-pack-architecture.md) for current
+> contracts, and the active pricing pages in the
+> [development and evidence index](development-and-evidence.md#planning-and-pricing) are
+> the current planning queue.
+
+This page tracks the decisions and history of the semantic-kernel and pack
+ecosystem migration. It is retained through the
+[historical records index](historical-records.md) as evidence.
 
 ## Decisions
 
@@ -63,6 +73,9 @@ Issue [#473](https://github.com/corca-ai/nose/issues/473) moves builtin and
 external language/library support onto one semantic-pack architecture. The target
 shape, terminology, trust-lane compatibility, contributor rule, product behavior
 gate, performance gate, and phase order live in [semantic-pack-architecture](semantic-pack-architecture.md).
+
+This heading is retained as a stable historical anchor. The tranche described
+below is closed; it is not the current implementation queue.
 
 The next code slices are intentionally incremental:
 

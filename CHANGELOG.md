@@ -7,6 +7,11 @@ break.
 ## [Unreleased]
 
 ### Changed
+- Added a checked documentation lifecycle catalog and freshness gate for every
+  wiki page, with explicit current-guide, maintained-reference, decision,
+  active-roadmap, and historical-record routing. Current guidance now stays on
+  the primary indexes while append-only experiment, dogfooding, release, audit,
+  and closeout evidence is routed through a dedicated historical index.
 - Moved divergent-edit tier, taxonomy, reason, and default-gate decisions into
   a deterministic `nose-detect` policy boundary with focused owner tests, while
   retaining CLI JSON/SARIF, Git, exit-status, and user-workflow contracts.

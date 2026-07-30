@@ -215,4 +215,5 @@ full sequence of gap closures (Java records, Rust `async` blocks, Go/JS/TS/C/Jav
 `switch`/`case` shapes, and more); the
 convergence-test discipline that keeps each one honest is in [contributing](contributing.md).
 
-For the planned pack-based language onboarding model, see [semantic-kernel-roadmap](semantic-kernel-roadmap.md).
+For the current pack-based language onboarding contract, see
+[semantic-pack architecture](semantic-pack-architecture.md) for the owner rules.

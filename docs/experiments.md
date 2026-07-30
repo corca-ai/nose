@@ -19,6 +19,11 @@ pipeline, with exact semantic matches coming from the value graph.
 > behavior`, `--no-contiguous`) — use [usage](usage.md) for the current CLI. The
 > **current** benchmark is the v5 refactoring-family labelset (`bench/labels/eval_by_language.py`),
 > see [benchmark](benchmark.md) (§AU onward).
+>
+> This append-only ledger is routed from the
+> [historical records index](historical-records.md). Its filename and lettered
+> anchors remain stable for existing citations; use the
+> [documentation home](home.md) for current product guidance.
 
 ## Measurement methodology
 
