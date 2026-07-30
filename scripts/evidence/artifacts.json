@@ -38,14 +38,14 @@
   "artifact_sets": [
     {
       "id": "repository-policy",
-      "globs": [".github/*.json", "scripts/*.json", "scripts/**/*.json"],
+      "globs": [".github/*.json", "scripts/*.json", "scripts/**/*.json", "tools/*.json"],
       "owner": "repository maintainers",
       "producer": "maintainer-authored policy or the command documented beside the receipt",
       "validator": "./scripts/check-ci-local.sh --gate evidence-artifacts",
       "consumers": ["local and hosted quality-gate orchestration"],
       "retention_policy": "Keep current policy plus any receipt required to interpret a checked release or gate result.",
-      "artifact_count": 6,
-      "inventory_sha256": "32e9a30bb60e4d5fdb07d3c1b66b213b816fdbef52b5073f0ef1f63aea58a764"
+      "artifact_count": 7,
+      "inventory_sha256": "181123568c50d3447eba9acb5e51be98e6bcc65d200a591bc1e20eaeb0e44694"
     },
     {
       "id": "benchmark-root",
@@ -199,7 +199,7 @@
       "consumers": ["documentation lifecycle and freshness gate"],
       "retention_policy": "Keep the current catalog synchronized with every Markdown page; retain supersession metadata while any historical record points to it.",
       "artifact_count": 1,
-      "inventory_sha256": "2ddc8b79bbf3b1a696ebe276ac7d9a256e5e0301e78a076d85c1eeebcecf7172"
+      "inventory_sha256": "005caffc0b018f7319077d461c662caa900631d9879c486db4fb8a4cfc9af166"
     },
     {
       "id": "documentation-examples",

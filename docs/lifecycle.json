@@ -2,7 +2,7 @@
   "schema_version": 1,
   "inventory": {
     "glob": "**/*.md",
-    "sha256": "1a54d4df4ae6e5db145cf33476bf9c9c3157af1513d97bc9dbb14b1fbacf4ba0"
+    "sha256": "e83e6c0dbac9b4f20cb86b7e79d126c37389cf1c079390a96102a4aedcd1093c"
   },
   "default": {
     "kind": "reference",
@@ -55,6 +55,7 @@
         "refactoring-ratchets.md",
         "repository-gates.md",
         "runtime-triage.md",
+        "tooling.md",
         "type4-semantic-pattern-loop.md"
       ]
     },

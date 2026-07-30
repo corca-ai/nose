@@ -7,6 +7,10 @@ break.
 ## [Unreleased]
 
 ### Changed
+- Centralized auxiliary development-tool versions and checksummed
+  macOS/Linux assets in one checked policy, with a read-only doctor, explicit
+  idempotent bootstrap, exact hosted CI consumption, drift self-tests, and
+  scheduled upstream-update reporting.
 - Added a checked documentation lifecycle catalog and freshness gate for every
   wiki page, with explicit current-guide, maintained-reference, decision,
   active-roadmap, and historical-record routing. Current guidance now stays on

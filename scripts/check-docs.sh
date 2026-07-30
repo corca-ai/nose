@@ -10,9 +10,10 @@
 #   ./scripts/check-docs.sh
 #
 # awiki is optional locally (this skips with a notice if absent); CI always runs
-# it, so the gate is enforced there regardless. Install it with:
-#   brew install corca-ai/tap/awiki
-#   # or: go install github.com/corca-ai/awiki/cmd/awiki@latest
+# it, so the gate is enforced there regardless. Diagnose/install the checked
+# version with:
+#   ./scripts/aux_tools.py doctor --only awiki
+#   ./scripts/bootstrap-tools.sh --only awiki
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -48,7 +49,7 @@ else
 fi
 
 if ! command -v awiki >/dev/null 2>&1; then
-    echo "skipped — awiki not installed (brew install corca-ai/tap/awiki)"
+    echo "skipped — awiki not installed (run ./scripts/bootstrap-tools.sh --only awiki)"
     exit 0
 fi
 

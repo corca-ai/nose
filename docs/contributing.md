@@ -57,7 +57,7 @@ a hand-maintained table here so the contributor guide cannot silently diverge
 from executable policy.
 
 The dev/CI Rust toolchain is pinned in `rust-toolchain.toml` (rustup installs it
-automatically). Repository evidence tools require Python 3.10 or newer; the
+automatically). Repository evidence tools require Python 3.10.0 or newer; the
 local gate checks this before dispatch because several validators rely on
 equal-length `zip(..., strict=True)` invariants. The **MSRV** (`rust-version`,
 currently 1.85) is deliberately older and checked by its own CI job. Bumping
@@ -107,20 +107,28 @@ can distinguish expected semantic expansion cost from accidental degradation.
 
 ### One-time tool install
 
-Python 3.10 or newer, `cargo-machete`, `cargo-deny`, `cargo-llvm-cov`, `shellcheck`,
+Python 3.10.0 or newer, Node.js, `cargo-machete`, `cargo-deny`,
+`cargo-llvm-cov`, `shellcheck`,
 [`awiki`](https://github.com/corca-ai/awiki), `elan`, and the MSRV Rust
 toolchain are required for `--full`. `--fast` requires the Rust toolchain plus
-Python 3.10 or newer, `awiki`, and `shellcheck`. Install the local CI tools with:
+Python 3.10.0 or newer, Node.js, `awiki`, and `shellcheck`.
+
+First diagnose the complete environment without changing it:
 
 ```sh
-cargo install cargo-machete cargo-deny cargo-llvm-cov
-rustup component add llvm-tools-preview   # cargo-llvm-cov needs this
-brew install python@3.14
-brew install shellcheck
-brew install corca-ai/tap/awiki   # or: go install github.com/corca-ai/awiki/cmd/awiki@latest
-curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh
-rustup toolchain install 1.85
+./scripts/aux_tools.py doctor
 ```
+
+Install only the checked versions with the explicit, idempotent bootstrap:
+
+```sh
+./scripts/bootstrap-tools.sh --with-toolchains
+```
+
+It never runs from an ordinary quality gate and never edits shell
+configuration. The checked pins, focused installs, dry runs, platform support,
+and update procedure are owned by the [auxiliary development tools
+guide](tooling.md).
 
 ### Git hooks
 

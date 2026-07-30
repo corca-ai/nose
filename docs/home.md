@@ -67,6 +67,8 @@ Human-readable output is for interactive use. Integrations should inspect
 These pages are not required reading for users:
 
 - [Contributing](contributing.md) — development workflow and quality gates.
+- [Auxiliary development tools](tooling.md) — checked local/CI tool versions,
+  diagnostics, and explicit bootstrap.
 - [Architecture](architecture.md) — crates and the analysis pipeline.
 - [Design and direction](design.md) — product principles and roadmap decisions.
 - [Development and evidence index](development-and-evidence.md) — internal

@@ -1,0 +1,79 @@
+name: Auxiliary tool updates
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/tool-updates.yml"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/corpus-verify.yml"
+      - "scripts/aux_tools.py"
+      - "scripts/bootstrap-tools.sh"
+      - "tools/auxiliary-tools.json"
+  schedule:
+    - cron: "31 16 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap-smoke:
+    name: bootstrap smoke · ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install and diagnose pinned release tools
+        run: |
+          bin_dir="$RUNNER_TEMP/nose-aux-bin"
+          ./scripts/bootstrap-tools.sh --only awiki,elan,shellcheck --bin-dir "$bin_dir"
+          PATH="$bin_dir:$PATH" \
+            python3 scripts/aux_tools.py doctor --only awiki,elan,shellcheck
+          ./scripts/bootstrap-tools.sh --only awiki,elan,shellcheck --bin-dir "$bin_dir"
+      - name: Exercise every supported asset plan
+        run: |
+          for target in \
+            darwin-aarch64 darwin-x86_64 linux-aarch64 linux-x86_64; do
+            ./scripts/bootstrap-tools.sh \
+              --only awiki,elan,shellcheck \
+              --dry-run \
+              --platform "$target" \
+              --bin-dir "$RUNNER_TEMP/dry-$target"
+          done
+
+  check:
+    name: compare checked auxiliary-tool pins
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Validate checked policy
+        run: |
+          python3 scripts/aux_tools.py selftest
+          python3 scripts/aux_tools.py check-policy
+      - name: Report upstream versions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p target/aux-tool-updates
+          update_status=0
+          python3 scripts/aux_tools.py check-updates \
+            --markdown \
+            --fail-on-update \
+            > target/aux-tool-updates/report.md || update_status=$?
+          cat target/aux-tool-updates/report.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$update_status"
+      - name: Upload update report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: auxiliary-tool-updates-${{ github.run_id }}
+          path: target/aux-tool-updates/report.md
+          if-no-files-found: error
+          retention-days: 30
