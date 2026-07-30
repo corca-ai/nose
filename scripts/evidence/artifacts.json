@@ -191,6 +191,17 @@
       "inventory_sha256": "e0d4fe960a83e79215bb96d35be4ce99fea27032a1b95a1b3427713b59294f7d"
     },
     {
+      "id": "documentation-policy",
+      "globs": ["docs/lifecycle.json"],
+      "owner": "documentation maintainers",
+      "producer": "maintainer-authored checked lifecycle policy",
+      "validator": "./scripts/check-docs.sh",
+      "consumers": ["documentation lifecycle and freshness gate"],
+      "retention_policy": "Keep the current catalog synchronized with every Markdown page; retain supersession metadata while any historical record points to it.",
+      "artifact_count": 1,
+      "inventory_sha256": "2ddc8b79bbf3b1a696ebe276ac7d9a256e5e0301e78a076d85c1eeebcecf7172"
+    },
+    {
       "id": "documentation-examples",
       "globs": ["docs/examples/*.json", "docs/examples/**/*.json", "docs/examples/*/*/*.json", "docs/examples/*.jsonl", "docs/examples/**/*.jsonl", "docs/examples/*/*/*.jsonl", "docs/examples/*.sha256", "docs/examples/**/*.sha256", "docs/examples/*/*/*.sha256"],
       "owner": "documentation and semantic-pack maintainers",
