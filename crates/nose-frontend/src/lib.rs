@@ -1,6 +1,6 @@
 //! Frontends: parse source with tree-sitter and lower each file's CST into raw
 //! IL. One [`Il`] per file; files are lowered in parallel and collected into a
-//! [`Corpus`] sharing a single interner.
+//! [`nose_il::Corpus`] sharing a single interner.
 
 mod c;
 mod corpus;
