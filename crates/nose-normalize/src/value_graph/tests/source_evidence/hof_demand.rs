@@ -65,31 +65,9 @@ fn raw_hof_value_graph_requires_source_or_api_admission() {
     );
 }
 
-fn map_len_il_with_lambda(
-    lambda: impl FnOnce(&mut IlBuilder) -> NodeId,
-    lang: Lang,
-) -> (Il, NodeId, NodeId) {
-    let mut b = IlBuilder::new(FileId(0));
-    let item = b.add(NodeKind::Lit, Payload::LitInt(1), sp(1), &[]);
-    let coll = b.add(NodeKind::Seq, Payload::None, sp(1), &[item]);
-    let lambda = lambda(&mut b);
-    let hof = b.add(
-        NodeKind::HoF,
-        Payload::HoF(HoFKind::Map),
-        sp(3),
-        &[coll, lambda],
-    );
-    let count = b.add(
-        NodeKind::Call,
-        Payload::Builtin(Builtin::Len),
-        sp(4),
-        &[hof],
-    );
-    (finish_test_il(b, count, lang), hof, count)
-}
-
 fn div_zero_map_len_il() -> (Il, NodeId) {
-    let (il, hof, _count) = map_len_il_with_lambda(|b| div_zero_lambda(b, 2, sp(2)), Lang::Rust);
+    let (il, hof, _count) =
+        map_len_test_il_with_lambda(|b| div_zero_lambda(b, 2, sp(2)), Lang::Rust);
     (il, hof)
 }
 
@@ -308,7 +286,8 @@ fn raw_builtin_payload_does_not_prove_static_error_demand() {
 #[test]
 fn len_of_library_hof_requires_materialized_demand_profile() {
     let interner = Interner::new();
-    let (mut il, hof, count) = map_len_il_with_lambda(|b| identity_lambda(b, 2, sp(2)), Lang::Rust);
+    let (mut il, hof, count) =
+        map_len_test_il_with_lambda(|b| identity_lambda(b, 2, sp(2)), Lang::Rust);
     push_map_contract_evidence(&mut il, Lang::Rust, hof, "Rust map contract");
     let mut builder = Builder::new(&il, &interner);
     assert!(

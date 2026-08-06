@@ -1,9 +1,9 @@
 use super::*;
 
-// A long, flat sequence of independent convergence assertions — its cognitive
-// complexity (133) and line count are breadth, not deep branching, so it sits
-// above the production-oriented gates. Splitting it would not aid readability.
-#[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
+// This is one behavior matrix so every case uses the same interner and explicit
+// reference fingerprints. The case DSL keeps the breadth visible and gives each
+// failure a source identifier and language without hiding the source snippets.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn collection_membership_set_construction_converges_with_boundaries() {
     let i = Interner::new();
@@ -183,385 +183,258 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let ruby_set_mutated = "require \"set\"\n\ndef f(value, other)\n  values = Set.new([\"red\", \"blue\"])\n  values.add(\"green\")\n  values.include?(value)\nend\n";
 
     let literal_fp = value_fp(&i, py_literal, Lang::Python);
-    assert_eq!(literal_fp, value_fp(&i, py_set_factory, Lang::Python));
-    assert_eq!(literal_fp, value_fp(&i, py_tuple_factory, Lang::Python));
-    assert_eq!(literal_fp, value_fp(&i, py_frozenset_factory, Lang::Python));
-    assert_eq!(literal_fp, value_fp(&i, py_deque_import, Lang::Python));
-    assert_eq!(literal_fp, value_fp(&i, py_deque_alias, Lang::Python));
-    assert_eq!(literal_fp, value_fp(&i, py_deque_namespace, Lang::Python));
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, py_module_tuple, Lang::Python),
-        "module-bound tuple literals no longer reopen as membership collections without surface/domain evidence"
+    assert_fingerprint_cases_converge(
+        &i,
+        &literal_fp,
+        [
+            fp_case!(py_set_factory, Python),
+            fp_case!(py_tuple_factory, Python),
+            fp_case!(py_frozenset_factory, Python),
+            fp_case!(py_deque_import, Python),
+            fp_case!(py_deque_alias, Python),
+            fp_case!(py_deque_namespace, Python),
+            fp_case!(py_module_set, Python),
+            fp_case!(js_set_inline, JavaScript),
+            fp_case!(js_set_local, JavaScript),
+            fp_case!(js_module_set, JavaScript),
+            fp_case!(ts_module_set, TypeScript),
+            fp_case!(js_array_some, JavaScript),
+            fp_case!(ts_array_some, TypeScript),
+            fp_case!(js_array_indexof_ne, JavaScript),
+            fp_case!(ts_array_indexof_ge, TypeScript),
+            fp_case!(js_array_indexof_gt, JavaScript),
+            fp_case!(js_array_indexof_reversed, JavaScript),
+            fp_case!(js_array_findindex_ne, JavaScript),
+            fp_case!(ts_array_findindex_ge, TypeScript),
+            fp_case!(js_array_findindex_gt, JavaScript),
+            fp_case!(js_array_findindex_reversed, JavaScript),
+            fp_case!(js_array_filter_length_ne, JavaScript),
+            fp_case!(ts_array_filter_length_ge, TypeScript),
+            fp_case!(js_array_filter_length_gt, JavaScript),
+            fp_case!(js_array_filter_length_reversed, JavaScript),
+            fp_case!(java_list_of, Java),
+            fp_case!(java_set_of, Java),
+            fp_case!(java_arrays_aslist, Java),
+            fp_case!(java_module_list, Java),
+            fp_case!(go_slices_package, Go),
+            fp_case!(go_slices_alias, Go),
+            fp_case!(go_slices_const, Go),
+            fp_case!(go_slices_local, Go),
+            fp_case!(java_local_list, Java),
+            fp_case!(rust_local_array, Rust),
+            fp_case!(rust_local_typed_array, Rust),
+            fp_case!(rust_local_slice_ref, Rust),
+            fp_case!(rust_local_vec, Rust),
+            fp_case!(rust_std_hashset, Rust),
+            fp_case!(rust_std_btreeset, Rust),
+            fp_case!(rust_std_vecdeque, Rust),
+            fp_case!(swift_array_literal, Swift),
+            fp_case!(swift_local_array, Swift),
+            fp_case!(ruby_member, Ruby),
+            fp_case!(ruby_set_new_include, Ruby),
+            fp_case!(ruby_set_new_member, Ruby),
+            fp_case!(ruby_set_local, Ruby),
+        ],
     );
-    assert_eq!(literal_fp, value_fp(&i, py_module_set, Lang::Python));
-    assert_eq!(literal_fp, value_fp(&i, js_set_inline, Lang::JavaScript));
-    assert_eq!(literal_fp, value_fp(&i, js_set_local, Lang::JavaScript));
-    assert_eq!(literal_fp, value_fp(&i, js_module_set, Lang::JavaScript));
-    assert_eq!(literal_fp, value_fp(&i, ts_module_set, Lang::TypeScript));
-    assert_ne!(literal_fp, value_fp(&i, js_set_call, Lang::JavaScript));
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_array_contains, Lang::JavaScript),
-        "JavaScript .contains is not a standard array membership contract"
+    assert_fingerprint_cases_stay_split(
+        &i,
+        &literal_fp,
+        [
+            fingerprint_case(
+                "module tuple lacks surface/domain evidence",
+                py_module_tuple,
+                Lang::Python,
+            ),
+            fp_case!(js_set_call, JavaScript),
+            fingerprint_case(
+                "Array.contains is not a standard JavaScript contract",
+                js_array_contains,
+                Lang::JavaScript,
+            ),
+            fingerprint_case(
+                "sequence expression is not a static JavaScript array",
+                js_sequence_indexof_ne,
+                Lang::JavaScript,
+            ),
+            named_fingerprint_case(
+                "shadowed Rust std module",
+                rust_std_shadowed,
+                Lang::Rust,
+                "f",
+            ),
+            fp_case!(js_wrong_element, JavaScript),
+            fp_case!(js_wrong_collection, JavaScript),
+            fingerprint_case(
+                "construct syntax does not prove a shadowed JavaScript Set",
+                js_global_shadowed_set,
+                Lang::JavaScript,
+            ),
+            fp_case!(js_array_some_wrong_element, JavaScript),
+            fp_case!(js_array_some_wrong_collection, JavaScript),
+            fp_case!(js_array_indexof_wrong_element, JavaScript),
+            fp_case!(js_array_indexof_wrong_collection, JavaScript),
+            fp_case!(js_array_indexof_value, JavaScript),
+            fp_case!(js_array_findindex_wrong_element, JavaScript),
+            fp_case!(js_array_findindex_wrong_collection, JavaScript),
+            fp_case!(js_array_findindex_value, JavaScript),
+            fp_case!(js_array_filter_length_wrong_element, JavaScript),
+            fp_case!(js_array_filter_length_wrong_collection, JavaScript),
+            fp_case!(js_array_filter_length_value, JavaScript),
+            fp_case!(js_array_filter_length_zero, JavaScript),
+        ],
     );
-    assert_eq!(literal_fp, value_fp(&i, js_array_some, Lang::JavaScript));
-    assert_eq!(literal_fp, value_fp(&i, ts_array_some, Lang::TypeScript));
-    assert_eq!(
-        literal_fp,
-        value_fp(&i, js_array_indexof_ne, Lang::JavaScript)
+    let nan_membership_fp = value_fp(&i, js_nan_includes, Lang::JavaScript);
+    assert_fingerprint_cases_stay_split(
+        &i,
+        &nan_membership_fp,
+        [
+            fp_case!(js_nan_some, JavaScript),
+            fp_case!(js_nan_indexof, JavaScript),
+            fp_case!(js_nan_findindex, JavaScript),
+            fp_case!(js_nan_filter_length, JavaScript),
+        ],
     );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_sequence_indexof_ne, Lang::JavaScript),
-        "JS sequence expressions must not prove static array membership"
-    );
-    assert_eq!(
-        literal_fp,
-        value_fp(&i, ts_array_indexof_ge, Lang::TypeScript)
-    );
-    assert_eq!(
-        literal_fp,
-        value_fp(&i, js_array_indexof_gt, Lang::JavaScript)
-    );
-    assert_eq!(
-        literal_fp,
-        value_fp(&i, js_array_indexof_reversed, Lang::JavaScript)
-    );
-    assert_eq!(
-        literal_fp,
-        value_fp(&i, js_array_findindex_ne, Lang::JavaScript)
-    );
-    assert_eq!(
-        literal_fp,
-        value_fp(&i, ts_array_findindex_ge, Lang::TypeScript)
-    );
-    assert_eq!(
-        literal_fp,
-        value_fp(&i, js_array_findindex_gt, Lang::JavaScript)
-    );
-    assert_eq!(
-        literal_fp,
-        value_fp(&i, js_array_findindex_reversed, Lang::JavaScript)
-    );
-    assert_eq!(
-        literal_fp,
-        value_fp(&i, js_array_filter_length_ne, Lang::JavaScript)
-    );
-    assert_eq!(
-        literal_fp,
-        value_fp(&i, ts_array_filter_length_ge, Lang::TypeScript)
-    );
-    assert_eq!(
-        literal_fp,
-        value_fp(&i, js_array_filter_length_gt, Lang::JavaScript)
-    );
-    assert_eq!(
-        literal_fp,
-        value_fp(&i, js_array_filter_length_reversed, Lang::JavaScript)
-    );
-    assert_eq!(literal_fp, value_fp(&i, java_list_of, Lang::Java));
-    assert_eq!(literal_fp, value_fp(&i, java_set_of, Lang::Java));
-    assert_eq!(literal_fp, value_fp(&i, java_arrays_aslist, Lang::Java));
-    assert_eq!(literal_fp, value_fp(&i, java_module_list, Lang::Java));
-    assert_eq!(literal_fp, value_fp(&i, go_slices_package, Lang::Go));
-    assert_eq!(literal_fp, value_fp(&i, go_slices_alias, Lang::Go));
-    assert_eq!(literal_fp, value_fp(&i, go_slices_const, Lang::Go));
-    assert_eq!(literal_fp, value_fp(&i, go_slices_local, Lang::Go));
-    assert_eq!(literal_fp, value_fp(&i, java_local_list, Lang::Java));
-    assert_eq!(literal_fp, value_fp(&i, rust_local_array, Lang::Rust));
-    assert_eq!(literal_fp, value_fp(&i, rust_local_typed_array, Lang::Rust));
-    assert_eq!(literal_fp, value_fp(&i, rust_local_slice_ref, Lang::Rust));
-    assert_eq!(literal_fp, value_fp(&i, rust_local_vec, Lang::Rust));
-    assert_eq!(literal_fp, value_fp(&i, rust_std_hashset, Lang::Rust));
-    assert_eq!(literal_fp, value_fp(&i, rust_std_btreeset, Lang::Rust));
-    assert_eq!(literal_fp, value_fp(&i, rust_std_vecdeque, Lang::Rust));
-    assert_eq!(literal_fp, value_fp(&i, swift_array_literal, Lang::Swift));
-    assert_eq!(literal_fp, value_fp(&i, swift_local_array, Lang::Swift));
-    assert_ne!(
-        literal_fp,
-        value_fp_named(&i, rust_std_shadowed, Lang::Rust, "f"),
-        "a local Rust std module must not be treated as the standard library"
-    );
-    assert_eq!(literal_fp, value_fp(&i, ruby_member, Lang::Ruby));
-    assert_eq!(literal_fp, value_fp(&i, ruby_set_new_include, Lang::Ruby));
-    assert_eq!(literal_fp, value_fp(&i, ruby_set_new_member, Lang::Ruby));
-    assert_eq!(literal_fp, value_fp(&i, ruby_set_local, Lang::Ruby));
-    assert_ne!(literal_fp, value_fp(&i, js_wrong_element, Lang::JavaScript));
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_wrong_collection, Lang::JavaScript)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_global_shadowed_set, Lang::JavaScript),
-        "construct syntax alone must not prove a shadowed JS Set global"
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_array_some_wrong_element, Lang::JavaScript)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_array_some_wrong_collection, Lang::JavaScript)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_array_indexof_wrong_element, Lang::JavaScript)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_array_indexof_wrong_collection, Lang::JavaScript)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_array_indexof_value, Lang::JavaScript)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_array_findindex_wrong_element, Lang::JavaScript)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_array_findindex_wrong_collection, Lang::JavaScript)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_array_findindex_value, Lang::JavaScript)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_array_filter_length_wrong_element, Lang::JavaScript)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(
-            &i,
-            js_array_filter_length_wrong_collection,
-            Lang::JavaScript
-        )
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_array_filter_length_value, Lang::JavaScript)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_array_filter_length_zero, Lang::JavaScript)
-    );
-    assert_ne!(
-        value_fp(&i, js_nan_includes, Lang::JavaScript),
-        value_fp(&i, js_nan_some, Lang::JavaScript)
-    );
-    assert_ne!(
-        value_fp(&i, js_nan_includes, Lang::JavaScript),
-        value_fp(&i, js_nan_indexof, Lang::JavaScript)
-    );
-    assert_ne!(
-        value_fp(&i, js_nan_includes, Lang::JavaScript),
-        value_fp(&i, js_nan_findindex, Lang::JavaScript)
-    );
-    assert_ne!(
-        value_fp(&i, js_nan_includes, Lang::JavaScript),
-        value_fp(&i, js_nan_filter_length, Lang::JavaScript)
-    );
-    assert_ne!(
-        value_fp(&i, js_nan_not_includes, Lang::JavaScript),
-        value_fp(&i, js_nan_filter_length_absence, Lang::JavaScript)
+    let nan_absence_fp = value_fp(&i, js_nan_not_includes, Lang::JavaScript);
+    assert_fingerprint_cases_stay_split(
+        &i,
+        &nan_absence_fp,
+        [
+            fp_case!(js_nan_filter_length_absence, JavaScript),
+            fp_case!(js_nan_every, JavaScript),
+        ],
     );
     let absence_fp = value_fp(&i, py_absence, Lang::Python);
-    assert_ne!(literal_fp, absence_fp);
-    assert_eq!(absence_fp, value_fp(&i, js_not_includes, Lang::JavaScript));
-    assert_eq!(
-        absence_fp,
-        value_fp(&i, js_array_every_absence, Lang::JavaScript)
-    );
-    assert_eq!(
-        absence_fp,
-        value_fp(&i, ts_array_every_absence, Lang::TypeScript)
-    );
-    assert_eq!(
-        absence_fp,
-        value_fp(&i, js_array_filter_length_absence_eq, Lang::JavaScript)
-    );
-    assert_eq!(
-        absence_fp,
-        value_fp(&i, ts_array_filter_length_absence_le, Lang::TypeScript)
-    );
-    assert_eq!(
-        absence_fp,
-        value_fp(&i, js_array_filter_length_absence_lt, Lang::JavaScript)
-    );
-    assert_eq!(
-        absence_fp,
-        value_fp(
-            &i,
-            js_array_filter_length_absence_reversed,
-            Lang::JavaScript
-        )
-    );
     assert_ne!(
-        absence_fp,
-        value_fp(&i, js_array_every_wrong_element, Lang::JavaScript)
+        literal_fp, absence_fp,
+        "membership and absence must stay split"
     );
-    assert_ne!(
-        absence_fp,
-        value_fp(&i, js_array_every_wrong_collection, Lang::JavaScript)
+    assert_fingerprint_cases_converge(
+        &i,
+        &absence_fp,
+        [
+            fp_case!(js_not_includes, JavaScript),
+            fp_case!(js_array_every_absence, JavaScript),
+            fp_case!(ts_array_every_absence, TypeScript),
+            fp_case!(js_array_filter_length_absence_eq, JavaScript),
+            fp_case!(ts_array_filter_length_absence_le, TypeScript),
+            fp_case!(js_array_filter_length_absence_lt, JavaScript),
+            fp_case!(js_array_filter_length_absence_reversed, JavaScript),
+        ],
     );
-    assert_ne!(
-        absence_fp,
-        value_fp(
-            &i,
-            js_array_filter_length_absence_wrong_element,
-            Lang::JavaScript
-        )
+    assert_fingerprint_cases_stay_split(
+        &i,
+        &absence_fp,
+        [
+            fp_case!(js_array_every_wrong_element, JavaScript),
+            fp_case!(js_array_every_wrong_collection, JavaScript),
+            fp_case!(js_array_filter_length_absence_wrong_element, JavaScript),
+            fp_case!(js_array_filter_length_absence_wrong_collection, JavaScript),
+        ],
     );
-    assert_ne!(
-        absence_fp,
-        value_fp(
-            &i,
-            js_array_filter_length_absence_wrong_collection,
-            Lang::JavaScript
-        )
-    );
-    assert_ne!(
-        value_fp(&i, js_nan_not_includes, Lang::JavaScript),
-        value_fp(&i, js_nan_every, Lang::JavaScript)
-    );
-    assert_ne!(literal_fp, value_fp(&i, js_shadowed_set, Lang::JavaScript));
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_module_set_mutated, Lang::JavaScript)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_module_array_fill_mutated, Lang::JavaScript),
-        "JS Array.fill must invalidate module/local collection proofs"
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, js_local_array_copywithin_mutated, Lang::JavaScript),
-        "JS Array.copyWithin must invalidate local collection proofs"
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, ts_module_set_shadowed, Lang::TypeScript)
-    );
-    assert_ne!(literal_fp, value_fp(&i, java_wrong_element, Lang::Java));
-    assert_ne!(literal_fp, value_fp(&i, java_wrong_collection, Lang::Java));
-    assert_ne!(literal_fp, value_fp(&i, java_shadowed_list, Lang::Java));
-    assert_ne!(literal_fp, value_fp(&i, java_local_list_class, Lang::Java));
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, java_module_list_shadowed, Lang::Java)
+    assert_fingerprint_cases_stay_split(
+        &i,
+        &literal_fp,
+        [
+            fp_case!(js_shadowed_set, JavaScript),
+            fp_case!(js_module_set_mutated, JavaScript),
+            fingerprint_case(
+                "Array.fill invalidates collection evidence",
+                js_module_array_fill_mutated,
+                Lang::JavaScript,
+            ),
+            fingerprint_case(
+                "Array.copyWithin invalidates collection evidence",
+                js_local_array_copywithin_mutated,
+                Lang::JavaScript,
+            ),
+            fp_case!(ts_module_set_shadowed, TypeScript),
+            fp_case!(java_wrong_element, Java),
+            fp_case!(java_wrong_collection, Java),
+            fp_case!(java_shadowed_list, Java),
+            fp_case!(java_local_list_class, Java),
+            fp_case!(java_module_list_shadowed, Java),
+        ],
     );
     let singleton_literal = "def f(value, other):\n    return value in [\"red\"]\n";
     let singleton_fp = value_fp(&i, singleton_literal, Lang::Python);
-    assert_eq!(
-        singleton_fp,
-        value_fp(&i, java_collections_singleton, Lang::Java)
+    assert_fingerprint_cases_converge(
+        &i,
+        &singleton_fp,
+        [
+            fp_case!(java_collections_singleton, Java),
+            fp_case!(java_collections_singleton_list, Java),
+        ],
     );
-    assert_eq!(
-        singleton_fp,
-        value_fp(&i, java_collections_singleton_list, Lang::Java)
-    );
-    assert_ne!(
-        singleton_fp,
-        value_fp_named(&i, java_collections_missing_import, Lang::Java, "f")
-    );
-    assert_ne!(
-        singleton_fp,
-        value_fp(&i, java_collections_shadowed_receiver, Lang::Java)
+    assert_fingerprint_cases_stay_split(
+        &i,
+        &singleton_fp,
+        [
+            named_fingerprint_case(
+                "unimported Java Collections",
+                java_collections_missing_import,
+                Lang::Java,
+                "f",
+            ),
+            fp_case!(java_collections_shadowed_receiver, Java),
+        ],
     );
     let empty_literal = "def f(value, other):\n    return value in []\n";
     let empty_fp = value_fp(&i, empty_literal, Lang::Python);
-    assert_eq!(
-        empty_fp,
-        value_fp(&i, java_collections_empty_list, Lang::Java)
+    assert_fingerprint_cases_converge(
+        &i,
+        &empty_fp,
+        [
+            fp_case!(java_collections_empty_list, Java),
+            fp_case!(java_collections_empty_set, Java),
+        ],
     );
-    assert_eq!(
-        empty_fp,
-        value_fp(&i, java_collections_empty_set, Lang::Java)
+    assert_fingerprint_cases_stay_split(
+        &i,
+        &literal_fp,
+        [
+            fp_case!(py_factory_wrong_element, Python),
+            fp_case!(py_factory_wrong_collection, Python),
+            fp_case!(py_factory_shadowed, Python),
+            fp_case!(py_deque_wrong_element, Python),
+            fp_case!(py_deque_wrong_collection, Python),
+            fp_case!(py_deque_missing_import, Python),
+            named_fingerprint_case(
+                "shadowed Python deque",
+                py_deque_shadowed,
+                Lang::Python,
+                "f",
+            ),
+            fp_case!(py_deque_mutated, Python),
+            fp_case!(py_module_mutated, Python),
+            fp_case!(go_slices_wrong_element, Go),
+            fp_case!(go_slices_wrong_collection, Go),
+            fp_case!(go_slices_mutated, Go),
+            fp_case!(go_slices_local_mutated, Go),
+            fp_case!(go_slices_unimported, Go),
+            fp_case!(java_local_list_mutated, Java),
+            fp_case!(rust_local_wrong_element, Rust),
+            fp_case!(rust_local_wrong_collection, Rust),
+            fp_case!(rust_local_mutated, Rust),
+            fp_case!(rust_local_custom_receiver, Rust),
+            fp_case!(rust_std_wrong_element, Rust),
+            fp_case!(rust_std_wrong_collection, Rust),
+            fp_case!(rust_std_mutated, Rust),
+            fp_case!(swift_wrong_element, Swift),
+            fp_case!(swift_wrong_collection, Swift),
+            fp_case!(swift_mutated, Swift),
+            named_fingerprint_case(
+                "custom Swift receiver",
+                swift_custom_receiver,
+                Lang::Swift,
+                "f",
+            ),
+            fp_case!(ruby_set_wrong_element, Ruby),
+            fp_case!(ruby_set_wrong_collection, Ruby),
+            fp_case!(ruby_set_missing_require, Ruby),
+            fp_case!(ruby_set_shadowed, Ruby),
+            fp_case!(ruby_set_mutated, Ruby),
+        ],
     );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, py_factory_wrong_element, Lang::Python)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, py_factory_wrong_collection, Lang::Python)
-    );
-    assert_ne!(literal_fp, value_fp(&i, py_factory_shadowed, Lang::Python));
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, py_deque_wrong_element, Lang::Python)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, py_deque_wrong_collection, Lang::Python)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, py_deque_missing_import, Lang::Python)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp_named(&i, py_deque_shadowed, Lang::Python, "f")
-    );
-    assert_ne!(literal_fp, value_fp(&i, py_deque_mutated, Lang::Python));
-    assert_ne!(literal_fp, value_fp(&i, py_module_mutated, Lang::Python));
-    assert_ne!(literal_fp, value_fp(&i, go_slices_wrong_element, Lang::Go));
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, go_slices_wrong_collection, Lang::Go)
-    );
-    assert_ne!(literal_fp, value_fp(&i, go_slices_mutated, Lang::Go));
-    assert_ne!(literal_fp, value_fp(&i, go_slices_local_mutated, Lang::Go));
-    assert_ne!(literal_fp, value_fp(&i, go_slices_unimported, Lang::Go));
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, java_local_list_mutated, Lang::Java)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, rust_local_wrong_element, Lang::Rust)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, rust_local_wrong_collection, Lang::Rust)
-    );
-    assert_ne!(literal_fp, value_fp(&i, rust_local_mutated, Lang::Rust));
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, rust_local_custom_receiver, Lang::Rust)
-    );
-    assert_ne!(literal_fp, value_fp(&i, rust_std_wrong_element, Lang::Rust));
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, rust_std_wrong_collection, Lang::Rust)
-    );
-    assert_ne!(literal_fp, value_fp(&i, rust_std_mutated, Lang::Rust));
-    assert_ne!(literal_fp, value_fp(&i, swift_wrong_element, Lang::Swift));
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, swift_wrong_collection, Lang::Swift)
-    );
-    assert_ne!(literal_fp, value_fp(&i, swift_mutated, Lang::Swift));
-    assert_ne!(
-        literal_fp,
-        value_fp_named(&i, swift_custom_receiver, Lang::Swift, "f")
-    );
-    assert_ne!(literal_fp, value_fp(&i, ruby_set_wrong_element, Lang::Ruby));
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, ruby_set_wrong_collection, Lang::Ruby)
-    );
-    assert_ne!(
-        literal_fp,
-        value_fp(&i, ruby_set_missing_require, Lang::Ruby)
-    );
-    assert_ne!(literal_fp, value_fp(&i, ruby_set_shadowed, Lang::Ruby));
-    assert_ne!(literal_fp, value_fp(&i, ruby_set_mutated, Lang::Ruby));
 
     let ts_array = "function f(values: string[], value: string, other: string): boolean { return values.includes(value); }";
     let ts_set = "function f(values: Set<string>, value: string, other: string): boolean { return values.has(value); }";
@@ -578,19 +451,28 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let py_alias_unresolved = "def f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in values\n";
     let py_alias_shadowed = "from typing import Sequence as Values\nValues = str\n\ndef f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in values\n";
     let typed_fp = value_fp(&i, ts_array, Lang::TypeScript);
-    assert_eq!(typed_fp, value_fp(&i, ts_set, Lang::TypeScript));
-    assert_eq!(typed_fp, value_fp(&i, py_tuple, Lang::Python));
-    assert_eq!(typed_fp, value_fp(&i, py_alias_sequence, Lang::Python));
-    assert_eq!(typed_fp, value_fp(&i, py_alias_container, Lang::Python));
-    assert_eq!(typed_fp, value_fp(&i, py_alias_set, Lang::Python));
-    assert_eq!(typed_fp, value_fp(&i, java_queue, Lang::Java));
-    assert_eq!(typed_fp, value_fp(&i, rust_vecdeque, Lang::Rust));
-    assert_ne!(typed_fp, value_fp(&i, ts_untyped, Lang::TypeScript));
-    assert_ne!(typed_fp, value_fp(&i, py_alias_wrong_element, Lang::Python));
-    assert_ne!(
-        typed_fp,
-        value_fp(&i, py_alias_wrong_receiver, Lang::Python)
+    assert_fingerprint_cases_converge(
+        &i,
+        &typed_fp,
+        [
+            fp_case!(ts_set, TypeScript),
+            fp_case!(py_tuple, Python),
+            fp_case!(py_alias_sequence, Python),
+            fp_case!(py_alias_container, Python),
+            fp_case!(py_alias_set, Python),
+            fp_case!(java_queue, Java),
+            fp_case!(rust_vecdeque, Rust),
+        ],
     );
-    assert_ne!(typed_fp, value_fp(&i, py_alias_unresolved, Lang::Python));
-    assert_ne!(typed_fp, value_fp(&i, py_alias_shadowed, Lang::Python));
+    assert_fingerprint_cases_stay_split(
+        &i,
+        &typed_fp,
+        [
+            fp_case!(ts_untyped, TypeScript),
+            fp_case!(py_alias_wrong_element, Python),
+            fp_case!(py_alias_wrong_receiver, Python),
+            fp_case!(py_alias_unresolved, Python),
+            fp_case!(py_alias_shadowed, Python),
+        ],
+    );
 }

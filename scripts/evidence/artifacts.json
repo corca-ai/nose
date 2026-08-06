@@ -45,7 +45,7 @@
       "consumers": ["local and hosted quality-gate orchestration"],
       "retention_policy": "Keep current policy plus any receipt required to interpret a checked release or gate result.",
       "artifact_count": 7,
-      "inventory_sha256": "f714168c1d95730f4589c34db60dd0330b8c9832b36af929601fdf8bdc921e83"
+      "inventory_sha256": "c6ef78c7ea156b07c321a59f47821cc5735db70054c57810077a1c3c329472d9"
     },
     {
       "id": "benchmark-root",
@@ -188,7 +188,7 @@
       "consumers": ["Type-4 frontier, query-regression, and adversarial gates"],
       "retention_policy": "Preserve current gold/frontier inputs and any sealed or closeout evidence.",
       "artifact_count": 29,
-      "inventory_sha256": "e0d4fe960a83e79215bb96d35be4ce99fea27032a1b95a1b3427713b59294f7d"
+      "inventory_sha256": "ca09004a744517e72e4e20b6a3349333d86751a433130a86592d5d727146da80"
     },
     {
       "id": "documentation-policy",

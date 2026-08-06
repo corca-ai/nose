@@ -28,13 +28,12 @@ cannot mask a newly introduced duplicate.
 
 ## Current baseline
 
-The current reviewed default-surface budget is 29 families, matching
-`scripts/duplication-baseline.json`. The #943 release closeout kept the budget
-at 28 while recording representative movement for the cross-engine candidate
-enumeration, context/export assignment counting, and divergence preload
-families. The post-v0.20 cleanup moved two existing frontend representatives
-and added one reviewed two-line surface-policy span; the detailed judgment is
-recorded in the history below.
+The current default surface reports 16 reviewed families within a hard budget
+of 20, as recorded in `scripts/duplication-baseline.json`. Shared semantic-query,
+Promise, provenance, binding-domain, HOF, and call-target fixtures remove
+repeated test workflows. Shared frontend CST adapters and one callee-identity
+matcher own the common production mechanics without erasing language-specific
+policy. The detailed family movement is recorded in the history below.
 
 The accepted family IDs are intentionally kept in the
 [`scripts/duplication-baseline.json`](../scripts/duplication-baseline.json) baseline

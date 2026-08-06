@@ -1,7 +1,12 @@
-use super::*;
-use crate::{minhash, units};
-use nose_il::{Il, Interner};
+use crate::{
+    contiguous::{self, Stream},
+    minhash,
+    options::DetectOptions,
+    units::{self, UnitFeat},
+};
+use nose_il::{Corpus, Il, Interner};
 use nose_normalize::NormalizeOptions;
+use rayon::prelude::*;
 
 /// Build one file's syntax-channel token stream from its (raw) IL. Exposed so the
 /// CLI's `--cache-dir` can cache it per file and pass it to [`super::detect_from_units`] —

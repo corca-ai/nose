@@ -7,7 +7,11 @@ pub(super) use nose_semantics::{
     call_target_evidence_at_call, direct_function_call_target_at_call,
     imported_function_call_target_at_call, imported_member_call_target_at_call,
     language_core_evidence_provenance,
-    test_support::compat_test_evidence_with_dependencies as evidence_with_dependencies,
+    test_support::{
+        compat_test_evidence_with_dependencies as evidence_with_dependencies,
+        direct_function_call_target_test_il, DirectFunctionCallTargetFixture,
+        DirectFunctionFixtureScope, DirectFunctionFixtureSelector,
+    },
 };
 
 pub(super) fn sp(n: u32) -> Span {

@@ -12,8 +12,9 @@ pub(super) use nose_semantics::test_support::{
     compat_test_asserted_evidence as evidence_with_dependencies,
     guava_immutable_map_eleven_entry_payloads, guava_immutable_map_of_test_il,
     language_core_test_asserted_evidence as language_core_evidence_with_dependencies,
-    GuavaImmutableMapFixtureImportRhs, GuavaImmutableMapFixtureOptions,
-    GuavaImmutableMapFixtureRoot, GuavaImmutableMapFixtureSpanLines,
+    map_len_test_il_with_lambda, GuavaImmutableMapFixtureImportRhs,
+    GuavaImmutableMapFixtureOptions, GuavaImmutableMapFixtureRoot,
+    GuavaImmutableMapFixtureSpanLines,
 };
 pub(super) use nose_semantics::{
     admitted_hof_demand_effect_profile_at_node, builtin_tag, library_api_callee_contract_hash,

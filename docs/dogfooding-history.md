@@ -1445,3 +1445,58 @@ long-standing `interp/ops.rs::int_bin` / `float_bin` dispatcher representative
 `aa2b95cf822a1cd2` to fall below value 40; neither numeric function changed.
 No replacement family appears, so the stale ID is removed without accepting
 new duplication.
+
+The responsibility-boundary refactor restores the reviewed count from 28 to
+29 without introducing extractable duplication. Moving value-domain operator
+policy into its owning module changes the previously reviewed broad
+operator-impl/callback-literal representative from `a679fd9cdbda1be2` to
+`f1d4dd2de41aca2e`; it still shares only four literal-projection lines with the
+17-line callback matcher, whose narrower Number/BigInt and effect-closure policy
+must remain independent. The same self-query layout change makes the unchanged
+`interp/ops.rs::int_bin` / `float_bin` representative `aa2b95cf822a1cd2`
+cross value 40 again. Those functions share ten dispatch lines, but integer
+wrapping, floor/modulo, bitwise, and unsupported-operation policy remains
+deliberately separate from float IEEE behavior. The baseline records the
+returning reviewed family and representative churn; its budget remains 29.
+
+The admission-test DSL follow-up tightens the reviewed count from 29 to 28.
+Java `List.of` call and span resolvers previously duplicated the same five-step
+provenance contract: raw-shape rejection, missing-dependency rejection, wrong-
+pack rejection, wrong-producer rejection, and successful admission. A shared
+contract fixture now owns that lifecycle while small `Call` and `Span` adapters
+retain their distinct result assertions. The self-query removes family
+`eb2f9fe7da72f8dd`; no replacement family or representative churn appears.
+
+The contract-fixture and Java Map policy cleanup tightens the reviewed count
+from 28 to 20. A single semantic-query fixture now owns temp-project lifecycle,
+query execution, the one-family invariant, and positive/negative membership;
+this removes `b59e5826da2acff8`, `1c3ae05377f90f1c`, and
+`8d3e36bdd11cf2c0`. Domain fixtures remove four more copied workflows:
+Call/Node Rust `Some` provenance (`3cdf8f9a869d1932`), binding-domain evidence
+ordering (`ea0bb003c4b01bf8`), import-fact provenance and ambiguity
+(`c8961b547fcb59c7`), and cross-crate pull-lazy `map`/`len` demand setup
+(`d836cac640ba27ba`). Finally, Java Map factory stable keys, pack ownership,
+positional arity, and result-domain arity now derive from one policy row, which
+removes `8d25d95857065748`.
+
+Two accepted families change representative IDs without changing their review
+outcome. Adding the shared binding-domain fixture adds one more three-line span
+helper to the zero-removable test utility family, moving
+`c392c8b50a07d6b8` to `97f69f1bf638e2d7`. Moving Java Map policy changes line
+coordinates for the existing six-shared-line method-receiver policy family,
+moving `faaaa56b67e0870a` to `f315bdc04ec06036`. No new avoidable family is
+accepted.
+
+The focused responsibility follow-up reduces the reviewed count from 20 to 16
+while retaining the explicit budget ceiling of 20. C, Java, and Ruby ternaries
+now share their common field-coordinate lowering, and ordinary call argument
+lists share one CST adapter while callee identity and language-specific special
+arguments remain local. This removes the cross-frontend expression-dispatch
+and call/constructor representatives `0ad48a9c8c816e67` and
+`3157af5787fd407a`. A typed callee-dependency query and one identity matcher now
+own named, imported, Java static/constructor, and Ruby require proof dispatch,
+removing `6ea43f3112542ece`. Finally, normalize producer negatives and semantics
+consumer selector negatives use one direct-function call-target contract
+fixture, removing `f6a2c8af9c3fd791`. Promise settlement tests now use a small
+evidence DSL and focused direct-return support modules; that change improves
+scenario readability without adding or accepting a replacement family.

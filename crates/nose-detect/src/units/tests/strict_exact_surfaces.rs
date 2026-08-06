@@ -1,7 +1,7 @@
 use super::support::*;
 use crate::strict_exact::{
-    function_binding_safe, strict_exact_collection_contains_call_safe,
-    strict_exact_membership_collection_safe, strict_exact_safe_tree, StrictFacts,
+    function_binding_safe, strict_exact_membership_collection_safe, strict_exact_safe_tree,
+    StrictFacts,
 };
 use crate::units::fragments::call_may_mutate_blocked_cid;
 use nose_il::{
@@ -294,62 +294,12 @@ fn strict_exact_contains_consumes_receiver_domain_evidence() {
 
 #[test]
 fn strict_exact_contains_consumes_binding_domain_evidence() {
-    let interner = Interner::new();
-    let xs = interner.intern("xs");
-    let mut b = IlBuilder::new(FileId(0));
-    let lhs = b.add(NodeKind::Var, Payload::Cid(0), sp(30), &[]);
-    let seq = b.add(NodeKind::Seq, Payload::None, sp(31), &[]);
-    let assign = b.add(NodeKind::Assign, Payload::None, sp(30), &[lhs, seq]);
-    let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(32), &[]);
-    let callee = b.add(
-        NodeKind::Field,
-        Payload::Name(interner.intern("includes")),
-        sp(33),
-        &[receiver],
-    );
-    let item = b.add(NodeKind::Lit, Payload::LitInt(7), sp(34), &[]);
-    let call = b.add(NodeKind::Call, Payload::None, sp(35), &[callee, item]);
-    let root = b.add(NodeKind::Block, Payload::None, sp(29), &[assign, call]);
-    let mut il = b.finish(
-        root,
-        FileMeta {
-            path: "t.ts".into(),
-            lang: Lang::TypeScript,
-        },
-        Vec::new(),
-        vec![xs],
-    );
-    il.evidence.push(evidence(
-        0,
-        EvidenceAnchor::binding(sp(30), stable_symbol_hash("xs")),
-        EvidenceKind::Domain(nose_semantics::DomainEvidence::Collection),
-        Vec::new(),
-    ));
-    il.evidence.push(method_call_library_api_evidence(
-        1,
-        Lang::TypeScript,
-        "includes",
-        sp(35),
-        1,
-        vec![EvidenceId(0)],
-    ));
+    let mut fixture = crate::test_support::BindingDomainContainsFixture::before_receiver_use();
+    assert!(fixture.is_safe());
 
-    let facts = StrictFacts::collect(&il, &interner);
-    assert!(strict_exact_collection_contains_call_safe(
-        &il, &interner, &facts, call, callee, "includes"
-    ));
-
-    il.evidence.push(evidence(
-        2,
-        EvidenceAnchor::binding(sp(30), stable_symbol_hash("xs")),
-        EvidenceKind::Domain(nose_semantics::DomainEvidence::Map),
-        Vec::new(),
-    ));
-    let facts = StrictFacts::collect(&il, &interner);
+    fixture.add_conflicting_map_domain();
     assert!(
-        !strict_exact_collection_contains_call_safe(
-            &il, &interner, &facts, call, callee, "includes"
-        ),
+        !fixture.is_safe(),
         "conflicting binding-domain evidence must close strict exact receiver proof"
     );
 }

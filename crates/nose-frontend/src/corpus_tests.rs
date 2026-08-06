@@ -8,7 +8,7 @@ use nose_semantics::{
     library_free_name_collection_factory_contract, library_method_call_contract,
     library_swift_map_factory_contract, LibraryApiCalleeContract, LibraryApiContractId,
 };
-use std::fs;
+use std::{fs, path::Path};
 
 mod swift_string_shadows;
 

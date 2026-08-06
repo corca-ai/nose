@@ -22,25 +22,45 @@ fn map_default_lookup_converges_cross_language() {
     let py_alias_dict = "from typing import Dict as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, fallback)\n";
 
     let fp = value_fp(&i, go, Lang::Go);
-    assert_eq!(fp, value_fp(&i, java_explicit, Lang::Java));
-    assert_eq!(fp, value_fp(&i, java_builtin, Lang::Java));
-    assert_eq!(fp, value_fp(&i, java_guard_return, Lang::Java));
-    assert_eq!(fp, value_fp(&i, rust_explicit, Lang::Rust));
-    assert_eq!(fp, value_fp(&i, rust_unwrap, Lang::Rust));
-    assert_eq!(fp, value_fp(&i, ts_has_get, Lang::TypeScript));
-    assert_eq!(fp, value_fp(&i, ts_guard_return, Lang::TypeScript));
+    assert_fingerprint_cases_converge(
+        &i,
+        &fp,
+        [
+            fp_case!(java_explicit, Java),
+            fp_case!(java_builtin, Java),
+            fp_case!(java_guard_return, Java),
+            fp_case!(rust_explicit, Rust),
+            fp_case!(rust_unwrap, Rust),
+            fp_case!(ts_has_get, TypeScript),
+            fp_case!(ts_guard_return, TypeScript),
+            fp_case!(py_dict, Python),
+            fp_case!(py_guard_return, Python),
+            fp_case!(py_mapping, Python),
+            fp_case!(py_mutable_mapping, Python),
+            fp_case!(py_alias_mapping, Python),
+            fp_case!(py_alias_mutable_mapping, Python),
+            fp_case!(py_alias_dict, Python),
+        ],
+    );
     // `lookup.get(key) ?? fallback` is nullish COALESCE; the strict `selected === undefined ? …`
     // guard is conflated with `== null` by the null/undefined value model. Neither merges with the
     // absence-default family — they diverge on a present null-valued key (#410, experiments §CT).
-    assert_ne!(fp, value_fp(&i, ts_nullish, Lang::TypeScript));
-    assert_ne!(fp, value_fp(&i, ts_temp_guard, Lang::TypeScript));
-    assert_eq!(fp, value_fp(&i, py_dict, Lang::Python));
-    assert_eq!(fp, value_fp(&i, py_guard_return, Lang::Python));
-    assert_eq!(fp, value_fp(&i, py_mapping, Lang::Python));
-    assert_eq!(fp, value_fp(&i, py_mutable_mapping, Lang::Python));
-    assert_eq!(fp, value_fp(&i, py_alias_mapping, Lang::Python));
-    assert_eq!(fp, value_fp(&i, py_alias_mutable_mapping, Lang::Python));
-    assert_eq!(fp, value_fp(&i, py_alias_dict, Lang::Python));
+    assert_fingerprint_cases_stay_split(
+        &i,
+        &fp,
+        [
+            fingerprint_case(
+                "TypeScript nullish default replaces a present null",
+                ts_nullish,
+                Lang::TypeScript,
+            ),
+            fingerprint_case(
+                "TypeScript undefined guard lacks absence-only proof",
+                ts_temp_guard,
+                Lang::TypeScript,
+            ),
+        ],
+    );
 }
 
 #[test]
@@ -86,21 +106,24 @@ fn map_default_lookup_keeps_wrong_coordinate_boundaries() {
     let py_untyped = "def f(lookup, other_lookup, key, other_key, fallback, other_default):\n    return lookup.get(key, fallback)\n";
 
     let fp = value_fp(&i, go, Lang::Go);
-    assert_ne!(fp, value_fp(&i, wrong_key, Lang::Java));
-    assert_ne!(fp, value_fp(&i, wrong_default, Lang::Rust));
-    assert_ne!(fp, value_fp(&i, wrong_map, Lang::Go));
-    assert_ne!(fp, value_fp(&i, ts_wrong_key, Lang::TypeScript));
-    assert_ne!(fp, value_fp(&i, ts_wrong_default, Lang::TypeScript));
-    assert_ne!(fp, value_fp(&i, ts_wrong_map, Lang::TypeScript));
-    assert_ne!(fp, value_fp(&i, ts_untyped, Lang::TypeScript));
-    assert_ne!(
-        fp,
-        value_fp(&i, ts_temp_shadowed_undefined, Lang::TypeScript)
+    assert_fingerprint_cases_stay_split(
+        &i,
+        &fp,
+        [
+            fp_case!(wrong_key, Java),
+            fp_case!(wrong_default, Rust),
+            fp_case!(wrong_map, Go),
+            fp_case!(ts_wrong_key, TypeScript),
+            fp_case!(ts_wrong_default, TypeScript),
+            fp_case!(ts_wrong_map, TypeScript),
+            fp_case!(ts_untyped, TypeScript),
+            fp_case!(ts_temp_shadowed_undefined, TypeScript),
+            fp_case!(py_wrong_key, Python),
+            fp_case!(py_wrong_default, Python),
+            fp_case!(py_wrong_map, Python),
+            fp_case!(py_untyped, Python),
+        ],
     );
-    assert_ne!(fp, value_fp(&i, py_wrong_key, Lang::Python));
-    assert_ne!(fp, value_fp(&i, py_wrong_default, Lang::Python));
-    assert_ne!(fp, value_fp(&i, py_wrong_map, Lang::Python));
-    assert_ne!(fp, value_fp(&i, py_untyped, Lang::Python));
 }
 
 #[test]
@@ -117,14 +140,20 @@ fn map_default_lookup_keeps_alias_and_guard_boundaries() {
     let guard_wrong_map = "def f(lookup: dict[str, int], other_lookup: dict[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    if key in other_lookup:\n        return other_lookup[key]\n    return fallback\n";
 
     let fp = value_fp(&i, go, Lang::Go);
-    assert_ne!(fp, value_fp(&i, py_alias_wrong_key, Lang::Python));
-    assert_ne!(fp, value_fp(&i, py_alias_wrong_default, Lang::Python));
-    assert_ne!(fp, value_fp(&i, py_alias_wrong_map, Lang::Python));
-    assert_ne!(fp, value_fp(&i, py_alias_unresolved, Lang::Python));
-    assert_ne!(fp, value_fp(&i, py_alias_shadowed, Lang::Python));
-    assert_ne!(fp, value_fp(&i, guard_wrong_key, Lang::TypeScript));
-    assert_ne!(fp, value_fp(&i, guard_wrong_default, Lang::Java));
-    assert_ne!(fp, value_fp(&i, guard_wrong_map, Lang::Python));
+    assert_fingerprint_cases_stay_split(
+        &i,
+        &fp,
+        [
+            fp_case!(py_alias_wrong_key, Python),
+            fp_case!(py_alias_wrong_default, Python),
+            fp_case!(py_alias_wrong_map, Python),
+            fp_case!(py_alias_unresolved, Python),
+            fp_case!(py_alias_shadowed, Python),
+            fp_case!(guard_wrong_key, TypeScript),
+            fp_case!(guard_wrong_default, Java),
+            fp_case!(guard_wrong_map, Python),
+        ],
+    );
 }
 
 #[test]

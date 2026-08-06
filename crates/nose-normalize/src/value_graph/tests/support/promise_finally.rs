@@ -89,29 +89,3 @@ fn finally_handler(
     .then_some(body);
     (handler, handler_factory_call)
 }
-
-pub(in crate::value_graph::tests) fn push_promise_finally_evidence(
-    il: &mut Il,
-    interner: &Interner,
-    call: NodeId,
-    id: u32,
-) {
-    let contract = library_promise_finally_contract(il.meta.lang, "finally", 1).unwrap();
-    let dependencies = nose_semantics::library_api_receiver_dependencies_for_call(
-        il,
-        interner,
-        call,
-        contract.callee,
-    )
-    .expect("Promise.finally receiver dependencies");
-    il.evidence.push(js_like_promise_evidence_with_dependencies(
-        id,
-        EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
-        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-            contract_hash: library_api_contract_id_hash(contract.id),
-            callee_hash: library_api_callee_contract_hash(contract.callee),
-            arity: 1,
-        }),
-        dependencies,
-    ));
-}

@@ -111,14 +111,7 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         // the last statement as an expr) lowers the same as in statement position.
         "if_modifier" | "unless_modifier" => lower_modifier(lo, node),
         // Ternary `c ? a : b` → `If` (converges with if-expressions elsewhere).
-        "conditional" | "ternary" => {
-            let kids: Vec<NodeId> = ["condition", "consequence", "alternative"]
-                .iter()
-                .filter_map(|f| node.child_by_field_name(f))
-                .map(|c| lower_expr(lo, c))
-                .collect();
-            lo.add(NodeKind::If, Payload::None, span, &kids)
-        }
+        "conditional" | "ternary" => crate::lower::conditional_expression(lo, node, lower_expr),
         // Adjacent string literals (`"a" "b"`) concatenate to one string.
         "chained_string" => lower_string(lo, node),
         // `*args` / `&blk` / `**kw` argument forms — lower the wrapped expression.

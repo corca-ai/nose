@@ -36,6 +36,18 @@ fn count_nodes(il: &nose_il::Il, root: NodeId, kind: Option<nose_il::NodeKind>) 
         .sum::<usize>()
 }
 
+macro_rules! fp_case {
+    ($source:ident, $lang:ident) => {
+        fingerprint_case(stringify!($source), $source, Lang::$lang)
+    };
+}
+
+macro_rules! named_fp_case {
+    ($source:ident, $lang:ident, $function:literal) => {
+        named_fingerprint_case(stringify!($source), $source, Lang::$lang, $function)
+    };
+}
+
 #[path = "equivalence/algebra_laws.rs"]
 mod algebra_laws;
 #[path = "equivalence/async_scheduling_hard_negatives.rs"]
@@ -249,6 +261,73 @@ fn value_fp_named(interner: &Interner, src: &str, lang: Lang, name: &str) -> Vec
         .map(|unit| unit.root)
         .unwrap_or_else(|| panic!("expected function unit named {name}"));
     nose_normalize::value_fingerprint(&n, root, interner)
+}
+
+#[derive(Clone, Copy)]
+struct FingerprintCase<'a> {
+    label: &'a str,
+    source: &'a str,
+    lang: Lang,
+    function: Option<&'a str>,
+}
+
+fn fingerprint_case<'a>(label: &'a str, source: &'a str, lang: Lang) -> FingerprintCase<'a> {
+    FingerprintCase {
+        label,
+        source,
+        lang,
+        function: None,
+    }
+}
+
+fn named_fingerprint_case<'a>(
+    label: &'a str,
+    source: &'a str,
+    lang: Lang,
+    function: &'a str,
+) -> FingerprintCase<'a> {
+    FingerprintCase {
+        label,
+        source,
+        lang,
+        function: Some(function),
+    }
+}
+
+fn assert_fingerprint_cases_converge<'a>(
+    interner: &Interner,
+    expected: &[u64],
+    cases: impl IntoIterator<Item = FingerprintCase<'a>>,
+) {
+    for case in cases {
+        let actual = match case.function {
+            Some(name) => value_fp_named(interner, case.source, case.lang, name),
+            None => value_fp(interner, case.source, case.lang),
+        };
+        assert_eq!(
+            expected, actual,
+            "{} ({:?}, function {:?}) should converge with the reference",
+            case.label, case.lang, case.function
+        );
+    }
+}
+
+fn assert_fingerprint_cases_stay_split<'a>(
+    interner: &Interner,
+    reference: &[u64],
+    cases: impl IntoIterator<Item = FingerprintCase<'a>>,
+) {
+    for case in cases {
+        let actual = match case.function {
+            Some(name) => value_fp_named(interner, case.source, case.lang, name),
+            None => value_fp(interner, case.source, case.lang),
+        };
+        assert_ne!(
+            reference, actual,
+            "{} ({:?}, function {:?}) must stay split from the reference",
+            case.label, case.lang, case.function
+        );
+    }
 }
 
 fn class_value_fp(interner: &Interner, src: &str, lang: Lang, name: &str) -> Vec<u64> {

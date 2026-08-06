@@ -273,11 +273,7 @@ pub(super) fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
         Some(f) => kids.push(lower_expr(lo, f)),
         None => kids.push(lo.empty_block(span)),
     }
-    if let Some(args) = node.child_by_field_name("arguments") {
-        for a in Lowering::named_children(args) {
-            kids.push(lower_expr(lo, a));
-        }
-    }
+    kids.extend(crate::lower::call_arguments(lo, node, lower_expr));
     lo.add(NodeKind::Call, Payload::None, span, &kids)
 }
 /// `recv.method(args)` → `Call(Field(method, recv), args...)`, matching how the
@@ -298,11 +294,7 @@ pub(super) fn lower_method_call(lo: &mut Lowering, node: TsNode) -> NodeId {
         &[recv],
     );
     let mut kids = vec![callee];
-    if let Some(args) = node.child_by_field_name("arguments") {
-        for a in Lowering::named_children(args) {
-            kids.push(lower_expr(lo, a));
-        }
-    }
+    kids.extend(crate::lower::call_arguments(lo, node, lower_expr));
     lo.add(NodeKind::Call, Payload::None, span, &kids)
 }
 pub(super) fn lower_field(lo: &mut Lowering, node: TsNode) -> NodeId {
