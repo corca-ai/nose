@@ -11,6 +11,11 @@ updates:
       # suite (incl. MSRV, cargo-deny, the duplication gate) vets each batch.
       cargo-minor:
         update-types: [minor, patch]
+    ignore:
+      # TOML 1.x failed the semantic-regression qualification in #958. Revisit
+      # the major migration deliberately instead of reopening it every week.
+      - dependency-name: toml
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "deps"
 
