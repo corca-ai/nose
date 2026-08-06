@@ -46,7 +46,10 @@ rayon = "1"
 anyhow = "1"
 thiserror = "2"
 clap = { version = "4", features = ["derive"] }
-ignore = "0.4"
+# TEMP-CODE(issue: #974, remove-when: an ignore release compatible with the
+# workspace MSRV passes the MSRV gate): 0.4.27+ requires newer Rust without
+# consistently declaring rust-version.
+ignore = "=0.4.26"
 memchr = "2"
 toml = "0.8"
 quick-xml = "0.41"

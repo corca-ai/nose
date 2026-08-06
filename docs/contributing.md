@@ -63,6 +63,12 @@ equal-length `zip(..., strict=True)` invariants. The **MSRV** (`rust-version`,
 currently 1.85) is deliberately older and checked by its own CI job. Bumping
 the MSRV is a conscious change — update `Cargo.toml` and note why.
 
+Cargo dependency resolution uses the workspace MSRV as a compatibility
+preference through [`.cargo/config.toml`](../.cargo/config.toml). Routine lockfile
+updates therefore select the newest compatible release when a newer dependency
+declares a higher Rust requirement. The MSRV gate remains authoritative: the
+fallback cannot prove compatibility for dependencies that omit `rust-version`.
+
 The lint policy is defined once in the root `Cargo.toml` under `[workspace.lints]`
 and inherited by every crate via `[lints] workspace = true`. The tunable
 thresholds (`cognitive-complexity-threshold`, `too-many-lines-threshold`,
