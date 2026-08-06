@@ -26,8 +26,8 @@
   ],
   "ci_installer": {
     "repository": "taiki-e/install-action",
-    "version": "2.85.4",
-    "ref": "v2.85.4"
+    "version": "2.85.7",
+    "ref": "v2.85.7"
   },
   "ci_groups": {
     "coverage": ["cargo-llvm-cov"],
