@@ -28,6 +28,8 @@ mod reinvented;
 mod report;
 mod strict_exact;
 mod test_paths;
+#[cfg(test)]
+mod test_support;
 mod units;
 mod witness;
 

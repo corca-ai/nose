@@ -4,51 +4,7 @@ use super::support::*;
 #[test]
 fn strict_exact_len_rejects_pull_lazy_library_hof_arg() {
     let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let item = b.add(NodeKind::Lit, Payload::LitInt(1), sp(1), &[]);
-    let coll = b.add(NodeKind::Seq, Payload::None, sp(1), &[item]);
-    let param = b.add(NodeKind::Param, Payload::Cid(0), sp(2), &[]);
-    let body_value = b.add(NodeKind::Var, Payload::Cid(0), sp(2), &[]);
-    let ret = b.add(NodeKind::Return, Payload::None, sp(2), &[body_value]);
-    let body = b.add(NodeKind::Block, Payload::None, sp(2), &[ret]);
-    let lambda = b.add(NodeKind::Lambda, Payload::None, sp(2), &[param, body]);
-    let hof = b.add(
-        NodeKind::HoF,
-        Payload::HoF(HoFKind::Map),
-        sp(3),
-        &[coll, lambda],
-    );
-    let len = b.add(
-        NodeKind::Call,
-        Payload::Builtin(Builtin::Len),
-        sp(4),
-        &[hof],
-    );
-    let mut il = b.finish(
-        len,
-        FileMeta {
-            path: "t.rs".into(),
-            lang: Lang::Rust,
-        },
-        Vec::new(),
-        Vec::new(),
-    );
-    il.evidence.push(method_call_library_api_evidence(
-        0,
-        Lang::Rust,
-        "map",
-        il.node(hof).span,
-        1,
-        Vec::new(),
-    ));
-    il.evidence.push(method_call_library_api_evidence(
-        1,
-        Lang::Rust,
-        "len",
-        il.node(len).span,
-        0,
-        Vec::new(),
-    ));
+    let (il, _hof, len) = nose_semantics::test_support::rust_pull_lazy_map_len_test_il();
 
     let facts = StrictFacts::collect(&il, &interner);
     assert!(
@@ -98,51 +54,9 @@ fn binding_domain_does_not_make_opaque_binding_exact_value() {
 
 #[test]
 fn binding_domain_after_receiver_use_does_not_prove_receiver() {
-    let interner = Interner::new();
-    let xs = interner.intern("xs");
-    let mut b = IlBuilder::new(FileId(0));
-    let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(20), &[]);
-    let callee = b.add(
-        NodeKind::Field,
-        Payload::Name(interner.intern("includes")),
-        sp(21),
-        &[receiver],
-    );
-    let item = b.add(NodeKind::Lit, Payload::LitInt(7), sp(22), &[]);
-    let call = b.add(NodeKind::Call, Payload::None, sp(23), &[callee, item]);
-    let lhs = b.add(NodeKind::Var, Payload::Cid(0), sp(30), &[]);
-    let seq = b.add(NodeKind::Seq, Payload::None, sp(31), &[]);
-    let assign = b.add(NodeKind::Assign, Payload::None, sp(30), &[lhs, seq]);
-    let root = b.add(NodeKind::Block, Payload::None, sp(19), &[call, assign]);
-    let mut il = b.finish(
-        root,
-        FileMeta {
-            path: "t.ts".into(),
-            lang: Lang::TypeScript,
-        },
-        Vec::new(),
-        vec![xs],
-    );
-    il.evidence.push(evidence(
-        0,
-        EvidenceAnchor::binding(sp(30), stable_symbol_hash("xs")),
-        EvidenceKind::Domain(nose_il::DomainEvidence::Collection),
-        Vec::new(),
-    ));
-    il.evidence.push(method_call_library_api_evidence(
-        1,
-        Lang::TypeScript,
-        "includes",
-        sp(23),
-        1,
-        vec![EvidenceId(0)],
-    ));
-
-    let facts = StrictFacts::collect(&il, &interner);
+    let fixture = crate::test_support::BindingDomainContainsFixture::after_receiver_use();
     assert!(
-        !strict_exact_collection_contains_call_safe(
-            &il, &interner, &facts, call, callee, "includes"
-        ),
+        !fixture.is_safe(),
         "binding-domain evidence must be visible at the receiver use site"
     );
 }

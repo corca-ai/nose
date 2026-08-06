@@ -1,4 +1,14 @@
-use super::*;
+use super::{AcceptedPair, ScoredCandidate};
+use crate::{
+    candidates::{ConnectedAccepted, ConnectedRoute},
+    connected,
+    detectors::connected_witness_score,
+    locations::{enclosing_unit_indices, is_nested},
+    model::LineSpan,
+    units::UnitFeat,
+};
+use rayon::prelude::*;
+use std::collections::{HashMap, HashSet};
 
 pub(super) fn score_connected_candidates(
     units: &[UnitFeat],

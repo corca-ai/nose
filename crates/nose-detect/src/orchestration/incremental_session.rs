@@ -1,5 +1,17 @@
-use super::stages::{ConnectedStage, ContiguousStage};
-use super::*;
+use super::{
+    finish_detection,
+    stages::{ConnectedStage, ContiguousStage, DetectionStageSource, DetectionStages},
+    timing::StageTimer,
+    DetectionOutput, DetectionRequest,
+};
+use crate::{
+    contiguous::{self, Stream},
+    detectors::Detector,
+    incremental::{self, IncrementalDetectionState, IncrementalDetectionStats},
+    model::Report,
+    options::DetectOptions,
+    units::UnitFeat,
+};
 
 /// Cached-query entry point with persistent candidate membership and pair-score
 /// reuse. The state is content-addressed by the CLI; this layer owns its schema.

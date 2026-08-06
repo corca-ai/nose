@@ -60,42 +60,25 @@ fn query_mode_semantic_proves_regex_literal_predicate_matches() {
 
 #[test]
 fn query_mode_semantic_allows_proved_js_static_builtins() {
-    let dir = std::env::temp_dir().join(format!("nose_static_builtin_{}", std::process::id()));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-    fs::write(
-        dir.join("array_a.ts"),
-        "export function isList(value: unknown) {\n    return Array.isArray(value);\n}\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("array_b.ts"),
-        "export function acceptsArray(input: unknown) {\n    return Array.isArray(input);\n}\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("typeof_negative.ts"),
-        "export function acceptsObject(value: unknown) {\n    return typeof value === \"object\";\n}\n",
-    )
-    .unwrap();
-
-    let semantic = query_min_json(&dir, "semantic");
-    let semantic_json = query_json(&semantic);
-    let semantic_families = query_families(&semantic_json);
-    assert_eq!(
-        semantic_families.len(),
-        1,
-        "semantic mode should report only the identical Array.isArray guard: {semantic}"
+    assert_single_semantic_family(
+        "static_builtin",
+        &[
+            (
+                "array_a.ts",
+                "export function isList(value: unknown) {\n    return Array.isArray(value);\n}\n",
+            ),
+            (
+                "array_b.ts",
+                "export function acceptsArray(input: unknown) {\n    return Array.isArray(input);\n}\n",
+            ),
+            (
+                "typeof_negative.ts",
+                "export function acceptsObject(value: unknown) {\n    return typeof value === \"object\";\n}\n",
+            ),
+        ],
+        &["array_a.ts", "array_b.ts"],
+        &["typeof_negative.ts"],
     );
-    let semantic_text = semantic_json.to_string();
-    assert!(
-        semantic_text.contains("array_a.ts")
-            && semantic_text.contains("array_b.ts")
-            && !semantic_text.contains("typeof_negative.ts"),
-        "semantic mode must keep static builtin calls exact: {semantic}"
-    );
-
-    let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]

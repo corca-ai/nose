@@ -1,5 +1,10 @@
 use super::*;
 
+mod java_collection;
+pub(crate) use java_collection::*;
+mod rust_option;
+pub(crate) use rust_option::*;
+
 #[derive(Clone, Copy)]
 pub(crate) enum RustStdMapFactoryAdmission {
     Call,

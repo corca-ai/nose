@@ -45,7 +45,7 @@
       "consumers": ["local and hosted quality-gate orchestration"],
       "retention_policy": "Keep current policy plus any receipt required to interpret a checked release or gate result.",
       "artifact_count": 7,
-      "inventory_sha256": "f714168c1d95730f4589c34db60dd0330b8c9832b36af929601fdf8bdc921e83"
+      "inventory_sha256": "d680cb3b301ef2b0ad9a5606dbf80a50e08941087b12f39d5115b17574793c3f"
     },
     {
       "id": "benchmark-root",

@@ -29,6 +29,34 @@ pub(crate) fn write_files(dir: &Path, files: &[(&str, &str)]) {
     }
 }
 
+pub(crate) fn assert_single_semantic_family(
+    tag: &str,
+    files: &[(&str, &str)],
+    included: &[&str],
+    excluded: &[&str],
+) {
+    let project = TempProject::new(tag);
+    write_files(project.path(), files);
+
+    let report = project.query_semantic_min_json();
+    assert_eq!(
+        super::query::query_families(&report).len(),
+        1,
+        "{tag}: expected exactly one semantic family: {report}"
+    );
+    assert!(
+        super::query::family_contains_all(&report, included),
+        "{tag}: semantic family must contain {included:?}: {report}"
+    );
+    let report_text = report.to_string();
+    for file in excluded {
+        assert!(
+            !report_text.contains(file),
+            "{tag}: semantic family must exclude {file}: {report}"
+        );
+    }
+}
+
 /// Write a small project (a 3-copy clone family + a decoy) into a unique temp dir.
 pub(crate) fn make_project(tag: &str) -> PathBuf {
     let dir = make_temp_dir(tag);

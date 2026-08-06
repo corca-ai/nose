@@ -1,4 +1,5 @@
-use super::{AcceptedPair, ConnectedAccepted, ScoredCandidate};
+use super::{AcceptedPair, ScoredCandidate};
+use crate::candidates::ConnectedAccepted;
 
 #[derive(Default)]
 pub(super) struct ConnectedStage {

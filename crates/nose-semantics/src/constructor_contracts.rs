@@ -272,6 +272,80 @@ pub enum JavaMapFactoryKind {
     GuavaImmutableMapOf,
 }
 
+#[derive(Clone, Copy)]
+enum JavaMapFactoryArity {
+    Any,
+    Never,
+    Even,
+    Exact(usize),
+    EvenPairsAtMost(usize),
+}
+
+impl JavaMapFactoryArity {
+    fn supports(self, arg_count: usize) -> bool {
+        match self {
+            Self::Any => true,
+            Self::Never => false,
+            Self::Even => arg_count % 2 == 0,
+            Self::Exact(expected) => arg_count == expected,
+            Self::EvenPairsAtMost(max_pairs) => arg_count % 2 == 0 && arg_count / 2 <= max_pairs,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct JavaMapFactoryPolicy {
+    stable_key: &'static str,
+    pack_id: &'static str,
+    positional_arity: JavaMapFactoryArity,
+    result_domain_arity: JavaMapFactoryArity,
+}
+
+fn java_map_factory_policy(kind: JavaMapFactoryKind) -> JavaMapFactoryPolicy {
+    use JavaMapFactoryArity::{Any, Even, EvenPairsAtMost, Exact, Never};
+
+    match kind {
+        JavaMapFactoryKind::Of => JavaMapFactoryPolicy {
+            stable_key: "of",
+            pack_id: JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+            positional_arity: Even,
+            result_domain_arity: Even,
+        },
+        JavaMapFactoryKind::OfEntries => JavaMapFactoryPolicy {
+            stable_key: "of_entries",
+            pack_id: JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+            positional_arity: Never,
+            result_domain_arity: Any,
+        },
+        JavaMapFactoryKind::CollectionsEmptyMap => JavaMapFactoryPolicy {
+            stable_key: "collections_empty_map",
+            pack_id: JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+            positional_arity: Exact(0),
+            result_domain_arity: Exact(0),
+        },
+        JavaMapFactoryKind::CollectionsSingletonMap => JavaMapFactoryPolicy {
+            stable_key: "collections_singleton_map",
+            pack_id: JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+            positional_arity: Exact(2),
+            result_domain_arity: Exact(2),
+        },
+        JavaMapFactoryKind::GuavaImmutableMapOf => JavaMapFactoryPolicy {
+            stable_key: "guava_immutable_map_of",
+            pack_id: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
+            positional_arity: EvenPairsAtMost(JAVA_GUAVA_IMMUTABLE_MAP_OF_MAX_ENTRIES),
+            result_domain_arity: EvenPairsAtMost(JAVA_GUAVA_IMMUTABLE_MAP_OF_MAX_ENTRIES),
+        },
+    }
+}
+
+pub(crate) fn java_map_factory_kind_key(kind: JavaMapFactoryKind) -> &'static str {
+    java_map_factory_policy(kind).stable_key
+}
+
+pub(crate) fn java_map_factory_pack_id(kind: JavaMapFactoryKind) -> &'static str {
+    java_map_factory_policy(kind).pack_id
+}
+
 pub const JAVA_GUAVA_IMMUTABLE_MAP_OF_MAX_ENTRIES: usize = 10;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -340,46 +414,32 @@ pub fn java_map_factory_contract_by_hash(
 }
 
 pub fn java_guava_immutable_map_of_arg_count_supported(arg_count: usize) -> bool {
-    arg_count % 2 == 0 && arg_count / 2 <= JAVA_GUAVA_IMMUTABLE_MAP_OF_MAX_ENTRIES
+    JavaMapFactoryArity::EvenPairsAtMost(JAVA_GUAVA_IMMUTABLE_MAP_OF_MAX_ENTRIES)
+        .supports(arg_count)
 }
 
 pub fn java_map_factory_positional_arg_count_supported(
     kind: JavaMapFactoryKind,
     arg_count: usize,
 ) -> bool {
-    match kind {
-        JavaMapFactoryKind::Of => arg_count % 2 == 0,
-        JavaMapFactoryKind::CollectionsEmptyMap => arg_count == 0,
-        JavaMapFactoryKind::CollectionsSingletonMap => arg_count == 2,
-        JavaMapFactoryKind::GuavaImmutableMapOf => {
-            java_guava_immutable_map_of_arg_count_supported(arg_count)
-        }
-        JavaMapFactoryKind::OfEntries => false,
-    }
+    java_map_factory_policy(kind)
+        .positional_arity
+        .supports(arg_count)
 }
 
 pub fn java_map_factory_result_domain_arg_count_supported(
     kind: JavaMapFactoryKind,
     arg_count: usize,
 ) -> bool {
-    match kind {
-        JavaMapFactoryKind::Of => arg_count % 2 == 0,
-        JavaMapFactoryKind::CollectionsEmptyMap => arg_count == 0,
-        JavaMapFactoryKind::CollectionsSingletonMap => arg_count == 2,
-        JavaMapFactoryKind::GuavaImmutableMapOf => {
-            java_guava_immutable_map_of_arg_count_supported(arg_count)
-        }
-        JavaMapFactoryKind::OfEntries => true,
-    }
+    java_map_factory_policy(kind)
+        .result_domain_arity
+        .supports(arg_count)
 }
 
 pub fn java_map_factory_uses_positional_entries(kind: JavaMapFactoryKind) -> bool {
-    matches!(
-        kind,
-        JavaMapFactoryKind::Of
-            | JavaMapFactoryKind::CollectionsEmptyMap
-            | JavaMapFactoryKind::CollectionsSingletonMap
-            | JavaMapFactoryKind::GuavaImmutableMapOf
+    !matches!(
+        java_map_factory_policy(kind).positional_arity,
+        JavaMapFactoryArity::Never
     )
 }
 

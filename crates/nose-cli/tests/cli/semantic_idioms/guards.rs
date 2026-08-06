@@ -122,54 +122,33 @@ fn query_mode_semantic_reports_flattened_guard_span_only() {
 
 #[test]
 fn query_mode_semantic_preserves_js_typeof_operator() {
-    let dir = std::env::temp_dir().join(format!("nose_typeof_semantic_{}", std::process::id()));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-    fs::write(
-        dir.join("typeof_a.ts"),
-        "export function isString(value: unknown) {\n    return typeof value === \"string\";\n}\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("typeof_b.ts"),
-        "export function acceptsString(input: unknown) {\n    return typeof input === \"string\";\n}\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("plain_equality_negative.ts"),
-        "export function equalsString(value: unknown) {\n    return value === \"string\";\n}\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("void_a.ts"),
-        "export function eraseValue(value: unknown) {\n    return void value;\n}\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("void_b.ts"),
-        "export function eraseInput(input: unknown) {\n    return void input;\n}\n",
-    )
-    .unwrap();
-
-    let semantic = query_min_json(&dir, "semantic");
-    let semantic_json = query_json(&semantic);
-    let semantic_families = query_families(&semantic_json);
-    assert_eq!(
-        semantic_families.len(),
-        1,
-        "semantic mode should report only the identical typeof guard: {semantic}"
+    assert_single_semantic_family(
+        "typeof_semantic",
+        &[
+            (
+                "typeof_a.ts",
+                "export function isString(value: unknown) {\n    return typeof value === \"string\";\n}\n",
+            ),
+            (
+                "typeof_b.ts",
+                "export function acceptsString(input: unknown) {\n    return typeof input === \"string\";\n}\n",
+            ),
+            (
+                "plain_equality_negative.ts",
+                "export function equalsString(value: unknown) {\n    return value === \"string\";\n}\n",
+            ),
+            (
+                "void_a.ts",
+                "export function eraseValue(value: unknown) {\n    return void value;\n}\n",
+            ),
+            (
+                "void_b.ts",
+                "export function eraseInput(input: unknown) {\n    return void input;\n}\n",
+            ),
+        ],
+        &["typeof_a.ts", "typeof_b.ts"],
+        &["plain_equality_negative.ts", "void_a.ts", "void_b.ts"],
     );
-    let semantic_text = semantic_json.to_string();
-    assert!(
-        semantic_text.contains("typeof_a.ts")
-            && semantic_text.contains("typeof_b.ts")
-            && !semantic_text.contains("plain_equality_negative.ts")
-            && !semantic_text.contains("void_a.ts")
-            && !semantic_text.contains("void_b.ts"),
-        "semantic mode must preserve typeof and reject unproved unary JS operators: {semantic}"
-    );
-
-    let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]
@@ -279,82 +258,39 @@ fn query_mode_semantic_allows_safe_uninterpreted_method_calls() {
 
 #[test]
 fn query_mode_semantic_distinguishes_sequence_kinds() {
-    let dir = std::env::temp_dir().join(format!("nose_seq_semantic_{}", std::process::id()));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-    fs::write(
-        dir.join("list_a.py"),
-        "def pair(a, b):\n    return [a, b]\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("list_b.py"),
-        "def make_pair(x, y):\n    return [x, y]\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("tuple.py"),
-        "def tuple_pair(a, b):\n    return (a, b)\n",
-    )
-    .unwrap();
-
-    let semantic = query_min_json(&dir, "semantic");
-    let semantic_json = query_json(&semantic);
-    let semantic_families = query_families(&semantic_json);
-    assert_eq!(
-        semantic_families.len(),
-        1,
-        "semantic mode should report only the same list-construction family: {semantic}"
+    assert_single_semantic_family(
+        "seq_semantic",
+        &[
+            ("list_a.py", "def pair(a, b):\n    return [a, b]\n"),
+            ("list_b.py", "def make_pair(x, y):\n    return [x, y]\n"),
+            ("tuple.py", "def tuple_pair(a, b):\n    return (a, b)\n"),
+        ],
+        &["list_a.py", "list_b.py"],
+        &["tuple.py"],
     );
-    let semantic_text = semantic_json.to_string();
-    assert!(
-        semantic_text.contains("list_a.py")
-            && semantic_text.contains("list_b.py")
-            && !semantic_text.contains("tuple.py"),
-        "semantic mode must preserve list-vs-tuple sequence kind: {semantic}"
-    );
-
-    let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]
 fn query_mode_semantic_allows_static_import_identity() {
-    let dir = std::env::temp_dir().join(format!("nose_import_identity_{}", std::process::id()));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-    fs::write(
-        dir.join("import_a.py"),
-        "from shared_math import unused_helper, helper\n\ndef report(value):\n    shifted = value + 1\n    return helper(shifted)\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("import_b.py"),
-        "from shared_math import unused_helper, helper as calc\n\ndef build(input):\n    shifted = input + 1\n    return calc(shifted)\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("import_negative.py"),
-        "from shared_math import unused_helper, other_helper as calc\n\ndef other(input):\n    shifted = input + 1\n    return calc(shifted)\n",
-    )
-    .unwrap();
-
-    let semantic = query_min_json(&dir, "semantic");
-    let semantic_json = query_json(&semantic);
-    let semantic_families = query_families(&semantic_json);
-    assert_eq!(
-        semantic_families.len(),
-        1,
-        "semantic mode should report only same import coordinate: {semantic}"
+    assert_single_semantic_family(
+        "import_identity",
+        &[
+            (
+                "import_a.py",
+                "from shared_math import unused_helper, helper\n\ndef report(value):\n    shifted = value + 1\n    return helper(shifted)\n",
+            ),
+            (
+                "import_b.py",
+                "from shared_math import unused_helper, helper as calc\n\ndef build(input):\n    shifted = input + 1\n    return calc(shifted)\n",
+            ),
+            (
+                "import_negative.py",
+                "from shared_math import unused_helper, other_helper as calc\n\ndef other(input):\n    shifted = input + 1\n    return calc(shifted)\n",
+            ),
+        ],
+        &["import_a.py", "import_b.py"],
+        &["import_negative.py"],
     );
-    let semantic_text = semantic_json.to_string();
-    assert!(
-        semantic_text.contains("import_a.py")
-            && semantic_text.contains("import_b.py")
-            && !semantic_text.contains("import_negative.py"),
-        "semantic mode must preserve static import coordinates: {semantic}"
-    );
-
-    let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]

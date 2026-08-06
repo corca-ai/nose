@@ -75,35 +75,35 @@ fn option_defaulting_converges_with_nullish_default_boundaries() {
     let shadowed_undefined = "function f(value, fallback, other, otherDefault, undefined) { return value === undefined ? fallback : value; }";
 
     let fp = value_fp(&i, js, Lang::JavaScript);
-    assert_eq!(fp, value_fp(&i, js_guard, Lang::JavaScript));
-    assert_eq!(fp, value_fp(&i, ts_guard, Lang::TypeScript));
-    assert_eq!(fp, value_fp(&i, rust_unwrap, Lang::Rust));
-    assert_eq!(fp, value_fp(&i, rust_unwrap_else, Lang::Rust));
-    assert_eq!(fp, value_fp(&i, rust_map_or, Lang::Rust));
-    assert_eq!(fp, value_fp(&i, rust_guard, Lang::Rust));
-    assert_eq!(fp, value_fp(&i, swift_coalesce, Lang::Swift));
-    assert_ne!(fp, value_fp(&i, wrong_default, Lang::Rust));
-    assert_ne!(fp, value_fp(&i, wrong_value, Lang::Rust));
-    assert_ne!(fp, value_fp(&i, swift_wrong_default, Lang::Swift));
-    assert_ne!(fp, value_fp(&i, swift_wrong_value, Lang::Swift));
-    assert_ne!(
-        fp,
-        value_fp_named(&i, swift_effectful_default, Lang::Swift, "f")
+    assert_fingerprint_cases_converge(
+        &i,
+        &fp,
+        [
+            fp_case!(js_guard, JavaScript),
+            fp_case!(ts_guard, TypeScript),
+            fp_case!(rust_unwrap, Rust),
+            fp_case!(rust_unwrap_else, Rust),
+            fp_case!(rust_map_or, Rust),
+            fp_case!(rust_guard, Rust),
+            fp_case!(swift_coalesce, Swift),
+        ],
     );
-    assert_ne!(
-        fp,
-        value_fp_named(&i, swift_computed_property_default, Lang::Swift, "f")
+    assert_fingerprint_cases_stay_split(
+        &i,
+        &fp,
+        [
+            fp_case!(wrong_default, Rust),
+            fp_case!(wrong_value, Rust),
+            fp_case!(swift_wrong_default, Swift),
+            fp_case!(swift_wrong_value, Swift),
+            named_fp_case!(swift_effectful_default, Swift, "f"),
+            named_fp_case!(swift_computed_property_default, Swift, "f"),
+            named_fp_case!(swift_custom_coalesce, Swift, "f"),
+            named_fp_case!(swift_optional_coalesce_overload, Swift, "f"),
+            fp_case!(truthy_or, JavaScript),
+            fp_case!(shadowed_undefined, JavaScript),
+        ],
     );
-    assert_ne!(
-        fp,
-        value_fp_named(&i, swift_custom_coalesce, Lang::Swift, "f")
-    );
-    assert_ne!(
-        fp,
-        value_fp_named(&i, swift_optional_coalesce_overload, Lang::Swift, "f")
-    );
-    assert_ne!(fp, value_fp(&i, truthy_or, Lang::JavaScript));
-    assert_ne!(fp, value_fp(&i, shadowed_undefined, Lang::JavaScript));
 }
 
 const RUBY_NIL_PREDICATE_ISEQ_BOUNDARIES: &[(&str, &str)] = &[
@@ -244,22 +244,25 @@ fn swift_optional_nil_presence_requires_optional_coordinate() {
 
     let missing_fp = value_fp(&i, py_missing, Lang::Python);
     let present_fp = value_fp(&i, py_present, Lang::Python);
-    assert_eq!(missing_fp, value_fp(&i, swift_missing, Lang::Swift));
-    assert_eq!(
-        missing_fp,
-        value_fp(&i, swift_missing_reversed, Lang::Swift)
+    assert_fingerprint_cases_converge(
+        &i,
+        &missing_fp,
+        [
+            fp_case!(swift_missing, Swift),
+            fp_case!(swift_missing_reversed, Swift),
+        ],
     );
-    assert_eq!(present_fp, value_fp(&i, swift_present, Lang::Swift));
-    assert_ne!(missing_fp, value_fp(&i, swift_present, Lang::Swift));
-    assert_ne!(missing_fp, value_fp(&i, swift_wrong_value, Lang::Swift));
-    assert_ne!(missing_fp, value_fp(&i, swift_rebound, Lang::Swift));
-    assert_ne!(
-        missing_fp,
-        value_fp_named(&i, swift_custom_nil, Lang::Swift, "f")
-    );
-    assert_ne!(
-        missing_fp,
-        value_fp_named(&i, swift_optional_equality_overload, Lang::Swift, "f")
+    assert_fingerprint_cases_converge(&i, &present_fp, [fp_case!(swift_present, Swift)]);
+    assert_fingerprint_cases_stay_split(
+        &i,
+        &missing_fp,
+        [
+            fp_case!(swift_present, Swift),
+            fp_case!(swift_wrong_value, Swift),
+            fp_case!(swift_rebound, Swift),
+            named_fp_case!(swift_custom_nil, Swift, "f"),
+            named_fp_case!(swift_optional_equality_overload, Swift, "f"),
+        ],
     );
 }
 

@@ -2,11 +2,11 @@
 
 use super::contracts::{LibraryApiCalleeContract, LibraryApiContractId};
 use crate::{
-    AsyncReceiverContract, ImportedNamespaceFunctionSemantic, IteratorAdapterReceiverContract,
-    JavaCollectionConstructorKind, JavaCollectionFactoryKind, JavaMapFactoryKind, MapKeyViewKind,
-    MethodReceiverContract, MethodSemanticContract, PromiseAggregateKind, PromiseFactoryKind,
-    ScalarIntegerMethod, StaticIndexMembershipKind, StaticIndexMembershipReceiverContract,
-    SwiftCollectionFactoryKind, SwiftMapFactoryKind,
+    java_map_factory_kind_key, AsyncReceiverContract, ImportedNamespaceFunctionSemantic,
+    IteratorAdapterReceiverContract, JavaCollectionConstructorKind, JavaCollectionFactoryKind,
+    MapKeyViewKind, MethodReceiverContract, MethodSemanticContract, PromiseAggregateKind,
+    PromiseFactoryKind, ScalarIntegerMethod, StaticIndexMembershipKind,
+    StaticIndexMembershipReceiverContract, SwiftCollectionFactoryKind, SwiftMapFactoryKind,
 };
 
 pub(super) fn library_api_contract_id_key(id: LibraryApiContractId) -> String {
@@ -151,16 +151,6 @@ fn swift_map_factory_kind_key(kind: SwiftMapFactoryKind) -> &'static str {
 fn java_collection_constructor_kind_key(kind: JavaCollectionConstructorKind) -> &'static str {
     match kind {
         JavaCollectionConstructorKind::EmptyList => "empty_list",
-    }
-}
-
-fn java_map_factory_kind_key(kind: JavaMapFactoryKind) -> &'static str {
-    match kind {
-        JavaMapFactoryKind::Of => "of",
-        JavaMapFactoryKind::OfEntries => "of_entries",
-        JavaMapFactoryKind::CollectionsEmptyMap => "collections_empty_map",
-        JavaMapFactoryKind::CollectionsSingletonMap => "collections_singleton_map",
-        JavaMapFactoryKind::GuavaImmutableMapOf => "guava_immutable_map_of",
     }
 }
 

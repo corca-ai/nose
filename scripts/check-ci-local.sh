@@ -10,6 +10,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Evidence corpus identities cover every file below their fixture roots. Keep
+# Python imports from depositing interpreter-specific bytecode into those roots
+# and making a later parallel gate observe a different corpus.
+export PYTHONDONTWRITEBYTECODE=1
+
 mode="fast"
 gate_name=""
 gate_args=()

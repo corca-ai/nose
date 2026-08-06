@@ -138,9 +138,21 @@ and behavior easier to reason about:
 - keep exact-admission rejection attribution split by proof surface; runtime
   boundary, HOF demand/effect, and callee-identity labels now live under
   `nose-cli/src/verify_admission/`;
+- keep Rust async-runtime attribution split by proof responsibility; the
+  operation façade, explicit API path vocabulary, Tokio runtime receiver proof,
+  and imported-symbol/shadowing identity live under
+  `nose-cli/src/verify_admission/runtime_boundary/async_runtime/rust/`;
 - keep post-lower Library API recognition out of the shared lowering context and
   split by semantic surface; the dispatch root plus focused handlers live under
   `nose-frontend/src/lower/library_api_post_lower/`;
+- keep frontend corpus effects separate from single-buffer language dispatch;
+  filesystem discovery, parallel raw lowering, cross-file resolution, and its
+  timing live in `nose-frontend/src/corpus.rs`, while the crate root remains the
+  stable lowering façade;
+- keep post-lower evidence recovery split by proof surface; symbol/import lookup,
+  Library API record construction, and bound-order guard recovery live under
+  `nose-frontend/src/lower/post_lower_evidence/`, with the root retaining only
+  their internal façade;
 - keep shared frontend control-flow lowering out of the shared lowering context;
   `switch`, `if`, `while`, block-wrapping, and C-style `for` helpers now live in
   `nose-frontend/src/lower/control_flow.rs`;
@@ -208,6 +220,15 @@ and behavior easier to reason about:
 - keep compiled semantic-pack count helpers split by ownership surface; protocol
   pack counts live under `nose-semantics/src/packs/compiled/counts/protocols.rs`
   instead of growing the count-suite root;
+- keep compiled pack registration data split by the reason it changes; language
+  bindings/extensions/producers and reusable protocol language/package
+  coordinates live under
+  `nose-semantics/src/packs/compiled/constants/{language_metadata,protocol_coordinates}.rs`,
+  while the constants root composes pack-specific contract and conformance data;
+- keep operator contracts split by semantic policy; value-domain laws,
+  comparison transforms, collection/membership contracts, and callback effects
+  live under `nose-semantics/src/operators/`, while `operators.rs` is the public
+  contract façade;
 - keep `nose-semantics/src/packs.rs` as the stable public façade;
   manifest-facing models and summary conversion live in `packs/model.rs`, while
   local/builtin/locked pack-set assembly lives in `packs/set.rs`;
@@ -236,12 +257,33 @@ and behavior easier to reason about:
   modules. Within orchestration, named output policies own coverage/dump choices,
   and one request plus one stage-state value carry data into finalization; do not
   reintroduce positional boolean or optional-stage argument lists;
+- keep detection orchestration focused on stage sequencing; ordinary candidate
+  scoring, report/dump assembly, and timing live under
+  `nose-detect/src/orchestration/{scoring,output,timing}.rs`, and submodules name
+  their actual dependencies instead of inheriting an ambient `use super::*`;
 - move reusable semantic or detection rules toward the owning library crate
   instead of keeping them in `nose-cli`;
 - split wide language and IL dispatch only around real concepts, such as
   expression lowering, declaration facts, effect evidence, or value-graph state;
 - keep table-driven and cross-language tests readable by extracting shared
   fixtures only when the name explains the scenario being tested;
+- express single-family semantic CLI scenarios through the shared fixture DSL:
+  each case supplies source files plus explicit included and excluded members,
+  while the DSL owns temp-project lifecycle, query invocation, and the one-family
+  invariant;
+- keep provenance and evidence-order test workflows in domain fixtures rather
+  than copying IL assembly: Rust `Some` call/node admission, import-fact probes,
+  binding-domain visibility, and pull-lazy `map`/`len` demand boundaries each
+  have one fixture owner with small consumer-specific assertions;
+- keep Java Map factory key, pack, positional-arity, and result-domain-arity
+  projections derived from one policy row per factory kind;
+- express broad equivalence matrices as named fingerprint cases with explicit
+  converge/stay-split expectations; keep source snippets beside the matrix, use
+  the source variable as the default failure label, override it when the
+  boundary reason is not evident, and retain direct assertions for one-off
+  semantic relationships that do not form a table. Collection membership,
+  option defaulting, and cross-language map-default coordinates use this shared
+  test vocabulary;
 - keep exact-fragment CLI fixture scanning and family-selection helpers outside
   the oversized test body; shared exact-fragment test support now lives in
   `nose-cli/tests/cli/exact_fragments/support.rs`;

@@ -5,8 +5,7 @@ pub(super) use nose_il::{
 };
 use nose_normalize::{normalize, NormalizeOptions};
 use nose_semantics::test_support::{
-    library_api_test_evidence_with_dependencies,
-    method_call_library_api_test_evidence_with_dependencies, LibraryApiTestContract,
+    library_api_test_evidence_with_dependencies, LibraryApiTestContract,
 };
 use nose_semantics::{
     language_core_evidence_provenance, library_map_get_contract, BUILTIN_COMPAT_PACK_ID,
@@ -82,24 +81,6 @@ pub(super) fn language_core_evidence(
     record.provenance.pack_hash = Some(stable_symbol_hash(pack_id));
     record.provenance.rule_hash = Some(stable_symbol_hash(producer_id));
     record
-}
-
-pub(super) fn method_call_library_api_evidence(
-    id: u32,
-    lang: Lang,
-    method: &str,
-    call_span: Span,
-    arity: usize,
-    dependencies: Vec<EvidenceId>,
-) -> EvidenceRecord {
-    method_call_library_api_test_evidence_with_dependencies(
-        id,
-        lang,
-        method,
-        call_span,
-        arity,
-        dependencies,
-    )
 }
 
 pub(super) fn map_get_library_api_evidence(

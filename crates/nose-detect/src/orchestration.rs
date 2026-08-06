@@ -1,40 +1,34 @@
 use crate::{
-    candidates::{
-        build_connected_groups, build_groups, round3, structural_candidates, ConnectedAccepted,
-        ConnectedRoute,
-    },
+    candidates::{build_connected_groups, build_groups, structural_candidates},
     cluster::UnionFind,
-    connected,
-    contiguous::{self, Stream},
-    detectors::{connected_witness_score, Detector},
-    locations::{
-        attach_enclosing_units, connected_loc_of, enclosing_unit_indices, enclosing_units,
-        is_nested, loc_of,
-    },
-    model::{Dump, DupPair, EnclosingUnit, LineSpan, Metrics, Report, UnitLoc},
+    contiguous::Stream,
+    detectors::Detector,
+    locations::enclosing_units,
+    model::{Dump, Metrics, Report},
     options::DetectOptions,
     reinvented::reinvented_helpers,
     units::UnitFeat,
 };
 use nose_il::Corpus;
-use rayon::prelude::*;
-use std::collections::{HashMap, HashSet};
-
-use crate::incremental::{self, IncrementalDetectionState, IncrementalDetectionStats};
 
 mod features;
 pub use features::{
     corpus_features, corpus_features_with_normalized, file_stream, units_of_file, CorpusFeatures,
 };
 mod incremental_session;
+mod output;
+mod scoring;
 mod stages;
+mod timing;
 pub use incremental_session::{
     detect_from_units_incremental_session_with_accepted_coverage,
     detect_from_units_incremental_with_accepted_coverage,
 };
-use stages::{
-    ConnectedStage, ContiguousStage, DetectionStageSource, DetectionStages, ResolvedDetectionStages,
-};
+use output::{append_resolved_contiguous, build_pair_output, detection_dump};
+use scoring::score_ordinary_candidates;
+pub(crate) use scoring::{AcceptedPair, ScoredCandidate};
+use stages::{ConnectedStage, DetectionStages, ResolvedDetectionStages};
+use timing::StageTimer;
 
 pub fn detect(corpus: &Corpus, opts: &DetectOptions, detector: &dyn Detector) -> Report {
     detect_with_dump_inner(corpus, opts, detector, DetectionOutput::REPORT).0
@@ -66,36 +60,6 @@ pub fn detect_with_direct_accepted_coverage(
         DetectionOutput::DIRECT_ACCEPTED_COVERAGE,
     )
     .0
-}
-
-/// Per-stage wall-clock timing, printed to stderr when `NOSE_TIME` is set. A
-/// zero-cost no-op otherwise (the `Instant`s are cheap; only the env check gates
-/// printing).
-struct StageTimer {
-    on: bool,
-    start: std::time::Instant,
-    last: std::time::Instant,
-}
-impl StageTimer {
-    fn new() -> Self {
-        let now = std::time::Instant::now();
-        StageTimer {
-            on: std::env::var_os("NOSE_TIME").is_some(),
-            start: now,
-            last: now,
-        }
-    }
-    fn lap(&mut self, stage: &str) {
-        let now = std::time::Instant::now();
-        if self.on {
-            eprintln!(
-                "  [time] {stage:<12} {:>7.1}ms   (total {:>7.1}ms)",
-                now.duration_since(self.last).as_secs_f64() * 1e3,
-                now.duration_since(self.start).as_secs_f64() * 1e3,
-            );
-        }
-        self.last = now;
-    }
 }
 
 #[derive(Clone, Copy)]
@@ -423,172 +387,8 @@ fn finish_detection(
     (report, dump)
 }
 
-fn detection_dump(units: &[UnitFeat], candidates: &[(usize, usize)]) -> Dump {
-    Dump {
-        units: units
-            .iter()
-            .map(|u| UnitLoc {
-                path: u.path.clone(),
-                start_line: u.start_line,
-                end_line: u.end_line,
-                lang: u.lang.name().to_string(),
-                name: u.name.clone(),
-            })
-            .collect(),
-        candidates: candidates
-            .iter()
-            .map(|&(i, j)| (i as u32, j as u32))
-            .collect(),
-    }
-}
-
-pub(crate) type AcceptedPair = (usize, usize, f64);
-
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct ScoredCandidate {
-    pub(crate) left: usize,
-    pub(crate) right: usize,
-    /// Nested pairs are intentionally not scored by the ordinary detector.
-    pub(crate) ordinary_score: Option<f64>,
-}
-
-fn score_ordinary_candidates(
-    units: &[UnitFeat],
-    candidates: &[(usize, usize)],
-    detector: &dyn Detector,
-    threshold: f64,
-) -> (Vec<ScoredCandidate>, Vec<AcceptedPair>) {
-    let scored = candidates
-        .par_iter()
-        .map(|&(left, right)| ScoredCandidate {
-            left,
-            right,
-            ordinary_score: (!is_nested(&units[left], &units[right]))
-                .then(|| detector.score(&units[left], &units[right])),
-        })
-        .collect::<Vec<_>>();
-    let accepted = scored
-        .iter()
-        .filter_map(|candidate| {
-            candidate
-                .ordinary_score
-                .filter(|&score| score >= threshold)
-                .map(|score| (candidate.left, candidate.right, score))
-        })
-        .collect();
-    (scored, accepted)
-}
-
-fn build_pair_output(
-    units: &[UnitFeat],
-    enclosing: &[Option<EnclosingUnit>],
-    ordinary: &[AcceptedPair],
-    connected: &[ConnectedAccepted],
-    emit_pairs: bool,
-) -> Vec<DupPair> {
-    if !emit_pairs {
-        return Vec::new();
-    }
-    let mut output = ordinary
-        .iter()
-        .map(|&(left, right, score)| DupPair {
-            left: loc_of(&units[left], enclosing[left].clone()),
-            right: loc_of(&units[right], enclosing[right].clone()),
-            score: round3(score),
-            cross_language: units[left].lang != units[right].lang,
-        })
-        .collect::<Vec<_>>();
-    output.extend(connected.iter().map(|pair| {
-        let left = connected_loc_of(
-            &units[pair.left],
-            enclosing[pair.left].clone(),
-            pair.witness.left_lines,
-            pair.witness.mapped_nodes,
-        );
-        let right = connected_loc_of(
-            &units[pair.right],
-            enclosing[pair.right].clone(),
-            pair.witness.right_lines,
-            pair.witness.mapped_nodes,
-        );
-        DupPair {
-            left,
-            right,
-            score: round3(pair.score),
-            cross_language: units[pair.left].lang != units[pair.right].lang,
-        }
-    }));
-    output.sort_by(|left, right| right.score.total_cmp(&left.score));
-    output
-}
-
 pub(crate) mod connected_pricing;
 use connected_pricing::{
     deduplicate_connected, deduplicate_same_unit, score_connected_candidates,
     score_same_unit_candidates,
 };
-
-fn append_contiguous_groups(
-    report: &mut Report,
-    streams: &[Stream],
-    opts: &DetectOptions,
-    units: &[UnitFeat],
-    trace_accepted_coverage: bool,
-) {
-    if !opts.contiguous {
-        return;
-    }
-    let (extra, accepted_edges) = contiguous::detect(
-        streams,
-        opts.contiguous_min_tokens,
-        opts.contiguous_min_lines,
-        trace_accepted_coverage,
-    );
-    append_contiguous_output(
-        report,
-        extra,
-        accepted_edges,
-        units,
-        trace_accepted_coverage,
-    );
-}
-
-fn append_resolved_contiguous(
-    report: &mut Report,
-    contiguous: Option<ContiguousStage>,
-    streams: &[Stream],
-    opts: &DetectOptions,
-    units: &[UnitFeat],
-    trace_accepted_coverage: bool,
-) {
-    if let Some(ContiguousStage {
-        groups,
-        accepted_edges,
-    }) = contiguous
-    {
-        append_contiguous_output(
-            report,
-            groups,
-            accepted_edges,
-            units,
-            trace_accepted_coverage,
-        );
-    } else {
-        append_contiguous_groups(report, streams, opts, units, trace_accepted_coverage);
-    }
-}
-
-fn append_contiguous_output(
-    report: &mut Report,
-    mut groups: Vec<crate::Group>,
-    accepted_edges: Vec<Vec<crate::AcceptedEdge>>,
-    units: &[UnitFeat],
-    trace_accepted_coverage: bool,
-) {
-    attach_enclosing_units(&mut groups, units);
-    report.metrics.groups += groups.len();
-    report.groups.extend(groups);
-    if trace_accepted_coverage {
-        report.accepted_group_edges.extend(accepted_edges);
-    }
-}

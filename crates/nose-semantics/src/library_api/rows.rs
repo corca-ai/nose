@@ -1,6 +1,7 @@
 //! Builtin library/API row constructors.
 
 use super::*;
+use crate::java_map_factory_pack_id;
 
 mod methods;
 
@@ -59,16 +60,6 @@ fn java_collection_factory_pack_id(kind: JavaCollectionFactoryKind) -> &'static 
         | JavaCollectionFactoryKind::GuavaImmutableSetOf => {
             JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID
         }
-    }
-}
-
-fn java_map_factory_pack_id(kind: JavaMapFactoryKind) -> &'static str {
-    match kind {
-        JavaMapFactoryKind::Of
-        | JavaMapFactoryKind::OfEntries
-        | JavaMapFactoryKind::CollectionsEmptyMap
-        | JavaMapFactoryKind::CollectionsSingletonMap => JAVA_STDLIB_MAP_FACTORY_PACK_ID,
-        JavaMapFactoryKind::GuavaImmutableMapOf => JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
     }
 }
 

@@ -1,7 +1,7 @@
 use nose_il::{
-    stable_symbol_hash, EvidenceAnchor, EvidenceId, EvidenceKind, EvidenceRecord, EvidenceStatus,
-    FileId, FileMeta, Il, IlBuilder, Interner, Lang, LibraryApiEvidenceKind, NodeId, NodeKind,
-    Payload, Span, SymbolEvidenceKind, Unit, UnitKind,
+    stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceId, EvidenceKind, EvidenceRecord,
+    EvidenceStatus, FileId, FileMeta, HoFKind, Il, IlBuilder, Interner, Lang,
+    LibraryApiEvidenceKind, NodeId, NodeKind, Payload, Span, SymbolEvidenceKind, Unit, UnitKind,
 };
 
 use crate::{
@@ -421,6 +421,72 @@ pub fn language_core_test_asserted_evidence(
         EvidenceStatus::Asserted,
         dependencies,
     )
+}
+
+pub fn map_len_test_il_with_lambda(
+    lambda: impl FnOnce(&mut IlBuilder) -> NodeId,
+    lang: Lang,
+) -> (Il, NodeId, NodeId) {
+    let span = |line| Span::new(FileId(0), line, line, line, line);
+    let mut builder = IlBuilder::new(FileId(0));
+    let item = builder.add(NodeKind::Lit, Payload::LitInt(1), span(1), &[]);
+    let collection = builder.add(NodeKind::Seq, Payload::None, span(1), &[item]);
+    let lambda = lambda(&mut builder);
+    let hof = builder.add(
+        NodeKind::HoF,
+        Payload::HoF(HoFKind::Map),
+        span(3),
+        &[collection, lambda],
+    );
+    let len = builder.add(
+        NodeKind::Call,
+        Payload::Builtin(Builtin::Len),
+        span(4),
+        &[hof],
+    );
+    let il = builder.finish(
+        len,
+        FileMeta {
+            path: "t.rs".into(),
+            lang,
+        },
+        Vec::new(),
+        Vec::new(),
+    );
+    (il, hof, len)
+}
+
+pub fn rust_pull_lazy_map_len_test_il() -> (Il, NodeId, NodeId) {
+    let (mut il, hof, len) = map_len_test_il_with_lambda(
+        |builder| {
+            let span = Span::new(FileId(0), 2, 2, 2, 2);
+            let param = builder.add(NodeKind::Param, Payload::Cid(0), span, &[]);
+            let value = builder.add(NodeKind::Var, Payload::Cid(0), span, &[]);
+            let ret = builder.add(NodeKind::Return, Payload::None, span, &[value]);
+            let body = builder.add(NodeKind::Block, Payload::None, span, &[ret]);
+            builder.add(NodeKind::Lambda, Payload::None, span, &[param, body])
+        },
+        Lang::Rust,
+    );
+    il.evidence
+        .push(method_call_library_api_test_evidence_with_dependencies(
+            0,
+            Lang::Rust,
+            "map",
+            il.node(hof).span,
+            1,
+            Vec::new(),
+        ));
+    il.evidence
+        .push(method_call_library_api_test_evidence_with_dependencies(
+            1,
+            Lang::Rust,
+            "len",
+            il.node(len).span,
+            0,
+            Vec::new(),
+        ));
+    (il, hof, len)
 }
 
 #[cfg(test)]
