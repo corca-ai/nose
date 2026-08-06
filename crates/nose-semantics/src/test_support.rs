@@ -14,6 +14,13 @@ use crate::{
     JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
 };
 
+mod call_targets;
+
+pub use call_targets::{
+    direct_function_call_target_test_il, DirectFunctionCallTargetFixture,
+    DirectFunctionFixtureScope, DirectFunctionFixtureSelector,
+};
+
 #[derive(Clone, Copy)]
 pub struct LibraryApiTestContract {
     pub id: LibraryApiContractId,

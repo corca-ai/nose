@@ -14,14 +14,7 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .collect();
             lo.add(NodeKind::Index, Payload::None, span, &kids)
         }
-        "conditional_expression" => {
-            let kids: Vec<NodeId> = ["condition", "consequence", "alternative"]
-                .iter()
-                .filter_map(|f| node.child_by_field_name(f))
-                .map(|c| lower_expr(lo, c))
-                .collect();
-            lo.add(NodeKind::If, Payload::None, span, &kids)
-        }
+        "conditional_expression" => crate::lower::conditional_expression(lo, node, lower_expr),
         "initializer_list" => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
@@ -322,11 +315,7 @@ pub(super) fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
     if let Some(f) = node.child_by_field_name("function") {
         kids.push(lower_expr(lo, f));
     }
-    if let Some(args) = node.child_by_field_name("arguments") {
-        for a in Lowering::named_children(args) {
-            kids.push(lower_expr(lo, a));
-        }
-    }
+    kids.extend(crate::lower::call_arguments(lo, node, lower_expr));
     lo.add(NodeKind::Call, Payload::None, span, &kids)
 }
 pub(super) fn lower_field_expr(lo: &mut Lowering, node: TsNode) -> NodeId {

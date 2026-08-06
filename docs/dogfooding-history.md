@@ -1486,3 +1486,17 @@ helper to the zero-removable test utility family, moving
 coordinates for the existing six-shared-line method-receiver policy family,
 moving `faaaa56b67e0870a` to `f315bdc04ec06036`. No new avoidable family is
 accepted.
+
+The focused responsibility follow-up reduces the reviewed count from 20 to 16
+while retaining the explicit budget ceiling of 20. C, Java, and Ruby ternaries
+now share their common field-coordinate lowering, and ordinary call argument
+lists share one CST adapter while callee identity and language-specific special
+arguments remain local. This removes the cross-frontend expression-dispatch
+and call/constructor representatives `0ad48a9c8c816e67` and
+`3157af5787fd407a`. A typed callee-dependency query and one identity matcher now
+own named, imported, Java static/constructor, and Ruby require proof dispatch,
+removing `6ea43f3112542ece`. Finally, normalize producer negatives and semantics
+consumer selector negatives use one direct-function call-target contract
+fixture, removing `f6a2c8af9c3fd791`. Promise settlement tests now use a small
+evidence DSL and focused direct-return support modules; that change improves
+scenario readability without adding or accepting a replacement family.

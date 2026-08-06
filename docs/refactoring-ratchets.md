@@ -156,6 +156,11 @@ and behavior easier to reason about:
 - keep shared frontend control-flow lowering out of the shared lowering context;
   `switch`, `if`, `while`, block-wrapping, and C-style `for` helpers now live in
   `nose-frontend/src/lower/control_flow.rs`;
+- keep grammar-common expression mechanics in the shared lowering adapter only
+  when their CST coordinates and missing-field policy agree; ordinary
+  `arguments` fields and C/Java/Ruby conditional fields share helpers, while
+  callee identity, tagged templates, Python generator arguments, and distinct
+  ternary policies remain language-owned;
 - keep the shared frontend lowering context as the small state/dispatch root;
   IL builders, semantic-evidence recording, import facts, parse/file setup,
   post-lower evidence helpers, expression helpers, and lowering tests now live
@@ -267,6 +272,16 @@ and behavior easier to reason about:
   expression lowering, declaration facts, effect evidence, or value-graph state;
 - keep table-driven and cross-language tests readable by extracting shared
   fixtures only when the name explains the scenario being tested;
+- express Promise value-graph setup through settlement and continuation terms;
+  `PromiseEvidenceDsl` owns dependency-closed factory/import/continuation
+  evidence, direct-return modules own IL assembly, and each test retains its
+  observable assertions;
+- keep direct-function call-target producer and consumer negatives on one
+  contract fixture; visibility and selector variants describe the boundary,
+  while normalize and semantics retain their own outcome assertions;
+- keep span-based Library API callee proof coordinates together in one typed
+  query, and route free/import/static/constructor identities through one matcher
+  without combining receiver-method or static-member proof policy;
 - express single-family semantic CLI scenarios through the shared fixture DSL:
   each case supplies source files plus explicit included and excluded members,
   while the DSL owns temp-project lifecycle, query invocation, and the one-family

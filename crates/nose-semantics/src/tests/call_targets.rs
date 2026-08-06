@@ -309,23 +309,22 @@ fn wrong_language_core_call_target_does_not_admit_identity() {
 
 #[test]
 fn direct_function_span_helper_requires_selector_shape() {
-    let interner = Interner::new();
-    let f = interner.intern("f");
-    let g = interner.intern("g");
-    let mut b = IlBuilder::new(FileId(0));
-    let target_body = b.add(NodeKind::Block, Payload::None, sp(1), &[]);
-    let target = b.add(NodeKind::Func, Payload::None, sp(2), &[target_body]);
-    let callee = b.add(NodeKind::Var, Payload::Name(g), sp(3), &[]);
-    let call = b.add(NodeKind::Call, Payload::None, sp(4), &[callee]);
-    let module = b.add(NodeKind::Module, Payload::None, sp(5), &[target, call]);
-    let mut il = finish_il(b, module, Lang::Python);
+    let test_support::DirectFunctionCallTargetFixture {
+        mut il,
+        interner,
+        target,
+        call,
+    } = test_support::direct_function_call_target_test_il(
+        test_support::DirectFunctionFixtureScope::TopLevel,
+        test_support::DirectFunctionFixtureSelector::DifferentName,
+    );
     il.evidence.push(call_target_record(
         0,
-        sp(4),
+        il.node(call).span,
         Lang::Python,
         CallTargetEvidenceKind::DirectFunction {
             target_span: il.node(target).span,
-            name_hash: interner.symbol_hash(f),
+            name_hash: stable_symbol_hash("f"),
         },
         EvidenceStatus::Asserted,
         &[],

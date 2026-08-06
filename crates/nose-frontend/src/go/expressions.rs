@@ -379,11 +379,7 @@ pub(super) fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let mut kids = Vec::new();
     kids.push(lower_call_function(lo, node, None));
-    if let Some(args) = node.child_by_field_name("arguments") {
-        for a in Lowering::named_children(args) {
-            kids.push(lower_expr(lo, a));
-        }
-    }
+    kids.extend(crate::lower::call_arguments(lo, node, lower_expr));
     lo.add(NodeKind::Call, Payload::None, span, &kids)
 }
 pub(super) fn lower_call_with_iota(
@@ -394,11 +390,9 @@ pub(super) fn lower_call_with_iota(
     let span = lo.span(node);
     let mut kids = Vec::new();
     kids.push(lower_call_function(lo, node, iota_value));
-    if let Some(args) = node.child_by_field_name("arguments") {
-        for a in Lowering::named_children(args) {
-            kids.push(lower_expr_with_iota(lo, a, iota_value));
-        }
-    }
+    kids.extend(crate::lower::call_arguments(lo, node, |lo, argument| {
+        lower_expr_with_iota(lo, argument, iota_value)
+    }));
     lo.add(NodeKind::Call, Payload::None, span, &kids)
 }
 pub(super) fn lower_call_function(

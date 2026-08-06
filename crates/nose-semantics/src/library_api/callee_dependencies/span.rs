@@ -1,6 +1,15 @@
 use super::java::*;
 use super::*;
 
+#[derive(Clone, Copy)]
+struct CalleeDependencyQuery<'a> {
+    call_span: Span,
+    callee_span: Option<Span>,
+    receiver_span: Option<Span>,
+    callee: LibraryApiCalleeContract,
+    record: &'a EvidenceRecord,
+}
+
 pub(in crate::library_api) fn library_api_dependencies_match_callee_at_span(
     il: &Il,
     interner: &Interner,
@@ -10,35 +19,24 @@ pub(in crate::library_api) fn library_api_dependencies_match_callee_at_span(
     callee: LibraryApiCalleeContract,
     record: &EvidenceRecord,
 ) -> bool {
+    let query = CalleeDependencyQuery {
+        call_span,
+        callee_span,
+        receiver_span,
+        callee,
+        record,
+    };
     match callee {
         LibraryApiCalleeContract::FreeName { .. }
         | LibraryApiCalleeContract::LabeledFreeName { .. }
         | LibraryApiCalleeContract::RustMacro { .. }
         | LibraryApiCalleeContract::JsGlobalConstructor { .. }
-        | LibraryApiCalleeContract::ImportedBinding { .. } => {
-            library_api_dependencies_match_named_callee_at_span(
-                il,
-                interner,
-                call_span,
-                callee_span,
-                receiver_span,
-                callee,
-                record,
-            )
-        }
-        LibraryApiCalleeContract::JavaUtilStaticMember { .. }
+        | LibraryApiCalleeContract::ImportedBinding { .. }
+        | LibraryApiCalleeContract::JavaUtilStaticMember { .. }
         | LibraryApiCalleeContract::JavaStaticMember { .. }
         | LibraryApiCalleeContract::JavaUtilConstructor { .. }
         | LibraryApiCalleeContract::RubyRequireStaticMember { .. } => {
-            library_api_dependencies_match_static_import_callee_at_span(
-                il,
-                interner,
-                call_span,
-                callee_span,
-                receiver_span,
-                callee,
-                record,
-            )
+            library_api_dependencies_match_identity_callee_at_span(il, interner, query)
         }
         LibraryApiCalleeContract::RegexLiteralMethod { .. }
         | LibraryApiCalleeContract::Property { .. }
@@ -46,40 +44,28 @@ pub(in crate::library_api) fn library_api_dependencies_match_callee_at_span(
         | LibraryApiCalleeContract::ImportedNamespaceFunction { .. }
         | LibraryApiCalleeContract::StaticGlobalMethod { .. }
         | LibraryApiCalleeContract::StaticGlobalFunction { .. } => {
-            library_api_dependencies_match_static_member_callee_at_span(
-                il,
-                interner,
-                callee_span,
-                receiver_span,
-                callee,
-                record,
-            )
+            library_api_dependencies_match_static_member_callee_at_span(il, interner, query)
         }
         LibraryApiCalleeContract::Method { .. }
         | LibraryApiCalleeContract::IteratorAdapterMethod { .. }
         | LibraryApiCalleeContract::AsyncMethod { .. } => {
-            library_api_dependencies_match_method_callee_at_span(
-                il,
-                interner,
-                call_span,
-                callee_span,
-                receiver_span,
-                callee,
-                record,
-            )
+            library_api_dependencies_match_method_callee_at_span(il, interner, query)
         }
     }
 }
 
-pub(in crate::library_api) fn library_api_dependencies_match_named_callee_at_span(
+fn library_api_dependencies_match_identity_callee_at_span(
     il: &Il,
     interner: &Interner,
-    call_span: Span,
-    callee_span: Option<Span>,
-    receiver_span: Option<Span>,
-    callee: LibraryApiCalleeContract,
-    record: &EvidenceRecord,
+    query: CalleeDependencyQuery<'_>,
 ) -> bool {
+    let CalleeDependencyQuery {
+        call_span,
+        callee_span,
+        receiver_span,
+        callee,
+        record,
+    } = query;
     match callee {
         LibraryApiCalleeContract::FreeName { name, shadow } => {
             free_name_dependency_safe_at_span(il, interner, record, callee_span, name, shadow)
@@ -120,32 +106,77 @@ pub(in crate::library_api) fn library_api_dependencies_match_named_callee_at_spa
                     }))
         }
         LibraryApiCalleeContract::ImportedBinding { module, exported } => {
-            if let Some(span) = receiver_span {
-                callee_span.is_some_and(|callee_span| {
-                    field_method_receiver_matches_span(il, interner, callee_span, exported, span)
-                }) && dependency_has_imported_namespace_anchor(
-                    il,
-                    interner,
-                    record,
-                    span,
-                    NodeKind::Var,
-                    module,
-                )
-            } else if let Some(span) = callee_span {
-                dependency_has_imported_binding_anchor(
-                    il,
-                    interner,
-                    record,
-                    span,
-                    NodeKind::Var,
-                    module,
-                    exported,
-                )
-            } else {
-                dependency_has_imported_binding_dependency(il, interner, record, module, exported)
-            }
+            imported_binding_dependencies_match(il, interner, query, module, exported)
+        }
+        LibraryApiCalleeContract::JavaUtilStaticMember { owner, .. }
+        | LibraryApiCalleeContract::JavaStaticMember { owner, .. } => {
+            static_receiver_dependency_safe_at_span(
+                il,
+                interner,
+                record,
+                receiver_span,
+                StaticReceiverDependency { owner },
+            )
+        }
+        LibraryApiCalleeContract::JavaUtilConstructor { type_ref } => {
+            dependency_has_source_call(il, record, call_span, SourceCallKind::Construct)
+                && callee_span.is_some_and(|span| {
+                    java_constructor_dependencies_match_at_span(
+                        il, interner, record, span, call_span, type_ref,
+                    )
+                })
+        }
+        LibraryApiCalleeContract::RubyRequireStaticMember {
+            receiver,
+            required_module,
+            shadow_root,
+            ..
+        } => {
+            receiver_span.is_some_and(|span| {
+                dependency_has_unshadowed_global_anchor(il, record, span, NodeKind::Var, receiver)
+            }) && dependency_has_required_module_before(
+                record,
+                il,
+                interner,
+                required_module,
+                call_span,
+            ) && receiver_span
+                .is_some_and(|span| !file_defines_name_visible_at(il, interner, shadow_root, span))
         }
         _ => false,
+    }
+}
+
+fn imported_binding_dependencies_match(
+    il: &Il,
+    interner: &Interner,
+    query: CalleeDependencyQuery<'_>,
+    module: &str,
+    exported: &str,
+) -> bool {
+    if let Some(receiver_span) = query.receiver_span {
+        query.callee_span.is_some_and(|callee_span| {
+            field_method_receiver_matches_span(il, interner, callee_span, exported, receiver_span)
+        }) && dependency_has_imported_namespace_anchor(
+            il,
+            interner,
+            query.record,
+            receiver_span,
+            NodeKind::Var,
+            module,
+        )
+    } else if let Some(callee_span) = query.callee_span {
+        dependency_has_imported_binding_anchor(
+            il,
+            interner,
+            query.record,
+            callee_span,
+            NodeKind::Var,
+            module,
+            exported,
+        )
+    } else {
+        dependency_has_imported_binding_dependency(il, interner, query.record, module, exported)
     }
 }
 
@@ -231,63 +262,6 @@ fn static_receiver_shadow_safe_at_span(
     }
 }
 
-pub(in crate::library_api) fn library_api_dependencies_match_static_import_callee_at_span(
-    il: &Il,
-    interner: &Interner,
-    call_span: Span,
-    callee_span: Option<Span>,
-    receiver_span: Option<Span>,
-    callee: LibraryApiCalleeContract,
-    record: &EvidenceRecord,
-) -> bool {
-    match callee {
-        LibraryApiCalleeContract::JavaUtilStaticMember { owner, .. } => {
-            static_receiver_dependency_safe_at_span(
-                il,
-                interner,
-                record,
-                receiver_span,
-                StaticReceiverDependency { owner },
-            )
-        }
-        LibraryApiCalleeContract::JavaStaticMember { owner, .. } => {
-            static_receiver_dependency_safe_at_span(
-                il,
-                interner,
-                record,
-                receiver_span,
-                StaticReceiverDependency { owner },
-            )
-        }
-        LibraryApiCalleeContract::JavaUtilConstructor { type_ref } => {
-            dependency_has_source_call(il, record, call_span, SourceCallKind::Construct)
-                && callee_span.is_some_and(|span| {
-                    java_constructor_dependencies_match_at_span(
-                        il, interner, record, span, call_span, type_ref,
-                    )
-                })
-        }
-        LibraryApiCalleeContract::RubyRequireStaticMember {
-            receiver,
-            required_module,
-            shadow_root,
-            ..
-        } => {
-            receiver_span.is_some_and(|span| {
-                dependency_has_unshadowed_global_anchor(il, record, span, NodeKind::Var, receiver)
-            }) && dependency_has_required_module_before(
-                record,
-                il,
-                interner,
-                required_module,
-                call_span,
-            ) && receiver_span
-                .is_some_and(|span| !file_defines_name_visible_at(il, interner, shadow_root, span))
-        }
-        _ => false,
-    }
-}
-
 #[derive(Clone, Copy)]
 struct StaticReceiverDependency {
     owner: JavaTypeReference,
@@ -315,14 +289,18 @@ fn static_receiver_dependency_safe_at_span(
     )
 }
 
-pub(in crate::library_api) fn library_api_dependencies_match_static_member_callee_at_span(
+fn library_api_dependencies_match_static_member_callee_at_span(
     il: &Il,
     interner: &Interner,
-    callee_span: Option<Span>,
-    receiver_span: Option<Span>,
-    callee: LibraryApiCalleeContract,
-    record: &EvidenceRecord,
+    query: CalleeDependencyQuery<'_>,
 ) -> bool {
+    let CalleeDependencyQuery {
+        callee_span,
+        receiver_span,
+        callee,
+        record,
+        ..
+    } = query;
     match callee {
         LibraryApiCalleeContract::RegexLiteralMethod {
             required_receiver_fact,
@@ -420,29 +398,24 @@ fn static_global_method_extra_dependencies_match_at_span(
         .is_some_and(|dependencies| dependency_ids_are_present(record, &dependencies))
 }
 
-pub(in crate::library_api) fn library_api_dependencies_match_method_callee_at_span(
+fn library_api_dependencies_match_method_callee_at_span(
     il: &Il,
     interner: &Interner,
-    call_span: Span,
-    callee_span: Option<Span>,
-    receiver_span: Option<Span>,
-    callee: LibraryApiCalleeContract,
-    record: &EvidenceRecord,
+    query: CalleeDependencyQuery<'_>,
 ) -> bool {
+    let CalleeDependencyQuery {
+        callee_span,
+        receiver_span,
+        callee,
+        record,
+        ..
+    } = query;
     match callee {
         LibraryApiCalleeContract::Method { method, receiver } => {
             if !callee_span.is_some_and(|span| field_method_at_span(il, interner, span, method)) {
                 return false;
             }
-            if let Some(matches) = call_anchored_method_dependencies_match(
-                il,
-                interner,
-                call_span,
-                callee_span,
-                receiver_span,
-                callee,
-                record,
-            ) {
+            if let Some(matches) = call_anchored_method_dependencies_match(il, interner, query) {
                 return matches;
             }
             if receiver == MethodReceiverContract::ExactProtocolPairArgument
@@ -479,12 +452,15 @@ pub(in crate::library_api) fn library_api_dependencies_match_method_callee_at_sp
 fn call_anchored_method_dependencies_match(
     il: &Il,
     interner: &Interner,
-    call_span: Span,
-    callee_span: Option<Span>,
-    receiver_span: Option<Span>,
-    callee: LibraryApiCalleeContract,
-    record: &EvidenceRecord,
+    query: CalleeDependencyQuery<'_>,
 ) -> Option<bool> {
+    let CalleeDependencyQuery {
+        call_span,
+        callee_span,
+        receiver_span,
+        callee,
+        record,
+    } = query;
     let source_call = node_at_span_with_kind(il, call_span, NodeKind::Call)?;
     if !source_call_spans_match_span_query(il, source_call, callee_span, receiver_span) {
         return None;

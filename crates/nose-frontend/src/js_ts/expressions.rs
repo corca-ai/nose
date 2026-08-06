@@ -323,11 +323,7 @@ fn lower_new(lo: &mut Lowering, node: TsNode) -> NodeId {
             kids.push(e);
         }
     }
-    if let Some(args) = node.child_by_field_name("arguments") {
-        for a in Lowering::named_children(args) {
-            kids.push(lower_expr(lo, a));
-        }
-    }
+    kids.extend(crate::lower::call_arguments(lo, node, lower_expr));
     lo.record_source_fact(span, SourceFactKind::Call(SourceCallKind::Construct));
     lo.add(NodeKind::Call, Payload::None, span, &kids)
 }

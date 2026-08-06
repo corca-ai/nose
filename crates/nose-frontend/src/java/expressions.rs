@@ -92,12 +92,7 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
 
 fn lower_object_creation(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let mut kids = Vec::new();
-    if let Some(args) = node.child_by_field_name("arguments") {
-        for argument in Lowering::named_children(args) {
-            kids.push(lower_expr(lo, argument));
-        }
-    }
+    let mut kids = crate::lower::call_arguments(lo, node, lower_expr);
     // Locally-bound anonymous objects are reusable behavior objects (visitors/recorders).
     // Expanding inline callback arguments would instead dominate their enclosing call shape.
     if anonymous_object_is_locally_bound(node) {
@@ -164,14 +159,7 @@ pub(super) fn lower_expr_rest(lo: &mut Lowering, node: TsNode) -> NodeId {
         "parenthesized_expression" | "cast_expression" => last_named_child(node)
             .map(|c| lower_expr(lo, c))
             .unwrap_or_else(|| lo.empty_block(span)),
-        "ternary_expression" => {
-            let kids: Vec<NodeId> = ["condition", "consequence", "alternative"]
-                .iter()
-                .filter_map(|f| node.child_by_field_name(f))
-                .map(|c| lower_expr(lo, c))
-                .collect();
-            lo.add(NodeKind::If, Payload::None, span, &kids)
-        }
+        "ternary_expression" => crate::lower::conditional_expression(lo, node, lower_expr),
         "array_initializer" | "array_creation_expression" | "argument_list" => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
@@ -196,12 +184,7 @@ pub(super) fn lower_expr_rest(lo: &mut Lowering, node: TsNode) -> NodeId {
             .unwrap_or_else(|| lo.empty_block(span)),
         // `this(...)` / `super(...)` constructor delegation → a Call over its args.
         "explicit_constructor_invocation" => {
-            let mut kids = Vec::new();
-            if let Some(args) = node.child_by_field_name("arguments") {
-                for a in Lowering::named_children(args) {
-                    kids.push(lower_expr(lo, a));
-                }
-            }
+            let kids = crate::lower::call_arguments(lo, node, lower_expr);
             lo.add(NodeKind::Call, Payload::None, span, &kids)
         }
         "method_reference" => lo.var(lo.text(node), span),
@@ -268,11 +251,7 @@ pub(super) fn lower_enum_constant(lo: &mut Lowering, node: TsNode) -> NodeId {
     if let Some(name) = node.child_by_field_name("name") {
         kids.push(lo.str_lit(lo.text(name), lo.span(name)));
     }
-    if let Some(args) = node.child_by_field_name("arguments") {
-        for arg in Lowering::named_children(args) {
-            kids.push(lower_expr(lo, arg));
-        }
-    }
+    kids.extend(crate::lower::call_arguments(lo, node, lower_expr));
     if let Some(body) = node.child_by_field_name("body") {
         kids.push(lower_body_declarations(lo, body));
     }
@@ -531,10 +510,6 @@ pub(super) fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
         ),
     };
     let mut kids = vec![callee];
-    if let Some(args) = node.child_by_field_name("arguments") {
-        for a in Lowering::named_children(args) {
-            kids.push(lower_expr(lo, a));
-        }
-    }
+    kids.extend(crate::lower::call_arguments(lo, node, lower_expr));
     lo.add(NodeKind::Call, Payload::None, span, &kids)
 }

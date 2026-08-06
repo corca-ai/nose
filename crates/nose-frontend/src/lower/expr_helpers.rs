@@ -26,6 +26,42 @@ pub(crate) fn node_has_child_kind(node: TsNode, kind: &str) -> bool {
         .any(|index| child_at(node, index).is_some_and(|child| child.kind() == kind))
 }
 
+/// Lower the named children of a grammar's `arguments` field.
+///
+/// Callee identity, missing-callee policy, and special argument surfaces stay
+/// in each language adapter; this helper owns only the shared CST field shape.
+pub(crate) fn call_arguments(
+    lo: &mut Lowering,
+    node: TsNode,
+    mut lower_argument: impl FnMut(&mut Lowering, TsNode) -> NodeId,
+) -> Vec<NodeId> {
+    node.child_by_field_name("arguments")
+        .map(Lowering::named_children)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|argument| lower_argument(lo, argument))
+        .collect()
+}
+
+/// Lower a `condition`/`consequence`/`alternative` expression into `If`.
+///
+/// These field names and the present-child policy are shared by the C, Java,
+/// and Ruby grammars. Languages with different ordering or missing-arm policy
+/// keep their own adapter.
+pub(crate) fn conditional_expression(
+    lo: &mut Lowering,
+    node: TsNode,
+    mut lower_branch: impl FnMut(&mut Lowering, TsNode) -> NodeId,
+) -> NodeId {
+    let span = lo.span(node);
+    let children = ["condition", "consequence", "alternative"]
+        .into_iter()
+        .filter_map(|field| node.child_by_field_name(field))
+        .map(|branch| lower_branch(lo, branch))
+        .collect::<Vec<_>>();
+    lo.add(NodeKind::If, Payload::None, span, &children)
+}
+
 /// Build a `Func` unit from a `name`/`parameters`/`body`-shaped node and register
 /// it for detection (a `Method` when `method`, else a `Function`). Every frontend
 /// shares this skeleton — extract the name, lower the parameters, lower the body,
