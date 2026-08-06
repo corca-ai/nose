@@ -48,7 +48,7 @@ thiserror = "2"
 clap = { version = "4", features = ["derive"] }
 ignore = "0.4"
 memchr = "2"
-toml = "1.1"
+toml = "0.8"
 quick-xml = "0.41"
 rmp-serde = "1"
 zstd = "0.13.3"
