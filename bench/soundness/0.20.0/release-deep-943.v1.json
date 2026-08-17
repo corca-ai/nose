@@ -1,9 +1,0 @@
-{
-  "checks": {
-    "metamorphic_equivalence": true,
-    "multi_seed_falsification": true,
-    "source_runtime_calibration": true
-  },
-  "schema": "nose-soundness-deep-evidence/v1",
-  "source_commit": "a544d03b6801871dbcd90bcb370825942d6851c8"
-}
