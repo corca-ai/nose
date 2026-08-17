@@ -1,9 +1,0 @@
-# Pins the toolchain used for development and CI so every build is reproducible.
-# rustup auto-installs this version on the first cargo invocation.
-#
-# This is the *dev/CI* toolchain, deliberately separate from the project's MSRV
-# (`rust-version` in Cargo.toml) — the MSRV CI job checks an older toolchain.
-[toolchain]
-channel = "1.96.0"
-components = ["rustfmt", "clippy"]
-profile = "minimal"
