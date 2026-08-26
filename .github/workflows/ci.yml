@@ -85,7 +85,7 @@ jobs:
       - name: Resolve pinned shell tools
         id: shell-tools
         run: python3 scripts/aux_tools.py ci-spec shell-lint --github-output "$GITHUB_OUTPUT"
-      - uses: taiki-e/install-action@v2.85.7
+      - uses: taiki-e/install-action@v2.86.6
         with:
           tool: ${{ steps.shell-tools.outputs.tools }}
       - name: gate · change-routing-selftest
@@ -314,7 +314,7 @@ jobs:
         id: coverage-tools
         run: python3 scripts/aux_tools.py ci-spec coverage --github-output "$GITHUB_OUTPUT"
       # Prebuilt, exact-version binary — no compile cost or moving setup state.
-      - uses: taiki-e/install-action@v2.85.7
+      - uses: taiki-e/install-action@v2.86.6
         with:
           tool: ${{ steps.coverage-tools.outputs.tools }}
       - name: Diagnose pinned coverage tools
@@ -351,7 +351,7 @@ jobs:
         id: supply-chain-tools
         run: python3 scripts/aux_tools.py ci-spec supply-chain --github-output "$GITHUB_OUTPUT"
       # Prebuilt, exact-version binaries — no compile cost or moving setup state.
-      - uses: taiki-e/install-action@v2.85.7
+      - uses: taiki-e/install-action@v2.86.6
         with:
           tool: ${{ steps.supply-chain-tools.outputs.tools }}
       - name: Diagnose pinned supply-chain tools
