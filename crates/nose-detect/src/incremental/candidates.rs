@@ -532,16 +532,10 @@ fn emit_bucket_pairs(key: BucketKey, members: &[UnitKey]) -> Vec<UnitPairKey> {
 }
 
 fn all_pairs_capped(members: &[UnitKey], cap: usize) -> Vec<UnitPairKey> {
-    let mut pairs = Vec::new();
-    'outer: for left in 0..members.len() {
-        for right in (left + 1)..members.len() {
-            pairs.push(UnitPairKey::new(members[left], members[right]));
-            if pairs.len() >= cap {
-                break 'outer;
-            }
-        }
-    }
-    pairs
+    crate::lsh::bucket_pairs(members)
+        .take(cap)
+        .map(|(left, right)| UnitPairKey::new(left, right))
+        .collect()
 }
 
 fn unit_key(unit: &UnitFeat) -> UnitKey {

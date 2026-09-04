@@ -1500,3 +1500,14 @@ consumer selector negatives use one direct-function call-target contract
 fixture, removing `f6a2c8af9c3fd791`. Promise settlement tests now use a small
 evidence DSL and focused direct-return support modules; that change improves
 scenario readability without adding or accepting a replacement family.
+
+The full-project review follow-up reduces the reviewed count from 16 to 15,
+with the existing budget ceiling of 20 unchanged. Clean LSH, exact-value,
+anchor, and incremental candidate generation now share `lsh::bucket_pairs`.
+This removes the candidate-enumeration family `0fba8db9b311bd86`; the initial
+full-pair fix had temporarily added `exact_value_candidates` to that existing
+family, so the shared iterator removes the duplication instead of accepting it.
+The six three-line test span helpers retain identical members and metrics
+(value 75, zero removable lines); the evidence append API changes one member's
+line coordinate and moves `97f69f1bf638e2d7` to `08bef91578054823`. No new
+avoidable family is accepted.

@@ -317,18 +317,11 @@ fn exact_value_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
             buckets.entry(unit.value.as_slice()).or_default().push(idx);
         }
     }
-    let mut out = Vec::new();
-    for members in buckets.values() {
-        if members.len() < 2 {
-            continue;
-        }
-        for a in 0..members.len() {
-            for b in (a + 1)..members.len() {
-                out.push(ordered_pair(members[a], members[b]));
-            }
-        }
-    }
-    out
+    buckets
+        .values()
+        .flat_map(|members| lsh::bucket_pairs(members))
+        .map(|(a, b)| ordered_pair(a, b))
+        .collect()
 }
 
 /// An anchor present in more than this many units is boilerplate (a common idiom), not a
@@ -364,16 +357,11 @@ fn anchor_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
         if members.len() < 2 || members.len() > max_df {
             continue;
         }
-        let mut count = 0;
-        'pairs: for a in 0..members.len() {
-            for b in (a + 1)..members.len() {
-                out.push(ordered_pair(members[a], members[b]));
-                count += 1;
-                if count >= ANCHOR_PAIR_CAP {
-                    break 'pairs;
-                }
-            }
-        }
+        out.extend(
+            lsh::bucket_pairs(members)
+                .take(ANCHOR_PAIR_CAP)
+                .map(|(a, b)| ordered_pair(a, b)),
+        );
     }
     out
 }

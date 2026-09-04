@@ -1,7 +1,7 @@
 //! Locality-sensitive hashing over MinHash signatures. Signatures are split into
 //! `bands` bands of `rows = k / bands` rows; units sharing any band's value are
-//! emitted as a candidate pair. This keeps candidate generation near-linear
-//! instead of comparing all O(n²) unit pairs.
+//! emitted as a candidate pair. This avoids comparing unrelated
+//! units; dense buckets still require O(k²) candidate pairs.
 //!
 //! The implementation is **sort-based** rather than hash-map-based: every
 //! `(band-hash, unit)` entry is produced in parallel, sorted once (a parallel
@@ -88,10 +88,7 @@ pub(crate) fn candidates<'a>(
     buckets.dedup();
     let mut pairs: Vec<(u32, u32)> = buckets
         .par_iter()
-        .flat_map_iter(|members| {
-            (0..members.len())
-                .flat_map(move |a| (a + 1..members.len()).map(move |b| (members[a], members[b])))
-        })
+        .flat_map_iter(|members| bucket_pairs(members))
         .collect();
 
     // 5. A pair can recur across bands; sort + dedup once (parallel sort).
@@ -101,6 +98,15 @@ pub(crate) fn candidates<'a>(
         .into_iter()
         .map(|(i, j)| (i as usize, j as usize))
         .collect()
+}
+
+/// Enumerate every unordered pair once, in member order. Both clean and
+/// incremental candidates share this rule; callers apply explicit anchor caps.
+pub(crate) fn bucket_pairs<T: Copy>(members: &[T]) -> impl Iterator<Item = (T, T)> + '_ {
+    members
+        .iter()
+        .enumerate()
+        .flat_map(move |(left, &a)| members[left + 1..].iter().map(move |&b| (a, b)))
 }
 
 #[cfg(test)]
