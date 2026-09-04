@@ -254,6 +254,12 @@ content identities, raw phase measurements, and environment. It was built from t
 working tree based on `1adfc492`; this is development evidence, not a paired release
 comparison or a 30-replay performance acceptance result.
 
+The measured implementation was committed as `7164f836`. The subsequent recursive
+oracle guard (`45d7da37`) has a separate [correctness receipt](../bench/cache/review-followup-oracle-guard-validation-2026-09-05.v1.json):
+all four real-corpus query outputs are unchanged, and debug/release blind-oracle
+runs both retain 54 exact groups with zero false merges or canon violations. The
+timings below remain attributed to the measured build.
+
 | Repository | Clean p50 ms | Empty-store p50 ms | History p50 ms | History RSS p50 MiB |
 | --- | ---: | ---: | ---: | ---: |
 | sympy | 3148.77 | 3282.52 | 1452.09 | 1459.85 |

@@ -100,6 +100,12 @@ types remain unhosted. Multi-piece strings cannot establish character equality
 with atomic keys in the current free-monoid model, so those comparisons remain
 unsupported. This expands offline coverage without adding product exact laws.
 
+The regenerated [coverage evidence](../bench/type4/coverage_evidence.v1.json)
+raises the generated `map_key_membership` cohort's oracle completeness from 89%
+to 94%, with zero merged hard negatives out of 24. Its reported under-merged
+cases increase from one to three as the oracle can compare more behaviors; this
+extension does not claim to close those product recall gaps.
+
 ## Two binary identities, one release-tree report
 
 The preserved clean release-candidate binary and raw report reproduce the

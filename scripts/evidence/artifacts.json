@@ -45,7 +45,7 @@
       "consumers": ["local and hosted quality-gate orchestration"],
       "retention_policy": "Keep current policy plus any receipt required to interpret a checked release or gate result.",
       "artifact_count": 7,
-      "inventory_sha256": "c6ef78c7ea156b07c321a59f47821cc5735db70054c57810077a1c3c329472d9"
+      "inventory_sha256": "c5ab17fd571766bddc249b791336c428d13ded76ddc1f7da49424ae58f0b786c"
     },
     {
       "id": "benchmark-root",
@@ -66,8 +66,8 @@
       "validator": "./scripts/check-ci-local.sh --gate runtime-soundness-evidence",
       "consumers": ["cache soundness and incremental-run regression gates"],
       "retention_policy": "Keep active baselines, mutation manifests, and their receipts as one provenance unit.",
-      "artifact_count": 14,
-      "inventory_sha256": "f30ac5fc5a6350a9545c04e608949f580f88b4334a0397e2256d6ffdd007b5eb"
+      "artifact_count": 18,
+      "inventory_sha256": "c734dacdb0d47aacab074eb11911e196130ef9724255327c8fe7450fd333a7ec"
     },
     {
       "id": "coevolution-evidence",
@@ -188,7 +188,7 @@
       "consumers": ["Type-4 frontier, query-regression, and adversarial gates"],
       "retention_policy": "Preserve current gold/frontier inputs and any sealed or closeout evidence.",
       "artifact_count": 29,
-      "inventory_sha256": "6e9080f742ebd9f62b9b615e518f6bde6594f0b9cd4b8227c6b841f27733e156"
+      "inventory_sha256": "b51addf68b364a2e299836427a7e560a63c654bf6ecd73d171ca6b98de1f9ff7"
     },
     {
       "id": "documentation-policy",
@@ -580,6 +580,18 @@
     }
   ],
   "relations": [
+    {
+      "kind": "receipt-binds-manifest",
+      "binder": "bench/cache/review-followup-mutation-receipt-2026-09-05.v1.json",
+      "bound": "bench/cache/mutation-manifest.v1.json",
+      "rationale": "The follow-up receipt retains all 14 mutation identities and 30-replay summaries while sealing the local raw report."
+    },
+    {
+      "kind": "correctness-check-binds-profile",
+      "binder": "bench/cache/review-followup-oracle-guard-validation-2026-09-05.v1.json",
+      "bound": "bench/cache/review-followup-corpus-profile-2026-09-05.v1.json",
+      "rationale": "The later oracle guard records the measured profile digest and proves unchanged query output on its four real corpora."
+    },
     {
       "kind": "baseline-bound-by-gate",
       "binder": "bench/labels/accepted_pair_coverage_dev_gate_2026_07_11.v1.json",
