@@ -7,6 +7,8 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- Bound recursive oracle calls independently of execution steps, reporting a
+  budget exclusion instead of overflowing the stack on nonterminating recursion.
 - Accept long generated type/operator chains in pinned real-world corpora while
   retaining explicit parse-depth and candidate-work limits. Deduplicate overlapping
   LSH pairs before allocation, and avoid approximate candidate work in exact-only scans.

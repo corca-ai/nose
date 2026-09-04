@@ -3,6 +3,32 @@ use super::*;
 const BODY: &str = "def f(x):\n    a = x + 1\n    b = a * 2\n    c = b - 3\n    return c\n";
 
 #[test]
+fn recursive_oracle_inputs_report_a_budget_instead_of_overflowing_the_stack() {
+    let project = TempProject::new("oracle_call_depth");
+    project.write(
+        "recursive.py",
+        "def fac(n):\n    if n == 0:\n        return 1\n    return n * fac(n - 1)\n",
+    );
+    let census = project.path().join("census.json");
+    let output = Command::new(bin())
+        .args([
+            "verify",
+            project.path().to_str().unwrap(),
+            "--exclusion-census",
+        ])
+        .arg(&census)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let census = fs::read_to_string(census).unwrap();
+    assert!(census.contains("budget.interpreter-call-depth"), "{census}");
+}
+
+#[test]
 fn exact_mode_does_not_spend_budget_on_unequal_value_fingerprints() {
     let project = TempProject::new("exact_candidate_budget");
     for i in 0..256 {

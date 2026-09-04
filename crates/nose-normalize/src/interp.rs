@@ -195,6 +195,8 @@ pub enum UnitExit {
 }
 
 const STEP_BUDGET: u64 = 200_000;
+// A step budget alone cannot bound native stack use by a nonterminating call.
+const CALL_DEPTH_BUDGET: usize = 64;
 
 /// Symbolic-condition path exploration cap (#244): at most this many symbolic
 /// If/ternary decision SITES per execution, so a row explores ≤ 2^cap paths.
@@ -221,6 +223,7 @@ struct Interp<'a> {
     il: &'a Il,
     interner: &'a Interner,
     steps: u64,
+    call_depth: usize,
     effects: Vec<Value>,
     fields: FxHashMap<FieldKey, Value>,
     /// Direct immutable module strings, proven by the shared module scope/mutation boundary.
@@ -473,6 +476,7 @@ fn run_unit_once(
         il,
         interner,
         steps: 0,
+        call_depth: 0,
         effects: Vec::new(),
         fields: FxHashMap::default(),
         globals,

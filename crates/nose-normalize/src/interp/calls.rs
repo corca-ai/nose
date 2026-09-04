@@ -248,7 +248,12 @@ impl<'a> Interp<'a> {
         let body = *params
             .last()
             .ok_or_else(|| Unsupported::il("il.callee-body-missing"))?;
+        if self.call_depth == CALL_DEPTH_BUDGET {
+            return Err(Unsupported::budget("budget.interpreter-call-depth"));
+        }
+        self.call_depth += 1;
         let result = self.exec(body, &mut fenv);
+        self.call_depth -= 1;
         match result? {
             Flow::Ret(v) => Ok(v),
             Flow::Throw | Flow::Err => Ok(Value::Err),
