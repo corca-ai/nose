@@ -43,6 +43,7 @@ LINUX_RSS_RE = re.compile(
 )
 DEFAULT_TERMS = ("all", "top=0")
 DEFAULT_FLAGS = ("--min-lines", "1", "--min-size", "1")
+DEFAULT_MODES = ("semantic",)
 EXECUTABLE_CASES = {
     "no-op",
     "leaf-edit",
@@ -371,12 +372,12 @@ def query_command(
         "query",
         repo_argument,
         *terms,
-        "--mode",
-        "semantic",
         "--format",
         "json",
         *flags,
     ]
+    for mode in DEFAULT_MODES:
+        command.extend(("--mode", mode))
     if cache is not None:
         command.extend(("--cache-dir", str(cache)))
     return command
@@ -538,6 +539,7 @@ def run_real_leaf_replay(
     mutation: RealLeafMutation,
     replay: int,
     require_cache_stats: bool,
+    *, include_seed: bool = False,
 ) -> tuple[list[dict[str, Any]], bool, bool, str, str]:
     shutil.rmtree(workspace, ignore_errors=True)
     workspace.mkdir(parents=True)
@@ -560,11 +562,17 @@ def run_real_leaf_replay(
     before_identity = source_identity(repo)
     history = workspace / "history-cache"
     cold = workspace / "cold-cache"
-    run_query(
+    clean_seed, clean_seed_bytes = run_query(
+        binary=binary, cwd=workspace, repo_argument="repo", phase="clean-seed",
+        replay=replay, terms=DEFAULT_TERMS, flags=DEFAULT_FLAGS, cache=None,
+        require_cache_stats=require_cache_stats,
+    )
+    seed, seed_bytes = run_query(
         binary=binary, cwd=workspace, repo_argument="repo", phase="empty-store-seed",
         replay=replay, terms=DEFAULT_TERMS, flags=DEFAULT_FLAGS, cache=history,
         require_cache_stats=require_cache_stats,
     )
+    assert_equal(clean_seed_bytes, seed_bytes, f"real leaf seed replay {replay}")
     leaf.write_text(content.replace(mutation.find, mutation.replace), encoding="utf-8")
     after_identity = source_identity(repo)
     clean, clean_bytes = run_query(
@@ -583,7 +591,7 @@ def run_real_leaf_replay(
         require_cache_stats=require_cache_stats,
     )
     return (
-        [clean, cold_row, warm_row],
+        ([clean_seed, seed] if include_seed else []) + [clean, cold_row, warm_row],
         clean_bytes == cold_bytes,
         clean_bytes == warm_bytes,
         before_identity,

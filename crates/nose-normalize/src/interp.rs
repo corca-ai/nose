@@ -37,8 +37,10 @@ mod eval;
 mod exec;
 mod field_state;
 mod hof;
+mod keyed;
 mod ops;
 mod value;
+pub use keyed::keyed_membership_value;
 use ops::*;
 pub use value::{behavior_equiv, behavior_has_sym, Behavior, Value, F64};
 use value::{
@@ -504,6 +506,10 @@ fn run_unit_once(
                             .collect(),
                     ),
                     (v, _) => v,
+                };
+                let v = match nose_semantics::keyed_membership_projection(il, interner, root, k) {
+                    Some(key) => keyed::bind(v, key),
+                    None => v,
                 };
                 let v = if it.bitwise_result_is_int32() {
                     compact_javascript_positive_zero(v)

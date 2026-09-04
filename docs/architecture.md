@@ -181,15 +181,21 @@ For *why* the normalization passes look the way they do, read [normalization](no
 ## Analysis resource boundaries
 
 The CLI preflights structural candidate emissions before allocating pair or
-persistent score arrays. The default work budget is 1,000,000 emissions before
-cross-channel deduplication; `NOSE_MAX_CANDIDATE_PAIRS` accepts a positive integer
+persistent score arrays. The default work budget is 16,000,000 pairs before
+cross-channel deduplication. LSH bands deduplicate neighbors before pair emission,
+and the preflight counts the same unique within-channel pairs without a quadratic
+temporary array. `NOSE_MAX_CANDIDATE_PAIRS` accepts a positive integer
 for a deliberately larger workload. Exceeding it is a nonzero analysis error,
 never a truncated successful report. The same preflight protects clean, cached,
 watch and research-detect runs. Ordinary scoring proceeds in 4,096-pair batches.
 Library integrations can call `ensure_candidate_budget` with their own limit.
+Exact-only semantic runs generate equal-value buckets directly, because their
+scorer cannot accept unequal value fingerprints. Fuzzy value LSH remains enabled
+for near/abstraction runs. Incremental candidate indexes and cache option keys
+use the same distinction.
 
 A constant-memory tree cursor checks parser output before recursive lowering:
-syntax depth is limited to 512 and the syntax tree to 2,000,000 nodes. Exceeding
+syntax depth is limited to 8,192 and the syntax tree to 2,000,000 nodes. Exceeding
 either produces a source-specific analysis error, including embedded script,
 style and markup regions. Common scope and identifier traversals use explicit
 work stacks; CLI workers reserve 64 MiB rather than 1 GiB. These are analysis

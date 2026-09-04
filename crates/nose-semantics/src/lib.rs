@@ -30,6 +30,7 @@ mod free_builtins;
 mod guard_evidence;
 mod import_facts;
 mod js_ts_prototype_mutations;
+mod keyed_oracle;
 mod language_profile;
 mod library_api;
 mod map_statics;
@@ -48,6 +49,7 @@ mod symbol_identity;
 #[cfg(any(test, feature = "test-support"))]
 pub mod test_support;
 mod type_domain;
+pub use keyed_oracle::keyed_membership_projection;
 
 pub use api_guards::*;
 pub use async_adapters::*;

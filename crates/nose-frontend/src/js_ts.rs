@@ -13,6 +13,7 @@ mod expressions;
 mod globals;
 mod imports;
 mod jsx;
+mod keyed_parameters;
 mod operators;
 mod record_guard;
 mod syntax;

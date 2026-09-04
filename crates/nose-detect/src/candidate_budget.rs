@@ -13,8 +13,8 @@ impl std::fmt::Display for CandidateBudgetExceeded {
 }
 impl std::error::Error for CandidateBudgetExceeded {}
 
-/// Counts pair emissions before cross-channel deduplication, matching the work
-/// and peak allocation of clean generation. The same limit protects persistent
+/// Counts unique pairs within each channel before cross-channel deduplication,
+/// matching peak pair allocation of clean generation. The same limit protects persistent
 /// score indexes. It never accepts a truncated candidate set.
 pub fn ensure_candidate_budget(
     units: &[UnitFeat],
@@ -25,15 +25,11 @@ pub fn ensure_candidate_budget(
         return Ok(());
     }
     let mut remaining = limit;
-    let mut charge = |count: usize| {
-        remaining = remaining
-            .checked_sub(count)
-            .ok_or(CandidateBudgetExceeded { limit })?;
-        Ok(())
-    };
     if opts.value_candidates {
-        for bucket in crate::lsh::buckets(units.len(), |i| &units[i].minhash, opts.bands) {
-            charge(pair_count(bucket.len()))?;
+        if opts.value_lsh_candidates {
+            let buckets = crate::lsh::buckets(units.len(), |i| &units[i].minhash, opts.bands);
+            remaining -= crate::lsh::candidate_count(units.len(), &buckets, remaining)
+                .ok_or(CandidateBudgetExceeded { limit })?;
         }
         let mut exact: FxHashMap<&[u64], usize> = FxHashMap::default();
         for unit in units
@@ -43,13 +39,15 @@ pub fn ensure_candidate_budget(
             *exact.entry(&unit.value).or_default() += 1;
         }
         for count in exact.into_values() {
-            charge(pair_count(count))?;
+            remaining = remaining
+                .checked_sub(pair_count(count))
+                .ok_or(CandidateBudgetExceeded { limit })?;
         }
     }
     if opts.shape_candidates {
-        for bucket in crate::lsh::buckets(units.len(), |i| &units[i].shape_minhash, opts.bands) {
-            charge(pair_count(bucket.len()))?;
-        }
+        let buckets = crate::lsh::buckets(units.len(), |i| &units[i].shape_minhash, opts.bands);
+        remaining -= crate::lsh::candidate_count(units.len(), &buckets, remaining)
+            .ok_or(CandidateBudgetExceeded { limit })?;
         let mut anchors: FxHashMap<u64, usize> = FxHashMap::default();
         for anchor in units
             .iter()
@@ -62,8 +60,17 @@ pub fn ensure_candidate_budget(
             .into_values()
             .filter(|&n| n <= crate::candidates::anchor_max_df())
         {
-            charge(pair_count(count).min(crate::candidates::ANCHOR_PAIR_CAP))?;
+            remaining = remaining
+                .checked_sub(pair_count(count).min(crate::candidates::ANCHOR_PAIR_CAP))
+                .ok_or(CandidateBudgetExceeded { limit })?;
         }
+    }
+    if std::env::var_os("NOSE_TIME").is_some() {
+        eprintln!(
+            "  [candidate-budget] units={} pairs={} limit={limit}",
+            units.len(),
+            limit - remaining
+        );
     }
     Ok(())
 }

@@ -479,7 +479,7 @@ fn for_each_bucket_key(
     mut visit: impl FnMut(BucketKey),
 ) {
     if opts.value_candidates {
-        if let Some(rows) = value_rows {
+        if let Some(rows) = value_rows.filter(|_| opts.value_lsh_candidates) {
             visit_lsh_buckets(&unit.minhash, opts.bands, rows, false, &mut visit);
         }
         if exact_claim_eligible(unit) {

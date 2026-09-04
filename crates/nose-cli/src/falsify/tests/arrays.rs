@@ -1,6 +1,6 @@
 use super::*;
 
-fn lower(source: &str, interner: &Interner, oracle: bool) -> Il {
+pub(super) fn lower(source: &str, interner: &Interner, oracle: bool) -> Il {
     let raw = nose_frontend::lower_source(
         FileId(0),
         "arrays.ts",
@@ -18,7 +18,7 @@ fn lower(source: &str, interner: &Interner, oracle: bool) -> Il {
         },
     )
 }
-fn root(il: &Il) -> NodeId {
+pub(super) fn root(il: &Il) -> NodeId {
     il.units
         .iter()
         .find(|u| il.kind(u.root) == NodeKind::Func)
@@ -39,13 +39,15 @@ fn primitive_array_evidence_survives_and_falsifies_element_order() {
         &interner,
         true,
     );
-    let ap = array_input_projections(
+    let ap = collection_input_projections(
         &a,
+        &interner,
         root(&a),
         &[nose_detect::OracleInputProjection::Declared],
     );
-    let bp = array_input_projections(
+    let bp = collection_input_projections(
         &b,
+        &interner,
         root(&b),
         &[nose_detect::OracleInputProjection::Declared],
     );
@@ -91,8 +93,9 @@ fn array_aliases_optional_and_nested_types_remain_unhosted() {
             true,
         );
         assert_eq!(
-            array_input_projections(
+            collection_input_projections(
                 &il,
+                &interner,
                 root(&il),
                 &[nose_detect::OracleInputProjection::Declared]
             ),
@@ -170,8 +173,9 @@ fn number_and_string_array_equality_matches_source_runtime() {
                 &interner,
                 oracle,
             );
-            let projection = array_input_projections(
+            let projection = collection_input_projections(
                 &il,
+                &interner,
                 root(&il),
                 &[nose_detect::OracleInputProjection::Declared],
             );

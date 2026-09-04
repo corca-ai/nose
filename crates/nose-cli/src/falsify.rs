@@ -11,9 +11,9 @@ use nose_normalize::run_unit;
 use nose_normalize::{behavior_has_sym, Behavior, PreparedInterpreter, Value, F64};
 use std::collections::HashSet;
 
-mod arrays;
+mod collections;
 mod domains;
-pub(crate) use arrays::array_input_projections;
+pub(crate) use collections::collection_input_projections;
 #[cfg(test)]
 use domains::domains_are_hosted;
 pub(crate) use domains::{domains_are_hosted_with_projections, effective_domain_contract};
@@ -231,7 +231,7 @@ pub(crate) fn falsify_pair(
 }
 
 pub(crate) fn falsify_pair_with_projections(request: FalsifyRequest<'_>) -> FalsifyOutcome {
-    let contract = match validate_falsify_contract(request.left, request.right) {
+    let contract = match validate_falsify_contract(request.left, request.right, request.interner) {
         Ok(contract) => contract,
         Err(reason) => return FalsifyOutcome::Skipped { reason },
     };
@@ -246,8 +246,11 @@ struct FalsifyContract {
 fn validate_falsify_contract(
     left: FalsifyTarget<'_>,
     right: FalsifyTarget<'_>,
+    interner: &Interner,
 ) -> Result<FalsifyContract, &'static str> {
-    if !arrays::valid_array_projections(left) || !arrays::valid_array_projections(right) {
+    if !collections::valid_collection_projections(left, interner)
+        || !collections::valid_collection_projections(right, interner)
+    {
         return Err("array projection lacks source element evidence");
     }
     let domains_a = parameter_domains(left.il, left.root);
@@ -392,6 +395,10 @@ fn format_value(value: &Value) -> String {
         Value::List(values) => format!("list:{}", format_inputs(values)),
         Value::Null => "null".to_string(),
         Value::Err => "err".to_string(),
+        Value::KeySet(keys) => format!(
+            "keys:[{}]",
+            keys.iter().map(format_value).collect::<Vec<_>>().join(", ")
+        ),
         Value::Sym(value) => format!("sym:{value:016x}"),
     }
 }

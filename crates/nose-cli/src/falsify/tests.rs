@@ -7,6 +7,7 @@ use nose_il::{
 
 mod arrays;
 mod domains;
+mod keyed;
 mod projections;
 
 fn set_param_domain(il: &mut Il, root: NodeId, domain: DomainEvidence) {

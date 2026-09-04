@@ -46,6 +46,7 @@ operation semantics in `crates/nose-normalize/src/interp/ops.rs`:
 | `Bool(bool)` | booleans | |
 | `Str(Vec<u64>)` | strings as a **free monoid** over appended token hashes | **order-sensitive**: `"x"+"y"` = `[hx,hy]` ≠ `[hy,hx]` = `"y"+"x"`. No char content; length/index stay `Err`. |
 | `List(Vec<Value>)` | sequences | |
+| `KeySet(Vec<Value>)` | primitive-key membership and cardinality | TypeScript Map/Set inputs need a source use proof; see the [membership oracle](soundness-lab.md#map-and-set-membership-oracle). Values, identity, iteration and mutation are outside this projection. |
 | `Null` | null/none | |
 | `Err` | a runtime error | itself observable — two programs must err on the same inputs |
 | `Sym` | a symbolic value (opaque call / unproven read / any composition over one) | a differential convention; branching on a `Sym` bails the unit, and a `Sym`-containing behavior never feeds the hard SOUND gate |

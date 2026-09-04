@@ -221,6 +221,7 @@ fn lower_param(lo: &mut Lowering, param: TsNode, out: &mut Vec<NodeId>) {
     }
     if plain_parameter_identifier(param) {
         super::array_parameters::record(lo, param);
+        super::keyed_parameters::record(lo, param);
     }
     let shape = non_plain_parameter_shape(lo, param);
     out.push(lo.add(NodeKind::Param, payload, span, &shape));

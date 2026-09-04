@@ -42,6 +42,8 @@ pub enum OracleInputProjection {
     UnusedTrailing,
     /// Full dense-array values with source-proven primitive element identity.
     ScalarArray(nose_il::DomainEvidence),
+    /// Map/Set inputs proven to expose only primitive-key membership and size.
+    KeyedMembership(nose_il::DomainEvidence),
 }
 
 impl OracleInputProjection {
@@ -54,6 +56,10 @@ impl OracleInputProjection {
             Self::ScalarArray(nose_il::DomainEvidence::Number) => "number-array",
             Self::ScalarArray(nose_il::DomainEvidence::String) => "string-array",
             Self::ScalarArray(_) => "unsupported-array",
+            Self::KeyedMembership(nose_il::DomainEvidence::Boolean) => "boolean-key-membership",
+            Self::KeyedMembership(nose_il::DomainEvidence::Number) => "number-key-membership",
+            Self::KeyedMembership(nose_il::DomainEvidence::String) => "string-key-membership",
+            Self::KeyedMembership(_) => "unsupported-key-membership",
         }
     }
 }

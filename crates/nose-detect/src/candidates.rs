@@ -87,11 +87,13 @@ pub(crate) fn structural_candidates(
 ) -> Vec<(usize, usize)> {
     let mut candidates = Vec::new();
     if opts.value_candidates {
-        candidates.extend(lsh::candidates(
-            units.len(),
-            |i| units[i].minhash.as_slice(),
-            opts.bands,
-        ));
+        if opts.value_lsh_candidates {
+            candidates.extend(lsh::candidates(
+                units.len(),
+                |i| units[i].minhash.as_slice(),
+                opts.bands,
+            ));
+        }
         candidates.extend(exact_value_candidates(units));
     }
     if opts.shape_candidates {

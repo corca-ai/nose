@@ -186,6 +186,8 @@ pub enum TypeEvidenceKind {
     SwiftQualifiedStringBinding,
     /// Exact primitive element annotation retained for the offline array oracle.
     ArrayElementDomain { element: DomainEvidence },
+    /// Primitive key identity for the offline Map/Set membership projection.
+    KeyedCollectionKey { key: DomainEvidence },
 }
 
 /// Kernel-facing proof that a source-level symbol denotes a specific global or

@@ -74,6 +74,7 @@ fn options_bytes(opts: &DetectOptions) -> Vec<u8> {
         opts.contiguous as u64,
         opts.structural as u64,
         opts.value_candidates as u64,
+        opts.value_lsh_candidates as u64,
         opts.shape_candidates as u64,
         opts.shape_features as u64,
         opts.connected_witnesses as u64,

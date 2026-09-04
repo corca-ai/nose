@@ -38,6 +38,9 @@ pub struct DetectOptions {
     /// Type-4 path: loop/reduce/comprehension rewrites converge here even when their
     /// surface shape differs.
     pub value_candidates: bool,
+    /// Generate fuzzy value-LSH candidates in addition to equal value graphs.
+    /// Exact-only scorers cannot accept unequal fingerprints and can disable this.
+    pub value_lsh_candidates: bool,
     /// Generate structural candidates from syntactic shape fingerprints. This is the
     /// near Type-3 path: code can reach scoring even when behavior-defining literals or
     /// operators differ and therefore the value fingerprint no longer matches.
@@ -81,6 +84,7 @@ impl Default for DetectOptions {
             contiguous: false,
             structural: true,
             value_candidates: true,
+            value_lsh_candidates: true,
             shape_candidates: false,
             shape_features: true,
             connected_witnesses: false,

@@ -39,7 +39,9 @@ pub(crate) fn parse(
 /// Validate with a cursor before any recursive language lowering runs. A cursor
 /// keeps auxiliary memory constant even for hostile nesting or very wide trees.
 fn check_tree_budget(tree: &tree_sitter::Tree) -> anyhow::Result<()> {
-    const MAX_DEPTH: usize = 512;
+    // The pinned corpus reaches 5,002 levels in a flat Flow union fixture.
+    // Keep room for long operator/call chains while bounding recursive adapters.
+    const MAX_DEPTH: usize = 8_192;
     const MAX_NODES: usize = 2_000_000;
     let mut cursor = tree.walk();
     let (mut depth, mut nodes) = (0, 0);

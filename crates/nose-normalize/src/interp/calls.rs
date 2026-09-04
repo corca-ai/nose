@@ -55,7 +55,7 @@ impl<'a> Interp<'a> {
         }
         match eager_contract {
             EagerBuiltinContract::Len => match args.first() {
-                Some(Value::List(xs)) => Ok(Value::Int(xs.len() as i64)),
+                Some(Value::List(xs) | Value::KeySet(xs)) => Ok(Value::Int(xs.len() as i64)),
                 // A string is the free monoid over opaque piece hashes; its character
                 // length is unknown (piece count ≠ char count), so `len` stays `Err` —
                 // matching the type doc and the `IsEmpty` sibling. Returning a constant
@@ -77,6 +77,7 @@ impl<'a> Interp<'a> {
             EagerBuiltinContract::StartsWith => Ok(string_affix(args.first(), args.get(1), true)),
             EagerBuiltinContract::EndsWith => Ok(string_affix(args.first(), args.get(1), false)),
             EagerBuiltinContract::Contains => match (args.first(), args.get(1)) {
+                (Some(element), Some(Value::KeySet(keys))) => keyed::contains(keys, element),
                 (Some(element), Some(Value::List(items))) => Ok(Value::Bool(
                     items.iter().any(|candidate| candidate == element),
                 )),

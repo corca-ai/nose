@@ -11,7 +11,7 @@ use std::path::Path;
 mod inventory;
 
 const SOURCE_SNAPSHOT_SCHEMA: u32 = 1;
-const RAW_IL_SCHEMA: u32 = 5;
+const RAW_IL_SCHEMA: u32 = 6;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -367,7 +367,7 @@ pub(super) fn analysis_digest(path: &str, lang: Lang, bytes: &[u8]) -> ContentDi
         .and_then(|s| s.to_str())
         .unwrap_or("");
     ContentDigest::derive(
-        b"nose.source-analysis.v2",
+        b"nose.source-analysis.v3",
         &[
             portable_il::source_digest(lang, bytes).as_bytes(),
             extension.as_bytes(),

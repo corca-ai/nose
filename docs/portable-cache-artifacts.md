@@ -36,7 +36,8 @@ presentation remain per invocation.
 
 Git index flags (`assume-unchanged`, `skip-worktree`), clean/smudge filters, and
 concurrent edits cannot substitute a Git blob for the bytes actually analyzed.
-Raw IL schema 5 and source-analysis identity v2 include the extension profile,
+Raw IL schema 6 and source-analysis identity v3 include the extension profile and
+the retained primitive-key evidence used by the offline oracle,
 so TS/TSX dialect changes and C/header classification cannot reuse incompatible
 artifacts. Checkout-local directory names remain outside this identity.
 

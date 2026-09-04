@@ -2,6 +2,66 @@ use super::*;
 
 const BODY: &str = "def f(x):\n    a = x + 1\n    b = a * 2\n    c = b - 3\n    return c\n";
 
+#[test]
+fn exact_mode_does_not_spend_budget_on_unequal_value_fingerprints() {
+    let project = TempProject::new("exact_candidate_budget");
+    for i in 0..256 {
+        project.write(
+            &format!("f{i}.py"),
+            &format!("def value_{i}(x):\n    return x + {i}\n"),
+        );
+    }
+    let cache = project.path().join(".cache");
+    let clean = json(query(project.path(), &["--mode", "semantic"]));
+    for _ in 0..2 {
+        let output = Command::new(bin())
+            .args([
+                "query",
+                project.path().to_str().unwrap(),
+                "all",
+                "--format",
+                "json",
+                "--mode",
+                "semantic",
+                "--min-size",
+                "1",
+                "--min-lines",
+                "1",
+                "--cache-dir",
+                cache.to_str().unwrap(),
+            ])
+            .env("NOSE_MAX_CANDIDATE_PAIRS", "1024")
+            .output()
+            .unwrap();
+        assert_eq!(clean, json(output));
+    }
+}
+
+#[test]
+fn long_flat_operator_and_type_chains_remain_analyzable() {
+    let project = TempProject::new("long_flat_chains");
+    let types = (0..5_000)
+        .map(|i| format!("'{i}'"))
+        .collect::<Vec<_>>()
+        .join(" | ");
+    project.write("types.js", &format!("type T = {types};\n"));
+    project.write(
+        "formula.py",
+        &format!("def formula(x):\n    return x{}\n", " + x".repeat(600)),
+    );
+    let cache = project.path().join(".cache");
+    let clean = json(query(project.path(), &[]));
+    for _ in 0..2 {
+        assert_eq!(
+            clean,
+            json(query(
+                project.path(),
+                &["--cache-dir", cache.to_str().unwrap()]
+            ))
+        );
+    }
+}
+
 fn query(root: &Path, extra: &[&str]) -> std::process::Output {
     Command::new(bin())
         .args([

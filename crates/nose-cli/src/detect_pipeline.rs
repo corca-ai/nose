@@ -38,6 +38,7 @@ pub(crate) fn detection_options(
         // pairs (async `.then` ≡ await, impure loop ≡ comprehension) reach the candidate scorer —
         // they share no shape band, so shape-LSH alone would never propose them.
         value_candidates: channels.semantic || channels.near || channels.abstraction,
+        value_lsh_candidates: channels.near || channels.abstraction,
         shape_candidates: channels.near || channels.abstraction,
         shape_features: channels.near || channels.abstraction,
         connected_witnesses: channels.near || channels.abstraction,
@@ -106,7 +107,7 @@ pub(crate) fn ensure_candidate_budget(
             .ok()
             .filter(|&n| n > 0)
             .context("NOSE_MAX_CANDIDATE_PAIRS must be a positive integer")?,
-        Err(std::env::VarError::NotPresent) => 1_000_000,
+        Err(std::env::VarError::NotPresent) => 16_000_000,
         Err(error) => return Err(error.into()),
     };
     nose_detect::ensure_candidate_budget(units, opts, limit)?;

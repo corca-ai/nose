@@ -74,8 +74,31 @@ boundary on both normalization channels. This expands executable coverage, not
 product exact admission or a claim of exhaustive runtime equivalence.
 
 Aliases, optional/union types, nominal `Array<T>`, nested arrays, and erased
-collection/map/set/option/result payloads retain their existing advisory boundary.
+collection/option/result payloads retain their existing advisory boundary.
 They need their own faithful source identity and value model before promotion.
+
+## Map and Set membership oracle
+
+Plain TypeScript `Map<K,V>`, `ReadonlyMap<K,V>`, `Set<K>` and `ReadonlySet<K>`
+parameters retain primitive Boolean, Number or String key evidence. A whole-source
+binding check rejects shadowed names, including imports, aliases, interfaces and
+generic parameters declared after a use. Both normalized and core IL must prove
+that every use observes only `has` or `size` before the collector selects
+`KeyedMembership`; the falsifier independently repeats that proof on both sides.
+
+`Value::KeySet` represents this key-only projection. It deduplicates keys under
+[ECMAScript SameValueZero](https://tc39.es/ecma262/2025/multipage/keyed-collections.html#sec-map.prototype.has),
+including NaN and both signs of zero. The input pool covers empty, singleton and
+two-key collections. Live Node tests compare all four source containers and all
+three primitive key kinds on both normalization channels; a changed lookup key
+must produce a concrete falsification witness. Hidden symbolic keys stay symbolic.
+
+This projection erases Map values and ordering only after the use proof establishes
+that neither can be observed. Value lookup (`get`), iteration, mutation, aliases of
+the receiver, raw collection return/equality, optional/union keys and nominal key
+types remain unhosted. Multi-piece strings cannot establish character equality
+with atomic keys in the current free-monoid model, so those comparisons remain
+unsupported. This expands offline coverage without adding product exact laws.
 
 ## Two binary identities, one release-tree report
 

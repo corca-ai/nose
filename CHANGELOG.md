@@ -7,6 +7,9 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- Accept long generated type/operator chains in pinned real-world corpora while
+  retaining explicit parse-depth and candidate-work limits. Deduplicate overlapping
+  LSH pairs before allocation, and avoid approximate candidate work in exact-only scans.
 - Fail incomplete source discovery/reads instead of reporting a passing CI gate,
   including when reusable cache entries exist.
 - Refresh watch dashboards for Markdown, ignore, and external configuration changes;
@@ -23,6 +26,11 @@ break.
   preserving the existing JSON fields.
 
 ### Changed
+- Extend the offline TypeScript oracle to primitive-key Map/Set membership and size,
+  with source-checked projections and Node calibration. Value lookup, iteration, and
+  mutation remain outside this projection; source-analysis cache artifacts are rebuilt.
+- Add a reproducible development profiler for real-corpus clean/cold/warm equivalence,
+  runtime, memory, leaf edits, and watch crash recovery.
 - Centralized auxiliary development-tool versions and checksummed
   macOS/Linux assets in one checked policy, with a read-only doctor, explicit
   idempotent bootstrap, exact hosted CI consumption, drift self-tests, and
