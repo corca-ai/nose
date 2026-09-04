@@ -129,8 +129,10 @@ pub(super) fn build_raw_corpus_cached(
     run: &CacheRun,
 ) -> RawCorpus {
     let paths = crate::timing::time_stage("cache_discover", || {
-        nose_frontend::discover_unique_paths(roots, exclude)
+        nose_frontend::discover_source_inventory(roots, exclude)
     });
+    let mut source_errors = paths.errors;
+    let paths = paths.paths;
     run.set_portable_il_enabled(paths.len() <= super::MAX_FOREGROUND_PORTABLE_IL_FILES);
     let git = crate::timing::time_stage("cache_git", || GitCatalog::new(roots));
     let logical_roots = LogicalRoots::new(roots);
@@ -154,6 +156,11 @@ pub(super) fn build_raw_corpus_cached(
             .collect::<Vec<_>>()
     });
 
+    for ((path, _), result) in paths.iter().zip(&results) {
+        if result.source_digest.is_none() {
+            source_errors.push(format!("reading source {path}: source is unreadable"));
+        }
+    }
     let source_hits = results.iter().filter(|result| result.snapshot_hit).count();
     let source_misses = results.len() - source_hits;
     let source_files = paths
@@ -187,8 +194,10 @@ pub(super) fn build_raw_corpus_cached(
             files.push(region.il);
         }
     }
+    let mut corpus = Corpus::new(interner, files);
+    corpus.source_errors = source_errors;
     RawCorpus {
-        corpus: Corpus::new(interner, files),
+        corpus,
         regions,
         discovery_digest: discovery_digest(&source_files),
         global_line_statistics_digest: global_line_statistics_digest(&source_files),
@@ -227,16 +236,23 @@ pub(super) fn global_line_statistics_digest(sources: &[CachedSourceFile]) -> Con
 /// Resolve exact source identities without parsing or restoring IL. This is the
 /// admission check for the bounded warm-unit path; any unreadable source or
 /// membership mismatch makes that path fall back to the full pipeline.
-pub(super) fn discover_source_files(roots: &[&Path], exclude: &[String]) -> Vec<CachedSourceFile> {
-    let paths = nose_frontend::discover_unique_paths(roots, exclude);
+pub(super) fn discover_source_files(
+    roots: &[&Path],
+    exclude: &[String],
+) -> Option<Vec<CachedSourceFile>> {
+    let inventory = nose_frontend::discover_source_inventory(roots, exclude);
+    if !inventory.errors.is_empty() {
+        return None;
+    }
+    let paths = inventory.paths;
     let git = GitCatalog::new(roots);
     let logical_roots = LogicalRoots::new(roots);
     paths
         .into_par_iter()
-        .filter_map(|(path, lang)| {
+        .map(|(path, lang)| {
             let clean_blob = git.clean_blob(Path::new(&path));
             let (digest, source_kind) = match clean_blob {
-                Some(blob) if std::fs::metadata(&path).is_ok() => (
+                Some(blob) if std::fs::File::open(&path).is_ok() => (
                     ContentDigest::derive(
                         b"nose.source-snapshot.git-blob.v1",
                         &[lang.name().as_bytes(), blob.as_bytes()],
@@ -317,7 +333,7 @@ fn load_source(request: SourceLoad<'_>) -> SourceResult {
 
 fn source_snapshot(request: &SourceLoad<'_>) -> Option<SourceSnapshot> {
     match request.git.clean_blob(Path::new(request.path)) {
-        Some(blob) if std::fs::metadata(request.path).is_ok() => Some(SourceSnapshot {
+        Some(blob) if std::fs::File::open(request.path).is_ok() => Some(SourceSnapshot {
             digest: ContentDigest::derive(
                 b"nose.source-snapshot.git-blob.v1",
                 &[request.lang.name().as_bytes(), blob.as_bytes()],

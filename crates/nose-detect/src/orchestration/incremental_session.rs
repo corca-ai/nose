@@ -80,6 +80,8 @@ fn detect_inner(
     IncrementalDetectionStats,
     bool,
 ) {
+    let plan = opts.validate().expect("invalid detection options");
+    let opts = &*plan;
     let mut clk = StageTimer::new();
     let mut stats = IncrementalDetectionStats::new();
     let mut prepared = incremental::prepare(units, stable_unit_keys, opts, previous, &mut stats);

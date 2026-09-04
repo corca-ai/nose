@@ -73,21 +73,20 @@ impl BindingDomainContainsFixture {
             Vec::new(),
             vec![xs],
         );
-        il.evidence.push(compat_test_asserted_evidence(
+        il.push_evidence(compat_test_asserted_evidence(
             0,
             EvidenceAnchor::binding(binding_span, stable_symbol_hash("xs")),
             EvidenceKind::Domain(DomainEvidence::Collection),
             Vec::new(),
         ));
-        il.evidence
-            .push(method_call_library_api_test_evidence_with_dependencies(
-                1,
-                Lang::TypeScript,
-                "includes",
-                il.node(call).span,
-                1,
-                vec![EvidenceId(0)],
-            ));
+        il.push_evidence(method_call_library_api_test_evidence_with_dependencies(
+            1,
+            Lang::TypeScript,
+            "includes",
+            il.node(call).span,
+            1,
+            vec![EvidenceId(0)],
+        ));
         Self {
             il,
             interner,
@@ -110,7 +109,7 @@ impl BindingDomainContainsFixture {
     }
 
     pub(crate) fn add_conflicting_map_domain(&mut self) {
-        self.il.evidence.push(compat_test_asserted_evidence(
+        self.il.push_evidence(compat_test_asserted_evidence(
             2,
             EvidenceAnchor::binding(self.binding_span, stable_symbol_hash("xs")),
             EvidenceKind::Domain(DomainEvidence::Map),

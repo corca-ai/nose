@@ -141,10 +141,7 @@ fn subsumed_family_is_dropped() {
         semantic_laws: Vec::new(),
         abstraction_witness: None,
         witness: Some(crate::EquivalenceWitness {
-            kind: "copy-paste-run",
-            value_nodes: None,
-            mean_value_jaccard: None,
-            mean_shape_jaccard: None,
+            evidence: crate::WitnessEvidence::CopyPasteRun,
             graded: None,
             graded_pair: None,
         }),
@@ -192,10 +189,11 @@ fn connected_family_does_not_subsume_existing_output() {
             semantic_laws: Vec::new(),
             abstraction_witness: None,
             witness: Some(crate::EquivalenceWitness {
-                kind,
-                value_nodes: Some(60),
-                mean_value_jaccard: None,
-                mean_shape_jaccard: None,
+                evidence: if kind == "bounded-same-unit-window" {
+                    crate::WitnessEvidence::BoundedSameUnitWindow { value_nodes: 60 }
+                } else {
+                    crate::WitnessEvidence::ConnectedMappedSubDag { value_nodes: 60 }
+                },
                 graded: None,
                 graded_pair: None,
             }),
@@ -206,10 +204,10 @@ fn connected_family_does_not_subsume_existing_output() {
             semantic_laws: Vec::new(),
             abstraction_witness: None,
             witness: Some(crate::EquivalenceWitness {
-                kind: "structural-similarity",
-                value_nodes: None,
-                mean_value_jaccard: Some(0.8),
-                mean_shape_jaccard: Some(0.9),
+                evidence: crate::WitnessEvidence::StructuralSimilarity {
+                    mean_value_jaccard: 0.8,
+                    mean_shape_jaccard: 0.9,
+                },
                 graded: None,
                 graded_pair: None,
             }),
@@ -234,10 +232,7 @@ fn existing_family_only_hides_a_same_unit_route_at_identical_sites() {
         semantic_laws: Vec::new(),
         abstraction_witness: None,
         witness: Some(crate::EquivalenceWitness {
-            kind: "bounded-same-unit-window",
-            value_nodes: Some(30),
-            mean_value_jaccard: None,
-            mean_shape_jaccard: None,
+            evidence: crate::WitnessEvidence::BoundedSameUnitWindow { value_nodes: 30 },
             graded: None,
             graded_pair: None,
         }),
@@ -251,10 +246,10 @@ fn existing_family_only_hides_a_same_unit_route_at_identical_sites() {
         semantic_laws: Vec::new(),
         abstraction_witness: None,
         witness: Some(crate::EquivalenceWitness {
-            kind: "structural-similarity",
-            value_nodes: None,
-            mean_value_jaccard: Some(0.8),
-            mean_shape_jaccard: Some(0.9),
+            evidence: crate::WitnessEvidence::StructuralSimilarity {
+                mean_value_jaccard: 0.8,
+                mean_shape_jaccard: 0.9,
+            },
             graded: None,
             graded_pair: None,
         }),

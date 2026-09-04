@@ -7,6 +7,7 @@
 //! Honesty contract: near-dup score + span witness + commonness evidence, never "same meaning"
 //! or "worth removing". Dev golden-build/eval tooling lives in `nose-markdown`'s `mddup` example.
 
+use anyhow::{Context, Result};
 use nose_markdown::{detect, Family, Options};
 use rayon::prelude::*;
 use std::collections::HashSet;
@@ -35,7 +36,7 @@ const DEFAULT_EXCLUDE_DIRS: &[&str] = &[
 
 /// Discover `.md`/`.markdown` files under `root`, respecting `.gitignore`, default vendor-dir
 /// excludes, and the query's `exclude` globs (config + `--exclude`).
-fn discover(root: &Path, excludes: &[String]) -> Vec<PathBuf> {
+fn discover(root: &Path, excludes: &[String]) -> Result<Vec<PathBuf>> {
     use ignore::overrides::OverrideBuilder;
     let mut builder = ignore::WalkBuilder::new(root);
     builder.parents(false).require_git(false);
@@ -51,14 +52,20 @@ fn discover(root: &Path, excludes: &[String]) -> Vec<PathBuf> {
         builder.overrides(ov);
     }
     let mut out = Vec::new();
-    for dent in builder.build().flatten() {
+    for dent in builder.build() {
+        let dent =
+            dent.with_context(|| format!("discovering Markdown under {}", root.display()))?;
+        if let Some(error) = dent.error() {
+            anyhow::bail!("discovering Markdown under {}: {error}", root.display());
+        }
         let p = dent.path();
         let is_md = matches!(
             p.extension().and_then(|e| e.to_str()),
             Some("md") | Some("markdown")
         );
         // Safety net: never report files under a vendor dir even if the override missed it.
-        let vendored = p.components().any(|c| {
+        let relative = p.strip_prefix(root).unwrap_or(p);
+        let vendored = relative.components().any(|c| {
             c.as_os_str()
                 .to_str()
                 .is_some_and(|s| DEFAULT_EXCLUDE_DIRS.contains(&s))
@@ -69,7 +76,7 @@ fn discover(root: &Path, excludes: &[String]) -> Vec<PathBuf> {
     }
     out.sort();
     out.dedup();
-    out
+    Ok(out)
 }
 
 /// Query-facing Markdown domain report. The dashboard owns presentation order; this adapter owns
@@ -80,22 +87,22 @@ pub(crate) struct QueryMarkdownReport {
 
 impl QueryMarkdownReport {
     /// Detect Markdown near-duplicate families under the `nose query` roots for the dashboard.
-    pub(crate) fn detect_under(roots: &[PathBuf], excludes: &[String]) -> Self {
-        let files = discover_roots(roots, excludes);
-        let docs: Vec<(String, String)> = files
+    pub(crate) fn detect_under(roots: &[PathBuf], excludes: &[String]) -> Result<Self> {
+        let files = discover_roots(roots, excludes)?;
+        let docs = files
             .par_iter()
-            .filter_map(|p| {
-                std::fs::read(p).ok().map(|b| {
-                    (
-                        p.to_string_lossy().into_owned(),
-                        String::from_utf8_lossy(&b).into_owned(),
-                    )
-                })
+            .map(|path| {
+                let bytes = std::fs::read(path)
+                    .with_context(|| format!("reading Markdown {}", path.display()))?;
+                Ok((
+                    path.to_string_lossy().into_owned(),
+                    String::from_utf8_lossy(&bytes).into_owned(),
+                ))
             })
-            .collect();
-        QueryMarkdownReport {
+            .collect::<Result<Vec<_>>>()?;
+        Ok(QueryMarkdownReport {
             families: detect(&docs, &Options::default()),
-        }
+        })
     }
 
     pub(crate) fn has_findings(&self) -> bool {
@@ -171,11 +178,11 @@ impl QueryMarkdownReport {
     }
 }
 
-fn discover_roots(roots: &[PathBuf], excludes: &[String]) -> Vec<PathBuf> {
+fn discover_roots(roots: &[PathBuf], excludes: &[String]) -> Result<Vec<PathBuf>> {
     let mut seen = HashSet::new();
     let mut files = Vec::new();
     for root in roots {
-        for path in discover(root, excludes) {
+        for path in discover(root, excludes)? {
             let key = path.canonicalize().unwrap_or_else(|_| path.clone());
             if seen.insert(key) {
                 files.push(path);
@@ -183,7 +190,7 @@ fn discover_roots(roots: &[PathBuf], excludes: &[String]) -> Vec<PathBuf> {
         }
     }
     files.sort();
-    files
+    Ok(files)
 }
 
 fn plural(n: usize, one: &str, many: &str) -> String {

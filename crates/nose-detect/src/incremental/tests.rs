@@ -47,6 +47,48 @@ fn incremental_buckets_match_clean_candidate_generation() {
 }
 
 #[test]
+fn dense_bucket_growth_matches_clean_scoring_without_losing_old_pairs() {
+    let opts = DetectOptions {
+        min_lines: 1,
+        min_tokens: 1,
+        block_units: false,
+        ..Default::default()
+    };
+    let paths = (0..49)
+        .map(|index| format!("{index}.py"))
+        .collect::<Vec<_>>();
+    let sources = paths
+        .iter()
+        .map(|path| (path.as_str(), "def f(x):\n    return x + 1\n"))
+        .collect::<Vec<_>>();
+    let units = features(&sources, &opts);
+    assert_eq!(units.len(), 49);
+    let detector = StructuralDetector::strict(opts.jaccard_weight);
+    let mut stats = IncrementalDetectionStats::new();
+    let first = prepare(&units[..48], None, &opts, None, &mut stats);
+    let old_pairs = first.candidates.clone();
+    let (scored, accepted) = score(&units[..48], &first, &detector, opts.threshold, &mut stats);
+    let groups = components(&first, &accepted, opts.threshold, &mut stats);
+    let state = finish_state(
+        first,
+        &scored,
+        &groups,
+        IncrementalConnected::default(),
+        None,
+    );
+    let next = prepare(&units, None, &opts, Some(state), &mut stats);
+    assert_eq!(next.candidates, structural_candidates(&units, &opts));
+    assert_eq!(next.candidates.len(), 49 * 48 / 2);
+    assert!(old_pairs
+        .iter()
+        .all(|pair| next.candidates.binary_search(pair).is_ok()));
+    let (_, cached) = score(&units, &next, &detector, opts.threshold, &mut stats);
+    let fresh = prepare(&units, None, &opts, None, &mut stats);
+    let (_, clean) = score(&units, &fresh, &detector, opts.threshold, &mut stats);
+    assert_eq!(cached, clean);
+}
+
+#[test]
 fn unchanged_state_reuses_buckets_and_scores() {
     let opts = DetectOptions::default();
     let units = features(

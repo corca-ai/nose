@@ -23,6 +23,8 @@ mod lsh;
 mod minhash;
 mod model;
 mod options;
+mod score_config;
+pub use score_config::ScoreConfig;
 mod orchestration;
 mod reinvented;
 mod report;
@@ -32,6 +34,8 @@ mod test_paths;
 mod test_support;
 mod units;
 mod witness;
+mod witness_evidence;
+pub use witness_evidence::WitnessEvidence;
 
 pub use align::multiset_jaccard;
 pub use contiguous::Stream;
@@ -57,7 +61,7 @@ pub use model::{
     AbstractionHole, AbstractionWitness, ConnectedWitness, Dump, DupPair, EnclosingUnit,
     EquivalenceWitness, Group, LineSpan, Loc, LocInit, Metrics, Report, UnitLoc,
 };
-pub use options::DetectOptions;
+pub use options::{DetectOptions, DetectionPlan, InvalidDetectOptions};
 pub use orchestration::{
     corpus_features, corpus_features_with_normalized, detect, detect_from_units,
     detect_from_units_incremental_session_with_accepted_coverage,
@@ -77,3 +81,17 @@ pub use units::{
     ProductUnitAdmission, ProductUnitAdmissionInput, UnitFeat,
 };
 pub use witness::{graded_witness, GradedWitness, WitnessHole};
+
+/// Effective candidate/normalization research settings that affect reusable
+/// detection state. Diagnostics and presentation-only settings are excluded.
+pub fn candidate_config_identity() -> Vec<u8> {
+    [
+        candidates::anchor_max_df() as u64,
+        env_or("NOSE_CONTIG_K", 10_u64),
+        u64::from(nose_normalize::anchor_min_weight()),
+        u64::from(nose_normalize::containment_anchor_min_weight()),
+    ]
+    .into_iter()
+    .flat_map(u64::to_be_bytes)
+    .collect()
+}

@@ -231,7 +231,7 @@ fn nominal_type_domain_evidence_is_dependency_backed_and_fail_closed() {
     let root = b.add(NodeKind::Block, Payload::None, sp(11), &[receiver]);
     let mut il = finish_il(b, root, Lang::TypeScript);
     let widget = stable_symbol_hash("pkg.Widget");
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(sp(12), NodeKind::Var),
         EvidenceKind::Type(TypeEvidenceKind::NominalDomain {
@@ -246,14 +246,14 @@ fn nominal_type_domain_evidence_is_dependency_backed_and_fail_closed() {
         Some(DomainEvidence::Record)
     );
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::node(sp(12), NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Record),
         EvidenceStatus::Ambiguous,
     ));
     let gadget = stable_symbol_hash("pkg.Gadget");
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         2,
         EvidenceAnchor::node(sp(12), NodeKind::Var),
         EvidenceKind::Type(TypeEvidenceKind::NominalDomain {
@@ -269,7 +269,7 @@ fn nominal_type_domain_evidence_is_dependency_backed_and_fail_closed() {
         "dependency-broken nominal type-domain records must fail closed"
     );
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         3,
         EvidenceAnchor::node(sp(12), NodeKind::Var),
         EvidenceKind::Type(TypeEvidenceKind::NominalDomain {

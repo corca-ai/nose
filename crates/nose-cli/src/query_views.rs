@@ -43,7 +43,7 @@ pub(super) fn loc_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
 pub(super) fn metrics_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
     let (shared, params) = all_copies_shared(f);
     let removable = query_removable_lines(f, shared);
-    let witness = witness_label(f.witness.as_ref().map(|w| w.kind));
+    let witness = witness_label(f.witness.as_ref().map(|w| w.kind()));
     // Flag non-production scope inline so a test/mixed family isn't mistaken for prod.
     let scope = if f.scope == "prod" {
         String::new()
@@ -59,7 +59,7 @@ pub(super) fn metrics_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
             "{} copies · cross-language · ~{} repeated · {}{}",
             f.members,
             style::bold(&removable.to_string()),
-            witness_styled(f.witness.as_ref().map(|w| w.kind)),
+            witness_styled(f.witness.as_ref().map(|w| w.kind())),
             style::yellow(&scope),
         );
         return (colored, plain.chars().count());
@@ -73,7 +73,7 @@ pub(super) fn metrics_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
         "{} copies · {shared}/{rep} shared, {params}p · ~{} removable · {}{}",
         f.members,
         style::bold(&removable.to_string()),
-        witness_styled(f.witness.as_ref().map(|w| w.kind)),
+        witness_styled(f.witness.as_ref().map(|w| w.kind())),
         style::yellow(&scope),
     );
     (colored, plain.chars().count())

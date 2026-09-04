@@ -1,9 +1,9 @@
 use super::*;
-use crate::candidates::{anchor_max_df, ANCHOR_PAIR_CAP, EXACT_VALUE_BUCKET_ALL_PAIRS_CAP};
+use crate::candidates::{anchor_max_df, ANCHOR_PAIR_CAP};
 use crate::detectors::Detector;
 use crate::exact_policy::exact_claim_eligible;
 use crate::locations::is_nested;
-use crate::lsh::{band_hash, BUCKET_ALL_PAIRS_CAP};
+use crate::lsh::band_hash;
 use crate::{DetectOptions, UnitFeat};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
@@ -525,27 +525,10 @@ fn emit_bucket_pairs(key: BucketKey, members: &[UnitKey]) -> Vec<UnitPairKey> {
     match key {
         BucketKey::Anchor(_) if members.len() > anchor_max_df() => Vec::new(),
         BucketKey::Anchor(_) => all_pairs_capped(members, ANCHOR_PAIR_CAP),
-        BucketKey::ExactValue(_) => connected_pairs(members, EXACT_VALUE_BUCKET_ALL_PAIRS_CAP),
-        BucketKey::ValueBand(_) | BucketKey::ShapeBand(_) => {
-            connected_pairs(members, BUCKET_ALL_PAIRS_CAP)
+        BucketKey::ExactValue(_) | BucketKey::ValueBand(_) | BucketKey::ShapeBand(_) => {
+            all_pairs_capped(members, usize::MAX)
         }
     }
-}
-
-fn connected_pairs(members: &[UnitKey], all_pairs_cap: usize) -> Vec<UnitPairKey> {
-    if members.len() <= all_pairs_cap {
-        return all_pairs_capped(members, usize::MAX);
-    }
-    let mut pairs = members
-        .windows(2)
-        .map(|window| UnitPairKey::new(window[0], window[1]))
-        .collect::<Vec<_>>();
-    pairs.extend(
-        members[1..]
-            .iter()
-            .map(|&member| UnitPairKey::new(members[0], member)),
-    );
-    pairs
 }
 
 fn all_pairs_capped(members: &[UnitKey], cap: usize) -> Vec<UnitPairKey> {

@@ -24,8 +24,9 @@ pub(crate) fn detection_options(
     channels: DetectionChannels,
     min_tokens: usize,
     min_lines: u32,
-) -> nose_detect::DetectOptions {
-    nose_detect::DetectOptions {
+) -> Result<nose_detect::DetectOptions> {
+    let opts = nose_detect::DetectOptions {
+        scoring: nose_detect::ScoreConfig::from_environment()?,
         threshold: channels.threshold(),
         min_lines,
         min_tokens,
@@ -43,7 +44,9 @@ pub(crate) fn detection_options(
         abstraction_witnesses: channels.abstraction,
         emit_pairs: false,
         ..Default::default()
-    }
+    };
+    opts.validate()?;
+    Ok(opts)
 }
 
 pub(crate) fn validate_exclude_globs(exclude: &[String]) -> Result<()> {
@@ -71,6 +74,7 @@ pub(crate) fn detection_engine(
     if channels.near || channels.abstraction {
         detectors.push(Box::new(
             nose_detect::StructuralDetector::candidates(opts.jaccard_weight)
+                .with_scoring(opts.scoring)
                 .without_exact_behavior()
                 .with_threshold(opts.threshold),
         ));

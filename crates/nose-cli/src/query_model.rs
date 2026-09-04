@@ -8,7 +8,7 @@ use crate::source_lines::{anti_unify_all, read_lines, FileLineCache};
 use crate::style;
 use crate::surfaces::{effective_surface, generated_provenance_json, SurfaceOverrides};
 
-/// Canonical `witness.kind` for a friendly filter token (`exact`→`exact-value-graph`, …).
+/// Canonical `witness.kind()` for a friendly filter token (`exact`→`exact-value-graph`, …).
 fn witness_alias(v: &str) -> &str {
     match v {
         "exact" => "exact-value-graph",
@@ -21,7 +21,7 @@ fn witness_alias(v: &str) -> &str {
     }
 }
 
-/// The friendly token for a `witness.kind` — the machine value (`--format json`,
+/// The friendly token for a `witness.kind()` — the machine value (`--format json`,
 /// `group=witness` keys, filter matching). Stable; do not change without a schema bump.
 pub(super) fn witness_token(kind: Option<&str>) -> &'static str {
     match kind {
@@ -35,7 +35,7 @@ pub(super) fn witness_token(kind: Option<&str>) -> &'static str {
     }
 }
 
-/// The human-facing DISPLAY label for a `witness.kind` — same as [`witness_token`] except
+/// The human-facing DISPLAY label for a `witness.kind()` — same as [`witness_token`] except
 /// the opaque `subdag` reads as `shared-core` for people. Used only in the terminal report;
 /// the machine token (`witness_token`) stays `subdag`, and `witness=shared-core` is an
 /// accepted filter alias (see [`witness_alias`]), so the two spellings never collide.
@@ -162,7 +162,7 @@ pub(super) fn family_matches(
     // rather than erroring.
     let fval: Option<String> = match field {
         "scope" => Some(f.scope.to_string()),
-        "witness" => Some(witness_token(f.witness.as_ref().map(|w| w.kind)).to_string()),
+        "witness" => Some(witness_token(f.witness.as_ref().map(|w| w.kind())).to_string()),
         "surface" => Some(effective_surface(f, ov).to_string()),
         "shape" | "extraction_shape" => Some(f.extraction_shape().to_string()),
         "dir" => Some(family_dir(f)),
@@ -193,7 +193,7 @@ pub(super) fn family_matches(
             QOp::Eq => match field {
                 "path" | "file" => path_has(val),
                 "lang" | "language" => lang_match(val, true),
-                "witness" => f.witness.as_ref().map(|w| w.kind) == Some(witness_alias(val)),
+                "witness" => f.witness.as_ref().map(|w| w.kind()) == Some(witness_alias(val)),
                 _ => {
                     if let Some(s) = &fval {
                         s == val
@@ -313,7 +313,7 @@ pub(super) fn query_family_json_with_counts(
     let mut obj = serde_json::json!({
         "id": id.clone(),
         "scope": f.scope,
-        "witness": witness_token(f.witness.as_ref().map(|w| w.kind)),
+        "witness": witness_token(f.witness.as_ref().map(|w| w.kind())),
         "surface": effective_surface(f, ov),
         "members": f.members,
         "files": f.files,
@@ -337,7 +337,7 @@ pub(super) fn query_family_json_with_counts(
     // Proof depth: for the exact channel, how much is proven identical — the size of the shared
     // value multiset. Lets a caller act now on the strongest evidence (subdag families carry the
     // proven span per location instead). Evidence, not a verdict.
-    if let Some(n) = f.witness.as_ref().and_then(|w| w.value_nodes) {
+    if let Some(n) = f.witness.as_ref().and_then(|w| w.value_nodes()) {
         obj["value_nodes"] = serde_json::Value::from(n);
     }
     if !f.semantic_pack_near.is_empty() {

@@ -236,7 +236,7 @@ fn upsert(
     // assignments and calls) narrows to one bucket. `rule_hash`/`dependencies`
     // are read live by the index, so in-place updates need no invalidation.
     for idx in il.evidence_indices_anchored_at(anchor.span()) {
-        let record = &mut il.evidence[idx as usize];
+        let record = &mut (*il.evidence_mut())[idx as usize];
         if record.anchor == anchor
             && record.kind == kind
             && record.status == EvidenceStatus::Asserted

@@ -188,8 +188,8 @@ pub(super) fn push_java_factory_contract_evidence(
     record.provenance.rule_hash = Some(stable_symbol_hash(
         JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
     ));
-    il.evidence.push(record);
-    il.evidence.push(method_call_library_api_evidence(
+    il.push_evidence(record);
+    il.push_evidence(method_call_library_api_evidence(
         3,
         Lang::Java,
         "contains",
@@ -225,13 +225,13 @@ pub(super) fn js_new_set_il(interner: &Interner) -> (Il, NodeId) {
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::source_span(sp(13)),
         EvidenceKind::Source(SourceFactKind::Call(SourceCallKind::Construct)),
         Vec::new(),
     ));
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         1,
         Lang::JavaScript,
         EvidenceAnchor::node(sp(10), NodeKind::Var),
@@ -240,7 +240,7 @@ pub(super) fn js_new_set_il(interner: &Interner) -> (Il, NodeId) {
         },
         Vec::new(),
     ));
-    il.evidence.push(sequence_surface_evidence(
+    il.push_evidence(sequence_surface_evidence(
         2,
         Lang::JavaScript,
         sp(12),

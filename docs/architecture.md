@@ -66,6 +66,12 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    `semantic` uses value-fingerprint MinHash signatures plus exact-value buckets, `near`
    uses shape MinHash signatures, experimental `abstraction` reuses the near candidate
    stream, and `syntax` bypasses unit LSH with a Rabin-Karp token-stream pass.
+   Every pair in an LSH bucket reaches scoring, including buckets above 48 units.
+   A chain/star before scoring is insufficient: rejected hub edges can disconnect
+   real clones. Identical bucket memberships across bands are deduplicated before
+   pair emission. Dense buckets therefore have quadratic pair cost; narrowing roots
+   or excluding generated sources reduces that work without silently dropping pairs.
+   Clean and incremental detection use the same pair rule.
 5. **Accept / score**: `semantic` accepts only exact-safe value-fingerprint equality, `near`
    scores candidates with structural alignment (RANSAC) plus weighted shape/value
    Jaccard and accepts above the inline `near:T` threshold (default `near:0.70`), and
@@ -89,6 +95,18 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    families dataset interactively.
 
 ## Crates
+
+`Il` separates serialized arena contents from derived indexes. Mutable field access
+and `Il::edit` invalidate those indexes before granting an exclusive borrow.
+`push_evidence` preserves incremental append indexing; `evidence_mut` invalidates
+only evidence lookups. Serialization keeps the existing flat arena representation.
+
+`DetectOptions::validate` produces an immutable execution plan and rejects invalid
+thresholds, MinHash layouts, and incompatible channel prerequisites before detection.
+The CLI returns configuration errors; infallible library detection entry points panic
+on invalid programmer-supplied options. Group evidence is a tagged `WitnessEvidence`
+enum, with required measurements carried by the corresponding variant. Its JSON
+retains the existing `kind` and measurement field names.
 
 A Cargo workspace; data flows left-to-right through them.
 

@@ -53,14 +53,14 @@ pub(super) fn typed_method_call_il_with_callback_param_count(
         functions.push(other_function);
     }
     let mut il = finish_module_il(b, lang, functions, Vec::new());
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(param_span),
         EvidenceKind::Domain(DomainEvidence::from_param_semantic(semantic)),
         EvidenceStatus::Asserted,
     ));
     if duplicate_param_name {
-        il.evidence.push(evidence(
+        il.push_evidence(evidence(
             1,
             EvidenceAnchor::param(duplicate_span),
             EvidenceKind::Domain(DomainEvidence::from_param_semantic(semantic)),
@@ -113,7 +113,7 @@ pub(super) fn receiver_domain_method_call_il(
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(receiver_span, NodeKind::Var),
         EvidenceKind::Domain(domain),

@@ -46,7 +46,7 @@ pub(super) fn build_query_dataset(
     refs: &[&std::path::Path],
 ) -> Result<QueryDataset> {
     let (settings, semantic_packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
-    let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+    let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines)?;
     let detector = detection_engine(settings.channels, &opts);
     let detection = query_detect_report(QueryDetectRequest {
         args,
@@ -57,7 +57,7 @@ pub(super) fn build_query_dataset(
         semantic_packs: &semantic_packs,
         cache_max_bytes: settings.cache_max_bytes,
         accepted_coverage: AcceptedCoverage::Query,
-    });
+    })?;
     finish_query_dataset(args, refs, settings, semantic_packs, opts, detection, true)
 }
 
@@ -236,9 +236,9 @@ struct PreparedDetectionFeatures {
     retained_normalized: Option<RetainedNormalizedCorpus>,
 }
 
-fn query_detect_report(request: QueryDetectRequest<'_>) -> DetectionReport {
+fn query_detect_report(request: QueryDetectRequest<'_>) -> Result<DetectionReport> {
     if let Some(fast) = try_query_detect_report_fast(&request) {
-        return fast;
+        return Ok(fast);
     }
     let PreparedCorpus {
         mut corpus,
@@ -247,6 +247,7 @@ fn query_detect_report(request: QueryDetectRequest<'_>) -> DetectionReport {
         cache_identity_parts,
         line_context,
     } = prepare_query_corpus(&request);
+    corpus.ensure_complete()?;
     let QueryDetectRequest {
         args,
         refs: _,
@@ -304,14 +305,14 @@ fn query_detect_report(request: QueryDetectRequest<'_>) -> DetectionReport {
         detector,
         accepted_coverage,
     });
-    (
+    Ok((
         report,
         scope,
         semantic_pack_near,
         semantic_pack_external_exact,
         line_context,
         retained_normalized,
-    )
+    ))
 }
 
 fn prepare_detection_features(

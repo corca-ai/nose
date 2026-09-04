@@ -209,7 +209,7 @@ pub fn synthesize_wrapper_with_module_strings(
     let mut synth = b.finish(root, meta, units, il.cid_names.clone());
     // Copied fragment nodes keep their original spans, so their semantic evidence
     // remains valid for interpreter admission in the wrapper.
-    synth.evidence = il.evidence.clone();
+    synth.edit().evidence = il.evidence.clone();
     debug_assert!(
         synth.validate().is_ok(),
         "synthesized fragment wrapper must be a valid arena"

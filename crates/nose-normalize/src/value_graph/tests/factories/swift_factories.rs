@@ -4,7 +4,7 @@ use super::*;
 fn swift_collection_factory_value_graph_uses_library_api_evidence() {
     let interner = Interner::new();
     let (mut il, call) = swift_collection_factory_il(&interner, "Array");
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         1,
         Lang::Swift,
         EvidenceAnchor::node(sp(76), NodeKind::Var),
@@ -22,7 +22,7 @@ fn swift_collection_factory_value_graph_uses_library_api_evidence() {
 
     let contract = library_free_name_collection_factory_contract(Lang::Swift, "Array")
         .expect("Swift Array contract");
-    il.evidence.push(swift_stdlib_collection_factory_evidence(
+    il.push_evidence(swift_stdlib_collection_factory_evidence(
         2,
         sp(79),
         contract,
@@ -35,7 +35,7 @@ fn swift_collection_factory_value_graph_uses_library_api_evidence() {
     );
 
     let (mut set_il, set_call) = swift_collection_factory_il(&interner, "Set");
-    set_il.evidence.push(language_core_symbol_evidence(
+    set_il.push_evidence(language_core_symbol_evidence(
         1,
         Lang::Swift,
         EvidenceAnchor::node(sp(76), NodeKind::Var),
@@ -45,15 +45,13 @@ fn swift_collection_factory_value_graph_uses_library_api_evidence() {
     ));
     let set_contract = library_free_name_collection_factory_contract(Lang::Swift, "Set")
         .expect("Swift Set contract");
-    set_il
-        .evidence
-        .push(swift_stdlib_collection_factory_evidence(
-            2,
-            sp(79),
-            set_contract,
-            1,
-            vec![EvidenceId(1)],
-        ));
+    set_il.push_evidence(swift_stdlib_collection_factory_evidence(
+        2,
+        sp(79),
+        set_contract,
+        1,
+        vec![EvidenceId(1)],
+    ));
     assert!(
         matches!(
             eval_op(&set_il, &interner, set_call),
@@ -81,8 +79,7 @@ fn swift_collection_factory_il(interner: &Interner, factory: &str) -> (Il, NodeI
     let call = b.add(NodeKind::Call, Payload::None, sp(79), &[callee, seq]);
     let root = b.add(NodeKind::Block, Payload::None, sp(75), &[call]);
     let mut il = finish_test_il(b, root, Lang::Swift);
-    il.evidence
-        .push(collection_sequence_evidence(0, Lang::Swift, sp(78)));
+    il.push_evidence(collection_sequence_evidence(0, Lang::Swift, sp(78)));
     (il, call)
 }
 
@@ -97,7 +94,7 @@ fn swift_dictionary_factory_value_graph_requires_tuple_entries_without_static_du
     let contract =
         library_swift_map_factory_contract(Lang::Swift, "Dictionary", "uniqueKeysWithValues")
             .expect("Swift Dictionary contract");
-    il.evidence.push(swift_stdlib_map_factory_evidence(
+    il.push_evidence(swift_stdlib_map_factory_evidence(
         5,
         sp(88),
         contract,
@@ -110,7 +107,7 @@ fn swift_dictionary_factory_value_graph_requires_tuple_entries_without_static_du
     );
 
     let (mut duplicate, duplicate_call) = swift_dictionary_unique_keys_il(&interner, true);
-    duplicate.evidence.push(swift_stdlib_map_factory_evidence(
+    duplicate.push_evidence(swift_stdlib_map_factory_evidence(
         5,
         sp(88),
         contract,
@@ -175,21 +172,20 @@ fn swift_dictionary_unique_keys_il(interner: &Interner, duplicate: bool) -> (Il,
     let call = b.add(NodeKind::Call, Payload::None, sp(88), &[callee, label]);
     let root = b.add(NodeKind::Block, Payload::None, sp(80), &[call]);
     let mut il = finish_test_il(b, root, Lang::Swift);
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         Lang::Swift,
         EvidenceAnchor::sequence(sp(83)),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Tuple),
     ));
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         1,
         Lang::Swift,
         EvidenceAnchor::sequence(sp(86)),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Tuple),
     ));
-    il.evidence
-        .push(collection_sequence_evidence(2, Lang::Swift, sp(87)));
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(collection_sequence_evidence(2, Lang::Swift, sp(87)));
+    il.push_evidence(language_core_symbol_evidence(
         4,
         Lang::Swift,
         EvidenceAnchor::node(sp(80), NodeKind::Var),

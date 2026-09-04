@@ -170,7 +170,7 @@ fn render_query_exploration(ctx: &QueryOutput<'_>) -> Result<bool> {
             .filter(|r| !r.container_in_test && !r.helper_in_test)
             .count();
         let markdown_report =
-            markdown::QueryMarkdownReport::detect_under(&ctx.args.paths, &ctx.settings.exclude);
+            markdown::QueryMarkdownReport::detect_under(&ctx.args.paths, &ctx.settings.exclude)?;
         let markdown_found = markdown_report.has_findings();
         render_query_dashboard(
             ctx.families,

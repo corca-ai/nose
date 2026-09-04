@@ -18,7 +18,7 @@ impl DivergenceQueryPlan {
 
 pub(crate) fn prepare_divergence_query(args: &QueryArgs) -> Result<DivergenceQueryPlan> {
     let (settings, semantic_packs) = resolve_query_settings(args, DIVERGENCE_DEFAULT_MODES)?;
-    let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+    let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines)?;
     Ok(DivergenceQueryPlan {
         settings,
         semantic_packs,
@@ -57,7 +57,7 @@ pub(crate) fn build_divergence_families(
         semantic_packs: &semantic_packs,
         cache_max_bytes: settings.cache_max_bytes,
         accepted_coverage: AcceptedCoverage::Direct,
-    });
+    })?;
     let mut families = nose_detect::rank_families(&report);
     annotate_semantic_pack_near(&mut families, &semantic_pack_near);
     annotate_semantic_pack_external_exact(&mut families, &semantic_pack_external_exact);

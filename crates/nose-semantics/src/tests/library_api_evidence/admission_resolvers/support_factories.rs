@@ -93,13 +93,13 @@ pub(crate) fn push_java_guava_import_dependencies(il: &mut Il, receiver: NodeId)
         module_hash: stable_symbol_hash("com.google.common.collect"),
         exported_hash: stable_symbol_hash("ImmutableMap"),
     });
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(180), stable_symbol_hash("ImmutableMap")),
         binding_symbol,
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(il.node(receiver).span, NodeKind::Var),
         binding_symbol,
@@ -190,7 +190,7 @@ pub(crate) fn push_java_collection_constructor_dependencies(
     call: NodeId,
     callee: NodeId,
 ) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::source_span(il.node(call).span),
         EvidenceKind::Source(SourceFactKind::Call(SourceCallKind::Construct)),
@@ -200,13 +200,13 @@ pub(crate) fn push_java_collection_constructor_dependencies(
         module_hash: stable_symbol_hash("java.util"),
         exported_hash: stable_symbol_hash("ArrayList"),
     });
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::binding(sp(87), stable_symbol_hash("ArrayList")),
         binding_symbol,
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         2,
         EvidenceAnchor::node(il.node(callee).span, NodeKind::Var),
         binding_symbol,
@@ -221,13 +221,13 @@ pub(crate) fn push_js_global_constructor_dependencies(
     callee: NodeId,
     name: &str,
 ) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::source_span(il.node(call).span),
         EvidenceKind::Source(SourceFactKind::Call(SourceCallKind::Construct)),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         1,
         EvidenceAnchor::node(il.node(callee).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -244,13 +244,13 @@ pub(crate) fn push_java_map_import_dependencies(il: &mut Il, receiver: NodeId) {
         module_hash: stable_symbol_hash("java.util"),
         exported_hash: stable_symbol_hash("Map"),
     });
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(80), stable_symbol_hash("Map")),
         binding_symbol,
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(il.node(receiver).span, NodeKind::Var),
         binding_symbol,

@@ -46,7 +46,7 @@ fn js_static_index_membership_call_il(
 }
 
 fn push_static_index_receiver_dependency(il: &mut Il, receiver: NodeId) {
-    il.evidence.push(language_core_evidence_with_dependencies(
+    il.push_evidence(language_core_evidence_with_dependencies(
         0,
         EvidenceAnchor::sequence(il.node(receiver).span),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
@@ -70,16 +70,14 @@ fn admitted_static_index_membership_resolver_requires_static_index_builtin_pack_
 
     let (mut missing_dependency, interner, call, _callee, _receiver) =
         js_static_index_membership_call_il("indexOf", false);
-    missing_dependency
-        .evidence
-        .push(js_like_builtin_static_index_membership_record(
-            0,
-            missing_dependency.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(js_like_builtin_static_index_membership_record(
+        0,
+        missing_dependency.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     assert!(
         admitted_static_index_membership_at_call(&missing_dependency, &interner, call).is_none(),
         "same-span static index evidence without collection receiver proof is rejected"
@@ -88,7 +86,7 @@ fn admitted_static_index_membership_resolver_requires_static_index_builtin_pack_
     let (mut wrong_pack, interner, call, _callee, receiver) =
         js_static_index_membership_call_il("indexOf", false);
     push_static_index_receiver_dependency(&mut wrong_pack, receiver);
-    wrong_pack.evidence.push(library_api_record_with_provenance(
+    wrong_pack.push_evidence(library_api_record_with_provenance(
         1,
         wrong_pack.node(call).span,
         contract.id,
@@ -106,18 +104,16 @@ fn admitted_static_index_membership_resolver_requires_static_index_builtin_pack_
     let (mut wrong_producer, interner, call, _callee, receiver) =
         js_static_index_membership_call_il("indexOf", false);
     push_static_index_receiver_dependency(&mut wrong_producer, receiver);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[0],
-            JS_LIKE_BUILTIN_STATIC_INDEX_MEMBERSHIP_PACK_ID,
-            "wrong.javascript.builtins.static-index-membership-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+        JS_LIKE_BUILTIN_STATIC_INDEX_MEMBERSHIP_PACK_ID,
+        "wrong.javascript.builtins.static-index-membership-api",
+    ));
     assert!(
         admitted_static_index_membership_at_call(&wrong_producer, &interner, call).is_none(),
         "static index evidence with the wrong producer is rejected"
@@ -135,7 +131,7 @@ fn admitted_static_index_membership_resolver_requires_static_index_builtin_pack_
         &[0],
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     assert!(
         admitted_static_index_membership_at_call(&wrong_emitter, &interner, call).is_none(),
         "static index evidence from an external emitter is rejected"
@@ -143,25 +139,21 @@ fn admitted_static_index_membership_resolver_requires_static_index_builtin_pack_
 
     let (mut broad_receiver_dependency, interner, call, _callee, receiver) =
         js_static_index_membership_call_il("indexOf", false);
-    broad_receiver_dependency
-        .evidence
-        .push(evidence_with_dependencies(
-            0,
-            EvidenceAnchor::sequence(broad_receiver_dependency.node(receiver).span),
-            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
-            EvidenceStatus::Asserted,
-            Vec::new(),
-        ));
-    broad_receiver_dependency
-        .evidence
-        .push(js_like_builtin_static_index_membership_record(
-            1,
-            broad_receiver_dependency.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[0],
-        ));
+    broad_receiver_dependency.push_evidence(evidence_with_dependencies(
+        0,
+        EvidenceAnchor::sequence(broad_receiver_dependency.node(receiver).span),
+        EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
+        EvidenceStatus::Asserted,
+        Vec::new(),
+    ));
+    broad_receiver_dependency.push_evidence(js_like_builtin_static_index_membership_record(
+        1,
+        broad_receiver_dependency.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
     assert!(
         admitted_static_index_membership_at_call(&broad_receiver_dependency, &interner, call)
             .is_none(),
@@ -171,16 +163,14 @@ fn admitted_static_index_membership_resolver_requires_static_index_builtin_pack_
     let (mut admitted, interner, call, callee, receiver) =
         js_static_index_membership_call_il("indexOf", false);
     push_static_index_receiver_dependency(&mut admitted, receiver);
-    admitted
-        .evidence
-        .push(js_like_builtin_static_index_membership_record(
-            1,
-            admitted.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[0],
-        ));
+    admitted.push_evidence(js_like_builtin_static_index_membership_record(
+        1,
+        admitted.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
     let occurrence = admitted_static_index_membership_at_call(&admitted, &interner, call).unwrap();
     assert_eq!(
         occurrence.contract.id,
@@ -198,15 +188,14 @@ fn admitted_static_index_membership_resolver_accepts_find_index_contract() {
     let (mut il, interner, call, _callee, receiver) =
         js_static_index_membership_call_il("findIndex", true);
     push_static_index_receiver_dependency(&mut il, receiver);
-    il.evidence
-        .push(js_like_builtin_static_index_membership_record(
-            1,
-            il.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[0],
-        ));
+    il.push_evidence(js_like_builtin_static_index_membership_record(
+        1,
+        il.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
     let occurrence = admitted_static_index_membership_at_call(&il, &interner, call).unwrap();
     assert_eq!(
         occurrence.contract.id,

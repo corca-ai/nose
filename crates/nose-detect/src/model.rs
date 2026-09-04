@@ -233,22 +233,8 @@ pub struct Group {
 /// audit's top gap); this names it without re-plumbing the scorer.
 #[derive(Clone, Serialize)]
 pub struct EquivalenceWitness {
-    /// `exact-value-graph` (every member strict-exact-safe with one identical
-    /// value multiset), `shared-sub-dag` (a common heavy anchor — see each
-    /// location's `shared_subdag` span), `copy-paste-run` (token-identical
-    /// contiguous run), or `structural-similarity` (the fuzzy near channel).
-    pub kind: &'static str,
-    /// For `exact-value-graph`: the size of the shared value multiset.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub value_nodes: Option<usize>,
-    /// For `structural-similarity`: mean value-graph Jaccard vs the first member
-    /// — high here with low shape similarity means behaviorally-driven
-    /// convergence, not surface likeness.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mean_value_jaccard: Option<f64>,
-    /// For `structural-similarity`: mean shape Jaccard vs the first member.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mean_shape_jaccard: Option<f64>,
+    #[serde(flatten)]
+    pub evidence: crate::WitnessEvidence,
     /// For same-language near/shared-core families: the anti-unification grade of the
     /// two representative copies — "equal except these k holes", with each hole's value
     /// class and a referent check (#315). Computed by the presentation layer, which has

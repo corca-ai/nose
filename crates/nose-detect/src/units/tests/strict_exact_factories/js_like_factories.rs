@@ -19,7 +19,7 @@ fn strict_exact_js_constructor_requires_library_api_evidence() {
     ));
 
     let wrong = library_js_like_map_constructor_contract(Lang::JavaScript, "Map").unwrap();
-    il.evidence.push(library_api_contract_evidence(
+    il.push_evidence(library_api_contract_evidence(
         3,
         sp(13),
         wrong.id,
@@ -34,15 +34,14 @@ fn strict_exact_js_constructor_requires_library_api_evidence() {
 
     let (mut il, call) = js_new_set_il(&interner);
     let set = library_js_like_set_constructor_contract(Lang::JavaScript, "Set").unwrap();
-    il.evidence
-        .push(js_like_builtin_collection_constructor_evidence(
-            3,
-            sp(13),
-            set.id,
-            set.callee,
-            1,
-            vec![EvidenceId(0), EvidenceId(1)],
-        ));
+    il.push_evidence(js_like_builtin_collection_constructor_evidence(
+        3,
+        sp(13),
+        set.id,
+        set.callee,
+        1,
+        vec![EvidenceId(0), EvidenceId(1)],
+    ));
     let facts = StrictFacts::collect(&il, &interner);
     assert!(strict_exact_set_constructor_collection_safe(
         &il, &interner, &facts, call
@@ -77,7 +76,7 @@ fn strict_exact_python_builtin_factory_requires_library_api_evidence() {
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(sequence_surface_evidence(
+    il.push_evidence(sequence_surface_evidence(
         0,
         Lang::Python,
         sp(42),
@@ -89,7 +88,7 @@ fn strict_exact_python_builtin_factory_requires_library_api_evidence() {
     ));
 
     let contract = library_free_name_collection_factory_contract(Lang::Python, "list").unwrap();
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         1,
         Lang::Python,
         EvidenceAnchor::node(sp(40), NodeKind::Var),
@@ -98,7 +97,7 @@ fn strict_exact_python_builtin_factory_requires_library_api_evidence() {
         },
         Vec::new(),
     ));
-    il.evidence.push(python_builtin_collection_factory_evidence(
+    il.push_evidence(python_builtin_collection_factory_evidence(
         2,
         sp(43),
         contract,

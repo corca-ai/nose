@@ -269,7 +269,7 @@ mod tests {
             Vec::new(),
         );
         let (pack_id, producer_id) = language_core_evidence_provenance(Lang::JavaScript);
-        il.evidence.push(EvidenceRecord {
+        il.push_evidence(EvidenceRecord {
             id: EvidenceId(0),
             anchor: EvidenceAnchor::sequence(il.node(seq).span),
             kind: EvidenceKind::SequenceSurface(surface),

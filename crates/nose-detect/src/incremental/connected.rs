@@ -1,6 +1,5 @@
 use super::*;
 use crate::candidates::{ConnectedAccepted, ConnectedRoute};
-use crate::detectors::connected_witness_score;
 use crate::locations::enclosing_unit_indices;
 use crate::orchestration::connected_pricing::{
     connected_seed_indices, evaluate_connected_candidate, same_unit_seed_indices,
@@ -118,7 +117,7 @@ fn connected_pair_evaluations(
                 candidate.left,
                 candidate.right,
                 ordinary_pairs.contains(&(candidate.left, candidate.right)),
-                opts.threshold,
+                opts,
             )
         };
         evaluations.push(StoredConnectedEvaluation {
@@ -162,7 +161,7 @@ fn same_unit_evaluations(
             stats.connected_evaluations_evaluated += 1;
             crate::connected::same_unit_witness(&units[index].connected_tokens).and_then(
                 |witness| {
-                    let score = connected_witness_score(witness);
+                    let score = opts.scoring.anchor_score(witness.mapped_nodes);
                     (score >= opts.threshold).then_some(ConnectedAccepted {
                         left: index,
                         right: index,

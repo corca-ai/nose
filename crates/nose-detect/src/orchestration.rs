@@ -127,14 +127,8 @@ fn score_fresh_connected(
         return ConnectedStage::default();
     }
     ConnectedStage {
-        cross_unit: score_connected_candidates(
-            units,
-            scored,
-            accepted,
-            opts.threshold,
-            !opts.emit_pairs,
-        ),
-        same_unit: score_same_unit_candidates(units, opts.threshold, !opts.emit_pairs),
+        cross_unit: score_connected_candidates(units, scored, accepted, opts, !opts.emit_pairs),
+        same_unit: score_same_unit_candidates(units, opts, !opts.emit_pairs),
     }
 }
 
@@ -152,6 +146,8 @@ fn detect_with_dump_inner(
     detector: &dyn Detector,
     output: DetectionOutput,
 ) -> (Report, Dump) {
+    let plan = opts.validate().expect("invalid detection options");
+    let opts = &*plan;
     let mut clk = StageTimer::new();
 
     // Normalize each file and extract its units in one fused parallel pass — a file's
@@ -240,6 +236,11 @@ pub fn detect_from_units_with_direct_accepted_coverage(
 }
 
 fn detect_from_units_inner(request: DetectionRequest<'_>) -> (Report, Dump) {
+    let plan = request.opts.validate().expect("invalid detection options");
+    let request = DetectionRequest {
+        opts: &plan,
+        ..request
+    };
     let mut clk = StageTimer::new();
 
     let stages = if request.opts.structural {

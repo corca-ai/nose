@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "query_roots/completeness.rs"]
+mod completeness;
+
 #[test]
 fn query_accepts_explicit_multi_roots() {
     let dir = make_project("multi_roots");

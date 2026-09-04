@@ -4,7 +4,7 @@ use super::digest::ContentDigest;
 use super::CacheRun;
 use nose_detect::{DetectOptions, IncrementalDetectionState};
 
-const STATE_SCHEMA: u32 = 1;
+const STATE_SCHEMA: u32 = 2;
 
 pub(crate) struct DetectionCacheIdentity {
     query: ContentDigest,
@@ -18,15 +18,17 @@ impl DetectionCacheIdentity {
         detector: &dyn nose_detect::Detector,
     ) -> Self {
         let options = options_bytes(opts);
-        let environment = influential_environment();
+        let environment = nose_detect::candidate_config_identity();
+        let scoring = serde_json::to_vec(&opts.scoring).expect("finite score config");
         Self {
             query: ContentDigest::derive(
-                b"nose.incremental-detection-query.v1",
+                b"nose.incremental-detection-query.v2",
                 &[
                     &semantic_packs,
                     detector.name().as_bytes(),
                     &options,
                     &environment,
+                    &scoring,
                 ],
             ),
         }
@@ -81,22 +83,6 @@ fn options_bytes(opts: &DetectOptions) -> Vec<u8> {
     values.into_iter().flat_map(u64::to_be_bytes).collect()
 }
 
-fn influential_environment() -> Vec<u8> {
-    let mut rows = std::env::vars_os()
-        .filter_map(|(name, value)| {
-            let name = name.to_string_lossy();
-            name.starts_with("NOSE_").then(|| {
-                let mut row = name.as_bytes().to_vec();
-                row.push(0);
-                row.extend_from_slice(value.to_string_lossy().as_bytes());
-                row
-            })
-        })
-        .collect::<Vec<_>>();
-    rows.sort();
-    rows.into_iter().flatten().collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -109,5 +95,18 @@ mod tests {
         first.threshold = 0.7;
         let b = DetectionCacheIdentity::new([1; 32], [2; 32], &first, &detector);
         assert_ne!(a.query, b.query);
+    }
+
+    #[test]
+    fn effective_scoring_parameters_separate_detection_state() {
+        let mut opts = DetectOptions::default();
+        let detector = nose_detect::StructuralDetector::strict(opts.jaccard_weight);
+        let first = DetectionCacheIdentity::new([1; 32], [2; 32], &opts, &detector);
+        opts.scoring = nose_detect::ScoreConfig::from_lookup(|key| {
+            (key == "NOSE_CAND_VJ").then(|| "0.95".into())
+        })
+        .unwrap();
+        let second = DetectionCacheIdentity::new([1; 32], [2; 32], &opts, &detector);
+        assert_ne!(first.query, second.query);
     }
 }

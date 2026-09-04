@@ -260,9 +260,9 @@ pub(super) fn append_snapshot(il: &mut Il, snapshot: &SubtreeSnapshot) -> Append
             .map(|&child_idx| new_ids[child_idx])
             .collect();
         let child_start = il.edges.len() as u32;
-        il.edges.extend_from_slice(&children);
+        il.edit().edges.extend_from_slice(&children);
         let id = NodeId(il.nodes.len() as u32);
-        il.nodes.push(Node {
+        il.edit().nodes.push(Node {
             kind: snapshot_node.kind,
             payload: snapshot_node.payload,
             span: snapshot_node.span,
@@ -326,7 +326,7 @@ fn append_snapshot_evidence(
     )
     .unwrap_or_else(|| {
         let id = EvidenceId(il.evidence.len() as u32);
-        il.evidence.push(EvidenceRecord {
+        il.push_evidence(EvidenceRecord {
             id,
             anchor,
             kind: evidence.kind,
@@ -368,19 +368,19 @@ pub(super) fn replace_assignment_rhs(il: &mut Il, stmt: NodeId, rhs: NodeId) {
         return;
     }
     let rhs_slot = node.child_start as usize + 1;
-    if let Some(slot) = il.edges.get_mut(rhs_slot) {
+    if let Some(slot) = il.edit().edges.get_mut(rhs_slot) {
         *slot = rhs;
     }
 }
 
 pub(super) fn replace_node_references(il: &mut Il, old: NodeId, new: NodeId) {
-    for edge in &mut il.edges {
+    for edge in &mut il.edit().edges {
         if *edge == old {
             *edge = new;
         }
     }
     if il.root == old {
-        il.root = new;
+        il.edit().root = new;
     }
 }
 
@@ -460,7 +460,7 @@ fn push_evidence_with_provenance(
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceId {
     let id = EvidenceId(il.evidence.len() as u32);
-    il.evidence.push(EvidenceRecord {
+    il.push_evidence(EvidenceRecord {
         id,
         anchor,
         kind,
@@ -478,14 +478,14 @@ pub(super) fn prepend_root_statement(il: &mut Il, stmt: NodeId) {
     children.push(stmt);
     children.extend_from_slice(il.children(old_root));
     let child_start = il.edges.len() as u32;
-    il.edges.extend_from_slice(&children);
+    il.edit().edges.extend_from_slice(&children);
     let new_root = NodeId(il.nodes.len() as u32);
-    il.nodes.push(Node {
+    il.edit().nodes.push(Node {
         kind: old_root_node.kind,
         payload: old_root_node.payload,
         span: old_root_node.span,
         child_start,
         child_len: children.len() as u32,
     });
-    il.root = new_root;
+    il.edit().root = new_root;
 }

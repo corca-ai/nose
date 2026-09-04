@@ -49,18 +49,14 @@ fn witness_kind(members: &[usize], units: &[UnitFeat]) -> &'static str {
 fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
     match witness_kind(members, units) {
         "exact-value-graph" => EquivalenceWitness {
-            kind: "exact-value-graph",
-            value_nodes: Some(units[members[0]].value.len()),
-            mean_value_jaccard: None,
-            mean_shape_jaccard: None,
+            evidence: crate::WitnessEvidence::ExactValueGraph {
+                value_nodes: units[members[0]].value.len(),
+            },
             graded: None,
             graded_pair: None,
         },
         "shared-sub-dag" => EquivalenceWitness {
-            kind: "shared-sub-dag",
-            value_nodes: None,
-            mean_value_jaccard: None,
-            mean_shape_jaccard: None,
+            evidence: crate::WitnessEvidence::SharedSubDag,
             graded: None,
             graded_pair: None,
         },
@@ -73,10 +69,10 @@ fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
             }
             let n = (members.len().saturating_sub(1)).max(1) as f64;
             EquivalenceWitness {
-                kind: "structural-similarity",
-                value_nodes: None,
-                mean_value_jaccard: Some(round3(vj / n)),
-                mean_shape_jaccard: Some(round3(sj / n)),
+                evidence: crate::WitnessEvidence::StructuralSimilarity {
+                    mean_value_jaccard: round3(vj / n),
+                    mean_shape_jaccard: round3(sj / n),
+                },
                 graded: None,
                 graded_pair: None,
             }
@@ -84,8 +80,6 @@ fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
         _ => unreachable!("witness_kind returns a closed set of witness categories"),
     }
 }
-
-pub(crate) const EXACT_VALUE_BUCKET_ALL_PAIRS_CAP: usize = 48;
 
 pub(crate) fn structural_candidates(
     units: &[UnitFeat],
@@ -226,14 +220,15 @@ pub(crate) fn build_connected_groups(
                     None
                 },
                 witness: Some(EquivalenceWitness {
-                    kind: if matches!(pair.route, ConnectedRoute::SameUnit) {
-                        "bounded-same-unit-window"
+                    evidence: if matches!(pair.route, ConnectedRoute::SameUnit) {
+                        crate::WitnessEvidence::BoundedSameUnitWindow {
+                            value_nodes: pair.witness.mapped_nodes as usize,
+                        }
                     } else {
-                        "connected-mapped-sub-dag"
+                        crate::WitnessEvidence::ConnectedMappedSubDag {
+                            value_nodes: pair.witness.mapped_nodes as usize,
+                        }
                     },
-                    value_nodes: Some(pair.witness.mapped_nodes as usize),
-                    mean_value_jaccard: None,
-                    mean_shape_jaccard: None,
                     graded: None,
                     graded_pair: None,
                 }),
@@ -327,18 +322,9 @@ fn exact_value_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
         if members.len() < 2 {
             continue;
         }
-        if members.len() <= EXACT_VALUE_BUCKET_ALL_PAIRS_CAP {
-            for a in 0..members.len() {
-                for b in (a + 1)..members.len() {
-                    out.push(ordered_pair(members[a], members[b]));
-                }
-            }
-        } else {
-            for w in members.windows(2) {
-                out.push(ordered_pair(w[0], w[1]));
-            }
-            for &m in &members[1..] {
-                out.push(ordered_pair(members[0], m));
+        for a in 0..members.len() {
+            for b in (a + 1)..members.len() {
+                out.push(ordered_pair(members[a], members[b]));
             }
         }
     }

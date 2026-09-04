@@ -2,7 +2,7 @@
 
 `nose query <root> --watch --format jsonl` keeps one foreground analysis
 session alive and emits a complete dashboard snapshot whenever the analyzed
-source set changes. It is intended for editors, local refactoring loops, and
+source set or dashboard changes, including Markdown and structured ignores. It is intended for editors, local refactoring loops, and
 other integrations that need fresh results without starting a new process for
 every save.
 
@@ -56,8 +56,9 @@ Each stdout line is one JSON object with schema `nose.query-watch/v1`:
 ```
 
 `sequence` starts at `0` for the initial snapshot and increases once per emitted
-revision. `source_set_digest` binds the complete ordered path/content identity
-set. `changed_paths` reports the filesystem hints reconciled for the revision;
+revision. `source_set_digest` binds the analyzed code path/content identity
+set; Markdown-only or presentation-policy revisions can retain that digest.
+Use `sequence` to identify dashboard revisions. `changed_paths` reports the filesystem hints reconciled for the revision;
 it is not a substitute for the digest. `reconciliation` is `initial`,
 `incremental-leaf`, or `full-reconciliation`. `latency_ms` measures from the
 first event in the debounced batch to the ready snapshot.
@@ -74,6 +75,12 @@ falls back to the ordinary query pipeline when an event is ambiguous, spans
 multiple sources, changes membership or configuration, or requests an overflow
 rescan. Atomic-save rename sequences and delete/recreate bursts converge on the
 final filesystem state after a short debounce.
+
+Configuration and ignore files are watched even outside the analysis roots.
+Their containing directories are observed so atomic replacement keeps working.
+A continuously arriving event stream is processed in batches of at most 250 ms
+before analysis begins. Both the initial and replacement code snapshots and their
+source digests come from the same session generation.
 
 An explicit `--cache-dir` makes startup reuse the normal transactional cache. If
 it is omitted, watch mode creates and removes a private temporary cache. A killed

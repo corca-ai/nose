@@ -90,7 +90,7 @@ fn promise_settled_record(
 }
 
 fn push_imported_function_target(il: &mut Il, interner: &Interner, call: NodeId, id: u32) {
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         id,
         il.node(call).span,
         Lang::Python,
@@ -108,7 +108,7 @@ fn push_imported_function_target(il: &mut Il, interner: &Interner, call: NodeId,
 fn imported_function_call_target_requires_matching_local_selector() {
     let interner = Interner::new();
     let (mut il, call) = imported_function_call_il(&interner);
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         0,
         sp(12),
         Lang::Python,
@@ -142,7 +142,7 @@ fn promise_settled_value_contract_admits_only_with_imported_call_target() {
         PromiseSettledValueEvidenceStatus::Missing
     );
 
-    il.evidence.push(promise_settled_record(
+    il.push_evidence(promise_settled_record(
         1,
         call,
         payload,
@@ -171,7 +171,7 @@ fn promise_settled_value_contract_rejects_direct_targets_and_bad_payload_anchors
     let interner = Interner::new();
     let (mut il, call) = imported_function_call_il(&interner);
     let payload = il.children(call)[1];
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         0,
         il.node(call).span,
         Lang::Python,
@@ -182,7 +182,7 @@ fn promise_settled_value_contract_rejects_direct_targets_and_bad_payload_anchors
         EvidenceStatus::Asserted,
         &[],
     ));
-    il.evidence.push(promise_settled_record(
+    il.push_evidence(promise_settled_record(
         1,
         call,
         payload,
@@ -200,7 +200,7 @@ fn promise_settled_value_contract_rejects_direct_targets_and_bad_payload_anchors
     let (mut il, call) = imported_function_call_il(&interner);
     push_imported_function_target(&mut il, &interner, call, 10);
     let payload = il.children(call)[1];
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         11,
         EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
         EvidenceKind::PromiseSettledValue(PromiseSettledValueEvidenceKind {
@@ -222,7 +222,7 @@ fn promise_settled_value_contract_rejects_broken_or_conflicting_evidence() {
     let (mut il, call) = imported_function_call_il(&interner);
     let payload = il.children(call)[1];
     push_imported_function_target(&mut il, &interner, call, 0);
-    il.evidence.push(promise_settled_record(
+    il.push_evidence(promise_settled_record(
         1,
         call,
         payload,
@@ -239,7 +239,7 @@ fn promise_settled_value_contract_rejects_broken_or_conflicting_evidence() {
     let (mut il, call) = imported_function_call_il(&interner);
     let payload = il.children(call)[1];
     push_imported_function_target(&mut il, &interner, call, 10);
-    il.evidence.push(promise_settled_record(
+    il.push_evidence(promise_settled_record(
         11,
         call,
         payload,
@@ -248,7 +248,7 @@ fn promise_settled_value_contract_rejects_broken_or_conflicting_evidence() {
         EvidenceStatus::Asserted,
         &[],
     ));
-    il.evidence.push(promise_settled_record(
+    il.push_evidence(promise_settled_record(
         12,
         call,
         payload,
@@ -267,7 +267,7 @@ fn promise_settled_value_contract_rejects_broken_or_conflicting_evidence() {
 fn legacy_first_party_call_target_does_not_admit_identity() {
     let interner = Interner::new();
     let (mut il, call) = imported_function_call_il(&interner);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(sp(12), NodeKind::Call),
         EvidenceKind::CallTarget(CallTargetEvidenceKind::ImportedFunction {
@@ -288,7 +288,7 @@ fn legacy_first_party_call_target_does_not_admit_identity() {
 fn wrong_language_core_call_target_does_not_admit_identity() {
     let interner = Interner::new();
     let (mut il, call) = imported_function_call_il(&interner);
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         0,
         sp(12),
         Lang::TypeScript,
@@ -318,7 +318,7 @@ fn direct_function_span_helper_requires_selector_shape() {
         test_support::DirectFunctionFixtureScope::TopLevel,
         test_support::DirectFunctionFixtureSelector::DifferentName,
     );
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         0,
         il.node(call).span,
         Lang::Python,
@@ -343,7 +343,7 @@ fn direct_function_span_helper_requires_selector_shape() {
 fn wrong_imported_function_selector_is_rejected_not_missing() {
     let interner = Interner::new();
     let (mut il, call) = imported_function_call_il(&interner);
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         0,
         sp(12),
         Lang::Python,
@@ -372,7 +372,7 @@ fn imported_member_call_target_admits_scoped_var_suffix_shape() {
         exported_hash: stable_symbol_hash("Span"),
         member_hash: stable_symbol_hash("new"),
     };
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         0,
         sp(41),
         Lang::Rust,
@@ -392,7 +392,7 @@ fn imported_member_call_target_admits_scoped_var_suffix_shape() {
 fn imported_member_call_target_rejects_wrong_scoped_var_suffix() {
     let interner = Interner::new();
     let (mut il, call) = scoped_var_call_il(&interner, "Span::new");
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         0,
         sp(41),
         Lang::Rust,
@@ -420,7 +420,7 @@ fn imported_member_call_target_requires_full_nested_scoped_suffix() {
         exported_hash: stable_symbol_hash("value::from_value"),
         member_hash: stable_symbol_hash("value::from_value"),
     };
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         0,
         sp(41),
         Lang::Rust,
@@ -439,7 +439,7 @@ fn imported_member_call_target_requires_full_nested_scoped_suffix() {
 fn dependency_broken_call_target_is_rejected() {
     let interner = Interner::new();
     let (mut il, call) = imported_function_call_il(&interner);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(sp(10), NodeKind::Var),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
@@ -448,7 +448,7 @@ fn dependency_broken_call_target_is_rejected() {
         }),
         EvidenceStatus::Ambiguous,
     ));
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         1,
         sp(12),
         Lang::Python,
@@ -471,7 +471,7 @@ fn dependency_broken_call_target_is_rejected() {
 fn conflicting_call_targets_stay_closed() {
     let interner = Interner::new();
     let (mut il, call) = imported_function_call_il(&interner);
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         0,
         sp(12),
         Lang::Python,
@@ -483,7 +483,7 @@ fn conflicting_call_targets_stay_closed() {
         EvidenceStatus::Asserted,
         &[],
     ));
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         1,
         sp(12),
         Lang::Python,
@@ -523,7 +523,7 @@ fn direct_method_target_requires_matching_selector_and_target_span() {
     let call = b.add(NodeKind::Call, Payload::None, sp(34), &[callee]);
     let root = b.add(NodeKind::Module, Payload::None, sp(35), &[target, call]);
     let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         0,
         sp(34),
         Lang::TypeScript,
@@ -545,7 +545,7 @@ fn direct_method_target_requires_matching_selector_and_target_span() {
 fn dynamic_dispatch_is_evidence_but_not_imported_member_identity() {
     let interner = Interner::new();
     let (mut il, call, _) = field_call_il(&interner, "next");
-    il.evidence.push(call_target_record(
+    il.push_evidence(call_target_record(
         0,
         sp(23),
         Lang::Python,

@@ -302,7 +302,9 @@ impl<'a> WitnessBuilder<'a> {
                         Some((relative_retained_path(base_root, &path)?, context))
                     })
                     .collect();
-                let nose_il::Corpus { interner, files } = retained.corpus;
+                let nose_il::Corpus {
+                    interner, files, ..
+                } = retained.corpus;
                 let files = files
                     .into_iter()
                     .filter_map(|file| {

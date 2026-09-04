@@ -37,7 +37,7 @@ fn python_free_call_il(
 }
 
 fn push_unshadowed_builtin_symbol(il: &mut Il, callee: NodeId, id: u32, name: &str) {
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         id,
         EvidenceAnchor::node(il.node(callee).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -50,7 +50,7 @@ fn push_unshadowed_builtin_symbol(il: &mut Il, callee: NodeId, id: u32, name: &s
 }
 
 fn push_source_collection_domain(il: &mut Il, source: NodeId, id: u32) {
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         id,
         EvidenceAnchor::node(il.node(source).span, il.kind(source)),
         EvidenceKind::Domain(DomainEvidence::Collection),
@@ -72,17 +72,15 @@ fn python_iterator_hof_requires_iterator_pack_and_source_proof() {
 
     let (mut missing_source, interner, call, callee, _args) = python_free_call_il("map", 2);
     push_unshadowed_builtin_symbol(&mut missing_source, callee, 0, "map");
-    missing_source
-        .evidence
-        .push(python_iterator_builtin_protocol_record(
-            1,
-            missing_source.node(call).span,
-            contract.id,
-            contract.callee,
-            2,
-            EvidenceStatus::Asserted,
-            &[0],
-        ));
+    missing_source.push_evidence(python_iterator_builtin_protocol_record(
+        1,
+        missing_source.node(call).span,
+        contract.id,
+        contract.callee,
+        2,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
     assert!(
         admitted_free_function_hof_at_call(&missing_source, &interner, call).is_none(),
         "Python map evidence without source iterable proof is rejected"
@@ -91,19 +89,17 @@ fn python_iterator_hof_requires_iterator_pack_and_source_proof() {
     let (mut wrong_pack, interner, call, callee, args) = python_free_call_il("map", 2);
     push_unshadowed_builtin_symbol(&mut wrong_pack, callee, 0, "map");
     push_source_collection_domain(&mut wrong_pack, args[1], 1);
-    wrong_pack
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            2,
-            wrong_pack.node(call).span,
-            contract.id,
-            contract.callee,
-            2,
-            EvidenceStatus::Asserted,
-            &[0, 1],
-            FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID,
-            FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,
-        ));
+    wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+        2,
+        wrong_pack.node(call).span,
+        contract.id,
+        contract.callee,
+        2,
+        EvidenceStatus::Asserted,
+        &[0, 1],
+        FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID,
+        FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,
+    ));
     assert!(
         admitted_free_function_hof_at_call(&wrong_pack, &interner, call).is_none(),
         "Python iterator HOF evidence under the generic free-function pack is rejected"
@@ -112,17 +108,15 @@ fn python_iterator_hof_requires_iterator_pack_and_source_proof() {
     let (mut admitted, interner, call, callee, args) = python_free_call_il("map", 2);
     push_unshadowed_builtin_symbol(&mut admitted, callee, 0, "map");
     push_source_collection_domain(&mut admitted, args[1], 1);
-    admitted
-        .evidence
-        .push(python_iterator_builtin_protocol_record(
-            2,
-            admitted.node(call).span,
-            contract.id,
-            contract.callee,
-            2,
-            EvidenceStatus::Asserted,
-            &[0, 1],
-        ));
+    admitted.push_evidence(python_iterator_builtin_protocol_record(
+        2,
+        admitted.node(call).span,
+        contract.id,
+        contract.callee,
+        2,
+        EvidenceStatus::Asserted,
+        &[0, 1],
+    ));
     let occurrence = admitted_free_function_hof_at_call(&admitted, &interner, call).unwrap();
     assert_eq!(
         occurrence.contract.id,
@@ -186,7 +180,7 @@ fn python_iterator_hof_rejects_nested_non_iterable_api_dependency() {
     let map_contract = library_free_function_hof_contract(Lang::Python, "map", 2).unwrap();
     push_unshadowed_builtin_symbol(&mut il, any_callee, 0, "any");
     push_source_collection_domain(&mut il, values, 1);
-    il.evidence.push(python_iterator_builtin_protocol_record(
+    il.push_evidence(python_iterator_builtin_protocol_record(
         2,
         il.node(any_call).span,
         any_contract.id,
@@ -196,7 +190,7 @@ fn python_iterator_hof_rejects_nested_non_iterable_api_dependency() {
         &[0, 1],
     ));
     push_unshadowed_builtin_symbol(&mut il, inner_map_callee, 3, "map");
-    il.evidence.push(python_iterator_builtin_protocol_record(
+    il.push_evidence(python_iterator_builtin_protocol_record(
         4,
         il.node(inner_map).span,
         map_contract.id,
@@ -206,7 +200,7 @@ fn python_iterator_hof_rejects_nested_non_iterable_api_dependency() {
         &[3, 2],
     ));
     push_unshadowed_builtin_symbol(&mut il, outer_map_callee, 5, "map");
-    il.evidence.push(python_iterator_builtin_protocol_record(
+    il.push_evidence(python_iterator_builtin_protocol_record(
         6,
         il.node(outer_map).span,
         map_contract.id,
@@ -249,7 +243,7 @@ fn python_iterator_terminal_accepts_generator_source_fact() {
 
     push_unshadowed_builtin_symbol(&mut il, any_callee, 0, "any");
     let (source_pack_id, source_producer_id) = language_source_fact_provenance(Lang::Python);
-    il.evidence.push(EvidenceRecord {
+    il.push_evidence(EvidenceRecord {
         id: EvidenceId(1),
         anchor: EvidenceAnchor::source_span(il.node(generator).span),
         kind: EvidenceKind::Source(SourceFactKind::Comprehension(
@@ -263,7 +257,7 @@ fn python_iterator_terminal_accepts_generator_source_fact() {
         dependencies: Vec::new(),
         status: EvidenceStatus::Asserted,
     });
-    il.evidence.push(python_iterator_builtin_protocol_record(
+    il.push_evidence(python_iterator_builtin_protocol_record(
         2,
         il.node(any_call).span,
         contract.id,
@@ -335,7 +329,7 @@ fn python_iterator_builtin_pack_covers_filter_zip_enumerate_and_terminals() {
             }
             _ => unreachable!(),
         };
-        il.evidence.push(python_iterator_builtin_protocol_record(
+        il.push_evidence(python_iterator_builtin_protocol_record(
             10,
             il.node(call).span,
             expected,

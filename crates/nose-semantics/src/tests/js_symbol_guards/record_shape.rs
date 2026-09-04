@@ -100,7 +100,7 @@ fn record_guard_surface_evidence(id: u32, span: Span) -> EvidenceRecord {
 
 fn js_record_guard_il_with_surface(interner: &Interner, subject: &str) -> (Il, NodeId) {
     let (mut il, guard) = js_record_guard_il(interner, subject);
-    il.evidence.push(record_guard_surface_evidence(0, sp(12)));
+    il.push_evidence(record_guard_surface_evidence(0, sp(12)));
     (il, guard)
 }
 
@@ -111,22 +111,22 @@ fn record_shape_guard_requires_dedicated_guard_evidence() {
 
     assert!(!record_shape_guard_for_node(&il, &interner, guard));
 
-    il.evidence.push(record_guard_surface_evidence(0, sp(12)));
+    il.push_evidence(record_guard_surface_evidence(0, sp(12)));
     assert!(!record_shape_guard_for_node(&il, &interner, guard));
 
-    il.evidence.push(array_is_array_dependency(
+    il.push_evidence(array_is_array_dependency(
         1,
         sp(12),
         EvidenceStatus::Asserted,
         Some(3),
     ));
-    il.evidence.push(unshadowed_global_source_dependency(
+    il.push_evidence(unshadowed_global_source_dependency(
         3,
         sp(12),
         "Array",
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(record_guard_record(
+    il.push_evidence(record_guard_record(
         2,
         sp(12),
         "value",
@@ -141,7 +141,7 @@ fn record_shape_guard_validates_required_dependencies() {
     let interner = Interner::new();
 
     let (mut il, guard) = js_record_guard_il_with_surface(&interner, "value");
-    il.evidence.push(record_guard_record(
+    il.push_evidence(record_guard_record(
         1,
         sp(12),
         "value",
@@ -151,7 +151,7 @@ fn record_shape_guard_validates_required_dependencies() {
     assert!(!record_shape_guard_for_node(&il, &interner, guard));
 
     let (mut il, guard) = js_record_guard_il_with_surface(&interner, "value");
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::source_span(sp(12)),
         EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
@@ -159,7 +159,7 @@ fn record_shape_guard_validates_required_dependencies() {
         }),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(record_guard_record(
+    il.push_evidence(record_guard_record(
         2,
         sp(12),
         "value",
@@ -174,13 +174,13 @@ fn record_shape_guard_rejects_ambiguous_or_mispositioned_dependencies() {
     let interner = Interner::new();
 
     let (mut il, guard) = js_record_guard_il_with_surface(&interner, "value");
-    il.evidence.push(array_is_array_dependency(
+    il.push_evidence(array_is_array_dependency(
         1,
         sp(12),
         EvidenceStatus::Ambiguous,
         None,
     ));
-    il.evidence.push(record_guard_record(
+    il.push_evidence(record_guard_record(
         2,
         sp(12),
         "value",
@@ -190,13 +190,13 @@ fn record_shape_guard_rejects_ambiguous_or_mispositioned_dependencies() {
     assert!(!record_shape_guard_for_node(&il, &interner, guard));
 
     let (mut il, guard) = js_record_guard_il_with_surface(&interner, "value");
-    il.evidence.push(array_is_array_dependency(
+    il.push_evidence(array_is_array_dependency(
         1,
         sp(14),
         EvidenceStatus::Asserted,
         None,
     ));
-    il.evidence.push(record_guard_record(
+    il.push_evidence(record_guard_record(
         2,
         sp(12),
         "value",
@@ -211,13 +211,13 @@ fn record_shape_guard_boolean_truthy_null_check_requires_full_proofs() {
     let interner = Interner::new();
 
     let (mut il, guard) = js_record_guard_il_with_surface(&interner, "value");
-    il.evidence.push(array_is_array_dependency(
+    il.push_evidence(array_is_array_dependency(
         1,
         sp(12),
         EvidenceStatus::Asserted,
         None,
     ));
-    il.evidence.push(record_guard_record(
+    il.push_evidence(record_guard_record(
         2,
         sp(12),
         "value",
@@ -226,9 +226,8 @@ fn record_shape_guard_boolean_truthy_null_check_requires_full_proofs() {
     ));
     assert!(!record_shape_guard_for_node(&il, &interner, guard));
 
-    il.evidence
-        .push(boolean_dependency(3, sp(12), EvidenceStatus::Asserted));
-    il.evidence.push(record_guard_record(
+    il.push_evidence(boolean_dependency(3, sp(12), EvidenceStatus::Asserted));
+    il.push_evidence(record_guard_record(
         4,
         sp(12),
         "value",
@@ -238,21 +237,20 @@ fn record_shape_guard_boolean_truthy_null_check_requires_full_proofs() {
     assert!(!record_shape_guard_for_node(&il, &interner, guard));
 
     let (mut il, guard) = js_record_guard_il_with_surface(&interner, "value");
-    il.evidence.push(array_is_array_dependency(
+    il.push_evidence(array_is_array_dependency(
         1,
         sp(12),
         EvidenceStatus::Asserted,
         Some(4),
     ));
-    il.evidence.push(unshadowed_global_source_dependency(
+    il.push_evidence(unshadowed_global_source_dependency(
         4,
         sp(12),
         "Array",
         EvidenceStatus::Asserted,
     ));
-    il.evidence
-        .push(boolean_dependency(2, sp(12), EvidenceStatus::Asserted));
-    il.evidence.push(record_guard_record(
+    il.push_evidence(boolean_dependency(2, sp(12), EvidenceStatus::Asserted));
+    il.push_evidence(record_guard_record(
         3,
         sp(12),
         "value",
@@ -266,20 +264,20 @@ fn record_shape_guard_boolean_truthy_null_check_requires_full_proofs() {
 fn record_shape_guard_rejects_mismatched_or_ambiguous_evidence() {
     let interner = Interner::new();
     let (mut il, guard) = js_record_guard_il(&interner, "value");
-    il.evidence.push(record_guard_surface_evidence(0, sp(12)));
-    il.evidence.push(array_is_array_dependency(
+    il.push_evidence(record_guard_surface_evidence(0, sp(12)));
+    il.push_evidence(array_is_array_dependency(
         1,
         sp(12),
         EvidenceStatus::Asserted,
         Some(3),
     ));
-    il.evidence.push(unshadowed_global_source_dependency(
+    il.push_evidence(unshadowed_global_source_dependency(
         3,
         sp(12),
         "Array",
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(record_guard_record(
+    il.push_evidence(record_guard_record(
         2,
         sp(12),
         "other",
@@ -289,20 +287,20 @@ fn record_shape_guard_rejects_mismatched_or_ambiguous_evidence() {
     assert!(!record_shape_guard_for_node(&il, &interner, guard));
 
     let (mut il, guard) = js_record_guard_il(&interner, "value");
-    il.evidence.push(record_guard_surface_evidence(0, sp(12)));
-    il.evidence.push(array_is_array_dependency(
+    il.push_evidence(record_guard_surface_evidence(0, sp(12)));
+    il.push_evidence(array_is_array_dependency(
         1,
         sp(12),
         EvidenceStatus::Asserted,
         Some(3),
     ));
-    il.evidence.push(unshadowed_global_source_dependency(
+    il.push_evidence(unshadowed_global_source_dependency(
         3,
         sp(12),
         "Array",
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         2,
         EvidenceAnchor::sequence(sp(12)),
         record_guard_evidence_with_null_check("value", JsRecordGuardNullCheck::StrictNonNull),
@@ -312,27 +310,27 @@ fn record_shape_guard_rejects_mismatched_or_ambiguous_evidence() {
     assert!(!record_shape_guard_for_node(&il, &interner, guard));
 
     let (mut il, guard) = js_record_guard_il(&interner, "value");
-    il.evidence.push(record_guard_surface_evidence(0, sp(12)));
-    il.evidence.push(array_is_array_dependency(
+    il.push_evidence(record_guard_surface_evidence(0, sp(12)));
+    il.push_evidence(array_is_array_dependency(
         1,
         sp(12),
         EvidenceStatus::Asserted,
         Some(4),
     ));
-    il.evidence.push(unshadowed_global_source_dependency(
+    il.push_evidence(unshadowed_global_source_dependency(
         4,
         sp(12),
         "Array",
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(record_guard_record(
+    il.push_evidence(record_guard_record(
         2,
         sp(12),
         "value",
         JsRecordGuardNullCheck::StrictNonNull,
         &[1],
     ));
-    il.evidence.push(record_guard_record(
+    il.push_evidence(record_guard_record(
         3,
         sp(12),
         "candidate",
@@ -374,20 +372,20 @@ fn record_shape_guard_keeps_source_subject_proof_after_alpha_rename() {
     );
     let root = b.add(NodeKind::Block, Payload::None, sp(13), &[guard]);
     let mut il = finish_il(b, root, Lang::JavaScript);
-    il.evidence.push(record_guard_surface_evidence(0, sp(13)));
-    il.evidence.push(array_is_array_dependency(
+    il.push_evidence(record_guard_surface_evidence(0, sp(13)));
+    il.push_evidence(array_is_array_dependency(
         1,
         sp(13),
         EvidenceStatus::Asserted,
         Some(3),
     ));
-    il.evidence.push(unshadowed_global_source_dependency(
+    il.push_evidence(unshadowed_global_source_dependency(
         3,
         sp(13),
         "Array",
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(record_guard_record(
+    il.push_evidence(record_guard_record(
         2,
         sp(13),
         "source_name",

@@ -8,7 +8,7 @@ fn membership_call_consumes_receiver_domain_evidence() {
         "method selector alone must not prove collection membership"
     );
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(receiver_span, NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Collection),
@@ -19,7 +19,7 @@ fn membership_call_consumes_receiver_domain_evidence() {
         ValOp::Bin(op) if op == Op::In as u32
     ));
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         2,
         EvidenceAnchor::node(receiver_span, NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Map),
@@ -73,16 +73,15 @@ fn membership_call_consumes_library_api_result_domain_evidence() {
     );
 
     let api = library_js_like_set_constructor_contract(Lang::TypeScript, "Set").unwrap();
-    il.evidence
-        .push(js_like_builtin_collection_constructor_evidence(
-            0,
-            sp(42),
-            api.id,
-            api.callee,
-            1,
-            Vec::new(),
-        ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(js_like_builtin_collection_constructor_evidence(
+        0,
+        sp(42),
+        api.id,
+        api.callee,
+        1,
+        Vec::new(),
+    ));
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(sp(42), NodeKind::Call),
         EvidenceKind::Domain(DomainEvidence::Set),
@@ -193,10 +192,9 @@ fn normalized_binding_membership_op(case: BindingMembershipCase) -> ValOp {
     let body = b.add(NodeKind::Block, Payload::None, sp(9), &root_children);
     let root = b.add(NodeKind::Func, Payload::None, sp(8), &[body]);
     let mut il = finish_test_il(b, root, Lang::TypeScript);
-    il.evidence
-        .push(collection_sequence_evidence(0, Lang::TypeScript, seq_span));
+    il.push_evidence(collection_sequence_evidence(0, Lang::TypeScript, seq_span));
     if let Some(span) = mutation_span {
-        il.evidence.push(evidence(
+        il.push_evidence(evidence(
             1,
             EvidenceAnchor::node(span, NodeKind::Call),
             EvidenceKind::Effect(EffectEvidenceKind::BuilderAppendCall),

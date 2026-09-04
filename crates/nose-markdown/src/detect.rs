@@ -216,9 +216,18 @@ pub fn detect(docs: &[(String, String)], opts: &Options) -> Vec<Family> {
         groups.entry(r).or_default().push(idx);
     }
 
+    let mut pairs_by_root = vec![Vec::new(); units.len()];
+    for pair in &accepted {
+        let root = uf.find(pair.0);
+        if root == uf.find(pair.1) {
+            pairs_by_root[root].push(pair);
+        }
+    }
     let mut families: Vec<Family> = groups
-        .values()
-        .filter_map(|members| build_family(members, &units, &fps, &model, &accepted))
+        .iter()
+        .filter_map(|(root, members)| {
+            build_family(members, &units, &fps, &model, &pairs_by_root[*root])
+        })
         .collect();
 
     // Rank: real per-instance families before templated blobs; then confidence-weighted
@@ -241,16 +250,11 @@ fn build_family(
     units: &[Unit],
     fps: &[Fingerprint],
     model: &CorpusModel,
-    accepted: &[(usize, usize, f64)],
+    inpairs: &[&(usize, usize, f64)],
 ) -> Option<Family> {
     if members.len() < 2 {
         return None;
     }
-    let memberset: std::collections::HashSet<usize> = members.iter().copied().collect();
-    let inpairs: Vec<&(usize, usize, f64)> = accepted
-        .iter()
-        .filter(|(i, j, _)| memberset.contains(i) && memberset.contains(j))
-        .collect();
     if inpairs.is_empty() {
         return None;
     }

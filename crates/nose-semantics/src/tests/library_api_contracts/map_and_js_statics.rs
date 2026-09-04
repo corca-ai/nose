@@ -134,7 +134,7 @@ fn swift_dictionary_default_subscript_requires_live_stable_coordinates() {
         &[receiver_param, key_param, default_param, index],
     );
     let mut il = finish_il(b, root, Lang::Swift);
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         EvidenceAnchor::param(sp(40)),
         EvidenceKind::Type(TypeEvidenceKind::SwiftUnqualifiedDictionaryParameter),
@@ -181,7 +181,7 @@ fn swift_dictionary_default_subscript_rejects_lazy_expression_defaults() {
         &[receiver_param, key_param, index],
     );
     let mut il = finish_il(b, root, Lang::Swift);
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         EvidenceAnchor::param(sp(50)),
         EvidenceKind::Type(TypeEvidenceKind::SwiftBracketDictionaryParameter),

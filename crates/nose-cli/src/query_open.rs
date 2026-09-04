@@ -29,7 +29,7 @@ fn print_family_header(id: &str, f: &nose_detect::RefactorFamily) {
         println!(
             "{} — {} · {} · {} copies · cross-language · ~{} repeated",
             short_id(id),
-            witness_styled(f.witness.as_ref().map(|w| w.kind)),
+            witness_styled(f.witness.as_ref().map(|w| w.kind())),
             f.scope,
             f.members,
             removable,
@@ -38,7 +38,7 @@ fn print_family_header(id: &str, f: &nose_detect::RefactorFamily) {
         println!(
             "{} — {} · {} · {} copies · {}/{} shared, {}p · ~{} removable",
             short_id(id),
-            witness_styled(f.witness.as_ref().map(|w| w.kind)),
+            witness_styled(f.witness.as_ref().map(|w| w.kind())),
             f.scope,
             f.members,
             shared,
@@ -154,7 +154,7 @@ pub(super) fn render_query_family(
     );
     println!(
         "  nose query {path} witness={}   {}",
-        witness_label(f.witness.as_ref().map(|w| w.kind)),
+        witness_label(f.witness.as_ref().map(|w| w.kind())),
         style::dim("# other families of the same confidence")
     );
 }

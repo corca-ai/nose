@@ -32,7 +32,9 @@ pub(crate) fn render_query_group(view: QueryGroupView<'_>) {
 fn group_key(view: &QueryGroupView<'_>, family: &nose_detect::RefactorFamily) -> String {
     match view.field {
         "scope" => family.scope.to_string(),
-        "witness" => witness_token(family.witness.as_ref().map(|witness| witness.kind)).to_string(),
+        "witness" => {
+            witness_token(family.witness.as_ref().map(|witness| witness.kind())).to_string()
+        }
         "lang" | "language" => family
             .locations
             .first()

@@ -5,6 +5,9 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
+#[path = "watch/inputs.rs"]
+mod inputs;
+
 const FIRST: &str = "def first(items):\n    total = 0\n    for item in items:\n        if item > 0:\n            total = total + item * item\n    return total\n";
 const SECOND: &str = "def second(values):\n    total = 0\n    for value in values:\n        if value > 0:\n            total = total + value * value\n    return total\n";
 const CHANGED: &str = "def second(values):\n    total = 0\n    for value in values:\n        if value > 0:\n            total = total - value * value\n    return total\n";
@@ -18,6 +21,10 @@ struct WatchProcess {
 
 impl WatchProcess {
     fn start(project: &Path, cache: &Path) -> Self {
+        Self::start_with_args(project, cache, &[])
+    }
+
+    fn start_with_args(project: &Path, cache: &Path, extra: &[&str]) -> Self {
         let mut child = Command::new(bin())
             .args([
                 "query",
@@ -34,6 +41,7 @@ impl WatchProcess {
                 "--cache-dir",
                 cache.to_str().unwrap(),
             ])
+            .args(extra)
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()

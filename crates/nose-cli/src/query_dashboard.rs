@@ -33,7 +33,7 @@ pub(crate) fn query_dashboard_json(
     let count = |kind: &str| {
         def.iter()
             .filter(|family| {
-                witness_token(family.witness.as_ref().map(|witness| witness.kind)) == kind
+                witness_token(family.witness.as_ref().map(|witness| witness.kind())) == kind
             })
             .count()
     };
@@ -128,7 +128,7 @@ pub(super) fn render_query_dashboard(
     // filter, never a demotion.
     let count = |k: &str| {
         def.iter()
-            .filter(|f| witness_token(f.witness.as_ref().map(|w| w.kind)) == k)
+            .filter(|f| witness_token(f.witness.as_ref().map(|w| w.kind())) == k)
             .count()
     };
     if json {
@@ -190,7 +190,7 @@ pub(super) fn render_query_dashboard(
 
     let kind_of = |k: &str| {
         def.iter()
-            .filter(|f| f.witness.as_ref().map(|w| w.kind) == Some(k))
+            .filter(|f| f.witness.as_ref().map(|w| w.kind()) == Some(k))
             .count()
     };
     let n_exact = kind_of("exact-value-graph");
@@ -200,7 +200,7 @@ pub(super) fn render_query_dashboard(
         .iter()
         .filter(|f| {
             matches!(
-                f.witness.as_ref().map(|w| w.kind),
+                f.witness.as_ref().map(|w| w.kind()),
                 Some("exact-value-graph")
                     | Some("shared-sub-dag")
                     | Some("connected-mapped-sub-dag")

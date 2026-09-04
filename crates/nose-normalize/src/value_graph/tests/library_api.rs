@@ -20,9 +20,8 @@ fn free_name_collection_factory_value_graph_requires_library_api_evidence() {
     let call = b.add(NodeKind::Call, Payload::None, sp(23), &[callee, seq]);
     let root = b.add(NodeKind::Block, Payload::None, sp(19), &[call]);
     let mut il = finish_test_il(b, root, Lang::Python);
-    il.evidence
-        .push(collection_sequence_evidence(0, Lang::Python, sp(22)));
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(collection_sequence_evidence(0, Lang::Python, sp(22)));
+    il.push_evidence(language_core_symbol_evidence(
         1,
         Lang::Python,
         EvidenceAnchor::node(sp(20), NodeKind::Var),
@@ -36,7 +35,7 @@ fn free_name_collection_factory_value_graph_requires_library_api_evidence() {
     );
 
     let contract = library_free_name_collection_factory_contract(Lang::Python, "list").unwrap();
-    il.evidence.push(python_builtin_collection_factory_evidence(
+    il.push_evidence(python_builtin_collection_factory_evidence(
         2,
         sp(23),
         contract,
@@ -69,7 +68,7 @@ fn free_name_minmax_value_graph_requires_library_api_evidence() {
     );
     let root = b.add(NodeKind::Block, Payload::None, sp(23), &[call]);
     let mut il = finish_test_il(b, root, Lang::Python);
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         0,
         Lang::Python,
         EvidenceAnchor::node(sp(24), NodeKind::Var),
@@ -83,7 +82,7 @@ fn free_name_minmax_value_graph_requires_library_api_evidence() {
     );
 
     let contract = library_free_function_builtin_contract(Lang::Python, "min", 2).unwrap();
-    il.evidence.push(library_api_contract_evidence(
+    il.push_evidence(library_api_contract_evidence(
         1,
         sp(27),
         contract.id,
@@ -131,12 +130,12 @@ fn scalar_integer_method_value_graph_requires_library_api_evidence() {
         }],
         vec![x],
     );
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(sp(160)),
         EvidenceKind::Domain(DomainEvidence::Integer),
     ));
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::node(sp(161), NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Integer),
@@ -191,7 +190,7 @@ fn rust_some_wildcard_pattern_value_graph_requires_library_api_and_source_patter
     );
     let root = b.add(NodeKind::Block, Payload::None, sp(166), &[cond]);
     let mut il = finish_test_il(b, root, Lang::Rust);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(sp(167), NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Option),
@@ -206,7 +205,7 @@ fn rust_some_wildcard_pattern_value_graph_requires_library_api_and_source_patter
 
     let contract = library_rust_option_some_constructor_contract(Lang::Rust, "Some", 1)
         .expect("Rust Some contract");
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         1,
         Lang::Rust,
         EvidenceAnchor::node(sp(168), NodeKind::Var),
@@ -214,7 +213,7 @@ fn rust_some_wildcard_pattern_value_graph_requires_library_api_and_source_patter
             name_hash: stable_symbol_hash("Some"),
         },
     ));
-    il.evidence.push(rust_option_evidence_with_dependencies(
+    il.push_evidence(rust_option_evidence_with_dependencies(
         2,
         EvidenceAnchor::node(sp(168), NodeKind::Var),
         EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
@@ -299,7 +298,7 @@ fn rust_option_none_pattern_value_graph_requires_library_api_evidence() {
     );
 
     let contract = library_rust_option_none_sentinel_contract(Lang::Rust, "None").unwrap();
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         0,
         Lang::Rust,
         EvidenceAnchor::node(sp(172), NodeKind::Var),
@@ -307,7 +306,7 @@ fn rust_option_none_pattern_value_graph_requires_library_api_evidence() {
             name_hash: stable_symbol_hash("None"),
         },
     ));
-    il.evidence.push(rust_option_evidence_with_dependencies(
+    il.push_evidence(rust_option_evidence_with_dependencies(
         1,
         EvidenceAnchor::node(sp(172), NodeKind::Var),
         EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {

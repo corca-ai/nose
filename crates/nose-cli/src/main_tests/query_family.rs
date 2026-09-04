@@ -207,10 +207,7 @@ fn query_family_json_carries_proof_depth() {
     // Exact channel: how much is proven identical (the shared value-multiset size).
     let mut exact = fam(1, 2, &[Some("a"), Some("b")]);
     exact.witness = Some(nose_detect::EquivalenceWitness {
-        kind: "exact-value-graph",
-        value_nodes: Some(12),
-        mean_value_jaccard: None,
-        mean_shape_jaccard: None,
+        evidence: nose_detect::WitnessEvidence::ExactValueGraph { value_nodes: 12 },
         graded: None,
         graded_pair: None,
     });
@@ -325,10 +322,10 @@ fn spotclass_grades_near_family_holes() {
     let graded = |spots: Vec<WitnessHole>, referent: Vec<String>| {
         let mut f = fam(1, 2, &[Some("x"), Some("y")]);
         f.witness = Some(EquivalenceWitness {
-            kind: "structural-similarity",
-            value_nodes: None,
-            mean_value_jaccard: None,
-            mean_shape_jaccard: None,
+            evidence: nose_detect::WitnessEvidence::StructuralSimilarity {
+                mean_value_jaccard: 0.0,
+                mean_shape_jaccard: 0.0,
+            },
             graded: Some(GradedWitness {
                 holes: spots.len(),
                 spots,
@@ -497,10 +494,7 @@ fn hint_flags_high_parameter_extractions() {
 fn summary_names_the_equivalence_evidence() {
     let mut f = fam(1, 1, &[None, None]);
     f.witness = Some(nose_detect::EquivalenceWitness {
-        kind: "exact-value-graph",
-        value_nodes: Some(12),
-        mean_value_jaccard: None,
-        mean_shape_jaccard: None,
+        evidence: nose_detect::WitnessEvidence::ExactValueGraph { value_nodes: 12 },
         graded: None,
         graded_pair: None,
     });

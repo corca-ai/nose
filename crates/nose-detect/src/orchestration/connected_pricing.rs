@@ -2,7 +2,6 @@ use super::{AcceptedPair, ScoredCandidate};
 use crate::{
     candidates::{ConnectedAccepted, ConnectedRoute},
     connected,
-    detectors::connected_witness_score,
     locations::{enclosing_unit_indices, is_nested},
     model::LineSpan,
     units::UnitFeat,
@@ -14,7 +13,7 @@ pub(super) fn score_connected_candidates(
     units: &[UnitFeat],
     candidates: &[ScoredCandidate],
     ordinary: &[AcceptedPair],
-    threshold: f64,
+    opts: &crate::DetectOptions,
     bound_product_work: bool,
 ) -> Vec<ConnectedAccepted> {
     let ordinary_pairs = ordinary
@@ -41,7 +40,7 @@ pub(super) fn score_connected_candidates(
         candidates,
         &unit_paths,
         &unit_weights,
-        threshold,
+        opts.threshold,
         bound_product_work,
     );
     let connected = candidate_indices
@@ -57,7 +56,7 @@ pub(super) fn score_connected_candidates(
                 left,
                 right,
                 ordinary_pairs.contains(&(left, right)),
-                threshold,
+                opts,
             )
         })
         .collect::<Vec<_>>();
@@ -66,15 +65,15 @@ pub(super) fn score_connected_candidates(
 
 pub(super) fn score_same_unit_candidates(
     units: &[UnitFeat],
-    threshold: f64,
+    opts: &crate::DetectOptions,
     bound_product_work: bool,
 ) -> Vec<ConnectedAccepted> {
     same_unit_seed_indices(units, bound_product_work)
         .par_iter()
         .filter_map(|&index| {
             let witness = connected::same_unit_witness(&units[index].connected_tokens)?;
-            let score = connected_witness_score(witness);
-            (score >= threshold).then_some(ConnectedAccepted {
+            let score = opts.scoring.anchor_score(witness.mapped_nodes);
+            (score >= opts.threshold).then_some(ConnectedAccepted {
                 left: index,
                 right: index,
                 score,
@@ -247,10 +246,10 @@ pub(crate) fn evaluate_connected_candidate(
     raw_left: usize,
     raw_right: usize,
     raw_accepted: bool,
-    threshold: f64,
+    opts: &crate::DetectOptions,
 ) -> Vec<ConnectedAccepted> {
     if is_nested(&units[raw_left], &units[raw_right]) {
-        return connected_descendant_pairs(units, raw_left, raw_right, same_file, threshold);
+        return connected_descendant_pairs(units, raw_left, raw_right, same_file, opts);
     }
 
     // A child/block candidate may seed its two distinct enclosing units. If both
@@ -279,7 +278,7 @@ pub(crate) fn evaluate_connected_candidate(
             left_constraint,
             right_constraint,
             false,
-            threshold,
+            opts,
         )
     };
     connected.into_iter().collect()
@@ -292,7 +291,7 @@ fn accepted_connected_pair(
     left_constraint: LineSpan,
     right_constraint: LineSpan,
     nested_route: bool,
-    threshold: f64,
+    opts: &crate::DetectOptions,
 ) -> Option<ConnectedAccepted> {
     if units[left].lang != units[right].lang {
         return None;
@@ -303,8 +302,8 @@ fn accepted_connected_pair(
         left_constraint,
         right_constraint,
     )?;
-    let score = connected_witness_score(witness);
-    (score >= threshold).then_some(ConnectedAccepted {
+    let score = opts.scoring.anchor_score(witness.mapped_nodes);
+    (score >= opts.threshold).then_some(ConnectedAccepted {
         left,
         right,
         score,
@@ -407,7 +406,7 @@ fn connected_descendant_pairs(
     left: usize,
     right: usize,
     same_file: &[usize],
-    threshold: f64,
+    opts: &crate::DetectOptions,
 ) -> Vec<ConnectedAccepted> {
     let (container_index, focus) = if strictly_contains(&units[left], &units[right]) {
         (left, right)
@@ -446,7 +445,7 @@ fn connected_descendant_pairs(
                 LineSpan::new(units[i].start_line, units[i].end_line),
                 LineSpan::new(units[j].start_line, units[j].end_line),
                 true,
-                threshold,
+                opts,
             ) {
                 accepted.push(pair);
             }

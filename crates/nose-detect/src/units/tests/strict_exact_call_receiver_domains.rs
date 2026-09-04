@@ -35,13 +35,13 @@ fn strict_exact_contains_consumes_call_receiver_domain_evidence() {
         Vec::new(),
     );
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(sp(71), NodeKind::Call),
         EvidenceKind::Domain(nose_semantics::DomainEvidence::Collection),
         Vec::new(),
     ));
-    il.evidence.push(method_call_library_api_evidence(
+    il.push_evidence(method_call_library_api_evidence(
         1,
         Lang::TypeScript,
         "includes",
@@ -55,7 +55,7 @@ fn strict_exact_contains_consumes_call_receiver_domain_evidence() {
         &il, &interner, &facts, call, callee, "includes"
     ));
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         2,
         EvidenceAnchor::node(sp(71), NodeKind::Call),
         EvidenceKind::Domain(nose_semantics::DomainEvidence::Map),

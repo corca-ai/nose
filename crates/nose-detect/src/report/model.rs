@@ -262,7 +262,7 @@ impl RefactorFamily {
         const SHALLOW_PARAM_RATIO: f64 = 0.33;
         // A proven channel is never demoted on a shape/size heuristic.
         let proven = matches!(
-            self.witness.as_ref().map(|w| w.kind),
+            self.witness.as_ref().map(|w| w.kind()),
             Some("exact-value-graph") | Some("shared-sub-dag")
         );
         if proven {

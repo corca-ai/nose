@@ -21,6 +21,33 @@ fn well_formed_il_validates() {
 }
 
 #[test]
+fn editing_a_cached_arena_refreshes_span_and_binding_queries() {
+    let mut il = leaf_il();
+    let old = il.node(il.root).span;
+    let new = Span::new(FileId(0), 5, 9, 2, 2);
+    assert_eq!(il.nodes_spanning(old).count(), 1);
+    assert_eq!(il.params_with_cid(7).count(), 0);
+    let root = il.root;
+    let contents = il.edit();
+    contents.nodes[root.0 as usize].span = new;
+    contents.nodes[root.0 as usize].kind = NodeKind::Param;
+    contents.nodes[root.0 as usize].payload = Payload::Cid(7);
+    assert_eq!(il.nodes_spanning(old).count(), 0);
+    assert_eq!(il.nodes_spanning(new).count(), 1);
+    assert_eq!(il.params_with_cid(7).collect::<Vec<_>>(), vec![root]);
+    assert_eq!(il.clone().nodes_spanning(new).count(), 1);
+    // Direct field mutation goes through the same invalidation boundary.
+    il.nodes[root.0 as usize].span = old;
+    assert_eq!(il.nodes_spanning(new).count(), 0);
+    assert_eq!(il.nodes_spanning(old).count(), 1);
+    let json = serde_json::to_value(&il).unwrap();
+    assert!(json.get("nodes").is_some());
+    assert!(json.get("contents").is_none());
+    let restored: Il = serde_json::from_value(json).unwrap();
+    assert_eq!(restored.nodes_spanning(old).count(), 1);
+}
+
+#[test]
 fn span_contains_only_nested_ranges_in_the_same_file() {
     let outer = Span::new(FileId(0), 10, 20, 1, 2);
     assert!(outer.contains(Span::new(FileId(0), 10, 20, 1, 2)));
@@ -92,22 +119,22 @@ fn evidence_kind_maps_every_embedded_span() {
 #[test]
 fn dangling_child_is_caught() {
     let mut il = leaf_il();
-    il.edges.push(NodeId(999)); // child id past the arena
-    il.nodes[0].child_len = 1;
+    il.edit().edges.push(NodeId(999)); // child id past the arena
+    il.edit().nodes[0].child_len = 1;
     assert!(il.validate().is_err(), "a dangling child id must fail");
 }
 
 #[test]
 fn out_of_bounds_root_is_caught() {
     let mut il = leaf_il();
-    il.root = NodeId(42);
+    il.edit().root = NodeId(42);
     assert!(il.validate().is_err(), "an invalid root must fail");
 }
 
 #[test]
 fn child_range_past_edges_is_caught() {
     let mut il = leaf_il();
-    il.nodes[0].child_len = 5; // claims children that don't exist
+    il.edit().nodes[0].child_len = 5; // claims children that don't exist
     assert!(
         il.validate().is_err(),
         "an out-of-range child span must fail"
@@ -287,7 +314,7 @@ fn scope_binding_index_covers_params_destructuring_and_foreach_patterns() {
     assert!(il.scope_writes_name(scope, loop_name));
     assert!(il.scope_writes_cid(scope, 7));
 
-    il.nodes[destructured.0 as usize].payload = Payload::Cid(11);
+    il.edit().nodes[destructured.0 as usize].payload = Payload::Cid(11);
     il.invalidate_scope_binding_index();
     assert!(!il.scope_writes_name(scope, destructured_name));
     assert!(il.scope_writes_cid(scope, 11));
@@ -298,7 +325,7 @@ fn builtin_evidence_dedupe_preserves_provenance_boundary() {
     let mut il = leaf_il();
     let anchor = EvidenceAnchor::node(il.node(il.root).span, NodeKind::Module);
     let kind = EvidenceKind::Domain(DomainEvidence::Collection);
-    il.evidence.push(EvidenceRecord {
+    il.push_evidence(EvidenceRecord {
         id: EvidenceId(0),
         anchor,
         kind,
@@ -379,15 +406,12 @@ fn evidence_index_survives_clear_and_repush() {
         status: EvidenceStatus::Asserted,
     };
 
-    il.evidence
-        .push(record(0, EvidenceAnchor::node(span, NodeKind::Module)));
+    il.push_evidence(record(0, EvidenceAnchor::node(span, NodeKind::Module)));
     // Build the index, then invalidate it the rude way.
     assert_eq!(il.evidence_anchored_at(span).count(), 1);
-    il.evidence.clear();
-    il.evidence
-        .push(record(0, EvidenceAnchor::binding(span, 7)));
-    il.evidence
-        .push(record(1, EvidenceAnchor::node(span, NodeKind::Module)));
+    il.edit().evidence.clear();
+    il.push_evidence(record(0, EvidenceAnchor::binding(span, 7)));
+    il.push_evidence(record(1, EvidenceAnchor::node(span, NodeKind::Module)));
 
     assert_eq!(il.evidence_anchored_at(span).count(), 2);
     assert_eq!(il.evidence_binding_anchored(7).count(), 1);

@@ -6,6 +6,22 @@ break.
 
 ## [Unreleased]
 
+### Fixed
+- Fail incomplete source discovery/reads instead of reporting a passing CI gate,
+  including when reusable cache entries exist.
+- Refresh watch dashboards for Markdown, ignore, and external configuration changes;
+  derive replacement code snapshots and digests from the same session generation.
+- Invalidate IL indexes automatically on mutation and preserve the flat serialized
+  arena format. Evidence append callers can use `Il::push_evidence`.
+- Respect explicit Markdown roots beneath vendor/build-named ancestors, and aggregate
+  accepted Markdown pairs once per component instead of rescanning all pairs per family.
+- Repair corrupt cache entries through replacement on every platform.
+- Preserve all LSH candidate pairs in dense buckets instead of losing pairs at 49 units;
+  deduplicate identical band memberships before emission. Dense buckets cost quadratic work.
+- Validate detection/scoring configuration per analysis and bind cached scores to its
+  effective values. Group witness construction now uses typed evidence variants while
+  preserving the existing JSON fields.
+
 ### Changed
 - Centralized auxiliary development-tool versions and checksummed
   macOS/Linux assets in one checked policy, with a read-only doctor, explicit

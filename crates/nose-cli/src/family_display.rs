@@ -42,7 +42,7 @@ pub(super) fn family_summary(f: &nose_detect::RefactorFamily) -> String {
     // vs shared shape"): an exact value-graph proof is behavioral evidence; a
     // token run is surface likeness. The JSON has carried this since #222 —
     // the human report should too.
-    let evidence = match f.witness.as_ref().map(|w| w.kind) {
+    let evidence = match f.witness.as_ref().map(|w| w.kind()) {
         Some("exact-value-graph") => " · exact behavior match",
         Some("shared-sub-dag") => " · shared core computation",
         Some("connected-mapped-sub-dag") => " · connected shared computation",

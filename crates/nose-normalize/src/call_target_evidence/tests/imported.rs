@@ -21,7 +21,7 @@ fn emits_imported_function_call_target_from_binding_symbol() {
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(binding_symbol(
+    il.push_evidence(binding_symbol(
         0,
         sp(1),
         "p",
@@ -96,7 +96,7 @@ fn emits_imported_member_call_target_from_namespace_symbol() {
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(binding_symbol(
+    il.push_evidence(binding_symbol(
         0,
         sp(1),
         "m",
@@ -142,7 +142,7 @@ fn emits_imported_member_call_target_from_imported_binding_receiver() {
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(binding_symbol(
+    il.push_evidence(binding_symbol(
         0,
         sp(1),
         "Map",
@@ -185,7 +185,7 @@ fn emits_imported_member_call_target_from_scoped_imported_binding_root() {
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(binding_symbol(
+    il.push_evidence(binding_symbol(
         0,
         sp(1),
         "Span",
@@ -253,7 +253,7 @@ fn scoped_imported_member_call_target_uses_full_suffix_for_nested_paths() {
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(binding_symbol(
+    il.push_evidence(binding_symbol(
         0,
         sp(1),
         "json",
@@ -301,7 +301,7 @@ fn rust_block_scoped_imported_binding_does_not_emit_call_target() {
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(binding_symbol(
+    il.push_evidence(binding_symbol(
         0,
         sp(20),
         "spawn",
@@ -344,7 +344,7 @@ fn rust_parent_module_imported_binding_does_not_emit_nested_module_call_target()
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(binding_symbol(
+    il.push_evidence(binding_symbol(
         0,
         sp(1),
         "spawn",
@@ -381,7 +381,7 @@ fn updates_legacy_first_party_imported_function_records() {
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(binding_symbol(
+    il.push_evidence(binding_symbol(
         0,
         sp(1),
         "p",

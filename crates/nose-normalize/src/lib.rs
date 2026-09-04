@@ -174,7 +174,7 @@ pub(crate) fn finalize_rebuild(
         lang: old.meta.lang,
     };
     let mut out = builder.finish(new_root, meta, units, cid_names);
-    out.evidence = old.evidence.clone();
+    (*out.evidence_mut()) = old.evidence.clone();
     out
 }
 

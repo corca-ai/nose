@@ -6,13 +6,13 @@ fn admitted_span_imported_collection_factory_rejects_namespace_dependency_for_ba
     let namespace_symbol = EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
         module_hash: stable_symbol_hash("collections"),
     });
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(61), stable_symbol_hash("Values")),
         namespace_symbol,
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(il.node(callee).span, NodeKind::Var),
         namespace_symbol,
@@ -22,7 +22,7 @@ fn admitted_span_imported_collection_factory_rejects_namespace_dependency_for_ba
     let contract =
         library_imported_collection_factory_contract(Lang::Python, "collections", "deque")
             .expect("Python collections.deque factory contract");
-    il.evidence.push(python_stdlib_collection_factory_record(
+    il.push_evidence(python_stdlib_collection_factory_record(
         2,
         il.node(call).span,
         contract,
@@ -48,13 +48,13 @@ fn admitted_span_imported_collection_factory_rejects_receiver_span_without_field
     let namespace_symbol = EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
         module_hash: stable_symbol_hash("collections"),
     });
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(61), stable_symbol_hash("Values")),
         namespace_symbol,
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(il.node(callee).span, NodeKind::Var),
         namespace_symbol,
@@ -64,7 +64,7 @@ fn admitted_span_imported_collection_factory_rejects_receiver_span_without_field
     let contract =
         library_imported_collection_factory_contract(Lang::Python, "collections", "deque")
             .expect("Python collections.deque factory contract");
-    il.evidence.push(python_stdlib_collection_factory_record(
+    il.push_evidence(python_stdlib_collection_factory_record(
         2,
         il.node(call).span,
         contract,
@@ -119,13 +119,13 @@ fn admitted_span_imported_collection_factory_rejects_unrelated_namespace_receive
     let namespace_symbol = EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
         module_hash: stable_symbol_hash("collections"),
     });
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(69), stable_symbol_hash("collections")),
         namespace_symbol,
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(il.node(unrelated_namespace).span, NodeKind::Var),
         namespace_symbol,
@@ -135,7 +135,7 @@ fn admitted_span_imported_collection_factory_rejects_unrelated_namespace_receive
     let contract =
         library_imported_collection_factory_contract(Lang::Python, "collections", "deque")
             .expect("Python collections.deque factory contract");
-    il.evidence.push(python_stdlib_collection_factory_record(
+    il.push_evidence(python_stdlib_collection_factory_record(
         2,
         il.node(call).span,
         contract,

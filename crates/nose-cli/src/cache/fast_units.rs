@@ -109,7 +109,7 @@ pub(super) fn try_build(
         return None;
     }
     let mut snapshot = stored.snapshot;
-    let current_sources = source::discover_source_files(roots, exclude);
+    let current_sources = source::discover_source_files(roots, exclude)?;
     let changed_source = compare_sources(&snapshot.source_files, &current_sources)?;
     let report = super::resolved::fast_invalidation_report(
         &snapshot,

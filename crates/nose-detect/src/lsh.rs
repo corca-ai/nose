@@ -72,32 +72,25 @@ pub(crate) fn candidates<'a>(
         start = end;
     }
 
-    // 4. …then emit each bucket's pairs in parallel.
-    let mut pairs: Vec<(u32, u32)> = bounds
+    // Bands often contain the same dense family. Emit each distinct membership
+    // only once, but never prune pairs before scoring: a connectivity skeleton
+    // can disconnect accepted clones when its chosen hub fails the scorer.
+    let mut buckets = bounds
+        .iter()
+        .map(|&(s, e)| {
+            entries[s..e]
+                .iter()
+                .map(|entry| entry.1)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    buckets.par_sort_unstable();
+    buckets.dedup();
+    let mut pairs: Vec<(u32, u32)> = buckets
         .par_iter()
-        .flat_map_iter(|&(s, e)| {
-            let members = &entries[s..e];
-            let mut out = Vec::new();
-            if members.len() <= BUCKET_ALL_PAIRS_CAP {
-                // Small bucket: full all-pairs (keeps every clone pair for reporting).
-                for a in 0..members.len() {
-                    for b in (a + 1)..members.len() {
-                        out.push(ordered(members[a].1, members[b].1));
-                    }
-                }
-            } else {
-                // Huge bucket (a dense near-duplicate family, e.g. 100s of locale
-                // files): all-pairs is O(k²) and union-find collapses it anyway.
-                // Emit a chain plus a star to the first member — O(k) edges that keep
-                // the family connected.
-                for w in members.windows(2) {
-                    out.push(ordered(w[0].1, w[1].1));
-                }
-                for m in &members[1..] {
-                    out.push(ordered(members[0].1, m.1));
-                }
-            }
-            out
+        .flat_map_iter(|members| {
+            (0..members.len())
+                .flat_map(move |a| (a + 1..members.len()).map(move |b| (members[a], members[b])))
         })
         .collect();
 
@@ -110,15 +103,18 @@ pub(crate) fn candidates<'a>(
         .collect()
 }
 
-/// Above this bucket size, switch from O(k²) all-pairs to an O(k) connectivity
-/// skeleton (chain + star) — bounds candidate-gen on dense corpora.
-pub(crate) const BUCKET_ALL_PAIRS_CAP: usize = 48;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[inline]
-fn ordered(i: u32, j: u32) -> (u32, u32) {
-    if i < j {
-        (i, j)
-    } else {
-        (j, i)
+    #[test]
+    fn growing_a_dense_bucket_preserves_every_existing_candidate() {
+        let signature = [7; 128];
+        let small = candidates(48, |_| &signature, 32);
+        let large = candidates(49, |_| &signature, 32);
+        assert_eq!(small.len(), 48 * 47 / 2);
+        assert_eq!(large.len(), 49 * 48 / 2);
+        assert!(small.iter().all(|pair| large.binary_search(pair).is_ok()));
+        assert!(large.contains(&(1, 3)));
     }
 }

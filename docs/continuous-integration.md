@@ -8,6 +8,10 @@ The gate command is [`nose query`](usage.md#nose-query): it carries
 `--fail-on`/`--baseline`/`--ignore-file`/`--cache-dir` workflow flags and
 `--format sarif` output.
 
+An included source or directory that cannot be read causes a non-zero error exit.
+It cannot turn an incomplete scan into a passing gate, including with a warm cache.
+Use explicit excludes for directories that should not participate in analysis.
+
 ## The `--fail-on any` gate
 
 `--fail-on any` makes nose exit non-zero if any family is reported on the **default

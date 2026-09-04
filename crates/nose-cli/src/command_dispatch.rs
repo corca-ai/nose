@@ -183,6 +183,7 @@ fn cmd_verify(args: VerifyArgs) -> Result<()> {
     } = args;
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
+    corpus.ensure_complete()?;
     warn_if_empty(&corpus, &paths);
     let opts = nose_normalize::NormalizeOptions {
         cfg_norm: !no_cfg_norm,

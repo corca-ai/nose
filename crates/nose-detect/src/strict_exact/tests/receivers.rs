@@ -38,7 +38,7 @@ fn binding_domain_does_not_make_opaque_binding_exact_value() {
         Vec::new(),
         vec![xs],
     );
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(10), stable_symbol_hash("xs")),
         EvidenceKind::Domain(nose_il::DomainEvidence::Collection),
@@ -90,7 +90,7 @@ fn map_get_method_requires_library_api_occurrence_evidence() {
         Vec::new(),
         vec![map],
     );
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(sp(40), NodeKind::Var),
         EvidenceKind::Domain(nose_il::DomainEvidence::Map),
@@ -103,7 +103,7 @@ fn map_get_method_requires_library_api_occurrence_evidence() {
         "receiver domain plus method spelling must not admit map-get semantics"
     );
 
-    il.evidence.push(map_get_library_api_evidence(
+    il.push_evidence(map_get_library_api_evidence(
         1,
         Lang::TypeScript,
         "get",
@@ -165,7 +165,7 @@ fn swift_default_subscript_requires_language_core_dictionary_receiver() {
         "marker spelling alone must not prove Swift Dictionary default-subscript semantics"
     );
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(sp(50)),
         EvidenceKind::Domain(nose_il::DomainEvidence::Map),
@@ -177,7 +177,7 @@ fn swift_default_subscript_requires_language_core_dictionary_receiver() {
         "broad Map-domain evidence alone must not open the Swift subscript path"
     );
 
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         1,
         Lang::Swift,
         EvidenceAnchor::param(sp(50)),

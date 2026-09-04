@@ -17,7 +17,7 @@ pub(crate) fn run(il: &mut Il) {
     let bound = compute_bound(il, root);
     rename(il, root, &mut scope, &bound, &mut names);
     il.invalidate_scope_binding_index();
-    il.cid_names = names;
+    il.edit().cid_names = names;
 }
 
 /// Symbols *bound* within one scope (params + assignment targets + `for`-pattern
@@ -122,7 +122,7 @@ fn rename(
         if let Payload::Name(s) = payload {
             if kind == NodeKind::Param || bound.contains(&s) {
                 let cid = scope.get_or_add(s, names);
-                il.nodes[id.0 as usize].payload = Payload::Cid(cid);
+                il.edit().nodes[id.0 as usize].payload = Payload::Cid(cid);
             }
         }
     }

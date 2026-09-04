@@ -238,7 +238,7 @@ fn push_java_collections_api_evidence(il: &mut Il, method: &str, arg_count: usiz
                 .map(|contract| (contract.id, contract.callee))
         })
         .expect("Collections factory contract");
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
         EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {

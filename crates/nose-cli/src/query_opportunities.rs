@@ -182,13 +182,13 @@ impl OpportunityGroups {
 
 fn is_connected(family: &nose_detect::RefactorFamily) -> bool {
     matches!(
-        family.witness.as_ref().map(|witness| witness.kind),
+        family.witness.as_ref().map(|witness| witness.kind()),
         Some("connected-mapped-sub-dag" | "bounded-same-unit-window")
     )
 }
 
 fn is_same_unit(family: &nose_detect::RefactorFamily) -> bool {
-    family.witness.as_ref().map(|witness| witness.kind) == Some("bounded-same-unit-window")
+    family.witness.as_ref().map(|witness| witness.kind()) == Some("bounded-same-unit-window")
 }
 
 #[derive(Default)]

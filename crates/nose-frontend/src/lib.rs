@@ -36,7 +36,9 @@ pub use corpus::{
 };
 pub use coverage::{coverage, raw_node_surface, CoverageReport, RawSurface};
 pub use declaration_facts::{declaration_facts, DeclarationFacts};
-pub use discover::{discover_paths, discover_unique_paths};
+pub use discover::{
+    discover_paths, discover_source_inventory, discover_unique_paths, SourceInventory,
+};
 pub use module_imports::{
     imported_immutable_snapshot_census, resolution_dependency_summary,
     FileResolutionDependencySummary, ImportSnapshotCensus, ResolutionDependency,

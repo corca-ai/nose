@@ -24,12 +24,12 @@ mod unit_evidence;
 mod unit_facets;
 
 pub use builder::IlBuilder;
-pub use corpus::Corpus;
+pub use corpus::{Corpus, IncompleteCorpus};
 pub use ident::{
     contains_c_identifier, contains_js_identifier, is_c_identifier_continue,
     is_js_identifier_continue,
 };
-pub use il::Il;
+pub use il::{Il, IlContents};
 pub use intern::{stable_symbol_hash, symbol_index, Interner, Symbol, FNV_OFFSET_BASIS, FNV_PRIME};
 pub use node::{
     BoundOrderGuardActivation, Builtin, CTypeTarget, CallTargetEvidenceKind, DomainEvidence,

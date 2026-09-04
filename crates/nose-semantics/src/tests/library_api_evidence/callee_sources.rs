@@ -25,20 +25,20 @@ fn library_api_evidence_resolution_accepts_import_backed_callees() {
         module_hash: stable_symbol_hash("collections"),
         exported_hash: stable_symbol_hash("deque"),
     });
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(10), stable_symbol_hash("Values")),
         binding_symbol,
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(sp(11), NodeKind::Var),
         binding_symbol,
         EvidenceStatus::Asserted,
         vec![EvidenceId(0)],
     ));
-    il.evidence.push(python_stdlib_collection_factory_record(
+    il.push_evidence(python_stdlib_collection_factory_record(
         2,
         sp(13),
         contract,
@@ -78,13 +78,13 @@ fn library_api_evidence_resolution_accepts_source_backed_callees() {
     let mut il = finish_il(b, root, Lang::JavaScript);
     let contract =
         library_regex_test_contract(Lang::JavaScript, "test", 1).expect("regex contract");
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::source_span(sp(20)),
         EvidenceKind::Source(SourceFactKind::Literal(SourceLiteralKind::Regex)),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(js_like_builtin_regex_record(
+    il.push_evidence(js_like_builtin_regex_record(
         1,
         sp(23),
         contract.id,
@@ -119,7 +119,7 @@ fn library_api_evidence_resolution_accepts_free_name_backed_callees() {
     let mut il = finish_il(b, root, Lang::Python);
     let contract = library_free_name_collection_factory_contract(Lang::Python, "list")
         .expect("Python list contract");
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(sp(40), NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -129,7 +129,7 @@ fn library_api_evidence_resolution_accepts_free_name_backed_callees() {
         &[],
         Lang::Python,
     ));
-    il.evidence.push(python_builtin_collection_factory_record(
+    il.push_evidence(python_builtin_collection_factory_record(
         1,
         sp(42),
         contract,
@@ -178,7 +178,7 @@ fn library_api_evidence_resolution_accepts_free_function_builtin_callees() {
     let mut il = finish_il(b, root, Lang::Python);
     let contract = library_free_function_builtin_contract(Lang::Python, "len", 1)
         .expect("Python len contract");
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(sp(45), NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -188,7 +188,7 @@ fn library_api_evidence_resolution_accepts_free_function_builtin_callees() {
         &[],
         Lang::Python,
     ));
-    il.evidence.push(free_function_builtin_protocol_record(
+    il.push_evidence(free_function_builtin_protocol_record(
         1,
         sp(47),
         contract,
@@ -251,7 +251,7 @@ fn library_api_evidence_resolution_accepts_require_backed_callees() {
     );
     let mut il = finish_il(b, root, Lang::Ruby);
     let contract = library_ruby_set_factory_contract(Lang::Ruby, "Set", "new", 1).expect("Set.new");
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(sp(50), NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -261,7 +261,7 @@ fn library_api_evidence_resolution_accepts_require_backed_callees() {
         &[],
         Lang::Ruby,
     ));
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         1,
         EvidenceAnchor::node(sp(48), NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -271,7 +271,7 @@ fn library_api_evidence_resolution_accepts_require_backed_callees() {
         &[],
         Lang::Ruby,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         2,
         EvidenceAnchor::source_span(sp(48)),
         EvidenceKind::Import(ImportEvidenceKind::Require {
@@ -280,7 +280,7 @@ fn library_api_evidence_resolution_accepts_require_backed_callees() {
         EvidenceStatus::Asserted,
         vec![EvidenceId(1)],
     ));
-    il.evidence.push(ruby_stdlib_set_record(
+    il.push_evidence(ruby_stdlib_set_record(
         3,
         sp(53),
         contract,
@@ -339,7 +339,7 @@ fn library_api_evidence_resolution_accepts_import_binding_outside_unit_root() {
         LibraryApiEvidenceStatus::Admitted
     );
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         3,
         EvidenceAnchor::binding(sp(36), stable_symbol_hash("List")),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {

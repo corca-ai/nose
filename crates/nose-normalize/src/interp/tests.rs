@@ -104,7 +104,7 @@ fn admit_test_builtin_calls(il: &mut Il) {
         };
         let span = il.node(node).span;
         if matches!(builtin, Builtin::Append) {
-            il.evidence.push(test_effect_record(
+            il.push_evidence(test_effect_record(
                 next_id,
                 span,
                 EffectEvidenceKind::BuilderAppendCall,
@@ -124,7 +124,7 @@ fn admit_test_builtin_calls(il: &mut Il) {
                 test_free_function_builtin_contract(il.meta.lang, builtin, source_arg_count)
             {
                 let symbol_id = EvidenceId(next_id);
-                il.evidence.push(test_symbol_record(
+                il.push_evidence(test_symbol_record(
                     next_id,
                     il.meta.lang,
                     span,
@@ -157,7 +157,7 @@ fn admit_test_builtin_calls(il: &mut Il) {
             } else {
                 (contract_id, test_callee_contract(), 0, Vec::new())
             };
-            il.evidence.push(test_library_api_record(
+            il.push_evidence(test_library_api_record(
                 next_id,
                 il.meta.lang,
                 span,
@@ -168,7 +168,7 @@ fn admit_test_builtin_calls(il: &mut Il) {
             ));
             next_id += 1;
         } else if matches!(builtin, Builtin::UnsignedCast32) {
-            il.evidence.push(test_source_record(
+            il.push_evidence(test_source_record(
                 next_id,
                 span,
                 SourceFactKind::Cast(SourceCastKind::CUnsigned32),
@@ -274,7 +274,7 @@ fn test_method_builtin_dependencies(
         MethodReceiverContract::ExactOption | MethodReceiverContract::RustMapGetOrExactOption => {
             let id = EvidenceId(*next_id);
             let receiver_node = il.children(node).first().copied()?;
-            il.evidence.push(test_domain_record(
+            il.push_evidence(test_domain_record(
                 *next_id,
                 il,
                 receiver_node,
@@ -285,7 +285,7 @@ fn test_method_builtin_dependencies(
         }
         MethodReceiverContract::ImportedNamespace(module) => {
             let binding_id = EvidenceId(*next_id);
-            il.evidence.push(test_imported_namespace_binding_record(
+            il.push_evidence(test_imported_namespace_binding_record(
                 *next_id,
                 il.meta.lang,
                 il.node(node).span,
@@ -293,7 +293,7 @@ fn test_method_builtin_dependencies(
             ));
             *next_id += 1;
             let occurrence_id = EvidenceId(*next_id);
-            il.evidence.push(test_imported_namespace_record(
+            il.push_evidence(test_imported_namespace_record(
                 *next_id,
                 il.meta.lang,
                 il.node(node).span,
@@ -516,8 +516,8 @@ fn admit_test_self_field(
         },
         vec![receiver_id],
     );
-    il.evidence.push(receiver_record);
-    il.evidence.push(field_record);
+    il.push_evidence(receiver_record);
+    il.push_evidence(field_record);
     field_id
 }
 
@@ -540,7 +540,7 @@ fn admit_test_self_field_write(
         },
         vec![field_id],
     );
-    il.evidence.push(effect_record);
+    il.push_evidence(effect_record);
 }
 
 fn test_source_record(id: u32, span: Span, fact: SourceFactKind) -> EvidenceRecord {

@@ -33,6 +33,14 @@ semantic-pack opt-ins. Keep one-off workflow choices on the command line or in q
 output format, the drill/view terms (`id=`, `group=`, `full`), baselines, cache location, and
 CI failure mode.
 
+Research scoring overrides (`NOSE_WV/WS/WR`, `NOSE_CWV/CWS/CWR`,
+`NOSE_CAND_VJ`, `NOSE_DH`, `NOSE_DHN`, `NOSE_RET`, and `NOSE_ANCHOR_SCORE*`)
+are parsed into one scoring snapshot per analysis. Probabilities and weights must
+be finite and within `[0, 1]`; each weight triple must sum to one. The anchor
+reference weight must be positive and its score floor cannot exceed its cap.
+Invalid values produce an error. Library callers use deterministic `ScoreConfig`
+defaults and can explicitly supply a validated configuration to a detector.
+
 ### Keys
 
 All keys are optional; an absent key means "no opinion — use the CLI value or

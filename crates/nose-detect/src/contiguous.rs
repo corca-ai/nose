@@ -381,10 +381,7 @@ pub(in crate::contiguous) fn groups_from_primitives(
             semantic_laws: Vec::new(),
             abstraction_witness: None,
             witness: Some(crate::EquivalenceWitness {
-                kind: "copy-paste-run",
-                value_nodes: None,
-                mean_value_jaccard: None,
-                mean_shape_jaccard: None,
+                evidence: crate::WitnessEvidence::CopyPasteRun,
                 graded: None,
                 graded_pair: None,
             }),

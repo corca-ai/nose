@@ -16,7 +16,7 @@ pub(crate) struct QueryAnalysisUpdate {
 impl QueryAnalysisSession {
     pub(crate) fn open(args: &QueryArgs, refs: &[&std::path::Path]) -> Result<Option<Self>> {
         let (settings, semantic_packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
-        let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+        let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines)?;
         let detector = detection_engine(settings.channels, &opts);
         let Some(dir) = args.cache_dir.as_ref() else {
             return Ok(None);
@@ -55,7 +55,7 @@ impl QueryAnalysisSession {
         path: &std::path::Path,
     ) -> Result<Option<QueryAnalysisUpdate>> {
         let (settings, semantic_packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
-        let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+        let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines)?;
         if opts != self.opts {
             return Ok(None);
         }
@@ -76,7 +76,7 @@ impl QueryAnalysisSession {
         refs: &[&std::path::Path],
     ) -> Result<QueryDataset> {
         let (settings, semantic_packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
-        let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+        let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines)?;
         anyhow::ensure!(
             opts == self.opts,
             "watch analysis options changed during startup"

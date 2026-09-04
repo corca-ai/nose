@@ -26,6 +26,7 @@ pub(crate) struct DetectArgs {
 pub(crate) fn cmd_detect(args: DetectArgs) -> Result<()> {
     let refs = paths_as_refs(&args.paths);
     let corpus = time_lower(|| nose_frontend::lower_corpus_many(&refs));
+    corpus.ensure_complete()?;
     warn_if_empty(&corpus, &args.paths);
 
     let (opts, detector) = detection_config(&args)?;
@@ -127,12 +128,13 @@ fn detection_config(
             crate::query_options::QUERY_DEFAULT_MODES,
         )?;
         let mut opts =
-            crate::detect_pipeline::detection_options(channels, args.min_tokens, args.min_lines);
+            crate::detect_pipeline::detection_options(channels, args.min_tokens, args.min_lines)?;
         opts.emit_pairs = true;
         let detector = crate::detect_pipeline::detection_engine(channels, &opts);
         Ok((opts, detector))
     } else {
         let opts = nose_detect::DetectOptions {
+            scoring: nose_detect::ScoreConfig::from_environment()?,
             min_lines: args.min_lines,
             min_tokens: args.min_tokens,
             threshold: args
@@ -146,14 +148,17 @@ fn detection_config(
             connected_witnesses: args.candidates,
             ..Default::default()
         };
+        opts.validate()?;
         let detector: Box<dyn nose_detect::Detector> = if args.candidates {
             Box::new(
                 nose_detect::StructuralDetector::candidates(opts.jaccard_weight)
+                    .with_scoring(opts.scoring)
                     .with_threshold(opts.threshold),
             )
         } else {
             Box::new(
                 nose_detect::StructuralDetector::strict(opts.jaccard_weight)
+                    .with_scoring(opts.scoring)
                     .with_threshold(opts.threshold),
             )
         };
