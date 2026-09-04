@@ -6,6 +6,7 @@
 //! C-style `for`, `for...of`, `do/while` map to the unified `Loop`; `switch`
 //! becomes an `if`/`else if` chain; ternary lowers to an expression `If`.
 
+mod array_parameters;
 mod control;
 mod declarations;
 mod expressions;

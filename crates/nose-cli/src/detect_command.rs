@@ -30,6 +30,15 @@ pub(crate) fn cmd_detect(args: DetectArgs) -> Result<()> {
     warn_if_empty(&corpus, &args.paths);
 
     let (opts, detector) = detection_config(&args)?;
+    let features = nose_detect::corpus_features(&corpus, &opts);
+    crate::detect_pipeline::ensure_candidate_budget(&features.units, &opts)?;
+    let (report, dump) = nose_detect::detect_from_units(
+        features.units,
+        features.files,
+        &features.streams,
+        &opts,
+        detector.as_ref(),
+    );
 
     // Diagnostic dump: units + candidates + predictions to a directory.
     if let Some(dir) = &args.dump {
@@ -37,7 +46,6 @@ pub(crate) fn cmd_detect(args: DetectArgs) -> Result<()> {
             .repos_root
             .as_ref()
             .context("--dump requires --repos-root")?;
-        let (report, dump) = nose_detect::detect_with_dump(&corpus, &opts, detector.as_ref());
         std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
 
         let units: Vec<nose_eval::UnitRegion> = dump
@@ -80,8 +88,6 @@ pub(crate) fn cmd_detect(args: DetectArgs) -> Result<()> {
         );
         return Ok(());
     }
-
-    let report = nose_detect::detect(&corpus, &opts, detector.as_ref());
 
     if args.bench_schema {
         let root = args

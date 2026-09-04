@@ -353,17 +353,21 @@ fn broken_pipe_exits_cleanly() {
 
 #[test]
 fn deeply_nested_file_does_not_overflow() {
-    // A pathologically deep expression (minified bundle / generated code) must not
-    // crash the recursive lowering on rayon's small worker stack. Regression for the
-    // stack-overflow on real repos (prettier test fixtures); main() sizes the pool's
-    // stack so this completes instead of aborting (`run` asserts a clean exit).
+    // Pathological generated input must fail with a resource-limit diagnostic
+    // before recursive lowering, without aborting the process on stack overflow.
     let dir = std::env::temp_dir().join(format!("nose_deep_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
     let depth = 40_000;
     let body = format!("const x = {}1{};\n", "[".repeat(depth), "]".repeat(depth));
     fs::write(dir.join("deep.js"), body).unwrap();
-    let _ = run(&["query", dir.to_str().unwrap()]);
+    let output = Command::new(bin())
+        .args(["query", dir.to_str().unwrap()])
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr)
+        .contains("source syntax depth exceeds analysis limit"));
     let _ = fs::remove_dir_all(&dir);
 }
 

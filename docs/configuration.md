@@ -6,6 +6,24 @@ automatically. The config supplies defaults for supported query settings; most C
 override those defaults, while `exclude` and `generated-paths` globs are additive. Anything
 unset falls back to the built-in default.
 
+## Configuration source and inspection
+
+`--config-root` looks for `nose.toml` or `.nose.toml` at the common canonical
+analysis directory (the containing directory for a file root). Multiple roots
+must share a configuration at that common directory; otherwise the command
+fails and asks for an explicit choice. It does not walk unrelated ancestors or
+silently combine different project policies. `--config` and `--config-root` are
+mutually exclusive. The existing working-directory discovery remains the default.
+
+```sh
+nose query /path/to/project --config-root
+nose query /path/to/project --config-root --show-config
+```
+
+`--show-config` prints `nose.query-config/v1` JSON and exits before analysis.
+It includes the selected config file, roots, cache location and effective query
+settings after CLI overrides, with config-relative resource paths resolved.
+
 ## `nose.toml`
 
 ```toml

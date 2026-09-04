@@ -64,13 +64,8 @@ pub(super) fn render_query_family(
     since: Option<&BaselineComparison>,
     semantic_packs: &[serde_json::Value],
 ) {
-    let Some(f) = families
-        .iter()
-        .find(|f| baseline::family_id(f).starts_with(idv))
-    else {
-        println!("no family whose id starts with `{idv}` — run `nose query` for the dashboard");
-        return;
-    };
+    let f = crate::query_terms::family_by_id(families, idv)
+        .expect("family selection validated before rendering");
     let id = baseline::family_id(f);
     // Overlap-fold provenance: a slice points at its richer primary; a primary lists what
     // it subsumes (so the agent doesn't triage the same region twice).

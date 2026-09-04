@@ -131,10 +131,10 @@ use symbol_identity::{
     unit_defines_hash_visible_at,
 };
 pub use type_domain::{
-    python_stdlib_type_domain, python_stdlib_type_domain_contract, type_domain_from_source_text,
-    BuiltinTypeDomainAliasContract, FirstPartyTypeDomainAliasContract,
-    PYTHON_STDLIB_TYPE_DOMAIN_ALIAS_CONTRACTS, PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID,
-    PYTHON_STDLIB_TYPE_DOMAIN_PRODUCER_ID,
+    array_element_domain_for_param, python_stdlib_type_domain, python_stdlib_type_domain_contract,
+    type_domain_from_source_text, BuiltinTypeDomainAliasContract,
+    FirstPartyTypeDomainAliasContract, PYTHON_STDLIB_TYPE_DOMAIN_ALIAS_CONTRACTS,
+    PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID, PYTHON_STDLIB_TYPE_DOMAIN_PRODUCER_ID,
 };
 
 /// Stable pack id for the legacy builtin compatibility facade.

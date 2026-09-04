@@ -23,7 +23,7 @@ use detection::{
 };
 pub(crate) use divergence::{build_divergence_families, prepare_divergence_query};
 pub(super) use session::QueryAnalysisSession;
-use settings::resolve_query_settings;
+pub(crate) use settings::resolve_query_settings;
 pub(super) use settings::{resolve_query_semantic_packs, QuerySettings};
 
 /// The ranked family dataset behind `nose query`: detect, rank,
@@ -238,7 +238,7 @@ struct PreparedDetectionFeatures {
 
 fn query_detect_report(request: QueryDetectRequest<'_>) -> Result<DetectionReport> {
     if let Some(fast) = try_query_detect_report_fast(&request) {
-        return Ok(fast);
+        return fast;
     }
     let PreparedCorpus {
         mut corpus,
@@ -304,7 +304,7 @@ fn query_detect_report(request: QueryDetectRequest<'_>) -> Result<DetectionRepor
         opts,
         detector,
         accepted_coverage,
-    });
+    })?;
     Ok((
         report,
         scope,

@@ -1,6 +1,6 @@
-//! Optional dependency-aware layered content-addressed cache. Clean Git-tracked
-//! sources use blob identities; dirty, untracked, and non-Git sources use exact
-//! SHA-256 content identities. Raw IL, consumer-visible export/dependency summaries,
+//! Optional dependency-aware layered content-addressed cache. Working source bytes
+//! and the frontend extension profile identify every source, including Git-tracked
+//! files. Raw IL, consumer-visible export/dependency summaries,
 //! affected resolved IL, and detection units are separate stages.
 //!
 //! A resolved key contains the raw IL identity plus only facts that can affect that
@@ -24,6 +24,8 @@ mod detection;
 mod digest;
 mod fast_units;
 mod lines;
+mod markdown;
+pub(crate) use markdown::detect as detect_markdown;
 mod portable_il;
 mod resolved;
 mod source;
@@ -58,6 +60,8 @@ pub(crate) struct CachedSourceFile {
     pub(crate) digest: [u8; 32],
     pub(crate) lang: Lang,
     pub(crate) source_kind: source::SourceIdentityKind,
+    #[serde(default)]
+    pub(crate) skip_reason: Option<String>,
 }
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]

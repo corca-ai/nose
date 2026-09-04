@@ -93,6 +93,7 @@ impl QueryAnalysisSession {
         opts: nose_detect::DetectOptions,
     ) -> Result<QueryDataset> {
         let detector = detection_engine(settings.channels, &opts);
+        crate::detect_pipeline::ensure_candidate_budget(self.units.units(), &opts)?;
         let (report, state, stats) =
             nose_detect::detect_from_units_incremental_session_with_accepted_coverage(
                 self.units.units(),
@@ -112,7 +113,8 @@ impl QueryAnalysisSession {
         }
         let detection = (
             report,
-            QueryScope::from_langs(self.units.langs().to_vec()),
+            QueryScope::from_langs(self.units.langs().to_vec())
+                .with_sources(&self.units.line_context().source_files),
             nose_semantics::SemanticPackNearRegistry::default(),
             nose_semantics::SemanticPackExternalExactRegistry::default(),
             Some(self.units.line_context()),

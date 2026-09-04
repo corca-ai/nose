@@ -53,10 +53,7 @@ fn query_selection<'a>(
             .collect());
     }
     if let Some(idv) = &q.id {
-        return Ok(families
-            .iter()
-            .filter(|f| baseline::family_id(f).starts_with(idv.as_str()))
-            .collect());
+        return Ok(vec![crate::query_terms::family_by_id(families, idv)?]);
     }
     let widen = q.all || q.filters.iter().any(|flt| flt.field == "surface");
     if q.filters.is_empty() {
@@ -98,6 +95,21 @@ fn query_selection<'a>(
 }
 
 pub(super) fn render_query_output(ctx: &QueryOutput<'_>) -> Result<bool> {
+    if let Some(id) = &ctx.q.id {
+        if let Err(error) = crate::query_terms::family_by_id(ctx.families, id) {
+            if matches!(ctx.args.format, ReportFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "schema_version": crate::schema_versions::QUERY_JSON_SCHEMA_VERSION,
+                        "tool": "nose", "view": "family", "path": ctx.path_arg,
+                        "family": null, "error": {"message": error.to_string()}
+                    })
+                );
+            }
+            return Err(error);
+        }
+    }
     match ctx.args.format {
         ReportFormat::Markdown | ReportFormat::Sarif => {
             render_query_report_format(ctx)?;
@@ -169,8 +181,12 @@ fn render_query_exploration(ctx: &QueryOutput<'_>) -> Result<bool> {
             .iter()
             .filter(|r| !r.container_in_test && !r.helper_in_test)
             .count();
-        let markdown_report =
-            markdown::QueryMarkdownReport::detect_under(&ctx.args.paths, &ctx.settings.exclude)?;
+        let markdown_report = markdown::QueryMarkdownReport::detect_under(
+            &ctx.args.paths,
+            &ctx.settings.exclude,
+            ctx.args.cache_dir.as_deref(),
+            ctx.settings.cache_max_bytes,
+        )?;
         let markdown_found = markdown_report.has_findings();
         render_query_dashboard(
             ctx.families,

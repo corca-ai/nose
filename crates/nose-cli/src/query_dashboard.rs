@@ -50,6 +50,7 @@ pub(crate) fn query_dashboard_json(
             "path": path,
             "summary": {
                 "scanned_files": scope.files,
+                "skipped_sources": scope.skipped_sources,
                 "families": def.len(),
                 "by_confidence": {"exact": count("exact"), "subdag": count("subdag"),
                     "bounded_window": count("bounded-window"),

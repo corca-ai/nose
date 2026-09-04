@@ -115,25 +115,26 @@ pub(crate) fn collect_scope(
     params: &mut FxHashSet<u32>,
     nested: &mut Vec<NodeId>,
 ) {
-    let kind = il.kind(node);
-    if kind == NodeKind::Func && !is_root {
-        nested.push(node);
-        return; // scope boundary
-    }
-    if kind == NodeKind::Param {
-        if let Payload::Cid(c) = il.node(node).payload {
-            params.insert(c);
+    let mut pending = vec![(node, is_root)];
+    while let Some((node, is_root)) = pending.pop() {
+        let kind = il.kind(node);
+        if kind == NodeKind::Func && !is_root {
+            nested.push(node);
+            continue;
         }
-    }
-    if kind == NodeKind::Assign {
-        if let Some(&lhs) = il.children(node).first() {
-            if il.kind(lhs) == NodeKind::Var {
-                defs.insert(lhs.0);
+        if kind == NodeKind::Param {
+            if let Payload::Cid(c) = il.node(node).payload {
+                params.insert(c);
             }
         }
-    }
-    for &c in il.children(node) {
-        collect_scope(il, c, false, defs, params, nested);
+        if kind == NodeKind::Assign {
+            if let Some(&lhs) = il.children(node).first() {
+                if il.kind(lhs) == NodeKind::Var {
+                    defs.insert(lhs.0);
+                }
+            }
+        }
+        pending.extend(il.children(node).iter().rev().map(|&child| (child, false)));
     }
 }
 

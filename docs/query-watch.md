@@ -18,7 +18,7 @@ process interrupt.
 ## Should I use watch mode?
 
 Use watch mode when an editor, dashboard, or local automation needs a fresh
-machine-readable result after each save. Each line is a complete JSON snapshot,
+machine-readable result after each save. Successful revisions carry a complete JSON snapshot,
 so the consumer can replace its state instead of merging partial updates.
 
 For a person running occasional terminal checks, repeated cached queries are
@@ -39,7 +39,7 @@ See [faster repeated queries](query-cache.md) for cache storage and cleanup.
 
 ## Stream contract
 
-Each stdout line is one JSON object with schema `nose.query-watch/v1`:
+Each stdout line is one JSON object with schema `nose.query-watch/v1`. Successful analysis emits `kind: "snapshot"`:
 
 ```json
 {
@@ -56,7 +56,7 @@ Each stdout line is one JSON object with schema `nose.query-watch/v1`:
 ```
 
 `sequence` starts at `0` for the initial snapshot and increases once per emitted
-revision. `source_set_digest` binds the analyzed code path/content identity
+event, including errors. `source_set_digest` binds the analyzed code path/content identity
 set; Markdown-only or presentation-policy revisions can retain that digest.
 Use `sequence` to identify dashboard revisions. `changed_paths` reports the filesystem hints reconciled for the revision;
 it is not a substitute for the digest. `reconciliation` is `initial`,
@@ -87,6 +87,14 @@ it is omitted, watch mode creates and removes a private temporary cache. A kille
 session never makes the cache authoritative: restart validation uses source
 contents, checksums, and the last committed generation, and safely recomputes
 anything not committed.
+
+A malformed configuration or transient read/analysis error after startup emits
+`kind: "error"`, `sequence`, `changed_paths`, `snapshot_valid: false`,
+`last_good_sequence`, and `error.message`. The process keeps watching. Consumers
+must mark their last result stale until the next successful snapshot. nose drops
+partially refreshed state and performs full reconciliation on the next event;
+even an unchanged recovered snapshot is emitted. Startup errors still fail the
+command, and output-stream errors end the stream.
 
 ## Supported surface
 

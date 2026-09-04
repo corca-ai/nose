@@ -28,10 +28,45 @@ pub(crate) fn parse(
                 e.insert(p)
             }
         };
-        parser
+        let tree = parser
             .parse(src, None)
-            .ok_or_else(|| anyhow::anyhow!("parse failed"))
+            .ok_or_else(|| anyhow::anyhow!("parse failed"))?;
+        check_tree_budget(&tree)?;
+        Ok(tree)
     })
+}
+
+/// Validate with a cursor before any recursive language lowering runs. A cursor
+/// keeps auxiliary memory constant even for hostile nesting or very wide trees.
+fn check_tree_budget(tree: &tree_sitter::Tree) -> anyhow::Result<()> {
+    const MAX_DEPTH: usize = 512;
+    const MAX_NODES: usize = 2_000_000;
+    let mut cursor = tree.walk();
+    let (mut depth, mut nodes) = (0, 0);
+    loop {
+        nodes += 1;
+        anyhow::ensure!(
+            depth <= MAX_DEPTH,
+            "source syntax depth exceeds analysis limit of {MAX_DEPTH}"
+        );
+        anyhow::ensure!(
+            nodes <= MAX_NODES,
+            "source syntax nodes exceed analysis limit of {MAX_NODES}"
+        );
+        if cursor.goto_first_child() {
+            depth += 1;
+            continue;
+        }
+        loop {
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                return Ok(());
+            }
+            depth -= 1;
+        }
+    }
 }
 
 /// Stable grammar keys for the thread-local parser pool. JS/TS/TSX are distinct.

@@ -32,6 +32,24 @@ pub(crate) fn candidates<'a>(
     sig: impl Fn(usize) -> &'a [u64] + Sync,
     bands: usize,
 ) -> Vec<(usize, usize)> {
+    let buckets = buckets(n, sig, bands);
+    let mut pairs: Vec<(u32, u32)> = buckets
+        .par_iter()
+        .flat_map_iter(|members| bucket_pairs(members))
+        .collect();
+    pairs.par_sort_unstable();
+    pairs.dedup();
+    pairs
+        .into_iter()
+        .map(|(i, j)| (i as usize, j as usize))
+        .collect()
+}
+
+pub(crate) fn buckets<'a>(
+    n: usize,
+    sig: impl Fn(usize) -> &'a [u64] + Sync,
+    bands: usize,
+) -> Vec<Vec<u32>> {
     let k = if n == 0 { 0 } else { sig(0).len() };
     if k == 0 || bands == 0 {
         return Vec::new();
@@ -86,18 +104,7 @@ pub(crate) fn candidates<'a>(
         .collect::<Vec<_>>();
     buckets.par_sort_unstable();
     buckets.dedup();
-    let mut pairs: Vec<(u32, u32)> = buckets
-        .par_iter()
-        .flat_map_iter(|members| bucket_pairs(members))
-        .collect();
-
-    // 5. A pair can recur across bands; sort + dedup once (parallel sort).
-    pairs.par_sort_unstable();
-    pairs.dedup();
-    pairs
-        .into_iter()
-        .map(|(i, j)| (i as usize, j as usize))
-        .collect()
+    buckets
 }
 
 /// Enumerate every unordered pair once, in member order. Both clean and

@@ -95,3 +95,20 @@ pub(crate) fn detection_engine(
         }),
     }
 }
+
+pub(crate) fn ensure_candidate_budget(
+    units: &[nose_detect::UnitFeat],
+    opts: &nose_detect::DetectOptions,
+) -> Result<()> {
+    let limit = match std::env::var("NOSE_MAX_CANDIDATE_PAIRS") {
+        Ok(value) => value
+            .parse::<usize>()
+            .ok()
+            .filter(|&n| n > 0)
+            .context("NOSE_MAX_CANDIDATE_PAIRS must be a positive integer")?,
+        Err(std::env::VarError::NotPresent) => 1_000_000,
+        Err(error) => return Err(error.into()),
+    };
+    nose_detect::ensure_candidate_budget(units, opts, limit)?;
+    Ok(())
+}

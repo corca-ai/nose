@@ -33,14 +33,16 @@ pub(crate) fn if_branch_blocks(il: &Il, node: NodeId) -> Option<&[NodeId]> {
 }
 
 pub(crate) fn node_mentions_any_cid(il: &Il, node: NodeId, cids: &FxHashSet<u32>) -> bool {
-    if let (NodeKind::Var, Payload::Cid(cid)) = (il.kind(node), il.node(node).payload) {
-        if cids.contains(&cid) {
-            return true;
+    let mut pending = vec![node];
+    while let Some(node) = pending.pop() {
+        if let (NodeKind::Var, Payload::Cid(cid)) = (il.kind(node), il.node(node).payload) {
+            if cids.contains(&cid) {
+                return true;
+            }
         }
+        pending.extend_from_slice(il.children(node));
     }
-    il.children(node)
-        .iter()
-        .any(|&child| node_mentions_any_cid(il, child, cids))
+    false
 }
 
 pub(crate) fn local_nontrivial_assignment(il: &Il, node: NodeId) -> Option<(u32, NodeId)> {

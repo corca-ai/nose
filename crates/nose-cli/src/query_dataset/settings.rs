@@ -52,7 +52,7 @@ fn semantic_pack_set_from_inputs(
     )?)
 }
 
-pub(super) fn resolve_query_settings(
+pub(crate) fn resolve_query_settings(
     args: &QueryArgs,
     default_modes: &[crate::query_options::DetectionMode],
 ) -> Result<(QuerySettings, nose_semantics::SemanticPackSet)> {

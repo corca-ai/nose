@@ -214,3 +214,26 @@ fn watch_and_jsonl_must_be_selected_together() {
     ]);
     assert!(error.contains("--format jsonl requires --watch"));
 }
+
+#[test]
+fn invalid_config_emits_error_and_recovers_in_same_process() {
+    let project = project("watch_config_recovery");
+    let cache = make_temp_dir("watch_config_recovery_cache");
+    project.write("nose.toml", "[query]\n");
+    let config = project.path().join("nose.toml");
+    let mut watch = WatchProcess::start_with_args(
+        project.path(),
+        &cache,
+        &["--config", config.to_str().unwrap()],
+    );
+    let initial = watch.next("initial");
+    project.write("nose.toml", "[query]\nmin-size = [\n");
+    let error = watch.next("error");
+    assert_eq!(error["kind"], "error");
+    assert_eq!(error["snapshot_valid"], false);
+    project.write("nose.toml", "[query]\n");
+    let recovered = watch.next("recovery");
+    assert_eq!(recovered["kind"], "snapshot");
+    assert_eq!(recovered["snapshot"], initial["snapshot"]);
+    assert!(recovered["sequence"].as_u64().unwrap() > error["sequence"].as_u64().unwrap());
+}

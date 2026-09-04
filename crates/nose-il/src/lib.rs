@@ -24,7 +24,7 @@ mod unit_evidence;
 mod unit_facets;
 
 pub use builder::IlBuilder;
-pub use corpus::{Corpus, IncompleteCorpus};
+pub use corpus::{Corpus, IncompleteCorpus, SourceDiagnostic};
 pub use ident::{
     contains_c_identifier, contains_js_identifier, is_c_identifier_continue,
     is_js_identifier_continue,

@@ -55,6 +55,17 @@ the matching pipeline, corpora, and measurements.
 Accepted pairs are assigned to their final component once before family statistics
 are computed; each family does not rescan the entire accepted-pair collection.
 
+## Repeated queries
+
+`--cache-dir` caches Markdown normalization, per-document fingerprints, and the
+complete corpus result. Files are read to verify exact content identity. When
+paths and content are unchanged, candidate generation, scoring and ranking are
+reused; after an edit, unchanged documents keep their prepared features and the
+corpus model is rebuilt. Additions, deletions and path changes invalidate the
+report. The ordinary cache checksum, corruption fallback and size budget apply.
+Watch sessions use the same cache, including their private temporary store.
+`NOSE_CACHE_STATS=1` reports Markdown report hits and document reuse on stderr.
+
 ## Related
 
 - [clone-types](clone-types.md) — the Type-1..4 taxonomy for code; this is the prose analog,

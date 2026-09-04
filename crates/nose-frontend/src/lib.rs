@@ -32,7 +32,8 @@ mod semantic_pack_evidence_tests;
 pub use corpus::{
     lower_corpus, lower_corpus_filtered, lower_corpus_many, lower_corpus_raw_filtered,
     lower_source_regions, prepare_corpus_resolution, resolve_corpus, resolve_corpus_affected,
-    resolve_corpus_prepared, source_is_analyzable, PreparedCorpusResolution,
+    resolve_corpus_prepared, source_is_analyzable, source_skip_reason, try_lower_source_regions,
+    PreparedCorpusResolution,
 };
 pub use coverage::{coverage, raw_node_surface, CoverageReport, RawSurface};
 pub use declaration_facts::{declaration_facts, DeclarationFacts};

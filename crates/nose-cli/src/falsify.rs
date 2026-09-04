@@ -11,7 +11,9 @@ use nose_normalize::run_unit;
 use nose_normalize::{behavior_has_sym, Behavior, PreparedInterpreter, Value, F64};
 use std::collections::HashSet;
 
+mod arrays;
 mod domains;
+pub(crate) use arrays::array_input_projections;
 #[cfg(test)]
 use domains::domains_are_hosted;
 pub(crate) use domains::{domains_are_hosted_with_projections, effective_domain_contract};
@@ -245,6 +247,9 @@ fn validate_falsify_contract(
     left: FalsifyTarget<'_>,
     right: FalsifyTarget<'_>,
 ) -> Result<FalsifyContract, &'static str> {
+    if !arrays::valid_array_projections(left) || !arrays::valid_array_projections(right) {
+        return Err("array projection lacks source element evidence");
+    }
     let domains_a = parameter_domains(left.il, left.root);
     let domains_b = parameter_domains(right.il, right.root);
     let (domains, projections) = effective_domain_contract(&domains_a, left.projections)

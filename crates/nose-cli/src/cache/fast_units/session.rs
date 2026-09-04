@@ -183,13 +183,19 @@ impl FastUnitSession {
 
 fn refreshed_source(previous: &CachedSourceFile) -> Option<CachedSourceFile> {
     let bytes = std::fs::read(&previous.path).ok()?;
-    let digest = super::super::portable_il::source_digest(previous.lang, &bytes);
+    let digest = source::analysis_digest(&previous.path, previous.lang, &bytes);
     Some(CachedSourceFile {
         path: previous.path.clone(),
         logical_path: previous.logical_path.clone(),
         digest: *digest.as_bytes(),
         lang: previous.lang,
         source_kind: source::SourceIdentityKind::ContentSha256,
+        skip_reason: nose_frontend::source_skip_reason(
+            Path::new(&previous.path),
+            previous.lang,
+            &bytes,
+        )
+        .map(str::to_owned),
     })
 }
 

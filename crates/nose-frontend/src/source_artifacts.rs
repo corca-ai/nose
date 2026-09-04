@@ -50,6 +50,22 @@ fn is_header_path(path: &Path) -> bool {
 
 fn looks_like_cpp_header(src: &[u8]) -> bool {
     let code = c_like_code_without_comments_and_literals(sniff_bytes(src));
+    // The C grammar can recover C++ declarations as macro-like constructs
+    // without ERROR nodes. Require declaration syntax, not a keyword alone.
+    if has_cpp_declaration(&code, "namespace") || has_cpp_declaration(&code, "class") {
+        return true;
+    }
+    // These words are legal C identifiers. Prefer a clean C parse over lexical
+    // hints; only error-recovered headers need the unsupported-language filter.
+    if crate::lower::parse(
+        crate::lower::grammar::C,
+        || tree_sitter_c::LANGUAGE.into(),
+        src,
+    )
+    .is_ok_and(|tree| !tree.root_node().has_error())
+    {
+        return false;
+    }
     contains_word(&code, "namespace")
         || code.contains("template <")
         || code.contains("template<")
@@ -59,6 +75,45 @@ fn looks_like_cpp_header(src: &[u8]) -> bool {
         || ["public:", "private:", "protected:"]
             .iter()
             .any(|marker| code.contains(marker))
+}
+
+fn has_cpp_declaration(code: &str, keyword: &str) -> bool {
+    code.match_indices(keyword).any(|(offset, _)| {
+        let bytes = code.as_bytes();
+        if offset > 0 && is_ident_byte(bytes[offset - 1]) {
+            return false;
+        }
+        let before = code[..offset].trim_end();
+        let preceding_word = before
+            .rsplit(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+            .next()
+            .unwrap_or("");
+        if matches!(preceding_word, "struct" | "union" | "enum") {
+            return false;
+        }
+        let tail = &code[offset + keyword.len()..];
+        if tail.as_bytes().first().is_some_and(|b| is_ident_byte(*b)) {
+            return false;
+        }
+        let tail = tail.trim_start();
+        if keyword == "namespace" && tail.starts_with('{') {
+            return true;
+        }
+        let name_end = tail
+            .bytes()
+            .take_while(|b| is_ident_byte(*b) || *b == b':')
+            .count();
+        if name_end == 0 {
+            return false;
+        }
+        let rest = tail[name_end..].trim_start();
+        rest.starts_with('{')
+            || (keyword == "class"
+                && rest.starts_with(':')
+                && rest
+                    .find('{')
+                    .is_some_and(|brace| !rest[..brace].contains(';')))
+    })
 }
 
 fn c_like_code_without_comments_and_literals(src: &[u8]) -> String {
@@ -145,4 +200,28 @@ fn contains_word_followed_by_ident(text: &str, word: &str) -> bool {
 
 fn is_ident_byte(b: u8) -> bool {
     b.is_ascii_alphanumeric() || b == b'_'
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn c_tag_names_may_be_cpp_keywords() {
+        for kind in ["struct", "union", "enum"] {
+            let body = if kind == "enum" {
+                "VALUE"
+            } else {
+                "int value;"
+            };
+            let source = format!("{kind} namespace {{ {body} }};");
+            assert_eq!(
+                super::skip_reason(
+                    std::path::Path::new("a.h"),
+                    nose_il::Lang::C,
+                    source.as_bytes()
+                ),
+                None,
+                "{source}"
+            );
+        }
+    }
 }

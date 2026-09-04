@@ -5,6 +5,7 @@ use nose_il::{
     FileId, FileMeta, IlBuilder, Lang, NodeKind, Op, Payload, Span,
 };
 
+mod arrays;
 mod domains;
 mod projections;
 

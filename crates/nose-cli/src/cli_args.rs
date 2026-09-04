@@ -148,6 +148,12 @@ pub(crate) enum Cmd {
         /// Read defaults from this config file (else `nose.toml`/`.nose.toml`).
         #[arg(long, value_name = "FILE")]
         config: Option<PathBuf>,
+        /// Find configuration at the common analysis root (instead of the working directory).
+        #[arg(long, conflicts_with = "config")]
+        config_root: bool,
+        /// Print the effective analysis settings and their config source, then exit.
+        #[arg(long, conflicts_with = "watch")]
+        show_config: bool,
         /// CI gate — exit non-zero when default-surface families are reported: `any`, or
         /// `new` (only new/changed vs `--baseline`).
         #[arg(long, value_name = "WHAT")]

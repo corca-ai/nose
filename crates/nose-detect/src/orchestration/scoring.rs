@@ -17,23 +17,25 @@ pub(super) fn score_ordinary_candidates(
     detector: &dyn Detector,
     threshold: f64,
 ) -> (Vec<ScoredCandidate>, Vec<AcceptedPair>) {
-    let scored = candidates
-        .par_iter()
-        .map(|&(left, right)| ScoredCandidate {
-            left,
-            right,
-            ordinary_score: (!is_nested(&units[left], &units[right]))
-                .then(|| detector.score(&units[left], &units[right])),
-        })
-        .collect::<Vec<_>>();
-    let accepted = scored
-        .iter()
-        .filter_map(|candidate| {
+    let mut scored = Vec::with_capacity(candidates.len());
+    let mut accepted = Vec::new();
+    for batch in candidates.chunks(4096) {
+        let batch = batch
+            .par_iter()
+            .map(|&(left, right)| ScoredCandidate {
+                left,
+                right,
+                ordinary_score: (!is_nested(&units[left], &units[right]))
+                    .then(|| detector.score(&units[left], &units[right])),
+            })
+            .collect::<Vec<_>>();
+        accepted.extend(batch.iter().filter_map(|candidate| {
             candidate
                 .ordinary_score
                 .filter(|&score| score >= threshold)
                 .map(|score| (candidate.left, candidate.right, score))
-        })
-        .collect();
+        }));
+        scored.extend(batch);
+    }
     (scored, accepted)
 }

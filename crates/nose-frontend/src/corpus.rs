@@ -13,7 +13,12 @@ use std::path::Path;
 /// loaders use the same generated/binary artifact gate as the uncached path so
 /// an artifact never becomes analyzable merely because it was cached.
 pub fn source_is_analyzable(path: &Path, lang: Lang, source: &[u8]) -> bool {
-    source_artifacts::skip_reason(path, lang, source).is_none()
+    source_skip_reason(path, lang, source).is_none()
+}
+
+/// Explain a deliberately excluded source artifact.
+pub fn source_skip_reason(path: &Path, lang: Lang, source: &[u8]) -> Option<&'static str> {
+    source_artifacts::skip_reason(path, lang, source)
 }
 
 /// Lower every analyzable region of a file into separate [`Il`]s. For most languages
@@ -27,14 +32,22 @@ pub fn lower_source_regions(
     lang: Lang,
     interner: &Interner,
 ) -> Vec<Il> {
+    try_lower_source_regions(file, path, src, lang, interner).unwrap_or_default()
+}
+
+/// Fallible region lowering for callers that must not report incomplete analysis.
+pub fn try_lower_source_regions(
+    file: FileId,
+    path: &str,
+    src: &[u8],
+    lang: Lang,
+    interner: &Interner,
+) -> anyhow::Result<Vec<Il>> {
     match lang {
         Lang::Vue | Lang::Svelte | Lang::Html => {
             embedded::lower_regions(file, path, src, lang, interner)
         }
-        _ => lower_source(file, path, src, lang, interner)
-            .ok()
-            .into_iter()
-            .collect(),
+        _ => lower_source(file, path, src, lang, interner).map(|il| vec![il]),
     }
 }
 
@@ -86,10 +99,20 @@ pub fn lower_corpus_raw_filtered(roots: &[&Path], exclude: &[String]) -> Corpus 
         .par_iter()
         .enumerate()
         .map(|(index, (path, lang))| match std::fs::read(path) {
-            Ok(source) if source_is_analyzable(Path::new(path), *lang, &source) => Ok(
-                lower_source_regions(FileId(index as u32), path, &source, *lang, &interner),
-            ),
-            Ok(_) => Ok(Vec::new()),
+            Ok(source) => match source_skip_reason(Path::new(path), *lang, &source) {
+                Some(reason) => Ok((
+                    Vec::new(),
+                    Some(nose_il::SourceDiagnostic {
+                        path: path.clone(),
+                        reason: reason.into(),
+                    }),
+                )),
+                None => {
+                    try_lower_source_regions(FileId(index as u32), path, &source, *lang, &interner)
+                        .map(|regions| (regions, None))
+                        .map_err(|error| format!("lowering source {path}: {error}"))
+                }
+            },
             Err(error) => Err(format!("reading source {path}: {error}")),
         })
         .collect();
@@ -102,14 +125,19 @@ pub fn lower_corpus_raw_filtered(roots: &[&Path], exclude: &[String]) -> Corpus 
     }
 
     let mut files = Vec::new();
+    let mut skipped_sources = Vec::new();
     for result in results {
         match result {
-            Ok(regions) => files.extend(regions),
+            Ok((regions, skipped)) => {
+                files.extend(regions);
+                skipped_sources.extend(skipped);
+            }
             Err(error) => source_errors.push(error),
         }
     }
     let mut corpus = Corpus::new(interner, files);
     corpus.source_errors = source_errors;
+    corpus.skipped_sources = skipped_sources;
     corpus
 }
 

@@ -9,6 +9,7 @@ pub struct Corpus {
     pub files: Vec<Il>,
     /// Discovery/read/lowering failures; intentionally excluded artifacts are not failures.
     pub source_errors: Vec<String>,
+    pub skipped_sources: Vec<SourceDiagnostic>,
 }
 
 impl Corpus {
@@ -17,6 +18,7 @@ impl Corpus {
             interner,
             files,
             source_errors: Vec::new(),
+            skipped_sources: Vec::new(),
         }
     }
 
@@ -45,3 +47,9 @@ impl std::fmt::Display for IncompleteCorpus {
 }
 
 impl std::error::Error for IncompleteCorpus {}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct SourceDiagnostic {
+    pub path: String,
+    pub reason: String,
+}

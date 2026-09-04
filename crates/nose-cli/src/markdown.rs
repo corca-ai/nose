@@ -8,7 +8,7 @@
 //! or "worth removing". Dev golden-build/eval tooling lives in `nose-markdown`'s `mddup` example.
 
 use anyhow::{Context, Result};
-use nose_markdown::{detect, Family, Options};
+use nose_markdown::Family;
 use rayon::prelude::*;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -87,7 +87,12 @@ pub(crate) struct QueryMarkdownReport {
 
 impl QueryMarkdownReport {
     /// Detect Markdown near-duplicate families under the `nose query` roots for the dashboard.
-    pub(crate) fn detect_under(roots: &[PathBuf], excludes: &[String]) -> Result<Self> {
+    pub(crate) fn detect_under(
+        roots: &[PathBuf],
+        excludes: &[String],
+        cache: Option<&Path>,
+        max_bytes: u64,
+    ) -> Result<Self> {
         let files = discover_roots(roots, excludes)?;
         let docs = files
             .par_iter()
@@ -101,7 +106,7 @@ impl QueryMarkdownReport {
             })
             .collect::<Result<Vec<_>>>()?;
         Ok(QueryMarkdownReport {
-            families: detect(&docs, &Options::default()),
+            families: crate::cache::detect_markdown(&docs, cache, max_bytes),
         })
     }
 
@@ -154,7 +159,7 @@ impl QueryMarkdownReport {
             println!(
                 "  {loc:<40}  {} copies · {} · ~{} removable · {}{}",
                 f.members.len(),
-                crate::style::blue(f.tier),
+                crate::style::blue(&f.tier),
                 f.removable,
                 short(&head, 40),
                 crate::style::dim(common),

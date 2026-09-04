@@ -1,9 +1,6 @@
-/// Stack size for the worker pool and the main worker thread. Lowering/normalization
-/// walk the syntax tree recursively, so a pathologically deep file (minified bundle,
-/// generated code) can need a deep stack — far more than the default ~2 MB (rayon
-/// worker) or ~8 MB (main). Sized generously so nose never crashes on real repos.
-/// Virtual only; pages commit lazily. See `deeply_nested_file_does_not_overflow`.
-pub(crate) const STACK_SIZE: usize = 1024 * 1024 * 1024;
+/// Bounded recursive language adapters run only after the iterative parser
+/// depth/node check. Common IL traversals use explicit work stacks.
+pub(crate) const STACK_SIZE: usize = 64 * 1024 * 1024;
 
 /// When a reader closes the pipe early — `nose query … | head`, quitting a pager —
 /// the next write to stdout fails with `BrokenPipe`, and `println!` turns that into

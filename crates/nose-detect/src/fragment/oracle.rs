@@ -40,6 +40,8 @@ pub enum OracleInputProjection {
     /// The parameter is part of a whole-function declaration but a trailing suffix proof found
     /// no read of it. It is excluded from the oracle's effective input contract.
     UnusedTrailing,
+    /// Full dense-array values with source-proven primitive element identity.
+    ScalarArray(nose_il::DomainEvidence),
 }
 
 impl OracleInputProjection {
@@ -48,6 +50,10 @@ impl OracleInputProjection {
             Self::Declared => "declared",
             Self::Cardinality => "cardinality",
             Self::UnusedTrailing => "unused-trailing",
+            Self::ScalarArray(nose_il::DomainEvidence::Boolean) => "boolean-array",
+            Self::ScalarArray(nose_il::DomainEvidence::Number) => "number-array",
+            Self::ScalarArray(nose_il::DomainEvidence::String) => "string-array",
+            Self::ScalarArray(_) => "unsupported-array",
         }
     }
 }

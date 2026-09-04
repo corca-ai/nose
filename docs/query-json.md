@@ -302,3 +302,16 @@ detector, never substituted for either location.
 Evidence, never a verdict: there is no `worth_it`/`confidence` field — the worthy-vs-parallel
 judgment is the caller's ([design §2](design.md)). See the [agent-recipe](agent-recipe.md) for
 the loop, and [usage › nose query](usage.md#nose-query) for the grammar.
+
+## Family selection failures
+
+`id=` must be nonempty and uniquely identify a family. Human, JSON, Markdown
+and SARIF share the same resolver: unknown or ambiguous prefixes fail with a
+nonzero exit status. JSON emits a versioned `view: "family"` envelope with
+`family: null` and `error.message`; it never emits human text as successful JSON.
+Use a longer prefix when an ID is ambiguous.
+
+Dashboard `summary.skipped_sources` lists deliberately excluded source artifacts
+as `{ "path": "...", "reason": "unsupported-cpp-header" }` records. Binary
+source artifacts and ANSI-highlight output have their own reason codes. These
+records are identical for clean, cold-cache and warm-cache queries.

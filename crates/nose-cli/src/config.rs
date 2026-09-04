@@ -79,6 +79,88 @@ fn discover() -> Option<PathBuf> {
         .find(|p| p.is_file())
 }
 
+pub(crate) fn discover_for_roots(roots: &[PathBuf]) -> anyhow::Result<PathBuf> {
+    let mut bases = roots
+        .iter()
+        .map(|root| {
+            let path = std::fs::canonicalize(root)?;
+            Ok(if path.is_file() {
+                path.parent().unwrap().to_path_buf()
+            } else {
+                path
+            })
+        })
+        .collect::<std::io::Result<Vec<_>>>()?;
+    let mut common = bases
+        .pop()
+        .ok_or_else(|| anyhow::anyhow!("configuration needs an analysis root"))?;
+    for base in bases {
+        while !base.starts_with(&common) {
+            anyhow::ensure!(
+                common.pop(),
+                "analysis roots have no common configuration directory"
+            );
+        }
+    }
+    ["nose.toml", ".nose.toml"]
+        .iter()
+        .map(|name| common.join(name))
+        .find(|path| path.is_file())
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "no nose.toml or .nose.toml at common analysis root {}",
+                common.display()
+            )
+        })
+}
+
+pub(crate) fn print_effective(args: &crate::cli_args::QueryArgs) -> anyhow::Result<()> {
+    let source = args.config.clone().or_else(discover);
+    let cfg = load_query(source.as_deref())?;
+    let (settings, _) = crate::query_dataset::resolve_query_settings(
+        args,
+        crate::query_options::QUERY_DEFAULT_MODES,
+    )?;
+    let mut modes = Vec::new();
+    if settings.channels.syntax {
+        modes.push("syntax".to_owned());
+    }
+    if settings.channels.semantic {
+        modes.push("semantic".to_owned());
+    }
+    if settings.channels.near {
+        modes.push(format!("near:{}", settings.channels.threshold()));
+    }
+    if settings.channels.abstraction {
+        modes.push(format!("abstraction:{}", settings.channels.threshold()));
+    }
+    let mut generated = cfg.generated_paths;
+    generated.extend(args.generated_path.iter().cloned());
+    let mut packs = cfg.semantic_packs;
+    packs.extend(args.semantic_pack.iter().cloned());
+    println!(
+        "{}",
+        serde_json::json!({
+            "schema": "nose.query-config/v1", "config_file": source,
+            "roots": args.paths, "cache_dir": args.cache_dir,
+            "query": {
+                "mode": modes, "min-members": settings.min_members,
+                "min-value": settings.min_value, "min-lines": settings.min_lines,
+                "min-size": settings.min_tokens, "sort": settings.sort,
+                "exclude": settings.exclude, "generated-paths": generated,
+                "cache-max-bytes": settings.cache_max_bytes,
+                "ignore-file": args.ignore_file.clone().or(cfg.ignore_file).or_else(|| {
+                    let path = PathBuf::from(crate::ignores::DEFAULT_IGNORE_FILE);
+                    path.is_file().then_some(path)
+                }),
+                "semantic-packs": packs,
+                "semantic-pack-lock": args.semantic_pack_lock.clone().or(cfg.semantic_pack_lock)
+            }
+        })
+    );
+    Ok(())
+}
+
 fn resolve_config_relative_paths(mut cfg: QueryConfig, path: &Path) -> QueryConfig {
     let base = path.parent().unwrap_or_else(|| Path::new(""));
     if let Some(ignore_file) = &mut cfg.ignore_file {

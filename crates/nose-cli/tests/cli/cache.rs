@@ -464,7 +464,7 @@ fn unknown_imports_fail_safe_and_report_over_invalidation() {
 }
 
 #[test]
-fn clean_tracked_sources_use_git_blob_identity_but_dirty_sources_use_content() {
+fn all_sources_use_exact_worktree_content_identity() {
     let project = TempProject::new("cache_git_identity");
     project.write("tracked.py", "def value(x):\n    return x + 1\n");
     for args in [
@@ -485,8 +485,8 @@ fn clean_tracked_sources_use_git_blob_identity_but_dirty_sources_use_content() {
     let cache = project.path().join(".cache");
     let clean = query(project.path(), Some(&cache));
     let clean_report = invalidation_report(&clean);
-    assert_eq!(clean_report.source_identities.git_blob, 1);
-    assert_eq!(clean_report.source_identities.content_sha256, 0);
+    assert_eq!(clean_report.source_identities.git_blob, 0);
+    assert_eq!(clean_report.source_identities.content_sha256, 1);
 
     project.write("tracked.py", "def value(x):\n    return x - 1\n");
     let dirty = query(project.path(), Some(&cache));

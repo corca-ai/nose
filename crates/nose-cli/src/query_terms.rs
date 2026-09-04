@@ -2,6 +2,24 @@ use anyhow::Result;
 
 use crate::query_options::SortKey;
 
+pub(crate) fn family_by_id<'a>(
+    families: &'a [nose_detect::RefactorFamily],
+    prefix: &str,
+) -> Result<&'a nose_detect::RefactorFamily> {
+    anyhow::ensure!(!prefix.is_empty(), "family id must not be empty");
+    let mut matches = families
+        .iter()
+        .filter(|family| crate::baseline::family_id(family).starts_with(prefix));
+    let family = matches
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("no family whose id starts with `{prefix}`"))?;
+    anyhow::ensure!(
+        matches.next().is_none(),
+        "ambiguous family id `{prefix}`; use a longer id"
+    );
+    Ok(family)
+}
+
 /// A parsed query: in-memory filters over the family dataset, plus the chosen view.
 #[derive(Default)]
 pub(crate) struct Query {

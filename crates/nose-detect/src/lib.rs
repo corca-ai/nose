@@ -8,7 +8,9 @@
 
 mod abstraction;
 mod align;
+mod candidate_budget;
 mod candidates;
+pub use candidate_budget::{ensure_candidate_budget, CandidateBudgetExceeded};
 mod cluster;
 mod connected;
 mod contiguous;

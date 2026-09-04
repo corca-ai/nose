@@ -281,6 +281,8 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         semantic_pack,
         semantic_pack_lock,
         config,
+        config_root,
+        show_config,
         fail_on,
         baseline,
         write_baseline,
@@ -291,6 +293,11 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
     let (paths, terms, path_arg, roots_are_explicit) =
         split_query_roots_and_terms(roots, positionals)?;
     require_paths_exist(&paths)?;
+    let config = if config_root {
+        Some(crate::config::discover_for_roots(&paths)?)
+    } else {
+        config
+    };
     let q = parse_query_with_path_hint(&terms, &paths, &path_arg, roots_are_explicit)?;
     // The path as the user typed it — every suggested next-command echoes it so the links
     // are runnable verbatim. Multi-root commands echo the explicit root flags.
@@ -316,6 +323,9 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         min_lines,
         scope: ScopeFilter::All,
     };
+    if show_config {
+        return crate::config::print_effective(&args);
+    }
     ensure_query_fail_on_is_valid(&args)?;
     if watch {
         return crate::query_watch::run(&args, &terms, &q, &path_arg);

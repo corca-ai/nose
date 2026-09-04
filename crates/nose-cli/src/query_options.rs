@@ -268,7 +268,7 @@ impl DetectionChannels {
 }
 
 /// How to rank families — what "most worth your attention first" means.
-#[derive(Clone, Copy, PartialEq, clap::ValueEnum, serde::Deserialize)]
+#[derive(Clone, Copy, PartialEq, clap::ValueEnum, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum SortKey {
     /// How cleanly it extracts: invariant (shared) lines × copies × spread, penalized
@@ -323,13 +323,16 @@ pub(crate) enum FailOn {
 /// `.gitignore` exists to skip, slow on exactly the big repos where it matters.)
 pub(crate) struct QueryScope {
     pub(crate) files: usize,
+    pub(crate) skipped_sources: Vec<nose_il::SourceDiagnostic>,
     /// `(language name, file count)`, largest first.
     pub(crate) langs: Vec<(&'static str, usize)>,
 }
 
 impl QueryScope {
     pub(crate) fn from_corpus(corpus: &Corpus) -> Self {
-        Self::from_langs(corpus.files.iter().map(|file| file.meta.lang))
+        let mut scope = Self::from_langs(corpus.files.iter().map(|file| file.meta.lang));
+        scope.skipped_sources = corpus.skipped_sources.clone();
+        scope
     }
 
     pub(crate) fn from_langs(langs: impl IntoIterator<Item = nose_il::Lang>) -> Self {
@@ -343,7 +346,27 @@ impl QueryScope {
         let mut langs: Vec<(&'static str, usize)> = counts.into_iter().collect();
         // Largest language first; name as a stable tie-break for deterministic output.
         langs.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
-        QueryScope { files, langs }
+        QueryScope {
+            files,
+            langs,
+            skipped_sources: Vec::new(),
+        }
+    }
+
+    pub(crate) fn with_sources(mut self, sources: &[crate::cache::CachedSourceFile]) -> Self {
+        self.skipped_sources = sources
+            .iter()
+            .filter_map(|source| {
+                source
+                    .skip_reason
+                    .as_ref()
+                    .map(|reason| nose_il::SourceDiagnostic {
+                        path: source.path.clone(),
+                        reason: reason.clone(),
+                    })
+            })
+            .collect();
+        self
     }
 
     /// `analyzed 1113 files · typescript 900 · tsx 213` (languages omitted when unknown).

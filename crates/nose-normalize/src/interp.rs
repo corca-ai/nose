@@ -496,6 +496,15 @@ fn run_unit_once(
                     Some(d) => coerce_to_declared_domain(raw, d),
                     None => raw,
                 };
+                let v = match (v, nose_semantics::array_element_domain_for_param(il, k)) {
+                    (Value::List(values), Some(element)) => Value::List(
+                        values
+                            .into_iter()
+                            .map(|v| coerce_to_declared_domain(v, element))
+                            .collect(),
+                    ),
+                    (v, _) => v,
+                };
                 let v = if it.bitwise_result_is_int32() {
                     compact_javascript_positive_zero(v)
                 } else {

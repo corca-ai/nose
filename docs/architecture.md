@@ -177,3 +177,20 @@ new code should follow the focused owners there rather than growing dispatcher o
   principle, §AH).
 
 For *why* the normalization passes look the way they do, read [normalization](normalization.md).
+
+## Analysis resource boundaries
+
+The CLI preflights structural candidate emissions before allocating pair or
+persistent score arrays. The default work budget is 1,000,000 emissions before
+cross-channel deduplication; `NOSE_MAX_CANDIDATE_PAIRS` accepts a positive integer
+for a deliberately larger workload. Exceeding it is a nonzero analysis error,
+never a truncated successful report. The same preflight protects clean, cached,
+watch and research-detect runs. Ordinary scoring proceeds in 4,096-pair batches.
+Library integrations can call `ensure_candidate_budget` with their own limit.
+
+A constant-memory tree cursor checks parser output before recursive lowering:
+syntax depth is limited to 512 and the syntax tree to 2,000,000 nodes. Exceeding
+either produces a source-specific analysis error, including embedded script,
+style and markup regions. Common scope and identifier traversals use explicit
+work stacks; CLI workers reserve 64 MiB rather than 1 GiB. These are analysis
+resource limits, not claims that arbitrarily deep source can be processed.

@@ -57,6 +57,26 @@ tests inject the same wrong float fact into both channels for each runtime and r
 so frontend/interpreter agreement cannot overrule the source runtimes. The calibration code and
 artifact remain offline and are not linked into the shipped `nose` binary.
 
+## Primitive array oracle extension
+
+The frontend retains the primitive element identity of plain TypeScript
+`boolean[]`, `number[]` and `string[]` parameters in `ArrayElementDomain`
+evidence. Normalization preserves the evidence independently of the erased
+`Array` receiver domain. The offline collector compares core and normalized
+input projections before selecting a full scalar-array input contract; the
+falsifier independently requires the source evidence on both sides.
+
+The deterministic pool includes empty, singleton and ordered two-element arrays
+of domain-valid values. The fixed battery also binds elements under that same
+primitive domain. A Boolean-array element-order counterexample and live Node
+calibration of Boolean, Number and String arrays exercise the source/runtime
+boundary on both normalization channels. This expands executable coverage, not
+product exact admission or a claim of exhaustive runtime equivalence.
+
+Aliases, optional/union types, nominal `Array<T>`, nested arrays, and erased
+collection/map/set/option/result payloads retain their existing advisory boundary.
+They need their own faithful source identity and value model before promotion.
+
 ## Two binary identities, one release-tree report
 
 The preserved clean release-candidate binary and raw report reproduce the
