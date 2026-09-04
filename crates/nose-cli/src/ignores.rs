@@ -6,11 +6,13 @@
 
 use crate::baseline;
 use anyhow::{Context, Result};
-use ignore::overrides::Override;
 use nose_detect::RefactorFamily;
+use paths::PathMatcher;
 use serde::Deserialize;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
+
+mod paths;
 
 pub(crate) const DEFAULT_IGNORE_FILE: &str = "nose.ignore.json";
 
@@ -83,8 +85,7 @@ impl<'a> IgnoreSummary<'a> {
 struct Entry {
     index: usize,
     family_id: Option<u64>,
-    path_matcher: Option<Override>,
-    path_base: PathBuf,
+    path_matcher: Option<PathMatcher>,
     language_set: BTreeSet<String>,
     selectors: IgnoreSelectors,
     reason: String,
@@ -207,7 +208,7 @@ impl Entry {
             .map(parse_family_id)
             .transpose()
             .with_context(|| format!("ignores[{index}].family_id is not a hex family id"))?;
-        let path_matcher = build_path_matcher(index, &raw.paths)?;
+        let path_matcher = PathMatcher::new(index, &raw.paths, path_base)?;
         let language_set = raw
             .languages
             .iter()
@@ -235,7 +236,6 @@ impl Entry {
             index,
             family_id,
             path_matcher,
-            path_base: path_base.to_path_buf(),
             language_set,
             selectors: IgnoreSelectors {
                 family_id: raw.family_id,
@@ -275,7 +275,7 @@ impl Entry {
                 if !family
                     .locations
                     .iter()
-                    .all(|location| path_matches(matcher, &self.path_base, &location.file))
+                    .all(|location| matcher.matches(&location.file))
                 {
                     return None;
                 }
@@ -326,65 +326,6 @@ fn ignore_path_base(path: &Path) -> PathBuf {
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."))
         .to_path_buf()
-}
-
-fn path_matches(matcher: &Override, base: &Path, file: &str) -> bool {
-    path_match_inputs(base, file)
-        .iter()
-        .any(|candidate| matcher.matched(candidate, false).is_whitelist())
-}
-
-fn path_match_inputs(base: &Path, file: &str) -> Vec<String> {
-    let path = Path::new(file);
-    let mut inputs = Vec::new();
-    push_match_input(&mut inputs, file);
-    if let Ok(relative) = path.strip_prefix(base) {
-        push_match_path(&mut inputs, relative);
-    }
-    if path.is_absolute() {
-        if let (Ok(canonical_file), Ok(canonical_base)) = (path.canonicalize(), base.canonicalize())
-        {
-            if let Ok(relative) = canonical_file.strip_prefix(canonical_base) {
-                push_match_path(&mut inputs, relative);
-            }
-        }
-    }
-    inputs
-}
-
-fn push_match_path(inputs: &mut Vec<String>, path: &Path) {
-    push_match_input(inputs, &path.to_string_lossy());
-}
-
-fn push_match_input(inputs: &mut Vec<String>, raw: &str) {
-    let normalized = raw.replace(std::path::MAIN_SEPARATOR, "/");
-    let normalized = normalized.strip_prefix("./").unwrap_or(&normalized);
-    if !inputs.iter().any(|input| input == normalized) {
-        inputs.push(normalized.to_string());
-    }
-}
-
-fn build_path_matcher(index: usize, paths: &[String]) -> Result<Option<Override>> {
-    if paths.is_empty() {
-        return Ok(None);
-    }
-    let mut builder = ignore::overrides::OverrideBuilder::new(".");
-    for pattern in paths {
-        let pattern = pattern.trim();
-        if pattern.is_empty() {
-            anyhow::bail!("ignores[{index}].paths contains an empty pattern");
-        }
-        if pattern.starts_with('!') {
-            anyhow::bail!("ignores[{index}].paths does not support negative pattern {pattern:?}");
-        }
-        builder
-            .add(pattern)
-            .with_context(|| format!("ignores[{index}].paths has invalid glob {pattern:?}"))?;
-    }
-    builder
-        .build()
-        .with_context(|| format!("building path matcher for ignores[{index}]"))
-        .map(Some)
 }
 
 fn parse_family_id(s: &str) -> Result<u64> {
@@ -507,3 +448,6 @@ mod parse_id_tests;
 
 #[cfg(test)]
 mod match_tests;
+
+#[cfg(test)]
+mod path_tests;
