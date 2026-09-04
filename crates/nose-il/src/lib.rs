@@ -29,7 +29,7 @@ pub use ident::{
     contains_c_identifier, contains_js_identifier, is_c_identifier_continue,
     is_js_identifier_continue,
 };
-pub use il::{Il, IlContents};
+pub use il::{EvidenceEdit, Il, IlContents};
 pub use intern::{stable_symbol_hash, symbol_index, Interner, Symbol, FNV_OFFSET_BASIS, FNV_PRIME};
 pub use node::{
     BoundOrderGuardActivation, Builtin, CTypeTarget, CallTargetEvidenceKind, DomainEvidence,

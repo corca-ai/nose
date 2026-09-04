@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 
 mod evidence_index;
 use evidence_index::EvidenceIndex;
+mod evidence_edit;
+pub use evidence_edit::EvidenceEdit;
 mod scope_index;
 
 /// One lowered source file. `nodes` is the arena; child links live out-of-line in
@@ -159,6 +161,17 @@ impl Il {
     pub fn evidence_mut(&mut self) -> &mut Vec<EvidenceRecord> {
         self.invalidate_evidence_index();
         &mut self.contents.evidence
+    }
+
+    /// Edit one record without rebuilding lookups when its id and anchor stay
+    /// unchanged. Prefer this for status, provenance, and dependency updates.
+    pub fn evidence_record_mut(&mut self, index: usize) -> EvidenceEdit<'_> {
+        EvidenceEdit::new(
+            &mut self.contents.evidence[index],
+            self.evidence_index
+                .get_mut()
+                .expect("evidence index lock poisoned"),
+        )
     }
 
     /// Append a record while preserving the incrementally extended evidence index.

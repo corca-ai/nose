@@ -48,6 +48,34 @@ fn editing_a_cached_arena_refreshes_span_and_binding_queries() {
 }
 
 #[test]
+fn evidence_record_edits_refresh_identity_queries_and_expose_live_metadata() {
+    let mut il = leaf_il();
+    let old = il.node(il.root).span;
+    let new = Span::new(FileId(0), 10, 14, 2, 2);
+    il.find_or_push_builtin_evidence(
+        EvidenceAnchor::node(old, NodeKind::Module),
+        EvidenceKind::Domain(DomainEvidence::Collection),
+        "test",
+        "test",
+        Vec::new(),
+    );
+    assert_eq!(il.evidence_anchored_at(old).count(), 1);
+    {
+        let mut record = il.evidence_record_mut(0);
+        record.anchor = EvidenceAnchor::node(new, NodeKind::Module);
+        record.id = EvidenceId(5);
+    }
+    assert_eq!(il.evidence_anchored_at(old).count(), 0);
+    assert_eq!(il.evidence_anchored_at(new).count(), 1);
+    assert!(il.evidence_record_by_id(EvidenceId(0)).is_none());
+    il.evidence_record_mut(0).status = EvidenceStatus::Ambiguous;
+    assert_eq!(
+        il.evidence_record_by_id(EvidenceId(5)).unwrap().status,
+        EvidenceStatus::Ambiguous
+    );
+}
+
+#[test]
 fn span_contains_only_nested_ranges_in_the_same_file() {
     let outer = Span::new(FileId(0), 10, 20, 1, 2);
     assert!(outer.contains(Span::new(FileId(0), 10, 20, 1, 2)));

@@ -99,7 +99,9 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
 `Il` separates serialized arena contents from derived indexes. Mutable field access
 and `Il::edit` invalidate those indexes before granting an exclusive borrow.
 `push_evidence` preserves incremental append indexing; `evidence_mut` invalidates
-only evidence lookups. Serialization keeps the existing flat arena representation.
+only evidence lookups. For repeated record updates, `evidence_record_mut` retains
+the index when id and anchor stay unchanged, avoiding a whole-evidence rebuild
+per metadata update. Serialization keeps the existing flat arena representation.
 
 `DetectOptions::validate` produces an immutable execution plan and rejects invalid
 thresholds, MinHash layouts, and incompatible channel prerequisites before detection.

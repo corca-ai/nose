@@ -351,7 +351,7 @@ fn close_legacy_duplicates_for_language_core_dependency(il: &mut Il, dependency:
     let kind = record.kind;
     let legacy_pack_hash = stable_symbol_hash(BUILTIN_COMPAT_PACK_ID);
     for idx in il.evidence_indices_anchored_at(anchor.span()) {
-        let duplicate = &mut (*il.evidence_mut())[idx as usize];
+        let mut duplicate = il.evidence_record_mut(idx as usize);
         if duplicate.id != dependency
             && duplicate.anchor == anchor
             && duplicate.kind == kind

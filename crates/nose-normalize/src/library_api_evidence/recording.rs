@@ -375,13 +375,14 @@ pub(super) fn upsert_language_core_evidence(
     let Some(idx) = current_idx.or(legacy_idx) else {
         return il.find_or_push_builtin_evidence(anchor, kind, pack_id, producer_id, dependencies);
     };
-    let record = &mut (*il.evidence_mut())[idx as usize];
+    let mut record = il.evidence_record_mut(idx as usize);
     record.provenance.pack_hash = Some(pack_hash);
     record.provenance.rule_hash = Some(rule_hash);
     record.dependencies = dependencies;
     let id = record.id;
+    drop(record);
     for duplicate_idx in duplicate_indices {
-        (*il.evidence_mut())[duplicate_idx as usize].status = EvidenceStatus::Ambiguous;
+        il.evidence_record_mut(duplicate_idx as usize).status = EvidenceStatus::Ambiguous;
     }
     id
 }
@@ -401,7 +402,7 @@ pub(super) fn upsert_builtin_evidence_with_pack_id(
     // Index-backed (see `effect_evidence::upsert`): only same-span records can
     // match, and the fields updated in place are read live by the index.
     for idx in il.evidence_indices_anchored_at(anchor.span()) {
-        let record = &mut (*il.evidence_mut())[idx as usize];
+        let mut record = il.evidence_record_mut(idx as usize);
         if record.anchor == anchor
             && record.kind == kind
             && record.provenance.emitter == EvidenceEmitter::Builtin
