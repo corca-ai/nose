@@ -92,7 +92,11 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    one enclosing unit ([bounded same-unit windows](bounded-same-unit-windows-832.md)). It is a
    `near` refactoring witness, not an exact-fragment proof, and bare scope-container blocks are
    ineligible;
-   `syntax` emits duplicated runs above the line/token floors. Experimental
+   `syntax` emits duplicated runs above the line/token floors. Conservative suffix-block
+   bounds skip token extension when the remaining stream cannot meet the line/token or
+   operation floor. Such streams still record first k-gram occurrences, preserving later
+   matches against differently formatted copies. Bounds include the whole current block,
+   so nonmonotonic parent/child source spans cannot exclude a qualifying suffix. Experimental
    `abstraction` then checks same-language near-style families for one shared
    supported literal-leaf hole position and attaches a weak witness instead of an
    exact claim. Same-language `near` and shared-core families can be additionally graded

@@ -19,6 +19,7 @@ use rustc_hash::FxHashMap;
 
 mod boundaries;
 mod incremental;
+mod run_floors;
 pub(crate) use incremental::{detect_incremental, IncrementalContiguousState};
 
 /// One file's normalized-IL token stream, in source (pre-order) order.
@@ -337,6 +338,7 @@ pub(in crate::contiguous) fn detect_primitives(
     for &si in stream_indices {
         let g = &grams[si];
         let lang = streams[si].lang;
+        let floors = run_floors::RunFloors::new(&streams[si]);
         let mut i = 0;
         while i < g.len() {
             let h = g[i];
@@ -344,7 +346,7 @@ pub(in crate::contiguous) fn detect_primitives(
                 // `sj` is the same language as `si` by construction (the key includes
                 // `lang`). Don't match a stream against an overlapping window of itself.
                 let self_overlap = sj == si && i.abs_diff(j) < k;
-                if !self_overlap {
+                if !self_overlap && floors.could_match(i, min_tokens, min_lines) {
                     let len = extend(&streams[sj], j, &streams[si], i);
                     if len >= min_tokens {
                         // Require the run to contain at least one operation — a flat
@@ -459,7 +461,7 @@ pub(in crate::contiguous) fn groups_from_primitives(
 mod tests {
     use super::*;
 
-    fn mk(path: &str, tags: Vec<u64>) -> Stream {
+    pub(super) fn mk(path: &str, tags: Vec<u64>) -> Stream {
         let n = tags.len() as u32;
         Stream {
             root_is_module: false,
