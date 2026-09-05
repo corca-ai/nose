@@ -1758,3 +1758,10 @@ The substantial-near ratchet reports 18 families within budget 20. The unchanged
 policy pair `60f0dd6d98436972` (`int_bin`/`float_bin`) returns at value 40.645 as the
 code/test corpus changes; the previous binary reports the same family and value on this
 updated corpus. No new avoidable production duplication is accepted.
+
+The bounded semantic regression smoke (`9e2f174b` to `fd9b2ee7`) passed after its
+permitted focused rerun for fastlane and prettier. All seven repositories preserved
+every finding and pre-existing JSON field except `analysis.max_candidate_pairs`, which
+intentionally changes from 16,000,000 to null; exact hashes are in the expected-drift
+ledger. Runtime was within the unchanged thresholds, and Ruby scaling passed with
+exponent 0.64. Reports are in `/tmp/nose-auto-smoke/`.
