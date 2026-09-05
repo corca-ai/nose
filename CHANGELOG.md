@@ -26,6 +26,13 @@ break.
   cached features; detection and navigation identities retain their contracts.
 
 ### Fixed
+- Explain duplicate-member growth separately from scope and pack-fact changes in
+  saved analyses; retain the conservative review-evidence checks.
+- Preserve skipped-source diagnostics for offline coverage inspection, prioritize
+  recheck observations, and separate total/selected/shown counts. Labeled next actions
+  preserve format and view and offer explicit budget/empty-selection recovery.
+- Summarize member correspondence in full analysis details and expose complete base
+  candidate evidence through a context-preserving JSON action before the gate action.
 - Make saved-analysis witness facet links executable and accept canonical witness
   kinds plus existing query aliases; advertise canonical values in capabilities.
 - Preserve moved-region candidates when the original current function or file is

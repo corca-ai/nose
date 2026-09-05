@@ -41,29 +41,25 @@ fn run_query_base(args: &QueryArgs, base_ref: &str, q: &Query, path_arg: &str) -
     };
     let (flagged, changed_files) =
         divergence::detect_divergences(args, base_ref)?.unwrap_or_default();
-    match args.format {
-        ReportFormat::Json => render_query_base(
-            &flagged,
-            changed_files,
-            base_ref,
-            path_arg,
-            q.top,
-            true,
-            &semantic_packs_json,
-        ),
-        ReportFormat::Sarif => println!(
+    if args.format == ReportFormat::Sarif {
+        println!(
             "{}",
             divergence::divergence_sarif(&flagged, q.top, "top=0")?
-        ),
-        _ => render_query_base(
+        );
+    } else {
+        let actions = crate::query_views::base_actions(args, base_ref)?;
+        render_query_base(
             &flagged,
             changed_files,
             base_ref,
             path_arg,
             q.top,
-            false,
-            &semantic_packs_json,
-        ),
+            crate::query_views::BaseViewOptions {
+                format: args.format,
+                actions: &actions,
+                semantic_packs: &semantic_packs_json,
+            },
+        );
     }
     // The default gate fires on the v2 strict tier.
     if matches!(args.fail_on, Some(FailOn::Any)) && divergence::divergences_fire(&flagged) {

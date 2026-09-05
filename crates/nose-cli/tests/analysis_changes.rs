@@ -1,4 +1,6 @@
-//! Saved analysis comparison is an offline, navigable query surface.
+#[path = "analysis_changes/ux.rs"]
+mod ux;
+// Saved analysis comparison is an offline, navigable query surface.
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -82,7 +84,7 @@ impl Project {
         let out = Command::new("sh")
             .current_dir(&self.0)
             .env("PATH", path)
-            .args(["-c", &format!("{} --format json", next.as_str().unwrap())])
+            .args(["-c", next.as_str().unwrap()])
             .output()
             .unwrap();
         assert!(

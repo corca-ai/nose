@@ -16,6 +16,7 @@ pub(super) const REASONS: &[&str] = &[
     "profile-changed",
     "incomplete-coverage",
     "membership-changed",
+    "evidence-population-changed",
     "member-content-changed",
     "source-address-changed",
     "scope-changed",
@@ -143,6 +144,25 @@ impl Selection {
             "group= and change= are separate views"
         );
         Ok(q)
+    }
+    pub(super) fn select<'a>(
+        &self,
+        changes: &'a [Change],
+        index: &Observations<'_>,
+    ) -> Result<Vec<&'a Change>> {
+        let mut rows: Vec<_> = changes.iter().filter(|r| self.keeps(r, index)).collect();
+        if let Some(id) = &self.change {
+            rows.retain(|r| r.id.hex().starts_with(id));
+            ensure!(
+                !rows.is_empty(),
+                "no change matching `{id}` in this selection; remove change= to browse"
+            );
+            ensure!(
+                rows.len() == 1,
+                "ambiguous change id `{id}`; use a longer prefix"
+            );
+        }
+        Ok(rows)
     }
     pub(super) fn keeps(&self, row: &Change, index: &Observations<'_>) -> bool {
         self.filters.iter().all(|f| {

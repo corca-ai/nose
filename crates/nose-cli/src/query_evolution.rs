@@ -1,5 +1,6 @@
 //! Query exploration over explicitly captured analysis populations.
 mod capture;
+mod details;
 mod navigation;
 mod render;
 mod selection;
@@ -18,6 +19,7 @@ pub(crate) struct AnalysisArgs {
     /// Compare two saved analyses without reading source, config, Git, or cache.
     #[arg(long, value_name = "FILE", requires = "after")]
     pub(crate) before: Option<PathBuf>,
+    /// Later saved analysis to compare; accepts the same capture format as --before.
     #[arg(long, value_name = "FILE", requires = "before")]
     pub(crate) after: Option<PathBuf>,
     /// Total region/family candidate budget for --before/--after; top=N only limits display.
@@ -104,5 +106,8 @@ pub(crate) fn capabilities() -> serde_json::Value {
         "formats": ["human", "json"], "default_max_candidates": 100_000,
         "max_input_bytes": 128 * 1024 * 1024,
         "population": "admitted-query-families", "source_bodies": "not-stored",
+        "order": "recheck-first-then-observation-id",
+        "actions": ["reset-filters", "increase-budget", "recheck", "group-reason", "group-evidence", "expand-view", "return-selection"],
+        "member_change_statuses": ["same-content", "same-content-new-location", "candidate", "ambiguous", "unresolved", "unmatched-current", "budget-exceeded", "unavailable"],
     })
 }

@@ -103,7 +103,9 @@ JSON views use the same selection; `--format json` carries executable `next` lin
 `nose capabilities` exposes `query.analysis` with fields, values, views, formats,
 limits and syntax. `--before`/`--after` take no source roots or analysis flags:
 the saved inputs own that context. Generated commands preserve both inputs, the
-candidate budget and filters, including shell-quoted paths. A capture's initial
+candidate budget, output format and filters, including shell-quoted paths. Expanding a
+group with its `expand-view` action preserves the group; changing views is a separately
+labeled action. A capture's initial
 next command compares it with itself, so its evidence is immediately explorable.
 
 `--save-analysis` writes a new `nose.analysis/v1` file and never overwrites an
@@ -118,14 +120,19 @@ Use `regions snapshot` for the separate singleton-aware unit census.
 
 The artifact records resolved thresholds/channels, engine profile, exclude rules,
 pack influence and lock decision, roots and the working-directory base for member
-paths, scanned/skipped counts, every family's
+paths, scanned/skipped counts, skipped-source paths and diagnostic reasons, every family's
 member source addresses, review keys and independent evidence projections. Details
 include witness kind/size, pack/dependency/receipt provenance, semantic laws and
 abstraction templates. Internal analysis fingerprints remain opaque: a changed
 analysis projection is not a reconstructed semantic edit. Root paths are provenance,
 not content identity; consumers still own project/target scope when connecting reviews.
 Filesystem discovery follows the frontend's normal ignore and language admission
-rules; ignored or unsupported files are outside this population. Changing discovery
+rules; ignored or unsupported files are outside this population. The normal pipeline's
+skipped-source diagnostics are retained in `source_diagnostics`; capture human/JSON and
+offline comparison expose the same coverage. Older v1 captures without diagnostics are
+accepted, with `diagnostics_status="not-recorded"`, never an invented empty diagnostic
+list. New captures require a reader supporting the additive diagnostic fields; older
+strict readers can reject them. Changing discovery
 rules requires treating the resulting observations within their declared scopes.
 
 Comparison uses only the two explicit artifacts, bounded to 128 MiB each, and
@@ -133,7 +140,10 @@ reuses conservative region correspondence to propose family relations. It spends
 one combined budget on region candidates and family membership-index visits
 (default 100,000). `matched` requires exact, unambiguous region membership;
 `candidate`, `ambiguous`, `unresolved`, `unmatched-current` and `budget-exceeded`
-remain non-approving evidence. Simultaneously moved identical copies can remain
+remain non-approving evidence. `candidate_search_complete` distinguishes budget loss
+from incomplete input coverage: the former offers an explicit higher-budget rerun,
+while the latter names the affected input and recorded source diagnostics for recapture.
+The CLI never raises a budget automatically. Simultaneously moved identical copies can remain
 ambiguous. A unique overlapping family can be a membership-change candidate,
 never automatic split/merge ancestry. Evidence reuse is disabled for incompatible
 profiles, incomplete inputs, missing required evidence or incomplete comparisons.
@@ -150,14 +160,38 @@ the selection. `change=ID` selects an unambiguous change-observation prefix, sep
 from existing family `id=` and many-to-one `review_key`. Each detailed item embeds
 its before/after observations, including past members absent from the workspace.
 Source text is explicitly `not-stored`; no implicit filesystem read fills it in.
+`member_changes` reuses the already-budgeted region correspondence to summarize member
+counts, identical content at new locations, unresolved/ambiguous candidates, and current
+members without an established predecessor. Multiple candidate families keep separate
+counts. These summaries assert neither ancestry nor deletion nor refactoring success.
 
 Reasons may overlap: member multiplicity/content, source address, scope, witness,
 analysis, packs, laws, abstraction and review evidence can all change together.
 These are observed facet differences, not causal attribution to a particular edit.
+Distinct analysis/pack evidence projections separate multiplicity from changed evidence
+facts. A duplicate member can yield `evidence-population-changed` without implying a
+pack-policy or production/test classification change. `scope-changed` requires a family
+scope difference or a changed test flag on an exact member correspondence. Review
+retention still checks the original complete scope/content multiset. Older aggregate-only
+captures cannot isolate simultaneous multiplicity and evidence changes; this limit is
+explicit in the population-change explanation.
 `unchanged_evidence` means an unambiguous matched family has the same non-null
 review key and scope under compatible profiles with complete coverage. It never
 approves a newly added copy. `evidence=recheck` includes uncertainty; it is not a
 consumer's final review disposition.
+
+The first screen summarizes total retained/recheck observations, then current selection
+and shown counts. Recheck observations precede retained observations; observation IDs
+break ties deterministically. This presentation order does not change matching or rank
+clone families by presumed harm. A direct recheck action retains other filters and
+explicitly replaces an existing evidence filter. Empty selections describe their scope
+and offer a named reset action.
+
+`actions[]` carries `{kind,label,command}`; `next[]` retains the same command strings for
+existing consumers. Follow commands verbatim: JSON stays JSON, and human stays human.
+A higher-budget retry drops a specific change address because correspondence can change;
+it preserves the remaining selection and view. Missing-file errors name `--before` or
+`--after`, the path, and the expected capture format.
 
 `top=N` only limits displayed rows/groups (`top=0` emits all); group counts can
 overlap and display truncation never changes the comparison. Missing rows mean
@@ -409,7 +443,9 @@ coverage, and candidate overflow. All 2,296 workspace tests passed. The checked
 [audit harness](../bench/regions/divergence_matches.py) compares the first three
 cases against the preceding A/B1 release and verifies equality of every field
 outside `semantic_change`, including gate decisions and target identities, plus
-identical two/four-worker output.
+identical two/four-worker output. The current harness excludes the intentionally
+changed `next`/`actions` navigation fields from that comparison and reports
+`detection_and_gate_fields_equal`; it still compares every other non-semantic field.
 
 ```sh
 python3 bench/regions/divergence_matches.py --nose target/release/nose \
@@ -422,6 +458,24 @@ Six alternating local samples per binary/case measured process medians of
 These small controlled cases establish the specific evidence correction and preserved
 gate, not real-history precision/recall or a general runtime bound. Raw observations
 are in the ignored `target/analysis-changes/b2-audit.json`.
+
+## Exploration UX verification
+
+The six UX corrections have regression coverage for truthful duplicate-member reasons,
+concurrent membership/pack-receipt changes, older aggregate-only inputs, saved source
+diagnostics after source deletion, named budget recovery, recheck-first landing counts,
+verbatim next-command execution, group expansion, missing-input errors, member-location
+summaries and full base-candidate navigation with a quoted config path. The base evidence
+action is executed from another directory and does not inherit the original failing gate.
+
+All 2,307 workspace tests passed, followed by the focused CLI acceptance suite after
+navigation/input-handling refactoring. Clippy with warnings denied, Rust API docs, wiki
+checks and the file-length gate passed. The release comparison against the preceding
+binary retained identical detection/gate fields and two/four-worker output on all three
+controlled divergence cases. Navigation additions are excluded explicitly by the checked
+audit harness, and do not count as detection changes. The local audit and human smoke
+output are retained under ignored `target/analysis-changes/ux-base-audit.json` and
+`target/analysis-changes/ux-smoke.txt`.
 
 ## Research basis
 

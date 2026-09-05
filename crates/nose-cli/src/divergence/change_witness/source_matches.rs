@@ -190,10 +190,9 @@ impl RegionMatches {
             .collect::<Vec<_>>()
             .join(", ");
         format!(
-            "{} source-region match(es), {}: {}",
-            self.candidates.len(),
-            self.status,
-            locations
+            "{} source-region match(es), {} shown, {} (already-projected changed-file units; {}/{} files, coverage {}): {}",
+            self.candidates.len(), self.candidates.len().min(3), self.status,
+            self.files_examined, self.files_in_scope, if self.complete { "complete" } else { "partial" }, locations
         )
     }
 }

@@ -224,6 +224,10 @@ The search is limited to already projected changed-file units, not all repositor
 regions, and does not recognize extraction, inlining or edited moves. See the
 [JSON contract](query-json.md) for scope, status and cap fields. Candidate evidence
 never changes `fire_eligible`, `tier`, target identities or `gate.fail_default`.
+Human output labels the first-three candidate limit and changed-file coverage. Follow
+the labeled full JSON evidence command to inspect all candidates before choosing a gate
+or another action; it preserves the working directory and original analysis options.
+The gate is a separate labeled action.
 
 ## V2 gate tiers (design contract)
 

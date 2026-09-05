@@ -21,6 +21,9 @@ pub struct Comparison {
     pub complete: bool,
     pub candidates_examined: usize,
     pub changes: Vec<Change>,
+    /// Reuse the already-budgeted member correspondence for detailed exploration.
+    #[serde(skip_serializing)]
+    pub member_correspondences: Vec<crate::regions::Correspondence>,
 }
 
 struct Mapping {
@@ -46,6 +49,7 @@ pub fn compare(
         complete: before.complete && after.complete && regions.complete,
         candidates_examined: regions.candidates_examined,
         changes: Vec::new(),
+        member_correspondences: Vec::new(),
     };
     let mapping: BTreeMap<_, _> = regions
         .correspondences
@@ -109,9 +113,17 @@ pub fn compare(
     }
     let old: BTreeMap<_, _> = before.families.iter().map(|f| (f.id, f)).collect();
     for row in &mut result.changes {
-        explain(row, &old, &current, result.profile_matches, result.complete);
+        explain(
+            row,
+            &old,
+            &current,
+            &mapping,
+            result.profile_matches,
+            result.complete,
+        );
     }
     result.changes.sort_by_key(|r| r.id);
+    result.member_correspondences = regions.correspondences;
     Ok(result)
 }
 
@@ -213,6 +225,7 @@ fn explain(
     row: &mut Change,
     old: &BTreeMap<ContentDigest, &FamilyObservation>,
     current: &BTreeMap<ContentDigest, &FamilyObservation>,
+    mapping: &BTreeMap<ContentDigest, Mapping>,
     profiles: bool,
     complete: bool,
 ) {
@@ -232,6 +245,7 @@ fn explain(
         let contents = |f: &FamilyObservation| {
             let mut v: Vec<_> = f.members.iter().map(|m| m.content_key).collect();
             v.sort();
+            v.dedup();
             v
         };
         if contents(a) != contents(b) {
@@ -240,16 +254,27 @@ fn explain(
         if member_ids(a) != member_ids(b) {
             reasons.insert("source-address-changed".into());
         }
-        if a.scope != b.scope || member_scopes(a) != member_scopes(b) {
+        if a.scope != b.scope || mapped_scope_changed(a, b, mapping) {
             reasons.insert("scope-changed".into());
         }
         if a.witness != b.witness || a.value_nodes != b.value_nodes {
             reasons.insert("witness-changed".into());
         }
-        for (key, value) in &a.evidence {
-            if b.evidence.get(key) != Some(value) {
-                reasons.insert(format!("{key}-changed"));
+        for key in ["analysis", "packs", "laws", "abstraction"] {
+            if a.evidence.get(key) == b.evidence.get(key) {
+                continue;
             }
+            let facts = format!("{key}-facts");
+            let multiplicity = matches!(key, "analysis" | "packs")
+                && match (a.evidence.get(&facts), b.evidence.get(&facts)) {
+                    (Some(left), Some(right)) => left == right,
+                    _ => a.members.len() != b.members.len(),
+                };
+            reasons.insert(if multiplicity {
+                "evidence-population-changed".into()
+            } else {
+                format!("{key}-changed")
+            });
         }
         if a.review_key != b.review_key {
             reasons.insert("review-evidence-changed".into());
@@ -282,4 +307,32 @@ fn member_scopes(family: &FamilyObservation) -> Vec<(Option<ContentDigest>, bool
         .collect();
     scopes.sort();
     scopes
+}
+
+fn mapped_scope_changed(
+    a: &FamilyObservation,
+    b: &FamilyObservation,
+    mapping: &BTreeMap<ContentDigest, Mapping>,
+) -> bool {
+    let current: BTreeMap<_, _> = b
+        .members
+        .iter()
+        .filter_map(|m| Some((m.observation_id()?, m.in_test)))
+        .collect();
+    a.members.iter().any(|member| {
+        let Some(id) = member.observation_id() else {
+            return false;
+        };
+        let Some(m) = mapping.get(&id) else {
+            return false;
+        };
+        m.exact
+            && !m.ambiguous
+            && m.after.len() == 1
+            && m.after.iter().any(|id| {
+                current
+                    .get(id)
+                    .is_some_and(|in_test| *in_test != member.in_test)
+            })
+    })
 }

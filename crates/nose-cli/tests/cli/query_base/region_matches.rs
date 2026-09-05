@@ -192,3 +192,87 @@ fn moved_function_keeps_candidates_when_original_unit_or_file_is_missing() {
         }
     }
 }
+
+#[test]
+fn all_candidate_evidence_is_reachable_with_original_analysis_context() {
+    let p = project();
+    for name in ["e.py", "f.py"] {
+        p.write(name, OTHER);
+    }
+    p.write(
+        "review ' config.toml",
+        "# explicit config with quoted path\n",
+    );
+    git_in(p.path(), &["add", "-A"]);
+    git_in(p.path(), &["commit", "-qm", "extra candidate locations"]);
+    p.write("a.py", "# compute moved\n");
+    for name in ["c.py", "d.py", "e.py", "f.py"] {
+        p.write(name, &format!("{OTHER}\n{BODY}"));
+    }
+    let args = [
+        "base=HEAD",
+        "--root",
+        ".",
+        "--mode",
+        "semantic",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+        "--config",
+        "review ' config.toml",
+        "--fail-on",
+        "any",
+    ];
+    // Use the explicit-root form; a leading positional '.' would become a query term.
+    let mut command = vec!["query"];
+    command.extend(args);
+    let human = run_nose_query(p.path(), &command, "base candidates human");
+    assert!(!human.status.success(), "original gate should still fail");
+    let text = String::from_utf8_lossy(&human.stdout);
+    assert!(
+        text.contains("4 source-region match(es), 3 shown"),
+        "{text}"
+    );
+    assert!(text.contains("already-projected changed-file units"));
+    let next = text
+        .lines()
+        .map(str::trim)
+        .find(|line| line.starts_with("cd ") && line.contains("'json'"))
+        .expect("JSON evidence next");
+    assert!(
+        next.contains("--config")
+            && next.contains("--min-size")
+            && next.contains("--mode")
+            && next.contains("--root")
+    );
+    assert!(!next.contains("--fail-on"));
+    let binary = PathBuf::from(bin());
+    let search_path = std::env::join_paths(
+        std::iter::once(binary.parent().unwrap().to_path_buf()).chain(std::env::split_paths(
+            &std::env::var_os("PATH").unwrap_or_default(),
+        )),
+    )
+    .unwrap();
+    let out = Command::new("sh")
+        .current_dir(std::env::temp_dir())
+        .env("PATH", search_path)
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .args(["-c", next])
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let regions = &changed(&json)["semantic_change"]["region_matches"];
+    assert_eq!(regions["candidates"].as_array().unwrap().len(), 4);
+    assert_eq!(
+        json["summary"]["shown_divergences"],
+        json["summary"]["divergences"]
+    );
+}

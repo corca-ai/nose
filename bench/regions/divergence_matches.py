@@ -25,11 +25,11 @@ def run(binary: Path, root: Path, workers: int = 2) -> tuple[dict, int, float]:
     return json.loads(out.stdout), len(out.stdout), 1000 * (time.perf_counter() - start)
 
 
-def without_semantic_evidence(value):
+def detection_and_gate_fields(value):
     if isinstance(value, dict):
-        return {k: without_semantic_evidence(v) for k, v in value.items() if k != "semantic_change"}
+        return {k: detection_and_gate_fields(v) for k, v in value.items() if k not in {"semantic_change", "next", "actions"}}
     if isinstance(value, list):
-        return [without_semantic_evidence(v) for v in value]
+        return [detection_and_gate_fields(v) for v in value]
     return value
 
 
@@ -57,7 +57,7 @@ def audit(nose: Path, baseline: Path, samples: int) -> dict:
             (root / "d.py").write_text(OTHER + ("\n" + BODY if case == "two-copies" else ""))
             old, old_bytes, _ = run(baseline, root)
             new, new_bytes, _ = run(nose, root)
-            assert without_semantic_evidence(old) == without_semantic_evidence(new), case
+            assert detection_and_gate_fields(old) == detection_and_gate_fields(new), case
             assert new == run(nose, root, workers=4)[0], case
             old_evidence, new_evidence = evidence(old), evidence(new)
             candidates = new_evidence["region_matches"]
@@ -71,7 +71,7 @@ def audit(nose: Path, baseline: Path, samples: int) -> dict:
                 for label, binary in (order if sample % 2 == 0 else reversed(order)):
                     timings[label].append(run(binary, root)[2])
             result["cases"][case] = {
-                "non_semantic_fields_equal": True, "workers_equal": True,
+                "detection_and_gate_fields_equal": True, "workers_equal": True,
                 "previous_evidence_status": old_evidence["status"],
                 "evidence_status": new_evidence["status"], "candidate_status": candidates["status"],
                 "candidates": len(candidates["candidates"]), "files_examined": candidates["files_examined"],

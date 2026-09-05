@@ -10,6 +10,18 @@ use std::path::Path;
 
 const MAX_BYTES: u64 = 128 * 1024 * 1024;
 
+pub(super) fn input(path: &Path, side: &str) -> Result<(std::path::PathBuf, AnalysisSnapshot)> {
+    let resolved = std::fs::canonicalize(path).with_context(|| {
+        format!(
+            "opening {side} {}; provide an existing --save-analysis artifact",
+            path.display()
+        )
+    })?;
+    let snapshot =
+        read(&resolved).with_context(|| format!("reading {side} {}", resolved.display()))?;
+    Ok((resolved, snapshot))
+}
+
 pub(super) fn read(path: &Path) -> Result<AnalysisSnapshot> {
     let mut bytes = Vec::new();
     std::fs::File::open(path)
@@ -45,13 +57,16 @@ pub(crate) fn capture(args: &QueryArgs, path: &Path) -> Result<()> {
         .collect::<std::io::Result<_>>()?;
     roots.sort();
     roots.dedup();
+    let mut source_diagnostics = dataset.scope.skipped_sources.clone();
+    source_diagnostics.sort_by(|a, b| (&a.path, &a.reason).cmp(&(&b.path, &b.reason)));
     let snapshot = AnalysisSnapshot {
         schema: "nose.analysis/v1".into(),
         profile,
         roots,
         path_base: std::env::current_dir()?.to_string_lossy().into_owned(),
         scanned_files: dataset.scope.files,
-        skipped_sources: dataset.scope.skipped_sources.len(),
+        skipped_sources: source_diagnostics.len(),
+        source_diagnostics: Some(source_diagnostics),
         population: "admitted-query-families".into(),
         complete: dataset.scope.skipped_sources.is_empty(),
         families,
@@ -72,20 +87,27 @@ pub(crate) fn capture(args: &QueryArgs, path: &Path) -> Result<()> {
         return Err(e.into());
     }
     let path = std::fs::canonicalize(path)?;
-    let next = super::navigation::command(&path, &path, 100_000, &[]);
+    let next = super::navigation::command(&path, &path, 100_000, &[], args.format);
     if args.format == ReportFormat::Json {
         println!(
             "{}",
             serde_json::json!({"schema":"nose.analysis-capture/v1", "file":path,
-            "families":snapshot.families.len(), "complete":snapshot.complete,
-            "population":snapshot.population, "next":[next]})
+            "families":snapshot.families.len(), "complete":coverage(&snapshot)["complete"],
+            "population":snapshot.population, "coverage":coverage(&snapshot), "next":[next],
+            "actions":[{"label":"Explore this capture", "command":next}]})
         );
     } else {
-        println!("Saved {} admitted code families to {}.
-All surfaces included; reviews and source bodies are not stored.
+        println!(
+            "Saved {} admitted code families to {}.",
+            snapshot.families.len(),
+            path.display()
+        );
+        super::render::coverage("Capture", &coverage(&snapshot));
+        println!(
+            "All admitted surfaces included; reviews and source bodies are not stored.
 next: {next}
-Compare this capture to itself to explore its evidence; supply a later --after capture to inspect changes.",
-            snapshot.families.len(), path.display());
+Explore this capture; supply a later --after capture to inspect changes."
+        );
     }
     Ok(())
 }
@@ -134,4 +156,21 @@ fn profile(dataset: &crate::query_dataset::QueryDataset) -> Result<BTreeMap<Stri
             "frontend-gitignore/supported-sources; source changes require a new capture".into(),
         ),
     ]))
+}
+
+pub(super) fn coverage(snapshot: &AnalysisSnapshot) -> serde_json::Value {
+    let unavailable = snapshot
+        .families
+        .iter()
+        .flat_map(|f| &f.members)
+        .filter(|m| m.source.is_none() || m.content_key.is_none())
+        .count();
+    serde_json::json!({
+        "complete":snapshot.complete && snapshot.skipped_sources == 0 && unavailable == 0,
+        "scanned_files":snapshot.scanned_files,
+        "skipped_sources":snapshot.skipped_sources,
+        "members_without_source":unavailable,
+        "diagnostics_status":if snapshot.source_diagnostics.is_some() { "recorded" } else { "not-recorded" },
+        "diagnostics":snapshot.source_diagnostics,
+    })
 }

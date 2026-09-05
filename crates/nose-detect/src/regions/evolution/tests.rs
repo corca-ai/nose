@@ -11,6 +11,7 @@ fn snapshot(family: &crate::RefactorFamily) -> AnalysisSnapshot {
         path_base: ".".into(),
         scanned_files: 3,
         skipped_sources: 0,
+        source_diagnostics: None,
         population: "admitted-query-families".into(),
         complete: true,
         families: vec![FamilyObservation::capture(family)],
@@ -107,4 +108,72 @@ fn serialized_observation_corruption_and_partial_coverage_fail_closed() {
     let result = compare(&before, &after, 1000).unwrap();
     assert!(!result.complete);
     assert!(result.changes.iter().all(|r| !r.unchanged_evidence));
+}
+
+#[test]
+fn an_identical_copy_changes_population_without_inventing_scope_or_pack_changes() {
+    let mut family = three_copy_family();
+    let before = snapshot(&family);
+    let mut copy = family.locations[0].clone();
+    copy.file = "new-copy.py".into();
+    family.locations.push(copy);
+    family.members += 1;
+    let result = compare(&before, &snapshot(&family), 1000).unwrap();
+    let row = result.changes.iter().find(|r| r.before.is_some()).unwrap();
+    assert!(!row.unchanged_evidence);
+    assert!(row.reasons.iter().any(|r| r == "membership-changed"));
+    assert!(row
+        .reasons
+        .iter()
+        .any(|r| r == "evidence-population-changed"));
+    for reason in [
+        "scope-changed",
+        "packs-changed",
+        "analysis-changed",
+        "member-content-changed",
+    ] {
+        assert!(
+            !row.reasons.iter().any(|r| r == reason),
+            "{:?}",
+            row.reasons
+        );
+    }
+}
+
+#[test]
+fn old_v1_aggregate_only_captures_remain_readable_without_guessing_details() {
+    let current = snapshot(&three_copy_family());
+    let mut old = current.clone();
+    for family in &mut old.families {
+        family.evidence.remove("analysis-facts");
+        family.evidence.remove("packs-facts");
+        family.id = family.address();
+    }
+    let old: AnalysisSnapshot =
+        rmp_serde::from_slice(&rmp_serde::to_vec_named(&old).unwrap()).unwrap();
+    let result = compare(&old, &current, 1000).unwrap();
+    assert!(result.changes.iter().all(|r| r.unchanged_evidence));
+    assert!(old.source_diagnostics.is_none());
+}
+
+#[test]
+fn pack_receipt_changes_are_visible_even_when_membership_changes_too() {
+    let mut family = with_pack(true);
+    let before = snapshot(&family);
+    family.locations[0].semantic_pack_external_exact[0].receipt_digest = "changed receipt".into();
+    let mut copy = family.locations[0].clone();
+    copy.file = "copy.py".into();
+    copy.semantic_pack_external_exact[0].occurrence_file = copy.file.clone();
+    family.locations.push(copy);
+    family.members += 1;
+    family.semantic_pack_external_exact = family
+        .locations
+        .iter()
+        .flat_map(|l| l.semantic_pack_external_exact.clone())
+        .collect();
+    let result = compare(&before, &snapshot(&family), 1000).unwrap();
+    let row = result.changes.iter().find(|r| r.before.is_some()).unwrap();
+    assert!(row.reasons.iter().any(|r| r == "packs-changed"));
+    assert!(row.reasons.iter().any(|r| r == "membership-changed"));
+    assert!(!row.unchanged_evidence);
 }

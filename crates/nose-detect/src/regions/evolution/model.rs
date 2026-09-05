@@ -36,6 +36,10 @@ impl MemberObservation {
             review_key: member_review_key(loc),
         }
     }
+    /// Address of this captured source occurrence, independent of family membership.
+    pub fn observation_id(&self) -> Option<ContentDigest> {
+        self.region().map(|r| r.observation_id)
+    }
     pub(super) fn region(&self) -> Option<super::super::RegionRecord> {
         let mut r = super::super::RegionRecord {
             observation_id: self.content_key?,
@@ -91,6 +95,8 @@ impl FamilyObservation {
         packs.sort();
         let mut analyses: Vec<_> = members.iter().map(|m| m.analysis_key).collect();
         analyses.sort();
+        let analysis_facts: BTreeSet<_> = analyses.iter().collect();
+        let pack_facts: BTreeSet<_> = packs.iter().collect();
         let mut laws = family.semantic_laws.clone();
         laws.sort();
         let mut pack_rows: Vec<_> = family
@@ -127,6 +133,14 @@ impl FamilyObservation {
                     digest(b"nose.family-analysis/v1", &analyses),
                 ),
                 ("packs".into(), digest(b"nose.family-packs/v1", &packs)),
+                (
+                    "analysis-facts".into(),
+                    digest(b"nose.family-analysis-facts/v1", &analysis_facts),
+                ),
+                (
+                    "packs-facts".into(),
+                    digest(b"nose.family-pack-facts/v1", &pack_facts),
+                ),
                 ("laws".into(), digest(b"nose.family-laws/v1", &laws)),
                 (
                     "abstraction".into(),
@@ -181,6 +195,9 @@ pub struct AnalysisSnapshot {
     pub path_base: String,
     pub scanned_files: usize,
     pub skipped_sources: usize,
+    /// Older v1 captures recorded only the count. None must not imply no skips.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_diagnostics: Option<Vec<nose_il::SourceDiagnostic>>,
     pub population: String,
     pub complete: bool,
     pub families: Vec<FamilyObservation>,
@@ -195,6 +212,13 @@ impl AnalysisSnapshot {
             || self.path_base.is_empty()
         {
             return Err("expected nose.analysis/v1 capture; query/baseline/region JSON is not a complete family analysis".into());
+        }
+        if self
+            .source_diagnostics
+            .as_ref()
+            .is_some_and(|rows| rows.len() != self.skipped_sources)
+        {
+            return Err("source diagnostics do not match skipped_sources".into());
         }
         let mut ids = BTreeSet::new();
         for f in &self.families {

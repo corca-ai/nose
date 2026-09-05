@@ -176,7 +176,10 @@ candidate is not proof of movement, ancestry, semantic equivalence or review app
 A competing occurrence downgrades a formerly complete `changed-range` alignment to
 `advisory` with `heuristic-alignment`; the selected pair's deltas remain inspectable.
 An actual edit aligned by exact span or stable name retains its existing evidence.
-Human output lists candidate locations (first three), and SARIF carries the same
+Human output labels how many candidate locations are shown (first three), the changed-file
+search scope, and file coverage. The `inspect-evidence` action opens every candidate in
+JSON with `top=0`, preserving workspace, roots, explicit mode/thresholds, config, excludes,
+cache and pack inputs. It does not inherit a gate flag. SARIF carries the same
 structured evidence. `query_base_region_candidates_v1` advertises this optional
 extension; the existing v8 enums and gate policy are unchanged.
 
@@ -359,3 +362,14 @@ records are identical for clean, cold-cache and warm-cache queries.
 query JSON v10 and base JSON v8. Dashboard/list JSON cannot be substituted for a complete
 capture. The [analysis comparison contract](region-identity.md#explore-changes-between-saved-analyses)
 owns their profiles, completeness, reasons, filters and executable navigation.
+
+The comparison's `coverage.before/after` reports scanned files, skipped sources,
+members lacking source evidence, diagnostic availability and the saved diagnostics.
+`candidate_search_complete` reports search budget availability independently.
+`summary.retained/recheck/total` count the full comparison;
+`selected_retained/selected_recheck/selected` count the current selection, and `shown`
+counts displayed observations. Rows use `order="recheck-first-then-observation-id"`.
+`actions[]` supplies named actions alongside the compatible `next[]` command strings.
+`member_changes` in detailed rows supplies before/after member counts and location-only
+correspondence summaries under the statuses advertised in capabilities. Additional
+fields are additive to these v1 output schemas; consumers must ignore unknown fields.

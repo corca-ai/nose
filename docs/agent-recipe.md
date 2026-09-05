@@ -39,7 +39,11 @@ budget, usually `--mode syntax` with explicit size filters; see [continuous inte
 Capture the admitted family population with `nose query <path> --save-analysis before.json`,
 then repeat with `after.json` after editing. Run `nose query --before before.json --after after.json`
 and follow its next commands: change-reason groups → selected changes → `change=<id> full`.
-Use `evidence=recheck` to explore changed or uncertain evidence. Retained evidence is a
+The landing view previews recheck observations first. Follow labeled `actions` or their
+identical `next` commands verbatim; they retain the output format. Use
+`evidence=recheck` to explore changed or uncertain evidence. For incomplete coverage,
+read the per-input saved diagnostics; use a higher-budget action only for an incomplete
+candidate search. Full details summarize observed member counts and locations. Retained evidence is a
 fact for your review policy, not approval. Ordinary dashboard JSON is a truncated view
 and cannot replace a capture. The [analysis comparison contract](region-identity.md#explore-changes-between-saved-analyses)
 explains profiles, coverage, artifact addresses and the limits of absence-based conclusions.

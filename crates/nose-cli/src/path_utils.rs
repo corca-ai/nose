@@ -88,3 +88,8 @@ pub(crate) fn absolute_lexical(path: &Path) -> Option<PathBuf> {
     }
     Some(cleaned)
 }
+
+/// Quote one shell word for runnable CLI navigation, including embedded apostrophes.
+pub(crate) fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\"'\"'"))
+}

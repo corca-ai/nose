@@ -1,4 +1,6 @@
 mod base_json;
+mod base_navigation;
+pub(super) use base_navigation::{actions as base_actions, BaseViewOptions};
 mod group;
 
 pub(super) use group::{render_query_group, QueryGroupView};
@@ -97,14 +99,21 @@ pub(super) fn render_query_base(
     base_ref: &str,
     path: &str,
     top: Option<usize>,
-    json: bool,
-    semantic_packs: &[serde_json::Value],
+    options: BaseViewOptions<'_>,
 ) {
     let limit = query_row_limit(top);
     let fire_eligible = flagged.iter().filter(|d| d.fire_eligible).count();
     let strict = flagged.iter().filter(|d| d.gate_fail_default()).count();
-    if json {
-        base_json::render(flagged, changed_files, base_ref, path, top, semantic_packs);
+    if options.format == crate::query_options::ReportFormat::Json {
+        base_json::render(
+            flagged,
+            changed_files,
+            base_ref,
+            path,
+            top,
+            options.semantic_packs,
+            options.actions,
+        );
         return;
     }
     print_query_prelude();
@@ -182,7 +191,13 @@ pub(super) fn render_query_base(
         }
     }
     println!("\nnext:");
-    println!("  nose query {path} base={base_ref} --fail-on any   # fail CI on strict divergences");
+    for action in options.actions {
+        println!(
+            "  {}\n    {}",
+            action["label"].as_str().unwrap(),
+            action["command"].as_str().unwrap()
+        );
+    }
 }
 
 fn print_semantic_change(site: &divergence::Site) {

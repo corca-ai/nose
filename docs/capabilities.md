@@ -22,6 +22,11 @@ Analysis capture/comparison support is advertised by `query_analysis_capture_v1`
 `query_analysis_changes_v1`. `schemas.analysis` lists the three versioned capture/artifact/
 comparison contracts; `query.analysis` describes its commands, views, fields, enum values,
 formats and limits. This is separate from baseline `since=` and region-snapshot schemas.
+`query_analysis_diagnostics_v1` advertises saved skipped-source details and input-specific
+coverage. `query_analysis_navigation_v1` advertises labeled `actions`, format-preserving
+next commands and recheck-first presentation. `query_analysis_member_changes_v1`
+advertises detailed member correspondence summaries. `query_base_evidence_navigation_v1`
+advertises the base view's context-preserving full JSON evidence action.
 See [analysis comparison](region-identity.md#explore-changes-between-saved-analyses).
 
 ## Example
@@ -161,6 +166,10 @@ nose capabilities
       "multi_root": true,
       "query_analysis_capture_v1": true,
       "query_analysis_changes_v1": true,
+      "query_analysis_diagnostics_v1": true,
+      "query_analysis_member_changes_v1": true,
+      "query_analysis_navigation_v1": true,
+      "query_base_evidence_navigation_v1": true,
       "query_base_gate_fail_default": true,
       "query_base_json_v8": true,
       "query_base_region_candidates_v1": true,
@@ -183,6 +192,15 @@ nose capabilities
       "structured_ignores": true
     },
     "analysis": {
+      "actions": [
+        "reset-filters",
+        "increase-budget",
+        "recheck",
+        "group-reason",
+        "group-evidence",
+        "expand-view",
+        "return-selection"
+      ],
       "capture": "nose query <path> --save-analysis FILE",
       "compare": "nose query --before FILE --after FILE [terms...]",
       "correspondence_values": [
@@ -212,11 +230,23 @@ nose capabilities
         "json"
       ],
       "max_input_bytes": 134217728,
+      "member_change_statuses": [
+        "same-content",
+        "same-content-new-location",
+        "candidate",
+        "ambiguous",
+        "unresolved",
+        "unmatched-current",
+        "budget-exceeded",
+        "unavailable"
+      ],
+      "order": "recheck-first-then-observation-id",
       "population": "admitted-query-families",
       "reason_values": [
         "profile-changed",
         "incomplete-coverage",
         "membership-changed",
+        "evidence-population-changed",
         "member-content-changed",
         "source-address-changed",
         "scope-changed",
