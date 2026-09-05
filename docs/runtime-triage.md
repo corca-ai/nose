@@ -145,3 +145,54 @@ The [20-optimization runtime pass](runtime-performance-20-optimizations-2026-07-
 records the first longer optimization sequence using this process, including the
 same-binary noise control, all-120-repo before/after artifact, and focused recheck of
 the largest apparent regressions.
+
+## Cortex first-analysis follow-up (2026-09-06)
+
+The local comparison is `71b44a89` to `d55665b2`, on Cortex
+`0baac1230c442aeb7109aadbe035bec729321ff1`. It measures a new process without
+nose analysis-cache reuse; the operating-system page cache was not flushed.
+The query is `nose query cortex --format json` from the repositories' parent.
+Both binaries use the same root, modes, thresholds, and automatic candidate policy.
+
+Six alternating pairs reduced median elapsed time from 8,963.22 ms to 5,449.67 ms
+(39.20%). The paired order-aware movement was -3,487.53 ms (-38.91%); the
+same-binary control had a -20.53 ms movement, which cannot inflate an improvement.
+All twelve result byte hashes match. The contiguous stage fell from 3,499.45 ms
+to 65.00 ms. Sampling and stage timings identified repeated token extension of
+long runs whose remaining source spans could never satisfy the existing line floor.
+Conservative suffix bounds avoid that extension while retaining first-occurrence
+seeds, including seeds in one-line code that can match later multiline code.
+The bounds include the whole current block to tolerate nonmonotonic source spans.
+
+A separate comparison of `all top=0` in the default mode set preserved every
+output byte on Cortex and all seven pinned smoke repositories. Regression tests
+also preserve first-seed behavior and exercise valid runs with nonmonotonic spans,
+empty streams, and streams without operations. All 2,352 workspace tests, strict
+Clippy, formatting, docs, file-length, and the unchanged 18-family duplication
+ratchet passed. No source/feature cache schema changed. An additional equal-slice
+Jaccard shortcut was measured, showed no product speed improvement, and was removed.
+
+The required seven-repository semantic smoke preserved output exactly and passed
+Ruby scaling (exponent 0.67). Its runtime gate did **not** pass: after its single
+permitted focused rerun, asciidoctor remained inconclusive at +4.53 ms (+3.35%)
+with order strata of +7.78 ms (+5.66%) and +1.28 ms (+0.98%). No confirmed
+material regression was found, and no threshold or retry policy was changed.
+
+The Cortex focused check also remains **inconclusive**, despite the repeated total
+improvement (8,993.10 ms to 5,576.83 ms). Its adjusted stage movements were
++16.33 ms (+4.91%) for rendering, +9.70 ms (+5.22%) for family ranking, and
++9.63 ms (+5.54%) for rank mapping; their order strata disagree. The first six
+focused blocks were insufficient because the primary already used six. Exactly
+two more blocks were appended to each focused comparison to satisfy the checker's
+strictly larger-sample requirement. Original reports were preserved, and extension
+provenance records the reason, script hash, environment, and appended iterations.
+No observations were replaced, and no further performance rerun was attempted.
+The blind attacker retained 54 exact groups with zero false merges or canonicalization
+violations. These correctness results do not convert the runtime gates into passes.
+
+Raw measurements, code/binary identities, controls, complete output comparisons,
+and smoke reports are retained in `target/first-analysis-performance-2026-09-06/`.
+The process-local timing and sampling originals are in `/tmp/nose-first-run-perf/`.
+Candidate scoring still takes about 2.3 seconds and parsing/normalization about
+2 seconds on Cortex; this improvement does not establish interactive latency or
+lower peak memory use.
