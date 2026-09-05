@@ -351,6 +351,45 @@ focused, and expanded-sample reports are in the ignored development artifact dir
 `target/review-identity-completion/semantic-smoke-final/`; the successful follow-up is
 `balanced-check-status.json` / `balanced-summary.md`.
 
+## Analysis exploration verification (2026-09-05)
+
+The first #987 delivery (`2e9ad816`) adds capture and offline EDA; it does not
+implement the later divergent-edit policy, automatic extraction history, cache
+optimization or history-ranking tranches. All 2,291 workspace tests passed,
+including seven CLI scenarios and five comparison-core cases. CLI cases execute
+emitted next commands with quoted paths, multi-root/config inputs, missing source,
+profile/coverage/budget changes, new copies, cache reuse, invalid combinations and
+partial-input rejection. Core tests cover actual pack receipt changes, analysis
+and member test-scope changes, ambiguous moved copies and disappearing families.
+Clippy, Rust API documentation, wiki checks and the complete
+`./scripts/check-ci-local.sh --fast --jobs 2` run also passed.
+
+On the same `2e9ad816` Rust source corpus, the controlled header-edit audit reported:
+
+| Mode | Captured families | Existing `since=` changed rows | Retained evidence | Recheck observations |
+| --- | ---: | ---: | ---: | ---: |
+| semantic | 42 | 32 | 35 | 7 |
+| syntax | 697 | 681 | 670 | 27 |
+| near | 689 | 675 | 666 | 23 |
+| abstraction | 12 | 12 | 12 | 0 |
+
+These are counts across mode-specific populations, not unique repository-wide
+families or approval decisions. Of 1,440 observations, 1,383 retained review
+evidence and 57 remained for recheck; the existing baseline temporal lens marked
+1,400 current rows changed under the same edit. The new unresolved/ambiguous cases
+are retained for inspection. All comparisons had complete candidate/provenance
+coverage and identical two/four-worker output. Ordinary full query JSON in all
+four modes remained identical to the pre-change release binary on the same corpus.
+
+Each change dashboard displayed five observations; the saved census remained
+complete. Offline comparison took approximately 6–65 ms in single local release
+observations, including process startup. These samples are diagnostic and do not
+establish a runtime regression bound. The audit records full/landing/recheck byte
+counts separately and does not treat a shorter partial result as improved coverage.
+The reproducible report is in the ignored `target/analysis-changes/audit.json`;
+the checked harness above owns regeneration. The current product blind oracle
+retained 54 exact groups with zero false merges and zero canonicalization violations.
+
 ## Research basis
 
 - [NCBI accessions and versions](https://ncbi.nlm.nih.gov/genbank/sequenceids/)
