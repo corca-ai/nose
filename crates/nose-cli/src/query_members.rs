@@ -165,7 +165,7 @@ pub(crate) fn view(f: &RefactorFamily, q: &Query, args: &crate::cli_args::QueryA
     json!({"total":f.locations.len(),"selected":selected.len(),"shown":if q.member_view.group.is_some() {0} else {selected.len().min(top)},
         "group":q.member_view.group,"groups":group_rows,"groups_total":groups.len(),
         "locations":if q.member_view.group.is_some() {Vec::new()} else {selected.into_iter().take(top).map(|l| json!({"id":baseline::member_id(l),"file":l.file,"start":l.start_line,"end":l.end_line,"name":l.name,"lang":l.lang,"region":l.source_region,"scope_evidence":crate::query_assessment::scope(l)})).collect::<Vec<_>>()},
-        "next":[command(vec!["member-group=dir".into()]),command(vec!["member-group=lang".into()]),command(vec!["member-group=scope".into()]),command(expand),base],
+        "next":[command(vec!["member-group=dir".into()]),command(vec!["member-group=lang".into()]),command(vec!["member-group=scope".into()]),command(expand),format!("{base} full"),base],
         "meaning":"Member selection only; family identity, evidence, metrics and assessment describe the complete family."})
 }
 pub(crate) fn render(view: &Value) {

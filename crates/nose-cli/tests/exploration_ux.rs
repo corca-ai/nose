@@ -314,3 +314,117 @@ fn member_facets_keep_family_identity_and_scope_evidence() {
         "caller-review-required"
     );
 }
+
+#[test]
+fn cross_language_detail_is_comparison_in_human_json_and_markdown() {
+    let p = Project::new();
+    p.write("a.js", "function sum(n) {\n let s = 0;\n for (let i = 0; i < n; i++) { s += i * i; }\n return s;\n}\n");
+    p.write("b.ts", "function total(n: number): number {\n let s = 0;\n for (let i = 0; i < n; i++) { s += i * i; }\n return s;\n}\n");
+    let list = p.query(&["all", "top=0"]);
+    let family = list["families"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|f| f["languages"] == 2)
+        .expect("cross-language family");
+    let id = format!("id={}", family["id"].as_str().unwrap());
+    let detail = p.query(&[&id, "full"]);
+    assert_eq!(
+        detail["family"]["assessment"]["support"],
+        "cross-language-comparison"
+    );
+    assert_eq!(
+        detail["family"]["source_evidence"]["alignment_status"],
+        "cross-language-not-aligned"
+    );
+    assert!(detail["family"].get("skeleton").is_none());
+    assert_eq!(family["review_key"], detail["family"]["review_key"]);
+    for format in ["human", "markdown"] {
+        let out = Command::new(env!("CARGO_BIN_EXE_nose"))
+            .current_dir(&p.0)
+            .args([
+                "query",
+                ".",
+                "--min-size",
+                "1",
+                "--min-lines",
+                "1",
+                &id,
+                "full",
+                "--format",
+                format,
+            ])
+            .output()
+            .unwrap();
+        assert!(out.status.success());
+        let text = String::from_utf8(out.stdout).unwrap();
+        assert!(
+            text.contains("direct helper reuse is not established"),
+            "{text}"
+        );
+        assert!(text.contains("source comparison"), "{text}");
+        assert!(!text.contains("extract a shared helper"), "{text}");
+        assert!(!text.contains("parameter(s)"), "{text}");
+    }
+    let next = detail["next"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(Value::as_str)
+        .find(|s| s.ends_with(" full"))
+        .unwrap();
+    let out = Command::new("sh")
+        .current_dir(&p.0)
+        .env(
+            "PATH",
+            format!(
+                "{}:{}",
+                PathBuf::from(env!("CARGO_BIN_EXE_nose"))
+                    .parent()
+                    .unwrap()
+                    .display(),
+                std::env::var("PATH").unwrap()
+            ),
+        )
+        .args(["-c", next])
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let replay: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(replay["family"]["id"], family["id"]);
+    assert_eq!(
+        replay["family"]["source_evidence"],
+        detail["family"]["source_evidence"]
+    );
+}
+
+#[test]
+fn zero_literal_overlap_preserves_exact_relation_and_review_identity() {
+    let p = Project::new();
+    p.write("a.js", "function first(n) {\n let square = n * n;\n let doubled = square * 2;\n return doubled + n;\n}\n");
+    p.write("b.js", "  function second(x) {\n   let squared = x * x;\n   let twice = squared * 2;\n   return twice + x;\n  }\n");
+    let list = p.query(&["all", "top=0", "--mode", "semantic"]);
+    let family = list["families"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|f| f["witness"] == "exact")
+        .expect("normalized exact relation");
+    assert_eq!(family["shared"], 0);
+    let id = format!("id={}", family["id"].as_str().unwrap());
+    let detail = p.query(&[&id, "full", "--mode", "semantic"]);
+    assert_eq!(
+        detail["family"]["assessment"]["relation"]["witness"],
+        "exact"
+    );
+    assert_eq!(detail["family"]["source_evidence"]["shared_lines"], 0);
+    assert_eq!(
+        detail["family"]["source_evidence"]["coverage"]["complete"],
+        true
+    );
+    assert_eq!(detail["family"]["review_key"], family["review_key"]);
+}

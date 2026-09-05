@@ -143,17 +143,17 @@ fn render_query_report_format(ctx: &QueryOutput<'_>) -> Result<()> {
         0,
         None,
     );
-    // `id=<fam>` is a single-family drilldown: render the extraction skeleton
+    // `id=<fam>` is a single-family drilldown: render the bounded source comparison
     // (and, on `full`, the representative diff) so markdown composes with
     // `id=`/`full` the way the human/JSON views do (#422). Bulk reports stay a
     // compact location list — the skeleton is paid only on drilldown.
     if ctx.q.id.is_some() {
         for f in &shown {
             if f.locations.len() >= 2 {
-                query_markdown::markdown_member_proposal(&f.locations);
-                if ctx.q.id_full {
-                    query_markdown::markdown_member_diff(&f.locations[0], &f.locations[1]);
-                }
+                crate::query_source_evidence::render(
+                    &crate::query_source_evidence::collect(f, ctx.q.id_full),
+                    true,
+                );
             }
         }
     }

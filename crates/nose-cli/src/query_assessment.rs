@@ -5,29 +5,30 @@ use serde_json::{json, Value};
 pub(crate) fn assessment(f: &RefactorFamily, shared: u32, params: u32) -> Value {
     let measured = f.display_params.is_some();
     let (support, explanation) = if f.languages > 1 {
-        ("cross-language-comparison", "Matched computations cross language boundaries; inspect behavior and ownership before choosing language-specific changes.")
+        ("cross-language-comparison", "Compare the detector relation across languages; direct helper reuse is not established by language tags.")
     } else if !measured {
         ("source-evidence-unavailable", "Complete source-line measurements are unavailable; semantic similarity alone does not establish an extractable body.")
     } else if shared == 0 {
-        ("no-shared-source", "No invariant source lines were measured; compare the differing behavior before proposing an extraction.")
+        ("no-shared-source", "The bounded alignment found no invariant source lines; the detector relation remains independent evidence. Inspect source differences.")
     } else if f.shared_weight <= 0.0 {
-        ("common-syntax-only", "Shared source lacks substantive ranking evidence; syntax in common is insufficient to justify a helper.")
+        ("common-syntax-only", "Shared lines have no substantive ranking weight (common syntax or pervasive idioms); inspect the relation and source differences.")
     } else {
-        ("shared-source", "Shared source supports inspecting a common implementation; dependency direction and behavioral differences still determine whether extraction is useful.")
+        ("shared-source", "Shared source is an inspection hint; compare differing regions and call contracts before deciding whether reuse is useful.")
     };
-    let mut checks = vec![
-        "ownership-and-dependency-direction",
-        "visibility-and-call-contract",
-        "effects-and-error-behavior",
-    ];
-    if params > 0 {
+    let mut checks = Vec::new();
+    if params > 0 && measured {
         checks.push("varying-regions-are-not-proven-parameters");
     }
     if f.scope == "mixed" {
         checks.push("production-test-boundary");
     }
+    let witness = crate::query_model::witness_token(f.witness.as_ref().map(|w| w.kind()));
     json!({"support":support,"explanation":explanation,"shared_lines":shared,"varying_regions":params,
         "measurement":if measured { "source-line-alignment" } else { "unavailable" },
+        "hint_kind":"inspection","measurement_scope":{"member_limit":8,"line_limit_per_member":120,"coverage":"inspect-source-evidence-for-coverage"},
+        "relation":{"witness":witness,"scope":"detector-witness","meaning":"The detector relation holds within its modeled scope; literal overlap does not strengthen or invalidate it."},
+        "structural_correspondence":{"status":if f.witness.as_ref().is_some_and(|w| w.graded.is_some()) {"available"} else {"not-available"},"scope":"graded-pair-only","meaning":"When available, graded and graded_pair describe one pair; they are not family-wide equivalence proof."},
+        "unassessed":["ownership-and-dependency-direction","visibility-and-call-contract","refactoring-benefit"],
         "checks":checks,"verdict":"caller-review-required"})
 }
 

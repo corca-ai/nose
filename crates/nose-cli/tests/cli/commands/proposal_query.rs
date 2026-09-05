@@ -511,7 +511,7 @@ fn query_dashboard_filter_and_family() {
     );
     // #422: the bulk markdown report stays a compact location list (no per-family skeleton)…
     assert!(
-        !md.contains("**proposal**"),
+        !md.contains("**source comparison**"),
         "bulk markdown stays compact — no extraction skeleton: {md}"
     );
     // …but `id=<fam>` drills into one family and renders the extraction skeleton, and `full`
@@ -523,7 +523,7 @@ fn query_dashboard_filter_and_family() {
     };
     let drill = run(&["query", p, &format!("id={fid}"), "--format", "markdown"]);
     assert!(
-        drill.contains("**proposal**") && drill.contains("⟨param"),
+        drill.contains("**source comparison**") && drill.contains("⟨region"),
         "id=<fam> markdown renders the extraction skeleton with parameter slots: {drill}"
     );
     assert!(
@@ -539,7 +539,7 @@ fn query_dashboard_filter_and_family() {
         "markdown",
     ]);
     assert!(
-        drill_full.contains("**proposal**") && drill_full.contains("**diff**"),
+        drill_full.contains("**source comparison**") && drill_full.contains("**diff**"),
         "id=<fam> full markdown adds the representative diff: {drill_full}"
     );
     let sarif: serde_json::Value =

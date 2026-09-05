@@ -1603,3 +1603,42 @@ by `60f0dd6d98436972` falls below the threshold; this is corpus-sensitive rankin
 not removal of those deliberately distinct numeric policies. Shared CLI argument replay
 was extracted for divergence and member navigation instead of accepting a new copied
 implementation. No new avoidable duplication is accepted.
+
+
+## Evidence without edit instructions (2026-09-05)
+
+External CLI exploration of Craken exposed a cross-language comparison hint followed by
+an imperative extraction proposal. Human, Markdown and JSON now share bounded source
+observations; origin and helper hints direct inspection without deciding reuse or intent.
+`full` requests the selected family's existing graded witness and exposes pair identities,
+source coordinates, missing members and truncation. Zero literal overlap retains the
+independent detector witness. Source text in this view is explicitly live/unverified;
+verified historical text remains the saved-analysis source workflow.
+
+Regression cases cover cross-language output consistency and executable detail navigation,
+zero-overlap exact relations, review identity, insertion coordinates, sample limits,
+unreadable sources, truncated regions and unavailable ranges. The Craken recheck covers
+CLI parsers (`ebe366f1cd160802`), differing menu placement conditions (`342ad39c250b`),
+zero-overlap exact markup (`9ae540e0ee6c`), and storage exception wrappers (`63d1edcee080`).
+The comparison reports differences without declaring them bugs or intentional policies.
+
+The substantial-near gate remains 17 families within budget 20. Capability registration
+adds one flag, moving the already-reviewed capability construction/table representative
+from `95335d85da8e217a` to `31f859c73ff8ce77` (one common syntax line). This is the same
+accepted pair, with no new avoidable duplication. Ranking inputs and detector semantics
+are unchanged; source display placeholders now say varying region rather than parameter.
+
+
+The ranking diagnostic used the checked v7 labels through the existing strict live v10
+adapter (the frozen historical adapters were not edited), with fixed dev/heldout pairs:
+alacritty/tokei, requests/flask, chi/gin, gson/jsoup, rack/sidekiq, axios/ky, lua/cmark,
+and swift-log/swift-metrics. All 488 previously recovered worthy labels remained recovered.
+This is a 16-repository diagnostic, not a full-corpus qualification: the full attempt hit
+Alamofire's candidate-work limit even at 256 million pairs. The fixed panel used the default
+candidate limit. Its 500-resample bootstrap had overlapping intervals: native P@10 was
+50.00% (40/80) dev and 71.25% (57/80) heldout; the historical anti-unification reranker
+reported 59.68% (37/62) and 67.69% (44/65). The rerank denominators differ because fewer
+newly selected rows have labels, so these are not paired superiority estimates. There is
+no supported ranking improvement to adopt. Craken's 183 production-family IDs and order
+also remained identical. Local diagnostic artifacts are in `/tmp/nose-evidence-dogfood/`
+and `/tmp/nose-evidence-ranking.json`; the harness records its own and both adapters' hashes.

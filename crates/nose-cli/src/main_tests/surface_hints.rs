@@ -271,7 +271,10 @@ fn shared_lines_params_come_from_first_successful_pair() {
 #[test]
 fn hint_shared_name_consolidates() {
     let f = fam(1, 3, &[Some("series"), Some("series"), Some("series")]);
-    assert_eq!(family_hint(&f), "consolidate `series` — 3 copies");
+    assert_eq!(
+        family_hint(&f),
+        "same symbol `series` at 3 sites — compare the shared computation and differing regions"
+    );
 }
 
 #[test]
@@ -285,17 +288,17 @@ fn hint_mixed_names_falls_back_to_spread() {
     let f = fam(1, 3, &[Some("replace"), Some("replaceOrAppend"), None]);
     assert_eq!(
         family_hint(&f),
-        "repeated across 3 directories — extract a shared abstraction"
+        "3 related regions across 3 directories — compare the shared computation and differing regions"
     );
 }
 
 #[test]
-fn hint_test_scope_flags_scaffolding_caveat() {
+fn test_scope_does_not_infer_intentional_scaffolding() {
     let mut f = fam(1, 2, &[None, None]);
     f.scope = "test";
     let h = family_hint(&f);
-    assert!(h.contains("extract a helper"), "{h}");
-    assert!(h.ends_with("not per-scenario setup"), "{h}");
+    assert!(h.contains("compare"), "{h}");
+    assert!(!h.contains("scaffolding"), "{h}");
 }
 
 #[test]
@@ -305,12 +308,12 @@ fn hint_prod_scope_has_no_test_caveat() {
 }
 
 #[test]
-fn hint_high_param_caution_wins_over_test_caveat() {
+fn varying_count_does_not_infer_signature_complexity() {
     let mut f = fam(1, 2, &[None, None]);
     f.scope = "test";
     f.params = 8; // >= HIGH_PARAM_SPOTS
     let h = family_hint(&f);
-    assert!(h.contains("high-parameter"), "{h}");
+    assert!(!h.contains("high-parameter"), "{h}");
     assert!(
         !h.contains("test scaffolding"),
         "high-param branch wins: {h}"
@@ -320,7 +323,7 @@ fn hint_high_param_caution_wins_over_test_caveat() {
 #[test]
 fn hint_local_duplication() {
     let f = fam(1, 1, &[None, None]);
-    assert_eq!(family_hint(&f), "local duplication — extract a helper");
+    assert_eq!(family_hint(&f), "2 related regions across 1 directory — compare the shared computation and differing regions");
 }
 
 #[test]
@@ -328,7 +331,7 @@ fn hint_class_family_suggests_base_class() {
     let f = fam_kind(1, 3, &[None, None, None], nose_il::UnitKind::Class);
     assert_eq!(
         family_hint(&f),
-        "repeated across 3 directories — extract a shared base class / mixin"
+        "3 related regions across 3 directories — compare the shared computation and differing regions"
     );
 }
 
@@ -355,7 +358,7 @@ fn hint_origin_protocol_contract_avoids_base_class() {
     }
     assert_eq!(
         family_hint(&f),
-        "duplicated across 2 directories — consolidate one shared interface/protocol contract"
+        "2 related regions across 2 directories — compare interface/protocol contracts"
     );
     assert!(hint_reasons(&f)
         .iter()
@@ -379,7 +382,7 @@ fn hint_origin_behavior_class_keeps_base_class() {
     }
     assert_eq!(
         family_hint(&f),
-        "duplicated across 2 directories — extract a shared base class / mixin"
+        "2 related regions across 2 directories — compare class behavior and dependencies"
     );
 }
 
@@ -408,7 +411,7 @@ fn hint_origin_data_record_is_type_contract_not_base_class() {
     }
     assert_eq!(
         family_hint(&f),
-        "duplicated across 2 directories — consolidate one shared type/API contract"
+        "2 related regions across 2 directories — compare type/API contracts"
     );
 }
 
@@ -430,7 +433,7 @@ fn hint_origin_style_is_declarative() {
     }
     assert_eq!(
         family_hint(&f),
-        "local duplication — merge selectors or move the declarations to a shared class/token if these elements should be coupled"
+        "2 related regions across 1 directory — compare style declarations and selector contexts"
     );
 }
 
@@ -439,6 +442,6 @@ fn hint_block_family_suggests_method() {
     let f = fam_kind(1, 1, &[None, None], nose_il::UnitKind::Block);
     assert_eq!(
         family_hint(&f),
-        "local duplication — extract a method from the repeated block"
+        "2 related regions across 1 directory — compare the shared computation and differing regions"
     );
 }

@@ -11,8 +11,7 @@ use crate::baseline_comparison::BaselineComparison;
 use crate::divergence;
 use crate::family_display::{removable_lines, representative_lines};
 use crate::query_baseline_gate::family_status;
-use crate::query_family_text::print_member_proposal;
-use crate::query_opportunities::{proposal_action_label, OpportunityGroups};
+use crate::query_opportunities::OpportunityGroups;
 use crate::query_semantic_packs::with_semantic_packs;
 use crate::query_terms::Query;
 use crate::report_text::plural;
@@ -24,6 +23,7 @@ use crate::surfaces::{effective_surface, SurfaceOverrides};
 pub(super) fn print_query_prelude() {
     println!("nose finds duplication in code and docs.");
     println!("nose finds; you judge. Filter, group, sort, or open families to explore.");
+    println!("p = varying source regions; ~removable = repeated-line estimate, not an edit plan.");
 }
 
 /// The location cell — `file:line  name` — coloured with its visible width for alignment.
@@ -456,15 +456,18 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
                 reason["primary_id"].as_str().unwrap()
             );
         }
-        // `full` on a list/filter batches the extraction skeletons — triage N candidates
+        // `full` on a list/filter batches the bounded source comparisons — triage N candidates
         // in one stateless call (no per-family id= round-trip).
         if view.query.id_full {
-            print_member_proposal(&f.locations, proposal_action_label(f));
+            crate::query_source_evidence::render(
+                &crate::query_source_evidence::collect(f, false),
+                false,
+            );
         }
     }
     if !view.query.id_full {
         println!(
-            "  nose query {} ... full   # add `full` to show the extraction skeletons inline",
+            "  nose query {} ... full   # add `full` to show the bounded source comparisons inline",
             view.path
         );
     }

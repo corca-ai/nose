@@ -177,6 +177,7 @@ nose capabilities
       "query_base_sarif": true,
       "query_base_structured_ignores": true,
       "query_extraction_assessment_v1": true,
+      "query_source_evidence_v1": true,
       "query_member_navigation_v1": true,
       "query_region_identity_v1": true,
       "query_review_key_v1": true,
@@ -570,3 +571,6 @@ The additive flags `query_analysis_verified_source_v1`, `query_review_records_v1
 advertise the source/review and family-inspection surfaces. `query.analysis` publishes
 source options/limits, review options, decision/status values and the `nose.review/v1`
 record schema. See [region identity](region-identity.md) and [query JSON](query-json.md).
+
+`query_source_evidence_v1` advertises bounded live-source coverage, member-bound pair diffs,
+and selected-family graded enrichment on `id=ID full`; see [query JSON](query-json.md).

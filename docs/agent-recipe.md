@@ -21,7 +21,7 @@ nose query <path>                      # landing dashboard: counts by confidence
 nose query <path> witness=exact        # slice: only the exact-behavior families
 nose query <path> scope=prod           # slice: production-scope only
 nose query <path> group=dir            # facet: by directory, with a count + exemplar
-nose query <path> id=<fam> full        # open one family: copies + all-copies extraction skeleton
+nose query <path> id=<fam> full        # open one family: relation + bounded source comparisons
 ```
 
 Each result is a pure function of (repo state, command); an unknown field or enum value is a
@@ -92,23 +92,18 @@ Read the fields in this order — each step either decides or narrows:
    - `copy-paste`: token-identical run — classic copy-paste; identifiers and literals may still
      vary per copy.
    - `similar`: the fuzzy near channel. Grade it with `spotclass` (next step) before trusting it.
-4. **What differs — `params` + `shared` + `spotclass`.** `params` counts the varying spots the
-   extracted helper would parameterize; with `full`, `skeleton` renders each as a
-   `⟨param N: class⟩` placeholder (`class` = literal/name/call/expr/block). An all-literal
-   placeholder list over near-identical lines is a data table (a consolidate-into-a-table or
-   not-worthy locale/i18n parallel-data case — check whether the literals are *content* or
-   *parameters*). Many
-   `params` relative to `shared` (the lines invariant across **all** copies) means a costly, ugly
-   extraction. For an enriched same-language near/shared-core family, `spotclass` says whether
-   those spots are `leaf-only` (clean value-leaves with `equal_modulo_holes=true` — interesting)
-   or `structural` (a demoted witness, async/sync transformation, shape/arity/referent
-   divergence — genuine logic difference, be skeptical). `extraction_shape` names the decidable
-   shape of the fix for a clean candidate (`call-existing-helper` is the strongest — an existing
-   helper is reinvented inline, so the action is to *call* it, not extract anew).
-5. **Where it lives — `scope`.** `scope` is `prod` / `test` / `mixed` (conventional test paths,
-   Rust modular `test.rs`/`tests.rs`, and Rust inline `mod test`/`mod tests` spans count as test
-   scope even when nested under `src/`). Test-scaffolding duplication is still worthy
-   (a test helper is the refactor) — but weigh it below production logic when budgeting attention.
+4. **What differs — relation → differences → source.** Open `id=ID full` for the
+   selected family's available graded pair and bounded source evidence. `graded_pair`
+   identifies the two compared members; `graded` records holes, referent mismatches and
+   caveats within its modeled scope. Independently, `source_evidence` reports literal
+   alignment and pair diffs with member IDs and absolute source coordinates. Inspect
+   missing members, sampling and truncation before extending a conclusion to the family.
+   Zero literal overlap does not erase a semantic witness. `params` counts varying anchor
+   regions, not proven parameters; `extraction_shape` is a routing hint. An `existing_helper`
+   still requires checking visibility, imports and the actual call contract.
+5. **Where it lives — `scope`.** `scope_evidence` explains the production/test classification.
+   A path or test scope alone establishes neither intentional separation nor refactoring
+   value. Use the same core question for all scopes.
 6. **The core question** (the same rubric the v5 labels use,
    [bench/labels/RUBRIC.md](../bench/labels/RUBRIC.md)): *would extracting one
    shared abstraction reduce duplication without coupling unrelated concerns or
@@ -132,10 +127,10 @@ Read the fields in this order — each step either decides or narrows:
 
 ## Acting on a verdict
 
-- **Worthy** → propose the refactor. The `params` are the helper's parameters;
-  `nose query <path> id=<fam> full` (or `full` on a list) renders the all-copies extraction
-  `skeleton`; `shared` is the helper body size. Reference locations by `file:start` (each
-  `locations[]` entry is `{file, start, end, name, lang}`).
+- **Worthy** → propose a refactor after reviewing concrete source and contracts.
+  Use `nose query <path> id=<fam> full`; follow member IDs and source coordinates in
+  `source_evidence.diffs`. Derive the proposed signature and benefit yourself; neither
+  `params`, `shared`, nor `removable` proves them.
 - **Not worthy, recurring** → write a [structured ignore](structured-ignores.md)
   entry (`family_id`, `reason`, `owner`, optional `expires_at`) so the family stops
   resurfacing.

@@ -31,7 +31,7 @@ from-source `./target/release/nose`.
 |---|---|
 | Inspect duplication and act on it | `nose query <path> [terms…]` |
 | Inspect disjoint roots together | `nose query --root <path> --root <path> [terms…]` |
-| Open one family with its extraction skeleton | `nose query <path> id=<fam> full` |
+| Open one family with its bounded source comparison | `nose query <path> id=<fam> full` |
 | Catch a missed sibling edit in a diff or PR | `nose query <path> base=<ref>` |
 | Gate CI on duplication | `nose query <path> --fail-on any` |
 | Inspect or reclaim a query cache | `nose cache status|prune|clear --dir <cache>` |
@@ -86,7 +86,7 @@ nose query --root <path> --root <path> [FILTER … | group=FIELD | id=FAM | at=F
 |---|---|
 | `field=value` | keep families where the field equals the value (terms AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring; **set OR** with a comma — `witness=exact,shared-core` matches either; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a directory; `witness!=exact,shared-core` drops both) |
 | `group=FIELD` | facet the selection by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`, `status`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
-| `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, overlapping-family links (`subsumes`/`subsumed_by`), and navigation |
+| `id=FAM` | open one family (any unambiguous id prefix): its copies, a bounded source comparison, overlapping-family links (`subsumes`/`subsumed_by`), and navigation |
 | `member-group=dir` / `lang` / `scope` | with `id=` or `at=`, group copies inside the family; follow emitted commands to narrow members while retaining the full family identity and metrics |
 | `member-dir=DIR`, `member-path~TEXT`, `member-lang=LANG`, `member-scope=prod` / `test` | with `id=` or `at=`, select member locations; `member-dir` is exact, `member-path` is a substring; `top=N` limits member rows/groups and `full` or `top=0` expands them. Human/JSON inspection only. |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
@@ -95,7 +95,7 @@ nose query --root <path> --root <path> [FILTER … | group=FIELD | id=FAM | at=F
 | `since=FILE` | compare to a saved snapshot (written with `--baseline FILE --write-baseline`) and expose each family's **`status`** (`new`/`changed`/`unchanged`) as a queryable field — the temporal lens. Hides nothing (unlike `--baseline`); `since=B status!=unchanged --fail-on any` is the composable gate |
 | `sort=KEY` | `extractability` (default), `value`, `members` (also `sites` and the experimental `hazard` — see [Ranking](#ranking)) |
 | `top=N` | show the first N rows (default 30); `top=0` shows **all** |
-| `full` | on `id=` or a list, render the all-copies extraction skeletons inline (batched); each varying spot is `⟨param N: class⟩` — a coarse value-class hint (`literal`/`name`/`call`/`expr`/`block`) for the helper signature |
+| `full` | on `id=` or a list, render a bounded source comparisons inline (batched); each varying spot is `⟨param N: class⟩` — a coarse value-class hint (`literal`/`name`/`call`/`expr`/`block`) for the helper signature |
 | `all` | widen past the curated default surface to the full raw universe (demoted families labeled) |
 
 Family details explain extraction support separately from the detector witness: measured
@@ -192,23 +192,20 @@ accepts `extractability`, `value`, `sites`, the alias `members`, and the experim
 
 | key | ranks by | use when |
 |---|---|---|
-| `extractability` *(default)* | invariant (shared) lines × copies × spread, weighted by tightness (shared/total) and penalized by parameter count and by member-span heterogeneity (copies of unlike length aren't one shape). Cross-language families have no comparable source lines, so they fall back to semantic repeated volume and display as `cross-language · ~N repeated` instead of `~N removable`. | you want the duplication that folds *cleanly* into one helper — not the biggest block that merely looks similar |
-| `value` | raw duplicated volume: duplicated lines (mean span × copies) × similarity × spread — ranks by repeated *volume*, not the `removable` field (a structural Type-4 family can rank high here yet show `removable=0` when no literal lines survive all copies) | you want the most *code* deleted, accepting that divergent copies cost more to merge |
+| `extractability` *(default)* | invariant (shared) lines × copies × spread, weighted by tightness (shared/total) and penalized by parameter count and by member-span heterogeneity (copies of unlike length aren't one shape). Cross-language families have no comparable source lines, so they fall back to semantic repeated volume and display as `cross-language · ~N repeated` instead of `~N removable`. | prioritize inspection by shared-line density; reuse feasibility remains a caller decision |
+| `value` | raw duplicated volume: duplicated lines (mean span × copies) × similarity × spread — ranks by repeated *volume*, not the `removable` field (a structural Type-4 family can rank high here yet show `removable=0` when no literal lines survive all copies) | inspect the largest repeated volume; this does not predict deletions |
 | `sites` / `members` | number of copies | hunting the most-repeated patterns |
 | `hazard` *(experimental)* | divergent-edit *propensity*: line span × spread × invisibility × scope | you want a view of which clones tend to get edited inconsistently — **not yet a validated *harm* ranker** (see [hazard-ranking](hazard-ranking.md)) |
 
-Extractability is the default because raw volume over-rewards a large block whose
-copies share little: a 384-line family that shares only 22 lines across 14 varying
-spots is mostly scaffolding (6% invariant), not an extraction — it ranks far below a
-tight `15/15`-shared, zero-parameter pair. The honest `N/M shared · Pp` cell in the
-report is the same signal the ranking uses. Same-language families with **no** shared
-invariant lines (a language idiom, or two unrelated type literals with the same shape)
-have nothing to extract and sink to the bottom, even at `sim 1.00`. Extractability also
-demotes families whose copies **vary widely in length**: 25 same-shaped-but-different
-`Serializer` methods are not one helper waiting to happen, however many copies there
-are — a measured proxy for signature heterogeneity (see [experiments](experiments.md)).
-For cross-language families, source-line overlap is not meaningful; the row says
-`cross-language · ~N repeated`, and query JSON marks `source_comparable: false`.
+Extractability is a deterministic inspection-cost heuristic. It weights literal overlap,
+spread, differing regions and member-span heterogeneity; it does not establish that a
+helper is callable, desirable or safe. The displayed counts use a bounded sample;
+`id=ID full` reports actual source coverage and pair-local differences. A family with no
+literal shared lines can still have a strong semantic witness. Cross-language families
+use repeated volume as a fallback (`source_comparable: false`), not a language-based
+judgment about whether their projects can share code. Test scope does not impose a
+worthiness penalty. Ranking changes require separate evaluation against labeled data.
+
 
 `sort=hazard` is an **experimental** severity-style ranking calibrated on mined
 divergent-edit history. It predicts *which clones get edited inconsistently* (divergence

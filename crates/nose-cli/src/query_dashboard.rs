@@ -330,7 +330,7 @@ pub(super) fn render_query_dashboard(
         (
             "open",
             "nose query <path> id=<id> full",
-            "one family: every copy + the extraction skeleton",
+            "one family: every copy + the bounded source comparison",
         ),
         (
             "sort",

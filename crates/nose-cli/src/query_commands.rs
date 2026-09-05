@@ -368,6 +368,23 @@ fn run_regular_query(args: QueryArgs, terms: &[String], q: &Query, path_arg: &st
             enrich_graded_witnesses(&mut dataset.families, &dataset.opts)
         });
     }
+    if q.id_full && !query_needs_spotclass(q) {
+        let selected = if let Some(id) = &q.id {
+            crate::query_terms::family_by_id(&dataset.families, id).ok()
+        } else if let Some(at) = &q.at {
+            crate::query_terms::family_at(&dataset.families, at, path_arg).ok()
+        } else {
+            None
+        };
+        let key = selected.map(crate::baseline::family_id);
+        if let Some(family) = dataset
+            .families
+            .iter_mut()
+            .find(|f| key.as_ref() == Some(&crate::baseline::family_id(f)))
+        {
+            enrich_graded_witnesses(std::slice::from_mut(family), &dataset.opts);
+        }
+    }
     let mut since_cmp = None;
     let since = time_stage("query_since", || {
         query_since(q, &dataset.families, &mut since_cmp)

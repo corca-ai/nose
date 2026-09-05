@@ -262,6 +262,7 @@ fn query_capability_flags() -> std::collections::BTreeMap<&'static str, bool> {
         ("query_analysis_verified_source_v1", true),
         ("query_review_records_v1", true),
         ("query_extraction_assessment_v1", true),
+        ("query_source_evidence_v1", true),
         ("query_member_navigation_v1", true),
         ("query_scope_evidence_v1", true),
         ("query_base_evidence_navigation_v1", true),

@@ -1,10 +1,7 @@
 use super::query_model::*;
 use crate::baseline;
 use crate::family_display::representative_lines;
-use crate::query_family_text::{print_member_diff, print_member_proposal};
-use crate::query_opportunities::{
-    family_hint, hint_reasons, proposal_action_label, OpportunityGroups,
-};
+use crate::query_opportunities::{family_hint, hint_reasons, OpportunityGroups};
 use crate::query_semantic_packs::with_semantic_packs;
 use crate::schema_versions;
 use crate::style;
@@ -48,7 +45,7 @@ fn print_family_header(id: &str, f: &nose_detect::RefactorFamily) {
 }
 
 /// Open one family: its copies, the extraction hint, the representative-pair diff, and —
-/// with `full` — the all-copies extraction skeleton (#360). Plus navigation links.
+/// with `full` — the bounded source comparison (#360). Plus navigation links.
 pub(super) fn render_query_family(
     ctx: &crate::query_output::QueryOutput<'_>,
     idv: &str,
@@ -100,33 +97,24 @@ pub(super) fn render_query_family(
     let (shared, params) = all_copies_shared(f);
     let assessment = crate::query_assessment::assessment(f, shared, params);
     println!(
-        "  extraction support: {} — {}",
+        "  source support: {} — {}",
         assessment["support"].as_str().unwrap(),
         assessment["explanation"].as_str().unwrap()
     );
     if full {
-        println!("  review checks: {}", assessment["checks"]);
+        println!("  relation: {}", assessment["relation"]);
+        crate::query_source_evidence::render_structural(f);
     }
+
     if query.member_view.active() {
         crate::query_members::render(&member_view);
         return;
     }
     print_copies(f, full);
-    // Lead with the decision-grade artifact: the extraction skeleton aligned across ALL
-    // copies (#360), with the differing spots as parameters — not a raw 2-copy token diff.
-    if f.locations.len() >= 2 {
-        print_member_proposal(&f.locations, proposal_action_label(f));
-    }
-    if full && f.locations.len() >= 2 {
-        print_member_diff(&f.locations[0], &f.locations[1]);
-    } else if !full && f.locations.len() >= 2 {
-        println!(
-            "    nose query {path} id={} full   # also show the raw token diff of two copies",
-            short_id(&id)
-        );
-    }
+    crate::query_source_evidence::render(&crate::query_source_evidence::collect(f, full), false);
+
     println!("\nnext:");
-    for command in member_view["next"].as_array().unwrap().iter().take(3) {
+    for command in member_view["next"].as_array().unwrap().iter() {
         println!("  {}", command.as_str().unwrap());
     }
     println!(
@@ -175,9 +163,9 @@ fn print_copies(f: &nose_detect::RefactorFamily, full: bool) {
             .map(|n| format!("  {n}"))
             .unwrap_or_default();
         // Flag the member that *is* the existing helper, so it isn't mistaken for a copy
-        // to fold — the action is to call it (#374 item 5).
+        // to fold; its call contract still needs separate inspection.
         let role = if helper.is_some_and(|h| std::ptr::eq(h, l)) {
-            "  ← existing helper (call it)"
+            "  ← existing helper candidate (callability unassessed)"
         } else {
             ""
         };

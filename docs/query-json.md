@@ -295,16 +295,16 @@ Composition rules for v8:
 | `generated_provenance` | schema v9, generated families only: `{basis,sources[]}`. `basis` is `all-members` or `compiled-css-pipeline`; sorted `sources[]` contains `caller-path`, `nose-inferred`, or both, so integrations do not confuse a caller assertion with nose-derived evidence. |
 | `members` | number of copies |
 | `files` / `dirs` / `languages` | distinct files / directories / languages the copies span |
-| `source_comparable` | `false` for cross-language families, where source lines cannot be anti-unified directly; those rows display repeated semantic volume rather than shared/removable source lines |
+| `source_comparable` | `false` for cross-language families, where this source-line measurement is not performed; those rows display repeated semantic volume rather than shared/removable source lines |
 | `metrics` | raw detector feature object for evaluation/ranking integrations; see below |
-| `shared` | lines invariant across **all** copies (the all-copies anti-unification count) |
+| `shared` | literal lines invariant across the bounded readable sample (at most 8 members and 120 lines/member); inspect `source_evidence.coverage` on `full` |
 | `rep_lines` | the representative copy's line count (`shared` of `rep_lines` are shared) |
-| `params` | varying spots the extracted helper would parameterize |
-| `removable` | same-language: `(members − 1) × shared`, lines a clean extraction would delete (so `removable=0` when `shared=0`: the copies match structurally but no literal line survives all of them). Cross-language: span-based repeated source volume, because there is no shared source-line basis. |
+| `params` | varying anchor regions in bounded source alignment; not a proven function parameter count |
+| `removable` | same-language: `(members − 1) × shared`, a repeated-line estimate, not predicted deletions (so `removable=0` when `shared=0`: the copies match structurally but no literal line survives all of them). Cross-language: span-based repeated source volume, because there is no shared source-line basis. |
 | `value` | the raw duplicated-volume score (mean span × copies × similarity × spread). Ranks by repeated *volume*, independent of `removable` — under `sort=value` a structural family can top the list with `removable=0` |
-| `extraction_shape` | the decidable fix shape (`extract-helper`, `call-existing-helper`, …) |
+| `extraction_shape` | a compatibility routing hint (`extract-helper`, `call-existing-helper`, …), not a verified fix or callability claim |
 | `same_symbol` | every copy is the same named symbol (the parallel-variant signal) |
-| `existing_helper` | (only for `call-existing-helper`) the member to call — `{name, file, start, end}`; the inline copies recompute it, so the fix is "call it", not a fresh extraction |
+| `existing_helper` | (only for `call-existing-helper`) a named member matching the helper/inline shape — `{name, file, start, end}`; visibility, imports, dependency direction and call compatibility remain unassessed |
 | `spotclass` | (only on enriched near/shared-core families whose value DAGs can be aligned) `leaf-only` (varying spots are clean value-leaves and `graded.equal_modulo_holes=true`) \| `structural` (a demoted witness, async/sync transformation, shape/arity/referent divergence, or other genuine logic difference). Cross-language families may be enriched when their value DAGs align, but remain `source_comparable: false` and do not get source-line decorator comparison. Omitted unless the query filters/groups by `spotclass` (the graded-witness enrichment runs on demand) |
 | `graded` | (only when `spotclass` enrichment has run and a witness was computed) the same anti-unification object described by [graded-witness](graded-witness.md): `holes`, `spots[]`, `patterns[]` such as `async-mirror`, `referent_mismatches[]`, `caveat_names[]`, `equal_modulo_holes`, and `modeled_caveat`. This is presentation evidence for near/shared-core families, not an exact-channel proof. |
 | `graded_pair` | (only with `graded`) the two `locations[]` members whose value graphs produced the grade: `{a_index,b_index,a_member_id,b_member_id}`. The indices are zero-based into this family object's `locations[]`; the ids match the corresponding location `id` fields, so consumers can tie `graded.spots[].a_text`/`b_text` back to the represented files even when a multi-member shared-core family contains decoys. |
@@ -320,7 +320,7 @@ Composition rules for v8:
 | `semantic_pack_near` | affected near families only: deduplicated provenance rows with pack/row semantic digests, lane/trust/operation, dependency coordinate and pinned source digests, occurrence span, and caveats |
 | `semantic_pack_external_exact` | affected exact families only: receipt-backed external provider-claim provenance with pack/row/receipt digests, dependency evidence, lane `external-exact`, assurance `external-claim-exact`, occurrence span, and non-certification caveats |
 | `locations[]` | every copy: `{id, file, start, end, name, lang}` where `id` is the member id used by baseline diagnostics; when the frontend knows source-origin facts the location also carries `origin` (domains/body/region facets such as `type-contract`, `style`, `markup`, `declaration-only`, or `vue-sfc`); influenced members may carry `semantic_pack_near` or `semantic_pack_external_exact`; the `existing_helper` member also carries `role: "existing-helper"`; a sub-dag clone's member carries `shared_subdag: [start, end]` — where the proven shared computation lives at that site |
-| `skeleton` | (only with `full`) the all-copies extraction-skeleton lines, each varying spot a `⟨param N: class⟩` placeholder (`class` = `literal`/`name`/`call`/`expr`/`block` — a coarse value-class hint for the helper signature) |
+| `skeleton` | (only with `full`, same-language readable sample) bounded literal-source skeleton with `⟨region N: class⟩` anchor holes; classes describe text, not a callable signature. `source_evidence` owns coverage and pair diffs |
 
 `metrics` carries the raw `RefactorFamily` features before query's view-specific display fields
 such as `shared`, `rep_lines`, and `removable` are computed: `mean_sem`, `members`, `modules`,
@@ -390,13 +390,40 @@ counts displayed observations. Rows use `order="recheck-first-then-observation-i
 correspondence summaries under the statuses advertised in capabilities. Additional
 fields are additive to these v1 output schemas; consumers must ignore unknown fields.
 
-## Extraction support and member exploration
+## Evidence and member exploration
 
 Family objects add `assessment` with `support`, `explanation`, source-line measurements,
 review `checks`, and `verdict="caller-review-required"`. Support is distinct from witness
 strength: `shared-source`, `no-shared-source`, `common-syntax-only`,
 `cross-language-comparison`, or `source-evidence-unavailable`. Measurements use the existing
 source-line alignment; they are not a calibrated probability of useful refactoring.
+`assessment.relation` retains the detector witness independently of literal overlap.
+`structural_correspondence` reports whether a graded pair is attached; its scope is that
+pair only. `unassessed` lists decisions the engine has not established; `checks` contains
+only applicable observations such as varying regions or mixed production/test scope.
+`measurement_scope` documents the existing bounded count. These additions do not change
+family IDs, review keys, sorting or the legacy `params`/`removable` field names.
+
+`full` adds `source_evidence`: `basis`, `source="live-unverified"`, `status`, `coverage`,
+`members[]`, optional `skeleton`, `shared_lines`, `varying_regions`, and `diffs[]`.
+This is current source, not verified saved-analysis text. `status` is `complete`, `partial`
+or `unavailable`; coverage counts total, attempted, available and omitted members.
+Limits are 8 members, 120 lines/member, 16 MiB/file and 64 KiB per displayed region.
+Missing/non-UTF8/oversized files and invalid ranges retain a member with an explicit reason.
+Each diff carries `a`/`b` member IDs, region handles and file ranges, `scope="pair-only"`,
+`truncated`, and lines `{tag,text,a_line,b_line}` with absolute coordinates (`null` on the
+absent side). Sample members are compared with the first readable member, not every pair.
+Skeleton holes describe anchor differences; insertions only in another member appear in
+the diffs. Cross-language details omit the skeleton and report
+`alignment_status="cross-language-not-aligned"`, while retaining labeled pair diffs.
+Human and Markdown use the same observations, showing at most 40 skeleton lines with an
+explicit truncation notice. No skeleton is an extraction proposal or safe-to-apply patch.
+
+`id=ID full` also requests existing graded enrichment for the selected family only.
+Unsupported/unavailable grades remain absent; no inferred witness replaces them. Pair IDs
+in `graded_pair` identify the coverage, including when member filters hide those locations.
+The added executable `next` command opens this detail and preserves analysis options.
+
 Locations add `scope_evidence={scope,reasons}`. Reasons preserve recognizable frontend,
 enclosing-context and naming/path evidence without claiming arbitrary configuration resolution.
 

@@ -271,15 +271,14 @@ impl DetectionChannels {
 #[derive(Clone, Copy, PartialEq, clap::ValueEnum, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum SortKey {
-    /// How cleanly it extracts: invariant (shared) lines × copies × spread, penalized
-    /// by the number of parameters the helper would need. Surfaces the duplication you
-    /// can actually fold into one helper, not the biggest block that merely *looks*
-    /// similar (a *fixability* axis). The default.
+    /// Inspection heuristic: shared-line density × copies × spread, adjusted for
+    /// varying regions and member-span differences. Does not establish reuse
+    /// feasibility or predicted deletions. The default.
     Extractability,
     /// Raw duplicated volume: duplicated lines (mean span × copies) × similarity ×
     /// spread. Ranks by how much *code* repeats, NOT by the `removable` field — a
     /// structural (Type-4) family can have high volume yet `removable=0` when no
-    /// literal lines survive across all copies (nothing cleanly extractable).
+    /// literal lines survive the bounded source alignment.
     Value,
     /// Most copies first — the most-repeated patterns.
     Sites,

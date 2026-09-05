@@ -4,7 +4,7 @@ use crate::family_display::representative_lines;
 use crate::query_baseline_gate::family_status;
 use crate::query_opportunities::OpportunityGroups;
 use crate::query_terms::{QFilter, QOp};
-use crate::source_lines::{anti_unify_all, read_lines, FileLineCache};
+use crate::source_lines::{anti_unify_all, FileLineCache};
 use crate::style;
 use crate::surfaces::{effective_surface, generated_provenance_json, SurfaceOverrides};
 
@@ -390,8 +390,7 @@ pub(super) fn query_family_json_with_counts(
         let ids: Vec<&str> = slices.iter().map(|s| short_id(s)).collect();
         obj["subsumes"] = serde_json::Value::from(ids);
     }
-    // `call-existing-helper` families: name the helper to call (the action is "call it", not
-    // "extract a new one"). Omitted for every other shape (#374 item 5).
+    // Name the observed helper candidate; calling it requires separate contract checks.
     if let Some(h) = helper {
         obj["existing_helper"] = serde_json::json!({
             "name": h.name, "file": h.file, "start": h.start_line, "end": h.end_line,
@@ -410,10 +409,13 @@ pub(super) fn query_family_json_with_counts(
         obj["graded_pair"] = pair;
     }
     if full {
-        if let Some(skeleton) = family_skeleton(f) {
-            obj["skeleton"] = serde_json::Value::from(skeleton);
+        let evidence = crate::query_source_evidence::collect(f, true);
+        if let Some(skeleton) = evidence.get("skeleton") {
+            obj["skeleton"] = skeleton.clone();
         }
+        obj["source_evidence"] = evidence;
     }
+
     obj
 }
 
@@ -438,26 +440,9 @@ pub(super) fn query_removable_lines(f: &nose_detect::RefactorFamily, shared: u32
     }
 }
 
-/// The all-copies extraction-skeleton lines (the `--show proposal` artifact) for the `full`
-/// JSON contract. `None` when fewer than two copies read. Capped at the same 8 members as
-/// `all_copies_shared`, so the skeleton and the `shared`/`params` counts agree.
-fn family_skeleton(f: &nose_detect::RefactorFamily) -> Option<Vec<String>> {
-    let members: Vec<Vec<String>> = f
-        .locations
-        .iter()
-        .take(8)
-        .filter_map(|l| read_lines(&l.file, l.start_line, l.end_line))
-        .collect();
-    (members.len() >= 2).then(|| anti_unify_all(&members).0)
-}
-
-/// Shared-line and parameter counts aligned across **all** copies (not the pairwise
-/// representative `shared_lines`, which over-counts a family whose 3rd+ copies diverge —
-/// e.g. 25 serializer methods that pairwise share 11 lines but all-25 share 2). Reads the
-/// copies and runs the N-way anti-unification (#360); only ever called on the rows
-/// actually displayed, so it is bounded. The honest `~removable` is then `(copies − 1) ×
-/// all-copies-shared`, which is never more than is truly shared and `0` when nothing is.
-/// Cross-language or unreadable families fall back to the detector's structural estimate.
+/// Legacy display counts from the bounded readable sample (8 members, 120 lines).
+/// These are inspection metrics, not a claim about all members or an edit plan.
+/// Detailed source evidence reports its actual coverage separately.
 pub(super) fn all_copies_shared(f: &nose_detect::RefactorFamily) -> (u32, u32) {
     let mut cache = FileLineCache::default();
     all_copies_shared_cached(f, &mut cache)
