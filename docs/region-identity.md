@@ -234,6 +234,31 @@ merges and zero canonicalization violations. This establishes Nose's review-iden
 contract without requiring access to a downstream repository; downstream scope and
 approval policy remain caller-owned.
 
+The final hash-sharing implementation (`acb121de`) reproduced the coverage and movement
+checks above, passed all 2,279 workspace tests, and passed the complete
+`./scripts/check-ci-local.sh --fast --jobs 2` run. All seven pinned semantic-smoke
+repositories had byte-identical semantic query JSON relative to `edbc6469`.
+
+The initial implementation's isolated performance follow-up confirmed an asciidoctor
+normalization/extraction increase of 14.85 ms (25.74%). The file-level literal-sensitive
+hash sharing removed the repeated whole-file traversal. The final default smoke had
+no confirmed regression but exited unsuccessfully because the six-block asciidoctor
+stage estimate straddled the 5 ms order-specific boundary. Both selected repositories
+were therefore measured independently with 12 alternating blocks and five samples per
+observation, alongside an equally sized same-binary control. This separate checker run
+passed every stage with the unchanged 5% **and** 5 ms thresholds; the original failed
+smoke receipt is retained rather than rewritten as a pass.
+
+| Follow-up repository | Baseline median | Current median | Order/control-adjusted delta |
+|---|---:|---:|---:|
+| alacritty | 170.58 ms | 170.65 ms | -1.56 ms / -0.91% |
+| asciidoctor | 126.60 ms | 129.21 ms | +1.76 ms / +1.39% |
+
+These are local runtime measurements, not a universal performance bound. Raw primary,
+focused, and expanded-sample reports are in the ignored development artifact directory
+`target/review-identity-completion/semantic-smoke-final/`; the successful follow-up is
+`balanced-check-status.json` / `balanced-summary.md`.
+
 ## Research basis
 
 - [NCBI accessions and versions](https://ncbi.nlm.nih.gov/genbank/sequenceids/)
