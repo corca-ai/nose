@@ -204,6 +204,34 @@ and content edits, with near-lane cold/warm/incremental caches and dependency-ve
 changes. Unit contracts additionally invalidate changed receipts, pack/row content,
 trust, caveats, template holes, and out-of-unit source anchors.
 
+### Completion evidence (2026-09-05)
+
+On the same `8aac5f05` Rust source corpus, comparing the `edbc6469` baseline binary
+with the completed implementation yielded:
+
+| Query mode | Before available / total | After available / total |
+|---|---:|---:|
+| semantic | 42 / 42 | 42 / 42 |
+| syntax | 680 / 680 | 680 / 680 |
+| near | 597 / 683 | 683 / 683 |
+| abstraction | 0 / 12 | 12 / 12 |
+
+All 1,417 query rows retained their review keys after an unrelated leading comment
+was inserted in every Rust file and after the corpus tree moved. Every legacy family
+field matched between the baseline and current binaries, and two/four worker output
+was identical. The correction changed 12 previously available near keys and 3 syntax
+keys in this corpus; semantic keys were unchanged, and abstraction had no previously issued keys.
+The supported evidence kinds include exact, copy-paste, structural, shared-sub-DAG,
+connected, and bounded-window witnesses. Locked external packs are exercised separately
+by the CLI integration tests, since the Rust self-query does not use external packs.
+
+The completed implementation passed 2,279 workspace tests, Clippy with warnings denied,
+Rust API documentation, and the 28-case, four-language snapshot correspondence evaluation.
+The current product tree's blind oracle replay retained 54 exact groups with zero false
+merges and zero canonicalization violations. This establishes Nose's review-identity
+contract without requiring access to a downstream repository; downstream scope and
+approval policy remain caller-owned.
+
 ## Research basis
 
 - [NCBI accessions and versions](https://ncbi.nlm.nih.gov/genbank/sequenceids/)
