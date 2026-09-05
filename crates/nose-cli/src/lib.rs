@@ -64,4 +64,5 @@ pub fn run_command() -> Result<()> {
     command_dispatch::run()
 }
 
+mod query_evolution;
 mod region_commands;

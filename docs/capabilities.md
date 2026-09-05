@@ -18,6 +18,12 @@ Integration rule: branch on `schema_version`, ignore unknown fields, and test ca
 flags before passing optional query arguments. A wrapper that does this can run against older
 and newer nose binaries without scraping help text or guessing from the package version.
 
+Analysis capture/comparison support is advertised by `query_analysis_capture_v1` and
+`query_analysis_changes_v1`. `schemas.analysis` lists the three versioned capture/artifact/
+comparison contracts; `query.analysis` describes its commands, views, fields, enum values,
+formats and limits. This is separate from baseline `since=` and region-snapshot schemas.
+See [analysis comparison](region-identity.md#explore-changes-between-saved-analyses).
+
 ## Example
 
 ```sh
@@ -42,30 +48,92 @@ nose capabilities
     "doctor_json": false
   },
   "commands": {
-    "stable": ["cache", "capabilities", "il", "query", "regions", "semantic-pack", "stats"],
+    "stable": [
+      "cache",
+      "capabilities",
+      "il",
+      "query",
+      "regions",
+      "semantic-pack",
+      "stats"
+    ],
     "deprecated": []
   },
   "schemas": {
-    "capabilities": [8],
-    "cache_status": ["nose.cache-status/v1"],
-    "cache_prune": ["nose.cache-prune/v1"],
-    "cache_clear": ["nose.cache-clear/v1"],
-    "query_json": [8, 10],
-    "query_watch_jsonl": ["nose.query-watch/v1"],
-    "semantic_packs": ["nose.semantic-pack.v0", "nose.semantic-pack.v1"],
-    "semantic_pack_locks": ["nose.semantic-pack-lock.v1"],
-    "semantic_pack_receipts": ["nose.semantic-pack-conformance-receipt.v1"],
-    "semantic_pack_lock_status": [1],
-    "semantic_pack_conformance": [4],
-    "semantic_pack_inventory": [1],
-    "semantic_pack_adoption_gates": [2],
-    "semantic_pack_compatibility": [2]
+    "capabilities": [
+      8
+    ],
+    "cache_status": [
+      "nose.cache-status/v1"
+    ],
+    "cache_prune": [
+      "nose.cache-prune/v1"
+    ],
+    "cache_clear": [
+      "nose.cache-clear/v1"
+    ],
+    "query_json": [
+      8,
+      10
+    ],
+    "query_watch_jsonl": [
+      "nose.query-watch/v1"
+    ],
+    "semantic_packs": [
+      "nose.semantic-pack.v0",
+      "nose.semantic-pack.v1"
+    ],
+    "semantic_pack_locks": [
+      "nose.semantic-pack-lock.v1"
+    ],
+    "semantic_pack_receipts": [
+      "nose.semantic-pack-conformance-receipt.v1"
+    ],
+    "semantic_pack_lock_status": [
+      1
+    ],
+    "semantic_pack_conformance": [
+      4
+    ],
+    "semantic_pack_inventory": [
+      1
+    ],
+    "semantic_pack_adoption_gates": [
+      2
+    ],
+    "semantic_pack_compatibility": [
+      2
+    ],
+    "analysis": [
+      "nose.analysis/v1",
+      "nose.analysis-capture/v1",
+      "nose.analysis-changes/v1"
+    ]
   },
   "query": {
-    "modes": ["syntax", "semantic", "near"],
-    "default_modes": ["syntax", "semantic", "near"],
-    "output_formats": ["human", "json", "jsonl", "markdown", "sarif"],
-    "sort_keys": ["extractability", "value", "sites", "hazard"],
+    "modes": [
+      "syntax",
+      "semantic",
+      "near"
+    ],
+    "default_modes": [
+      "syntax",
+      "semantic",
+      "near"
+    ],
+    "output_formats": [
+      "human",
+      "json",
+      "jsonl",
+      "markdown",
+      "sarif"
+    ],
+    "sort_keys": [
+      "extractability",
+      "value",
+      "sites",
+      "hazard"
+    ],
     "config_keys": [
       "cache-max-bytes",
       "exclude",
@@ -91,6 +159,8 @@ nose capabilities
       "family_drilldown": true,
       "inline_suppression": true,
       "multi_root": true,
+      "query_analysis_capture_v1": true,
+      "query_analysis_changes_v1": true,
       "query_base_gate_fail_default": true,
       "query_base_json_v8": true,
       "query_base_sarif": true,
@@ -106,23 +176,105 @@ nose capabilities
       "semantic_pack_dependency_evidence": true,
       "semantic_pack_external_claim_exact": true,
       "semantic_pack_kernel_conformance_receipt": true,
-      "semantic_pack_locked_near_influence": true,
       "semantic_pack_loading": true,
+      "semantic_pack_locked_near_influence": true,
       "semantic_pack_project_lock": true,
       "structured_ignores": true
+    },
+    "analysis": {
+      "capture": "nose query <path> --save-analysis FILE",
+      "compare": "nose query --before FILE --after FILE [terms...]",
+      "correspondence_values": [
+        "matched",
+        "candidate",
+        "ambiguous",
+        "unresolved",
+        "unmatched-current",
+        "budget-exceeded"
+      ],
+      "default_max_candidates": 100000,
+      "evidence_values": [
+        "retained",
+        "recheck"
+      ],
+      "fields": [
+        "reason",
+        "correspondence",
+        "evidence",
+        "scope",
+        "lang",
+        "path",
+        "witness"
+      ],
+      "formats": [
+        "human",
+        "json"
+      ],
+      "max_input_bytes": 134217728,
+      "population": "admitted-query-families",
+      "reason_values": [
+        "profile-changed",
+        "incomplete-coverage",
+        "membership-changed",
+        "member-content-changed",
+        "source-address-changed",
+        "scope-changed",
+        "witness-changed",
+        "analysis-changed",
+        "packs-changed",
+        "laws-changed",
+        "abstraction-changed",
+        "review-evidence-changed",
+        "evidence-unavailable",
+        "review-evidence-retained",
+        "candidate",
+        "ambiguous",
+        "unresolved",
+        "unmatched-current",
+        "budget-exceeded"
+      ],
+      "source_bodies": "not-stored",
+      "terms": [
+        "group=FIELD",
+        "change=ID",
+        "FIELD=VALUE",
+        "FIELD!=VALUE",
+        "path~TEXT",
+        "path!~TEXT",
+        "top=N",
+        "full",
+        "all"
+      ],
+      "views": [
+        "dashboard",
+        "list",
+        "group",
+        "change"
+      ]
     }
   },
   "semantic_packs": {
-    "api_versions": ["nose.semantic-pack.v0", "nose.semantic-pack.v1"],
-    "lock_api_versions": ["nose.semantic-pack-lock.v1"],
+    "api_versions": [
+      "nose.semantic-pack.v0",
+      "nose.semantic-pack.v1"
+    ],
+    "lock_api_versions": [
+      "nose.semantic-pack-lock.v1"
+    ],
     "loading": [
       "compiled-builtin",
       "local-manifest-file",
       "local-manifest-directory",
       "local-project-lock"
     ],
-    "project_lock": ["create", "status"],
-    "project_lock_output_formats": ["human", "json"],
+    "project_lock": [
+      "create",
+      "status"
+    ],
+    "project_lock_output_formats": [
+      "human",
+      "json"
+    ],
     "conformance": [
       "local-manifest-file",
       "local-manifest-directory",
@@ -130,13 +282,31 @@ nose capabilities
       "v1-kernel-source-analysis",
       "receipt-output"
     ],
-    "conformance_output_formats": ["human", "json"],
-    "inventory": ["compiled-builtin"],
-    "inventory_output_formats": ["human", "json"],
-    "adoption_gates": ["compiled-builtin"],
-    "adoption_gate_output_formats": ["human", "json"],
-    "compatibility": ["policy"],
-    "compatibility_output_formats": ["human", "json"],
+    "conformance_output_formats": [
+      "human",
+      "json"
+    ],
+    "inventory": [
+      "compiled-builtin"
+    ],
+    "inventory_output_formats": [
+      "human",
+      "json"
+    ],
+    "adoption_gates": [
+      "compiled-builtin"
+    ],
+    "adoption_gate_output_formats": [
+      "human",
+      "json"
+    ],
+    "compatibility": [
+      "policy"
+    ],
+    "compatibility_output_formats": [
+      "human",
+      "json"
+    ],
     "trust": [
       "builtin-default",
       "builtin-optional",
@@ -144,7 +314,9 @@ nose capabilities
     ],
     "external_packs_enabled_by_default": false,
     "external_pack_influence": "metadata-or-locked-near-or-receipt-backed-external-claim-exact",
-    "external_exact_operations": ["collection-factory"],
+    "external_exact_operations": [
+      "collection-factory"
+    ],
     "external_influence_blockers": [
       "data-only-registration",
       "dependency-backed-evidence-unavailable",
@@ -155,12 +327,18 @@ nose capabilities
     "external_pack_execution": "none"
   },
   "il": {
-    "output_formats": ["sexpr", "json"],
+    "output_formats": [
+      "sexpr",
+      "json"
+    ],
     "normalized": true,
     "cfg_norm_toggle": true
   },
   "stats": {
-    "output_formats": ["human", "json"]
+    "output_formats": [
+      "human",
+      "json"
+    ]
   }
 }
 ```

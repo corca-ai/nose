@@ -50,6 +50,7 @@ struct Schemas {
     cache_clear: Vec<&'static str>,
     query_json: Vec<u32>,
     query_watch_jsonl: Vec<&'static str>,
+    analysis: Vec<&'static str>,
     semantic_packs: Vec<&'static str>,
     semantic_pack_locks: Vec<&'static str>,
     semantic_pack_receipts: Vec<&'static str>,
@@ -68,6 +69,7 @@ struct QuerySurface {
     sort_keys: Vec<&'static str>,
     config_keys: Vec<&'static str>,
     capabilities: std::collections::BTreeMap<&'static str, bool>,
+    analysis: serde_json::Value,
 }
 
 #[derive(serde::Serialize)]
@@ -156,6 +158,7 @@ impl Report {
                     "sort",
                 ],
                 capabilities: query_capability_flags(),
+                analysis: crate::query_evolution::capabilities(),
             },
             semantic_packs: current_semantic_packs(),
             il: Il {
@@ -181,6 +184,11 @@ fn current_schemas() -> Schemas {
             crate::schema_versions::QUERY_JSON_SCHEMA_VERSION,
         ],
         query_watch_jsonl: vec![crate::schema_versions::QUERY_WATCH_JSONL_SCHEMA],
+        analysis: vec![
+            "nose.analysis/v1",
+            "nose.analysis-capture/v1",
+            "nose.analysis-changes/v1",
+        ],
         semantic_packs: nose_semantics::SUPPORTED_SEMANTIC_PACK_API_VERSIONS.to_vec(),
         semantic_pack_locks: vec![nose_semantics::SEMANTIC_PACK_LOCK_API_VERSION_V1],
         semantic_pack_receipts: vec![nose_semantics::SEMANTIC_PACK_RECEIPT_API_VERSION_V1],
@@ -243,6 +251,8 @@ fn query_capability_flags() -> std::collections::BTreeMap<&'static str, bool> {
         ("query_base_json_v8", true),
         ("query_region_identity_v1", true),
         ("query_review_key_v1", true),
+        ("query_analysis_capture_v1", true),
+        ("query_analysis_changes_v1", true),
         ("region_snapshots_v1", true),
         ("region_correspondence_v1", true),
         ("query_base_sarif", true),

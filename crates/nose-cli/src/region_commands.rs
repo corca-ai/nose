@@ -1,7 +1,8 @@
-use crate::cli_args::RegionCmd;
 use anyhow::{Context, Result};
+use clap::Subcommand;
 use nose_detect::regions::RegionSnapshot;
 use std::path::Path;
+use std::path::PathBuf;
 
 pub(crate) fn run(command: RegionCmd) -> Result<()> {
     match command {
@@ -74,4 +75,17 @@ fn capture(path: &Path) -> Result<RegionSnapshot> {
             env!("CARGO_PKG_VERSION")
         ),
     ))
+}
+
+#[derive(Subcommand)]
+pub(crate) enum RegionCmd {
+    /// Emit all admitted regions, including singletons, as a portable JSON snapshot.
+    Snapshot { path: PathBuf },
+    /// Compare snapshots without changing reviews or source files.
+    Compare {
+        before: PathBuf,
+        after: PathBuf,
+        #[arg(long, default_value_t = 100_000)]
+        max_candidates: usize,
+    },
 }

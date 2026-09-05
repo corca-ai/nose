@@ -324,3 +324,12 @@ Dashboard `summary.skipped_sources` lists deliberately excluded source artifacts
 as `{ "path": "...", "reason": "unsupported-cpp-header" }` records. Binary
 source artifacts and ANSI-highlight output have their own reason codes. These
 records are identical for clean, cold-cache and warm-cache queries.
+
+## Saved analysis comparison
+
+`query --save-analysis FILE` writes the complete admitted code-family population as
+`nose.analysis/v1`; `query --before FILE --after FILE --format json` explores it through
+`nose.analysis-changes/v1`. These explicitly selected schemas are separate from ordinary
+query JSON v10 and base JSON v8. Dashboard/list JSON cannot be substituted for a complete
+capture. The [analysis comparison contract](region-identity.md#explore-changes-between-saved-analyses)
+owns their profiles, completeness, reasons, filters and executable navigation.

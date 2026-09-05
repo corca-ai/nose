@@ -78,6 +78,98 @@ A caller must not substitute the old family ID when the new key is null. Discove
 through `query_region_identity_v1` and `query_review_key_v1` through the
 [capabilities contract](capabilities.md), which lists supported features.
 
+## Explore changes between saved analyses
+
+| Existing infrastructure | Role in this extension |
+| --- | --- |
+| Query dataset | Captures admitted families with resolved analysis settings, before presentation/ignore selection |
+| `since=FILE` / baseline | Existing acceptance-based family status; retains its original meaning |
+| `regions snapshot/compare` | Singleton-aware unit census and conservative region correspondence; the matcher is reused on captured family members |
+| `base=` / `semantic_change` | Existing missed-propagation and semantic-delta evidence; integration remains a later qualified step |
+| Stage CAS | Existing analysis reuse and dependency invalidation; capture reuses the normal cached pipeline |
+| Watch v1 | Complete dashboard replacement, not a complete family-census artifact; its protocol is unchanged |
+
+```sh
+nose query src --save-analysis before.json
+# Edit source, then capture with the same analysis settings.
+nose query src --save-analysis after.json
+nose query --before before.json --after after.json
+nose query --before before.json --after after.json group=reason
+nose query --before before.json --after after.json evidence=recheck
+```
+
+Follow each `next:` command to narrow a group or open `change=<id> full`. Human and
+JSON views use the same selection; `--format json` carries executable `next` links.
+`nose capabilities` exposes `query.analysis` with fields, values, views, formats,
+limits and syntax. `--before`/`--after` take no source roots or analysis flags:
+the saved inputs own that context. Generated commands preserve both inputs, the
+candidate budget and filters, including shell-quoted paths. A capture's initial
+next command compares it with itself, so its evidence is immediately explorable.
+
+`--save-analysis` writes a new `nose.analysis/v1` file and never overwrites an
+existing one. It captures every admitted code family from the normal dataset
+before display limits, surface classification, opportunity folding, and structured
+ignore/baseline application. It accepts normal analysis modes, config, roots and
+cache settings but rejects query terms, explicit ignores, gates, watch and baseline
+writes. Configured ignore decisions do not filter the capture. Markdown findings,
+singletons outside detected families, and source bodies are not included. The
+population is explicitly `admitted-query-families`, not a census of all source.
+Use `regions snapshot` for the separate singleton-aware unit census.
+
+The artifact records resolved thresholds/channels, engine profile, exclude rules,
+pack influence and lock decision, roots and the working-directory base for member
+paths, scanned/skipped counts, every family's
+member source addresses, review keys and independent evidence projections. Details
+include witness kind/size, pack/dependency/receipt provenance, semantic laws and
+abstraction templates. Internal analysis fingerprints remain opaque: a changed
+analysis projection is not a reconstructed semantic edit. Root paths are provenance,
+not content identity; consumers still own project/target scope when connecting reviews.
+Filesystem discovery follows the frontend's normal ignore and language admission
+rules; ignored or unsupported files are outside this population. Changing discovery
+rules requires treating the resulting observations within their declared scopes.
+
+Comparison uses only the two explicit artifacts, bounded to 128 MiB each, and
+reuses conservative region correspondence to propose family relations. It spends
+one combined budget on region candidates and family membership-index visits
+(default 100,000). `matched` requires exact, unambiguous region membership;
+`candidate`, `ambiguous`, `unresolved`, `unmatched-current` and `budget-exceeded`
+remain non-approving evidence. Simultaneously moved identical copies can remain
+ambiguous. A unique overlapping family can be a membership-change candidate,
+never automatic split/merge ancestry. Evidence reuse is disabled for incompatible
+profiles, incomplete inputs, missing required evidence or incomplete comparisons.
+
+The `nose.analysis-changes/v1` response provides dashboard/list/group/change views,
+input profiles and roots, completeness, work counts, total/selected/shown counts,
+change rows and next commands. Filters use `reason`, `correspondence`, `evidence`
+(`retained` or `recheck`), `scope`, `lang`, `path` and `witness`; equality/set OR,
+negation and path substrings follow query's familiar syntax. `group=FIELD` facets
+the selection. `change=ID` selects an unambiguous change-observation prefix, separate
+from existing family `id=` and many-to-one `review_key`. Each detailed item embeds
+its before/after observations, including past members absent from the workspace.
+Source text is explicitly `not-stored`; no implicit filesystem read fills it in.
+
+Reasons may overlap: member multiplicity/content, source address, scope, witness,
+analysis, packs, laws, abstraction and review evidence can all change together.
+These are observed facet differences, not causal attribution to a particular edit.
+`unchanged_evidence` means an unambiguous matched family has the same non-null
+review key and scope under compatible profiles with complete coverage. It never
+approves a newly added copy. `evidence=recheck` includes uncertainty; it is not a
+consumer's final review disposition.
+
+`top=N` only limits displayed rows/groups (`top=0` emits all); group counts can
+overlap and display truncation never changes the comparison. Missing rows mean
+unmatched observations within this population, not deleted code or completed
+refactoring. Ordinary dashboard JSON, filtered lists, baseline files and region
+snapshots are rejected as analysis inputs rather than treated as complete censuses.
+This surface does not change `since=FILE` baseline statuses, `base=`/`semantic_change`
+evidence or gates, SARIF, or watch v1's complete-dashboard replacement contract.
+The comparison and capture work run only when requested; ordinary query detection
+and ranking are unchanged. Reproduce the four-mode header-edit and legacy-output audit
+with `python3 bench/regions/analysis_changes.py --nose target/release/nose`;
+`--baseline-nose <binary>` additionally compares ordinary output and the existing
+`since=` workload. The [audit harness](../bench/regions/analysis_changes.py) records
+retained/recheck counts, output sizes, work budgets and worker equality. See [agent recipe](agent-recipe.md) for the exploration loop.
+
 ## Explicit region snapshots
 
 ```sh

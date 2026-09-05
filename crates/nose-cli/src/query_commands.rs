@@ -263,7 +263,11 @@ fn parse_query_with_path_hint(
 }
 
 pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
+    if crate::query_evolution::try_compare(&cmd)? {
+        return Ok(());
+    }
     let Cmd::Query {
+        analysis,
         roots,
         positionals,
         format,
@@ -323,6 +327,10 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         min_lines,
         scope: ScopeFilter::All,
     };
+    crate::query_evolution::validate_capture(&analysis, &args, &terms, watch || show_config)?;
+    if let Some(path) = &analysis.save_analysis {
+        return crate::query_evolution::capture(&args, path);
+    }
     if show_config {
         return crate::config::print_effective(&args);
     }

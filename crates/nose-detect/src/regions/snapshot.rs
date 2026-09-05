@@ -22,7 +22,7 @@ pub struct RegionRecord {
 }
 
 impl RegionRecord {
-    fn address(&self) -> ContentDigest {
+    pub(super) fn address(&self) -> ContentDigest {
         digest(
             b"nose.region-observation/v1",
             &(

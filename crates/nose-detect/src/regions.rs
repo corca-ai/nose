@@ -2,6 +2,7 @@
 //! content is an equivalence class; correspondence never proves edit history.
 
 mod candidate_index;
+pub mod evolution;
 mod reconcile;
 mod review_evidence;
 mod snapshot;

@@ -37,6 +37,8 @@ from-source `./target/release/nose`.
 | Inspect or reclaim a query cache | `nose cache status|prune|clear --dir <cache>` |
 | Read the result as machine-readable JSON | `nose query <path> --format json` ([query-json](query-json.md)) |
 | Refresh a local integration after each save | `nose query <path> --watch --format jsonl` ([query-watch](query-watch.md)) |
+| Save a complete admitted code-family analysis | `nose query <path> --save-analysis FILE` |
+| Explore changes without the source workspace | `nose query --before BEFORE --after AFTER [terms…]` — [analysis comparison](region-identity.md#explore-changes-between-saved-analyses) |
 | Ask what an installed binary supports | `nose capabilities` |
 | Check a local semantic-pack manifest | `nose semantic-pack check <file-or-dir>` |
 | Create or inspect a content-pinned semantic-pack decision | `nose semantic-pack lock …` / `nose semantic-pack status <lock>` |

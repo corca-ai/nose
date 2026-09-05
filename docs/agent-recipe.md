@@ -34,6 +34,16 @@ combines `syntax`, `semantic`, and `near` so the agent sees copy-paste, exact se
 and near-duplicates before applying judgment. A CI gate should instead pin the channel and
 budget, usually `--mode syntax` with explicit size filters; see [continuous integration](continuous-integration.md#jscpd-style-size-budgets).
 
+## Continue exploration after an edit
+
+Capture the admitted family population with `nose query <path> --save-analysis before.json`,
+then repeat with `after.json` after editing. Run `nose query --before before.json --after after.json`
+and follow its next commands: change-reason groups → selected changes → `change=<id> full`.
+Use `evidence=recheck` to explore changed or uncertain evidence. Retained evidence is a
+fact for your review policy, not approval. Ordinary dashboard JSON is a truncated view
+and cannot replace a capture. The [analysis comparison contract](region-identity.md#explore-changes-between-saved-analyses)
+explains profiles, coverage, artifact addresses and the limits of absence-based conclusions.
+
 ## Inputs for the batch / gate path
 
 For non-interactive consumption — a CI gate, a one-shot triage of the whole tree, or feeding

@@ -6,6 +6,11 @@ break.
 
 ## [Unreleased]
 
+- Capture admitted code-family analyses with `query --save-analysis FILE` and explore
+  their changes offline with `query --before FILE --after FILE`: reason/evidence facets,
+  before/after observations and runnable next commands. Separate versioned artifacts
+  preserve coverage and ambiguity; existing query/baseline/gate contracts are unchanged.
+
 - Add source-region snapshots and bounded, explicit cross-snapshot correspondence
   with `nose regions snapshot/compare`; preserve ambiguity and separate evidence
   continuity from caller-owned review decisions.

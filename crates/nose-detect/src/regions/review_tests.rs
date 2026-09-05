@@ -19,7 +19,7 @@ fn aggregate(family: &mut RefactorFamily) {
         .collect();
 }
 
-fn with_pack(exact: bool) -> RefactorFamily {
+pub(super) fn with_pack(exact: bool) -> RefactorFamily {
     let mut family = three_copy_family();
     let loc = &mut family.locations[0];
     let dependency = SemanticPackNearDependency {

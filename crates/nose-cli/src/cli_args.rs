@@ -2,6 +2,7 @@ use crate::query_options::{
     parse_bands, parse_min_value, parse_minhash_k, parse_threshold, DetectionMode, FailOn,
     ReportFormat, SortKey,
 };
+pub(crate) use crate::region_commands::RegionCmd;
 use crate::semantic_pack;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
@@ -96,10 +97,15 @@ pub(crate) enum Cmd {
     /// nose finds duplication in code and docs.
     ///
     /// nose finds; you judge. Filter, group, sort, or open families to explore.
+    /// Save with --save-analysis FILE. Compare saved populations with --before/--after;
+    /// follow next commands, group=reason, evidence=recheck, change=ID and full.
+    /// Use nose capabilities for comparison fields and reason values.
     #[command(
-        override_usage = "nose query <path> [terms...] [OPTIONS]\n       nose query --root <path> --root <path> [terms...] [OPTIONS]"
+        override_usage = "nose query <path> [terms...] [OPTIONS]\n       nose query --root <path> --root <path> [terms...] [OPTIONS]\n       nose query --before FILE --after FILE [terms...] [OPTIONS]"
     )]
     Query {
+        #[command(flatten)]
+        analysis: Box<crate::query_evolution::AnalysisArgs>,
         /// Additional root path to analyze; repeat for multi-root queries.
         #[arg(short = 'r', long = "root", value_name = "PATH")]
         roots: Vec<PathBuf>,
@@ -575,17 +581,4 @@ mod tests {
         assert!(parse_byte_size("2GB").is_err());
         assert!(parse_byte_size("18446744073709551615TiB").is_err());
     }
-}
-
-#[derive(Subcommand)]
-pub(crate) enum RegionCmd {
-    /// Emit all admitted regions, including singletons, as a portable JSON snapshot.
-    Snapshot { path: PathBuf },
-    /// Compare snapshots without changing reviews or source files.
-    Compare {
-        before: PathBuf,
-        after: PathBuf,
-        #[arg(long, default_value_t = 100_000)]
-        max_candidates: usize,
-    },
 }

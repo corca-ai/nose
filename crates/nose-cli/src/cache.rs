@@ -175,7 +175,7 @@ pub(crate) fn enforce_run_budget(run: CacheRun) {
     admin::enforce_run_budget(run);
 }
 
-fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> ContentDigest {
+pub(crate) fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> ContentDigest {
     let mut rows = packs
         .packs()
         .iter()
