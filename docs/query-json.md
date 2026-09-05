@@ -154,6 +154,28 @@ unresolved referents, and capped mappings cannot be `complete`. This field does 
 policy qualification. #852 found no admissible non-degenerate v3 consumer, so it remains
 review evidence under schema v8.
 
+`semantic_change.region_matches`, when present, adds the independently versioned
+`nose.changed-region-candidates/v1` evidence contract. It reports original-byte matches
+for a changed base unit in already projected current changed files. `base` and each
+candidate's `source` use the [source-region contract](region-identity.md);
+candidates also carry file, language, unit kind, name and line range. `status` is
+`unique-content-candidate`, `ambiguous`, `partial`, or `budget-exceeded`.
+`search_scope="already-projected-changed-files"`, `files_in_scope`, `files_examined`,
+`max_files=64`, `max_candidates=64`, and `complete` describe the bounded search.
+Completeness applies only to units in those changed files, not all repository code.
+Projection failures and excluded files make the search partial. Candidate overflow
+emits an empty list with `budget-exceeded`, never a truncated unique candidate.
+
+The field is omitted when no eligible cross-file competition was found or base source
+was unavailable; omission is not proof that a unit disappeared. A unique content
+candidate is not proof of movement, ancestry, semantic equivalence or review approval.
+A competing occurrence downgrades a formerly complete `changed-range` alignment to
+`advisory` with `heuristic-alignment`; the selected pair's deltas remain inspectable.
+An actual edit aligned by exact span or stable name retains its existing evidence.
+Human output lists candidate locations (first three), and SARIF carries the same
+structured evidence. `query_base_region_candidates_v1` advertises this optional
+extension; the existing v8 enums and gate policy are unchanged.
+
 `targets[]` is an evidence-only v8 extension for target-level policy development. A target is
 `{target_id, changed, skipped, direct_witness, variant_evidence}`. `target_id` is the 16-hex-digit FNV identity of
 the directed pair's repo-relative base coordinates and unit metadata; temporary base-worktree

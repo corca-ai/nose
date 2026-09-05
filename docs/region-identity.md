@@ -85,7 +85,7 @@ through `query_region_identity_v1` and `query_review_key_v1` through the
 | Query dataset | Captures admitted families with resolved analysis settings, before presentation/ignore selection |
 | `since=FILE` / baseline | Existing acceptance-based family status; retains its original meaning |
 | `regions snapshot/compare` | Singleton-aware unit census and conservative region correspondence; the matcher is reused on captured family members |
-| `base=` / `semantic_change` | Existing missed-propagation and semantic-delta evidence; integration remains a later qualified step |
+| `base=` / `semantic_change` | Existing missed-propagation and semantic-delta evidence; bounded original-region candidates now supplement review evidence |
 | Stage CAS | Existing analysis reuse and dependency invalidation; capture reuses the normal cached pipeline |
 | Watch v1 | Complete dashboard replacement, not a complete family-census artifact; its protocol is unchanged |
 
@@ -389,6 +389,36 @@ counts separately and does not treat a shorter partial result as improved covera
 The reproducible report is in the ignored `target/analysis-changes/audit.json`;
 the checked harness above owns regeneration. The current product blind oracle
 retained 54 exact groups with zero false merges and zero canonicalization violations.
+
+## Divergent-edit region evidence
+
+`query . base=HEAD` also reuses original-region digests to expose unchanged source
+candidates in other already projected changed files. A competing occurrence makes
+weak range alignment advisory, while genuine edits aligned by name/span retain
+semantic evidence. This is bounded review context under
+`nose.changed-region-candidates/v1`, not a lineage assignment or gate-policy change.
+See [divergent-edit policy](divergent-edits-policy.md#original-region-candidates-across-changed-files)
+and the [JSON contract](query-json.md).
+
+The B2 regression suite covers a moved function replaced at its old location,
+competing moved copies, an actual edit plus a copied old body, incomplete changed-file
+coverage, and candidate overflow. All 2,296 workspace tests passed. The checked
+[audit harness](../bench/regions/divergence_matches.py) compares the first three
+cases against the preceding A/B1 release and verifies equality of every field
+outside `semantic_change`, including gate decisions and target identities, plus
+identical two/four-worker output.
+
+```sh
+python3 bench/regions/divergence_matches.py --nose target/release/nose \
+  --baseline-nose /path/to/pre-b2/nose --output target/analysis-changes/b2-audit.json
+```
+
+Six alternating local samples per binary/case measured process medians of
+67.39 → 68.62 ms (move), 67.80 → 68.24 ms (two copies), and 68.26 → 69.20 ms
+(actual edit plus copy). Added JSON evidence cost 1,524–2,144 bytes in these fixtures.
+These small controlled cases establish the specific evidence correction and preserved
+gate, not real-history precision/recall or a general runtime bound. Raw observations
+are in the ignored `target/analysis-changes/b2-audit.json`.
 
 ## Research basis
 

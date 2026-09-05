@@ -163,6 +163,7 @@ nose capabilities
       "query_analysis_changes_v1": true,
       "query_base_gate_fail_default": true,
       "query_base_json_v8": true,
+      "query_base_region_candidates_v1": true,
       "query_base_sarif": true,
       "query_base_structured_ignores": true,
       "query_region_identity_v1": true,
@@ -445,6 +446,7 @@ Version 8 defines these `query.capabilities` keys:
 | `multi_root` | `nose query --root <path>` / `-r <path>` repeatable root analysis is supported. |
 | `query_base_gate_fail_default` | `base=<ref>` emits `gate.fail_default` and uses it for the default divergent-edit CI gate. |
 | `query_base_json_v8` | `base=<ref> --format json` emits schema v8. Wrappers should also verify `schemas.query_json` contains `8`. |
+| `query_base_region_candidates_v1` | Optional `semantic_change.region_matches` reports bounded original-byte candidates under `nose.changed-region-candidates/v1`; it cannot establish ancestry or change the gate. |
 | `query_base_sarif` | `base=<ref> --format sarif` emits divergent-edit SARIF results. Wrappers should also verify `query.output_formats` contains `sarif`. |
 | `query_base_structured_ignores` | Structured ignores are applied before the `base=<ref>` divergent-edit gate. |
 | `query_watch` | `nose query <root> --watch --format jsonl` is supported. |

@@ -70,6 +70,7 @@ pub(super) fn finish_witness(
         sink_deltas: analysis.sink_deltas.clone(),
         caveats,
         caps: CAPS,
+        region_matches: None,
     }
 }
 
@@ -554,6 +555,7 @@ pub(super) fn unavailable(
         sink_deltas: Vec::new(),
         caveats,
         caps: CAPS,
+        region_matches: None,
     }
 }
 

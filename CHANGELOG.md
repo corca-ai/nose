@@ -26,6 +26,9 @@ break.
   cached features; detection and navigation identities retain their contracts.
 
 ### Fixed
+- Show bounded original-region candidates across changed files in `base=` semantic
+  evidence. Competing byte-identical occurrences make weak range alignment advisory;
+  actual named edits retain their evidence, and the divergence gate is unchanged.
 - Bound recursive oracle calls independently of execution steps, reporting a
   budget exclusion instead of overflowing the stack on nonterminating recursion.
 - Accept long generated type/operator chains in pinned real-world corpora while

@@ -249,6 +249,7 @@ fn query_capability_flags() -> std::collections::BTreeMap<&'static str, bool> {
         ("multi_root", true),
         ("query_base_gate_fail_default", true),
         ("query_base_json_v8", true),
+        ("query_base_region_candidates_v1", true),
         ("query_region_identity_v1", true),
         ("query_review_key_v1", true),
         ("query_analysis_capture_v1", true),
