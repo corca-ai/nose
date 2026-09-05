@@ -20,7 +20,7 @@ fn markdown_only_change_refreshes_dashboard() {
     );
     let revision = watch.next("Markdown change");
     assert_eq!(revision["sequence"], 1);
-    assert_eq!(revision["snapshot"], clean_dashboard(project.path()));
+    assert_same_analysis(&revision["snapshot"], &clean_dashboard(project.path()));
     assert!(revision["snapshot"]["markdown"]
         .as_array()
         .unwrap()
@@ -69,9 +69,9 @@ fn ignore_only_change_refreshes_dashboard_without_source_edit() {
         .output()
         .unwrap();
     assert!(clean.status.success());
-    assert_eq!(
-        revision["snapshot"],
-        serde_json::from_slice::<serde_json::Value>(&clean.stdout).unwrap()
+    assert_same_analysis(
+        &revision["snapshot"],
+        &serde_json::from_slice::<serde_json::Value>(&clean.stdout).unwrap(),
     );
     drop(watch);
     fs::remove_dir_all(cache).unwrap();

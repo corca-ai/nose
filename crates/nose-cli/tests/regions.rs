@@ -1,4 +1,7 @@
 //! Public source identity and explicit snapshot interoperability.
+#[path = "support/analysis.rs"]
+mod analysis;
+use analysis::assert_same_analysis;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -102,11 +105,11 @@ fn query_keys_bind_analyzed_bytes_across_clean_cold_warm_and_leaf_edit() {
         );
     }
     for _ in 0..2 {
-        assert_eq!(clean, query(&project, &["--cache-dir", "cache"]));
+        assert_same_analysis(&clean, &query(&project, &["--cache-dir", "cache"]));
     }
     project.write("a.py", &format!("# inserted α comment\r\n\n{SOURCE}"));
     let after = query(&project, &["--cache-dir", "cache"]);
-    assert_eq!(after, query(&project, &[]));
+    assert_same_analysis(&after, &query(&project, &[]));
     assert_eq!(family(&after)["review_key"], before["review_key"]);
     assert_ne!(family(&after)["id"], before["id"]);
     std::fs::rename(project.0.join("a.py"), project.0.join("moved.py")).unwrap();
@@ -184,7 +187,7 @@ fn syntax_regions_preserve_original_bytes_and_embedded_offsets() {
     let report = project.json(&args);
     args.extend_from_slice(&["--cache-dir", "cache"]);
     for _ in 0..2 {
-        assert_eq!(report, project.json(&args));
+        assert_same_analysis(&report, &project.json(&args));
     }
     let mut checked = 0;
     for family in report["families"].as_array().unwrap() {
@@ -256,13 +259,13 @@ fn abstraction_review_survives_moves_and_representative_reversal() {
     let before = mode_query(&project, "abstraction", false);
     let keys = review_keys(&before);
     for _ in 0..2 {
-        assert_eq!(before, mode_query(&project, "abstraction", true));
+        assert_same_analysis(&before, &mode_query(&project, "abstraction", true));
     }
     project.write("a.py", &format!("# shifted α\r\n{source}"));
     std::fs::rename(project.0.join("a.py"), project.0.join("z.py")).unwrap();
     let moved = mode_query(&project, "abstraction", false);
     assert_eq!(review_keys(&moved), keys);
-    assert_eq!(moved, mode_query(&project, "abstraction", true));
+    assert_same_analysis(&moved, &mode_query(&project, "abstraction", true));
     project.write("z.py", &source.replace("= 0", "= 1"));
     assert_ne!(
         review_keys(&mode_query(&project, "abstraction", false)),
@@ -298,12 +301,12 @@ fn bounded_windows_keep_original_bytes_on_cached_movement_and_reject_edits() {
         .any(|f| f["witness"] == "bounded-window"));
     let keys = review_keys(&before);
     for _ in 0..2 {
-        assert_eq!(before, mode_query(&project, "near", true));
+        assert_same_analysis(&before, &mode_query(&project, "near", true));
     }
     let shifted = format!("// α header\r\n{source}");
     project.write("options.c", &shifted);
     let moved = mode_query(&project, "near", true);
-    assert_eq!(moved, mode_query(&project, "near", false));
+    assert_same_analysis(&moved, &mode_query(&project, "near", false));
     assert_eq!(review_keys(&moved), keys);
     for family in moved["families"].as_array().unwrap() {
         for loc in family["locations"].as_array().unwrap() {
@@ -329,12 +332,12 @@ fn syntax_module_containers_do_not_bind_unmatched_file_headers() {
     project.write("b.py", SOURCE);
     let before = mode_query(&project, "syntax", false);
     let keys = review_keys(&before);
-    assert_eq!(before, mode_query(&project, "syntax", true));
+    assert_same_analysis(&before, &mode_query(&project, "syntax", true));
     project.write("a.py", &format!("# unrelated α header\r\n{SOURCE}"));
     let shifted = mode_query(&project, "syntax", false);
     assert_eq!(review_keys(&shifted), keys);
     for _ in 0..2 {
-        assert_eq!(shifted, mode_query(&project, "syntax", true));
+        assert_same_analysis(&shifted, &mode_query(&project, "syntax", true));
     }
     std::fs::rename(project.0.join("a.py"), project.0.join("moved.py")).unwrap();
     assert_eq!(review_keys(&mode_query(&project, "syntax", true)), keys);

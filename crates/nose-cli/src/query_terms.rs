@@ -203,6 +203,23 @@ pub(crate) fn parse_query(terms: &[String]) -> Result<Query> {
 /// typo errors instead of silently matching nothing (which reads as "no such clones exist").
 /// Each comma-part is a member of the OR set and is checked independently.
 fn validate_filter_values(flt: &QFilter) -> Result<()> {
+    if NUM_FIELDS.contains(&flt.field.as_str()) {
+        anyhow::ensure!(
+            !matches!(flt.op, QOp::Has),
+            "numeric field `{}` does not support substring matching",
+            flt.field
+        );
+        let values = if matches!(flt.op, QOp::Eq) {
+            flt.value.split(',').collect::<Vec<_>>()
+        } else {
+            vec![flt.value.as_str()]
+        };
+        for value in values {
+            anyhow::ensure!(value.parse::<f64>().is_ok_and(f64::is_finite),
+                "numeric filter `{}` needs a finite number, got `{value}`; supported operators: = != > < (>= and <= are not supported)", flt.field);
+        }
+        return Ok(());
+    }
     if !matches!(flt.op, QOp::Eq) {
         return Ok(());
     }

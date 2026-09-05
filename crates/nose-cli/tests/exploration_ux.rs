@@ -428,3 +428,6 @@ fn zero_literal_overlap_preserves_exact_relation_and_review_identity() {
     );
     assert_eq!(detail["family"]["review_key"], family["review_key"]);
 }
+
+#[path = "exploration_ux/cortex.rs"]
+mod cortex;

@@ -59,7 +59,7 @@ fn exact_mode_does_not_spend_budget_on_unequal_value_fingerprints() {
             .env("NOSE_MAX_CANDIDATE_PAIRS", "1024")
             .output()
             .unwrap();
-        assert_eq!(clean, json(output));
+        assert_same_analysis(&clean, &json(output));
     }
 }
 
@@ -78,12 +78,12 @@ fn long_flat_operator_and_type_chains_remain_analyzable() {
     let cache = project.path().join(".cache");
     let clean = json(query(project.path(), &[]));
     for _ in 0..2 {
-        assert_eq!(
-            clean,
-            json(query(
+        assert_same_analysis(
+            &clean,
+            &json(query(
                 project.path(),
-                &["--cache-dir", cache.to_str().unwrap()]
-            ))
+                &["--cache-dir", cache.to_str().unwrap()],
+            )),
         );
     }
 }
@@ -132,9 +132,9 @@ fn cache_tracks_frontend_dialect_after_extension_change() {
         )
         .unwrap();
     }
-    assert_eq!(
-        json(query(project.path(), &args)),
-        json(query(project.path(), &["--mode", "near:0.5"]))
+    assert_same_analysis(
+        &json(query(project.path(), &args)),
+        &json(query(project.path(), &["--mode", "near:0.5"])),
     );
 }
 
@@ -175,9 +175,9 @@ fn cache_reads_worktree_despite_git_index_flags() {
             .unwrap()
             .success());
         project.write("b.py", "def different(x):\n    return 999\n");
-        assert_eq!(
-            json(query(project.path(), &args)),
-            json(query(project.path(), &[]))
+        assert_same_analysis(
+            &json(query(project.path(), &args)),
+            &json(query(project.path(), &[])),
         );
     }
 }
@@ -293,7 +293,7 @@ fn markdown_cache_hits_and_invalidates_without_changing_output() {
     let first = json(run());
     let warm = run();
     assert!(String::from_utf8_lossy(&warm.stderr).contains("[markdown-cache] report_hit=true"));
-    assert_eq!(first, json(warm));
+    assert_same_analysis(&first, &json(warm));
     project.write("b.md", "# Other\n\nUnrelated short document.\n");
     let changed = run();
     assert!(String::from_utf8_lossy(&changed.stderr).contains("document_hits=1"));
@@ -306,7 +306,7 @@ fn markdown_cache_hits_and_invalidates_without_changing_output() {
         ])
         .output()
         .unwrap();
-    assert_eq!(json(changed), json(clean));
+    assert_same_analysis(&json(changed), &json(clean));
 }
 
 #[test]
@@ -355,6 +355,6 @@ fn excluded_source_reasons_survive_cold_and_warm_dashboard() {
         clean["summary"]["skipped_sources"][0]["reason"],
         "unsupported-cpp-header"
     );
-    assert_eq!(clean, run(true));
-    assert_eq!(clean, run(true));
+    assert_same_analysis(&clean, &run(true));
+    assert_same_analysis(&clean, &run(true));
 }

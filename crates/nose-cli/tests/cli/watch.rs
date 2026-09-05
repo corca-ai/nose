@@ -127,7 +127,7 @@ fn leaf_revision_matches_a_clean_query_and_restart() {
         let initial = watch.next("initial snapshot");
         assert_eq!(initial["schema"], "nose.query-watch/v1");
         assert_eq!(initial["sequence"], 0);
-        assert_eq!(initial["snapshot"], clean_dashboard(project.path()));
+        assert_same_analysis(&initial["snapshot"], &clean_dashboard(project.path()));
         first_digest = initial["source_set_digest"].as_str().unwrap().to_owned();
 
         project.write("b.py", CHANGED);
@@ -135,7 +135,7 @@ fn leaf_revision_matches_a_clean_query_and_restart() {
         assert_eq!(revision["sequence"], 1);
         assert_eq!(revision["reconciliation"], "incremental-leaf");
         assert_ne!(revision["source_set_digest"], first_digest);
-        assert_eq!(revision["snapshot"], clean_dashboard(project.path()));
+        assert_same_analysis(&revision["snapshot"], &clean_dashboard(project.path()));
         assert!(revision["changed_paths"]
             .as_array()
             .unwrap()
@@ -146,7 +146,7 @@ fn leaf_revision_matches_a_clean_query_and_restart() {
     let mut restarted = WatchProcess::start(project.path(), &cache);
     let initial = restarted.next("restart snapshot");
     assert_eq!(initial["sequence"], 0);
-    assert_eq!(initial["snapshot"], clean_dashboard(project.path()));
+    assert_same_analysis(&initial["snapshot"], &clean_dashboard(project.path()));
     assert_ne!(initial["source_set_digest"], first_digest);
     drop(restarted);
     let _ = fs::remove_dir_all(cache);
@@ -166,7 +166,7 @@ fn atomic_replace_reconciles_to_the_final_filesystem() {
     }
     let revision = watch.next("atomic-replace revision");
     assert_eq!(revision["sequence"], 1);
-    assert_eq!(revision["snapshot"], clean_dashboard(project.path()));
+    assert_same_analysis(&revision["snapshot"], &clean_dashboard(project.path()));
     drop(watch);
     let _ = fs::remove_dir_all(cache);
 }
@@ -181,7 +181,7 @@ fn burst_across_sources_emits_the_final_clean_snapshot() {
     project.write("b.py", CHANGED);
     let revision = watch.next("burst revision");
     assert_eq!(revision["sequence"], 1);
-    assert_eq!(revision["snapshot"], clean_dashboard(project.path()));
+    assert_same_analysis(&revision["snapshot"], &clean_dashboard(project.path()));
     drop(watch);
     let _ = fs::remove_dir_all(cache);
 }
@@ -196,7 +196,7 @@ fn delete_recreate_burst_cannot_leave_stale_state() {
     project.write("b.py", CHANGED);
     let revision = watch.next("delete-recreate revision");
     assert_eq!(revision["sequence"], 1);
-    assert_eq!(revision["snapshot"], clean_dashboard(project.path()));
+    assert_same_analysis(&revision["snapshot"], &clean_dashboard(project.path()));
     drop(watch);
     let _ = fs::remove_dir_all(cache);
 }
@@ -234,6 +234,6 @@ fn invalid_config_emits_error_and_recovers_in_same_process() {
     project.write("nose.toml", "[query]\n");
     let recovered = watch.next("recovery");
     assert_eq!(recovered["kind"], "snapshot");
-    assert_eq!(recovered["snapshot"], initial["snapshot"]);
+    assert_same_analysis(&recovered["snapshot"], &initial["snapshot"]);
     assert!(recovered["sequence"].as_u64().unwrap() > error["sequence"].as_u64().unwrap());
 }

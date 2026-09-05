@@ -1642,3 +1642,39 @@ newly selected rows have labels, so these are not paired superiority estimates. 
 no supported ranking improvement to adopt. Craken's 183 production-family IDs and order
 also remained identical. Local diagnostic artifacts are in `/tmp/nose-evidence-dogfood/`
 and `/tmp/nose-evidence-ranking.json`; the harness records its own and both adapters' hashes.
+
+
+## Independent Cortex exploration follow-up (2026-09-05)
+
+Two agents explored Cortex independently from tasks alone. Their sessions exposed silent
+numeric-filter failures, lost detection options in navigation, an unhelpful candidate-budget
+stop, advanced-first help, missing selected-member source bodies and raw `None` coordinates.
+Numeric filters now reject unsupported operators and non-finite/malformed operands before
+analysis. Dashboard, group and list commands share option replay, including mode, exclusions
+and cache settings. Group JSON supplies executable next commands. Help starts with the basic
+filter/group/open workflow. Explicit member filters with `full` show bounded live source with
+line numbers, while unavailable structural coordinates have a human explanation.
+
+The release CLI recheck on Cortex `0baac123` retained the excluded dashboard's 2,013 scanned
+files and 724 families. Every dashboard next command executed; the worker directory group
+opened its slice under the same exclusion. Explicit syntax/semantic mode retained its two
+channels through the next command (570 families over 2,325 scanned files). The selected
+PayPal checkout member of `fba385b36925278c` displayed source lines 78–89, retaining the
+complete family review key and distinguishing live source from snapshot verification.
+
+The default whole-repository analysis still exceeds 16 million candidate pairs. It now
+reports an incomplete analysis with no findings, followed by a cheap source inventory and
+commands to inspect smaller roots. The advertised worker-root command succeeded with 311
+families over 562 scanned files. Directory counts do not diagnose the cause of the candidate
+load, and this narrower result does not establish whole-repository coverage. Detection modes
+and roots are never changed automatically. Local transcripts are in `/tmp/nose-cortex-fixed/`.
+
+Regression checks distinguish unchanged analysis payloads from invocation-specific `next`
+commands; dedicated CLI tests execute navigation, including cache paths with spaces. The
+substantial-near ratchet reports 18 reviewed families within the unchanged budget of 20.
+`1dd8bdaee1ea4c10` replaces `b9a6d490a71811d2`: importing the shared comparison helper moves
+the existing Project harness coordinates. The unchanged integer/float operation pair
+`60f0dd6d98436972` reappears above the threshold (value 41.965, ten shared syntax lines)
+after corpus frequency changes in tests; the two numeric policies remain deliberately
+separate. No new avoidable production duplication is accepted. Detector and ranking
+algorithms are unchanged; edit and preservation judgments remain with the caller.

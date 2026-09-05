@@ -11,3 +11,7 @@ pub(crate) use query::*;
 pub(crate) use std::fs;
 pub(crate) use std::path::{Path, PathBuf};
 pub(crate) use std::process::{Command, Stdio};
+
+#[path = "../../support/analysis.rs"]
+mod analysis;
+pub(crate) use analysis::assert_same_analysis;

@@ -97,6 +97,13 @@ pub(crate) enum Cmd {
     /// nose finds duplication in code and docs.
     ///
     /// nose finds; you judge. Filter, group, sort, or open families to explore.
+    /// Start: nose query <path> → group=dir → id=ID full.
+    /// Filters: scope=prod|test|mixed, witness=exact|similar, 'files>1', 'shared>5', 'path~api'.
+    /// Operators: = != > < ~ !~; comma means OR, separate terms mean AND. Quote < and > in your shell.
+    /// Numbers must be finite; >= and <= are unsupported and return errors.
+    /// Navigate: group=dir|file|scope|witness, id=ID, at=FILE:LINE, sort=value|sites, top=N, all.
+    /// Details: full shows source comparisons; member-path~TEXT full shows selected member source.
+    ///
     /// Save with --save-analysis FILE. Compare saved populations with --before/--after;
     /// follow next commands, group=reason, evidence=recheck, change=ID and full.
     /// On id=, follow member-group=dir|lang|scope to explore copies within a family.

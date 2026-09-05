@@ -215,6 +215,7 @@ fn print_semantic_change(site: &divergence::Site) {
 pub(super) fn render_query_reinvented(
     reinvented: &[nose_detect::ReinventedHelper],
     path: &str,
+    navigation_path: &str,
     top: Option<usize>,
     json: bool,
     semantic_packs: &[serde_json::Value],
@@ -258,7 +259,7 @@ pub(super) fn render_query_reinvented(
                     "summary": {"findings": shown.len(), "shown": shown.len().min(limit),
                         "in_test": in_test, "test_helper": test_helper},
                     "items": items,
-                    "next": [format!("nose query {path} shape=call-existing-helper")],
+                    "next": [format!("nose query {navigation_path} shape=call-existing-helper --format json")],
                 }),
                 semantic_packs
             )
@@ -309,7 +310,7 @@ pub(super) fn render_query_reinvented(
     }
     println!("\nnext:");
     println!(
-        "  nose query {path} shape=call-existing-helper   # the clustered cases (in clone families)"
+        "  nose query {navigation_path} shape=call-existing-helper   # the clustered cases (in clone families)"
     );
 }
 
@@ -322,6 +323,7 @@ pub(super) struct QueryListView<'a> {
     pub(super) query: &'a Query,
     pub(super) terms: &'a [String],
     pub(super) path: &'a str,
+    pub(super) navigation_path: &'a str,
     pub(super) widen: bool,
     pub(super) json: bool,
     pub(super) baseline_comparison: Option<&'a BaselineComparison>,
@@ -376,7 +378,7 @@ fn query_list_json(view: &QueryListView<'_>) -> serde_json::Value {
             "path": path,
             "summary": { "families": selection.len(), "shown": shown, "widened": widen },
             "families": fams,
-            "next": [format!("{} group=dir --format json", base_cmd(view.terms, path)), format!("{} group=witness --format json", base_cmd(view.terms, path))],
+            "next": [format!("{} group=dir --format json", base_cmd(view.terms, view.navigation_path)), format!("{} group=witness --format json", base_cmd(view.terms, view.navigation_path))],
         }),
         semantic_packs,
     )
@@ -438,7 +440,7 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
         };
         let cmd = style::dim(&format!(
             "nose query {} id={}",
-            view.path,
+            view.navigation_path,
             short_id(&baseline::family_id(f))
         ));
         println!(
@@ -452,7 +454,7 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
             println!(
                 "       ↳ {} Open primary: nose query {} id={}",
                 reason["meaning"].as_str().unwrap(),
-                view.path,
+                view.navigation_path,
                 reason["primary_id"].as_str().unwrap()
             );
         }
@@ -467,20 +469,20 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
     }
     if !view.query.id_full {
         println!(
-            "  nose query {} ... full   # add `full` to show the bounded source comparisons inline",
-            view.path
+            "  {} full   # show bounded source comparisons inline",
+            base_cmd(view.terms, view.navigation_path)
         );
     }
     println!("\nnext:");
     if !view.terms.iter().any(|term| term.starts_with("group=")) {
         println!(
             "  {} group=dir       # where this selection concentrates",
-            base_cmd(view.terms, view.path)
+            base_cmd(view.terms, view.navigation_path)
         );
     }
     println!(
         "  {} group=witness   # by confidence",
-        base_cmd(view.terms, view.path)
+        base_cmd(view.terms, view.navigation_path)
     );
 }
 

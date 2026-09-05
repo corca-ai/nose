@@ -58,6 +58,19 @@ evidence, the best candidates to inspect first, verified-evidence families, dupl
 directory hotspots, and next commands. Add terms to filter, group, sort, or open one
 family; every result includes a runnable `nose query …` command.
 
+`query --help` starts with the filter and navigation grammar. Numeric filter errors
+fail before analysis and never become a successful empty result. Dashboard, list, group,
+family, helper and watch navigation replay analysis options (`--mode`, exclusions,
+thresholds, config, packs, cache and read-only baseline) with shell quoting. Query JSON's
+`path` still describes only the roots. Group JSON includes per-row executable `next` links.
+
+If candidate work exceeds its limit, the query fails without partial clone findings. The
+error adds a source-file inventory and up to eight directory-root commands. Counts describe
+files directly in each directory, not candidate work or the cause of the overload. The
+commands retain settings but select a smaller root, which also changes the scope of
+root-relative excludes; no mode or exclusion is changed automatically. `scope=` and
+`path~` filter completed findings and cannot fix a candidate-budget failure.
+
 The landing page offers production, test, mixed-scope, and discovered evaluation/fixture
 directory routes. Directory names are navigation hints, not proof of code purpose; no findings
 are hidden by these routes until selected. Production routes exclude the listed evaluation
@@ -84,18 +97,18 @@ nose query --root <path> --root <path> [FILTER … | group=FIELD | id=FAM | at=F
 
 | part | meaning |
 |---|---|
-| `field=value` | keep families where the field equals the value (terms AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring; **set OR** with a comma — `witness=exact,shared-core` matches either; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a directory; `witness!=exact,shared-core` drops both) |
+| `field=value` | keep families where the field equals the value (terms AND-ed); `field>N`/`field<N` for finite numbers (`>=`, `<=`, NaN, infinity and malformed numeric values are errors); `path~substr` for a path substring; **set OR** with a comma — `witness=exact,shared-core` matches either; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a directory; `witness!=exact,shared-core` drops both) |
 | `group=FIELD` | facet the selection by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`, `status`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
 | `id=FAM` | open one family (any unambiguous id prefix): its copies, a bounded source comparison, overlapping-family links (`subsumes`/`subsumed_by`), and navigation |
 | `member-group=dir` / `lang` / `scope` | with `id=` or `at=`, group copies inside the family; follow emitted commands to narrow members while retaining the full family identity and metrics |
-| `member-dir=DIR`, `member-path~TEXT`, `member-lang=LANG`, `member-scope=prod` / `test` | with `id=` or `at=`, select member locations; `member-dir` is exact, `member-path` is a substring; `top=N` limits member rows/groups and `full` or `top=0` expands them. Human/JSON inspection only. |
+| `member-dir=DIR`, `member-path~TEXT`, `member-lang=LANG`, `member-scope=prod` / `test` | with `id=` or `at=`, select member locations; `member-dir` is exact, `member-path` is a substring; `top=N` limits member rows/groups and `full` or `top=0` expands them. With a member filter, `full` also shows bounded selected source bodies with line numbers; grouping shows counts. Human/JSON inspection only. |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
 | `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (a computation match requires a separate reuse decision). Production findings are shown only when the helper is also production code; matches that point production code at a test-only helper are omitted with a count, because the safe action is to rehome/extract a production helper first. Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
 | `base=REF` | the **divergent-edit** view: detect families at the git ref, flag the ones a diff changed in one copy but not its siblings — a likely un-propagated fix. It is its own view, so combine it only with `top=N`, detection flags, `--format`, or `--fail-on any`; ordinary family filters are for the non-`base=` query views. Each item carries legacy `fire_eligible` evidence plus the v2 `strict` / `review` / `report-only` / `suppressed` tier contract; `base=REF --fail-on any` fails only on unsuppressed `strict` findings. See [divergent edits](divergent-edits.md). |
 | `since=FILE` | compare to a saved snapshot (written with `--baseline FILE --write-baseline`) and expose each family's **`status`** (`new`/`changed`/`unchanged`) as a queryable field — the temporal lens. Hides nothing (unlike `--baseline`); `since=B status!=unchanged --fail-on any` is the composable gate |
 | `sort=KEY` | `extractability` (default), `value`, `members` (also `sites` and the experimental `hazard` — see [Ranking](#ranking)) |
 | `top=N` | show the first N rows (default 30); `top=0` shows **all** |
-| `full` | on `id=` or a list, render a bounded source comparisons inline (batched); each varying spot is `⟨param N: class⟩` — a coarse value-class hint (`literal`/`name`/`call`/`expr`/`block`) for the helper signature |
+| `full` | on `id=` or a list, render bounded source comparisons inline; holes are `⟨region N: class⟩` text observations, not proven parameters. With a member filter, show selected source bodies |
 | `all` | widen past the curated default surface to the full raw universe (demoted families labeled) |
 
 Family details explain extraction support separately from the detector witness: measured

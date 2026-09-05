@@ -445,3 +445,20 @@ The response's `reviews` object lists unrelated inputs and any newly written rev
 These are additive output fields; the `nose.analysis/v1` capture schema is unchanged.
 See [review records and source lookup](region-identity.md#inspect-source-and-carry-caller-decisions-forward)
 for their exact conditions and bounds.
+
+
+`member_view.source_bodies` is populated for explicit member filters with `full` and no
+member grouping. It describes only the selected members (`scope="selected-members"`),
+with `selected`, `shown`, `omitted`, `member_limit=8`, `line_limit_per_member=120` and
+`members[]`. Bodies carry member IDs, file/region coordinates, availability, truncation,
+and `{line,text}` source lines. Missing bodies retain a reason. The source is
+`live-unverified`, subject to the existing 16 MiB/file and 64 KiB/region limits;
+family identity, assessment and family-wide evidence remain unchanged. Use narrower
+member filters to inspect omitted bodies. Human structural spots explicitly name unavailable
+locations/excerpts instead of displaying internal `None` values.
+
+Ordinary dashboard/list/group navigation preserves analysis options while retaining the
+original `path` metadata. Group rows add `next[]`; an unfilterable diagnostic bucket opens
+its exemplar instead. Invalid numeric filters return a nonzero error, not a successful
+empty list. Candidate-budget failures likewise return no partial finding envelope; stderr
+contains source inventory and root-narrowing commands.

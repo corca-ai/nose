@@ -162,7 +162,9 @@ pub(crate) fn view(f: &RefactorFamily, q: &Query, args: &crate::cli_args::QueryA
         .map(|g| format!("member-group={g}"))
         .collect::<Vec<_>>();
     expand.push("top=0".into());
-    json!({"total":f.locations.len(),"selected":selected.len(),"shown":if q.member_view.group.is_some() {0} else {selected.len().min(top)},
+    let source = (q.id_full && q.member_view.active() && q.member_view.group.is_none())
+        .then(|| crate::query_source_evidence::selected_sources(&selected));
+    json!({"source_bodies":source,"total":f.locations.len(),"selected":selected.len(),"shown":if q.member_view.group.is_some() {0} else {selected.len().min(top)},
         "group":q.member_view.group,"groups":group_rows,"groups_total":groups.len(),
         "locations":if q.member_view.group.is_some() {Vec::new()} else {selected.into_iter().take(top).map(|l| json!({"id":baseline::member_id(l),"file":l.file,"start":l.start_line,"end":l.end_line,"name":l.name,"lang":l.lang,"region":l.source_region,"scope_evidence":crate::query_assessment::scope(l)})).collect::<Vec<_>>()},
         "next":[command(vec!["member-group=dir".into()]),command(vec!["member-group=lang".into()]),command(vec!["member-group=scope".into()]),command(expand),format!("{base} full"),base],
@@ -190,6 +192,9 @@ pub(crate) fn render(view: &Value) {
             loc["scope_evidence"]
         );
     }
+    if !view["source_bodies"].is_null() {
+        crate::query_source_evidence::render_selected_sources(&view["source_bodies"]);
+    }
     println!("  {}", view["meaning"].as_str().unwrap());
     println!("next:");
     for command in view["next"].as_array().unwrap() {
@@ -208,5 +213,5 @@ fn directory(loc: &Loc) -> String {
 
 pub(crate) fn capabilities() -> Value {
     json!({"requires":["id=ID", "at=FILE:LINE"],"terms":["member-group=dir|lang|scope", "member-dir=DIR", "member-path~TEXT", "member-lang=LANG", "member-scope=prod|test", "top=N", "full"],
-        "formats":["human","json"],"metrics_scope":"complete-family","default_top":30})
+        "formats":["human","json"],"metrics_scope":"complete-family","default_top":30,"full_source":{"scope":"selected-members","source":"live-unverified","member_limit":8,"line_limit_per_member":120}})
 }

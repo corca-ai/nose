@@ -22,6 +22,7 @@ pub(crate) fn query_dashboard_json(
     opp: &OpportunityGroups,
     scope: &QueryScope,
     path: &str,
+    navigation_path: &str,
     reinvented_prod: usize,
     baseline_cmp: Option<&BaselineComparison>,
     since: Option<&BaselineComparison>,
@@ -44,13 +45,13 @@ pub(crate) fn query_dashboard_json(
         .take(5)
         .map(|family| query_family_json(family, ov, opp, false, baseline_cmp, since))
         .collect::<Vec<_>>();
-    let mut next: Vec<_> = navigation::routes(&def, path, true)
+    let mut next: Vec<_> = navigation::routes(&def, navigation_path, true)
         .into_iter()
         .map(|(_, command)| command)
         .collect();
     next.extend(
         ["sort=extractability", "group=dir", "witness=exact", "all"]
-            .map(|term| format!("nose query {path} {term} --format json")),
+            .map(|term| format!("nose query {navigation_path} {term} --format json")),
     );
     with_semantic_packs(
         serde_json::json!({
@@ -121,6 +122,7 @@ pub(super) fn render_query_dashboard(
     opp: &OpportunityGroups,
     scope: &QueryScope,
     path: &str,
+    navigation_path: &str,
     reinvented_prod: usize,
     json: bool,
     baseline_cmp: Option<&BaselineComparison>,
@@ -150,6 +152,7 @@ pub(super) fn render_query_dashboard(
                 opp,
                 scope,
                 path,
+                navigation_path,
                 reinvented_prod,
                 baseline_cmp,
                 since,
@@ -159,6 +162,7 @@ pub(super) fn render_query_dashboard(
         );
         return;
     }
+    let path = navigation_path;
     println!("{}", scope.summary());
     let n_proven = count("exact") + count("subdag") + count("connected") + count("bounded-window");
     println!(
@@ -276,7 +280,8 @@ pub(super) fn render_query_dashboard(
         println!("\n{}", style::bold("most-duplicated directories:"));
         for (d, (_dup, n)) in dirs.iter().take(3) {
             println!(
-                "  nose query {path} path~{d}   {}",
+                "  nose query {path} {}   {}",
+                crate::path_utils::shell_quote(&format!("path~{d}")),
                 style::dim(&format!("# {n} {}", plural(*n, "family", "families")))
             );
         }
@@ -309,7 +314,7 @@ pub(super) fn render_query_dashboard(
     );
     println!(
         "\n{}",
-        style::bold("next commands — replace <path> with your path; terms combine with AND:")
+        style::bold("next commands — terms combine with AND:")
     );
     for (verb, cmd, note) in [
         (
@@ -319,7 +324,7 @@ pub(super) fn render_query_dashboard(
         ),
         (
             "",
-            "nose query <path> members>3 path~api",
+            "nose query <path> 'members>3' path~api",
             "compare with > < , ~ (contains), != (negate)",
         ),
         (
@@ -329,7 +334,7 @@ pub(super) fn render_query_dashboard(
         ),
         (
             "open",
-            "nose query <path> id=<id> full",
+            "nose query <path> id=ID full",
             "one family: every copy + the bounded source comparison",
         ),
         (
@@ -343,6 +348,7 @@ pub(super) fn render_query_dashboard(
             "include families held back below the default surface",
         ),
     ] {
+        let cmd = cmd.replace("<path>", path);
         println!(
             "  {}  {cmd:<37}  {}",
             style::bold(&format!("{verb:<6}")),

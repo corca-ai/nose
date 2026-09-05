@@ -6,6 +6,7 @@ pub(crate) struct QueryGroupView<'a> {
     pub(crate) field: &'a str,
     pub(crate) terms: &'a [String],
     pub(crate) path: &'a str,
+    pub(crate) navigation_path: &'a str,
     pub(crate) json: bool,
     pub(crate) baseline_comparison: Option<&'a BaselineComparison>,
     pub(crate) since: Option<&'a BaselineComparison>,
@@ -91,6 +92,7 @@ fn render_group_json(view: &QueryGroupView<'_>, rows: &[(String, GroupAgg)]) {
                 "count": aggregate.count,
                 "removable": aggregate.removable,
                 "exemplar_id": aggregate.exemplar_id,
+                "next": [group_command(view, key, &aggregate.exemplar_id)],
             })
         })
         .collect();
@@ -117,17 +119,6 @@ fn render_group_human(view: &QueryGroupView<'_>, rows: &[(String, GroupAgg)]) {
         plural(view.selection.len(), "family", "families"),
         view.field
     );
-    let other: Vec<String> = view
-        .terms
-        .iter()
-        .filter(|term| !term.starts_with("group="))
-        .map(|term| crate::path_utils::shell_quote(term))
-        .collect();
-    let base = if other.is_empty() {
-        format!("nose query {}", view.path)
-    } else {
-        format!("nose query {} {}", view.path, other.join(" "))
-    };
     for (key, aggregate) in rows {
         let label = if view.field == "witness" && key == "subdag" {
             "shared-core"
@@ -141,7 +132,23 @@ fn render_group_human(view: &QueryGroupView<'_>, rows: &[(String, GroupAgg)]) {
             aggregate.removable,
             aggregate.exemplar_row
         );
-        let term = crate::path_utils::shell_quote(&format!("{}={label}", view.field));
-        println!("        {base} {term}");
+        println!(
+            "        {}",
+            group_command(view, key, &aggregate.exemplar_id)
+        );
     }
+}
+
+fn group_command(view: &QueryGroupView<'_>, key: &str, exemplar: &str) -> String {
+    let base = base_cmd(view.terms, view.navigation_path);
+    let filter = format!("{}={key}", view.field);
+    let term = if crate::query_terms::parse_query(std::slice::from_ref(&filter)).is_ok() {
+        crate::path_utils::shell_quote(&filter)
+    } else {
+        format!("id={exemplar} full")
+    };
+    format!(
+        "{base} {term}{}",
+        if view.json { " --format json" } else { "" }
+    )
 }

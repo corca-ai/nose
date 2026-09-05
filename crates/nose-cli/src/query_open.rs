@@ -113,13 +113,14 @@ pub(super) fn render_query_family(
     print_copies(f, full);
     crate::query_source_evidence::render(&crate::query_source_evidence::collect(f, full), false);
 
+    let path = crate::query_navigation::path(ctx.args, path);
     println!("\nnext:");
     for command in member_view["next"].as_array().unwrap().iter() {
         println!("  {}", command.as_str().unwrap());
     }
     println!(
-        "  nose query {path} path~{}   # other duplication in this directory",
-        family_dir(f)
+        "  nose query {path} {}   # other duplication in this directory",
+        crate::path_utils::shell_quote(&format!("path~{}", family_dir(f)))
     );
     println!(
         "  nose query {path} witness={}   {}",

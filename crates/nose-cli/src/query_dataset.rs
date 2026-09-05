@@ -57,7 +57,8 @@ pub(super) fn build_query_dataset(
         semantic_packs: &semantic_packs,
         cache_max_bytes: settings.cache_max_bytes,
         accepted_coverage: AcceptedCoverage::Query,
-    })?;
+    })
+    .map_err(|error| crate::query_recovery::explain(error, args, refs, &settings.exclude))?;
     finish_query_dataset(args, refs, settings, semantic_packs, opts, detection, true)
 }
 

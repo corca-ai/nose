@@ -33,6 +33,7 @@ pub(crate) fn words(args: &QueryArgs) -> Vec<String> {
     }
     for (flag, value) in [
         ("--config", &args.config),
+        ("--baseline", &args.baseline),
         ("--ignore-file", &args.ignore_file),
         ("--cache-dir", &args.cache_dir),
         ("--semantic-pack-lock", &args.semantic_pack_lock),
@@ -54,4 +55,18 @@ pub(crate) fn words(args: &QueryArgs) -> Vec<String> {
         words.extend(["--generated-path".into(), glob.clone()]);
     }
     words
+}
+
+/// Keep the caller's root spelling while sharing the option replay contract.
+pub(crate) fn path(args: &QueryArgs, root_expression: &str) -> String {
+    let options = words(args)
+        .into_iter()
+        .skip(2 + 2 * args.paths.len())
+        .map(|word| crate::path_utils::shell_quote(&word))
+        .collect::<Vec<_>>();
+    if options.is_empty() {
+        root_expression.into()
+    } else {
+        format!("{root_expression} {}", options.join(" "))
+    }
 }

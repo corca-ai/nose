@@ -65,18 +65,9 @@ pub(crate) fn collect(f: &RefactorFamily, diffs: bool) -> Value {
     let mut members = Vec::new();
     let mut bodies = Vec::new();
     for (index, loc) in f.locations.iter().take(MEMBER_LIMIT).enumerate() {
-        let mut member = site(loc);
-        match read_member(loc) {
-            Ok(lines) => {
-                member["status"] = json!("available");
-                member["lines_shown"] = json!(lines.len());
-                member["truncated"] = json!(loc.end_line - loc.start_line + 1 > LINE_LIMIT as u32);
-                bodies.push((index, lines));
-            }
-            Err(reason) => {
-                member["status"] = json!("unavailable");
-                member["reason"] = json!(reason);
-            }
+        let (member, lines) = read_observation(loc);
+        if let Some(lines) = lines {
+            bodies.push((index, lines));
         }
         members.push(member);
     }
@@ -211,8 +202,10 @@ pub(crate) fn render_structural(f: &RefactorFamily) {
     );
     for spot in grade.spots.iter().take(12) {
         println!(
-            "    {} · a lines {:?}: {} · b lines {:?}: {}",
-            spot.class, spot.a_lines, spot.a_text, spot.b_lines, spot.b_text
+            "    {} · a {} · b {}",
+            spot.class,
+            spot_side(spot.a_lines, &spot.a_text),
+            spot_side(spot.b_lines, &spot.b_text)
         );
     }
     if grade.spots.len() > 12 {
@@ -227,6 +220,110 @@ pub(crate) fn render_structural(f: &RefactorFamily) {
         println!(
             "    referent mismatches: {}",
             serde_json::to_string(&grade.referent_mismatches).expect("serializable referents")
+        );
+    }
+}
+
+pub(crate) fn selected_sources(locations: &[&Loc]) -> Value {
+    let members: Vec<_> = locations
+        .iter()
+        .take(MEMBER_LIMIT)
+        .map(|loc| {
+            let (mut body, lines) = read_observation(loc);
+            if let Some(lines) = lines {
+                body["lines"] = json!(lines
+                    .iter()
+                    .enumerate()
+                    .map(|(index, text)| json!({"line":loc.start_line + index as u32,"text":text}))
+                    .collect::<Vec<_>>());
+            }
+            body
+        })
+        .collect();
+    json!({"source":"live-unverified","scope":"selected-members","selected":locations.len(),
+        "shown":members.len(),"omitted":locations.len().saturating_sub(MEMBER_LIMIT),
+        "member_limit":MEMBER_LIMIT,"line_limit_per_member":LINE_LIMIT,"members":members})
+}
+
+pub(crate) fn render_selected_sources(source: &Value) {
+    println!(
+        "  selected source: {} / {} members · live source, not snapshot-verified",
+        source["shown"], source["selected"]
+    );
+    for member in source["members"].as_array().unwrap() {
+        println!(
+            "    {}:{}-{}",
+            member["file"].as_str().unwrap(),
+            member["start"],
+            member["end"]
+        );
+        if let Some(lines) = member["lines"].as_array() {
+            for line in lines {
+                println!(
+                    "      {} │ {}",
+                    line["line"],
+                    line["text"].as_str().unwrap()
+                );
+            }
+            if member["truncated"] == true {
+                println!("      source truncated after {LINE_LIMIT} lines");
+            }
+        } else {
+            println!(
+                "      source unavailable: {}",
+                member["reason"].as_str().unwrap()
+            );
+        }
+    }
+    if source["omitted"].as_u64().unwrap_or(0) > 0 {
+        println!(
+            "  {} source bodies omitted; narrow member-path~ or member-dir= to inspect more",
+            source["omitted"]
+        );
+    }
+}
+
+fn spot_side(lines: Option<(u32, u32)>, text: &str) -> String {
+    let location = lines.map_or_else(
+        || "source location unavailable".into(),
+        |(start, end)| format!("lines {start}-{end}"),
+    );
+    let excerpt = if text.is_empty() {
+        "source excerpt unavailable"
+    } else {
+        text
+    };
+    format!("{location}: {excerpt}")
+}
+
+fn read_observation(loc: &Loc) -> (Value, Option<Vec<String>>) {
+    let mut member = site(loc);
+    match read_member(loc) {
+        Ok(lines) => {
+            member["status"] = json!("available");
+            member["lines_shown"] = json!(lines.len());
+            member["truncated"] = json!(loc.end_line - loc.start_line + 1 > LINE_LIMIT as u32);
+            (member, Some(lines))
+        }
+        Err(reason) => {
+            member["status"] = json!("unavailable");
+            member["reason"] = json!(reason);
+            (member, None)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn unmapped_spots_explain_missing_source_without_debug_option_names() {
+        assert_eq!(
+            super::spot_side(None, ""),
+            "source location unavailable: source excerpt unavailable"
+        );
+        assert_eq!(
+            super::spot_side(Some((10, 12)), "return x;"),
+            "lines 10-12: return x;"
         );
     }
 }

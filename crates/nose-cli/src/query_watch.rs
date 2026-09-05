@@ -198,6 +198,7 @@ fn dashboard_snapshot(
         &opportunities,
         &dataset.scope,
         path_arg,
+        &crate::query_navigation::path(args, path_arg),
         reinvented,
         baseline.as_ref(),
         None,

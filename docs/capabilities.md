@@ -331,6 +331,12 @@ nose capabilities
     },
     "member_navigation": {
       "default_top": 30,
+      "full_source": {
+        "scope": "selected-members",
+        "source": "live-unverified",
+        "member_limit": 8,
+        "line_limit_per_member": 120
+      },
       "formats": [
         "human",
         "json"
@@ -574,3 +580,7 @@ record schema. See [region identity](region-identity.md) and [query JSON](query-
 
 `query_source_evidence_v1` advertises bounded live-source coverage, member-bound pair diffs,
 and selected-family graded enrichment on `id=ID full`; see [query JSON](query-json.md).
+
+`query.member_navigation.full_source` documents selected-member source scope and limits
+for `full`. Basic filter operators and `at=FILE:LINE` are also discoverable in
+`nose query --help`; unknown numeric syntax fails before detection.

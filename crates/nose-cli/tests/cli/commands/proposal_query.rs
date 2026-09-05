@@ -337,17 +337,18 @@ fn query_dashboard_filter_and_family() {
     // comma-part errors (never silently narrows the set).
     assert!(
         run(&["query", p, "witness=exact,similar", "--mode", "near"])
-            .contains(&format!("nose query {p} id=")),
+            .contains(&format!("nose query {p} '--mode' 'near' id=")),
         "witness=exact,similar matches the similar fixture (OR)"
     );
     let none = run(&["query", p, "witness=exact,copy-paste", "--mode", "near"]);
     assert!(
-        none.contains("0 families") || !none.contains(&format!("nose query {p} id=")),
+        none.contains("0 families")
+            || !none.contains(&format!("nose query {p} '--mode' 'near' id=")),
         "a set without `similar` excludes the only family"
     );
     assert!(
         run(&["query", p, "witness!=exact,copy-paste", "--mode", "near"])
-            .contains(&format!("nose query {p} id=")),
+            .contains(&format!("nose query {p} '--mode' 'near' id=")),
         "witness!=<set> keeps a family outside the set"
     );
     assert!(
@@ -369,7 +370,7 @@ fn query_dashboard_filter_and_family() {
     // same_symbol: the three `process` copies share a name → the parallel-variant signal.
     assert!(
         run(&["query", p, "same_symbol=true", "--mode", "near"])
-            .contains(&format!("nose query {p} id=")),
+            .contains(&format!("nose query {p} '--mode' 'near' id=")),
         "same_symbol=true matches the same-named family"
     );
     assert!(
