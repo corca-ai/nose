@@ -461,6 +461,174 @@
       "issue": "https://github.com/corca-ai/nose/issues/984",
       "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
       "repo": "sidekiq"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            229726
+          ],
+          "current": [
+            229722
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "617f8371b3d9a6682da0018148c7eaf4e48adc026b47872d14500f7a1283e5f5"
+          ],
+          "current": [
+            "deec0e2ed49402a78f4e8e377f862e6cd935c7346b697d14f2d5ca9049358df4"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "fastlane"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            611940
+          ],
+          "current": [
+            611936
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "efec3c8b45b88d1ed992ffdbadfcfc7d2e4432bccebff582234876881bb079c9"
+          ],
+          "current": [
+            "47c2197e659a56d014ecca3c9accbf0220b6c34dca0cab6bb09392e0bbab4d7d"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "asciidoctor"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            49411
+          ],
+          "current": [
+            49407
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "02810277f0a504db6174e25d4913c326536c3025143a28227e5a5e277351cd11"
+          ],
+          "current": [
+            "5def8302402bde94965def52eee8c005aa95c812f2d1dce62f5e94757dda0b22"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "sidekiq"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            39832
+          ],
+          "current": [
+            39828
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "a74841fe9bef0f62a29b1a379949a84fde6a4b1ecab09bc98835a5a9765a17d6"
+          ],
+          "current": [
+            "509135f1a1c08484a2cb438055c5b5cca5cae52279835c4768aaadc2523e4d67"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "alacritty"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            64988
+          ],
+          "current": [
+            64984
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "2c41200d4fe6a5416dde0b29e5cfdb5a783614c75cd7da5539a2a22661ad20d2"
+          ],
+          "current": [
+            "d0ecabc04d01884152423b8c8a4bbd98eb22772375c8ba807f25d0818de6d4bd"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "requests"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            1809954
+          ],
+          "current": [
+            1809950
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "083cec948bfbf4c6f09424e62d66b2e46a2abfbab12eb1e6f6fd01c6ddc51b7d"
+          ],
+          "current": [
+            "f2da77a63343da99603517a831ae85f9eaf2d80472779baa472b44fc68bd546d"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "junit5"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            657700
+          ],
+          "current": [
+            657696
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "f98a4571abcc69dab579e37ed91592ee04c3738d683a500fba20b5d9a5c7015b"
+          ],
+          "current": [
+            "b782386e85fc6c67468a8ca0a69285d7bffd526adec0c58ac804c5c9b36c77de"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "prettier"
     }
   ],
   "schema": "nose.semantic_regression_expected_drift.v1"

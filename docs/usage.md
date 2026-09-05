@@ -64,7 +64,7 @@ family, helper and watch navigation replay analysis options (`--mode`, exclusion
 thresholds, config, packs, cache and read-only baseline) with shell quoting. Query JSON's
 `path` still describes only the roots. Group JSON includes per-row executable `next` links.
 
-If candidate work exceeds its limit, the query fails without partial clone findings. The
+When an explicitly configured candidate-work limit is exceeded, the query fails without partial clone findings. The
 error adds a source-file inventory and up to eight directory-root commands. Counts describe
 files directly in each directory, not candidate work or the cause of the overload. The
 commands retain settings but select a smaller root, which also changes the scope of
@@ -76,13 +76,16 @@ population: roots, scanned-file count, modes, exclusion patterns and size/member
 Query filters select findings inside that population; they do not change the analyzed files.
 JSON exposes the same information in `analysis`, including skipped-source diagnostics.
 
-`--max-candidate-pairs N` explicitly sets the positive candidate-work limit for a query,
-including cached/watch queries. It overrides `NOSE_MAX_CANDIDATE_PAIRS`; otherwise the
-default remains 16,000,000. Navigation preserves an explicit limit. The budget counts
-unique pairs across all detection routes, excluding equal-line-span pairs in one file that
-cannot yield ordinary or connected evidence. Larger limits cost time and memory and do
-not guarantee completion. A budget failure offers both smaller-root commands and an
-explicit higher-limit retry retaining the current roots/modes; neither runs automatically.
+Large queries automatically process candidates in batches; a normal `nose query <root>`
+needs no candidate-count option. Roots, modes, every eligible ordinary pair and the existing
+connected-seed policy stay the same. Accepted evidence is retained; rejected pairs are not
+all kept in memory. Runtime still grows with candidate work and accepted output size.
+
+`--max-candidate-pairs N` is an optional positive work ceiling for automation, including
+cached/watch queries. It overrides `NOSE_MAX_CANDIDATE_PAIRS`; with neither set there is
+no candidate-count ceiling. Navigation preserves an explicit limit. An explicit-budget
+failure returns no partial findings and offers smaller-root and higher-limit commands.
+The engine chooses batching independently of this ceiling; users need not tune batch sizes.
 
 The landing page offers production, test, mixed-scope, and discovered evaluation/fixture
 directory routes. Directory names are navigation hints, not proof of code purpose; no findings

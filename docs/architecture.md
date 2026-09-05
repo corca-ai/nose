@@ -76,6 +76,13 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    containment. Cross-file pairs and strictly nested seeds remain eligible. The same rule
    applies to budget preflight, clean detection and incremental state; anchors keep their
    existing frequency and per-bucket caps. No bucket is reduced to a connectivity skeleton.
+   Product analyses above one million pairs automatically stream stable candidate batches.
+   Every eligible ordinary pair is still scored, retaining accepted edges and only the
+   existing top/first connected seeds globally and per file. Prefix compaction preserves
+   score ties and nested-seed order. This bounds temporary candidate/rejected-score storage,
+   not source features or accepted output. Smaller analyses retain the indexed path; raw
+   diagnostic dumps still materialize the requested candidates. There is no implicit
+   user-facing pair ceiling; explicit CLI/environment ceilings remain fail-before-results.
 5. **Accept / score**: `semantic` accepts only exact-safe value-fingerprint equality, `near`
    scores candidates with structural alignment (RANSAC) plus weighted shape/value
    Jaccard and accepts above the inline `near:T` threshold (default `near:0.70`), and

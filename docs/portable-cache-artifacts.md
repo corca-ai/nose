@@ -38,6 +38,11 @@ shared k-grams. A small source manifest lets an unchanged run reuse line-IDF and
 diff/weight state without rereading the full line index. Query filtering, formatting, and final
 presentation remain per invocation.
 
+Large candidate populations automatically use the same batched product detector for clean,
+cached and watch queries. Their source/unit cache is retained, while a quadratic persistent
+pair index is bypassed. Smaller populations continue to reuse incremental detection state.
+This execution choice does not change analysis scope or the connected-seed policy.
+
 Git index flags (`assume-unchanged`, `skip-worktree`), clean/smudge filters, and
 concurrent edits cannot substitute a Git blob for the bytes actually analyzed.
 Raw IL schema 6 and source-analysis identity v3 include the extension profile and

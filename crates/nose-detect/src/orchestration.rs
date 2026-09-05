@@ -11,6 +11,7 @@ use crate::{
 };
 use nose_il::Corpus;
 
+mod batched;
 mod features;
 pub use features::{
     corpus_features, corpus_features_with_normalized, file_stream, units_of_file, CorpusFeatures,
@@ -214,6 +215,26 @@ pub fn detect_from_units_with_accepted_coverage(
     .0
 }
 
+/// Borrowed-unit product entry point for watch sessions that retain unit caches
+/// while choosing bounded scoring instead of a large persistent pair index.
+pub fn detect_from_borrowed_units_with_accepted_coverage(
+    units: &[UnitFeat],
+    files: usize,
+    streams: &[Stream],
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+) -> Report {
+    detect_from_units_inner(DetectionRequest {
+        units,
+        files,
+        streams,
+        opts,
+        detector,
+        output: DetectionOutput::ACCEPTED_COVERAGE,
+    })
+    .0
+}
+
 /// Cached-unit counterpart to [`detect_with_direct_accepted_coverage`].
 /// Divergent-edit propagation needs contiguous copy-paste edges as well as the
 /// structural accepted edges retained by the ordinary query surface.
@@ -243,7 +264,12 @@ fn detect_from_units_inner(request: DetectionRequest<'_>) -> (Report, Dump) {
     };
     let mut clk = StageTimer::new();
 
-    let stages = if request.opts.structural {
+    let stages = if matches!(request.output.dump, DumpSelection::None)
+        && crate::prefers_batched_detection(request.units, request.opts)
+    {
+        clk.lap("candidates");
+        batched::score(request.units, request.opts, request.detector)
+    } else if request.opts.structural {
         // 3. LSH candidate generation. Semantic runs use the value-graph signature;
         //    near-duplicate runs also use shape signatures so Type-3 edits that
         //    change behavior-defining values still reach the scorer. When both
@@ -282,6 +308,7 @@ fn finish_detection(
     } = request;
     let DetectionStages {
         candidates,
+        candidate_count,
         scored,
         accepted,
         source,
@@ -356,7 +383,7 @@ fn finish_detection(
         metrics: Metrics {
             files,
             units: units.len(),
-            candidate_pairs: candidates.len(),
+            candidate_pairs: candidate_count,
             accepted_pairs: accepted.len() + connected_accepted.len(),
             groups: groups.len(),
         },

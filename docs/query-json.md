@@ -97,6 +97,8 @@ configured population, not coverage of excluded sources, unsupported languages o
 possible semantic relation. Filters apply to findings after detection. Watch snapshots
 carry the same context; saved-analysis comparison and `base` retain their own contracts.
 Operational work limits can differ between two otherwise identical successful analyses.
+`max_candidate_pairs` is null by default (automatic batching without a work ceiling); a
+positive number records an explicit CLI/environment ceiling. This does not change coverage.
 
 Locations and live source observations add `boundary`: `kind` (`named-unit`,
 `exact-fragment`, `contained-region`, `unclassified-region`), detector `unit_kind`, optional

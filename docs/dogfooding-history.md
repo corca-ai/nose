@@ -1730,3 +1730,31 @@ The adjusted stage movement was +6.25 ms (+3.28%); the two execution-order strat
 runtime qualification, not proof of a slowdown or a passing performance result. No
 threshold or retry policy was changed. Reports and raw measurements remain in
 `/tmp/nose-context-smoke/`; recursive output-review artifacts are alongside them.
+
+
+## Automatic candidate batching (2026-09-05)
+
+Requiring a first-time user to increase an internal candidate limit made whole-root
+exploration unnecessarily fail. Normal queries now have no implicit candidate-count
+ceiling. Large populations automatically stream candidate batches, retain all accepted
+ordinary edges and compact the existing connected-seed selection without changing its
+global/per-file quotas, ties or order. Candidate and rejected-score temporary storage
+is bounded by the batch plus retained seeds; source features and accepted output still
+consume memory proportional to their size. Explicit work ceilings remain available for
+automation and fail before results. Cached and watch queries use the same large-analysis
+path while keeping reusable source/unit features instead of a large persistent pair index.
+
+On Cortex `0baac123`, plain `nose query ../cortex` completed 2,325 files and 782 families
+without any candidate option or retry. Comparing every family against the previous
+release with its required 32-million override preserved all existing fields and ordering.
+Cold and warm caches agreed, and the watch initial snapshot matched the clean dashboard.
+Local elapsed times were 10.12 seconds for the default dashboard, 8.48 for all families,
+9.07 for cold cache and 6.50 for warm cache; these are usability observations rather than
+controlled performance claims. Artifacts are in `/tmp/nose-auto-cortex/`. Tests compare
+multiple batch boundaries, non-hub edges, overlapping buckets, nested seeds, overflow
+ties and per-file reservations.
+
+The substantial-near ratchet reports 18 families within budget 20. The unchanged numeric
+policy pair `60f0dd6d98436972` (`int_bin`/`float_bin`) returns at value 40.645 as the
+code/test corpus changes; the previous binary reports the same family and value on this
+updated corpus. No new avoidable production duplication is accepted.

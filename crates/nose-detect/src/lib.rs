@@ -10,7 +10,9 @@ mod abstraction;
 mod align;
 mod candidate_budget;
 mod candidates;
-pub use candidate_budget::{ensure_candidate_budget, CandidateBudgetExceeded};
+pub use candidate_budget::{
+    ensure_candidate_budget, prefers_batched_detection, CandidateBudgetExceeded,
+};
 mod cluster;
 mod connected;
 mod contiguous;
@@ -65,7 +67,8 @@ pub use model::{
 };
 pub use options::{DetectOptions, DetectionPlan, InvalidDetectOptions};
 pub use orchestration::{
-    corpus_features, corpus_features_with_normalized, detect, detect_from_units,
+    corpus_features, corpus_features_with_normalized, detect,
+    detect_from_borrowed_units_with_accepted_coverage, detect_from_units,
     detect_from_units_incremental_session_with_accepted_coverage,
     detect_from_units_incremental_with_accepted_coverage, detect_from_units_with_accepted_coverage,
     detect_from_units_with_direct_accepted_coverage, detect_with_accepted_coverage,

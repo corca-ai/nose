@@ -2,7 +2,7 @@ use crate::query_options::parse_min_value;
 
 #[derive(clap::Args)]
 pub(crate) struct QueryLimits {
-    /// Maximum distinct candidate pairs; larger limits cost more time and memory. [default: 16000000]
+    /// Optional work ceiling for automation; by default large analyses are processed in batches.
     #[arg(long, value_parser = clap::value_parser!(usize))]
     pub(crate) max_candidate_pairs: Option<usize>,
     /// Ignore units smaller than this size, in IL tokens (the unit's node count). [default: 24]

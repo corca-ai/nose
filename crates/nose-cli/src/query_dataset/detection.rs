@@ -136,7 +136,9 @@ pub(super) fn detect_cached_or_clean(
     // and state write exceed the savings from many no-op process invocations;
     // the unit cache still avoids normalization, while watch sessions retain
     // their in-memory incremental detector without this cap.
-    if previous.is_none() && units.len() > MAX_PERSISTENT_DETECTION_UNITS {
+    if nose_detect::prefers_batched_detection(&units, opts)
+        || (previous.is_none() && units.len() > MAX_PERSISTENT_DETECTION_UNITS)
+    {
         return Ok(nose_detect::detect_from_units_with_accepted_coverage(
             units, files, streams, opts, detector,
         ));

@@ -164,3 +164,39 @@ fn token_overlap_without_shared_whole_lines_explains_both_measurements() {
     assert!(String::from_utf8_lossy(&output.stdout)
         .contains("matching tokens; no invariant whole lines"));
 }
+
+#[test]
+fn default_query_needs_no_candidate_ceiling_or_retry() {
+    let p = Project::new();
+    p.write("a.rs", &format!("fn compute() {{\n{RUST_BODY}}}\n"));
+    p.write("b.rs", &format!("fn compute() {{\n{RUST_BODY}}}\n"));
+    let result = Command::new(env!("CARGO_BIN_EXE_nose"))
+        .current_dir(&p.0)
+        .env_remove("NOSE_MAX_CANDIDATE_PAIRS")
+        .args([
+            "query",
+            ".",
+            "--min-size",
+            "1",
+            "--min-lines",
+            "1",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let json: Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert!(json["analysis"]["max_candidate_pairs"].is_null());
+    assert_eq!(json["analysis"]["complete"], true);
+    assert!(!json["families"].as_array().unwrap().is_empty());
+    assert!(json["next"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|next| !next.as_str().unwrap().contains("max-candidate-pairs")));
+}

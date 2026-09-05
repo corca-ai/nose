@@ -44,18 +44,7 @@ pub(crate) fn pairs(n: usize, buckets: &[Vec<u32>], groups: &[usize]) -> Vec<(us
             || vec![usize::MAX; n],
             |seen, left| {
                 let mut neighbors = Vec::new();
-                for &bucket in &membership[left] {
-                    let members = &buckets[bucket];
-                    let start = members.partition_point(|&right| right as usize <= left);
-                    for &right in &members[start..] {
-                        let right = right as usize;
-                        if groups[left] != groups[right] && seen[right] != left {
-                            seen[right] = left;
-                            neighbors.push(right);
-                        }
-                    }
-                }
-                neighbors.sort_unstable();
+                collect_neighbors(left, buckets, &membership, groups, seen, &mut neighbors);
                 neighbors
                     .into_iter()
                     .map(|right| (left, right))
@@ -64,6 +53,65 @@ pub(crate) fn pairs(n: usize, buckets: &[Vec<u32>], groups: &[usize]) -> Vec<(us
         )
         .flat_map_iter(|pairs| pairs)
         .collect()
+}
+
+/// Visit every distinct pair in stable order while retaining at most one batch
+/// and one endpoint's neighbors. The callback can discard rejected scores early.
+pub(crate) fn visit_batches(
+    n: usize,
+    buckets: &[Vec<u32>],
+    groups: &[usize],
+    batch_size: usize,
+    mut visit: impl FnMut(&[(usize, usize)]),
+) {
+    assert!(batch_size > 0);
+    let membership = membership(n, buckets);
+    let mut seen = vec![usize::MAX; n];
+    let mut neighbors = Vec::new();
+    let mut batch = Vec::with_capacity(batch_size);
+    for left in 0..n {
+        collect_neighbors(
+            left,
+            buckets,
+            &membership,
+            groups,
+            &mut seen,
+            &mut neighbors,
+        );
+        for &right in &neighbors {
+            batch.push((left, right));
+            if batch.len() == batch_size {
+                visit(&batch);
+                batch.clear();
+            }
+        }
+    }
+    if !batch.is_empty() {
+        visit(&batch);
+    }
+}
+
+fn collect_neighbors(
+    left: usize,
+    buckets: &[Vec<u32>],
+    membership: &[Vec<usize>],
+    groups: &[usize],
+    seen: &mut [usize],
+    neighbors: &mut Vec<usize>,
+) {
+    neighbors.clear();
+    for &bucket in &membership[left] {
+        let members = &buckets[bucket];
+        let start = members.partition_point(|&right| right as usize <= left);
+        for &right in &members[start..] {
+            let right = right as usize;
+            if groups[left] != groups[right] && seen[right] != left {
+                seen[right] = left;
+                neighbors.push(right);
+            }
+        }
+    }
+    neighbors.sort_unstable();
 }
 
 /// Count distinct pairs with O(units + band memberships) auxiliary memory.
@@ -189,6 +237,21 @@ pub(crate) fn bucket_pairs<T: Copy>(members: &[T]) -> impl Iterator<Item = (T, T
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bounded_batches_keep_non_hub_edges_and_deduplicate_overlapping_channels() {
+        let buckets = vec![(0..100).collect(), (25..150).collect(), vec![2, 4, 149]];
+        let groups = (0..150).map(|i| i / 2).collect::<Vec<_>>();
+        let expected = pairs(150, &buckets, &groups);
+        for size in [1, 127, 4096] {
+            let mut observed = Vec::new();
+            visit_batches(150, &buckets, &groups, size, |batch| {
+                assert!(batch.len() <= size);
+                observed.extend_from_slice(batch);
+            });
+            assert_eq!(observed, expected);
+        }
+    }
 
     #[test]
     fn dense_equal_span_buckets_keep_every_cross_span_pair() {

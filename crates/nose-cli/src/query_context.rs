@@ -32,8 +32,10 @@ pub(crate) fn render(context: &Value) {
     println!("  discovery: gitignore respected · exclude: {} · min-size {} · min-lines {} · min-members {} · min-value {}",
         if context["exclude"].as_array().unwrap().is_empty() { "none".into() } else { strings("exclude") },
         context["min_size"], context["min_lines"], context["min_members"], context["min_value"]);
-    println!(
-        "  candidate limit: {} distinct pairs · filters select findings within this population",
-        context["max_candidate_pairs"]
-    );
+    let ceiling = context["max_candidate_pairs"]
+        .as_u64()
+        .map_or_else(String::new, |limit| {
+            format!("candidate limit: {limit} distinct pairs · ")
+        });
+    println!("  {ceiling}filters select findings within this population");
 }

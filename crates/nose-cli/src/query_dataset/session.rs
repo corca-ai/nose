@@ -98,23 +98,35 @@ impl QueryAnalysisSession {
             &opts,
             args.max_candidate_pairs,
         )?;
-        let (report, state, stats) =
-            nose_detect::detect_from_units_incremental_session_with_accepted_coverage(
+        let report = if nose_detect::prefers_batched_detection(self.units.units(), &opts) {
+            self.detection_state = None;
+            nose_detect::detect_from_borrowed_units_with_accepted_coverage(
                 self.units.units(),
                 self.units.files(),
                 self.units.streams(),
                 &opts,
                 detector.as_ref(),
-                self.detection_state.take(),
-                Some(self.units.unit_keys()),
-            );
-        self.detection_state = Some(state);
-        if std::env::var_os("NOSE_CACHE_STATS").is_some() {
-            eprintln!(
-                "  [detection] {}",
-                cache::incremental_detection_stats_json(&stats)
-            );
-        }
+            )
+        } else {
+            let (report, state, stats) =
+                nose_detect::detect_from_units_incremental_session_with_accepted_coverage(
+                    self.units.units(),
+                    self.units.files(),
+                    self.units.streams(),
+                    &opts,
+                    detector.as_ref(),
+                    self.detection_state.take(),
+                    Some(self.units.unit_keys()),
+                );
+            self.detection_state = Some(state);
+            if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+                eprintln!(
+                    "  [detection] {}",
+                    cache::incremental_detection_stats_json(&stats)
+                );
+            }
+            report
+        };
         let detection = (
             report,
             QueryScope::from_langs(self.units.langs().to_vec())

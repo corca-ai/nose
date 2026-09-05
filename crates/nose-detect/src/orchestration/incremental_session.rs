@@ -137,6 +137,7 @@ fn detect_inner(
             output: DetectionOutput::ACCEPTED_COVERAGE,
         },
         DetectionStages {
+            candidate_count: candidates.len(),
             candidates,
             scored,
             accepted,
