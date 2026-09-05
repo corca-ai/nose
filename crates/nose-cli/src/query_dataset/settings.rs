@@ -56,6 +56,7 @@ pub(crate) fn resolve_query_settings(
     args: &QueryArgs,
     default_modes: &[crate::query_options::DetectionMode],
 ) -> Result<(QuerySettings, nose_semantics::SemanticPackSet)> {
+    crate::detect_pipeline::candidate_limit(args.max_candidate_pairs)?;
     let cfg = config::load_query(args.config.as_deref())?;
     let min_members = args.min_members.or(cfg.min_members).unwrap_or(2);
     let min_value = validate_min_value(args.min_value.or(cfg.min_value).unwrap_or(0.0))?;

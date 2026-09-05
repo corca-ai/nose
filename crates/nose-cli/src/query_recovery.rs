@@ -11,12 +11,10 @@ pub(crate) fn explain(
     roots: &[&Path],
     exclude: &[String],
 ) -> anyhow::Error {
-    if error
-        .downcast_ref::<nose_detect::CandidateBudgetExceeded>()
-        .is_none()
-    {
+    let Some(budget) = error.downcast_ref::<nose_detect::CandidateBudgetExceeded>() else {
         return error;
-    }
+    };
+    let limit = budget.limit;
     let inventory = nose_frontend::discover_source_inventory(roots, exclude);
     let mut directories = BTreeMap::<PathBuf, usize>::new();
     for (file, _) in &inventory.paths {
@@ -65,6 +63,21 @@ pub(crate) fn explain(
             "  {} more source directories omitted.",
             rows.len() - 8
         ));
+    }
+    if let Some(higher) = limit.checked_mul(2) {
+        let mut retry = crate::query_navigation::words(args);
+        if let Some(index) = retry
+            .iter()
+            .position(|word| word == "--max-candidate-pairs")
+        {
+            retry[index + 1] = higher.to_string();
+        } else {
+            retry.extend(["--max-candidate-pairs".into(), higher.to_string()]);
+        }
+        if args.format == crate::query_options::ReportFormat::Json {
+            retry.extend(["--format".into(), "json".into()]);
+        }
+        lines.push(format!("To retain these roots and modes, explicitly allow more work (more time and memory; completion is not guaranteed):\n    nose query {}", retry.iter().skip(2).map(|w| shell_quote(w)).collect::<Vec<_>>().join(" ")));
     }
     lines.push("Scope and path filters run after detection; they do not reduce candidate work. No roots or detection modes were changed automatically.".into());
     error.context(lines.join("\n"))

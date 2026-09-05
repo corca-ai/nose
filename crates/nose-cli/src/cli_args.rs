@@ -1,10 +1,11 @@
+mod query_limits;
 use crate::query_options::{
-    parse_bands, parse_min_value, parse_minhash_k, parse_threshold, DetectionMode, FailOn,
-    ReportFormat, SortKey,
+    parse_bands, parse_minhash_k, parse_threshold, DetectionMode, FailOn, ReportFormat, SortKey,
 };
 pub(crate) use crate::region_commands::RegionCmd;
 use crate::semantic_pack;
 use clap::{Parser, Subcommand};
+pub(crate) use query_limits::QueryLimits;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -134,18 +135,8 @@ pub(crate) enum Cmd {
         /// or repeat the flag; fuzzy channels take an inline threshold (`near:0.8`).
         #[arg(long, value_delimiter = ',')]
         mode: Vec<DetectionMode>,
-        /// Ignore units smaller than this size, in IL tokens (the unit's node count). [default: 24]
-        #[arg(long)]
-        min_size: Option<usize>,
-        /// Advanced: also require this many source lines (most uses only need --min-size). [default: 5]
-        #[arg(long, hide = true)]
-        min_lines: Option<u32>,
-        /// Hide families whose refactoring value is below this (noise floor on large repos).
-        #[arg(long, value_parser = parse_min_value)]
-        min_value: Option<f64>,
-        /// Keep only families with at least this many duplicated copies. [default: 2]
-        #[arg(long)]
-        min_members: Option<usize>,
+        #[command(flatten)]
+        limits: Box<QueryLimits>,
         /// Skip paths matching a gitignore-style glob (repeatable). (.gitignore is already respected.)
         #[arg(long)]
         exclude: Vec<String>,
@@ -507,6 +498,7 @@ pub(crate) enum StatsFormat {
 
 #[derive(Clone)]
 pub(crate) struct QueryArgs {
+    pub(crate) max_candidate_pairs: Option<usize>,
     pub(crate) paths: Vec<PathBuf>,
     pub(crate) min_members: Option<usize>,
     pub(crate) min_value: Option<f64>,

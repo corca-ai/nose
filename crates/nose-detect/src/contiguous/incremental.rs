@@ -304,6 +304,7 @@ mod tests {
         let mut value = Stream {
             root_is_module: false,
             test_spans: Vec::new(),
+            containers: Vec::new(),
             source: None,
             path: path.to_owned(),
             lang: nose_il::Lang::Python,

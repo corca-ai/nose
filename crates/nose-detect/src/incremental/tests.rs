@@ -183,3 +183,77 @@ int set_option(const char *name, const char *value) {
     assert!(second_connected.same_unit_accepted.is_empty());
     assert!(second_stats.connected_evaluations_evaluated > 0);
 }
+
+#[test]
+fn overlapping_channels_share_one_candidate_budget() {
+    let opts = DetectOptions {
+        shape_candidates: true,
+        min_lines: 1,
+        min_tokens: 1,
+        block_units: false,
+        ..Default::default()
+    };
+    let units = features(
+        &[
+            ("a.py", "def f(x):\n    return (x * x + 7) // 3\n"),
+            ("b.py", "def g(x):\n    return (x * x + 7) // 3\n"),
+        ],
+        &opts,
+    );
+    assert_eq!(units.len(), 2);
+    assert_eq!(structural_candidates(&units, &opts), vec![(0, 1)]);
+    assert!(crate::ensure_candidate_budget(&units, &opts, 1).is_ok());
+    assert!(crate::ensure_candidate_budget(&units, &opts, 0).is_err());
+}
+
+#[test]
+fn equal_span_candidates_are_unreportable_but_cross_file_and_nested_pairs_survive() {
+    let opts = DetectOptions {
+        shape_candidates: true,
+        min_lines: 1,
+        min_tokens: 1,
+        block_units: false,
+        ..Default::default()
+    };
+    let mut units = features(
+        &[
+            ("a.py", "def f(x):\n    return (x * x + 7) // 3\n"),
+            ("b.py", "def g(x):\n    return (x * x + 7) // 3\n"),
+            ("c.py", "def h(x):\n    return (x * x + 7) // 3\n"),
+        ],
+        &opts,
+    );
+    units[2].path = units[0].path.clone();
+    assert!(crate::locations::is_nested(&units[0], &units[2]));
+    assert!(
+        crate::orchestration::connected_pricing::evaluate_connected_candidate(
+            &units,
+            &[None; 3],
+            &[0, 2],
+            0,
+            2,
+            false,
+            &opts
+        )
+        .is_empty()
+    );
+    let mut stats = IncrementalDetectionStats::new();
+    let first = prepare(&units, None, &opts, None, &mut stats);
+    assert_eq!(first.candidates, vec![(0, 1), (1, 2)]);
+    assert_eq!(first.candidates, structural_candidates(&units, &opts));
+    let detector = StructuralDetector::strict(opts.jaccard_weight);
+    let (scored, accepted) = score(&units, &first, &detector, opts.threshold, &mut stats);
+    let groups = components(&first, &accepted, opts.threshold, &mut stats);
+    let state = finish_state(
+        first,
+        &scored,
+        &groups,
+        IncrementalConnected::default(),
+        None,
+    );
+    // A source movement makes the old twin a strict container, potentially a connected seed.
+    units[2].start_line = 0;
+    let second = prepare(&units, None, &opts, Some(state), &mut stats);
+    assert_eq!(second.candidates, vec![(0, 1), (0, 2), (1, 2)]);
+    assert_eq!(second.candidates, structural_candidates(&units, &opts));
+}

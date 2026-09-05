@@ -431,3 +431,6 @@ fn zero_literal_overlap_preserves_exact_relation_and_review_identity() {
 
 #[path = "exploration_ux/cortex.rs"]
 mod cortex;
+
+#[path = "exploration_ux/context.rs"]
+mod context;

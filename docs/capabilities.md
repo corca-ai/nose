@@ -183,6 +183,9 @@ nose capabilities
       "query_review_key_v1": true,
       "query_review_records_v1": true,
       "query_scope_evidence_v1": true,
+      "query_analysis_context_v1": true,
+      "query_source_boundaries_v1": true,
+      "query_candidate_budget_v1": true,
       "query_watch": true,
       "query_watch_full_snapshot": true,
       "query_watch_jsonl_v1": true,
@@ -584,3 +587,7 @@ and selected-family graded enrichment on `id=ID full`; see [query JSON](query-js
 `query.member_navigation.full_source` documents selected-member source scope and limits
 for `full`. Basic filter operators and `at=FILE:LINE` are also discoverable in
 `nose query --help`; unknown numeric syntax fails before detection.
+
+`query_analysis_context_v1` exposes the effective live analysis population in every
+exploration view. `query_source_boundaries_v1` adds known member-boundary metadata, and
+`query_candidate_budget_v1` advertises explicit `--max-candidate-pairs` work limits.

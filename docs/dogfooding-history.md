@@ -1678,3 +1678,40 @@ the existing Project harness coordinates. The unchanged integer/float operation 
 after corpus frequency changes in tests; the two numeric policies remain deliberately
 separate. No new avoidable production duplication is accepted. Detector and ranking
 algorithms are unchanged; edit and preservation judgments remain with the caller.
+
+
+## Cortex population, evidence and scale follow-up (2026-09-05)
+
+A second independent exploration exposed four remaining obstacles: the whole-root
+candidate budget, missing analysis population on navigation screens, token witnesses
+being confused with invariant whole lines, and source regions being mistaken for
+extraction boundaries. Live human and JSON views now carry the effective population
+and detection settings. Relation explanations separate token and line evidence; source
+boundaries report known containers or explicitly unknown containment. Extraction safety
+remains unassessed. Persisted token streams retain raw declaration containers, fixing a
+cold/warm discrepancy in source metadata; syntax features and incremental pair indexes
+receive new cache schemas.
+
+Candidate accounting now counts the unique union across structural channels, omits only
+equal same-file line spans already ineligible for reportable relations, and avoids
+per-unit hash-set allocation. Incremental indexing follows the same pair eligibility.
+The default 16-million limit is unchanged. Recovery supplies an explicit larger-budget
+command which preserves roots and modes; nose does not silently narrow the population
+or raise the resource limit.
+
+On Cortex `0baac123`, the emitted 32-million retry completed the whole 2,325-file
+population with 782 families in 8.61 seconds on the local release build. Group and list
+next commands preserved this population. Cold and warm cache runs produced identical
+JSON (9.16 and 6.46 seconds respectively). These are local usability timings, not a
+controlled performance comparison. The asset-excluded population retained its 2,013
+files, 724 families and confidence counts. The cross-declaration `cb6c7ceabc` example
+exposes unclassified containment, and zero-whole-line copy-paste rows explain their
+matching-token evidence. Transcripts are in `/tmp/nose-context-final/`.
+
+The substantial-near gate tightens from 18 to 17 within budget 20. Three capability
+flags move the accepted capability construction/table pair from `31f859c73ff8ce77`
+to `fe157d643fac27b6`; it still shares one common syntax line. The unchanged
+`int_bin`/`float_bin` family `60f0dd6d98436972` leaves the reported set as the scanned
+code/test corpus changes: the previous release binary also omits it on this same
+updated corpus. No new avoidable production duplication is accepted. Workspace
+tests (2,346), strict clippy and the final Cortex navigation/cache checks pass.

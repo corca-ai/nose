@@ -31,7 +31,7 @@ pub(crate) fn cmd_detect(args: DetectArgs) -> Result<()> {
 
     let (opts, detector) = detection_config(&args)?;
     let features = nose_detect::corpus_features(&corpus, &opts);
-    crate::detect_pipeline::ensure_candidate_budget(&features.units, &opts)?;
+    crate::detect_pipeline::ensure_candidate_budget(&features.units, &opts, None)?;
     let (report, dump) = nose_detect::detect_from_units(
         features.units,
         features.files,

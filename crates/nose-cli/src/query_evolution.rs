@@ -74,10 +74,7 @@ pub(crate) fn try_compare(cmd: &Cmd) -> Result<bool> {
         roots,
         watch,
         mode,
-        min_size,
-        min_lines,
-        min_value,
-        min_members,
+        limits,
         exclude,
         generated_path,
         cache_dir,
@@ -95,12 +92,19 @@ pub(crate) fn try_compare(cmd: &Cmd) -> Result<bool> {
     else {
         return Ok(false);
     };
+    let crate::cli_args::QueryLimits {
+        max_candidate_pairs,
+        min_size,
+        min_lines,
+        min_value,
+        min_members,
+    } = limits.as_ref();
     let Some(before) = &analysis.before else {
         return Ok(false);
     };
     ensure!(roots.is_empty() && !watch && mode.is_empty() && min_size.is_none()
         && min_lines.is_none() && min_value.is_none() && min_members.is_none() && exclude.is_empty()
-        && generated_path.is_empty() && cache_dir.is_none() && cache_max_bytes.is_none()
+        && max_candidate_pairs.is_none() && generated_path.is_empty() && cache_dir.is_none() && cache_max_bytes.is_none()
         && ignore_file.is_none() && semantic_pack.is_empty() && semantic_pack_lock.is_none()
         && config.is_none() && !config_root && !show_config && fail_on.is_none()
         && baseline.is_none() && !write_baseline,

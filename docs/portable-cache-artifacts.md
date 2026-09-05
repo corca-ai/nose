@@ -29,7 +29,11 @@ IL, compute consumer-visible literal surfaces, collapse cycles deterministically
 imports against current module/package facts. Only resolved misses run corpus mutation; hits are
 rebound afterward. Global detection state uses CAS-derived per-unit identities, updates changed
 bucket memberships, stores one pair plus its bucket contribution count, and rebuilds components
-whose accepted edges changed or disappeared. Syntax runs use the same delete-capable rule over
+whose accepted edges changed or disappeared. Detection-state schema 8 invalidates older
+pair indexes that included equal-span same-file pairs; raw IL and unit features remain
+reusable where their stage keys match. Unit/stream schema 7 additionally stores raw
+syntactic containers so syntax-only boundary metadata agrees across clean, cold, warm
+and moved-source queries; an older stream is rebuilt from cached IL. Incremental bucket updates stream pairs into contribution counts. Syntax runs use the same delete-capable rule over
 shared k-grams. A small source manifest lets an unchanged run reuse line-IDF and family
 diff/weight state without rereading the full line index. Query filtering, formatting, and final
 presentation remain per invocation.

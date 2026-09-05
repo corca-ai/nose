@@ -85,31 +85,55 @@ pub(crate) fn structural_candidates(
     units: &[UnitFeat],
     opts: &DetectOptions,
 ) -> Vec<(usize, usize)> {
-    let mut candidates = Vec::new();
+    lsh::pairs(
+        units.len(),
+        &structural_buckets(units, opts),
+        &source_span_groups(units),
+    )
+}
+
+/// Equal source spans in one file cannot produce an ordinary edge (nesting)
+/// or a connected descendant edge (strict containment is required). Keep all
+/// cross-file and strictly nested pairs, which can still carry valid evidence.
+pub(crate) fn source_span_groups(units: &[UnitFeat]) -> Vec<usize> {
+    let mut groups = FxHashMap::default();
+    units
+        .iter()
+        .map(|unit| {
+            let next = groups.len();
+            *groups
+                .entry((unit.path.as_str(), unit.start_line, unit.end_line))
+                .or_insert(next)
+        })
+        .collect()
+}
+
+/// One union owns both budget counting and clean candidate generation. Bucket
+/// membership deduplication preserves every pair, including non-hub edges.
+pub(crate) fn structural_buckets(units: &[UnitFeat], opts: &DetectOptions) -> Vec<Vec<u32>> {
+    let mut buckets = Vec::new();
     if opts.value_candidates {
         if opts.value_lsh_candidates {
-            candidates.extend(lsh::candidates(
-                units.len(),
-                |i| units[i].minhash.as_slice(),
-                opts.bands,
-            ));
+            buckets.extend(lsh::buckets(units.len(), |i| &units[i].minhash, opts.bands));
         }
-        candidates.extend(exact_value_candidates(units));
+        buckets.extend(exact_value_buckets(units));
     }
     if opts.shape_candidates {
-        candidates.extend(lsh::candidates(
+        buckets.extend(lsh::buckets(
             units.len(),
-            |i| units[i].shape_minhash.as_slice(),
+            |i| &units[i].shape_minhash,
             opts.bands,
         ));
-        // Partial / sub-DAG clones: pair units that share a rare heavy anchor (an
-        // extractable common sub-computation). They share no shape band, so shape-LSH
-        // alone never proposes them — this is the candidate channel's sub-DAG path.
-        candidates.extend(anchor_candidates(units));
+        // Retain the existing rare-anchor floor, frequency ceiling and pair cap.
+        buckets.extend(
+            anchor_candidates(units)
+                .into_iter()
+                .map(|(a, b)| vec![a as u32, b as u32]),
+        );
     }
-    candidates.sort_unstable();
-    candidates.dedup();
-    candidates
+    buckets.par_sort_unstable();
+    buckets.dedup();
+    buckets
 }
 
 /// Build the report's `groups` from the clustered components.
@@ -317,17 +341,19 @@ fn semantic_laws_for_members(members: &[usize], units: &[UnitFeat]) -> Vec<Value
     laws
 }
 
-fn exact_value_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
-    let mut buckets: FxHashMap<&[u64], Vec<usize>> = FxHashMap::default();
+fn exact_value_buckets(units: &[UnitFeat]) -> Vec<Vec<u32>> {
+    let mut buckets: FxHashMap<&[u64], Vec<u32>> = FxHashMap::default();
     for (idx, unit) in units.iter().enumerate() {
         if exact_claim_eligible(unit) {
-            buckets.entry(unit.value.as_slice()).or_default().push(idx);
+            buckets
+                .entry(unit.value.as_slice())
+                .or_default()
+                .push(idx as u32);
         }
     }
     buckets
-        .values()
-        .flat_map(|members| lsh::bucket_pairs(members))
-        .map(|(a, b)| ordered_pair(a, b))
+        .into_values()
+        .filter(|members| members.len() >= 2)
         .collect()
 }
 

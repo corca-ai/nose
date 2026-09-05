@@ -78,6 +78,7 @@ pub(super) fn render_query_family(
                     "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
                     "tool": "nose",
                     "view": "family",
+                    "analysis": crate::query_context::describe(ctx.args, ctx.settings, ctx.scope),
                     "path": path,
                     "hint": family_hint(f),
                     "hint_reasons": hint_reasons(f),
@@ -91,6 +92,10 @@ pub(super) fn render_query_family(
         return;
     }
     print_family_header(&id, f);
+    println!(
+        "  evidence: {}",
+        crate::query_assessment::relation_explanation(f)
+    );
     print!("{}", fold_note(f, opp, &id));
     println!("  → {}", family_hint(f));
     print_hint_reasons(f);
@@ -171,6 +176,17 @@ fn print_copies(f: &nose_detect::RefactorFamily, full: bool) {
             ""
         };
         println!("    {}:{}-{}{name}{role}", l.file, l.start_line, l.end_line);
+        let boundary = crate::query_assessment::boundary(l);
+        println!("      boundary: {}", boundary["meaning"].as_str().unwrap());
+        if let Some(unit) = &l.enclosing_unit {
+            println!(
+                "      enclosing: {}:{}-{} {}",
+                unit.file,
+                unit.start_line,
+                unit.end_line,
+                unit.name.as_deref().unwrap_or("")
+            );
+        }
         if full {
             println!(
                 "      scope evidence: {}",

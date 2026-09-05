@@ -193,6 +193,7 @@ fn dashboard_snapshot(
         dataset.settings.cache_max_bytes,
     )?;
     Ok(query_dashboard_json(
+        &crate::query_context::describe(args, &dataset.settings, &dataset.scope),
         &dataset.families,
         &overrides,
         &opportunities,

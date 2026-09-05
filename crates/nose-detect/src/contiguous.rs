@@ -17,6 +17,7 @@ use nose_il::{Il, Interner, NodeId, UnitKind};
 use nose_normalize::node_tag_valued;
 use rustc_hash::FxHashMap;
 
+mod boundaries;
 mod incremental;
 pub(crate) use incremental::{detect_incremental, IncrementalContiguousState};
 
@@ -35,6 +36,7 @@ pub struct Stream {
     lang: nose_il::Lang,
     #[serde(default)]
     test_spans: Vec<(u32, u32)>,
+    containers: Vec<boundaries::Container>,
     tags: Vec<u64>,
     start: Vec<u32>,
     end: Vec<u32>,
@@ -82,6 +84,7 @@ pub(crate) fn stream(il: &Il, interner: &Interner) -> Stream {
         path: il.meta.path.clone(),
         lang: il.meta.lang,
         test_spans: crate::units::test_context_spans(il, interner),
+        containers: boundaries::collect(il, interner),
         tags: Vec::new(),
         start: Vec::new(),
         end: Vec::new(),
@@ -229,6 +232,8 @@ impl LocSeed {
             sem: self.sem,
             span_tokens: self.sem,
         });
+        loc.enclosing_unit =
+            boundaries::enclosing(&s.containers, &s.path, self.start_line, self.end_line);
         loc.in_test_module = s
             .test_spans
             .iter()
@@ -459,6 +464,7 @@ mod tests {
         Stream {
             root_is_module: false,
             test_spans: Vec::new(),
+            containers: Vec::new(),
             source: None,
             path: path.into(),
             lang: nose_il::Lang::Python,
@@ -526,6 +532,7 @@ mod tests {
             Stream {
                 root_is_module: false,
                 test_spans: Vec::new(),
+                containers: Vec::new(),
                 source: None,
                 path: path.into(),
                 lang: nose_il::Lang::Python,

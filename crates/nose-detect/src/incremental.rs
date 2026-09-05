@@ -19,7 +19,7 @@ use crate::contiguous::IncrementalContiguousState;
 use crate::orchestration::ScoredCandidate;
 use serde::{Deserialize, Serialize};
 
-const STATE_SCHEMA: u32 = 7;
+const STATE_SCHEMA: u32 = 8;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub(crate) struct UnitKey([u8; 32]);

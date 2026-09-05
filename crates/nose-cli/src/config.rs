@@ -121,19 +121,7 @@ pub(crate) fn print_effective(args: &crate::cli_args::QueryArgs) -> anyhow::Resu
         args,
         crate::query_options::QUERY_DEFAULT_MODES,
     )?;
-    let mut modes = Vec::new();
-    if settings.channels.syntax {
-        modes.push("syntax".to_owned());
-    }
-    if settings.channels.semantic {
-        modes.push("semantic".to_owned());
-    }
-    if settings.channels.near {
-        modes.push(format!("near:{}", settings.channels.threshold()));
-    }
-    if settings.channels.abstraction {
-        modes.push(format!("abstraction:{}", settings.channels.threshold()));
-    }
+    let modes = settings.channels.mode_names();
     let mut generated = cfg.generated_paths;
     generated.extend(args.generated_path.iter().cloned());
     let mut packs = cfg.semantic_packs;
@@ -143,6 +131,7 @@ pub(crate) fn print_effective(args: &crate::cli_args::QueryArgs) -> anyhow::Resu
         serde_json::json!({
             "schema": "nose.query-config/v1", "config_file": source,
             "roots": args.paths, "cache_dir": args.cache_dir,
+            "max_candidate_pairs": crate::detect_pipeline::candidate_limit(args.max_candidate_pairs)?,
             "query": {
                 "mode": modes, "min-members": settings.min_members,
                 "min-value": settings.min_value, "min-lines": settings.min_lines,

@@ -23,6 +23,7 @@ mod path_utils;
 mod query_assessment;
 mod query_baseline_gate;
 mod query_commands;
+mod query_context;
 mod query_dashboard;
 mod query_dataset;
 mod query_markdown;

@@ -2,6 +2,7 @@ use super::*;
 use std::collections::HashMap;
 
 pub(crate) struct QueryGroupView<'a> {
+    pub(crate) analysis: &'a serde_json::Value,
     pub(crate) selection: &'a [&'a nose_detect::RefactorFamily],
     pub(crate) field: &'a str,
     pub(crate) terms: &'a [String],
@@ -103,6 +104,7 @@ fn render_group_json(view: &QueryGroupView<'_>, rows: &[(String, GroupAgg)]) {
                 "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
                 "tool": "nose",
                 "view": "group",
+                "analysis": view.analysis,
                 "path": view.path,
                 "field": view.field,
                 "groups": groups,

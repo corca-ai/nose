@@ -17,6 +17,7 @@ mod navigation;
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn query_dashboard_json(
+    analysis: &serde_json::Value,
     families: &[nose_detect::RefactorFamily],
     ov: &SurfaceOverrides,
     opp: &OpportunityGroups,
@@ -58,6 +59,7 @@ pub(crate) fn query_dashboard_json(
             "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
             "tool": "nose",
             "view": "dashboard",
+            "analysis": analysis,
             "path": path,
             "summary": {
                 "scanned_files": scope.files,
@@ -117,6 +119,7 @@ fn print_candidates(rows: &[&nose_detect::RefactorFamily], path: &str, opp: &Opp
 #[allow(clippy::too_many_lines)]
 #[allow(clippy::too_many_arguments)] // a self-describing landing view over several dataset facets
 pub(super) fn render_query_dashboard(
+    analysis: &serde_json::Value,
     families: &[nose_detect::RefactorFamily],
     ov: &SurfaceOverrides,
     opp: &OpportunityGroups,
@@ -147,6 +150,7 @@ pub(super) fn render_query_dashboard(
         println!(
             "{}",
             query_dashboard_json(
+                analysis,
                 families,
                 ov,
                 opp,

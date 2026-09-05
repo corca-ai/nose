@@ -19,6 +19,7 @@ pub(super) fn try_query_detect_report_fast(
         fast,
         request.opts,
         request.detector,
+        request.args.max_candidate_pairs,
     ))
 }
 
@@ -26,6 +27,7 @@ fn query_detect_report_fast(
     fast: cache::FastCachedUnits,
     opts: &nose_detect::DetectOptions,
     detector: &dyn nose_detect::Detector,
+    max_candidate_pairs: Option<usize>,
 ) -> Result<DetectionReport> {
     let cache::FastCachedUnits {
         cached,
@@ -52,6 +54,7 @@ fn query_detect_report_fast(
         );
     }
     let report = detect_cached_or_clean(DetectCachedRequest {
+        max_candidate_pairs,
         cache_identity_parts: Some((workspace_digest, semantic_pack_digest)),
         cache_run: Some(&run),
         detection_units: (units, Some(&unit_keys)),
@@ -86,6 +89,7 @@ pub(super) fn print_invalidation(report: Option<&cache::InvalidationReport>) {
 }
 
 pub(super) struct DetectCachedRequest<'a> {
+    pub(super) max_candidate_pairs: Option<usize>,
     pub(super) cache_identity_parts: Option<([u8; 32], [u8; 32])>,
     pub(super) cache_run: Option<&'a cache::CacheRun>,
     pub(super) detection_units: (Vec<nose_detect::UnitFeat>, Option<&'a [[u8; 32]]>),
@@ -101,6 +105,7 @@ pub(super) fn detect_cached_or_clean(
 ) -> Result<nose_detect::Report> {
     const MAX_PERSISTENT_DETECTION_UNITS: usize = 20_000;
     let DetectCachedRequest {
+        max_candidate_pairs,
         cache_identity_parts,
         cache_run,
         detection_units,
@@ -111,7 +116,7 @@ pub(super) fn detect_cached_or_clean(
         accepted_coverage,
     } = request;
     let (units, unit_keys) = detection_units;
-    crate::detect_pipeline::ensure_candidate_budget(&units, opts)?;
+    crate::detect_pipeline::ensure_candidate_budget(&units, opts, max_candidate_pairs)?;
     if matches!(accepted_coverage, AcceptedCoverage::Direct) {
         return Ok(
             nose_detect::detect_from_units_with_direct_accepted_coverage(

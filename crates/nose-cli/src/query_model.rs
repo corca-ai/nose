@@ -278,6 +278,7 @@ fn query_location_json(
         "region": location.source_region,
         "region_key": nose_detect::regions::region_key(location),
         "scope_evidence": crate::query_assessment::scope(location),
+        "boundary": crate::query_assessment::boundary(location),
         "file": location.file, "start": location.start_line, "end": location.end_line,
         "name": location.name, "lang": location.lang.as_str(),
     });

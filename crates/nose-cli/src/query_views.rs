@@ -44,6 +44,7 @@ pub(super) fn loc_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
 /// string and its *visible* width for alignment.
 pub(super) fn metrics_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
     let (shared, params) = all_copies_shared(f);
+    let note = crate::query_assessment::row_note(f);
     let removable = query_removable_lines(f, shared);
     let witness = witness_label(f.witness.as_ref().map(|w| w.kind()));
     // Flag non-production scope inline so a test/mixed family isn't mistaken for prod.
@@ -68,11 +69,11 @@ pub(super) fn metrics_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
     }
     let rep = representative_lines(f);
     let plain = format!(
-        "{} copies · {shared}/{rep} shared, {params}p · ~{removable} removable · {witness}{scope}",
+        "{} copies · {shared}/{rep} shared, {params}p · ~{removable} removable · {witness}{scope}{note}",
         f.members,
     );
     let colored = format!(
-        "{} copies · {shared}/{rep} shared, {params}p · ~{} removable · {}{}",
+        "{} copies · {shared}/{rep} shared, {params}p · ~{} removable · {}{}{note}",
         f.members,
         style::bold(&removable.to_string()),
         witness_styled(f.witness.as_ref().map(|w| w.kind())),
@@ -214,6 +215,7 @@ fn print_semantic_change(site: &divergence::Site) {
 /// production code can call it.
 pub(super) fn render_query_reinvented(
     reinvented: &[nose_detect::ReinventedHelper],
+    analysis: &serde_json::Value,
     path: &str,
     navigation_path: &str,
     top: Option<usize>,
@@ -255,6 +257,7 @@ pub(super) fn render_query_reinvented(
                     "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
                     "tool": "nose",
                     "view": "reinvented",
+                    "analysis": analysis,
                     "path": path,
                     "summary": {"findings": shown.len(), "shown": shown.len().min(limit),
                         "in_test": in_test, "test_helper": test_helper},
@@ -317,6 +320,7 @@ pub(super) fn render_query_reinvented(
 /// A ranked list of the current selection: each row carries its own `id=` drill link,
 /// plus a reasoned `next:`.
 pub(super) struct QueryListView<'a> {
+    pub(super) analysis: &'a serde_json::Value,
     pub(super) selection: &'a [&'a nose_detect::RefactorFamily],
     pub(super) overrides: &'a SurfaceOverrides,
     pub(super) opportunities: &'a OpportunityGroups,
@@ -375,6 +379,7 @@ fn query_list_json(view: &QueryListView<'_>) -> serde_json::Value {
             "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
             "tool": "nose",
             "view": "list",
+            "analysis": view.analysis,
             "path": path,
             "summary": { "families": selection.len(), "shown": shown, "widened": widen },
             "families": fams,

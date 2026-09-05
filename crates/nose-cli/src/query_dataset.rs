@@ -297,6 +297,7 @@ fn query_detect_report(request: QueryDetectRequest<'_>) -> Result<DetectionRepor
     drop(semantic_pack_evidence);
     drop(corpus);
     let report = detect_cached_or_clean(DetectCachedRequest {
+        max_candidate_pairs: args.max_candidate_pairs,
         cache_identity_parts,
         cache_run: line_context.as_ref().map(|context| &context.run),
         detection_units: (units, unit_keys.as_deref()),

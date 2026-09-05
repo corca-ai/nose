@@ -71,6 +71,19 @@ commands retain settings but select a smaller root, which also changes the scope
 root-relative excludes; no mode or exclusion is changed automatically. `scope=` and
 `path~` filter completed findings and cannot fix a candidate-budget failure.
 
+Every live dashboard, list, group, family and helper view repeats its effective analysis
+population: roots, scanned-file count, modes, exclusion patterns and size/member floors.
+Query filters select findings inside that population; they do not change the analyzed files.
+JSON exposes the same information in `analysis`, including skipped-source diagnostics.
+
+`--max-candidate-pairs N` explicitly sets the positive candidate-work limit for a query,
+including cached/watch queries. It overrides `NOSE_MAX_CANDIDATE_PAIRS`; otherwise the
+default remains 16,000,000. Navigation preserves an explicit limit. The budget counts
+unique pairs across all detection routes, excluding equal-line-span pairs in one file that
+cannot yield ordinary or connected evidence. Larger limits cost time and memory and do
+not guarantee completion. A budget failure offers both smaller-root commands and an
+explicit higher-limit retry retaining the current roots/modes; neither runs automatically.
+
 The landing page offers production, test, mixed-scope, and discovered evaluation/fixture
 directory routes. Directory names are navigation hints, not proof of code purpose; no findings
 are hidden by these routes until selected. Production routes exclude the listed evaluation
@@ -146,6 +159,12 @@ redirection operator.
 enrichment (the dominant extra analysis cost), so `query` computes it **on demand** — only when a term
 filters or groups by `spotclass`. The common query path pays nothing; a `spotclass=` /
 `group=spotclass` query re-derives the witness for alignable near/shared-core families first.
+
+A `copy-paste` witness measures matching tokens, while `shared` measures invariant whole
+source lines across the bounded member alignment. A matching token run can span parts
+of differing lines and therefore have zero shared whole lines. The row explains this case.
+Detailed members expose their source-boundary classification and any known enclosing unit.
+An unclassified region may cross declarations; a detected region is not an extraction plan.
 
 A typical loop: `nose query .` → `nose query . witness=exact` → `nose query . id=<id> full`.
 

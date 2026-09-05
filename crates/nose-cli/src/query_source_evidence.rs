@@ -57,7 +57,7 @@ fn read_member(loc: &Loc) -> Result<Vec<String>, &'static str> {
 }
 
 fn site(loc: &Loc) -> Value {
-    json!({"member_id":baseline::member_id(loc),"file":loc.file,"start":loc.start_line,
+    json!({"boundary":crate::query_assessment::boundary(loc),"member_id":baseline::member_id(loc),"file":loc.file,"start":loc.start_line,
         "end":loc.end_line,"region":loc.source_region})
 }
 
@@ -256,6 +256,10 @@ pub(crate) fn render_selected_sources(source: &Value) {
             member["file"].as_str().unwrap(),
             member["start"],
             member["end"]
+        );
+        println!(
+            "      boundary: {}",
+            member["boundary"]["meaning"].as_str().unwrap()
         );
         if let Some(lines) = member["lines"].as_array() {
             for line in lines {

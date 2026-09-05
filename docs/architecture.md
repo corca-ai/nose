@@ -66,12 +66,16 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    `semantic` uses value-fingerprint MinHash signatures plus exact-value buckets, `near`
    uses shape MinHash signatures, experimental `abstraction` reuses the near candidate
    stream, and `syntax` bypasses unit LSH with a Rabin-Karp token-stream pass.
-   Every pair in an LSH bucket reaches scoring, including buckets above 48 units.
+   Every reportable pair in an LSH bucket reaches scoring, including buckets above 48 units.
    A chain/star before scoring is insufficient: rejected hub edges can disconnect
-   real clones. Identical bucket memberships across bands are deduplicated before
-   pair emission. Dense buckets therefore have quadratic pair cost; narrowing roots
-   or excluding generated sources reduces that work without silently dropping pairs.
-   Clean and incremental detection use the same pair rule.
+   real clones. Identical memberships and overlapping pairs are deduplicated across
+   value, shape and exact routes before allocation and budget accounting. Dense buckets
+   still have quadratic cost. Per-worker timestamp arrays deduplicate neighbors without
+   allocating a hash table per left endpoint. Equal line spans in the same file are excluded:
+   ordinary scoring rejects nesting, and connected descendant scoring requires strict
+   containment. Cross-file pairs and strictly nested seeds remain eligible. The same rule
+   applies to budget preflight, clean detection and incremental state; anchors keep their
+   existing frequency and per-bucket caps. No bucket is reduced to a connectivity skeleton.
 5. **Accept / score**: `semantic` accepts only exact-safe value-fingerprint equality, `near`
    scores candidates with structural alignment (RANSAC) plus weighted shape/value
    Jaccard and accepts above the inline `near:T` threshold (default `near:0.70`), and

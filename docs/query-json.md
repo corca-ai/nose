@@ -87,6 +87,28 @@ report exists. `lock.decision_digest` is independent of workspace location and
 document/load order. Dependency and receipt paths are lock-root-relative, never
 machine-absolute. See [semantic-pack-project-lock](semantic-pack-project-lock.md).
 
+## Live analysis population and source boundaries
+
+Live dashboard/list/group/family/reinvented responses add `analysis`: selected `roots`,
+`scanned_files`, language/count pairs, `skipped_sources`, effective `modes`, `exclude`,
+`gitignore`, `min_size`, `min_lines`, `min_members`, `min_value` and `max_candidate_pairs`.
+`scope: "selected-roots"` and `complete: true` describe a completed detection in that
+configured population, not coverage of excluded sources, unsupported languages or every
+possible semantic relation. Filters apply to findings after detection. Watch snapshots
+carry the same context; saved-analysis comparison and `base` retain their own contracts.
+Operational work limits can differ between two otherwise identical successful analyses.
+
+Locations and live source observations add `boundary`: `kind` (`named-unit`,
+`exact-fragment`, `contained-region`, `unclassified-region`), detector `unit_kind`, optional
+`enclosing_unit` and `fragment_kind`, an explanatory `meaning`, and
+`extraction_safety: "unassessed"`. Missing enclosing metadata does not prove that a region
+crosses declarations; it reports that containment was not established. Member filtering
+retains the same boundary metadata.
+
+`assessment.relation.explanation` distinguishes the detector witness from the bounded
+whole-line alignment. In particular, a copy-paste token run can have zero invariant whole
+source lines; these two measurements use different granularity.
+
 ## Views
 
 **`dashboard`** (no terms) — `summary` (`scanned_files`, `families`, `by_confidence`

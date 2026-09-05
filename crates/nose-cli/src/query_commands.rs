@@ -278,10 +278,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         format,
         watch,
         mode,
-        min_size,
-        min_lines,
-        min_value,
-        min_members,
+        limits,
         exclude,
         generated_path,
         cache_dir,
@@ -299,6 +296,13 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
     else {
         unreachable!("run_query_cmd requires Cmd::Query")
     };
+    let crate::cli_args::QueryLimits {
+        max_candidate_pairs,
+        min_size,
+        min_lines,
+        min_value,
+        min_members,
+    } = *limits;
     let (paths, terms, path_arg, roots_are_explicit) =
         split_query_roots_and_terms(roots, positionals)?;
     require_paths_exist(&paths)?;
@@ -321,6 +325,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         mode,
         cache_dir,
         cache_max_bytes,
+        max_candidate_pairs,
         fail_on,
         baseline,
         ignore_file,

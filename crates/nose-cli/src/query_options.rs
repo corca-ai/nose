@@ -218,6 +218,21 @@ impl DetectionChannels {
         self.semantic || self.near || self.abstraction
     }
 
+    pub(crate) fn mode_names(self) -> Vec<String> {
+        [
+            (self.syntax, "syntax".into()),
+            (self.semantic, "semantic".into()),
+            (self.near, format!("near:{}", self.threshold())),
+            (
+                self.abstraction,
+                format!("abstraction:{}", self.threshold()),
+            ),
+        ]
+        .into_iter()
+        .filter_map(|(enabled, mode)| enabled.then_some(mode))
+        .collect()
+    }
+
     pub(crate) fn report_label(self, count: usize) -> &'static str {
         let singular = count == 1;
         match (

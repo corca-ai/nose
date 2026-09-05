@@ -8,7 +8,6 @@
 //! overlapping buckets never create a large temporary array of repeated pairs.
 
 use rayon::prelude::*;
-use rustc_hash::FxHashSet;
 
 const SEED: u64 = 0xA24B_AED4_963E_E407;
 
@@ -26,40 +25,62 @@ pub(crate) fn band_hash(band: usize, slice: &[u64]) -> u64 {
 /// Generate candidate `(i, j)` pairs (i < j) from `n` unit signatures, each
 /// accessed by `sig(idx)`. Taking a borrowing accessor (rather than an owned
 /// `&[Vec<u64>]`) lets the caller pass `|i| &units[i].minhash[..]` with no copy.
+#[cfg(test)]
 pub(crate) fn candidates<'a>(
     n: usize,
     sig: impl Fn(usize) -> &'a [u64] + Sync,
     bands: usize,
 ) -> Vec<(usize, usize)> {
     let buckets = buckets(n, sig, bands);
-    let membership = membership(n, &buckets);
+    pairs(n, &buckets, &(0..n).collect::<Vec<_>>())
+}
+
+/// Emit the union of bucket pairs without materializing repeated channel pairs.
+pub(crate) fn pairs(n: usize, buckets: &[Vec<u32>], groups: &[usize]) -> Vec<(usize, usize)> {
+    let membership = membership(n, buckets);
     (0..n)
         .into_par_iter()
-        .flat_map_iter(|left| {
-            let mut neighbors = FxHashSet::default();
-            for &bucket in &membership[left] {
-                let members = &buckets[bucket];
-                let start = members.partition_point(|&right| right as usize <= left);
-                neighbors.extend(members[start..].iter().copied());
-            }
-            let mut neighbors = neighbors.into_iter().collect::<Vec<_>>();
-            neighbors.sort_unstable();
-            neighbors
-                .into_iter()
-                .map(move |right| (left, right as usize))
-        })
+        .map_init(
+            || vec![usize::MAX; n],
+            |seen, left| {
+                let mut neighbors = Vec::new();
+                for &bucket in &membership[left] {
+                    let members = &buckets[bucket];
+                    let start = members.partition_point(|&right| right as usize <= left);
+                    for &right in &members[start..] {
+                        let right = right as usize;
+                        if groups[left] != groups[right] && seen[right] != left {
+                            seen[right] = left;
+                            neighbors.push(right);
+                        }
+                    }
+                }
+                neighbors.sort_unstable();
+                neighbors
+                    .into_iter()
+                    .map(|right| (left, right))
+                    .collect::<Vec<_>>()
+            },
+        )
+        .flat_map_iter(|pairs| pairs)
         .collect()
 }
 
 /// Count distinct pairs with O(units + band memberships) auxiliary memory.
 /// Overlapping bands must not spend the budget repeatedly on the same pair.
-pub(crate) fn candidate_count(n: usize, buckets: &[Vec<u32>], limit: usize) -> Option<usize> {
+pub(crate) fn candidate_count(
+    n: usize,
+    buckets: &[Vec<u32>],
+    groups: &[usize],
+    limit: usize,
+) -> Option<usize> {
     if buckets.iter().any(|members| {
-        members
-            .len()
-            .saturating_mul(members.len().saturating_sub(1))
-            / 2
-            > limit
+        let mut counts = rustc_hash::FxHashMap::<usize, usize>::default();
+        for &member in members {
+            *counts.entry(groups[member as usize]).or_default() += 1;
+        }
+        let pairs = |n: usize| n.saturating_mul(n.saturating_sub(1)) / 2;
+        pairs(members.len()).saturating_sub(counts.into_values().map(pairs).sum()) > limit
     }) {
         return None;
     }
@@ -71,7 +92,7 @@ pub(crate) fn candidate_count(n: usize, buckets: &[Vec<u32>], limit: usize) -> O
             let members = &buckets[bucket];
             let start = members.partition_point(|&right| right as usize <= left);
             for &right in &members[start..] {
-                if seen[right as usize] != left {
+                if groups[left] != groups[right as usize] && seen[right as usize] != left {
                     if count == limit {
                         return None;
                     }
@@ -170,10 +191,23 @@ mod tests {
     use super::*;
 
     #[test]
+    fn dense_equal_span_buckets_keep_every_cross_span_pair() {
+        let buckets = vec![(0..1_000).collect()];
+        let mut groups = vec![0; 1_000];
+        groups[999] = 1;
+        assert_eq!(candidate_count(1_000, &buckets, &groups, 999), Some(999));
+        assert_eq!(candidate_count(1_000, &buckets, &groups, 998), None);
+        assert_eq!(
+            pairs(1_000, &buckets, &groups),
+            (0..999).map(|left| (left, 999)).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
     fn overlapping_bands_spend_the_pair_budget_once() {
         let buckets = vec![vec![0, 1, 2], vec![0, 1, 3]];
-        assert_eq!(candidate_count(4, &buckets, 5), Some(5));
-        assert_eq!(candidate_count(4, &buckets, 4), None);
+        assert_eq!(candidate_count(4, &buckets, &[0, 1, 2, 3], 5), Some(5));
+        assert_eq!(candidate_count(4, &buckets, &[0, 1, 2, 3], 4), None);
     }
 
     #[test]
@@ -190,7 +224,12 @@ mod tests {
         expected.sort_unstable();
         expected.dedup();
         assert_eq!(
-            candidate_count(signatures.len(), &buckets, expected.len()),
+            candidate_count(
+                signatures.len(),
+                &buckets,
+                &(0..signatures.len()).collect::<Vec<_>>(),
+                expected.len()
+            ),
             Some(expected.len())
         );
         assert_eq!(

@@ -162,12 +162,15 @@ fn render_query_report_format(ctx: &QueryOutput<'_>) -> Result<()> {
 
 fn render_query_exploration(ctx: &QueryOutput<'_>) -> Result<bool> {
     let json = matches!(ctx.args.format, ReportFormat::Json);
+    let analysis = crate::query_context::describe(ctx.args, ctx.settings, ctx.scope);
     if !json {
         print_query_prelude();
+        crate::query_context::render(&analysis);
     }
     if ctx.q.reinvented {
         render_query_reinvented(
             ctx.reinvented,
+            &analysis,
             ctx.path_arg,
             &crate::query_navigation::path(ctx.args, ctx.path_arg),
             ctx.q.top,
@@ -190,6 +193,7 @@ fn render_query_exploration(ctx: &QueryOutput<'_>) -> Result<bool> {
         )?;
         let markdown_found = markdown_report.has_findings();
         render_query_dashboard(
+            &analysis,
             ctx.families,
             ctx.overrides,
             ctx.opp,
@@ -230,8 +234,10 @@ fn render_query_list_or_group(ctx: &QueryOutput<'_>, json: bool) -> Result<()> {
         ctx.path_arg,
         ctx.since,
     )?;
+    let analysis = crate::query_context::describe(ctx.args, ctx.settings, ctx.scope);
     match &ctx.q.group {
         Some(field) => render_query_group(QueryGroupView {
+            analysis: &analysis,
             selection: &sel,
             field,
             terms: ctx.terms,
@@ -243,6 +249,7 @@ fn render_query_list_or_group(ctx: &QueryOutput<'_>, json: bool) -> Result<()> {
             semantic_packs: ctx.semantic_packs,
         }),
         None => render_query_list(QueryListView {
+            analysis: &analysis,
             selection: &sel,
             overrides: ctx.overrides,
             opportunities: ctx.opp,

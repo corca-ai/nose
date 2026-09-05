@@ -26,7 +26,7 @@ pub(crate) fn assessment(f: &RefactorFamily, shared: u32, params: u32) -> Value 
     json!({"support":support,"explanation":explanation,"shared_lines":shared,"varying_regions":params,
         "measurement":if measured { "source-line-alignment" } else { "unavailable" },
         "hint_kind":"inspection","measurement_scope":{"member_limit":8,"line_limit_per_member":120,"coverage":"inspect-source-evidence-for-coverage"},
-        "relation":{"witness":witness,"scope":"detector-witness","meaning":"The detector relation holds within its modeled scope; literal overlap does not strengthen or invalidate it."},
+        "relation":{"explanation":relation_explanation(f),"witness":witness,"scope":"detector-witness","meaning":"The detector relation holds within its modeled scope; literal overlap does not strengthen or invalidate it."},
         "structural_correspondence":{"status":if f.witness.as_ref().is_some_and(|w| w.graded.is_some()) {"available"} else {"not-available"},"scope":"graded-pair-only","meaning":"When available, graded and graded_pair describe one pair; they are not family-wide equivalence proof."},
         "unassessed":["ownership-and-dependency-direction","visibility-and-call-contract","refactoring-benefit"],
         "checks":checks,"verdict":"caller-review-required"})
@@ -71,4 +71,47 @@ pub(crate) fn selection_reason(
     }
     Some(json!({"kind":"recovered-overlap","primary_id":primary,
         "meaning":"This overlapping slice matches the current selection; its fuller primary is outside the selected filters or surface."}))
+}
+
+/// Report known source boundaries without inferring that a span is extractable.
+pub(crate) fn boundary(location: &Loc) -> Value {
+    let (kind, meaning) = if location.is_fragment {
+        (
+            "exact-fragment",
+            "An exact-fragment source region; extraction safety still requires caller review.",
+        )
+    } else if matches!(
+        location.kind,
+        nose_il::UnitKind::Function | nose_il::UnitKind::Method | nose_il::UnitKind::Class
+    ) {
+        ("named-unit", "A detected function, method or class region; this does not establish an extraction plan.")
+    } else if location.enclosing_unit.is_some() {
+        ("contained-region", "A detected source region within the reported enclosing unit; inspect surrounding control flow.")
+    } else {
+        ("unclassified-region", "No enclosing function, method or class was established; this region may cross declaration boundaries.")
+    };
+    json!({"kind":kind,"unit_kind":location.kind,"meaning":meaning,
+        "enclosing_unit":location.enclosing_unit,"fragment_kind":location.fragment_kind,
+        "extraction_safety":"unassessed"})
+}
+
+pub(crate) fn relation_explanation(f: &RefactorFamily) -> &'static str {
+    match f.witness.as_ref().map(|w| w.kind()) {
+        Some("copy-paste-run") => "copy-paste is a matching token run; shared counts invariant whole source lines across the bounded member alignment. Token overlap can exist with zero shared whole lines.",
+        Some("exact-value-graph") => "exact is eligible value-fingerprint equality within the modeled semantics; shared separately measures invariant whole source lines.",
+        _ => "The detector relation and invariant whole source lines measure different evidence; inspect the witness and source differences independently.",
+    }
+}
+
+pub(crate) fn row_note(f: &RefactorFamily) -> &'static str {
+    if f.witness
+        .as_ref()
+        .is_some_and(|w| w.kind() == "copy-paste-run")
+        && f.display_params.is_some()
+        && crate::query_model::all_copies_shared(f).0 == 0
+    {
+        " · matching tokens; no invariant whole lines"
+    } else {
+        ""
+    }
 }

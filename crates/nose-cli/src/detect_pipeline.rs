@@ -100,7 +100,21 @@ pub(crate) fn detection_engine(
 pub(crate) fn ensure_candidate_budget(
     units: &[nose_detect::UnitFeat],
     opts: &nose_detect::DetectOptions,
+    explicit_limit: Option<usize>,
 ) -> Result<()> {
+    let limit = candidate_limit(explicit_limit)?;
+    nose_detect::ensure_candidate_budget(units, opts, limit)?;
+    Ok(())
+}
+
+pub(crate) fn candidate_limit(explicit_limit: Option<usize>) -> Result<usize> {
+    if let Some(limit) = explicit_limit {
+        anyhow::ensure!(
+            limit > 0,
+            "--max-candidate-pairs must be a positive integer"
+        );
+        return Ok(limit);
+    }
     let limit = match std::env::var("NOSE_MAX_CANDIDATE_PAIRS") {
         Ok(value) => value
             .parse::<usize>()
@@ -110,6 +124,5 @@ pub(crate) fn ensure_candidate_budget(
         Err(std::env::VarError::NotPresent) => 16_000_000,
         Err(error) => return Err(error.into()),
     };
-    nose_detect::ensure_candidate_budget(units, opts, limit)?;
-    Ok(())
+    Ok(limit)
 }

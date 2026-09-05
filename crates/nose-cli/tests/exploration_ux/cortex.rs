@@ -158,6 +158,7 @@ fn selected_full_member_view_contains_only_selected_source_bodies() {
 #[test]
 fn candidate_limit_failure_has_inventory_and_executable_recovery() {
     let p = project();
+    p.write("src/d.rs", &format!("fn compute() {{\n{RUST_BODY}}}\n"));
     let output = Command::new(env!("CARGO_BIN_EXE_nose"))
         .current_dir(&p.0)
         .env("NOSE_MAX_CANDIDATE_PAIRS", "1")
@@ -177,7 +178,7 @@ fn candidate_limit_failure_has_inventory_and_executable_recovery() {
     assert!(output.stdout.is_empty());
     let error = String::from_utf8(output.stderr).unwrap();
     assert!(
-        error.contains("Analysis incomplete") && error.contains("2 supported files"),
+        error.contains("Analysis incomplete") && error.contains("3 supported files"),
         "{error}"
     );
     let command = error

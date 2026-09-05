@@ -93,7 +93,11 @@ impl QueryAnalysisSession {
         opts: nose_detect::DetectOptions,
     ) -> Result<QueryDataset> {
         let detector = detection_engine(settings.channels, &opts);
-        crate::detect_pipeline::ensure_candidate_budget(self.units.units(), &opts)?;
+        crate::detect_pipeline::ensure_candidate_budget(
+            self.units.units(),
+            &opts,
+            args.max_candidate_pairs,
+        )?;
         let (report, state, stats) =
             nose_detect::detect_from_units_incremental_session_with_accepted_coverage(
                 self.units.units(),

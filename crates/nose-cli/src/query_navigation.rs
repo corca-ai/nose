@@ -19,6 +19,10 @@ pub(crate) fn words(args: &QueryArgs) -> Vec<String> {
     }
     for (flag, value) in [
         ("--min-size", args.min_size.map(|n| n.to_string())),
+        (
+            "--max-candidate-pairs",
+            args.max_candidate_pairs.map(|n| n.to_string()),
+        ),
         ("--min-lines", args.min_lines.map(|n| n.to_string())),
         ("--min-members", args.min_members.map(|n| n.to_string())),
         ("--min-value", args.min_value.map(|n| n.to_string())),
