@@ -1715,3 +1715,18 @@ to `fe157d643fac27b6`; it still shares one common syntax line. The unchanged
 code/test corpus changes: the previous release binary also omits it on this same
 updated corpus. No new avoidable production duplication is accepted. Workspace
 tests (2,346), strict clippy and the final Cortex navigation/cache checks pass.
+
+The bounded seven-repository semantic smoke compared `40abeb25` to `64a7ef1f`.
+Recursive review of every old/new JSON document found only the three additive fields
+(`analysis`, relation explanation, location boundary); all pre-existing fields, family
+identities, ordering and surface counts were identical. The exact byte/hash deltas are
+recorded in the expected-drift ledger. Ruby scaling passed (exponent 0.70), and the blind
+attacker retained 54 exact groups with zero false merges or canonicalization violations.
+
+The runtime gate did **not** pass: its single permitted focused rerun found no confirmed
+regression but retained an inconclusive order split in fastlane `normalize+extract`.
+The adjusted stage movement was +6.25 ms (+3.28%); the two execution-order strata were
++11.0 and +1.5 ms. The focused aggregate was within threshold (+0.75%). This is unresolved
+runtime qualification, not proof of a slowdown or a passing performance result. No
+threshold or retry policy was changed. Reports and raw measurements remain in
+`/tmp/nose-context-smoke/`; recursive output-review artifacts are alongside them.

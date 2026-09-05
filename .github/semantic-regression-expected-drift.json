@@ -293,6 +293,174 @@
       "issue": "https://github.com/corca-ai/nose/issues/943",
       "reason": "The 0.20.0 version metadata intentionally changes the serialized semantic-pack receipts; family, byte, schema, and surface counts are unchanged",
       "repo": "sidekiq"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            36552
+          ],
+          "current": [
+            39832
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "477bf597693357481d8d19bf15d40de4a5849cc2739ebaafbb41a33204fac51b"
+          ],
+          "current": [
+            "a74841fe9bef0f62a29b1a379949a84fde6a4b1ecab09bc98835a5a9765a17d6"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "alacritty"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            511907
+          ],
+          "current": [
+            611940
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "cf642461abf1cbe323f7071e70541bf637e83fec57918d86d8e303efba79d37f"
+          ],
+          "current": [
+            "efec3c8b45b88d1ed992ffdbadfcfc7d2e4432bccebff582234876881bb079c9"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "asciidoctor"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            169021
+          ],
+          "current": [
+            229726
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "856b905c77e421f97111faa14c54e3901ef953d82cf870b97877cec1a0f4025e"
+          ],
+          "current": [
+            "617f8371b3d9a6682da0018148c7eaf4e48adc026b47872d14500f7a1283e5f5"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "fastlane"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            1260755
+          ],
+          "current": [
+            1809954
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "bd0751323f212efbb46dd8f22a94d99531d917f989ee02e49a0121f66f204e91"
+          ],
+          "current": [
+            "083cec948bfbf4c6f09424e62d66b2e46a2abfbab12eb1e6f6fd01c6ddc51b7d"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "junit5"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            515210
+          ],
+          "current": [
+            657700
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "33af86400220fff3cbd0828295967aec93299cdea479e0df7abf0af363095d2d"
+          ],
+          "current": [
+            "f98a4571abcc69dab579e37ed91592ee04c3738d683a500fba20b5d9a5c7015b"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "prettier"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            53142
+          ],
+          "current": [
+            64988
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "fb8f20eeb114559860e667cb7176a5503c34e4ba53d8428ddb04148ea0d29ec8"
+          ],
+          "current": [
+            "2c41200d4fe6a5416dde0b29e5cfdb5a783614c75cd7da5539a2a22661ad20d2"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "requests"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            43772
+          ],
+          "current": [
+            49411
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "e9b43bcb428127c40a8eb0b2abc9bebc78a18fda5603efda4c2c6a6c5feea104"
+          ],
+          "current": [
+            "02810277f0a504db6174e25d4913c326536c3025143a28227e5a5e277351cd11"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "sidekiq"
     }
   ],
   "schema": "nose.semantic_regression_expected_drift.v1"
