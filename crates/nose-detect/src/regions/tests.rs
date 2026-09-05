@@ -164,8 +164,7 @@ fn reordering_input_never_changes_correspondence() {
     );
 }
 
-#[test]
-fn family_signature_preserves_multiplicity_evidence_and_order_independence() {
+pub(super) fn three_copy_family() -> RefactorFamily {
     let interner = Interner::new();
     let files = ["a.py", "b.py", "c.py"]
         .iter()
@@ -189,11 +188,15 @@ fn family_signature_preserves_multiplicity_evidence_and_order_independence() {
     };
     let detector = crate::StructuralDetector::strict(opts.jaccard_weight);
     let report = crate::detect_with_accepted_coverage(&corpus, &opts, &detector);
-    let mut families = crate::rank_families(&report);
-    let family = families
-        .iter_mut()
+    crate::rank_families(&report)
+        .into_iter()
         .find(|f| f.members == 3)
-        .expect("three-copy family");
+        .expect("three-copy family")
+}
+
+#[test]
+fn family_signature_preserves_multiplicity_evidence_and_order_independence() {
+    let family = &mut three_copy_family();
     let key = review_key(family).expect("source-backed review key");
     family.locations.reverse();
     for edge in &mut family.direct_edges {

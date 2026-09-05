@@ -208,3 +208,134 @@ fn syntax_regions_preserve_original_bytes_and_embedded_offsets() {
     }
     assert!(checked > 0);
 }
+
+fn mode_query(project: &Project, mode: &str, cache: bool) -> Value {
+    let mut args = vec![
+        "query",
+        ".",
+        "all",
+        "top=0",
+        "--mode",
+        mode,
+        "--min-size",
+        "8",
+        "--min-lines",
+        "3",
+        "--format",
+        "json",
+    ];
+    if cache {
+        args.extend(["--cache-dir", "cache"]);
+    }
+    project.json(&args)
+}
+
+fn review_keys(report: &Value) -> Vec<String> {
+    let mut keys: Vec<_> = report["families"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| {
+            f["review_key"]
+                .as_str()
+                .expect("normal detection has review identity")
+                .to_owned()
+        })
+        .collect();
+    assert!(!keys.is_empty());
+    keys.sort();
+    keys
+}
+
+#[test]
+fn abstraction_review_survives_moves_and_representative_reversal() {
+    let project = Project::new();
+    let source = "def sum_values(xs):\n    total = 0\n    for x in xs:\n        total = total + x\n    return total\n";
+    project.write("a.py", source);
+    project.write("b.py", &source.replace("= 0", "= 0.0"));
+    let before = mode_query(&project, "abstraction", false);
+    let keys = review_keys(&before);
+    for _ in 0..2 {
+        assert_eq!(before, mode_query(&project, "abstraction", true));
+    }
+    project.write("a.py", &format!("# shifted α\r\n{source}"));
+    std::fs::rename(project.0.join("a.py"), project.0.join("z.py")).unwrap();
+    let moved = mode_query(&project, "abstraction", false);
+    assert_eq!(review_keys(&moved), keys);
+    assert_eq!(moved, mode_query(&project, "abstraction", true));
+    project.write("z.py", &source.replace("= 0", "= 1"));
+    assert_ne!(
+        review_keys(&mode_query(&project, "abstraction", false)),
+        keys
+    );
+}
+
+#[test]
+fn bounded_windows_keep_original_bytes_on_cached_movement_and_reject_edits() {
+    let project = Project::new();
+    let source = r#"int set_option(const char *name, const char *value) {
+  if (!strcmp(name, "progress")) {
+    if (!strcmp(value, "true")) options.progress = 1;
+    else if (!strcmp(value, "false")) options.progress = 0;
+    else return -1;
+    return 0;
+  }
+  if (!strcmp(name, "deepen-relative")) {
+    if (!strcmp(value, "true")) options.deepen_relative = 1;
+    else if (!strcmp(value, "false")) options.deepen_relative = 0;
+    else return -1;
+    return 0;
+  }
+  return 1;
+}
+"#;
+    project.write("options.c", source);
+    let before = mode_query(&project, "near", false);
+    assert!(before["families"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|f| f["witness"] == "bounded-window"));
+    let keys = review_keys(&before);
+    for _ in 0..2 {
+        assert_eq!(before, mode_query(&project, "near", true));
+    }
+    let shifted = format!("// α header\r\n{source}");
+    project.write("options.c", &shifted);
+    let moved = mode_query(&project, "near", true);
+    assert_eq!(moved, mode_query(&project, "near", false));
+    assert_eq!(review_keys(&moved), keys);
+    for family in moved["families"].as_array().unwrap() {
+        for loc in family["locations"].as_array().unwrap() {
+            let region = &loc["region"];
+            let start = region["start_byte"].as_u64().unwrap() as usize;
+            let end = region["end_byte"].as_u64().unwrap() as usize;
+            assert_eq!(
+                region["content_digest"],
+                nose_il::ContentDigest::sha256(&shifted.as_bytes()[start..end]).hex()
+            );
+        }
+    }
+    std::fs::rename(project.0.join("options.c"), project.0.join("moved.c")).unwrap();
+    assert_eq!(review_keys(&mode_query(&project, "near", true)), keys);
+    project.write("moved.c", &source.replace("return -1", "return -2"));
+    assert_ne!(review_keys(&mode_query(&project, "near", false)), keys);
+}
+
+#[test]
+fn syntax_module_containers_do_not_bind_unmatched_file_headers() {
+    let project = Project::new();
+    project.write("a.py", SOURCE);
+    project.write("b.py", SOURCE);
+    let before = mode_query(&project, "syntax", false);
+    let keys = review_keys(&before);
+    assert_eq!(before, mode_query(&project, "syntax", true));
+    project.write("a.py", &format!("# unrelated α header\r\n{SOURCE}"));
+    let shifted = mode_query(&project, "syntax", false);
+    assert_eq!(review_keys(&shifted), keys);
+    for _ in 0..2 {
+        assert_eq!(shifted, mode_query(&project, "syntax", true));
+    }
+    std::fs::rename(project.0.join("a.py"), project.0.join("moved.py")).unwrap();
+    assert_eq!(review_keys(&mode_query(&project, "syntax", true)), keys);
+}

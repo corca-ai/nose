@@ -162,6 +162,11 @@ pub(crate) fn build_groups(
                     if let Some(a) = units[m].anchors.iter().find(|a| a.hash == hash) {
                         if a.line_start > 0 || a.line_end > 0 {
                             loc.shared_subdag = Some((a.line_start, a.line_end));
+                            loc.shared_source_region = units[m]
+                                .source_document
+                                .as_ref()
+                                .filter(|_| a.source_is_local)
+                                .and_then(|source| source.line_region(a.line_start, a.line_end));
                         }
                     }
                 }

@@ -16,8 +16,11 @@ and a historical correspondence are separate claims.
 | Review record | Caller-owned decision with target relations, reason, scope, and applicability conditions | The caller makes or revises a decision |
 
 Line numbers remain navigation/display coordinates. Whole-unit and admitted
-fragment selectors preserve frontend byte spans. Syntax copy-paste selectors
-currently include entire reported lines, preserving CRLF and final newlines.
+fragment selectors preserve frontend byte spans. Syntax copy-paste and connected/bounded-window selectors
+include entire selected lines, preserving CRLF and final newlines. For copy-paste
+runs, the module container is excluded from the source selector: its whole-file
+span is not evidence that every byte in the file was matched. Existing navigation
+spans remain unchanged and can be wider than the selected source region.
 The source digest always covers the original containing buffer, including for
 embedded Vue/Svelte/HTML regions; masked frontend buffers are not original sources.
 Invalid or absent spans produce unavailable identity, never a clamped selection.
@@ -52,12 +55,27 @@ Test/production scope is a separate review condition, not a path hidden in the k
 Consumers must check the actual target relation and their scope policy before
 reusing a decision. Key equality alone never approves newly copied code.
 
-The first contract deliberately withholds review keys for abstraction witnesses
-and external-pack evidence, whose complete path-independent proof projection is
-not yet defined. Connected witnesses that replace a unit's bounds using only a
-line selector also have unavailable source identity. A caller must not substitute
-the old family ID when the new key is null. Discover support through
-`query_region_identity_v1` and `query_review_key_v1` through the
+Review keys cover every detector witness kind, including abstraction templates,
+connected/bounded windows, and locked external near/exact pack evidence. Abstraction
+signatures bind the claim, template, hole positions/classes, and caveats; representative
+left/right lines and classes are presentation only. Pack signatures bind pack/row content,
+lane, trust/assurance, dependency coordinate and versions, the sorted multiset of dependency
+source-content digests, receipt content for exact claims, caveats, and member-relative call
+selectors. Dependency source paths and absolute occurrence paths/lines are excluded.
+Family pack summaries must be fully accounted for by member evidence.
+
+The base `nose.review-content/v1` and `nose.review-member/v1` encodings remain unchanged.
+Completing source/proof projections corrects some pre-release v10 keys: whole-file
+syntax containers no longer bind unrelated headers, occurrence-salted near analyses
+no longer bind absolute coordinates, and out-of-unit anchors bind their own source. Additional evidence uses framed, versioned domains:
+`nose.review-abstraction/v1`, `nose.review-pack-member/v1`, and
+`nose.review-shared-source/v1`. The last binds the actual selected source content when an
+inlined shared anchor is outside the caller; its distance from the caller is not identity.
+
+Keys are unavailable only when required source/evidence is missing or inconsistent
+(e.g. an invalid span, an unlocated foreign-source anchor, or an unaccounted pack claim).
+A caller must not substitute the old family ID when the new key is null. Discover support
+through `query_region_identity_v1` and `query_review_key_v1` through the
 [capabilities contract](capabilities.md), which lists supported features.
 
 ## Explicit region snapshots
@@ -82,7 +100,12 @@ Each region carries an `observation_id`, `file`, `lang`, `kind`, optional `name`
 `in_test`, source address, `content_key`, `analysis_key`, and nullable `value_key`. An observation ID
 binds its path, language, kind, source region, and content key. Its analysis key
 summarizes the admitted value/return/guard features, exact-safety facts,
-fragment proof facts, and semantic laws. It is not a universal semantic hash. `value_key` indexes the value fingerprint
+fragment proof facts, and semantic laws. It is not a universal semantic hash. The detector deliberately salts some unproven
+operations with source coordinates to prevent false merges. Only those units are
+replayed for review analysis with deterministic first-use occurrence labels; all
+original detection fingerprints and admission decisions remain unchanged. Distinct
+unproven occurrences remain distinct during replay. These review-only values are
+never supplied to equivalence or candidate matching. `value_key` indexes the value fingerprint
 only for units admitted by the strict-safety gate. Equal values propose a
 refactoring candidate; they do not establish shared history.
 `unavailable_regions` counts admitted units without valid source provenance.
@@ -130,7 +153,7 @@ be benchmarked against this baseline before it can improve decision reuse.
 The source buffer is shared across a file's embedded regions and normalization.
 Source signatures are computed from already-loaded buffers, not family-level
 filesystem reads. Raw/resolved cache hits reattach the current loaded snapshot;
-unit/stream cache schema v4 preserves source evidence on warm and incremental
+unit/stream cache schema v5 preserves source evidence on warm and incremental
 paths. Source buffers in syntax streams trade cache/storage space for exact
 original-byte provenance; performance evidence must include that cost.
 
@@ -145,7 +168,7 @@ comparison after deleting the workspace source. See the
 
 ## Development verification (2026-09-05)
 
-The implementation passed 2,271 workspace tests and the controlled evaluation's
+The initial implementation passed 2,271 workspace tests and the controlled evaluation's
 28 cases across Python, JavaScript, Rust, and Go. Every controlled case was also
 repeated with one and four Rayon workers; snapshots and comparisons were byte
 identical. No edit/copy/ambiguous/budget case incorrectly reported unchanged
@@ -169,6 +192,17 @@ These are local development samples, including process startup, taken alongside
 other checks. They expose a small memory cost; they do not establish a speedup
 or a release performance bound. Reproduce the query workload with
 `nose query crates all top=0 --mode semantic --format json` and `--mode syntax`.
+
+The review-identity completion audit runs all four query modes on the same Rust corpus,
+checks coverage by witness kind, compares the legacy output with an optional baseline
+binary, and repeats after a comment is inserted in every Rust file and the tree is moved.
+It also compares two/four worker outputs. Run it with
+`python3 bench/regions/review_identity.py --nose target/release/nose`;
+`--baseline-nose <binary>` additionally checks legacy detection output.
+External near/exact integration tests use actual locked packs; they check source movement
+and content edits, with near-lane cold/warm/incremental caches and dependency-version
+changes. Unit contracts additionally invalidate changed receipts, pack/row content,
+trust, caveats, template holes, and out-of-unit source anchors.
 
 ## Research basis
 

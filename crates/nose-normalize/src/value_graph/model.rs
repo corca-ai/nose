@@ -176,6 +176,8 @@ pub(super) struct Builder<'a> {
     /// The source span of the expression currently being evaluated (set by `eval`), used to stamp
     /// `node_span` for every node `mk` creates while evaluating it.
     pub(super) cur_span: Option<Span>,
+    pub(super) source_salt_used: bool,
+    pub(super) review_source_ids: Option<std::collections::HashMap<Span, u64>>,
     /// The IL node kind currently being evaluated (set by `eval`, mirroring `cur_span`), so the
     /// opaque census can attribute each `Opaque` fallback to the construct that minted it.
     pub(super) cur_il_kind: Option<NodeKind>,

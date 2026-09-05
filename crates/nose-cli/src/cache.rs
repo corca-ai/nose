@@ -195,7 +195,7 @@ fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> ContentDiges
 }
 
 /// Bump when unit/stream serialization, extraction, or feature hashing changes.
-const UNITS_SYNTAX_SCHEMA: u32 = 4;
+const UNITS_SYNTAX_SCHEMA: u32 = 5;
 const UNITS_PACK_SCHEMA: u32 = 4;
 const UNITS_PACK_MAGIC: &[u8; 8] = b"NOSEUPK2";
 const UNITS_PACK_HEADER_LEN: usize = 8 + 4 + 32 + 32;
@@ -511,6 +511,7 @@ fn unit_artifact_key(context: &CachedUnitContext, options: ContentDigest) -> Art
 fn retarget(units: &mut [UnitFeat], stream: &mut Stream, path: &str) {
     for unit in units {
         path.clone_into(&mut unit.path);
+        unit.source_document = stream.source_document();
     }
     stream.set_path(path.to_owned());
 }

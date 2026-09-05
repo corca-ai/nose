@@ -29,6 +29,7 @@ pub(crate) use incremental::{detect_incremental, IncrementalContiguousState};
 /// clones (only the value-graph channel would run).
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Stream {
+    root_is_module: bool,
     source: Option<std::sync::Arc<nose_il::SourceDocument>>,
     path: String,
     lang: nose_il::Lang,
@@ -45,6 +46,11 @@ pub struct Stream {
 }
 
 impl Stream {
+    /// Original source shared with units restored from this stream’s cache entry.
+    pub fn source_document(&self) -> Option<std::sync::Arc<nose_il::SourceDocument>> {
+        self.source.clone()
+    }
+
     /// Point a cached stream at the path it was loaded for — identical content at a
     /// different path shares one cache entry, so only `path` (used for the reported
     /// location) differs between them. Mirrors `UnitFeat::path` retargeting.
@@ -69,6 +75,7 @@ fn is_operation(kind: nose_il::NodeKind) -> bool {
 /// by dropping the unit.
 pub(crate) fn stream(il: &Il, interner: &Interner) -> Stream {
     let mut s = Stream {
+        root_is_module: false,
         source: il.source.clone(),
         path: il.meta.path.clone(),
         lang: il.meta.lang,
@@ -84,6 +91,9 @@ pub(crate) fn stream(il: &Il, interner: &Interner) -> Stream {
     while let Some(nid) = stack.pop() {
         let n = il.node(nid);
         if suppressed.is_empty() || !is_suppressed(n.span.start_byte) {
+            if s.tags.is_empty() {
+                s.root_is_module = n.kind == nose_il::NodeKind::Module;
+            }
             s.tags.push(node_tag_valued(n.kind, n.payload, interner));
             s.start.push(n.span.start_line);
             s.end.push(n.span.end_line);
@@ -200,6 +210,7 @@ pub(in crate::contiguous) struct LocSeed {
     start_line: u32,
     end_line: u32,
     sem: usize,
+    source_lines: (u32, u32),
 }
 
 impl LocSeed {
@@ -218,7 +229,7 @@ impl LocSeed {
         loc.source_region = s
             .source
             .as_ref()
-            .and_then(|source| source.line_region(self.start_line, self.end_line));
+            .and_then(|source| source.line_region(self.source_lines.0, self.source_lines.1));
         loc
     }
 }
@@ -248,6 +259,13 @@ fn loc_seed(
         start_line,
         end_line,
         sem: hi - lo,
+        // Module spans describe the entire container, not the matched tokens.
+        // Keep navigation unchanged but select source from the actual run.
+        source_lines: range.line_span(
+            &streams[stream],
+            lo.max(usize::from(streams[stream].root_is_module)),
+            hi,
+        ),
     }
 }
 
@@ -432,6 +450,7 @@ mod tests {
     fn mk(path: &str, tags: Vec<u64>) -> Stream {
         let n = tags.len() as u32;
         Stream {
+            root_is_module: false,
             source: None,
             path: path.into(),
             lang: nose_il::Lang::Python,
@@ -497,6 +516,7 @@ mod tests {
         let stream = |path: &str| {
             let n = shared.len() as u32;
             Stream {
+                root_is_module: false,
                 source: None,
                 path: path.into(),
                 lang: nose_il::Lang::Python,

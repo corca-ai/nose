@@ -72,12 +72,16 @@ pub(crate) fn connected_loc_of(
 ) -> Loc {
     let mut loc = loc_of(unit, enclosing_unit);
     loc.shared_subdag = Some(span);
+    loc.shared_source_region = unit
+        .source_document
+        .as_ref()
+        .and_then(|source| source.line_region(span.0, span.1));
     if span != (unit.start_line, unit.end_line) {
         if loc.enclosing_unit.is_none() && can_enclose_fragment(unit) {
             loc.enclosing_unit = Some(enclosing_unit_of(unit));
         }
-        // The mapped witness currently carries line selectors, not exact byte provenance.
-        loc.source_region = None;
+        // The detector selects complete source lines for mapped windows.
+        loc.source_region = loc.shared_source_region.clone();
         loc.start_line = span.0;
         loc.end_line = span.1;
         loc.span_lines = LineSpan::new(span.0, span.1).line_count();

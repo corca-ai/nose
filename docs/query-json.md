@@ -38,8 +38,8 @@ Schema v10 adds nullable `families[].review_key` and nullable
 signatures preserve multiplicity and exclude location/ranking. They can be shared
 by distinct occurrences and never authorize review reuse by themselves. `region`
 contains `{source_digest,start_byte,end_byte,content_digest}` with half-open byte
-bounds into the analyzed original source. Missing provenance or unsupported proof
-projection returns null. See [region identity](region-identity.md) for exact
+bounds into the analyzed original source. Missing or inconsistent source/proof provenance returns null; all detector
+witness kinds, abstraction templates, and locked pack lanes have review projections. See [region identity](region-identity.md) for exact
 inputs, limitations, snapshot commands, and correspondence policy.
 
 Schema v9 adds explicit `generated_provenance` to generated families so callers can

@@ -3,6 +3,7 @@
 
 mod candidate_index;
 mod reconcile;
+mod review_evidence;
 mod snapshot;
 pub use reconcile::{reconcile, ChangeKind, Correspondence, Reconciliation};
 pub use snapshot::{RegionRecord, RegionSnapshot};
@@ -17,12 +18,18 @@ pub(crate) fn digest(domain: &[u8], value: &impl Serialize) -> ContentDigest {
 }
 
 pub(crate) fn unit_analysis_key(unit: &UnitFeat) -> ContentDigest {
+    let (values, returns, cond_sinks) = unit
+        .review_value
+        .as_ref()
+        .map_or((&unit.value, &unit.returns, &unit.cond_sinks), |review| {
+            (&review.values, &review.returns, &review.cond_sinks)
+        });
     digest(
         b"nose.region-analysis/v1",
         &(
-            &unit.value,
-            &unit.returns,
-            &unit.cond_sinks,
+            values,
+            returns,
+            cond_sinks,
             unit.exact_safe,
             &unit.proof_facts,
             &unit.semantic_laws,
@@ -52,10 +59,7 @@ pub fn region_key(loc: &Loc) -> Option<ContentDigest> {
 /// Missing byte provenance makes the whole key unavailable. This is never a
 /// durable occurrence id or permission to transfer a disposition to all copies.
 pub fn review_key(family: &RefactorFamily) -> Option<ContentDigest> {
-    if family.abstraction_witness.is_some()
-        || !family.semantic_pack_near.is_empty()
-        || !family.semantic_pack_external_exact.is_empty()
-    {
+    if !review_evidence::has_complete_pack_members(family) {
         return None;
     }
     let mut members = family
@@ -76,7 +80,7 @@ pub fn review_key(family: &RefactorFamily) -> Option<ContentDigest> {
     members.sort(); // Multiplicity is intentional.
     let mut laws = family.semantic_laws.clone();
     laws.sort();
-    Some(digest(
+    let key = digest(
         b"nose.review-content/v1",
         &(
             members,
@@ -87,27 +91,47 @@ pub fn review_key(family: &RefactorFamily) -> Option<ContentDigest> {
             ),
             laws,
         ),
-    ))
+    );
+    Some(match &family.abstraction_witness {
+        Some(witness) => digest(
+            b"nose.review-abstraction/v1",
+            &(key, review_evidence::abstraction_key(witness)),
+        ),
+        None => key,
+    })
 }
 
 fn member_review_key(loc: &Loc) -> Option<ContentDigest> {
-    // External evidence has occurrence coordinates. Until its complete canonical
-    // dependency contract is available, do not issue a partial review signature.
-    if !loc.semantic_pack_near.is_empty() || !loc.semantic_pack_external_exact.is_empty() {
-        return None;
-    }
     let shared = match loc.shared_subdag {
-        Some((start, end)) => Some((
-            start.checked_sub(loc.start_line)?,
-            end.checked_sub(loc.start_line)?,
-        )),
+        Some((start, end)) if start >= loc.start_line && end <= loc.end_line && start <= end => {
+            Some((start - loc.start_line, end - loc.start_line))
+        }
+        Some(_) => None,
         None => None,
     };
-    Some(digest(
+    let mut key = digest(
         b"nose.review-member/v1",
         &(region_key(loc)?, loc.analysis_digest, shared),
-    ))
+    );
+    // Inlined callee anchors can lie outside the caller. Bind their actual
+    // selected bytes rather than treating an absolute line as caller-relative.
+    if loc.shared_subdag.is_some() && shared.is_none() {
+        key = digest(
+            b"nose.review-shared-source/v1",
+            &(key, loc.shared_source_region.as_ref()?.content_digest),
+        );
+    }
+    if !loc.semantic_pack_near.is_empty() || !loc.semantic_pack_external_exact.is_empty() {
+        key = digest(
+            b"nose.review-pack-member/v1",
+            &(key, review_evidence::pack_keys(loc)?),
+        );
+    }
+    Some(key)
 }
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod review_tests;

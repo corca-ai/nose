@@ -14,6 +14,11 @@ break.
   baseline, ignore, and SARIF identities are unchanged. Non-base integrations must
   accept schema 10 (base queries remain schema 8); see `docs/region-identity.md`.
 
+- Complete review keys for abstraction templates, connected/bounded regions, and
+  locked external near/exact packs, including content-pinned dependency and receipt
+  evidence. Correct pre-release v10 key churn from occurrence-salted analysis and
+  whole-file syntax container spans. Unit/stream cache schema v5 rebuilds older
+  cached features; detection and navigation identities retain their contracts.
 
 ### Fixed
 - Bound recursive oracle calls independently of execution steps, reporting a

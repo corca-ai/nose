@@ -406,6 +406,11 @@ impl<'a> Builder<'a> {
     pub(super) fn source_salted_hash(&mut self, expr: NodeId, tag: u64) -> u64 {
         let span = self.il.node(expr).span;
         let mut h = combine(tag, self.valued_subtree_hash(expr));
+        self.source_salt_used = true;
+        if let Some(ids) = &mut self.review_source_ids {
+            let next = ids.len() as u64;
+            return combine(h, *ids.entry(span).or_insert(next));
+        }
         h = combine(h, span.file.0 as u64);
         h = combine(h, span.start_byte as u64);
         h = combine(h, span.end_byte as u64);

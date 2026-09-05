@@ -74,6 +74,7 @@ struct GatedUnit {
     pre: Vec<NodeId>,
     exact_safe: bool,
     value: Vec<u64>,
+    review_value: Option<nose_normalize::ReviewValueFingerprint>,
     lits: Vec<u64>,
     returns: Vec<u64>,
     pure_single_return: bool,
@@ -267,6 +268,27 @@ fn bind_optional_fragment_control_identity(
     }
 }
 
+fn unit_fingerprints(
+    ctx: &UnitExtractCtx<'_>,
+    root: NodeId,
+    fragment: Option<FragmentKind>,
+) -> (
+    nose_normalize::FingerprintLawBundle,
+    Option<nose_normalize::ReviewValueFingerprint>,
+) {
+    let (mut features, mut review) = nose_normalize::value_fingerprint_with_review(
+        ctx.il,
+        root,
+        ctx.interner,
+        ctx.value_context,
+    );
+    bind_optional_fragment_control_identity(ctx.il, root, fragment, &mut features.0);
+    if let Some(review) = &mut review {
+        bind_optional_fragment_control_identity(ctx.il, root, fragment, &mut review.values);
+    }
+    (features, review)
+}
+
 fn gate_unit(
     ctx: &UnitExtractCtx<'_>,
     unit_root: UnitRoot,
@@ -336,23 +358,16 @@ fn gate_unit(
     // gate so the gate can consult semantic richness (below).
     let value_start = unit_timer.start();
     let (
-        mut value,
-        lits,
-        returns,
-        anchors,
-        semantic_laws,
-        (pure_single_return, cond_sinks, used_length_contract),
-    ) = if let Some(context) = ctx.value_context {
-        nose_normalize::value_fingerprint_lits_anchors_laws_with_context(
-            ctx.il,
-            root,
-            ctx.interner,
-            context,
-        )
-    } else {
-        nose_normalize::value_fingerprint_lits_anchors_laws(ctx.il, root, ctx.interner)
-    };
-    bind_optional_fragment_control_identity(ctx.il, root, fragment_kind, &mut value);
+        (
+            value,
+            lits,
+            returns,
+            anchors,
+            semantic_laws,
+            (pure_single_return, cond_sinks, used_length_contract),
+        ),
+        review_value,
+    ) = unit_fingerprints(ctx, root, fragment_kind);
     let value_ms = UnitTimer::elapsed(value_start);
 
     // Size gate. A short unit normally isn't a meaningful clone — EXCEPT a
@@ -390,6 +405,7 @@ fn gate_unit(
         pre,
         exact_safe,
         value,
+        review_value,
         lits,
         returns,
         pure_single_return,
@@ -421,6 +437,7 @@ fn extract_unit(
         pre,
         exact_safe,
         value,
+        review_value,
         lits,
         returns,
         pure_single_return,
@@ -481,10 +498,12 @@ fn extract_unit(
             .source
             .as_ref()
             .and_then(|source| source.region(span.start_byte, span.end_byte)),
+        source_document: ctx.il.source.clone(),
         token_count: pre.len(),
         shapes,
         shape_minhash,
         value,
+        review_value,
         minhash,
         linear,
         connected_tokens,

@@ -35,6 +35,9 @@ pub struct Loc {
     pub source_region: Option<nose_il::SourceRegion>,
     #[serde(skip)]
     pub analysis_digest: Option<nose_il::ContentDigest>,
+    /// Original bytes selected by a shared computation, including inlined callees.
+    #[serde(skip)]
+    pub shared_source_region: Option<nose_il::SourceRegion>,
     pub lang: String,
     /// What kind of syntactic unit this site is (function/method/class/block) —
     /// lets the report suggest the right refactor (helper vs base class).
@@ -153,6 +156,7 @@ impl Loc {
             end_line: source_span.end_line,
             source_region: None,
             analysis_digest: None,
+            shared_source_region: None,
             lang,
             kind,
             origin,

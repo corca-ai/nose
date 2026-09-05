@@ -494,6 +494,7 @@ mod tests {
         Loc {
             source_region: None,
             analysis_digest: None,
+            shared_source_region: None,
             file: "src/main/java/example/DateUtils.java".to_owned(),
             start_line,
             end_line: start_line,

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
-const STATE_SCHEMA: u32 = 2;
+const STATE_SCHEMA: u32 = 3;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 struct StreamKey {
@@ -18,6 +18,7 @@ struct StoredLocSeed {
     start_line: u32,
     end_line: u32,
     sem: usize,
+    source_lines: (u32, u32),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -260,6 +261,7 @@ fn store_component(
                 start_line: loc.start_line,
                 end_line: loc.end_line,
                 sem: loc.sem,
+                source_lines: loc.source_lines,
             })
             .collect(),
         pairs: pairs
@@ -282,6 +284,7 @@ fn restore_component(
                 start_line: loc.start_line,
                 end_line: loc.end_line,
                 sem: loc.sem,
+                source_lines: loc.source_lines,
             })
         })
         .collect::<Option<Vec<_>>>()?;
@@ -299,6 +302,7 @@ mod tests {
 
     fn stream(path: &str, tags: &[u64]) -> Stream {
         let mut value = Stream {
+            root_is_module: false,
             source: None,
             path: path.to_owned(),
             lang: nose_il::Lang::Python,

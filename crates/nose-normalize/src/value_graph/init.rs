@@ -19,6 +19,8 @@ impl<'a> Builder<'a> {
             vhash: Vec::new(),
             node_span: Vec::new(),
             cur_span: None,
+            source_salt_used: false,
+            review_source_ids: None,
             cur_il_kind: None,
             await_transparent: true,
             async_protocol_depth: 0,
