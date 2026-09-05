@@ -9,7 +9,7 @@ use crate::style;
 use crate::surfaces::{effective_surface, generated_provenance_json, SurfaceOverrides};
 
 /// Canonical `witness.kind()` for a friendly filter token (`exact`→`exact-value-graph`, …).
-fn witness_alias(v: &str) -> &str {
+pub(crate) fn witness_alias(v: &str) -> &str {
     match v {
         "exact" => "exact-value-graph",
         "subdag" | "shared-core" => "shared-sub-dag",

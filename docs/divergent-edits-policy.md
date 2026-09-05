@@ -211,7 +211,9 @@ It reuses loaded source buffers and adds no discovery or file parsing pass.
 
 For example, if `a.py:compute` moves unchanged to `c.py` while an unrelated function
 replaces it in `a.py`, the old `changed-range` comparison is now advisory and `c.py`
-is shown as a content candidate. Two copies remain ambiguous. If `a.py:compute`
+is shown as a content candidate. If the original unit or file is gone, the semantic
+comparison remains unavailable but the content candidate is still shown. Two copies
+remain ambiguous. If `a.py:compute`
 actually changes and an old copy also appears elsewhere, exact-span/stable-name
 semantic evidence remains available; content equality cannot decide ancestry.
 

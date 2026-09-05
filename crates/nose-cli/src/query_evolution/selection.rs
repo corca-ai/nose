@@ -42,6 +42,16 @@ pub(super) const KINDS: &[&str] = &[
     "budget-exceeded",
 ];
 
+pub(super) const WITNESSES: &[&str] = &[
+    "exact-value-graph",
+    "shared-sub-dag",
+    "copy-paste-run",
+    "structural-similarity",
+    "connected-mapped-sub-dag",
+    "bounded-same-unit-window",
+    "unavailable",
+];
+
 pub(super) struct Selection {
     pub group: Option<String>,
     pub change: Option<String>,
@@ -106,7 +116,7 @@ impl Selection {
                 !contains || field == "path",
                 "substring matching is only supported for path"
             );
-            let values: Vec<String> = if value.starts_with('"') {
+            let mut values: Vec<String> = if value.starts_with('"') {
                 vec![serde_json::from_str(value)?]
             } else {
                 value.split(',').map(str::to_owned).collect()
@@ -115,8 +125,11 @@ impl Selection {
                 values.iter().all(|v| !v.is_empty()),
                 "comparison filter needs a value"
             );
-            for v in &values {
-                validate_value(field, v)?;
+            for value in &mut values {
+                if field == "witness" {
+                    *value = crate::query_model::witness_alias(value).to_owned();
+                }
+                validate_value(field, value)?;
             }
             q.filters.push(Filter {
                 field: field.into(),
@@ -149,16 +162,7 @@ fn validate_value(field: &str, value: &str) -> Result<()> {
         "correspondence" => KINDS,
         "evidence" => &["retained", "recheck"],
         "scope" => &["prod", "test", "mixed"],
-        "witness" => &[
-            "exact",
-            "copy-paste",
-            "structural",
-            "similar",
-            "subdag",
-            "connected",
-            "bounded-window",
-            "unavailable",
-        ],
+        "witness" => WITNESSES,
         _ => return Ok(()),
     };
     if !valid.contains(&value) {

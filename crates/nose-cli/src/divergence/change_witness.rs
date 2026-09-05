@@ -343,17 +343,16 @@ impl<'a> WitnessBuilder<'a> {
         if !self.prepared.contains_key(&key) {
             let prepared = match self.prepare_change(site) {
                 Ok(prepared) => prepared,
-                Err(unavailable) => return unavailable.into_witness(),
+                Err(unavailable) => {
+                    let mut witness = unavailable.into_witness();
+                    self.enrich_source_matches(site, &mut witness);
+                    return witness;
+                }
             };
             self.prepared.insert(key.clone(), prepared);
         }
         let sibling_hashes = self.sibling_hashes(siblings);
-        let mut witness = finish_witness(
-            self.prepared
-                .get(&key)
-                .expect("prepared change was inserted"),
-            &sibling_hashes,
-        );
+        let mut witness = finish_witness(&self.prepared[&key], &sibling_hashes);
         self.enrich_source_matches(site, &mut witness);
         witness
     }

@@ -26,6 +26,10 @@ break.
   cached features; detection and navigation identities retain their contracts.
 
 ### Fixed
+- Make saved-analysis witness facet links executable and accept canonical witness
+  kinds plus existing query aliases; advertise canonical values in capabilities.
+- Preserve moved-region candidates when the original current function or file is
+  missing, independently of unavailable semantic-change evidence.
 - Show bounded original-region candidates across changed files in `base=` semantic
   evidence. Competing byte-identical occurrences make weak range alignment advisory;
   actual named edits retain their evidence, and the divergence gate is unchanged.

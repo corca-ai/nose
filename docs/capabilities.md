@@ -251,6 +251,15 @@ nose capabilities
         "list",
         "group",
         "change"
+      ],
+      "witness_values": [
+        "exact-value-graph",
+        "shared-sub-dag",
+        "copy-paste-run",
+        "structural-similarity",
+        "connected-mapped-sub-dag",
+        "bounded-same-unit-window",
+        "unavailable"
       ]
     }
   },

@@ -151,3 +151,44 @@ fn candidate_cap_never_exposes_a_truncated_unique_match() {
     assert_eq!(regions["max_candidates"], 64);
     assert!(regions["candidates"].as_array().unwrap().is_empty());
 }
+
+#[test]
+fn moved_function_keeps_candidates_when_original_unit_or_file_is_missing() {
+    for deleted in [false, true] {
+        let p = project();
+        if deleted {
+            fs::remove_file(p.path().join("a.py")).unwrap();
+        } else {
+            p.write("a.py", "# compute moved to c.py\n");
+        }
+        p.write("c.py", &format!("{OTHER}\n{BODY}"));
+        let result = report(&p);
+        let evidence = &changed(&result)["semantic_change"];
+        assert_eq!(evidence["status"], "unavailable");
+        let regions = &evidence["region_matches"];
+        assert_eq!(regions["status"], "unique-content-candidate", "{result}");
+        assert_eq!(regions["candidates"][0]["file"], "c.py");
+        assert_eq!(
+            regions["base"]["content_digest"],
+            regions["candidates"][0]["source"]["content_digest"]
+        );
+        assert!(result["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["gate"]["fail_default"] == true));
+        for target in result["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|item| item["targets"].as_array().unwrap())
+        {
+            if target["changed"]["file"] == "a.py" {
+                assert_eq!(
+                    target["changed"]["semantic_change"]["region_matches"],
+                    *regions
+                );
+            }
+        }
+    }
+}

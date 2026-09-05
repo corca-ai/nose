@@ -166,6 +166,10 @@ Completeness applies only to units in those changed files, not all repository co
 Projection failures and excluded files make the search partial. Candidate overflow
 emits an empty list with `budget-exceeded`, never a truncated unique candidate.
 
+Candidate evidence remains available when the original current unit or file is missing,
+provided the base source and candidate region were projected. The semantic comparison
+can remain `unavailable` while `region_matches` identifies an original-byte candidate.
+
 The field is omitted when no eligible cross-file competition was found or base source
 was unavailable; omission is not proof that a unit disappeared. A unique content
 candidate is not proof of movement, ancestry, semantic equivalence or review approval.

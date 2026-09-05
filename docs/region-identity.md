@@ -141,7 +141,10 @@ profiles, incomplete inputs, missing required evidence or incomplete comparisons
 The `nose.analysis-changes/v1` response provides dashboard/list/group/change views,
 input profiles and roots, completeness, work counts, total/selected/shown counts,
 change rows and next commands. Filters use `reason`, `correspondence`, `evidence`
-(`retained` or `recheck`), `scope`, `lang`, `path` and `witness`; equality/set OR,
+(`retained` or `recheck`), `scope`, `lang`, `path` and `witness`. Witness facets use
+the saved canonical kinds advertised by `query.analysis.witness_values`; filters also
+accept ordinary query aliases such as `exact`, `subdag`, `copy-paste`, `similar` and
+`structural`. Equality/set OR,
 negation and path substrings follow query's familiar syntax. `group=FIELD` facets
 the selection. `change=ID` selects an unambiguous change-observation prefix, separate
 from existing family `id=` and many-to-one `review_key`. Each detailed item embeds

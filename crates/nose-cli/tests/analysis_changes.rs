@@ -311,3 +311,47 @@ fn path_facets_handle_literal_commas_operators_and_multi_root_capture() {
     }
     assert_eq!(p.compare(&["path~a,!=b"])["summary"]["selected"], 1);
 }
+
+#[test]
+fn witness_facets_and_existing_aliases_open_the_captured_observations() {
+    let mut seen = std::collections::BTreeSet::new();
+    for mode in ["semantic", "syntax", "near", "abstraction"] {
+        let p = Project::new();
+        p.json(&[
+            "query",
+            ".",
+            "--mode",
+            mode,
+            "--min-size",
+            "1",
+            "--min-lines",
+            "1",
+            "--save-analysis",
+            "before.json",
+            "--format",
+            "json",
+        ]);
+        std::fs::copy(p.0.join("before.json"), p.0.join("after.json")).unwrap();
+        let groups = p.compare(&["group=witness", "top=0"]);
+        for group in groups["groups"].as_array().unwrap() {
+            let key = group["key"].as_str().unwrap();
+            seen.insert(key.to_owned());
+            let selected = p.follow(&group["next"][0]);
+            assert_eq!(selected["summary"]["selected"], group["count"]);
+            assert!(selected["summary"]["selected"].as_u64().unwrap() > 0);
+            let alias = match key {
+                "exact-value-graph" => "exact",
+                "shared-sub-dag" => "subdag",
+                "copy-paste-run" => "copy-paste",
+                "structural-similarity" => "structural",
+                "connected-mapped-sub-dag" => "connected",
+                "bounded-same-unit-window" => "bounded-window",
+                other => other,
+            };
+            let selected_by_alias = p.compare(&[&format!("witness={alias}"), "top=0"]);
+            assert_eq!(selected_by_alias["summary"]["selected"], group["count"]);
+        }
+    }
+    assert!(seen.contains("exact-value-graph"));
+    assert!(seen.contains("copy-paste-run"));
+}

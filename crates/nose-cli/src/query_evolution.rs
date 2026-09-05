@@ -99,6 +99,7 @@ pub(crate) fn capabilities() -> serde_json::Value {
         "views": ["dashboard", "list", "group", "change"],
         "fields": selection::FIELDS, "reason_values": selection::REASONS,
         "correspondence_values": selection::KINDS, "evidence_values": ["retained", "recheck"],
+        "witness_values": selection::WITNESSES,
         "terms": ["group=FIELD", "change=ID", "FIELD=VALUE", "FIELD!=VALUE", "path~TEXT", "path!~TEXT", "top=N", "full", "all"],
         "formats": ["human", "json"], "default_max_candidates": 100_000,
         "max_input_bytes": 128 * 1024 * 1024,
