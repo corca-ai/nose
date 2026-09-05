@@ -196,3 +196,43 @@ fn missing_input_errors_name_the_side_and_expected_capture() {
         );
     }
 }
+
+#[test]
+fn human_comparison_keeps_context_in_full_and_counts_readable() {
+    let p = Project::new();
+    p.capture("before.json", &[]);
+    p.write("c.py", SOURCE);
+    p.capture("after.json", &[]);
+    let args = ["query", "--before", "before.json", "--after", "after.json"];
+    let output = p.run(&args);
+    let compact = String::from_utf8(output.stdout).unwrap();
+    assert!(compact.starts_with("Analysis comparison:"));
+    assert!(compact.contains("observations") && compact.contains("Add `full`"));
+    assert!(!compact.contains("Path bases:") && !compact.contains("Roots:"));
+    assert!(!compact.contains("reason=review-evidence-retained ·"));
+    let mut full = args.to_vec();
+    full.push("full");
+    let output = p.run(&full);
+    let detail = String::from_utf8(output.stdout).unwrap();
+    assert!(detail.contains("Path bases:") && detail.contains("Roots:"));
+    assert!(detail.contains("Member counts: 2 → 3"), "{detail}");
+    assert!(!detail.contains("Member counts: null") && !detail.contains("Member counts: 2 → ["));
+}
+
+#[test]
+fn human_group_counts_do_not_report_zero_observations_shown() {
+    let p = Project::new();
+    p.capture("before.json", &[]);
+    p.capture("after.json", &[]);
+    let out = p.run(&[
+        "query",
+        "--before",
+        "before.json",
+        "--after",
+        "after.json",
+        "group=reason",
+    ]);
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert!(text.contains("group view below") && text.contains("Showing 1 / 1 groups"));
+    assert!(!text.contains("0 shown") && !text.contains("1 observations"));
+}

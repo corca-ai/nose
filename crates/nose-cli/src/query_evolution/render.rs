@@ -26,14 +26,89 @@ pub(super) fn reason(code: &str) -> &str {
     }
 }
 
-pub(super) fn render(output: &Value) {
+pub(super) fn render(output: &Value, full: bool) {
     let s = &output["summary"];
-    println!("Analysis changes: {} total · {} recheck · {} retain review evidence.\nSelection: {} observations ({} recheck, {} retained); {} shown.\nPopulation: admitted code families ({} before, {} after).\nProfile matches: {}; coverage complete: {}; candidate search complete: {}; candidates: {}/{}.",
-        s["total"],s["recheck"],s["retained"],s["selected"],s["selected_recheck"],s["selected_retained"],s["shown"],s["before_families"],s["after_families"],
-        output["profile_matches"],output["complete"],output["candidate_search_complete"],output["candidates_examined"],output["max_candidates"]);
+    println!(
+        "Analysis comparison: {} · {} recheck · {} retain review evidence.",
+        observation_count(&s["total"]),
+        s["recheck"],
+        s["retained"]
+    );
+    let showing = if output["view"] == "group" {
+        "group view below".into()
+    } else {
+        format!("{} shown", s["shown"])
+    };
+    println!(
+        "Selection: {} ({} recheck, {} retained); {showing}.",
+        observation_count(&s["selected"]),
+        s["selected_recheck"],
+        s["selected_retained"]
+    );
+    println!(
+        "Population: admitted code families ({} before, {} after).",
+        s["before_families"], s["after_families"]
+    );
+    println!("Profile matches: {}; coverage complete: {}; candidate search complete: {}; candidates: {}/{}.",
+        output["profile_matches"], output["complete"], output["candidate_search_complete"], output["candidates_examined"], output["max_candidates"]);
     if let Some(message) = output["empty_message"].as_str() {
         println!("{message}");
     }
+    if full {
+        capture_context(output);
+    }
+    for side in ["before", "after"] {
+        if full || output["coverage"][side]["complete"] == false {
+            coverage(side, &output["coverage"][side]);
+        }
+    }
+    if output["view"] == "group" {
+        println!(
+            "Showing {} / {} groups (counts may overlap).",
+            s["groups_shown"], s["groups_total"]
+        );
+        for group in output["groups"].as_array().unwrap() {
+            println!(
+                "  {}={} · {}\n    next: {}",
+                text(&output["group_field"]),
+                text(&group["key"]),
+                observation_count(&group["count"]),
+                text(&group["next"][0])
+            );
+        }
+    }
+    for item in output["items"].as_array().unwrap() {
+        item_summary(item, full);
+    }
+    println!("\nRetained evidence is not approval. Unmatched observations do not establish deletion or ancestry.");
+    if !full {
+        println!("Add `full` to inspect capture context, reason explanations and member evidence.");
+    }
+    println!("next:");
+    for action in output["actions"].as_array().unwrap() {
+        if !full && output["view"] == "dashboard" && action["kind"] == "group-evidence" {
+            continue;
+        }
+        println!(
+            "  {}\n    {}",
+            text(&action["label"]),
+            text(&action["command"])
+        );
+    }
+}
+
+fn observation_count(value: &Value) -> String {
+    format!(
+        "{value} {}",
+        if value == 1 {
+            "observation"
+        } else {
+            "observations"
+        }
+    )
+}
+
+fn capture_context(output: &Value) {
     println!(
         "Before: {}\nAfter: {}",
         text(&output["inputs"]["before"]),
@@ -47,77 +122,89 @@ pub(super) fn render(output: &Value) {
         "Path bases: {} → {}",
         output["path_bases"]["before"], output["path_bases"]["after"]
     );
-    coverage("Before", &output["coverage"]["before"]);
-    coverage("After", &output["coverage"]["after"]);
     if output["profile_matches"] == false {
         println!(
             "Captured settings: {} → {}",
             output["profiles"]["before"], output["profiles"]["after"]
         );
     }
+}
+
+fn item_summary(item: &Value, full: bool) {
+    let paths = item["paths"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(text)
+        .collect::<Vec<_>>()
+        .join(", ");
     println!(
-        "Showing {} changes and {} / {} groups (counts may overlap).",
-        s["shown"], s["groups_shown"], s["groups_total"]
+        "\n{} · {} · {paths}",
+        &text(&item["id"])[..12],
+        text(&item["correspondence"])
     );
-    for group in output["groups"].as_array().unwrap() {
-        println!(
-            "  {}={} · {} changes\n    next: {}",
-            text(&output["group_field"]),
-            text(&group["key"]),
-            group["count"],
-            text(&group["next"][0])
-        );
-    }
-    for item in output["items"].as_array().unwrap() {
-        println!(
-            "\n{} · {}\n  paths: {}",
-            &text(&item["id"])[..12],
-            text(&item["correspondence"]),
-            item["paths"]
-        );
+    if full {
         for detail in item["reason_details"].as_array().unwrap() {
             println!("  {}: {}", text(&detail["code"]), text(&detail["meaning"]));
         }
-        if let Some(changes) = item.get("member_changes") {
-            println!(
-                "  Member counts: {} → {}",
-                changes["before_members"], changes["after_member_counts"]
-            );
-            for member in changes["members"].as_array().unwrap() {
-                let before = location(&member["before"]);
-                let after = member["after"]
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .map(location)
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                println!(
-                    "    {}: {before} → {}",
-                    text(&member["status"]),
-                    if after.is_empty() {
-                        "no established counterpart"
-                    } else {
-                        &after
-                    }
-                );
-            }
-        }
-        if let Some(before) = item.get("before_observation") {
-            observation("before", before);
-            for after in item["after_observations"].as_array().unwrap() {
-                observation("after", after);
-            }
-            println!("  Source bodies: not stored. Analysis digest internals: opaque.");
-        }
-        println!("  next: {}", text(&item["next"][0]));
+    } else {
+        let reasons = item["reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(text)
+            .collect::<Vec<_>>()
+            .join(", ");
+        println!("  {reasons}");
     }
-    println!("\nRetained evidence is not approval or ancestry. Missing findings do not establish deletion or successful refactoring.\nnext:");
-    for action in output["actions"].as_array().unwrap() {
+    if let Some(changes) = item.get("member_changes") {
+        member_changes(changes);
+    }
+    if let Some(before) = item.get("before_observation") {
+        observation("before", before);
+        for after in item["after_observations"].as_array().unwrap() {
+            observation("after", after);
+        }
+        println!("  Source bodies: not stored. Analysis digest internals: opaque.");
+    }
+    println!("  next: {}", text(&item["next"][0]));
+}
+
+fn member_changes(changes: &Value) {
+    let before = changes["before_members"]
+        .as_u64()
+        .map(|n| n.to_string())
+        .unwrap_or_else(|| "no established predecessor".into());
+    let counts = changes["after_member_counts"].as_array().unwrap();
+    let after = match counts.as_slice() {
+        [] => "no established counterpart".into(),
+        [count] => count.to_string(),
+        many => format!(
+            "candidate family counts: {}",
+            many.iter()
+                .map(Value::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+    };
+    println!("  Member counts: {before} → {after}");
+    for member in changes["members"].as_array().unwrap() {
+        let after = member["after"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(location)
+            .collect::<Vec<_>>()
+            .join(", ");
         println!(
-            "  {}\n    {}",
-            text(&action["label"]),
-            text(&action["command"])
+            "    {}: {} → {}",
+            text(&member["status"]),
+            location(&member["before"]),
+            if after.is_empty() {
+                "no established counterpart"
+            } else {
+                &after
+            }
         );
     }
 }

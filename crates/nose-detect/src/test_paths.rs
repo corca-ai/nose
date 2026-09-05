@@ -21,6 +21,7 @@ pub fn is_test_path(path: &str) -> bool {
             .any(|m| p.contains(m))
         || matches!(file_stem(&p), "test" | "tests")
         || file_stem(&p).starts_with("test_")
+        || p.split('/').any(|part| file_stem(part).ends_with("_tests"))
 }
 
 /// Repository paths are overwhelmingly already lowercase. Keep that common path allocation-free
@@ -38,6 +39,11 @@ fn file_stem(path: &str) -> &str {
     file.split('.').next().unwrap_or(file)
 }
 
+/// Conventional test callable names, shared by whole-unit and nested-region scope.
+pub(crate) fn is_test_name(name: &str) -> bool {
+    name.starts_with("Test") || name.starts_with("test_")
+}
+
 #[cfg(test)]
 mod tests {
     use super::is_test_path;
@@ -46,6 +52,10 @@ mod tests {
     fn rust_modular_test_files_are_test_scope() {
         assert!(is_test_path("crates/nose-frontend/src/go/tests.rs"));
         assert!(is_test_path("crates/nose-frontend/src/java/test.rs"));
+        assert!(is_test_path("crates/nose-frontend/src/corpus_tests.rs"));
+        assert!(is_test_path(
+            "crates/nose-cli/src/main_tests/query_family.rs"
+        ));
     }
 
     #[test]

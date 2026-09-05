@@ -13,6 +13,8 @@ use crate::schema_versions;
 use crate::style;
 use crate::surfaces::{surface_omission_note, SurfaceOverrides};
 
+mod navigation;
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn query_dashboard_json(
     families: &[nose_detect::RefactorFamily],
@@ -42,6 +44,14 @@ pub(crate) fn query_dashboard_json(
         .take(5)
         .map(|family| query_family_json(family, ov, opp, false, baseline_cmp, since))
         .collect::<Vec<_>>();
+    let mut next: Vec<_> = navigation::routes(&def, path, true)
+        .into_iter()
+        .map(|(_, command)| command)
+        .collect();
+    next.extend(
+        ["sort=extractability", "group=dir", "witness=exact", "all"]
+            .map(|term| format!("nose query {path} {term} --format json")),
+    );
     with_semantic_packs(
         serde_json::json!({
             "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
@@ -53,7 +63,7 @@ pub(crate) fn query_dashboard_json(
                 "skipped_sources": scope.skipped_sources,
                 "families": def.len(),
                 "by_confidence": {"exact": count("exact"), "subdag": count("subdag"),
-                    "bounded_window": count("bounded-window"),
+                    "bounded_window": count("bounded-window"), "connected": count("connected"),
                     "copy_paste": count("copy-paste"), "similar": count("similar")},
                 "reinvented": reinvented_prod,
                 "shown": top.len(),
@@ -61,8 +71,7 @@ pub(crate) fn query_dashboard_json(
             "families": top,
             "top_candidates": top,
             "markdown": markdown.dashboard_json(),
-            "next": [format!("nose query {path} sort=extractability"), format!("nose query {path} group=dir"),
-                format!("nose query {path} witness=exact"), format!("nose query {path} all")],
+            "next": next,
         }),
         semantic_packs,
     )
@@ -151,19 +160,21 @@ pub(super) fn render_query_dashboard(
         return;
     }
     println!("{}", scope.summary());
-    let n_proven = count("exact") + count("subdag") + count("bounded-window");
+    let n_proven = count("exact") + count("subdag") + count("connected") + count("bounded-window");
     println!(
         "\n{} duplicated-code {}.",
         style::bold(&def.len().to_string()),
         plural(def.len(), "family", "families"),
     );
     println!(
-        "  {} {n_proven} ({} {} · {} {} · {} {}) · {} {} · {} {}",
+        "  {} {n_proven} ({} {} · {} {} · {} {} · {} {}) · {} {} · {} {}",
         style::bold_green("verified"),
         style::green("exact"),
         count("exact"),
         style::green("shared-core"),
         count("subdag"),
+        style::green("connected-core"),
+        count("connected"),
         style::green("bounded-window"),
         count("bounded-window"),
         style::yellow("copy-paste"),
@@ -175,6 +186,10 @@ pub(super) fn render_query_dashboard(
         "  {}",
         style::dim("verified = machine-checked evidence · exact = same unit behavior · shared-core = shared computation · bounded-window = disjoint regions in one unit")
     );
+    println!("\nChoose a starting point (directory hints; findings remain available):");
+    for (label, command) in navigation::routes(&def, path, false) {
+        println!("  {label}: {command}");
+    }
     // The "best candidates" lead only makes sense when the default surface has
     // something on it. With an empty surface we skip it (a `sort=extractability` link into
     // an empty list is a dead end); the closing footer still offers `all` when families
@@ -189,14 +204,11 @@ pub(super) fn render_query_dashboard(
         );
     }
 
-    let kind_of = |k: &str| {
-        def.iter()
-            .filter(|f| f.witness.as_ref().map(|w| w.kind()) == Some(k))
-            .count()
-    };
-    let n_exact = kind_of("exact-value-graph");
-    let n_subdag = kind_of("shared-sub-dag") + kind_of("connected-mapped-sub-dag");
-    let n_bounded = kind_of("bounded-same-unit-window");
+    let selected_count = |witness| navigation::witness_count(families, ov, opp, path, witness);
+    let n_exact = selected_count("exact");
+    let n_subdag = selected_count("shared-core");
+    let n_connected = selected_count("connected");
+    let n_bounded = selected_count("bounded-window");
     let proven: Vec<_> = def
         .iter()
         .filter(|f| {
@@ -216,6 +228,7 @@ pub(super) fn render_query_dashboard(
         );
         let top: Vec<&nose_detect::RefactorFamily> = proven.iter().take(3).map(|f| **f).collect();
         print_candidates(&top, path, opp);
+        println!("  Filter counts include overlapping families exposed when their representative is outside the selection.");
         if n_exact > 0 {
             println!(
                 "  nose query {path} witness=exact             {}",
@@ -233,6 +246,9 @@ pub(super) fn render_query_dashboard(
                     plural(n_bounded, "family", "families")
                 ))
             );
+        }
+        if n_connected > 0 {
+            println!("  nose query {path} witness=connected         # the {n_connected} connected-core families");
         }
         if n_subdag > 0 {
             println!(
@@ -273,13 +289,13 @@ pub(super) fn render_query_dashboard(
         println!(
             "\n{}",
             style::bold(&format!(
-                "{reinvented_prod} place{} reimplement an existing helper — call it instead:",
+                "{reinvented_prod} place{} match an existing helper computation — inspect reuse:",
                 if reinvented_prod == 1 { "" } else { "s" }
             ))
         );
         println!(
             "  nose query {path} reinvented                 {}",
-            style::dim("# the call-the-helper findings")
+            style::dim("# shared computations and reuse candidates")
         );
     }
     // Repo-level magnitude + what the default surface omitted.

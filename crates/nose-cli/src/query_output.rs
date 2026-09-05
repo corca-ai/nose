@@ -37,7 +37,7 @@ pub(super) struct QueryOutput<'a> {
 /// single addressed family for `at=`/`id=`, otherwise the same default-surface (or `all`/
 /// `surface=`-widened, slice-folded, filtered) selection the list view shows. Report formats
 /// are non-interactive, so they collapse the dashboard/group views to this set.
-fn query_selection<'a>(
+pub(super) fn query_selection<'a>(
     families: &'a [nose_detect::RefactorFamily],
     ov: &SurfaceOverrides,
     opp: &OpportunityGroups,
@@ -297,6 +297,48 @@ mod tests {
     use super::*;
     use crate::main_tests::query_family::fam_at;
     use crate::query_terms::{QFilter, QOp};
+
+    #[test]
+    fn sorting_does_not_change_opportunity_roots_or_selection() {
+        let mut broad = fam_at(&[("src/a.rs", 1, 30), ("src/b.rs", 1, 30)]);
+        broad.shared_lines = 20;
+        broad.shared_weight = 20.0;
+        let narrow = fam_at(&[("src/a.rs", 5, 25), ("src/b.rs", 5, 25)]);
+        let overrides = SurfaceOverrides {
+            generated_sources: Default::default(),
+            additional_generated_surface_sources: Default::default(),
+            caller_generated_surface_sources: Default::default(),
+            declaration_run_families: Default::default(),
+            declaration_only_type_contract_families: Default::default(),
+        };
+        let mut families = vec![broad, narrow];
+        let first = crate::query_commands::query_opportunities(&families, &overrides);
+        families.reverse();
+        let reversed = crate::query_commands::query_opportunities(&families, &overrides);
+        assert!(
+            !first.primary_of.is_empty(),
+            "exercise overlapping families"
+        );
+        assert_eq!(first.primary_of, reversed.primary_of);
+        for q in [
+            Query::default(),
+            Query {
+                all: true,
+                ..Query::default()
+            },
+        ] {
+            let ids = |groups: &OpportunityGroups| {
+                let mut ids: Vec<_> = query_selection(&families, &overrides, groups, &q, ".", None)
+                    .unwrap()
+                    .into_iter()
+                    .map(baseline::family_id)
+                    .collect();
+                ids.sort();
+                ids
+            };
+            assert_eq!(ids(&first), ids(&reversed));
+        }
+    }
 
     #[test]
     fn surface_filters_keep_a_partial_default_slice_when_its_primary_is_filtered_out() {

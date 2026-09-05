@@ -126,7 +126,7 @@ pub(crate) fn attach_enclosing_units(groups: &mut [Group], units: &[UnitFeat]) {
             });
             if let Some(idx) = parent {
                 loc.enclosing_unit = Some(enclosing_unit_of(&units[idx]));
-                loc.in_test_module = units[idx].in_test_module;
+                loc.in_test_module |= units[idx].in_test_module;
             } else {
                 // A run crossing unit boundaries is test scaffolding iff EVERY
                 // overlapping unit sits in the inline test module (#226 — the
@@ -139,7 +139,7 @@ pub(crate) fn attach_enclosing_units(groups: &mut [Group], units: &[UnitFeat]) {
                         u.start_line <= loc.end_line && loc.start_line <= u.end_line
                     })
                     .collect();
-                loc.in_test_module = !overlapping.is_empty()
+                loc.in_test_module |= !overlapping.is_empty()
                     && overlapping.iter().all(|&idx| units[idx].in_test_module);
             }
         }

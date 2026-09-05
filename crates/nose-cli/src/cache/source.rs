@@ -11,7 +11,7 @@ use std::path::Path;
 mod inventory;
 
 const SOURCE_SNAPSHOT_SCHEMA: u32 = 1;
-const RAW_IL_SCHEMA: u32 = 6;
+const RAW_IL_SCHEMA: u32 = 7;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]

@@ -9,7 +9,8 @@ nose query . --cache-dir .nose-cache
 
 The first run fills the cache. Later runs reuse unchanged analysis and
 recalculate what changed. Caching changes how work is reused, not which
-duplication nose reports.
+duplication nose reports. Test-context extraction changes invalidate raw-IL and derived-unit
+cache versions, so old entries cannot silently retain outdated production/test scope.
 
 ## When to use it
 

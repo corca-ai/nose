@@ -90,7 +90,7 @@ machine-absolute. See [semantic-pack-project-lock](semantic-pack-project-lock.md
 ## Views
 
 **`dashboard`** (no terms) — `summary` (`scanned_files`, `families`, `by_confidence`
-`{exact,subdag,copy_paste,similar}`, `reinvented` = production-surface reinvented-helper findings,
+`{exact,subdag,connected,bounded_window,copy_paste,similar}`, `reinvented` = production-surface reinvented-helper findings,
 `shown` = displayed family count).
 Note the copy-paste bucket key is `copy_paste` (underscore), while the per-family `witness`
 enum value spells it `copy-paste` (hyphen) — so don't index `by_confidence[family.witness]`
@@ -99,11 +99,23 @@ for that one channel.
 production are ranked alike; each a *family object*), `top_candidates[]` (compatibility alias
 for the same array), `markdown[]` (Markdown near-duplicate prose families from the separate
 prose engine; additive dashboard-only field), and `next[]` (runnable follow-up commands).
+Headline confidence buckets count visible representatives and include `connected` separately.
+Advertised witness drilldown counts use the actual filtered selection: filtering can expose
+an overlapping slice whose representative is outside that selection. Witness aliases and
+canonical detector kinds share one validation/matching contract.
+Dashboard commands include production/test/mixed-scope routes and discovered evaluation or
+fixture directory hints; JSON dashboard commands preserve `--format json`. These are explicit
+filters over the existing population, not new semantic scope classifications.
 `markdown[]` is not counted in `summary.families`, is not mirrored into `families[]`, and does
 not participate in `--fail-on` gates.
 
 **`list`** (filters / `sort=` / `top=`) — `summary` (`families`, `shown`, `widened`),
 `families[]` (the selection, each a *family object*), `next[]`.
+List `next[]` commands preserve filters, shell quoting and JSON format.
+Display sorts preserve the selected IDs and overlap-fold relationships. Folding uses a
+canonical extractability order independent of user/configured ordering. Same-language
+families with zero source invariants receive zero extractability even when normalized
+ranking lines still share structure; a structural extraction shape is not a recommendation.
 
 **`group`** (`group=FIELD`) — `field` and `groups[]` of `{key, count, removable, exemplar_id}`,
 ranked by **removable lines** (so `group=dir`/`group=file` is the duplication hotspot map).
@@ -114,7 +126,11 @@ available), and a single `family` object; with `full`, that object carries `skel
 
 **`reinvented`** (`reinvented`) — `summary` (`findings`, `shown`, `in_test`, `test_helper`) and `items[]` of
 `{helper {name,file,start,end,in_test}, site {file,container,container_start,container_end,start,end,container_in_test},
-value, approximate}` — code that reimplements an existing helper; the action is "call it".
+value, approximate}` — a computation inside a container matches a helper body. This is
+not proof that the helper can be called: language compatibility, visibility, imports,
+dependencies and calling conventions remain review obligations. Human output distinguishes
+cross-language comparison from same-language reuse investigation. The detector prefers a
+same-language helper when available; cross-language relations remain visible.
 `test_helper` counts production containers whose only existing helper is in test code; those are
 omitted from `items[]` because production code should rehome/extract a helper before calling it.
 

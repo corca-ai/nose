@@ -303,6 +303,7 @@ mod tests {
     fn stream(path: &str, tags: &[u64]) -> Stream {
         let mut value = Stream {
             root_is_module: false,
+            test_spans: Vec::new(),
             source: None,
             path: path.to_owned(),
             lang: nose_il::Lang::Python,

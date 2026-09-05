@@ -33,6 +33,8 @@ pub struct Stream {
     source: Option<std::sync::Arc<nose_il::SourceDocument>>,
     path: String,
     lang: nose_il::Lang,
+    #[serde(default)]
+    test_spans: Vec<(u32, u32)>,
     tags: Vec<u64>,
     start: Vec<u32>,
     end: Vec<u32>,
@@ -79,6 +81,7 @@ pub(crate) fn stream(il: &Il, interner: &Interner) -> Stream {
         source: il.source.clone(),
         path: il.meta.path.clone(),
         lang: il.meta.lang,
+        test_spans: crate::units::test_context_spans(il, interner),
         tags: Vec::new(),
         start: Vec::new(),
         end: Vec::new(),
@@ -226,6 +229,10 @@ impl LocSeed {
             sem: self.sem,
             span_tokens: self.sem,
         });
+        loc.in_test_module = s
+            .test_spans
+            .iter()
+            .any(|&(start, end)| start <= self.start_line && self.end_line <= end);
         loc.source_region = s
             .source
             .as_ref()
@@ -451,6 +458,7 @@ mod tests {
         let n = tags.len() as u32;
         Stream {
             root_is_module: false,
+            test_spans: Vec::new(),
             source: None,
             path: path.into(),
             lang: nose_il::Lang::Python,
@@ -517,6 +525,7 @@ mod tests {
             let n = shared.len() as u32;
             Stream {
                 root_is_module: false,
+                test_spans: Vec::new(),
                 source: None,
                 path: path.into(),
                 lang: nose_il::Lang::Python,

@@ -309,6 +309,15 @@ pub(crate) fn family_langs(f: &nose_detect::RefactorFamily) -> String {
 /// number of directories), never a guess about semantics.
 pub(crate) fn family_hint(f: &nose_detect::RefactorFamily) -> String {
     use nose_il::UnitKind;
+    if f.languages > 1 {
+        return "compare the shared computation across languages; direct helper reuse is not established".into();
+    }
+    if f.display_params.is_some() && f.shared_lines == 0 {
+        return "inspect the related regions; no invariant source lines support an extraction proposal".into();
+    }
+    if f.display_params.is_some() && f.shared_weight == 0.0 {
+        return "inspect the related regions; shared source is only common syntax, not a supported helper extraction".into();
+    }
     // Exactly one member is a whole named function/method while every other
     // member is an inline block or fragment: the family itself proves the
     // inline copies compute what the existing helper computes (issue #263's

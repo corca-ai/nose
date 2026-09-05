@@ -277,7 +277,7 @@ fn hint_shared_name_consolidates() {
 #[test]
 fn hint_cross_language_is_flagged() {
     let f = fam(2, 2, &[Some("parse"), Some("parse")]);
-    assert!(family_hint(&f).ends_with("(cross-language)"));
+    assert!(family_hint(&f).contains("across languages"));
 }
 
 #[test]

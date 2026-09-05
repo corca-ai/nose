@@ -101,7 +101,7 @@ pub(super) fn run(
     if format == ReportFormat::Json {
         println!("{}", serde_json::to_string(&output)?);
     } else {
-        super::render::render(&output);
+        super::render::render(&output, details.is_some());
     }
     Ok(())
 }

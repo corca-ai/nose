@@ -39,6 +39,18 @@ pub(crate) fn print_member_proposal(locations: &[nose_detect::Loc], action: &str
     }
     let (skeleton, shared, params) = anti_unify_all(&members);
     let copies = members.len();
+    if shared == 0 {
+        println!("     comparison  no invariant source lines across {copies} copies; inspect the diff before proposing an extraction");
+        return;
+    }
+    if skeleton
+        .iter()
+        .filter(|line| !line.contains('⟨'))
+        .all(|line| crate::source_lines::is_trivial_line(line.trim()))
+    {
+        println!("     comparison  only common syntax is invariant across {copies} copies; inspect the diff before proposing an extraction");
+        return;
+    }
     println!("     proposal  {action} · {shared} shared lines · {params} parameter(s) vary (across all {copies} copies)");
     for line in skeleton.iter().take(40) {
         println!("       │ {line}");

@@ -170,10 +170,19 @@ pub(super) fn query_opportunities(
     families: &[nose_detect::RefactorFamily],
     overrides: &SurfaceOverrides,
 ) -> OpportunityGroups {
-    let default_fams: Vec<&nose_detect::RefactorFamily> = families
+    let mut default_fams: Vec<&nose_detect::RefactorFamily> = families
         .iter()
         .filter(|f| is_default_opportunity_family(f, overrides))
         .collect();
+    // Folding defines the visible population, so its order cannot depend on a
+    // display sort (including a configured default or a watch-session sort).
+    default_fams.sort_by(|a, b| {
+        b.extractability()
+            .total_cmp(&a.extractability())
+            .then(b.value.total_cmp(&a.value))
+            .then_with(|| family_anchor(a).cmp(&family_anchor(b)))
+            .then_with(|| crate::baseline::family_id(a).cmp(&crate::baseline::family_id(b)))
+    });
     OpportunityGroups::from_ranked_with_default(&default_fams, |family| {
         is_default_report_family(family, overrides)
     })

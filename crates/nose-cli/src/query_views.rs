@@ -207,9 +207,9 @@ fn print_semantic_change(site: &divergence::Site) {
 }
 
 /// The `reinvented` view: code that reimplements an existing helper's body (the `reinvented`
-/// channel). Each surfaced finding's action is "call the helper instead" — the same action as a
-/// `call-existing-helper` family, but for sites the family clusterer did not group (different
-/// recall, not a second way to ask the same question). Production containers are shown only when
+/// channel). Findings establish matching computations, not a callable API. Cross-language
+/// relations invite comparison; same-language relations invite a visibility/dependency review.
+/// Production containers are shown only when
 /// the existing helper is also production; a test-only helper requires rehoming/extracting before
 /// production code can call it.
 pub(super) fn render_query_reinvented(
@@ -275,11 +275,16 @@ pub(super) fn render_query_reinvented(
         }
         return;
     }
-    println!("reinvented helpers — code that reimplements an existing helper; call it instead:");
+    println!("matched helper computations — inspect whether reuse is possible:");
     for r in shown.iter().take(limit) {
         let approx = if r.site_approximate { " ~approx" } else { "" };
+        let action = if r.helper_lang == r.container_lang {
+            "inspect reuse of"
+        } else {
+            "compare across languages with"
+        };
         println!(
-            "  {}:{}-{}{}  → call {} ({}:{}-{})  ~{} value nodes",
+            "  {}:{}-{}{}  → {action} {} ({}:{}-{})  ~{} value nodes",
             r.container_file,
             r.site_start_line,
             r.site_end_line,
@@ -291,6 +296,7 @@ pub(super) fn render_query_reinvented(
             r.weight,
         );
     }
+    println!("  A computation match does not establish visibility, imports, or a callable API.");
     let hidden = shown.len().saturating_sub(limit);
     if hidden > 0 {
         println!("  … {hidden} more (raise top=N)");
@@ -364,7 +370,7 @@ fn query_list_json(view: &QueryListView<'_>) -> serde_json::Value {
             "path": path,
             "summary": { "families": selection.len(), "shown": shown, "widened": widen },
             "families": fams,
-            "next": [format!("nose query {path} group=dir"), format!("nose query {path} group=witness")],
+            "next": [format!("{} group=dir --format json", base_cmd(view.terms, path)), format!("{} group=witness --format json", base_cmd(view.terms, path))],
         }),
         semantic_packs,
     )
@@ -462,10 +468,10 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
 /// `nose query` with the current selection's terms minus any view term — the prefix the
 /// `next:` links extend.
 fn base_cmd(terms: &[String], path: &str) -> String {
-    let keep: Vec<&str> = terms
+    let keep: Vec<String> = terms
         .iter()
         .filter(|t| !t.starts_with("group=") && !t.starts_with("id=") && *t != "full")
-        .map(String::as_str)
+        .map(|term| crate::path_utils::shell_quote(term))
         .collect();
     if keep.is_empty() {
         format!("nose query {path}")

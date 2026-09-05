@@ -195,8 +195,8 @@ pub(crate) fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> C
 }
 
 /// Bump when unit/stream serialization, extraction, or feature hashing changes.
-const UNITS_SYNTAX_SCHEMA: u32 = 5;
-const UNITS_PACK_SCHEMA: u32 = 4;
+const UNITS_SYNTAX_SCHEMA: u32 = 6;
+const UNITS_PACK_SCHEMA: u32 = 5;
 const UNITS_PACK_MAGIC: &[u8; 8] = b"NOSEUPK2";
 const UNITS_PACK_HEADER_LEN: usize = 8 + 4 + 32 + 32;
 const UNITS_PACK_ENTRY_LEN: usize = 32 + 4 + 8 + 8;

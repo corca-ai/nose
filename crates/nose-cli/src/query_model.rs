@@ -8,17 +8,26 @@ use crate::source_lines::{anti_unify_all, read_lines, FileLineCache};
 use crate::style;
 use crate::surfaces::{effective_surface, generated_provenance_json, SurfaceOverrides};
 
-/// Canonical `witness.kind()` for a friendly filter token (`exact`→`exact-value-graph`, …).
-pub(crate) fn witness_alias(v: &str) -> &str {
-    match v {
-        "exact" => "exact-value-graph",
-        "subdag" | "shared-core" => "shared-sub-dag",
-        "connected" | "connected-core" => "connected-mapped-sub-dag",
-        "bounded-window" | "same-unit" => "bounded-same-unit-window",
-        "copy-paste" | "copypaste" => "copy-paste-run",
-        "similar" | "structural" => "structural-similarity",
-        other => other,
-    }
+/// Accepted filter aliases and their detector evidence kinds. Parsing and matching share this table.
+pub(crate) const WITNESS_ALIASES: &[(&str, &str)] = &[
+    ("exact", "exact-value-graph"),
+    ("subdag", "shared-sub-dag"),
+    ("shared-core", "shared-sub-dag"),
+    ("connected", "connected-mapped-sub-dag"),
+    ("connected-core", "connected-mapped-sub-dag"),
+    ("bounded-window", "bounded-same-unit-window"),
+    ("same-unit", "bounded-same-unit-window"),
+    ("copy-paste", "copy-paste-run"),
+    ("copypaste", "copy-paste-run"),
+    ("similar", "structural-similarity"),
+    ("structural", "structural-similarity"),
+];
+
+pub(crate) fn witness_alias(value: &str) -> &str {
+    WITNESS_ALIASES
+        .iter()
+        .find(|(alias, _)| *alias == value)
+        .map_or(value, |(_, kind)| *kind)
 }
 
 /// The friendly token for a `witness.kind()` — the machine value (`--format json`,

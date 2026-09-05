@@ -459,6 +459,19 @@ These small controlled cases establish the specific evidence correction and pres
 gate, not real-history precision/recall or a general runtime bound. Raw observations
 are in the ignored `target/analysis-changes/b2-audit.json`.
 
+## Human comparison reading flow
+
+The human comparison opens with observation, recheck and retained-evidence counts.
+Retained observations are not called edits. Ordinary lists show paths and reason codes;
+`full` reveals capture paths, roots, profiles, reason explanations and member evidence.
+Incomplete source diagnostics remain visible without `full`. Group rows appear when
+`group=FIELD` is requested, avoiding a second redundant dashboard. JSON retains the
+complete context and existing count contract in every view.
+
+Member counts distinguish an absent established predecessor/counterpart from zero members.
+A unique current family reads `2 → 3`; multiple candidates retain separate labeled counts.
+Neither wording asserts lineage. Detail commands continue to preserve format and selection.
+
 ## Exploration UX verification
 
 The six UX corrections have regression coverage for truthful duplicate-member reasons,

@@ -6,6 +6,10 @@ break.
 
 ## [Unreleased]
 
+- Make query sorting preserve family selection and overlap representatives; stop ranking zero-invariant source matches as extractable helpers.
+- Distinguish cross-language computation matches from callable reuse, propagate Rust test context into nested/cached regions, and add scope/evaluation exploration routes.
+- Keep human analysis comparisons concise, with explicit observations and readable member counts; reveal capture context through `full` while retaining incomplete-source diagnostics.
+
 - Capture admitted code-family analyses with `query --save-analysis FILE` and explore
   their changes offline with `query --before FILE --after FILE`: reason/evidence facets,
   before/after observations and runnable next commands. Separate versioned artifacts

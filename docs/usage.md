@@ -58,6 +58,16 @@ evidence, the best candidates to inspect first, verified-evidence families, dupl
 directory hotspots, and next commands. Add terms to filter, group, sort, or open one
 family; every result includes a runnable `nose query …` command.
 
+The landing page offers production, test, mixed-scope, and discovered evaluation/fixture
+directory routes. Directory names are navigation hints, not proof of code purpose; no findings
+are hidden by these routes until selected. Production routes exclude the listed evaluation
+paths explicitly. Cross-directory relationships remain available through the full population.
+Rust `#[test]` and unconditional `#[cfg(test)]` attributes propagate test context into nested
+regions, as do existing test-name/module conventions. This classification does not evaluate
+arbitrary conditional compilation or third-party test macros. Conventional `_tests` file and
+directory names also classify out-of-line test helpers, without pretending to resolve every
+custom module graph.
+
 To analyze disjoint trees in one run, pass every root explicitly:
 `nose query --root packages --root scripts [terms…]` (short: `-r`). When
 `--root`/`-r` is present, bare arguments are query terms; use `-r` for each
@@ -78,7 +88,7 @@ nose query --root <path> --root <path> [FILTER … | group=FIELD | id=FAM | at=F
 | `group=FIELD` | facet the selection by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`, `status`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
 | `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, overlapping-family links (`subsumes`/`subsumed_by`), and navigation |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
-| `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (the action is "call it"). Production findings are shown only when the helper is also production code; matches that point production code at a test-only helper are omitted with a count, because the safe action is to rehome/extract a production helper first. Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
+| `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (a computation match requires a separate reuse decision). Production findings are shown only when the helper is also production code; matches that point production code at a test-only helper are omitted with a count, because the safe action is to rehome/extract a production helper first. Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
 | `base=REF` | the **divergent-edit** view: detect families at the git ref, flag the ones a diff changed in one copy but not its siblings — a likely un-propagated fix. It is its own view, so combine it only with `top=N`, detection flags, `--format`, or `--fail-on any`; ordinary family filters are for the non-`base=` query views. Each item carries legacy `fire_eligible` evidence plus the v2 `strict` / `review` / `report-only` / `suppressed` tier contract; `base=REF --fail-on any` fails only on unsuppressed `strict` findings. See [divergent edits](divergent-edits.md). |
 | `since=FILE` | compare to a saved snapshot (written with `--baseline FILE --write-baseline`) and expose each family's **`status`** (`new`/`changed`/`unchanged`) as a queryable field — the temporal lens. Hides nothing (unlike `--baseline`); `since=B status!=unchanged --fail-on any` is the composable gate |
 | `sort=KEY` | `extractability` (default), `value`, `members` (also `sites` and the experimental `hazard` — see [Ranking](#ranking)) |
@@ -157,7 +167,9 @@ Markdown prose findings are displayed as a separate dashboard domain and dashboa
 
 ## Ranking
 
-`sort=` chooses what "most worth your attention first" means.
+`sort=` chooses what "most worth your attention first" means. Changing sort order preserves the selected family IDs,
+counts and overlap-fold relationships. Representatives are chosen using one canonical
+extractability order before applying a display sort, including configured and watch sorts.
 `--min-value` is a noise floor on raw value and applies under every sort. `nose query`
 accepts `extractability`, `value`, `sites`, the alias `members`, and the experimental `hazard`.
 (The query dashboard's

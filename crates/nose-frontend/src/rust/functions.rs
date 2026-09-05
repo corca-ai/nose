@@ -4,7 +4,7 @@ use crate::tree_sitter_ext::child_at;
 pub(super) fn lower_func(lo: &mut Lowering, node: TsNode, method: bool) -> NodeId {
     let is_async = rust_function_has_async_modifier(node);
     let span = lo.span(node);
-    crate::lower::function_unit(lo, node, method, lower_params, |lo, body| {
+    let func = crate::lower::function_unit(lo, node, method, lower_params, |lo, body| {
         let body = lower_fn_body(lo, body);
         if is_async {
             lo.protocol_boundary(
@@ -16,7 +16,13 @@ pub(super) fn lower_func(lo: &mut Lowering, node: TsNode, method: bool) -> NodeI
         } else {
             body
         }
-    })
+    });
+    if test_context::contains(lo, node) {
+        if let Some(unit) = lo.units.iter_mut().find(|unit| unit.root == func) {
+            unit.origin = unit.origin.with_evidence(UnitEvidenceFlag::TestContext);
+        }
+    }
+    func
 }
 fn rust_function_has_async_modifier(node: TsNode) -> bool {
     (0..node.child_count()).any(|index| {

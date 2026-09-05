@@ -117,11 +117,11 @@ fn render_group_human(view: &QueryGroupView<'_>, rows: &[(String, GroupAgg)]) {
         plural(view.selection.len(), "family", "families"),
         view.field
     );
-    let other: Vec<&str> = view
+    let other: Vec<String> = view
         .terms
         .iter()
         .filter(|term| !term.starts_with("group="))
-        .map(String::as_str)
+        .map(|term| crate::path_utils::shell_quote(term))
         .collect();
     let base = if other.is_empty() {
         format!("nose query {}", view.path)
@@ -141,6 +141,7 @@ fn render_group_human(view: &QueryGroupView<'_>, rows: &[(String, GroupAgg)]) {
             aggregate.removable,
             aggregate.exemplar_row
         );
-        println!("        {base} {}={label}", view.field);
+        let term = crate::path_utils::shell_quote(&format!("{}={label}", view.field));
+        println!("        {base} {term}");
     }
 }

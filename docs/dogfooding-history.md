@@ -1511,3 +1511,63 @@ The six three-line test span helpers retain identical members and metrics
 (value 75, zero removable lines); the evidence append API changes one member's
 line coordinate and moves `97f69f1bf638e2d7` to `08bef91578054823`. No new
 avoidable family is accepted.
+
+
+## Exploration consistency and advice follow-through (2026-09-05)
+
+An interactive nose-on-nose pass started at `nose --help` and `nose query .`, then
+followed production, directory, witness, family and saved-analysis navigation. The
+original `path~crates scope=prod top=0` population changed from 339 to 336 families
+when only `sort=value` changed (11 IDs disappeared and eight appeared). Canonical
+opportunity folding now precedes display ordering; sorting is a view operation.
+
+A zero-invariant source match was ranked first and given an extraction proposal.
+Extractability now requires source invariants for same-language families, and empty
+or punctuation-only skeletons explain their lack of extraction support. Cross-language
+helper containment remains useful evidence, with comparison advice instead of an
+unestablished direct call. Scope now inherits native Rust test attributes and conventional
+test-function/module spans, including cached syntax regions; `_tests` path components
+cover conventional out-of-line test helpers. Arbitrary module/configuration resolution
+is not claimed.
+
+Two independent read-only agents explored the updated CLI. They confirmed stable
+production selection under value/extractability sorting, actionable import-evidence and
+shadow-guard candidates, and a common Python audit-module loader. Comparison dogfooding
+used historical CLI sources: 141 observations narrowed to two rechecks and 139 retained;
+fresh captures, JSON/human drilldowns, explicit budget recovery, empty-filter recovery,
+and non-overwriting capture writes all behaved as advertised. Debug runs provided no
+performance evidence.
+
+Their reproducible remaining concerns were accepted: connected-core counts now have
+their own dashboard bucket/link; `full` lists all family locations and compact views
+name omissions; emitted filters retain shell quoting and JSON list navigation retains
+its selection; test helper path conventions and punctuation-only advice were tightened;
+group comparison headings distinguish groups from observation rows. Detailed capture
+context lives behind `full`, while incomplete-source diagnostics remain immediately
+visible. These improvements change exploration/advice, not authorization to rewrite code.
+
+
+The substantial-near ratchet was reviewed after these corrections: 18 current default
+families, within the unchanged budget of 20. The checked baseline contained 15 IDs
+(the operating guide's previous count of 16 was stale). Six now-visible IDs were inspected:
+
+| Current ID | Review |
+|---|---|
+| `3e7649541676178b` | The previously accepted detect/markdown `UnionFind` implementations; a representative-ID change from `e633f3912604730d`, still a separate cross-crate utility decision. |
+| `60f0dd6d98436972` | The previously accepted `int_bin` / `float_bin` pair, replacing `aa2b95cf822a1cd2`; numeric policies remain distinct. |
+| `49724f843a830a5a` | Existing `Project` harnesses in analysis-changes/region tests; whole-impl overlap, with distinct capture and query workflows. |
+| `9f4c7edd3f5ece8d` | Existing cross-layer binding/export/name-count traversal family, sharing two source lines across three members; retain as observed debt, not a clean helper proposal. |
+| `09685d6df25416a9` | Six existing source-region CLI test scenarios; zero shared source lines across all members, so no supported common extraction. |
+| `71a57945b885ee02` | Existing capability report/type versus flag-map family, with one shared source line; not a supported common helper. |
+
+`fa4513e797e66fbd` moves to the reviewed binding/export/name-count representative `9f4c7edd3f5ece8d`. No member of the
+six newly listed families was introduced by this exploration correction. The accepted
+set was replaced with the reviewed current IDs without increasing its budget.
+
+
+A bounded release recheck caught two additional witness-navigation defects: `connected`
+was understood by matching but rejected by filter validation, and filtered views could
+reveal slices absent from the dashboard's representative counts. Parsing/matching now
+share one alias table (including canonical evidence names); advertised drilldown counts
+reuse the target selection logic and explain slice recovery. No evidence kind is silently
+combined with another kind to make a navigation count appear consistent.

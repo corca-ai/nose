@@ -114,7 +114,8 @@ pub(super) fn render_query_family(
     print_hint_reasons(f);
     println!("  copies:");
     let helper = family_existing_helper(f);
-    for l in f.locations.iter().take(30) {
+    let member_limit = if full { usize::MAX } else { 30 };
+    for l in f.locations.iter().take(member_limit) {
         let name = l
             .name
             .as_deref()
@@ -128,6 +129,12 @@ pub(super) fn render_query_family(
             ""
         };
         println!("    {}:{}-{}{name}{role}", l.file, l.start_line, l.end_line);
+    }
+    if !full && f.locations.len() > member_limit {
+        println!(
+            "    … {} more copies; add `full` to show every location",
+            f.locations.len() - member_limit
+        );
     }
     // Lead with the decision-grade artifact: the extraction skeleton aligned across ALL
     // copies (#360), with the differing spots as parameters — not a raw 2-copy token diff.

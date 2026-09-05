@@ -200,17 +200,13 @@ fn validate_filter_values(flt: &QFilter) -> Result<()> {
     if !matches!(flt.op, QOp::Eq) {
         return Ok(());
     }
+    let witness_values: Vec<_> = crate::query_model::WITNESS_ALIASES
+        .iter()
+        .flat_map(|(alias, kind)| [*alias, *kind])
+        .collect();
     let valid: Option<&[&str]> = match flt.field.as_str() {
         "scope" => Some(&["prod", "test", "mixed"]),
-        "witness" => Some(&[
-            "exact",
-            "subdag",
-            "copy-paste",
-            "similar",
-            "shared-core",
-            "copypaste",
-            "structural",
-        ]),
+        "witness" => Some(&witness_values),
         "shape" | "extraction_shape" => Some(&[
             "call-existing-helper",
             "extract-helper",

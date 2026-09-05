@@ -165,7 +165,7 @@ pub(crate) fn extract_with_context(
         unit_timer.report_summary(&il.meta.path);
         return (out, value_context);
     }
-    let test_module_spans = inline_test_module_spans(il, interner);
+    let test_module_spans = test_context_spans(il, interner);
     for unit in &mut out {
         unit.in_test_module = test_module_spans
             .iter()
@@ -222,12 +222,24 @@ fn fill_called_helper_returns(
     }
 }
 
-/// Source-line spans of inline test modules (`mod tests` / `mod test`) — the Rust
-/// convention for in-file test scaffolding. Module nodes keep their names through
-/// lowering, so a span check is enough; other languages simply have no named
-/// `tests` module inside a file.
-fn inline_test_module_spans(il: &Il, interner: &Interner) -> Vec<(u32, u32)> {
-    let mut spans = Vec::new();
+/// Source spans of frontend test-context evidence and conventional test functions/modules.
+/// Nested regions inherit these facts even when their own unit has no name.
+pub(crate) fn test_context_spans(il: &Il, interner: &Interner) -> Vec<(u32, u32)> {
+    let mut spans: Vec<_> = il
+        .units
+        .iter()
+        .filter(|unit| {
+            unit.origin
+                .has_evidence(nose_il::UnitEvidenceFlag::TestContext)
+                || unit
+                    .name
+                    .is_some_and(|name| crate::test_paths::is_test_name(interner.resolve(name)))
+        })
+        .map(|unit| {
+            let span = il.node(unit.root).span;
+            (span.start_line, span.end_line)
+        })
+        .collect();
     for node in &il.nodes {
         if node.kind != NodeKind::Module {
             continue;

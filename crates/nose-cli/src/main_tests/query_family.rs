@@ -2,6 +2,7 @@ use super::surface_hints::{fam, fam_kind};
 use super::*;
 
 mod accepted_coverage;
+mod exploration_ux;
 mod type_contracts;
 
 fn loc_at(file: &str, start: u32, end: u32, kind: nose_il::UnitKind) -> Loc {

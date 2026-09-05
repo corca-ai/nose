@@ -171,6 +171,9 @@ impl RefactorFamily {
     /// (extract a 22-line helper and leave 360 unique lines at every site — barely a
     /// dedup); absolute shared lines alone can't tell them apart.
     pub fn extractability(&self) -> f64 {
+        if self.languages == 1 && self.shared_lines == 0 {
+            return 0.0;
+        }
         let (extract_lines, tightness) = if self.languages > 1 {
             // cross-language: there are no shared *source* lines to diff, so we can
             // neither weight out idioms nor measure tightness. Require *substance*
@@ -289,6 +292,9 @@ impl RefactorFamily {
     /// The consumer reads it only for a clean candidate (`actionability_reason` absent).
     pub fn extraction_shape(&self) -> &'static str {
         use nose_il::UnitKind;
+        if self.languages > 1 {
+            return "consolidate-cross-language";
+        }
         // call-existing-helper: exactly one named whole function/method, every other
         // member an inline block/fragment — the inline copies recompute the existing
         // helper, so the fix is "call it", not a fresh extraction (#263's local `clamp`).
@@ -312,9 +318,6 @@ impl RefactorFamily {
             if callable && inline >= 1 && inline == self.locations.len() - 1 {
                 return "call-existing-helper";
             }
-        }
-        if self.languages > 1 {
-            return "consolidate-cross-language";
         }
         let all_classes = self.locations.iter().all(|l| l.kind == UnitKind::Class);
         let all_blocks = self.locations.iter().all(|l| l.kind == UnitKind::Block);
