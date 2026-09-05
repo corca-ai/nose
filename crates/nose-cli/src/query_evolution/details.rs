@@ -113,5 +113,5 @@ impl<'a> Details<'a> {
 }
 
 fn location(member: &MemberObservation) -> Value {
-    json!({"file":member.file,"start_line":member.start_line,"end_line":member.end_line,"name":member.name,"lang":member.lang})
+    json!({"observation_id":member.observation_id(),"file":member.file,"start_line":member.start_line,"end_line":member.end_line,"name":member.name,"lang":member.lang})
 }

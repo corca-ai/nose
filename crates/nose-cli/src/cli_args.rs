@@ -99,6 +99,10 @@ pub(crate) enum Cmd {
     /// nose finds; you judge. Filter, group, sort, or open families to explore.
     /// Save with --save-analysis FILE. Compare saved populations with --before/--after;
     /// follow next commands, group=reason, evidence=recheck, change=ID and full.
+    /// On id=, follow member-group=dir|lang|scope to explore copies within a family.
+    /// On change=, --before-source/--after-source DIR verify historical source bytes.
+    /// Record your judgment with --write-review FILE --decision VALUE --reason TEXT;
+    /// supply --reviews FILE later and filter review=applicable|recheck|unreviewed.
     /// Use nose capabilities for comparison fields and reason values.
     #[command(
         override_usage = "nose query <path> [terms...] [OPTIONS]\n       nose query --root <path> --root <path> [terms...] [OPTIONS]\n       nose query --before FILE --after FILE [terms...] [OPTIONS]"

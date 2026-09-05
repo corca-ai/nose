@@ -183,3 +183,11 @@ reproduced the human-audited worthy/not-worthy verdicts — see
 *See also: [usage › nose query](usage.md#nose-query) · [query JSON](query-json.md) ·
 [continuous integration](continuous-integration.md) · [divergent edits](divergent-edits.md) ·
 [structured-ignores](structured-ignores.md) · [design](design.md).*
+
+For a large family, follow `member-group=dir` / `lang` / `scope` and the emitted member
+filters instead of assuming the first copies represent every occurrence. Read `assessment`
+and `scope_evidence` before proposing extraction. During saved-analysis review, use the
+named verified-source action with the appropriate historical source directories. A caller
+can preserve an explicit judgment with `--write-review` and later inspect `review=recheck`
+using `--reviews`; the record binds its original analysis, so retain that capture. See the contract in
+[source inspection and decision reuse](region-identity.md#inspect-source-and-carry-caller-decisions-forward) for the applicability rules.

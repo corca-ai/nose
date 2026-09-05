@@ -278,3 +278,39 @@ fn every_advertised_evidence_kind_and_alias_is_a_valid_filter() {
         assert_eq!(friendly["families"], stable["families"], "{alias}");
     }
 }
+
+#[test]
+fn member_facets_keep_family_identity_and_scope_evidence() {
+    let p = Project::new();
+    for file in ["src/one.py", "src/sub/two.py", "tests/three.py"] {
+        p.write(
+            file,
+            "def compute(x):\n    a = x * x\n    b = a + 7\n    c = b // 3\n    return c\n",
+        );
+    }
+    let view = p.query(&["--mode", "semantic", "all", "top=0"]);
+    let family = view["families"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|f| f["members"] == 3)
+        .unwrap();
+    let id = format!("id={}", family["id"].as_str().unwrap());
+    let grouped = p.query(&["--mode", "semantic", &id, "member-group=dir"]);
+    assert_eq!(grouped["member_view"]["groups_total"], 3);
+    assert_eq!(grouped["family"]["id"], family["id"]);
+    let narrowed = p.query(&["--mode", "semantic", &id, "member-dir=src"]);
+    assert_eq!(narrowed["member_view"]["selected"], 1, "{narrowed}");
+    assert_eq!(narrowed["family"]["members"], 3);
+    assert_eq!(narrowed["family"]["locations"].as_array().unwrap().len(), 1);
+    let tests = p.query(&["--mode", "semantic", &id, "member-scope=test"]);
+    assert_eq!(tests["member_view"]["selected"], 1);
+    assert_eq!(
+        tests["family"]["locations"][0]["scope_evidence"]["reasons"][0],
+        "test-path-convention"
+    );
+    assert_eq!(
+        tests["family"]["assessment"]["verdict"],
+        "caller-review-required"
+    );
+}

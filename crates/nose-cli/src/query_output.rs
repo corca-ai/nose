@@ -215,18 +215,7 @@ fn render_query_exploration(ctx: &QueryOutput<'_>) -> Result<bool> {
 }
 
 fn render_query_family_view(ctx: &QueryOutput<'_>, idv: &str, json: bool) {
-    render_query_family(
-        ctx.families,
-        ctx.overrides,
-        ctx.opp,
-        idv,
-        ctx.q.id_full,
-        ctx.path_arg,
-        json,
-        ctx.baseline_comparison,
-        ctx.since,
-        ctx.semantic_packs,
-    );
+    render_query_family(ctx, idv, json);
 }
 
 fn render_query_list_or_group(ctx: &QueryOutput<'_>, json: bool) -> Result<()> {

@@ -1571,3 +1571,35 @@ reveal slices absent from the dashboard's representative counts. Parsing/matchin
 share one alias table (including canonical evidence names); advertised drilldown counts
 reuse the target selection logic and explain slice recovery. No evidence kind is silently
 combined with another kind to make a navigation count appear consistent.
+
+
+## Source inspection and reusable caller review (2026-09-05)
+
+The next nose-on-nose pass exercised source-backed review and member facets. A capture
+of `crates/nose-cli/src` admitted 141 families from 178 files with complete coverage.
+Production exploration still exposed the 21 shared lines in import-evidence helpers
+(`94ff34eef4cb8ff1`). Its two directory member groups opened with exactly their advertised
+counts. Explicit source inspection verified captured buffers and selected regions;
+a caller-owned deferred review was written and reloaded with one applicable observation.
+Local artifacts live under ignored `target/review-dogfood/`; these debug runs do not
+establish a performance result.
+
+Behavioral regression cases cover unique moves, simultaneous ambiguous moves, added
+copies, content/scope changes, incomplete search, unrelated captures, conflicting decisions,
+non-overwriting writes, stale sources, explicit historical directories, source-line diffs
+and symlinks escaping the selected base. Ordinary family assessment separates extraction
+support from witness strength. Member filtering retains complete-family identity/metrics,
+and source scope/fold recovery explanations remain observable. No review record affects
+baseline acceptance or gates.
+
+The reviewed substantial-near set decreases from 18 to 17 within the unchanged budget
+of 20. `b9a6d490a71811d2` replaces `49724f843a830a5a`: the same pre-existing Project
+harnesses in analysis-changes and region tests; adding a test-module declaration moved
+coordinates without changing either harness. `95335d85da8e217a` replaces the previous
+capability table/type representative `71a57945b885ee02`: capability construction and flag
+registration share one common syntax line, which the assessment correctly labels as
+insufficient extraction support. The unchanged `int_bin` / `float_bin` pair represented
+by `60f0dd6d98436972` falls below the threshold; this is corpus-sensitive ranking drift,
+not removal of those deliberately distinct numeric policies. Shared CLI argument replay
+was extracted for divergence and member navigation instead of accepting a new copied
+implementation. No new avoidable duplication is accepted.

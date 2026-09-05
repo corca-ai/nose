@@ -207,6 +207,57 @@ with `python3 bench/regions/analysis_changes.py --nose target/release/nose`;
 `since=` workload. The [audit harness](../bench/regions/analysis_changes.py) records
 retained/recheck counts, output sizes, work budgets and worker equality. See [agent recipe](agent-recipe.md) for the exploration loop.
 
+## Inspect source and carry caller decisions forward
+
+On a single `change=ID`, follow the named source action or provide directories explicitly:
+
+```sh
+nose query --before before.json --after after.json change=ID --before-source /checkouts/before --after-source /checkouts/after
+```
+
+Each directory represents that capture's `path_base`, so relative member paths retain
+that layout. An absolute member path is remapped relative to the captured base.
+The directories can be historical checkouts or exported source trees; nose does not
+choose a Git revision or read source implicitly. It verifies both the containing buffer
+SHA-256 and the selected byte-range digest before displaying text. A missing file,
+outdated buffer, invalid range, non-UTF-8 selection, or escaping path/symlink yields an
+explicit unavailable reason, with no replacement text. Exact verified selected regions
+are shown alongside line alignment for uniquely paired members; candidate correspondence
+remains labeled as a candidate. Alignment is capped at 120 lines per side with an explicit
+truncation flag. Source limits are 16 MiB per file, 64 MiB of cached source per side and
+64 KiB per displayed region. The saved analysis format still stores no source bodies.
+
+Record a judgment on one current family using its change view:
+
+```sh
+nose query --before before.json --after before.json change=ID --write-review decision.json --decision keep-separate --reason 'Independent ownership and error policies'
+nose query --before before.json --after after.json --reviews decision.json
+nose query --before before.json --after after.json --reviews decision.json review=recheck
+```
+
+`--write-review` creates a new `nose.review/v1` file and never overwrites. It requires
+one selected change with exactly one current family, a nonempty reason, a review key
+and complete captured source evidence. The target is the **after** observation; comparing
+a capture with itself is a convenient way to record an initial judgment. Decisions are
+`keep-separate`, `refactor` and `defer`. They express the caller's intent and never suppress
+findings, alter gates, or authorize source edits.
+
+A record binds the original analysis content, exact family observation, review key and
+scope. Reuse requires the bound artifact as one of the explicit comparison inputs and
+complete, profile-compatible evidence. An old decision is `applicable` only across an
+unambiguous correspondence retaining its review evidence and scope; a decision targeting
+the exact current observation can also apply directly. Changed or uncertain correspondence,
+new member copies, changed scope/evidence, incomplete comparison and conflicting decisions
+require `recheck`. This is conditional applicability, not proof of historical lineage.
+Records from other captures are listed as unrelated; supply their original capture rather
+than joining by review-key equality alone. Review files remain caller-owned; content
+binding checks consistency, not authorship or authenticity.
+
+Repeat `--reviews FILE` for up to 128 records. `review=applicable|recheck|unreviewed`
+narrows observations separately from detector `evidence=retained|recheck`.
+Navigation preserves review inputs, budget, selection and output format. Source inspection
+is a named action on details; ordinary comparison navigation returns to saved evidence.
+
 ## Explicit region snapshots
 
 ```sh

@@ -6,6 +6,12 @@ break.
 
 ## [Unreleased]
 
+- Connect saved-analysis review to explicit hash-verified source inspection and separate,
+  caller-owned review records with conservative applicability checks.
+- Explain extraction support and scope evidence; add member facets and recovered-overlap
+  explanations while preserving family identity and full-family metrics.
+
+
 - Make query sorting preserve family selection and overlap representatives; stop ranking zero-invariant source matches as extractable helpers.
 - Distinguish cross-language computation matches from callable reuse, propagate Rust test context into nested/cached regions, and add scope/evaluation exploration routes.
 - Keep human analysis comparisons concise, with explicit observations and readable member counts; reveal capture context through `full` while retaining incomplete-source diagnostics.

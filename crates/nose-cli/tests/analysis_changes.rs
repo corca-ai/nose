@@ -1,3 +1,5 @@
+#[path = "analysis_changes/reviews.rs"]
+mod reviews;
 #[path = "analysis_changes/ux.rs"]
 mod ux;
 // Saved analysis comparison is an offline, navigable query surface.

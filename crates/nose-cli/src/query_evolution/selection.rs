@@ -55,6 +55,7 @@ pub(super) const WITNESSES: &[&str] = &[
 
 pub(super) struct Selection {
     pub group: Option<String>,
+    pub review: Option<String>,
     pub change: Option<String>,
     pub top: usize,
     pub full: bool,
@@ -68,9 +69,22 @@ pub(super) struct Filter {
 }
 
 impl Selection {
+    pub(super) fn view(&self, no_terms: bool) -> &str {
+        if self.change.is_some() {
+            "change"
+        } else if self.group.is_some() {
+            "group"
+        } else if no_terms {
+            "dashboard"
+        } else {
+            "list"
+        }
+    }
+
     pub(super) fn parse(terms: &[String]) -> Result<Self> {
         let mut q = Self {
             group: None,
+            review: None,
             change: None,
             top: if terms.is_empty() { 5 } else { 30 },
             full: false,
@@ -84,6 +98,15 @@ impl Selection {
             if t == "all" {
                 continue;
             } // This comparison always retains the admitted population.
+            if let Some(v) = t.strip_prefix("review=") {
+                ensure!(
+                    ["applicable", "recheck", "unreviewed"].contains(&v),
+                    "review= expects applicable, recheck or unreviewed"
+                );
+                ensure!(q.review.is_none(), "only one review= is supported");
+                q.review = Some(v.into());
+                continue;
+            }
             if let Some(v) = t.strip_prefix("group=") {
                 ensure!(
                     FIELDS.contains(&v),

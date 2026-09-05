@@ -70,6 +70,7 @@ struct QuerySurface {
     config_keys: Vec<&'static str>,
     capabilities: std::collections::BTreeMap<&'static str, bool>,
     analysis: serde_json::Value,
+    member_navigation: serde_json::Value,
 }
 
 #[derive(serde::Serialize)]
@@ -159,6 +160,7 @@ impl Report {
                 ],
                 capabilities: query_capability_flags(),
                 analysis: crate::query_evolution::capabilities(),
+                member_navigation: crate::query_members::capabilities(),
             },
             semantic_packs: current_semantic_packs(),
             il: Il {
@@ -257,6 +259,11 @@ fn query_capability_flags() -> std::collections::BTreeMap<&'static str, bool> {
         ("query_analysis_diagnostics_v1", true),
         ("query_analysis_navigation_v1", true),
         ("query_analysis_member_changes_v1", true),
+        ("query_analysis_verified_source_v1", true),
+        ("query_review_records_v1", true),
+        ("query_extraction_assessment_v1", true),
+        ("query_member_navigation_v1", true),
+        ("query_scope_evidence_v1", true),
         ("query_base_evidence_navigation_v1", true),
         ("region_snapshots_v1", true),
         ("region_correspondence_v1", true),

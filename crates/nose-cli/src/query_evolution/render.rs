@@ -80,6 +80,22 @@ pub(super) fn render(output: &Value, full: bool) {
     for item in output["items"].as_array().unwrap() {
         item_summary(item, full);
     }
+    if let Some(path) = output["reviews"]["written"].as_str() {
+        println!("Saved caller review to {path}.");
+    }
+    for path in output["reviews"]["unrelated"]
+        .as_array()
+        .into_iter()
+        .flatten()
+    {
+        println!(
+            "Review {} belongs to another capture; compare its original analysis to evaluate it.",
+            text(path)
+        );
+    }
+    if output["view"] == "change" {
+        println!("Record your decision: add --write-review FILE --decision keep-separate|refactor|defer --reason TEXT. A new file records this current family; it does not suppress findings.");
+    }
     println!("\nRetained evidence is not approval. Unmatched observations do not establish deletion or ancestry.");
     if !full {
         println!("Add `full` to inspect capture context, reason explanations and member evidence.");
@@ -165,7 +181,45 @@ fn item_summary(item: &Value, full: bool) {
         for after in item["after_observations"].as_array().unwrap() {
             observation("after", after);
         }
-        println!("  Source bodies: not stored. Analysis digest internals: opaque.");
+        println!(
+            "  Source bodies: {}. Analysis digest internals: opaque.",
+            text(&item["source_body_status"])
+        );
+    }
+    for diff in item["source_diffs"].as_array().into_iter().flatten() {
+        println!(
+            "  verified source diff: {} → {} ({})",
+            location(&diff["before"]),
+            location(&diff["after"]),
+            text(&diff["correspondence"])
+        );
+        for line in diff["lines"].as_array().unwrap() {
+            println!("    {} {}", text(&line["tag"]), text(&line["text"]));
+        }
+        if diff["truncated"] == true {
+            println!("    … alignment limited to 120 lines per side; verified member bodies are shown above");
+        }
+    }
+    if let Some(reviews) = item["reviews"].as_array() {
+        for review in reviews {
+            println!(
+                "  review {}: {} — {} ({})",
+                text(&review["status"]),
+                text(&review["decision"]),
+                text(&review["reason"]),
+                text(&review["file"])
+            );
+            println!("    {}", text(&review["basis"]));
+        }
+    }
+    if let Some(actions) = item["actions"].as_array() {
+        for action in actions {
+            println!(
+                "  {}\n    {}",
+                text(&action["label"]),
+                text(&action["command"])
+            );
+        }
     }
     println!("  next: {}", text(&item["next"][0]));
 }
@@ -229,6 +283,22 @@ fn observation(side: &str, f: &Value) {
             text(&m["name"]),
             text(&m["lang"])
         );
+    }
+    for member in f["members"].as_array().unwrap() {
+        if let Some(body) = member.get("source_body") {
+            println!(
+                "    source {}: {}",
+                text(&member["file"]),
+                text(&body["status"])
+            );
+            if let Some(source) = body["text"].as_str() {
+                for line in source.lines() {
+                    println!("      {line}");
+                }
+            } else {
+                println!("      {}", text(&body["reason"]));
+            }
+        }
     }
     for key in [
         "laws",

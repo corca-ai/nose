@@ -87,6 +87,8 @@ nose query --root <path> --root <path> [FILTER … | group=FIELD | id=FAM | at=F
 | `field=value` | keep families where the field equals the value (terms AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring; **set OR** with a comma — `witness=exact,shared-core` matches either; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a directory; `witness!=exact,shared-core` drops both) |
 | `group=FIELD` | facet the selection by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`, `status`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
 | `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, overlapping-family links (`subsumes`/`subsumed_by`), and navigation |
+| `member-group=dir` / `lang` / `scope` | with `id=` or `at=`, group copies inside the family; follow emitted commands to narrow members while retaining the full family identity and metrics |
+| `member-dir=DIR`, `member-path~TEXT`, `member-lang=LANG`, `member-scope=prod` / `test` | with `id=` or `at=`, select member locations; `member-dir` is exact, `member-path` is a substring; `top=N` limits member rows/groups and `full` or `top=0` expands them. Human/JSON inspection only. |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
 | `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (a computation match requires a separate reuse decision). Production findings are shown only when the helper is also production code; matches that point production code at a test-only helper are omitted with a count, because the safe action is to rehome/extract a production helper first. Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
 | `base=REF` | the **divergent-edit** view: detect families at the git ref, flag the ones a diff changed in one copy but not its siblings — a likely un-propagated fix. It is its own view, so combine it only with `top=N`, detection flags, `--format`, or `--fail-on any`; ordinary family filters are for the non-`base=` query views. Each item carries legacy `fire_eligible` evidence plus the v2 `strict` / `review` / `report-only` / `suppressed` tier contract; `base=REF --fail-on any` fails only on unsuppressed `strict` findings. See [divergent edits](divergent-edits.md). |
@@ -95,6 +97,19 @@ nose query --root <path> --root <path> [FILTER … | group=FIELD | id=FAM | at=F
 | `top=N` | show the first N rows (default 30); `top=0` shows **all** |
 | `full` | on `id=` or a list, render the all-copies extraction skeletons inline (batched); each varying spot is `⟨param N: class⟩` — a coarse value-class hint (`literal`/`name`/`call`/`expr`/`block`) for the helper signature |
 | `all` | widen past the curated default surface to the full raw universe (demoted families labeled) |
+
+Family details explain extraction support separately from the detector witness: measured
+shared source, no shared source, common syntax, cross-language comparison, or unavailable
+source measurements. Review checks name dependency/ownership, call-contract, effects and
+varying-region questions; they do not assert that a helper is safe to extract. Full locations
+show their scope evidence (path/name convention, frontend or enclosing test context, or
+absence of recognized test evidence). Recognized scope is not a full build-configuration model.
+
+For saved comparisons, use explicit `--before-source DIR` / `--after-source DIR` on
+`change=ID` to inspect hash-verified source. Record caller judgments using `--write-review
+FILE --decision keep-separate|refactor|defer --reason TEXT`; reload with `--reviews FILE` and
+narrow with `review=applicable|recheck|unreviewed`. See [source inspection and review
+conditions](region-identity.md#inspect-source-and-carry-caller-decisions-forward).
 
 Fields: `scope` (prod\|test\|mixed), `witness`
 (exact\|shared-core\|connected\|bounded-window\|copy-paste\|similar — `shared-core` is spelled

@@ -28,7 +28,7 @@ cannot mask a newly introduced duplicate.
 
 ## Current baseline
 
-The current default surface reports 18 reviewed families within a hard budget
+The current default surface reports 17 reviewed families within a hard budget
 of 20, as recorded in `scripts/duplication-baseline.json`. Shared semantic-query,
 Promise, provenance, binding-domain, HOF, and call-target fixtures remove
 repeated test workflows. Shared frontend CST adapters and one callee-identity

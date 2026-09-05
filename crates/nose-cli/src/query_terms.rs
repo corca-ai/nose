@@ -24,6 +24,7 @@ pub(crate) fn family_by_id<'a>(
 #[derive(Default)]
 pub(crate) struct Query {
     pub(crate) filters: Vec<QFilter>,
+    pub(crate) member_view: crate::query_members::Members,
     pub(crate) group: Option<String>,
     pub(crate) id: Option<String>,
     /// `at=file:line` — open the family whose member span covers that source location (a
@@ -143,6 +144,9 @@ fn qfilter(field: &str, op: QOp, value: &str, negate: bool) -> QFilter {
 pub(crate) fn parse_query(terms: &[String]) -> Result<Query> {
     let mut q = Query::default();
     for t in terms {
+        if q.member_view.parse(t)? {
+            continue;
+        }
         if t == "full" {
             q.id_full = true;
         } else if t == "all" {
@@ -186,6 +190,8 @@ pub(crate) fn parse_query(terms: &[String]) -> Result<Query> {
             );
         }
     }
+    anyhow::ensure!(!q.member_view.active() || ((q.id.is_some() || q.at.is_some()) && q.group.is_none() && !q.reinvented && q.base.is_none()),
+        "member navigation requires id= or at=; family grouping, reinvented and base= are separate views");
     for flt in &q.filters {
         validate_field(&flt.field, &flt.op)?;
         validate_filter_values(flt)?;

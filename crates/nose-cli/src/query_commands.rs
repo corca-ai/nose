@@ -308,6 +308,8 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         config
     };
     let q = parse_query_with_path_hint(&terms, &paths, &path_arg, roots_are_explicit)?;
+    anyhow::ensure!(!q.member_view.active() || (!watch && matches!(format, ReportFormat::Human | ReportFormat::Json)),
+        "member navigation supports human/json inspection; watch and report formats have separate selection contracts");
     // The path as the user typed it — every suggested next-command echoes it so the links
     // are runnable verbatim. Multi-root commands echo the explicit root flags.
     let args = QueryArgs {

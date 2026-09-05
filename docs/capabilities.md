@@ -84,6 +84,11 @@ nose capabilities
     "query_watch_jsonl": [
       "nose.query-watch/v1"
     ],
+    "analysis": [
+      "nose.analysis/v1",
+      "nose.analysis-capture/v1",
+      "nose.analysis-changes/v1"
+    ],
     "semantic_packs": [
       "nose.semantic-pack.v0",
       "nose.semantic-pack.v1"
@@ -108,11 +113,6 @@ nose capabilities
     ],
     "semantic_pack_compatibility": [
       2
-    ],
-    "analysis": [
-      "nose.analysis/v1",
-      "nose.analysis-capture/v1",
-      "nose.analysis-changes/v1"
     ]
   },
   "query": {
@@ -169,14 +169,19 @@ nose capabilities
       "query_analysis_diagnostics_v1": true,
       "query_analysis_member_changes_v1": true,
       "query_analysis_navigation_v1": true,
+      "query_analysis_verified_source_v1": true,
       "query_base_evidence_navigation_v1": true,
       "query_base_gate_fail_default": true,
       "query_base_json_v8": true,
       "query_base_region_candidates_v1": true,
       "query_base_sarif": true,
       "query_base_structured_ignores": true,
+      "query_extraction_assessment_v1": true,
+      "query_member_navigation_v1": true,
       "query_region_identity_v1": true,
       "query_review_key_v1": true,
+      "query_review_records_v1": true,
+      "query_scope_evidence_v1": true,
       "query_watch": true,
       "query_watch_full_snapshot": true,
       "query_watch_jsonl_v1": true,
@@ -199,7 +204,10 @@ nose capabilities
         "group-reason",
         "group-evidence",
         "expand-view",
-        "return-selection"
+        "return-selection",
+        "inspect-source",
+        "review-selection",
+        "inspect-review"
       ],
       "capture": "nose query <path> --save-analysis FILE",
       "compare": "nose query --before FILE --after FILE [terms...]",
@@ -264,7 +272,34 @@ nose capabilities
         "unmatched-current",
         "budget-exceeded"
       ],
+      "review_decisions": [
+        "keep-separate",
+        "refactor",
+        "defer"
+      ],
+      "review_filter": "review=applicable|recheck|unreviewed",
+      "review_options": [
+        "--reviews FILE",
+        "--write-review FILE --decision VALUE --reason TEXT"
+      ],
+      "review_schema": "nose.review/v1",
+      "review_statuses": [
+        "applicable",
+        "recheck",
+        "unreviewed"
+      ],
       "source_bodies": "not-stored",
+      "source_limits": {
+        "diff_lines_per_side": 120,
+        "file_bytes": 16777216,
+        "region_bytes": 65536,
+        "total_bytes_per_side": 67108864
+      },
+      "source_options": [
+        "--before-source DIR",
+        "--after-source DIR"
+      ],
+      "source_verification": "containing-buffer-and-selected-content-sha256",
       "terms": [
         "group=FIELD",
         "change=ID",
@@ -274,7 +309,8 @@ nose capabilities
         "path!~TEXT",
         "top=N",
         "full",
-        "all"
+        "all",
+        "review=STATUS"
       ],
       "views": [
         "dashboard",
@@ -290,6 +326,27 @@ nose capabilities
         "connected-mapped-sub-dag",
         "bounded-same-unit-window",
         "unavailable"
+      ]
+    },
+    "member_navigation": {
+      "default_top": 30,
+      "formats": [
+        "human",
+        "json"
+      ],
+      "metrics_scope": "complete-family",
+      "requires": [
+        "id=ID",
+        "at=FILE:LINE"
+      ],
+      "terms": [
+        "member-group=dir|lang|scope",
+        "member-dir=DIR",
+        "member-path~TEXT",
+        "member-lang=LANG",
+        "member-scope=prod|test",
+        "top=N",
+        "full"
       ]
     }
   },
@@ -507,3 +564,9 @@ and content-signature fields in query JSON v10. `region_snapshots_v1` and
 `region_correspondence_v1` advertise `nose regions snapshot` and `nose regions
 compare`. These capabilities do not promise historical certainty or automatic
 review approval. See [region identity](region-identity.md).
+
+The additive flags `query_analysis_verified_source_v1`, `query_review_records_v1`,
+`query_extraction_assessment_v1`, `query_member_navigation_v1` and `query_scope_evidence_v1`
+advertise the source/review and family-inspection surfaces. `query.analysis` publishes
+source options/limits, review options, decision/status values and the `nose.review/v1`
+record schema. See [region identity](region-identity.md) and [query JSON](query-json.md).

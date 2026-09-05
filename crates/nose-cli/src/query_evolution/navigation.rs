@@ -51,6 +51,7 @@ pub(super) struct Navigation<'a> {
     terms: &'a [String],
     base: Vec<String>,
     format: ReportFormat,
+    reviews: Vec<String>,
 }
 
 impl<'a> Navigation<'a> {
@@ -68,13 +69,30 @@ impl<'a> Navigation<'a> {
             terms,
             base: selection_terms(terms),
             format,
+            reviews: Vec::new(),
         }
+    }
+
+    pub(super) fn with_reviews(mut self, paths: &[std::path::PathBuf]) -> Self {
+        self.reviews = paths
+            .iter()
+            .map(|p| format!(" --reviews {}", quote(&p.to_string_lossy())))
+            .collect();
+        self
     }
 
     pub(super) fn selected(&self, suffix: Vec<String>) -> String {
         let mut terms = self.base.clone();
         terms.extend(suffix);
-        command(self.before, self.after, self.budget, &terms, self.format)
+        self.command(self.budget, &terms)
+    }
+
+    fn command(&self, budget: usize, terms: &[String]) -> String {
+        format!(
+            "{}{}",
+            command(self.before, self.after, budget, terms, self.format),
+            self.reviews.join("")
+        )
     }
 
     pub(super) fn actions(
@@ -87,11 +105,36 @@ impl<'a> Navigation<'a> {
         use serde_json::json;
         let mut actions = Vec::new();
         let action = |kind: &str, label: &str, command: String| json!({"kind":kind,"label":label,"command":command});
+        if !self.reviews.is_empty() {
+            for (status, label) in [
+                (
+                    "recheck",
+                    "Revisit caller decisions whose conditions need review",
+                ),
+                (
+                    "applicable",
+                    "Inspect caller decisions whose conditions still hold",
+                ),
+            ] {
+                let mut terms: Vec<_> = self
+                    .base
+                    .iter()
+                    .filter(|t| !t.starts_with("review="))
+                    .cloned()
+                    .collect();
+                terms.push(format!("review={status}"));
+                actions.push(action(
+                    "review-selection",
+                    label,
+                    self.command(self.budget, &terms),
+                ));
+            }
+        }
         if selected == 0 {
             actions.push(action(
                 "reset-filters",
                 "Clear filters and return to the comparison",
-                command(self.before, self.after, self.budget, &[], self.format),
+                self.command(self.budget, &[]),
             ));
         }
         if !search_complete {
@@ -107,7 +150,7 @@ impl<'a> Navigation<'a> {
                     .filter(|t| !t.starts_with("change="))
                     .cloned()
                     .collect();
-                actions.push(action("increase-budget", &format!("Retry with candidate budget {higher} (more work; return from any change address)"), command(self.before, self.after, higher, &retry, self.format)));
+                actions.push(action("increase-budget", &format!("Retry with candidate budget {higher} (more work; return from any change address)"), self.command(higher, &retry)));
             }
         }
         if recheck > 0 {
@@ -121,13 +164,7 @@ impl<'a> Navigation<'a> {
             actions.push(action(
                 "recheck",
                 "Inspect recheck observations (replace the evidence filter)",
-                command(
-                    self.before,
-                    self.after,
-                    self.budget,
-                    &recheck_terms,
-                    self.format,
-                ),
+                self.command(self.budget, &recheck_terms),
             ));
         }
         actions.push(action(
@@ -157,7 +194,7 @@ impl<'a> Navigation<'a> {
             actions.push(action(
                 "expand-view",
                 "Show all entries in this view",
-                command(self.before, self.after, self.budget, &expanded, self.format),
+                self.command(self.budget, &expanded),
             ));
         }
         actions

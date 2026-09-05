@@ -350,7 +350,7 @@ fn query_list_json(view: &QueryListView<'_>) -> serde_json::Value {
         .take(top)
         .map(|f| {
             let (shared, params) = all_copies_shared_cached(f, &mut lines);
-            query_family_json_with_counts(
+            let mut row = query_family_json_with_counts(
                 f,
                 overrides,
                 opportunities,
@@ -359,7 +359,13 @@ fn query_list_json(view: &QueryListView<'_>) -> serde_json::Value {
                 *since,
                 shared,
                 params,
-            )
+            );
+            if let Some(reason) =
+                crate::query_assessment::selection_reason(f, opportunities, selection)
+            {
+                row["selection_reason"] = reason;
+            }
+            row
         })
         .collect();
     with_semantic_packs(
@@ -440,6 +446,16 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
             " ".repeat(wl - lw),
             " ".repeat(wm - mw),
         );
+        if let Some(reason) =
+            crate::query_assessment::selection_reason(f, view.opportunities, view.selection)
+        {
+            println!(
+                "       ↳ {} Open primary: nose query {} id={}",
+                reason["meaning"].as_str().unwrap(),
+                view.path,
+                reason["primary_id"].as_str().unwrap()
+            );
+        }
         // `full` on a list/filter batches the extraction skeletons — triage N candidates
         // in one stateless call (no per-family id= round-trip).
         if view.query.id_full {

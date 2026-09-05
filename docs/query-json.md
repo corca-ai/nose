@@ -389,3 +389,32 @@ counts displayed observations. Rows use `order="recheck-first-then-observation-i
 `member_changes` in detailed rows supplies before/after member counts and location-only
 correspondence summaries under the statuses advertised in capabilities. Additional
 fields are additive to these v1 output schemas; consumers must ignore unknown fields.
+
+## Extraction support and member exploration
+
+Family objects add `assessment` with `support`, `explanation`, source-line measurements,
+review `checks`, and `verdict="caller-review-required"`. Support is distinct from witness
+strength: `shared-source`, `no-shared-source`, `common-syntax-only`,
+`cross-language-comparison`, or `source-evidence-unavailable`. Measurements use the existing
+source-line alignment; they are not a calibrated probability of useful refactoring.
+Locations add `scope_evidence={scope,reasons}`. Reasons preserve recognizable frontend,
+enclosing-context and naming/path evidence without claiming arbitrary configuration resolution.
+
+A family view adds `member_view` with total/selected/shown member counts, optional grouped
+counts, selected locations and executable `next` commands. With explicit `member-*` terms,
+`family.locations` contains the shown member selection (empty for group views); family ID,
+review key, metrics and assessment still refer to the complete family. Without member terms,
+`family.locations` retains its existing complete population. Member navigation preserves
+analysis options, quotes paths/filters and retains JSON. Filtered lists may add
+`selection_reason={kind:"recovered-overlap",primary_id,meaning}` to explain why a folded slice
+reappears when its fuller primary is outside the current selection.
+
+Analysis detail items add named source actions. Explicit source inspection adds
+`source_body={status,text?,reason?,file,region}` to captured members; only verified source
+has text. `source_diffs` contains labeled correspondence, aligned `{tag,text}` lines and
+truncation metadata. Missing or mismatched source never substitutes current text.
+Items also add `reviews[]` and `review_status` (`applicable`, `recheck`, `unreviewed`).
+The response's `reviews` object lists unrelated inputs and any newly written review file.
+These are additive output fields; the `nose.analysis/v1` capture schema is unchanged.
+See [review records and source lookup](region-identity.md#inspect-source-and-carry-caller-decisions-forward)
+for their exact conditions and bounds.

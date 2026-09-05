@@ -1,6 +1,5 @@
 use super::query_model::*;
 use crate::baseline;
-use crate::baseline_comparison::BaselineComparison;
 use crate::family_display::representative_lines;
 use crate::query_family_text::{print_member_diff, print_member_proposal};
 use crate::query_opportunities::{
@@ -9,7 +8,6 @@ use crate::query_opportunities::{
 use crate::query_semantic_packs::with_semantic_packs;
 use crate::schema_versions;
 use crate::style;
-use crate::surfaces::SurfaceOverrides;
 
 /// Render the origin-derived "why this hint" reasons (#453) under a family's hint, if any.
 fn print_hint_reasons(f: &nose_detect::RefactorFamily) {
@@ -51,25 +49,99 @@ fn print_family_header(id: &str, f: &nose_detect::RefactorFamily) {
 
 /// Open one family: its copies, the extraction hint, the representative-pair diff, and —
 /// with `full` — the all-copies extraction skeleton (#360). Plus navigation links.
-#[allow(clippy::too_many_arguments)] // dataset + view + selection state for one family render
 pub(super) fn render_query_family(
-    families: &[nose_detect::RefactorFamily],
-    ov: &SurfaceOverrides,
-    opp: &OpportunityGroups,
+    ctx: &crate::query_output::QueryOutput<'_>,
     idv: &str,
-    full: bool,
-    path: &str,
     json: bool,
-    baseline_cmp: Option<&BaselineComparison>,
-    since: Option<&BaselineComparison>,
-    semantic_packs: &[serde_json::Value],
 ) {
+    let families = ctx.families;
+    let ov = ctx.overrides;
+    let opp = ctx.opp;
+    let query = ctx.q;
+    let path = ctx.path_arg;
+    let baseline_cmp = ctx.baseline_comparison;
+    let since = ctx.since;
+    let semantic_packs = ctx.semantic_packs;
+    let full = query.id_full;
     let f = crate::query_terms::family_by_id(families, idv)
         .expect("family selection validated before rendering");
     let id = baseline::family_id(f);
     // Overlap-fold provenance: a slice points at its richer primary; a primary lists what
     // it subsumes (so the agent doesn't triage the same region twice).
-    let fold_note = if let Some(primary) = opp.primary_of.get(&id) {
+    let member_view = crate::query_members::view(f, query, ctx.args);
+    if json {
+        let mut family = query_family_json(f, ov, opp, full, baseline_cmp, since);
+        if query.member_view.active() {
+            family["locations"] = member_view["locations"].clone();
+        }
+        println!(
+            "{}",
+            with_semantic_packs(
+                serde_json::json!({
+                    "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
+                    "tool": "nose",
+                    "view": "family",
+                    "path": path,
+                    "hint": family_hint(f),
+                    "hint_reasons": hint_reasons(f),
+                    "family": family,
+                    "member_view": member_view,
+                    "next": member_view["next"],
+                }),
+                semantic_packs
+            )
+        );
+        return;
+    }
+    print_family_header(&id, f);
+    print!("{}", fold_note(f, opp, &id));
+    println!("  → {}", family_hint(f));
+    print_hint_reasons(f);
+    let (shared, params) = all_copies_shared(f);
+    let assessment = crate::query_assessment::assessment(f, shared, params);
+    println!(
+        "  extraction support: {} — {}",
+        assessment["support"].as_str().unwrap(),
+        assessment["explanation"].as_str().unwrap()
+    );
+    if full {
+        println!("  review checks: {}", assessment["checks"]);
+    }
+    if query.member_view.active() {
+        crate::query_members::render(&member_view);
+        return;
+    }
+    print_copies(f, full);
+    // Lead with the decision-grade artifact: the extraction skeleton aligned across ALL
+    // copies (#360), with the differing spots as parameters — not a raw 2-copy token diff.
+    if f.locations.len() >= 2 {
+        print_member_proposal(&f.locations, proposal_action_label(f));
+    }
+    if full && f.locations.len() >= 2 {
+        print_member_diff(&f.locations[0], &f.locations[1]);
+    } else if !full && f.locations.len() >= 2 {
+        println!(
+            "    nose query {path} id={} full   # also show the raw token diff of two copies",
+            short_id(&id)
+        );
+    }
+    println!("\nnext:");
+    for command in member_view["next"].as_array().unwrap().iter().take(3) {
+        println!("  {}", command.as_str().unwrap());
+    }
+    println!(
+        "  nose query {path} path~{}   # other duplication in this directory",
+        family_dir(f)
+    );
+    println!(
+        "  nose query {path} witness={}   {}",
+        witness_label(f.witness.as_ref().map(|w| w.kind())),
+        style::dim("# other families of the same confidence")
+    );
+}
+
+fn fold_note(f: &nose_detect::RefactorFamily, opp: &OpportunityGroups, id: &str) -> String {
+    if let Some(primary) = opp.primary_of.get(id) {
         format!(
             "  ↳ subsumed by id={} (the fuller overlapping family)\n",
             short_id(primary)
@@ -89,29 +161,10 @@ pub(super) fn render_query_family(
         )
     } else {
         String::new()
-    };
-    if json {
-        println!(
-            "{}",
-            with_semantic_packs(
-                serde_json::json!({
-                    "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
-                    "tool": "nose",
-                    "view": "family",
-                    "path": path,
-                    "hint": family_hint(f),
-                    "hint_reasons": hint_reasons(f),
-                    "family": query_family_json(f, ov, opp, full, baseline_cmp, since),
-                }),
-                semantic_packs
-            )
-        );
-        return;
     }
-    print_family_header(&id, f);
-    print!("{fold_note}");
-    println!("  → {}", family_hint(f));
-    print_hint_reasons(f);
+}
+
+fn print_copies(f: &nose_detect::RefactorFamily, full: bool) {
     println!("  copies:");
     let helper = family_existing_helper(f);
     let member_limit = if full { usize::MAX } else { 30 };
@@ -129,6 +182,12 @@ pub(super) fn render_query_family(
             ""
         };
         println!("    {}:{}-{}{name}{role}", l.file, l.start_line, l.end_line);
+        if full {
+            println!(
+                "      scope evidence: {}",
+                crate::query_assessment::scope(l)
+            );
+        }
     }
     if !full && f.locations.len() > member_limit {
         println!(
@@ -136,27 +195,4 @@ pub(super) fn render_query_family(
             f.locations.len() - member_limit
         );
     }
-    // Lead with the decision-grade artifact: the extraction skeleton aligned across ALL
-    // copies (#360), with the differing spots as parameters — not a raw 2-copy token diff.
-    if f.locations.len() >= 2 {
-        print_member_proposal(&f.locations, proposal_action_label(f));
-    }
-    if full && f.locations.len() >= 2 {
-        print_member_diff(&f.locations[0], &f.locations[1]);
-    } else if !full && f.locations.len() >= 2 {
-        println!(
-            "    nose query {path} id={} full   # also show the raw token diff of two copies",
-            short_id(&id)
-        );
-    }
-    println!("\nnext:");
-    println!(
-        "  nose query {path} path~{}   # other duplication in this directory",
-        family_dir(f)
-    );
-    println!(
-        "  nose query {path} witness={}   {}",
-        witness_label(f.witness.as_ref().map(|w| w.kind())),
-        style::dim("# other families of the same confidence")
-    );
 }

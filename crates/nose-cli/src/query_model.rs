@@ -277,6 +277,7 @@ fn query_location_json(
         "id": baseline::member_id(location),
         "region": location.source_region,
         "region_key": nose_detect::regions::region_key(location),
+        "scope_evidence": crate::query_assessment::scope(location),
         "file": location.file, "start": location.start_line, "end": location.end_line,
         "name": location.name, "lang": location.lang.as_str(),
     });
@@ -339,6 +340,7 @@ pub(super) fn query_family_json_with_counts(
         "removable": removable,
         "value": f.value,
         "extraction_shape": f.extraction_shape(),
+        "assessment": crate::query_assessment::assessment(f, shared, params),
         "same_symbol": family_same_symbol(f),
         "folds": opp.slices_of.get(&id).map(Vec::len).unwrap_or(0),
         "locations": locations,
