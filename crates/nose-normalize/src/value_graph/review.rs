@@ -25,10 +25,15 @@ pub fn value_fingerprint_with_review(
             None,
         );
     }
+    let local_valued_hashes = OnceLock::new();
     let build = |review: bool| {
         let mut builder = match context {
             Some(context) => Builder::new_with_context(il, interner, context),
-            None => Builder::new(il, interner),
+            None => {
+                let mut builder = Builder::new(il, interner);
+                builder.shared_valued_subtree_hashes = Some(&local_valued_hashes);
+                builder
+            }
         };
         if review {
             builder.review_source_ids = Some(Default::default());

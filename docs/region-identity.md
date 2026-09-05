@@ -103,7 +103,9 @@ summarizes the admitted value/return/guard features, exact-safety facts,
 fragment proof facts, and semantic laws. It is not a universal semantic hash. The detector deliberately salts some unproven
 operations with source coordinates to prevent false merges. Only those units are
 replayed for review analysis with deterministic first-use occurrence labels; all
-original detection fingerprints and admission decisions remain unchanged. Distinct
+original detection fingerprints and admission decisions remain unchanged. File-level
+structural and literal-sensitive subtree hashes are shared across unit builders and
+review replay rather than repeatedly traversing the entire file. Distinct
 unproven occurrences remain distinct during replay. These review-only values are
 never supplied to equivalence or candidate matching. `value_key` indexes the value fingerprint
 only for units admitted by the strict-safety gate. Equal values propose a

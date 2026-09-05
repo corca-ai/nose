@@ -32,6 +32,7 @@ impl<'a> Builder<'a> {
             index_env: FxHashMap::default(),
             subtree_hash: None,
             shared_subtree_hashes: None,
+            shared_valued_subtree_hashes: None,
             valued_subtree_hash: None,
             vty: Vec::new(),
             reorder_safe_cache: FxHashMap::default(),

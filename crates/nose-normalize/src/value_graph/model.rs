@@ -218,6 +218,7 @@ pub(super) struct Builder<'a> {
     /// Shared file-level subtree hashes supplied by [`ValueFingerprintContext`]. This
     /// keeps contextual per-unit builders from recomputing the same whole-file pass.
     pub(super) shared_subtree_hashes: Option<&'a OnceLock<Vec<u64>>>,
+    pub(super) shared_valued_subtree_hashes: Option<&'a OnceLock<Vec<u64>>>,
     /// Literal-sensitive subtree hash used only for proven function binding identity.
     /// The ordinary structural hash intentionally abstracts literals for shape work;
     /// callee identity must distinguish `helper(x)+1` from `helper(x)+2`.
