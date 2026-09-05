@@ -266,6 +266,8 @@ fn query_location_json(
 ) -> serde_json::Value {
     let mut object = serde_json::json!({
         "id": baseline::member_id(location),
+        "region": location.source_region,
+        "region_key": nose_detect::regions::region_key(location),
         "file": location.file, "start": location.start_line, "end": location.end_line,
         "name": location.name, "lang": location.lang.as_str(),
     });
@@ -312,6 +314,7 @@ pub(super) fn query_family_json_with_counts(
         .collect();
     let mut obj = serde_json::json!({
         "id": id.clone(),
+        "review_key": nose_detect::regions::review_key(f),
         "scope": f.scope,
         "witness": witness_token(f.witness.as_ref().map(|w| w.kind())),
         "surface": effective_surface(f, ov),

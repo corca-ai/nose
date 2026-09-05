@@ -199,7 +199,7 @@
       "consumers": ["documentation lifecycle and freshness gate"],
       "retention_policy": "Keep the current catalog synchronized with every Markdown page; retain supersession metadata while any historical record points to it.",
       "artifact_count": 1,
-      "inventory_sha256": "005caffc0b018f7319077d461c662caa900631d9879c486db4fb8a4cfc9af166"
+      "inventory_sha256": "cf04a1251fd985f513c1b54b8c7f4e403e6b8e7b25d71f435938cb844143550e"
     },
     {
       "id": "documentation-examples",

@@ -195,7 +195,7 @@ fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> ContentDiges
 }
 
 /// Bump when unit/stream serialization, extraction, or feature hashing changes.
-const UNITS_SYNTAX_SCHEMA: u32 = 3;
+const UNITS_SYNTAX_SCHEMA: u32 = 4;
 const UNITS_PACK_SCHEMA: u32 = 4;
 const UNITS_PACK_MAGIC: &[u8; 8] = b"NOSEUPK2";
 const UNITS_PACK_HEADER_LEN: usize = 8 + 4 + 32 + 32;

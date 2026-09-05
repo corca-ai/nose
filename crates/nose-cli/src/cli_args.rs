@@ -22,6 +22,11 @@ pub(crate) struct Cli {
 
 #[derive(Subcommand)]
 pub(crate) enum Cmd {
+    /// Capture source regions or compare two explicit region snapshots.
+    Regions {
+        #[command(subcommand)]
+        cmd: RegionCmd,
+    },
     /// Research interface for raw unit clone pairs/groups.
     /// Hidden: `query` is the user-facing command; `detect` is the strict/research
     /// and benchmark interface (`--bench-schema`, `--dump`, …).
@@ -570,4 +575,17 @@ mod tests {
         assert!(parse_byte_size("2GB").is_err());
         assert!(parse_byte_size("18446744073709551615TiB").is_err());
     }
+}
+
+#[derive(Subcommand)]
+pub(crate) enum RegionCmd {
+    /// Emit all admitted regions, including singletons, as a portable JSON snapshot.
+    Snapshot { path: PathBuf },
+    /// Compare snapshots without changing reviews or source files.
+    Compare {
+        before: PathBuf,
+        after: PathBuf,
+        #[arg(long, default_value_t = 100_000)]
+        max_candidates: usize,
+    },
 }

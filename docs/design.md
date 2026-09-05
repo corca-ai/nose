@@ -337,3 +337,12 @@ Cheap experiments that turn direction into data:
 *See also: [architecture](architecture.md) · [normalization](normalization.md) ·
 [formal soundness](formal-soundness.md) · [clone types](clone-types.md) ·
 [query JSON](query-json.md) · [divergent edits](divergent-edits.md).*
+
+## Source identity and change correspondence
+
+Source-backed regions are an engine substrate independent of family ranking or
+review decisions. Keep snapshot addresses, content/evidence signatures, inferred
+correspondence, and caller-owned decisions separate. Semantic equivalence does
+not establish historical ancestry. Exact signatures can be shared by distinct
+copies; ambiguous lineage must remain explicit. See [region identity](region-identity.md)
+for the implemented contracts, research basis, and remaining alignment frontier.

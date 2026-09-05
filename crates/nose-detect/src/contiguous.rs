@@ -29,6 +29,7 @@ pub(crate) use incremental::{detect_incremental, IncrementalContiguousState};
 /// clones (only the value-graph channel would run).
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Stream {
+    source: Option<std::sync::Arc<nose_il::SourceDocument>>,
     path: String,
     lang: nose_il::Lang,
     tags: Vec<u64>,
@@ -68,6 +69,7 @@ fn is_operation(kind: nose_il::NodeKind) -> bool {
 /// by dropping the unit.
 pub(crate) fn stream(il: &Il, interner: &Interner) -> Stream {
     let mut s = Stream {
+        source: il.source.clone(),
         path: il.meta.path.clone(),
         lang: il.meta.lang,
         tags: Vec::new(),
@@ -203,7 +205,7 @@ pub(in crate::contiguous) struct LocSeed {
 impl LocSeed {
     fn to_loc(&self, streams: &[Stream]) -> Loc {
         let s = &streams[self.stream];
-        Loc::new(LocInit {
+        let mut loc = Loc::new(LocInit {
             file: s.path.clone(),
             source_span: LineSpan::new(self.start_line, self.end_line),
             lang: s.lang.name().to_string(),
@@ -212,7 +214,12 @@ impl LocSeed {
             name: None,
             sem: self.sem,
             span_tokens: self.sem,
-        })
+        });
+        loc.source_region = s
+            .source
+            .as_ref()
+            .and_then(|source| source.line_region(self.start_line, self.end_line));
+        loc
     }
 }
 
@@ -425,6 +432,7 @@ mod tests {
     fn mk(path: &str, tags: Vec<u64>) -> Stream {
         let n = tags.len() as u32;
         Stream {
+            source: None,
             path: path.into(),
             lang: nose_il::Lang::Python,
             // These tests exercise the run-matching mechanism, not the operation gate,
@@ -489,6 +497,7 @@ mod tests {
         let stream = |path: &str| {
             let n = shared.len() as u32;
             Stream {
+                source: None,
                 path: path.into(),
                 lang: nose_il::Lang::Python,
                 op: vec![false; shared.len()], // no operations anywhere in the run

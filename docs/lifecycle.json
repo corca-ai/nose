@@ -2,7 +2,7 @@
   "schema_version": 1,
   "inventory": {
     "glob": "**/*.md",
-    "sha256": "e83e6c0dbac9b4f20cb86b7e79d126c37389cf1c079390a96102a4aedcd1093c"
+    "sha256": "34a7abfb4b1d98734c8c2fbc5ae2160f5e237b726b4a200e8d56ab5302f8bdf8"
   },
   "default": {
     "kind": "reference",

@@ -42,7 +42,7 @@ nose capabilities
     "doctor_json": false
   },
   "commands": {
-    "stable": ["cache", "capabilities", "il", "query", "semantic-pack", "stats"],
+    "stable": ["cache", "capabilities", "il", "query", "regions", "semantic-pack", "stats"],
     "deprecated": []
   },
   "schemas": {
@@ -50,7 +50,7 @@ nose capabilities
     "cache_status": ["nose.cache-status/v1"],
     "cache_prune": ["nose.cache-prune/v1"],
     "cache_clear": ["nose.cache-clear/v1"],
-    "query_json": [8, 9],
+    "query_json": [8, 10],
     "query_watch_jsonl": ["nose.query-watch/v1"],
     "semantic_packs": ["nose.semantic-pack.v0", "nose.semantic-pack.v1"],
     "semantic_pack_locks": ["nose.semantic-pack-lock.v1"],
@@ -95,9 +95,13 @@ nose capabilities
       "query_base_json_v8": true,
       "query_base_sarif": true,
       "query_base_structured_ignores": true,
+      "query_region_identity_v1": true,
+      "query_review_key_v1": true,
       "query_watch": true,
       "query_watch_full_snapshot": true,
       "query_watch_jsonl_v1": true,
+      "region_correspondence_v1": true,
+      "region_snapshots_v1": true,
       "reinvented_view": true,
       "semantic_pack_dependency_evidence": true,
       "semantic_pack_external_claim_exact": true,
@@ -276,3 +280,11 @@ Version 8 defines these `query.capabilities` keys:
 | `semantic_pack_loading` | local v0 manifests can be loaded as metadata and typed v1 manifests can be compiled for metadata/digest reporting. |
 | `semantic_pack_project_lock` | local v1 project locks can be created, validated, and supplied to query before analysis. |
 | `structured_ignores` | `nose.ignore.json` / `--ignore-file` audited suppressions are supported. |
+
+## Region identity and correspondence
+
+`query_region_identity_v1` and `query_review_key_v1` advertise the nullable source
+and content-signature fields in query JSON v10. `region_snapshots_v1` and
+`region_correspondence_v1` advertise `nose regions snapshot` and `nose regions
+compare`. These capabilities do not promise historical certainty or automatic
+review approval. See [region identity](region-identity.md).

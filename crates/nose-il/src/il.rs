@@ -21,6 +21,8 @@ mod scope_index;
 #[serde(transparent)]
 pub struct Il {
     contents: IlContents,
+    #[serde(skip)]
+    pub source: Option<std::sync::Arc<crate::SourceDocument>>,
     /// Lazy whole-arena nearest-enclosing-scope index (see [`Il::nearest_scope`]).
     /// Never serialized; recomputed on first use after any mutable arena access.
     #[serde(skip)]
@@ -98,6 +100,7 @@ impl Clone for Il {
     fn clone(&self) -> Self {
         Il {
             contents: self.contents.clone(),
+            source: self.source.clone(),
             // Caches are cheap to recompute and a clone is usually about to be
             // mutated — start fresh.
             scope_index: std::sync::OnceLock::new(),
@@ -122,6 +125,7 @@ impl Il {
         cid_names: Vec<Symbol>,
     ) -> Self {
         Self {
+            source: None,
             contents: IlContents {
                 nodes,
                 edges,
@@ -402,7 +406,7 @@ impl Il {
             .map(|&idx| NodeId(idx))
     }
 
-    /// Indices into [`Il::evidence`] for records whose anchor sits exactly at
+    /// Indices into [`IlContents::evidence`] for records whose anchor sits exactly at
     /// `span`, in evidence order — the mutating sibling of
     /// [`Il::evidence_anchored_at`] (returning indices lets a caller re-borrow
     /// `evidence` mutably while walking the bucket).

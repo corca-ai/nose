@@ -6,6 +6,15 @@ break.
 
 ## [Unreleased]
 
+- Add source-region snapshots and bounded, explicit cross-snapshot correspondence
+  with `nose regions snapshot/compare`; preserve ambiguity and separate evidence
+  continuity from caller-owned review decisions.
+- Query JSON v10 adds nullable SHA-256 region and review-content signatures that
+  survive location-only changes and preserve copy multiplicity. Existing family,
+  baseline, ignore, and SARIF identities are unchanged. Non-base integrations must
+  accept schema 10 (base queries remain schema 8); see `docs/region-identity.md`.
+
+
 ### Fixed
 - Bound recursive oracle calls independently of execution steps, reporting a
   budget exclusion instead of overflowing the stack on nonterminating recursion.

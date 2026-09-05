@@ -49,3 +49,6 @@ pub use unit_evidence::{UnitEvidenceFlag, UnitEvidenceFlags};
 pub use unit_facets::{
     RegionKind, SourceGranularity, UnitBodyKind, UnitContainerKind, UnitSubkind,
 };
+
+mod source;
+pub use source::{ContentDigest, SourceDocument, SourceRegion};

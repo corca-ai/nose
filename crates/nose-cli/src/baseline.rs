@@ -492,6 +492,8 @@ mod tests {
 
     fn fragment_loc(start_line: u32) -> Loc {
         Loc {
+            source_region: None,
+            analysis_digest: None,
             file: "src/main/java/example/DateUtils.java".to_owned(),
             start_line,
             end_line: start_line,

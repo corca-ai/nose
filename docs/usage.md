@@ -348,3 +348,12 @@ hard soundness gate; the checked-in baseline and diff workflow are in
 [recall-loss-recovery-loop](recall-loss-recovery-loop.md). They are hidden from
 `--help` because `query` is the command for everyday use; the
 [benchmark](benchmark.md) page documents them.
+
+## nose regions
+
+`nose regions snapshot <path>` emits a JSON census of admitted source regions,
+including singletons. `nose regions compare <before.json> <after.json>
+[--max-candidates N]` compares explicit snapshots with a bounded candidate search.
+The default candidate budget is 100,000. Results distinguish content matches,
+modification/copy candidates, ambiguity, and unavailable correspondence. They do
+not modify source or approve reviews. See [region identity](region-identity.md).

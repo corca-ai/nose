@@ -28,6 +28,7 @@ pub(crate) fn run() -> Result<()> {
             no_cfg_norm,
         } => cmd_il(path, format, normalized, no_cfg_norm),
         Cmd::Capabilities => capabilities::print(),
+        Cmd::Regions { cmd } => crate::region_commands::run(cmd),
         Cmd::Cache { cmd } => crate::cache_commands::run(cmd),
         Cmd::SemanticPack { cmd } => match cmd {
             SemanticPackCmd::Check {

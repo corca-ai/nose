@@ -63,3 +63,5 @@ pub const STACK_SIZE: usize = runtime::STACK_SIZE;
 pub fn run_command() -> Result<()> {
     command_dispatch::run()
 }
+
+mod region_commands;

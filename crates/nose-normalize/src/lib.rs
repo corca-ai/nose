@@ -263,6 +263,12 @@ pub(crate) fn declarative_fingerprint(
 }
 
 pub fn normalize(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
+    let mut out = normalize_inner(il, interner, opts);
+    out.source = il.source.clone();
+    out
+}
+
+fn normalize_inner(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
     let mut timer = NormalizeTimer::new(&il.meta.path);
     let mut out = desugar::run(il, interner, opts);
     timer.lap("desugar");

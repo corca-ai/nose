@@ -65,6 +65,7 @@ fn capabilities_command_lists_stable_commands_and_schemas() {
             "capabilities",
             "il",
             "query",
+            "regions",
             "semantic-pack",
             "stats"
         ]
@@ -83,7 +84,7 @@ fn capabilities_command_lists_stable_commands_and_schemas() {
         json["schemas"]["cache_clear"],
         serde_json::json!(["nose.cache-clear/v1"])
     );
-    assert_eq!(json["schemas"]["query_json"], serde_json::json!([8, 9]));
+    assert_eq!(json["schemas"]["query_json"], serde_json::json!([8, 10]));
     assert_eq!(
         json["schemas"]["query_watch_jsonl"],
         serde_json::json!(["nose.query-watch/v1"])
@@ -456,6 +457,6 @@ fn recursive_hof_callback_fragment_does_not_overflow() {
         "top=0",
     ]);
     let json = query_json(&out);
-    assert_eq!(json["schema_version"], 9);
+    assert_eq!(json["schema_version"], 10);
     let _ = fs::remove_dir_all(&dir);
 }

@@ -97,3 +97,5 @@ pub fn candidate_config_identity() -> Vec<u8> {
     .flat_map(u64::to_be_bytes)
     .collect()
 }
+
+pub mod regions;

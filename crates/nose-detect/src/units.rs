@@ -476,6 +476,11 @@ fn extract_unit(
         name: uname.map(|s| ctx.interner.resolve(s).to_string()),
         start_line: span.start_line,
         end_line: span.end_line,
+        source_region: ctx
+            .il
+            .source
+            .as_ref()
+            .and_then(|source| source.region(span.start_byte, span.end_byte)),
         token_count: pre.len(),
         shapes,
         shape_minhash,

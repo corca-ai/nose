@@ -18,6 +18,8 @@ pub(crate) fn loc_of(u: &UnitFeat, enclosing_unit: Option<EnclosingUnit>) -> Loc
         sem: u.value.len(),
         span_tokens: u.token_count,
     });
+    loc.source_region = u.source_region.clone();
+    loc.analysis_digest = Some(crate::regions::unit_analysis_key(u));
     loc.is_fragment = fragment_kind.is_some();
     loc.fragment_kind = fragment_kind;
     loc.reason_code = fragment_kind.map(FragmentKind::reason_code);
@@ -74,6 +76,8 @@ pub(crate) fn connected_loc_of(
         if loc.enclosing_unit.is_none() && can_enclose_fragment(unit) {
             loc.enclosing_unit = Some(enclosing_unit_of(unit));
         }
+        // The mapped witness currently carries line selectors, not exact byte provenance.
+        loc.source_region = None;
         loc.start_line = span.0;
         loc.end_line = span.1;
         loc.span_lines = LineSpan::new(span.0, span.1).line_count();

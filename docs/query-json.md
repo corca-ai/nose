@@ -1,4 +1,4 @@
-# nose query JSON (schemas v8 and v9)
+# nose query JSON (schemas v8 and v10)
 
 `nose query <path> [terms…] --format json` emits a structured, versioned contract over the
 duplicated-code family dataset — the **machine** form of the
@@ -8,7 +8,7 @@ For multi-root analysis, use repeated roots:
 `nose query --root <path> --root <path> [terms…] --format json`.
 
 Discover support with [`nose capabilities`](capabilities.md): `schemas.query_json` lists the
-versions the installed binary emits (currently `[8, 9]`). CI wrappers for the
+versions the installed binary emits (currently `[8, 10]`). CI wrappers for the
 divergent-edit gate should also require `query.capabilities.query_base_json_v8`,
 `query.capabilities.query_base_gate_fail_default`, and, for SARIF uploads,
 `query.capabilities.query_base_sarif`.
@@ -24,7 +24,7 @@ Every response is an object with:
 
 | field | meaning |
 |---|---|
-| `schema_version` | `9` for the non-`base` query views; `8` for `base=<ref>` |
+| `schema_version` | `10` for the non-`base` query views; `8` for `base=<ref>` |
 | `tool` | `"nose"` |
 | `view` | which surface produced it: `dashboard` \| `list` \| `group` \| `family` \| `reinvented` \| `base` |
 | `path` | the analyzed path expression, as given; multi-root commands render the repeated `--root`/`-r` flags |
@@ -32,6 +32,15 @@ Every response is an object with:
 
 plus the view-specific body below. Like the human surface, a result is a pure function of
 (repo state, command); an unknown field or enum value is a hard error.
+
+Schema v10 adds nullable `families[].review_key` and nullable
+`locations[].region` / `locations[].region_key`. These versioned SHA-256 content
+signatures preserve multiplicity and exclude location/ranking. They can be shared
+by distinct occurrences and never authorize review reuse by themselves. `region`
+contains `{source_digest,start_byte,end_byte,content_digest}` with half-open byte
+bounds into the analyzed original source. Missing provenance or unsupported proof
+projection returns null. See [region identity](region-identity.md) for exact
+inputs, limitations, snapshot commands, and correspondence policy.
 
 Schema v9 adds explicit `generated_provenance` to generated families so callers can
 distinguish caller path assertions from nose inference without silently extending the strict

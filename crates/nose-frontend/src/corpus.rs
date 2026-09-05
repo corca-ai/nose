@@ -43,12 +43,17 @@ pub fn try_lower_source_regions(
     lang: Lang,
     interner: &Interner,
 ) -> anyhow::Result<Vec<Il>> {
-    match lang {
+    let mut regions = match lang {
         Lang::Vue | Lang::Svelte | Lang::Html => {
             embedded::lower_regions(file, path, src, lang, interner)
         }
-        _ => lower_source(file, path, src, lang, interner).map(|il| vec![il]),
+        _ => return lower_source(file, path, src, lang, interner).map(|il| vec![il]),
+    }?;
+    let source = std::sync::Arc::new(nose_il::SourceDocument::new(src.to_vec()));
+    for il in &mut regions {
+        il.source = Some(source.clone());
     }
+    Ok(regions)
 }
 
 /// Discover, read, and lower every supported file under `root`, in parallel.

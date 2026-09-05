@@ -17,6 +17,7 @@ pub struct UnitFeat {
     pub name: Option<String>,
     pub start_line: u32,
     pub end_line: u32,
+    pub source_region: Option<nose_il::SourceRegion>,
     pub token_count: usize,
     /// Sorted multiset of local shape hashes (syntactic structure).
     pub shapes: Vec<u64>,
@@ -124,7 +125,7 @@ impl serde::Serialize for UnitFeat {
     {
         use serde::ser::SerializeStruct;
 
-        let mut state = serializer.serialize_struct("UnitFeat", 28)?;
+        let mut state = serializer.serialize_struct("UnitFeat", 29)?;
         state.serialize_field("path", &self.path)?;
         state.serialize_field("lang", &self.lang)?;
         state.serialize_field("kind", &self.kind)?;
@@ -132,6 +133,7 @@ impl serde::Serialize for UnitFeat {
         state.serialize_field("name", &self.name)?;
         state.serialize_field("start_line", &self.start_line)?;
         state.serialize_field("end_line", &self.end_line)?;
+        state.serialize_field("source_region", &self.source_region)?;
         state.serialize_field("token_count", &self.token_count)?;
         state.serialize_field("shapes", &self.shapes)?;
         state.serialize_field("shape_minhash", &self.shape_minhash)?;

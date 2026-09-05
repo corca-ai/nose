@@ -317,7 +317,13 @@ fn load_source(request: SourceLoad<'_>) -> SourceResult {
         RAW_IL_SCHEMA,
         &[snapshot.digest.as_bytes()],
     );
-    if let Some(restored) = restore_raw_bundle(&request, raw_key) {
+    if let Some(mut restored) = restore_raw_bundle(&request, raw_key) {
+        let source = std::sync::Arc::new(nose_il::SourceDocument::new(std::mem::take(
+            &mut snapshot.bytes,
+        )));
+        for il in &mut restored {
+            il.source = Some(source.clone());
+        }
         return SourceResult::from_lowered(&request, &snapshot, restored, true, snapshot_hit);
     }
 

@@ -292,7 +292,8 @@ fn apply_resolved_reuse(
     for (index, reuse) in reuse.into_iter().enumerate() {
         match reuse {
             ResolvedReuse::Passthrough => continue,
-            ResolvedReuse::Hit(cached) => {
+            ResolvedReuse::Hit(mut cached) => {
+                cached.source = raw.corpus.files[index].source.clone();
                 raw.corpus.files[index] = *cached;
                 continue;
             }

@@ -31,6 +31,10 @@ pub struct Loc {
     pub file: String,
     pub start_line: u32,
     pub end_line: u32,
+    #[serde(skip)]
+    pub source_region: Option<nose_il::SourceRegion>,
+    #[serde(skip)]
+    pub analysis_digest: Option<nose_il::ContentDigest>,
     pub lang: String,
     /// What kind of syntactic unit this site is (function/method/class/block) —
     /// lets the report suggest the right refactor (helper vs base class).
@@ -147,6 +151,8 @@ impl Loc {
             file,
             start_line: source_span.start_line,
             end_line: source_span.end_line,
+            source_region: None,
+            analysis_digest: None,
             lang,
             kind,
             origin,

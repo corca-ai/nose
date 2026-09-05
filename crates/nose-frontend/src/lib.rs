@@ -109,7 +109,7 @@ pub fn lower_source(
     lang: Lang,
     interner: &Interner,
 ) -> anyhow::Result<Il> {
-    match lang {
+    let mut il = match lang {
         Lang::Python => python::lower(file, path, src, interner),
         Lang::JavaScript | Lang::TypeScript => js_ts::lower(file, path, src, lang, interner),
         Lang::Go => go::lower(file, path, src, interner),
@@ -120,7 +120,11 @@ pub fn lower_source(
         Lang::Swift => swift::lower(file, path, src, interner),
         Lang::Css => css::lower(file, path, src, interner),
         Lang::Vue | Lang::Svelte | Lang::Html => embedded::lower(file, path, src, lang, interner),
-    }
+    }?;
+    il.source = Some(std::sync::Arc::new(nose_il::SourceDocument::new(
+        src.to_vec(),
+    )));
+    Ok(il)
 }
 
 /// Parse a Java conformance fixture with the product grammar and reject error
