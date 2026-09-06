@@ -41,6 +41,27 @@ are retained under `target/frontend-performance-20260906/`. The exploratory
 measurement records the dirty candidate tree explicitly; final smoke binds
 committed source SHAs and binary digests.
 
+Final qualification compares `c5dad268` with product commit `fe069b3f` using
+`scripts/semantic-regression-smoke.sh` and the seven pinned repositories, after
+other verification workloads finish. It **passes on the primary run**, with
+zero declared/unexpected output drift and no triggered or inconclusive runtime
+signals. Alacritty median `parse+lower` is 87.90 → 54.40 ms (38.1% reduction);
+whole-query median is 168.59 → 132.11 ms (21.6% reduction). These are raw median
+comparisons on this corpus and machine, not a general Rust speed guarantee.
+Ruby scaling passes at exponent 0.68. The exploratory order conflict and the
+earlier campaign's failed qualification remain historical results; neither was
+rewritten or retried until green. Final raw measurements, provenance and the
+checker result are in `target/frontend-performance-20260906/smoke/`.
+
+Strict clippy, docs, the 1,054-file length gate and the unchanged 19-family
+duplication baseline (budget 20) pass. Type-4 records 54 exact groups with zero
+false merges/canonicalization violations; `4bf44b83` binds the receipt to the
+new crates tree. Fast local CI completed its product/test gates, then found the
+corresponding stale Type-4 inventory digest. After reviewing that sole receipt
+binding change, `1fa45bb8` updates only the inventory digest; the focused evidence
+artifact gate passes. No quality threshold, evidence result or public contract
+was relaxed.
+
 ## When Required
 
 Run this process when a PR, release candidate, or post-release follow-up changes semantic
