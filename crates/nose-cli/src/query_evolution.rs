@@ -25,10 +25,10 @@ pub(crate) struct AnalysisArgs {
     /// Later saved analysis to compare; accepts the same capture format as --before.
     #[arg(long, value_name = "FILE", requires = "before")]
     pub(crate) after: Option<PathBuf>,
-    /// Directory representing the before capture's path base; read and verify selected source bytes.
+    /// Before-capture source directory; follow its source action for the expected layout.
     #[arg(long, requires = "before", value_name = "DIR")]
     pub(crate) before_source: Option<PathBuf>,
-    /// Directory representing the after capture's path base; read and verify selected source bytes.
+    /// After-capture source directory; follow its source action for the expected layout.
     #[arg(long, requires = "before", value_name = "DIR")]
     pub(crate) after_source: Option<PathBuf>,
     /// Explicit caller-owned review record to evaluate; repeat for several records.

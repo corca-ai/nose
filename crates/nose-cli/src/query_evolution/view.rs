@@ -66,6 +66,7 @@ pub(super) fn run(
         options,
         before: &before,
         after: &after,
+        source_bases: [super::sources::base(&before), super::sources::base(&after)],
         assessments: &assessments,
     };
     let items = item_view.rows(&rows)?;

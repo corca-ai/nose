@@ -1815,3 +1815,36 @@ runtime signals finish within the unchanged thresholds. Ruby scaling passes with
 exponent 0.69. This qualifies this usability change against `33ecb863`, not the earlier
 optimization against its older baseline. Type-4 retains 54 exact groups, zero false
 merges and zero canonicalization violations; only its product-tree binding changes.
+
+## Ten-cycle independent usability campaign: round 1 (2026-09-06)
+
+Two new evaluators with no conversation history explored Cortex and craken-agents
+using CLI guidance only. Cortex's three tasks succeeded in nine calls; craken-agents
+completed discovery and current review recording in fifteen calls but exposed failed
+saved-source lookup when the capture was made from outside the analyzed repository.
+Both noticed that a path-filtered family can display an outside representative.
+
+The first improvement repairs source lookup without rewriting saved observation or
+review identities. An external capture uses the common directory of its recorded
+roots for explicit source remapping; new captures retain logical root spelling.
+Historical directories, single-file roots, multiple roots, unavailable counts and
+existing source-containment checks are covered. Human source lookup states actual
+verified/unavailable counts. Member navigation distinguishes the complete family
+from the filtered list with named return actions.
+
+Both original evaluators replayed their tasks without receiving implementation
+explanations. Existing and new craken-agents captures verified all four requested
+member reads for both selected candidates; current defer records remained applicable.
+Cortex's member, family and filtered-list returns all reached the named destination.
+The replay used eleven Cortex calls and fifteen craken-agents calls; extra return and
+old/new-capture checks mean these totals are not a task-cost improvement claim.
+Repeated 4–5-second Cortex navigation, outside representative rows, capture/display
+term incompatibility and live-to-saved selection friction remain open observations.
+
+All 2,364 workspace tests, strict clippy, docs, file-length and the unchanged
+18-family substantial-near gate pass. This is round 1 of the requested 10, not a
+completed campaign. Fresh evaluators start each round; within-round replay uses the
+same evaluators and is not counted as another fresh-user experiment. The protocol,
+raw commands, outputs, accepted/deferred decisions and progress ledger are in
+`target/ux-campaign-20260906/`. Campaign-wide runtime/oracle qualification follows
+the final product changes.

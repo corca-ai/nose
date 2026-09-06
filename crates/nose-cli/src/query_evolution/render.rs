@@ -187,10 +187,14 @@ fn item_summary(item: &Value, full: bool) {
         for after in item["after_observations"].as_array().unwrap() {
             observation("after", after, &mut shown_sources);
         }
-        println!(
-            "  Source bodies: {}. Analysis digest internals: opaque.",
-            text(&item["source_body_status"])
-        );
+        if let Some(lookup) = item.get("source_lookup") {
+            println!(
+                "  Source lookup: {} verified / {} unavailable.",
+                lookup["verified"], lookup["unavailable"]
+            );
+        } else {
+            println!("  Source bodies: {}.", text(&item["source_body_status"]));
+        }
     }
     for diff in item["source_diffs"].as_array().into_iter().flatten() {
         if diff["same_content"] == true {

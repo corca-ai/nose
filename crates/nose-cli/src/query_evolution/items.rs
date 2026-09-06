@@ -9,7 +9,7 @@ use anyhow::Result;
 use nose_detect::regions::evolution::{AnalysisSnapshot, Change};
 use nose_il::ContentDigest;
 use serde_json::{json, Value};
-use std::{collections::BTreeMap, path::Path};
+use std::{collections::BTreeMap, path::PathBuf};
 
 pub(super) struct Items<'a> {
     pub index: &'a Observations<'a>,
@@ -18,6 +18,7 @@ pub(super) struct Items<'a> {
     pub options: &'a AnalysisArgs,
     pub before: &'a AnalysisSnapshot,
     pub after: &'a AnalysisSnapshot,
+    pub source_bases: [PathBuf; 2],
     pub assessments: &'a BTreeMap<ContentDigest, Vec<Value>>,
 }
 impl Items<'_> {
@@ -58,10 +59,20 @@ impl Items<'_> {
     }
     fn source_action(&self, item: &Value) -> Value {
         let quote = crate::path_utils::shell_quote;
+        let before = self
+            .options
+            .before_source
+            .as_ref()
+            .unwrap_or(&self.source_bases[0]);
+        let after = self
+            .options
+            .after_source
+            .as_ref()
+            .unwrap_or(&self.source_bases[1]);
         json!({"kind":"inspect-source","label":"Verify source against captured addresses (replace directories for historical checkouts)",
             "command":format!("{} --before-source {} --after-source {}", item["next"][0].as_str().unwrap(),
-                quote(&self.options.before_source.as_deref().unwrap_or(Path::new(&self.before.path_base)).to_string_lossy()),
-                quote(&self.options.after_source.as_deref().unwrap_or(Path::new(&self.after.path_base)).to_string_lossy()))})
+                quote(&before.to_string_lossy()),
+                quote(&after.to_string_lossy()))})
     }
 }
 

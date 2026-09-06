@@ -231,6 +231,18 @@ fn detail_roundtrip_keeps_filters_and_opens_one_member() {
     let member = follow(&p, loc["next"][0].as_str().unwrap());
     assert_eq!(member["member_view"]["selected"], 1);
     assert_eq!(member["member_view"]["locations"][0]["id"], loc["id"]);
+    let parent = member["member_view"]["actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|action| action["kind"] == "return-family")
+        .expect("a member offers a direct return to its complete family");
+    let family = follow(&p, parent["command"].as_str().unwrap());
+    assert_eq!(family["family"]["id"], detail["family"]["id"]);
+    assert_eq!(
+        family["member_view"]["selected"],
+        detail["member_view"]["total"]
+    );
     assert_eq!(
         member["family"]["review_key"],
         detail["family"]["review_key"]

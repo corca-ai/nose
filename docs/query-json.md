@@ -498,3 +498,7 @@ and resume commands; each member location has a direct `next` link using
 `member-id=ID full`. Selecting a member does not change family metrics or identity.
 Dashboard directory routes summarize the first directory under each explicit root
 and do not filter, rank, or classify the findings automatically.
+
+Member detail actions distinguish `return-family` (the complete current family) from
+`return-selection` (the filtered family list). Both retain the inspection settings;
+opening a member does not change the family's identity or evidence.

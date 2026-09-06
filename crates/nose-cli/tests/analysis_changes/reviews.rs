@@ -1,5 +1,5 @@
 use super::{Project, SOURCE};
-use serde_json::Value;
+use serde_json::{json, Value};
 
 fn save_review(p: &Project, decision: &str, file: &str) {
     let view = p.json(&[
@@ -167,6 +167,10 @@ fn sources_are_explicit_verified_and_historical_text_is_not_replaced_by_current_
         .find(|m| m["file"] == "b.py")
         .unwrap();
     assert_eq!(stale["source_body"]["status"], "unavailable");
+    assert_eq!(
+        wrong["items"][0]["source_lookup"],
+        json!({"verified":1,"unavailable":1})
+    );
     assert!(stale["source_body"].get("text").is_none());
     let verified = p.compare(&[
         &change,

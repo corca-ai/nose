@@ -12,9 +12,41 @@ use std::{
 const MAX_FILE_BYTES: u64 = 16 * 1024 * 1024;
 const MAX_REGION_BYTES: usize = 64 * 1024;
 
+/// Keep the original cwd layout when it contains the roots; external roots need
+/// their own common directory so the explicit source action can reopen them.
+pub(super) fn base(snapshot: &AnalysisSnapshot) -> PathBuf {
+    let original = PathBuf::from(&snapshot.path_base);
+    let roots: Vec<_> = snapshot
+        .roots
+        .iter()
+        .map(|root| original.join(root))
+        .collect();
+    if roots.iter().all(|root| root.starts_with(&original)) {
+        return original;
+    }
+    let mut common = roots[0].clone();
+    for root in &roots[1..] {
+        while !root.starts_with(&common) {
+            if !common.pop() {
+                return original;
+            }
+        }
+    }
+    if snapshot
+        .families
+        .iter()
+        .flat_map(|f| &f.members)
+        .any(|m| original.join(&m.file) == common)
+    {
+        common.pop();
+    }
+    common
+}
+
 pub(super) struct Sources {
     root: PathBuf,
     path_base: PathBuf,
+    captured_base: PathBuf,
     remaining_bytes: usize,
     files: BTreeMap<PathBuf, Result<SourceBytes, String>>,
 }
@@ -27,18 +59,16 @@ impl Sources {
         Ok(Self {
             root,
             path_base: PathBuf::from(&snapshot.path_base),
+            captured_base: base(snapshot),
             remaining_bytes: 64 * 1024 * 1024,
             files: BTreeMap::new(),
         })
     }
     fn relative(&self, file: &str) -> Result<PathBuf> {
-        let path = Path::new(file);
-        let relative = if path.is_absolute() {
-            path.strip_prefix(&self.path_base)
-                .context("member is outside the captured path base")?
-        } else {
-            path
-        };
+        let absolute = self.path_base.join(file);
+        let relative = absolute
+            .strip_prefix(&self.captured_base)
+            .context("member is outside the captured source base")?;
         ensure!(
             relative
                 .components()
@@ -159,6 +189,19 @@ pub(super) fn attach(item: &mut Value, before: &mut Option<Sources>, after: &mut
     }).collect::<Vec<_>>();
     item["source_diffs"] = json!(diffs);
     item["source_body_status"] = json!("explicit-verified-lookup");
+    let members = std::iter::once(&item["before_observation"])
+        .chain(item["after_observations"].as_array().into_iter().flatten())
+        .flat_map(|f| f["members"].as_array().into_iter().flatten());
+    let mut verified = 0;
+    let mut unavailable = 0;
+    for member in members {
+        match member["source_body"]["status"].as_str() {
+            Some("verified") => verified += 1,
+            Some("unavailable") => unavailable += 1,
+            _ => {}
+        }
+    }
+    item["source_lookup"] = json!({"verified":verified,"unavailable":unavailable});
 }
 fn attach_family(family: &mut Value, sources: &mut Sources) {
     let Some(members) = family["members"].as_array_mut() else {

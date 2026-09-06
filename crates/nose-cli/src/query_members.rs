@@ -163,10 +163,17 @@ pub(crate) fn view(
     expand.push("top=0".into());
     let source = (q.id_full && q.member_view.active() && q.member_view.group.is_none())
         .then(|| crate::query_source_evidence::selected_sources(&selected));
+    let mut actions = vec![
+        json!({"kind":"return-selection","label":"Back to filtered families","command":return_command}),
+    ];
+    if q.member_view.active() {
+        actions.push(json!({"kind":"return-family","label":"Back to this family","command":format!("{base}{}", if q.id_full { " full" } else { "" })}));
+    }
+    actions.push(json!({"kind":"resume-selection","label":"Resume this selection","command":command(q.member_view.group.iter().map(|g| format!("member-group={g}")).chain(q.top.map(|top| format!("top={top}"))).chain(q.id_full.then(|| "full".into())).collect())}));
     json!({"source_bodies":source,"total":f.locations.len(),"selected":selected.len(),"shown":if q.member_view.group.is_some() {0} else {selected.len().min(top)},
         "group":q.member_view.group,"groups":group_rows,"groups_total":groups.len(),
         "locations":if q.member_view.group.is_some() {Vec::new()} else {selected.into_iter().take(top).map(|l| json!({"id":baseline::member_id(l),"file":l.file,"start":l.start_line,"end":l.end_line,"name":l.name,"lang":l.lang,"region":l.source_region,"boundary":crate::query_assessment::boundary(l),"scope_evidence":crate::query_assessment::scope(l),"next":[format!("{base} {} full",shell_quote(&format!("member-id={}",baseline::member_id(l))))]})).collect::<Vec<_>>()},
-        "actions":[{"kind":"return-selection","label":"Return to the family selection","command":return_command},{"kind":"resume-selection","label":"Resume this selection","command":command(q.member_view.group.iter().map(|g| format!("member-group={g}")).chain(q.top.map(|top| format!("top={top}"))).chain(q.id_full.then(|| "full".into())).collect())}],
+        "actions":actions,
         "next":[return_command,command(vec!["member-group=dir".into()]),command(vec!["member-group=lang".into()]),command(vec!["member-group=scope".into()]),command(expand),format!("{base} full"),base],
         "meaning":"Member selection only; family identity, evidence, metrics and assessment describe the complete family."})
 }

@@ -231,13 +231,24 @@ On a single `change=ID`, follow the named source action or provide directories e
 nose query --before before.json --after after.json change=ID --before-source /checkouts/before --after-source /checkouts/after
 ```
 
-Each directory represents that capture's `path_base`, so relative member paths retain
-that layout. An absolute member path is remapped relative to the captured base.
+Captured roots preserve absolute logical path spelling, including symlink aliases,
+so they share the namespace of member paths. Each explicit source directory
+represents that captured source layout. When all analysis roots are
+inside `path_base`, that original working-directory layout is retained. For external
+roots, the source action uses their common directory (a single-file root uses its
+parent). Relative member paths still resolve from the recorded `path_base` before
+remapping into this source layout. This also reopens older external-root captures
+without rewriting their identities. For historical checkouts, supply a directory with
+the same layout as the emitted source action. Older captures whose canonical roots
+lost the logical member-path alias can remain unavailable; recapture preserves that
+spelling instead of guessing a correspondence.
 The directories can be historical checkouts or exported source trees; nose does not
 choose a Git revision or read source implicitly. It verifies both the containing buffer
 SHA-256 and the selected byte-range digest before displaying text. A missing file,
 outdated buffer, invalid range, non-UTF-8 selection, or escaping path/symlink yields an
-explicit unavailable reason, with no replacement text. Exact verified selected regions
+explicit unavailable reason, with no replacement text. `source_lookup` reports the
+verified and unavailable member reads; `source_body_status` identifies the lookup
+method, not a successful verification. Exact verified selected regions
 are shown alongside line alignment for uniquely paired members; candidate correspondence
 remains labeled as a candidate. Alignment is capped at 120 lines per side with an explicit
 truncation flag. Source limits are 16 MiB per file, 64 MiB of cached source per side and

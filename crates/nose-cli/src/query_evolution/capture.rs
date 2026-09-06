@@ -53,8 +53,12 @@ pub(crate) fn capture(args: &QueryArgs, path: &Path) -> Result<()> {
     let mut roots: Vec<_> = args
         .paths
         .iter()
-        .map(|p| std::fs::canonicalize(p).map(|p| p.to_string_lossy().into_owned()))
-        .collect::<std::io::Result<_>>()?;
+        .map(|p| {
+            crate::path_utils::absolute_lexical(p)
+                .map(|p| p.to_string_lossy().into_owned())
+                .context("resolving captured root path")
+        })
+        .collect::<Result<_>>()?;
     roots.sort();
     roots.dedup();
     let mut source_diagnostics = dataset.scope.skipped_sources.clone();

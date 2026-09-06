@@ -293,3 +293,122 @@ fn saved_exploration_prints_identical_verified_source_once() {
     assert_eq!(resumed["inputs"], report["inputs"]);
     assert_eq!(resumed["items"], report["items"]);
 }
+
+#[test]
+fn captured_external_root_sources_reopen_and_remap_to_a_historical_checkout() {
+    let caller = Project::new();
+    let target = Project::new();
+    let historical = Project::new();
+    caller.json(&[
+        "query",
+        target.0.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+        "--save-analysis",
+        "external.json",
+        "--format",
+        "json",
+    ]);
+    let args = [
+        "query",
+        "--before",
+        "external.json",
+        "--after",
+        "external.json",
+        "full",
+        "--format",
+        "json",
+    ];
+    let detail = caller.json(&args);
+    let verified = caller.follow(&detail["items"][0]["actions"][0]["command"]);
+    assert_eq!(
+        verified["items"][0]["source_lookup"],
+        json!({"verified":4,"unavailable":0})
+    );
+    for side in ["before_observation", "after_observations"] {
+        let observation = if side == "after_observations" {
+            &verified["items"][0][side][0]
+        } else {
+            &verified["items"][0][side]
+        };
+        for member in observation["members"].as_array().unwrap() {
+            assert_eq!(member["source_body"]["status"], "verified", "{member}");
+        }
+    }
+    let change = format!("change={}", detail["items"][0]["id"].as_str().unwrap());
+    target.write("a.py", "# changed since capture\n");
+    let old = caller.json(&[
+        "query",
+        "--before",
+        "external.json",
+        "--after",
+        "external.json",
+        &change,
+        "--before-source",
+        historical.0.to_str().unwrap(),
+        "--format",
+        "json",
+    ]);
+    assert!(old["items"][0]["before_observation"]["members"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|m| m["source_body"]["status"] == "verified"));
+    target.write("b.py", "# also changed since capture\n");
+    let unavailable = caller.follow(&detail["items"][0]["actions"][0]["command"]);
+    assert_eq!(
+        unavailable["items"][0]["source_lookup"],
+        json!({"verified":0,"unavailable":4})
+    );
+}
+
+#[test]
+fn source_actions_cover_external_file_and_multiple_roots() {
+    let caller = Project::new();
+    let a = Project::new();
+    let b = Project::new();
+    a.write(
+        "a.py",
+        &format!("{SOURCE}{}", SOURCE.replace("compute", "other")),
+    );
+    for (name, roots) in [
+        ("file.json", vec![a.0.join("a.py")]),
+        ("multi.json", vec![a.0.clone(), b.0.clone()]),
+    ] {
+        let mut args = vec![
+            "query",
+            "--mode",
+            "semantic",
+            "--min-size",
+            "1",
+            "--min-lines",
+            "1",
+            "--save-analysis",
+            name,
+            "--format",
+            "json",
+        ];
+        for root in &roots {
+            args.extend(["--root", root.to_str().unwrap()]);
+        }
+        caller.json(&args);
+        let detail = caller.json(&[
+            "query", "--before", name, "--after", name, "full", "--format", "json",
+        ]);
+        let verified = caller.follow(&detail["items"][0]["actions"][0]["command"]);
+        assert_eq!(
+            verified["items"][0]["source_lookup"]["unavailable"], 0,
+            "{verified}"
+        );
+        assert!(
+            verified["items"][0]["source_lookup"]["verified"]
+                .as_u64()
+                .unwrap()
+                > 0
+        );
+    }
+}
