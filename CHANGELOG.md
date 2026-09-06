@@ -6,6 +6,9 @@ break.
 
 ## [Unreleased]
 
+- Avoid repeated Rust scope traversal for type references without a matching Tokio
+  runtime import, preserving the existing type-evidence and shadowing checks.
+
 - Preserve member navigation limits and expose source-opening commands in member
   lists; distinguish family comparison evidence from selected-member inspection.
 - Inspect bounded surrounding source with `member-context=N`, retaining the

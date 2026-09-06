@@ -4,6 +4,43 @@ Runtime triage turns a query-regression report into a reproducible performance d
 which repos are expected capability cost, which are noisy, and which need a focused fix.
 Use it before optimizing a slow repo by hand.
 
+## Rust import prescreen follow-up (2026-09-06)
+
+The ten-cycle usability campaign left Alacritty `parse+lower` qualification
+inconclusive. This follow-up targets an independently observed frontend cost;
+it does not reclassify that earlier result as a confirmed regression.
+A native single-worker `stats` sample of the unchanged 88-file Alacritty corpus
+shows runtime-type lookup repeatedly traversing enclosing CST scopes and their
+children. Ordinary unqualified types enter Tokio import/shadow checks even when
+no matching runtime import exists.
+
+Rust lowering now first checks for an asserted imported-binding record with the
+same local name, module and export required by the existing resolver. Absence
+cannot produce an accepted runtime domain, so it can return before CST traversal.
+Possible matches still undergo all original visibility, namespace shadowing,
+local type shadowing, ambiguity and dependency checks. The local type-shadow
+check follows successful import resolution. There is no cached negative result;
+each lookup sees the current evidence, including newly lowered imports. Qualified
+Tokio paths retain their original path. No admission rule or cache schema changes.
+
+The pre-change binary is retained from `c5dad268` in
+`target/frontend-performance-20260906/baseline-nose`. The exploratory six-pair
+Alacritty query comparison records median `parse+lower` 91.80 → 53.25 ms and
+whole-query 166.15 → 133.65 ms. These are unadjusted medians; a positive control
+movement is not counted as additional speedup. All twelve semantic output hashes
+match. The exploratory checker requests a focused rerun for `normalize+extract`,
+whose +3.95 ms order-adjusted movement has conflicting order strata; this is not
+an all-stages-passing result. Final pinned-corpus qualification is recorded below
+after the source commit and remaining verification.
+
+Raw IL JSON is byte-identical for all 88 Alacritty Rust files and 25 runtime-type
+fixtures, including import aliases and shadowing negatives. Existing frontend
+runtime-domain tests and all 2,371 workspace tests pass. The native sample,
+original commands, paired/control runs, raw IL hash ledger and candidate patch
+are retained under `target/frontend-performance-20260906/`. The exploratory
+measurement records the dirty candidate tree explicitly; final smoke binds
+committed source SHAs and binary digests.
+
 ## When Required
 
 Run this process when a PR, release candidate, or post-release follow-up changes semantic

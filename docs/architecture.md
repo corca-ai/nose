@@ -44,6 +44,9 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    library API, or sequence-surface distinctions needed by semantic contracts,
    then tag syntactic unit boundaries (function/method/class/block), which gives
    detection accurate boundaries for free.
+   Rust runtime-type lookup first checks for a matching asserted import before
+   traversing enclosing scopes. This negative prescreen grants no type evidence;
+   candidates still require the existing visibility, shadowing and dependency checks.
 2. **Normalize** ([normalization](normalization.md)): a fixed sequence of passes canonicalizes
    the IL — desugaring (with idiom canonicalization), alpha-renaming, an oracle cutoff,
    recursion-to-iteration normalization, dataflow propagation, control-flow normalization,
