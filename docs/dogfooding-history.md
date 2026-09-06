@@ -2155,3 +2155,42 @@ remaining general headers, scope evidence and unavailable family anchors were re
 No causal first-use or speed improvement is claimed from learned replays. Raw evidence
 is under `target/ux-campaign-20260906/round09/`. This completes round 9 of 10;
 final campaign qualification remains pending.
+
+## Independent usability campaign: round 10 (2026-09-06)
+
+Fresh Requests and Alacritty evaluators each completed 16 calls: live candidate
+inspection, saved-analysis reopening, explicit source verification, caller defer
+recording and review reopening. Requests recovered a source request missing change=ID;
+Alacritty recovered unsupported group=review with the advertised review filter. Both
+verified four source reads and distinguished one reviewed observation from 61/155
+unreviewed observations. Alacritty's separate recapture used unchanged source; this
+is not evidence of review transfer after source edits.
+
+Both independently found successful recording followed by another Record your decision
+prompt. Successful write responses now retain the saved-file confirmation and resume
+commands while omitting that redundant guidance. Ordinary detail views still offer
+recording, and no target selection, review applicability, grouping dimension or decision
+policy changed. Unsupported grouping already supplies valid values and the existing
+filter completes the review selection; this cycle does not add a feature for that guess.
+
+The two actual write commands were replayed with both binaries into separate new audit
+files, preserving original captures and reviews. Review bytes are identical. Human output
+differs only by the removed guidance line after normalizing the audit output filename;
+reopening still reports applicable defer and retains ordinary recording guidance. The
+review SHA-256 values are `80bf2b2b0b9350d9be5fe3d1c35364fcd38e55db38b1f00ece649c0322eaae10`
+and `4c66210ab98eee6cb9654ffe1b52d409128c07cf8ce24dc737abae9d77377797`.
+All 2,371 workspace tests, strict clippy, docs and the 1,054-file length gate pass.
+The same 19 substantial default families remain within budget 20; before/current
+self-query bytes remain identical with SHA-256
+`5ada2cad300f0e076acfc445e164503aef4bb71b18944032613318e7aec6d0a1`.
+
+Both learned replays completed 15 calls, confirmed four verified source reads,
+reopened applicable defer on the exact reviewed observation, and independently confirmed
+61/155 unreviewed observations. Both observed the write confirmation without a repeated
+write prompt. Each deliberately rechecked its earlier unsupported invocation (missing
+change=ID / group=review), received the same explicit error and recovered; these are
+not new first-use failures or fixed behaviors. Longer resume/next output remains, as
+does ordinary recording guidance when an existing review is reopened. No first-use or
+speed improvement is inferred. Raw transcripts and reports are under
+`target/ux-campaign-20260906/round10/`. All ten improvement/replay cycles are now complete;
+campaign-wide qualification follows separately.

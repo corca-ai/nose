@@ -98,7 +98,7 @@ pub(super) fn render(output: &Value, full: bool) {
             text(path)
         );
     }
-    if output["view"] == "change" {
+    if output["view"] == "change" && output["reviews"]["written"].is_null() {
         println!("Record your decision: add --write-review FILE --decision keep-separate|refactor|defer --reason TEXT. A new file records this current family; it does not suppress findings.");
     }
     println!("\nRetained evidence is not approval. Unmatched observations do not establish deletion or ancestry.");

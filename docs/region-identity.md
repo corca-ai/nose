@@ -291,6 +291,8 @@ families does not block recording this explicit current decision. The target is 
 a capture with itself is a convenient way to record an initial judgment. Decisions are
 `keep-separate`, `refactor` and `defer`. They express the caller's intent and never suppress
 findings, alter gates, or authorize source edits.
+After a successful write, follow the resume action to inspect the saved record
+and its applicability; the output confirms the saved file.
 
 A record binds the original analysis content, exact family observation, review key and
 scope. Reuse requires the bound artifact as one of the explicit comparison inputs and
