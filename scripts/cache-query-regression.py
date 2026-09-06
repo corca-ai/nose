@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+from query_cache_output import NORMALIZER, comparable_output, self_test as output_self_test
+
 import hashlib
 import json
 import math
@@ -422,13 +424,16 @@ def run_query(
     invalidation = parse_invalidation(stderr)
     if cache is not None and require_cache_stats and invalidation is None:
         raise SystemExit(f"{phase} replay {replay}: binary omitted invalidation evidence")
+    comparable = comparable_output(payload, cache)
     row = {
         "phase": phase,
         "replay": replay,
         "elapsed_ms": elapsed_ms,
         "peak_rss_bytes": parse_rss(stderr),
         "output_bytes": len(result.stdout),
-        "output_sha256": hashlib.sha256(result.stdout).hexdigest(),
+        "output_sha256": hashlib.sha256(comparable).hexdigest(),
+        "raw_output_sha256": hashlib.sha256(result.stdout).hexdigest(),
+        "output_normalizer": NORMALIZER,
         "families": len(payload["families"]),
         "schema_version": payload.get("schema_version"),
         "stages_ms": parse_stages(stderr),
@@ -436,7 +441,7 @@ def run_query(
         "invalidation": invalidation,
         "store": store_usage(cache) if cache is not None else None,
     }
-    return row, result.stdout
+    return row, comparable
 
 
 def assert_equal(left: bytes, right: bytes, label: str) -> None:
@@ -1230,6 +1235,7 @@ def measurement_environment() -> dict[str, Any]:
 
 
 def self_test() -> None:
+    output_self_test()
     validate_manifests(DEFAULT_MANIFEST, DEFAULT_BASELINE)
     assert nearest_rank_p95(list(range(1, 21))) == 19
     assert parse_cache_stats("  [cache] files=3 hits=1 misses=2 read_bytes=4 written_bytes=5") == {

@@ -52,3 +52,9 @@ The cache and watch harnesses accept `--official-baseline` for a selected,
 checksum-pinned release manifest. Their default remains the historical 0.19
 baseline; old reports remain readable. New watch reports label the baseline
 `official` with its version, rather than naming every release as 0.19.
+
+Cache equivalence verifies each emitted navigation cache argument against its query
+context, then removes only that argument before comparing the complete JSON payload.
+This accounts for the new context-preserving navigation contract; detector fields,
+source evidence and all other command arguments remain compared. Raw output hashes
+are retained alongside the explicit `nose.query-cache-navigation/v1` comparison hash.

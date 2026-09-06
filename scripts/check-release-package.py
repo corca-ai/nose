@@ -11,6 +11,8 @@ import tarfile
 import tempfile
 from pathlib import Path, PurePosixPath
 
+from query_cache_output import comparable_output, self_test as output_self_test
+
 
 def unpack(archive: Path, destination: Path) -> Path:
     checksum = archive.with_name(archive.name + ".sha256").read_text().split()
@@ -62,7 +64,8 @@ def exercise(binary: Path, version: str, root: Path) -> dict:
     if not result.get("families"):
         raise ValueError("packaged query did not find the duplicate fixture")
     for _ in range(2):
-        if run(*args, "--cache-dir", str(root / "cache")) != clean:
+        cached = json.loads(run(*args, "--cache-dir", str(root / "cache")))
+        if comparable_output(cached, root / "cache") != comparable_output(result, None):
             raise ValueError("packaged clean/cold/warm query output differs")
     run("query", "fixture", "--save-analysis", "capture.json", "--mode", "syntax")
     saved = json.loads(run("query", "--before", "capture.json", "--after", "capture.json", "--format", "json"))
@@ -73,6 +76,7 @@ def exercise(binary: Path, version: str, root: Path) -> dict:
 
 
 def self_test() -> None:
+    output_self_test()
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
         for name in ("package/nose", "../escape", "/absolute"):
