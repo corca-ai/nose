@@ -102,8 +102,8 @@ fn compatibility_nose_must_be_version_requirement_like() {
 #[test]
 fn compatibility_nose_accepts_semver_operator_spacing() {
     for (tag, supported_range) in [
-        ("operator_spacing", ">= 0.19.0, < 0.21.0"),
-        ("v_prefix", ">= v0.19.0 < v0.21.0"),
+        ("operator_spacing", ">= 0.19.0, < 0.22.0"),
+        ("v_prefix", ">= v0.19.0 < v0.22.0"),
     ] {
         let dir = unique_dir(&format!("compatibility_{tag}"));
         let path = dir.join("pack.json");
