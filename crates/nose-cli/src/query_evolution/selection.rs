@@ -57,6 +57,7 @@ pub(super) struct Selection {
     pub group: Option<String>,
     pub review: Option<String>,
     pub change: Option<String>,
+    pub family: Option<String>,
     pub top: usize,
     pub full: bool,
     pub filters: Vec<Filter>,
@@ -86,11 +87,21 @@ impl Selection {
             group: None,
             review: None,
             change: None,
+            family: None,
             top: if terms.is_empty() { 5 } else { 30 },
             full: false,
             filters: Vec::new(),
         };
         for t in terms {
+            if let Some(v) = t.strip_prefix("id=") {
+                ensure!(
+                    !v.is_empty() && v.len() <= 16 && v.bytes().all(|b| b.is_ascii_hexdigit()),
+                    "id= needs a captured live family id prefix (up to 16 hex digits)"
+                );
+                ensure!(q.family.is_none(), "only one id= is supported");
+                q.family = Some(v.to_ascii_lowercase());
+                continue;
+            }
             if t == "full" {
                 q.full = true;
                 continue;
@@ -174,6 +185,9 @@ impl Selection {
         index: &Observations<'_>,
     ) -> Result<Vec<&'a Change>> {
         let mut rows: Vec<_> = changes.iter().filter(|r| self.keeps(r, index)).collect();
+        if let Some(handle) = &self.family {
+            super::handles::select(&mut rows, handle, index.snapshots)?;
+        }
         if let Some(id) = &self.change {
             rows.retain(|r| r.id.hex().starts_with(id));
             ensure!(
@@ -218,12 +232,14 @@ fn validate_value(field: &str, value: &str) -> Result<()> {
 }
 
 pub(super) struct Observations<'a> {
+    pub snapshots: [&'a AnalysisSnapshot; 2],
     pub before: BTreeMap<ContentDigest, &'a FamilyObservation>,
     pub after: BTreeMap<ContentDigest, &'a FamilyObservation>,
 }
 impl<'a> Observations<'a> {
     pub(super) fn new(before: &'a AnalysisSnapshot, after: &'a AnalysisSnapshot) -> Self {
         Self {
+            snapshots: [before, after],
             before: before.families.iter().map(|f| (f.id, f)).collect(),
             after: after.families.iter().map(|f| (f.id, f)).collect(),
         }

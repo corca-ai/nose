@@ -108,6 +108,26 @@ group with its `expand-view` action preserves the group; changing views is a sep
 labeled action. A capture's initial
 next command compares it with itself, so its evidence is immediately explorable.
 
+New captures preserve existing live family IDs in `family_handles`, an optional
+map from a 16-hex-digit navigation handle to captured family observation addresses.
+Append the original `id=ID` (or an unambiguous prefix) to a saved query to find
+observations involving that family in either supplied capture. Follow the resulting
+`change=ID` action to inspect sources or record a decision. A live handle can point
+to different observations in different snapshots; this lookup does not establish
+correspondence between them. Colliding handles within a snapshot and ambiguous
+prefixes fail explicitly instead of choosing an observation.
+
+Handles are producer-supplied navigation metadata, excluded from observation IDs
+and evidence comparisons; lookup supplies no evidence for review applicability.
+Review records still bind the complete original capture, including its metadata,
+so retain that artifact when comparing it with a later capture. Handles neither
+authenticate the producer nor grant approval. Readers validate handle syntax and referenced
+observation addresses. Older captures without this metadata remain readable and
+retain their observation IDs; `id=` explains that lookup is unavailable and directs
+the caller to `path~TEXT`. New captures require readers that accept this additive
+v1 field; an older strict reader can reject them. No new identity scheme replaces
+the existing source, content, correspondence or review contracts.
+
 Run `--save-analysis` as a separate query without selection or display terms;
 adding it to an `id=` or `scope=` inspection command is rejected. It writes a new
 `nose.analysis/v1` file and never overwrites an

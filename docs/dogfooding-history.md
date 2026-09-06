@@ -1878,3 +1878,43 @@ selection handoff remain open. Raw pre/post records and decisions are under
 All 2,364 workspace tests, strict clippy, docs and file-length checks pass. The
 substantial-near gate retains eighteen families within budget twenty. This is
 round 2 of 10; final campaign-wide qualification remains pending.
+
+## Independent usability campaign: round 3 (2026-09-06)
+
+Fresh evaluators completed Alacritty and Prettier tasks in fifteen calls each.
+Alacritty exposed the difference between representative-directory and any-member
+path selection. Prettier required a failed saved `id=` lookup followed by manual
+file/line matching to reopen a selected GraphQL family.
+
+New captures retain existing live family handles as navigation references to
+captured observation addresses. Saved queries accept an unambiguous recorded `id=`
+prefix and expose the related observations' existing change/source/review actions.
+Ambiguous prefixes, full-handle collisions and invalid references fail explicitly.
+Old captures remain readable and explain unavailable handle lookup. Handles do not
+change observation IDs, correspondence or evidence; review records still bind their
+complete original capture. Help also distinguishes `dir=` from `path~`.
+
+In the learned replay, Prettier reopened `bb38e42ef2` directly, verified six source
+reads and recorded/reopened an applicable defer decision. Its fourteen task calls
+had zero failures. Alacritty completed its fifteen-call exploration and returned to
+the original seven-family selection; a new attempt to use `at=` as an enclosing
+source viewer failed and was recovered. Surrounding-source access remains a real
+gap, alongside path-selection visibility and related-family navigation. No aggregate
+speed or first-use success-rate improvement is inferred from these replays.
+
+All 2,366 workspace tests pass; final handle tests additionally exercise prefix and
+full-handle collisions, invalid references, legacy identity, source lookup and review
+transfer while retaining the original capture. Strict clippy, docs and file-length
+checks pass. The real Requests capture/review from round 2 remains applicable on the
+new reader. Evidence lives under `target/ux-campaign-20260906/round03/`.
+
+The substantial-near review contains nineteen families within the unchanged budget
+of twenty. `fd725ce4d0186778` replaces `1dd8bdaee1ea4c10`: two module declaration lines
+move the unchanged Project harness. New `bbbcb53d5f161643` spans the saved Selection
+implementation and live parse_query; its five shared source lines are only braces
+and statement closers, with six varying regions. The two distinct query grammars
+have no shared logic to extract from this reported span. No parser abstraction is
+introduced to suppress this syntax-only match. The campaign baseline and current
+binaries produce byte-identical self-query JSON on the updated source (SHA-256
+`63f3b357550fa0a377b97d75183f351d0427c6974a6a5ffe96d442ec2d659365`).
+This is round 3 of 10; final campaign-wide qualification remains pending.

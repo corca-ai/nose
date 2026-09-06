@@ -159,6 +159,11 @@ error (so a typo can't read as "no duplication").
 Quote comparison terms in shell commands (`'dup>80'`, `'lines>25'`) because bare `>` is a
 redirection operator.
 
+`dir=DIR` selects by the representative copy's parent directory. `path~TEXT`
+selects a family when any copy's path contains the text, including families whose
+representative is outside that directory. These can yield different counts;
+use `path~` when exploring relationships across a directory boundary.
+
 `spotclass` reads the [graded witness](graded-witness.md), which is presentation-layer
 enrichment (the dominant extra analysis cost), so `query` computes it **on demand** — only when a term
 filters or groups by `spotclass`. The common query path pays nothing; a `spotclass=` /

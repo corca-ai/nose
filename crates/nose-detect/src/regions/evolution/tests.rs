@@ -15,6 +15,7 @@ fn snapshot(family: &crate::RefactorFamily) -> AnalysisSnapshot {
         population: "admitted-query-families".into(),
         complete: true,
         families: vec![FamilyObservation::capture(family)],
+        family_handles: BTreeMap::new(),
     }
 }
 

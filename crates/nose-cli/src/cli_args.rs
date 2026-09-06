@@ -102,11 +102,13 @@ pub(crate) enum Cmd {
     /// Filters: scope=prod|test|mixed, witness=exact|similar, 'files>1', 'shared>5', 'path~api'.
     /// Operators: = != > < ~ !~; comma means OR, separate terms mean AND. Quote < and > in your shell.
     /// Numbers must be finite; >= and <= are unsupported and return errors.
+    /// dir= matches the representative's parent directory; path~ matches any copy, including cross-directory families.
     /// Navigate: group=dir|file|scope|witness, id=ID, at=FILE:LINE, sort=value|sites, top=N, all.
     /// Details: full shows source comparisons; member-id=ID full shows one copy; member-path~TEXT full selects source by path.
     ///
     /// Save with --save-analysis FILE. Compare saved populations with --before/--after;
     /// follow next commands, group=reason, evidence=recheck, change=ID and full.
+    /// New captures also accept the original live id=ID; it selects recorded observations, not edit ancestry.
     /// On id=, follow member-group=dir|lang|scope to explore copies within a family.
     /// On change=, --before-source/--after-source DIR verify historical source bytes.
     /// Record your judgment with --write-review FILE --decision VALUE --reason TEXT;

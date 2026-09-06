@@ -29,7 +29,7 @@ pub(super) fn run(
     let index = selection::Observations::new(&before, &after);
     let reviews = super::reviews::Reviews::load(&options.reviews, &before, &after)?;
     let comparison = compare(&before, &after, budget).map_err(anyhow::Error::msg)?;
-    let details = (selection.full || selection.change.is_some())
+    let details = (selection.full || selection.change.is_some() || selection.family.is_some())
         .then(|| super::details::Details::new(&after, &comparison.member_correspondences));
     let assessments = reviews.evaluate(&comparison, &index);
     let mut rows = selection.select(&comparison.changes, &index)?;

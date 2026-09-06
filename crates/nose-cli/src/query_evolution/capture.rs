@@ -43,11 +43,23 @@ pub(crate) fn capture(args: &QueryArgs, path: &Path) -> Result<()> {
     );
     let dataset = build_query_dataset(args, &paths_as_refs(&args.paths))?;
     let profile = profile(&dataset)?;
+    let mut family_handles: BTreeMap<_, Vec<_>> = BTreeMap::new();
     let mut families: Vec<_> = dataset
         .families
         .iter()
-        .map(FamilyObservation::capture)
+        .map(|family| {
+            let observation = FamilyObservation::capture(family);
+            family_handles
+                .entry(crate::baseline::family_id(family))
+                .or_default()
+                .push(observation.id);
+            observation
+        })
         .collect();
+    for targets in family_handles.values_mut() {
+        targets.sort();
+        targets.dedup();
+    }
     families.sort_by_key(|f| f.id);
     families.dedup_by_key(|f| f.id);
     let mut roots: Vec<_> = args
@@ -74,6 +86,7 @@ pub(crate) fn capture(args: &QueryArgs, path: &Path) -> Result<()> {
         population: "admitted-query-families".into(),
         complete: dataset.scope.skipped_sources.is_empty(),
         families,
+        family_handles,
     };
     snapshot.validate().map_err(anyhow::Error::msg)?;
     let bytes = serde_json::to_vec(&snapshot)?;
@@ -98,6 +111,7 @@ pub(crate) fn capture(args: &QueryArgs, path: &Path) -> Result<()> {
             serde_json::json!({"schema":"nose.analysis-capture/v1", "file":path,
             "families":snapshot.families.len(), "complete":coverage(&snapshot)["complete"],
             "population":snapshot.population, "coverage":coverage(&snapshot), "next":[next],
+            "family_lookup":{"term":"id=ID", "meaning":"Append the original live family ID to reopen its captured observations."},
             "actions":[{"label":"Explore this capture", "command":next}]})
         );
     } else {
@@ -110,6 +124,7 @@ pub(crate) fn capture(args: &QueryArgs, path: &Path) -> Result<()> {
         println!(
             "All admitted surfaces included; reviews and source bodies are not stored.
 next: {next}
+Append id=ID using a live family ID to reopen its captured observations.
 Explore this capture; supply a later --after capture to inspect changes."
         );
     }

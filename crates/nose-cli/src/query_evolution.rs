@@ -1,6 +1,7 @@
 //! Query exploration over explicitly captured analysis populations.
 mod capture;
 mod details;
+mod handles;
 mod items;
 mod navigation;
 mod render;
@@ -127,7 +128,8 @@ pub(crate) fn capabilities() -> serde_json::Value {
         "fields": selection::FIELDS, "reason_values": selection::REASONS,
         "correspondence_values": selection::KINDS, "evidence_values": ["retained", "recheck"],
         "witness_values": selection::WITNESSES,
-        "terms": ["group=FIELD", "change=ID", "FIELD=VALUE", "FIELD!=VALUE", "path~TEXT", "path!~TEXT", "top=N", "full", "all", "review=STATUS"],
+        "terms": ["group=FIELD", "change=ID", "id=LIVE_FAMILY_ID", "FIELD=VALUE", "FIELD!=VALUE", "path~TEXT", "path!~TEXT", "top=N", "full", "all", "review=STATUS"],
+        "family_lookup": {"term":"id=ID", "source":"captured family_handles", "meaning":"Navigation within supplied captures; not content identity, ancestry or approval.", "legacy":"unavailable when handles were not recorded"},
         "formats": ["human", "json"], "default_max_candidates": 100_000,
         "max_input_bytes": 128 * 1024 * 1024,
         "source_limits": {"file_bytes":16*1024*1024,"total_bytes_per_side":64*1024*1024,"region_bytes":64*1024,"diff_lines_per_side":120},

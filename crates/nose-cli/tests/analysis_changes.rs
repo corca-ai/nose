@@ -1,3 +1,5 @@
+#[path = "analysis_changes/handles.rs"]
+mod handles;
 #[path = "analysis_changes/reviews.rs"]
 mod reviews;
 #[path = "analysis_changes/ux.rs"]

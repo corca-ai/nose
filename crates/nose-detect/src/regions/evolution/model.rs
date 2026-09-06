@@ -201,6 +201,9 @@ pub struct AnalysisSnapshot {
     pub population: String,
     pub complete: bool,
     pub families: Vec<FamilyObservation>,
+    /// Capture-local navigation aliases. These are not content or lineage keys.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub family_handles: BTreeMap<String, Vec<ContentDigest>>,
 }
 
 impl AnalysisSnapshot {
@@ -237,6 +240,17 @@ impl AnalysisSnapshot {
             {
                 return Err("invalid or duplicate family observation".into());
             }
+        }
+        if self.family_handles.iter().any(|(handle, targets)| {
+            handle.len() != 16
+                || !handle
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                || targets.is_empty()
+                || targets.iter().any(|id| !ids.contains(id))
+                || targets.windows(2).any(|pair| pair[0] >= pair[1])
+        }) {
+            return Err("invalid family navigation handle or observation reference".into());
         }
         Ok(())
     }

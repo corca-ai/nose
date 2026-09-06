@@ -22,6 +22,8 @@ Analysis capture/comparison support is advertised by `query_analysis_capture_v1`
 `query_analysis_changes_v1`. `schemas.analysis` lists the three versioned capture/artifact/
 comparison contracts; `query.analysis` describes its commands, views, fields, enum values,
 formats and limits. This is separate from baseline `since=` and region-snapshot schemas.
+`query.analysis.family_lookup` advertises `id=` lookup through recorded live
+family handles; older captures without handle metadata still require path browsing.
 `query_analysis_diagnostics_v1` advertises saved skipped-source details and input-specific
 coverage. `query_analysis_navigation_v1` advertises labeled `actions`, format-preserving
 next commands and recheck-first presentation. `query_analysis_member_changes_v1`
@@ -229,6 +231,12 @@ nose capabilities
         "retained",
         "recheck"
       ],
+      "family_lookup": {
+        "legacy": "unavailable when handles were not recorded",
+        "meaning": "Navigation within supplied captures; not content identity, ancestry or approval.",
+        "source": "captured family_handles",
+        "term": "id=ID"
+      },
       "fields": [
         "reason",
         "correspondence",
@@ -308,6 +316,7 @@ nose capabilities
       "terms": [
         "group=FIELD",
         "change=ID",
+        "id=LIVE_FAMILY_ID",
         "FIELD=VALUE",
         "FIELD!=VALUE",
         "path~TEXT",
