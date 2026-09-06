@@ -4,6 +4,7 @@ use std::collections::BTreeSet;
 /// Navigation hints from existing paths; these do not classify or suppress evidence.
 pub(super) fn routes(
     families: &[&nose_detect::RefactorFamily],
+    analysis: &serde_json::Value,
     path: &str,
     json: bool,
 ) -> Vec<(String, String)> {
@@ -42,6 +43,12 @@ pub(super) fn routes(
             command(vec!["scope=mixed".into()]),
         ),
     ];
+    for (directory, count) in directory_routes(families, analysis).into_iter().take(6) {
+        routes.push((
+            format!("{directory} · {count} families (directory hint)"),
+            command(vec![format!("path~{directory}")]),
+        ));
+    }
     routes.extend(evaluation.into_iter().map(|dir| {
         (
             format!("{dir}/ (directory hint)"),
@@ -65,4 +72,45 @@ pub(super) fn witness_count(
     crate::query_output::query_selection(families, overrides, opportunities, &query, path, None)
         .expect("evidence filter selection is valid")
         .len()
+}
+
+/// Group by the first directory inside each explicit root, keeping ownership a caller judgment.
+fn directory_routes(
+    families: &[&nose_detect::RefactorFamily],
+    analysis: &serde_json::Value,
+) -> Vec<(String, usize)> {
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let roots: Vec<_> = analysis["roots"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|p| p.as_str())
+        .map(|p| cwd.join(p))
+        .collect();
+    let mut counts = std::collections::BTreeMap::<String, usize>::new();
+    for family in families {
+        let mut paths = BTreeSet::new();
+        for loc in &family.locations {
+            let file = cwd.join(&loc.file);
+            for root in &roots {
+                let Ok(relative) = file.strip_prefix(root) else {
+                    continue;
+                };
+                let mut parts = relative.components();
+                let Some(first) = parts.next() else { continue };
+                if parts.next().is_none() {
+                    continue;
+                }
+                let directory = root.join(first.as_os_str());
+                let display = directory.strip_prefix(&cwd).unwrap_or(&directory);
+                paths.insert(format!("{}/", display.to_string_lossy()));
+            }
+        }
+        for path in paths {
+            *counts.entry(path).or_default() += 1;
+        }
+    }
+    let mut rows: Vec<_> = counts.into_iter().collect();
+    rows.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    rows
 }

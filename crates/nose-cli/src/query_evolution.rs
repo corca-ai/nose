@@ -140,7 +140,7 @@ pub(crate) fn capabilities() -> serde_json::Value {
         "review_schema": "nose.review/v1",
         "review_filter": "review=applicable|recheck|unreviewed",
         "order": "recheck-first-then-observation-id",
-        "actions": ["reset-filters", "increase-budget", "recheck", "group-reason", "group-evidence", "expand-view", "return-selection", "inspect-source", "review-selection", "inspect-review"],
+        "actions": ["resume-selection", "reset-filters", "increase-budget", "recheck", "group-reason", "group-evidence", "expand-view", "return-selection", "inspect-source", "review-selection", "inspect-review"],
         "member_change_statuses": ["same-content", "same-content-new-location", "candidate", "ambiguous", "unresolved", "unmatched-current", "budget-exceeded", "unavailable"],
     })
 }

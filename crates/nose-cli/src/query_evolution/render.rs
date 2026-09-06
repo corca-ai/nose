@@ -29,7 +29,12 @@ pub(super) fn reason(code: &str) -> &str {
 pub(super) fn render(output: &Value, full: bool) {
     let s = &output["summary"];
     println!(
-        "Analysis comparison: {} · {} recheck · {} retain review evidence.",
+        "{}: {} · {} recheck · {} retain review evidence.",
+        if output["exploration"] == true {
+            "Saved analysis exploration"
+        } else {
+            "Analysis comparison"
+        },
         observation_count(&s["total"]),
         s["recheck"],
         s["retained"]
@@ -177,9 +182,10 @@ fn item_summary(item: &Value, full: bool) {
         member_changes(changes);
     }
     if let Some(before) = item.get("before_observation") {
-        observation("before", before);
+        let mut shown_sources = std::collections::BTreeMap::new();
+        observation("before", before, &mut shown_sources);
         for after in item["after_observations"].as_array().unwrap() {
-            observation("after", after);
+            observation("after", after, &mut shown_sources);
         }
         println!(
             "  Source bodies: {}. Analysis digest internals: opaque.",
@@ -187,6 +193,14 @@ fn item_summary(item: &Value, full: bool) {
         );
     }
     for diff in item["source_diffs"].as_array().into_iter().flatten() {
+        if diff["same_content"] == true {
+            println!(
+                "  verified source unchanged: {} → {}",
+                location(&diff["before"]),
+                location(&diff["after"])
+            );
+            continue;
+        }
         println!(
             "  verified source diff: {} → {} ({})",
             location(&diff["before"]),
@@ -263,7 +277,11 @@ fn member_changes(changes: &Value) {
     }
 }
 
-fn observation(side: &str, f: &Value) {
+fn observation<'a>(
+    side: &str,
+    f: &'a Value,
+    shown: &mut std::collections::BTreeMap<&'a str, String>,
+) {
     if f.is_null() {
         println!("  {side}: no asserted observation");
         return;
@@ -292,8 +310,19 @@ fn observation(side: &str, f: &Value) {
                 text(&body["status"])
             );
             if let Some(source) = body["text"].as_str() {
-                for line in source.lines() {
-                    println!("      {line}");
+                if let Some(previous) = shown.get(source) {
+                    println!("      Same verified content as {previous}; shown once.");
+                } else {
+                    shown.insert(
+                        source,
+                        format!("{side} {}:{}", text(&member["file"]), member["start_line"]),
+                    );
+                    for line in source.lines().take(120) {
+                        println!("      {line}");
+                    }
+                    if source.lines().count() > 120 {
+                        println!("      … source display limited to 120 lines; --format json includes the complete verified body within the source byte limit.");
+                    }
                 }
             } else {
                 println!("      {}", text(&body["reason"]));
@@ -335,7 +364,25 @@ pub(super) fn coverage(label: &str, data: &Value) {
         println!("  This older capture did not record skipped-source details; capture again to inspect them.");
     }
     if data["complete"] == false {
-        println!("  Inspect the source diagnostics and recapture with the same analysis settings. Increasing the comparison budget cannot restore missing input evidence.");
+        println!(
+            "  Population discovery complete: {}; member source evidence complete: {}.",
+            data["population_complete"], data["source_evidence_complete"]
+        );
+        let mut files = std::collections::BTreeMap::<&str, usize>::new();
+        for member in data["unavailable_members"].as_array().into_iter().flatten() {
+            *files.entry(text(&member["file"])).or_default() += 1;
+        }
+        for (file, count) in files.iter().take(8) {
+            println!("  {file}: {count} member references lack a captured source address or content key.");
+        }
+        if files.len() > 8 {
+            println!(
+                "  {} more paths; --format json exposes all unavailable_members.",
+                files.len() - 8
+            );
+        }
+        println!("  Inspect recorded diagnostics before recapturing; a larger comparison budget cannot restore missing source evidence.");
+        println!("  A complete selected family can record a current decision. Carrying decisions to another capture still requires complete evidence.");
     }
 }
 

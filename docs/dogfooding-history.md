@@ -1776,3 +1776,37 @@ member names, and all family metrics are identical to the pre-change source.
 The previous and current binaries produce byte-identical self-query output on the
 updated source. No new family or increased budget is accepted. Source snapshots,
 full output, and performance qualification limits are recorded in the [runtime follow-up](runtime-triage.md#scoring-and-feature-extraction-follow-up-2026-09-06).
+
+## Cortex evidence and exploration usability (2026-09-06)
+
+The usability follow-up fixes six observed obstacles: witness occurrence locations,
+selected-family review recording within incomplete captures, filter-preserving
+navigation and saved-selection resume, group display limits, repeated source output,
+and bounded root-directory entry points. These expose evidence and caller choices;
+they do not decide whether code should be refactored or preserved.
+
+Witness export now observes expressions within the requested unit instead of using
+the creation span of a file-wide hash-consed value. Equal values at disjoint sites
+have no unique reported occurrence; ordinary fingerprint construction is unchanged.
+Cortex's `file-drop.test.ts` literal spot now points to the actual `projectId` at line
+28 instead of an unrelated `id` at line 49. A regression fixture fails before this
+fix and passes after it.
+
+On unchanged Cortex `0baac123`, `group=dir top=15` shows 15 of 32 groups. Generated
+list/detail/member/return commands preserve the original filters and open one copy.
+The existing whole-root capture still reports 43 missing member references and
+requires rechecking cross-capture evidence. Its complete export family can record
+an explicit current `defer` decision without recapturing a narrower population;
+a selected incomplete family still fails. Current intent and transferable evidence
+remain separate contracts. Comparing verified sources with the same command reduces
+human output from 770 to 278 lines while preserving the JSON source bodies.
+
+All 2,362 workspace tests, strict clippy, docs and file-length checks pass. The
+substantial-near ratchet retains the same 18 family IDs within budget 20. Recursive
+old/new comparison on the seven pinned smoke repositories and Cortex found that
+only the bounded top-level `open-family` actions were added to the semantic list;
+every pre-existing JSON field, family identity, ordering and surface is unchanged.
+The exact seven-repository byte/hash deltas are declared against `33ecb863`.
+Raw outputs, executable navigation transcripts and the review boundary checks are
+in `target/usability-fixes-2026-09-06/`. Runtime qualification is recorded separately
+when the controlled smoke completes.

@@ -295,8 +295,7 @@ fn query_dashboard_filter_and_family() {
             && !dash.contains("proven families (same behavior"),
         "dashboard must not flatten exact and shared-core evidence: {dash}"
     );
-    // Suggested commands echo the path so they're runnable verbatim (the surface takes
-    // the path positionally) — every drill link is `nose query <path> id=…`.
+    // Dashboard drill links carry the target path.
     assert!(
         dash.contains(&format!("nose query {p} id=")),
         "dashboard's drill links carry the path: {dash}"
@@ -313,8 +312,7 @@ fn query_dashboard_filter_and_family() {
     // An unknown term is a hard error (a typo must not silently widen the result).
     assert!(run_fail(&["query", p, "wat"]).contains("unrecognized term"));
 
-    // Negation (`!~`): a path substring matched by every copy drops the family; a
-    // non-matching one keeps it (so a typo'd exclusion can't silently empty the result).
+    // Negation drops matching families and preserves a nonmatching selection.
     let excluded = run(&["query", p, "path!~m.py"]);
     assert!(
         excluded.contains("0 families") || !excluded.contains("nose query"),
@@ -326,7 +324,8 @@ fn query_dashboard_filter_and_family() {
         "query --fail-on any gates the filtered selection, not hidden families"
     );
     assert!(
-        run(&["query", p, "path!~zzz_absent"]).contains(&format!("nose query {p} id=")),
+        run(&["query", p, "path!~zzz_absent"])
+            .contains(&format!("nose query {p} 'path!~zzz_absent' id=")),
         "path!~<absent> keeps the family"
     );
     // Negated equality still validates the value (a typo errors, never silently matches).
@@ -336,19 +335,23 @@ fn query_dashboard_filter_and_family() {
     // includes `similar` keeps it and one that excludes it drops it — and a typo in any
     // comma-part errors (never silently narrows the set).
     assert!(
-        run(&["query", p, "witness=exact,similar", "--mode", "near"])
-            .contains(&format!("nose query {p} '--mode' 'near' id=")),
+        run(&["query", p, "witness=exact,similar", "--mode", "near"]).contains(&format!(
+            "nose query {p} '--mode' 'near' 'witness=exact,similar' id="
+        )),
         "witness=exact,similar matches the similar fixture (OR)"
     );
     let none = run(&["query", p, "witness=exact,copy-paste", "--mode", "near"]);
     assert!(
         none.contains("0 families")
-            || !none.contains(&format!("nose query {p} '--mode' 'near' id=")),
+            || !none.contains(&format!(
+                "nose query {p} '--mode' 'near' 'witness=exact,copy-paste' id="
+            )),
         "a set without `similar` excludes the only family"
     );
     assert!(
-        run(&["query", p, "witness!=exact,copy-paste", "--mode", "near"])
-            .contains(&format!("nose query {p} '--mode' 'near' id=")),
+        run(&["query", p, "witness!=exact,copy-paste", "--mode", "near"]).contains(&format!(
+            "nose query {p} '--mode' 'near' 'witness!=exact,copy-paste' id="
+        )),
         "witness!=<set> keeps a family outside the set"
     );
     assert!(
@@ -369,8 +372,9 @@ fn query_dashboard_filter_and_family() {
 
     // same_symbol: the three `process` copies share a name → the parallel-variant signal.
     assert!(
-        run(&["query", p, "same_symbol=true", "--mode", "near"])
-            .contains(&format!("nose query {p} '--mode' 'near' id=")),
+        run(&["query", p, "same_symbol=true", "--mode", "near"]).contains(&format!(
+            "nose query {p} '--mode' 'near' 'same_symbol=true' id="
+        )),
         "same_symbol=true matches the same-named family"
     );
     assert!(

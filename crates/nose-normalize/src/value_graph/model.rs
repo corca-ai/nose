@@ -173,6 +173,7 @@ pub(super) struct Builder<'a> {
     /// sub-DAG anchor can report WHERE the shared computation lives. Stamped at creation from
     /// `cur_span` (the enclosing expression being evaluated).
     pub(super) node_span: Vec<Option<Span>>,
+    pub(super) witness_spans: Option<witness_spans::WitnessSpans>,
     /// The source span of the expression currently being evaluated (set by `eval`), used to stamp
     /// `node_span` for every node `mk` creates while evaluating it.
     pub(super) cur_span: Option<Span>,

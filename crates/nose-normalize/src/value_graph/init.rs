@@ -18,6 +18,7 @@ impl<'a> Builder<'a> {
             nodes: Vec::new(),
             vhash: Vec::new(),
             node_span: Vec::new(),
+            witness_spans: None,
             cur_span: None,
             source_salt_used: false,
             review_source_ids: None,

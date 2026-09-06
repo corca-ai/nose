@@ -116,6 +116,7 @@ nose query --root <path> --root <path> [FILTER … | group=FIELD | id=FAM | at=F
 | `field=value` | keep families where the field equals the value (terms AND-ed); `field>N`/`field<N` for finite numbers (`>=`, `<=`, NaN, infinity and malformed numeric values are errors); `path~substr` for a path substring; **set OR** with a comma — `witness=exact,shared-core` matches either; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a directory; `witness!=exact,shared-core` drops both) |
 | `group=FIELD` | facet the selection by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`, `status`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
 | `id=FAM` | open one family (any unambiguous id prefix): its copies, a bounded source comparison, overlapping-family links (`subsumes`/`subsumed_by`), and navigation |
+| `member-id=ID` | select one exact member ID within an opened family; generated copy links provide the ID |
 | `member-group=dir` / `lang` / `scope` | with `id=` or `at=`, group copies inside the family; follow emitted commands to narrow members while retaining the full family identity and metrics |
 | `member-dir=DIR`, `member-path~TEXT`, `member-lang=LANG`, `member-scope=prod` / `test` | with `id=` or `at=`, select member locations; `member-dir` is exact, `member-path` is a substring; `top=N` limits member rows/groups and `full` or `top=0` expands them. With a member filter, `full` also shows bounded selected source bodies with line numbers; grouping shows counts. Human/JSON inspection only. |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
@@ -123,7 +124,7 @@ nose query --root <path> --root <path> [FILTER … | group=FIELD | id=FAM | at=F
 | `base=REF` | the **divergent-edit** view: detect families at the git ref, flag the ones a diff changed in one copy but not its siblings — a likely un-propagated fix. It is its own view, so combine it only with `top=N`, detection flags, `--format`, or `--fail-on any`; ordinary family filters are for the non-`base=` query views. Each item carries legacy `fire_eligible` evidence plus the v2 `strict` / `review` / `report-only` / `suppressed` tier contract; `base=REF --fail-on any` fails only on unsuppressed `strict` findings. See [divergent edits](divergent-edits.md). |
 | `since=FILE` | compare to a saved snapshot (written with `--baseline FILE --write-baseline`) and expose each family's **`status`** (`new`/`changed`/`unchanged`) as a queryable field — the temporal lens. Hides nothing (unlike `--baseline`); `since=B status!=unchanged --fail-on any` is the composable gate |
 | `sort=KEY` | `extractability` (default), `value`, `members` (also `sites` and the experimental `hazard` — see [Ranking](#ranking)) |
-| `top=N` | show the first N rows (default 30); `top=0` shows **all** |
+| `top=N` | show the first N rows or groups (default 30); `top=0` shows **all** |
 | `full` | on `id=` or a list, render bounded source comparisons inline; holes are `⟨region N: class⟩` text observations, not proven parameters. With a member filter, show selected source bodies |
 | `all` | widen past the curated default surface to the full raw universe (demoted families labeled) |
 
@@ -418,3 +419,9 @@ including singletons. `nose regions compare <before.json> <after.json>
 The default candidate budget is 100,000. Results distinguish content matches,
 modification/copy candidates, ambiguity, and unavailable correspondence. They do
 not modify source or approve reviews. See [region identity](region-identity.md).
+
+Family list links retain their filters when opening details. The detail's return
+and resume actions preserve that selection; each member supplies a direct
+`member-id=ID full` link. The first dashboard also offers bounded top-level
+directory routes from the actual roots. These are caller-selected navigation
+hints, not ownership classifications or automatic exclusions.

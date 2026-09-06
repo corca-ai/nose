@@ -237,6 +237,7 @@ fn render_query_list_or_group(ctx: &QueryOutput<'_>, json: bool) -> Result<()> {
     let analysis = crate::query_context::describe(ctx.args, ctx.settings, ctx.scope);
     match &ctx.q.group {
         Some(field) => render_query_group(QueryGroupView {
+            top: ctx.q.top,
             analysis: &analysis,
             selection: &sel,
             field,

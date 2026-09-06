@@ -65,7 +65,7 @@ pub(super) fn render_query_family(
     let id = baseline::family_id(f);
     // Overlap-fold provenance: a slice points at its richer primary; a primary lists what
     // it subsumes (so the agent doesn't triage the same region twice).
-    let member_view = crate::query_members::view(f, query, ctx.args);
+    let member_view = crate::query_members::view(f, query, ctx.args, ctx.terms);
     if json {
         let mut family = query_family_json(f, ov, opp, full, baseline_cmp, since);
         if query.member_view.active() {
@@ -107,7 +107,6 @@ pub(super) fn render_query_family(
         assessment["explanation"].as_str().unwrap()
     );
     if full {
-        println!("  relation: {}", assessment["relation"]);
         crate::query_source_evidence::render_structural(f);
     }
 
@@ -116,11 +115,21 @@ pub(super) fn render_query_family(
         return;
     }
     print_copies(f, full);
+    if let Some(locations) = member_view["locations"].as_array() {
+        for loc in locations.iter().take(8) {
+            println!(
+                "  Open {}:{}: {}",
+                loc["file"].as_str().unwrap(),
+                loc["start"],
+                loc["next"][0].as_str().unwrap()
+            );
+        }
+    }
     crate::query_source_evidence::render(&crate::query_source_evidence::collect(f, full), false);
 
     let path = crate::query_navigation::path(ctx.args, path);
     println!("\nnext:");
-    for command in member_view["next"].as_array().unwrap().iter() {
+    for command in member_view["next"].as_array().unwrap().iter().take(2) {
         println!("  {}", command.as_str().unwrap());
     }
     println!(

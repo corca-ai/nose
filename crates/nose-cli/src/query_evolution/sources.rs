@@ -154,7 +154,7 @@ pub(super) fn attach(item: &mut Value, before: &mut Option<Sources>, after: &mut
         let b: Vec<_> = after.lines().collect();
         let lines: Vec<_> = crate::source_lines::line_diff(&a, &b).into_iter().map(|(tag, text)| json!({"tag":tag.to_string(),"text":text})).collect();
         Some(json!({"before":row["before"],"after":after_locations[0],"correspondence":row["status"],
-            "lines":lines,"truncated":a.len() > 120 || b.len() > 120,"line_limit_per_side":120,
+            "same_content":before == after,"lines":lines,"truncated":a.len() > 120 || b.len() > 120,"line_limit_per_side":120,
             "meaning":"Text alignment of verified selected regions; correspondence remains advisory where labeled candidate."}))
     }).collect::<Vec<_>>();
     item["source_diffs"] = json!(diffs);

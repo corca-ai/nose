@@ -314,3 +314,37 @@ fn source_lookup_rejects_symlinks_outside_the_explicit_base() {
         .contains("escapes"));
     assert!(escaped["source_body"].get("text").is_none());
 }
+
+#[test]
+fn incomplete_population_allows_current_intent_but_not_transfer() {
+    let p = Project::new();
+    p.write("legacy.h", "namespace engine { class Thing {}; }");
+    p.capture("before.json", &[]);
+    save_review(&p, "defer", "review ' $.json");
+    let current = p.json(&[
+        "query",
+        "--before",
+        "before.json",
+        "--after",
+        "before.json",
+        "--reviews",
+        "review ' $.json",
+        "review=applicable",
+        "--format",
+        "json",
+    ]);
+    assert_eq!(current["complete"], false);
+    assert_eq!(current["summary"]["selected"], 1, "{current}");
+    assert_eq!(current["items"][0]["reviews"][0]["decision"], "defer");
+    p.write("a.py", &format!("# new containing buffer\n{SOURCE}"));
+    p.capture("after.json", &[]);
+    let transferred = reviewed(&p, &[]);
+    assert!(
+        !transferred["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["review_status"] == "applicable"),
+        "{transferred}"
+    );
+}

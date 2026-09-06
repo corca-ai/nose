@@ -48,6 +48,7 @@ mod state;
 mod stdlib;
 mod timing;
 mod value_dag;
+mod witness_spans;
 
 pub use api::{
     anchor_min_weight, containment_anchor_min_weight, value_anchors, value_fingerprint,

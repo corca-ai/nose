@@ -46,7 +46,7 @@ pub(crate) fn query_dashboard_json(
         .take(5)
         .map(|family| query_family_json(family, ov, opp, false, baseline_cmp, since))
         .collect::<Vec<_>>();
-    let mut next: Vec<_> = navigation::routes(&def, navigation_path, true)
+    let mut next: Vec<_> = navigation::routes(&def, analysis, navigation_path, true)
         .into_iter()
         .map(|(_, command)| command)
         .collect();
@@ -195,7 +195,7 @@ pub(super) fn render_query_dashboard(
         style::dim("verified = machine-checked evidence · exact = same unit behavior · shared-core = shared computation · bounded-window = disjoint regions in one unit")
     );
     println!("\nChoose a starting point (directory hints; findings remain available):");
-    for (label, command) in navigation::routes(&def, path, false) {
+    for (label, command) in navigation::routes(&def, analysis, path, false) {
         println!("  {label}: {command}");
     }
     // The "best candidates" lead only makes sense when the default surface has

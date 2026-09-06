@@ -159,17 +159,20 @@ fn profile(dataset: &crate::query_dataset::QueryDataset) -> Result<BTreeMap<Stri
 }
 
 pub(super) fn coverage(snapshot: &AnalysisSnapshot) -> serde_json::Value {
-    let unavailable = snapshot
-        .families
-        .iter()
-        .flat_map(|f| &f.members)
+    let missing: Vec<_> = snapshot.families.iter().flat_map(|f| &f.members)
         .filter(|m| m.source.is_none() || m.content_key.is_none())
-        .count();
+        .map(|m| serde_json::json!({"file":m.file,"start_line":m.start_line,"end_line":m.end_line,
+            "source_address_available":m.source.is_some(),"content_key_available":m.content_key.is_some()}))
+        .collect();
+    let population_complete = snapshot.complete && snapshot.skipped_sources == 0;
     serde_json::json!({
-        "complete":snapshot.complete && snapshot.skipped_sources == 0 && unavailable == 0,
+        "complete":population_complete && missing.is_empty(),
+        "population_complete":population_complete,
+        "source_evidence_complete":missing.is_empty(),
         "scanned_files":snapshot.scanned_files,
         "skipped_sources":snapshot.skipped_sources,
-        "members_without_source":unavailable,
+        "members_without_source":missing.len(),
+        "unavailable_members":missing,
         "diagnostics_status":if snapshot.source_diagnostics.is_some() { "recorded" } else { "not-recorded" },
         "diagnostics":snapshot.source_diagnostics,
     })

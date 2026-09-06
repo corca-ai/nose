@@ -236,3 +236,60 @@ fn human_group_counts_do_not_report_zero_observations_shown() {
     assert!(text.contains("group view below") && text.contains("Showing 1 / 1 groups"));
     assert!(!text.contains("0 shown") && !text.contains("1 observations"));
 }
+
+#[test]
+fn saved_exploration_prints_identical_verified_source_once() {
+    let p = Project::new();
+    p.capture("before.json", &[]);
+    let listing = p.json(&[
+        "query",
+        "--before",
+        "before.json",
+        "--after",
+        "before.json",
+        "--format",
+        "json",
+    ]);
+    let change = format!("change={}", listing["items"][0]["id"].as_str().unwrap());
+    let args = [
+        "query",
+        "--before",
+        "before.json",
+        "--after",
+        "before.json",
+        &change,
+        "full",
+        "--before-source",
+        ".",
+        "--after-source",
+        ".",
+    ];
+    let output = p.run(&args);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(text.starts_with("Saved analysis exploration:"), "{text}");
+    assert_eq!(text.matches("b = a + 7").count(), 1, "{text}");
+    assert!(text.contains("verified source unchanged"), "{text}");
+    let mut json_args = args.to_vec();
+    json_args.extend(["--format", "json"]);
+    let report = p.json(&json_args);
+    let row = &report["items"][0];
+    let diffs = row["source_diffs"].as_array().unwrap();
+    assert_eq!(diffs.len(), 2);
+    assert!(diffs.iter().all(|diff| diff["same_content"] == true));
+    for observation in [&row["before_observation"], &row["after_observations"][0]] {
+        for member in observation["members"].as_array().unwrap() {
+            assert!(member["source_body"]["text"]
+                .as_str()
+                .unwrap()
+                .contains("b = a + 7"));
+        }
+    }
+    let resumed = p.follow(action(&report, "resume-selection"));
+    assert_eq!(resumed["inputs"], report["inputs"]);
+    assert_eq!(resumed["items"], report["items"]);
+}

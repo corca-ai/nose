@@ -629,6 +629,174 @@
       "issue": "https://github.com/corca-ai/nose/issues/984",
       "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
       "repo": "prettier"
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "fastlane",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            229722
+          ],
+          "current": [
+            230910
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "deec0e2ed49402a78f4e8e377f862e6cd935c7346b697d14f2d5ca9049358df4"
+          ],
+          "current": [
+            "312ee1f99176a8512af116fda0b1a3a9c821c108ad2380fdc91d621b6fd77da8"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "asciidoctor",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            611936
+          ],
+          "current": [
+            613148
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "47c2197e659a56d014ecca3c9accbf0220b6c34dca0cab6bb09392e0bbab4d7d"
+          ],
+          "current": [
+            "84251ab216dc7aba7a94868569fd41ff38fd07affbdb6919b27746b29a4db873"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "sidekiq",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            49407
+          ],
+          "current": [
+            50295
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "5def8302402bde94965def52eee8c005aa95c812f2d1dce62f5e94757dda0b22"
+          ],
+          "current": [
+            "3097e449429d3c4484fb9038d249ca772f557710916a71237f131d0f468d2fdd"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "alacritty",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            39828
+          ],
+          "current": [
+            40136
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "509135f1a1c08484a2cb438055c5b5cca5cae52279835c4768aaadc2523e4d67"
+          ],
+          "current": [
+            "3c71e5590fb482d8cc6ae1111517c59654cf298f6e77d31d6aa1a6858eba4a08"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "requests",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            64984
+          ],
+          "current": [
+            66172
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "d0ecabc04d01884152423b8c8a4bbd98eb22772375c8ba807f25d0818de6d4bd"
+          ],
+          "current": [
+            "887ebdb5aff6d86b26d65a6c331378e80e9c9b7dc51e8d3c1baf1aa0dfe129a1"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "junit5",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            1809950
+          ],
+          "current": [
+            1811122
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "f2da77a63343da99603517a831ae85f9eaf2d80472779baa472b44fc68bd546d"
+          ],
+          "current": [
+            "35a1e2a46ae1a52eb02d2dd6683efcb0259963451c0ddfeb4616534ba845ee59"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "prettier",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            657696
+          ],
+          "current": [
+            658884
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "b782386e85fc6c67468a8ca0a69285d7bffd526adec0c58ac804c5c9b36c77de"
+          ],
+          "current": [
+            "9300ce01e7983f8ca2d11b5fd88b25c1d8ed1b23e2b1e79511729c012dae12e3"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
     }
   ],
   "schema": "nose.semantic_regression_expected_drift.v1"

@@ -103,7 +103,7 @@ pub(crate) enum Cmd {
     /// Operators: = != > < ~ !~; comma means OR, separate terms mean AND. Quote < and > in your shell.
     /// Numbers must be finite; >= and <= are unsupported and return errors.
     /// Navigate: group=dir|file|scope|witness, id=ID, at=FILE:LINE, sort=value|sites, top=N, all.
-    /// Details: full shows source comparisons; member-path~TEXT full shows selected member source.
+    /// Details: full shows source comparisons; member-id=ID full shows one copy; member-path~TEXT full selects source by path.
     ///
     /// Save with --save-analysis FILE. Compare saved populations with --before/--after;
     /// follow next commands, group=reason, evidence=recheck, change=ID and full.

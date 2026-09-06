@@ -207,3 +207,61 @@ fn help_teaches_basic_navigation_before_saved_analysis() {
     }
     assert!(help.find("Filters:").unwrap() < help.find("Save with").unwrap());
 }
+
+#[test]
+fn detail_roundtrip_keeps_filters_and_opens_one_member() {
+    let p = project();
+    let list = p.query(&[
+        "--mode",
+        "syntax",
+        "scope=prod",
+        "path~src/",
+        "files>1",
+        "top=5",
+    ]);
+    let detail = follow(&p, list["actions"][0]["command"].as_str().unwrap());
+    let back = follow(
+        &p,
+        detail["member_view"]["actions"][0]["command"]
+            .as_str()
+            .unwrap(),
+    );
+    assert_eq!(list["families"], back["families"]);
+    let loc = &detail["member_view"]["locations"][0];
+    let member = follow(&p, loc["next"][0].as_str().unwrap());
+    assert_eq!(member["member_view"]["selected"], 1);
+    assert_eq!(member["member_view"]["locations"][0]["id"], loc["id"]);
+    assert_eq!(
+        member["family"]["review_key"],
+        detail["family"]["review_key"]
+    );
+}
+
+#[test]
+fn grouped_top_limits_rows_and_expands_without_changing_counts() {
+    let p = Project::new();
+    for (directory, source) in [
+        (
+            "a",
+            "def f(xs):\n    acc = 0\n    for v in xs:\n        acc += v * 3\n    return acc\n",
+        ),
+        (
+            "b",
+            "def g(x):\n    a = x * 11\n    b = a + 29\n    c = b * b\n    return c + 5\n",
+        ),
+    ] {
+        for file in ["one.py", "two.py"] {
+            p.write(&format!("{directory}/{file}"), source);
+        }
+    }
+    let full = p.query(&["--mode", "semantic", "all", "group=dir", "top=0"]);
+    assert!(full["groups"].as_array().unwrap().len() > 1, "{full}");
+    let limited = p.query(&["--mode", "semantic", "all", "group=dir", "top=1"]);
+    assert_eq!(limited["groups"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        limited["summary"]["groups_total"],
+        full["summary"]["groups_total"]
+    );
+    let expanded = follow(&p, limited["next"][0].as_str().unwrap());
+    assert_eq!(expanded["groups"], full["groups"]);
+}

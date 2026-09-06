@@ -33,6 +33,7 @@ pub(super) fn loc_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
     let name = l
         .name
         .as_deref()
+        .or_else(|| l.enclosing_unit.as_ref().and_then(|u| u.name.as_deref()))
         .map(|n| format!("  {n}"))
         .unwrap_or_default();
     let width = pos.chars().count() + name.chars().count();
@@ -382,6 +383,8 @@ fn query_list_json(view: &QueryListView<'_>) -> serde_json::Value {
             "analysis": view.analysis,
             "path": path,
             "summary": { "families": selection.len(), "shown": shown, "widened": widen },
+            "actions":fams.iter().take(8).map(|f| serde_json::json!({"kind":"open-family", "id":f["id"],
+                "command":format!("{} id={} --format json", base_cmd(view.terms, view.navigation_path), f["id"].as_str().unwrap())})).collect::<Vec<_>>(),
             "families": fams,
             "next": [format!("{} group=dir --format json", base_cmd(view.terms, view.navigation_path)), format!("{} group=witness --format json", base_cmd(view.terms, view.navigation_path))],
         }),
@@ -444,8 +447,8 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
             _ => String::new(),
         };
         let cmd = style::dim(&format!(
-            "nose query {} id={}",
-            view.navigation_path,
+            "{} id={}",
+            base_cmd(view.terms, view.navigation_path),
             short_id(&baseline::family_id(f))
         ));
         println!(

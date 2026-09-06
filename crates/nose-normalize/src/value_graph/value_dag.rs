@@ -534,6 +534,7 @@ pub fn value_dag(
     // so the graded anti-unification can align an async fn with its sync twin and label it
     // `async-mirror` — see `crates/nose-detect/src/witness/anti_unify.rs`.
     b.await_transparent = false;
+    b.witness_spans = Some(witness_spans::WitnessSpans::new(il.node(root).span));
     b.build_unit_with_context(root, context);
     let nodes = b
         .nodes
@@ -541,9 +542,7 @@ pub fn value_dag(
         .enumerate()
         .map(|(i, n)| {
             let (op, key) = vg_op_and_key(&n.op);
-            let (line_start, line_end) = b.node_span[i]
-                .map(|s| (s.start_line, s.end_line))
-                .unwrap_or((0, 0));
+            let (line_start, line_end) = b.witness_spans.as_ref().unwrap().lines(i as ValueId);
             VgNode {
                 op,
                 key,

@@ -52,6 +52,7 @@ pub(super) struct Navigation<'a> {
     base: Vec<String>,
     format: ReportFormat,
     reviews: Vec<String>,
+    sources: String,
 }
 
 impl<'a> Navigation<'a> {
@@ -70,6 +71,7 @@ impl<'a> Navigation<'a> {
             base: selection_terms(terms),
             format,
             reviews: Vec::new(),
+            sources: String::new(),
         }
     }
 
@@ -78,6 +80,19 @@ impl<'a> Navigation<'a> {
             .iter()
             .map(|p| format!(" --reviews {}", quote(&p.to_string_lossy())))
             .collect();
+        self
+    }
+
+    pub(super) fn with_sources(mut self, options: &super::AnalysisArgs) -> Self {
+        for (flag, path) in [
+            ("--before-source", &options.before_source),
+            ("--after-source", &options.after_source),
+        ] {
+            if let Some(path) = path {
+                self.sources
+                    .push_str(&format!(" {flag} {}", quote(&path.to_string_lossy())));
+            }
+        }
         self
     }
 
@@ -93,6 +108,11 @@ impl<'a> Navigation<'a> {
             command(self.before, self.after, budget, terms, self.format),
             self.reviews.join("")
         )
+    }
+
+    fn resume_action(&self) -> serde_json::Value {
+        serde_json::json!({"kind":"resume-selection","label":"Resume this saved selection",
+            "command":format!("{}{}", self.command(self.budget, self.terms), self.sources)})
     }
 
     pub(super) fn actions(
@@ -196,6 +216,9 @@ impl<'a> Navigation<'a> {
                 "Show all entries in this view",
                 self.command(self.budget, &expanded),
             ));
+        }
+        if selected > 0 && !self.terms.is_empty() {
+            actions.push(self.resume_action());
         }
         actions
     }

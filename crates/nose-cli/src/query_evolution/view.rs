@@ -47,7 +47,8 @@ pub(super) fn run(
     rows.sort_by_key(|r| (r.unchanged_evidence, r.id));
     let search_complete = candidate_search_complete(&comparison);
     let navigation = navigation::Navigation::new(&before_path, &after_path, budget, terms, format)
-        .with_reviews(&options.reviews);
+        .with_reviews(&options.reviews)
+        .with_sources(options);
     let mut groups: BTreeMap<String, usize> = BTreeMap::new();
     let group_field = selection.group.as_deref().unwrap_or("reason");
     for row in &rows {
@@ -77,7 +78,7 @@ pub(super) fn run(
     }
     let next: Vec<_> = actions.iter().map(|a| a["command"].clone()).collect();
     let output = json!({
-        "schema":comparison.schema,"view":view,
+        "schema":comparison.schema,"view":view,"exploration":before_path == after_path,
         "inputs":{"before":before_path,"after":after_path},
         "population":"admitted-query-families", "profile_matches":comparison.profile_matches,
         "profiles":{"before":before.profile,"after":after.profile},

@@ -486,3 +486,15 @@ original `path` metadata. Group rows add `next[]`; an unfilterable diagnostic bu
 its exemplar instead. Invalid numeric filters return a nonzero error, not a successful
 empty list. Candidate-budget failures likewise return no partial finding envelope; stderr
 contains source inventory and root-narrowing commands.
+
+## Bounded exploration navigation
+
+Ordinary group output honors `top=N` (default 30, zero means all), with
+`summary.groups_total`, `summary.groups_shown`, and `summary.families` separating
+population counts from display limits. A truncated group offers a `next` command
+that expands the same group and filters. List `actions` provides `open-family` commands for up to eight shown families,
+with IDs and the current selection preserved. Family `member_view.actions` names return
+and resume commands; each member location has a direct `next` link using
+`member-id=ID full`. Selecting a member does not change family metrics or identity.
+Dashboard directory routes summarize the first directory under each explicit root
+and do not filter, rank, or classify the findings automatically.

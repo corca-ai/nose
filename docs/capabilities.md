@@ -202,6 +202,7 @@ nose capabilities
     },
     "analysis": {
       "actions": [
+        "resume-selection",
         "reset-filters",
         "increase-budget",
         "recheck",
@@ -350,6 +351,7 @@ nose capabilities
         "at=FILE:LINE"
       ],
       "terms": [
+        "member-id=ID",
         "member-group=dir|lang|scope",
         "member-dir=DIR",
         "member-path~TEXT",

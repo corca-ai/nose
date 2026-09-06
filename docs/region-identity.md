@@ -180,6 +180,21 @@ review key and scope under compatible profiles with complete coverage. It never
 approves a newly added copy. `evidence=recheck` includes uncertainty; it is not a
 consumer's final review disposition.
 
+Coverage distinguishes `population_complete` (discovery) from
+`source_evidence_complete` (captured member addresses/content keys); `complete`
+requires both. `unavailable_members` identifies missing member evidence separately
+from skipped-file `diagnostics`. A saved artifact's original `complete` field still
+means population discovery completeness. Recapturing identical inputs does not
+necessarily restore an unavailable source selector. Missing evidence continues to
+block transfer between captures, including when a different family is affected.
+
+Self-comparison is labeled saved-analysis exploration. The `resume-selection` action
+retains comparison inputs, filters, selected change, view, format and review files.
+It is a command to resume that view, not a stored editing session. Human source
+inspection displays identical verified text once and omits unchanged diffs. Bodies
+are limited to 120 displayed lines; JSON retains complete verified bodies within
+the existing byte limits and carries `source_diffs[].same_content`.
+
 The first screen summarizes total retained/recheck observations, then current selection
 and shown counts. Recheck observations precede retained observations; observation IDs
 break ties deterministically. This presentation order does not change matching or rank
@@ -237,7 +252,8 @@ nose query --before before.json --after after.json --reviews decision.json revie
 
 `--write-review` creates a new `nose.review/v1` file and never overwrites. It requires
 one selected change with exactly one current family, a nonempty reason, a review key
-and complete captured source evidence. The target is the **after** observation; comparing
+and complete captured source evidence for that family. Missing evidence in unrelated
+families does not block recording this explicit current decision. The target is the **after** observation; comparing
 a capture with itself is a convenient way to record an initial judgment. Decisions are
 `keep-separate`, `refactor` and `defer`. They express the caller's intent and never suppress
 findings, alter gates, or authorize source edits.
@@ -246,7 +262,9 @@ A record binds the original analysis content, exact family observation, review k
 scope. Reuse requires the bound artifact as one of the explicit comparison inputs and
 complete, profile-compatible evidence. An old decision is `applicable` only across an
 unambiguous correspondence retaining its review evidence and scope; a decision targeting
-the exact current observation can also apply directly. Changed or uncertain correspondence,
+the exact current observation can also apply directly when its selected source evidence
+is complete, even if unrelated members make the population incomplete. This direct
+condition records current intent; it does not assert cross-capture evidence retention. Changed or uncertain correspondence,
 new member copies, changed scope/evidence, incomplete comparison and conflicting decisions
 require `recheck`. This is conditional applicability, not proof of historical lineage.
 Records from other captures are listed as unrelated; supply their original capture rather

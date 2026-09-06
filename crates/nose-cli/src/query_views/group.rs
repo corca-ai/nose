@@ -4,6 +4,7 @@ use std::collections::HashMap;
 pub(crate) struct QueryGroupView<'a> {
     pub(crate) analysis: &'a serde_json::Value,
     pub(crate) selection: &'a [&'a nose_detect::RefactorFamily],
+    pub(crate) top: Option<usize>,
     pub(crate) field: &'a str,
     pub(crate) terms: &'a [String],
     pub(crate) path: &'a str,
@@ -24,10 +25,12 @@ struct GroupAgg {
 
 pub(crate) fn render_query_group(view: QueryGroupView<'_>) {
     let rows = grouped_rows(&view);
+    let total = rows.len();
+    let shown = &rows[..total.min(query_row_limit(view.top))];
     if view.json {
-        render_group_json(&view, &rows);
+        render_group_json(&view, shown, total);
     } else {
-        render_group_human(&view, &rows);
+        render_group_human(&view, shown, total);
     }
 }
 
@@ -84,7 +87,7 @@ fn grouped_rows(view: &QueryGroupView<'_>) -> Vec<(String, GroupAgg)> {
     rows
 }
 
-fn render_group_json(view: &QueryGroupView<'_>, rows: &[(String, GroupAgg)]) {
+fn render_group_json(view: &QueryGroupView<'_>, rows: &[(String, GroupAgg)], total: usize) {
     let groups: Vec<_> = rows
         .iter()
         .map(|(key, aggregate)| {
@@ -108,19 +111,22 @@ fn render_group_json(view: &QueryGroupView<'_>, rows: &[(String, GroupAgg)]) {
                 "path": view.path,
                 "field": view.field,
                 "groups": groups,
+                "summary":{"families":view.selection.len(),"groups_total":total,"groups_shown":rows.len()},
+                "next":if rows.len() < total { vec![expand_command(view)] } else { vec![] },
             }),
             view.semantic_packs
         )
     );
 }
 
-fn render_group_human(view: &QueryGroupView<'_>, rows: &[(String, GroupAgg)]) {
+fn render_group_human(view: &QueryGroupView<'_>, rows: &[(String, GroupAgg)], total: usize) {
     println!(
         "{} {} by {} (most removable first):",
         view.selection.len(),
         plural(view.selection.len(), "family", "families"),
         view.field
     );
+    println!("Showing {} / {total} groups.", rows.len());
     for (key, aggregate) in rows {
         let label = if view.field == "witness" && key == "subdag" {
             "shared-core"
@@ -139,6 +145,24 @@ fn render_group_human(view: &QueryGroupView<'_>, rows: &[(String, GroupAgg)]) {
             group_command(view, key, &aggregate.exemplar_id)
         );
     }
+    if rows.len() < total {
+        println!("Show all groups: {}", expand_command(view));
+    }
+}
+
+fn expand_command(view: &QueryGroupView<'_>) -> String {
+    let terms = view
+        .terms
+        .iter()
+        .filter(|t| !t.starts_with("top="))
+        .cloned()
+        .collect::<Vec<_>>();
+    format!(
+        "{} group={} top=0{}",
+        base_cmd(&terms, view.navigation_path),
+        view.field,
+        if view.json { " --format json" } else { "" }
+    )
 }
 
 fn group_command(view: &QueryGroupView<'_>, key: &str, exemplar: &str) -> String {

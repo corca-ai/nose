@@ -239,3 +239,9 @@ either produces a source-specific analysis error, including embedded script,
 style and markup regions. Common scope and identifier traversals use explicit
 work stacks; CLI workers reserve 64 MiB rather than 1 GiB. These are analysis
 resource limits, not claims that arbitrarily deep source can be processed.
+
+Witness source locations use a separate, optional per-unit occurrence map. Ordinary
+fingerprints retain their original hash-consed graph and creation-span behavior;
+only requested value-DAG export enables occurrence tracking. The map rejects
+out-of-unit and foreign locations and leaves disjoint occurrences unavailable.
+See the [graded witness contract](graded-witness.md) for the source-evidence boundary.

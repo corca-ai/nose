@@ -126,6 +126,12 @@ fn dashboard_offers_executable_scope_and_evaluation_routes_in_json() {
     assert!(
         commands
             .iter()
+            .any(|c| c.as_str().unwrap().contains("path~src/")),
+        "{dashboard}"
+    );
+    assert!(
+        commands
+            .iter()
             .any(|c| c.as_str().unwrap().contains("path~bench/")),
         "{dashboard}"
     );

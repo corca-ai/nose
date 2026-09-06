@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 #[derive(Default)]
 pub(crate) struct Members {
     pub group: Option<String>,
+    pub id: Option<String>,
     pub path: Option<String>,
     pub dir: Option<String>,
     pub lang: Option<String>,
@@ -24,11 +25,12 @@ impl Members {
         }
         let (field, value) = term.split_once('=').ok_or_else(|| {
             anyhow::anyhow!(
-                "expected member-group=, member-dir=, member-lang=, member-scope= or member-path~"
+                "expected member-id=, member-group=, member-dir=, member-lang=, member-scope= or member-path~"
             )
         })?;
         anyhow::ensure!(!value.is_empty(), "member filter needs a value");
         match field {
+            "id" => self.id = Some(value.into()),
             "group" => {
                 anyhow::ensure!(
                     ["dir", "lang", "scope"].contains(&value),
@@ -46,20 +48,24 @@ impl Members {
                 self.scope = Some(value.into());
             }
             _ => anyhow::bail!(
-                "unknown member field `{field}`; use group, dir, lang, scope or path~"
+                "unknown member field `{field}`; use id, group, dir, lang, scope or path~"
             ),
         }
         Ok(true)
     }
     pub(crate) fn active(&self) -> bool {
-        self.dir.is_some()
+        self.id.is_some()
+            || self.dir.is_some()
             || self.group.is_some()
             || self.path.is_some()
             || self.lang.is_some()
             || self.scope.is_some()
     }
     pub(crate) fn keeps(&self, loc: &Loc) -> bool {
-        self.dir.as_ref().is_none_or(|d| directory(loc) == *d)
+        self.id
+            .as_ref()
+            .is_none_or(|id| baseline::member_id(loc) == *id)
+            && self.dir.as_ref().is_none_or(|d| directory(loc) == *d)
             && self.path.as_ref().is_none_or(|p| loc.file.contains(p))
             && self.lang.as_ref().is_none_or(|l| &loc.lang == l)
             && self.scope.as_ref().is_none_or(|s| {
@@ -72,6 +78,9 @@ impl Members {
     }
     fn terms(&self) -> Vec<String> {
         let mut terms = Vec::new();
+        if let Some(id) = &self.id {
+            terms.push(format!("member-id={id}"));
+        }
         if let Some(d) = &self.dir {
             terms.push(format!("member-dir={d}"));
         }
@@ -87,7 +96,12 @@ impl Members {
         terms
     }
 }
-pub(crate) fn view(f: &RefactorFamily, q: &Query, args: &crate::cli_args::QueryArgs) -> Value {
+pub(crate) fn view(
+    f: &RefactorFamily,
+    q: &Query,
+    args: &crate::cli_args::QueryArgs,
+    terms: &[String],
+) -> Value {
     let selected: Vec<_> = f
         .locations
         .iter()
@@ -98,22 +112,7 @@ pub(crate) fn view(f: &RefactorFamily, q: &Query, args: &crate::cli_args::QueryA
     } else {
         q.top.unwrap_or(30)
     };
-    let mut words = crate::query_navigation::words(args);
-    words.extend([
-        format!("id={}", baseline::family_id(f)),
-        "--format".into(),
-        if args.format == crate::query_options::ReportFormat::Json {
-            "json"
-        } else {
-            "human"
-        }
-        .into(),
-    ]);
-    let base = words
-        .iter()
-        .map(|w| shell_quote(w))
-        .collect::<Vec<_>>()
-        .join(" ");
+    let (base, return_command) = family_commands(f, args, terms);
     let command = |suffix: Vec<String>| {
         let mut terms = q.member_view.terms();
         terms.extend(suffix);
@@ -166,9 +165,64 @@ pub(crate) fn view(f: &RefactorFamily, q: &Query, args: &crate::cli_args::QueryA
         .then(|| crate::query_source_evidence::selected_sources(&selected));
     json!({"source_bodies":source,"total":f.locations.len(),"selected":selected.len(),"shown":if q.member_view.group.is_some() {0} else {selected.len().min(top)},
         "group":q.member_view.group,"groups":group_rows,"groups_total":groups.len(),
-        "locations":if q.member_view.group.is_some() {Vec::new()} else {selected.into_iter().take(top).map(|l| json!({"id":baseline::member_id(l),"file":l.file,"start":l.start_line,"end":l.end_line,"name":l.name,"lang":l.lang,"region":l.source_region,"boundary":crate::query_assessment::boundary(l),"scope_evidence":crate::query_assessment::scope(l)})).collect::<Vec<_>>()},
-        "next":[command(vec!["member-group=dir".into()]),command(vec!["member-group=lang".into()]),command(vec!["member-group=scope".into()]),command(expand),format!("{base} full"),base],
+        "locations":if q.member_view.group.is_some() {Vec::new()} else {selected.into_iter().take(top).map(|l| json!({"id":baseline::member_id(l),"file":l.file,"start":l.start_line,"end":l.end_line,"name":l.name,"lang":l.lang,"region":l.source_region,"boundary":crate::query_assessment::boundary(l),"scope_evidence":crate::query_assessment::scope(l),"next":[format!("{base} {} full",shell_quote(&format!("member-id={}",baseline::member_id(l))))]})).collect::<Vec<_>>()},
+        "actions":[{"kind":"return-selection","label":"Return to the family selection","command":return_command},{"kind":"resume-selection","label":"Resume this selection","command":command(q.member_view.group.iter().map(|g| format!("member-group={g}")).chain(q.top.map(|top| format!("top={top}"))).chain(q.id_full.then(|| "full".into())).collect())}],
+        "next":[return_command,command(vec!["member-group=dir".into()]),command(vec!["member-group=lang".into()]),command(vec!["member-group=scope".into()]),command(expand),format!("{base} full"),base],
         "meaning":"Member selection only; family identity, evidence, metrics and assessment describe the complete family."})
+}
+fn family_commands(
+    f: &RefactorFamily,
+    args: &crate::cli_args::QueryArgs,
+    terms: &[String],
+) -> (String, String) {
+    let mut words = crate::query_navigation::words(args);
+    let returning: Vec<_> = terms
+        .iter()
+        .filter(|t| {
+            !t.starts_with("id=")
+                && !t.starts_with("at=")
+                && !t.starts_with("member-")
+                && *t != "full"
+        })
+        .cloned()
+        .collect();
+    let mut return_words = words.clone();
+    return_words.extend(returning.iter().cloned());
+    return_words.extend([
+        "--format".into(),
+        if args.format == crate::query_options::ReportFormat::Json {
+            "json"
+        } else {
+            "human"
+        }
+        .into(),
+    ]);
+    let return_command = return_words
+        .iter()
+        .map(|w| shell_quote(w))
+        .collect::<Vec<_>>()
+        .join(" ");
+    words.extend(
+        returning
+            .into_iter()
+            .filter(|t| !t.starts_with("group=") && !t.starts_with("top=")),
+    );
+    words.extend([
+        format!("id={}", baseline::family_id(f)),
+        "--format".into(),
+        if args.format == crate::query_options::ReportFormat::Json {
+            "json"
+        } else {
+            "human"
+        }
+        .into(),
+    ]);
+    let base = words
+        .iter()
+        .map(|w| shell_quote(w))
+        .collect::<Vec<_>>()
+        .join(" ");
+    (base, return_command)
 }
 pub(crate) fn render(view: &Value) {
     println!(
@@ -197,8 +251,15 @@ pub(crate) fn render(view: &Value) {
     }
     println!("  {}", view["meaning"].as_str().unwrap());
     println!("next:");
-    for command in view["next"].as_array().unwrap() {
-        println!("  {}", command.as_str().unwrap());
+    for action in view["actions"].as_array().unwrap() {
+        println!(
+            "  {}: {}",
+            action["label"].as_str().unwrap(),
+            action["command"].as_str().unwrap()
+        );
+    }
+    if view["selected"].as_u64() > view["shown"].as_u64() {
+        println!("  Show all: {}", view["next"][4].as_str().unwrap());
     }
 }
 
@@ -212,6 +273,6 @@ fn directory(loc: &Loc) -> String {
 }
 
 pub(crate) fn capabilities() -> Value {
-    json!({"requires":["id=ID", "at=FILE:LINE"],"terms":["member-group=dir|lang|scope", "member-dir=DIR", "member-path~TEXT", "member-lang=LANG", "member-scope=prod|test", "top=N", "full"],
+    json!({"requires":["id=ID", "at=FILE:LINE"],"terms":["member-id=ID", "member-group=dir|lang|scope", "member-dir=DIR", "member-path~TEXT", "member-lang=LANG", "member-scope=prod|test", "top=N", "full"],
         "formats":["human","json"],"metrics_scope":"complete-family","default_top":30,"full_source":{"scope":"selected-members","source":"live-unverified","member_limit":8,"line_limit_per_member":120}})
 }

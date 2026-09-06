@@ -39,6 +39,16 @@ behavior sinks aligned, and no consumed name mismatched. The exact channel is th
 degenerate `k = 0` case; the experimental [`abstraction`](usage.md) witness is the
 `k = 1` literal case.
 
+## Source occurrence locations
+
+Value nodes are shared by equal computations, so a node's first creation site is
+not the location of every later occurrence. Witness export records expression
+occurrences inside the selected unit separately from fingerprint construction.
+Nested wrappers retain their inner occurrence. Disjoint equal-value occurrences,
+foreign-file spans, and unobserved or out-of-unit values have unavailable locations;
+no source text is borrowed from another same-valued expression. This affects only
+witness location evidence, not value equality, grades, scoring, or review keys.
+
 ## Patterns, not noise
 
 Some divergences are better described than itemized as holes:

@@ -127,11 +127,12 @@ impl Reviews {
             if !at_before && !at_after { return None }
             let target = if at_before { old } else { current.iter().copied().find(|f| f.id == record.family) };
             let valid_record = target.is_some_and(|f| f.review_key == Some(record.review_key) && f.scope == record.scope);
-            let applicable = valid_record && complete && (at_after || row.unchanged_evidence)
+            let direct = at_after && current.len() == 1 && source_complete(current[0]);
+            let applicable = valid_record && (direct || (complete && row.unchanged_evidence))
                 && current.len() == 1 && current[0].review_key == Some(record.review_key) && current[0].scope == record.scope;
             Some(json!({"file":path,"decision":record.decision,"reason":record.reason,
                 "status":if applicable { "applicable" } else { "recheck" },
-                "basis":if applicable { "Explicit target relation, review evidence and scope satisfy the recorded conditions." }
+                "basis":if applicable { if direct { "Caller decision is bound to this exact current observation; no cross-capture evidence reuse is asserted." } else { "Explicit target relation, review evidence and scope satisfy the recorded conditions." } }
                     else { "Target correspondence, review evidence, scope or coverage no longer satisfies the recorded conditions; inspect change reasons." }}))
         }).collect();
         if assessments
@@ -154,6 +155,14 @@ impl Reviews {
     }
 }
 
+fn source_complete(family: &FamilyObservation) -> bool {
+    family.review_key.is_some()
+        && family
+            .members
+            .iter()
+            .all(|m| m.source.is_some() && m.content_key.is_some())
+}
+
 pub(super) fn write(
     path: &Path,
     snapshot: &AnalysisSnapshot,
@@ -164,8 +173,8 @@ pub(super) fn write(
     ensure!(!reason.trim().is_empty(), "review reason must not be empty");
     ensure!(reason.len() <= 64 * 1024, "review reason exceeds 64 KiB");
     ensure!(
-        super::capture::coverage(snapshot)["complete"] == true,
-        "review requires complete captured source evidence"
+        source_complete(family),
+        "review requires complete captured source evidence for the selected family; inspect its member evidence and missing-source diagnostics. Other families do not block this decision"
     );
     let record = Record {
         schema: "nose.review/v1".into(),
