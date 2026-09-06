@@ -272,6 +272,13 @@ The tag is what triggers CI, so the CHANGELOG and version bump must land **befor
 it — a tag pushed against a stale `[Unreleased]` ships a release the changelog never
 records.
 
+Candidate pull requests build and upload the four platform archives with
+`pr-run-mode = "upload"`. Their package smoke checks validate checksums and run
+the extracted binary on the native build runner. These artifacts allow release
+verification before a publishing tag is pushed; the existing publication quality
+gate remains required. See the [0.21 candidate qualification](release-evidence-0.21.0.md)
+for the current preparation status.
+
 The cargo-dist pipeline lives in `dist-workspace.toml`; the artifact-building jobs in
 `.github/workflows/release.yml` are generated from it. The repository-owned quality-gate
 job at the top of that workflow is a local publishing guard; preserve it if regenerating

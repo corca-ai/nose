@@ -255,8 +255,10 @@ def validate_manifests(mutation_path: Path, baseline_path: Path) -> tuple[dict[s
         raise SystemExit(f"{mutation_path}: synthetic tiers must be exactly 1k/10k/100k")
 
     baseline = load_json(baseline_path)
-    if baseline.get("schema") != BASELINE_SCHEMA or baseline.get("version") != "0.19.0":
-        raise SystemExit(f"{baseline_path}: expected official v0.19.0 baseline")
+    if baseline.get("schema") != BASELINE_SCHEMA or re.fullmatch(
+        r"[0-9]+\.[0-9]+\.[0-9]+", str(baseline.get("version"))
+    ) is None:
+        raise SystemExit(f"{baseline_path}: expected a versioned official release baseline")
     artifacts = baseline.get("artifacts")
     if not isinstance(artifacts, list) or len(artifacts) != 4:
         raise SystemExit(f"{baseline_path}: expected four published targets")
@@ -926,7 +928,7 @@ def validate_comparison_payload(report: dict[str, Any]) -> None:
         raise SystemExit("cache comparison summary does not match its raw rows")
 
 
-def validate_report(path: Path) -> None:
+def validate_report(path: Path, baseline_path: Path = DEFAULT_BASELINE) -> None:
     report = load_json(path)
     if report.get("schema") == COMPARISON_SCHEMA:
         validate_comparison_payload(report)
@@ -935,7 +937,7 @@ def validate_report(path: Path) -> None:
     provenance = report["provenance"]
     current = {
         "mutation_manifest_sha256": sha256_file(DEFAULT_MANIFEST),
-        "official_baseline_sha256": sha256_file(DEFAULT_BASELINE),
+        "official_baseline_sha256": sha256_file(baseline_path),
     }
     for field, expected in current.items():
         if provenance[field] != expected:
@@ -970,7 +972,7 @@ def write_receipt(report_path: Path, output_path: Path) -> None:
     )
 
 
-def validate_receipt(path: Path) -> None:
+def validate_receipt(path: Path, baseline_path: Path = DEFAULT_BASELINE) -> None:
     receipt = load_json(path)
     if (
         receipt.get("schema") != RECEIPT_SCHEMA
@@ -998,7 +1000,7 @@ def validate_receipt(path: Path) -> None:
         raise SystemExit(f"{path}: invalid raw report seal")
     current = {
         "mutation_manifest_sha256": sha256_file(DEFAULT_MANIFEST),
-        "official_baseline_sha256": sha256_file(DEFAULT_BASELINE),
+        "official_baseline_sha256": sha256_file(baseline_path),
     }
     for field, expected in current.items():
         if provenance.get(field) != expected:
@@ -1286,7 +1288,7 @@ def main() -> int:
         self_test()
         return 0
     if args.validate_report is not None:
-        validate_report(args.validate_report.resolve())
+        validate_report(args.validate_report.resolve(), args.official_baseline.resolve())
         return 0
     if args.write_receipt is not None:
         if args.output is None:
@@ -1294,7 +1296,7 @@ def main() -> int:
         write_receipt(args.write_receipt.resolve(), args.output.resolve())
         return 0
     if args.validate_receipt is not None:
-        validate_receipt(args.validate_receipt.resolve())
+        validate_receipt(args.validate_receipt.resolve(), args.official_baseline.resolve())
         return 0
     if args.binary is None or args.output is None:
         raise SystemExit("--binary and --output are required")

@@ -79,8 +79,13 @@ def one_shot_identity(
     }
 
 
-def official_identity(archive: Path | None, binary: Path | None) -> dict[str, Any]:
-    manifest = load_object(BASELINE)
+def official_identity(
+    archive: Path | None, binary: Path | None, baseline: Path = BASELINE
+) -> dict[str, Any]:
+    manifest = load_object(baseline)
+    version = manifest.get("version")
+    if manifest.get("schema") != "nose.official_binary_baseline/v1" or not isinstance(version, str):
+        raise SystemExit(f"invalid official baseline manifest: {baseline}")
     triple = target_triple()
     row = next(
         (item for item in manifest.get("artifacts", []) if item.get("target") == triple),
@@ -95,18 +100,19 @@ def official_identity(archive: Path | None, binary: Path | None) -> dict[str, An
     binary = binary.resolve()
     for path, field in ((archive, "archive_sha256"), (binary, "binary_sha256")):
         if not path.is_file():
-            raise SystemExit(f"missing official v0.19.0 {field}: {path}")
+            raise SystemExit(f"missing official v{version} {field}: {path}")
         actual = sha256_file(path)
         if actual != row[field]:
-            raise SystemExit(f"official v0.19.0 {field} mismatch: {actual} != {row[field]}")
+            raise SystemExit(f"official v{version} {field} mismatch: {actual} != {row[field]}")
     return {
+        "version": version,
         "target": triple,
         "archive": str(archive.relative_to(ROOT)),
         "archive_sha256": row["archive_sha256"],
         "binary": str(binary.relative_to(ROOT)),
         "binary_sha256": row["binary_sha256"],
-        "manifest": str(BASELINE.relative_to(ROOT)),
-        "manifest_sha256": sha256_file(BASELINE),
+        "manifest": str(baseline.relative_to(ROOT)),
+        "manifest_sha256": sha256_file(baseline),
         "verified": True,
     }
 
@@ -330,9 +336,12 @@ def validate_report(path: Path) -> None:
     report = load_object(path)
     if report.get("schema") != SCHEMA or report.get("status") != "pass":
         raise SystemExit(f"{path}: watch benchmark is not passing")
-    if not report.get("provenance", {}).get("official_v0_19", {}).get("verified"):
-        raise SystemExit(f"{path}: official v0.19.0 binary was not verified")
     provenance = report["provenance"]
+    official = provenance.get("official", provenance.get("official_v0_19", {}))
+    if not official.get("verified"):
+        raise SystemExit(f"{path}: official baseline binary was not verified")
+    if "official" in provenance and "official_v0_19" in provenance:
+        raise SystemExit(f"{path}: ambiguous official baseline identity")
     one_shot = provenance.get("one_shot_evidence", {})
     if one_shot.get("exact_candidate_binding"):
         if (
@@ -371,6 +380,7 @@ def main() -> None:
     parser.add_argument("--replays", type=int, default=30)
     parser.add_argument("--official-archive", type=Path)
     parser.add_argument("--official-binary", type=Path)
+    parser.add_argument("--official-baseline", type=Path, default=BASELINE)
     parser.add_argument("--candidate-revision")
     parser.add_argument("--one-shot-evidence", type=Path, default=ONE_SHOT)
     parser.add_argument("--validate-report", type=Path)
@@ -420,7 +430,9 @@ def main() -> None:
             "candidate_revision": candidate_revision,
             "harness": str(Path(__file__).relative_to(ROOT)),
             "harness_sha256": sha256_file(Path(__file__)),
-            "official_v0_19": official_identity(args.official_archive, args.official_binary),
+            "official": official_identity(
+                args.official_archive, args.official_binary, args.official_baseline.resolve()
+            ),
             "one_shot_evidence": one_shot,
         },
         "tiers": tiers,

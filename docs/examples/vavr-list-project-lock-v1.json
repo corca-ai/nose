@@ -12,7 +12,7 @@
       "manifest_api_version": "nose.semantic-pack.v1",
       "pack_id": "org.corca.reference.java-vavr-list",
       "pack_version": "1.0.0",
-      "nose_compatibility": ">=0.19.0 <0.21.0",
+      "nose_compatibility": ">=0.19.0 <0.22.0",
       "semantic_digest": "sha256:e0abacf8a1f01dc5d1cc417b1bd7a47e9decfce0f9f700dd5322dd6ddd7cd597",
       "allowed_channels": [
         "near",
@@ -24,7 +24,7 @@
       ],
       "exact_receipt": {
         "path": "semantic-pack-receipts/vavr-list.v1.json",
-        "content_digest": "sha256:38804aef24c7487cada2eb9f524a86e3803dc5999ad080f68a3a834d80b53003"
+        "content_digest": "sha256:87efe73359a17f5b4408fc31d2d6d0e02637e4f59d4231a9773815366dfd080a"
       }
     }
   ]

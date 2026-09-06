@@ -6,6 +6,8 @@ break.
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-09-06
+
 - Avoid repeated Rust scope traversal for type references without a matching Tokio
   runtime import, preserving the existing type-evidence and shadowing checks.
 

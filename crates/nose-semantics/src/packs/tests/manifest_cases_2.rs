@@ -89,7 +89,7 @@ fn compatibility_nose_must_be_version_requirement_like() {
     fs::write(
         &path,
         manifest("com.example.pack").replace(
-            r#""compatibility": { "nose": ">=0.19.0 <0.21.0" }"#,
+            r#""compatibility": { "nose": ">=0.19.0 <0.22.0" }"#,
             r#""compatibility": { "nose": "current stable" }"#,
         ),
     )
@@ -110,7 +110,7 @@ fn compatibility_nose_accepts_semver_operator_spacing() {
         fs::write(
             &path,
             manifest("com.example.pack").replace(
-                r#""compatibility": { "nose": ">=0.19.0 <0.21.0" }"#,
+                r#""compatibility": { "nose": ">=0.19.0 <0.22.0" }"#,
                 &format!(r#""compatibility": {{ "nose": "{supported_range}" }}"#),
             ),
         )
@@ -131,7 +131,7 @@ fn compatibility_nose_must_include_current_binary_version() {
         fs::write(
             &path,
             manifest("com.example.pack").replace(
-                r#""compatibility": { "nose": ">=0.19.0 <0.21.0" }"#,
+                r#""compatibility": { "nose": ">=0.19.0 <0.22.0" }"#,
                 &format!(r#""compatibility": {{ "nose": "{unsupported_range}" }}"#),
             ),
         )

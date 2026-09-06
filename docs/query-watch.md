@@ -51,7 +51,7 @@ Each stdout line is one JSON object with schema `nose.query-watch/v1`. Successfu
   "reconciliation": "incremental-leaf",
   "invalidation": { "schema": "nose.invalidation/v1" },
   "latency_ms": 12.4,
-  "snapshot": { "tool": "nose", "view": "dashboard", "schema_version": 9 }
+  "snapshot": { "tool": "nose", "view": "dashboard", "schema_version": 10 }
 }
 ```
 

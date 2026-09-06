@@ -66,8 +66,8 @@
       "validator": "./scripts/check-ci-local.sh --gate runtime-soundness-evidence",
       "consumers": ["cache soundness and incremental-run regression gates"],
       "retention_policy": "Keep active baselines, mutation manifests, and their receipts as one provenance unit.",
-      "artifact_count": 18,
-      "inventory_sha256": "c734dacdb0d47aacab074eb11911e196130ef9724255327c8fe7450fd333a7ec"
+      "artifact_count": 19,
+      "inventory_sha256": "7a27cbd1d6f898d3de8cc4d95eb9a14ab0ab6fc0789719c2b182c181b87a5e73"
     },
     {
       "id": "coevolution-evidence",
@@ -199,7 +199,7 @@
       "consumers": ["documentation lifecycle and freshness gate"],
       "retention_policy": "Keep the current catalog synchronized with every Markdown page; retain supersession metadata while any historical record points to it.",
       "artifact_count": 1,
-      "inventory_sha256": "cf04a1251fd985f513c1b54b8c7f4e403e6b8e7b25d71f435938cb844143550e"
+      "inventory_sha256": "727e468065503f73db1f53ba6326473c6024eb395d773b2b638bb67d7f91eab7"
     },
     {
       "id": "documentation-examples",
@@ -210,7 +210,7 @@
       "consumers": ["documentation tests and semantic-pack examples"],
       "retention_policy": "Keep examples synchronized with supported schemas; keep receipts with the examples they bind.",
       "artifact_count": 10,
-      "inventory_sha256": "ca946be446b4e60df878af0d3185254c261c246340e9e26516b69e64a2872a46"
+      "inventory_sha256": "5afa49db1f3358fc8edad9d4c88f62c5e349bda49bce5ae84f9f3414cd019d85"
     },
     {
       "id": "documentation-schemas",

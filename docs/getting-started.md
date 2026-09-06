@@ -25,6 +25,9 @@ Silicon + Intel) and Linux (x86_64 + arm64) are attached to every
 [release](https://github.com/corca-ai/nose/releases). To build from source
 instead, see [usage → Install](usage.md#install).
 
+For the next release candidate, the [0.21 upgrade notes](release-evidence-0.21.0.md#upgrade-from-0200)
+explain JSON schema, cache rebuild and saved-analysis/semantic-pack compatibility.
+
 ## Your first run: `nose query`
 
 `nose query <path>` is the one command you need. Point it at any file or directory
