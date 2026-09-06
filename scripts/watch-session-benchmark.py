@@ -18,6 +18,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from query_cache_output import NORMALIZER, comparable_output, self_test as output_self_test
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = "nose.query_watch_benchmark/v1"
@@ -255,6 +257,10 @@ def mutate(path: Path, index: int, negative: bool) -> None:
     )
 
 
+def matches_clean(snapshot: dict[str, Any], clean: dict[str, Any], cache: Path) -> bool:
+    return comparable_output(snapshot, cache) == comparable_output(clean, None)
+
+
 def run_tier(binary: Path, files: int, replays: int, workspace: Path) -> dict[str, Any]:
     print(f"[{files}] generate", flush=True)
     repo = workspace / "repo"
@@ -266,7 +272,7 @@ def run_tier(binary: Path, files: int, replays: int, workspace: Path) -> dict[st
     print(f"[{files}] start session", flush=True)
     process = start_watch(binary, workspace, cache)
     initial = read_record(process)
-    if initial.get("sequence") != 0 or initial.get("snapshot") != clean_snapshot(binary, workspace):
+    if initial.get("sequence") != 0 or not matches_clean(initial.get("snapshot"), clean_snapshot(binary, workspace), cache):
         stop_watch(process, crash=True)
         raise SystemExit(f"{files}: initial watch snapshot differs from a clean query")
     rows: list[dict[str, Any]] = []
@@ -280,7 +286,7 @@ def run_tier(binary: Path, files: int, replays: int, workspace: Path) -> dict[st
             record = read_record(process)
             end_to_end_ms = (time.perf_counter() - started) * 1_000.0
             clean = clean_snapshot(binary, workspace)
-            if record.get("snapshot") != clean:
+            if not matches_clean(record.get("snapshot"), clean, cache):
                 raise SystemExit(f"{files} replay {replay}: watch snapshot differs from clean")
             current_rss = rss_bytes(process.pid)
             peak_rss = max(peak_rss, current_rss)
@@ -292,7 +298,10 @@ def run_tier(binary: Path, files: int, replays: int, workspace: Path) -> dict[st
                     "end_to_end_ms": end_to_end_ms,
                     "reconciliation": record.get("reconciliation"),
                     "source_set_digest": record.get("source_set_digest"),
-                    "snapshot_sha256": canonical_digest(clean),
+                    "snapshot_sha256": hashlib.sha256(comparable_output(clean, None)).hexdigest(),
+                    "raw_clean_snapshot_sha256": canonical_digest(clean),
+                    "raw_watch_snapshot_sha256": canonical_digest(record["snapshot"]),
+                    "output_normalizer": NORMALIZER,
                     "rss_bytes": current_rss,
                     "equivalent_to_clean": True,
                 }
@@ -307,7 +316,7 @@ def run_tier(binary: Path, files: int, replays: int, workspace: Path) -> dict[st
                 stop_watch(process, crash=True)
                 process = start_watch(binary, workspace, cache)
                 restarted = read_record(process)
-                crash_recovery = restarted.get("snapshot") == clean_snapshot(binary, workspace)
+                crash_recovery = matches_clean(restarted.get("snapshot"), clean_snapshot(binary, workspace), cache)
                 if not crash_recovery:
                     raise SystemExit(f"{files}: crash restart differs from clean")
                 peak_rss = max(peak_rss, rss_bytes(process.pid))
@@ -363,6 +372,7 @@ def validate_report(path: Path) -> None:
 
 
 def self_test() -> None:
+    output_self_test()
     assert p95([float(value) for value in range(1, 21)]) == 19.0
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp)
@@ -422,7 +432,7 @@ def main() -> None:
             "minimum_replays": 30,
             "replays": args.replays,
             "p95": "nearest-rank",
-            "snapshot_equivalence": "parsed-full-dashboard-equality",
+            "snapshot_equivalence": "full-dashboard-with-verified-cache-navigation",
         },
         "provenance": {
             "candidate_binary": str(candidate_binary),
