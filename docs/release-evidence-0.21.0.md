@@ -31,12 +31,36 @@ Product `5e46ec4b` batches consecutive identical exact evidence into a 64-site
 mask before updating sparse edge storage. Scores, witness winners, source
 exclusions and every admitted edge remain unchanged. The ordered scalar oracle
 test covers mixed, uniform and sparse blocks, including signed-zero scores.
-All 244 detector tests and strict Clippy pass on the prototype. Its nine balanced
-diagnostic workloads preserve complete JSON bytes; group construction improves
-in Alamofire semantic/near modes, while whole-query results are mixed. The
-[runtime record](runtime-triage.md#site-mapping-work) retains those limits.
-The committed replacement needs fresh full qualification; earlier binaries'
-results do not qualify it.
+The [exact-mask follow-up record](../bench/release/0.21.0/exact-mask-followup.v1.json)
+binds proof `60151de6` and binary
+`96eb0e223c183ae739d9ce38edeca55edc7a43c792e13874cf6fef02d317b4fd`.
+Full local CI passes 2,396 tests and 89.58% line coverage. All 360 ordinary and
+17 base output comparisons, saved-analysis/review journeys and Type-4 checks
+pass. The initial CI's final worktree guard rejected an evidence commit made
+during that run; the original log is retained and the clean fixed-commit rerun
+passes. PR, nightly and deep soundness, four native packages and the actual
+generated installer pass independent verification.
+
+Cache correctness passes 2,100 mutation rows and 180 paired SymPy observations;
+all three cache modes remain within unchanged p50/p95 limits. Watch passes 30
+revisions each at 10k/100k files, fresh-query equality and forced restart; ready
+p95 is 75.96/395.84 ms. The [remote runtime gate](https://github.com/corca-ai/nose/actions/runs/34060630327)
+passes its primary comparison without a focused run.
+
+The registered published-0.20 semantic campaign fails after its primary/control
+and single focused pair. It confirms group-construction costs in Alamofire,
+Guava, Hugo, libGDX, RxJava and RxSwift; scoring in Alamofire/libGDX; clustering
+in libGDX; ranking in Guava/RxSwift; and rendering in Guava. Rack's whole-query
+signal remains inconclusive. Neither result qualifies the release. All 120
+output changes match the reviewed declaration, with no unexpected drift.
+Base/default/near timing remains unqualified because the failed semantic gate
+stops this candidate. The original preflight provenance-schema assertion was
+corrected before any timing sample; its traceback is retained.
+
+The [runtime record](runtime-triage.md#site-mapping-work) retains the smaller
+diagnostic gains and their limits. A borrowed-location collapse experiment is
+rejected despite matching all nine output hashes: its timing benefit is not
+convincing. No same-binary retry replaces a failed observation.
 
 ## Previous candidate: parallel site mapping
 
