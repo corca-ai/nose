@@ -252,7 +252,9 @@ and its memberships; per-worker intersection arrays scale with feature classes.
 Repeated accepted rows share sorted right-hand targets rather than expanding each
 left occurrence into another edge array. Their iterator retains every admitted
 pair, exact score and source-pair order; group accumulation therefore uses the
-same floating-point additions. Connected pricing looks up only its selected pair
+same floating-point additions. Sparse same-file exclusions divide accepted targets
+into slices, so accumulation needs no source or group lookup for every cross-file
+pair. Connected pricing looks up only its selected pair
 questions instead of copying the entire accepted graph into a hash set.
 Before materializing coverage, the detector applies ranking's existing site
 collapse and retains the strongest original edge per site pair, with the same
@@ -262,7 +264,13 @@ coordinates. Large site graphs use 64-site blocks with a shared palette of exact
 scores and witness kinds; mixed blocks preserve each value. Full relation counts
 and group metrics precede that projection. Ranking and coverage obligations share
 these immutable blocks through `AcceptedEdges`; iteration reconstructs exact edges
-without allocating a second graph. Repeated rows reuse connectivity only after
+without allocating a second graph. Graphs with more than one million possible
+reported-site pairs defer this final projection until a consumer reads their edges.
+The owned recipe retains complete accepted rows, site mappings and witness inputs,
+including the query's anchor floor. An exact nonempty fact lets ranking transfer
+coverage obligations without forcing projection; concurrent readers share one
+materialized graph. Small graphs retain eager construction. This postpones only
+the internal edge representation, never scoring, grouping or coverage decisions. Repeated rows reuse connectivity only after
 all remaining targets are in one component, so skipped unions are redundant.
 Site projection also skips a later cross-file row occurrence only when an earlier
 occurrence has the same reported site and complete witness inputs. Within-file
@@ -299,3 +307,9 @@ fingerprints retain their original hash-consed graph and creation-span behavior;
 only requested value-DAG export enables occurrence tracking. The map rejects
 out-of-unit and foreign locations and leaves disjoint occurrences unavailable.
 See the [graded witness contract](graded-witness.md) for the source-evidence boundary.
+
+
+The concurrent string interner uses the same fast table hasher as other internal
+indexes. This affects table placement only: symbol content hashes retain their
+existing FNV-1a definition, and occurrence/order-dependent interner keys remain
+excluded from persistent fingerprints.

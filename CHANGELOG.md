@@ -16,7 +16,8 @@ break.
   budget walks and repeated normalization index invalidation.
 - Keep dense accepted relations and reported-site evidence compressed through
   grouping and ranking. Rust report APIs use `AcceptedEdges` and explicit
-  `GroupEdges` coordinates; CLI JSON and pair-evidence policies are preserved.
+  `GroupEdges` coordinates. Large site graphs materialize once when their edges
+  are read; CLI JSON and pair-evidence policies are preserved.
 
 - Avoid repeated Rust scope traversal for type references without a matching Tokio
   runtime import, preserving the existing type-evidence and shadowing checks.

@@ -161,15 +161,7 @@ pub(crate) fn build_groups(
             member_group[member] = Some(group_index);
         }
     }
-    let mut by_group = vec![(0.0, 0usize); raw_groups.len()];
-    for (i, _j, s) in accepted.iter() {
-        let Some(group_index) = member_group[i] else {
-            continue;
-        };
-        let e = &mut by_group[group_index];
-        e.0 += s;
-        e.1 += 1;
-    }
+    let by_group = accepted.group_scores(&member_group, raw_groups.len());
     let groups: Vec<Group> = raw_groups
         .par_iter()
         .enumerate()
@@ -387,8 +379,14 @@ pub(crate) fn shared_anchor_weight(
     a: &[nose_normalize::Anchor],
     b: &[nose_normalize::Anchor],
 ) -> u32 {
-    // Near-channel floor (collection runs at the finer containment floor).
-    let floor = nose_normalize::anchor_min_weight();
+    shared_anchor_weight_at_floor(a, b, nose_normalize::anchor_min_weight())
+}
+
+pub(crate) fn shared_anchor_weight_at_floor(
+    a: &[nose_normalize::Anchor],
+    b: &[nose_normalize::Anchor],
+    floor: u32,
+) -> u32 {
     let (mut i, mut j, mut best) = (0, 0, 0);
     while i < a.len() && j < b.len() {
         match a[i].hash.cmp(&b[j].hash) {

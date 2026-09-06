@@ -443,3 +443,19 @@ The 37.32-second prototype passes all 360 three-mode output checks; the addition
 site-target optimization is undergoing the same full audit. Explicit scalar
 reference tests compare complete ordered relations, connectivity, exclusions and
 all projected witness-class/score facts, including sparse and mixed site blocks.
+
+
+A subsequent owned, lazy site-projection recipe reduces the same default query
+to 8.14 seconds and 2.01 GB peak physical footprint. Accumulating admitted target
+slices without repeated per-edge location/group checks reduces the next diagnostic
+to 5.33 seconds; near:0.8 is 2.44 seconds. Both complete JSON hashes remain unchanged.
+Every score addition still occurs in the original order. Deferred evidence retains
+its query's witness inputs and anchor floor, survives source-data destruction, and
+materializes at most once for concurrent readers. Dense selected-edge access still
+pays the projection cost when those edges are actually needed; it is not a recall cap.
+
+Candidate `73b45837` (before these later prototypes) passed full local CI: 2,382
+optimized tests, 89.49% line coverage, MSRV and Lean. Its full 360-output audit and
+saved-analysis/cache-upgrade journeys also pass. Its remote runtime smoke remains
+inconclusive for Asciidoctor normalization after the single focused run. These
+results remain bound to that earlier candidate, rather than to ongoing prototypes.

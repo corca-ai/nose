@@ -69,91 +69,187 @@ fn projected_edges(
     groups: &[Group],
     accepted: &AcceptedPairs,
 ) -> Vec<GroupEdges> {
-    let mut position = vec![None; units.len()];
-    let mut edges = Vec::new();
-    for (group_id, (members, group)) in raw_groups.iter().zip(groups).enumerate() {
-        let collapsed = sites::collapsed_sites(group);
-        edges.push(SiteEdgeBuilder::new(collapsed.len()));
-        let sites = sites::member_sites(group, &collapsed);
-        for (&unit, site) in members.iter().zip(sites) {
-            position[unit] = site.map(|site| (group_id, site));
+    let projection = std::sync::Arc::new(Projection::new(units, raw_groups, groups, accepted));
+    let large = projection
+        .sizes
+        .iter()
+        .map(|&n| n.saturating_mul(n.saturating_sub(1)) / 2 > 1_000_000)
+        .collect::<Vec<_>>();
+    let mut ready = projection.materialize(|group| !large[group]);
+    (0..groups.len())
+        .map(|group| {
+            if let Some(edges) = ready[group].take() {
+                return GroupEdges::Sites(crate::AcceptedEdges::from_packed(edges));
+            }
+            let projection = projection.clone();
+            // A connected member graph mapped entirely onto two or more sites
+            // necessarily has a cross-site edge. Unmapped members need an explicit check.
+            let has_edges = projection.has_edges(group, &raw_groups[group]);
+            GroupEdges::Sites(crate::AcceptedEdges::deferred(has_edges, move || {
+                projection.materialize(|selected| selected == group)[group]
+                    .take()
+                    .unwrap()
+            }))
+        })
+        .collect()
+}
+
+struct Projection {
+    accepted: AcceptedPairs,
+    keys: Vec<Option<(usize, u32, usize)>>,
+    exact: Vec<Option<usize>>,
+    anchors: Vec<Vec<nose_normalize::Anchor>>,
+    floor: u32,
+    sizes: Vec<usize>,
+}
+
+impl Projection {
+    fn new(
+        units: &[UnitFeat],
+        raw: &[Vec<usize>],
+        groups: &[Group],
+        accepted: &AcceptedPairs,
+    ) -> Self {
+        let mut position = vec![None; units.len()];
+        let mut sizes = Vec::new();
+        for (group_id, (members, group)) in raw.iter().zip(groups).enumerate() {
+            let collapsed = sites::collapsed_sites(group);
+            sizes.push(collapsed.len());
+            let sites = sites::member_sites(group, &collapsed);
+            for (&unit, site) in members.iter().zip(sites) {
+                position[unit] = site.map(|site| (group_id, site));
+            }
+        }
+        let mut witnesses = FxHashMap::default();
+        let mut anchors = Vec::new();
+        let keys = units
+            .iter()
+            .zip(position)
+            .map(|(unit, position)| {
+                let next = witnesses.len();
+                let class = *witnesses
+                    .entry((
+                        &unit.value,
+                        unit.exact_safe,
+                        unit.anchors
+                            .iter()
+                            .map(|a| (a.hash, a.weight))
+                            .collect::<Vec<_>>(),
+                    ))
+                    .or_insert(next);
+                if class == next {
+                    anchors.push(unit.anchors.clone());
+                }
+                position.map(|(group, site)| (group, site, class))
+            })
+            .collect();
+        Self {
+            accepted: accepted.clone(),
+            keys,
+            exact: exact_classes(units),
+            anchors,
+            floor: nose_normalize::anchor_min_weight(),
+            sizes,
         }
     }
-    let exact = exact_classes(units);
-    let mut witnesses = FxHashMap::default();
-    let keys = units
-        .iter()
-        .zip(&position)
-        .map(|(unit, position)| {
-            let next = witnesses.len();
-            let class = *witnesses
-                .entry((
-                    &unit.value,
-                    unit.exact_safe,
-                    unit.anchors
-                        .iter()
-                        .map(|a| (a.hash, a.weight))
-                        .collect::<Vec<_>>(),
-                ))
-                .or_insert(next);
-            position.map(|(group, site)| (group, site, class))
+
+    fn has_edges(&self, group: usize, members: &[usize]) -> bool {
+        if self.sizes[group] < 2 {
+            return false;
+        }
+        if members.iter().all(|&unit| self.keys[unit].is_some()) {
+            return true;
+        }
+        self.accepted.iter().any(|(left, right, _)| {
+            matches!((self.keys[left], self.keys[right]),
+                (Some((a, x, _)), Some((b, y, _))) if a == group && b == group && x != y)
         })
-        .collect::<Vec<_>>();
-    let mut kinds = vec![None; witnesses.len()];
-    accepted.visit_site_evidence(&keys, |(left, right, score)| {
-        let (Some((group, a)), Some((other, b))) = (position[left], position[right]) else {
-            return;
-        };
-        debug_assert_eq!(group, other);
-        if group != other || a == b {
-            return;
+    }
+
+    fn materialize(
+        &self,
+        selected: impl Fn(usize) -> bool,
+    ) -> Vec<Option<std::sync::Arc<crate::SiteEdges>>> {
+        let mut edges = self
+            .sizes
+            .iter()
+            .enumerate()
+            .map(|(group, &size)| selected(group).then(|| SiteEdgeBuilder::new(size)))
+            .collect::<Vec<_>>();
+        if edges.iter().all(Option::is_none) {
+            return edges.into_iter().map(|_| None).collect();
         }
-        let key = (a.min(b), a.max(b));
-        let score = round3(score);
-        let previous = edges[group].best(key.0, key.1);
-        if previous.is_some_and(|edge| edge.score > score) {
-            return;
-        }
-        let is_exact = exact[left].is_some() && exact[left] == exact[right];
-        let best_kind = if is_exact {
-            "exact-value-graph"
-        } else {
-            "shared-sub-dag"
-        };
-        if previous.is_some_and(|edge| edge.score == score && edge.witness_kind <= best_kind) {
-            return;
-        }
-        let left_class = keys[left].unwrap().2;
-        let right_class = keys[right].unwrap().2;
-        let kind = if is_exact {
-            best_kind
-        } else if let Some((class, kind)) =
-            kinds[right_class].filter(|&(class, _)| class == left_class)
-        {
-            debug_assert_eq!(class, left_class);
-            kind
-        } else {
-            let kind =
-                if super::shared_anchor_weight(&units[left].anchors, &units[right].anchors) > 0 {
-                    "shared-sub-dag"
-                } else {
-                    "structural-similarity"
+        let keys = self
+            .keys
+            .iter()
+            .map(|&key| key.filter(|&(group, _, _)| selected(group)))
+            .collect::<Vec<_>>();
+        let mut kinds = vec![None; self.anchors.len()];
+        self.accepted
+            .visit_site_evidence(&keys, |(left, right, score)| {
+                let (Some((group, a, left_class)), Some((other, b, right_class))) =
+                    (keys[left], keys[right])
+                else {
+                    return;
                 };
-            kinds[right_class] = Some((left_class, kind));
-            kind
-        };
-        if previous.is_none_or(|edge| score > edge.score || kind < edge.witness_kind) {
-            edges[group].insert(
-                key.0,
-                key.1,
-                Evidence {
-                    score,
-                    witness_kind: kind,
-                },
-            );
-        }
-    });
-    edges.into_iter().map(SiteEdgeBuilder::finish).collect()
+                debug_assert_eq!(group, other);
+                if group != other || a == b {
+                    return;
+                }
+                let builder = edges[group].as_mut().unwrap();
+                let (a, b) = (a.min(b), a.max(b));
+                let score = round3(score);
+                let previous = builder.best(a, b);
+                if previous.is_some_and(|edge| edge.score > score) {
+                    return;
+                }
+                let is_exact = self.exact[left].is_some() && self.exact[left] == self.exact[right];
+                let best_kind = if is_exact {
+                    "exact-value-graph"
+                } else {
+                    "shared-sub-dag"
+                };
+                if previous
+                    .is_some_and(|edge| edge.score == score && edge.witness_kind <= best_kind)
+                {
+                    return;
+                }
+                let kind = if is_exact {
+                    best_kind
+                } else if let Some((_, kind)) =
+                    kinds[right_class].filter(|&(class, _)| class == left_class)
+                {
+                    kind
+                } else {
+                    let kind = if super::shared_anchor_weight_at_floor(
+                        &self.anchors[left_class],
+                        &self.anchors[right_class],
+                        self.floor,
+                    ) > 0
+                    {
+                        "shared-sub-dag"
+                    } else {
+                        "structural-similarity"
+                    };
+                    kinds[right_class] = Some((left_class, kind));
+                    kind
+                };
+                if previous.is_none_or(|edge| score > edge.score || kind < edge.witness_kind) {
+                    builder.insert(
+                        a,
+                        b,
+                        Evidence {
+                            score,
+                            witness_kind: kind,
+                        },
+                    );
+                }
+            });
+        edges
+            .into_iter()
+            .map(|builder| builder.map(SiteEdgeBuilder::into_edges))
+            .collect()
+    }
 }
 
 fn exact_classes(units: &[UnitFeat]) -> Vec<Option<usize>> {
@@ -174,6 +270,88 @@ fn exact_classes(units: &[UnitFeat]) -> Vec<Option<usize>> {
 mod tests {
     use super::*;
     use nose_il::{FileId, Interner, Lang};
+
+    #[test]
+    fn unmapped_bridge_does_not_claim_direct_site_evidence() {
+        let mut projection = Projection {
+            accepted: vec![(0, 1, 0.8), (1, 2, 0.8)].into(),
+            keys: vec![Some((0, 0, 0)), None, Some((0, 1, 0))],
+            exact: vec![None; 3],
+            anchors: vec![Vec::new()],
+            floor: 1,
+            sizes: vec![2],
+        };
+        assert!(!projection.has_edges(0, &[0, 1, 2]));
+        let edges = projection.materialize(|_| true)[0].take().unwrap();
+        assert!(crate::AcceptedEdges::from_packed(edges).is_empty());
+        projection.keys[1] = Some((0, 0, 0));
+        assert!(projection.has_edges(0, &[0, 1, 2]));
+        let edges = projection.materialize(|_| true)[0].take().unwrap();
+        assert_eq!(crate::AcceptedEdges::from_packed(edges).len(), 1);
+    }
+
+    #[test]
+    fn deferred_large_site_graph_matches_expanded_reference_after_sources_are_dropped() {
+        let interner = Interner::new();
+        let il = nose_frontend::lower_source(
+            FileId(0),
+            "f.py",
+            b"def f(x):\n    return x * x + 7\n",
+            Lang::Python,
+            &interner,
+        )
+        .unwrap();
+        let opts = crate::DetectOptions {
+            min_tokens: 1,
+            min_lines: 1,
+            ..Default::default()
+        };
+        let units = (0..1500)
+            .map(|i| {
+                let mut unit = crate::units_of_file(&il, &interner, &opts).remove(0);
+                unit.path = format!("{i}.py");
+                unit.exact_safe = i % 3 == 0;
+                unit
+            })
+            .collect::<Vec<_>>();
+        let pairs = (0..units.len() - 1)
+            .map(|i| (i, i + 1, 0.75))
+            .collect::<Vec<_>>();
+        let accepted = AcceptedPairs::from(pairs.clone());
+        let raw = vec![(0..units.len()).collect::<Vec<_>>()];
+        let (groups, _) = crate::candidates::build_groups(
+            &units,
+            &accepted,
+            &raw,
+            &vec![None; units.len()],
+            &opts,
+            false,
+        );
+        let projected = projected_edges(&units, &raw, &groups, &accepted);
+        let expanded = pairs
+            .iter()
+            .map(|&(left, right, score)| AcceptedEdge {
+                left: left as u32,
+                right: right as u32,
+                score,
+                witness_kind: witness_kind(&[left, right], &units),
+            })
+            .collect::<Vec<_>>();
+        let expected = crate::report::collapsed_accepted_edges(
+            &groups[0],
+            &sites::collapsed_sites(&groups[0]),
+            &expanded,
+        );
+        drop(units);
+        drop(accepted);
+        drop(groups);
+        let GroupEdges::Sites(edges) = &projected[0] else {
+            unreachable!()
+        };
+        assert!(!edges.is_empty());
+        assert_eq!(edges.len(), expected.len());
+        assert_eq!(edges.iter().collect::<Vec<_>>(), expected);
+    }
 
     #[test]
     fn projecting_before_materialization_keeps_the_same_direct_site_evidence() {

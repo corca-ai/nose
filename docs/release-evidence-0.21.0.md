@@ -153,3 +153,15 @@ caused sustained paging; empty outputs are not equality evidence. This motivates
 the subsequent compressed-relation implementation described in
 [runtime triage](runtime-triage.md). Results from that implementation must bind a
 new candidate; they cannot retroactively qualify `843bd52e`.
+
+
+## Compressed relation candidate
+
+The [dense follow-up record](../bench/release/0.21.0/dense-followup.v1.json) binds
+product `73b45837` / proof commit `a155a379` to full local CI (2,382 tests, 89.49%
+line coverage), all 360 output checks, Type-4 validation, saved-analysis journeys,
+120-repository soundness, independent deep checks, four native packages and the
+actual installer. The remote runtime gate remains inconclusive for Asciidoctor
+normalization after its single focus. Full timing and current-candidate cache/watch
+qualification are still pending. Later lazy-projection and interner improvements
+are separate prototypes until their own candidate and evidence are frozen.

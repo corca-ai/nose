@@ -4,10 +4,10 @@ use super::AcceptedPair;
 use crate::UnitFeat;
 use rustc_hash::FxHashMap;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) enum AcceptedPairs {
     Explicit(Vec<AcceptedPair>),
-    Rows(RowPairs),
+    Rows(std::sync::Arc<RowPairs>),
 }
 
 #[derive(Debug)]
@@ -75,7 +75,7 @@ impl AcceptedPairs {
             count: 0,
         };
         rows.count = (0..units.len()).map(|left| rows.count_after(left)).sum();
-        Self::Rows(rows)
+        Self::Rows(std::sync::Arc::new(rows))
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = AcceptedPair> + Clone + '_ {
@@ -111,6 +111,39 @@ impl AcceptedPairs {
             Self::Explicit(pairs) => pairs.len(),
             Self::Rows(rows) => rows.count,
         }
+    }
+
+    pub(crate) fn group_scores(
+        &self,
+        member_group: &[Option<usize>],
+        groups: usize,
+    ) -> Vec<(f64, usize)> {
+        let mut scores = vec![(0.0, 0); groups];
+        if let Self::Rows(rows) = self {
+            for (left, &group) in member_group.iter().enumerate() {
+                let Some(group) = group else { continue };
+                let row = rows.row_of[left];
+                let targets = &rows.targets[row];
+                let mut start = targets.partition_point(|&(right, _)| right <= left);
+                if let Some(positions) = rows.by_path[row].get(&rows.locations[left].0) {
+                    for &position in positions {
+                        if position >= start && !rows.admits(left, targets[position].0) {
+                            accumulate_scores(&mut scores[group], &targets[start..position]);
+                            start = position + 1;
+                        }
+                    }
+                }
+                accumulate_scores(&mut scores[group], &targets[start..]);
+            }
+        } else {
+            for (left, _, score) in self.iter() {
+                if let Some(group) = member_group[left] {
+                    scores[group].0 += score;
+                    scores[group].1 += 1;
+                }
+            }
+        }
+        scores
     }
 
     pub(crate) fn components(&self, units: usize) -> Vec<Vec<usize>> {
@@ -227,11 +260,28 @@ impl AcceptedPairs {
     }
 }
 
+fn accumulate_scores(total: &mut (f64, usize), targets: &[(usize, f64)]) {
+    // Source order and every individual floating-point addition are unchanged.
+    // Only sparse same-file exclusions split the otherwise admitted slice.
+    total.0 = targets.iter().fold(total.0, |sum, &(_, score)| sum + score);
+    total.1 += targets.len();
+}
+
 impl RowPairs {
     fn site_targets(&self, keys: &[Option<(usize, u32, usize)>]) -> Vec<Vec<(usize, f64)>> {
+        let mut needed = vec![false; self.targets.len()];
+        for (left, key) in keys.iter().enumerate() {
+            if key.is_some() {
+                needed[self.row_of[left]] = true;
+            }
+        }
         self.targets
             .iter()
-            .map(|targets| {
+            .enumerate()
+            .map(|(row, targets)| {
+                if !needed[row] {
+                    return Vec::new();
+                }
                 let mut latest = FxHashMap::default();
                 for &(right, score) in targets {
                     if let Some(key) = keys[right] {
@@ -393,6 +443,17 @@ mod tests {
             let rows = AcceptedPairs::rows(&units, &paths, &members, relations);
             let explicit = AcceptedPairs::from(rows.iter().collect::<Vec<_>>());
             assert_eq!(rows.len(), explicit.len());
+            let groups = (0..units.len())
+                .map(|unit| (unit % 5 != 0).then_some(unit % 3))
+                .collect::<Vec<_>>();
+            let bit_scores = |pairs: &AcceptedPairs| {
+                pairs
+                    .group_scores(&groups, 3)
+                    .into_iter()
+                    .map(|(sum, count)| (sum.to_bits(), count))
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(bit_scores(&rows), bit_scores(&explicit));
             assert_eq!(
                 rows.components(units.len()),
                 explicit.components(units.len())

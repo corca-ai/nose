@@ -691,6 +691,7 @@ name = "nose-il"
 version = "0.21.0"
 dependencies = [
  "lasso",
+ "rustc-hash",
  "serde",
  "serde_json",
  "sha2",

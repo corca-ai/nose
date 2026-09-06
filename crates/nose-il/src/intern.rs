@@ -3,6 +3,7 @@
 //! across files is a cheap integer compare — important for detection at scale.
 
 use lasso::{Key, Spur, ThreadedRodeo};
+use rustc_hash::FxBuildHasher;
 use std::sync::Arc;
 
 /// Interned string key. Cheap to copy and compare.
@@ -20,15 +21,21 @@ pub fn symbol_index(s: Symbol) -> u32 {
 ///
 /// Cloning is cheap (`Arc` bump) and clones share the same backing store, so a
 /// `Symbol` produced on one worker thread is valid and comparable everywhere.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Interner {
-    inner: Arc<ThreadedRodeo>,
+    inner: Arc<ThreadedRodeo<Spur, FxBuildHasher>>,
+}
+
+impl Default for Interner {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Interner {
     pub fn new() -> Self {
         Interner {
-            inner: Arc::new(ThreadedRodeo::new()),
+            inner: Arc::new(ThreadedRodeo::with_hasher(FxBuildHasher)),
         }
     }
 
