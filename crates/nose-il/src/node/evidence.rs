@@ -184,6 +184,10 @@ pub enum TypeEvidenceKind {
     /// An explicitly typed Swift binding uses `Swift.String`. Corpus namespace
     /// analysis may make this evidence ambiguous when `Swift` is shadowed.
     SwiftQualifiedStringBinding,
+    /// Exact primitive element annotation retained for the offline array oracle.
+    ArrayElementDomain { element: DomainEvidence },
+    /// Primitive key identity for the offline Map/Set membership projection.
+    KeyedCollectionKey { key: DomainEvidence },
 }
 
 /// Kernel-facing proof that a source-level symbol denotes a specific global or

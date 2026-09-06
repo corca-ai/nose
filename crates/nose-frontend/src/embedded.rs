@@ -50,7 +50,7 @@ pub(crate) fn lower_regions(
     src: &[u8],
     container: Lang,
     interner: &Interner,
-) -> Vec<Il> {
+) -> anyhow::Result<Vec<Il>> {
     let mut out = Vec::new();
 
     let (scripts, is_ts) = extract_scripts(src);
@@ -61,23 +61,25 @@ pub(crate) fn lower_regions(
         } else {
             Lang::JavaScript
         };
-        if let Ok(il) = crate::js_ts::lower(file, path, &blanked, script_lang, interner) {
-            out.push(il);
-        }
+        out.push(crate::js_ts::lower(
+            file,
+            path,
+            &blanked,
+            script_lang,
+            interner,
+        )?);
     }
 
     let styles = extract_styles(src);
     if !styles.is_empty() {
         let blanked = blank_except(src, &styles);
-        if let Ok(il) = crate::css::lower_with_container(
+        out.push(crate::css::lower_with_container(
             file,
             path,
             &blanked,
             container_kind(container),
             interner,
-        ) {
-            out.push(il);
-        }
+        )?);
     }
 
     // Markup tree (the whole document parsed as HTML — a `.vue`/`.svelte` `<template>`
@@ -88,14 +90,15 @@ pub(crate) fn lower_regions(
     } else {
         crate::html::lower_with_container(file, path, src, container_kind(container), interner)
     };
-    if let Ok(il) = markup {
+    {
+        let il = markup?;
         if !il.units.is_empty() {
             out.push(il);
         }
     }
 
     let _ = container;
-    out
+    Ok(out)
 }
 
 fn container_kind(container: Lang) -> UnitContainerKind {
@@ -468,6 +471,7 @@ mod style_region_tests {
     fn css_rule_units(src: &[u8], container: Lang) -> usize {
         let i = Interner::new();
         lower_regions(FileId(0), "c", src, container, &i)
+            .unwrap()
             .iter()
             .filter(|il| il.meta.lang == Lang::Css)
             .flat_map(|il| {
@@ -493,7 +497,7 @@ mod style_region_tests {
     fn vue_extracts_both_script_and_style_regions() {
         let i = Interner::new();
         let vue = b"<template><div/></template>\n<script>export function f(n){return n+1;}</script>\n<style>.a { color: red; padding: 4px; }</style>";
-        let ils = lower_regions(FileId(0), "C.vue", vue, Lang::Vue, &i);
+        let ils = lower_regions(FileId(0), "C.vue", vue, Lang::Vue, &i).unwrap();
         assert!(ils.iter().any(|il| il.meta.lang == Lang::Css), "css region");
         assert!(
             ils.iter()

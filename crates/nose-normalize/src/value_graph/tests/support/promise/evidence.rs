@@ -60,7 +60,7 @@ impl<'a> PromiseEvidenceDsl<'a> {
 
     pub(in crate::value_graph::tests) fn domain(&mut self, node: NodeId, domain: DomainEvidence) {
         let id = self.allocate(1);
-        self.il.evidence.push(evidence(
+        self.il.push_evidence(evidence(
             id,
             EvidenceAnchor::node(self.il.node(node).span, self.il.kind(node)),
             EvidenceKind::Domain(domain),
@@ -112,7 +112,7 @@ fn push_promise_factory_evidence(il: &mut Il, call: NodeId, base_id: u32, method
         "reject" => "Promise.reject",
         _ => panic!("unsupported Promise factory test method"),
     };
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         root_id.0,
         Lang::JavaScript,
         EvidenceAnchor::source_span(callee_span),
@@ -120,7 +120,7 @@ fn push_promise_factory_evidence(il: &mut Il, call: NodeId, base_id: u32, method
             name_hash: stable_symbol_hash("Promise"),
         },
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         qualified_id.0,
         EvidenceAnchor::node(callee_span, NodeKind::Field),
         EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
@@ -128,7 +128,7 @@ fn push_promise_factory_evidence(il: &mut Il, call: NodeId, base_id: u32, method
         }),
         vec![root_id],
     ));
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         receiver_id.0,
         Lang::JavaScript,
         EvidenceAnchor::node(promise_span, NodeKind::Var),
@@ -137,7 +137,7 @@ fn push_promise_factory_evidence(il: &mut Il, call: NodeId, base_id: u32, method
         },
     ));
     let contract = library_promise_resolve_contract(il.meta.lang, "Promise", method, 1).unwrap();
-    il.evidence.push(js_like_promise_evidence_with_dependencies(
+    il.push_evidence(js_like_promise_evidence_with_dependencies(
         api_id.0,
         EvidenceAnchor::node(call_span, NodeKind::Call),
         EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
@@ -147,7 +147,7 @@ fn push_promise_factory_evidence(il: &mut Il, call: NodeId, base_id: u32, method
         }),
         vec![qualified_id, receiver_id],
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         base_id + 4,
         EvidenceAnchor::node(call_span, NodeKind::Call),
         EvidenceKind::Domain(DomainEvidence::PromiseLike),
@@ -182,7 +182,7 @@ fn push_promise_continuation_evidence(
     let dependencies =
         nose_semantics::library_api_receiver_dependencies_for_call(il, interner, call, callee)
             .expect("Promise continuation receiver dependencies");
-    il.evidence.push(js_like_promise_evidence_with_dependencies(
+    il.push_evidence(js_like_promise_evidence_with_dependencies(
         id,
         EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
         EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
@@ -211,7 +211,7 @@ fn push_imported_function_promise_settlement_evidence(
     let call_span = il.node(call).span;
     let target_id = EvidenceId(base_id);
     let domain_id = EvidenceId(base_id + 1);
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         target_id.0,
         il.meta.lang,
         EvidenceAnchor::node(call_span, NodeKind::Call),
@@ -221,13 +221,13 @@ fn push_imported_function_promise_settlement_evidence(
             local_hash: interner.symbol_hash(local),
         }),
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         domain_id.0,
         EvidenceAnchor::node(call_span, NodeKind::Call),
         EvidenceKind::Domain(DomainEvidence::PromiseLike),
         vec![target_id],
     ));
-    il.evidence.push(js_like_promise_evidence_with_dependencies(
+    il.push_evidence(js_like_promise_evidence_with_dependencies(
         base_id + 2,
         EvidenceAnchor::node(call_span, NodeKind::Call),
         EvidenceKind::PromiseSettledValue(PromiseSettledValueEvidenceKind {

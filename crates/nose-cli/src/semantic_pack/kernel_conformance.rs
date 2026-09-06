@@ -207,7 +207,7 @@ fn observe_fixture(
     registry.apply(&mut corpus);
     let families = detect_exact_families(&corpus, &opts);
     let has_external_exact_match = families.iter().any(|family| {
-        if family.witness.as_ref().map(|witness| witness.kind) != Some("exact-value-graph") {
+        if family.witness.as_ref().map(|witness| witness.kind()) != Some("exact-value-graph") {
             return false;
         }
         let claims = family
@@ -257,7 +257,7 @@ fn exact_family_pairs(
     families
         .iter()
         .filter(|family| {
-            family.witness.as_ref().map(|witness| witness.kind) == Some("exact-value-graph")
+            family.witness.as_ref().map(|witness| witness.kind()) == Some("exact-value-graph")
         })
         .flat_map(family_pairs)
         .collect()

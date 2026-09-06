@@ -32,11 +32,14 @@ mod semantic_pack_evidence_tests;
 pub use corpus::{
     lower_corpus, lower_corpus_filtered, lower_corpus_many, lower_corpus_raw_filtered,
     lower_source_regions, prepare_corpus_resolution, resolve_corpus, resolve_corpus_affected,
-    resolve_corpus_prepared, source_is_analyzable, PreparedCorpusResolution,
+    resolve_corpus_prepared, source_is_analyzable, source_skip_reason, try_lower_source_regions,
+    PreparedCorpusResolution,
 };
 pub use coverage::{coverage, raw_node_surface, CoverageReport, RawSurface};
 pub use declaration_facts::{declaration_facts, DeclarationFacts};
-pub use discover::{discover_paths, discover_unique_paths};
+pub use discover::{
+    discover_paths, discover_source_inventory, discover_unique_paths, SourceInventory,
+};
 pub use module_imports::{
     imported_immutable_snapshot_census, resolution_dependency_summary,
     FileResolutionDependencySummary, ImportSnapshotCensus, ResolutionDependency,
@@ -106,7 +109,7 @@ pub fn lower_source(
     lang: Lang,
     interner: &Interner,
 ) -> anyhow::Result<Il> {
-    match lang {
+    let mut il = match lang {
         Lang::Python => python::lower(file, path, src, interner),
         Lang::JavaScript | Lang::TypeScript => js_ts::lower(file, path, src, lang, interner),
         Lang::Go => go::lower(file, path, src, interner),
@@ -117,7 +120,11 @@ pub fn lower_source(
         Lang::Swift => swift::lower(file, path, src, interner),
         Lang::Css => css::lower(file, path, src, interner),
         Lang::Vue | Lang::Svelte | Lang::Html => embedded::lower(file, path, src, lang, interner),
-    }
+    }?;
+    il.source = Some(std::sync::Arc::new(nose_il::SourceDocument::new(
+        src.to_vec(),
+    )));
+    Ok(il)
 }
 
 /// Parse a Java conformance fixture with the product grammar and reject error

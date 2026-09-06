@@ -125,6 +125,12 @@ Setup paths must not substitute a moving tag or an unversioned direct install.
 If an upstream no longer publishes one supported asset, keep the old checked
 pin until the platform policy is deliberately changed and reviewed.
 
+The 0.21 preparation refreshes the coverage reporter to 0.9.1 and the Lean
+installer to 4.2.4 after the update workflow reported newer releases. The Lean
+compiler remains pinned by `lean-toolchain`. Archive digests come from
+the official release assets; bootstrap verifies downloaded bytes. Coverage and
+formal proof gates must pass with these tool versions before qualification.
+
 Return to the [contributor workflow](contributing.md) for the normal local
 sequence. The [repository gate inventory](repository-gates.md) explains how the
 policy check participates in every lane.

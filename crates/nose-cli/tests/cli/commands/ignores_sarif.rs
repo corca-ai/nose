@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "ignores_sarif/paths.rs"]
+mod paths;
+
 #[test]
 fn inline_nose_ignore_suppresses_a_site() {
     // A `nose-ignore` marker above a function drops that site; with only one copy

@@ -237,6 +237,7 @@ pub(crate) fn cmd_behavioral_gate(
 ) -> Result<()> {
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
+    corpus.ensure_complete()?;
     warn_if_empty(&corpus, &paths);
     let battery = match battery_kind {
         BatteryKind::Standard => verify_battery(&verify_probes(&corpus)),

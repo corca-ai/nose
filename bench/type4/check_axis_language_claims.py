@@ -24,6 +24,14 @@ def expect_invalid(
 def self_test(registry: dict, evidence: dict, blind: dict, declarative: dict) -> None:
     gate.validate(registry, evidence, blind, declarative)
 
+    for path in ("Cargo.toml", "Cargo.lock", "vendor"):
+        stale = copy.deepcopy(blind)
+        stale["product_dependencies"][path] = "0" * 40
+        expect_invalid(registry, evidence, stale, declarative, f"changed build input: {path}")
+    missing_dependencies = copy.deepcopy(blind)
+    missing_dependencies.pop("product_dependencies")
+    expect_invalid(registry, evidence, missing_dependencies, declarative, "unbound dependencies")
+
     missing = copy.deepcopy(registry)
     missing["axes"].pop()
     expect_invalid(missing, evidence, blind, declarative, "unregistered exact axis")

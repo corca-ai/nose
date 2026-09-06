@@ -21,7 +21,7 @@ pub(super) fn append_test_python_iterator_builtin_source_dependencies(
             continue;
         };
         let id = EvidenceId(*next_id);
-        il.evidence.push(test_domain_record(
+        il.push_evidence(test_domain_record(
             *next_id,
             il,
             source,

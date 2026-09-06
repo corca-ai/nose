@@ -1,7 +1,9 @@
 use anyhow::{Context, Result};
 use ignore::overrides::{Override, OverrideBuilder};
 use std::collections::BTreeSet;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
+
+use crate::path_utils::absolute_lexical;
 
 #[derive(Default)]
 pub(crate) struct GeneratedPathAssertions {
@@ -116,25 +118,6 @@ fn validate_pattern(pattern: &str) -> Result<()> {
         anyhow::bail!("invalid generated-path glob {pattern:?}: {reason}");
     }
     Ok(())
-}
-
-fn absolute_lexical(path: &Path) -> Option<PathBuf> {
-    let absolute = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        std::env::current_dir().ok()?.join(path)
-    };
-    let mut cleaned = PathBuf::new();
-    for component in absolute.components() {
-        match component {
-            Component::CurDir => {}
-            Component::ParentDir => {
-                cleaned.pop();
-            }
-            other => cleaned.push(other.as_os_str()),
-        }
-    }
-    Some(cleaned)
 }
 
 #[cfg(test)]

@@ -204,12 +204,12 @@ pub(super) fn push_imported_binding_use(
     exported: &str,
 ) {
     let symbol = imported_binding_symbol(module, exported);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         binding_id,
         EvidenceAnchor::binding(binding_span, stable_symbol_hash(exported)),
         symbol,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         occurrence_id,
         EvidenceAnchor::node(occurrence_span, NodeKind::Var),
         symbol,
@@ -226,20 +226,19 @@ pub(super) fn push_imported_namespace_use(
     module: &str,
 ) {
     let symbol = imported_namespace_symbol_kind(module);
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         binding_id,
         il.meta.lang,
         EvidenceAnchor::binding(binding_span, stable_symbol_hash(module)),
         symbol,
     ));
-    il.evidence
-        .push(language_core_symbol_evidence_with_dependencies(
-            occurrence_id,
-            il.meta.lang,
-            EvidenceAnchor::node(occurrence_span, NodeKind::Var),
-            symbol,
-            vec![EvidenceId(binding_id)],
-        ));
+    il.push_evidence(language_core_symbol_evidence_with_dependencies(
+        occurrence_id,
+        il.meta.lang,
+        EvidenceAnchor::node(occurrence_span, NodeKind::Var),
+        symbol,
+        vec![EvidenceId(binding_id)],
+    ));
 }
 
 pub(super) fn collection_sequence_evidence(id: u32, lang: Lang, span: Span) -> EvidenceRecord {
@@ -288,7 +287,7 @@ pub(super) fn push_source_comprehension(
     span: Span,
     kind: SourceComprehensionKind,
 ) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         id,
         EvidenceAnchor::source_span(span),
         EvidenceKind::Source(SourceFactKind::Comprehension(kind)),
@@ -308,11 +307,11 @@ pub(super) fn push_source_cast(il: &mut Il, id: u32, span: Span, kind: SourceCas
                 Some(stable_symbol_hash(C_UNSIGNED_32_CAST_SOURCE_PRODUCER_ID));
         }
     }
-    il.evidence.push(record);
+    il.push_evidence(record);
 }
 
 pub(super) fn push_source_range(il: &mut Il, id: u32, span: Span, kind: SourceRangeKind) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         id,
         EvidenceAnchor::source_span(span),
         EvidenceKind::Source(SourceFactKind::Range(kind)),
@@ -320,7 +319,7 @@ pub(super) fn push_source_range(il: &mut Il, id: u32, span: Span, kind: SourceRa
 }
 
 pub(super) fn push_source_pattern(il: &mut Il, id: u32, span: Span, kind: SourcePatternKind) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         id,
         EvidenceAnchor::source_span(span),
         EvidenceKind::Source(SourceFactKind::Pattern(kind)),

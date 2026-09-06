@@ -115,7 +115,7 @@ impl ImportFactProbe {
         provenance: EvidenceProvenance,
         dependencies: Vec<EvidenceId>,
     ) {
-        self.il.evidence.push(import_fact_evidence_with_provenance(
+        self.il.push_evidence(import_fact_evidence_with_provenance(
             id,
             self.span,
             kind,

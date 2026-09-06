@@ -30,13 +30,13 @@ pub fn js_object_key_view_argument_map_node_for_call(
     if !js_like_lang(il.meta.lang) || il.kind(call) != NodeKind::Call {
         return None;
     }
-    if has_js_with_statement_ancestor(il, interner, call) {
-        return None;
-    }
     let [callee, object] = il.children(call) else {
         return None;
     };
     if !object_keys_callee(il, interner, *callee) {
+        return None;
+    }
+    if has_js_with_statement_ancestor(il, interner, call) {
         return None;
     }
     js_object_key_view_argument_map_node(il, interner, *object, call)
@@ -147,7 +147,7 @@ fn unique_static_object_literal_binding_initializer(
         if il.node(assign).span.end_byte > il.node(reference).span.start_byte {
             continue;
         }
-        if parent_of(il, assign) != Some(use_block) {
+        if il.unique_parent(assign) != Some(use_block) {
             continue;
         }
         let [lhs, rhs] = il.children(assign) else {
@@ -246,7 +246,7 @@ fn js_with_scope_uses_binding(
 fn has_js_with_statement_ancestor(il: &Il, interner: &Interner, node: NodeId) -> bool {
     let mut current = node;
     for _ in 0..il.nodes.len() {
-        let Some(parent) = parent_of(il, current) else {
+        let Some(parent) = il.unique_parent(current) else {
             return false;
         };
         if js_with_statement(il, interner, parent) {
@@ -388,26 +388,11 @@ fn node_at_exact_span_with_kind(il: &Il, span: Span, kind: NodeKind) -> Option<N
 fn nearest_ancestor_with_kind(il: &Il, node: NodeId, kind: NodeKind) -> Option<NodeId> {
     let mut current = node;
     for _ in 0..il.nodes.len() {
-        let parent = parent_of(il, current)?;
+        let parent = il.unique_parent(current)?;
         if il.kind(parent) == kind {
             return Some(parent);
         }
         current = parent;
     }
     None
-}
-
-fn parent_of(il: &Il, child: NodeId) -> Option<NodeId> {
-    let mut found = None;
-    for (idx, _node) in il.nodes.iter().enumerate() {
-        let candidate = NodeId(idx as u32);
-        if !il.children(candidate).contains(&child) {
-            continue;
-        }
-        if found.is_some() {
-            return None;
-        }
-        found = Some(candidate);
-    }
-    found
 }

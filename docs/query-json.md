@@ -1,4 +1,4 @@
-# nose query JSON (schemas v8 and v9)
+# nose query JSON (schemas v8 and v10)
 
 `nose query <path> [terms…] --format json` emits a structured, versioned contract over the
 duplicated-code family dataset — the **machine** form of the
@@ -8,7 +8,7 @@ For multi-root analysis, use repeated roots:
 `nose query --root <path> --root <path> [terms…] --format json`.
 
 Discover support with [`nose capabilities`](capabilities.md): `schemas.query_json` lists the
-versions the installed binary emits (currently `[8, 9]`). CI wrappers for the
+versions the installed binary emits (currently `[8, 10]`). CI wrappers for the
 divergent-edit gate should also require `query.capabilities.query_base_json_v8`,
 `query.capabilities.query_base_gate_fail_default`, and, for SARIF uploads,
 `query.capabilities.query_base_sarif`.
@@ -24,7 +24,7 @@ Every response is an object with:
 
 | field | meaning |
 |---|---|
-| `schema_version` | `9` for the non-`base` query views; `8` for `base=<ref>` |
+| `schema_version` | `10` for the non-`base` query views; `8` for `base=<ref>` |
 | `tool` | `"nose"` |
 | `view` | which surface produced it: `dashboard` \| `list` \| `group` \| `family` \| `reinvented` \| `base` |
 | `path` | the analyzed path expression, as given; multi-root commands render the repeated `--root`/`-r` flags |
@@ -32,6 +32,15 @@ Every response is an object with:
 
 plus the view-specific body below. Like the human surface, a result is a pure function of
 (repo state, command); an unknown field or enum value is a hard error.
+
+Schema v10 adds nullable `families[].review_key` and nullable
+`locations[].region` / `locations[].region_key`. These versioned SHA-256 content
+signatures preserve multiplicity and exclude location/ranking. They can be shared
+by distinct occurrences and never authorize review reuse by themselves. `region`
+contains `{source_digest,start_byte,end_byte,content_digest}` with half-open byte
+bounds into the analyzed original source. Missing or inconsistent source/proof provenance returns null; all detector
+witness kinds, abstraction templates, and locked pack lanes have review projections. See [region identity](region-identity.md) for exact
+inputs, limitations, snapshot commands, and correspondence policy.
 
 Schema v9 adds explicit `generated_provenance` to generated families so callers can
 distinguish caller path assertions from nose inference without silently extending the strict
@@ -78,10 +87,34 @@ report exists. `lock.decision_digest` is independent of workspace location and
 document/load order. Dependency and receipt paths are lock-root-relative, never
 machine-absolute. See [semantic-pack-project-lock](semantic-pack-project-lock.md).
 
+## Live analysis population and source boundaries
+
+Live dashboard/list/group/family/reinvented responses add `analysis`: selected `roots`,
+`scanned_files`, language/count pairs, `skipped_sources`, effective `modes`, `exclude`,
+`gitignore`, `min_size`, `min_lines`, `min_members`, `min_value` and `max_candidate_pairs`.
+`scope: "selected-roots"` and `complete: true` describe a completed detection in that
+configured population, not coverage of excluded sources, unsupported languages or every
+possible semantic relation. Filters apply to findings after detection. Watch snapshots
+carry the same context; saved-analysis comparison and `base` retain their own contracts.
+Operational work limits can differ between two otherwise identical successful analyses.
+`max_candidate_pairs` is null by default (automatic batching without a work ceiling); a
+positive number records an explicit CLI/environment ceiling. This does not change coverage.
+
+Locations and live source observations add `boundary`: `kind` (`named-unit`,
+`exact-fragment`, `contained-region`, `unclassified-region`), detector `unit_kind`, optional
+`enclosing_unit` and `fragment_kind`, an explanatory `meaning`, and
+`extraction_safety: "unassessed"`. Missing enclosing metadata does not prove that a region
+crosses declarations; it reports that containment was not established. Member filtering
+retains the same boundary metadata.
+
+`assessment.relation.explanation` distinguishes the detector witness from the bounded
+whole-line alignment. In particular, a copy-paste token run can have zero invariant whole
+source lines; these two measurements use different granularity.
+
 ## Views
 
 **`dashboard`** (no terms) — `summary` (`scanned_files`, `families`, `by_confidence`
-`{exact,subdag,copy_paste,similar}`, `reinvented` = production-surface reinvented-helper findings,
+`{exact,subdag,connected,bounded_window,copy_paste,similar}`, `reinvented` = production-surface reinvented-helper findings,
 `shown` = displayed family count).
 Note the copy-paste bucket key is `copy_paste` (underscore), while the per-family `witness`
 enum value spells it `copy-paste` (hyphen) — so don't index `by_confidence[family.witness]`
@@ -90,11 +123,23 @@ for that one channel.
 production are ranked alike; each a *family object*), `top_candidates[]` (compatibility alias
 for the same array), `markdown[]` (Markdown near-duplicate prose families from the separate
 prose engine; additive dashboard-only field), and `next[]` (runnable follow-up commands).
+Headline confidence buckets count visible representatives and include `connected` separately.
+Advertised witness drilldown counts use the actual filtered selection: filtering can expose
+an overlapping slice whose representative is outside that selection. Witness aliases and
+canonical detector kinds share one validation/matching contract.
+Dashboard commands include production/test/mixed-scope routes and discovered evaluation or
+fixture directory hints; JSON dashboard commands preserve `--format json`. These are explicit
+filters over the existing population, not new semantic scope classifications.
 `markdown[]` is not counted in `summary.families`, is not mirrored into `families[]`, and does
 not participate in `--fail-on` gates.
 
 **`list`** (filters / `sort=` / `top=`) — `summary` (`families`, `shown`, `widened`),
 `families[]` (the selection, each a *family object*), `next[]`.
+List `next[]` commands preserve filters, shell quoting and JSON format.
+Display sorts preserve the selected IDs and overlap-fold relationships. Folding uses a
+canonical extractability order independent of user/configured ordering. Same-language
+families with zero source invariants receive zero extractability even when normalized
+ranking lines still share structure; a structural extraction shape is not a recommendation.
 
 **`group`** (`group=FIELD`) — `field` and `groups[]` of `{key, count, removable, exemplar_id}`,
 ranked by **removable lines** (so `group=dir`/`group=file` is the duplication hotspot map).
@@ -105,7 +150,11 @@ available), and a single `family` object; with `full`, that object carries `skel
 
 **`reinvented`** (`reinvented`) — `summary` (`findings`, `shown`, `in_test`, `test_helper`) and `items[]` of
 `{helper {name,file,start,end,in_test}, site {file,container,container_start,container_end,start,end,container_in_test},
-value, approximate}` — code that reimplements an existing helper; the action is "call it".
+value, approximate}` — a computation inside a container matches a helper body. This is
+not proof that the helper can be called: language compatibility, visibility, imports,
+dependencies and calling conventions remain review obligations. Human output distinguishes
+cross-language comparison from same-language reuse investigation. The detector prefers a
+same-language helper when available; cross-language relations remain visible.
 `test_helper` counts production containers whose only existing helper is in test code; those are
 omitted from `items[]` because production code should rehome/extract a helper before calling it.
 
@@ -144,6 +193,35 @@ unresolved referents, and capped mappings cannot be `complete`. This field does 
 `fire_eligible`, `tier`, or `gate.fail_default`; #849 emits and measures the evidence before
 policy qualification. #852 found no admissible non-degenerate v3 consumer, so it remains
 review evidence under schema v8.
+
+`semantic_change.region_matches`, when present, adds the independently versioned
+`nose.changed-region-candidates/v1` evidence contract. It reports original-byte matches
+for a changed base unit in already projected current changed files. `base` and each
+candidate's `source` use the [source-region contract](region-identity.md);
+candidates also carry file, language, unit kind, name and line range. `status` is
+`unique-content-candidate`, `ambiguous`, `partial`, or `budget-exceeded`.
+`search_scope="already-projected-changed-files"`, `files_in_scope`, `files_examined`,
+`max_files=64`, `max_candidates=64`, and `complete` describe the bounded search.
+Completeness applies only to units in those changed files, not all repository code.
+Projection failures and excluded files make the search partial. Candidate overflow
+emits an empty list with `budget-exceeded`, never a truncated unique candidate.
+
+Candidate evidence remains available when the original current unit or file is missing,
+provided the base source and candidate region were projected. The semantic comparison
+can remain `unavailable` while `region_matches` identifies an original-byte candidate.
+
+The field is omitted when no eligible cross-file competition was found or base source
+was unavailable; omission is not proof that a unit disappeared. A unique content
+candidate is not proof of movement, ancestry, semantic equivalence or review approval.
+A competing occurrence downgrades a formerly complete `changed-range` alignment to
+`advisory` with `heuristic-alignment`; the selected pair's deltas remain inspectable.
+An actual edit aligned by exact span or stable name retains its existing evidence.
+Human output labels how many candidate locations are shown (first three), the changed-file
+search scope, and file coverage. The `inspect-evidence` action opens every candidate in
+JSON with `top=0`, preserving workspace, roots, explicit mode/thresholds, config, excludes,
+cache and pack inputs. It does not inherit a gate flag. SARIF carries the same
+structured evidence. `query_base_region_candidates_v1` advertises this optional
+extension; the existing v8 enums and gate policy are unchanged.
 
 `targets[]` is an evidence-only v8 extension for target-level policy development. A target is
 `{target_id, changed, skipped, direct_witness, variant_evidence}`. `target_id` is the 16-hex-digit FNV identity of
@@ -241,16 +319,16 @@ Composition rules for v8:
 | `generated_provenance` | schema v9, generated families only: `{basis,sources[]}`. `basis` is `all-members` or `compiled-css-pipeline`; sorted `sources[]` contains `caller-path`, `nose-inferred`, or both, so integrations do not confuse a caller assertion with nose-derived evidence. |
 | `members` | number of copies |
 | `files` / `dirs` / `languages` | distinct files / directories / languages the copies span |
-| `source_comparable` | `false` for cross-language families, where source lines cannot be anti-unified directly; those rows display repeated semantic volume rather than shared/removable source lines |
+| `source_comparable` | `false` for cross-language families, where this source-line measurement is not performed; those rows display repeated semantic volume rather than shared/removable source lines |
 | `metrics` | raw detector feature object for evaluation/ranking integrations; see below |
-| `shared` | lines invariant across **all** copies (the all-copies anti-unification count) |
+| `shared` | literal lines invariant across the bounded readable sample (at most 8 members and 120 lines/member); inspect `source_evidence.coverage` on `full` |
 | `rep_lines` | the representative copy's line count (`shared` of `rep_lines` are shared) |
-| `params` | varying spots the extracted helper would parameterize |
-| `removable` | same-language: `(members − 1) × shared`, lines a clean extraction would delete (so `removable=0` when `shared=0`: the copies match structurally but no literal line survives all of them). Cross-language: span-based repeated source volume, because there is no shared source-line basis. |
+| `params` | varying anchor regions in bounded source alignment; not a proven function parameter count |
+| `removable` | same-language: `(members − 1) × shared`, a repeated-line estimate, not predicted deletions (so `removable=0` when `shared=0`: the copies match structurally but no literal line survives all of them). Cross-language: span-based repeated source volume, because there is no shared source-line basis. |
 | `value` | the raw duplicated-volume score (mean span × copies × similarity × spread). Ranks by repeated *volume*, independent of `removable` — under `sort=value` a structural family can top the list with `removable=0` |
-| `extraction_shape` | the decidable fix shape (`extract-helper`, `call-existing-helper`, …) |
+| `extraction_shape` | a compatibility routing hint (`extract-helper`, `call-existing-helper`, …), not a verified fix or callability claim |
 | `same_symbol` | every copy is the same named symbol (the parallel-variant signal) |
-| `existing_helper` | (only for `call-existing-helper`) the member to call — `{name, file, start, end}`; the inline copies recompute it, so the fix is "call it", not a fresh extraction |
+| `existing_helper` | (only for `call-existing-helper`) a named member matching the helper/inline shape — `{name, file, start, end}`; visibility, imports, dependency direction and call compatibility remain unassessed |
 | `spotclass` | (only on enriched near/shared-core families whose value DAGs can be aligned) `leaf-only` (varying spots are clean value-leaves and `graded.equal_modulo_holes=true`) \| `structural` (a demoted witness, async/sync transformation, shape/arity/referent divergence, or other genuine logic difference). Cross-language families may be enriched when their value DAGs align, but remain `source_comparable: false` and do not get source-line decorator comparison. Omitted unless the query filters/groups by `spotclass` (the graded-witness enrichment runs on demand) |
 | `graded` | (only when `spotclass` enrichment has run and a witness was computed) the same anti-unification object described by [graded-witness](graded-witness.md): `holes`, `spots[]`, `patterns[]` such as `async-mirror`, `referent_mismatches[]`, `caveat_names[]`, `equal_modulo_holes`, and `modeled_caveat`. This is presentation evidence for near/shared-core families, not an exact-channel proof. |
 | `graded_pair` | (only with `graded`) the two `locations[]` members whose value graphs produced the grade: `{a_index,b_index,a_member_id,b_member_id}`. The indices are zero-based into this family object's `locations[]`; the ids match the corresponding location `id` fields, so consumers can tie `graded.spots[].a_text`/`b_text` back to the represented files even when a multi-member shared-core family contains decoys. |
@@ -266,7 +344,7 @@ Composition rules for v8:
 | `semantic_pack_near` | affected near families only: deduplicated provenance rows with pack/row semantic digests, lane/trust/operation, dependency coordinate and pinned source digests, occurrence span, and caveats |
 | `semantic_pack_external_exact` | affected exact families only: receipt-backed external provider-claim provenance with pack/row/receipt digests, dependency evidence, lane `external-exact`, assurance `external-claim-exact`, occurrence span, and non-certification caveats |
 | `locations[]` | every copy: `{id, file, start, end, name, lang}` where `id` is the member id used by baseline diagnostics; when the frontend knows source-origin facts the location also carries `origin` (domains/body/region facets such as `type-contract`, `style`, `markup`, `declaration-only`, or `vue-sfc`); influenced members may carry `semantic_pack_near` or `semantic_pack_external_exact`; the `existing_helper` member also carries `role: "existing-helper"`; a sub-dag clone's member carries `shared_subdag: [start, end]` — where the proven shared computation lives at that site |
-| `skeleton` | (only with `full`) the all-copies extraction-skeleton lines, each varying spot a `⟨param N: class⟩` placeholder (`class` = `literal`/`name`/`call`/`expr`/`block` — a coarse value-class hint for the helper signature) |
+| `skeleton` | (only with `full`, same-language readable sample) bounded literal-source skeleton with `⟨region N: class⟩` anchor holes; classes describe text, not a callable signature. `source_evidence` owns coverage and pair diffs |
 
 `metrics` carries the raw `RefactorFamily` features before query's view-specific display fields
 such as `shared`, `rep_lines`, and `removable` are computed: `mean_sem`, `members`, `modules`,
@@ -302,3 +380,169 @@ detector, never substituted for either location.
 Evidence, never a verdict: there is no `worth_it`/`confidence` field — the worthy-vs-parallel
 judgment is the caller's ([design §2](design.md)). See the [agent-recipe](agent-recipe.md) for
 the loop, and [usage › nose query](usage.md#nose-query) for the grammar.
+
+## Family selection failures
+
+`id=` must be nonempty and uniquely identify a family. Human, JSON, Markdown
+and SARIF share the same resolver: unknown or ambiguous prefixes fail with a
+nonzero exit status. JSON emits a versioned `view: "family"` envelope with
+`family: null` and `error.message`; it never emits human text as successful JSON.
+Use a longer prefix when an ID is ambiguous.
+
+Dashboard `summary.skipped_sources` lists deliberately excluded source artifacts
+as `{ "path": "...", "reason": "unsupported-cpp-header" }` records. Binary
+source artifacts and ANSI-highlight output have their own reason codes. These
+records are identical for clean, cold-cache and warm-cache queries.
+
+## Saved analysis comparison
+
+`query --save-analysis FILE` writes the complete admitted code-family population as
+`nose.analysis/v1`; `query --before FILE --after FILE --format json` explores it through
+`nose.analysis-changes/v1`. These explicitly selected schemas are separate from ordinary
+query JSON v10 and base JSON v8. Dashboard/list JSON cannot be substituted for a complete
+capture. The [analysis comparison contract](region-identity.md#explore-changes-between-saved-analyses)
+owns their profiles, completeness, reasons, filters and executable navigation.
+
+The comparison's `coverage.before/after` reports scanned files, skipped sources,
+members lacking source evidence, diagnostic availability and the saved diagnostics.
+`candidate_search_complete` reports search budget availability independently.
+`summary.retained/recheck/total` count the full comparison;
+`selected_retained/selected_recheck/selected` count the current selection, and `shown`
+counts displayed observations. Rows use `order="recheck-first-then-observation-id"`.
+`actions[]` supplies named actions alongside the compatible `next[]` command strings.
+`member_changes` in detailed rows supplies before/after member counts and location-only
+correspondence summaries under the statuses advertised in capabilities. Additional
+fields are additive to these v1 output schemas; consumers must ignore unknown fields.
+
+## Evidence and member exploration
+
+Family objects add `assessment` with `support`, `explanation`, source-line measurements,
+review `checks`, and `verdict="caller-review-required"`. Support is distinct from witness
+strength: `shared-source`, `no-shared-source`, `common-syntax-only`,
+`cross-language-comparison`, or `source-evidence-unavailable`. Measurements use the existing
+source-line alignment; they are not a calibrated probability of useful refactoring.
+`assessment.relation` retains the detector witness independently of literal overlap.
+`structural_correspondence` reports whether a graded pair is attached; its scope is that
+pair only. `unassessed` lists decisions the engine has not established; `checks` contains
+only applicable observations such as varying regions or mixed production/test scope.
+`measurement_scope` documents the existing bounded count. These additions do not change
+family IDs, review keys, sorting or the legacy `params`/`removable` field names.
+
+`full` adds `source_evidence`: `basis`, `source="live-unverified"`, `status`, `coverage`,
+`members[]`, optional `skeleton`, `shared_lines`, `varying_regions`, and `diffs[]`.
+This is current source, not verified saved-analysis text. `status` is `complete`, `partial`
+or `unavailable`; coverage counts total, attempted, available and omitted members.
+Limits are 8 members, 120 lines/member, 16 MiB/file and 64 KiB per displayed region.
+Missing/non-UTF8/oversized files and invalid ranges retain a member with an explicit reason.
+Each diff carries `a`/`b` member IDs, region handles and file ranges, `scope="pair-only"`,
+`truncated`, and lines `{tag,text,a_line,b_line}` with absolute coordinates (`null` on the
+absent side). Sample members are compared with the first readable member, not every pair.
+Skeleton holes describe anchor differences; insertions only in another member appear in
+the diffs. Cross-language details omit the skeleton and report
+`alignment_status="cross-language-not-aligned"`, while retaining labeled pair diffs.
+Human and Markdown use the same observations, showing at most 40 skeleton lines with an
+explicit truncation notice. No skeleton is an extraction proposal or safe-to-apply patch.
+
+`id=ID full` also requests existing graded enrichment for the selected family only.
+Unsupported/unavailable grades remain absent; no inferred witness replaces them. Pair IDs
+in `graded_pair` identify the coverage, including when member filters hide those locations.
+The added executable `next` command opens this detail and preserves analysis options.
+
+Locations add `scope_evidence={scope,reasons}`. Reasons preserve recognizable frontend,
+enclosing-context and naming/path evidence without claiming arbitrary configuration resolution.
+The dashboard's `prod` route is non-test classification, not a determination of
+product intent. Any additional directory exclusions are navigation hints over
+observed names, not a complete taxonomy of evaluation or tooling code.
+
+A family view adds `member_view` with total/selected/shown member counts, optional grouped
+counts, selected locations and executable `next` commands. With explicit `member-*` terms,
+`family.locations` contains the shown member selection (empty for group views); family ID,
+review key, metrics and assessment still refer to the complete family. Without member terms,
+`family.locations` retains its existing complete population. Member navigation preserves
+analysis options, quotes paths/filters and retains JSON.
+Member group, copy, parent and return actions also retain an explicit `top=N`;
+only an explicit expand action replaces that limit. The limit affects presentation,
+not the complete family's evidence or identity.
+The dashboard adds `population` accounting for code families after baseline/structured
+ignore processing and before presentation selection. `families` partitions into
+`default_unfolded + default_folded + other_surfaces`, and independently into
+`all_unfolded + all_folded`. Unfolded counts precede row limits; default-unfolded
+equals the existing dashboard family count. Folded counts use every family in
+the existing opportunity forest, including nested folds, rather than summing
+only direct links from displayed roots. Classification and fold policy are unchanged.
+These report counts need not equal a saved capture: capture precedes baseline/ignore
+processing and coalesces duplicate observation addresses. Markdown findings remain
+separate. `all` widens surfaces while still folding overlapping families.
+
+Grouping always aggregates all families matching the current filters; `top=N`
+limits displayed groups, not the input families. Human group actions and headings
+state this scope. Structural comparison belongs to the displayed family pair,
+independently of member selection. An unavailable structural anchor location or
+excerpt does not establish that the member source is unavailable; source bodies
+report their own availability.
+Filtered lists may add
+`selection_reason={kind:"recovered-overlap",primary_id,meaning}` to explain why a folded slice
+reappears when its fuller primary is outside the current selection.
+
+Analysis detail items add named source actions. Explicit source inspection adds
+`source_body={status,text?,reason?,file,region}` to captured members; only verified source
+has text. `source_diffs` contains labeled correspondence, aligned `{tag,text}` lines and
+truncation metadata. Missing or mismatched source never substitutes current text.
+Items also add `reviews[]` and `review_status` (`applicable`, `recheck`, `unreviewed`).
+The response's `reviews` object lists unrelated inputs and any newly written review file.
+These are additive output fields; the `nose.analysis/v1` capture schema is unchanged.
+See [review records and source lookup](region-identity.md#inspect-source-and-carry-caller-decisions-forward)
+for their exact conditions and bounds.
+
+
+`member_view.source_bodies` is populated for explicit member filters with `full` and no
+member grouping. It describes only the selected members (`scope="selected-members"`),
+with `selected`, `shown`, `omitted`, `member_limit=8`, `line_limit_per_member=120` and
+`members[]`. Bodies carry member IDs, file/region coordinates, availability, truncation,
+and `{line,text}` source lines. Missing bodies retain a reason. The source is
+`live-unverified`, subject to the existing 16 MiB/file and 64 KiB/region limits;
+family identity, assessment and family-wide evidence remain unchanged. Use narrower
+member filters to inspect omitted bodies. Human member lists expose the existing
+location `next` commands as **Open** links, including multi-member source views;
+a single already-open source does not repeat its own Open link. Human structural
+comparison stays in the full-family view, rather than repeating a family pair during
+member inspection. JSON retains the same family evidence. Structural spots explicitly
+name unavailable locations/excerpts instead of displaying internal `None` values.
+
+`member-context=N full` expands the selected source display by a non-negative
+number of nearby lines. A member's `inspect-context` action requests 20 lines on
+each side. The window can cross enclosing-unit boundaries to include adjacent
+comments and code, bounded by file edges; unclassified ranges remain unclassified.
+The existing 120-line and 64-KiB limits still apply. The selected member receives
+the line budget first; remaining lines are shared between preceding and following
+context, with unused allowance on either side available to the other. Requests that
+fit the line budget are shown completely, subject to the byte limit.
+Each body retains its original `start`, `end`, `region` and `member_id`, and adds
+`context={requested_lines_each_side,requested_start,start,end,shown_end,meaning}`.
+Context lines add `in_member`, indicating membership in the reported source range,
+not a new equivalence claim. `truncated` includes omitted preceding context as well
+as a missing tail. Normal source-only output is unchanged. Resume and member links
+retain the context setting; returning to the full family/list removes member settings.
+This reads live source only; saved-source verification remains a separate workflow.
+
+Ordinary dashboard/list/group navigation preserves analysis options while retaining the
+original `path` metadata. Group rows add `next[]`; an unfilterable diagnostic bucket opens
+its exemplar instead. Invalid numeric filters return a nonzero error, not a successful
+empty list. Candidate-budget failures likewise return no partial finding envelope; stderr
+contains source inventory and root-narrowing commands.
+
+## Bounded exploration navigation
+
+Ordinary group output honors `top=N` (default 30, zero means all), with
+`summary.groups_total`, `summary.groups_shown`, and `summary.families` separating
+population counts from display limits. A truncated group offers a `next` command
+that expands the same group and filters. List `actions` provides `open-family` commands for up to eight shown families,
+with IDs and the current selection preserved. Family `member_view.actions` names return
+and resume commands; each member location has a direct `next` link using
+`member-id=ID full`. Selecting a member does not change family metrics or identity.
+Dashboard directory routes summarize the first directory under each explicit root
+and do not filter, rank, or classify the findings automatically.
+
+Member detail actions distinguish `return-family` (the complete current family) from
+`return-selection` (the filtered family list). Both retain the inspection settings;
+opening a member does not change the family's identity or evidence.

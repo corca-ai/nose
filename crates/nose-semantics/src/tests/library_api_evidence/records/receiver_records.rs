@@ -227,20 +227,20 @@ pub(crate) fn java_list_of_import_evidence_il(
         module_hash: stable_symbol_hash("java.util"),
         exported_hash: stable_symbol_hash("List"),
     });
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(30), stable_symbol_hash("List")),
         binding_symbol,
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(sp(31), NodeKind::Var),
         binding_symbol,
         EvidenceStatus::Asserted,
         vec![EvidenceId(0)],
     ));
-    il.evidence.push(java_stdlib_collection_factory_record(
+    il.push_evidence(java_stdlib_collection_factory_record(
         2,
         sp(34),
         contract,

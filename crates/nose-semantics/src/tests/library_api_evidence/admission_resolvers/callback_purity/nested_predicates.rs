@@ -64,7 +64,7 @@ fn nested_predicate_il() -> (Il, Interner, NodeId, NodeId) {
     );
     let mut il = finish_il(b, root, Lang::TypeScript);
     for (id, receiver) in [(0, outer_receiver), (1, inner_source)] {
-        il.evidence.push(evidence(
+        il.push_evidence(evidence(
             id,
             EvidenceAnchor::node(il.node(receiver).span, NodeKind::Var),
             EvidenceKind::Domain(DomainEvidence::Array),
@@ -75,18 +75,17 @@ fn nested_predicate_il() -> (Il, Interner, NodeId, NodeId) {
     {
         let contract = library_method_call_contract(Lang::TypeScript, method, 1)
             .expect("TypeScript Array HOF contract");
-        il.evidence
-            .push(library_api_record_with_provenance_and_arity(
-                id,
-                il.node(call).span,
-                contract.id,
-                contract.callee,
-                1,
-                EvidenceStatus::Asserted,
-                &[dependency],
-                contract.pack_id,
-                contract.producer_id,
-            ));
+        il.push_evidence(library_api_record_with_provenance_and_arity(
+            id,
+            il.node(call).span,
+            contract.id,
+            contract.callee,
+            1,
+            EvidenceStatus::Asserted,
+            &[dependency],
+            contract.pack_id,
+            contract.producer_id,
+        ));
     }
     (il, interner, outer_call, inner_call)
 }

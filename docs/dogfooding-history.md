@@ -1500,3 +1500,751 @@ consumer selector negatives use one direct-function call-target contract
 fixture, removing `f6a2c8af9c3fd791`. Promise settlement tests now use a small
 evidence DSL and focused direct-return support modules; that change improves
 scenario readability without adding or accepting a replacement family.
+
+The full-project review follow-up reduces the reviewed count from 16 to 15,
+with the existing budget ceiling of 20 unchanged. Clean LSH, exact-value,
+anchor, and incremental candidate generation now share `lsh::bucket_pairs`.
+This removes the candidate-enumeration family `0fba8db9b311bd86`; the initial
+full-pair fix had temporarily added `exact_value_candidates` to that existing
+family, so the shared iterator removes the duplication instead of accepting it.
+The six three-line test span helpers retain identical members and metrics
+(value 75, zero removable lines); the evidence append API changes one member's
+line coordinate and moves `97f69f1bf638e2d7` to `08bef91578054823`. No new
+avoidable family is accepted.
+
+
+## Exploration consistency and advice follow-through (2026-09-05)
+
+An interactive nose-on-nose pass started at `nose --help` and `nose query .`, then
+followed production, directory, witness, family and saved-analysis navigation. The
+original `path~crates scope=prod top=0` population changed from 339 to 336 families
+when only `sort=value` changed (11 IDs disappeared and eight appeared). Canonical
+opportunity folding now precedes display ordering; sorting is a view operation.
+
+A zero-invariant source match was ranked first and given an extraction proposal.
+Extractability now requires source invariants for same-language families, and empty
+or punctuation-only skeletons explain their lack of extraction support. Cross-language
+helper containment remains useful evidence, with comparison advice instead of an
+unestablished direct call. Scope now inherits native Rust test attributes and conventional
+test-function/module spans, including cached syntax regions; `_tests` path components
+cover conventional out-of-line test helpers. Arbitrary module/configuration resolution
+is not claimed.
+
+Two independent read-only agents explored the updated CLI. They confirmed stable
+production selection under value/extractability sorting, actionable import-evidence and
+shadow-guard candidates, and a common Python audit-module loader. Comparison dogfooding
+used historical CLI sources: 141 observations narrowed to two rechecks and 139 retained;
+fresh captures, JSON/human drilldowns, explicit budget recovery, empty-filter recovery,
+and non-overwriting capture writes all behaved as advertised. Debug runs provided no
+performance evidence.
+
+Their reproducible remaining concerns were accepted: connected-core counts now have
+their own dashboard bucket/link; `full` lists all family locations and compact views
+name omissions; emitted filters retain shell quoting and JSON list navigation retains
+its selection; test helper path conventions and punctuation-only advice were tightened;
+group comparison headings distinguish groups from observation rows. Detailed capture
+context lives behind `full`, while incomplete-source diagnostics remain immediately
+visible. These improvements change exploration/advice, not authorization to rewrite code.
+
+
+The substantial-near ratchet was reviewed after these corrections: 18 current default
+families, within the unchanged budget of 20. The checked baseline contained 15 IDs
+(the operating guide's previous count of 16 was stale). Six now-visible IDs were inspected:
+
+| Current ID | Review |
+|---|---|
+| `3e7649541676178b` | The previously accepted detect/markdown `UnionFind` implementations; a representative-ID change from `e633f3912604730d`, still a separate cross-crate utility decision. |
+| `60f0dd6d98436972` | The previously accepted `int_bin` / `float_bin` pair, replacing `aa2b95cf822a1cd2`; numeric policies remain distinct. |
+| `49724f843a830a5a` | Existing `Project` harnesses in analysis-changes/region tests; whole-impl overlap, with distinct capture and query workflows. |
+| `9f4c7edd3f5ece8d` | Existing cross-layer binding/export/name-count traversal family, sharing two source lines across three members; retain as observed debt, not a clean helper proposal. |
+| `09685d6df25416a9` | Six existing source-region CLI test scenarios; zero shared source lines across all members, so no supported common extraction. |
+| `71a57945b885ee02` | Existing capability report/type versus flag-map family, with one shared source line; not a supported common helper. |
+
+`fa4513e797e66fbd` moves to the reviewed binding/export/name-count representative `9f4c7edd3f5ece8d`. No member of the
+six newly listed families was introduced by this exploration correction. The accepted
+set was replaced with the reviewed current IDs without increasing its budget.
+
+
+A bounded release recheck caught two additional witness-navigation defects: `connected`
+was understood by matching but rejected by filter validation, and filtered views could
+reveal slices absent from the dashboard's representative counts. Parsing/matching now
+share one alias table (including canonical evidence names); advertised drilldown counts
+reuse the target selection logic and explain slice recovery. No evidence kind is silently
+combined with another kind to make a navigation count appear consistent.
+
+
+## Source inspection and reusable caller review (2026-09-05)
+
+The next nose-on-nose pass exercised source-backed review and member facets. A capture
+of `crates/nose-cli/src` admitted 141 families from 178 files with complete coverage.
+Production exploration still exposed the 21 shared lines in import-evidence helpers
+(`94ff34eef4cb8ff1`). Its two directory member groups opened with exactly their advertised
+counts. Explicit source inspection verified captured buffers and selected regions;
+a caller-owned deferred review was written and reloaded with one applicable observation.
+Local artifacts live under ignored `target/review-dogfood/`; these debug runs do not
+establish a performance result.
+
+Behavioral regression cases cover unique moves, simultaneous ambiguous moves, added
+copies, content/scope changes, incomplete search, unrelated captures, conflicting decisions,
+non-overwriting writes, stale sources, explicit historical directories, source-line diffs
+and symlinks escaping the selected base. Ordinary family assessment separates extraction
+support from witness strength. Member filtering retains complete-family identity/metrics,
+and source scope/fold recovery explanations remain observable. No review record affects
+baseline acceptance or gates.
+
+The reviewed substantial-near set decreases from 18 to 17 within the unchanged budget
+of 20. `b9a6d490a71811d2` replaces `49724f843a830a5a`: the same pre-existing Project
+harnesses in analysis-changes and region tests; adding a test-module declaration moved
+coordinates without changing either harness. `95335d85da8e217a` replaces the previous
+capability table/type representative `71a57945b885ee02`: capability construction and flag
+registration share one common syntax line, which the assessment correctly labels as
+insufficient extraction support. The unchanged `int_bin` / `float_bin` pair represented
+by `60f0dd6d98436972` falls below the threshold; this is corpus-sensitive ranking drift,
+not removal of those deliberately distinct numeric policies. Shared CLI argument replay
+was extracted for divergence and member navigation instead of accepting a new copied
+implementation. No new avoidable duplication is accepted.
+
+
+## Evidence without edit instructions (2026-09-05)
+
+External CLI exploration of Craken exposed a cross-language comparison hint followed by
+an imperative extraction proposal. Human, Markdown and JSON now share bounded source
+observations; origin and helper hints direct inspection without deciding reuse or intent.
+`full` requests the selected family's existing graded witness and exposes pair identities,
+source coordinates, missing members and truncation. Zero literal overlap retains the
+independent detector witness. Source text in this view is explicitly live/unverified;
+verified historical text remains the saved-analysis source workflow.
+
+Regression cases cover cross-language output consistency and executable detail navigation,
+zero-overlap exact relations, review identity, insertion coordinates, sample limits,
+unreadable sources, truncated regions and unavailable ranges. The Craken recheck covers
+CLI parsers (`ebe366f1cd160802`), differing menu placement conditions (`342ad39c250b`),
+zero-overlap exact markup (`9ae540e0ee6c`), and storage exception wrappers (`63d1edcee080`).
+The comparison reports differences without declaring them bugs or intentional policies.
+
+The substantial-near gate remains 17 families within budget 20. Capability registration
+adds one flag, moving the already-reviewed capability construction/table representative
+from `95335d85da8e217a` to `31f859c73ff8ce77` (one common syntax line). This is the same
+accepted pair, with no new avoidable duplication. Ranking inputs and detector semantics
+are unchanged; source display placeholders now say varying region rather than parameter.
+
+
+The ranking diagnostic used the checked v7 labels through the existing strict live v10
+adapter (the frozen historical adapters were not edited), with fixed dev/heldout pairs:
+alacritty/tokei, requests/flask, chi/gin, gson/jsoup, rack/sidekiq, axios/ky, lua/cmark,
+and swift-log/swift-metrics. All 488 previously recovered worthy labels remained recovered.
+This is a 16-repository diagnostic, not a full-corpus qualification: the full attempt hit
+Alamofire's candidate-work limit even at 256 million pairs. The fixed panel used the default
+candidate limit. Its 500-resample bootstrap had overlapping intervals: native P@10 was
+50.00% (40/80) dev and 71.25% (57/80) heldout; the historical anti-unification reranker
+reported 59.68% (37/62) and 67.69% (44/65). The rerank denominators differ because fewer
+newly selected rows have labels, so these are not paired superiority estimates. There is
+no supported ranking improvement to adopt. Craken's 183 production-family IDs and order
+also remained identical. Local diagnostic artifacts are in `/tmp/nose-evidence-dogfood/`
+and `/tmp/nose-evidence-ranking.json`; the harness records its own and both adapters' hashes.
+
+
+## Independent Cortex exploration follow-up (2026-09-05)
+
+Two agents explored Cortex independently from tasks alone. Their sessions exposed silent
+numeric-filter failures, lost detection options in navigation, an unhelpful candidate-budget
+stop, advanced-first help, missing selected-member source bodies and raw `None` coordinates.
+Numeric filters now reject unsupported operators and non-finite/malformed operands before
+analysis. Dashboard, group and list commands share option replay, including mode, exclusions
+and cache settings. Group JSON supplies executable next commands. Help starts with the basic
+filter/group/open workflow. Explicit member filters with `full` show bounded live source with
+line numbers, while unavailable structural coordinates have a human explanation.
+
+The release CLI recheck on Cortex `0baac123` retained the excluded dashboard's 2,013 scanned
+files and 724 families. Every dashboard next command executed; the worker directory group
+opened its slice under the same exclusion. Explicit syntax/semantic mode retained its two
+channels through the next command (570 families over 2,325 scanned files). The selected
+PayPal checkout member of `fba385b36925278c` displayed source lines 78–89, retaining the
+complete family review key and distinguishing live source from snapshot verification.
+
+The default whole-repository analysis still exceeds 16 million candidate pairs. It now
+reports an incomplete analysis with no findings, followed by a cheap source inventory and
+commands to inspect smaller roots. The advertised worker-root command succeeded with 311
+families over 562 scanned files. Directory counts do not diagnose the cause of the candidate
+load, and this narrower result does not establish whole-repository coverage. Detection modes
+and roots are never changed automatically. Local transcripts are in `/tmp/nose-cortex-fixed/`.
+
+Regression checks distinguish unchanged analysis payloads from invocation-specific `next`
+commands; dedicated CLI tests execute navigation, including cache paths with spaces. The
+substantial-near ratchet reports 18 reviewed families within the unchanged budget of 20.
+`1dd8bdaee1ea4c10` replaces `b9a6d490a71811d2`: importing the shared comparison helper moves
+the existing Project harness coordinates. The unchanged integer/float operation pair
+`60f0dd6d98436972` reappears above the threshold (value 41.965, ten shared syntax lines)
+after corpus frequency changes in tests; the two numeric policies remain deliberately
+separate. No new avoidable production duplication is accepted. Detector and ranking
+algorithms are unchanged; edit and preservation judgments remain with the caller.
+
+
+## Cortex population, evidence and scale follow-up (2026-09-05)
+
+A second independent exploration exposed four remaining obstacles: the whole-root
+candidate budget, missing analysis population on navigation screens, token witnesses
+being confused with invariant whole lines, and source regions being mistaken for
+extraction boundaries. Live human and JSON views now carry the effective population
+and detection settings. Relation explanations separate token and line evidence; source
+boundaries report known containers or explicitly unknown containment. Extraction safety
+remains unassessed. Persisted token streams retain raw declaration containers, fixing a
+cold/warm discrepancy in source metadata; syntax features and incremental pair indexes
+receive new cache schemas.
+
+Candidate accounting now counts the unique union across structural channels, omits only
+equal same-file line spans already ineligible for reportable relations, and avoids
+per-unit hash-set allocation. Incremental indexing follows the same pair eligibility.
+The default 16-million limit is unchanged. Recovery supplies an explicit larger-budget
+command which preserves roots and modes; nose does not silently narrow the population
+or raise the resource limit.
+
+On Cortex `0baac123`, the emitted 32-million retry completed the whole 2,325-file
+population with 782 families in 8.61 seconds on the local release build. Group and list
+next commands preserved this population. Cold and warm cache runs produced identical
+JSON (9.16 and 6.46 seconds respectively). These are local usability timings, not a
+controlled performance comparison. The asset-excluded population retained its 2,013
+files, 724 families and confidence counts. The cross-declaration `cb6c7ceabc` example
+exposes unclassified containment, and zero-whole-line copy-paste rows explain their
+matching-token evidence. Transcripts are in `/tmp/nose-context-final/`.
+
+The substantial-near gate tightens from 18 to 17 within budget 20. Three capability
+flags move the accepted capability construction/table pair from `31f859c73ff8ce77`
+to `fe157d643fac27b6`; it still shares one common syntax line. The unchanged
+`int_bin`/`float_bin` family `60f0dd6d98436972` leaves the reported set as the scanned
+code/test corpus changes: the previous release binary also omits it on this same
+updated corpus. No new avoidable production duplication is accepted. Workspace
+tests (2,346), strict clippy and the final Cortex navigation/cache checks pass.
+
+The bounded seven-repository semantic smoke compared `40abeb25` to `64a7ef1f`.
+Recursive review of every old/new JSON document found only the three additive fields
+(`analysis`, relation explanation, location boundary); all pre-existing fields, family
+identities, ordering and surface counts were identical. The exact byte/hash deltas are
+recorded in the expected-drift ledger. Ruby scaling passed (exponent 0.70), and the blind
+attacker retained 54 exact groups with zero false merges or canonicalization violations.
+
+The runtime gate did **not** pass: its single permitted focused rerun found no confirmed
+regression but retained an inconclusive order split in fastlane `normalize+extract`.
+The adjusted stage movement was +6.25 ms (+3.28%); the two execution-order strata were
++11.0 and +1.5 ms. The focused aggregate was within threshold (+0.75%). This is unresolved
+runtime qualification, not proof of a slowdown or a passing performance result. No
+threshold or retry policy was changed. Reports and raw measurements remain in
+`/tmp/nose-context-smoke/`; recursive output-review artifacts are alongside them.
+
+
+## Automatic candidate batching (2026-09-05)
+
+Requiring a first-time user to increase an internal candidate limit made whole-root
+exploration unnecessarily fail. Normal queries now have no implicit candidate-count
+ceiling. Large populations automatically stream candidate batches, retain all accepted
+ordinary edges and compact the existing connected-seed selection without changing its
+global/per-file quotas, ties or order. Candidate and rejected-score temporary storage
+is bounded by the batch plus retained seeds; source features and accepted output still
+consume memory proportional to their size. Explicit work ceilings remain available for
+automation and fail before results. Cached and watch queries use the same large-analysis
+path while keeping reusable source/unit features instead of a large persistent pair index.
+
+On Cortex `0baac123`, plain `nose query ../cortex` completed 2,325 files and 782 families
+without any candidate option or retry. Comparing every family against the previous
+release with its required 32-million override preserved all existing fields and ordering.
+Cold and warm caches agreed, and the watch initial snapshot matched the clean dashboard.
+Local elapsed times were 10.12 seconds for the default dashboard, 8.48 for all families,
+9.07 for cold cache and 6.50 for warm cache; these are usability observations rather than
+controlled performance claims. Artifacts are in `/tmp/nose-auto-cortex/`. Tests compare
+multiple batch boundaries, non-hub edges, overlapping buckets, nested seeds, overflow
+ties and per-file reservations.
+
+The substantial-near ratchet reports 18 families within budget 20. The unchanged numeric
+policy pair `60f0dd6d98436972` (`int_bin`/`float_bin`) returns at value 40.645 as the
+code/test corpus changes; the previous binary reports the same family and value on this
+updated corpus. No new avoidable production duplication is accepted.
+
+The bounded semantic regression smoke (`9e2f174b` to `fd9b2ee7`) passed after its
+permitted focused rerun for fastlane and prettier. All seven repositories preserved
+every finding and pre-existing JSON field except `analysis.max_candidate_pairs`, which
+intentionally changes from 16,000,000 to null; exact hashes are in the expected-drift
+ledger. Runtime was within the unchanged thresholds, and Ruby scaling passed with
+exponent 0.64. Reports are in `/tmp/nose-auto-smoke/`.
+
+## Analysis-local scoring and signature reuse (2026-09-06)
+
+The substantial-near ratchet remains 18 families within budget 20. Adding derived
+hashing to near-protocol metadata moves the existing external-exact/near registry
+representative from `2bca2e8582b7d7a7` to `117ea7496a47614a`: formatting moves the
+near registry implementation down six lines. Both implementation content digests,
+member names, and all family metrics are identical to the pre-change source.
+The previous and current binaries produce byte-identical self-query output on the
+updated source. No new family or increased budget is accepted. Source snapshots,
+full output, and performance qualification limits are recorded in the [runtime follow-up](runtime-triage.md#scoring-and-feature-extraction-follow-up-2026-09-06).
+
+## Cortex evidence and exploration usability (2026-09-06)
+
+The usability follow-up fixes six observed obstacles: witness occurrence locations,
+selected-family review recording within incomplete captures, filter-preserving
+navigation and saved-selection resume, group display limits, repeated source output,
+and bounded root-directory entry points. These expose evidence and caller choices;
+they do not decide whether code should be refactored or preserved.
+
+Witness export now observes expressions within the requested unit instead of using
+the creation span of a file-wide hash-consed value. Equal values at disjoint sites
+have no unique reported occurrence; ordinary fingerprint construction is unchanged.
+Cortex's `file-drop.test.ts` literal spot now points to the actual `projectId` at line
+28 instead of an unrelated `id` at line 49. A regression fixture fails before this
+fix and passes after it.
+
+On unchanged Cortex `0baac123`, `group=dir top=15` shows 15 of 32 groups. Generated
+list/detail/member/return commands preserve the original filters and open one copy.
+The existing whole-root capture still reports 43 missing member references and
+requires rechecking cross-capture evidence. Its complete export family can record
+an explicit current `defer` decision without recapturing a narrower population;
+a selected incomplete family still fails. Current intent and transferable evidence
+remain separate contracts. Comparing verified sources with the same command reduces
+human output from 770 to 278 lines while preserving the JSON source bodies.
+
+All 2,362 workspace tests, strict clippy, docs and file-length checks pass. The
+substantial-near ratchet retains the same 18 family IDs within budget 20. Recursive
+old/new comparison on the seven pinned smoke repositories and Cortex found that
+only the bounded top-level `open-family` actions were added to the semantic list;
+every pre-existing JSON field, family identity, ordering and surface is unchanged.
+The exact seven-repository byte/hash deltas are declared against `33ecb863`.
+Raw outputs, executable navigation transcripts and the review boundary checks are
+in `target/usability-fixes-2026-09-06/`. The bounded semantic regression smoke passes against product commit `156e164d`
+after its one permitted focused rerun for asciidoctor, fastlane and junit5. It reports
+seven exactly declared navigation-output changes and zero unexpected drifts; all
+runtime signals finish within the unchanged thresholds. Ruby scaling passes with
+exponent 0.69. This qualifies this usability change against `33ecb863`, not the earlier
+optimization against its older baseline. Type-4 retains 54 exact groups, zero false
+merges and zero canonicalization violations; only its product-tree binding changes.
+
+## Ten-cycle independent usability campaign: round 1 (2026-09-06)
+
+Two new evaluators with no conversation history explored Cortex and craken-agents
+using CLI guidance only. Cortex's three tasks succeeded in nine calls; craken-agents
+completed discovery and current review recording in fifteen calls but exposed failed
+saved-source lookup when the capture was made from outside the analyzed repository.
+Both noticed that a path-filtered family can display an outside representative.
+
+The first improvement repairs source lookup without rewriting saved observation or
+review identities. An external capture uses the common directory of its recorded
+roots for explicit source remapping; new captures retain logical root spelling.
+Historical directories, single-file roots, multiple roots, unavailable counts and
+existing source-containment checks are covered. Human source lookup states actual
+verified/unavailable counts. Member navigation distinguishes the complete family
+from the filtered list with named return actions.
+
+Both original evaluators replayed their tasks without receiving implementation
+explanations. Existing and new craken-agents captures verified all four requested
+member reads for both selected candidates; current defer records remained applicable.
+Cortex's member, family and filtered-list returns all reached the named destination.
+The replay used eleven Cortex calls and fifteen craken-agents calls; extra return and
+old/new-capture checks mean these totals are not a task-cost improvement claim.
+Repeated 4–5-second Cortex navigation, outside representative rows, capture/display
+term incompatibility and live-to-saved selection friction remain open observations.
+
+All 2,364 workspace tests, strict clippy, docs, file-length and the unchanged
+18-family substantial-near gate pass. This is round 1 of the requested 10, not a
+completed campaign. Fresh evaluators start each round; within-round replay uses the
+same evaluators and is not counted as another fresh-user experiment. The protocol,
+raw commands, outputs, accepted/deferred decisions and progress ledger are in
+`target/ux-campaign-20260906/`. Campaign-wide runtime/oracle qualification follows
+the final product changes.
+
+## Independent usability campaign: round 2 (2026-09-06)
+
+Fresh independent evaluators explored craken-agents and pinned Requests using
+CLI guidance only. Both completed their tasks, but the first manually restored
+`top=8` after member grouping; the second recovered from capture/selection and
+live/saved-ID incompatibilities. The accepted change preserves explicit display
+limits through member groups, copies and parent/return actions. A composed CLI
+journey fails before the fix and passes afterward. Explicit expansion can still
+replace the limit.
+
+Landing guidance now describes `prod` as non-test classification with product
+intent unassessed; directory exclusions remain bounded navigation hints. Save help
+states the separate no-terms invocation. Comparison starts with unchanged evidence,
+without suggesting a caller review already exists. Classification, identities,
+ranking, correspondence and review applicability are unchanged.
+
+The same evaluators replayed tasks without an implementation explanation.
+Craken completed eleven calls without manual recovery and returned to the same
+eight families in the same order. Only positional versus explicit-root spelling
+differs in generated next commands. Requests completed ten task calls, verified
+four source reads and reopened its defer record; the evaluator explicitly credits
+some avoided errors to prior experience. Neither call-count reduction establishes
+a causal product improvement. Path-matching member visibility and live-to-saved
+selection handoff remain open. Raw pre/post records and decisions are under
+`target/ux-campaign-20260906/round02/`.
+
+All 2,364 workspace tests, strict clippy, docs and file-length checks pass. The
+substantial-near gate retains eighteen families within budget twenty. This is
+round 2 of 10; final campaign-wide qualification remains pending.
+
+## Independent usability campaign: round 3 (2026-09-06)
+
+Fresh evaluators completed Alacritty and Prettier tasks in fifteen calls each.
+Alacritty exposed the difference between representative-directory and any-member
+path selection. Prettier required a failed saved `id=` lookup followed by manual
+file/line matching to reopen a selected GraphQL family.
+
+New captures retain existing live family handles as navigation references to
+captured observation addresses. Saved queries accept an unambiguous recorded `id=`
+prefix and expose the related observations' existing change/source/review actions.
+Ambiguous prefixes, full-handle collisions and invalid references fail explicitly.
+Old captures remain readable and explain unavailable handle lookup. Handles do not
+change observation IDs, correspondence or evidence; review records still bind their
+complete original capture. Help also distinguishes `dir=` from `path~`.
+
+In the learned replay, Prettier reopened `bb38e42ef2` directly, verified six source
+reads and recorded/reopened an applicable defer decision. Its fourteen task calls
+had zero failures. Alacritty completed its fifteen-call exploration and returned to
+the original seven-family selection; a new attempt to use `at=` as an enclosing
+source viewer failed and was recovered. Surrounding-source access remains a real
+gap, alongside path-selection visibility and related-family navigation. No aggregate
+speed or first-use success-rate improvement is inferred from these replays.
+
+All 2,366 workspace tests pass; final handle tests additionally exercise prefix and
+full-handle collisions, invalid references, legacy identity, source lookup and review
+transfer while retaining the original capture. Strict clippy, docs and file-length
+checks pass. The real Requests capture/review from round 2 remains applicable on the
+new reader. Evidence lives under `target/ux-campaign-20260906/round03/`.
+
+The substantial-near review contains nineteen families within the unchanged budget
+of twenty. `fd725ce4d0186778` replaces `1dd8bdaee1ea4c10`: two module declaration lines
+move the unchanged Project harness. New `bbbcb53d5f161643` spans the saved Selection
+implementation and live parse_query; its five shared source lines are only braces
+and statement closers, with six varying regions. The two distinct query grammars
+have no shared logic to extract from this reported span. No parser abstraction is
+introduced to suppress this syntax-only match. The campaign baseline and current
+binaries produce byte-identical self-query JSON on the updated source (SHA-256
+`63f3b357550fa0a377b97d75183f351d0427c6974a6a5ffe96d442ec2d659365`).
+This is round 3 of 10; final campaign-wide qualification remains pending.
+
+## Independent usability campaign: round 4 (2026-09-06)
+
+Fresh Alacritty and fastlane evaluators completed fifteen and thirteen task calls
+without command failures. Both needed source outside the reported member span.
+Fastlane's surrounding function signature distinguished `action` from `named`,
+which was material to the caller's decision to defer. Alacritty required separate
+trait and caller inspection; local context alone cannot establish those contracts.
+The fresh fastlane evaluator also reopened the round-3 live family handle from a
+new capture without prior instruction, providing an independent follow-up to the
+previous learned replay.
+
+Member detail now offers a named surrounding-code action, using the existing
+`full` source view with `member-context=N`. It reads bounded live source, clips
+to valid enclosing-unit and file bounds, marks the original reported member
+lines, and reports truncation. Source/member coordinates, region and review keys,
+family evidence, and source verification contracts are unchanged. Invalid or
+unavailable member ranges remain unavailable. Context does not infer caller
+contracts or turn surrounding lines into clone evidence. Existing query filters,
+limits and navigation destinations are preserved.
+
+The composed member/context/resume test fails before implementation and passes
+afterward. All 2,368 workspace tests, strict clippy, formatting, docs and the
+1,053-file Rust length check pass. Bounds tests cover zero/large padding, missing
+source, missing member lines and oversized content. The substantial-near gate
+reports eighteen families within the unchanged budget of twenty, with no new
+family. Unchanged numeric-policy pair `60f0dd6d98436972` leaves the reported set
+when the scanned corpus changes; this is not a deduplication. Both numeric
+implementations are byte-identical to the campaign baseline. Baseline/current
+binaries produce identical self-query JSON on the updated source (SHA-256
+`fdbd16c707d0fb8a3e351ab5cd0d7dacbb4ef7926e3ca478100d1b4af4b8da5c`).
+The exact admission cause is not established by this comparison.
+
+Both evaluators completed their learned replays without command failures:
+Alacritty used fifteen task calls (eleven CLI, four external source reads), while
+fastlane used thirteen CLI calls and no external source read. Both found the
+context action from current CLI guidance, distinguished surrounding source from
+clone evidence, and retained the original family/list navigation. Fastlane
+verified its saved sources and reopened an applicable defer decision. External
+trait/caller investigation remains necessary for Alacritty. The context-action
+label was then clarified to say "up to" twenty lines within enclosing/file bounds,
+addressing fastlane's observation that the displayed function ends sooner.
+
+These are learned replays, not new-user or aggregate speed measurements. Raw
+evidence is under `target/ux-campaign-20260906/round04/`. Campaign-wide runtime
+qualification remains pending.
+
+## Independent usability campaign: round 5 (2026-09-06)
+
+Two fresh evaluators independently selected at most eight families related to
+Cortex's collaboration area and craken-agents' agent area, inspected inside/outside
+occurrences, and returned to the same family order. Both completed fifteen calls
+without errors. They understood any-member path selection from current help and
+used bounded context. Both still had to infer that `top=8 group=dir` aggregates
+ten/sixteen matching families rather than just the eight displayed list rows.
+Cortex also exposed a confusing distinction between an unmapped structural spot
+and available whole-member source, and between a family grade and selected copy.
+
+The correction changes human presentation only. List group links state the input
+family count and group display limit; group views explain their aggregation scope.
+Family return/group destinations receive explicit labels. Structural comparison
+identifies its family pair independently of member selection, and missing spot
+locations/excerpts are labeled as anchor data, separate from member source
+availability. Existing commands, groups, JSON evidence and detection are unchanged.
+No query operation, scope classifier or identity is added.
+
+All 2,368 workspace tests, strict clippy, docs and file-length checks pass. Six
+original group/family/member commands replayed in JSON are byte-identical across
+previous/current binaries. The substantial-near gate retains the same eighteen
+families within budget twenty, and self-query JSON is byte-identical (SHA-256
+`fdbd16c707d0fb8a3e351ab5cd0d7dacbb4ef7926e3ca478100d1b4af4b8da5c`).
+The raw commands, decisions and replays are in
+`target/ux-campaign-20260906/round05/`.
+
+Both learned replays completed fifteen calls with no failures and restored the
+original eight-family order. Both understood the all-matching-family group scope
+and named family return actions. Cortex additionally distinguished unavailable
+structural anchor data from its three available source bodies, and understood
+why the family grade still refers to the same pair while another member is open.
+Repeated evidence output, e2e scope coverage and deeper witness explanations remain
+observations. These replays do not establish a first-use success-rate or speed gain.
+This completes round 5 of 10; final campaign qualification remains pending.
+
+## Independent usability campaign: round 6 (2026-09-06)
+
+Fresh fastlane and Prettier evaluators completed fifteen calls each without
+failures, reopened a chosen live family from a new capture, and verified four
+source reads each. Both could describe their limited code review but could not
+reconcile displayed and captured populations. The dashboard now accounts for
+default unfolded/folded families and other surfaces, plus the independent
+all-surface unfolded/folded totals. Counts use the existing complete fold sets,
+including nested folds, after baseline/ignore processing and before display.
+Capture wording explicitly includes folded overlaps. No new analysis or
+classification runs during capture, and capture identity and bytes are unchanged.
+
+Fastlane reports 692 default unfolded + 67 folded + 825 other-surface families =
+1,584, and 1,517 all-surface unfolded + 67 folded. Prettier reports 338 + 15 + 377 =
+730, or 715 all-surface unfolded + 15 folded. On both targets every pre-existing
+dashboard field is equal, all-view JSON is byte-identical, and a newly written
+capture is byte-identical to the pre-test capture. These counts are not a universal
+capture alias: captures precede baseline/ignores and coalesce duplicate observation
+addresses. Markdown remains a separate population.
+
+Both learned replays again completed fifteen calls with no failures, explained
+the count relationship, reopened the selected family and verified all four source
+reads. They distinguish reviewed candidates from stored analyses and retain
+caller judgement. Context clipping at enclosing methods, long resume commands,
+duplicate-looking family summaries and saved-view naming remain observations.
+No causal speed or fresh-user success-rate claim is made from these replays.
+
+All 2,369 workspace tests, strict clippy, docs and file-length checks pass. A real
+source fixture fails before accounting exists and passes afterward, covering a
+folded default family, generated surface, all/list row limits, capture and empty
+input. The substantial-near gate reports nineteen families within the unchanged
+budget twenty. Previously reviewed numeric-policy pair `60f0dd6d98436972` returns
+at value 41.58 with ten shared syntax lines; the integer/float implementations
+and both region-content keys are unchanged from the campaign baseline. Their
+distinct numeric policies remain separate. Previous/current binaries give
+byte-identical self-query JSON on the updated source (SHA-256
+`d04206725a0d6526a6049b35d9e6694ee452ff4138e4795db9b7650ad3ba6e50`).
+Raw evidence is under `target/ux-campaign-20260906/round06/`. This completes round
+6 of 10; final campaign-wide qualification remains pending.
+
+## Independent usability campaign: round 7 (2026-09-06)
+
+Fresh evaluators on fastlane and craken-agents each completed 15 calls without an
+execution error, but explicit surrounding-source inspection failed to expose adjacent
+contract comments. In fastlane it added no source lines at all. This separates command
+success from evidence acquisition: the enclosing function was a mistaken display
+boundary even when the limitation was documented.
+
+Member context now crosses enclosing-unit boundaries while retaining file edges,
+120 displayed lines, 64 KiB per region, and the existing file-read limit. The original
+member coordinates, region and review identity, boundary metadata, and marked member
+lines are unchanged. This adds no new navigation term or judgement. The regression
+fixture fails before the change because the contract comment at line 1 is omitted,
+then passes with the comment explicitly outside the detected member.
+
+All 2,369 workspace tests, 23 exploration tests, strict clippy, docs and the
+1,054-file length check pass. Seven original real-repository member commands were
+replayed with both binaries: three ordinary views differ only by the context-action
+label; four context views differ only in their source window fields. Fastlane windows
+expand from 13–34 to 1–54 and 40–61 to 20–81; craken windows expand from 145–159 to
+128–178 and 90–103 to 72–109. Non-body fields and in-member source remain identical.
+The substantial-near gate retains the same 19 families within budget 20. Previous and
+current binaries produce byte-identical self-query output on the updated tree,
+SHA-256 `5ada2cad300f0e076acfc445e164503aef4bb71b18944032613318e7aec6d0a1`.
+
+Both learned replays completed 15 calls with no execution failures and returned to
+the same filtered list and dashboard. Fastlane acquired both adjacent API contract
+comments through the CLI; craken inspected the FTS-deletion helper outside the selected
+function and used it to distinguish production and test responsibilities. Both still
+needed external source reads for distant or cross-file contracts. Larger context
+requests exposed a remaining issue: the fixed allowance for preceding lines can
+truncate a window even when the full request would fit the display budget. Repeated
+family/analysis explanations also remained low-value during source inspection.
+No speed or first-use success improvement is claimed from these learned replays.
+Reports and raw transcripts are in `target/ux-campaign-20260906/round07/`.
+This completes round 7 of 10; final campaign qualification remains pending.
+
+## Independent usability campaign: round 8 (2026-09-06)
+
+Fresh craken-agents and Cortex evaluators confirmed that source context, pair diffs
+and filter-preserving return commands supported contract review. Both retained distant
+or cross-file source reads and reported repeated family explanations during individual
+source inspection. A used 15 calls with one external guessed-path search failure; B
+used 16 after the task author corrected a nonexistent filename to
+`e2e/helpers/mock-workspace.ts`. The initial filename and its recovery are task-author
+error, not a product defect. All nose calls succeeded.
+
+A separate reproducible context defect from round 7 remained: requesting 80 lines around
+the test member asked for lines 12–109, but the fixed preceding-line allowance showed
+only 52–109. All 98 requested lines fit the 120-line budget. Context now assigns the
+budget to the member first, then shares the remainder between both sides, reusing
+unused allowance at file edges. Oversized members receive all 120 displayed lines before
+surrounding context. File/byte limits, original coordinates/evidence, and explicit
+truncation remain unchanged; no option or larger output budget was introduced.
+
+The regression failed at start 352 versus 312 for a fitting request near a file end.
+Tests cover fitting windows at both file edges and an oversized member. Source-limit
+and budget tests share a real file fixture and remain separate responsibilities.
+All 2,370 workspace tests, strict clippy, docs and the 1,054-file length gate pass.
+Eight prior real member commands were replayed: seven ordinary/20-line-context
+outputs are byte-identical, while the 80-line request now shows all 98 lines without
+truncation. All non-body fields and in-member source remain equal. The substantial-near
+gate retains the same 19 families within budget 20; previous/current self-query bytes
+are identical with SHA-256
+`5ada2cad300f0e076acfc445e164503aef4bb71b18944032613318e7aec6d0a1`.
+
+Both learned replays completed 15 calls with zero errors and restored the filtered
+and whole-root views. They used the existing 20-line context and external source reads;
+neither independently exercised the enlarged request that demonstrates this fix.
+That behavior is verified by the regression and exact real-command replay above, not
+by a claimed task-cost improvement. Both retained caller-owned provisional decisions.
+Cortex additionally exposed a concrete navigation gap: a member-directory group opens
+a location list whose human output has no command to open the listed source, despite
+that command being present in JSON. This and repeated family-wide explanations remain
+for the next cycle. Raw reports are under `target/ux-campaign-20260906/round08/`.
+This completes round 8 of 10; final campaign qualification remains pending.
+
+## Independent usability campaign: round 9 (2026-09-06)
+
+Fresh Cortex and Prettier evaluators each completed 15 calls without errors, but both
+had to reconstruct a source-opening command after directory grouping. Cortex manually
+added full/context terms; Prettier reused earlier family output for a member ID, even
+after a full directory view printed three bodies. Both also found selected-member
+inspection repeated a structural comparison of other family members.
+
+Human member lists now print their existing JSON Open commands, including full lists
+of multiple source bodies. A single already-open body does not repeat its own Open
+link. Human family structural comparison remains in the full-family view rather than
+member inspection. JSON family evidence, identity, metrics, original source boundaries
+and caller-owned assessment are unchanged. No option or navigation state was added.
+
+Both regression checks fail before the change. The link test executes emitted human
+commands from compact and full directory lists and opens exactly one source; the
+selected-source test also verifies full-family structural evidence remains available.
+All 2,371 workspace tests, 24 exploration tests, strict clippy, docs and the 1,054-file
+length gate pass. Six original real commands produce byte-identical JSON. Cortex full
+family output is unchanged; its compact directory view adds one Open command. Prettier
+multi-member full output changes from 315 to 301 lines with three Open commands, while
+its selected short member changes from 68 to 51 lines (6,574 to 3,537 bytes) by omitting
+the other pair's structural comparison. These are exact output measurements, not
+first-use or performance claims. The same 19 substantial default families remain within
+budget 20; before/current self-query output is byte-identical with SHA-256
+`5ada2cad300f0e076acfc445e164503aef4bb71b18944032613318e7aec6d0a1`.
+
+Both learned replays completed 15 calls with zero errors. Cortex followed directory
+Open → Inspect surrounding code for production and E2E copies without constructing
+syntax; Prettier opened its short third member directly from the directory row. Both
+restored their original 10/14-family selections. The selected-member view omitted the
+other pair's structural comparison, while full-family evidence remained accessible.
+Long bodies and distant/cross-file contracts still required external source reads;
+remaining general headers, scope evidence and unavailable family anchors were recorded.
+No causal first-use or speed improvement is claimed from learned replays. Raw evidence
+is under `target/ux-campaign-20260906/round09/`. This completes round 9 of 10;
+final campaign qualification remains pending.
+
+## Independent usability campaign: round 10 (2026-09-06)
+
+Fresh Requests and Alacritty evaluators each completed 16 calls: live candidate
+inspection, saved-analysis reopening, explicit source verification, caller defer
+recording and review reopening. Requests recovered a source request missing change=ID;
+Alacritty recovered unsupported group=review with the advertised review filter. Both
+verified four source reads and distinguished one reviewed observation from 61/155
+unreviewed observations. Alacritty's separate recapture used unchanged source; this
+is not evidence of review transfer after source edits.
+
+Both independently found successful recording followed by another Record your decision
+prompt. Successful write responses now retain the saved-file confirmation and resume
+commands while omitting that redundant guidance. Ordinary detail views still offer
+recording, and no target selection, review applicability, grouping dimension or decision
+policy changed. Unsupported grouping already supplies valid values and the existing
+filter completes the review selection; this cycle does not add a feature for that guess.
+
+The two actual write commands were replayed with both binaries into separate new audit
+files, preserving original captures and reviews. Review bytes are identical. Human output
+differs only by the removed guidance line after normalizing the audit output filename;
+reopening still reports applicable defer and retains ordinary recording guidance. The
+review SHA-256 values are `80bf2b2b0b9350d9be5fe3d1c35364fcd38e55db38b1f00ece649c0322eaae10`
+and `4c66210ab98eee6cb9654ffe1b52d409128c07cf8ce24dc737abae9d77377797`.
+All 2,371 workspace tests, strict clippy, docs and the 1,054-file length gate pass.
+The same 19 substantial default families remain within budget 20; before/current
+self-query bytes remain identical with SHA-256
+`5ada2cad300f0e076acfc445e164503aef4bb71b18944032613318e7aec6d0a1`.
+
+Both learned replays completed 15 calls, confirmed four verified source reads,
+reopened applicable defer on the exact reviewed observation, and independently confirmed
+61/155 unreviewed observations. Both observed the write confirmation without a repeated
+write prompt. Each deliberately rechecked its earlier unsupported invocation (missing
+change=ID / group=review), received the same explicit error and recovered; these are
+not new first-use failures or fixed behaviors. Longer resume/next output remains, as
+does ordinary recording guidance when an existing review is reopened. No first-use or
+speed improvement is inferred. Raw transcripts and reports are under
+`target/ux-campaign-20260906/round10/`. All ten improvement/replay cycles are now complete;
+campaign-wide qualification follows separately.
+
+## Ten-cycle campaign closeout (2026-09-06)
+
+The record audit confirms ten completed cycles, twenty distinct fresh evaluators,
+and twenty learned replays, with pre/post reports, original command streams,
+accepted/deferred decisions and implementation commits for every cycle. The final
+product commit is `2e776940`; its Type-4 receipt is committed in `d68cebee`.
+The Cortex and craken-agents worktrees remain clean. Raw records and the cycle
+table are retained locally under `target/ux-campaign-20260906/`; this history is
+the tracked closeout. Learned replays do not establish fresh-user success rates.
+
+All 2,371 workspace tests, strict clippy, docs, file-length and duplication gates
+pass, as does `scripts/check-ci-local.sh --fast`. The Type-4 check records 54 exact
+groups with zero false merges and zero canonicalization violations in its tested
+corpus. The final semantic smoke compares baseline `836f93ec` with `2e776940`:
+all seven pinned repositories retain identical semantic query output, with zero
+declared or unexpected drift. Ruby scaling passes at exponent 0.67 (limit 1.35).
+
+Runtime qualification **fails as inconclusive**, not as a confirmed material
+regression. After the single permitted focused rerun, Alacritty's `parse+lower`
+stage has an adjusted paired movement of +4.25 ms (+4.37%). Execution-order
+strata disagree (+5.70 versus +2.80 ms), and the sign test does not support a
+regression (p=0.65625). No focused signal is a confirmed material regression;
+the remaining inconclusive signal nevertheless fails the unchanged gate policy.
+Passing aggregate timings do not override this result. No second focused loop,
+threshold relaxation or speculative runtime patch was used.
+
+The requested ten usability/improvement cycles and their verification runs are
+finished. This is not an all-gates-green or release-readiness claim: performance
+qualification remains unresolved. The exact measurements are in
+`target/ux-campaign-20260906/smoke/check-status.json`; use that result rather than
+interpreting the generated summary's generic focused-rerun sentence as a confirmed
+slowdown. Longer resume commands, distant contract inspection and the cost of
+repeated live exploration remain future work, not additional completed outcomes.
+
+
+## Exact scoring optimization test-fixture cleanup (2026-09-07)
+
+The release check found a new twelve-line fixture overlap between
+`row_relation_preserves_order_scores_exclusions_and_membership` and
+`alignment_classes_ignore_only_the_existing_unread_suffix` (family
+`5a511862f08767e7`). Both independently lowered the same arithmetic source and
+extracted owned features. `test_support::scoring_units` now owns that setup and
+also serves the sparse scoring test. Each test retains its own mutations and
+assertions; the helper is compiled only for tests. The new family disappears.
+
+The existing numeric-policy family `60f0dd6d98436972` is no longer reported on
+this changed source tree. Neither `int_bin` nor `float_bin` changed, and their
+separate numeric policies remain intentional. This is source-corpus sensitivity,
+not a claim that their overlap was removed. Both the preceding frozen binary
+and the scoring candidate produce byte-identical self-query JSON after cleanup.
+The accepted list now contains eighteen default families; the budget stays twenty
+and no new family is accepted. The original failing CI and the before/after
+queries are retained under `target/release-scoring-20260907/`.

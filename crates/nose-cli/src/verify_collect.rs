@@ -337,7 +337,7 @@ fn collect_file_verify_recs(request: FileVerifyRequest<'_>, oracle: &mut VerifyO
             continue;
         }
         let param_domains = param_domains(n, root);
-        let input_projections = if tranche.includes_unused_trailing_parameters() {
+        let mut input_projections = if tranche.includes_unused_trailing_parameters() {
             raw_root
                 .map(|root| plain_source_parameters(raw, root))
                 .filter(|plain_source| plain_source.len() == param_domains.len())
@@ -353,6 +353,17 @@ fn collect_file_verify_recs(request: FileVerifyRequest<'_>, oracle: &mut VerifyO
         } else {
             vec![nose_detect::OracleInputProjection::Declared; param_domains.len()]
         };
+        let normalized_collections =
+            crate::falsify::collection_input_projections(n, interner, root, &input_projections);
+        let core_collections = crate::falsify::collection_input_projections(
+            core,
+            interner,
+            core_root,
+            &input_projections,
+        );
+        if normalized_collections == core_collections {
+            input_projections = normalized_collections;
+        }
         // Soundness is about merges on the VALUE fingerprint. A unit whose value
         // graph is EMPTY (`fn resumed() {}`, or a body the graph captures nothing of)
         // has no value fingerprint to merge on — the detector keys candidates on

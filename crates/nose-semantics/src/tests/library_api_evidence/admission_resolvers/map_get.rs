@@ -29,7 +29,7 @@ fn map_get_call_il(lang: Lang, arg_count: usize) -> (Il, Interner, NodeId, NodeI
 }
 
 fn push_map_receiver_dependency(il: &mut Il, receiver: NodeId) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
         EvidenceKind::Domain(DomainEvidence::Map),
@@ -41,7 +41,7 @@ fn assert_admitted_map_get(lang: Lang) {
     let (mut il, interner, call, receiver) = map_get_call_il(lang, 1);
     push_map_receiver_dependency(&mut il, receiver);
     let contract = library_map_get_contract(lang, "get", 1).expect("map-get contract");
-    il.evidence.push(map_get_protocol_record(
+    il.push_evidence(map_get_protocol_record(
         1,
         il.node(call).span,
         contract,
@@ -67,7 +67,7 @@ fn admitted_map_get_requires_protocol_pack_provenance() {
     let contract = library_map_get_contract(Lang::Rust, "get", 1).expect("Rust map-get contract");
 
     let (mut missing_dependency, interner, call, _receiver) = map_get_call_il(Lang::Rust, 1);
-    missing_dependency.evidence.push(map_get_protocol_record(
+    missing_dependency.push_evidence(map_get_protocol_record(
         1,
         missing_dependency.node(call).span,
         contract,
@@ -81,7 +81,7 @@ fn admitted_map_get_requires_protocol_pack_provenance() {
 
     let (mut wrong_pack, interner, call, receiver) = map_get_call_il(Lang::Rust, 1);
     push_map_receiver_dependency(&mut wrong_pack, receiver);
-    wrong_pack.evidence.push(library_api_record_with_provenance(
+    wrong_pack.push_evidence(library_api_record_with_provenance(
         1,
         wrong_pack.node(call).span,
         contract.id,
@@ -98,18 +98,16 @@ fn admitted_map_get_requires_protocol_pack_provenance() {
 
     let (mut wrong_producer, interner, call, receiver) = map_get_call_il(Lang::Rust, 1);
     push_map_receiver_dependency(&mut wrong_producer, receiver);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[0],
-            MAP_GET_PROTOCOL_PACK_ID,
-            "wrong.protocols.map-get-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+        MAP_GET_PROTOCOL_PACK_ID,
+        "wrong.protocols.map-get-api",
+    ));
     assert!(
         admitted_map_get_at_call(&wrong_producer, &interner, call).is_none(),
         "map-get evidence with the wrong producer is rejected"
@@ -125,7 +123,7 @@ fn admitted_map_get_requires_protocol_pack_provenance() {
         &[0],
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     assert!(
         admitted_map_get_at_call(&wrong_emitter, &interner, call).is_none(),
         "map-get evidence from an external emitter is rejected"
@@ -141,7 +139,7 @@ fn forged_map_get_evidence_does_not_open_unsupported_arity() {
     let contract = library_map_get_contract(Lang::Rust, "get", 1).expect("Rust map-get contract");
     let (mut unsupported_arity, interner, call, receiver) = map_get_call_il(Lang::Rust, 2);
     push_map_receiver_dependency(&mut unsupported_arity, receiver);
-    unsupported_arity.evidence.push(map_get_protocol_record(
+    unsupported_arity.push_evidence(map_get_protocol_record(
         1,
         unsupported_arity.node(call).span,
         contract,

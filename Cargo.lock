@@ -607,7 +607,7 @@ dependencies = [
 
 [[package]]
 name = "nose-cli"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -634,7 +634,7 @@ dependencies = [
 
 [[package]]
 name = "nose-detect"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "criterion",
  "nose-frontend",
@@ -650,7 +650,7 @@ dependencies = [
 
 [[package]]
 name = "nose-eval"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "rustc-hash",
@@ -660,7 +660,7 @@ dependencies = [
 
 [[package]]
 name = "nose-frontend"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "ignore",
@@ -688,16 +688,18 @@ dependencies = [
 
 [[package]]
 name = "nose-il"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "lasso",
+ "rustc-hash",
  "serde",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]
 name = "nose-markdown"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "rayon",
  "regex",
@@ -708,7 +710,7 @@ dependencies = [
 
 [[package]]
 name = "nose-normalize"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "nose-il",
  "nose-semantics",
@@ -718,7 +720,7 @@ dependencies = [
 
 [[package]]
 name = "nose-semantics"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "nose-il",
  "quick-xml",
@@ -1113,8 +1115,6 @@ checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
 [[package]]
 name = "tree-sitter"
 version = "0.26.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af1c71c1c4cc0920b20d6b0f6572e7682cd07a6a2faec71067a31fa394c586df"
 dependencies = [
  "cc",
  "regex",

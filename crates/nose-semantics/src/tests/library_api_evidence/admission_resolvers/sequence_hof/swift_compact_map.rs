@@ -112,7 +112,7 @@ fn swift_compact_map_call_il(
 }
 
 fn push_bracket_array_source_proof(il: &mut Il, id: u32, source: NodeId) {
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         id,
         EvidenceAnchor::param(il.node(source).span),
         EvidenceKind::Type(TypeEvidenceKind::SwiftBracketArrayParameter),
@@ -133,8 +133,7 @@ fn admitted_compact_map(
     push_receiver_domain_dependency(&mut il, 1, receiver, DomainEvidence::Collection);
     let contract =
         library_method_call_contract(Lang::Swift, "compactMap", 1).expect("compactMap row");
-    il.evidence
-        .push(sequence_hof_record(2, &il, call, contract, 1, &[1]));
+    il.push_evidence(sequence_hof_record(2, &il, call, contract, 1, &[1]));
     admitted_library_method_call_at_call(&il, &interner, call)
 }
 
@@ -260,8 +259,7 @@ fn swift_compact_map_requires_an_ordered_stdlib_receiver() {
     push_receiver_domain_dependency(&mut il, 1, receiver, DomainEvidence::Set);
     let contract =
         library_method_call_contract(Lang::Swift, "compactMap", 1).expect("compactMap row");
-    il.evidence
-        .push(sequence_hof_record(2, &il, call, contract, 1, &[1]));
+    il.push_evidence(sequence_hof_record(2, &il, call, contract, 1, &[1]));
     assert!(
         admitted_library_method_call_at_call(&il, &interner, call).is_none(),
         "custom/set-like receivers cannot masquerade as ordered stdlib compactMap"
@@ -304,11 +302,11 @@ fn swift_compact_map_requires_language_core_bracket_array_source_proof() {
                     EvidenceStatus::Asserted,
                 )
             };
-            il.evidence.push(record);
+            il.push_evidence(record);
         }
         let next = il.evidence.len() as u32;
         push_receiver_domain_dependency(&mut il, next, receiver, DomainEvidence::Collection);
-        il.evidence.push(sequence_hof_record(
+        il.push_evidence(sequence_hof_record(
             next + 1,
             &il,
             call,

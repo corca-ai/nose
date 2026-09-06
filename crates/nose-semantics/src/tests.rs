@@ -182,7 +182,7 @@ fn push_node_effect_with_dependencies(
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceId {
     let evidence_id = EvidenceId(id);
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         id,
         EvidenceAnchor::node(il.node(node).span, il.kind(node)),
         EvidenceKind::Effect(effect),
@@ -204,7 +204,7 @@ fn push_node_place_with_dependencies(
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceId {
     let evidence_id = EvidenceId(id);
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         id,
         EvidenceAnchor::node(il.node(node).span, il.kind(node)),
         EvidenceKind::Place(place),

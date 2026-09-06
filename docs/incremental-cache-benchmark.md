@@ -244,16 +244,64 @@ recovery. Ready p95 is 100.37 ms and 588.84 ms respectively; end-to-end p95 is 1
 candidate source and binary. The integrated [0.20.0 release evidence](release-evidence-0.20.0.md)
 records the final decision.
 
+## Review follow-up development evidence (2026-09-05)
+
+The checked [development profile](../bench/cache/review-followup-corpus-profile-2026-09-05.v1.json)
+records six replays with current query defaults: syntax/semantic/near, 5 lines and
+24 tokens. All four pinned repositories pass exact clean/empty/history output equality.
+The report binds the measured binary, build source-tree hash, harness hashes, corpus
+content identities, raw phase measurements, and environment. It was built from the
+working tree based on `1adfc492`; this is development evidence, not a paired release
+comparison or a 30-replay performance acceptance result.
+
+The measured implementation was committed as `7164f836`. The subsequent recursive
+oracle guard (`45d7da37`) has a separate [correctness receipt](../bench/cache/review-followup-oracle-guard-validation-2026-09-05.v1.json):
+all four real-corpus query outputs are unchanged, and debug/release blind-oracle
+runs both retain 54 exact groups with zero false merges or canon violations. The
+timings below remain attributed to the measured build.
+
+| Repository | Clean p50 ms | Empty-store p50 ms | History p50 ms | History RSS p50 MiB |
+| --- | ---: | ---: | ---: | ---: |
+| sympy | 3148.77 | 3282.52 | 1452.09 | 1459.85 |
+| prettier | 870.01 | 1055.41 | 540.86 | 131.55 |
+| netty | 2862.64 | 2945.28 | 1703.03 | 1359.64 |
+| fastlane | 1029.34 | 1831.76 | 397.96 | 367.77 |
+
+The production SymPy leaf mutation also passes, including clean-versus-cold seed
+comparison before the edit. After the edit, clean/cold/history p50 is
+4304.77/4592.19/1729.10 ms. The isolated copy preserves the pinned source checkout.
+The separate [mutation receipt](../bench/cache/review-followup-mutation-receipt-2026-09-05.v1.json)
+seals 2,100 rows: all 14 mutation workloads pass 30 replays with the historical
+semantic/1-line/1-token contract.
+
+Both watch tiers pass every full-snapshot comparison and a `SIGKILL`/restart replay:
+
+| Files | Ready p50 / p95 | End-to-end p95 | Active peak RSS |
+| ---: | ---: | ---: | ---: |
+| 10,000 | 67.19 / 72.24 ms | 84.21 ms | 146.95 MiB |
+| 100,000 | 351.79 / 362.96 ms | 488.84 ms | 1279.09 MiB |
+
+The [resource-tuning diagnostics](../bench/cache/review-followup-resource-tuning-2026-09-05.v1.json)
+explain the changes behind these results. Pinned generated Flow input reaches syntax
+depth 5002, so the earlier 512-depth guard rejected valid corpus inputs. The 8192
+limit accepts those inputs; explicit 8300- and 40000-level probes still return a
+depth diagnostic. SymPy/Netty need 9,285,379/11,413,646 charged candidate pairs under
+query defaults. The 16,000,000 limit accommodates them after overlapping LSH pairs
+are deduplicated before allocation. Exact-only semantic scans use equal-value
+buckets and avoid approximate LSH work entirely; the intermediate 100k watch seed
+that exceeded the limit now completes. Large real-corpus RSS remains above 1 GiB
+and cold-store construction remains more expensive than clean analysis.
+
 ## What the current cache actually reuses
 
 The published v0.19.0 cache is schema v11 and the locked #872 candidate is schema v14. #873 moved
 the 0.20 development tree to layered CAS v1, #874 activated source/raw/resolved IL reuse, and #875
 now reuses global detection, syntax components, line document frequencies, and family-line
-analyses. A warm clean-Git hit avoids source reads for lowering and skips parsing; an unchanged
+analyses. A warm hit reuses lowering artifacts after hashing actual working-file bytes; an unchanged
 line manifest also avoids loading the full line index. #877 additionally restores units directly
 without materializing the raw/resolved corpus for an exact no-op or one dependency-free leaf whose
-export and resolution summaries are unchanged. Dirty, untracked, and non-Git inputs are read so
-their exact bytes, rather than mtime/size, establish identity.
+export and resolution summaries are unchanged. All inputs, including clean Git entries, are read
+so their exact bytes, rather than Git index flags or mtime/size, establish identity.
 
 The foreground policy is bounded by reuse value. One-shot scans of at most 512 discovered source
 files retain the complete source/raw/resolved and line-index history used by dependency-aware
@@ -330,6 +378,25 @@ not manufacture 100k identical cache keys. Real repositories must match their pi
 The 100k tier is an explicit scheduled benchmark, not part of ordinary PR CI.
 
 ## Reproduce and validate
+
+For development profiling of current query defaults, use
+[`corpus-cache-profile.py`](../scripts/corpus-cache-profile.py). It reuses the
+existing byte-equivalence, timed-subprocess, real-leaf mutation and watch-restart
+helpers, but records a separate development schema. Its default real-repository
+settings are the CLI defaults (5 lines, 24 tokens, syntax/semantic/near); the
+historical harness below fixes the semantic channel and 1-line/1-token units.
+Use `--semantic-only` or `--small-units` to select those dimensions explicitly.
+The watch tiers retain their documented semantic/1-token workload.
+
+```sh
+python3 scripts/corpus-cache-profile.py \
+  --binary target/release/nose --revision "$(git rev-parse HEAD)" \
+  --replays 6 --watch --output target/corpus-cache-profile.json
+```
+
+The report records binary hashes, corpus commits and content identities, exact
+output equality, phase timings, RSS, and failures. Six replays provide development
+characterization; they do not satisfy the 30-replay release acceptance contract.
 
 Build the candidate from a committed revision, then run the complete mutation matrix. The
 validator recomputes every summary from raw rows and rechecks every per-replay output identity;

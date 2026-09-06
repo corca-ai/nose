@@ -6,6 +6,8 @@ mod core_contract;
 mod edge_cases;
 #[path = "query_base/new_copy.rs"]
 mod new_copy;
+#[path = "query_base/region_matches.rs"]
+mod region_matches;
 #[path = "query_base/sarif.rs"]
 mod sarif;
 #[path = "query_base/semantic_packs.rs"]

@@ -439,6 +439,9 @@ mod tests {
 
     fn loc(file: &str, name: &str) -> Loc {
         Loc {
+            source_region: None,
+            analysis_digest: None,
+            shared_source_region: None,
             file: file.to_string(),
             start_line: 1,
             end_line: 2,

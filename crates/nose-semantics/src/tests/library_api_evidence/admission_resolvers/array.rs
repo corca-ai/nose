@@ -28,7 +28,7 @@ fn js_array_from_call_il() -> (Il, Interner, NodeId, NodeId, NodeId) {
 }
 
 fn push_array_from_dependencies(il: &mut Il, callee: NodeId, array: NodeId) {
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::source_span(il.node(callee).span),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -38,7 +38,7 @@ fn push_array_from_dependencies(il: &mut Il, callee: NodeId, array: NodeId) {
         &[],
         Lang::JavaScript,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(il.node(callee).span, NodeKind::Field),
         EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
@@ -47,7 +47,7 @@ fn push_array_from_dependencies(il: &mut Il, callee: NodeId, array: NodeId) {
         EvidenceStatus::Asserted,
         vec![EvidenceId(0)],
     ));
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         2,
         EvidenceAnchor::node(il.node(array).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -72,7 +72,7 @@ fn admitted_array_from_resolver_requires_array_builtin_pack_provenance() {
 
     let (mut wrong_pack, interner, call, callee, array) = js_array_from_call_il();
     push_array_from_dependencies(&mut wrong_pack, callee, array);
-    wrong_pack.evidence.push(library_api_record_with_provenance(
+    wrong_pack.push_evidence(library_api_record_with_provenance(
         3,
         wrong_pack.node(call).span,
         contract.id,
@@ -89,18 +89,16 @@ fn admitted_array_from_resolver_requires_array_builtin_pack_provenance() {
 
     let (mut wrong_producer, interner, call, callee, array) = js_array_from_call_il();
     push_array_from_dependencies(&mut wrong_producer, callee, array);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance(
-            3,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[1, 2],
-            JS_LIKE_BUILTIN_ARRAY_PACK_ID,
-            "wrong.javascript.builtins.array-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance(
+        3,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[1, 2],
+        JS_LIKE_BUILTIN_ARRAY_PACK_ID,
+        "wrong.javascript.builtins.array-api",
+    ));
     assert!(
         admitted_map_key_view_wrapper_at_call(&wrong_producer, &interner, call).is_none(),
         "Array.from evidence with the wrong producer is rejected"
@@ -117,7 +115,7 @@ fn admitted_array_from_resolver_requires_array_builtin_pack_provenance() {
         &[1, 2],
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     assert!(
         admitted_map_key_view_wrapper_at_call(&wrong_emitter, &interner, call).is_none(),
         "Array.from evidence from an external emitter is rejected"
@@ -125,7 +123,7 @@ fn admitted_array_from_resolver_requires_array_builtin_pack_provenance() {
 
     let (mut admitted, interner, call, callee, array) = js_array_from_call_il();
     push_array_from_dependencies(&mut admitted, callee, array);
-    admitted.evidence.push(js_like_builtin_array_record(
+    admitted.push_evidence(js_like_builtin_array_record(
         3,
         admitted.node(call).span,
         contract.id,

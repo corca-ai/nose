@@ -215,8 +215,7 @@ fn admitted_ruby_enumerable_hof_pack_covers_supported_eager_hofs_and_quantifiers
             ruby_enumerable_hof_call_il(method, RubyCallbackShape::Inline);
         push_receiver_domain_dependency(&mut il, 0, receiver, DomainEvidence::Collection);
         let contract = library_method_call_contract(Lang::Ruby, method, 1).expect("Ruby HOF row");
-        il.evidence
-            .push(sequence_hof_record(1, &il, call, contract, 1, &[0]));
+        il.push_evidence(sequence_hof_record(1, &il, call, contract, 1, &[0]));
         let occurrence = admitted_library_method_call_at_call(&il, &interner, call)
             .expect("supported Ruby Enumerable HOF admits");
         assert_eq!(
@@ -236,9 +235,7 @@ fn ruby_enumerable_hof_rejects_no_block_lazy_custom_and_unsupported_surfaces() {
 
     let (mut no_block, interner, call, receiver) = ruby_enumerable_no_block_call_il("map");
     push_receiver_domain_dependency(&mut no_block, 0, receiver, DomainEvidence::Collection);
-    no_block
-        .evidence
-        .push(sequence_hof_record(1, &no_block, call, contract, 0, &[0]));
+    no_block.push_evidence(sequence_hof_record(1, &no_block, call, contract, 0, &[0]));
     assert!(
         admitted_library_method_call_at_call(&no_block, &interner, call).is_none(),
         "Ruby Enumerable methods without blocks return Enumerator and stay closed"
@@ -246,9 +243,7 @@ fn ruby_enumerable_hof_rejects_no_block_lazy_custom_and_unsupported_surfaces() {
 
     let (mut base_proof, interner, call, receiver, _lazy) = ruby_lazy_enumerator_hof_call_il("map");
     push_receiver_domain_dependency(&mut base_proof, 0, receiver, DomainEvidence::Collection);
-    base_proof
-        .evidence
-        .push(sequence_hof_record(1, &base_proof, call, contract, 1, &[0]));
+    base_proof.push_evidence(sequence_hof_record(1, &base_proof, call, contract, 1, &[0]));
     assert!(
         admitted_library_method_call_at_call(&base_proof, &interner, call).is_none(),
         "Ruby lazy.map does not inherit eager collection proof from the base receiver"
@@ -257,7 +252,7 @@ fn ruby_enumerable_hof_rejects_no_block_lazy_custom_and_unsupported_surfaces() {
     let (mut lazy_iterable, interner, call, _receiver, lazy) =
         ruby_lazy_enumerator_hof_call_il("map");
     push_receiver_domain_dependency(&mut lazy_iterable, 0, lazy, DomainEvidence::Iterable);
-    lazy_iterable.evidence.push(sequence_hof_record(
+    lazy_iterable.push_evidence(sequence_hof_record(
         1,
         &lazy_iterable,
         call,
@@ -273,22 +268,20 @@ fn ruby_enumerable_hof_rejects_no_block_lazy_custom_and_unsupported_surfaces() {
     let (mut custom_map, interner, call, receiver) =
         ruby_enumerable_hof_call_il("map", RubyCallbackShape::Inline);
     push_receiver_domain_dependency(&mut custom_map, 0, receiver, DomainEvidence::Collection);
-    custom_map
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            custom_map.node(call).span,
-            LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(HoFKind::Map)),
-            LibraryApiCalleeContract::Method {
-                method: "map",
-                receiver: MethodReceiverContract::ExactProtocol,
-            },
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
-        ));
+    custom_map.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        custom_map.node(call).span,
+        LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(HoFKind::Map)),
+        LibraryApiCalleeContract::Method {
+            method: "map",
+            receiver: MethodReceiverContract::ExactProtocol,
+        },
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+        SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+        SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
+    ));
     assert!(
         admitted_library_method_call_at_call(&custom_map, &interner, call).is_none(),
         "Ruby same-name custom methods do not become Enumerable HOFs"
@@ -297,22 +290,20 @@ fn ruby_enumerable_hof_rejects_no_block_lazy_custom_and_unsupported_surfaces() {
     let (mut flat_map, interner, call, receiver) =
         ruby_enumerable_hof_call_il("flat_map", RubyCallbackShape::Inline);
     push_receiver_domain_dependency(&mut flat_map, 0, receiver, DomainEvidence::Collection);
-    flat_map
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            flat_map.node(call).span,
-            LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(HoFKind::FlatMap)),
-            LibraryApiCalleeContract::Method {
-                method: "flat_map",
-                receiver: MethodReceiverContract::ExactArrayOrCollection,
-            },
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
-        ));
+    flat_map.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        flat_map.node(call).span,
+        LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(HoFKind::FlatMap)),
+        LibraryApiCalleeContract::Method {
+            method: "flat_map",
+            receiver: MethodReceiverContract::ExactArrayOrCollection,
+        },
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+        SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+        SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
+    ));
     assert!(
         admitted_library_method_call_at_call(&flat_map, &interner, call).is_none(),
         "Ruby flat_map stays closed until nested flattening semantics are represented"
@@ -344,8 +335,7 @@ fn ruby_enumerable_hof_rejects_non_inline_or_effectful_blocks() {
             push_receiver_domain_dependency(&mut il, 0, receiver, DomainEvidence::Collection);
             let contract =
                 library_method_call_contract(Lang::Ruby, method, 1).expect("Ruby sequence row");
-            il.evidence
-                .push(sequence_hof_record(1, &il, call, contract, 1, &[0]));
+            il.push_evidence(sequence_hof_record(1, &il, call, contract, 1, &[0]));
             assert!(
                 admitted_library_method_call_at_call(&il, &interner, call).is_none(),
                 "{method}: {message}"
@@ -362,8 +352,7 @@ fn ruby_enumerable_hof_rejects_multi_param_blocks_until_destructuring_is_modeled
         push_receiver_domain_dependency(&mut il, 0, receiver, DomainEvidence::Collection);
         let contract =
             library_method_call_contract(Lang::Ruby, method, 1).expect("Ruby sequence row");
-        il.evidence
-            .push(sequence_hof_record(1, &il, call, contract, 1, &[0]));
+        il.push_evidence(sequence_hof_record(1, &il, call, contract, 1, &[0]));
         assert!(
             admitted_library_method_call_at_call(&il, &interner, call).is_none(),
             "{method}: Ruby multi-param blocks destructure array elements and stay closed"
@@ -377,7 +366,7 @@ fn ruby_enumerable_hof_result_domain_can_prove_follow_on_ordered_receiver() {
     push_receiver_domain_dependency(&mut il, 0, receiver, DomainEvidence::Collection);
     let reject_contract =
         library_method_call_contract(Lang::Ruby, "reject", 1).expect("Ruby reject row");
-    il.evidence.push(sequence_hof_record(
+    il.push_evidence(sequence_hof_record(
         1,
         &il,
         reject_call,
@@ -386,8 +375,7 @@ fn ruby_enumerable_hof_result_domain_can_prove_follow_on_ordered_receiver() {
         &[0],
     ));
     let map_contract = library_method_call_contract(Lang::Ruby, "map", 1).expect("Ruby map row");
-    il.evidence
-        .push(sequence_hof_record(2, &il, map_call, map_contract, 1, &[1]));
+    il.push_evidence(sequence_hof_record(2, &il, map_call, map_contract, 1, &[1]));
 
     let occurrence = admitted_library_method_call_at_call(&il, &interner, map_call)
         .expect("Ruby reject result proves follow-on Ruby map receiver");

@@ -25,7 +25,7 @@ fn time_stage<T>(label: &str, f: impl FnOnce() -> T) -> T {
     out
 }
 
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Member {
     pub path: String,
     pub start_line: u32,
@@ -35,7 +35,7 @@ pub struct Member {
 }
 
 /// A duplicated span together with the two files it was found in (the representative pair).
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct WitnessRef {
     pub a_path: String,
     pub b_path: String,
@@ -43,10 +43,10 @@ pub struct WitnessRef {
     pub span: Span,
 }
 
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Family {
     /// Relation tier: `exact | near-high | near-med | near-low | partial`.
-    pub tier: &'static str,
+    pub tier: String,
     /// Mean pairwise relation score in 0..=1.
     pub score: f64,
     pub members: Vec<Member>,
@@ -62,6 +62,29 @@ pub struct Family {
     pub template: bool,
     /// Representative duplicated span (from the highest-scoring member pair), with its files.
     pub witness: Option<WitnessRef>,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct PreparedDocument {
+    units: Vec<Unit>,
+    fingerprints: Vec<Fingerprint>,
+}
+
+impl PreparedDocument {
+    pub fn new(path: &str, source: &str) -> Self {
+        let units = unit::split_units(path, source);
+        let fingerprints = units.iter().map(Fingerprint::of).collect();
+        Self {
+            units,
+            fingerprints,
+        }
+    }
+
+    pub fn rebind(&mut self, path: &str) {
+        for unit in &mut self.units {
+            unit.path = path.to_owned();
+        }
+    }
 }
 
 pub struct Options {
@@ -165,25 +188,27 @@ pub(crate) fn accept_pair(
 
 /// Run the full pipeline over `(path, source)` documents.
 pub fn detect(docs: &[(String, String)], opts: &Options) -> Vec<Family> {
-    // Stage 0: units (filter to prose-bearing units above the trivial floor).
-    let units: Vec<Unit> = time_stage("md_units", || {
-        let mut units = Vec::new();
-        for (path, src) in docs {
-            for u in unit::split_units(path, src) {
-                if u.prose_words() >= opts.min_words {
-                    units.push(u);
-                }
+    let prepared = docs
+        .par_iter()
+        .map(|(path, source)| PreparedDocument::new(path, source))
+        .collect::<Vec<_>>();
+    detect_prepared(&prepared, opts)
+}
+
+pub fn detect_prepared(docs: &[PreparedDocument], opts: &Options) -> Vec<Family> {
+    let mut units = Vec::new();
+    let mut fps = Vec::new();
+    for doc in docs {
+        for (unit, fingerprint) in doc.units.iter().zip(&doc.fingerprints) {
+            if unit.prose_words() >= opts.min_words {
+                units.push(unit.clone());
+                fps.push(fingerprint.clone());
             }
         }
-        units
-    });
+    }
     if units.len() < 2 {
         return Vec::new();
     }
-
-    let fps: Vec<Fingerprint> = time_stage("md_fingerprint", || {
-        units.par_iter().map(Fingerprint::of).collect()
-    });
     let model = time_stage("md_model", || CorpusModel::fit(&fps));
 
     // Stage 1 → Stage 2: score every candidate pair, accept above threshold.
@@ -216,9 +241,18 @@ pub fn detect(docs: &[(String, String)], opts: &Options) -> Vec<Family> {
         groups.entry(r).or_default().push(idx);
     }
 
+    let mut pairs_by_root = vec![Vec::new(); units.len()];
+    for pair in &accepted {
+        let root = uf.find(pair.0);
+        if root == uf.find(pair.1) {
+            pairs_by_root[root].push(pair);
+        }
+    }
     let mut families: Vec<Family> = groups
-        .values()
-        .filter_map(|members| build_family(members, &units, &fps, &model, &accepted))
+        .iter()
+        .filter_map(|(root, members)| {
+            build_family(members, &units, &fps, &model, &pairs_by_root[*root])
+        })
         .collect();
 
     // Rank: real per-instance families before templated blobs; then confidence-weighted
@@ -241,16 +275,11 @@ fn build_family(
     units: &[Unit],
     fps: &[Fingerprint],
     model: &CorpusModel,
-    accepted: &[(usize, usize, f64)],
+    inpairs: &[&(usize, usize, f64)],
 ) -> Option<Family> {
     if members.len() < 2 {
         return None;
     }
-    let memberset: std::collections::HashSet<usize> = members.iter().copied().collect();
-    let inpairs: Vec<&(usize, usize, f64)> = accepted
-        .iter()
-        .filter(|(i, j, _)| memberset.contains(i) && memberset.contains(j))
-        .collect();
     if inpairs.is_empty() {
         return None;
     }
@@ -314,7 +343,7 @@ fn build_family(
         !exact && fam_members.len() >= TEMPLATE_MIN_MEMBERS && files >= TEMPLATE_MIN_FILES;
 
     Some(Family {
-        tier,
+        tier: tier.to_owned(),
         score,
         members: fam_members,
         files,

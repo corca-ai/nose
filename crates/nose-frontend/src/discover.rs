@@ -9,6 +9,16 @@ use std::path::{Component, Path, PathBuf as StdPathBuf};
 /// `vendor/**`) applied during the walk, so excluded directories are pruned, not
 /// just filtered. Results come back in walk order (nondeterministic); the caller sorts.
 pub fn discover_paths(root: &Path, exclude: &[String]) -> Vec<(String, Lang)> {
+    discover_inventory(root, exclude).paths
+}
+
+#[derive(Default)]
+pub struct SourceInventory {
+    pub paths: Vec<(String, Lang)>,
+    pub errors: Vec<String>,
+}
+
+fn discover_inventory(root: &Path, exclude: &[String]) -> SourceInventory {
     use ignore::overrides::OverrideBuilder;
     use ignore::{WalkBuilder, WalkState};
     use std::sync::Mutex;
@@ -17,9 +27,12 @@ pub fn discover_paths(root: &Path, exclude: &[String]) -> Vec<(String, Lang)> {
     // explicit fixture/file discovery cheap while leaving configured excludes on the
     // existing walker path, where their gitignore semantics are already defined.
     if exclude.is_empty() && root.is_file() {
-        return Lang::from_file_path(root)
-            .map(|lang| vec![(root.to_string_lossy().to_string(), lang)])
-            .unwrap_or_default();
+        return SourceInventory {
+            paths: Lang::from_file_path(root)
+                .map(|lang| vec![(root.to_string_lossy().to_string(), lang)])
+                .unwrap_or_default(),
+            errors: Vec::new(),
+        };
     }
 
     // Honor .gitignore *within* the target tree (skips node_modules, build dirs)
@@ -43,10 +56,18 @@ pub fn discover_paths(root: &Path, exclude: &[String]) -> Vec<(String, Lang)> {
         }
     }
     let out = Mutex::new(Vec::new());
+    let errors = Mutex::new(Vec::new());
     builder.build_parallel().run(|| {
         let out = &out;
+        let errors = &errors;
         Box::new(move |result| {
+            if let Err(error) = &result {
+                errors.lock().unwrap().push(error.to_string());
+            }
             if let Ok(entry) = result {
+                if let Some(error) = entry.error() {
+                    errors.lock().unwrap().push(error.to_string());
+                }
                 if entry.file_type().is_some_and(|t| t.is_file()) {
                     if let Some(lang) = Lang::from_file_path(entry.path()) {
                         let path = entry.path().to_string_lossy().to_string();
@@ -57,7 +78,10 @@ pub fn discover_paths(root: &Path, exclude: &[String]) -> Vec<(String, Lang)> {
             WalkState::Continue
         })
     });
-    out.into_inner().unwrap()
+    SourceInventory {
+        paths: out.into_inner().unwrap(),
+        errors: errors.into_inner().unwrap(),
+    }
 }
 
 fn clean_discovered_path(path: &Path) -> String {
@@ -91,10 +115,18 @@ struct DiscoveredPath {
 /// canonical path aliases. The returned path spelling is still the stable,
 /// user-facing discovered path, so reports do not need a separate display map.
 pub fn discover_unique_paths(roots: &[&Path], exclude: &[String]) -> Vec<(String, Lang)> {
+    discover_source_inventory(roots, exclude).paths
+}
+
+pub fn discover_source_inventory(roots: &[&Path], exclude: &[String]) -> SourceInventory {
     let mut paths = Vec::new();
+    let mut errors = Vec::new();
     for (root_index, root) in roots.iter().enumerate() {
+        let inventory = discover_inventory(root, exclude);
+        errors.extend(inventory.errors);
         paths.extend(
-            discover_paths(root, exclude)
+            inventory
+                .paths
                 .into_iter()
                 .map(|(path, lang)| DiscoveredPath {
                     root_index,
@@ -119,5 +151,7 @@ pub fn discover_unique_paths(roots: &[&Path], exclude: &[String]) -> Vec<(String
         .map(|entry| (entry.path, entry.lang))
         .collect::<Vec<_>>();
     paths.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-    paths
+    errors.sort();
+    errors.dedup();
+    SourceInventory { paths, errors }
 }

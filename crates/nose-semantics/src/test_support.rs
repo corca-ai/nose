@@ -347,40 +347,38 @@ fn push_guava_immutable_map_of_evidence(
         module_hash: stable_symbol_hash("com.google.common.collect"),
         exported_hash: stable_symbol_hash("ImmutableMap"),
     };
-    il.evidence.push(language_core_test_evidence(
+    il.push_evidence(language_core_test_evidence(
         0,
         Lang::Java,
         EvidenceAnchor::binding(span(base_line), stable_symbol_hash("ImmutableMap")),
         EvidenceKind::Symbol(symbol),
         EvidenceStatus::Asserted,
     ));
-    il.evidence
-        .push(language_core_test_evidence_with_dependencies(
-            1,
-            Lang::Java,
-            EvidenceAnchor::node(span(base_line + 1), NodeKind::Var),
-            EvidenceKind::Symbol(symbol),
-            EvidenceStatus::Asserted,
-            vec![EvidenceId(0)],
-        ));
+    il.push_evidence(language_core_test_evidence_with_dependencies(
+        1,
+        Lang::Java,
+        EvidenceAnchor::node(span(base_line + 1), NodeKind::Var),
+        EvidenceKind::Symbol(symbol),
+        EvidenceStatus::Asserted,
+        vec![EvidenceId(0)],
+    ));
     let contract = library_java_map_factory_contract(Lang::Java, "ImmutableMap", "of")
         .expect("ImmutableMap.of contract");
-    il.evidence
-        .push(library_api_test_evidence_with_dependencies(
-            2,
-            call_span,
-            LibraryApiTestContract {
-                id: contract.id,
-                callee: contract.callee,
-                arity: arity as u16,
-            },
-            EvidenceStatus::Asserted,
-            vec![EvidenceId(1)],
-            (
-                JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
-                JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
-            ),
-        ));
+    il.push_evidence(library_api_test_evidence_with_dependencies(
+        2,
+        call_span,
+        LibraryApiTestContract {
+            id: contract.id,
+            callee: contract.callee,
+            arity: arity as u16,
+        },
+        EvidenceStatus::Asserted,
+        vec![EvidenceId(1)],
+        (
+            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
+            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
+        ),
+    ));
 }
 
 pub fn language_core_test_evidence(
@@ -475,24 +473,22 @@ pub fn rust_pull_lazy_map_len_test_il() -> (Il, NodeId, NodeId) {
         },
         Lang::Rust,
     );
-    il.evidence
-        .push(method_call_library_api_test_evidence_with_dependencies(
-            0,
-            Lang::Rust,
-            "map",
-            il.node(hof).span,
-            1,
-            Vec::new(),
-        ));
-    il.evidence
-        .push(method_call_library_api_test_evidence_with_dependencies(
-            1,
-            Lang::Rust,
-            "len",
-            il.node(len).span,
-            0,
-            Vec::new(),
-        ));
+    il.push_evidence(method_call_library_api_test_evidence_with_dependencies(
+        0,
+        Lang::Rust,
+        "map",
+        il.node(hof).span,
+        1,
+        Vec::new(),
+    ));
+    il.push_evidence(method_call_library_api_test_evidence_with_dependencies(
+        1,
+        Lang::Rust,
+        "len",
+        il.node(len).span,
+        0,
+        Vec::new(),
+    ));
     (il, hof, len)
 }
 

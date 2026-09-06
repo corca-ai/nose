@@ -25,7 +25,7 @@ fn strict_exact_sequence_surfaces_require_evidence() {
         &il, &interner, &facts, seq
     ));
 
-    il.evidence.push(sequence_surface_evidence(
+    il.push_evidence(sequence_surface_evidence(
         0,
         Lang::JavaScript,
         sp(61),
@@ -50,7 +50,7 @@ fn strict_exact_typeof_requires_source_operator_evidence() {
         "Call(Var(\"typeof\"), arg) must not be exact-safe by spelling alone"
     );
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::source_span(sp(44)),
         EvidenceKind::Source(SourceFactKind::Operator(SourceOperatorKind::Typeof)),
@@ -74,7 +74,7 @@ fn strict_exact_raw_builtin_payload_requires_admission() {
 
     let contract = library_free_function_builtin_contract(Lang::Python, "abs", 1)
         .expect("Python abs contract");
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         0,
         Lang::Python,
         EvidenceAnchor::node(sp(72), NodeKind::Var),
@@ -83,7 +83,7 @@ fn strict_exact_raw_builtin_payload_requires_admission() {
         },
         Vec::new(),
     ));
-    il.evidence.push(library_api_contract_evidence(
+    il.push_evidence(library_api_contract_evidence(
         1,
         sp(72),
         contract.id,
@@ -108,7 +108,7 @@ fn function_binding_safe_raw_builtin_payload_requires_admission() {
 
     let contract = library_free_function_builtin_contract(Lang::Python, "abs", 1)
         .expect("Python abs contract");
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         0,
         Lang::Python,
         EvidenceAnchor::node(sp(72), NodeKind::Var),
@@ -117,7 +117,7 @@ fn function_binding_safe_raw_builtin_payload_requires_admission() {
         },
         Vec::new(),
     ));
-    il.evidence.push(library_api_contract_evidence(
+    il.push_evidence(library_api_contract_evidence(
         1,
         sp(72),
         contract.id,
@@ -149,7 +149,7 @@ fn strict_exact_rejects_decorated_definition_source_fact() {
     let facts = StrictFacts::collect(&il, &interner);
     assert!(strict_exact_safe_tree(&il, &interner, &facts, func));
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::source_span(sp(90)),
         EvidenceKind::Source(SourceFactKind::Binding(
@@ -262,13 +262,13 @@ fn strict_exact_contains_consumes_receiver_domain_evidence() {
     let facts = StrictFacts::collect(&il, &interner);
     assert!(!strict_exact_safe_tree(&il, &interner, &facts, call));
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(receiver_span, NodeKind::Var),
         EvidenceKind::Domain(nose_semantics::DomainEvidence::Collection),
         Vec::new(),
     ));
-    il.evidence.push(method_call_library_api_evidence(
+    il.push_evidence(method_call_library_api_evidence(
         1,
         Lang::TypeScript,
         "includes",
@@ -279,7 +279,7 @@ fn strict_exact_contains_consumes_receiver_domain_evidence() {
     let facts = StrictFacts::collect(&il, &interner);
     assert!(strict_exact_safe_tree(&il, &interner, &facts, call));
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         2,
         EvidenceAnchor::node(receiver_span, NodeKind::Var),
         EvidenceKind::Domain(nose_semantics::DomainEvidence::Map),
@@ -351,16 +351,15 @@ fn strict_exact_contains_does_not_use_result_domain_as_exact_tree_proof() {
     );
 
     let api = library_js_like_set_constructor_contract(Lang::TypeScript, "Set").unwrap();
-    il.evidence
-        .push(js_like_builtin_collection_constructor_evidence(
-            0,
-            sp(42),
-            api.id,
-            api.callee,
-            1,
-            Vec::new(),
-        ));
-    il.evidence.push(evidence(
+    il.push_evidence(js_like_builtin_collection_constructor_evidence(
+        0,
+        sp(42),
+        api.id,
+        api.callee,
+        1,
+        Vec::new(),
+    ));
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::node(sp(42), NodeKind::Call),
         EvidenceKind::Domain(nose_semantics::DomainEvidence::Set),

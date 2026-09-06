@@ -39,14 +39,14 @@ fn import_fact_contracts_resolve_evidence_only_binding_and_namespace_proofs() {
     assert_eq!(import_fact_evidence_rhs(&il, binding), None);
     assert_eq!(import_fact_evidence_rhs(&il, namespace), None);
 
-    il.evidence.push(import_fact_evidence(
+    il.push_evidence(import_fact_evidence(
         0,
         Lang::Python,
         sp(1),
         binding_import_fact("collections", "deque"),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(import_fact_evidence(
+    il.push_evidence(import_fact_evidence(
         1,
         Lang::Python,
         sp(2),
@@ -135,7 +135,7 @@ fn imported_literal_producer_requires_matching_language_core_provenance() {
         root_kind: NodeKind::Seq,
     });
 
-    il.evidence.push(imported_literal_evidence_with_provenance(
+    il.push_evidence(imported_literal_evidence_with_provenance(
         0,
         sp(15),
         kind,
@@ -150,7 +150,7 @@ fn imported_literal_producer_requires_matching_language_core_provenance() {
     assert!(!imported_literal_producer_evidence_for_node(&il, value));
 
     il.evidence.clear();
-    il.evidence.push(imported_literal_evidence_with_provenance(
+    il.push_evidence(imported_literal_evidence_with_provenance(
         0,
         sp(15),
         kind,
@@ -165,7 +165,7 @@ fn imported_literal_producer_requires_matching_language_core_provenance() {
     assert!(!imported_literal_producer_evidence_for_node(&il, value));
 
     il.evidence.clear();
-    il.evidence.push(imported_literal_evidence_with_provenance(
+    il.push_evidence(imported_literal_evidence_with_provenance(
         0,
         sp(15),
         kind,
@@ -176,7 +176,7 @@ fn imported_literal_producer_requires_matching_language_core_provenance() {
     assert!(!imported_literal_producer_evidence_for_node(&il, value));
 
     il.evidence.clear();
-    il.evidence.push(imported_literal_evidence_with_provenance(
+    il.push_evidence(imported_literal_evidence_with_provenance(
         0,
         sp(15),
         kind,
@@ -187,7 +187,7 @@ fn imported_literal_producer_requires_matching_language_core_provenance() {
     assert!(!imported_literal_producer_evidence_for_node(&il, value));
 
     il.evidence.clear();
-    il.evidence.push(imported_literal_evidence_with_provenance(
+    il.push_evidence(imported_literal_evidence_with_provenance(
         0,
         sp(15),
         kind,
@@ -197,7 +197,7 @@ fn imported_literal_producer_requires_matching_language_core_provenance() {
     ));
     assert!(imported_literal_producer_evidence_for_node(&il, value));
 
-    il.evidence.push(imported_literal_evidence_with_provenance(
+    il.push_evidence(imported_literal_evidence_with_provenance(
         1,
         sp(15),
         kind,
@@ -281,7 +281,7 @@ fn imported_symbol_identity_does_not_fall_back_to_raw_import_seq() {
         "deque"
     ));
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(30), stable_symbol_hash("deque")),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {

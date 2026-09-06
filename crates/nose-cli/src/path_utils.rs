@@ -1,11 +1,11 @@
 use anyhow::Result;
 use nose_il::Corpus;
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 
 /// Borrow a slice of owned `PathBuf`s as `&Path` references — the form the detection entry
 /// points take. Used by every analysis/refactor subcommand that holds its input paths as a
 /// `Vec<PathBuf>`.
-pub(crate) fn paths_as_refs(paths: &[PathBuf]) -> Vec<&std::path::Path> {
+pub(crate) fn paths_as_refs(paths: &[PathBuf]) -> Vec<&Path> {
     paths.iter().map(|p| p.as_path()).collect()
 }
 
@@ -22,8 +22,8 @@ pub(crate) fn warn_if_empty(corpus: &Corpus, paths: &[PathBuf]) -> bool {
 
 /// Render `file` relative to `cwd` when it sits underneath it; otherwise leave it
 /// as-is (an absolute path outside cwd is more useful whole than mangled).
-pub(crate) fn relativize(file: &str, cwd: &std::path::Path) -> String {
-    std::path::Path::new(file)
+pub(crate) fn relativize(file: &str, cwd: &Path) -> String {
+    Path::new(file)
         .strip_prefix(cwd)
         .ok()
         .and_then(|p| p.to_str())
@@ -31,7 +31,7 @@ pub(crate) fn relativize(file: &str, cwd: &std::path::Path) -> String {
         .unwrap_or_else(|| file.to_string())
 }
 
-pub(crate) fn relativize_loc(loc: &mut nose_detect::Loc, cwd: &std::path::Path) {
+pub(crate) fn relativize_loc(loc: &mut nose_detect::Loc, cwd: &Path) {
     loc.file = relativize(&loc.file, cwd);
     if let Some(parent) = &mut loc.enclosing_unit {
         parent.file = relativize(&parent.file, cwd);
@@ -66,4 +66,30 @@ pub(crate) fn warn_no_files(paths: &[PathBuf]) {
         "warning: no supported source files found under: {joined}\n  \
          (supported extensions: py/pyi, js/jsx/mjs/cjs, ts/tsx/mts/cts, go, rs, java, c/h, rb, swift, css, vue/svelte/html/htm, md/markdown)"
     );
+}
+
+/// Make a path absolute and collapse dot components without requiring it to exist.
+/// Callers that need physical containment must also resolve symlinks.
+pub(crate) fn absolute_lexical(path: &Path) -> Option<PathBuf> {
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir().ok()?.join(path)
+    };
+    let mut cleaned = PathBuf::new();
+    for component in absolute.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                cleaned.pop();
+            }
+            other => cleaned.push(other.as_os_str()),
+        }
+    }
+    Some(cleaned)
+}
+
+/// Quote one shell word for runnable CLI navigation, including embedded apostrophes.
+pub(crate) fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\"'\"'"))
 }

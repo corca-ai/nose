@@ -384,28 +384,23 @@ impl<'a> Builder<'a> {
 
     pub(super) fn valued_subtree_hash(&mut self, expr: NodeId) -> u64 {
         let (il, interner) = (self.il, self.interner);
-        self.valued_subtree_hash
-            .get_or_insert_with(|| {
-                let mut hashes = vec![0u64; il.nodes.len()];
-                for i in 0..il.nodes.len() {
-                    let id = NodeId(i as u32);
-                    let node = il.node(id);
-                    let mut h = crate::node_tag_valued(node.kind, node.payload, interner);
-                    for &child in il.children(id) {
-                        h = combine(h, hashes[child.0 as usize]);
-                    }
-                    hashes[i] = h;
-                }
-                hashes
-            })
-            .get(expr.0 as usize)
-            .copied()
-            .unwrap_or(0)
+        let hashes = match self.shared_valued_subtree_hashes {
+            Some(shared) => shared.get_or_init(|| valued_subtree_hashes(il, interner)),
+            None => self
+                .valued_subtree_hash
+                .get_or_insert_with(|| valued_subtree_hashes(il, interner)),
+        };
+        hashes.get(expr.0 as usize).copied().unwrap_or(0)
     }
 
     pub(super) fn source_salted_hash(&mut self, expr: NodeId, tag: u64) -> u64 {
         let span = self.il.node(expr).span;
         let mut h = combine(tag, self.valued_subtree_hash(expr));
+        self.source_salt_used = true;
+        if let Some(ids) = &mut self.review_source_ids {
+            let next = ids.len() as u64;
+            return combine(h, *ids.entry(span).or_insert(next));
+        }
         h = combine(h, span.file.0 as u64);
         h = combine(h, span.start_byte as u64);
         h = combine(h, span.end_byte as u64);
@@ -580,4 +575,18 @@ impl<'a> Builder<'a> {
             ValOp::Input(key) if key == self.free_name_input_key(name)
         )
     }
+}
+
+fn valued_subtree_hashes(il: &Il, interner: &Interner) -> Vec<u64> {
+    let mut hashes = vec![0u64; il.nodes.len()];
+    for i in 0..il.nodes.len() {
+        let id = NodeId(i as u32);
+        let node = il.node(id);
+        let mut h = crate::node_tag_valued(node.kind, node.payload, interner);
+        for &child in il.children(id) {
+            h = combine(h, hashes[child.0 as usize]);
+        }
+        hashes[i] = h;
+    }
+    hashes
 }

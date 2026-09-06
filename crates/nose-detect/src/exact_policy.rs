@@ -31,10 +31,6 @@ pub(crate) fn exact_value_match_eligible(a: &UnitFeat, b: &UnitFeat) -> bool {
     exact_claim_eligible(a) && exact_claim_eligible(b) && a.value == b.value
 }
 
-pub(crate) fn candidate_value_floor_met(a: &UnitFeat, b: &UnitFeat) -> bool {
-    exact_value_rich(a.value.len()) && exact_value_rich(b.value.len())
-}
-
 pub(crate) fn dense_unit_admitted(
     kind: UnitKind,
     exact_fragment: bool,

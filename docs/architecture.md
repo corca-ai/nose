@@ -44,6 +44,9 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    library API, or sequence-surface distinctions needed by semantic contracts,
    then tag syntactic unit boundaries (function/method/class/block), which gives
    detection accurate boundaries for free.
+   Rust runtime-type lookup first checks for a matching asserted import before
+   traversing enclosing scopes. This negative prescreen grants no type evidence;
+   candidates still require the existing visibility, shadowing and dependency checks.
 2. **Normalize** ([normalization](normalization.md)): a fixed sequence of passes canonicalizes
    the IL — desugaring (with idiom canonicalization), alpha-renaming, an oracle cutoff,
    recursion-to-iteration normalization, dataflow propagation, control-flow normalization,
@@ -62,10 +65,34 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    multiset of subtree-shape hashes, a value-graph fingerprint, a pre-order linearization
    for alignment, a MinHash signature, plus literal- and return-value multisets used by
    the strict precision gates.
+   Corpus extraction defers MinHash until the owned feature arrays are available, then
+   signs each equal multiset once in parallel. Full slice equality resolves hash collisions.
+   Signatures are copied for repeated users and moved into their last user, keeping the
+   signature-buffer count within the final output's requirements. Every public corpus or
+   per-file extraction result is fully signed; serialized feature layouts stay the same.
 4. **Candidate generation**: the selected detection channels decide which candidates exist.
    `semantic` uses value-fingerprint MinHash signatures plus exact-value buckets, `near`
    uses shape MinHash signatures, experimental `abstraction` reuses the near candidate
    stream, and `syntax` bypasses unit LSH with a Rabin-Karp token-stream pass.
+   Every reportable pair in an LSH bucket reaches scoring, including buckets above 48 units.
+   A chain/star before scoring is insufficient: rejected hub edges can disconnect
+   real clones. Identical memberships and overlapping pairs are deduplicated across
+   value, shape and exact routes before allocation and budget accounting. Dense buckets
+   still have quadratic cost. Per-worker timestamp arrays deduplicate neighbors without
+   allocating a hash table per left endpoint. Equal line spans in the same file are excluded:
+   ordinary scoring rejects nesting, and connected descendant scoring requires strict
+   containment. Cross-file pairs and strictly nested seeds remain eligible. The same rule
+   applies to budget preflight, clean detection and incremental state; anchors keep their
+   existing frequency and per-bucket caps. No bucket is reduced to a connectivity skeleton.
+   Product analyses above one million pairs automatically stream stable candidate batches.
+   Every eligible ordinary pair is still covered by scoring, retaining accepted edges and
+   only the existing top/first connected seeds globally and per file. Distinct-input
+   analyses score bounded batches in parallel. Repeated-input analyses can instead
+   traverse the exact candidate relation in compressed rows, as described below.
+   Ordered compaction preserves score ties and nested-seed order. This bounds temporary candidate/rejected-score storage,
+   not source features or accepted output. Smaller analyses retain the indexed path; raw
+   diagnostic dumps still materialize the requested candidates. There is no implicit
+   user-facing pair ceiling; explicit CLI/environment ceilings remain fail-before-results.
 5. **Accept / score**: `semantic` accepts only exact-safe value-fingerprint equality, `near`
    scores candidates with structural alignment (RANSAC) plus weighted shape/value
    Jaccard and accepts above the inline `near:T` threshold (default `near:0.70`), and
@@ -75,13 +102,54 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    one enclosing unit ([bounded same-unit windows](bounded-same-unit-windows-832.md)). It is a
    `near` refactoring witness, not an exact-fragment proof, and bare scope-container blocks are
    ineligible;
-   `syntax` emits duplicated runs above the line/token floors. Experimental
+   `syntax` emits duplicated runs above the line/token floors. Conservative suffix-block
+   bounds skip token extension when the remaining stream cannot meet the line/token or
+   operation floor. Such streams still record first k-gram occurrences, preserving later
+   matches against differently formatted copies. Bounds include the whole current block,
+   so nonmonotonic parent/child source spans cannot exclude a qualifying suffix. Experimental
    `abstraction` then checks same-language near-style families for one shared
    supported literal-leaf hole position and attaches a weak witness instead of an
    exact claim. Same-language `near` and shared-core families can be additionally graded
    by anti-unifying representative copies' value graphs — "equal except *k* holes", each
    a candidate parameter or named transformation such as `async-mirror`, with a
    soundness-relevant referent check ([graded-witness](graded-witness.md)).
+   Large batched analyses may reuse a score for exactly equal scoring inputs. Builtin
+   scorers expose analysis-local input classes; structural scoring reads only the same
+   complete input view whose equality defines those classes. Hashes accelerate lookup,
+   while full equality checks all score fields. Channel composition intersects class
+   partitions, and custom scorers opt out by default. Reuse activates when at least half
+   the units repeat an input class. A row further requires identical membership in
+   every candidate bucket and equal eligibility for connected-seed pricing. That
+   refinement makes its candidate relation complete: an outside endpoint reaches all
+   row members or none. Row sizes give the exact unordered pair count; sparse
+   shared-span counts subtract only excluded pairs. Rejected ordinary pairs that
+   cannot seed a connected witness need no location-pair expansion. Structural
+   scorers can prepare inverted multiset indexes: each feature contributes the
+   minimum of its two multiplicities to the intersection. Value and shape classes
+   share these integer counts across a row, retaining the original floating-point
+   formula, every accepted and rejected score, and all subsequent scoring gates.
+   Common features record absent classes instead of repeatedly visiting present
+   classes. Anchor postings preserve duplicate-hash occurrence order and the exact
+   maximum shared weight; source-line metadata remains outside that calculation.
+   Alignment is evaluated lazily once per identical right-hand sequence in a row.
+   Structural input and alignment classes use precisely the existing 600-entry
+   alignment prefix; differences beyond that already unread suffix do not trigger
+   another identical score calculation. The stored source features remain complete.
+   Sparse rows compare estimated feature-merge work with posting traversal and
+   class-array work before choosing direct scoring. A low representative count
+   alone cannot make long repeated fingerprint scans cheap. Prepared exact scores
+   and the structural exact shortcut reuse full-equality-checked value classes,
+   retaining each unit's exact-safety and minimum-size gates. Custom scorers can
+   decline preparation. Accepted pairs and
+   potentially eligible connected seeds still undergo each original location check.
+   Bounded streaming selectors retain the original global and per-file seed
+   priorities using source-pair order for ties. A rejected row product can be skipped
+   only when its best possible pair cannot improve any eligible reservation,
+   including nested and per-file seeds. Accepted edges restore source-pair
+   order before floating-point group aggregation. Thus this is an exact quotient of candidate work, not a
+   pre-scoring connectivity skeleton. Custom scorers retain the ordinary path unless
+   they explicitly declare interchangeable input classes. Neither classes nor score
+   maps persist beyond the analysis.
 6. **Cluster & rank**: union-find over accepted pairs/runs forms clone groups, which
    are grouped into **families** and sorted by refactoring value (removable lines
    × similarity × cross-directory/-file/-language spread). See [usage](usage.md) for how the
@@ -89,6 +157,24 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    families dataset interactively.
 
 ## Crates
+
+`Il` separates serialized arena contents from derived indexes. Mutable field access
+and `Il::edit` invalidate those indexes before granting an exclusive borrow.
+`push_evidence` preserves incremental append indexing; `evidence_mut` invalidates
+only evidence lookups. For repeated record updates, `evidence_record_mut` retains
+the index when id and anchor stay unchanged, avoiding a whole-evidence rebuild
+per metadata update. Serialization keeps the existing flat arena representation.
+The lazy unique-parent index covers the whole arena, including unreachable nodes.
+Repeated edges from one parent remain unique; multiple distinct parents return no
+answer. Object-key-view evidence uses this index after checking the call's API shape,
+preserving its ambiguity and `with`-scope guards without repeated arena scans.
+
+`DetectOptions::validate` produces an immutable execution plan and rejects invalid
+thresholds, MinHash layouts, and incompatible channel prerequisites before detection.
+The CLI returns configuration errors; infallible library detection entry points panic
+on invalid programmer-supplied options. Group evidence is a tagged `WitnessEvidence`
+enum, with required measurements carried by the corresponding variant. Its JSON
+retains the existing `kind` and measurement field names.
 
 A Cargo workspace; data flows left-to-right through them.
 
@@ -157,3 +243,109 @@ new code should follow the focused owners there rather than growing dispatcher o
   principle, §AH).
 
 For *why* the normalization passes look the way they do, read [normalization](normalization.md).
+
+## Analysis resource boundaries
+
+Normal product queries have no implicit candidate-count ceiling. Above one million
+unique pairs, stable batches replace the full candidate/rejected-score arrays while
+preserving accepted evidence and the connected-seed selection policy. The source/unit
+cache remains reusable, but large product populations bypass persistent pair indexes.
+The ordinary 262,144-pair emission batch is scored in 4,096-pair parallel chunks.
+Repeated-input rows retain one bounded score map per worker. Streaming heaps keep
+only the existing global and per-file connected-seed reservations, comparing
+scores and source-pair order as candidates arrive. No rejected-pair array needs
+sorting; each worker's final reservations are merged under the same policy.
+The row/bucket/source-span and inverted-feature indexes are linear in the input
+and its memberships; per-worker intersection arrays scale with feature classes.
+Repeated accepted rows share sorted right-hand targets rather than expanding each
+left occurrence into another edge array. Their iterator retains every admitted
+pair, exact score and source-pair order; group accumulation therefore uses the
+same floating-point result. Unit-score rows count eligible pairs directly when
+the running sum is an exactly represented nonnegative integer no larger than
+2^53. Their sum saturates at 2^53, exactly where repeated +1 rounds back to
+itself. Other heavily repeated rows index sufficiently long runs of bit-identical
+scores. Within one floating-point exponent interval, two ordinary additions settle
+half-spacing ties and establish the repeated bit increment. A jump remains inside
+that interval; boundary crossings still execute ordinary additions. Short runs,
+negative values and nonfinite inputs retain the ordered fold. Subnormal spacing,
+rounding ties, overflow, sparse slices and the exact sequential result are tested.
+Sparse same-file exclusions divide accepted targets
+into slices, so accumulation needs no source or group lookup for every cross-file
+pair. Connected pricing looks up only its selected pair
+questions instead of copying the entire accepted graph into a hash set.
+Before materializing coverage, the detector applies ranking's existing site
+collapse and retains the strongest original edge per site pair, with the same
+witness tie rule. Each retained site edge is backed by an actually accepted source
+pair. Coverage explicitly distinguishes raw member coordinates from reported-site
+coordinates. Large site graphs use 64-site blocks with a shared palette of exact
+scores and witness kinds; mixed blocks preserve each value. Full relation counts
+and group metrics precede that projection. Ranking and coverage obligations share
+these immutable blocks through `AcceptedEdges`; iteration reconstructs exact edges
+without allocating a second graph. Graphs with more than one million possible
+reported-site pairs defer this final projection until a consumer reads their edges.
+The owned recipe retains complete accepted rows, site mappings and witness inputs,
+including the query's anchor floor. An exact nonempty fact lets ranking transfer
+coverage obligations without forcing projection; concurrent readers share one
+materialized graph. Small graphs retain eager construction. This postpones only
+the internal edge representation, never scoring, grouping or coverage decisions. Repeated rows reuse connectivity only after
+all remaining targets are in one component, so skipped unions are redundant.
+Site projection also skips a later cross-file row occurrence only when an earlier
+occurrence has the same reported site and complete witness inputs. Within-file
+exclusions are always evaluated for the individual occurrence. Equivalent cross-file
+right targets retain their latest occurrence, which covers every earlier left
+endpoint. Equivalence compares site, score, exact-value eligibility and the ordered
+anchor hashes/weights used by pair witnesses; source metadata is kept separately.
+Distinct accepted rows and reported site graphs can still be large; these
+representations introduce no evidence cap or candidate omission.
+These internal execution choices do not change recall or explicit budget accounting.
+
+`--max-candidate-pairs` and `NOSE_MAX_CANDIDATE_PAIRS` optionally impose a positive
+work ceiling. This preflight counts the unique union across channels, excludes
+ineligible equal-span same-file pairs, and fails without partial results if exceeded.
+It applies to clean, cached and watch queries; research-detect accepts the environment
+ceiling and still materializes its requested diagnostic dump. Library integrations can
+call `ensure_candidate_budget` with their own limit.
+Exact-only semantic runs generate equal-value buckets directly, because their
+scorer cannot accept unequal value fingerprints. Fuzzy value LSH remains enabled
+for near/abstraction runs. Incremental candidate indexes and cache option keys
+use the same distinction.
+
+Parser metadata and a constant-memory tree cursor check output before recursive
+lowering: syntax depth is limited to 8,192 and the syntax tree to 2,000,000 nodes.
+The stored descendant count bounds both size and possible remaining depth; the
+cursor skips a subtree only when even a single chain would fit the depth limit. Exceeding
+either produces a source-specific analysis error, including embedded script,
+style and markup regions. Common scope and identifier traversals use explicit
+work stacks; CLI workers reserve 64 MiB rather than 1 GiB. These are analysis
+resource limits, not claims that arbitrarily deep source can be processed.
+
+Witness source locations use a separate, optional per-unit occurrence map. Ordinary
+fingerprints retain their original hash-consed graph and creation-span behavior;
+only requested value-DAG export enables occurrence tracking. The map rejects
+out-of-unit and foreign locations and leaves disjoint occurrences unavailable.
+See the [graded witness contract](graded-witness.md) for the source-evidence boundary.
+
+
+The concurrent string interner uses the same fast table hasher as other internal
+indexes. This affects table placement only: symbol content hashes retain their
+existing FNV-1a definition, and occurrence/order-dependent interner keys remain
+excluded from persistent fingerprints.
+
+C-header admission checks lexical hints before invoking its clean-C safeguard.
+An unhinted header cannot be excluded by that safeguard, so it needs no extra
+parse. Hinted headers retain the same rule: admission needs a complete,
+error-free C tree within the original node/depth limits.
+
+Tree-sitter's minimum error cost after stack condensation is the lower bound
+used by its finished-tree selection. The small vendored delta also reports
+positive finite minima through its progress signal, including missing tokens.
+If no error-free finished tree exists, C admission can then cancel a parse whose
+result is already false. Cancellation resets the pooled parser before another
+file. Grammar, recovery, tree selection and header inclusion rules stay the same.
+The [contributor workflow](contributing.md#vendored-parser-dependency) owns source
+provenance and the corresponding CI requirements.
+
+Source digest serialization writes hexadecimal digits from a fixed-size stack
+buffer; its public 64-character lowercase representation stays unchanged. Site
+edge construction reuses its last exact palette entry before consulting the
+palette map, preserving score bits and witness categories.

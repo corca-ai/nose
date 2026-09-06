@@ -13,7 +13,7 @@ fn imported_occurrence_symbol_evidence_requires_binding_dependency() {
     );
     let root = b.add(NodeKind::Module, Payload::None, sp(20), &[receiver]);
     let mut il = finish_il(b, root, Lang::Python);
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         EvidenceAnchor::node(sp(20), NodeKind::Var),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
@@ -26,7 +26,7 @@ fn imported_occurrence_symbol_evidence_requires_binding_dependency() {
     assert!(!imported_namespace_symbol(&il, &interner, receiver, "math"));
 
     il.evidence.clear();
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(19), local_hash),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
@@ -34,7 +34,7 @@ fn imported_occurrence_symbol_evidence_requires_binding_dependency() {
         }),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(language_core_evidence_with_dependencies(
+    il.push_evidence(language_core_evidence_with_dependencies(
         1,
         EvidenceAnchor::node(sp(20), NodeKind::Var),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
@@ -53,7 +53,7 @@ fn imported_occurrence_symbol_evidence_requires_binding_dependency() {
         "collections"
     ));
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         2,
         EvidenceAnchor::node(sp(20), NodeKind::Var),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
@@ -68,7 +68,7 @@ fn imported_occurrence_symbol_evidence_requires_binding_dependency() {
     );
 
     il.evidence.clear();
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(19), local_hash),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
@@ -76,7 +76,7 @@ fn imported_occurrence_symbol_evidence_requires_binding_dependency() {
         }),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(sp(20), NodeKind::Var),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
@@ -91,7 +91,7 @@ fn imported_occurrence_symbol_evidence_requires_binding_dependency() {
     );
 
     il.evidence.clear();
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(19), local_hash),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
@@ -99,7 +99,7 @@ fn imported_occurrence_symbol_evidence_requires_binding_dependency() {
         }),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(language_core_evidence_with_dependencies(
+    il.push_evidence(language_core_evidence_with_dependencies(
         1,
         EvidenceAnchor::node(sp(20), NodeKind::Var),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
@@ -115,7 +115,7 @@ fn imported_occurrence_symbol_evidence_requires_binding_dependency() {
     );
 
     il.evidence.clear();
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(19), local_hash),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
@@ -134,14 +134,14 @@ fn imported_occurrence_symbol_evidence_requires_binding_dependency() {
         Lang::Python,
     );
     external.provenance.emitter = EvidenceEmitter::External;
-    il.evidence.push(external);
+    il.push_evidence(external);
     assert!(
         !imported_namespace_symbol(&il, &interner, receiver, "math"),
         "external imported-namespace occurrence evidence must not prove the public symbol identity"
     );
 
     il.evidence.clear();
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(19), local_hash),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
@@ -160,7 +160,7 @@ fn imported_occurrence_symbol_evidence_requires_binding_dependency() {
         Lang::Python,
     );
     missing_pack.provenance.pack_hash = None;
-    il.evidence.push(missing_pack);
+    il.push_evidence(missing_pack);
     assert!(
         !imported_namespace_symbol(&il, &interner, receiver, "math"),
         "missing-pack imported-namespace occurrence evidence must not prove the public symbol identity"
@@ -184,7 +184,7 @@ fn symbol_evidence_blocks_import_assignment_fallback() {
     let receiver = b.add(NodeKind::Var, Payload::Name(local), sp(22), &[]);
     let root = b.add(NodeKind::Module, Payload::None, sp(21), &[assign, receiver]);
     let mut il = finish_il(b, root, Lang::Python);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(21), stable_symbol_hash("math")),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
@@ -226,7 +226,7 @@ fn binding_symbol_evidence_does_not_prove_rebound_alias_uses() {
         &[import_assign, rebound, receiver],
     );
     let mut il = finish_il(b, root, Lang::Python);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(24), stable_symbol_hash("math")),
         EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
@@ -256,7 +256,7 @@ fn global_symbol_requires_asserted_evidence() {
         "a bare spelling without Symbol evidence must not open the exact path"
     );
 
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         EvidenceAnchor::node(sp(23), NodeKind::Var),
         EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
@@ -271,7 +271,7 @@ fn global_symbol_requires_asserted_evidence() {
     );
 
     il.evidence.clear();
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(sp(23), NodeKind::Var),
         EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
@@ -285,7 +285,7 @@ fn global_symbol_requires_asserted_evidence() {
     );
 
     il.evidence.clear();
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         EvidenceAnchor::node(sp(23), NodeKind::Var),
         EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
@@ -310,7 +310,7 @@ fn global_symbol_requires_asserted_evidence() {
         Lang::JavaScript,
     );
     external.provenance.emitter = EvidenceEmitter::External;
-    il.evidence.push(external);
+    il.push_evidence(external);
     assert!(
         !asserted_unshadowed_global_symbol(&il, math, "Math"),
         "external Symbol evidence must not prove the unshadowed global"
@@ -327,14 +327,14 @@ fn global_symbol_requires_asserted_evidence() {
         Lang::JavaScript,
     );
     missing_pack.provenance.pack_hash = None;
-    il.evidence.push(missing_pack);
+    il.push_evidence(missing_pack);
     assert!(
         !asserted_unshadowed_global_symbol(&il, math, "Math"),
         "missing-pack Symbol evidence must not prove the unshadowed global"
     );
 
     il.evidence.clear();
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         EvidenceAnchor::node(sp(23), NodeKind::Var),
         EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {

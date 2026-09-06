@@ -9,8 +9,8 @@ use accepted_coverage::{
     accepted_edges_covered_by_roots, accepted_obligations_covered, direct_suppression_forest,
     opportunity_root,
 };
+pub(crate) use origin_hints::hint_reasons;
 use origin_hints::origin_extract_hint;
-pub(crate) use origin_hints::{hint_reasons, proposal_action_label};
 
 pub(crate) fn total_dup_lines_refs(fs: &[&nose_detect::RefactorFamily]) -> u32 {
     fs.iter().map(|f| f.dup_lines).sum()
@@ -182,13 +182,13 @@ impl OpportunityGroups {
 
 fn is_connected(family: &nose_detect::RefactorFamily) -> bool {
     matches!(
-        family.witness.as_ref().map(|witness| witness.kind),
+        family.witness.as_ref().map(|witness| witness.kind()),
         Some("connected-mapped-sub-dag" | "bounded-same-unit-window")
     )
 }
 
 fn is_same_unit(family: &nose_detect::RefactorFamily) -> bool {
-    family.witness.as_ref().map(|witness| witness.kind) == Some("bounded-same-unit-window")
+    family.witness.as_ref().map(|witness| witness.kind()) == Some("bounded-same-unit-window")
 }
 
 #[derive(Default)]
@@ -304,128 +304,32 @@ pub(crate) fn family_langs(f: &nose_detect::RefactorFamily) -> String {
     langs.join(", ")
 }
 
-/// A short, fact-grounded refactoring hint for a family — only from signals the
-/// report already establishes (a shared symbol name, cross-language spread, the
-/// number of directories), never a guess about semantics.
+/// Observation and an inspection direction; never an edit instruction.
 pub(crate) fn family_hint(f: &nose_detect::RefactorFamily) -> String {
-    use nose_il::UnitKind;
-    // Exactly one member is a whole named function/method while every other
-    // member is an inline block or fragment: the family itself proves the
-    // inline copies compute what the existing helper computes (issue #263's
-    // local-`clamp` case) — the action is "call it", not "extract a second
-    // one". Stronger and safer than a fresh extraction, so it wins the hint.
-    let named_units: Vec<&nose_detect::Loc> = f
-        .locations
-        .iter()
-        .filter(|l| {
-            matches!(l.kind, UnitKind::Function | UnitKind::Method)
-                && l.name.is_some()
-                && !l.is_fragment
-        })
-        .collect();
-    let inline_copies = f
-        .locations
-        .iter()
-        .filter(|l| l.kind == UnitKind::Block || l.is_fragment)
-        .count();
-    // Coevo C2 guards: never point production copies at a helper that lives
-    // in test code (tests may call prod, not the reverse), and never
-    // recommend calling into a generated file (not the maintainer's API).
-    if let [helper] = named_units[..] {
-        let helper_callable =
-            !helper.looks_generated && (f.scope == "test" || !nose_detect::is_test_loc(helper));
-        if helper_callable && inline_copies >= 1 && inline_copies == f.locations.len() - 1 {
-            let name = helper.name.as_deref().unwrap_or("the helper");
-            let sites = if inline_copies == 1 {
-                "1 site reimplements".to_string()
-            } else {
-                format!("{inline_copies} sites reimplement")
-            };
-            let base = format!(
-                "{sites} `{name}` — call the existing helper ({})",
-                helper.file
-            );
-            // Series 2: many varying spots mean the copies diverge from the
-            // helper — the early return must not bypass the caution.
-            return if f.params >= HIGH_PARAM_SPOTS && f.languages == 1 {
-                format!(
-                    "{base} — high-parameter ({} varying spots): verify the \
-                     copies really match the helper before swapping in calls",
-                    f.params
-                )
-            } else {
-                base
-            };
-        }
+    let (shared, params) = (f.shared_lines, f.display_params.unwrap_or(f.params));
+    let assessment = crate::query_assessment::assessment(f, shared, params);
+    let explanation = assessment["explanation"].as_str().unwrap();
+    if f.languages > 1 || (f.display_params.is_some() && (shared == 0 || f.shared_weight <= 0.0)) {
+        return explanation.into();
     }
-
-    // If every named site shares one identifier, it's the same thing copied.
-    let mut names = f.locations.iter().filter_map(|l| l.name.as_deref());
-    let shared_name = names.next().filter(|first| {
-        f.locations.iter().filter(|l| l.name.is_some()).count() == f.members
-            && names.all(|n| n == *first)
-    });
-
-    let cross = if f.languages > 1 {
-        " (cross-language)"
+    if let Some(helper) = crate::query_model::family_existing_helper(f) {
+        return format!("existing helper candidate `{}` ({}); compare its call contract and the inline regions — callability is not established", helper.name.as_deref().unwrap_or("unnamed"), helper.file);
+    }
+    let context = if crate::query_model::family_same_symbol(f) {
+        format!(
+            "same symbol `{}` at {} sites",
+            f.locations[0].name.as_deref().unwrap_or("unnamed"),
+            f.members
+        )
     } else {
-        ""
+        format!(
+            "{} related regions across {} director{}",
+            f.members,
+            f.modules,
+            if f.modules == 1 { "y" } else { "ies" }
+        )
     };
-    // The unit that all/most sites are: classes → a base class/mixin; blocks → a
-    // method extracted from the repeated region; functions/methods → a helper.
-    let all_classes = f.locations.iter().all(|l| l.kind == UnitKind::Class);
-    let all_blocks = f.locations.iter().all(|l| l.kind == UnitKind::Block);
-    // A computation-poor "class" unit is really a type/interface/enum/schema
-    // declaration (lowered to a `Class` skeleton); its refactor is "move to one shared
-    // type", not "extract a function with parameters".
-    let type_decl = all_classes && f.mean_sem < 12.0;
-    let extract = if let Some(origin_hint) = origin_extract_hint(f) {
-        origin_hint
-    } else if type_decl {
-        "consolidate into one shared type"
-    } else if all_classes {
-        "extract a shared base class / mixin"
-    } else if all_blocks {
-        "extract a method from the repeated block"
-    } else {
-        "extract a helper"
-    };
-
-    let base = match (shared_name, f.modules) {
-        (Some(name), _) => format!("consolidate `{name}` — {} copies{cross}", f.members),
-        (None, m) if m >= 3 && all_classes => {
-            format!("repeated across {m} directories — {extract}{cross}")
-        }
-        (None, m) if m >= 3 => {
-            format!("repeated across {m} directories — extract a shared abstraction{cross}")
-        }
-        (None, m) if m >= 2 => format!("duplicated across {m} directories — {extract}{cross}"),
-        (None, _) => format!("local duplication — {extract}{cross}"),
-    };
-    // "Extract a method" overclaims when the helper would take many parameters
-    // (issue #264 hit 6–16 varying spots): keep the fact-grounded action but
-    // flag the readability price instead of asserting a clean extraction.
-    if f.params >= HIGH_PARAM_SPOTS && f.languages == 1 {
-        return format!(
-            "{base} — high-parameter ({} varying spots): divergence readability; \
-             a smaller helper for the invariant core may fit better",
-            f.params
-        );
-    }
-    // Test-scope duplication is a real smell, but Arrange/Act/Assert setup is often
-    // duplicated on purpose — extracting it can hide each scenario's intent (issue
-    // #264). Flag that triage caveat without asserting a verdict; the worthy
-    // fixture-vs-scaffold call is the reader's (and is not feature-decidable — see the
-    // default-surface-noise-audit). `mixed` (a test↔prod leak) is a real extract, no caveat.
-    if f.scope == "test" {
-        return format!(
-            "{base} — test scaffolding: consolidate only a genuinely shared fixture/helper, \
-             not per-scenario setup"
-        );
-    }
-    base
+    let direction =
+        origin_extract_hint(f).unwrap_or("compare the shared computation and differing regions");
+    format!("{context} — {direction}")
 }
-
-/// At this many varying spots an extraction stops being clean (issue #264's
-/// triage experience: 6+ spots read as scenario-shaped, not helper-shaped).
-const HIGH_PARAM_SPOTS: u32 = 6;

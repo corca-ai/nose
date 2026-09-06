@@ -17,7 +17,9 @@ use nose_il::{Il, Interner, NodeId, UnitKind};
 use nose_normalize::node_tag_valued;
 use rustc_hash::FxHashMap;
 
+mod boundaries;
 mod incremental;
+mod run_floors;
 pub(crate) use incremental::{detect_incremental, IncrementalContiguousState};
 
 /// One file's normalized-IL token stream, in source (pre-order) order.
@@ -29,8 +31,13 @@ pub(crate) use incremental::{detect_incremental, IncrementalContiguousState};
 /// clones (only the value-graph channel would run).
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Stream {
+    root_is_module: bool,
+    source: Option<std::sync::Arc<nose_il::SourceDocument>>,
     path: String,
     lang: nose_il::Lang,
+    #[serde(default)]
+    test_spans: Vec<(u32, u32)>,
+    containers: Vec<boundaries::Container>,
     tags: Vec<u64>,
     start: Vec<u32>,
     end: Vec<u32>,
@@ -44,6 +51,11 @@ pub struct Stream {
 }
 
 impl Stream {
+    /// Original source shared with units restored from this stream’s cache entry.
+    pub fn source_document(&self) -> Option<std::sync::Arc<nose_il::SourceDocument>> {
+        self.source.clone()
+    }
+
     /// Point a cached stream at the path it was loaded for — identical content at a
     /// different path shares one cache entry, so only `path` (used for the reported
     /// location) differs between them. Mirrors `UnitFeat::path` retargeting.
@@ -68,8 +80,12 @@ fn is_operation(kind: nose_il::NodeKind) -> bool {
 /// by dropping the unit.
 pub(crate) fn stream(il: &Il, interner: &Interner) -> Stream {
     let mut s = Stream {
+        root_is_module: false,
+        source: il.source.clone(),
         path: il.meta.path.clone(),
         lang: il.meta.lang,
+        test_spans: crate::units::test_context_spans(il, interner),
+        containers: boundaries::collect(il, interner),
         tags: Vec::new(),
         start: Vec::new(),
         end: Vec::new(),
@@ -82,6 +98,9 @@ pub(crate) fn stream(il: &Il, interner: &Interner) -> Stream {
     while let Some(nid) = stack.pop() {
         let n = il.node(nid);
         if suppressed.is_empty() || !is_suppressed(n.span.start_byte) {
+            if s.tags.is_empty() {
+                s.root_is_module = n.kind == nose_il::NodeKind::Module;
+            }
             s.tags.push(node_tag_valued(n.kind, n.payload, interner));
             s.start.push(n.span.start_line);
             s.end.push(n.span.end_line);
@@ -198,12 +217,13 @@ pub(in crate::contiguous) struct LocSeed {
     start_line: u32,
     end_line: u32,
     sem: usize,
+    source_lines: (u32, u32),
 }
 
 impl LocSeed {
     fn to_loc(&self, streams: &[Stream]) -> Loc {
         let s = &streams[self.stream];
-        Loc::new(LocInit {
+        let mut loc = Loc::new(LocInit {
             file: s.path.clone(),
             source_span: LineSpan::new(self.start_line, self.end_line),
             lang: s.lang.name().to_string(),
@@ -212,7 +232,18 @@ impl LocSeed {
             name: None,
             sem: self.sem,
             span_tokens: self.sem,
-        })
+        });
+        loc.enclosing_unit =
+            boundaries::enclosing(&s.containers, &s.path, self.start_line, self.end_line);
+        loc.in_test_module = s
+            .test_spans
+            .iter()
+            .any(|&(start, end)| start <= self.start_line && self.end_line <= end);
+        loc.source_region = s
+            .source
+            .as_ref()
+            .and_then(|source| source.line_region(self.source_lines.0, self.source_lines.1));
+        loc
     }
 }
 
@@ -241,6 +272,13 @@ fn loc_seed(
         start_line,
         end_line,
         sem: hi - lo,
+        // Module spans describe the entire container, not the matched tokens.
+        // Keep navigation unchanged but select source from the actual run.
+        source_lines: range.line_span(
+            &streams[stream],
+            lo.max(usize::from(streams[stream].root_is_module)),
+            hi,
+        ),
     }
 }
 
@@ -300,6 +338,7 @@ pub(in crate::contiguous) fn detect_primitives(
     for &si in stream_indices {
         let g = &grams[si];
         let lang = streams[si].lang;
+        let floors = run_floors::RunFloors::new(&streams[si]);
         let mut i = 0;
         while i < g.len() {
             let h = g[i];
@@ -307,7 +346,7 @@ pub(in crate::contiguous) fn detect_primitives(
                 // `sj` is the same language as `si` by construction (the key includes
                 // `lang`). Don't match a stream against an overlapping window of itself.
                 let self_overlap = sj == si && i.abs_diff(j) < k;
-                if !self_overlap {
+                if !self_overlap && floors.could_match(i, min_tokens, min_lines) {
                     let len = extend(&streams[sj], j, &streams[si], i);
                     if len >= min_tokens {
                         // Require the run to contain at least one operation — a flat
@@ -381,10 +420,7 @@ pub(in crate::contiguous) fn groups_from_primitives(
             semantic_laws: Vec::new(),
             abstraction_witness: None,
             witness: Some(crate::EquivalenceWitness {
-                kind: "copy-paste-run",
-                value_nodes: None,
-                mean_value_jaccard: None,
-                mean_shape_jaccard: None,
+                evidence: crate::WitnessEvidence::CopyPasteRun,
                 graded: None,
                 graded_pair: None,
             }),
@@ -425,9 +461,13 @@ pub(in crate::contiguous) fn groups_from_primitives(
 mod tests {
     use super::*;
 
-    fn mk(path: &str, tags: Vec<u64>) -> Stream {
+    pub(super) fn mk(path: &str, tags: Vec<u64>) -> Stream {
         let n = tags.len() as u32;
         Stream {
+            root_is_module: false,
+            test_spans: Vec::new(),
+            containers: Vec::new(),
+            source: None,
             path: path.into(),
             lang: nose_il::Lang::Python,
             // These tests exercise the run-matching mechanism, not the operation gate,
@@ -492,6 +532,10 @@ mod tests {
         let stream = |path: &str| {
             let n = shared.len() as u32;
             Stream {
+                root_is_module: false,
+                test_spans: Vec::new(),
+                containers: Vec::new(),
+                source: None,
                 path: path.into(),
                 lang: nose_il::Lang::Python,
                 op: vec![false; shared.len()], // no operations anywhere in the run

@@ -18,6 +18,8 @@ pub(crate) fn loc_of(u: &UnitFeat, enclosing_unit: Option<EnclosingUnit>) -> Loc
         sem: u.value.len(),
         span_tokens: u.token_count,
     });
+    loc.source_region = u.source_region.clone();
+    loc.analysis_digest = Some(crate::regions::unit_analysis_key(u));
     loc.is_fragment = fragment_kind.is_some();
     loc.fragment_kind = fragment_kind;
     loc.reason_code = fragment_kind.map(FragmentKind::reason_code);
@@ -70,10 +72,16 @@ pub(crate) fn connected_loc_of(
 ) -> Loc {
     let mut loc = loc_of(unit, enclosing_unit);
     loc.shared_subdag = Some(span);
+    loc.shared_source_region = unit
+        .source_document
+        .as_ref()
+        .and_then(|source| source.line_region(span.0, span.1));
     if span != (unit.start_line, unit.end_line) {
         if loc.enclosing_unit.is_none() && can_enclose_fragment(unit) {
             loc.enclosing_unit = Some(enclosing_unit_of(unit));
         }
+        // The detector selects complete source lines for mapped windows.
+        loc.source_region = loc.shared_source_region.clone();
         loc.start_line = span.0;
         loc.end_line = span.1;
         loc.span_lines = LineSpan::new(span.0, span.1).line_count();
@@ -118,7 +126,7 @@ pub(crate) fn attach_enclosing_units(groups: &mut [Group], units: &[UnitFeat]) {
             });
             if let Some(idx) = parent {
                 loc.enclosing_unit = Some(enclosing_unit_of(&units[idx]));
-                loc.in_test_module = units[idx].in_test_module;
+                loc.in_test_module |= units[idx].in_test_module;
             } else {
                 // A run crossing unit boundaries is test scaffolding iff EVERY
                 // overlapping unit sits in the inline test module (#226 — the
@@ -131,7 +139,7 @@ pub(crate) fn attach_enclosing_units(groups: &mut [Group], units: &[UnitFeat]) {
                         u.start_line <= loc.end_line && loc.start_line <= u.end_line
                     })
                     .collect();
-                loc.in_test_module = !overlapping.is_empty()
+                loc.in_test_module |= !overlapping.is_empty()
                     && overlapping.iter().all(|&idx| units[idx].in_test_module);
             }
         }

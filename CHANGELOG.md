@@ -6,7 +6,108 @@ break.
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-09-06
+
+- Compress repeated candidate relations while preserving every accepted edge,
+  source constraint and connected-seed rule. Reduce query JSON copying and
+  repeated navigation lookups, preserving all fields and output order.
+- Share exact multiset and anchor intersections across dense comparisons, and
+  select connected seeds with bounded streaming queues. Avoid redundant syntax
+  budget walks and repeated normalization index invalidation.
+- Keep dense accepted relations and reported-site evidence compressed through
+  grouping and ranking. Rust report APIs use `AcceptedEdges` and explicit
+  `GroupEdges` coordinates. Large site graphs materialize once when their edges
+  are read; CLI JSON and pair-evidence policies are preserved.
+- Prepare independent site mappings in parallel and batch identical exact
+  evidence into sparse block masks, retaining ordered scores and witness winners.
+
+- Stop C-header admission parsing when every remaining parse necessarily contains
+  a syntax error, while preserving clean-tree validation and parser reuse safety.
+- Reuse exact scoring inputs and repeated score sums without changing sequential
+  floating-point rounding or complete accepted-pair evidence.
+
+- Avoid repeated Rust scope traversal for type references without a matching Tokio
+  runtime import, preserving the existing type-evidence and shadowing checks.
+
+- Preserve member navigation limits and expose source-opening commands in member
+  lists; distinguish family comparison evidence from selected-member inspection.
+- Inspect bounded surrounding source with `member-context=N`, retaining the
+  original matched region and using available context space at file boundaries.
+- Reopen new saved-analysis observations using captured live family handles;
+  repair external-root source lookup and report actual verified/unavailable reads.
+- Explain folded and displayed query populations and omit redundant recording
+  guidance after successfully saving a caller review.
+
+- Connect saved-analysis review to explicit hash-verified source inspection and separate,
+  caller-owned review records with conservative applicability checks.
+- Explain extraction support and scope evidence; add member facets and recovered-overlap
+  explanations while preserving family identity and full-family metrics.
+
+
+- Make query sorting preserve family selection and overlap representatives; stop ranking zero-invariant source matches as extractable helpers.
+- Distinguish cross-language computation matches from callable reuse, propagate Rust test context into nested/cached regions, and add scope/evaluation exploration routes.
+- Keep human analysis comparisons concise, with explicit observations and readable member counts; reveal capture context through `full` while retaining incomplete-source diagnostics.
+
+- Capture admitted code-family analyses with `query --save-analysis FILE` and explore
+  their changes offline with `query --before FILE --after FILE`: reason/evidence facets,
+  before/after observations and runnable next commands. Separate versioned artifacts
+  preserve coverage and ambiguity; existing query/baseline/gate contracts are unchanged.
+
+- Add source-region snapshots and bounded, explicit cross-snapshot correspondence
+  with `nose regions snapshot/compare`; preserve ambiguity and separate evidence
+  continuity from caller-owned review decisions.
+- Query JSON v10 adds nullable SHA-256 region and review-content signatures that
+  survive location-only changes and preserve copy multiplicity. Existing family,
+  baseline, ignore, and SARIF identities are unchanged. Non-base integrations must
+  accept schema 10 (base queries remain schema 8); see `docs/region-identity.md`.
+
+- Complete review keys for abstraction templates, connected/bounded regions, and
+  locked external near/exact packs, including content-pinned dependency and receipt
+  evidence. Correct pre-release v10 key churn from occurrence-salted analysis and
+  whole-file syntax container spans. Unit/stream cache schema v5 rebuilds older
+  cached features; detection and navigation identities retain their contracts.
+
+### Fixed
+- Explain duplicate-member growth separately from scope and pack-fact changes in
+  saved analyses; retain the conservative review-evidence checks.
+- Preserve skipped-source diagnostics for offline coverage inspection, prioritize
+  recheck observations, and separate total/selected/shown counts. Labeled next actions
+  preserve format and view and offer explicit budget/empty-selection recovery.
+- Summarize member correspondence in full analysis details and expose complete base
+  candidate evidence through a context-preserving JSON action before the gate action.
+- Make saved-analysis witness facet links executable and accept canonical witness
+  kinds plus existing query aliases; advertise canonical values in capabilities.
+- Preserve moved-region candidates when the original current function or file is
+  missing, independently of unavailable semantic-change evidence.
+- Show bounded original-region candidates across changed files in `base=` semantic
+  evidence. Competing byte-identical occurrences make weak range alignment advisory;
+  actual named edits retain their evidence, and the divergence gate is unchanged.
+- Bound recursive oracle calls independently of execution steps, reporting a
+  budget exclusion instead of overflowing the stack on nonterminating recursion.
+- Accept long generated type/operator chains in pinned real-world corpora while
+  retaining explicit parse-depth and candidate-work limits. Deduplicate overlapping
+  LSH pairs before allocation, and avoid approximate candidate work in exact-only scans.
+- Fail incomplete source discovery/reads instead of reporting a passing CI gate,
+  including when reusable cache entries exist.
+- Refresh watch dashboards for Markdown, ignore, and external configuration changes;
+  derive replacement code snapshots and digests from the same session generation.
+- Invalidate IL indexes automatically on mutation and preserve the flat serialized
+  arena format. Evidence append callers can use `Il::push_evidence`.
+- Respect explicit Markdown roots beneath vendor/build-named ancestors, and aggregate
+  accepted Markdown pairs once per component instead of rescanning all pairs per family.
+- Repair corrupt cache entries through replacement on every platform.
+- Preserve all LSH candidate pairs in dense buckets instead of losing pairs at 49 units;
+  deduplicate identical band memberships before emission. Dense buckets cost quadratic work.
+- Validate detection/scoring configuration per analysis and bind cached scores to its
+  effective values. Group witness construction now uses typed evidence variants while
+  preserving the existing JSON fields.
+
 ### Changed
+- Extend the offline TypeScript oracle to primitive-key Map/Set membership and size,
+  with source-checked projections and Node calibration. Value lookup, iteration, and
+  mutation remain outside this projection; source-analysis cache artifacts are rebuilt.
+- Add a reproducible development profiler for real-corpus clean/cold/warm equivalence,
+  runtime, memory, leaf edits, and watch crash recovery.
 - Centralized auxiliary development-tool versions and checksummed
   macOS/Linux assets in one checked policy, with a read-only doctor, explicit
   idempotent bootstrap, exact hosted CI consumption, drift self-tests, and

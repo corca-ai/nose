@@ -6,7 +6,7 @@ fn annotate_semantic_pack_near(
         return;
     }
     for family in families.iter_mut().filter(|family| {
-        family.witness.as_ref().map(|witness| witness.kind) == Some("structural-similarity")
+        family.witness.as_ref().map(|witness| witness.kind()) == Some("structural-similarity")
     }) {
         let protocols = family
             .locations
@@ -47,7 +47,7 @@ fn annotate_semantic_pack_external_exact(
         return;
     }
     for family in families.iter_mut().filter(|family| {
-        family.witness.as_ref().map(|witness| witness.kind) == Some("exact-value-graph")
+        family.witness.as_ref().map(|witness| witness.kind()) == Some("exact-value-graph")
     }) {
         let mut aggregate = BTreeSet::new();
         for location in &mut family.locations {

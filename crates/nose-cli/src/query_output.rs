@@ -37,7 +37,7 @@ pub(super) struct QueryOutput<'a> {
 /// single addressed family for `at=`/`id=`, otherwise the same default-surface (or `all`/
 /// `surface=`-widened, slice-folded, filtered) selection the list view shows. Report formats
 /// are non-interactive, so they collapse the dashboard/group views to this set.
-fn query_selection<'a>(
+pub(super) fn query_selection<'a>(
     families: &'a [nose_detect::RefactorFamily],
     ov: &SurfaceOverrides,
     opp: &OpportunityGroups,
@@ -53,10 +53,7 @@ fn query_selection<'a>(
             .collect());
     }
     if let Some(idv) = &q.id {
-        return Ok(families
-            .iter()
-            .filter(|f| baseline::family_id(f).starts_with(idv.as_str()))
-            .collect());
+        return Ok(vec![crate::query_terms::family_by_id(families, idv)?]);
     }
     let widen = q.all || q.filters.iter().any(|flt| flt.field == "surface");
     if q.filters.is_empty() {
@@ -98,6 +95,21 @@ fn query_selection<'a>(
 }
 
 pub(super) fn render_query_output(ctx: &QueryOutput<'_>) -> Result<bool> {
+    if let Some(id) = &ctx.q.id {
+        if let Err(error) = crate::query_terms::family_by_id(ctx.families, id) {
+            if matches!(ctx.args.format, ReportFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "schema_version": crate::schema_versions::QUERY_JSON_SCHEMA_VERSION,
+                        "tool": "nose", "view": "family", "path": ctx.path_arg,
+                        "family": null, "error": {"message": error.to_string()}
+                    })
+                );
+            }
+            return Err(error);
+        }
+    }
     match ctx.args.format {
         ReportFormat::Markdown | ReportFormat::Sarif => {
             render_query_report_format(ctx)?;
@@ -131,17 +143,17 @@ fn render_query_report_format(ctx: &QueryOutput<'_>) -> Result<()> {
         0,
         None,
     );
-    // `id=<fam>` is a single-family drilldown: render the extraction skeleton
+    // `id=<fam>` is a single-family drilldown: render the bounded source comparison
     // (and, on `full`, the representative diff) so markdown composes with
     // `id=`/`full` the way the human/JSON views do (#422). Bulk reports stay a
     // compact location list — the skeleton is paid only on drilldown.
     if ctx.q.id.is_some() {
         for f in &shown {
             if f.locations.len() >= 2 {
-                query_markdown::markdown_member_proposal(&f.locations);
-                if ctx.q.id_full {
-                    query_markdown::markdown_member_diff(&f.locations[0], &f.locations[1]);
-                }
+                crate::query_source_evidence::render(
+                    &crate::query_source_evidence::collect(f, ctx.q.id_full),
+                    true,
+                );
             }
         }
     }
@@ -150,13 +162,17 @@ fn render_query_report_format(ctx: &QueryOutput<'_>) -> Result<()> {
 
 fn render_query_exploration(ctx: &QueryOutput<'_>) -> Result<bool> {
     let json = matches!(ctx.args.format, ReportFormat::Json);
+    let analysis = crate::query_context::describe(ctx.args, ctx.settings, ctx.scope);
     if !json {
         print_query_prelude();
+        crate::query_context::render(&analysis);
     }
     if ctx.q.reinvented {
         render_query_reinvented(
             ctx.reinvented,
+            &analysis,
             ctx.path_arg,
+            &crate::query_navigation::path(ctx.args, ctx.path_arg),
             ctx.q.top,
             json,
             ctx.semantic_packs,
@@ -169,15 +185,21 @@ fn render_query_exploration(ctx: &QueryOutput<'_>) -> Result<bool> {
             .iter()
             .filter(|r| !r.container_in_test && !r.helper_in_test)
             .count();
-        let markdown_report =
-            markdown::QueryMarkdownReport::detect_under(&ctx.args.paths, &ctx.settings.exclude);
+        let markdown_report = markdown::QueryMarkdownReport::detect_under(
+            &ctx.args.paths,
+            &ctx.settings.exclude,
+            ctx.args.cache_dir.as_deref(),
+            ctx.settings.cache_max_bytes,
+        )?;
         let markdown_found = markdown_report.has_findings();
         render_query_dashboard(
+            &analysis,
             ctx.families,
             ctx.overrides,
             ctx.opp,
             ctx.scope,
             ctx.path_arg,
+            &crate::query_navigation::path(ctx.args, ctx.path_arg),
             reinvented_prod,
             json,
             ctx.baseline_comparison,
@@ -199,18 +221,7 @@ fn render_query_exploration(ctx: &QueryOutput<'_>) -> Result<bool> {
 }
 
 fn render_query_family_view(ctx: &QueryOutput<'_>, idv: &str, json: bool) {
-    render_query_family(
-        ctx.families,
-        ctx.overrides,
-        ctx.opp,
-        idv,
-        ctx.q.id_full,
-        ctx.path_arg,
-        json,
-        ctx.baseline_comparison,
-        ctx.since,
-        ctx.semantic_packs,
-    );
+    render_query_family(ctx, idv, json);
 }
 
 fn render_query_list_or_group(ctx: &QueryOutput<'_>, json: bool) -> Result<()> {
@@ -223,24 +234,30 @@ fn render_query_list_or_group(ctx: &QueryOutput<'_>, json: bool) -> Result<()> {
         ctx.path_arg,
         ctx.since,
     )?;
+    let analysis = crate::query_context::describe(ctx.args, ctx.settings, ctx.scope);
     match &ctx.q.group {
         Some(field) => render_query_group(QueryGroupView {
+            top: ctx.q.top,
+            analysis: &analysis,
             selection: &sel,
             field,
             terms: ctx.terms,
             path: ctx.path_arg,
+            navigation_path: &crate::query_navigation::path(ctx.args, ctx.path_arg),
             json,
             baseline_comparison: ctx.baseline_comparison,
             since: ctx.since,
             semantic_packs: ctx.semantic_packs,
         }),
         None => render_query_list(QueryListView {
+            analysis: &analysis,
             selection: &sel,
             overrides: ctx.overrides,
             opportunities: ctx.opp,
             query: ctx.q,
             terms: ctx.terms,
             path: ctx.path_arg,
+            navigation_path: &crate::query_navigation::path(ctx.args, ctx.path_arg),
             widen,
             json,
             baseline_comparison: ctx.baseline_comparison,
@@ -281,6 +298,48 @@ mod tests {
     use super::*;
     use crate::main_tests::query_family::fam_at;
     use crate::query_terms::{QFilter, QOp};
+
+    #[test]
+    fn sorting_does_not_change_opportunity_roots_or_selection() {
+        let mut broad = fam_at(&[("src/a.rs", 1, 30), ("src/b.rs", 1, 30)]);
+        broad.shared_lines = 20;
+        broad.shared_weight = 20.0;
+        let narrow = fam_at(&[("src/a.rs", 5, 25), ("src/b.rs", 5, 25)]);
+        let overrides = SurfaceOverrides {
+            generated_sources: Default::default(),
+            additional_generated_surface_sources: Default::default(),
+            caller_generated_surface_sources: Default::default(),
+            declaration_run_families: Default::default(),
+            declaration_only_type_contract_families: Default::default(),
+        };
+        let mut families = vec![broad, narrow];
+        let first = crate::query_commands::query_opportunities(&families, &overrides);
+        families.reverse();
+        let reversed = crate::query_commands::query_opportunities(&families, &overrides);
+        assert!(
+            !first.primary_of.is_empty(),
+            "exercise overlapping families"
+        );
+        assert_eq!(first.primary_of, reversed.primary_of);
+        for q in [
+            Query::default(),
+            Query {
+                all: true,
+                ..Query::default()
+            },
+        ] {
+            let ids = |groups: &OpportunityGroups| {
+                let mut ids: Vec<_> = query_selection(&families, &overrides, groups, &q, ".", None)
+                    .unwrap()
+                    .into_iter()
+                    .map(baseline::family_id)
+                    .collect();
+                ids.sort();
+                ids
+            };
+            assert_eq!(ids(&first), ids(&reversed));
+        }
+    }
 
     #[test]
     fn surface_filters_keep_a_partial_default_slice_when_its_primary_is_filtered_out() {

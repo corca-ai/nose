@@ -1,18 +1,36 @@
 use crate::{
     align,
     candidates::shared_anchor_weight,
-    exact_policy::{candidate_value_floor_met, exact_value_match_eligible},
+    exact_policy::{exact_claim_eligible_parts, exact_value_match_eligible, exact_value_rich},
     strict_exact,
     units::UnitFeat,
-    ConnectedWitness,
 };
 use nose_il::{Il, Interner, NodeId};
 use std::collections::HashMap;
+
+mod inputs;
+mod prepared;
+use inputs::ScoreInputs;
+pub use prepared::PreparedScores;
 
 /// Pluggable similarity scorer. Returns a score in `[0, 1]` for a candidate pair.
 pub trait Detector: Sync {
     fn name(&self) -> &str;
     fn score(&self, a: &UnitFeat, b: &UnitFeat) -> f64;
+    /// Optional exact equivalence classes: one id per unit in this immutable slice. Equal ids
+    /// must be interchangeable in either score argument, including rejected scores.
+    /// Return `None` for scorers that depend on location, history, or other state.
+    fn score_classes(&self, _units: &[UnitFeat]) -> Option<Vec<usize>> {
+        None
+    }
+    /// Optional immutable index for evaluating rows of exactly the same scores.
+    /// Indices address the supplied representatives; location admission remains separate.
+    fn prepare_scores<'a>(
+        &'a self,
+        _units: &[&'a UnitFeat],
+    ) -> Option<Box<dyn PreparedScores + 'a>> {
+        None
+    }
 }
 
 /// A no-op scorer used when a mode intentionally runs only the contiguous
@@ -70,12 +88,26 @@ impl Detector for ExactBehaviorDetector {
             0.0
         }
     }
+
+    fn prepare_scores<'a>(
+        &'a self,
+        units: &[&'a UnitFeat],
+    ) -> Option<Box<dyn PreparedScores + 'a>> {
+        Some(Box::new(prepared::ExactScores::new(units)))
+    }
+
+    fn score_classes(&self, units: &[UnitFeat]) -> Option<Vec<usize>> {
+        Some(inputs::classes(
+            units.iter().map(|unit| (&unit.value, unit.exact_safe)),
+        ))
+    }
 }
 
 /// The v1 default: weighted multiset Jaccard over subtree shapes, blended with an
 /// LCS alignment over the linearized IL. A cheap Jaccard prefilter skips the
 /// (more expensive) LCS for obviously-dissimilar pairs.
 pub struct StructuralDetector {
+    scoring: crate::ScoreConfig,
     pub jaccard_weight: f64,
     /// Accept exact value-fingerprint matches before fuzzy structural scoring. The
     /// `near` channel disables this so Type-3 near-duplicates stay separate from the
@@ -100,6 +132,7 @@ impl StructuralDetector {
     /// Behavioral-clone detector: gates on (high precision, ~78% behavioral).
     pub fn strict(jaccard_weight: f64) -> Self {
         Self {
+            scoring: crate::ScoreConfig::default(),
             jaccard_weight,
             exact_behavior: true,
             candidate_mode: false,
@@ -109,12 +142,18 @@ impl StructuralDetector {
     /// Near-candidate detector: gates off (recall-oriented, ~99% triage-worthy).
     pub fn candidates(jaccard_weight: f64) -> Self {
         Self {
+            scoring: crate::ScoreConfig::default(),
             jaccard_weight,
             exact_behavior: true,
             candidate_mode: true,
             accept_threshold: 0.0,
         }
     }
+    pub fn with_scoring(mut self, scoring: crate::ScoreConfig) -> Self {
+        self.scoring = scoring;
+        self
+    }
+
     /// Disable the exact Type-4 fast path, leaving this detector to score only fuzzy
     /// near-duplicate structure.
     pub fn without_exact_behavior(mut self) -> Self {
@@ -138,8 +177,31 @@ impl Detector for StructuralDetector {
     }
 
     fn score(&self, a: &UnitFeat, b: &UnitFeat) -> f64 {
+        let (a, b) = (ScoreInputs::from(a), ScoreInputs::from(b));
+        self.score_inputs(&a, &b, None)
+    }
+
+    fn score_classes(&self, units: &[UnitFeat]) -> Option<Vec<usize>> {
+        Some(inputs::classes(units.iter().map(ScoreInputs::from)))
+    }
+
+    fn prepare_scores<'a>(
+        &'a self,
+        units: &[&'a UnitFeat],
+    ) -> Option<Box<dyn PreparedScores + 'a>> {
+        Some(Box::new(prepared::StructuralScores::new(self, units)))
+    }
+}
+
+impl StructuralDetector {
+    fn score_inputs(
+        &self,
+        a: &ScoreInputs<'_>,
+        b: &ScoreInputs<'_>,
+        overlap: Option<prepared::Overlap<'_>>,
+    ) -> f64 {
         let protocol_match = self.candidate_mode && external_near_protocol_match(a, b);
-        let score = self.base_score(a, b, protocol_match);
+        let score = self.base_score(a, b, protocol_match, overlap);
         if protocol_match && score >= 0.60 {
             // A reviewed protocol row is supporting near evidence, never an exact proof.
             // Move an already-substantial existing candidate only one quarter of the
@@ -151,7 +213,7 @@ impl Detector for StructuralDetector {
     }
 }
 
-fn external_near_protocol_match(a: &UnitFeat, b: &UnitFeat) -> bool {
+fn external_near_protocol_match(a: &ScoreInputs<'_>, b: &ScoreInputs<'_>) -> bool {
     a.semantic_pack_near_protocols.iter().any(|left| {
         left.provenance.is_some()
             && b.semantic_pack_near_protocols
@@ -166,7 +228,13 @@ fn external_near_protocol_match(a: &UnitFeat, b: &UnitFeat) -> bool {
 }
 
 impl StructuralDetector {
-    fn base_score(&self, a: &UnitFeat, b: &UnitFeat, protocol_match: bool) -> f64 {
+    fn base_score(
+        &self,
+        a: &ScoreInputs<'_>,
+        b: &ScoreInputs<'_>,
+        protocol_match: bool,
+        overlap: Option<prepared::Overlap<'_>>,
+    ) -> f64 {
         // Oracle-certified fast path (§AJ): an identical value-graph fingerprint means
         // behaviorally-equal — `nose verify` proved fingerprint-equality ⟹ behavior
         // -equality across the corpus (0 false merges). So accept an exact match
@@ -174,7 +242,11 @@ impl StructuralDetector {
         // Type-4 clone (loop ≡ reduce ≡ comprehension) be detected even though its
         // shapes differ. Guarded by a minimum fingerprint size so trivial units don't
         // collapse. The size gate (min_tokens) already excludes tiny units upstream.
-        if self.exact_behavior && exact_value_match_eligible(a, b) {
+        if self.exact_behavior
+            && exact_claim_eligible_parts(a.exact_safe, a.value.len())
+            && exact_claim_eligible_parts(b.exact_safe, b.value.len())
+            && overlap.map_or_else(|| a.value == b.value, |x| x.equal_value)
+        {
             return 1.0;
         }
         // Score = wv·vj + ws·sj + wr·ransac (defaults reproduce the prior
@@ -186,8 +258,12 @@ impl StructuralDetector {
         // same skeleton but a different operator (a sum-loop vs a product-loop) — now
         // behaviorally distinct in the value graph (`Reduce(Add)` vs `Reduce(Mul)`) —
         // still group as a refactoring family worth a human's attention.
-        let (wv, ws, wr) = score_weights(self.candidate_mode);
-        let vj = align::multiset_jaccard(&a.value, &b.value);
+        let [wv, ws, wr] = if self.candidate_mode {
+            self.scoring.candidate_weights
+        } else {
+            self.scoring.strict_weights
+        };
+        let vj = overlap.map_or_else(|| align::multiset_jaccard(a.value, b.value), |x| x.value);
         // Candidate mode trusts the value graph: a near-identical value fingerprint — produced
         // AFTER semantic canonicalization (a `.then`-chain ≡ await code, a loop ≡ a
         // comprehension) — is the strongest refactoring signal there is, even when the
@@ -195,22 +271,28 @@ impl StructuralDetector {
         // calls). The shape-dominant blend below would miss these, so accept a very-high `vj`
         // directly. Impure units never reach the exact channel, so this is the only place such
         // behaviorally-convergent pairs can surface. Tight threshold + size floor keep it precise.
-        if self.candidate_mode && candidate_value_floor_met(a, b) && vj >= candidate_value_accept()
+        if self.candidate_mode
+            && exact_value_rich(a.value.len())
+            && exact_value_rich(b.value.len())
+            && vj >= self.scoring.candidate_value_accept
         {
             return vj;
         }
         // Shape overlap is only needed after the value-graph fast path above. Corpus profiling
         // showed many candidate-mode pairs exit there; computing shapes first spent measurable
         // time without changing any accepted score.
-        let sj = align::multiset_jaccard(&a.shapes, &b.shapes);
+        let sj = overlap.map_or_else(|| align::multiset_jaccard(a.shapes, b.shapes), |x| x.shape);
         // Partial / sub-DAG clone: the units share a rare heavy anchor (an extractable common
         // sub-computation) even though the whole-unit blend is low. Surface it for inspection at a
         // score above the near floor but below a full clone — it's a real refactor lead (pull
         // the shared computation into a helper), just a partial one. Keep the higher of the two.
         if self.candidate_mode {
-            let shared = shared_anchor_weight(&a.anchors, &b.anchors);
+            let shared = overlap.map_or_else(
+                || shared_anchor_weight(a.anchors, b.anchors),
+                |x| x.shared_anchor,
+            );
             if shared > 0 {
-                return (wv * vj + ws * sj).max(anchor_partial_score(shared));
+                return (wv * vj + ws * sj).max(self.scoring.anchor_score(shared));
             }
         }
         if 0.6 * vj + 0.4 * sj < 0.15 {
@@ -222,7 +304,8 @@ impl StructuralDetector {
         if !protocol_match && wv * vj + ws * sj + wr < self.accept_threshold {
             return wv * vj + ws * sj + wr;
         }
-        let l = align::ransac_ratio(&a.linear, &b.linear);
+        let alignment = || align::ransac_ratio(a.linear, b.linear);
+        let l = overlap.map_or_else(alignment, |x| *x.alignment.get_or_init(alignment));
         let score = wv * vj + ws * sj + wr * l;
         // Near-candidate mode keeps the raw similarity — the gates below
         // demote precisely the near-duplicate families that are good refactor targets.
@@ -236,14 +319,14 @@ impl StructuralDetector {
         // Cap such pairs by their literal Jaccard — surgically demotes "same shape,
         // different data" false positives without touching algorithmic clones (which
         // have few constants, so the gate never triggers; recall is unaffected).
-        let (dh_ratio, dh_abs) = data_heavy_params();
-        let data_heavy = |u: &UnitFeat| {
+        let (dh_ratio, dh_abs) = (self.scoring.data_heavy_ratio, self.scoring.data_heavy_count);
+        let data_heavy = |u: &ScoreInputs<'_>| {
             !u.value.is_empty()
                 && (u.lits.len() as f64 / u.value.len() as f64 >= dh_ratio
                     || u.lits.len() >= dh_abs)
         };
         if data_heavy(a) && data_heavy(b) {
-            return score.min(align::multiset_jaccard(&a.lits, &b.lits));
+            return score.min(align::multiset_jaccard(a.lits, b.lits));
         }
         // Return-signature gate: two units that return DIFFERENT computed values are
         // not behavioral clones, however similar their bodies. When both return
@@ -251,93 +334,12 @@ impl StructuralDetector {
         // total return mismatch (e.g. `<` vs `<=`, an extra effect) caps below the
         // operating threshold while a return match leaves the score untouched.
         if !a.returns.is_empty() && !b.returns.is_empty() {
-            let rj = align::multiset_jaccard(&a.returns, &b.returns);
-            let base = ret_gate_base();
+            let rj = align::multiset_jaccard(a.returns, b.returns);
+            let base = self.scoring.return_base;
             return score.min(base + (1.0 - base) * rj);
         }
         score
     }
-}
-
-/// Surfacing score for a partial / sub-DAG clone, GRADED by the shared sub-DAG's weight: a
-/// minimal shared computation sits at the floor (just above the near threshold so it appears);
-/// a larger shared computation saturates toward the cap (still below a full clone). So a pair
-/// sharing a big extractable chunk ranks above one sharing a marginal one. Env-overridable.
-fn anchor_partial_score(weight: u32) -> f64 {
-    let floor: f64 = env_or("NOSE_ANCHOR_SCORE", 0.72);
-    let cap: f64 = env_or("NOSE_ANCHOR_SCORE_CAP", 0.90);
-    let half: f64 = env_or("NOSE_ANCHOR_SCORE_REF", 60.0_f64).max(1.0); // extra weight at half-saturation
-    let extra = (f64::from(weight) - f64::from(nose_normalize::anchor_min_weight())).max(0.0);
-    floor + (cap - floor) * (extra / (extra + half))
-}
-
-pub(crate) fn connected_witness_score(witness: ConnectedWitness) -> f64 {
-    anchor_partial_score(witness.mapped_nodes)
-}
-
-/// Value-Jaccard threshold above which candidate mode accepts a pair on the value graph alone
-/// (behaviorally convergent despite shape divergence — e.g. async `.then` ≡ await). Deliberately
-/// high so it only fires on near-identical post-canonicalization fingerprints. Env-overridable.
-fn candidate_value_accept() -> f64 {
-    use std::sync::OnceLock;
-    static V: OnceLock<f64> = OnceLock::new();
-    *V.get_or_init(|| env_or("NOSE_CAND_VJ", 0.90))
-}
-
-/// Final-score weights (vj, sj, ransac). Env-overridable for parameter search.
-fn score_weights(candidate_mode: bool) -> (f64, f64, f64) {
-    use std::sync::OnceLock;
-    static STRICT: OnceLock<(f64, f64, f64)> = OnceLock::new();
-    static CANDIDATE: OnceLock<(f64, f64, f64)> = OnceLock::new();
-
-    if candidate_mode {
-        return cached_score_weights(
-            &CANDIDATE,
-            ("NOSE_CWV", "NOSE_CWS", "NOSE_CWR"),
-            (0.3, 0.5, 0.2),
-        );
-    }
-
-    cached_score_weights(
-        &STRICT,
-        // §P5: RANSAC down-weighted 0.5→0.2 (it ignores string values, so it kept
-        // "same shape, different data" locale-table FPs high); weight shifted to the
-        // value-graph + shape Jaccard. Labeled precision 31.7%→45.2%, recall held.
-        ("NOSE_WV", "NOSE_WS", "NOSE_WR"),
-        (0.5, 0.3, 0.2),
-    )
-}
-
-fn cached_score_weights(
-    cache: &'static std::sync::OnceLock<(f64, f64, f64)>,
-    keys: (&'static str, &'static str, &'static str),
-    defaults: (f64, f64, f64),
-) -> (f64, f64, f64) {
-    *cache.get_or_init(|| {
-        (
-            env_or(keys.0, defaults.0),
-            env_or(keys.1, defaults.1),
-            env_or(keys.2, defaults.2),
-        )
-    })
-}
-
-/// Data-table criteria: a unit is a "data table" (subject to the literal-match
-/// gate) if its literal/total value-node ratio ≥ `dh_ratio` OR it has ≥ `dh_abs`
-/// literal nodes in absolute terms — the latter catches locale *classes* whose
-/// formatting methods dilute the ratio below threshold. Env-overridable for §P7.
-fn data_heavy_params() -> (f64, usize) {
-    use std::sync::OnceLock;
-    static P: OnceLock<(f64, usize)> = OnceLock::new();
-    *P.get_or_init(|| (env_or("NOSE_DH", 0.20), env_or("NOSE_DHN", 25)))
-}
-
-/// Return-signature gate base: a unit pair with totally mismatched return values
-/// is capped at this score. 1.0 disables the gate. Env-overridable for §P11.
-fn ret_gate_base() -> f64 {
-    use std::sync::OnceLock;
-    static B: OnceLock<f64> = OnceLock::new();
-    *B.get_or_init(|| env_or("NOSE_RET", 0.80))
 }
 
 pub(crate) fn env_or<T>(key: &str, default: T) -> T
@@ -430,6 +432,9 @@ mod tests {
         }];
         let supported = detector.score(&left, &right);
         assert!((0.70..1.0).contains(&supported), "score={supported}");
+        let prepared = detector.prepare_scores(&[&left, &right]).unwrap();
+        assert_eq!(prepared.row(0, &[1]), vec![supported]);
+        drop(prepared);
 
         right.semantic_pack_near_protocols[0].operation =
             SemanticPackV1ProtocolOperation::MapFactory;

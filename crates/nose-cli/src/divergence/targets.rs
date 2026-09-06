@@ -50,12 +50,12 @@ pub(super) fn direct_targets(
 fn append_direct_targets(
     targets: &mut Vec<PropagationTarget>,
     sites: &[Loc],
-    edges: &[nose_detect::AcceptedEdge],
+    edges: &nose_detect::AcceptedEdges,
     base_root: &Path,
     lines: &mut FileLineCache,
     changed: &HashMap<String, Vec<(u32, u32)>>,
 ) {
-    for edge in edges {
+    for edge in edges.iter() {
         let (Some(left), Some(right)) = (
             sites.get(edge.left as usize),
             sites.get(edge.right as usize),

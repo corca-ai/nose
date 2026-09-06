@@ -9,7 +9,7 @@ fn map_key_view_call_il(
 }
 
 fn push_map_receiver_dependency(il: &mut Il, receiver: NodeId) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
         EvidenceKind::Domain(DomainEvidence::Map),
@@ -68,7 +68,7 @@ fn push_object_keys_dependencies(
     object_root: NodeId,
     object: NodeId,
 ) -> Vec<u32> {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::source_span(il.node(callee).span),
         EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
@@ -76,7 +76,7 @@ fn push_object_keys_dependencies(
         }),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(il.node(callee).span, NodeKind::Field),
         EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
@@ -85,7 +85,7 @@ fn push_object_keys_dependencies(
         EvidenceStatus::Asserted,
         vec![EvidenceId(0)],
     ));
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         2,
         EvidenceAnchor::node(il.node(object_root).span, NodeKind::Var),
         EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
@@ -94,7 +94,7 @@ fn push_object_keys_dependencies(
         EvidenceStatus::Asserted,
         Lang::TypeScript,
     ));
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         3,
         EvidenceAnchor::sequence(il.node(object).span),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Map),
@@ -108,7 +108,7 @@ fn assert_admitted_map_key_view(lang: Lang, method: &str, expected: MapKeyViewKi
     let (mut il, interner, call, _callee, receiver) = map_key_view_call_il(lang, method, 0);
     push_map_receiver_dependency(&mut il, receiver);
     let contract = library_map_key_view_contract(lang, method, 0).expect("map-key-view contract");
-    il.evidence.push(map_key_view_protocol_record(
+    il.push_evidence(map_key_view_protocol_record(
         1,
         il.node(call).span,
         contract,
@@ -154,19 +154,17 @@ fn admitted_object_keys_key_view_requires_object_argument_proof() {
     let object_root = forged.children(callee)[0];
     let mut deps = push_object_keys_dependencies(&mut forged, callee, object_root, object);
     deps.pop();
-    forged
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            3,
-            forged.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &deps,
-            MAP_KEY_VIEW_PROTOCOL_PACK_ID,
-            MAP_KEY_VIEW_PROTOCOL_PRODUCER_ID,
-        ));
+    forged.push_evidence(library_api_record_with_provenance_and_arity(
+        3,
+        forged.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &deps,
+        MAP_KEY_VIEW_PROTOCOL_PACK_ID,
+        MAP_KEY_VIEW_PROTOCOL_PRODUCER_ID,
+    ));
     let occurrence = LibraryApiSpanCall {
         call_span: Some(forged.node(call).span),
         callee_span: Some(forged.node(callee).span),
@@ -188,19 +186,17 @@ fn admitted_object_keys_key_view_requires_object_argument_proof() {
     let (mut admitted, interner, call, callee, object) = object_keys_call_il();
     let object_root = admitted.children(callee)[0];
     let deps = push_object_keys_dependencies(&mut admitted, callee, object_root, object);
-    admitted
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            3,
-            admitted.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &deps,
-            MAP_KEY_VIEW_PROTOCOL_PACK_ID,
-            MAP_KEY_VIEW_PROTOCOL_PRODUCER_ID,
-        ));
+    admitted.push_evidence(library_api_record_with_provenance_and_arity(
+        3,
+        admitted.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &deps,
+        MAP_KEY_VIEW_PROTOCOL_PACK_ID,
+        MAP_KEY_VIEW_PROTOCOL_PRODUCER_ID,
+    ));
     let occurrence = LibraryApiSpanCall {
         call_span: Some(admitted.node(call).span),
         callee_span: Some(admitted.node(callee).span),
@@ -236,15 +232,13 @@ fn admitted_map_key_view_requires_protocol_pack_provenance() {
 
     let (mut missing_dependency, interner, call, _callee, _receiver) =
         map_key_view_call_il(Lang::TypeScript, "keys", 0);
-    missing_dependency
-        .evidence
-        .push(map_key_view_protocol_record(
-            1,
-            missing_dependency.node(call).span,
-            contract,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(map_key_view_protocol_record(
+        1,
+        missing_dependency.node(call).span,
+        contract,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     assert!(
         admitted_map_key_view_at_call(&missing_dependency, &interner, call).is_none(),
         "map-key-view evidence without map receiver proof is rejected"
@@ -253,7 +247,7 @@ fn admitted_map_key_view_requires_protocol_pack_provenance() {
     let (mut wrong_pack, interner, call, _callee, receiver) =
         map_key_view_call_il(Lang::TypeScript, "keys", 0);
     push_map_receiver_dependency(&mut wrong_pack, receiver);
-    wrong_pack.evidence.push(library_api_record_with_provenance(
+    wrong_pack.push_evidence(library_api_record_with_provenance(
         1,
         wrong_pack.node(call).span,
         contract.id,
@@ -271,18 +265,16 @@ fn admitted_map_key_view_requires_protocol_pack_provenance() {
     let (mut wrong_producer, interner, call, _callee, receiver) =
         map_key_view_call_il(Lang::TypeScript, "keys", 0);
     push_map_receiver_dependency(&mut wrong_producer, receiver);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[0],
-            MAP_KEY_VIEW_PROTOCOL_PACK_ID,
-            "wrong.protocols.map-key-view-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+        MAP_KEY_VIEW_PROTOCOL_PACK_ID,
+        "wrong.protocols.map-key-view-api",
+    ));
     assert!(
         admitted_map_key_view_at_call(&wrong_producer, &interner, call).is_none(),
         "map-key-view evidence with the wrong producer is rejected"
@@ -299,7 +291,7 @@ fn admitted_map_key_view_requires_protocol_pack_provenance() {
         &[0],
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     assert!(
         admitted_map_key_view_at_call(&wrong_emitter, &interner, call).is_none(),
         "map-key-view evidence from an external emitter is rejected"
@@ -318,15 +310,13 @@ fn forged_map_key_view_evidence_does_not_open_unsupported_arity() {
     let (mut unsupported_arity, interner, call, _callee, receiver) =
         map_key_view_call_il(Lang::TypeScript, "keys", 1);
     push_map_receiver_dependency(&mut unsupported_arity, receiver);
-    unsupported_arity
-        .evidence
-        .push(map_key_view_protocol_record(
-            1,
-            unsupported_arity.node(call).span,
-            contract,
-            EvidenceStatus::Asserted,
-            &[0],
-        ));
+    unsupported_arity.push_evidence(map_key_view_protocol_record(
+        1,
+        unsupported_arity.node(call).span,
+        contract,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
     assert!(
         admitted_map_key_view_at_call(&unsupported_arity, &interner, call).is_none(),
         "forged map-key-view evidence cannot open unsupported source arity"
@@ -360,7 +350,7 @@ fn admitted_map_key_view_span_resolver_requires_protocol_pack_provenance() {
     let (mut admitted, interner, call, callee, receiver) =
         map_key_view_call_il(Lang::TypeScript, "keys", 0);
     push_map_receiver_dependency(&mut admitted, receiver);
-    admitted.evidence.push(map_key_view_protocol_record(
+    admitted.push_evidence(map_key_view_protocol_record(
         1,
         admitted.node(call).span,
         contract,

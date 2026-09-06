@@ -7,7 +7,7 @@ pub(crate) use incremental::apply_cached_family_lines;
 /// Anti-unify N line-blocks at line granularity. Anchored on the first (largest) copy,
 /// a line *survives* into the shared body only if it is matched in *every* other copy
 /// (each copy votes via a pairwise `line_diff` against the anchor); any maximal run of
-/// non-surviving anchor lines collapses to one `⟨param N⟩` placeholder. Returns the
+/// non-surviving anchor lines collapses to one `⟨region N⟩` placeholder. Returns the
 /// skeleton, the count of lines shared across all copies, and the parameter count. With
 /// two copies this is exactly the old pairwise anti-unification; with more, it is the
 /// honest intersection — what the `--show proposal` view renders.
@@ -49,7 +49,7 @@ pub(crate) fn anti_unify_all(members: &[Vec<String>]) -> (Vec<String>, u32, u32)
     for (line, &kept) in anchor.iter().zip(&survive) {
         if kept {
             if let Some((slot, indent, lines)) = hole.take() {
-                skeleton[slot] = format!("{indent}⟨param {params}: {}⟩", classify_param(&lines));
+                skeleton[slot] = format!("{indent}⟨region {params}: {}⟩", classify_param(&lines));
             }
             shared += 1;
             skeleton.push((*line).to_string());
@@ -67,7 +67,7 @@ pub(crate) fn anti_unify_all(members: &[Vec<String>]) -> (Vec<String>, u32, u32)
         }
     }
     if let Some((slot, indent, lines)) = hole.take() {
-        skeleton[slot] = format!("{indent}⟨param {params}: {}⟩", classify_param(&lines));
+        skeleton[slot] = format!("{indent}⟨region {params}: {}⟩", classify_param(&lines));
     }
     (skeleton, shared, params)
 }

@@ -9,7 +9,8 @@ fn accepted_pair(sites: Vec<Loc>) -> nose_detect::AcceptedCoverage {
             right: 1,
             score: 1.0,
             witness_kind: "exact-value-graph",
-        }],
+        }]
+        .into(),
     }
 }
 
@@ -38,10 +39,11 @@ fn connected_witness_never_hides_an_existing_family() {
     for kind in ["connected-mapped-sub-dag", "bounded-same-unit-window"] {
         let mut connected = fam_at(&[("t/a.go", 10, 30), ("t/b.go", 10, 30)]);
         connected.witness = Some(nose_detect::EquivalenceWitness {
-            kind,
-            value_nodes: Some(42),
-            mean_value_jaccard: None,
-            mean_shape_jaccard: None,
+            evidence: if kind == "bounded-same-unit-window" {
+                nose_detect::WitnessEvidence::BoundedSameUnitWindow { value_nodes: 42 }
+            } else {
+                nose_detect::WitnessEvidence::ConnectedMappedSubDag { value_nodes: 42 }
+            },
             graded: None,
             graded_pair: None,
         });
@@ -225,7 +227,8 @@ fn accepted_graph_ignores_sites_without_a_direct_edge() {
             right: 1,
             score: 1.0,
             witness_kind: "exact-value-graph",
-        }],
+        }]
+        .into(),
     });
     let ranked = [&a, &b];
     let groups = OpportunityGroups::from_ranked(&ranked);

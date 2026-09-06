@@ -35,6 +35,20 @@ EVIDENCE = HERE / "coverage_evidence.v1.json"
 NOSE_DEFAULT = str(REPO_ROOT / "target" / "debug" / "nose")
 
 
+def dependency_identity(root: Path = REPO_ROOT) -> dict[str, str | None]:
+    """Committed build inputs outside the application crates tree."""
+    result = {}
+    for path in ("Cargo.toml", "Cargo.lock", "vendor"):
+        proc = subprocess.run(
+            ["git", "rev-parse", "--verify", f"HEAD:{path}"],
+            cwd=root, capture_output=True, text=True,
+        )
+        if proc.returncode and path != "vendor":
+            raise RuntimeError(f"missing committed build input: {path}")
+        result[path] = proc.stdout.strip() if proc.returncode == 0 else None
+    return result
+
+
 def corpus_identity(root: Path) -> tuple[str, int]:
     digest = hashlib.sha256()
     files = sorted(path for path in root.rglob("*") if path.is_file())
@@ -90,6 +104,7 @@ def run_blind_attacker(nose: str, output: Path) -> bool:
         "corpus_sha256": corpus_sha256,
         "corpus_files": corpus_files,
         "product_crates_tree": crates_tree,
+        "product_dependencies": dependency_identity(),
         "summary": {
             "total_units": summary["total_units"],
             "interpretable_units": summary["interpretable_units"],

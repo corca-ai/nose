@@ -157,7 +157,7 @@ fn declaration_run_candidate(family: &nose_detect::RefactorFamily) -> bool {
         && family
             .witness
             .as_ref()
-            .is_some_and(|witness| witness.kind == "copy-paste-run")
+            .is_some_and(|witness| witness.kind() == "copy-paste-run")
         && family.locations.iter().all(|location| {
             declaration_candidate_lang(&location.lang)
                 && location.kind == nose_il::UnitKind::Block

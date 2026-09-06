@@ -18,19 +18,17 @@ fn admitted_java_guava_map_factory_resolver_requires_guava_pack_provenance() {
 
     let (mut wrong_pack, interner, call, _callee, receiver) = java_guava_map_factory_call_il();
     push_java_guava_import_dependencies(&mut wrong_pack, receiver);
-    wrong_pack
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            2,
-            wrong_pack.node(call).span,
-            contract.id,
-            contract.callee,
-            2,
-            EvidenceStatus::Asserted,
-            &[1],
-            JAVA_STDLIB_MAP_FACTORY_PACK_ID,
-            JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID,
-        ));
+    wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+        2,
+        wrong_pack.node(call).span,
+        contract.id,
+        contract.callee,
+        2,
+        EvidenceStatus::Asserted,
+        &[1],
+        JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+        JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID,
+    ));
     assert!(
         admitted_java_map_factory_at_call(&wrong_pack, &interner, call).is_none(),
         "Guava ImmutableMap.of evidence under the stdlib map pack is rejected"
@@ -38,19 +36,17 @@ fn admitted_java_guava_map_factory_resolver_requires_guava_pack_provenance() {
 
     let (mut admitted, interner, call, callee, receiver) = java_guava_map_factory_call_il();
     push_java_guava_import_dependencies(&mut admitted, receiver);
-    admitted
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            2,
-            admitted.node(call).span,
-            contract.id,
-            contract.callee,
-            2,
-            EvidenceStatus::Asserted,
-            &[1],
-            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
-            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
-        ));
+    admitted.push_evidence(library_api_record_with_provenance_and_arity(
+        2,
+        admitted.node(call).span,
+        contract.id,
+        contract.callee,
+        2,
+        EvidenceStatus::Asserted,
+        &[1],
+        JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
+        JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
+    ));
 
     let occurrence = admitted_java_map_factory_at_call(&admitted, &interner, call).unwrap();
     assert_eq!(
@@ -74,16 +70,14 @@ fn admitted_java_map_entry_resolver_requires_pack_provenance() {
         library_java_map_entry_contract(Lang::Java, "Map", "entry").expect("Map.entry contract");
 
     let (mut missing_dependency, interner, call, _callee, _receiver) = java_map_entry_call_il();
-    missing_dependency
-        .evidence
-        .push(java_stdlib_map_entry_record(
-            0,
-            missing_dependency.node(call).span,
-            contract,
-            2,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(java_stdlib_map_entry_record(
+        0,
+        missing_dependency.node(call).span,
+        contract,
+        2,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     assert!(
         admitted_java_map_entry_at_call(&missing_dependency, &interner, call).is_none(),
         "same-span Java Map.entry evidence without import dependency is rejected"
@@ -91,19 +85,17 @@ fn admitted_java_map_entry_resolver_requires_pack_provenance() {
 
     let (mut wrong_pack, interner, call, _callee, receiver) = java_map_entry_call_il();
     push_java_map_import_dependencies(&mut wrong_pack, receiver);
-    wrong_pack
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            2,
-            wrong_pack.node(call).span,
-            contract.id,
-            contract.callee,
-            2,
-            EvidenceStatus::Asserted,
-            &[1],
-            BUILTIN_COMPAT_PACK_ID,
-            JAVA_STDLIB_MAP_ENTRY_PRODUCER_ID,
-        ));
+    wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+        2,
+        wrong_pack.node(call).span,
+        contract.id,
+        contract.callee,
+        2,
+        EvidenceStatus::Asserted,
+        &[1],
+        BUILTIN_COMPAT_PACK_ID,
+        JAVA_STDLIB_MAP_ENTRY_PRODUCER_ID,
+    ));
     assert!(
         admitted_java_map_entry_at_call(&wrong_pack, &interner, call).is_none(),
         "Java Map.entry evidence under the compatibility pack is rejected"
@@ -111,19 +103,17 @@ fn admitted_java_map_entry_resolver_requires_pack_provenance() {
 
     let (mut wrong_producer, interner, call, _callee, receiver) = java_map_entry_call_il();
     push_java_map_import_dependencies(&mut wrong_producer, receiver);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            2,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            2,
-            EvidenceStatus::Asserted,
-            &[1],
-            JAVA_STDLIB_MAP_ENTRY_PACK_ID,
-            "wrong.java.stdlib.map-entry-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance_and_arity(
+        2,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        2,
+        EvidenceStatus::Asserted,
+        &[1],
+        JAVA_STDLIB_MAP_ENTRY_PACK_ID,
+        "wrong.java.stdlib.map-entry-api",
+    ));
     assert!(
         admitted_java_map_entry_at_call(&wrong_producer, &interner, call).is_none(),
         "Java Map.entry evidence with the wrong producer is rejected"
@@ -132,7 +122,7 @@ fn admitted_java_map_entry_resolver_requires_pack_provenance() {
     let (mut wrong_arity, interner, call, _callee, receiver) =
         java_map_entry_call_il_with_arg_count(3);
     push_java_map_import_dependencies(&mut wrong_arity, receiver);
-    wrong_arity.evidence.push(java_stdlib_map_entry_record(
+    wrong_arity.push_evidence(java_stdlib_map_entry_record(
         2,
         wrong_arity.node(call).span,
         contract,
@@ -147,7 +137,7 @@ fn admitted_java_map_entry_resolver_requires_pack_provenance() {
 
     let (mut admitted, interner, call, callee, receiver) = java_map_entry_call_il();
     push_java_map_import_dependencies(&mut admitted, receiver);
-    admitted.evidence.push(java_stdlib_map_entry_record(
+    admitted.push_evidence(java_stdlib_map_entry_record(
         2,
         admitted.node(call).span,
         contract,
@@ -188,16 +178,14 @@ fn admitted_java_collection_constructor_resolver_requires_pack_provenance() {
         .expect("ArrayList constructor contract");
 
     let (mut missing_dependency, interner, call, _callee) = java_collection_constructor_call_il();
-    missing_dependency
-        .evidence
-        .push(java_stdlib_collection_constructor_record(
-            0,
-            missing_dependency.node(call).span,
-            contract,
-            0,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(java_stdlib_collection_constructor_record(
+        0,
+        missing_dependency.node(call).span,
+        contract,
+        0,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     assert!(
         admitted_java_collection_constructor_at_call(&missing_dependency, &interner, call)
             .is_none(),
@@ -206,19 +194,17 @@ fn admitted_java_collection_constructor_resolver_requires_pack_provenance() {
 
     let (mut wrong_pack, interner, call, callee) = java_collection_constructor_call_il();
     push_java_collection_constructor_dependencies(&mut wrong_pack, call, callee);
-    wrong_pack
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            3,
-            wrong_pack.node(call).span,
-            contract.id,
-            contract.callee,
-            0,
-            EvidenceStatus::Asserted,
-            &[0, 2],
-            BUILTIN_COMPAT_PACK_ID,
-            JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PRODUCER_ID,
-        ));
+    wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+        3,
+        wrong_pack.node(call).span,
+        contract.id,
+        contract.callee,
+        0,
+        EvidenceStatus::Asserted,
+        &[0, 2],
+        BUILTIN_COMPAT_PACK_ID,
+        JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PRODUCER_ID,
+    ));
     assert!(
         admitted_java_collection_constructor_at_call(&wrong_pack, &interner, call).is_none(),
         "Java constructor evidence under the compatibility pack is rejected"
@@ -226,19 +212,17 @@ fn admitted_java_collection_constructor_resolver_requires_pack_provenance() {
 
     let (mut wrong_producer, interner, call, callee) = java_collection_constructor_call_il();
     push_java_collection_constructor_dependencies(&mut wrong_producer, call, callee);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            3,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            0,
-            EvidenceStatus::Asserted,
-            &[0, 2],
-            JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID,
-            "wrong.java.stdlib.collection-constructor-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance_and_arity(
+        3,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        0,
+        EvidenceStatus::Asserted,
+        &[0, 2],
+        JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID,
+        "wrong.java.stdlib.collection-constructor-api",
+    ));
     assert!(
         admitted_java_collection_constructor_at_call(&wrong_producer, &interner, call).is_none(),
         "Java constructor evidence with the wrong producer is rejected"
@@ -246,16 +230,14 @@ fn admitted_java_collection_constructor_resolver_requires_pack_provenance() {
 
     let (mut admitted, interner, call, callee) = java_collection_constructor_call_il();
     push_java_collection_constructor_dependencies(&mut admitted, call, callee);
-    admitted
-        .evidence
-        .push(java_stdlib_collection_constructor_record(
-            3,
-            admitted.node(call).span,
-            contract,
-            0,
-            EvidenceStatus::Asserted,
-            &[0, 2],
-        ));
+    admitted.push_evidence(java_stdlib_collection_constructor_record(
+        3,
+        admitted.node(call).span,
+        contract,
+        0,
+        EvidenceStatus::Asserted,
+        &[0, 2],
+    ));
 
     let occurrence =
         admitted_java_collection_constructor_at_call(&admitted, &interner, call).unwrap();

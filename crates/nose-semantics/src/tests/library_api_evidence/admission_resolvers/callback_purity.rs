@@ -430,14 +430,14 @@ fn callback_surface_il(
     let call = b.add(NodeKind::Call, Payload::None, sp(820), &[callee, callback]);
     let root = b.add(NodeKind::Func, Payload::None, sp(821), &[call]);
     let mut il = finish_il(b, root, surface.lang);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
         EvidenceKind::Domain(surface.domain),
         EvidenceStatus::Asserted,
     ));
     if let Some(domain) = param_domain {
-        il.evidence.push(evidence(
+        il.push_evidence(evidence(
             1,
             EvidenceAnchor::node(il.node(callback_param).span, NodeKind::Param),
             EvidenceKind::Domain(domain),
@@ -451,7 +451,7 @@ fn callback_surface_il(
             .position(|node| node.kind == NodeKind::Seq)
             .map(|index| NodeId(index as u32))
             .expect("pure collection callback sequence");
-        il.evidence.push(language_core_evidence(
+        il.push_evidence(language_core_evidence(
             3,
             EvidenceAnchor::sequence(il.node(sequence).span),
             EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
@@ -480,7 +480,7 @@ fn callback_surface_il(
                 })
                 .map(|(index, _)| NodeId(index as u32))
                 .expect("pure map callback sequence surface");
-            il.evidence.push(language_core_evidence(
+            il.push_evidence(language_core_evidence(
                 5 + offset as u32,
                 EvidenceAnchor::sequence(il.node(sequence).span),
                 EvidenceKind::SequenceSurface(sequence_kind),
@@ -496,7 +496,7 @@ fn callback_surface_il(
             .position(|node| node.kind == NodeKind::BinOp)
             .map(|index| NodeId(index as u32))
             .expect("type-membership callback operator");
-        il.evidence.push(evidence(
+        il.push_evidence(evidence(
             4,
             EvidenceAnchor::source_span(il.node(operator).span),
             EvidenceKind::Source(SourceFactKind::Operator(SourceOperatorKind::TypeMembership)),
@@ -505,18 +505,17 @@ fn callback_surface_il(
     }
     let contract = library_method_call_contract(surface.lang, surface.method, 1)
         .expect("callback surface contract");
-    il.evidence
-        .push(library_api_record_with_provenance_and_arity(
-            2,
-            il.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            contract.pack_id,
-            contract.producer_id,
-        ));
+    il.push_evidence(library_api_record_with_provenance_and_arity(
+        2,
+        il.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+        contract.pack_id,
+        contract.producer_id,
+    ));
     (il, interner, call)
 }
 

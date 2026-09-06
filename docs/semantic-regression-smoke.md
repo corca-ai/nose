@@ -59,6 +59,18 @@ example, `fastlane`) to nose. Since family/member ids include path identity, thi
 stable relative invocation is what makes exact output declarations portable between
 a workstation and GitHub Actions. Unexpected drift fails.
 
+Base-view campaigns use `query . base=<commit> top=0 --format json`; the general-list
+term `all` is not valid in that view. Their isolated worktree path is stable across
+primary, control and focused phases because navigation commands retain the real
+working directory. `--worktrees-root` can select a campaign-specific root; use the
+same root for all phases and exact output audits. The default is
+`target/query-regression-worktrees`. Each checkout is exclusively reserved and
+removed after use. Existing paths and reservations fail closed rather than being
+replaced. Producer hashes and the resolved root are recorded in report provenance;
+controls and focused reruns must preserve them.
+This preserves complete navigation output without filtering commands or changing
+sampling and timing limits.
+
 An intentional change passes only when
 `.github/semantic-regression-expected-drift.json` contains an exact declaration
 for the comparison base SHA and repository. A declaration includes every changed

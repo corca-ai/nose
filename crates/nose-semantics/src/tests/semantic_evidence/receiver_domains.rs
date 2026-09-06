@@ -48,7 +48,7 @@ fn domain_evidence_records_drive_param_domain_proof() {
     let param = b.add(NodeKind::Param, Payload::None, sp(3), &[]);
     let root = b.add(NodeKind::Func, Payload::None, sp(3), &[param]);
     let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(sp(3)),
         EvidenceKind::Domain(DomainEvidence::Map),
@@ -67,13 +67,13 @@ fn ambiguous_domain_evidence_stays_closed() {
     let param = b.add(NodeKind::Param, Payload::None, sp(4), &[]);
     let root = b.add(NodeKind::Func, Payload::None, sp(4), &[param]);
     let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(sp(4)),
         EvidenceKind::Domain(DomainEvidence::Set),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::param(sp(4)),
         EvidenceKind::Domain(DomainEvidence::Map),
@@ -103,13 +103,13 @@ fn receiver_domain_evidence_at_node_is_preferred_over_param_evidence() {
         &[param, body],
     );
     let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(span(10, 12, 1)),
         EvidenceKind::Domain(DomainEvidence::Set),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Map),
@@ -157,7 +157,7 @@ fn cid_param_receiver_fixture() -> (Il, Interner, NodeId) {
 }
 
 fn push_cid_param_domain(il: &mut Il, id: u32, domain: DomainEvidence) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         id,
         EvidenceAnchor::param(span(10, 12, 1)),
         EvidenceKind::Domain(domain),
@@ -166,7 +166,7 @@ fn push_cid_param_domain(il: &mut Il, id: u32, domain: DomainEvidence) {
 }
 
 fn push_cid_receiver_domain(il: &mut Il, id: u32, domain: DomainEvidence, status: EvidenceStatus) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         id,
         EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
         EvidenceKind::Domain(domain),
@@ -234,7 +234,7 @@ fn binding_receiver_fixture(interner: &Interner, module_receiver: bool) -> (Il, 
 fn binding_domain_evidence_drives_receiver_domain_proof() {
     let interner = Interner::new();
     let (mut il, lhs, receiver) = binding_receiver_fixture(&interner, false);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(span(10, 12, 1), stable_symbol_hash("xs")),
         EvidenceKind::Domain(DomainEvidence::Collection),
@@ -250,7 +250,7 @@ fn binding_domain_evidence_drives_receiver_domain_proof() {
         Some(DomainEvidence::Collection)
     );
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::binding(span(10, 12, 1), stable_symbol_hash("xs")),
         EvidenceKind::Domain(DomainEvidence::Map),
@@ -267,13 +267,13 @@ fn binding_domain_evidence_drives_receiver_domain_proof() {
 fn binding_domain_evidence_validates_dependencies() {
     let interner = Interner::new();
     let (mut il, _, receiver) = binding_receiver_fixture(&interner, false);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::sequence(span(15, 17, 1)),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
         EvidenceStatus::Ambiguous,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::binding(span(10, 12, 1), stable_symbol_hash("xs")),
         EvidenceKind::Domain(DomainEvidence::Collection),
@@ -292,7 +292,7 @@ fn binding_domain_evidence_validates_dependencies() {
 fn module_binding_domain_evidence_reaches_free_name_receiver() {
     let interner = Interner::new();
     let (mut il, _, receiver) = binding_receiver_fixture(&interner, true);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(span(10, 12, 1), stable_symbol_hash("xs")),
         EvidenceKind::Domain(DomainEvidence::Collection),
@@ -337,7 +337,7 @@ fn binding_domain_evidence_requires_matching_local_hash() {
     let root = b.add(NodeKind::Func, Payload::None, span(0, 40, 1), &[body]);
     let mut il = finish_il(b, root, Lang::TypeScript);
     il.cid_names = vec![xs, ys];
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(span(10, 12, 1), stable_symbol_hash("xs")),
         EvidenceKind::Domain(DomainEvidence::Collection),
@@ -382,7 +382,7 @@ fn binding_domain_evidence_requires_assignment_before_receiver() {
     let root = b.add(NodeKind::Func, Payload::None, span(0, 30, 1), &[body]);
     let mut il = finish_il(b, root, Lang::TypeScript);
     il.cid_names = vec![xs];
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(span(20, 22, 2), stable_symbol_hash("xs")),
         EvidenceKind::Domain(DomainEvidence::Collection),
@@ -434,13 +434,13 @@ fn cid_receiver_domain_uses_nearest_function_scope() {
         &[first_func, second_func],
     );
     let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(span(10, 12, 1)),
         EvidenceKind::Domain(DomainEvidence::Collection),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::param(span(50, 52, 3)),
         EvidenceKind::Domain(DomainEvidence::Map),
@@ -481,7 +481,7 @@ fn cid_receiver_domain_reaches_captured_function_param_inside_lambda() {
         &[param, body],
     );
     let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(span(10, 12, 1)),
         EvidenceKind::Domain(DomainEvidence::Array),
@@ -498,7 +498,7 @@ fn cid_receiver_domain_reaches_captured_function_param_inside_lambda() {
 fn dependency_broken_receiver_domain_evidence_blocks_param_fallback() {
     let (mut il, interner, receiver) = cid_param_receiver_fixture();
     push_cid_param_domain(&mut il, 0, DomainEvidence::Set);
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Map),
@@ -541,7 +541,7 @@ fn named_receiver_domain_requires_unassigned_param_scope() {
         &[param, body],
     );
     let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(span(10, 12, 1)),
         EvidenceKind::Domain(DomainEvidence::Collection),
@@ -583,7 +583,7 @@ fn named_receiver_domain_requires_unassigned_param_scope() {
         &[param, body],
     );
     let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(span(10, 12, 1)),
         EvidenceKind::Domain(DomainEvidence::Collection),

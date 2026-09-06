@@ -1,6 +1,5 @@
 use crate::{
     candidates::{build_connected_groups, build_groups, structural_candidates},
-    cluster::UnionFind,
     contiguous::Stream,
     detectors::Detector,
     locations::enclosing_units,
@@ -11,7 +10,11 @@ use crate::{
 };
 use nose_il::Corpus;
 
+pub(crate) mod accepted;
+mod batched;
+use accepted::AcceptedPairs;
 mod features;
+mod signatures;
 pub use features::{
     corpus_features, corpus_features_with_normalized, file_stream, units_of_file, CorpusFeatures,
 };
@@ -120,21 +123,15 @@ struct DetectionRequest<'a> {
 fn score_fresh_connected(
     units: &[UnitFeat],
     scored: &[ScoredCandidate],
-    accepted: &[AcceptedPair],
+    accepted: &AcceptedPairs,
     opts: &DetectOptions,
 ) -> ConnectedStage {
     if !opts.connected_witnesses {
         return ConnectedStage::default();
     }
     ConnectedStage {
-        cross_unit: score_connected_candidates(
-            units,
-            scored,
-            accepted,
-            opts.threshold,
-            !opts.emit_pairs,
-        ),
-        same_unit: score_same_unit_candidates(units, opts.threshold, !opts.emit_pairs),
+        cross_unit: score_connected_candidates(units, scored, accepted, opts, !opts.emit_pairs),
+        same_unit: score_same_unit_candidates(units, opts, !opts.emit_pairs),
     }
 }
 
@@ -152,6 +149,8 @@ fn detect_with_dump_inner(
     detector: &dyn Detector,
     output: DetectionOutput,
 ) -> (Report, Dump) {
+    let plan = opts.validate().expect("invalid detection options");
+    let opts = &*plan;
     let mut clk = StageTimer::new();
 
     // Normalize each file and extract its units in one fused parallel pass — a file's
@@ -218,6 +217,26 @@ pub fn detect_from_units_with_accepted_coverage(
     .0
 }
 
+/// Borrowed-unit product entry point for watch sessions that retain unit caches
+/// while choosing bounded scoring instead of a large persistent pair index.
+pub fn detect_from_borrowed_units_with_accepted_coverage(
+    units: &[UnitFeat],
+    files: usize,
+    streams: &[Stream],
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+) -> Report {
+    detect_from_units_inner(DetectionRequest {
+        units,
+        files,
+        streams,
+        opts,
+        detector,
+        output: DetectionOutput::ACCEPTED_COVERAGE,
+    })
+    .0
+}
+
 /// Cached-unit counterpart to [`detect_with_direct_accepted_coverage`].
 /// Divergent-edit propagation needs contiguous copy-paste edges as well as the
 /// structural accepted edges retained by the ordinary query surface.
@@ -240,9 +259,19 @@ pub fn detect_from_units_with_direct_accepted_coverage(
 }
 
 fn detect_from_units_inner(request: DetectionRequest<'_>) -> (Report, Dump) {
+    let plan = request.opts.validate().expect("invalid detection options");
+    let request = DetectionRequest {
+        opts: &plan,
+        ..request
+    };
     let mut clk = StageTimer::new();
 
-    let stages = if request.opts.structural {
+    let stages = if matches!(request.output.dump, DumpSelection::None)
+        && crate::prefers_batched_detection(request.units, request.opts)
+    {
+        clk.lap("candidates");
+        batched::score(request.units, request.opts, request.detector)
+    } else if request.opts.structural {
         // 3. LSH candidate generation. Semantic runs use the value-graph signature;
         //    near-duplicate runs also use shape signatures so Type-3 edits that
         //    change behavior-defining values still reach the scorer. When both
@@ -281,6 +310,7 @@ fn finish_detection(
     } = request;
     let DetectionStages {
         candidates,
+        candidate_count,
         scored,
         accepted,
         source,
@@ -305,13 +335,7 @@ fn finish_detection(
     clk.lap("score");
 
     // 5. Cluster.
-    let raw_groups = raw_groups.unwrap_or_else(|| {
-        let mut union = UnionFind::new(units.len());
-        for &(left, right, _) in &accepted {
-            union.union(left, right);
-        }
-        union.groups(units.len())
-    });
+    let raw_groups = raw_groups.unwrap_or_else(|| accepted.components(units.len()));
     clk.lap("cluster");
 
     let enclosing = enclosing_units(units);
@@ -340,7 +364,7 @@ fn finish_detection(
         trace_accepted_coverage,
     );
     groups.extend(connected_groups);
-    accepted_group_edges.extend(connected_edges);
+    accepted_group_edges.extend(connected_edges.into_iter().map(crate::GroupEdges::Members));
     clk.lap("groups");
 
     let reinvented = if opts.structural {
@@ -355,7 +379,7 @@ fn finish_detection(
         metrics: Metrics {
             files,
             units: units.len(),
-            candidate_pairs: candidates.len(),
+            candidate_pairs: candidate_count,
             accepted_pairs: accepted.len() + connected_accepted.len(),
             groups: groups.len(),
         },

@@ -371,6 +371,7 @@ mod tests {
         run.set_workspace([7; 32]);
         let mut sources = vec![
             CachedSourceFile {
+                skip_reason: None,
                 path: a.to_string_lossy().into_owned(),
                 logical_path: "0:a.py".to_owned(),
                 digest: [1; 32],
@@ -378,6 +379,7 @@ mod tests {
                 source_kind: crate::cache::source::SourceIdentityKind::ContentSha256,
             },
             CachedSourceFile {
+                skip_reason: None,
                 path: b.to_string_lossy().into_owned(),
                 logical_path: "0:b.py".to_owned(),
                 digest: [2; 32],

@@ -57,6 +57,55 @@ tests inject the same wrong float fact into both channels for each runtime and r
 so frontend/interpreter agreement cannot overrule the source runtimes. The calibration code and
 artifact remain offline and are not linked into the shipped `nose` binary.
 
+## Primitive array oracle extension
+
+The frontend retains the primitive element identity of plain TypeScript
+`boolean[]`, `number[]` and `string[]` parameters in `ArrayElementDomain`
+evidence. Normalization preserves the evidence independently of the erased
+`Array` receiver domain. The offline collector compares core and normalized
+input projections before selecting a full scalar-array input contract; the
+falsifier independently requires the source evidence on both sides.
+
+The deterministic pool includes empty, singleton and ordered two-element arrays
+of domain-valid values. The fixed battery also binds elements under that same
+primitive domain. A Boolean-array element-order counterexample and live Node
+calibration of Boolean, Number and String arrays exercise the source/runtime
+boundary on both normalization channels. This expands executable coverage, not
+product exact admission or a claim of exhaustive runtime equivalence.
+
+Aliases, optional/union types, nominal `Array<T>`, nested arrays, and erased
+collection/option/result payloads retain their existing advisory boundary.
+They need their own faithful source identity and value model before promotion.
+
+## Map and Set membership oracle
+
+Plain TypeScript `Map<K,V>`, `ReadonlyMap<K,V>`, `Set<K>` and `ReadonlySet<K>`
+parameters retain primitive Boolean, Number or String key evidence. A whole-source
+binding check rejects shadowed names, including imports, aliases, interfaces and
+generic parameters declared after a use. Both normalized and core IL must prove
+that every use observes only `has` or `size` before the collector selects
+`KeyedMembership`; the falsifier independently repeats that proof on both sides.
+
+`Value::KeySet` represents this key-only projection. It deduplicates keys under
+[ECMAScript SameValueZero](https://tc39.es/ecma262/2025/multipage/keyed-collections.html#sec-map.prototype.has),
+including NaN and both signs of zero. The input pool covers empty, singleton and
+two-key collections. Live Node tests compare all four source containers and all
+three primitive key kinds on both normalization channels; a changed lookup key
+must produce a concrete falsification witness. Hidden symbolic keys stay symbolic.
+
+This projection erases Map values and ordering only after the use proof establishes
+that neither can be observed. Value lookup (`get`), iteration, mutation, aliases of
+the receiver, raw collection return/equality, optional/union keys and nominal key
+types remain unhosted. Multi-piece strings cannot establish character equality
+with atomic keys in the current free-monoid model, so those comparisons remain
+unsupported. This expands offline coverage without adding product exact laws.
+
+The regenerated [coverage evidence](../bench/type4/coverage_evidence.v1.json)
+raises the generated `map_key_membership` cohort's oracle completeness from 89%
+to 94%, with zero merged hard negatives out of 24. Its reported under-merged
+cases increase from one to three as the oracle can compare more behaviors; this
+extension does not claim to close those product recall gaps.
+
 ## Two binary identities, one release-tree report
 
 The preserved clean release-candidate binary and raw report reproduce the
@@ -292,7 +341,7 @@ Soundness is attacked in two independent lanes. The informed lane queries each n
 and adjacent negative pair. The blind lane runs `nose verify` over the complete focused corpus
 without consulting those labels; its compact
 [`blind_attack.v1.json`](../bench/type4/blind_attack.v1.json) receipt binds the product crates tree,
-284 fixture files, and their corpus digest. Of 483 units, 321 are interpretable and 162 are
+the committed Cargo manifest/lockfile and optional vendor tree, 284 fixture files, and their corpus digest. Of 483 units, 321 are interpretable and 162 are
 explicitly excluded; the 54 exact fingerprint groups have zero false merges and zero
 canon-preservation violations. This blind lane covers the focused probes, not the generator-only
 cells. The informed generator soundness inventory separately has 20/20 guarded axes and zero

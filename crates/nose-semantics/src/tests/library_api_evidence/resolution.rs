@@ -33,7 +33,7 @@ fn is_array_contract() -> LibraryStaticGlobalMethodContract {
 fn admitted_js_array_is_array_il(interner: &Interner) -> (Il, NodeId, NodeId, NodeId) {
     let (mut il, call, callee, array) = js_array_is_array_call_il(interner);
     let contract = is_array_contract();
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(il.node(array).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -43,7 +43,7 @@ fn admitted_js_array_is_array_il(interner: &Interner) -> (Il, NodeId, NodeId, No
         &[],
         Lang::JavaScript,
     ));
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         1,
         EvidenceAnchor::source_span(il.node(callee).span),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -53,7 +53,7 @@ fn admitted_js_array_is_array_il(interner: &Interner) -> (Il, NodeId, NodeId, No
         &[],
         Lang::JavaScript,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         2,
         EvidenceAnchor::node(il.node(callee).span, NodeKind::Field),
         EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
@@ -62,7 +62,7 @@ fn admitted_js_array_is_array_il(interner: &Interner) -> (Il, NodeId, NodeId, No
         EvidenceStatus::Asserted,
         vec![EvidenceId(1)],
     ));
-    il.evidence.push(js_like_builtin_array_record(
+    il.push_evidence(js_like_builtin_array_record(
         3,
         il.node(call).span,
         contract.id,
@@ -95,7 +95,7 @@ fn js_boolean_call_il(interner: &Interner) -> (Il, NodeId, NodeId) {
 fn admitted_js_boolean_il(interner: &Interner) -> (Il, NodeId, NodeId) {
     let (mut il, call, boolean) = js_boolean_call_il(interner);
     let contract = library_js_boolean_coercion_contract(Lang::JavaScript, "Boolean", 1).unwrap();
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(il.node(boolean).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -105,7 +105,7 @@ fn admitted_js_boolean_il(interner: &Interner) -> (Il, NodeId, NodeId) {
         &[],
         Lang::JavaScript,
     ));
-    il.evidence.push(js_like_builtin_boolean_record(
+    il.push_evidence(js_like_builtin_boolean_record(
         1,
         il.node(call).span,
         contract.id,
@@ -167,16 +167,14 @@ fn library_api_evidence_resolution_requires_boolean_builtin_pack_provenance() {
     );
 
     let (mut missing_dependency, call, _boolean) = js_boolean_call_il(&interner);
-    missing_dependency
-        .evidence
-        .push(js_like_builtin_boolean_record(
-            0,
-            missing_dependency.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(js_like_builtin_boolean_record(
+        0,
+        missing_dependency.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     assert_eq!(
         contract_status_for_call(
             &missing_dependency,
@@ -340,7 +338,7 @@ fn library_api_evidence_resolution_rejects_missing_or_ambiguous_dependencies() {
     let contract = is_array_contract();
 
     let (mut missing_dep, call, _callee, _array) = js_array_is_array_call_il(&interner);
-    missing_dep.evidence.push(js_like_builtin_array_record(
+    missing_dep.push_evidence(js_like_builtin_array_record(
         0,
         missing_dep.node(call).span,
         contract.id,
@@ -354,7 +352,7 @@ fn library_api_evidence_resolution_rejects_missing_or_ambiguous_dependencies() {
     );
 
     let (mut ambiguous_dep, call, callee, array) = js_array_is_array_call_il(&interner);
-    ambiguous_dep.evidence.push(language_core_symbol_record(
+    ambiguous_dep.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(ambiguous_dep.node(array).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -364,7 +362,7 @@ fn library_api_evidence_resolution_rejects_missing_or_ambiguous_dependencies() {
         &[],
         Lang::JavaScript,
     ));
-    ambiguous_dep.evidence.push(evidence(
+    ambiguous_dep.push_evidence(evidence(
         1,
         EvidenceAnchor::node(ambiguous_dep.node(callee).span, NodeKind::Field),
         EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
@@ -372,7 +370,7 @@ fn library_api_evidence_resolution_rejects_missing_or_ambiguous_dependencies() {
         }),
         EvidenceStatus::Asserted,
     ));
-    ambiguous_dep.evidence.push(js_like_builtin_array_record(
+    ambiguous_dep.push_evidence(js_like_builtin_array_record(
         2,
         ambiguous_dep.node(call).span,
         contract.id,
@@ -398,7 +396,7 @@ fn library_api_evidence_resolution_rejects_conflicting_or_misanchored_records() 
     let contract = is_array_contract();
 
     let (mut conflicting_dep, call, callee, array) = js_array_is_array_call_il(&interner);
-    conflicting_dep.evidence.push(language_core_symbol_record(
+    conflicting_dep.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(conflicting_dep.node(array).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -408,7 +406,7 @@ fn library_api_evidence_resolution_rejects_conflicting_or_misanchored_records() 
         &[],
         Lang::JavaScript,
     ));
-    conflicting_dep.evidence.push(evidence(
+    conflicting_dep.push_evidence(evidence(
         1,
         EvidenceAnchor::node(conflicting_dep.node(callee).span, NodeKind::Field),
         EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
@@ -416,7 +414,7 @@ fn library_api_evidence_resolution_rejects_conflicting_or_misanchored_records() 
         }),
         EvidenceStatus::Asserted,
     ));
-    conflicting_dep.evidence.push(language_core_symbol_record(
+    conflicting_dep.push_evidence(language_core_symbol_record(
         2,
         EvidenceAnchor::node(conflicting_dep.node(array).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -426,7 +424,7 @@ fn library_api_evidence_resolution_rejects_conflicting_or_misanchored_records() 
         &[],
         Lang::JavaScript,
     ));
-    conflicting_dep.evidence.push(js_like_builtin_array_record(
+    conflicting_dep.push_evidence(js_like_builtin_array_record(
         3,
         conflicting_dep.node(call).span,
         contract.id,
@@ -447,7 +445,7 @@ fn library_api_evidence_resolution_rejects_conflicting_or_misanchored_records() 
 
     let (mut il, call, _callee, _array) = admitted_js_array_is_array_il(&interner);
     let boolean = library_js_boolean_coercion_contract(Lang::JavaScript, "Boolean", 1).unwrap();
-    il.evidence.push(library_api_record(
+    il.push_evidence(library_api_record(
         3,
         il.node(call).span,
         boolean.id,
@@ -461,7 +459,7 @@ fn library_api_evidence_resolution_rejects_conflicting_or_misanchored_records() 
     );
 
     let (mut wrong_anchor, call, _callee, _array) = js_array_is_array_call_il(&interner);
-    wrong_anchor.evidence.push(js_like_builtin_array_record(
+    wrong_anchor.push_evidence(js_like_builtin_array_record(
         0,
         sp(99),
         contract.id,

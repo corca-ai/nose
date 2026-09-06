@@ -8,7 +8,7 @@ fn imported_namespace_receiver_dependency_rejects_conflicting_symbol_identity() 
     let fmt_symbol = SymbolEvidenceKind::ImportedNamespace {
         module_hash: stable_symbol_hash("fmt"),
     };
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::binding(sp(63), stable_symbol_hash("fmt")),
         fmt_symbol,
@@ -16,7 +16,7 @@ fn imported_namespace_receiver_dependency_rejects_conflicting_symbol_identity() 
         &[],
         Lang::Go,
     ));
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         1,
         EvidenceAnchor::node(il.node(fmt).span, NodeKind::Var),
         fmt_symbol,
@@ -29,7 +29,7 @@ fn imported_namespace_receiver_dependency_rejects_conflicting_symbol_identity() 
         Some(vec![EvidenceId(1)])
     );
 
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         9,
         EvidenceAnchor::node(il.node(fmt).span, NodeKind::Var),
         SymbolEvidenceKind::ImportedNamespace {
@@ -61,32 +61,30 @@ fn admitted_property_node_resolver_requires_api_occurrence_evidence() {
     let contract =
         library_property_builtin_contract(Lang::JavaScript, "length").expect("length contract");
     let (mut missing_dependency, interner, field, _receiver) = js_length_field_il();
-    missing_dependency
-        .evidence
-        .push(asserted_library_api_node_record_with_provenance(
-            0,
-            &missing_dependency,
-            field,
-            contract.id,
-            contract.callee,
-            0,
-            &[],
-            PROPERTY_BUILTIN_PROTOCOL_PACK_ID,
-            PROPERTY_BUILTIN_PROTOCOL_PRODUCER_ID,
-        ));
+    missing_dependency.push_evidence(asserted_library_api_node_record_with_provenance(
+        0,
+        &missing_dependency,
+        field,
+        contract.id,
+        contract.callee,
+        0,
+        &[],
+        PROPERTY_BUILTIN_PROTOCOL_PACK_ID,
+        PROPERTY_BUILTIN_PROTOCOL_PRODUCER_ID,
+    ));
     assert!(
         admitted_property_builtin_at_field(&missing_dependency, &interner, field).is_none(),
         "property API occurrence without receiver-domain dependency is rejected"
     );
 
     let (mut wrong_pack, interner, field, receiver) = js_length_field_il();
-    wrong_pack.evidence.push(evidence(
+    wrong_pack.push_evidence(evidence(
         0,
         EvidenceAnchor::node(wrong_pack.node(receiver).span, NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Collection),
         EvidenceStatus::Asserted,
     ));
-    wrong_pack.evidence.push(asserted_library_api_node_record(
+    wrong_pack.push_evidence(asserted_library_api_node_record(
         1,
         &wrong_pack,
         field,
@@ -101,25 +99,23 @@ fn admitted_property_node_resolver_requires_api_occurrence_evidence() {
     );
 
     let (mut admitted, interner, field, receiver) = js_length_field_il();
-    admitted.evidence.push(evidence(
+    admitted.push_evidence(evidence(
         0,
         EvidenceAnchor::node(admitted.node(receiver).span, NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Collection),
         EvidenceStatus::Asserted,
     ));
-    admitted
-        .evidence
-        .push(asserted_library_api_node_record_with_provenance(
-            1,
-            &admitted,
-            field,
-            contract.id,
-            contract.callee,
-            0,
-            &[0],
-            PROPERTY_BUILTIN_PROTOCOL_PACK_ID,
-            PROPERTY_BUILTIN_PROTOCOL_PRODUCER_ID,
-        ));
+    admitted.push_evidence(asserted_library_api_node_record_with_provenance(
+        1,
+        &admitted,
+        field,
+        contract.id,
+        contract.callee,
+        0,
+        &[0],
+        PROPERTY_BUILTIN_PROTOCOL_PACK_ID,
+        PROPERTY_BUILTIN_PROTOCOL_PRODUCER_ID,
+    ));
     let resolved = admitted_property_builtin_at_field(&admitted, &interner, field).unwrap();
     assert_eq!(
         resolved.contract.id,
@@ -147,7 +143,7 @@ fn admitted_rust_option_none_sentinel_resolver_requires_pack_provenance() {
     let contract = library_rust_option_none_sentinel_contract(Lang::Rust, "None")
         .expect("Rust None sentinel contract");
     let (mut wrong_pack, interner, none) = rust_none_node_il();
-    wrong_pack.evidence.push(language_core_symbol_record(
+    wrong_pack.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(wrong_pack.node(none).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -157,26 +153,24 @@ fn admitted_rust_option_none_sentinel_resolver_requires_pack_provenance() {
         &[],
         Lang::Rust,
     ));
-    wrong_pack
-        .evidence
-        .push(asserted_library_api_node_record_with_provenance(
-            1,
-            &wrong_pack,
-            none,
-            contract.id,
-            contract.callee,
-            0,
-            &[0],
-            BUILTIN_COMPAT_PACK_ID,
-            RUST_STDLIB_OPTION_PRODUCER_ID,
-        ));
+    wrong_pack.push_evidence(asserted_library_api_node_record_with_provenance(
+        1,
+        &wrong_pack,
+        none,
+        contract.id,
+        contract.callee,
+        0,
+        &[0],
+        BUILTIN_COMPAT_PACK_ID,
+        RUST_STDLIB_OPTION_PRODUCER_ID,
+    ));
     assert!(
         admitted_rust_option_none_sentinel_at_node(&wrong_pack, &interner, none).is_none(),
         "Rust Option None evidence under the compatibility pack is rejected"
     );
 
     let (mut wrong_producer, interner, none) = rust_none_node_il();
-    wrong_producer.evidence.push(language_core_symbol_record(
+    wrong_producer.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(wrong_producer.node(none).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -186,26 +180,24 @@ fn admitted_rust_option_none_sentinel_resolver_requires_pack_provenance() {
         &[],
         Lang::Rust,
     ));
-    wrong_producer
-        .evidence
-        .push(asserted_library_api_node_record_with_provenance(
-            1,
-            &wrong_producer,
-            none,
-            contract.id,
-            contract.callee,
-            0,
-            &[0],
-            RUST_STDLIB_OPTION_PACK_ID,
-            "wrong.rust.stdlib.option-api",
-        ));
+    wrong_producer.push_evidence(asserted_library_api_node_record_with_provenance(
+        1,
+        &wrong_producer,
+        none,
+        contract.id,
+        contract.callee,
+        0,
+        &[0],
+        RUST_STDLIB_OPTION_PACK_ID,
+        "wrong.rust.stdlib.option-api",
+    ));
     assert!(
         admitted_rust_option_none_sentinel_at_node(&wrong_producer, &interner, none).is_none(),
         "Rust Option None evidence with the wrong producer is rejected"
     );
 
     let (mut wrong_emitter, interner, none) = rust_none_node_il();
-    wrong_emitter.evidence.push(language_core_symbol_record(
+    wrong_emitter.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(wrong_emitter.node(none).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -227,14 +219,14 @@ fn admitted_rust_option_none_sentinel_resolver_requires_pack_provenance() {
         RUST_STDLIB_OPTION_PRODUCER_ID,
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     assert!(
         admitted_rust_option_none_sentinel_at_node(&wrong_emitter, &interner, none).is_none(),
         "Rust Option None evidence from an external emitter is rejected"
     );
 
     let (mut admitted, interner, none) = rust_none_node_il();
-    admitted.evidence.push(language_core_symbol_record(
+    admitted.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(admitted.node(none).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -244,19 +236,17 @@ fn admitted_rust_option_none_sentinel_resolver_requires_pack_provenance() {
         &[],
         Lang::Rust,
     ));
-    admitted
-        .evidence
-        .push(asserted_library_api_node_record_with_provenance(
-            1,
-            &admitted,
-            none,
-            contract.id,
-            contract.callee,
-            0,
-            &[0],
-            RUST_STDLIB_OPTION_PACK_ID,
-            RUST_STDLIB_OPTION_PRODUCER_ID,
-        ));
+    admitted.push_evidence(asserted_library_api_node_record_with_provenance(
+        1,
+        &admitted,
+        none,
+        contract.id,
+        contract.callee,
+        0,
+        &[0],
+        RUST_STDLIB_OPTION_PACK_ID,
+        RUST_STDLIB_OPTION_PRODUCER_ID,
+    ));
     assert_eq!(
         admitted_rust_option_none_sentinel_at_node(&admitted, &interner, none)
             .expect("Rust None should admit")

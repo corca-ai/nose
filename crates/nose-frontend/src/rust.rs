@@ -24,6 +24,7 @@ mod items;
 mod macros;
 mod matches;
 mod statements;
+mod test_context;
 
 use self::{expressions::*, functions::*, items::*, macros::*, matches::*, statements::*};
 

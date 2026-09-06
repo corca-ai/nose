@@ -39,6 +39,16 @@ behavior sinks aligned, and no consumed name mismatched. The exact channel is th
 degenerate `k = 0` case; the experimental [`abstraction`](usage.md) witness is the
 `k = 1` literal case.
 
+## Source occurrence locations
+
+Value nodes are shared by equal computations, so a node's first creation site is
+not the location of every later occurrence. Witness export records expression
+occurrences inside the selected unit separately from fingerprint construction.
+Nested wrappers retain their inner occurrence. Disjoint equal-value occurrences,
+foreign-file spans, and unobserved or out-of-unit values have unavailable locations;
+no source text is borrowed from another same-valued expression. This affects only
+witness location evidence, not value equality, grades, scoring, or review keys.
+
 ## Patterns, not noise
 
 Some divergences are better described than itemized as holes:
@@ -95,8 +105,8 @@ guessed one.
 
 ## Ranking
 
-The witness's hole count is, in principle, a more semantically-grounded "number of
-parameters the helper would need" than source-line anti-unification can provide.
+The witness's hole count describes differences in the modeled value graphs. Neither
+it nor source-line alignment proves the signature a shared helper would need.
 Re-ranking by it was measured
 on the gold set (`bench/labels/eval_by_language.py`, anti-unification re-rank vs the
 extractability baseline): the effect is **within noise overall** (dev +2pp, held-out
@@ -137,6 +147,8 @@ not folded into nose's deterministic order on a neutral signal.
   Those fail the family closed when violated and are defended by the witness soundness
   battery, not by Lean; treat `referent_mismatches`/`caveat_names` as the honest boundary
   of the claim.
+- `id=ID full` requests enrichment for that selected family; `spotclass` filters/grouping
+  still enrich the queried population. Missing grades remain unavailable, never guessed.
 - It is **best-effort enrichment**, computed at the presentation layer (which has
   source access). Query JSON carries the value-graph view as `graded.spots` and
   the opened-family source view as `skeleton` when requested with `full`.

@@ -89,7 +89,7 @@ fn lowered_java_units_with_features(
     extract(
         &il,
         interner,
-        &seeds,
+        Some(&seeds),
         1,
         1,
         true,
@@ -207,7 +207,7 @@ function check(input) {
     let product = extract(
         &il,
         &interner,
-        &seeds,
+        Some(&seeds),
         opts.min_lines,
         opts.min_tokens,
         block_units,
@@ -254,7 +254,7 @@ fn lowered_fragment_units(src: &str, lang: Lang, interner: &Interner) -> Vec<Uni
     extract(
         &il,
         interner,
-        &seeds,
+        Some(&seeds),
         99,
         999,
         true,

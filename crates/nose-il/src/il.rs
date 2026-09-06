@@ -10,13 +10,59 @@ use serde::{Deserialize, Serialize};
 
 mod evidence_index;
 use evidence_index::EvidenceIndex;
+mod evidence_edit;
+pub use evidence_edit::EvidenceEdit;
+mod parent_index;
 mod scope_index;
 
 /// One lowered source file. `nodes` is the arena; child links live out-of-line in
 /// `edges` so each [`Node`] stays small. `file == ` this file's index in the
 /// owning [`crate::Corpus`].
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct Il {
+    contents: IlContents,
+    #[serde(skip)]
+    pub source: Option<std::sync::Arc<crate::SourceDocument>>,
+    /// Lazy whole-arena nearest-enclosing-scope index (see [`Il::nearest_scope`]).
+    /// Never serialized; recomputed on first use after any mutable arena access.
+    #[serde(skip)]
+    scope_index: std::sync::OnceLock<Vec<Option<NodeId>>>,
+    /// Lazy nearest-scope → next enclosing scope index (see
+    /// [`Il::parent_scope`]). This lets consumers walk captured-parameter
+    /// scopes without repeating a whole-arena span scan for every reference.
+    #[serde(skip)]
+    scope_parent_index: std::sync::OnceLock<Vec<Option<NodeId>>>,
+    #[serde(skip)]
+    unique_parent_index: std::sync::OnceLock<Vec<Option<NodeId>>>,
+    /// Lazy byte-span → node-ids index (see [`Il::nodes_spanning`]).
+    #[serde(skip)]
+    span_index: std::sync::OnceLock<std::collections::HashMap<(u32, u32), Vec<u32>>>,
+    /// Lazy nearest-scope → assign-node-ids index (see [`Il::assigns_in_scope`]).
+    /// Keyed by the scope's node id (+1, with `0` for module level), each bucket
+    /// in arena order. Invalidated alongside `scope_index`.
+    #[serde(skip)]
+    assign_scope_index: std::sync::OnceLock<std::collections::HashMap<u32, Vec<NodeId>>>,
+    /// Lazy canonical-id → parameter-node index (see [`Il::params_with_cid`]).
+    /// Used by the synthetic/no-source-scope fallback without a per-reference
+    /// arena walk.
+    #[serde(skip)]
+    param_cid_index: std::sync::OnceLock<std::collections::HashMap<u32, Vec<NodeId>>>,
+    /// Lazy per-scope local-binder index (params plus assignment/foreach
+    /// targets). Keeps pre-alpha shadow checks and post-alpha reassignment checks
+    /// complete without per-reference subtree walks.
+    #[serde(skip)]
+    scope_binding_index: std::sync::OnceLock<scope_index::ScopeBindingIndex>,
+    /// Lazy evidence lookup index (see [`Il::evidence_anchored_at`]). Appends to
+    /// `evidence` through `push_evidence` are picked up incrementally; editing
+    /// existing records invalidates the index automatically. Never serialized.
+    #[serde(skip)]
+    evidence_index: std::sync::RwLock<Option<EvidenceIndex>>,
+}
+
+/// Arena contents. Mutable access through [`Il`] invalidates all derived indexes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct IlContents {
     pub nodes: Vec<Node>,
     pub edges: Vec<NodeId>,
     pub root: NodeId,
@@ -38,61 +84,31 @@ pub struct Il {
     /// consumers must not use side-table mirrors as alternate proof channels.
     #[serde(default)]
     pub evidence: Vec<EvidenceRecord>,
-    /// Lazy whole-arena nearest-enclosing-scope index (see [`Il::nearest_scope`]).
-    /// Never serialized; recomputed on first use. Sound to cache because nodes are
-    /// immutable once an `Il` is built — passes rebuild the arena instead.
-    #[serde(skip)]
-    scope_index: std::sync::OnceLock<Vec<Option<NodeId>>>,
-    /// Lazy nearest-scope → next enclosing scope index (see
-    /// [`Il::parent_scope`]). This lets consumers walk captured-parameter
-    /// scopes without repeating a whole-arena span scan for every reference.
-    #[serde(skip)]
-    scope_parent_index: std::sync::OnceLock<Vec<Option<NodeId>>>,
-    /// Lazy byte-span → node-ids index (see [`Il::nodes_spanning`]). Sound under
-    /// the same immutability discipline as `scope_index`: node spans and kinds
-    /// are never rewritten in place (only payloads/edges are), and passes that
-    /// restructure the tree rebuild the arena.
-    #[serde(skip)]
-    span_index: std::sync::OnceLock<std::collections::HashMap<(u32, u32), Vec<u32>>>,
-    /// Lazy nearest-scope → assign-node-ids index (see [`Il::assigns_in_scope`]).
-    /// Keyed by the scope's node id (+1, with `0` for module level), each bucket
-    /// in arena order. Same immutability discipline as `scope_index`.
-    #[serde(skip)]
-    assign_scope_index: std::sync::OnceLock<std::collections::HashMap<u32, Vec<NodeId>>>,
-    /// Lazy canonical-id → parameter-node index (see [`Il::params_with_cid`]).
-    /// Used by the synthetic/no-source-scope fallback without a per-reference
-    /// arena walk.
-    #[serde(skip)]
-    param_cid_index: std::sync::OnceLock<std::collections::HashMap<u32, Vec<NodeId>>>,
-    /// Lazy per-scope local-binder index (params plus assignment/foreach
-    /// targets). Keeps pre-alpha shadow checks and post-alpha reassignment checks
-    /// complete without per-reference subtree walks.
-    #[serde(skip)]
-    scope_binding_index: std::sync::OnceLock<scope_index::ScopeBindingIndex>,
-    /// Lazy evidence lookup index (see [`Il::evidence_anchored_at`]). Appends to
-    /// `evidence` are picked up incrementally (the index tracks how many records
-    /// it has seen); code that mutates existing records IN PLACE must call
-    /// [`Il::invalidate_evidence_index`]. Never serialized.
-    #[serde(skip)]
-    evidence_index: std::sync::RwLock<Option<EvidenceIndex>>,
+}
+
+impl std::ops::Deref for Il {
+    type Target = IlContents;
+    fn deref(&self) -> &Self::Target {
+        &self.contents
+    }
+}
+
+impl std::ops::DerefMut for Il {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.edit()
+    }
 }
 
 impl Clone for Il {
     fn clone(&self) -> Self {
         Il {
-            nodes: self.nodes.clone(),
-            edges: self.edges.clone(),
-            root: self.root,
-            file: self.file,
-            meta: self.meta.clone(),
-            units: self.units.clone(),
-            cid_names: self.cid_names.clone(),
-            suppressed: self.suppressed.clone(),
-            evidence: self.evidence.clone(),
+            contents: self.contents.clone(),
+            source: self.source.clone(),
             // Caches are cheap to recompute and a clone is usually about to be
             // mutated — start fresh.
             scope_index: std::sync::OnceLock::new(),
             scope_parent_index: std::sync::OnceLock::new(),
+            unique_parent_index: std::sync::OnceLock::new(),
             span_index: std::sync::OnceLock::new(),
             assign_scope_index: std::sync::OnceLock::new(),
             param_cid_index: std::sync::OnceLock::new(),
@@ -113,17 +129,21 @@ impl Il {
         cid_names: Vec<Symbol>,
     ) -> Self {
         Self {
-            nodes,
-            edges,
-            root,
-            file,
-            meta,
-            units,
-            cid_names,
-            suppressed: Vec::new(),
-            evidence: Vec::new(),
+            source: None,
+            contents: IlContents {
+                nodes,
+                edges,
+                root,
+                file,
+                meta,
+                units,
+                cid_names,
+                suppressed: Vec::new(),
+                evidence: Vec::new(),
+            },
             scope_index: std::sync::OnceLock::new(),
             scope_parent_index: std::sync::OnceLock::new(),
+            unique_parent_index: std::sync::OnceLock::new(),
             span_index: std::sync::OnceLock::new(),
             assign_scope_index: std::sync::OnceLock::new(),
             param_cid_index: std::sync::OnceLock::new(),
@@ -132,22 +152,60 @@ impl Il {
         }
     }
 
+    /// Invalidate derived indexes before changing arena contents.
+    /// Rust's exclusive borrow prevents queries while an edit is outstanding.
+    /// Ordinary mutable field access also calls this boundary through `DerefMut`.
+    pub fn edit(&mut self) -> &mut IlContents {
+        self.scope_index.take();
+        self.scope_parent_index.take();
+        self.unique_parent_index.take();
+        self.span_index.take();
+        self.assign_scope_index.take();
+        self.param_cid_index.take();
+        self.scope_binding_index.take();
+        self.invalidate_evidence_index();
+        &mut self.contents
+    }
+
+    /// Edit evidence without invalidating unrelated arena indexes.
+    pub fn evidence_mut(&mut self) -> &mut Vec<EvidenceRecord> {
+        self.invalidate_evidence_index();
+        &mut self.contents.evidence
+    }
+
+    /// Edit one record without rebuilding lookups when its id and anchor stay
+    /// unchanged. Prefer this for status, provenance, and dependency updates.
+    pub fn evidence_record_mut(&mut self, index: usize) -> EvidenceEdit<'_> {
+        EvidenceEdit::new(
+            &mut self.contents.evidence[index],
+            self.evidence_index
+                .get_mut()
+                .expect("evidence index lock poisoned"),
+        )
+    }
+
+    /// Append a record while preserving the incrementally extended evidence index.
+    pub fn push_evidence(&mut self, record: EvidenceRecord) {
+        self.contents.evidence.push(record);
+    }
+
+    pub fn into_contents(self) -> IlContents {
+        self.contents
+    }
+
     #[inline]
     pub fn node(&self, id: NodeId) -> &Node {
-        &self.nodes[id.0 as usize]
+        self.contents.node(id)
     }
 
     #[inline]
     pub fn kind(&self, id: NodeId) -> NodeKind {
-        self.nodes[id.0 as usize].kind
+        self.contents.kind(id)
     }
 
-    /// The child node ids of `id`, in order.
     #[inline]
     pub fn children(&self, id: NodeId) -> &[NodeId] {
-        let n = &self.nodes[id.0 as usize];
-        let s = n.child_start as usize;
-        &self.edges[s..s + n.child_len as usize]
+        self.contents.children(id)
     }
 
     #[inline]
@@ -259,7 +317,7 @@ impl Il {
             return id;
         }
         let id = EvidenceId(self.evidence.len() as u32);
-        self.evidence.push(EvidenceRecord::new(
+        self.contents.evidence.push(EvidenceRecord::new(
             id,
             anchor,
             kind,
@@ -351,7 +409,7 @@ impl Il {
             .map(|&idx| NodeId(idx))
     }
 
-    /// Indices into [`Il::evidence`] for records whose anchor sits exactly at
+    /// Indices into [`IlContents::evidence`] for records whose anchor sits exactly at
     /// `span`, in evidence order — the mutating sibling of
     /// [`Il::evidence_anchored_at`] (returning indices lets a caller re-borrow
     /// `evidence` mutably while walking the bucket).
@@ -464,5 +522,25 @@ impl Il {
             }
         }
         Ok(())
+    }
+}
+
+impl IlContents {
+    #[inline]
+    pub fn node(&self, id: NodeId) -> &Node {
+        &self.nodes[id.0 as usize]
+    }
+
+    #[inline]
+    pub fn kind(&self, id: NodeId) -> NodeKind {
+        self.nodes[id.0 as usize].kind
+    }
+
+    /// The child node ids of `id`, in order.
+    #[inline]
+    pub fn children(&self, id: NodeId) -> &[NodeId] {
+        let n = &self.nodes[id.0 as usize];
+        let s = n.child_start as usize;
+        &self.edges[s..s + n.child_len as usize]
     }
 }

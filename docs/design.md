@@ -166,7 +166,7 @@ its head is nose's one chance to demonstrate value. Two consequences:
   consumers depend on; this is what makes the guarantee scale as rules are added.
 - **query-JSON evidence richness.** The real lever for consumer 1 — make equivalence
   *explainable and actionable* in machine-readable form (the shipped `nose query --format
-  json` contract, currently [query JSON schemas v7 and v8](query-json.md)).
+  json` contract, currently [query JSON schemas v10 and v8](query-json.md)).
 - **`query base=<ref>`-as-gate.** The natural high-precision bottom-line for consumer 2
   (the shipped divergent-edit view, formerly `nose review`); harden it past
   v1 and define a conservative fire policy. *Measured 2026-06-11
@@ -337,3 +337,12 @@ Cheap experiments that turn direction into data:
 *See also: [architecture](architecture.md) · [normalization](normalization.md) ·
 [formal soundness](formal-soundness.md) · [clone types](clone-types.md) ·
 [query JSON](query-json.md) · [divergent edits](divergent-edits.md).*
+
+## Source identity and change correspondence
+
+Source-backed regions are an engine substrate independent of family ranking or
+review decisions. Keep snapshot addresses, content/evidence signatures, inferred
+correspondence, and caller-owned decisions separate. Semantic equivalence does
+not establish historical ancestry. Exact signatures can be shared by distinct
+copies; ambiguous lineage must remain explicit. See [region identity](region-identity.md)
+for the implemented contracts, research basis, and remaining alignment frontier.

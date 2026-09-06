@@ -73,6 +73,12 @@ impl<'a> Builder<'a> {
                     weight: weight[i],
                     line_start,
                     line_end,
+                    source_is_local: self
+                        .node_span
+                        .get(i)
+                        .copied()
+                        .flatten()
+                        .is_some_and(|span| span.file == self.il.file),
                 });
             }
         }

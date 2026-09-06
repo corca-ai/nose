@@ -1,6 +1,6 @@
-//! Optional dependency-aware layered content-addressed cache. Clean Git-tracked
-//! sources use blob identities; dirty, untracked, and non-Git sources use exact
-//! SHA-256 content identities. Raw IL, consumer-visible export/dependency summaries,
+//! Optional dependency-aware layered content-addressed cache. Working source bytes
+//! and the frontend extension profile identify every source, including Git-tracked
+//! files. Raw IL, consumer-visible export/dependency summaries,
 //! affected resolved IL, and detection units are separate stages.
 //!
 //! A resolved key contains the raw IL identity plus only facts that can affect that
@@ -24,6 +24,8 @@ mod detection;
 mod digest;
 mod fast_units;
 mod lines;
+mod markdown;
+pub(crate) use markdown::detect as detect_markdown;
 mod portable_il;
 mod resolved;
 mod source;
@@ -58,6 +60,8 @@ pub(crate) struct CachedSourceFile {
     pub(crate) digest: [u8; 32],
     pub(crate) lang: Lang,
     pub(crate) source_kind: source::SourceIdentityKind,
+    #[serde(default)]
+    pub(crate) skip_reason: Option<String>,
 }
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
@@ -171,7 +175,7 @@ pub(crate) fn enforce_run_budget(run: CacheRun) {
     admin::enforce_run_budget(run);
 }
 
-fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> ContentDigest {
+pub(crate) fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> ContentDigest {
     let mut rows = packs
         .packs()
         .iter()
@@ -191,8 +195,8 @@ fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> ContentDiges
 }
 
 /// Bump when unit/stream serialization, extraction, or feature hashing changes.
-const UNITS_SYNTAX_SCHEMA: u32 = 3;
-const UNITS_PACK_SCHEMA: u32 = 4;
+const UNITS_SYNTAX_SCHEMA: u32 = 7;
+const UNITS_PACK_SCHEMA: u32 = 5;
 const UNITS_PACK_MAGIC: &[u8; 8] = b"NOSEUPK2";
 const UNITS_PACK_HEADER_LEN: usize = 8 + 4 + 32 + 32;
 const UNITS_PACK_ENTRY_LEN: usize = 32 + 4 + 8 + 8;
@@ -507,6 +511,7 @@ fn unit_artifact_key(context: &CachedUnitContext, options: ContentDigest) -> Art
 fn retarget(units: &mut [UnitFeat], stream: &mut Stream, path: &str) {
     for unit in units {
         path.clone_into(&mut unit.path);
+        unit.source_document = stream.source_document();
     }
     stream.set_path(path.to_owned());
 }

@@ -41,12 +41,14 @@ mod inline_direct_method;
 mod model;
 mod ops;
 mod output;
+mod review;
 mod rules;
 mod sinks;
 mod state;
 mod stdlib;
 mod timing;
 mod value_dag;
+mod witness_spans;
 
 pub use api::{
     anchor_min_weight, containment_anchor_min_weight, value_anchors, value_fingerprint,
@@ -58,6 +60,7 @@ pub use api::{
     ANCHOR_MIN_WEIGHT, CONTAINMENT_ANCHOR_MIN_WEIGHT,
 };
 pub use context::ValueFingerprintContext;
+pub use review::{value_fingerprint_with_review, ReviewValueFingerprint};
 pub use value_dag::{
     bin_is_commutative, value_dag, FileReferents, ValueDag, VgNode, VgOp, VgReferent, VgSink,
     VgSinkKind, VG_PROTOCOL_AWAIT,

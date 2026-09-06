@@ -19,7 +19,7 @@
     "repository": "https://github.com/corca-ai/nose"
   },
   "compatibility": {
-    "nose": ">=0.19.0 <0.21.0"
+    "nose": ">=0.19.0 <0.22.0"
   },
   "supported_languages": ["java"],
   "packages": [

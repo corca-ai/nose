@@ -11,6 +11,8 @@ use crate::{
 use nose_semantics::ValueLaw;
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
+mod coverage;
+use crate::orchestration::accepted::AcceptedPairs;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ConnectedRoute {
@@ -49,18 +51,14 @@ fn witness_kind(members: &[usize], units: &[UnitFeat]) -> &'static str {
 fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
     match witness_kind(members, units) {
         "exact-value-graph" => EquivalenceWitness {
-            kind: "exact-value-graph",
-            value_nodes: Some(units[members[0]].value.len()),
-            mean_value_jaccard: None,
-            mean_shape_jaccard: None,
+            evidence: crate::WitnessEvidence::ExactValueGraph {
+                value_nodes: units[members[0]].value.len(),
+            },
             graded: None,
             graded_pair: None,
         },
         "shared-sub-dag" => EquivalenceWitness {
-            kind: "shared-sub-dag",
-            value_nodes: None,
-            mean_value_jaccard: None,
-            mean_shape_jaccard: None,
+            evidence: crate::WitnessEvidence::SharedSubDag,
             graded: None,
             graded_pair: None,
         },
@@ -73,10 +71,10 @@ fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
             }
             let n = (members.len().saturating_sub(1)).max(1) as f64;
             EquivalenceWitness {
-                kind: "structural-similarity",
-                value_nodes: None,
-                mean_value_jaccard: Some(round3(vj / n)),
-                mean_shape_jaccard: Some(round3(sj / n)),
+                evidence: crate::WitnessEvidence::StructuralSimilarity {
+                    mean_value_jaccard: round3(vj / n),
+                    mean_shape_jaccard: round3(sj / n),
+                },
                 graded: None,
                 graded_pair: None,
             }
@@ -85,35 +83,59 @@ fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
     }
 }
 
-pub(crate) const EXACT_VALUE_BUCKET_ALL_PAIRS_CAP: usize = 48;
-
 pub(crate) fn structural_candidates(
     units: &[UnitFeat],
     opts: &DetectOptions,
 ) -> Vec<(usize, usize)> {
-    let mut candidates = Vec::new();
+    lsh::pairs(
+        units.len(),
+        &structural_buckets(units, opts),
+        &source_span_groups(units),
+    )
+}
+
+/// Equal source spans in one file cannot produce an ordinary edge (nesting)
+/// or a connected descendant edge (strict containment is required). Keep all
+/// cross-file and strictly nested pairs, which can still carry valid evidence.
+pub(crate) fn source_span_groups(units: &[UnitFeat]) -> Vec<usize> {
+    let mut groups = FxHashMap::default();
+    units
+        .iter()
+        .map(|unit| {
+            let next = groups.len();
+            *groups
+                .entry((unit.path.as_str(), unit.start_line, unit.end_line))
+                .or_insert(next)
+        })
+        .collect()
+}
+
+/// One union owns both budget counting and clean candidate generation. Bucket
+/// membership deduplication preserves every pair, including non-hub edges.
+pub(crate) fn structural_buckets(units: &[UnitFeat], opts: &DetectOptions) -> Vec<Vec<u32>> {
+    let mut buckets = Vec::new();
     if opts.value_candidates {
-        candidates.extend(lsh::candidates(
-            units.len(),
-            |i| units[i].minhash.as_slice(),
-            opts.bands,
-        ));
-        candidates.extend(exact_value_candidates(units));
+        if opts.value_lsh_candidates {
+            buckets.extend(lsh::buckets(units.len(), |i| &units[i].minhash, opts.bands));
+        }
+        buckets.extend(exact_value_buckets(units));
     }
     if opts.shape_candidates {
-        candidates.extend(lsh::candidates(
+        buckets.extend(lsh::buckets(
             units.len(),
-            |i| units[i].shape_minhash.as_slice(),
+            |i| &units[i].shape_minhash,
             opts.bands,
         ));
-        // Partial / sub-DAG clones: pair units that share a rare heavy anchor (an
-        // extractable common sub-computation). They share no shape band, so shape-LSH
-        // alone never proposes them — this is the candidate channel's sub-DAG path.
-        candidates.extend(anchor_candidates(units));
+        // Retain the existing rare-anchor floor, frequency ceiling and pair cap.
+        buckets.extend(
+            anchor_candidates(units)
+                .into_iter()
+                .map(|(a, b)| vec![a as u32, b as u32]),
+        );
     }
-    candidates.sort_unstable();
-    candidates.dedup();
-    candidates
+    buckets.par_sort_unstable();
+    buckets.dedup();
+    buckets
 }
 
 /// Build the report's `groups` from the clustered components.
@@ -127,35 +149,28 @@ pub(crate) fn structural_candidates(
 /// score — is byte-identical to the per-group rescan.
 pub(crate) fn build_groups(
     units: &[UnitFeat],
-    accepted: &[(usize, usize, f64)],
+    accepted: &AcceptedPairs,
     raw_groups: &[Vec<usize>],
     enclosing: &[Option<EnclosingUnit>],
     opts: &DetectOptions,
     trace_accepted_coverage: bool,
-) -> (Vec<Group>, Vec<Vec<crate::AcceptedEdge>>) {
+) -> (Vec<Group>, Vec<crate::GroupEdges>) {
     let mut member_group = vec![None; units.len()];
     for (group_index, members) in raw_groups.iter().enumerate() {
         for &member in members {
             member_group[member] = Some(group_index);
         }
     }
-    let mut by_group = vec![(0.0, 0u32); raw_groups.len()];
-    for &(i, _j, s) in accepted {
-        let Some(group_index) = member_group[i] else {
-            continue;
-        };
-        let e = &mut by_group[group_index];
-        e.0 += s;
-        e.1 += 1;
-    }
-    let groups = raw_groups
+    let by_group = accepted.group_scores(&member_group, raw_groups.len());
+    let groups: Vec<Group> = raw_groups
         .par_iter()
         .enumerate()
         .map(|(group_index, members)| {
             let (sum, n) = by_group[group_index];
             let score = if n == 0 { 0.0 } else { sum / n as f64 };
             let mut locs: Vec<Loc> = members
-                .iter()
+                .par_iter()
+                .with_min_len(256)
                 .map(|&m| loc_of(&units[m], enclosing[m].clone()))
                 .collect();
             // If every member shares a heavy sub-DAG (a partial / sub-DAG clone), annotate each
@@ -166,6 +181,11 @@ pub(crate) fn build_groups(
                     if let Some(a) = units[m].anchors.iter().find(|a| a.hash == hash) {
                         if a.line_start > 0 || a.line_end > 0 {
                             loc.shared_subdag = Some((a.line_start, a.line_end));
+                            loc.shared_source_region = units[m]
+                                .source_document
+                                .as_ref()
+                                .filter(|_| a.source_is_local)
+                                .and_then(|source| source.line_region(a.line_start, a.line_end));
                         }
                     }
                 }
@@ -184,7 +204,7 @@ pub(crate) fn build_groups(
         })
         .collect();
     let accepted_group_edges = if trace_accepted_coverage {
-        accepted_edges_by_group(units, raw_groups, accepted)
+        coverage::accepted_edges_by_group(units, raw_groups, &groups, accepted)
     } else {
         Vec::new()
     };
@@ -226,14 +246,15 @@ pub(crate) fn build_connected_groups(
                     None
                 },
                 witness: Some(EquivalenceWitness {
-                    kind: if matches!(pair.route, ConnectedRoute::SameUnit) {
-                        "bounded-same-unit-window"
+                    evidence: if matches!(pair.route, ConnectedRoute::SameUnit) {
+                        crate::WitnessEvidence::BoundedSameUnitWindow {
+                            value_nodes: pair.witness.mapped_nodes as usize,
+                        }
                     } else {
-                        "connected-mapped-sub-dag"
+                        crate::WitnessEvidence::ConnectedMappedSubDag {
+                            value_nodes: pair.witness.mapped_nodes as usize,
+                        }
                     },
-                    value_nodes: Some(pair.witness.mapped_nodes as usize),
-                    mean_value_jaccard: None,
-                    mean_shape_jaccard: None,
                     graded: None,
                     graded_pair: None,
                 }),
@@ -262,49 +283,6 @@ pub(crate) fn build_connected_groups(
     (groups, edges)
 }
 
-fn accepted_edges_by_group(
-    units: &[UnitFeat],
-    raw_groups: &[Vec<usize>],
-    accepted: &[(usize, usize, f64)],
-) -> Vec<Vec<crate::AcceptedEdge>> {
-    let mut member_position: Vec<Option<(usize, u32)>> = vec![None; units.len()];
-    for (group_index, members) in raw_groups.iter().enumerate() {
-        for (local_index, &unit_index) in members.iter().enumerate() {
-            member_position[unit_index] = Some((group_index, local_index as u32));
-        }
-    }
-    let classified = accepted
-        .par_iter()
-        .filter_map(|&(left, right, score)| {
-            let (Some((left_group, left_local)), Some((right_group, right_local))) =
-                (member_position[left], member_position[right])
-            else {
-                return None;
-            };
-            debug_assert_eq!(left_group, right_group);
-            (left_group == right_group).then(|| {
-                (
-                    left_group,
-                    crate::AcceptedEdge {
-                        left: left_local,
-                        right: right_local,
-                        score: round3(score),
-                        // Accepted-edge diagnostics only retain the category. Building a full two-member
-                        // witness here would compute and immediately discard both Jaccard means for every
-                        // accepted edge; the final group witness below still computes the reported means.
-                        witness_kind: witness_kind(&[left, right], units),
-                    },
-                )
-            })
-        })
-        .collect::<Vec<_>>();
-    let mut edges = vec![Vec::new(); raw_groups.len()];
-    for (group, edge) in classified {
-        edges[group].push(edge);
-    }
-    edges
-}
-
 fn semantic_laws_for_members(members: &[usize], units: &[UnitFeat]) -> Vec<ValueLaw> {
     let mut laws = members
         .iter()
@@ -315,34 +293,20 @@ fn semantic_laws_for_members(members: &[usize], units: &[UnitFeat]) -> Vec<Value
     laws
 }
 
-fn exact_value_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
-    let mut buckets: FxHashMap<&[u64], Vec<usize>> = FxHashMap::default();
+fn exact_value_buckets(units: &[UnitFeat]) -> Vec<Vec<u32>> {
+    let mut buckets: FxHashMap<&[u64], Vec<u32>> = FxHashMap::default();
     for (idx, unit) in units.iter().enumerate() {
         if exact_claim_eligible(unit) {
-            buckets.entry(unit.value.as_slice()).or_default().push(idx);
+            buckets
+                .entry(unit.value.as_slice())
+                .or_default()
+                .push(idx as u32);
         }
     }
-    let mut out = Vec::new();
-    for members in buckets.values() {
-        if members.len() < 2 {
-            continue;
-        }
-        if members.len() <= EXACT_VALUE_BUCKET_ALL_PAIRS_CAP {
-            for a in 0..members.len() {
-                for b in (a + 1)..members.len() {
-                    out.push(ordered_pair(members[a], members[b]));
-                }
-            }
-        } else {
-            for w in members.windows(2) {
-                out.push(ordered_pair(w[0], w[1]));
-            }
-            for &m in &members[1..] {
-                out.push(ordered_pair(members[0], m));
-            }
-        }
-    }
-    out
+    buckets
+        .into_values()
+        .filter(|members| members.len() >= 2)
+        .collect()
 }
 
 /// An anchor present in more than this many units is boilerplate (a common idiom), not a
@@ -378,16 +342,11 @@ fn anchor_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
         if members.len() < 2 || members.len() > max_df {
             continue;
         }
-        let mut count = 0;
-        'pairs: for a in 0..members.len() {
-            for b in (a + 1)..members.len() {
-                out.push(ordered_pair(members[a], members[b]));
-                count += 1;
-                if count >= ANCHOR_PAIR_CAP {
-                    break 'pairs;
-                }
-            }
-        }
+        out.extend(
+            lsh::bucket_pairs(members)
+                .take(ANCHOR_PAIR_CAP)
+                .map(|(a, b)| ordered_pair(a, b)),
+        );
     }
     out
 }
@@ -420,8 +379,14 @@ pub(crate) fn shared_anchor_weight(
     a: &[nose_normalize::Anchor],
     b: &[nose_normalize::Anchor],
 ) -> u32 {
-    // Near-channel floor (collection runs at the finer containment floor).
-    let floor = nose_normalize::anchor_min_weight();
+    shared_anchor_weight_at_floor(a, b, nose_normalize::anchor_min_weight())
+}
+
+pub(crate) fn shared_anchor_weight_at_floor(
+    a: &[nose_normalize::Anchor],
+    b: &[nose_normalize::Anchor],
+    floor: u32,
+) -> u32 {
     let (mut i, mut j, mut best) = (0, 0, 0);
     while i < a.len() && j < b.len() {
         match a[i].hash.cmp(&b[j].hash) {

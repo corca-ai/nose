@@ -5,6 +5,9 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
+#[path = "watch/inputs.rs"]
+mod inputs;
+
 const FIRST: &str = "def first(items):\n    total = 0\n    for item in items:\n        if item > 0:\n            total = total + item * item\n    return total\n";
 const SECOND: &str = "def second(values):\n    total = 0\n    for value in values:\n        if value > 0:\n            total = total + value * value\n    return total\n";
 const CHANGED: &str = "def second(values):\n    total = 0\n    for value in values:\n        if value > 0:\n            total = total - value * value\n    return total\n";
@@ -18,6 +21,10 @@ struct WatchProcess {
 
 impl WatchProcess {
     fn start(project: &Path, cache: &Path) -> Self {
+        Self::start_with_args(project, cache, &[])
+    }
+
+    fn start_with_args(project: &Path, cache: &Path, extra: &[&str]) -> Self {
         let mut child = Command::new(bin())
             .args([
                 "query",
@@ -34,6 +41,7 @@ impl WatchProcess {
                 "--cache-dir",
                 cache.to_str().unwrap(),
             ])
+            .args(extra)
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()
@@ -119,7 +127,7 @@ fn leaf_revision_matches_a_clean_query_and_restart() {
         let initial = watch.next("initial snapshot");
         assert_eq!(initial["schema"], "nose.query-watch/v1");
         assert_eq!(initial["sequence"], 0);
-        assert_eq!(initial["snapshot"], clean_dashboard(project.path()));
+        assert_same_analysis(&initial["snapshot"], &clean_dashboard(project.path()));
         first_digest = initial["source_set_digest"].as_str().unwrap().to_owned();
 
         project.write("b.py", CHANGED);
@@ -127,7 +135,7 @@ fn leaf_revision_matches_a_clean_query_and_restart() {
         assert_eq!(revision["sequence"], 1);
         assert_eq!(revision["reconciliation"], "incremental-leaf");
         assert_ne!(revision["source_set_digest"], first_digest);
-        assert_eq!(revision["snapshot"], clean_dashboard(project.path()));
+        assert_same_analysis(&revision["snapshot"], &clean_dashboard(project.path()));
         assert!(revision["changed_paths"]
             .as_array()
             .unwrap()
@@ -138,7 +146,7 @@ fn leaf_revision_matches_a_clean_query_and_restart() {
     let mut restarted = WatchProcess::start(project.path(), &cache);
     let initial = restarted.next("restart snapshot");
     assert_eq!(initial["sequence"], 0);
-    assert_eq!(initial["snapshot"], clean_dashboard(project.path()));
+    assert_same_analysis(&initial["snapshot"], &clean_dashboard(project.path()));
     assert_ne!(initial["source_set_digest"], first_digest);
     drop(restarted);
     let _ = fs::remove_dir_all(cache);
@@ -158,7 +166,7 @@ fn atomic_replace_reconciles_to_the_final_filesystem() {
     }
     let revision = watch.next("atomic-replace revision");
     assert_eq!(revision["sequence"], 1);
-    assert_eq!(revision["snapshot"], clean_dashboard(project.path()));
+    assert_same_analysis(&revision["snapshot"], &clean_dashboard(project.path()));
     drop(watch);
     let _ = fs::remove_dir_all(cache);
 }
@@ -173,7 +181,7 @@ fn burst_across_sources_emits_the_final_clean_snapshot() {
     project.write("b.py", CHANGED);
     let revision = watch.next("burst revision");
     assert_eq!(revision["sequence"], 1);
-    assert_eq!(revision["snapshot"], clean_dashboard(project.path()));
+    assert_same_analysis(&revision["snapshot"], &clean_dashboard(project.path()));
     drop(watch);
     let _ = fs::remove_dir_all(cache);
 }
@@ -188,7 +196,7 @@ fn delete_recreate_burst_cannot_leave_stale_state() {
     project.write("b.py", CHANGED);
     let revision = watch.next("delete-recreate revision");
     assert_eq!(revision["sequence"], 1);
-    assert_eq!(revision["snapshot"], clean_dashboard(project.path()));
+    assert_same_analysis(&revision["snapshot"], &clean_dashboard(project.path()));
     drop(watch);
     let _ = fs::remove_dir_all(cache);
 }
@@ -205,4 +213,27 @@ fn watch_and_jsonl_must_be_selected_together() {
         "jsonl",
     ]);
     assert!(error.contains("--format jsonl requires --watch"));
+}
+
+#[test]
+fn invalid_config_emits_error_and_recovers_in_same_process() {
+    let project = project("watch_config_recovery");
+    let cache = make_temp_dir("watch_config_recovery_cache");
+    project.write("nose.toml", "[query]\n");
+    let config = project.path().join("nose.toml");
+    let mut watch = WatchProcess::start_with_args(
+        project.path(),
+        &cache,
+        &["--config", config.to_str().unwrap()],
+    );
+    let initial = watch.next("initial");
+    project.write("nose.toml", "[query]\nmin-size = [\n");
+    let error = watch.next("error");
+    assert_eq!(error["kind"], "error");
+    assert_eq!(error["snapshot_valid"], false);
+    project.write("nose.toml", "[query]\n");
+    let recovered = watch.next("recovery");
+    assert_eq!(recovered["kind"], "snapshot");
+    assert_same_analysis(&recovered["snapshot"], &initial["snapshot"]);
+    assert!(recovered["sequence"].as_u64().unwrap() > error["sequence"].as_u64().unwrap());
 }

@@ -308,7 +308,7 @@ fn direct_method_promise_return_then_recovers_without_sync_erasure() {
         sync_add,
         then_call,
     } = direct_method_promise_then_fixture(false);
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         100,
         Lang::TypeScript,
         EvidenceAnchor::node(il.node(method_call).span, NodeKind::Call),
@@ -362,7 +362,7 @@ fn direct_method_promise_return_stays_closed_when_return_uses_receiver_context()
         then_call,
         ..
     } = direct_method_promise_then_fixture(true);
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         100,
         Lang::TypeScript,
         EvidenceAnchor::node(il.node(method_call).span, NodeKind::Call),

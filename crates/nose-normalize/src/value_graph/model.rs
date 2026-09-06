@@ -173,9 +173,12 @@ pub(super) struct Builder<'a> {
     /// sub-DAG anchor can report WHERE the shared computation lives. Stamped at creation from
     /// `cur_span` (the enclosing expression being evaluated).
     pub(super) node_span: Vec<Option<Span>>,
+    pub(super) witness_spans: Option<witness_spans::WitnessSpans>,
     /// The source span of the expression currently being evaluated (set by `eval`), used to stamp
     /// `node_span` for every node `mk` creates while evaluating it.
     pub(super) cur_span: Option<Span>,
+    pub(super) source_salt_used: bool,
+    pub(super) review_source_ids: Option<std::collections::HashMap<Span, u64>>,
     /// The IL node kind currently being evaluated (set by `eval`, mirroring `cur_span`), so the
     /// opaque census can attribute each `Opaque` fallback to the construct that minted it.
     pub(super) cur_il_kind: Option<NodeKind>,
@@ -216,6 +219,7 @@ pub(super) struct Builder<'a> {
     /// Shared file-level subtree hashes supplied by [`ValueFingerprintContext`]. This
     /// keeps contextual per-unit builders from recomputing the same whole-file pass.
     pub(super) shared_subtree_hashes: Option<&'a OnceLock<Vec<u64>>>,
+    pub(super) shared_valued_subtree_hashes: Option<&'a OnceLock<Vec<u64>>>,
     /// Literal-sensitive subtree hash used only for proven function binding identity.
     /// The ordinary structural hash intentionally abstracts literals for shape work;
     /// callee identity must distinguish `helper(x)+1` from `helper(x)+2`.

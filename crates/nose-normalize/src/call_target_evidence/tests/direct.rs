@@ -31,7 +31,7 @@ fn emits_promise_like_domain_for_direct_async_function_call_result() {
         ..
     } = direct_return_call_fixture(DirectReturnKind::AsyncLiteral);
     let protocol_id = EvidenceId(500);
-    il.evidence.push(EvidenceRecord {
+    il.push_evidence(EvidenceRecord {
         id: protocol_id,
         anchor: EvidenceAnchor::source_span(il.node(async_boundary.unwrap()).span),
         kind: EvidenceKind::Source(SourceFactKind::Protocol(SourceProtocolKind::AsyncFunction)),
@@ -77,7 +77,7 @@ fn direct_async_function_result_domain_is_js_ts_only() {
             async_boundary,
             ..
         } = direct_return_call_fixture_for_lang(DirectReturnKind::AsyncLiteral, lang);
-        il.evidence.push(EvidenceRecord {
+        il.push_evidence(EvidenceRecord {
             id: EvidenceId(500),
             anchor: EvidenceAnchor::source_span(il.node(async_boundary.unwrap()).span),
             kind: EvidenceKind::Source(SourceFactKind::Protocol(SourceProtocolKind::AsyncFunction)),
@@ -110,7 +110,7 @@ fn emits_promise_like_domain_for_direct_function_returning_promise_like() {
     } = direct_return_call_fixture(DirectReturnKind::PromiseCall);
     let return_domain_id = EvidenceId(500);
     let return_domain = promise_like_domain_record(&il, return_domain_id, return_expr);
-    il.evidence.push(return_domain);
+    il.push_evidence(return_domain);
 
     run(&mut il, &interner);
 
@@ -190,7 +190,7 @@ fn emits_promise_like_domain_for_branching_direct_function_returns() {
     let else_domain_id = EvidenceId(501);
     for (id, expr) in [(then_domain_id, then_expr), (else_domain_id, else_expr)] {
         let record = promise_like_domain_record(&il, id, expr);
-        il.evidence.push(record);
+        il.push_evidence(record);
     }
 
     run(&mut il, &interner);

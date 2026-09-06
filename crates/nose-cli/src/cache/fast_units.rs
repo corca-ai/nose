@@ -109,7 +109,7 @@ pub(super) fn try_build(
         return None;
     }
     let mut snapshot = stored.snapshot;
-    let current_sources = source::discover_source_files(roots, exclude);
+    let current_sources = source::discover_source_files(roots, exclude)?;
     let changed_source = compare_sources(&snapshot.source_files, &current_sources)?;
     let report = super::resolved::fast_invalidation_report(
         &snapshot,
@@ -418,15 +418,24 @@ fn rebuild_leaf(
         return None;
     }
     let source = std::fs::read(path).ok()?;
-    if source_file.path != path {
+    if source_file.path != path
+        || source::analysis_digest(path, source_file.lang, &source).as_bytes()
+            != &source_file.digest
+    {
         return None;
     }
     if !nose_frontend::source_is_analyzable(Path::new(path), source_file.lang, &source) {
         return None;
     }
     let interner = Interner::new();
-    let files =
-        nose_frontend::lower_source_regions(FileId(0), path, &source, source_file.lang, &interner);
+    let files = nose_frontend::try_lower_source_regions(
+        FileId(0),
+        path,
+        &source,
+        source_file.lang,
+        &interner,
+    )
+    .ok()?;
     if files.len() != previous.len() {
         return None;
     }

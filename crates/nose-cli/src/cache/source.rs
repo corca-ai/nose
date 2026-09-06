@@ -2,7 +2,7 @@ use super::digest::ContentDigest;
 use super::portable_il;
 use super::store::{ArtifactKey, ArtifactStage, LayeredCas};
 use super::{CacheRun, CachedSourceFile};
-use inventory::{GitCatalog, LogicalRoots};
+use inventory::LogicalRoots;
 use nose_il::{Corpus, FileId, Il, Interner, Lang};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ use std::path::Path;
 mod inventory;
 
 const SOURCE_SNAPSHOT_SCHEMA: u32 = 1;
-const RAW_IL_SCHEMA: u32 = 4;
+const RAW_IL_SCHEMA: u32 = 7;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -64,6 +64,8 @@ struct SourceResult {
     logical_path: String,
     lang: Lang,
     snapshot_hit: bool,
+    error: Option<String>,
+    skip_reason: Option<String>,
 }
 
 struct SourceLoad<'a> {
@@ -71,7 +73,6 @@ struct SourceLoad<'a> {
     path: &'a str,
     lang: Lang,
     logical_path: String,
-    git: &'a GitCatalog,
     cas: &'a LayeredCas,
     interner: &'a Interner,
 }
@@ -79,7 +80,8 @@ struct SourceLoad<'a> {
 struct SourceSnapshot {
     digest: ContentDigest,
     kind: SourceIdentityKind,
-    bytes: Option<Vec<u8>>,
+    bytes: Vec<u8>,
+    skip_reason: Option<String>,
 }
 
 impl SourceResult {
@@ -91,6 +93,8 @@ impl SourceResult {
             logical_path: request.logical_path.clone(),
             lang: request.lang,
             snapshot_hit,
+            error: None,
+            skip_reason: None,
         }
     }
 
@@ -119,6 +123,8 @@ impl SourceResult {
             logical_path: request.logical_path.clone(),
             lang: request.lang,
             snapshot_hit,
+            error: None,
+            skip_reason: snapshot.skip_reason.clone(),
         }
     }
 }
@@ -129,10 +135,11 @@ pub(super) fn build_raw_corpus_cached(
     run: &CacheRun,
 ) -> RawCorpus {
     let paths = crate::timing::time_stage("cache_discover", || {
-        nose_frontend::discover_unique_paths(roots, exclude)
+        nose_frontend::discover_source_inventory(roots, exclude)
     });
+    let mut source_errors = paths.errors;
+    let paths = paths.paths;
     run.set_portable_il_enabled(paths.len() <= super::MAX_FOREGROUND_PORTABLE_IL_FILES);
-    let git = crate::timing::time_stage("cache_git", || GitCatalog::new(roots));
     let logical_roots = LogicalRoots::new(roots);
     let cas = run.cas();
     let interner = Interner::new();
@@ -146,7 +153,6 @@ pub(super) fn build_raw_corpus_cached(
                     path,
                     lang: *lang,
                     logical_path: logical_roots.path(Path::new(path)),
-                    git: &git,
                     cas: &cas,
                     interner: &interner,
                 })
@@ -154,6 +160,16 @@ pub(super) fn build_raw_corpus_cached(
             .collect::<Vec<_>>()
     });
 
+    for ((path, _), result) in paths.iter().zip(&results) {
+        if result.source_digest.is_none() {
+            source_errors.push(
+                result
+                    .error
+                    .clone()
+                    .unwrap_or_else(|| format!("reading source {path}: source is unreadable")),
+            );
+        }
+    }
     let source_hits = results.iter().filter(|result| result.snapshot_hit).count();
     let source_misses = results.len() - source_hits;
     let source_files = paths
@@ -165,6 +181,7 @@ pub(super) fn build_raw_corpus_cached(
                 logical_path: result.logical_path.clone(),
                 digest: *digest.as_bytes(),
                 lang: result.lang,
+                skip_reason: result.skip_reason.clone(),
                 source_kind: result
                     .source_kind
                     .expect("readable sources have an identity kind"),
@@ -187,8 +204,22 @@ pub(super) fn build_raw_corpus_cached(
             files.push(region.il);
         }
     }
+    let mut corpus = Corpus::new(interner, files);
+    corpus.source_errors = source_errors;
+    corpus.skipped_sources = source_files
+        .iter()
+        .filter_map(|source| {
+            source
+                .skip_reason
+                .as_ref()
+                .map(|reason| nose_il::SourceDiagnostic {
+                    path: source.path.clone(),
+                    reason: reason.clone(),
+                })
+        })
+        .collect();
     RawCorpus {
-        corpus: Corpus::new(interner, files),
+        corpus,
         regions,
         discovery_digest: discovery_digest(&source_files),
         global_line_statistics_digest: global_line_statistics_digest(&source_files),
@@ -227,33 +258,31 @@ pub(super) fn global_line_statistics_digest(sources: &[CachedSourceFile]) -> Con
 /// Resolve exact source identities without parsing or restoring IL. This is the
 /// admission check for the bounded warm-unit path; any unreadable source or
 /// membership mismatch makes that path fall back to the full pipeline.
-pub(super) fn discover_source_files(roots: &[&Path], exclude: &[String]) -> Vec<CachedSourceFile> {
-    let paths = nose_frontend::discover_unique_paths(roots, exclude);
-    let git = GitCatalog::new(roots);
+pub(super) fn discover_source_files(
+    roots: &[&Path],
+    exclude: &[String],
+) -> Option<Vec<CachedSourceFile>> {
+    let inventory = nose_frontend::discover_source_inventory(roots, exclude);
+    if !inventory.errors.is_empty() {
+        return None;
+    }
+    let paths = inventory.paths;
     let logical_roots = LogicalRoots::new(roots);
     paths
         .into_par_iter()
-        .filter_map(|(path, lang)| {
-            let clean_blob = git.clean_blob(Path::new(&path));
-            let (digest, source_kind) = match clean_blob {
-                Some(blob) if std::fs::metadata(&path).is_ok() => (
-                    ContentDigest::derive(
-                        b"nose.source-snapshot.git-blob.v1",
-                        &[lang.name().as_bytes(), blob.as_bytes()],
-                    ),
-                    SourceIdentityKind::GitBlob,
-                ),
-                _ => (
-                    portable_il::source_digest(lang, &std::fs::read(&path).ok()?),
-                    SourceIdentityKind::ContentSha256,
-                ),
-            };
+        .map(|(path, lang)| {
+            let bytes = std::fs::read(&path).ok()?;
+            let digest = analysis_digest(&path, lang, &bytes);
+            let skip_reason = nose_frontend::source_skip_reason(Path::new(&path), lang, &bytes)
+                .map(str::to_owned);
+            let source_kind = SourceIdentityKind::ContentSha256;
             Some(CachedSourceFile {
                 logical_path: logical_roots.path(Path::new(&path)),
                 path,
                 digest: *digest.as_bytes(),
                 lang,
                 source_kind,
+                skip_reason,
             })
         })
         .collect()
@@ -288,52 +317,68 @@ fn load_source(request: SourceLoad<'_>) -> SourceResult {
         RAW_IL_SCHEMA,
         &[snapshot.digest.as_bytes()],
     );
-    if let Some(restored) = restore_raw_bundle(&request, raw_key) {
+    if let Some(mut restored) = restore_raw_bundle(&request, raw_key) {
+        let source = std::sync::Arc::new(nose_il::SourceDocument::new(std::mem::take(
+            &mut snapshot.bytes,
+        )));
+        for il in &mut restored {
+            il.source = Some(source.clone());
+        }
         return SourceResult::from_lowered(&request, &snapshot, restored, true, snapshot_hit);
     }
 
-    let source = match snapshot.bytes.take() {
-        Some(source) => source,
-        None => match std::fs::read(request.path) {
-            Ok(source) => source,
-            Err(_) => return SourceResult::unreadable(&request, snapshot_hit),
-        },
+    let source = std::mem::take(&mut snapshot.bytes);
+    let lowered = if snapshot.skip_reason.is_none() {
+        match nose_frontend::try_lower_source_regions(
+            FileId(request.index as u32),
+            request.path,
+            &source,
+            request.lang,
+            request.interner,
+        ) {
+            Ok(regions) => regions,
+            Err(error) => {
+                let mut result = SourceResult::unreadable(&request, snapshot_hit);
+                result.error = Some(format!("lowering source {}: {error}", request.path));
+                return result;
+            }
+        }
+    } else {
+        Vec::new()
     };
-    let lowered =
-        if nose_frontend::source_is_analyzable(Path::new(request.path), request.lang, &source) {
-            nose_frontend::lower_source_regions(
-                FileId(request.index as u32),
-                request.path,
-                &source,
-                request.lang,
-                request.interner,
-            )
-        } else {
-            Vec::new()
-        };
     store_raw_bundle(&request, raw_key, snapshot_key, &lowered);
     SourceResult::from_lowered(&request, &snapshot, lowered, false, snapshot_hit)
 }
 
 fn source_snapshot(request: &SourceLoad<'_>) -> Option<SourceSnapshot> {
-    match request.git.clean_blob(Path::new(request.path)) {
-        Some(blob) if std::fs::metadata(request.path).is_ok() => Some(SourceSnapshot {
-            digest: ContentDigest::derive(
-                b"nose.source-snapshot.git-blob.v1",
-                &[request.lang.name().as_bytes(), blob.as_bytes()],
-            ),
-            kind: SourceIdentityKind::GitBlob,
-            bytes: None,
-        }),
-        _ => {
-            let bytes = std::fs::read(request.path).ok()?;
-            Some(SourceSnapshot {
-                digest: portable_il::source_digest(request.lang, &bytes),
-                kind: SourceIdentityKind::ContentSha256,
-                bytes: Some(bytes),
-            })
-        }
-    }
+    let bytes = std::fs::read(request.path).ok()?;
+    Some(SourceSnapshot {
+        digest: analysis_digest(request.path, request.lang, &bytes),
+        kind: SourceIdentityKind::ContentSha256,
+        skip_reason: nose_frontend::source_skip_reason(
+            Path::new(request.path),
+            request.lang,
+            &bytes,
+        )
+        .map(str::to_owned),
+        bytes,
+    })
+}
+
+/// Bind the exact working bytes and path-dependent frontend profile. Reading the
+/// working file also covers Git index flags, filters, and edits during discovery.
+pub(super) fn analysis_digest(path: &str, lang: Lang, bytes: &[u8]) -> ContentDigest {
+    let extension = Path::new(path)
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+    ContentDigest::derive(
+        b"nose.source-analysis.v3",
+        &[
+            portable_il::source_digest(lang, bytes).as_bytes(),
+            extension.as_bytes(),
+        ],
+    )
 }
 
 fn restore_raw_bundle(request: &SourceLoad<'_>, raw_key: ArtifactKey) -> Option<Vec<Il>> {

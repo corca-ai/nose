@@ -70,7 +70,7 @@ fn js_promise_resolve_call_il() -> (Il, Interner, NodeId, NodeId, NodeId) {
 }
 
 fn push_promise_resolve_dependencies(il: &mut Il, callee: NodeId, promise: NodeId) {
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::source_span(il.node(callee).span),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -80,7 +80,7 @@ fn push_promise_resolve_dependencies(il: &mut Il, callee: NodeId, promise: NodeI
         &[],
         Lang::JavaScript,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(il.node(callee).span, NodeKind::Field),
         EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
@@ -89,7 +89,7 @@ fn push_promise_resolve_dependencies(il: &mut Il, callee: NodeId, promise: NodeI
         EvidenceStatus::Asserted,
         vec![EvidenceId(0)],
     ));
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         2,
         EvidenceAnchor::node(il.node(promise).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -108,14 +108,14 @@ fn push_promise_receiver_api_evidence(
     contract_id: LibraryApiContractId,
     callee: LibraryApiCalleeContract,
 ) {
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         0,
         EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
         EvidenceKind::Domain(DomainEvidence::PromiseLike),
         EvidenceStatus::Asserted,
         vec![],
     ));
-    il.evidence.push(js_like_builtin_promise_record(
+    il.push_evidence(js_like_builtin_promise_record(
         1,
         il.node(call).span,
         contract_id,
@@ -154,7 +154,7 @@ fn admitted_promise_then_resolver_requires_future_receiver_proof() {
     let contract =
         library_promise_then_contract(Lang::JavaScript, "then", 1).expect("Promise.then contract");
     let (mut api_only, interner, call, _receiver) = js_promise_then_call_il();
-    api_only.evidence.push(library_api_record(
+    api_only.push_evidence(library_api_record(
         0,
         api_only.node(call).span,
         contract.id,
@@ -168,14 +168,14 @@ fn admitted_promise_then_resolver_requires_future_receiver_proof() {
     );
 
     let (mut wrong_pack, interner, call, receiver) = js_promise_then_call_il();
-    wrong_pack.evidence.push(evidence_with_dependencies(
+    wrong_pack.push_evidence(evidence_with_dependencies(
         0,
         EvidenceAnchor::node(wrong_pack.node(receiver).span, wrong_pack.kind(receiver)),
         EvidenceKind::Domain(DomainEvidence::PromiseLike),
         EvidenceStatus::Asserted,
         vec![],
     ));
-    wrong_pack.evidence.push(library_api_record_with_provenance(
+    wrong_pack.push_evidence(library_api_record_with_provenance(
         1,
         wrong_pack.node(call).span,
         contract.id,
@@ -191,7 +191,7 @@ fn admitted_promise_then_resolver_requires_future_receiver_proof() {
     );
 
     let (mut wrong_producer, interner, call, receiver) = js_promise_then_call_il();
-    wrong_producer.evidence.push(evidence_with_dependencies(
+    wrong_producer.push_evidence(evidence_with_dependencies(
         0,
         EvidenceAnchor::node(
             wrong_producer.node(receiver).span,
@@ -201,25 +201,23 @@ fn admitted_promise_then_resolver_requires_future_receiver_proof() {
         EvidenceStatus::Asserted,
         vec![],
     ));
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[0],
-            JS_LIKE_BUILTIN_PROMISE_PACK_ID,
-            "wrong.javascript.builtins.promise-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+        JS_LIKE_BUILTIN_PROMISE_PACK_ID,
+        "wrong.javascript.builtins.promise-api",
+    ));
     assert!(
         admitted_promise_then_at_call(&wrong_producer, &interner, call).is_none(),
         "Promise.then evidence with the wrong producer is rejected"
     );
 
     let (mut wrong_emitter, interner, call, receiver) = js_promise_then_call_il();
-    wrong_emitter.evidence.push(evidence_with_dependencies(
+    wrong_emitter.push_evidence(evidence_with_dependencies(
         0,
         EvidenceAnchor::node(
             wrong_emitter.node(receiver).span,
@@ -238,7 +236,7 @@ fn admitted_promise_then_resolver_requires_future_receiver_proof() {
         &[0],
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     assert!(
         admitted_promise_then_at_call(&wrong_emitter, &interner, call).is_none(),
         "Promise.then evidence from an external emitter is rejected"
@@ -288,14 +286,14 @@ fn admitted_promise_then_can_consume_safe_api_result_domain_record() {
     let contract =
         library_promise_then_contract(Lang::JavaScript, "then", 1).expect("Promise.then contract");
 
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         0,
         EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
         EvidenceKind::Domain(DomainEvidence::PromiseLike),
         EvidenceStatus::Asserted,
         vec![],
     ));
-    il.evidence.push(js_like_builtin_promise_record(
+    il.push_evidence(js_like_builtin_promise_record(
         1,
         il.node(first_call).span,
         contract.id,
@@ -303,7 +301,7 @@ fn admitted_promise_then_can_consume_safe_api_result_domain_record() {
         EvidenceStatus::Asserted,
         &[0],
     ));
-    il.evidence.push(js_like_builtin_promise_record(
+    il.push_evidence(js_like_builtin_promise_record(
         2,
         il.node(second_call).span,
         contract.id,
@@ -344,7 +342,7 @@ fn admitted_promise_resolve_resolver_requires_qualified_global_proof() {
 
     let (mut wrong_pack, interner, call, callee, promise) = js_promise_resolve_call_il();
     push_promise_resolve_dependencies(&mut wrong_pack, callee, promise);
-    wrong_pack.evidence.push(library_api_record_with_provenance(
+    wrong_pack.push_evidence(library_api_record_with_provenance(
         3,
         wrong_pack.node(call).span,
         contract.id,
@@ -361,18 +359,16 @@ fn admitted_promise_resolve_resolver_requires_qualified_global_proof() {
 
     let (mut wrong_producer, interner, call, callee, promise) = js_promise_resolve_call_il();
     push_promise_resolve_dependencies(&mut wrong_producer, callee, promise);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance(
-            3,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[1, 2],
-            JS_LIKE_BUILTIN_PROMISE_PACK_ID,
-            "wrong.javascript.builtins.promise-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance(
+        3,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[1, 2],
+        JS_LIKE_BUILTIN_PROMISE_PACK_ID,
+        "wrong.javascript.builtins.promise-api",
+    ));
     assert!(
         admitted_promise_resolve_at_call(&wrong_producer, &interner, call).is_none(),
         "Promise.resolve evidence with the wrong producer is rejected"
@@ -389,7 +385,7 @@ fn admitted_promise_resolve_resolver_requires_qualified_global_proof() {
         &[1, 2],
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     assert!(
         admitted_promise_resolve_at_call(&wrong_emitter, &interner, call).is_none(),
         "Promise.resolve evidence from an external emitter is rejected"
@@ -397,7 +393,7 @@ fn admitted_promise_resolve_resolver_requires_qualified_global_proof() {
 
     let (mut admitted, interner, call, callee, promise) = js_promise_resolve_call_il();
     push_promise_resolve_dependencies(&mut admitted, callee, promise);
-    admitted.evidence.push(js_like_builtin_promise_record(
+    admitted.push_evidence(js_like_builtin_promise_record(
         3,
         admitted.node(call).span,
         contract.id,

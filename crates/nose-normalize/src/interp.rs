@@ -37,8 +37,10 @@ mod eval;
 mod exec;
 mod field_state;
 mod hof;
+mod keyed;
 mod ops;
 mod value;
+pub use keyed::keyed_membership_value;
 use ops::*;
 pub use value::{behavior_equiv, behavior_has_sym, Behavior, Value, F64};
 use value::{
@@ -193,6 +195,8 @@ pub enum UnitExit {
 }
 
 const STEP_BUDGET: u64 = 200_000;
+// A step budget alone cannot bound native stack use by a nonterminating call.
+const CALL_DEPTH_BUDGET: usize = 64;
 
 /// Symbolic-condition path exploration cap (#244): at most this many symbolic
 /// If/ternary decision SITES per execution, so a row explores ≤ 2^cap paths.
@@ -219,6 +223,7 @@ struct Interp<'a> {
     il: &'a Il,
     interner: &'a Interner,
     steps: u64,
+    call_depth: usize,
     effects: Vec<Value>,
     fields: FxHashMap<FieldKey, Value>,
     /// Direct immutable module strings, proven by the shared module scope/mutation boundary.
@@ -471,6 +476,7 @@ fn run_unit_once(
         il,
         interner,
         steps: 0,
+        call_depth: 0,
         effects: Vec::new(),
         fields: FxHashMap::default(),
         globals,
@@ -495,6 +501,19 @@ fn run_unit_once(
                 let v = match nose_semantics::domain_evidence_for_param(il, k) {
                     Some(d) => coerce_to_declared_domain(raw, d),
                     None => raw,
+                };
+                let v = match (v, nose_semantics::array_element_domain_for_param(il, k)) {
+                    (Value::List(values), Some(element)) => Value::List(
+                        values
+                            .into_iter()
+                            .map(|v| coerce_to_declared_domain(v, element))
+                            .collect(),
+                    ),
+                    (v, _) => v,
+                };
+                let v = match nose_semantics::keyed_membership_projection(il, interner, root, k) {
+                    Some(key) => keyed::bind(v, key),
+                    None => v,
                 };
                 let v = if it.bitwise_result_is_int32() {
                     compact_javascript_positive_zero(v)

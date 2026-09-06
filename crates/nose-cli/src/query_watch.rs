@@ -19,6 +19,9 @@ use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 const DEBOUNCE: Duration = Duration::from_millis(40);
+const MAX_BATCH_LATENCY: Duration = Duration::from_millis(250);
+
+mod inputs;
 
 pub(crate) fn run(
     args: &QueryArgs,
@@ -32,19 +35,20 @@ pub(crate) fn run(
         .cache_dir
         .clone()
         .context("watch session requires a cache directory")?;
-    let (receiver, _watcher) = watch_roots(&watch_args.paths)?;
+    let roots = watch_root_paths(&watch_args);
+    let (receiver, mut watcher) = watch_roots(&roots)?;
+    let mut watched = roots.into_iter().collect::<BTreeSet<_>>();
+    let mut input_files = inputs::register(&watch_args, &mut watcher, &mut watched)?;
     let refs = paths_as_refs(&watch_args.paths);
 
     // Seed or validate the ordinary transactional cache before the long-lived session takes
     // ownership of its generation. The session-derived snapshot below closes the startup race:
     // an edit during this seed pass cannot pair an old snapshot with a new source digest.
-    build_query_dataset(&watch_args, &refs)?;
-    let mut session = QueryAnalysisSession::open(&watch_args, &refs)?
-        .context("watch session could not open the incremental cache; external semantic-pack influence is not supported in watch mode")?;
+    let (mut session, initial_dataset) = open_session(&watch_args, &refs)?;
     let initial_invalidation = session.take_initial_invalidation();
     let mut source_set_digest = session.source_set_digest();
-    let initial_dataset = session.current_dataset(&watch_args, &refs)?;
     let initial_snapshot = dashboard_snapshot(&watch_args, path_arg, initial_dataset)?;
+    let mut previous_snapshot = initial_snapshot.clone();
     emit(WatchEmission {
         sequence: 0,
         source_set_digest: &source_set_digest,
@@ -55,54 +59,66 @@ pub(crate) fn run(
         snapshot: initial_snapshot,
     })?;
 
+    let mut session = Some(session);
     let mut sequence = 0_u64;
+    let mut last_good_sequence = 0_u64;
     loop {
         let Some(batch) = receive_batch(&receiver) else {
             return Ok(());
         };
         let changed_paths = display_paths(&batch.paths);
-        let action = classify(&batch, &session, &cache_dir);
+        let recovering = session.is_none();
+        let action = classify(&batch, session.as_ref(), &cache_dir, &input_files);
         let Some(action) = action else { continue };
-        let started = batch.first_seen;
-        let result = match action {
-            WatchAction::Leaf(path) => {
-                session
-                    .refresh_leaf(&watch_args, &refs, &path)?
-                    .map(|update| {
-                        (
-                            update.dataset,
-                            update.invalidation,
-                            update.source_set_digest,
-                            "incremental-leaf",
-                        )
-                    })
+        let result: Result<_> = (|| {
+            input_files = inputs::register(&watch_args, &mut watcher, &mut watched)?;
+            let update = match (action, session.as_mut()) {
+                (WatchAction::Leaf(path), Some(session)) => {
+                    session.refresh_leaf(&watch_args, &refs, &path)?
+                }
+                _ => None,
+            };
+            let (dataset, invalidation, digest, reconciliation) = match update {
+                Some(update) => (
+                    update.dataset,
+                    update.invalidation,
+                    update.source_set_digest,
+                    "incremental-leaf",
+                ),
+                None => {
+                    drop(session.take());
+                    let (mut replacement, dataset) = open_session(&watch_args, &refs)?;
+                    let invalidation = replacement
+                        .take_initial_invalidation()
+                        .context("full reconciliation omitted invalidation evidence")?;
+                    let digest = replacement.source_set_digest();
+                    session = Some(replacement);
+                    (dataset, invalidation, digest, "full-reconciliation")
+                }
+            };
+            let snapshot = dashboard_snapshot(&watch_args, path_arg, dataset)?;
+            Ok((snapshot, invalidation, digest, reconciliation))
+        })();
+        let (snapshot, invalidation, digest, reconciliation) = match result {
+            Ok(result) => result,
+            Err(error) => {
+                // A failed refresh can have mutated intermediate state. Release it
+                // and retry from a complete generation on the next filesystem hint.
+                drop(session.take());
+                sequence = sequence.saturating_add(1);
+                emit_value(&json!({
+                    "schema": QUERY_WATCH_JSONL_SCHEMA, "kind": "error",
+                    "sequence": sequence, "last_good_sequence": last_good_sequence,
+                    "snapshot_valid": false, "changed_paths": changed_paths,
+                    "error": {"message": format!("{error:#}")}
+                }))?;
+                continue;
             }
-            WatchAction::Full => None,
         };
-        let (dataset, invalidation, digest, reconciliation) = match result {
-            Some(result) => result,
-            None => {
-                // The live session owns the shared cache generation lock. Release it before the
-                // ordinary pipeline opens a replacement generation for full reconciliation.
-                drop(session);
-                let dataset = build_query_dataset(&watch_args, &refs)?;
-                let mut replacement = QueryAnalysisSession::open(&watch_args, &refs)?
-                    .context("full reconciliation could not reopen the watch session")?;
-                let invalidation = replacement.take_initial_invalidation();
-                let digest = replacement.source_set_digest();
-                session = replacement;
-                (
-                    dataset,
-                    invalidation.context("full reconciliation omitted invalidation evidence")?,
-                    digest,
-                    "full-reconciliation",
-                )
-            }
-        };
-        if digest == source_set_digest {
+        if !recovering && digest == source_set_digest && snapshot == previous_snapshot {
             continue;
         }
-        let snapshot = dashboard_snapshot(&watch_args, path_arg, dataset)?;
+        previous_snapshot = snapshot.clone();
         sequence = sequence.saturating_add(1);
         emit(WatchEmission {
             sequence,
@@ -110,11 +126,34 @@ pub(crate) fn run(
             changed_paths: &changed_paths,
             reconciliation,
             invalidation: Some(&invalidation),
-            latency: started.elapsed(),
+            latency: batch.first_seen.elapsed(),
             snapshot,
         })?;
         source_set_digest = digest;
+        last_good_sequence = sequence;
     }
+}
+
+fn watch_root_paths(args: &QueryArgs) -> Vec<PathBuf> {
+    args.paths
+        .iter()
+        .map(|path| {
+            let path = absolute(path);
+            if path.is_dir() {
+                path
+            } else {
+                path.parent().unwrap().to_path_buf()
+            }
+        })
+        .collect()
+}
+
+fn open_session(args: &QueryArgs, refs: &[&Path]) -> Result<(QueryAnalysisSession, QueryDataset)> {
+    build_query_dataset(args, refs)?;
+    let mut session = QueryAnalysisSession::open(args, refs)?
+        .context("watch session could not open the incremental cache; external semantic-pack influence is not supported in watch mode")?;
+    let dataset = session.current_dataset(args, refs)?;
+    Ok((session, dataset))
 }
 
 fn validate(args: &QueryArgs, terms: &[String]) -> Result<()> {
@@ -147,14 +186,20 @@ fn dashboard_snapshot(
         .iter()
         .filter(|finding| !finding.container_in_test && !finding.helper_in_test)
         .count();
-    let markdown =
-        crate::markdown::QueryMarkdownReport::detect_under(&args.paths, &dataset.settings.exclude);
+    let markdown = crate::markdown::QueryMarkdownReport::detect_under(
+        &args.paths,
+        &dataset.settings.exclude,
+        args.cache_dir.as_deref(),
+        dataset.settings.cache_max_bytes,
+    )?;
     Ok(query_dashboard_json(
+        &crate::query_context::describe(args, &dataset.settings, &dataset.scope),
         &dataset.families,
         &overrides,
         &opportunities,
         &dataset.scope,
         path_arg,
+        &crate::query_navigation::path(args, path_arg),
         reinvented,
         baseline.as_ref(),
         None,
@@ -185,9 +230,13 @@ fn emit(emission: WatchEmission<'_>) -> Result<()> {
         "latency_ms": emission.latency.as_secs_f64() * 1000.0,
         "snapshot": emission.snapshot,
     });
+    emit_value(&value)
+}
+
+fn emit_value(value: &Value) -> Result<()> {
     let stdout = std::io::stdout();
     let mut output = stdout.lock();
-    serde_json::to_writer(&mut output, &value)?;
+    serde_json::to_writer(&mut output, value)?;
     output.write_all(b"\n")?;
     output.flush()?;
     Ok(())
@@ -196,6 +245,7 @@ fn emit(emission: WatchEmission<'_>) -> Result<()> {
 struct WatchBatch {
     paths: BTreeSet<PathBuf>,
     reconcile: bool,
+    hierarchy_paths: BTreeSet<PathBuf>,
     first_seen: Instant,
 }
 
@@ -207,6 +257,14 @@ impl WatchBatch {
                     return;
                 }
                 self.reconcile |= event.need_rescan();
+                if matches!(
+                    event.kind,
+                    EventKind::Create(notify::event::CreateKind::Folder)
+                        | EventKind::Remove(notify::event::RemoveKind::Folder)
+                        | EventKind::Modify(notify::event::ModifyKind::Name(_))
+                ) {
+                    self.hierarchy_paths.extend(event.paths.iter().cloned());
+                }
                 self.paths.extend(event.paths);
             }
             Err(_) => self.reconcile = true,
@@ -237,19 +295,26 @@ fn receive_batch(receiver: &mpsc::Receiver<notify::Result<Event>>) -> Option<Wat
     let mut batch = WatchBatch {
         paths: BTreeSet::new(),
         reconcile: false,
+        hierarchy_paths: BTreeSet::new(),
         first_seen: Instant::now(),
     };
     batch.add(first);
     let mut deadline = Instant::now() + DEBOUNCE;
+    let latest = batch.first_seen + MAX_BATCH_LATENCY;
     loop {
-        let remaining = deadline.saturating_duration_since(Instant::now());
+        let remaining = deadline
+            .min(latest)
+            .saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Some(batch);
+        }
         match receiver.recv_timeout(remaining) {
             Ok(event) => {
                 batch.add(event);
                 deadline = Instant::now() + DEBOUNCE;
             }
             Err(mpsc::RecvTimeoutError::Timeout) => return Some(batch),
-            Err(mpsc::RecvTimeoutError::Disconnected) => return None,
+            Err(mpsc::RecvTimeoutError::Disconnected) => return Some(batch),
         }
     }
 }
@@ -261,8 +326,9 @@ enum WatchAction {
 
 fn classify(
     batch: &WatchBatch,
-    session: &QueryAnalysisSession,
+    session: Option<&QueryAnalysisSession>,
     cache_dir: &Path,
+    input_files: &BTreeSet<PathBuf>,
 ) -> Option<WatchAction> {
     if batch.reconcile {
         return Some(WatchAction::Full);
@@ -274,7 +340,9 @@ fn classify(
         if absolute(path).starts_with(&cache) {
             continue;
         }
-        if let Some(source) = session.source_path_for_event(path) {
+        if input_files.contains(&absolute(path)) || batch.hierarchy_paths.contains(path) {
+            full = true;
+        } else if let Some(source) = session.and_then(|s| s.source_path_for_event(path)) {
             sources.insert(source);
         } else if affects_query_inputs(path) {
             full = true;
@@ -359,5 +427,34 @@ impl TemporaryCache {
 impl Drop for TemporaryCache {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.path);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn failed_session_ignores_access_and_cache_events_but_retries_source_edits() {
+        let cache = absolute(Path::new(".nose-test-cache"));
+        let inputs = BTreeSet::new();
+        let mut batch = WatchBatch {
+            paths: BTreeSet::new(),
+            reconcile: false,
+            hierarchy_paths: BTreeSet::new(),
+            first_seen: Instant::now(),
+        };
+        batch.add(Ok(Event::new(EventKind::Access(
+            notify::event::AccessKind::Any,
+        ))
+        .add_path(PathBuf::from("source.ts"))));
+        assert!(classify(&batch, None, &cache, &inputs).is_none());
+        batch.paths.insert(cache.join("state.json"));
+        assert!(classify(&batch, None, &cache, &inputs).is_none());
+        batch.paths.insert(PathBuf::from("source.ts"));
+        assert!(matches!(
+            classify(&batch, None, &cache, &inputs),
+            Some(WatchAction::Full)
+        ));
     }
 }

@@ -5,7 +5,9 @@ use nose_il::{
     FileId, FileMeta, IlBuilder, Lang, NodeKind, Op, Payload, Span,
 };
 
+mod arrays;
 mod domains;
+mod keyed;
 mod projections;
 
 fn set_param_domain(il: &mut Il, root: NodeId, domain: DomainEvidence) {
@@ -16,7 +18,7 @@ fn set_param_domain(il: &mut Il, root: NodeId, domain: DomainEvidence) {
         .filter(|&node| il.kind(node) == NodeKind::Param)
         .collect();
     for (index, param) in params.into_iter().enumerate() {
-        il.evidence.push(EvidenceRecord::new(
+        il.push_evidence(EvidenceRecord::new(
             EvidenceId(index as u32),
             EvidenceAnchor::param(il.node(param).span),
             EvidenceKind::Domain(domain),

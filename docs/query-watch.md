@@ -2,7 +2,7 @@
 
 `nose query <root> --watch --format jsonl` keeps one foreground analysis
 session alive and emits a complete dashboard snapshot whenever the analyzed
-source set changes. It is intended for editors, local refactoring loops, and
+source set or dashboard changes, including Markdown and structured ignores. It is intended for editors, local refactoring loops, and
 other integrations that need fresh results without starting a new process for
 every save.
 
@@ -18,7 +18,7 @@ process interrupt.
 ## Should I use watch mode?
 
 Use watch mode when an editor, dashboard, or local automation needs a fresh
-machine-readable result after each save. Each line is a complete JSON snapshot,
+machine-readable result after each save. Successful revisions carry a complete JSON snapshot,
 so the consumer can replace its state instead of merging partial updates.
 
 For a person running occasional terminal checks, repeated cached queries are
@@ -39,7 +39,7 @@ See [faster repeated queries](query-cache.md) for cache storage and cleanup.
 
 ## Stream contract
 
-Each stdout line is one JSON object with schema `nose.query-watch/v1`:
+Each stdout line is one JSON object with schema `nose.query-watch/v1`. Successful analysis emits `kind: "snapshot"`:
 
 ```json
 {
@@ -51,13 +51,14 @@ Each stdout line is one JSON object with schema `nose.query-watch/v1`:
   "reconciliation": "incremental-leaf",
   "invalidation": { "schema": "nose.invalidation/v1" },
   "latency_ms": 12.4,
-  "snapshot": { "tool": "nose", "view": "dashboard", "schema_version": 9 }
+  "snapshot": { "tool": "nose", "view": "dashboard", "schema_version": 10 }
 }
 ```
 
 `sequence` starts at `0` for the initial snapshot and increases once per emitted
-revision. `source_set_digest` binds the complete ordered path/content identity
-set. `changed_paths` reports the filesystem hints reconciled for the revision;
+event, including errors. `source_set_digest` binds the analyzed code path/content identity
+set; Markdown-only or presentation-policy revisions can retain that digest.
+Use `sequence` to identify dashboard revisions. `changed_paths` reports the filesystem hints reconciled for the revision;
 it is not a substitute for the digest. `reconciliation` is `initial`,
 `incremental-leaf`, or `full-reconciliation`. `latency_ms` measures from the
 first event in the debounced batch to the ready snapshot.
@@ -75,11 +76,25 @@ multiple sources, changes membership or configuration, or requests an overflow
 rescan. Atomic-save rename sequences and delete/recreate bursts converge on the
 final filesystem state after a short debounce.
 
+Configuration and ignore files are watched even outside the analysis roots.
+Their containing directories are observed so atomic replacement keeps working.
+A continuously arriving event stream is processed in batches of at most 250 ms
+before analysis begins. Both the initial and replacement code snapshots and their
+source digests come from the same session generation.
+
 An explicit `--cache-dir` makes startup reuse the normal transactional cache. If
 it is omitted, watch mode creates and removes a private temporary cache. A killed
 session never makes the cache authoritative: restart validation uses source
 contents, checksums, and the last committed generation, and safely recomputes
 anything not committed.
+
+A malformed configuration or transient read/analysis error after startup emits
+`kind: "error"`, `sequence`, `changed_paths`, `snapshot_valid: false`,
+`last_good_sequence`, and `error.message`. The process keeps watching. Consumers
+must mark their last result stale until the next successful snapshot. nose drops
+partially refreshed state and performs full reconciliation on the next event;
+even an unchanged recovered snapshot is emitted. Startup errors still fail the
+command, and output-stream errors end the stream.
 
 ## Supported surface
 

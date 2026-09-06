@@ -20,19 +20,24 @@ mod main_tests;
 mod markdown;
 mod oracle_gate;
 mod path_utils;
+mod query_assessment;
 mod query_baseline_gate;
 mod query_commands;
+mod query_context;
 mod query_dashboard;
 mod query_dataset;
-mod query_family_text;
 mod query_markdown;
+mod query_members;
 mod query_model;
+mod query_navigation;
 mod query_open;
 mod query_opportunities;
 mod query_options;
 mod query_output;
+mod query_recovery;
 mod query_sarif;
 mod query_semantic_packs;
+mod query_source_evidence;
 mod query_terms;
 mod query_views;
 mod query_watch;
@@ -63,3 +68,6 @@ pub const STACK_SIZE: usize = runtime::STACK_SIZE;
 pub fn run_command() -> Result<()> {
     command_dispatch::run()
 }
+
+mod query_evolution;
+mod region_commands;

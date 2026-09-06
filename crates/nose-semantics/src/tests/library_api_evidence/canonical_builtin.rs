@@ -26,7 +26,7 @@ fn go_print_canonical_call_il() -> (Il, NodeId) {
 }
 
 fn push_canonical_unshadowed_symbol_dependency(il: &mut Il, id: u32, call: NodeId, name: &str) {
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         id,
         EvidenceAnchor::node(il.node(call).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -48,7 +48,7 @@ fn push_canonical_imported_namespace_dependency(
     let symbol = SymbolEvidenceKind::ImportedNamespace {
         module_hash: stable_symbol_hash(module),
     };
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         binding_id,
         EvidenceAnchor::binding(sp(48), stable_symbol_hash(module)),
         symbol,
@@ -56,7 +56,7 @@ fn push_canonical_imported_namespace_dependency(
         &[],
         il.meta.lang,
     ));
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         occurrence_id,
         EvidenceAnchor::node(il.node(call).span, NodeKind::Var),
         symbol,
@@ -100,7 +100,7 @@ fn java_math_canonical_builtin_call_il(builtin: Builtin, arg_count: usize) -> (I
 
 fn push_java_math_canonical_dependencies(il: &mut Il, call: NodeId) -> Vec<u32> {
     let call_span = il.node(call).span;
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(call_span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -114,7 +114,7 @@ fn push_java_math_canonical_dependencies(il: &mut Il, call: NodeId) -> Vec<u32> 
     let mut dependencies = vec![0];
     for (idx, arg) in args.into_iter().enumerate() {
         let id = 1 + idx as u32;
-        il.evidence.push(evidence(
+        il.push_evidence(evidence(
             id,
             EvidenceAnchor::node(il.node(arg).span, il.kind(arg)),
             EvidenceKind::Domain(DomainEvidence::Integer),

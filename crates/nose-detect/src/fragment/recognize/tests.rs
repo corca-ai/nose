@@ -109,7 +109,7 @@ fn index_assignment_node(il: &Il) -> NodeId {
 
 fn add_effect_evidence(il: &mut Il, node: NodeId, kind: EffectEvidenceKind) {
     let id = EvidenceId(il.evidence.len() as u32);
-    il.evidence.push(EvidenceRecord {
+    il.push_evidence(EvidenceRecord {
         id,
         anchor: EvidenceAnchor::node(il.node(node).span, il.kind(node)),
         kind: EvidenceKind::Effect(kind),

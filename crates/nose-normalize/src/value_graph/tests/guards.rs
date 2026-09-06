@@ -83,7 +83,7 @@ fn record_guard_value_tag_requires_guard_evidence() {
         ValOp::Seq(SEQ_VALUE_RECORD_GUARD)
     ));
 
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         Lang::JavaScript,
         EvidenceAnchor::sequence(sp(60)),
@@ -96,14 +96,14 @@ fn record_guard_value_tag_requires_guard_evidence() {
         ValOp::Seq(SEQ_VALUE_RECORD_GUARD)
     ));
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::source_span(sp(60)),
         EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
             name_hash: stable_symbol_hash("Array"),
         }),
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         2,
         EvidenceAnchor::source_span(sp(60)),
         EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
@@ -111,7 +111,7 @@ fn record_guard_value_tag_requires_guard_evidence() {
         }),
         vec![EvidenceId(1)],
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         3,
         EvidenceAnchor::sequence(sp(60)),
         EvidenceKind::Guard(GuardEvidenceKind::JsRecordShape {
@@ -130,14 +130,14 @@ fn record_guard_value_tag_requires_guard_evidence() {
 }
 
 fn push_own_property_guard_evidence(il: &mut Il, base_id: u32, span: Span) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         base_id,
         EvidenceAnchor::source_span(span),
         EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
             name_hash: stable_symbol_hash("Object"),
         }),
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         base_id + 1,
         EvidenceAnchor::source_span(span),
         EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
@@ -145,7 +145,7 @@ fn push_own_property_guard_evidence(il: &mut Il, base_id: u32, span: Span) {
         }),
         vec![EvidenceId(base_id)],
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         base_id + 2,
         EvidenceAnchor::sequence(span),
         EvidenceKind::Guard(GuardEvidenceKind::JsOwnProperty {
@@ -205,7 +205,7 @@ fn own_property_guard_value_tag_requires_node_shape_and_guard_evidence() {
     let root = b.add(NodeKind::Block, Payload::None, sp(62), &[malformed, guard]);
     let mut il = finish_test_il(b, root, Lang::JavaScript);
     for (id, span) in [(0, sp(62)), (4, sp(63))] {
-        il.evidence.push(language_core_evidence(
+        il.push_evidence(language_core_evidence(
             id,
             Lang::JavaScript,
             EvidenceAnchor::sequence(span),

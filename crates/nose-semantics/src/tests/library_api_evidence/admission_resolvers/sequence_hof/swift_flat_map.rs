@@ -123,7 +123,7 @@ fn swift_flat_map_call_il(output: FlatMapOutput, dispatch_barrier: bool) -> Flat
 }
 
 fn push_bracket_array_proof(il: &mut Il, id: u32, param: NodeId) {
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         id,
         EvidenceAnchor::param(il.node(param).span),
         EvidenceKind::Type(TypeEvidenceKind::SwiftBracketArrayParameter),
@@ -169,7 +169,7 @@ fn add_flat_map_evidence(
             _ => unreachable!(),
         };
         let contract = library_method_call_contract(Lang::Swift, method, 1).unwrap();
-        fixture.il.evidence.push(sequence_hof_record(
+        fixture.il.push_evidence(sequence_hof_record(
             next,
             &fixture.il,
             inner_call,
@@ -181,7 +181,7 @@ fn add_flat_map_evidence(
     }
 
     let contract = library_method_call_contract(Lang::Swift, "flatMap", 1).unwrap();
-    fixture.il.evidence.push(sequence_hof_record(
+    fixture.il.push_evidence(sequence_hof_record(
         next,
         &fixture.il,
         fixture.outer_call,

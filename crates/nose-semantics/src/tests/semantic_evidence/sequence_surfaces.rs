@@ -56,7 +56,7 @@ fn sequence_surface_evidence_must_match_the_lowered_surface() {
         "raw sequence tags do not prove semantic surfaces without evidence"
     );
 
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         EvidenceAnchor::sequence(sp(5)),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
@@ -66,7 +66,7 @@ fn sequence_surface_evidence_must_match_the_lowered_surface() {
     assert!(seq_surface_contract_for_node(&il, &interner, seq)
         .is_some_and(|contract| contract.membership_collection));
 
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         1,
         EvidenceAnchor::sequence(sp(5)),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Map),
@@ -85,7 +85,7 @@ fn sequence_surface_evidence_requires_matching_language_core_provenance() {
     let root = b.add(NodeKind::Block, Payload::None, sp(15), &[seq]);
     let mut il = finish_il(b, root, Lang::JavaScript);
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::sequence(sp(15)),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
@@ -98,7 +98,7 @@ fn sequence_surface_evidence_requires_matching_language_core_provenance() {
     );
 
     il.evidence.clear();
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         EvidenceAnchor::sequence(sp(15)),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
@@ -120,7 +120,7 @@ fn sequence_surface_evidence_requires_matching_language_core_provenance() {
         Lang::JavaScript,
     );
     external.provenance.emitter = EvidenceEmitter::External;
-    il.evidence.push(external);
+    il.push_evidence(external);
     assert_eq!(
         seq_surface_contract_for_node(&il, &interner, seq),
         None,
@@ -128,7 +128,7 @@ fn sequence_surface_evidence_requires_matching_language_core_provenance() {
     );
 
     il.evidence.clear();
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         EvidenceAnchor::sequence(sp(15)),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
@@ -157,7 +157,7 @@ fn imported_literal_export_safety_requires_sequence_evidence() {
 
     assert!(!imported_literal_export_safe(&il, &interner, entry));
 
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         EvidenceAnchor::sequence(sp(6)),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Map),
@@ -176,14 +176,14 @@ fn imported_literal_export_safety_rejects_import_coordinate_children() {
     let root_value = b.add(NodeKind::Seq, Payload::Name(object), sp(8), &[imported]);
     let root = b.add(NodeKind::Block, Payload::None, sp(8), &[root_value]);
     let mut il = finish_il(b, root, Lang::JavaScript);
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         EvidenceAnchor::sequence(sp(8)),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Map),
         EvidenceStatus::Asserted,
         Lang::JavaScript,
     ));
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         1,
         EvidenceAnchor::sequence(sp(7)),
         EvidenceKind::Import(ImportEvidenceKind::Binding {
@@ -215,7 +215,7 @@ fn imported_literal_export_rejection_reports_reference_children() {
     let root_value = b.add(NodeKind::Seq, Payload::Name(array), sp(9), &[referenced]);
     let root = b.add(NodeKind::Block, Payload::None, sp(9), &[root_value]);
     let mut il = finish_il(b, root, Lang::Rust);
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         EvidenceAnchor::sequence(sp(9)),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
@@ -310,7 +310,7 @@ fn go_zero_map_surface_helpers_require_evidence() {
     assert!(go_zero_map_literal_contract_for_node(&il, &interner, map).is_none());
     assert!(go_zero_map_entry_contract_for_node(&il, &interner, entry).is_none());
 
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         EvidenceAnchor::sequence(sp(31)),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::GoCompositeMapLiteral),
@@ -320,7 +320,7 @@ fn go_zero_map_surface_helpers_require_evidence() {
     assert!(go_zero_map_literal_contract_for_node(&il, &interner, map).is_some());
     assert!(go_zero_map_entry_contract_for_node(&il, &interner, entry).is_none());
 
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         1,
         EvidenceAnchor::sequence(sp(32)),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::GoMapEntry),

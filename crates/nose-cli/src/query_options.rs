@@ -218,6 +218,21 @@ impl DetectionChannels {
         self.semantic || self.near || self.abstraction
     }
 
+    pub(crate) fn mode_names(self) -> Vec<String> {
+        [
+            (self.syntax, "syntax".into()),
+            (self.semantic, "semantic".into()),
+            (self.near, format!("near:{}", self.threshold())),
+            (
+                self.abstraction,
+                format!("abstraction:{}", self.threshold()),
+            ),
+        ]
+        .into_iter()
+        .filter_map(|(enabled, mode)| enabled.then_some(mode))
+        .collect()
+    }
+
     pub(crate) fn report_label(self, count: usize) -> &'static str {
         let singular = count == 1;
         match (
@@ -268,18 +283,17 @@ impl DetectionChannels {
 }
 
 /// How to rank families — what "most worth your attention first" means.
-#[derive(Clone, Copy, PartialEq, clap::ValueEnum, serde::Deserialize)]
+#[derive(Clone, Copy, PartialEq, clap::ValueEnum, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum SortKey {
-    /// How cleanly it extracts: invariant (shared) lines × copies × spread, penalized
-    /// by the number of parameters the helper would need. Surfaces the duplication you
-    /// can actually fold into one helper, not the biggest block that merely *looks*
-    /// similar (a *fixability* axis). The default.
+    /// Inspection heuristic: shared-line density × copies × spread, adjusted for
+    /// varying regions and member-span differences. Does not establish reuse
+    /// feasibility or predicted deletions. The default.
     Extractability,
     /// Raw duplicated volume: duplicated lines (mean span × copies) × similarity ×
     /// spread. Ranks by how much *code* repeats, NOT by the `removable` field — a
     /// structural (Type-4) family can have high volume yet `removable=0` when no
-    /// literal lines survive across all copies (nothing cleanly extractable).
+    /// literal lines survive the bounded source alignment.
     Value,
     /// Most copies first — the most-repeated patterns.
     Sites,
@@ -323,13 +337,16 @@ pub(crate) enum FailOn {
 /// `.gitignore` exists to skip, slow on exactly the big repos where it matters.)
 pub(crate) struct QueryScope {
     pub(crate) files: usize,
+    pub(crate) skipped_sources: Vec<nose_il::SourceDiagnostic>,
     /// `(language name, file count)`, largest first.
     pub(crate) langs: Vec<(&'static str, usize)>,
 }
 
 impl QueryScope {
     pub(crate) fn from_corpus(corpus: &Corpus) -> Self {
-        Self::from_langs(corpus.files.iter().map(|file| file.meta.lang))
+        let mut scope = Self::from_langs(corpus.files.iter().map(|file| file.meta.lang));
+        scope.skipped_sources = corpus.skipped_sources.clone();
+        scope
     }
 
     pub(crate) fn from_langs(langs: impl IntoIterator<Item = nose_il::Lang>) -> Self {
@@ -343,7 +360,27 @@ impl QueryScope {
         let mut langs: Vec<(&'static str, usize)> = counts.into_iter().collect();
         // Largest language first; name as a stable tie-break for deterministic output.
         langs.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
-        QueryScope { files, langs }
+        QueryScope {
+            files,
+            langs,
+            skipped_sources: Vec::new(),
+        }
+    }
+
+    pub(crate) fn with_sources(mut self, sources: &[crate::cache::CachedSourceFile]) -> Self {
+        self.skipped_sources = sources
+            .iter()
+            .filter_map(|source| {
+                source
+                    .skip_reason
+                    .as_ref()
+                    .map(|reason| nose_il::SourceDiagnostic {
+                        path: source.path.clone(),
+                        reason: reason.clone(),
+                    })
+            })
+            .collect();
+        self
     }
 
     /// `analyzed 1113 files · typescript 900 · tsx 213` (languages omitted when unknown).

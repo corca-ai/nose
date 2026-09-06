@@ -88,7 +88,7 @@ pub(super) fn accepted_obligations_covered(
 fn edges_covered_by_family(
     primary: &nose_detect::RefactorFamily,
     sites: &[nose_detect::Loc],
-    edges: &[nose_detect::AcceptedEdge],
+    edges: &nose_detect::AcceptedEdges,
 ) -> bool {
     edges.iter().all(|edge| {
         let Some(left) = sites.get(edge.left as usize) else {
@@ -134,7 +134,7 @@ pub(super) fn accepted_edges_covered_by_roots(
 
 fn edges_covered_by_roots(
     sites: &[nose_detect::Loc],
-    edges: &[nose_detect::AcceptedEdge],
+    edges: &nose_detect::AcceptedEdges,
     coverage_roots: &[bool],
     by_file: &FxHashMap<&str, FileOpportunityBucket>,
 ) -> bool {

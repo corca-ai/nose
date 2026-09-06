@@ -124,3 +124,16 @@ fn extractability_falls_back_without_shared() {
     );
     assert!(xlang.extractability() > 0.0);
 }
+
+#[test]
+fn no_source_invariants_cannot_rank_as_an_extractable_helper() {
+    let mut family = fam(
+        80.0,
+        8,
+        0,
+        1,
+        vec![loc("a.rs", 1, 8, "rust"), loc("b.rs", 1, 8, "rust")],
+    );
+    family.shared_weight = 6.0;
+    assert_eq!(family.extractability(), 0.0);
+}

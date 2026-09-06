@@ -45,7 +45,7 @@
       "consumers": ["local and hosted quality-gate orchestration"],
       "retention_policy": "Keep current policy plus any receipt required to interpret a checked release or gate result.",
       "artifact_count": 7,
-      "inventory_sha256": "c6ef78c7ea156b07c321a59f47821cc5735db70054c57810077a1c3c329472d9"
+      "inventory_sha256": "aa49eaa5c0aa982a58bfd346e571c305c4f63c819d949a2b645b167065c9b254"
     },
     {
       "id": "benchmark-root",
@@ -66,8 +66,8 @@
       "validator": "./scripts/check-ci-local.sh --gate runtime-soundness-evidence",
       "consumers": ["cache soundness and incremental-run regression gates"],
       "retention_policy": "Keep active baselines, mutation manifests, and their receipts as one provenance unit.",
-      "artifact_count": 14,
-      "inventory_sha256": "f30ac5fc5a6350a9545c04e608949f580f88b4334a0397e2256d6ffdd007b5eb"
+      "artifact_count": 19,
+      "inventory_sha256": "7a27cbd1d6f898d3de8cc4d95eb9a14ab0ab6fc0789719c2b182c181b87a5e73"
     },
     {
       "id": "coevolution-evidence",
@@ -143,8 +143,8 @@
       "validator": "./scripts/check-ci-local.sh --gate runtime-soundness-evidence",
       "consumers": ["release workflow and published quality claims"],
       "retention_policy": "Release-bound evidence is immutable and retained for release reconstruction.",
-      "artifact_count": 1,
-      "inventory_sha256": "05fa86c64b2bee89a25ed8f99cf7ebfc0bebb5b3ec1c5cc7a1f8c15cb7005f14"
+      "artifact_count": 9,
+      "inventory_sha256": "750cf1d73e64fc27f330490c4109aab80ece30894c4dea103c9816bd1e5ff3c7"
     },
     {
       "id": "review-evidence",
@@ -188,7 +188,7 @@
       "consumers": ["Type-4 frontier, query-regression, and adversarial gates"],
       "retention_policy": "Preserve current gold/frontier inputs and any sealed or closeout evidence.",
       "artifact_count": 29,
-      "inventory_sha256": "6e9080f742ebd9f62b9b615e518f6bde6594f0b9cd4b8227c6b841f27733e156"
+      "inventory_sha256": "dd9bff3ece87bd8e9a20715b6735d9f986754fcb71518a9e0c77fa5e06a93379"
     },
     {
       "id": "documentation-policy",
@@ -199,7 +199,7 @@
       "consumers": ["documentation lifecycle and freshness gate"],
       "retention_policy": "Keep the current catalog synchronized with every Markdown page; retain supersession metadata while any historical record points to it.",
       "artifact_count": 1,
-      "inventory_sha256": "005caffc0b018f7319077d461c662caa900631d9879c486db4fb8a4cfc9af166"
+      "inventory_sha256": "727e468065503f73db1f53ba6326473c6024eb395d773b2b638bb67d7f91eab7"
     },
     {
       "id": "documentation-examples",
@@ -210,7 +210,7 @@
       "consumers": ["documentation tests and semantic-pack examples"],
       "retention_policy": "Keep examples synchronized with supported schemas; keep receipts with the examples they bind.",
       "artifact_count": 10,
-      "inventory_sha256": "ca946be446b4e60df878af0d3185254c261c246340e9e26516b69e64a2872a46"
+      "inventory_sha256": "5afa49db1f3358fc8edad9d4c88f62c5e349bda49bce5ae84f9f3414cd019d85"
     },
     {
       "id": "documentation-schemas",
@@ -580,6 +580,18 @@
     }
   ],
   "relations": [
+    {
+      "kind": "receipt-binds-manifest",
+      "binder": "bench/cache/review-followup-mutation-receipt-2026-09-05.v1.json",
+      "bound": "bench/cache/mutation-manifest.v1.json",
+      "rationale": "The follow-up receipt retains all 14 mutation identities and 30-replay summaries while sealing the local raw report."
+    },
+    {
+      "kind": "correctness-check-binds-profile",
+      "binder": "bench/cache/review-followup-oracle-guard-validation-2026-09-05.v1.json",
+      "bound": "bench/cache/review-followup-corpus-profile-2026-09-05.v1.json",
+      "rationale": "The later oracle guard records the measured profile digest and proves unchanged query output on its four real corpora."
+    },
     {
       "kind": "baseline-bound-by-gate",
       "binder": "bench/labels/accepted_pair_coverage_dev_gate_2026_07_11.v1.json",

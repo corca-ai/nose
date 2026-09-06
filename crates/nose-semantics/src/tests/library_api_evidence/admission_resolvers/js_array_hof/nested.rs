@@ -18,12 +18,10 @@ fn js_array_normalized_hof_allows_admitted_nested_hof_callback() {
     push_receiver_domain_dependency_with_id(&mut il, 5, inner_param, DomainEvidence::Number);
     let inner_contract =
         library_method_call_contract(Lang::JavaScript, "map", 1).expect("JS Array.map row");
-    il.evidence
-        .push(js_array_hof_record(2, &il, inner_hof, inner_contract, &[1]));
+    il.push_evidence(js_array_hof_record(2, &il, inner_hof, inner_contract, &[1]));
     let outer_contract =
         library_method_call_contract(Lang::JavaScript, "flatMap", 1).expect("JS Array.flatMap row");
-    il.evidence
-        .push(js_array_hof_record(3, &il, outer_hof, outer_contract, &[0]));
+    il.push_evidence(js_array_hof_record(3, &il, outer_hof, outer_contract, &[0]));
 
     assert!(
         admitted_hof_api_at_node_with_interner(&il, Some(&interner), inner_hof, HoFKind::Map),

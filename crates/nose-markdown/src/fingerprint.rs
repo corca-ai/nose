@@ -83,7 +83,7 @@ thread_local! {
 }
 
 /// Per-unit Stage-1 fingerprints.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Fingerprint {
     /// Sorted, de-duplicated char-gram shingle hashes (for exact Jaccard / containment).
     pub shingles: Vec<u64>,

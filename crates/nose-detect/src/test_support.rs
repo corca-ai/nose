@@ -73,21 +73,20 @@ impl BindingDomainContainsFixture {
             Vec::new(),
             vec![xs],
         );
-        il.evidence.push(compat_test_asserted_evidence(
+        il.push_evidence(compat_test_asserted_evidence(
             0,
             EvidenceAnchor::binding(binding_span, stable_symbol_hash("xs")),
             EvidenceKind::Domain(DomainEvidence::Collection),
             Vec::new(),
         ));
-        il.evidence
-            .push(method_call_library_api_test_evidence_with_dependencies(
-                1,
-                Lang::TypeScript,
-                "includes",
-                il.node(call).span,
-                1,
-                vec![EvidenceId(0)],
-            ));
+        il.push_evidence(method_call_library_api_test_evidence_with_dependencies(
+            1,
+            Lang::TypeScript,
+            "includes",
+            il.node(call).span,
+            1,
+            vec![EvidenceId(0)],
+        ));
         Self {
             il,
             interner,
@@ -110,7 +109,7 @@ impl BindingDomainContainsFixture {
     }
 
     pub(crate) fn add_conflicting_map_domain(&mut self) {
-        self.il.evidence.push(compat_test_asserted_evidence(
+        self.il.push_evidence(compat_test_asserted_evidence(
             2,
             EvidenceAnchor::binding(self.binding_span, stable_symbol_hash("xs")),
             EvidenceKind::Domain(DomainEvidence::Map),
@@ -121,4 +120,25 @@ impl BindingDomainContainsFixture {
 
 fn span(line: u32) -> Span {
     Span::new(FileId(0), line, line, line, line)
+}
+
+/// Independent owned units with the same small arithmetic body.
+pub(crate) fn scoring_units(count: usize) -> Vec<crate::UnitFeat> {
+    let interner = Interner::new();
+    let il = nose_frontend::lower_source(
+        FileId(0),
+        "f.py",
+        b"def f(x):\n    return x * x + 1\n",
+        Lang::Python,
+        &interner,
+    )
+    .unwrap();
+    let options = crate::DetectOptions {
+        min_lines: 1,
+        min_tokens: 1,
+        ..Default::default()
+    };
+    (0..count)
+        .map(|_| crate::units_of_file(&il, &interner, &options).remove(0))
+        .collect()
 }

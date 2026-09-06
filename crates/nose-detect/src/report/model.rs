@@ -13,7 +13,7 @@ use super::{
 #[derive(Clone)]
 pub struct AcceptedCoverage {
     pub sites: Vec<Loc>,
-    pub edges: Vec<AcceptedEdge>,
+    pub edges: super::AcceptedEdges,
 }
 
 /// One detector-accepted pair before family transitive closure. The witness and
@@ -69,7 +69,7 @@ pub struct RefactorFamily {
     /// family's locations merely to store edge endpoints.
     #[doc(hidden)]
     #[serde(skip)]
-    pub direct_edges: Vec<AcceptedEdge>,
+    pub direct_edges: super::AcceptedEdges,
     /// Structural accepted-family sites this row must keep covered if a later
     /// presentation layer suppresses it. When rank subsumption drops a family,
     /// its locations and direct edges move to the covering survivor. Kept out of
@@ -171,6 +171,9 @@ impl RefactorFamily {
     /// (extract a 22-line helper and leave 360 unique lines at every site — barely a
     /// dedup); absolute shared lines alone can't tell them apart.
     pub fn extractability(&self) -> f64 {
+        if self.languages == 1 && self.shared_lines == 0 {
+            return 0.0;
+        }
         let (extract_lines, tightness) = if self.languages > 1 {
             // cross-language: there are no shared *source* lines to diff, so we can
             // neither weight out idioms nor measure tightness. Require *substance*
@@ -262,7 +265,7 @@ impl RefactorFamily {
         const SHALLOW_PARAM_RATIO: f64 = 0.33;
         // A proven channel is never demoted on a shape/size heuristic.
         let proven = matches!(
-            self.witness.as_ref().map(|w| w.kind),
+            self.witness.as_ref().map(|w| w.kind()),
             Some("exact-value-graph") | Some("shared-sub-dag")
         );
         if proven {
@@ -289,6 +292,9 @@ impl RefactorFamily {
     /// The consumer reads it only for a clean candidate (`actionability_reason` absent).
     pub fn extraction_shape(&self) -> &'static str {
         use nose_il::UnitKind;
+        if self.languages > 1 {
+            return "consolidate-cross-language";
+        }
         // call-existing-helper: exactly one named whole function/method, every other
         // member an inline block/fragment — the inline copies recompute the existing
         // helper, so the fix is "call it", not a fresh extraction (#263's local `clamp`).
@@ -312,9 +318,6 @@ impl RefactorFamily {
             if callable && inline >= 1 && inline == self.locations.len() - 1 {
                 return "call-existing-helper";
             }
-        }
-        if self.languages > 1 {
-            return "consolidate-cross-language";
         }
         let all_classes = self.locations.iter().all(|l| l.kind == UnitKind::Class);
         let all_blocks = self.locations.iter().all(|l| l.kind == UnitKind::Block);

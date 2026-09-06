@@ -200,6 +200,35 @@ finding in this implementation. The evidence remains review context; a future po
 would need a fresh target-adjudicated development set before it could be frozen and evaluated
 blind.
 
+### Original-region candidates across changed files
+
+When a function moves into another existing file, Git's file rename map cannot
+identify that move. A replacement at the original location can then appear to be
+the function's semantic change. The bounded witness now indexes original source
+regions from already projected changed files and exposes byte-identical candidates
+as `semantic_change.region_matches` in JSON/SARIF and locations in human output.
+It reuses loaded source buffers and adds no discovery or file parsing pass.
+
+For example, if `a.py:compute` moves unchanged to `c.py` while an unrelated function
+replaces it in `a.py`, the old `changed-range` comparison is now advisory and `c.py`
+is shown as a content candidate. If the original unit or file is gone, the semantic
+comparison remains unavailable but the content candidate is still shown. Two copies
+remain ambiguous. If `a.py:compute`
+actually changes and an old copy also appears elsewhere, exact-span/stable-name
+semantic evidence remains available; content equality cannot decide ancestry.
+
+The index examines at most 64 changed files, each under the existing projection
+limits, and returns at most 64 candidates. Missing projections make coverage partial;
+candidate overflow is explicit and does not expose a misleading truncated match list.
+The search is limited to already projected changed-file units, not all repository
+regions, and does not recognize extraction, inlining or edited moves. See the
+[JSON contract](query-json.md) for scope, status and cap fields. Candidate evidence
+never changes `fire_eligible`, `tier`, target identities or `gate.fail_default`.
+Human output labels the first-three candidate limit and changed-file coverage. Follow
+the labeled full JSON evidence command to inspect all candidates before choosing a gate
+or another action; it preserves the working directory and original analysis options.
+The gate is a separate labeled action.
+
 ## V2 gate tiers (design contract)
 
 #670 refreshed the replay measurement and changed the next implementation target:

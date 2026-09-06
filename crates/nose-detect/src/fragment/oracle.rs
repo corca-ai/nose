@@ -40,6 +40,10 @@ pub enum OracleInputProjection {
     /// The parameter is part of a whole-function declaration but a trailing suffix proof found
     /// no read of it. It is excluded from the oracle's effective input contract.
     UnusedTrailing,
+    /// Full dense-array values with source-proven primitive element identity.
+    ScalarArray(nose_il::DomainEvidence),
+    /// Map/Set inputs proven to expose only primitive-key membership and size.
+    KeyedMembership(nose_il::DomainEvidence),
 }
 
 impl OracleInputProjection {
@@ -48,6 +52,14 @@ impl OracleInputProjection {
             Self::Declared => "declared",
             Self::Cardinality => "cardinality",
             Self::UnusedTrailing => "unused-trailing",
+            Self::ScalarArray(nose_il::DomainEvidence::Boolean) => "boolean-array",
+            Self::ScalarArray(nose_il::DomainEvidence::Number) => "number-array",
+            Self::ScalarArray(nose_il::DomainEvidence::String) => "string-array",
+            Self::ScalarArray(_) => "unsupported-array",
+            Self::KeyedMembership(nose_il::DomainEvidence::Boolean) => "boolean-key-membership",
+            Self::KeyedMembership(nose_il::DomainEvidence::Number) => "number-key-membership",
+            Self::KeyedMembership(nose_il::DomainEvidence::String) => "string-key-membership",
+            Self::KeyedMembership(_) => "unsupported-key-membership",
         }
     }
 }
@@ -209,7 +221,7 @@ pub fn synthesize_wrapper_with_module_strings(
     let mut synth = b.finish(root, meta, units, il.cid_names.clone());
     // Copied fragment nodes keep their original spans, so their semantic evidence
     // remains valid for interpreter admission in the wrapper.
-    synth.evidence = il.evidence.clone();
+    synth.edit().evidence = il.evidence.clone();
     debug_assert!(
         synth.validate().is_ok(),
         "synthesized fragment wrapper must be a valid arena"

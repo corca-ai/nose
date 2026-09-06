@@ -1,4 +1,6 @@
 mod base_json;
+mod base_navigation;
+pub(super) use base_navigation::{actions as base_actions, BaseViewOptions};
 mod group;
 
 pub(super) use group::{render_query_group, QueryGroupView};
@@ -9,8 +11,7 @@ use crate::baseline_comparison::BaselineComparison;
 use crate::divergence;
 use crate::family_display::{removable_lines, representative_lines};
 use crate::query_baseline_gate::family_status;
-use crate::query_family_text::print_member_proposal;
-use crate::query_opportunities::{proposal_action_label, OpportunityGroups};
+use crate::query_opportunities::OpportunityGroups;
 use crate::query_semantic_packs::with_semantic_packs;
 use crate::query_terms::Query;
 use crate::report_text::plural;
@@ -18,10 +19,12 @@ use crate::schema_versions;
 use crate::source_lines::FileLineCache;
 use crate::style;
 use crate::surfaces::{effective_surface, SurfaceOverrides};
+use rayon::prelude::*;
 
 pub(super) fn print_query_prelude() {
     println!("nose finds duplication in code and docs.");
     println!("nose finds; you judge. Filter, group, sort, or open families to explore.");
+    println!("p = varying source regions; ~removable = repeated-line estimate, not an edit plan.");
 }
 
 /// The location cell — `file:line  name` — coloured with its visible width for alignment.
@@ -31,6 +34,7 @@ pub(super) fn loc_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
     let name = l
         .name
         .as_deref()
+        .or_else(|| l.enclosing_unit.as_ref().and_then(|u| u.name.as_deref()))
         .map(|n| format!("  {n}"))
         .unwrap_or_default();
     let width = pos.chars().count() + name.chars().count();
@@ -42,8 +46,9 @@ pub(super) fn loc_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
 /// string and its *visible* width for alignment.
 pub(super) fn metrics_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
     let (shared, params) = all_copies_shared(f);
+    let note = crate::query_assessment::row_note(f);
     let removable = query_removable_lines(f, shared);
-    let witness = witness_label(f.witness.as_ref().map(|w| w.kind));
+    let witness = witness_label(f.witness.as_ref().map(|w| w.kind()));
     // Flag non-production scope inline so a test/mixed family isn't mistaken for prod.
     let scope = if f.scope == "prod" {
         String::new()
@@ -59,21 +64,21 @@ pub(super) fn metrics_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
             "{} copies · cross-language · ~{} repeated · {}{}",
             f.members,
             style::bold(&removable.to_string()),
-            witness_styled(f.witness.as_ref().map(|w| w.kind)),
+            witness_styled(f.witness.as_ref().map(|w| w.kind())),
             style::yellow(&scope),
         );
         return (colored, plain.chars().count());
     }
     let rep = representative_lines(f);
     let plain = format!(
-        "{} copies · {shared}/{rep} shared, {params}p · ~{removable} removable · {witness}{scope}",
+        "{} copies · {shared}/{rep} shared, {params}p · ~{removable} removable · {witness}{scope}{note}",
         f.members,
     );
     let colored = format!(
-        "{} copies · {shared}/{rep} shared, {params}p · ~{} removable · {}{}",
+        "{} copies · {shared}/{rep} shared, {params}p · ~{} removable · {}{}{note}",
         f.members,
         style::bold(&removable.to_string()),
-        witness_styled(f.witness.as_ref().map(|w| w.kind)),
+        witness_styled(f.witness.as_ref().map(|w| w.kind())),
         style::yellow(&scope),
     );
     (colored, plain.chars().count())
@@ -97,14 +102,21 @@ pub(super) fn render_query_base(
     base_ref: &str,
     path: &str,
     top: Option<usize>,
-    json: bool,
-    semantic_packs: &[serde_json::Value],
+    options: BaseViewOptions<'_>,
 ) {
     let limit = query_row_limit(top);
     let fire_eligible = flagged.iter().filter(|d| d.fire_eligible).count();
     let strict = flagged.iter().filter(|d| d.gate_fail_default()).count();
-    if json {
-        base_json::render(flagged, changed_files, base_ref, path, top, semantic_packs);
+    if options.format == crate::query_options::ReportFormat::Json {
+        base_json::render(
+            flagged,
+            changed_files,
+            base_ref,
+            path,
+            top,
+            options.semantic_packs,
+            options.actions,
+        );
         return;
     }
     print_query_prelude();
@@ -182,7 +194,13 @@ pub(super) fn render_query_base(
         }
     }
     println!("\nnext:");
-    println!("  nose query {path} base={base_ref} --fail-on any   # fail CI on strict divergences");
+    for action in options.actions {
+        println!(
+            "  {}\n    {}",
+            action["label"].as_str().unwrap(),
+            action["command"].as_str().unwrap()
+        );
+    }
 }
 
 fn print_semantic_change(site: &divergence::Site) {
@@ -192,14 +210,16 @@ fn print_semantic_change(site: &divergence::Site) {
 }
 
 /// The `reinvented` view: code that reimplements an existing helper's body (the `reinvented`
-/// channel). Each surfaced finding's action is "call the helper instead" — the same action as a
-/// `call-existing-helper` family, but for sites the family clusterer did not group (different
-/// recall, not a second way to ask the same question). Production containers are shown only when
+/// channel). Findings establish matching computations, not a callable API. Cross-language
+/// relations invite comparison; same-language relations invite a visibility/dependency review.
+/// Production containers are shown only when
 /// the existing helper is also production; a test-only helper requires rehoming/extracting before
 /// production code can call it.
 pub(super) fn render_query_reinvented(
     reinvented: &[nose_detect::ReinventedHelper],
+    analysis: &serde_json::Value,
     path: &str,
+    navigation_path: &str,
     top: Option<usize>,
     json: bool,
     semantic_packs: &[serde_json::Value],
@@ -239,11 +259,12 @@ pub(super) fn render_query_reinvented(
                     "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
                     "tool": "nose",
                     "view": "reinvented",
+                    "analysis": analysis,
                     "path": path,
                     "summary": {"findings": shown.len(), "shown": shown.len().min(limit),
                         "in_test": in_test, "test_helper": test_helper},
                     "items": items,
-                    "next": [format!("nose query {path} shape=call-existing-helper")],
+                    "next": [format!("nose query {navigation_path} shape=call-existing-helper --format json")],
                 }),
                 semantic_packs
             )
@@ -260,11 +281,16 @@ pub(super) fn render_query_reinvented(
         }
         return;
     }
-    println!("reinvented helpers — code that reimplements an existing helper; call it instead:");
+    println!("matched helper computations — inspect whether reuse is possible:");
     for r in shown.iter().take(limit) {
         let approx = if r.site_approximate { " ~approx" } else { "" };
+        let action = if r.helper_lang == r.container_lang {
+            "inspect reuse of"
+        } else {
+            "compare across languages with"
+        };
         println!(
-            "  {}:{}-{}{}  → call {} ({}:{}-{})  ~{} value nodes",
+            "  {}:{}-{}{}  → {action} {} ({}:{}-{})  ~{} value nodes",
             r.container_file,
             r.site_start_line,
             r.site_end_line,
@@ -276,6 +302,7 @@ pub(super) fn render_query_reinvented(
             r.weight,
         );
     }
+    println!("  A computation match does not establish visibility, imports, or a callable API.");
     let hidden = shown.len().saturating_sub(limit);
     if hidden > 0 {
         println!("  … {hidden} more (raise top=N)");
@@ -288,19 +315,21 @@ pub(super) fn render_query_reinvented(
     }
     println!("\nnext:");
     println!(
-        "  nose query {path} shape=call-existing-helper   # the clustered cases (in clone families)"
+        "  nose query {navigation_path} shape=call-existing-helper   # the clustered cases (in clone families)"
     );
 }
 
 /// A ranked list of the current selection: each row carries its own `id=` drill link,
 /// plus a reasoned `next:`.
 pub(super) struct QueryListView<'a> {
+    pub(super) analysis: &'a serde_json::Value,
     pub(super) selection: &'a [&'a nose_detect::RefactorFamily],
     pub(super) overrides: &'a SurfaceOverrides,
     pub(super) opportunities: &'a OpportunityGroups,
     pub(super) query: &'a Query,
     pub(super) terms: &'a [String],
     pub(super) path: &'a str,
+    pub(super) navigation_path: &'a str,
     pub(super) widen: bool,
     pub(super) json: bool,
     pub(super) baseline_comparison: Option<&'a BaselineComparison>,
@@ -324,12 +353,19 @@ fn query_list_json(view: &QueryListView<'_>) -> serde_json::Value {
     let top = query_row_limit(query.top);
     let shown = selection.len().min(top);
     let mut lines = FileLineCache::default();
-    let fams: Vec<_> = selection
+    let reasons = crate::query_assessment::SelectionReasons::new(selection);
+    let counts: Vec<_> = selection
         .iter()
         .take(top)
         .map(|f| {
             let (shared, params) = all_copies_shared_cached(f, &mut lines);
-            query_family_json_with_counts(
+            (*f, shared, params)
+        })
+        .collect();
+    let fams: Vec<_> = counts
+        .into_par_iter()
+        .map(|(f, shared, params)| {
+            let mut row = query_family_json_with_counts(
                 f,
                 overrides,
                 opportunities,
@@ -338,28 +374,39 @@ fn query_list_json(view: &QueryListView<'_>) -> serde_json::Value {
                 *since,
                 shared,
                 params,
-            )
+            );
+            if let Some(reason) = reasons.reason(row["id"].as_str().unwrap(), opportunities) {
+                row["selection_reason"] = reason;
+            }
+            row
         })
         .collect();
-    with_semantic_packs(
+    let mut output = with_semantic_packs(
         serde_json::json!({
             "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
             "tool": "nose",
             "view": "list",
+            "analysis": view.analysis,
             "path": path,
             "summary": { "families": selection.len(), "shown": shown, "widened": widen },
-            "families": fams,
-            "next": [format!("nose query {path} group=dir"), format!("nose query {path} group=witness")],
+            "actions":fams.iter().take(8).map(|f| serde_json::json!({"kind":"open-family", "id":f["id"],
+                "command":format!("{} id={} --format json", base_cmd(view.terms, view.navigation_path), f["id"].as_str().unwrap())})).collect::<Vec<_>>(),
+            "next": [format!("{} group=dir --format json", base_cmd(view.terms, view.navigation_path)), format!("{} group=witness --format json", base_cmd(view.terms, view.navigation_path))],
         }),
         semantic_packs,
-    )
+    );
+    output["families"] = serde_json::Value::Array(fams);
+    output
 }
 
 pub(super) fn render_query_list(view: QueryListView<'_>) {
     let top = query_row_limit(view.query.top);
     let shown = view.selection.len().min(top);
     if view.json {
-        println!("{}", query_list_json(&view));
+        println!(
+            "{}",
+            serde_json::to_string(&query_list_json(&view)).expect("query JSON serialization")
+        );
         return;
     }
     println!(
@@ -388,6 +435,7 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
         .collect();
     let wl = cells.iter().map(|c| c.1).max().unwrap_or(0);
     let wm = cells.iter().map(|c| c.3).max().unwrap_or(0);
+    let reasons = crate::query_assessment::SelectionReasons::new(view.selection);
     for (f, (loc, lw, metrics, mw)) in shown_rows.iter().zip(&cells) {
         // When widened past the default surface, label why a demoted family is here.
         let surf = if view.widen {
@@ -410,8 +458,8 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
             _ => String::new(),
         };
         let cmd = style::dim(&format!(
-            "nose query {} id={}",
-            view.path,
+            "{} id={}",
+            base_cmd(view.terms, view.navigation_path),
             short_id(&baseline::family_id(f))
         ));
         println!(
@@ -419,38 +467,50 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
             " ".repeat(wl - lw),
             " ".repeat(wm - mw),
         );
-        // `full` on a list/filter batches the extraction skeletons — triage N candidates
+        if let Some(reason) = reasons.reason(&baseline::family_id(f), view.opportunities) {
+            println!(
+                "       ↳ {} Open primary: nose query {} id={}",
+                reason["meaning"].as_str().unwrap(),
+                view.navigation_path,
+                reason["primary_id"].as_str().unwrap()
+            );
+        }
+        // `full` on a list/filter batches the bounded source comparisons — triage N candidates
         // in one stateless call (no per-family id= round-trip).
         if view.query.id_full {
-            print_member_proposal(&f.locations, proposal_action_label(f));
+            crate::query_source_evidence::render(
+                &crate::query_source_evidence::collect(f, false),
+                false,
+            );
         }
     }
     if !view.query.id_full {
         println!(
-            "  nose query {} ... full   # add `full` to show the extraction skeletons inline",
-            view.path
+            "  {} full   # show bounded source comparisons inline",
+            base_cmd(view.terms, view.navigation_path)
         );
     }
     println!("\nnext:");
     if !view.terms.iter().any(|term| term.starts_with("group=")) {
         println!(
-            "  {} group=dir       # where this selection concentrates",
-            base_cmd(view.terms, view.path)
+            "  {} group=dir       # group all {} matching families; top limits displayed groups",
+            base_cmd(view.terms, view.navigation_path),
+            view.selection.len()
         );
     }
     println!(
-        "  {} group=witness   # by confidence",
-        base_cmd(view.terms, view.path)
+        "  {} group=witness   # group all {} matching families by confidence; top limits displayed groups",
+        base_cmd(view.terms, view.navigation_path), view.selection.len()
     );
 }
 
 /// `nose query` with the current selection's terms minus any view term — the prefix the
 /// `next:` links extend.
 fn base_cmd(terms: &[String], path: &str) -> String {
-    let keep: Vec<&str> = terms
+    let keep: Vec<String> = terms
         .iter()
         .filter(|t| !t.starts_with("group=") && !t.starts_with("id=") && *t != "full")
-        .map(String::as_str)
+        .map(|term| crate::path_utils::shell_quote(term))
         .collect();
     if keep.is_empty() {
         format!("nose query {path}")

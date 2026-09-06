@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+from query_cache_output import NORMALIZER, comparable_output, self_test as output_self_test
+
 import hashlib
 import json
 import math
@@ -43,6 +45,7 @@ LINUX_RSS_RE = re.compile(
 )
 DEFAULT_TERMS = ("all", "top=0")
 DEFAULT_FLAGS = ("--min-lines", "1", "--min-size", "1")
+DEFAULT_MODES = ("semantic",)
 EXECUTABLE_CASES = {
     "no-op",
     "leaf-edit",
@@ -254,8 +257,10 @@ def validate_manifests(mutation_path: Path, baseline_path: Path) -> tuple[dict[s
         raise SystemExit(f"{mutation_path}: synthetic tiers must be exactly 1k/10k/100k")
 
     baseline = load_json(baseline_path)
-    if baseline.get("schema") != BASELINE_SCHEMA or baseline.get("version") != "0.19.0":
-        raise SystemExit(f"{baseline_path}: expected official v0.19.0 baseline")
+    if baseline.get("schema") != BASELINE_SCHEMA or re.fullmatch(
+        r"[0-9]+\.[0-9]+\.[0-9]+", str(baseline.get("version"))
+    ) is None:
+        raise SystemExit(f"{baseline_path}: expected a versioned official release baseline")
     artifacts = baseline.get("artifacts")
     if not isinstance(artifacts, list) or len(artifacts) != 4:
         raise SystemExit(f"{baseline_path}: expected four published targets")
@@ -371,12 +376,12 @@ def query_command(
         "query",
         repo_argument,
         *terms,
-        "--mode",
-        "semantic",
         "--format",
         "json",
         *flags,
     ]
+    for mode in DEFAULT_MODES:
+        command.extend(("--mode", mode))
     if cache is not None:
         command.extend(("--cache-dir", str(cache)))
     return command
@@ -419,13 +424,16 @@ def run_query(
     invalidation = parse_invalidation(stderr)
     if cache is not None and require_cache_stats and invalidation is None:
         raise SystemExit(f"{phase} replay {replay}: binary omitted invalidation evidence")
+    comparable = comparable_output(payload, cache)
     row = {
         "phase": phase,
         "replay": replay,
         "elapsed_ms": elapsed_ms,
         "peak_rss_bytes": parse_rss(stderr),
         "output_bytes": len(result.stdout),
-        "output_sha256": hashlib.sha256(result.stdout).hexdigest(),
+        "output_sha256": hashlib.sha256(comparable).hexdigest(),
+        "raw_output_sha256": hashlib.sha256(result.stdout).hexdigest(),
+        "output_normalizer": NORMALIZER,
         "families": len(payload["families"]),
         "schema_version": payload.get("schema_version"),
         "stages_ms": parse_stages(stderr),
@@ -433,7 +441,7 @@ def run_query(
         "invalidation": invalidation,
         "store": store_usage(cache) if cache is not None else None,
     }
-    return row, result.stdout
+    return row, comparable
 
 
 def assert_equal(left: bytes, right: bytes, label: str) -> None:
@@ -538,6 +546,7 @@ def run_real_leaf_replay(
     mutation: RealLeafMutation,
     replay: int,
     require_cache_stats: bool,
+    *, include_seed: bool = False,
 ) -> tuple[list[dict[str, Any]], bool, bool, str, str]:
     shutil.rmtree(workspace, ignore_errors=True)
     workspace.mkdir(parents=True)
@@ -560,11 +569,17 @@ def run_real_leaf_replay(
     before_identity = source_identity(repo)
     history = workspace / "history-cache"
     cold = workspace / "cold-cache"
-    run_query(
+    clean_seed, clean_seed_bytes = run_query(
+        binary=binary, cwd=workspace, repo_argument="repo", phase="clean-seed",
+        replay=replay, terms=DEFAULT_TERMS, flags=DEFAULT_FLAGS, cache=None,
+        require_cache_stats=require_cache_stats,
+    )
+    seed, seed_bytes = run_query(
         binary=binary, cwd=workspace, repo_argument="repo", phase="empty-store-seed",
         replay=replay, terms=DEFAULT_TERMS, flags=DEFAULT_FLAGS, cache=history,
         require_cache_stats=require_cache_stats,
     )
+    assert_equal(clean_seed_bytes, seed_bytes, f"real leaf seed replay {replay}")
     leaf.write_text(content.replace(mutation.find, mutation.replace), encoding="utf-8")
     after_identity = source_identity(repo)
     clean, clean_bytes = run_query(
@@ -583,7 +598,7 @@ def run_real_leaf_replay(
         require_cache_stats=require_cache_stats,
     )
     return (
-        [clean, cold_row, warm_row],
+        ([clean_seed, seed] if include_seed else []) + [clean, cold_row, warm_row],
         clean_bytes == cold_bytes,
         clean_bytes == warm_bytes,
         before_identity,
@@ -918,7 +933,7 @@ def validate_comparison_payload(report: dict[str, Any]) -> None:
         raise SystemExit("cache comparison summary does not match its raw rows")
 
 
-def validate_report(path: Path) -> None:
+def validate_report(path: Path, baseline_path: Path = DEFAULT_BASELINE) -> None:
     report = load_json(path)
     if report.get("schema") == COMPARISON_SCHEMA:
         validate_comparison_payload(report)
@@ -927,7 +942,7 @@ def validate_report(path: Path) -> None:
     provenance = report["provenance"]
     current = {
         "mutation_manifest_sha256": sha256_file(DEFAULT_MANIFEST),
-        "official_baseline_sha256": sha256_file(DEFAULT_BASELINE),
+        "official_baseline_sha256": sha256_file(baseline_path),
     }
     for field, expected in current.items():
         if provenance[field] != expected:
@@ -962,7 +977,7 @@ def write_receipt(report_path: Path, output_path: Path) -> None:
     )
 
 
-def validate_receipt(path: Path) -> None:
+def validate_receipt(path: Path, baseline_path: Path = DEFAULT_BASELINE) -> None:
     receipt = load_json(path)
     if (
         receipt.get("schema") != RECEIPT_SCHEMA
@@ -990,7 +1005,7 @@ def validate_receipt(path: Path) -> None:
         raise SystemExit(f"{path}: invalid raw report seal")
     current = {
         "mutation_manifest_sha256": sha256_file(DEFAULT_MANIFEST),
-        "official_baseline_sha256": sha256_file(DEFAULT_BASELINE),
+        "official_baseline_sha256": sha256_file(baseline_path),
     }
     for field, expected in current.items():
         if provenance.get(field) != expected:
@@ -1220,6 +1235,7 @@ def measurement_environment() -> dict[str, Any]:
 
 
 def self_test() -> None:
+    output_self_test()
     validate_manifests(DEFAULT_MANIFEST, DEFAULT_BASELINE)
     assert nearest_rank_p95(list(range(1, 21))) == 19
     assert parse_cache_stats("  [cache] files=3 hits=1 misses=2 read_bytes=4 written_bytes=5") == {
@@ -1278,7 +1294,7 @@ def main() -> int:
         self_test()
         return 0
     if args.validate_report is not None:
-        validate_report(args.validate_report.resolve())
+        validate_report(args.validate_report.resolve(), args.official_baseline.resolve())
         return 0
     if args.write_receipt is not None:
         if args.output is None:
@@ -1286,7 +1302,7 @@ def main() -> int:
         write_receipt(args.write_receipt.resolve(), args.output.resolve())
         return 0
     if args.validate_receipt is not None:
-        validate_receipt(args.validate_receipt.resolve())
+        validate_receipt(args.validate_receipt.resolve(), args.official_baseline.resolve())
         return 0
     if args.binary is None or args.output is None:
         raise SystemExit("--binary and --output are required")

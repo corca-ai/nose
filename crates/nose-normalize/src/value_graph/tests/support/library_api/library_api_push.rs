@@ -46,7 +46,7 @@ pub(crate) fn push_method_call_library_api_evidence(
         record.provenance.rule_hash =
             Some(stable_symbol_hash(BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID));
     }
-    il.evidence.push(record);
+    il.push_evidence(record);
 }
 
 fn is_receiver_membership_method_call(contract: LibraryMethodCallContract) -> bool {
@@ -247,5 +247,5 @@ pub(crate) fn push_library_api_evidence_for_callee(
             dependencies,
         )
     };
-    il.evidence.push(record);
+    il.push_evidence(record);
 }

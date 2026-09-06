@@ -20,7 +20,7 @@ fn does_not_emit_imported_function_target_for_ambiguous_binding_symbol() {
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(binding_symbol(
+    il.push_evidence(binding_symbol(
         0,
         sp(1),
         "p",
@@ -68,7 +68,7 @@ fn does_not_emit_imported_function_target_when_local_assignment_rebinds_alias() 
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(binding_symbol(
+    il.push_evidence(binding_symbol(
         0,
         sp(1),
         "p",
@@ -115,7 +115,7 @@ fn does_not_emit_imported_function_target_when_parameter_shadows_alias() {
         Vec::new(),
     );
     il.cid_names = vec![p];
-    il.evidence.push(binding_symbol(
+    il.push_evidence(binding_symbol(
         0,
         sp(1),
         "p",
@@ -139,7 +139,7 @@ fn does_not_emit_imported_function_target_when_parameter_shadows_alias() {
 fn symbol_evidence_suppresses_direct_function_raw_name_fallback() {
     let interner = Interner::new();
     let (mut il, func, call) = function_with_call(&interner, "f", "f", false);
-    il.evidence.push(binding_symbol(
+    il.push_evidence(binding_symbol(
         0,
         sp(1),
         "f",
@@ -204,7 +204,7 @@ fn does_not_emit_scoped_member_target_for_language_roots() {
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(binding_symbol(
+    il.push_evidence(binding_symbol(
         0,
         sp(1),
         "std",

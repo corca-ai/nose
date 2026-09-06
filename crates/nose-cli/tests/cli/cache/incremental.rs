@@ -85,7 +85,7 @@ fn assert_incremental_mode_matches_clean(
 ) {
     let clean = query_incremental_mode(project.path(), None, mode, "2");
     let cached = query_incremental_mode(project.path(), Some(cache), mode, threads);
-    assert_eq!(cached.stdout, clean.stdout, "mode {mode:?} diverged");
+    assert_same_analysis_output(&cached, &clean);
 }
 
 fn clone_source(name: &str, operator: &str) -> String {
@@ -148,14 +148,14 @@ fn default_detection_state_matches_clean_across_warm_and_leaf_edit() {
     let clean = query_default(project.path(), None);
     let cold = query_default(project.path(), Some(&cache));
     let warm = query_default(project.path(), Some(&cache));
-    assert_eq!(cold.stdout, clean.stdout);
-    assert_eq!(warm.stdout, clean.stdout);
+    assert_same_analysis_output(&cold, &clean);
+    assert_same_analysis_output(&warm, &clean);
     assert_warm_default_layers_reused(&warm);
 
     project.write("c/three.py", &format!("\n{}", source("third", "+")));
     let clean_changed = query_default(project.path(), None);
     let cached_changed = query_default(project.path(), Some(&cache));
-    assert_eq!(cached_changed.stdout, clean_changed.stdout);
+    assert_same_analysis_output(&cached_changed, &clean_changed);
     let changed_stats = detection_stats(&cached_changed);
     assert!(changed_stats.state_hit);
     assert!(changed_stats.units_reused > 0);
@@ -221,7 +221,7 @@ fn final_output_is_independent_of_edit_order_and_thread_count() {
     let order_ba = query_incremental_mode(project.path(), Some(&cache_b), None, "4");
     let clean = query_incremental_mode(project.path(), None, None, "2");
 
-    assert_eq!(order_ab.stdout, clean.stdout);
-    assert_eq!(order_ba.stdout, clean.stdout);
-    assert_eq!(order_ab.stdout, order_ba.stdout);
+    assert_same_analysis_output(&order_ab, &clean);
+    assert_same_analysis_output(&order_ba, &clean);
+    assert_same_analysis_output(&order_ab, &order_ba);
 }

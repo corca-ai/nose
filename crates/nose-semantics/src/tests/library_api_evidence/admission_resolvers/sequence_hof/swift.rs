@@ -132,9 +132,7 @@ fn swift_sequence_hof_pack_rejects_lazy_adapter_receiver() {
         let (mut base_proof, interner, call, receiver, _lazy) =
             swift_lazy_sequence_hof_call_il(method);
         push_receiver_domain_dependency(&mut base_proof, 0, receiver, DomainEvidence::Collection);
-        base_proof
-            .evidence
-            .push(sequence_hof_record(1, &base_proof, call, contract, 1, &[0]));
+        base_proof.push_evidence(sequence_hof_record(1, &base_proof, call, contract, 1, &[0]));
         assert!(
             admitted_library_method_call_at_call(&base_proof, &interner, call).is_none(),
             "Swift .lazy.{method} does not inherit eager Array/Collection proof from the base receiver"
@@ -143,7 +141,7 @@ fn swift_sequence_hof_pack_rejects_lazy_adapter_receiver() {
         let (mut lazy_iterable, interner, call, _receiver, lazy) =
             swift_lazy_sequence_hof_call_il(method);
         push_receiver_domain_dependency(&mut lazy_iterable, 0, lazy, DomainEvidence::Iterable);
-        lazy_iterable.evidence.push(sequence_hof_record(
+        lazy_iterable.push_evidence(sequence_hof_record(
             1,
             &lazy_iterable,
             call,
@@ -230,8 +228,7 @@ fn admitted_swift_sequence_hof_pack_covers_supported_eager_non_flattening_hofs()
             swift_sequence_hof_call_il(method, SwiftCallbackShape::Inline);
         push_receiver_domain_dependency(&mut il, 0, receiver, DomainEvidence::Collection);
         let contract = library_method_call_contract(Lang::Swift, method, 1).expect("Swift HOF row");
-        il.evidence
-            .push(sequence_hof_record(1, &il, call, contract, 1, &[0]));
+        il.push_evidence(sequence_hof_record(1, &il, call, contract, 1, &[0]));
         let occurrence = admitted_library_method_call_at_call(&il, &interner, call)
             .expect("supported Swift Sequence HOF admits");
         assert_eq!(
@@ -270,8 +267,7 @@ fn swift_sequence_hof_pack_rejects_non_inline_or_effectful_callbacks() {
         ] {
             let (mut il, interner, call, receiver) = swift_sequence_hof_call_il(method, shape);
             push_receiver_domain_dependency(&mut il, 0, receiver, DomainEvidence::Collection);
-            il.evidence
-                .push(sequence_hof_record(1, &il, call, contract, 1, &[0]));
+            il.push_evidence(sequence_hof_record(1, &il, call, contract, 1, &[0]));
             assert!(
                 admitted_library_method_call_at_call(&il, &interner, call).is_none(),
                 "{method}: {message}"
@@ -288,8 +284,7 @@ fn swift_sequence_hof_pack_rejects_multi_param_callbacks() {
         let (mut il, interner, call, receiver) =
             swift_sequence_hof_call_il(method, SwiftCallbackShape::MultiParam);
         push_receiver_domain_dependency(&mut il, 0, receiver, DomainEvidence::Collection);
-        il.evidence
-            .push(sequence_hof_record(1, &il, call, contract, 1, &[0]));
+        il.push_evidence(sequence_hof_record(1, &il, call, contract, 1, &[0]));
         assert!(
             admitted_library_method_call_at_call(&il, &interner, call).is_none(),
             "Swift {method} admission must stay value-only so custom overloads cannot masquerade as Sequence HOFs"
@@ -302,11 +297,10 @@ fn swift_sequence_hof_result_domain_can_prove_follow_on_ordered_receiver() {
     let (mut il, interner, filter_call, map_call, receiver) = swift_sequence_hof_chain_il();
     push_receiver_domain_dependency(&mut il, 0, receiver, DomainEvidence::Collection);
     let map_contract = library_method_call_contract(Lang::Swift, "map", 1).expect("Swift map row");
-    il.evidence
-        .push(sequence_hof_record(1, &il, map_call, map_contract, 1, &[0]));
+    il.push_evidence(sequence_hof_record(1, &il, map_call, map_contract, 1, &[0]));
     let filter_contract =
         library_method_call_contract(Lang::Swift, "filter", 1).expect("Swift filter row");
-    il.evidence.push(sequence_hof_record(
+    il.push_evidence(sequence_hof_record(
         2,
         &il,
         filter_call,

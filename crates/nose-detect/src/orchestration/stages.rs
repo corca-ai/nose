@@ -1,3 +1,4 @@
+use super::accepted::AcceptedPairs;
 use super::{AcceptedPair, ScoredCandidate};
 use crate::candidates::ConnectedAccepted;
 
@@ -20,8 +21,9 @@ pub(super) struct ResolvedDetectionStages {
 
 pub(super) struct DetectionStages {
     pub(super) candidates: Vec<(usize, usize)>,
+    pub(super) candidate_count: usize,
     pub(super) scored: Vec<ScoredCandidate>,
-    pub(super) accepted: Vec<AcceptedPair>,
+    pub(super) accepted: AcceptedPairs,
     pub(super) source: DetectionStageSource,
 }
 
@@ -41,9 +43,10 @@ impl DetectionStages {
         accepted: Vec<AcceptedPair>,
     ) -> Self {
         Self {
+            candidate_count: candidates.len(),
             candidates,
             scored,
-            accepted,
+            accepted: accepted.into(),
             source: DetectionStageSource::Fresh,
         }
     }

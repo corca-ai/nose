@@ -113,7 +113,7 @@ pub(crate) fn assert_rust_option_some_requires_pack_provenance(admission: RustOp
         RUST_STDLIB_OPTION_PACK_ID,
         RUST_STDLIB_OPTION_PRODUCER_ID,
     );
-    missing_dependency.evidence.push(record);
+    missing_dependency.push_evidence(record);
     admission.assert_rejected(
         &missing_dependency,
         &interner,
@@ -145,7 +145,7 @@ pub(crate) fn assert_rust_option_some_requires_pack_provenance(admission: RustOp
             pack_id,
             producer_id,
         );
-        rejected.evidence.push(record);
+        rejected.push_evidence(record);
         admission.assert_rejected(&rejected, &interner, call, callee, reason);
     }
 
@@ -161,7 +161,7 @@ pub(crate) fn assert_rust_option_some_requires_pack_provenance(admission: RustOp
         RUST_STDLIB_OPTION_PRODUCER_ID,
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     admission.assert_rejected(
         &wrong_emitter,
         &interner,
@@ -181,12 +181,12 @@ pub(crate) fn assert_rust_option_some_requires_pack_provenance(admission: RustOp
         RUST_STDLIB_OPTION_PACK_ID,
         RUST_STDLIB_OPTION_PRODUCER_ID,
     );
-    admitted.evidence.push(record);
+    admitted.push_evidence(record);
     admission.assert_admitted(&admitted, &interner, call, callee);
 }
 
 fn push_some_symbol_dependency(il: &mut Il, callee: NodeId) {
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(il.node(callee).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
