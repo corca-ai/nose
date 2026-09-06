@@ -43,19 +43,29 @@ fn check_tree_budget(tree: &tree_sitter::Tree) -> anyhow::Result<()> {
     // Keep room for long operator/call chains while bounding recursive adapters.
     const MAX_DEPTH: usize = 8_192;
     const MAX_NODES: usize = 2_000_000;
+    check_tree_limits(tree, MAX_DEPTH, MAX_NODES)
+}
+
+fn check_tree_limits(
+    tree: &tree_sitter::Tree,
+    max_depth: usize,
+    max_nodes: usize,
+) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        tree.root_node().descendant_count() <= max_nodes,
+        "source syntax nodes exceed analysis limit of {max_nodes}"
+    );
     let mut cursor = tree.walk();
-    let (mut depth, mut nodes) = (0, 0);
+    let mut depth = 0;
     loop {
-        nodes += 1;
         anyhow::ensure!(
-            depth <= MAX_DEPTH,
-            "source syntax depth exceeds analysis limit of {MAX_DEPTH}"
+            depth <= max_depth,
+            "source syntax depth exceeds analysis limit of {max_depth}"
         );
-        anyhow::ensure!(
-            nodes <= MAX_NODES,
-            "source syntax nodes exceed analysis limit of {MAX_NODES}"
-        );
-        if cursor.goto_first_child() {
+        // Even a chain cannot be deeper than its descendant count minus one.
+        // Tree-sitter stores that count, so ordinary subtrees need no second walk.
+        let bounded = cursor.node().descendant_count() - 1 <= max_depth - depth;
+        if !bounded && cursor.goto_first_child() {
             depth += 1;
             continue;
         }
@@ -123,4 +133,44 @@ pub(crate) fn common_bin_op(text: &str) -> Option<Op> {
         ">>" => Op::Shr,
         _ => return None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn subtree_bounds_match_exhaustive_depth_and_node_limits() {
+        let mut parser = tree_sitter::Parser::new();
+        parser
+            .set_language(&tree_sitter_javascript::LANGUAGE.into())
+            .unwrap();
+        for source in [
+            "",
+            "// comment\nlet x = a + b;",
+            "function f(x) { return (((x))); }",
+            "const x = [1, 2, 3, 4, 5];",
+            "const broken = (((;",
+        ] {
+            let tree = parser.parse(source, None).unwrap();
+            let mut pending = vec![(tree.root_node(), 0)];
+            let (mut nodes, mut depth) = (0, 0);
+            while let Some((node, level)) = pending.pop() {
+                nodes += 1;
+                depth = depth.max(level);
+                let mut cursor = node.walk();
+                pending.extend(node.children(&mut cursor).map(|child| (child, level + 1)));
+            }
+            assert_eq!(tree.root_node().descendant_count(), nodes);
+            for max_depth in 0..=depth + 1 {
+                for max_nodes in [0, nodes - 1, nodes, nodes + 1] {
+                    assert_eq!(
+                        check_tree_limits(&tree, max_depth, max_nodes).is_ok(),
+                        depth <= max_depth && nodes <= max_nodes,
+                        "{source:?}"
+                    );
+                }
+            }
+        }
+    }
 }

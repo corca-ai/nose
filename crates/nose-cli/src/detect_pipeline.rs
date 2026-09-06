@@ -18,6 +18,23 @@ impl nose_detect::Detector for ChannelDetector {
             .fold(0.0, f64::max)
     }
 
+    fn prepare_scores<'a>(
+        &'a self,
+        units: &[&'a nose_detect::UnitFeat],
+    ) -> Option<Box<dyn nose_detect::PreparedScores + 'a>> {
+        Some(Box::new(ChannelScores {
+            units: units.to_vec(),
+            detectors: self
+                .detectors
+                .iter()
+                .map(|detector| PreparedChannel {
+                    detector: detector.as_ref(),
+                    prepared: detector.prepare_scores(units),
+                })
+                .collect(),
+        }))
+    }
+
     fn score_classes(&self, units: &[nose_detect::UnitFeat]) -> Option<Vec<usize>> {
         let classes = self
             .detectors
@@ -34,6 +51,34 @@ impl nose_detect::Detector for ChannelDetector {
                 })
                 .collect(),
         )
+    }
+}
+
+struct ChannelScores<'a> {
+    units: Vec<&'a nose_detect::UnitFeat>,
+    detectors: Vec<PreparedChannel<'a>>,
+}
+
+struct PreparedChannel<'a> {
+    detector: &'a dyn nose_detect::Detector,
+    prepared: Option<Box<dyn nose_detect::PreparedScores + 'a>>,
+}
+
+impl nose_detect::PreparedScores for ChannelScores<'_> {
+    fn row(&self, left: usize, right: &[usize]) -> Vec<f64> {
+        let mut scores = vec![0.0_f64; right.len()];
+        for PreparedChannel { detector, prepared } in &self.detectors {
+            if let Some(prepared) = prepared {
+                for (score, next) in scores.iter_mut().zip(prepared.row(left, right)) {
+                    *score = score.max(next);
+                }
+            } else {
+                for (score, &right) in scores.iter_mut().zip(right) {
+                    *score = score.max(detector.score(self.units[left], self.units[right]));
+                }
+            }
+        }
+        scores
     }
 }
 
@@ -144,4 +189,50 @@ pub(crate) fn candidate_limit(explicit_limit: Option<usize>) -> Result<Option<us
         Err(error) => return Err(error.into()),
     };
     Ok(Some(limit))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nose_detect::Detector as _;
+
+    #[test]
+    fn prepared_channels_preserve_the_maximum_of_each_original_scorer() {
+        let interner = nose_il::Interner::new();
+        let il = nose_frontend::lower_source(nose_il::FileId(0), "f.py",
+            b"def square(x):\n    y = x * x\n    return y + 1\ndef cube(x):\n    y = x * x * x\n    return y + 2\n",
+            nose_il::Lang::Python, &interner).unwrap();
+        let opts = nose_detect::DetectOptions {
+            min_tokens: 1,
+            min_lines: 1,
+            shape_features: true,
+            ..Default::default()
+        };
+        let units = nose_detect::units_of_file(&il, &interner, &opts);
+        assert!(units.len() >= 2);
+        let detector = ChannelDetector {
+            name: "test",
+            detectors: vec![
+                Box::new(nose_detect::ExactBehaviorDetector),
+                Box::new(
+                    nose_detect::StructuralDetector::candidates(0.75)
+                        .without_exact_behavior()
+                        .with_threshold(0.8),
+                ),
+            ],
+        };
+        let prepared = detector
+            .prepare_scores(&units.iter().collect::<Vec<_>>())
+            .unwrap();
+        let right = (0..units.len()).collect::<Vec<_>>();
+        for left in 0..units.len() {
+            assert_eq!(
+                prepared.row(left, &right),
+                right
+                    .iter()
+                    .map(|&r| detector.score(&units[left], &units[r]))
+                    .collect::<Vec<_>>()
+            );
+        }
+    }
 }

@@ -121,12 +121,24 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    the units repeat an input class. A row further requires identical membership in
    every candidate bucket and equal eligibility for connected-seed pricing. That
    refinement makes its candidate relation complete: an outside endpoint reaches all
-   row members or none. Ordered scores are memoized for one row. Rejected ordinary
-   pairs that cannot seed a connected witness are counted from sorted location and
-   equal-span indexes without expanding every location pair. Accepted pairs and
+   row members or none. Row sizes give the exact unordered pair count; sparse
+   shared-span counts subtract only excluded pairs. Rejected ordinary pairs that
+   cannot seed a connected witness need no location-pair expansion. Structural
+   scorers can prepare inverted multiset indexes: each feature contributes the
+   minimum of its two multiplicities to the intersection. Value and shape classes
+   share these integer counts across a row, retaining the original floating-point
+   formula, every accepted and rejected score, and all subsequent scoring gates.
+   Common features record absent classes instead of repeatedly visiting present
+   classes. Anchor postings preserve duplicate-hash occurrence order and the exact
+   maximum shared weight; source-line metadata remains outside that calculation.
+   Alignment is evaluated lazily once per identical right-hand sequence in a row.
+   Sparse rows use direct scoring; custom scorers can decline preparation. Accepted pairs and
    potentially eligible connected seeds still undergo each original location check.
-   Rows restore source-pair order before connected compaction and floating-point
-   group aggregation. Thus this is an exact quotient of candidate work, not a
+   Bounded streaming selectors retain the original global and per-file seed
+   priorities using source-pair order for ties. A rejected row product can be skipped
+   only when its best possible pair cannot improve any eligible reservation,
+   including nested and per-file seeds. Accepted edges restore source-pair
+   order before floating-point group aggregation. Thus this is an exact quotient of candidate work, not a
    pre-scoring connectivity skeleton. Custom scorers retain the ordinary path unless
    they explicitly declare interchangeable input classes. Neither classes nor score
    maps persist beyond the analysis.
@@ -231,9 +243,13 @@ unique pairs, stable batches replace the full candidate/rejected-score arrays wh
 preserving accepted evidence and the connected-seed selection policy. The source/unit
 cache remains reusable, but large product populations bypass persistent pair indexes.
 The ordinary 262,144-pair emission batch is scored in 4,096-pair parallel chunks.
-Repeated-input rows retain one bounded score map per worker and compact potential
-connected seeds after each internal batch. The row/bucket/source-span indexes are
-linear in the input and its memberships; accepted evidence can still be large.
+Repeated-input rows retain one bounded score map per worker. Streaming heaps keep
+only the existing global and per-file connected-seed reservations, comparing
+scores and source-pair order as candidates arrive. No rejected-pair array needs
+sorting; each worker's final reservations are merged under the same policy.
+The row/bucket/source-span and inverted-feature indexes are linear in the input
+and its memberships; per-worker intersection arrays scale with feature classes,
+without a quadratic score matrix. Accepted evidence can still be large.
 These internal execution choices do not change recall or explicit budget accounting.
 
 `--max-candidate-pairs` and `NOSE_MAX_CANDIDATE_PAIRS` optionally impose a positive
@@ -247,8 +263,10 @@ scorer cannot accept unequal value fingerprints. Fuzzy value LSH remains enabled
 for near/abstraction runs. Incremental candidate indexes and cache option keys
 use the same distinction.
 
-A constant-memory tree cursor checks parser output before recursive lowering:
-syntax depth is limited to 8,192 and the syntax tree to 2,000,000 nodes. Exceeding
+Parser metadata and a constant-memory tree cursor check output before recursive
+lowering: syntax depth is limited to 8,192 and the syntax tree to 2,000,000 nodes.
+The stored descendant count bounds both size and possible remaining depth; the
+cursor skips a subtree only when even a single chain would fit the depth limit. Exceeding
 either produces a source-specific analysis error, including embedded script,
 style and markup regions. Common scope and identifier traversals use explicit
 work stacks; CLI workers reserve 64 MiB rather than 1 GiB. These are analysis

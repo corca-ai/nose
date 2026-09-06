@@ -73,18 +73,9 @@ fn compressed_rows_preserve_location_exclusions_asymmetry_and_seed_reservations(
             .num_threads(threads)
             .build()
             .unwrap();
-        for batch in [31, 4096] {
-            let actual = pool.install(|| {
-                score(
-                    &units,
-                    &opts,
-                    &OrderedDetector,
-                    &buckets,
-                    &spans,
-                    &classes,
-                    batch,
-                )
-            });
+        {
+            let actual =
+                pool.install(|| score(&units, &opts, &OrderedDetector, &buckets, &spans, &classes));
             assert_eq!(actual.candidate_count, pairs.len());
             assert_eq!(actual.accepted, accepted);
             assert_eq!(actual.scored.iter().map(key).collect::<Vec<_>>(), expected);

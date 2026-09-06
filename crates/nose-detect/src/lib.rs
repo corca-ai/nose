@@ -45,7 +45,7 @@ pub use align::multiset_jaccard;
 pub use contiguous::Stream;
 pub(crate) use detectors::env_or;
 pub use detectors::{
-    exact_safe_roots_by_span, CopyPasteDetector, Detector, ExactBehaviorDetector,
+    exact_safe_roots_by_span, CopyPasteDetector, Detector, ExactBehaviorDetector, PreparedScores,
     StructuralDetector,
 };
 pub use divergence_policy::{

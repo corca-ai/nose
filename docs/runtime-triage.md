@@ -398,3 +398,20 @@ The registered full 120-repository timing and 17-repository base campaign remain
 unqualified. Dense class-to-class scoring and frontend/normalization costs still
 need work before a replacement candidate can close those release conditions.
 No release tag or Homebrew update was published.
+
+
+## v0.21.0 release completion work (2026-09-06)
+
+The follow-up candidate `d8744855` remains the frozen comparison for correctness;
+its failed release qualification above is retained. New diagnostic work lives in
+`target/release-completion-20260906/`. Release baselines, timing limits and the
+registered full-corpus campaign remain unchanged.
+
+The current work removes redundant syntax-budget traversal using stored subtree
+counts, shares exact multiset intersections across dense score rows, and counts
+source-admitted candidate pairs from row sizes and sparse span multiplicities.
+It also reduces connected-seed selection costs without changing caps or tie rules,
+and batches arena invalidation during alpha-renaming and branch orientation.
+These mechanisms are documented in [architecture](architecture.md) and
+[normalization](normalization.md). Intermediate binaries and single observations
+are diagnostic only; replacement candidate qualification is still pending.

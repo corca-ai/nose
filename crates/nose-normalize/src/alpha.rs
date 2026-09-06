@@ -7,17 +7,17 @@
 //! the detector needs. Field names are *not* renamed (they carry API meaning).
 //! Lambdas share their enclosing function's scope so closures stay consistent.
 
-use nose_il::{Il, LoopKind, NodeId, NodeKind, Payload, Symbol};
+use nose_il::{Il, IlContents, LoopKind, NodeId, NodeKind, Payload, Symbol};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(il: &mut Il) {
+    let il = il.edit();
     let root = il.root;
     let mut names: Vec<Symbol> = Vec::new();
     let mut scope = Scope::default();
     let bound = compute_bound(il, root);
     rename(il, root, &mut scope, &bound, &mut names);
-    il.invalidate_scope_binding_index();
-    il.edit().cid_names = names;
+    il.cid_names = names;
 }
 
 /// Symbols *bound* within one scope (params + assignment targets + `for`-pattern
@@ -25,7 +25,7 @@ pub(crate) fn run(il: &mut Il) {
 /// *free* variable (a global, or an un-canonicalized function callee) — it must keep
 /// its name identity, never an alpha-renamed positional id, or two functions calling
 /// different globals (`foo(x)` vs `bar(x)`, `max(a,b)` vs `min(a,b)`) collapse.
-fn compute_bound(il: &Il, scope_root: NodeId) -> FxHashSet<Symbol> {
+fn compute_bound(il: &IlContents, scope_root: NodeId) -> FxHashSet<Symbol> {
     let mut bound = FxHashSet::default();
     for &c in il.children(scope_root) {
         collect_bound(il, c, &mut bound);
@@ -33,7 +33,7 @@ fn compute_bound(il: &Il, scope_root: NodeId) -> FxHashSet<Symbol> {
     bound
 }
 
-fn collect_bound(il: &Il, id: NodeId, bound: &mut FxHashSet<Symbol>) {
+fn collect_bound(il: &IlContents, id: NodeId, bound: &mut FxHashSet<Symbol>) {
     let kind = il.kind(id);
     if kind == NodeKind::Func {
         return; // nested function: its own scope
@@ -63,7 +63,7 @@ fn collect_bound(il: &Il, id: NodeId, bound: &mut FxHashSet<Symbol>) {
 
 /// Assignment/`for`-pattern target symbols: a `Var`, or every `Var` in a destructuring
 /// `Seq` (`a, b = …`).
-fn collect_targets(il: &Il, id: NodeId, bound: &mut FxHashSet<Symbol>) {
+fn collect_targets(il: &IlContents, id: NodeId, bound: &mut FxHashSet<Symbol>) {
     match il.kind(id) {
         NodeKind::Var => {
             if let Payload::Name(s) = il.node(id).payload {
@@ -102,7 +102,7 @@ impl Scope {
 }
 
 fn rename(
-    il: &mut Il,
+    il: &mut IlContents,
     id: NodeId,
     scope: &mut Scope,
     bound: &FxHashSet<Symbol>,
@@ -122,7 +122,7 @@ fn rename(
         if let Payload::Name(s) = payload {
             if kind == NodeKind::Param || bound.contains(&s) {
                 let cid = scope.get_or_add(s, names);
-                il.edit().nodes[id.0 as usize].payload = Payload::Cid(cid);
+                il.nodes[id.0 as usize].payload = Payload::Cid(cid);
             }
         }
     }

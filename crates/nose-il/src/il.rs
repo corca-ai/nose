@@ -195,20 +195,17 @@ impl Il {
 
     #[inline]
     pub fn node(&self, id: NodeId) -> &Node {
-        &self.nodes[id.0 as usize]
+        self.contents.node(id)
     }
 
     #[inline]
     pub fn kind(&self, id: NodeId) -> NodeKind {
-        self.nodes[id.0 as usize].kind
+        self.contents.kind(id)
     }
 
-    /// The child node ids of `id`, in order.
     #[inline]
     pub fn children(&self, id: NodeId) -> &[NodeId] {
-        let n = &self.nodes[id.0 as usize];
-        let s = n.child_start as usize;
-        &self.edges[s..s + n.child_len as usize]
+        self.contents.children(id)
     }
 
     #[inline]
@@ -525,5 +522,25 @@ impl Il {
             }
         }
         Ok(())
+    }
+}
+
+impl IlContents {
+    #[inline]
+    pub fn node(&self, id: NodeId) -> &Node {
+        &self.nodes[id.0 as usize]
+    }
+
+    #[inline]
+    pub fn kind(&self, id: NodeId) -> NodeKind {
+        self.nodes[id.0 as usize].kind
+    }
+
+    /// The child node ids of `id`, in order.
+    #[inline]
+    pub fn children(&self, id: NodeId) -> &[NodeId] {
+        let n = &self.nodes[id.0 as usize];
+        let s = n.child_start as usize;
+        &self.edges[s..s + n.child_len as usize]
     }
 }

@@ -9,7 +9,9 @@ use nose_il::{Il, Interner, NodeId};
 use std::collections::HashMap;
 
 mod inputs;
+mod prepared;
 use inputs::ScoreInputs;
+pub use prepared::PreparedScores;
 
 /// Pluggable similarity scorer. Returns a score in `[0, 1]` for a candidate pair.
 pub trait Detector: Sync {
@@ -19,6 +21,14 @@ pub trait Detector: Sync {
     /// must be interchangeable in either score argument, including rejected scores.
     /// Return `None` for scorers that depend on location, history, or other state.
     fn score_classes(&self, _units: &[UnitFeat]) -> Option<Vec<usize>> {
+        None
+    }
+    /// Optional immutable index for evaluating rows of exactly the same scores.
+    /// Indices address the supplied representatives; location admission remains separate.
+    fn prepare_scores<'a>(
+        &'a self,
+        _units: &[&'a UnitFeat],
+    ) -> Option<Box<dyn PreparedScores + 'a>> {
         None
     }
 }
@@ -161,8 +171,30 @@ impl Detector for StructuralDetector {
 
     fn score(&self, a: &UnitFeat, b: &UnitFeat) -> f64 {
         let (a, b) = (ScoreInputs::from(a), ScoreInputs::from(b));
-        let protocol_match = self.candidate_mode && external_near_protocol_match(&a, &b);
-        let score = self.base_score(&a, &b, protocol_match);
+        self.score_inputs(&a, &b, None)
+    }
+
+    fn score_classes(&self, units: &[UnitFeat]) -> Option<Vec<usize>> {
+        Some(inputs::classes(units.iter().map(ScoreInputs::from)))
+    }
+
+    fn prepare_scores<'a>(
+        &'a self,
+        units: &[&'a UnitFeat],
+    ) -> Option<Box<dyn PreparedScores + 'a>> {
+        Some(Box::new(prepared::StructuralScores::new(self, units)))
+    }
+}
+
+impl StructuralDetector {
+    fn score_inputs(
+        &self,
+        a: &ScoreInputs<'_>,
+        b: &ScoreInputs<'_>,
+        overlap: Option<prepared::Overlap<'_>>,
+    ) -> f64 {
+        let protocol_match = self.candidate_mode && external_near_protocol_match(a, b);
+        let score = self.base_score(a, b, protocol_match, overlap);
         if protocol_match && score >= 0.60 {
             // A reviewed protocol row is supporting near evidence, never an exact proof.
             // Move an already-substantial existing candidate only one quarter of the
@@ -171,10 +203,6 @@ impl Detector for StructuralDetector {
         } else {
             score
         }
-    }
-
-    fn score_classes(&self, units: &[UnitFeat]) -> Option<Vec<usize>> {
-        Some(inputs::classes(units.iter().map(ScoreInputs::from)))
     }
 }
 
@@ -193,7 +221,13 @@ fn external_near_protocol_match(a: &ScoreInputs<'_>, b: &ScoreInputs<'_>) -> boo
 }
 
 impl StructuralDetector {
-    fn base_score(&self, a: &ScoreInputs<'_>, b: &ScoreInputs<'_>, protocol_match: bool) -> f64 {
+    fn base_score(
+        &self,
+        a: &ScoreInputs<'_>,
+        b: &ScoreInputs<'_>,
+        protocol_match: bool,
+        overlap: Option<prepared::Overlap<'_>>,
+    ) -> f64 {
         // Oracle-certified fast path (§AJ): an identical value-graph fingerprint means
         // behaviorally-equal — `nose verify` proved fingerprint-equality ⟹ behavior
         // -equality across the corpus (0 false merges). So accept an exact match
@@ -222,7 +256,7 @@ impl StructuralDetector {
         } else {
             self.scoring.strict_weights
         };
-        let vj = align::multiset_jaccard(a.value, b.value);
+        let vj = overlap.map_or_else(|| align::multiset_jaccard(a.value, b.value), |x| x.value);
         // Candidate mode trusts the value graph: a near-identical value fingerprint — produced
         // AFTER semantic canonicalization (a `.then`-chain ≡ await code, a loop ≡ a
         // comprehension) — is the strongest refactoring signal there is, even when the
@@ -240,13 +274,16 @@ impl StructuralDetector {
         // Shape overlap is only needed after the value-graph fast path above. Corpus profiling
         // showed many candidate-mode pairs exit there; computing shapes first spent measurable
         // time without changing any accepted score.
-        let sj = align::multiset_jaccard(a.shapes, b.shapes);
+        let sj = overlap.map_or_else(|| align::multiset_jaccard(a.shapes, b.shapes), |x| x.shape);
         // Partial / sub-DAG clone: the units share a rare heavy anchor (an extractable common
         // sub-computation) even though the whole-unit blend is low. Surface it for inspection at a
         // score above the near floor but below a full clone — it's a real refactor lead (pull
         // the shared computation into a helper), just a partial one. Keep the higher of the two.
         if self.candidate_mode {
-            let shared = shared_anchor_weight(a.anchors, b.anchors);
+            let shared = overlap.map_or_else(
+                || shared_anchor_weight(a.anchors, b.anchors),
+                |x| x.shared_anchor,
+            );
             if shared > 0 {
                 return (wv * vj + ws * sj).max(self.scoring.anchor_score(shared));
             }
@@ -260,7 +297,8 @@ impl StructuralDetector {
         if !protocol_match && wv * vj + ws * sj + wr < self.accept_threshold {
             return wv * vj + ws * sj + wr;
         }
-        let l = align::ransac_ratio(a.linear, b.linear);
+        let alignment = || align::ransac_ratio(a.linear, b.linear);
+        let l = overlap.map_or_else(alignment, |x| *x.alignment.get_or_init(alignment));
         let score = wv * vj + ws * sj + wr * l;
         // Near-candidate mode keeps the raw similarity — the gates below
         // demote precisely the near-duplicate families that are good refactor targets.
@@ -387,6 +425,9 @@ mod tests {
         }];
         let supported = detector.score(&left, &right);
         assert!((0.70..1.0).contains(&supported), "score={supported}");
+        let prepared = detector.prepare_scores(&[&left, &right]).unwrap();
+        assert_eq!(prepared.row(0, &[1]), vec![supported]);
+        drop(prepared);
 
         right.semantic_pack_near_protocols[0].operation =
             SemanticPackV1ProtocolOperation::MapFactory;

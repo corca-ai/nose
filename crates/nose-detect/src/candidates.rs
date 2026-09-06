@@ -175,7 +175,8 @@ pub(crate) fn build_groups(
             let (sum, n) = by_group[group_index];
             let score = if n == 0 { 0.0 } else { sum / n as f64 };
             let mut locs: Vec<Loc> = members
-                .iter()
+                .par_iter()
+                .with_min_len(256)
                 .map(|&m| loc_of(&units[m], enclosing[m].clone()))
                 .collect();
             // If every member shares a heavy sub-DAG (a partial / sub-DAG clone), annotate each

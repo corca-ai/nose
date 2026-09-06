@@ -11,6 +11,9 @@ break.
 - Compress repeated candidate relations while preserving every accepted edge,
   source constraint and connected-seed rule. Reduce query JSON copying and
   repeated navigation lookups, preserving all fields and output order.
+- Share exact multiset and anchor intersections across dense comparisons, and
+  select connected seeds with bounded streaming queues. Avoid redundant syntax
+  budget walks and repeated normalization index invalidation.
 
 - Avoid repeated Rust scope traversal for type references without a matching Tokio
   runtime import, preserving the existing type-evidence and shadowing checks.

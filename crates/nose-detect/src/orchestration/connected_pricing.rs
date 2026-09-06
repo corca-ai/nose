@@ -7,7 +7,7 @@ use crate::{
     units::UnitFeat,
 };
 use rayon::prelude::*;
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 pub(super) fn score_connected_candidates(
     units: &[UnitFeat],
@@ -21,7 +21,7 @@ pub(super) fn score_connected_candidates(
         .map(|&(left, right, _)| (left, right))
         .collect::<HashSet<_>>();
     let enclosing_indices = enclosing_unit_indices(units);
-    let mut units_by_file: HashMap<&str, Vec<usize>> = HashMap::new();
+    let mut units_by_file: HashMap<&str, Vec<usize>> = HashMap::default();
     for (index, unit) in units.iter().enumerate() {
         units_by_file
             .entry(unit.path.as_str())
@@ -106,7 +106,7 @@ pub(crate) fn same_unit_seed_indices(units: &[UnitFeat], bound_product_work: boo
         return eligible;
     }
 
-    let mut by_file: HashMap<&str, Vec<usize>> = HashMap::new();
+    let mut by_file: HashMap<&str, Vec<usize>> = HashMap::default();
     for index in eligible {
         let best = by_file.entry(units[index].path.as_str()).or_default();
         best.push(index);
@@ -132,12 +132,11 @@ pub(crate) fn same_unit_seed_indices(units: &[UnitFeat], bound_product_work: boo
     selected
 }
 
-pub(super) const MIN_PRODUCT_SEED_NODES: usize = 18;
+mod seed_selection;
+pub(super) use seed_selection::{path_classes, SeedSelection, MIN_PRODUCT_SEED_NODES};
 
-/// The raw audit interface evaluates every seed. Product queries instead price the
-/// expensive pair-local proof only for the strongest ordinary near misses, while always
-/// retaining nested seeds because they are the sole route to disjoint descendants.
-/// Endpoints below 18 nodes cannot meet the matcher's lowest complete-exit threshold.
+/// Product seed selection retains the strongest near misses and nested routes.
+/// The raw audit interface evaluates every candidate instead.
 pub(crate) fn connected_seed_indices(
     candidates: &[ScoredCandidate],
     unit_paths: &[&str],
@@ -145,99 +144,15 @@ pub(crate) fn connected_seed_indices(
     threshold: f64,
     bound_product_work: bool,
 ) -> Vec<usize> {
-    const PRODUCT_GENERAL_SEED_CAP: usize = 2_048;
-    const PRODUCT_NESTED_SEED_CAP: usize = 512;
-    const PRODUCT_NESTED_PER_FILE_CAP: usize = 64;
-    const PRODUCT_CROSS_FILE_PER_FILE_CAP: usize = 8;
-
     if !bound_product_work {
         return (0..candidates.len()).collect();
     }
-    let mut nested = Vec::new();
-    let mut nested_per_file: HashMap<&str, Vec<usize>> = HashMap::new();
-    let mut scored = Vec::new();
-    let mut cross_per_file: HashMap<&str, Vec<(usize, f64)>> = HashMap::new();
-    let mut same_per_file: HashMap<&str, Vec<(usize, f64)>> = HashMap::new();
-    for (index, candidate) in candidates.iter().enumerate() {
-        let weight = unit_weights[candidate.left].min(unit_weights[candidate.right]);
-        if weight < MIN_PRODUCT_SEED_NODES {
-            continue;
-        }
-        if let Some(score) = candidate.ordinary_score.filter(|&score| score < threshold) {
-            scored.push((index, score));
-            let left_path = unit_paths[candidate.left];
-            let right_path = unit_paths[candidate.right];
-            if left_path == right_path {
-                record_scored_seed(
-                    &mut same_per_file,
-                    left_path,
-                    index,
-                    score,
-                    PRODUCT_CROSS_FILE_PER_FILE_CAP,
-                );
-            } else {
-                for path in [left_path, right_path] {
-                    record_scored_seed(
-                        &mut cross_per_file,
-                        path,
-                        index,
-                        score,
-                        PRODUCT_CROSS_FILE_PER_FILE_CAP,
-                    );
-                }
-            }
-        } else if candidate.ordinary_score.is_none() {
-            nested.push(index);
-            let per_file = nested_per_file
-                .entry(unit_paths[candidate.left])
-                .or_default();
-            if per_file.len() < PRODUCT_NESTED_PER_FILE_CAP {
-                per_file.push(index);
-            }
-        }
+    let paths = path_classes(unit_paths);
+    let mut selected = SeedSelection::new(&paths, unit_weights, threshold);
+    for (index, &candidate) in candidates.iter().enumerate() {
+        selected.push(candidate, (index, 0), index);
     }
-    nested.truncate(PRODUCT_NESTED_SEED_CAP);
-    scored.sort_unstable_by(|(left_index, left_score), (right_index, right_score)| {
-        right_score
-            .total_cmp(left_score)
-            .then_with(|| left_index.cmp(right_index))
-    });
-    scored.truncate(PRODUCT_GENERAL_SEED_CAP);
-    let mut selected = nested.into_iter().collect::<HashSet<_>>();
-    selected.extend(nested_per_file.into_values().flatten());
-    selected.extend(scored.into_iter().map(|(index, _)| index));
-    selected.extend(
-        cross_per_file
-            .into_values()
-            .flatten()
-            .map(|(index, _)| index),
-    );
-    selected.extend(
-        same_per_file
-            .into_values()
-            .flatten()
-            .map(|(index, _)| index),
-    );
-    let mut selected = selected.into_iter().collect::<Vec<_>>();
-    selected.sort_unstable();
-    selected
-}
-
-fn record_scored_seed<'a>(
-    by_file: &mut HashMap<&'a str, Vec<(usize, f64)>>,
-    path: &'a str,
-    index: usize,
-    score: f64,
-    cap: usize,
-) {
-    let best = by_file.entry(path).or_default();
-    best.push((index, score));
-    best.sort_unstable_by(|(left_index, left_score), (right_index, right_score)| {
-        right_score
-            .total_cmp(left_score)
-            .then_with(|| left_index.cmp(right_index))
-    });
-    best.truncate(cap);
+    selected.finish()
 }
 
 pub(crate) fn evaluate_connected_candidate(
@@ -389,7 +304,7 @@ pub(super) fn deduplicate_same_unit(
     });
     accepted.dedup_by_key(|pair| (pair.left, pair.witness.left_lines, pair.witness.right_lines));
     if bound_product_output {
-        let mut files = HashSet::new();
+        let mut files = HashSet::default();
         accepted.retain(|pair| {
             units
                 .get(pair.left)

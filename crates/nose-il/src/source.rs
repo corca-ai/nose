@@ -31,10 +31,11 @@ impl ContentDigest {
         &self.0
     }
     pub fn hex(self) -> String {
-        use std::fmt::Write as _;
+        const HEX: &[u8; 16] = b"0123456789abcdef";
         let mut out = String::with_capacity(64);
         for byte in self.0 {
-            write!(&mut out, "{byte:02x}").expect("write to String");
+            out.push(HEX[(byte >> 4) as usize] as char);
+            out.push(HEX[(byte & 15) as usize] as char);
         }
         out
     }

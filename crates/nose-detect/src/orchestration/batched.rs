@@ -33,9 +33,7 @@ fn score_with_batch_size(
         ids.iter().collect::<rustc_hash::FxHashSet<_>>().len() <= units.len() / 2
     });
     if let Some(classes) = &classes {
-        return class_rows::score(
-            units, opts, detector, &buckets, &groups, classes, batch_size,
-        );
+        return class_rows::score(units, opts, detector, &buckets, &groups, classes);
     }
     let paths = units
         .iter()

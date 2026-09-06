@@ -1,7 +1,8 @@
 //! A quotient of the candidate relation, refined by exact scoring inputs.
 //! Members share every bucket, so every outside endpoint sees the entire row
 //! or none of it. Location-dependent exclusions are applied after that relation.
-use super::{retain_connected_seeds, DetectionStages};
+use super::super::connected_pricing::{path_classes, SeedSelection};
+use super::DetectionStages;
 use crate::{DetectOptions, Detector, UnitFeat};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
@@ -13,17 +14,51 @@ struct Row {
     class: usize,
     members: Vec<usize>,
     buckets: Vec<usize>,
-    spans: FxHashMap<usize, Vec<usize>>,
+    shared_spans: FxHashMap<usize, usize>,
     connected: bool,
+    paths: Vec<usize>,
 }
 
 impl Row {
-    fn suffix(&self, left: usize, span: usize) -> (usize, usize) {
-        let start = self.members.partition_point(|&right| right <= left);
-        let same_span = self.spans.get(&span).map_or(0, |members| {
-            members.len() - members.partition_point(|&right| right <= left)
-        });
-        (start, self.members.len() - start - same_span)
+    fn neighbors(
+        &self,
+        rows: &[Row],
+        buckets: &[Vec<usize>],
+        seen: &mut [usize],
+        out: &mut Vec<usize>,
+    ) {
+        out.clear();
+        for &bucket in &self.buckets {
+            for &right in &buckets[bucket] {
+                if seen[right] != self.members[0] {
+                    seen[right] = self.members[0];
+                    if self.members[0] < *rows[right].members.last().unwrap() {
+                        out.push(right);
+                    }
+                }
+            }
+        }
+    }
+
+    fn pair_count(&self, other: &Row, same: bool) -> usize {
+        if same {
+            self.members.len() * (self.members.len() - 1) / 2
+                - self
+                    .shared_spans
+                    .values()
+                    .map(|n| n * (n - 1) / 2)
+                    .sum::<usize>()
+        } else {
+            let (a, b) = if self.shared_spans.len() < other.shared_spans.len() {
+                (&self.shared_spans, &other.shared_spans)
+            } else {
+                (&other.shared_spans, &self.shared_spans)
+            };
+            self.members.len() * other.members.len()
+                - a.iter()
+                    .map(|(span, count)| count * b.get(span).copied().unwrap_or(0))
+                    .sum::<usize>()
+        }
     }
 }
 
@@ -36,6 +71,7 @@ fn rows(
     let membership = crate::lsh::membership(units.len(), buckets);
     let mut ids = FxHashMap::default();
     let mut rows: Vec<Row> = Vec::new();
+    let mut span_rows: FxHashMap<usize, FxHashMap<usize, usize>> = FxHashMap::default();
     for (index, memberships) in membership.iter().enumerate() {
         let connected = units[index].connected_tokens.len()
             >= super::super::connected_pricing::MIN_PRODUCT_SEED_NODES;
@@ -48,12 +84,24 @@ fn rows(
                 class: classes[index],
                 members: Vec::new(),
                 buckets: memberships.clone(),
-                spans: FxHashMap::default(),
+                shared_spans: FxHashMap::default(),
                 connected,
+                paths: Vec::new(),
             });
         }
         rows[row].members.push(index);
-        rows[row].spans.entry(spans[index]).or_default().push(index);
+        *span_rows
+            .entry(spans[index])
+            .or_default()
+            .entry(row)
+            .or_default() += 1;
+    }
+    for (span, members) in span_rows {
+        if members.values().sum::<usize>() > 1 {
+            for (row, count) in members {
+                rows[row].shared_spans.insert(span, count);
+            }
+        }
     }
     let mut bucket_rows = vec![Vec::new(); buckets.len()];
     for (id, row) in rows.iter().enumerate() {
@@ -71,57 +119,68 @@ pub(super) fn score(
     buckets: &[Vec<u32>],
     spans: &[usize],
     classes: &[usize],
-    batch_size: usize,
 ) -> DetectionStages {
-    let (rows, bucket_rows) = rows(units, buckets, spans, classes);
+    let (mut rows, bucket_rows) = rows(units, buckets, spans, classes);
+    let representatives = rows
+        .iter()
+        .map(|row| &units[row.members[0]])
+        .collect::<Vec<_>>();
+    let prepared = detector.prepare_scores(&representatives);
     let paths = units.iter().map(|u| u.path.as_str()).collect::<Vec<_>>();
     let weights = units
         .iter()
         .map(|u| u.connected_tokens.len())
         .collect::<Vec<_>>();
-    let compact = |result: &mut DetectionStages| {
-        result
-            .scored
-            .sort_unstable_by_key(|pair| (pair.left, pair.right));
-        retain_connected_seeds(&mut result.scored, &paths, &weights, opts.threshold);
-    };
+    let path_ids = path_classes(&paths);
+    for row in &mut rows {
+        row.paths = row.members.iter().map(|&id| path_ids[id]).collect();
+        row.paths.sort_unstable();
+        row.paths.dedup();
+    }
+    let chunk_size = rows.len().div_ceil(rayon::current_num_threads() * 4).max(1);
     let partials = rows
-        .par_chunks(rows.len().div_ceil(rayon::current_num_threads() * 4).max(1))
-        .map(|chunk| {
+        .par_chunks(chunk_size)
+        .enumerate()
+        .map(|(chunk_id, chunk)| {
             let mut result = DetectionStages::fresh(Vec::new(), Vec::new(), Vec::new());
             let mut seen = vec![usize::MAX; rows.len()];
             let mut neighbors = Vec::new();
             let mut memo = FxHashMap::default();
-            let mut pending = 0;
-            for row in chunk {
-                neighbors.clear();
+            let mut seeds = SeedSelection::new(&path_ids, &weights, opts.threshold);
+            for (offset, row) in chunk.iter().enumerate() {
+                let row_id = chunk_id * chunk_size + offset;
+                row.neighbors(&rows, &bucket_rows, &mut seen, &mut neighbors);
                 memo.clear();
-                for &bucket in &row.buckets {
-                    for &right in &bucket_rows[bucket] {
-                        if seen[right] != row.members[0] {
-                            seen[right] = row.members[0];
-                            neighbors.push(right);
-                        }
+                let row_scores = prepared.as_ref().map(|p| p.row(row_id, &neighbors));
+                for (position, &right_id) in neighbors.iter().enumerate() {
+                    let right_row = &rows[right_id];
+                    if row_id <= right_id {
+                        result.candidate_count += row.pair_count(right_row, row_id == right_id);
                     }
-                }
-                for &left in &row.members {
-                    for &right_row in &neighbors {
-                        let right_row = &rows[right_row];
-                        let (start, count) = right_row.suffix(left, spans[left]);
-                        if count == 0 {
-                            continue;
-                        }
-                        result.candidate_count += count;
-                        // Classes promise interchangeable arguments. The representative
-                        // supplies only a score; it is never admitted as a source edge.
-                        let score = *memo.entry(right_row.class).or_insert_with(|| {
-                            detector.score(&units[left], &units[right_row.members[start]])
-                        });
-                        let seeds =
-                            opts.connected_witnesses && row.connected && right_row.connected;
-                        if score < opts.threshold && !seeds {
-                            continue;
-                        }
+                    // Score classes are interchangeable, but source admission is per edge.
+                    let score = row_scores.as_ref().map_or_else(
+                        || {
+                            *memo.entry(right_row.class).or_insert_with(|| {
+                                detector.score(&units[row.members[0]], &units[right_row.members[0]])
+                            })
+                        },
+                        |scores| scores[position],
+                    );
+                    let connected =
+                        opts.connected_witnesses && row.connected && right_row.connected;
+                    if score < opts.threshold
+                        && (!connected
+                            || !seeds.may_select(
+                                score,
+                                (row.members[0], right_row.members[0]),
+                                &row.paths,
+                                &right_row.paths,
+                            ))
+                    {
+                        continue;
+                    }
+                    for &left in &row.members {
+                        let start = right_row.members.partition_point(|&right| right <= left);
                         for &right in &right_row.members[start..] {
                             if spans[left] == spans[right] {
                                 continue;
@@ -132,36 +191,35 @@ pub(super) fn score(
                             if let Some(score) = ordinary_score.filter(|&s| s >= opts.threshold) {
                                 result.accepted.push((left, right, score));
                             }
-                            if seeds && ordinary_score.is_none_or(|s| s < opts.threshold) {
-                                result.scored.push(super::super::ScoredCandidate {
+                            if connected && ordinary_score.is_none_or(|s| s < opts.threshold) {
+                                let candidate = super::super::ScoredCandidate {
                                     left,
                                     right,
                                     ordinary_score,
-                                });
-                                pending += 1;
-                                if pending == batch_size {
-                                    compact(&mut result);
-                                    pending = 0;
-                                }
+                                };
+                                seeds.push(candidate, (left, right), candidate);
                             }
                         }
                     }
                 }
             }
-            compact(&mut result);
+            result.scored = seeds.finish();
             result
         })
         .collect::<Vec<_>>();
     let mut result = DetectionStages::fresh(Vec::new(), Vec::new(), Vec::new());
+    let mut seeds = SeedSelection::new(&path_ids, &weights, opts.threshold);
     for partial in partials {
         result.candidate_count += partial.candidate_count;
         result.accepted.extend(partial.accepted);
-        result.scored.extend(partial.scored);
-        compact(&mut result);
+        for candidate in partial.scored {
+            seeds.push(candidate, (candidate.left, candidate.right), candidate);
+        }
     }
+    result.scored = seeds.finish();
     // Floating-point aggregation and connected tie breaking see original pair order.
     result
         .accepted
-        .sort_unstable_by_key(|&(left, right, _)| (left, right));
+        .par_sort_unstable_by_key(|&(left, right, _)| (left, right));
     result
 }
