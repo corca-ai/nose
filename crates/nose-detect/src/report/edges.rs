@@ -166,6 +166,7 @@ pub(crate) struct SiteEdgeBuilder {
     rows: Vec<FxHashMap<u32, Block>>,
     palette: FxHashMap<(u64, &'static str), u32>,
     values: Vec<Evidence>,
+    last_code: Option<u32>,
 }
 
 impl SiteEdgeBuilder {
@@ -174,6 +175,7 @@ impl SiteEdgeBuilder {
             rows: (0..sites).map(|_| FxHashMap::default()).collect(),
             palette: FxHashMap::default(),
             values: Vec::new(),
+            last_code: None,
         }
     }
 
@@ -185,6 +187,25 @@ impl SiteEdgeBuilder {
     }
 
     pub(crate) fn insert(&mut self, left: u32, right: u32, evidence: Evidence) {
+        let code = self.evidence_code(evidence);
+        self.rows[left as usize]
+            .entry(right / 64)
+            .or_insert(Block {
+                mask: 0,
+                values: Values::Uniform(code),
+            })
+            .insert((right % 64) as usize, code);
+    }
+
+    fn evidence_code(&mut self, evidence: Evidence) -> u32 {
+        if let Some(code) = self.last_code {
+            let previous = self.values[code as usize];
+            if previous.score.to_bits() == evidence.score.to_bits()
+                && previous.witness_kind == evidence.witness_kind
+            {
+                return code;
+            }
+        }
         let next = self.values.len() as u32;
         let code = *self
             .palette
@@ -193,13 +214,8 @@ impl SiteEdgeBuilder {
         if code == next {
             self.values.push(evidence);
         }
-        self.rows[left as usize]
-            .entry(right / 64)
-            .or_insert(Block {
-                mask: 0,
-                values: Values::Uniform(code),
-            })
-            .insert((right % 64) as usize, code);
+        self.last_code = Some(code);
+        code
     }
 
     pub(crate) fn into_edges(self) -> Arc<SiteEdges> {

@@ -43,6 +43,10 @@ pub fn multiset_jaccard(a: &[u64], b: &[u64]) -> f64 {
 /// on pathological units.
 const ALIGN_CAP: usize = 600;
 
+pub(crate) fn alignment_input(sequence: &[u64]) -> &[u64] {
+    &sequence[..sequence.len().min(ALIGN_CAP)]
+}
+
 /// RANSAC-style geometric verification (computer vision): treat token matches as
 /// point correspondences, find the dominant position-offset (a 1-D "translation"
 /// consensus), and score by the fraction of `a` positions consistent with it.
@@ -57,8 +61,8 @@ pub(crate) fn ransac_ratio(a: &[u64], b: &[u64]) -> f64 {
         static POS: RefCell<FxHashMap<u64, Vec<i32>>> = RefCell::new(FxHashMap::default());
         static VOTES: RefCell<FxHashMap<i32, u32>> = RefCell::new(FxHashMap::default());
     }
-    let a = &a[..a.len().min(ALIGN_CAP)];
-    let b = &b[..b.len().min(ALIGN_CAP)];
+    let a = alignment_input(a);
+    let b = alignment_input(b);
     let maxlen = a.len().max(b.len());
     if maxlen == 0 {
         return 1.0;

@@ -132,7 +132,15 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    classes. Anchor postings preserve duplicate-hash occurrence order and the exact
    maximum shared weight; source-line metadata remains outside that calculation.
    Alignment is evaluated lazily once per identical right-hand sequence in a row.
-   Sparse rows use direct scoring; custom scorers can decline preparation. Accepted pairs and
+   Structural input and alignment classes use precisely the existing 600-entry
+   alignment prefix; differences beyond that already unread suffix do not trigger
+   another identical score calculation. The stored source features remain complete.
+   Sparse rows compare estimated feature-merge work with posting traversal and
+   class-array work before choosing direct scoring. A low representative count
+   alone cannot make long repeated fingerprint scans cheap. Prepared exact scores
+   and the structural exact shortcut reuse full-equality-checked value classes,
+   retaining each unit's exact-safety and minimum-size gates. Custom scorers can
+   decline preparation. Accepted pairs and
    potentially eligible connected seeds still undergo each original location check.
    Bounded streaming selectors retain the original global and per-file seed
    priorities using source-pair order for ties. A rejected row product can be skipped
@@ -252,7 +260,16 @@ and its memberships; per-worker intersection arrays scale with feature classes.
 Repeated accepted rows share sorted right-hand targets rather than expanding each
 left occurrence into another edge array. Their iterator retains every admitted
 pair, exact score and source-pair order; group accumulation therefore uses the
-same floating-point additions. Sparse same-file exclusions divide accepted targets
+same floating-point result. Unit-score rows count eligible pairs directly when
+the running sum is an exactly represented nonnegative integer no larger than
+2^53. Their sum saturates at 2^53, exactly where repeated +1 rounds back to
+itself. Other heavily repeated rows index sufficiently long runs of bit-identical
+scores. Within one floating-point exponent interval, two ordinary additions settle
+half-spacing ties and establish the repeated bit increment. A jump remains inside
+that interval; boundary crossings still execute ordinary additions. Short runs,
+negative values and nonfinite inputs retain the ordered fold. Subnormal spacing,
+rounding ties, overflow, sparse slices and the exact sequential result are tested.
+Sparse same-file exclusions divide accepted targets
 into slices, so accumulation needs no source or group lookup for every cross-file
 pair. Connected pricing looks up only its selected pair
 questions instead of copying the entire accepted graph into a hash set.
@@ -313,3 +330,13 @@ The concurrent string interner uses the same fast table hasher as other internal
 indexes. This affects table placement only: symbol content hashes retain their
 existing FNV-1a definition, and occurrence/order-dependent interner keys remain
 excluded from persistent fingerprints.
+
+C-header admission checks lexical hints before invoking its clean-C safeguard.
+An unhinted header cannot be excluded by that safeguard, so it needs no extra
+parse. Hinted headers still complete the C parse and check its tree budget before
+using the final tree's error status. Header inclusion rules remain the same.
+
+Source digest serialization writes hexadecimal digits from a fixed-size stack
+buffer; its public 64-character lowercase representation stays unchanged. Site
+edge construction reuses its last exact palette entry before consulting the
+palette map, preserving score bits and witness categories.

@@ -6,6 +6,7 @@ use std::cell::OnceCell;
 #[derive(Clone, Copy)]
 pub(super) struct Overlap<'a> {
     pub value: f64,
+    pub equal_value: bool,
     pub shape: f64,
     pub shared_anchor: u32,
     pub alignment: &'a OnceCell<f64>,
@@ -14,6 +15,41 @@ pub(super) struct Overlap<'a> {
 pub trait PreparedScores: Sync {
     /// Scores in the order of `right`, exactly equal to the original detector.
     fn row(&self, left: usize, right: &[usize]) -> Vec<f64>;
+}
+
+pub(super) struct ExactScores(Vec<Option<usize>>);
+
+impl ExactScores {
+    pub(super) fn new(units: &[&UnitFeat]) -> Self {
+        let mut values = FxHashMap::default();
+        Self(
+            units
+                .iter()
+                .map(|unit| {
+                    if !crate::exact_policy::exact_claim_eligible(unit) {
+                        return None;
+                    }
+                    let next = values.len();
+                    Some(*values.entry(unit.value.as_slice()).or_insert(next))
+                })
+                .collect(),
+        )
+    }
+}
+
+impl PreparedScores for ExactScores {
+    fn row(&self, left: usize, right: &[usize]) -> Vec<f64> {
+        right
+            .iter()
+            .map(|&right| {
+                if self.0[left].is_some() && self.0[left] == self.0[right] {
+                    1.0
+                } else {
+                    0.0
+                }
+            })
+            .collect()
+    }
 }
 
 struct Multisets<'a> {
@@ -75,6 +111,25 @@ impl<'a> Multisets<'a> {
             values,
             postings,
         }
+    }
+
+    fn estimated_row_work(&self, left: usize) -> usize {
+        let values = self.values[self.classes[left]];
+        values.chunk_by(|a, b| a == b).fold(
+            values
+                .len()
+                .saturating_mul(2)
+                .saturating_add(self.values.len()),
+            |work, run| {
+                let posting = &self.postings[&run[0]];
+                work.saturating_add(posting.members.len())
+                    .saturating_add(if run.len() > 1 {
+                        posting.repeated.len()
+                    } else {
+                        0
+                    })
+            },
+        )
     }
 
     fn row(&self, left: usize) -> Vec<f64> {
@@ -201,7 +256,23 @@ impl<'a> StructuralScores<'a> {
 
 impl PreparedScores for StructuralScores<'_> {
     fn row(&self, left: usize, right: &[usize]) -> Vec<f64> {
-        if right.len() < self.inputs.len() / 8 {
+        // A small fraction of representatives can still contain very long
+        // fingerprints. Compare feature work before choosing repeated merges.
+        let direct = right.len() < 8
+            || (right.len() < self.inputs.len() / 8 && {
+                let a = &self.inputs[left];
+                let merges = right.iter().fold(0usize, |work, &right| {
+                    let b = &self.inputs[right];
+                    work.saturating_add(a.value.len().min(b.value.len()))
+                        .saturating_add(a.shapes.len().min(b.shapes.len()))
+                });
+                let indexed = self
+                    .values
+                    .estimated_row_work(left)
+                    .saturating_add(self.shapes.estimated_row_work(left));
+                merges < indexed
+            });
+        if direct {
             return right
                 .iter()
                 .map(|&right| {
@@ -222,6 +293,7 @@ impl PreparedScores for StructuralScores<'_> {
                     &self.inputs[right],
                     Some(Overlap {
                         value: values[self.values.classes[right]],
+                        equal_value: self.values.classes[left] == self.values.classes[right],
                         shape: shapes[self.shapes.classes[right]],
                         shared_anchor: anchors.as_ref().map_or(0, |a| a[right]),
                         alignment: &alignment[self.linear[right]],
@@ -286,6 +358,91 @@ mod tests {
     }
 
     #[test]
+    fn sparse_rows_with_long_repeated_fingerprints_keep_direct_scores() {
+        let interner = Interner::new();
+        let il = nose_frontend::lower_source(
+            FileId(0),
+            "f.py",
+            b"def f(x):\n    return x * x + 1\n",
+            Lang::Python,
+            &interner,
+        )
+        .unwrap();
+        let opts = DetectOptions {
+            min_lines: 1,
+            min_tokens: 1,
+            ..Default::default()
+        };
+        let units = (0..128)
+            .map(|_| {
+                let mut unit = crate::units_of_file(&il, &interner, &opts).remove(0);
+                unit.value = vec![7; 4096];
+                unit.exact_safe = false;
+                unit
+            })
+            .collect::<Vec<_>>();
+        let detector = StructuralDetector::candidates(0.75);
+        let prepared = detector
+            .prepare_scores(&units.iter().collect::<Vec<_>>())
+            .unwrap();
+        let rights = (0..8).collect::<Vec<_>>();
+        for (&right, score) in rights.iter().zip(prepared.row(0, &rights)) {
+            assert_eq!(
+                score.to_bits(),
+                detector.score(&units[0], &units[right]).to_bits()
+            );
+        }
+    }
+
+    #[test]
+    fn alignment_classes_ignore_only_the_existing_unread_suffix() {
+        let interner = Interner::new();
+        let il = nose_frontend::lower_source(
+            FileId(0),
+            "f.py",
+            b"def f(x):\n    return x * x + 1\n",
+            Lang::Python,
+            &interner,
+        )
+        .unwrap();
+        let mut left = crate::units_of_file(
+            &il,
+            &interner,
+            &DetectOptions {
+                min_lines: 1,
+                min_tokens: 1,
+                ..Default::default()
+            },
+        )
+        .remove(0);
+        left.linear = vec![7; 4096];
+        let mut right = crate::units_of_file(
+            &il,
+            &interner,
+            &DetectOptions {
+                min_lines: 1,
+                min_tokens: 1,
+                ..Default::default()
+            },
+        )
+        .remove(0);
+        right.linear = left.linear.clone();
+        let limit = crate::align::alignment_input(&left.linear).len();
+        right.linear[limit..].fill(11);
+        let detector = StructuralDetector::strict(0.75);
+        let mut units = vec![left, right];
+        let classes = detector.score_classes(&units).unwrap();
+        assert_eq!(classes[0], classes[1]);
+        assert_eq!(
+            crate::align::ransac_ratio(&units[0].linear, &units[1].linear),
+            1.0
+        );
+        units[1].linear[limit - 1] = 13;
+        let classes = detector.score_classes(&units).unwrap();
+        assert_ne!(classes[0], classes[1]);
+    }
+
+    #[test]
     fn prepared_scores_match_direct_scores_including_rejected_pairs() {
         let interner = Interner::new();
         let il = nose_frontend::lower_source(
@@ -321,6 +478,17 @@ mod tests {
             })
             .collect::<Vec<_>>();
         let representatives = units.iter().collect::<Vec<_>>();
+        let exact = crate::ExactBehaviorDetector;
+        let prepared = exact.prepare_scores(&representatives).unwrap();
+        let rights = (0..units.len()).collect::<Vec<_>>();
+        for left in 0..units.len() {
+            for (&right, score) in rights.iter().zip(prepared.row(left, &rights)) {
+                assert_eq!(
+                    score.to_bits(),
+                    exact.score(&units[left], &units[right]).to_bits()
+                );
+            }
+        }
         for candidate in [false, true] {
             for exact in [false, true] {
                 for threshold in [0.0, 0.7, 0.95] {

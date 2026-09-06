@@ -20,7 +20,7 @@ impl<'a> From<&'a UnitFeat> for ScoreInputs<'a> {
         Self {
             value: &unit.value,
             shapes: &unit.shapes,
-            linear: &unit.linear,
+            linear: crate::align::alignment_input(&unit.linear),
             lits: &unit.lits,
             returns: &unit.returns,
             exact_safe: unit.exact_safe,

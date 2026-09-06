@@ -55,18 +55,7 @@ fn looks_like_cpp_header(src: &[u8]) -> bool {
     if has_cpp_declaration(&code, "namespace") || has_cpp_declaration(&code, "class") {
         return true;
     }
-    // These words are legal C identifiers. Prefer a clean C parse over lexical
-    // hints; only error-recovered headers need the unsupported-language filter.
-    if crate::lower::parse(
-        crate::lower::grammar::C,
-        || tree_sitter_c::LANGUAGE.into(),
-        src,
-    )
-    .is_ok_and(|tree| !tree.root_node().has_error())
-    {
-        return false;
-    }
-    contains_word(&code, "namespace")
+    let ambiguous = contains_word(&code, "namespace")
         || code.contains("template <")
         || code.contains("template<")
         || code.contains("using namespace")
@@ -74,7 +63,17 @@ fn looks_like_cpp_header(src: &[u8]) -> bool {
         || contains_word_followed_by_ident(&code, "class")
         || ["public:", "private:", "protected:"]
             .iter()
-            .any(|marker| code.contains(marker))
+            .any(|marker| code.contains(marker));
+    // Without a lexical hint, the parse cannot change the admission decision.
+    // These words are legal C identifiers, so hinted headers still need a clean
+    // C parse before the unsupported-language filter can exclude them.
+    ambiguous
+        && !crate::lower::parse(
+            crate::lower::grammar::C,
+            || tree_sitter_c::LANGUAGE.into(),
+            src,
+        )
+        .is_ok_and(|tree| !tree.root_node().has_error())
 }
 
 fn has_cpp_declaration(code: &str, keyword: &str) -> bool {

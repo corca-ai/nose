@@ -4,6 +4,9 @@ use super::AcceptedPair;
 use crate::UnitFeat;
 use rustc_hash::FxHashMap;
 
+mod score_runs;
+use score_runs::ScoreRuns;
+
 #[derive(Clone, Debug)]
 pub(crate) enum AcceptedPairs {
     Explicit(Vec<AcceptedPair>),
@@ -120,20 +123,52 @@ impl AcceptedPairs {
     ) -> Vec<(f64, usize)> {
         let mut scores = vec![(0.0, 0); groups];
         if let Self::Rows(rows) = self {
+            let unit_scores = rows
+                .targets
+                .iter()
+                .map(|targets| targets.iter().all(|&(_, score)| score == 1.0))
+                .collect::<Vec<_>>();
+            let mut repetitions = vec![0usize; rows.targets.len()];
+            for &row in &rows.row_of {
+                repetitions[row] += 1;
+            }
+            let runs = rows
+                .targets
+                .iter()
+                .enumerate()
+                .map(|(row, targets)| {
+                    (repetitions[row] >= 16 && !unit_scores[row])
+                        .then(|| ScoreRuns::new(targets))
+                        .flatten()
+                })
+                .collect::<Vec<_>>();
             for (left, &group) in member_group.iter().enumerate() {
                 let Some(group) = group else { continue };
                 let row = rows.row_of[left];
+                if unit_scores[row] && add_unit_scores(&mut scores[group], rows.count_after(left)) {
+                    continue;
+                }
                 let targets = &rows.targets[row];
                 let mut start = targets.partition_point(|&(right, _)| right <= left);
                 if let Some(positions) = rows.by_path[row].get(&rows.locations[left].0) {
                     for &position in positions {
                         if position >= start && !rows.admits(left, targets[position].0) {
-                            accumulate_scores(&mut scores[group], &targets[start..position]);
+                            accumulate_scores(
+                                &mut scores[group],
+                                targets,
+                                start..position,
+                                runs[row].as_ref(),
+                            );
                             start = position + 1;
                         }
                     }
                 }
-                accumulate_scores(&mut scores[group], &targets[start..]);
+                accumulate_scores(
+                    &mut scores[group],
+                    targets,
+                    start..targets.len(),
+                    runs[row].as_ref(),
+                );
             }
         } else {
             for (left, _, score) in self.iter() {
@@ -260,11 +295,35 @@ impl AcceptedPairs {
     }
 }
 
-fn accumulate_scores(total: &mut (f64, usize), targets: &[(usize, f64)]) {
-    // Source order and every individual floating-point addition are unchanged.
-    // Only sparse same-file exclusions split the otherwise admitted slice.
-    total.0 = targets.iter().fold(total.0, |sum, &(_, score)| sum + score);
-    total.1 += targets.len();
+// Repeated +1 is exact up to 2^53, then ties-to-even leaves the sum there.
+// Nonintegral or larger starting sums retain the ordinary ordered fold.
+fn add_unit_scores(total: &mut (f64, usize), count: usize) -> bool {
+    const LIMIT: f64 = 9_007_199_254_740_992.0;
+    if !(0.0..=LIMIT).contains(&total.0) || total.0.fract() != 0.0 {
+        return false;
+    }
+    if count != 0 {
+        total.0 = (total.0 + (count as f64).min(LIMIT)).min(LIMIT);
+        total.1 += count;
+    }
+    true
+}
+
+fn accumulate_scores(
+    total: &mut (f64, usize),
+    targets: &[(usize, f64)],
+    range: std::ops::Range<usize>,
+    runs: Option<&ScoreRuns>,
+) {
+    total.0 = runs.map_or_else(
+        || {
+            targets[range.clone()]
+                .iter()
+                .fold(total.0, |sum, &(_, score)| sum + score)
+        },
+        |runs| runs.sum(range.clone(), total.0),
+    );
+    total.1 += range.len();
 }
 
 impl RowPairs {
@@ -364,6 +423,26 @@ mod tests {
     }
 
     #[test]
+    fn unit_score_batches_match_sequential_rounding_at_integer_boundaries() {
+        let limit = 9_007_199_254_740_992.0;
+        for start in [0.0, -0.0, 1.0, 123.0, limit - 3.0, limit - 1.0, limit] {
+            for count in [0, 1, 2, 3, 17, 4096] {
+                let expected = (0..count).fold(start, |sum, _| sum + 1.0);
+                let mut total = (start, 7);
+                assert!(add_unit_scores(&mut total, count));
+                assert_eq!(total.0.to_bits(), expected.to_bits());
+                assert_eq!(total.1, 7 + count);
+            }
+        }
+        for start in [0.5, -1.0, limit + 2.0, f64::INFINITY, f64::NAN] {
+            let mut total = (start, 0);
+            assert!(!add_unit_scores(&mut total, 3));
+            assert_eq!(total.0.to_bits(), start.to_bits());
+            assert_eq!(total.1, 0);
+        }
+    }
+
+    #[test]
     fn row_relation_preserves_order_scores_exclusions_and_membership() {
         let interner = Interner::new();
         let il = nose_frontend::lower_source(
@@ -432,11 +511,15 @@ mod tests {
                 .collect::<Vec<_>>();
             assert_projection_matches(&rows, &explicit, &keys);
         }
-        for salt in 0..8 {
+        for salt in 0..10 {
             let relations = (0..4)
                 .flat_map(|a| {
                     (0..4).filter_map(move |b| {
-                        ((a * 3 + b + salt) % (salt + 1) == 0).then_some((a, b, score(a, b)))
+                        ((a * 3 + b + salt) % (salt + 1) == 0).then_some((
+                            a,
+                            b,
+                            if salt >= 8 { 1.0 } else { score(a, b) },
+                        ))
                     })
                 })
                 .collect();

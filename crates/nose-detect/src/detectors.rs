@@ -89,6 +89,13 @@ impl Detector for ExactBehaviorDetector {
         }
     }
 
+    fn prepare_scores<'a>(
+        &'a self,
+        units: &[&'a UnitFeat],
+    ) -> Option<Box<dyn PreparedScores + 'a>> {
+        Some(Box::new(prepared::ExactScores::new(units)))
+    }
+
     fn score_classes(&self, units: &[UnitFeat]) -> Option<Vec<usize>> {
         Some(inputs::classes(
             units.iter().map(|unit| (&unit.value, unit.exact_safe)),
@@ -238,7 +245,7 @@ impl StructuralDetector {
         if self.exact_behavior
             && exact_claim_eligible_parts(a.exact_safe, a.value.len())
             && exact_claim_eligible_parts(b.exact_safe, b.value.len())
-            && a.value == b.value
+            && overlap.map_or_else(|| a.value == b.value, |x| x.equal_value)
         {
             return 1.0;
         }

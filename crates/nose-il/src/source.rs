@@ -31,11 +31,15 @@ impl ContentDigest {
         &self.0
     }
     pub fn hex(self) -> String {
+        String::from_utf8(self.hex_bytes().to_vec()).expect("hex digits are ASCII")
+    }
+
+    fn hex_bytes(self) -> [u8; 64] {
         const HEX: &[u8; 16] = b"0123456789abcdef";
-        let mut out = String::with_capacity(64);
-        for byte in self.0 {
-            out.push(HEX[(byte >> 4) as usize] as char);
-            out.push(HEX[(byte & 15) as usize] as char);
+        let mut out = [0; 64];
+        for (byte, digits) in self.0.into_iter().zip(out.chunks_exact_mut(2)) {
+            digits[0] = HEX[(byte >> 4) as usize];
+            digits[1] = HEX[(byte & 15) as usize];
         }
         out
     }
@@ -43,7 +47,8 @@ impl ContentDigest {
 
 impl Serialize for ContentDigest {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&self.hex())
+        serializer
+            .serialize_str(std::str::from_utf8(&self.hex_bytes()).expect("hex digits are ASCII"))
     }
 }
 
