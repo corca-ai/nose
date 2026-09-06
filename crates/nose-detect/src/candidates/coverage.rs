@@ -11,6 +11,8 @@ use crate::{
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 
+mod exact_blocks;
+
 pub(super) fn accepted_edges_by_group(
     units: &[UnitFeat],
     raw_groups: &[Vec<usize>],
@@ -191,6 +193,7 @@ impl Projection {
             .map(|&key| key.filter(|&(group, _, _)| selected(group)))
             .collect::<Vec<_>>();
         let mut kinds = vec![None; self.anchors.len()];
+        let mut exact_blocks = exact_blocks::ExactBlocks::default();
         self.accepted
             .visit_site_evidence(&keys, |(left, right, score)| {
                 let (Some((group, a, left_class)), Some((other, b, right_class))) =
@@ -202,14 +205,19 @@ impl Projection {
                 if group != other || a == b {
                     return;
                 }
-                let builder = edges[group].as_mut().unwrap();
                 let (a, b) = (a.min(b), a.max(b));
                 let score = round3(score);
+                let is_exact = self.exact[left].is_some() && self.exact[left] == self.exact[right];
+                if is_exact && score.is_finite() {
+                    exact_blocks.push(&mut edges, group, a, b, score);
+                    return;
+                }
+                exact_blocks.flush(&mut edges);
+                let builder = edges[group].as_mut().unwrap();
                 let previous = builder.best(a, b);
                 if previous.is_some_and(|edge| edge.score > score) {
                     return;
                 }
-                let is_exact = self.exact[left].is_some() && self.exact[left] == self.exact[right];
                 let best_kind = if is_exact {
                     "exact-value-graph"
                 } else {
@@ -251,6 +259,7 @@ impl Projection {
                     );
                 }
             });
+        exact_blocks.flush(&mut edges);
         edges
             .into_iter()
             .map(|builder| builder.map(SiteEdgeBuilder::into_edges))

@@ -79,6 +79,20 @@ A separate indexed-block table experiment is rejected: its extra storage
 machinery produced negligible whole-query gains and a slower near-mode median.
 The original sparse block representation remains.
 
+The exact-mask diagnostic preserves all nine complete JSON outputs. Alamofire
+semantic groups decrease from 128.45 to 102.10 ms and near-mode groups from
+161.25 to 131.90 ms. Semantic whole-query median decreases from 1,152.91 to
+1,108.40 ms; default increases 8.97 ms (0.23%) and near increases 19.71 ms
+(0.82%). These balanced four-block observations justify testing the lower
+projection cost, but do not qualify the release or establish a general speedup.
+
+
+Identical consecutive exact-evidence updates to a single 64-site block can
+merge one mask instead of repeating a hash lookup per edge. The mask is flushed
+before another group, left site, block, score bit pattern or non-exact witness.
+Uniform and mixed blocks retain the existing score/category winner rule;
+no candidate or evidence edge is omitted.
+
 ## When Required
 
 Run this process when a PR, release candidate, or post-release follow-up changes semantic
