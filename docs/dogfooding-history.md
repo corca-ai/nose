@@ -2194,3 +2194,37 @@ does ordinary recording guidance when an existing review is reopened. No first-u
 speed improvement is inferred. Raw transcripts and reports are under
 `target/ux-campaign-20260906/round10/`. All ten improvement/replay cycles are now complete;
 campaign-wide qualification follows separately.
+
+## Ten-cycle campaign closeout (2026-09-06)
+
+The record audit confirms ten completed cycles, twenty distinct fresh evaluators,
+and twenty learned replays, with pre/post reports, original command streams,
+accepted/deferred decisions and implementation commits for every cycle. The final
+product commit is `2e776940`; its Type-4 receipt is committed in `d68cebee`.
+The Cortex and craken-agents worktrees remain clean. Raw records and the cycle
+table are retained locally under `target/ux-campaign-20260906/`; this history is
+the tracked closeout. Learned replays do not establish fresh-user success rates.
+
+All 2,371 workspace tests, strict clippy, docs, file-length and duplication gates
+pass, as does `scripts/check-ci-local.sh --fast`. The Type-4 check records 54 exact
+groups with zero false merges and zero canonicalization violations in its tested
+corpus. The final semantic smoke compares baseline `836f93ec` with `2e776940`:
+all seven pinned repositories retain identical semantic query output, with zero
+declared or unexpected drift. Ruby scaling passes at exponent 0.67 (limit 1.35).
+
+Runtime qualification **fails as inconclusive**, not as a confirmed material
+regression. After the single permitted focused rerun, Alacritty's `parse+lower`
+stage has an adjusted paired movement of +4.25 ms (+4.37%). Execution-order
+strata disagree (+5.70 versus +2.80 ms), and the sign test does not support a
+regression (p=0.65625). No focused signal is a confirmed material regression;
+the remaining inconclusive signal nevertheless fails the unchanged gate policy.
+Passing aggregate timings do not override this result. No second focused loop,
+threshold relaxation or speculative runtime patch was used.
+
+The requested ten usability/improvement cycles and their verification runs are
+finished. This is not an all-gates-green or release-readiness claim: performance
+qualification remains unresolved. The exact measurements are in
+`target/ux-campaign-20260906/smoke/check-status.json`; use that result rather than
+interpreting the generated summary's generic focused-rerun sentence as a confirmed
+slowdown. Longer resume commands, distant contract inspection and the cost of
+repeated live exploration remain future work, not additional completed outcomes.

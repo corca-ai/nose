@@ -6,6 +6,15 @@ break.
 
 ## [Unreleased]
 
+- Preserve member navigation limits and expose source-opening commands in member
+  lists; distinguish family comparison evidence from selected-member inspection.
+- Inspect bounded surrounding source with `member-context=N`, retaining the
+  original matched region and using available context space at file boundaries.
+- Reopen new saved-analysis observations using captured live family handles;
+  repair external-root source lookup and report actual verified/unavailable reads.
+- Explain folded and displayed query populations and omit redundant recording
+  guidance after successfully saving a caller review.
+
 - Connect saved-analysis review to explicit hash-verified source inspection and separate,
   caller-owned review records with conservative applicability checks.
 - Explain extraction support and scope evidence; add member facets and recovered-overlap
