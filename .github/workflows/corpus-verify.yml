@@ -18,6 +18,7 @@ on:
       - "crates/nose-il/**"
       - "crates/nose-normalize/**"
       - "crates/nose-semantics/**"
+      - "vendor/**"
       - "Cargo.lock"
       - "Cargo.toml"
       - "formal/**"

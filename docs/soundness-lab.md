@@ -341,7 +341,7 @@ Soundness is attacked in two independent lanes. The informed lane queries each n
 and adjacent negative pair. The blind lane runs `nose verify` over the complete focused corpus
 without consulting those labels; its compact
 [`blind_attack.v1.json`](../bench/type4/blind_attack.v1.json) receipt binds the product crates tree,
-284 fixture files, and their corpus digest. Of 483 units, 321 are interpretable and 162 are
+the committed Cargo manifest/lockfile and optional vendor tree, 284 fixture files, and their corpus digest. Of 483 units, 321 are interpretable and 162 are
 explicitly excluded; the 54 exact fingerprint groups have zero false merges and zero
 canon-preservation violations. This blind lane covers the focused probes, not the generator-only
 cells. The informed generator soundness inventory separately has 20/20 guarded axes and zero

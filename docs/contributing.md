@@ -105,6 +105,22 @@ no-family-growth cases, name the measured stage before changing code. Link the
 focused artifact from the issue, PR, or release evidence page so future maintainers
 can distinguish expected semantic expansion cost from accidental degradation.
 
+### Vendored parser dependency
+
+`vendor/tree-sitter` is a checksum-verified copy of the pinned upstream crate
+with one C progress-reporting delta. Its `NOSE_PATCH.md` records the original
+archive, upstream commit, license and exact changed file. The local Cargo patch
+builds it into the same self-contained binary. Upstream source is excluded from
+the application Rust workspace's formatting/lint ratchets, while ordinary builds
+and frontend tests consume the patched dependency.
+
+Treat a vendor edit as an engine change: full CI and the Soundness Lab apply.
+Preserve the upstream provenance/license and review the import against its archive
+when updating it. The current Type-4 blind receipt binds `Cargo.toml`, `Cargo.lock`
+and the optional vendor Git tree alongside `crates`, so a dependency-only change
+cannot reuse a stale current receipt. Historical release receipts retain their
+original source bindings.
+
 ### One-time tool install
 
 Python 3.10.0 or newer, Node.js, `cargo-machete`, `cargo-deny`,

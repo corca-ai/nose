@@ -1,4 +1,5 @@
 [workspace]
+exclude = ["vendor/tree-sitter"]
 resolver = "2"
 members = [
     "crates/nose-il",
@@ -101,3 +102,6 @@ incremental = false
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+[patch.crates-io]
+tree-sitter = { path = "vendor/tree-sitter" }

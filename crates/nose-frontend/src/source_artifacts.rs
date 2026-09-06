@@ -67,13 +67,7 @@ fn looks_like_cpp_header(src: &[u8]) -> bool {
     // Without a lexical hint, the parse cannot change the admission decision.
     // These words are legal C identifiers, so hinted headers still need a clean
     // C parse before the unsupported-language filter can exclude them.
-    ambiguous
-        && !crate::lower::parse(
-            crate::lower::grammar::C,
-            || tree_sitter_c::LANGUAGE.into(),
-            src,
-        )
-        .is_ok_and(|tree| !tree.root_node().has_error())
+    ambiguous && !crate::lower::is_clean_c(src)
 }
 
 fn has_cpp_declaration(code: &str, keyword: &str) -> bool {

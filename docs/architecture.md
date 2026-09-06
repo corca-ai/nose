@@ -333,8 +333,17 @@ excluded from persistent fingerprints.
 
 C-header admission checks lexical hints before invoking its clean-C safeguard.
 An unhinted header cannot be excluded by that safeguard, so it needs no extra
-parse. Hinted headers still complete the C parse and check its tree budget before
-using the final tree's error status. Header inclusion rules remain the same.
+parse. Hinted headers retain the same rule: admission needs a complete,
+error-free C tree within the original node/depth limits.
+
+Tree-sitter's minimum error cost after stack condensation is the lower bound
+used by its finished-tree selection. The small vendored delta also reports
+positive finite minima through its progress signal, including missing tokens.
+If no error-free finished tree exists, C admission can then cancel a parse whose
+result is already false. Cancellation resets the pooled parser before another
+file. Grammar, recovery, tree selection and header inclusion rules stay the same.
+The [contributor workflow](contributing.md#vendored-parser-dependency) owns source
+provenance and the corresponding CI requirements.
 
 Source digest serialization writes hexadecimal digits from a fixed-size stack
 buffer; its public 64-character lowercase representation stays unchanged. Site

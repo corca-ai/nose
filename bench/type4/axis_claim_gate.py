@@ -288,6 +288,7 @@ def validate(registry: dict, evidence: dict, blind: dict, declarative: dict) -> 
         or blind.get("corpus_sha256") != corpus_sha256
         or blind.get("corpus_files") != corpus_files
         or blind.get("product_crates_tree") != crates_tree
+        or blind.get("product_dependencies") != coverage_probe.dependency_identity()
     ):
         errors.append("blind attacker receipt identity is invalid")
     summary = blind.get("summary", {})
