@@ -111,11 +111,16 @@ impl Projection {
         accepted: &AcceptedPairs,
     ) -> Self {
         let mut position = vec![None; units.len()];
-        let mut sizes = Vec::new();
-        for (group_id, (members, group)) in raw.iter().zip(groups).enumerate() {
-            let collapsed = sites::collapsed_sites(group);
-            sizes.push(collapsed.len());
-            let sites = sites::member_sites(group, &collapsed);
+        let mappings = groups
+            .par_iter()
+            .map(|group| {
+                let collapsed = sites::collapsed_sites(group);
+                (collapsed.len(), sites::member_sites(group, &collapsed))
+            })
+            .collect::<Vec<_>>();
+        let mut sizes = Vec::with_capacity(groups.len());
+        for (group_id, (members, (size, sites))) in raw.iter().zip(mappings).enumerate() {
+            sizes.push(size);
             for (&unit, site) in members.iter().zip(sites) {
                 position[unit] = site.map(|site| (group_id, site));
             }
@@ -126,6 +131,7 @@ impl Projection {
             .iter()
             .zip(position)
             .map(|(unit, position)| {
+                let (group, site) = position?;
                 let next = witnesses.len();
                 let class = *witnesses
                     .entry((
@@ -140,7 +146,7 @@ impl Projection {
                 if class == next {
                     anchors.push(unit.anchors.clone());
                 }
-                position.map(|(group, site)| (group, site, class))
+                Some((group, site, class))
             })
             .collect();
         Self {
@@ -369,7 +375,7 @@ mod tests {
             min_lines: 1,
             ..Default::default()
         };
-        let units = (0..48)
+        let mut units = (0..48)
             .map(|i| {
                 let mut unit = crate::units_of_file(&il, &interner, &opts).remove(0);
                 unit.path = format!("{}.py", i % 4);
@@ -395,6 +401,11 @@ mod tests {
             })
             .collect::<Vec<_>>();
         let raw = vec![(0..units.len()).collect::<Vec<_>>()];
+        let mut unrelated = crate::units_of_file(&il, &interner, &opts).remove(0);
+        unrelated.path = "outside-group.py".into();
+        unrelated.anchors.clear();
+        unrelated.exact_safe = false;
+        units.push(unrelated);
         let accepted = AcceptedPairs::from(pairs.clone());
         let (groups, _) = crate::candidates::build_groups(
             &units,

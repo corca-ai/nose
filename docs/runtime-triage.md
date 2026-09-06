@@ -62,6 +62,23 @@ binding change, `1fa45bb8` updates only the inventory digest; the focused eviden
 artifact gate passes. No quality threshold, evidence result or public contract
 was relaxed.
 
+## Site mapping work
+
+Group-local canonical-site collapse and member-to-site mapping are independent.
+Projection prepares these mappings in parallel while preserving input group
+order, then writes the disjoint unit positions in order. Units with no reported
+site do not receive unused pair-witness classes. Mapped units retain their full
+witness inputs, source exclusions and exact evidence projection. A balanced
+four-block diagnostic reduces Alamofire semantic group construction from
+156.9 to 130.5 ms and default grouping from 381.85 to 364.65 ms. Complete query
+gains are smaller, and near-mode wall time increases by 32.23 ms (1.31%) despite
+faster grouping. All compared JSON bytes match. This diagnostic is not a release
+gate; the changed candidate still needs full output and runtime qualification.
+
+A separate indexed-block table experiment is rejected: its extra storage
+machinery produced negligible whole-query gains and a slower near-mode median.
+The original sparse block representation remains.
+
 ## When Required
 
 Run this process when a PR, release candidate, or post-release follow-up changes semantic
