@@ -197,7 +197,7 @@ pub(crate) fn render_structural(f: &RefactorFamily) {
         return;
     };
     println!(
-        "  structural correspondence: {}:{} vs {}:{} (pair only)",
+        "  structural correspondence: {}:{} vs {}:{} (family pair; not recomputed for member selection)",
         a.file, a.start_line, b.file, b.start_line
     );
     println!(
@@ -309,11 +309,11 @@ mod surrounding;
 
 fn spot_side(lines: Option<(u32, u32)>, text: &str) -> String {
     let location = lines.map_or_else(
-        || "source location unavailable".into(),
+        || "anchor location unavailable".into(),
         |(start, end)| format!("lines {start}-{end}"),
     );
     let excerpt = if text.is_empty() {
-        "source excerpt unavailable"
+        "anchor excerpt unavailable (member source availability is reported separately)"
     } else {
         text
     };
@@ -343,7 +343,7 @@ mod tests {
     fn unmapped_spots_explain_missing_source_without_debug_option_names() {
         assert_eq!(
             super::spot_side(None, ""),
-            "source location unavailable: source excerpt unavailable"
+            "anchor location unavailable: anchor excerpt unavailable (member source availability is reported separately)"
         );
         assert_eq!(
             super::spot_side(Some((10, 12)), "return x;"),

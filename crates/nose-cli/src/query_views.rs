@@ -484,13 +484,14 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
     println!("\nnext:");
     if !view.terms.iter().any(|term| term.starts_with("group=")) {
         println!(
-            "  {} group=dir       # where this selection concentrates",
-            base_cmd(view.terms, view.navigation_path)
+            "  {} group=dir       # group all {} matching families; top limits displayed groups",
+            base_cmd(view.terms, view.navigation_path),
+            view.selection.len()
         );
     }
     println!(
-        "  {} group=witness   # by confidence",
-        base_cmd(view.terms, view.navigation_path)
+        "  {} group=witness   # group all {} matching families by confidence; top limits displayed groups",
+        base_cmd(view.terms, view.navigation_path), view.selection.len()
     );
 }
 

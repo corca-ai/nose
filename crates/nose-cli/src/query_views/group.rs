@@ -127,6 +127,7 @@ fn render_group_human(view: &QueryGroupView<'_>, rows: &[(String, GroupAgg)], to
         view.field
     );
     println!("Showing {} / {total} groups.", rows.len());
+    println!("Group counts include all matching families; top=N limits displayed groups, not input families.");
     for (key, aggregate) in rows {
         let label = if view.field == "witness" && key == "subdag" {
             "shared-core"

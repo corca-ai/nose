@@ -114,7 +114,7 @@ nose query --root <path> --root <path> [FILTER … | group=FIELD | id=FAM | at=F
 | part | meaning |
 |---|---|
 | `field=value` | keep families where the field equals the value (terms AND-ed); `field>N`/`field<N` for finite numbers (`>=`, `<=`, NaN, infinity and malformed numeric values are errors); `path~substr` for a path substring; **set OR** with a comma — `witness=exact,shared-core` matches either; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a directory; `witness!=exact,shared-core` drops both) |
-| `group=FIELD` | facet the selection by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`, `status`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
+| `group=FIELD` | aggregate **all matching families**, with `top=N` limiting displayed groups rather than input families; facet by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`, `status`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
 | `id=FAM` | open one family (any unambiguous id prefix): its copies, a bounded source comparison, overlapping-family links (`subsumes`/`subsumed_by`), and navigation |
 | `member-id=ID` | select one exact member ID within an opened family; generated copy links provide the ID |
 | `member-group=dir` / `lang` / `scope` | with `id=` or `at=`, group copies inside the family; follow emitted commands to narrow members while retaining the full family identity and metrics |

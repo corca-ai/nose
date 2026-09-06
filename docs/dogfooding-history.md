@@ -1964,3 +1964,39 @@ addressing fastlane's observation that the displayed function ends sooner.
 These are learned replays, not new-user or aggregate speed measurements. Raw
 evidence is under `target/ux-campaign-20260906/round04/`. Campaign-wide runtime
 qualification remains pending.
+
+## Independent usability campaign: round 5 (2026-09-06)
+
+Two fresh evaluators independently selected at most eight families related to
+Cortex's collaboration area and craken-agents' agent area, inspected inside/outside
+occurrences, and returned to the same family order. Both completed fifteen calls
+without errors. They understood any-member path selection from current help and
+used bounded context. Both still had to infer that `top=8 group=dir` aggregates
+ten/sixteen matching families rather than just the eight displayed list rows.
+Cortex also exposed a confusing distinction between an unmapped structural spot
+and available whole-member source, and between a family grade and selected copy.
+
+The correction changes human presentation only. List group links state the input
+family count and group display limit; group views explain their aggregation scope.
+Family return/group destinations receive explicit labels. Structural comparison
+identifies its family pair independently of member selection, and missing spot
+locations/excerpts are labeled as anchor data, separate from member source
+availability. Existing commands, groups, JSON evidence and detection are unchanged.
+No query operation, scope classifier or identity is added.
+
+All 2,368 workspace tests, strict clippy, docs and file-length checks pass. Six
+original group/family/member commands replayed in JSON are byte-identical across
+previous/current binaries. The substantial-near gate retains the same eighteen
+families within budget twenty, and self-query JSON is byte-identical (SHA-256
+`fdbd16c707d0fb8a3e351ab5cd0d7dacbb4ef7926e3ca478100d1b4af4b8da5c`).
+The raw commands, decisions and replays are in
+`target/ux-campaign-20260906/round05/`.
+
+Both learned replays completed fifteen calls with no failures and restored the
+original eight-family order. Both understood the all-matching-family group scope
+and named family return actions. Cortex additionally distinguished unavailable
+structural anchor data from its three available source bodies, and understood
+why the family grade still refers to the same pair while another member is open.
+Repeated evidence output, e2e scope coverage and deeper witness explanations remain
+observations. These replays do not establish a first-use success-rate or speed gain.
+This completes round 5 of 10; final campaign qualification remains pending.

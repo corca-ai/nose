@@ -129,9 +129,14 @@ pub(super) fn render_query_family(
 
     let path = crate::query_navigation::path(ctx.args, path);
     println!("\nnext:");
-    for command in member_view["next"].as_array().unwrap().iter().take(2) {
-        println!("  {}", command.as_str().unwrap());
-    }
+    println!(
+        "  Back to filtered families: {}",
+        member_view["next"][0].as_str().unwrap()
+    );
+    println!(
+        "  Group this family's copies by directory: {}",
+        member_view["next"][1].as_str().unwrap()
+    );
     println!(
         "  nose query {path} {}   # other duplication in this directory",
         crate::path_utils::shell_quote(&format!("path~{}", family_dir(f)))

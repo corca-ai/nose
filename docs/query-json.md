@@ -463,6 +463,12 @@ analysis options, quotes paths/filters and retains JSON.
 Member group, copy, parent and return actions also retain an explicit `top=N`;
 only an explicit expand action replaces that limit. The limit affects presentation,
 not the complete family's evidence or identity.
+Grouping always aggregates all families matching the current filters; `top=N`
+limits displayed groups, not the input families. Human group actions and headings
+state this scope. Structural comparison belongs to the displayed family pair,
+independently of member selection. An unavailable structural anchor location or
+excerpt does not establish that the member source is unavailable; source bodies
+report their own availability.
 Filtered lists may add
 `selection_reason={kind:"recovered-overlap",primary_id,meaning}` to explain why a folded slice
 reappears when its fuller primary is outside the current selection.
