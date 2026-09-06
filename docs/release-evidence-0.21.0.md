@@ -25,7 +25,16 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: bounded C admission parsing
+## Latest candidate: parallel site mapping
+
+Product `a56a5c6b` prepares independent group-to-site mappings in parallel and
+omits witness classes for units with no reported site. The underlying sparse
+edge storage and complete evidence rules remain unchanged. The balanced
+prototype comparison and its limits are recorded in [runtime triage](runtime-triage.md#site-mapping-work).
+The replacement executable is frozen for full output, CI, cache/watch, native
+package and registered runtime validation. Earlier results do not qualify it.
+
+## Previous candidate: bounded C admission parsing
 
 Product `42cb52a6`, proof `cd3d1971`, and binary SHA-256
 `f2bd191f85a6bd0fdedd2959991b57b394deb247c3d9d524785b6dac66872741`
@@ -43,9 +52,16 @@ dependency. The unused-dependency scan is corrected to first-party crates;
 full-graph advisory/license/source checks remain. The tool update workflow also
 reports two outdated auxiliary pins, which are refreshed and revalidated.
 
-Full CI revalidation, current-candidate cache/watch timing, remote native
-packages and the broad registered runtime matrix remain pending. Prototype
-site-block indexing is separate and does not qualify this candidate.
+The [parser follow-up record](../bench/release/0.21.0/parser-followup.v1.json)
+retains full local CI after tooling correction: 2,395 tests and 89.57% line
+coverage, with security, licenses, MSRV, Clippy and Lean passing. PR, deep and
+120-repository nightly soundness pass. All four native archives and the actual
+installer are independently verified. The remote runtime focus remains
+inconclusive for Asciidoctor normalization: +7.45 ms/+6.03%, four supporting
+blocks of six, sign-test p=0.34375. There is no confirmed focused regression,
+but the unchanged gate rejects insufficient evidence. No same-binary retry
+replaces that result. Cache/watch timing and the broad registered runtime matrix
+were not run for this intermediate candidate.
 
 ## Previous candidate: exact score reuse
 
