@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from contextlib import contextmanager, nullcontext
+from contextlib import nullcontext
 import hashlib
 import json
 import os
@@ -23,6 +23,11 @@ from typing import Any
 from binary_identity import binary_identity, run_self_test as run_binary_identity_self_test
 from binary_identity import sha256_file
 from query_regression_summary import summarize_runs
+from query_regression_worktree import (
+    DEFAULT_ROOT as DEFAULT_WORKTREES_ROOT,
+    detached_worktree,
+    run_self_test as run_worktree_self_test,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -537,32 +542,6 @@ def load_base_workloads(
     return workloads, provenance
 
 
-@contextmanager
-def detached_worktree(repo: Path, commit: str):
-    with tempfile.TemporaryDirectory(prefix=f"nose-query-regression-{repo.name}-") as temporary:
-        worktree = Path(temporary) / "worktree"
-        run_git(
-            repo,
-            ["worktree", "add", "--detach", "--quiet", str(worktree), commit],
-            source=repo.name,
-        )
-        try:
-            yield worktree
-        finally:
-            subprocess.run(
-                ["git", "-C", str(repo), "worktree", "remove", "--force", str(worktree)],
-                check=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            subprocess.run(
-                ["git", "-C", str(repo), "worktree", "prune"],
-                check=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-
-
 def output_compatibility(
     runs: list[dict[str, Any]], repos: list[str], normalizer: str
 ) -> dict[str, Any]:
@@ -699,6 +678,7 @@ def corpus_provenance(
 
 def run_self_test() -> None:
     run_binary_identity_self_test()
+    run_worktree_self_test()
     assert measurement_order(["a", "b"], 1) == [
         ("baseline", "a"), ("current", "a"), ("baseline", "b"), ("current", "b")
     ]
@@ -838,6 +818,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples-per-observation", type=int, default=1)
     parser.add_argument("--query-args", default=" ".join(DEFAULT_QUERY_ARGS))
     parser.add_argument("--base-workload-manifest", type=Path)
+    parser.add_argument("--worktrees-root", type=Path, help="stable isolated base-view workspace root")
     parser.add_argument("--output-normalizer", choices=("none", "base-v0.19"), default="none")
     parser.add_argument("--corpus-manifest", type=Path)
     parser.add_argument("--prune-manifest", type=Path)
@@ -870,6 +851,8 @@ def main() -> int:
     baseline_binary = args.baseline_binary.resolve()
     current_binary = args.current_binary.resolve()
     repos_root = args.repos_root.resolve()
+    if args.worktrees_root and not args.base_workload_manifest:
+        raise SystemExit("--worktrees-root requires --base-workload-manifest")
     if args.base_workload_manifest and args.all_repos:
         raise SystemExit("--base-workload-manifest cannot be combined with --all-repos")
     workloads = None
@@ -908,7 +891,7 @@ def main() -> int:
     for repo_name in repo_names:
         workload = workload_by_repo.get(repo_name)
         workspace = (
-            detached_worktree(repos_root / repo_name, workload["commit"])
+            detached_worktree(repos_root / repo_name, workload["commit"], args.worktrees_root)
             if workload is not None
             else nullcontext(repos_root)
         )
@@ -977,6 +960,12 @@ def main() -> int:
             "current_source_ref": args.current_source_ref,
             "current_source_sha": args.current_source_sha or git_output(["rev-parse", args.current_source_ref]),
             "harness": "scripts/query-regression-harness.py",
+            "harness_sha256": sha256_file(Path(__file__)),
+            "worktree_helper_sha256": sha256_file(ROOT / "scripts/query_regression_worktree.py"),
+            "worktrees_root": (
+                (args.worktrees_root or DEFAULT_WORKTREES_ROOT).resolve().as_posix()
+                if args.base_workload_manifest else None
+            ),
             "harness_command": shlex.join(["python3", *sys.argv]),
             "working_tree_status_before_measurement": working_tree_status_before_measurement,
             "base_workload_manifest": (

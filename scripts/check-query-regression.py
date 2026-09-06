@@ -536,6 +536,9 @@ def validate_same_binary_control(
                 raise CheckFailed("same-binary control output normalizer does not match report")
     report_provenance = require_provenance(report, "report")
     control_provenance = require_provenance(control, "same-binary control")
+    for key in ("harness_sha256", "worktree_helper_sha256", "worktrees_root"):
+        if report_provenance.get(key) != control_provenance.get(key):
+            raise CheckFailed(f"same-binary control provenance `{key}` does not match report")
     baseline_sha = control_provenance.get("baseline_binary_sha256")
     current_sha = control_provenance.get("current_binary_sha256")
     if not isinstance(baseline_sha, str) or not isinstance(current_sha, str):
@@ -863,6 +866,9 @@ def validate_focused_report(
         "current_binary_sha256",
         "baseline_source_sha",
         "current_source_sha",
+        "harness_sha256",
+        "worktree_helper_sha256",
+        "worktrees_root",
     ]
     primary_provenance = require_provenance(primary, "primary report")
     if "baseline_binary_code_sha256" in primary_provenance:
@@ -1319,6 +1325,27 @@ def run_self_test() -> None:
     )
     assert v3_status["status"] == "pass"
     assert v3_status["focused"] is not None
+    for key, value in (
+        ("harness_sha256", "a" * 64),
+        ("worktree_helper_sha256", "b" * 64),
+        ("worktrees_root", "/stable/base-worktrees"),
+    ):
+        changed_control = json.loads(json.dumps(v3_control))
+        changed_control["provenance"][key] = value
+        try:
+            validate_same_binary_control(v3_primary, changed_control)
+        except CheckFailed as error:
+            assert key in str(error)
+        else:
+            raise AssertionError(f"control must preserve {key}")
+        changed_focus = json.loads(json.dumps(v3_focused))
+        changed_focus["provenance"][key] = value
+        try:
+            validate_focused_report(v3_primary, changed_focus, ["repo-a"], 5)
+        except CheckFailed as error:
+            assert key in str(error)
+        else:
+            raise AssertionError(f"focused rerun must preserve {key}")
     assert evaluate_gate(
         sample_v3(sample_report(delta=2.0, iterations=5)),
         same_binary_control=sample_v3(sample_control(delta=0.0, iterations=5)),

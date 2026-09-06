@@ -67,7 +67,7 @@ is_relevant_path() {
     bench/semantic_regression_corpus.v1.json|bench/setup_repos.sh|\
     bench/prune_corpus.py|bench/corpus_prune/*|\
     .github/semantic-regression-expected-drift.json|.github/workflows/ci.yml|\
-    scripts/query-regression-harness.py|scripts/query_regression_control.py|\
+    scripts/query-regression-harness.py|scripts/query_regression_*.py|\
     scripts/check-query-regression.py|\
     scripts/ruby-redefinition-scaling.py|scripts/semantic-regression-smoke.sh|\
     scripts/semantic-regression-summary.py)
