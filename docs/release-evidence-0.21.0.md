@@ -25,14 +25,45 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: parallel site mapping
+## Latest candidate: exact evidence masks
+
+Product `5e46ec4b` batches consecutive identical exact evidence into a 64-site
+mask before updating sparse edge storage. Scores, witness winners, source
+exclusions and every admitted edge remain unchanged. The ordered scalar oracle
+test covers mixed, uniform and sparse blocks, including signed-zero scores.
+All 244 detector tests and strict Clippy pass on the prototype. Its nine balanced
+diagnostic workloads preserve complete JSON bytes; group construction improves
+in Alamofire semantic/near modes, while whole-query results are mixed. The
+[runtime record](runtime-triage.md#site-mapping-work) retains those limits.
+The committed replacement needs fresh full qualification; earlier binaries'
+results do not qualify it.
+
+## Previous candidate: parallel site mapping
 
 Product `a56a5c6b` prepares independent group-to-site mappings in parallel and
 omits witness classes for units with no reported site. The underlying sparse
 edge storage and complete evidence rules remain unchanged. The balanced
 prototype comparison and its limits are recorded in [runtime triage](runtime-triage.md#site-mapping-work).
-The replacement executable is frozen for full output, CI, cache/watch, native
-package and registered runtime validation. Earlier results do not qualify it.
+The [mapping follow-up record](../bench/release/0.21.0/site-mapping-followup.v1.json)
+binds proof `add9276a` and binary
+`fc4b202fac93445b56bcf9c112a66d70ddb361a28146979c874672ced72e50b3`.
+Full local CI passes 2,395 tests and 89.57% line coverage. All 360 ordinary and
+17 base output comparisons, saved-analysis/review journeys and Type-4 checks
+pass. PR, nightly and deep soundness pass; four native packages and the actual
+generated installer are independently verified.
+
+Cache correctness passes 2,100 mutation rows and 180 paired SymPy observations.
+Clean, empty-store and history-reuse p50/p95 remain within unchanged limits.
+Watch passes 30 revisions each at 10k/100k files, fresh-query equality and forced
+restart; ready p95 is 81.94/395.41 ms.
+
+The [remote runtime gate](https://github.com/corca-ai/nose/actions/runs/34058102141)
+has no confirmed focused regression, but remains inconclusive for Fastlane
+lowering/parsing and Prettier discovery/shared-lines stages because their order
+strata disagree. Their aggregate effects do not exceed both materiality limits;
+the unchanged policy still rejects insufficient evidence. Asciidoctor passes.
+The original failure is retained without a same-binary retry. The broad
+published-0.20 runtime matrix was not run for this intermediate candidate.
 
 ## Previous candidate: bounded C admission parsing
 

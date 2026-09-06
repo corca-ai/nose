@@ -18,6 +18,8 @@ break.
   grouping and ranking. Rust report APIs use `AcceptedEdges` and explicit
   `GroupEdges` coordinates. Large site graphs materialize once when their edges
   are read; CLI JSON and pair-evidence policies are preserved.
+- Prepare independent site mappings in parallel and batch identical exact
+  evidence into sparse block masks, retaining ordered scores and witness winners.
 
 - Stop C-header admission parsing when every remaining parse necessarily contains
   a syntax error, while preserving clean-tree validation and parser reuse safety.
