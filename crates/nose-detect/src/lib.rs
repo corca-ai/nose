@@ -77,8 +77,8 @@ pub use orchestration::{
 };
 pub use reinvented::{reinvented_helpers, ReinventedHelper};
 pub use report::{
-    is_test_loc, is_test_path, rank_families, AcceptedCoverage, AcceptedEdge, RefactorFamily,
-    VaryingSpot,
+    is_test_loc, is_test_path, rank_families, AcceptedCoverage, AcceptedEdge, AcceptedEdges,
+    GroupEdges, RefactorFamily, SiteEdges, VaryingSpot,
 };
 pub use units::{
     default_product_oracle_fragment_candidates, default_product_unit_admission,

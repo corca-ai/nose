@@ -17,6 +17,13 @@ struct Row {
     shared_spans: FxHashMap<usize, usize>,
     connected: bool,
     paths: Vec<usize>,
+    by_path: FxHashMap<usize, Vec<usize>>,
+}
+
+struct PairSources<'a> {
+    units: &'a [UnitFeat],
+    paths: &'a [usize],
+    spans: &'a [usize],
 }
 
 impl Row {
@@ -35,6 +42,43 @@ impl Row {
                     if self.members[0] < *rows[right].members.last().unwrap() {
                         out.push(right);
                     }
+                }
+            }
+        }
+    }
+
+    fn collect_seeds(
+        &self,
+        other: &Row,
+        score: f64,
+        threshold: f64,
+        sources: &PairSources<'_>,
+        seeds: &mut SeedSelection<'_, super::super::ScoredCandidate>,
+    ) {
+        for &left in &self.members {
+            let members = if score >= threshold {
+                other
+                    .by_path
+                    .get(&sources.paths[left])
+                    .map_or(&[][..], Vec::as_slice)
+            } else {
+                &other.members
+            };
+            let start = members.partition_point(|&right| right <= left);
+            for &right in &members[start..] {
+                if sources.spans[left] == sources.spans[right] {
+                    continue;
+                }
+                let ordinary_score =
+                    (!crate::locations::is_nested(&sources.units[left], &sources.units[right]))
+                        .then_some(score);
+                if ordinary_score.is_none_or(|s| s < threshold) {
+                    let candidate = super::super::ScoredCandidate {
+                        left,
+                        right,
+                        ordinary_score,
+                    };
+                    seeds.push(candidate, (left, right), candidate);
                 }
             }
         }
@@ -87,6 +131,7 @@ fn rows(
                 shared_spans: FxHashMap::default(),
                 connected,
                 paths: Vec::new(),
+                by_path: FxHashMap::default(),
             });
         }
         rows[row].members.push(index);
@@ -136,13 +181,22 @@ pub(super) fn score(
         row.paths = row.members.iter().map(|&id| path_ids[id]).collect();
         row.paths.sort_unstable();
         row.paths.dedup();
+        for &unit in &row.members {
+            row.by_path.entry(path_ids[unit]).or_default().push(unit);
+        }
     }
+    let sources = PairSources {
+        units,
+        paths: &path_ids,
+        spans,
+    };
     let chunk_size = rows.len().div_ceil(rayon::current_num_threads() * 4).max(1);
     let partials = rows
         .par_chunks(chunk_size)
         .enumerate()
         .map(|(chunk_id, chunk)| {
             let mut result = DetectionStages::fresh(Vec::new(), Vec::new(), Vec::new());
+            let mut relations = Vec::new();
             let mut seen = vec![usize::MAX; rows.len()];
             let mut neighbors = Vec::new();
             let mut memo = FxHashMap::default();
@@ -168,6 +222,12 @@ pub(super) fn score(
                     );
                     let connected =
                         opts.connected_witnesses && row.connected && right_row.connected;
+                    if score >= opts.threshold {
+                        relations.push((row_id, right_id, score));
+                        if !connected {
+                            continue;
+                        }
+                    }
                     if score < opts.threshold
                         && (!connected
                             || !seeds.may_select(
@@ -179,47 +239,29 @@ pub(super) fn score(
                     {
                         continue;
                     }
-                    for &left in &row.members {
-                        let start = right_row.members.partition_point(|&right| right <= left);
-                        for &right in &right_row.members[start..] {
-                            if spans[left] == spans[right] {
-                                continue;
-                            }
-                            let ordinary_score =
-                                (!crate::locations::is_nested(&units[left], &units[right]))
-                                    .then_some(score);
-                            if let Some(score) = ordinary_score.filter(|&s| s >= opts.threshold) {
-                                result.accepted.push((left, right, score));
-                            }
-                            if connected && ordinary_score.is_none_or(|s| s < opts.threshold) {
-                                let candidate = super::super::ScoredCandidate {
-                                    left,
-                                    right,
-                                    ordinary_score,
-                                };
-                                seeds.push(candidate, (left, right), candidate);
-                            }
-                        }
-                    }
+                    row.collect_seeds(right_row, score, opts.threshold, &sources, &mut seeds);
                 }
             }
             result.scored = seeds.finish();
-            result
+            (result, relations)
         })
         .collect::<Vec<_>>();
     let mut result = DetectionStages::fresh(Vec::new(), Vec::new(), Vec::new());
     let mut seeds = SeedSelection::new(&path_ids, &weights, opts.threshold);
-    for partial in partials {
+    let mut relations = Vec::new();
+    for (partial, accepted) in partials {
         result.candidate_count += partial.candidate_count;
-        result.accepted.extend(partial.accepted);
+        relations.extend(accepted);
         for candidate in partial.scored {
             seeds.push(candidate, (candidate.left, candidate.right), candidate);
         }
     }
     result.scored = seeds.finish();
-    // Floating-point aggregation and connected tie breaking see original pair order.
-    result
-        .accepted
-        .par_sort_unstable_by_key(|&(left, right, _)| (left, right));
+    result.accepted = super::super::accepted::AcceptedPairs::rows(
+        units,
+        &path_ids,
+        &rows.into_iter().map(|row| row.members).collect::<Vec<_>>(),
+        relations,
+    );
     result
 }

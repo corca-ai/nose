@@ -1,6 +1,5 @@
 use crate::{
     candidates::{build_connected_groups, build_groups, structural_candidates},
-    cluster::UnionFind,
     contiguous::Stream,
     detectors::Detector,
     locations::enclosing_units,
@@ -11,7 +10,9 @@ use crate::{
 };
 use nose_il::Corpus;
 
+pub(crate) mod accepted;
 mod batched;
+use accepted::AcceptedPairs;
 mod features;
 mod signatures;
 pub use features::{
@@ -122,7 +123,7 @@ struct DetectionRequest<'a> {
 fn score_fresh_connected(
     units: &[UnitFeat],
     scored: &[ScoredCandidate],
-    accepted: &[AcceptedPair],
+    accepted: &AcceptedPairs,
     opts: &DetectOptions,
 ) -> ConnectedStage {
     if !opts.connected_witnesses {
@@ -334,13 +335,7 @@ fn finish_detection(
     clk.lap("score");
 
     // 5. Cluster.
-    let raw_groups = raw_groups.unwrap_or_else(|| {
-        let mut union = UnionFind::new(units.len());
-        for &(left, right, _) in &accepted {
-            union.union(left, right);
-        }
-        union.groups(units.len())
-    });
+    let raw_groups = raw_groups.unwrap_or_else(|| accepted.components(units.len()));
     clk.lap("cluster");
 
     let enclosing = enclosing_units(units);
@@ -369,7 +364,7 @@ fn finish_detection(
         trace_accepted_coverage,
     );
     groups.extend(connected_groups);
-    accepted_group_edges.extend(connected_edges);
+    accepted_group_edges.extend(connected_edges.into_iter().map(crate::GroupEdges::Members));
     clk.lap("groups");
 
     let reinvented = if opts.structural {

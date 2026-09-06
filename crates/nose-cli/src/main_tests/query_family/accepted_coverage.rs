@@ -9,7 +9,8 @@ fn accepted_pair(sites: Vec<Loc>) -> nose_detect::AcceptedCoverage {
             right: 1,
             score: 1.0,
             witness_kind: "exact-value-graph",
-        }],
+        }]
+        .into(),
     }
 }
 
@@ -226,7 +227,8 @@ fn accepted_graph_ignores_sites_without_a_direct_edge() {
             right: 1,
             score: 1.0,
             witness_kind: "exact-value-graph",
-        }],
+        }]
+        .into(),
     });
     let ranked = [&a, &b];
     let groups = OpportunityGroups::from_ranked(&ranked);

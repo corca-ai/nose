@@ -11,6 +11,8 @@ use crate::{
 use nose_semantics::ValueLaw;
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
+mod coverage;
+use crate::orchestration::accepted::AcceptedPairs;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ConnectedRoute {
@@ -147,20 +149,20 @@ pub(crate) fn structural_buckets(units: &[UnitFeat], opts: &DetectOptions) -> Ve
 /// score — is byte-identical to the per-group rescan.
 pub(crate) fn build_groups(
     units: &[UnitFeat],
-    accepted: &[(usize, usize, f64)],
+    accepted: &AcceptedPairs,
     raw_groups: &[Vec<usize>],
     enclosing: &[Option<EnclosingUnit>],
     opts: &DetectOptions,
     trace_accepted_coverage: bool,
-) -> (Vec<Group>, Vec<Vec<crate::AcceptedEdge>>) {
+) -> (Vec<Group>, Vec<crate::GroupEdges>) {
     let mut member_group = vec![None; units.len()];
     for (group_index, members) in raw_groups.iter().enumerate() {
         for &member in members {
             member_group[member] = Some(group_index);
         }
     }
-    let mut by_group = vec![(0.0, 0u32); raw_groups.len()];
-    for &(i, _j, s) in accepted {
+    let mut by_group = vec![(0.0, 0usize); raw_groups.len()];
+    for (i, _j, s) in accepted.iter() {
         let Some(group_index) = member_group[i] else {
             continue;
         };
@@ -168,7 +170,7 @@ pub(crate) fn build_groups(
         e.0 += s;
         e.1 += 1;
     }
-    let groups = raw_groups
+    let groups: Vec<Group> = raw_groups
         .par_iter()
         .enumerate()
         .map(|(group_index, members)| {
@@ -210,7 +212,7 @@ pub(crate) fn build_groups(
         })
         .collect();
     let accepted_group_edges = if trace_accepted_coverage {
-        accepted_edges_by_group(units, raw_groups, accepted)
+        coverage::accepted_edges_by_group(units, raw_groups, &groups, accepted)
     } else {
         Vec::new()
     };
@@ -287,49 +289,6 @@ pub(crate) fn build_connected_groups(
         Vec::new()
     };
     (groups, edges)
-}
-
-fn accepted_edges_by_group(
-    units: &[UnitFeat],
-    raw_groups: &[Vec<usize>],
-    accepted: &[(usize, usize, f64)],
-) -> Vec<Vec<crate::AcceptedEdge>> {
-    let mut member_position: Vec<Option<(usize, u32)>> = vec![None; units.len()];
-    for (group_index, members) in raw_groups.iter().enumerate() {
-        for (local_index, &unit_index) in members.iter().enumerate() {
-            member_position[unit_index] = Some((group_index, local_index as u32));
-        }
-    }
-    let classified = accepted
-        .par_iter()
-        .filter_map(|&(left, right, score)| {
-            let (Some((left_group, left_local)), Some((right_group, right_local))) =
-                (member_position[left], member_position[right])
-            else {
-                return None;
-            };
-            debug_assert_eq!(left_group, right_group);
-            (left_group == right_group).then(|| {
-                (
-                    left_group,
-                    crate::AcceptedEdge {
-                        left: left_local,
-                        right: right_local,
-                        score: round3(score),
-                        // Accepted-edge diagnostics only retain the category. Building a full two-member
-                        // witness here would compute and immediately discard both Jaccard means for every
-                        // accepted edge; the final group witness below still computes the reported means.
-                        witness_kind: witness_kind(&[left, right], units),
-                    },
-                )
-            })
-        })
-        .collect::<Vec<_>>();
-    let mut edges = vec![Vec::new(); raw_groups.len()];
-    for (group, edge) in classified {
-        edges[group].push(edge);
-    }
-    edges
 }
 
 fn semantic_laws_for_members(members: &[usize], units: &[UnitFeat]) -> Vec<ValueLaw> {

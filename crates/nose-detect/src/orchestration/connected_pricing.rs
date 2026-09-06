@@ -1,4 +1,4 @@
-use super::{AcceptedPair, ScoredCandidate};
+use super::{accepted::AcceptedPairs, ScoredCandidate};
 use crate::{
     candidates::{ConnectedAccepted, ConnectedRoute},
     connected,
@@ -12,14 +12,10 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 pub(super) fn score_connected_candidates(
     units: &[UnitFeat],
     candidates: &[ScoredCandidate],
-    ordinary: &[AcceptedPair],
+    ordinary: &AcceptedPairs,
     opts: &crate::DetectOptions,
     bound_product_work: bool,
 ) -> Vec<ConnectedAccepted> {
-    let ordinary_pairs = ordinary
-        .iter()
-        .map(|&(left, right, _)| (left, right))
-        .collect::<HashSet<_>>();
     let enclosing_indices = enclosing_unit_indices(units);
     let mut units_by_file: HashMap<&str, Vec<usize>> = HashMap::default();
     for (index, unit) in units.iter().enumerate() {
@@ -43,6 +39,10 @@ pub(super) fn score_connected_candidates(
         opts.threshold,
         bound_product_work,
     );
+    let ordinary_pairs = ordinary.matching(candidate_indices.iter().map(|&index| {
+        let candidate = candidates[index];
+        (candidate.left, candidate.right)
+    }));
     let connected = candidate_indices
         .par_iter()
         .flat_map_iter(|&index| {
@@ -237,14 +237,15 @@ fn accepted_connected_pair(
 /// Several child seeds can prove the same enclosing pair. Keep one deterministic strongest
 /// witness and discard pairs already accepted by ordinary scoring.
 pub(super) fn deduplicate_connected(
-    ordinary: &[AcceptedPair],
+    ordinary: &AcceptedPairs,
     connected: &mut Vec<ConnectedAccepted>,
     bound_product_output: bool,
 ) {
-    let ordinary_pairs: HashSet<(usize, usize)> = ordinary
-        .iter()
-        .map(|&(left, right, _)| (left.min(right), left.max(right)))
-        .collect();
+    let ordinary_pairs = ordinary.matching(
+        connected
+            .iter()
+            .map(|pair| (pair.left.min(pair.right), pair.left.max(pair.right))),
+    );
     connected.retain(|pair| {
         !ordinary_pairs.contains(&(pair.left.min(pair.right), pair.left.max(pair.right)))
     });

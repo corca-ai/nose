@@ -108,7 +108,7 @@ pub(super) fn fam(
         params,
         shared_weight: shared as f64,
         locations: locs,
-        direct_edges: Vec::new(),
+        direct_edges: Default::default(),
         accepted_coverage: Vec::new(),
         display_params: None,
         mean_sem: 50.0,

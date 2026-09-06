@@ -111,7 +111,8 @@ fn accepted_edges_follow_collapsed_sites_across_files() {
         accepted_edge(1, 2),
         accepted_edge(2, 3),
         accepted_edge(0, 1),
-    ]];
+    ]
+    .into()];
 
     let families = rank_families(&report);
     let [family] = families.as_slice() else {
@@ -154,7 +155,7 @@ fn subsumed_family_is_dropped() {
         witness: None,
     };
     let mut report = report(vec![inner, outer]);
-    report.accepted_group_edges = vec![vec![accepted_edge(0, 1)], Vec::new()];
+    report.accepted_group_edges = vec![vec![accepted_edge(0, 1)].into(), Vec::new().into()];
     let fams = rank_families(&report);
     assert_eq!(fams.len(), 1, "the contained family should be dropped");
     assert_eq!(
@@ -166,10 +167,8 @@ fn subsumed_family_is_dropped() {
     };
     assert_eq!(obligation.sites.len(), 2);
     assert_eq!(obligation.edges.len(), 1);
-    assert_eq!(
-        (obligation.edges[0].left, obligation.edges[0].right),
-        (0, 1)
-    );
+    let edge = obligation.edges.iter().next().unwrap();
+    assert_eq!((edge.left, edge.right), (0, 1));
     assert!(obligation
         .sites
         .iter()

@@ -41,7 +41,7 @@ pub(super) fn family_with_locations(locations: &[(String, &str)]) -> RefactorFam
             .iter()
             .map(|(file, lang)| loc(file, lang))
             .collect(),
-        direct_edges: Vec::new(),
+        direct_edges: Default::default(),
         accepted_coverage: Vec::new(),
         display_params: None,
         mean_sem: 24.0,

@@ -80,7 +80,7 @@ fn same_unit_output_never_displaces_cross_unit_routes() {
     let mut cross = (0..40)
         .map(|index| accepted(index, index + 100, ConnectedRoute::Mapped))
         .collect::<Vec<_>>();
-    deduplicate_connected(&[], &mut cross, true);
+    deduplicate_connected(&AcceptedPairs::default(), &mut cross, true);
     let expected = cross
         .iter()
         .map(|pair| (pair.left, pair.right))
@@ -93,7 +93,7 @@ fn same_unit_output_never_displaces_cross_unit_routes() {
     let mut combined = (0..40)
         .map(|index| accepted(index, index + 100, ConnectedRoute::Mapped))
         .collect::<Vec<_>>();
-    deduplicate_connected(&[], &mut combined, true);
+    deduplicate_connected(&AcceptedPairs::default(), &mut combined, true);
     combined.extend(same_unit);
     let observed = combined
         .iter()

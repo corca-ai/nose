@@ -13,7 +13,7 @@ use super::{
 #[derive(Clone)]
 pub struct AcceptedCoverage {
     pub sites: Vec<Loc>,
-    pub edges: Vec<AcceptedEdge>,
+    pub edges: super::AcceptedEdges,
 }
 
 /// One detector-accepted pair before family transitive closure. The witness and
@@ -69,7 +69,7 @@ pub struct RefactorFamily {
     /// family's locations merely to store edge endpoints.
     #[doc(hidden)]
     #[serde(skip)]
-    pub direct_edges: Vec<AcceptedEdge>,
+    pub direct_edges: super::AcceptedEdges,
     /// Structural accepted-family sites this row must keep covered if a later
     /// presentation layer suppresses it. When rank subsumption drops a family,
     /// its locations and direct edges move to the covering survivor. Kept out of

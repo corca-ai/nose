@@ -415,3 +415,31 @@ and batches arena invalidation during alpha-renaming and branch orientation.
 These mechanisms are documented in [architecture](architecture.md) and
 [normalization](normalization.md). Intermediate binaries and single observations
 are diagnostic only; replacement candidate qualification is still pending.
+
+The first completion candidate `843bd52e` passes full local CI and matches 359 of
+the 360 default/semantic/near outputs from `d8744855`. The Alamofire default-mode
+comparison was interrupted for sustained paging: sampled peak physical footprints
+were 43.5 GiB for the previous candidate and 15.9 GiB for the new one. Both were
+in accepted-edge concatenation; their empty interrupted outputs are not equality
+evidence. The near:0.8 diagnostic improves from about 8.9 seconds to 2.4 seconds
+with identical complete JSON. Full timing qualification remains pending.
+
+The default-mode discovery motivates sharing accepted rows through aggregation
+and applying the existing site-evidence projection before allocating coverage
+edges. The complete accepted relation, candidate accounting and group score
+addition order must remain unchanged. This second optimization is under validation.
+
+
+The compressed-relation prototype completes the previously paging default query.
+Keeping projected evidence packed through ranking reduces its diagnostic elapsed
+time from 68.86 to 37.32 seconds and peak physical footprint from 35.94 to
+6.36 GB. Sharing equivalent cross-file site targets and pair-witness classifications
+reduces the next diagnostic to 25.43 seconds. The complete 77,113,827-byte default
+JSON remains identical between these completed prototypes (SHA-256
+`99983d3e49d60b221d5efd0c1eba1bf090f6c03f1963cec34460236385c72fd5`).
+The latest near:0.8 diagnostic is 2.57 seconds with the earlier identical output.
+These are diagnostic observations, not the registered paired timing campaign.
+The 37.32-second prototype passes all 360 three-mode output checks; the additional
+site-target optimization is undergoing the same full audit. Explicit scalar
+reference tests compare complete ordered relations, connectivity, exclusions and
+all projected witness-class/score facts, including sparse and mixed site blocks.

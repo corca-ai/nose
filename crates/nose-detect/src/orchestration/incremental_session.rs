@@ -140,7 +140,7 @@ fn detect_inner(
             candidate_count: candidates.len(),
             candidates,
             scored,
-            accepted,
+            accepted: accepted.into(),
             source: DetectionStageSource::Incremental {
                 raw_groups,
                 connected: connected_stage,

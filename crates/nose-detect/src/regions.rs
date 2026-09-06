@@ -69,7 +69,7 @@ pub fn review_key(family: &RefactorFamily) -> Option<ContentDigest> {
         .map(member_review_key)
         .collect::<Option<Vec<_>>>()?;
     let mut edges = Vec::with_capacity(family.direct_edges.len());
-    for edge in &family.direct_edges {
+    for edge in family.direct_edges.iter() {
         let mut ends = [
             *members.get(edge.left as usize)?,
             *members.get(edge.right as usize)?,

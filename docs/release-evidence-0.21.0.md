@@ -134,3 +134,22 @@ replacement candidate and complete the preregistered 120-repository three-mode a
 17-repository base timing campaign, cache comparisons and exact candidate CI.
 The current default/near audits were stopped at the blocker, and base timing was
 not run. No result here authorizes a GO decision or substitutes for those checks.
+
+
+## First completion candidate
+
+The [completion follow-up record](../bench/release/0.21.0/completion-followup.v1.json)
+retains candidate `843bd52e` / proof commit `0de3169b` separately from the earlier
+failed qualifications. It passes full local CI (2,379 tests, 89.44% line coverage),
+Type-4 checks, 120-repository soundness, deep checks, four native packages and the
+actual generated installer. Cache correctness passes 2,100 mutation and 180 SymPy
+rows; all three SymPy p95 comparisons fall below the unchanged materiality limits.
+The remote runtime gate remains inconclusive for Asciidoctor normalization after
+its single focused run. The full timing campaign remains unqualified.
+
+The output audit matches 359 of 360 comparisons. Both old and new candidates were
+interrupted during the Alamofire default query because accepted-edge allocation
+caused sustained paging; empty outputs are not equality evidence. This motivates
+the subsequent compressed-relation implementation described in
+[runtime triage](runtime-triage.md). Results from that implementation must bind a
+new candidate; they cannot retroactively qualify `843bd52e`.

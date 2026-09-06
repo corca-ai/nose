@@ -199,11 +199,13 @@ fn family_signature_preserves_multiplicity_evidence_and_order_independence() {
     let family = &mut three_copy_family();
     let key = review_key(family).expect("source-backed review key");
     family.locations.reverse();
-    for edge in &mut family.direct_edges {
+    let mut edges = family.direct_edges.iter().collect::<Vec<_>>();
+    for edge in &mut edges {
         edge.left = 2 - edge.left;
         edge.right = 2 - edge.right;
     }
-    family.direct_edges.reverse();
+    edges.reverse();
+    family.direct_edges = edges.into();
     family.value += 50.0;
     assert_eq!(review_key(family), Some(key));
     let mut changed = family.clone();

@@ -248,8 +248,30 @@ only the existing global and per-file connected-seed reservations, comparing
 scores and source-pair order as candidates arrive. No rejected-pair array needs
 sorting; each worker's final reservations are merged under the same policy.
 The row/bucket/source-span and inverted-feature indexes are linear in the input
-and its memberships; per-worker intersection arrays scale with feature classes,
-without a quadratic score matrix. Accepted evidence can still be large.
+and its memberships; per-worker intersection arrays scale with feature classes.
+Repeated accepted rows share sorted right-hand targets rather than expanding each
+left occurrence into another edge array. Their iterator retains every admitted
+pair, exact score and source-pair order; group accumulation therefore uses the
+same floating-point additions. Connected pricing looks up only its selected pair
+questions instead of copying the entire accepted graph into a hash set.
+Before materializing coverage, the detector applies ranking's existing site
+collapse and retains the strongest original edge per site pair, with the same
+witness tie rule. Each retained site edge is backed by an actually accepted source
+pair. Coverage explicitly distinguishes raw member coordinates from reported-site
+coordinates. Large site graphs use 64-site blocks with a shared palette of exact
+scores and witness kinds; mixed blocks preserve each value. Full relation counts
+and group metrics precede that projection. Ranking and coverage obligations share
+these immutable blocks through `AcceptedEdges`; iteration reconstructs exact edges
+without allocating a second graph. Repeated rows reuse connectivity only after
+all remaining targets are in one component, so skipped unions are redundant.
+Site projection also skips a later cross-file row occurrence only when an earlier
+occurrence has the same reported site and complete witness inputs. Within-file
+exclusions are always evaluated for the individual occurrence. Equivalent cross-file
+right targets retain their latest occurrence, which covers every earlier left
+endpoint. Equivalence compares site, score, exact-value eligibility and the ordered
+anchor hashes/weights used by pair witnesses; source metadata is kept separately.
+Distinct accepted rows and reported site graphs can still be large; these
+representations introduce no evidence cap or candidate omission.
 These internal execution choices do not change recall or explicit budget accounting.
 
 `--max-candidate-pairs` and `NOSE_MAX_CANDIDATE_PAIRS` optionally impose a positive

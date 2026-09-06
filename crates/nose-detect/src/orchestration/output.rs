@@ -1,4 +1,4 @@
-use super::{stages::ContiguousStage, AcceptedPair};
+use super::{accepted::AcceptedPairs, stages::ContiguousStage};
 use crate::{
     candidates::{round3, ConnectedAccepted},
     contiguous::{self, Stream},
@@ -30,7 +30,7 @@ pub(super) fn detection_dump(units: &[UnitFeat], candidates: &[(usize, usize)]) 
 pub(super) fn build_pair_output(
     units: &[UnitFeat],
     enclosing: &[Option<EnclosingUnit>],
-    ordinary: &[AcceptedPair],
+    ordinary: &AcceptedPairs,
     connected: &[ConnectedAccepted],
     emit_pairs: bool,
 ) -> Vec<DupPair> {
@@ -39,7 +39,7 @@ pub(super) fn build_pair_output(
     }
     let mut output = ordinary
         .iter()
-        .map(|&(left, right, score)| DupPair {
+        .map(|(left, right, score)| DupPair {
             left: loc_of(&units[left], enclosing[left].clone()),
             right: loc_of(&units[right], enclosing[right].clone()),
             score: round3(score),
@@ -118,6 +118,8 @@ fn append_contiguous_output(
     report.metrics.groups += groups.len();
     report.groups.extend(groups);
     if trace_accepted_coverage {
-        report.accepted_group_edges.extend(accepted_edges);
+        report
+            .accepted_group_edges
+            .extend(accepted_edges.into_iter().map(crate::GroupEdges::Members));
     }
 }
