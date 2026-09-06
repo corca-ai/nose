@@ -122,7 +122,7 @@ pub(crate) fn capture(args: &QueryArgs, path: &Path) -> Result<()> {
         );
         super::render::coverage("Capture", &coverage(&snapshot));
         println!(
-            "All admitted surfaces included; reviews and source bodies are not stored.
+            "All admitted surfaces and folded overlaps included; reviews and source bodies are not stored.
 next: {next}
 Append id=ID using a live family ID to reopen its captured observations.
 Explore this capture; supply a later --after capture to inspect changes."

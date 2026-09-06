@@ -2000,3 +2000,43 @@ why the family grade still refers to the same pair while another member is open.
 Repeated evidence output, e2e scope coverage and deeper witness explanations remain
 observations. These replays do not establish a first-use success-rate or speed gain.
 This completes round 5 of 10; final campaign qualification remains pending.
+
+## Independent usability campaign: round 6 (2026-09-06)
+
+Fresh fastlane and Prettier evaluators completed fifteen calls each without
+failures, reopened a chosen live family from a new capture, and verified four
+source reads each. Both could describe their limited code review but could not
+reconcile displayed and captured populations. The dashboard now accounts for
+default unfolded/folded families and other surfaces, plus the independent
+all-surface unfolded/folded totals. Counts use the existing complete fold sets,
+including nested folds, after baseline/ignore processing and before display.
+Capture wording explicitly includes folded overlaps. No new analysis or
+classification runs during capture, and capture identity and bytes are unchanged.
+
+Fastlane reports 692 default unfolded + 67 folded + 825 other-surface families =
+1,584, and 1,517 all-surface unfolded + 67 folded. Prettier reports 338 + 15 + 377 =
+730, or 715 all-surface unfolded + 15 folded. On both targets every pre-existing
+dashboard field is equal, all-view JSON is byte-identical, and a newly written
+capture is byte-identical to the pre-test capture. These counts are not a universal
+capture alias: captures precede baseline/ignores and coalesce duplicate observation
+addresses. Markdown remains a separate population.
+
+Both learned replays again completed fifteen calls with no failures, explained
+the count relationship, reopened the selected family and verified all four source
+reads. They distinguish reviewed candidates from stored analyses and retain
+caller judgement. Context clipping at enclosing methods, long resume commands,
+duplicate-looking family summaries and saved-view naming remain observations.
+No causal speed or fresh-user success-rate claim is made from these replays.
+
+All 2,369 workspace tests, strict clippy, docs and file-length checks pass. A real
+source fixture fails before accounting exists and passes afterward, covering a
+folded default family, generated surface, all/list row limits, capture and empty
+input. The substantial-near gate reports nineteen families within the unchanged
+budget twenty. Previously reviewed numeric-policy pair `60f0dd6d98436972` returns
+at value 41.58 with ten shared syntax lines; the integer/float implementations
+and both region-content keys are unchanged from the campaign baseline. Their
+distinct numeric policies remain separate. Previous/current binaries give
+byte-identical self-query JSON on the updated source (SHA-256
+`d04206725a0d6526a6049b35d9e6694ee452ff4138e4795db9b7650ad3ba6e50`).
+Raw evidence is under `target/ux-campaign-20260906/round06/`. This completes round
+6 of 10; final campaign-wide qualification remains pending.

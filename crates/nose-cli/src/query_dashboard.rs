@@ -14,6 +14,7 @@ use crate::style;
 use crate::surfaces::{surface_omission_note, SurfaceOverrides};
 
 mod navigation;
+mod population;
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn query_dashboard_json(
@@ -61,6 +62,7 @@ pub(crate) fn query_dashboard_json(
             "view": "dashboard",
             "analysis": analysis,
             "path": path,
+            "population": population::describe(families, ov, opp),
             "summary": {
                 "scanned_files": scope.files,
                 "skipped_sources": scope.skipped_sources,
@@ -174,6 +176,7 @@ pub(super) fn render_query_dashboard(
         style::bold(&def.len().to_string()),
         plural(def.len(), "family", "families"),
     );
+    population::render(&population::describe(families, ov, opp));
     println!(
         "  {} {n_proven} ({} {} · {} {} · {} {} · {} {}) · {} {} · {} {}",
         style::bold_green("verified"),

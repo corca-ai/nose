@@ -97,6 +97,12 @@ arbitrary conditional compilation or third-party test macros. Conventional `_tes
 directory names also classify out-of-line test helpers, without pretending to resolve every
 custom module graph.
 
+The dashboard accounts for the report's code families before row limits: unfolded
+default families, folded default overlaps, and families on other surfaces. It also
+shows unfolded/folded totals for `all`, which widens surfaces but retains overlap
+folding. These counts follow baseline/ignore processing; saved analyses precede
+that processing and include folded overlaps. Markdown findings are separate.
+
 To analyze disjoint trees in one run, pass every root explicitly:
 `nose query --root packages --root scripts [terms…]` (short: `-r`). When
 `--root`/`-r` is present, bare arguments are query terms; use `-r` for each

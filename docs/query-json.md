@@ -463,6 +463,17 @@ analysis options, quotes paths/filters and retains JSON.
 Member group, copy, parent and return actions also retain an explicit `top=N`;
 only an explicit expand action replaces that limit. The limit affects presentation,
 not the complete family's evidence or identity.
+The dashboard adds `population` accounting for code families after baseline/structured
+ignore processing and before presentation selection. `families` partitions into
+`default_unfolded + default_folded + other_surfaces`, and independently into
+`all_unfolded + all_folded`. Unfolded counts precede row limits; default-unfolded
+equals the existing dashboard family count. Folded counts use every family in
+the existing opportunity forest, including nested folds, rather than summing
+only direct links from displayed roots. Classification and fold policy are unchanged.
+These report counts need not equal a saved capture: capture precedes baseline/ignore
+processing and coalesces duplicate observation addresses. Markdown findings remain
+separate. `all` widens surfaces while still folding overlapping families.
+
 Grouping always aggregates all families matching the current filters; `top=N`
 limits displayed groups, not the input families. Human group actions and headings
 state this scope. Structural comparison belongs to the displayed family pair,
