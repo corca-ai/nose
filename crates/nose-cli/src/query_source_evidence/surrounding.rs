@@ -49,9 +49,12 @@ fn lines(loc: &Loc, padding: usize) -> Result<Window, &'static str> {
     }
     let padding = u32::try_from(padding).unwrap_or(u32::MAX);
     let requested_start = loc.start_line.saturating_sub(padding).max(1);
-    // Do not spend the entire display budget on preceding context.
-    let start = requested_start.max(loc.start_line.saturating_sub((LINE_LIMIT / 3) as u32));
     let end = loc.end_line.saturating_add(padding).min(total);
+    let context_budget = (LINE_LIMIT as u32).saturating_sub(loc.end_line - loc.start_line + 1);
+    let available_before = loc.start_line - requested_start;
+    let after = (end - loc.end_line).min(context_budget - available_before.min(context_budget / 2));
+    let before = available_before.min(context_budget - after);
+    let start = loc.start_line - before;
     let lines: Vec<_> = text
         .lines()
         .skip(start as usize - 1)
@@ -71,17 +74,19 @@ fn lines(loc: &Loc, padding: usize) -> Result<Window, &'static str> {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn context_is_bounded_keeps_the_member_and_rejects_missing_source() {
-        use nose_detect::{LineSpan, Loc, LocInit};
-        let path =
-            std::env::temp_dir().join(format!("nose source-context {}.txt", std::process::id()));
+    use nose_detect::{LineSpan, Loc, LocInit};
+
+    fn fixture(name: &str) -> (std::path::PathBuf, Loc) {
+        let path = std::env::temp_dir().join(format!(
+            "nose source-context {name} {}.txt",
+            std::process::id()
+        ));
         std::fs::write(
             &path,
             (1..=400).map(|n| format!("line {n}\n")).collect::<String>(),
         )
         .unwrap();
-        let mut loc = Loc::new(LocInit {
+        let loc = Loc::new(LocInit {
             file: path.to_string_lossy().into_owned(),
             source_span: LineSpan::new(201, 205),
             lang: "rust".into(),
@@ -91,6 +96,12 @@ mod tests {
             sem: 1,
             span_tokens: 1,
         });
+        (path, loc)
+    }
+
+    #[test]
+    fn context_is_bounded_keeps_the_member_and_rejects_missing_source() {
+        let (path, mut loc) = fixture("bounds");
         for padding in [0, 20, usize::MAX] {
             let body = super::read(&loc, padding);
             assert_eq!(body["status"], "available");
@@ -112,5 +123,30 @@ mod tests {
         assert_eq!(super::read(&loc, 20)["reason"], "region-byte-limit");
         std::fs::remove_file(&path).unwrap();
         assert_eq!(super::read(&loc, 20)["reason"], "source-unavailable");
+    }
+
+    #[test]
+    fn context_uses_available_budget_without_displacing_the_member() {
+        let (path, mut loc) = fixture("budget");
+        for (start, end, first, last) in [(5, 10, 1, 90), (392, 397, 312, 400)] {
+            loc.start_line = start;
+            loc.end_line = end;
+            let body = super::read(&loc, 80);
+            assert_eq!(body["context"]["start"], first);
+            assert_eq!(body["context"]["shown_end"], last);
+            assert_eq!(body["truncated"], false, "the entire request fits: {body}");
+        }
+        loc.start_line = 201;
+        loc.end_line = 350;
+        let body = super::read(&loc, usize::MAX);
+        assert_eq!(body["context"]["start"], 201);
+        assert_eq!(body["lines_shown"], 120);
+        assert!(body["lines"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|l| l["in_member"] == true));
+        assert_eq!(body["truncated"], true);
+        std::fs::remove_file(path).unwrap();
     }
 }

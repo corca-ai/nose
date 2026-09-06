@@ -2077,3 +2077,43 @@ family/analysis explanations also remained low-value during source inspection.
 No speed or first-use success improvement is claimed from these learned replays.
 Reports and raw transcripts are in `target/ux-campaign-20260906/round07/`.
 This completes round 7 of 10; final campaign qualification remains pending.
+
+## Independent usability campaign: round 8 (2026-09-06)
+
+Fresh craken-agents and Cortex evaluators confirmed that source context, pair diffs
+and filter-preserving return commands supported contract review. Both retained distant
+or cross-file source reads and reported repeated family explanations during individual
+source inspection. A used 15 calls with one external guessed-path search failure; B
+used 16 after the task author corrected a nonexistent filename to
+`e2e/helpers/mock-workspace.ts`. The initial filename and its recovery are task-author
+error, not a product defect. All nose calls succeeded.
+
+A separate reproducible context defect from round 7 remained: requesting 80 lines around
+the test member asked for lines 12–109, but the fixed preceding-line allowance showed
+only 52–109. All 98 requested lines fit the 120-line budget. Context now assigns the
+budget to the member first, then shares the remainder between both sides, reusing
+unused allowance at file edges. Oversized members receive all 120 displayed lines before
+surrounding context. File/byte limits, original coordinates/evidence, and explicit
+truncation remain unchanged; no option or larger output budget was introduced.
+
+The regression failed at start 352 versus 312 for a fitting request near a file end.
+Tests cover fitting windows at both file edges and an oversized member. Source-limit
+and budget tests share a real file fixture and remain separate responsibilities.
+All 2,370 workspace tests, strict clippy, docs and the 1,054-file length gate pass.
+Eight prior real member commands were replayed: seven ordinary/20-line-context
+outputs are byte-identical, while the 80-line request now shows all 98 lines without
+truncation. All non-body fields and in-member source remain equal. The substantial-near
+gate retains the same 19 families within budget 20; previous/current self-query bytes
+are identical with SHA-256
+`5ada2cad300f0e076acfc445e164503aef4bb71b18944032613318e7aec6d0a1`.
+
+Both learned replays completed 15 calls with zero errors and restored the filtered
+and whole-root views. They used the existing 20-line context and external source reads;
+neither independently exercised the enlarged request that demonstrates this fix.
+That behavior is verified by the regression and exact real-command replay above, not
+by a claimed task-cost improvement. Both retained caller-owned provisional decisions.
+Cortex additionally exposed a concrete navigation gap: a member-directory group opens
+a location list whose human output has no command to open the listed source, despite
+that command being present in JSON. This and repeated family-wide explanations remain
+for the next cycle. Raw reports are under `target/ux-campaign-20260906/round08/`.
+This completes round 8 of 10; final campaign qualification remains pending.
