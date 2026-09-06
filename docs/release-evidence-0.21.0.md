@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-07. Release decision: **NO-GO (performance regressions confirmed)**. The feature scope is frozen;
+Updated on 2026-09-07. Release decision: **NO-GO (performance qualification remains incomplete)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -25,7 +25,45 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: deferred evidence
+## Latest candidate: exact score reuse
+
+The [scoring follow-up record](../bench/release/0.21.0/scoring-followup.v1.json)
+binds optimization `25230ae5`, test cleanup `deeb1eaa` and proof `5d1610f7`.
+It avoids redundant unhinted-header parsing, reuses exact scoring inputs and
+accelerates repeated additions while retaining sequential IEEE-754 results.
+The fixture cleanup produces a byte-identical executable. All 360 ordinary and
+17 base outputs match the preceding candidate; saved-analysis/review journeys
+and 0.20 cache upgrade also pass.
+
+Full local CI passes 2,392 tests, 89.56% line coverage, strict Clippy, MSRV,
+supply-chain checks and Lean. The original full run's duplicated test setup was
+removed through a shared fixture; eighteen accepted families remain within
+budget twenty. The original failure is retained. Cache passes 2,100 mutation
+rows and 180 paired SymPy observations. Watch passes 30 revisions at both sizes,
+fresh-query equality and forced restart, with ready p95 81.08/386.29 ms.
+
+[Remote CI](https://github.com/corca-ai/nose/actions/runs/34053175158) remains
+inconclusive after its single Asciidoctor/Fastlane focus. Asciidoctor
+`normalize+extract` has an adjusted +9.40 ms/+7.53% movement, four supporting
+blocks of six and sign-test p=0.34375; no focused signal is a confirmed regression.
+This still fails the unchanged gate. PR, nightly and deep soundness pass. All
+four native packages and the actual installer are independently verified. The
+Intel Mac package's first upload failed with GitHub DNS ENOTFOUND after its
+build/smoke passed; only that failed package job was retried.
+
+Balanced semantic diagnostics reduce Raylib from 2.42 to 2.02 seconds and libGDX
+from 1.66 to 1.47 seconds against the previous candidate. Delve remains 0.50
+seconds versus published 0.20's 0.26 seconds. Group/ranking stage costs also
+remain. The new broad release runtime campaign is unqualified; these diagnostics
+never replace its registered primary/control and focused policy.
+
+An isolated parser experiment reduces the Delve diagnostic from 0.50 to 0.24
+seconds with identical output. Its admission decisions match complete parsing
+for 6,294 C/header files and 10,000 token mutations; all 360 product outputs
+also match. This dependency experiment is not in the candidate above and still
+requires integration, provenance and release verification before adoption.
+
+## Previous candidate: deferred evidence
 
 The [lazy follow-up record](../bench/release/0.21.0/lazy-followup.v1.json) binds
 product `bbc91b01`, proof commit `1be93eda` and harness commit `ce94f372` to their
