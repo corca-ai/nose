@@ -196,3 +196,60 @@ The process-local timing and sampling originals are in `/tmp/nose-first-run-perf
 Candidate scoring still takes about 2.3 seconds and parsing/normalization about
 2 seconds on Cortex; this improvement does not establish interactive latency or
 lower peak memory use.
+
+## Scoring and feature extraction follow-up (2026-09-06)
+
+The next local product comparison is `8d939004` to `0696c0b5`, using the same
+clean Cortex commit and query as above. Every observation starts a new process
+without nose analysis-cache reuse; the operating-system page cache is not flushed.
+This measures the next optimization against the preceding local product, not a
+release-baseline qualification. Five alternating pairs and a separate five-pair
+same-binary control were followed by exactly one six-pair focused comparison and
+control, each with one warmup. No thresholds, observations, or retry limits changed.
+
+| Stage | Primary baseline/current median | Focused baseline/current median |
+| --- | --- | --- |
+| Whole query | 5,589.89 / 4,840.73 ms | 5,904.43 / 5,082.16 ms |
+| Candidate scoring | 2,318.80 / 1,620.00 ms | 2,465.85 / 1,658.65 ms |
+| Parse and lower | 866.80 / 825.60 ms | 919.25 / 903.55 ms |
+| Normalize and extract | 1,148.30 / 1,087.20 ms | 1,192.50 / 1,177.30 ms |
+
+The whole-query median reduction is 13.40% in the primary and 13.93% in the
+focused comparison. The focused paired order-aware movement is -812.29 ms
+(-13.76%); its same-binary movement is -16.58 ms and does not inflate improvement.
+Scoring improves consistently. The normalization benefit is small and does not
+hold in every aggregation: its focused paired movement is +9.70 ms, despite the
+lower marginal median. These results do not establish uniformly faster stages.
+
+Profiling identified repeated scoring of exactly equal feature inputs, sequential
+joins between small parallel batches, repeated MinHash work, and whole-arena
+parent searches in the Object.keys guard. The implementation uses complete typed
+score-input equality (including metadata), private bounded ordered-pair memo maps,
+parallel chunks without sequential joins, corpus-wide shared signature computation,
+and a lazy unique-parent index. Full equality checks resolve hash collisions;
+custom scorers opt out by default. Candidate order, nesting checks, rejected scores,
+thresholds, semantic guards, and connected-seed selection remain intact. No feature
+or persistent-cache schema changes. The [architecture](architecture.md) owns the
+implementation and lifetime contracts.
+
+All 22 primary/focused output hashes match. Full `all top=0` output also matches
+byte-for-byte on Cortex and all seven pinned smoke repositories. Four Cortex cache
+paths agree: uncached, previous-binary cold cache, current-binary reuse of that
+cache, and current-binary cold cache. Only the expected cache argument in suggested
+`next` commands differs across cache locations; reuse of the same cache is byte-identical.
+All 2,356 workspace tests, strict Clippy, formatting, docs, file-length checks, and
+the reviewed 18-family duplication ratchet pass. The blind attacker retains 54 exact
+groups, zero false merges, and zero canonicalization violations.
+
+Both runtime qualification gates remain **failed due to inconclusive evidence**.
+Cortex's focused contiguous stage moves +4.10 ms (+6.11%) with disagreeing order
+strata; groups moves +14.25 ms (+9.93%) with insufficient sign-test support.
+The seven-repository smoke preserves output exactly and passes Ruby scaling
+(exponent 0.68), but focused asciidoctor remains inconclusive at +5.31 ms (+4.09%),
+with order strata +11.95 and -1.32 ms. Neither inconclusive result is proof of a
+regression or a passing performance result. No further performance rerun was made.
+
+Commands, source/binary identities, raw reports, output comparisons, sampling,
+and validation logs are retained in `target/scoring-first-analysis-performance-2026-09-06/`.
+Original experiments remain in `/tmp/nose-score-perf/`. The improvement reduces
+first-analysis work; it does not establish interactive latency or lower peak memory.

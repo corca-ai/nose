@@ -1765,3 +1765,14 @@ every finding and pre-existing JSON field except `analysis.max_candidate_pairs`,
 intentionally changes from 16,000,000 to null; exact hashes are in the expected-drift
 ledger. Runtime was within the unchanged thresholds, and Ruby scaling passed with
 exponent 0.64. Reports are in `/tmp/nose-auto-smoke/`.
+
+## Analysis-local scoring and signature reuse (2026-09-06)
+
+The substantial-near ratchet remains 18 families within budget 20. Adding derived
+hashing to near-protocol metadata moves the existing external-exact/near registry
+representative from `2bca2e8582b7d7a7` to `117ea7496a47614a`: formatting moves the
+near registry implementation down six lines. Both implementation content digests,
+member names, and all family metrics are identical to the pre-change source.
+The previous and current binaries produce byte-identical self-query output on the
+updated source. No new family or increased budget is accepted. Source snapshots,
+full output, and performance qualification limits are recorded in the [runtime follow-up](runtime-triage.md#scoring-and-feature-extraction-follow-up-2026-09-06).
