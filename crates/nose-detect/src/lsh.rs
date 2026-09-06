@@ -153,7 +153,7 @@ pub(crate) fn candidate_count(
     Some(count)
 }
 
-fn membership(n: usize, buckets: &[Vec<u32>]) -> Vec<Vec<usize>> {
+pub(crate) fn membership(n: usize, buckets: &[Vec<u32>]) -> Vec<Vec<usize>> {
     let mut membership = vec![Vec::new(); n];
     for (bucket, members) in buckets.iter().enumerate() {
         for &member in members {

@@ -311,3 +311,34 @@ Commands, source/binary identities, raw reports, output comparisons, sampling,
 and validation logs are retained in `target/scoring-first-analysis-performance-2026-09-06/`.
 Original experiments remain in `/tmp/nose-score-perf/`. The improvement reduces
 first-analysis work; it does not establish interactive latency or lower peak memory.
+
+## v0.21.0 candidate performance follow-up (2026-09-06)
+
+The release candidate's NO-GO remains the starting point for this optimization.
+The immutable pre-change product binary is `target/release-0.21.0/candidate-nose`,
+bound to `283f9e1d` (the same crates tree as preparation commit `78f9feac`).
+The checksum-verified published v0.20.0 remains the release baseline; the older
+incomplete dense-bucket candidate policy is not restored to recover its timing.
+
+Sampling attributed the dense Alamofire near-query cost to repeated structural
+scores and expanding/sorting overlapping candidate neighborhoods. Exact input
+classes alone still repeated work at batch boundaries. The new compressed rows
+also require identical candidate-bucket membership and connected-seed eligibility.
+They count rejected, ineligible location pairs without materializing them; original
+location checks, all accepted edges, score direction, source order, connected ties,
+and explicit candidate budgets remain intact. The [architecture](architecture.md)
+owns the full execution and memory contracts.
+
+Query-list rendering now indexes primary membership lazily once per selection,
+constructs independent JSON rows in indexed parallel order, and moves completed
+location/family arrays into the report. The final JSON is serialized into one
+output buffer. Every field, navigation command and row order remains part of the
+byte-equivalence comparison; no payload fields are omitted to recover throughput.
+
+Exploratory variants and raw measurements are retained under
+`target/release-performance-20260906/`. They are diagnostic observations, not a
+replacement for release qualification. The intermediate class-row and quotient
+Alamofire outputs match the complete pre-existing diagnostic output byte for byte;
+that comparison alone does not establish a passing release performance gate.
+Final candidate verification and remaining limitations are recorded below after
+measurement.

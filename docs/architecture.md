@@ -85,11 +85,11 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    applies to budget preflight, clean detection and incremental state; anchors keep their
    existing frequency and per-bucket caps. No bucket is reduced to a connectivity skeleton.
    Product analyses above one million pairs automatically stream stable candidate batches.
-   Every eligible ordinary pair is still scored, retaining accepted edges and only the
-   existing top/first connected seeds globally and per file. Each bounded batch is scored
-   by one indexed parallel traversal, preserving candidate order without repeated small-batch
-   synchronization. Prefix compaction preserves
-   score ties and nested-seed order. This bounds temporary candidate/rejected-score storage,
+   Every eligible ordinary pair is still covered by scoring, retaining accepted edges and
+   only the existing top/first connected seeds globally and per file. Distinct-input
+   analyses score bounded batches in parallel. Repeated-input analyses can instead
+   traverse the exact candidate relation in compressed rows, as described below.
+   Ordered compaction preserves score ties and nested-seed order. This bounds temporary candidate/rejected-score storage,
    not source features or accepted output. Smaller analyses retain the indexed path; raw
    diagnostic dumps still materialize the requested candidates. There is no implicit
    user-facing pair ceiling; explicit CLI/environment ceilings remain fail-before-results.
@@ -118,10 +118,18 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    complete input view whose equality defines those classes. Hashes accelerate lookup,
    while full equality checks all score fields. Channel composition intersects class
    partitions, and custom scorers opt out by default. Reuse activates when at least half
-   the units repeat an input class. Private per-chunk maps keep ordered argument pairs
-   and every rejected score; nesting, candidate order, accepted edges, and connected-seed
-   selection still operate on the original locations. Neither class ids nor score maps
-   persist beyond the analysis.
+   the units repeat an input class. A row further requires identical membership in
+   every candidate bucket and equal eligibility for connected-seed pricing. That
+   refinement makes its candidate relation complete: an outside endpoint reaches all
+   row members or none. Ordered scores are memoized for one row. Rejected ordinary
+   pairs that cannot seed a connected witness are counted from sorted location and
+   equal-span indexes without expanding every location pair. Accepted pairs and
+   potentially eligible connected seeds still undergo each original location check.
+   Rows restore source-pair order before connected compaction and floating-point
+   group aggregation. Thus this is an exact quotient of candidate work, not a
+   pre-scoring connectivity skeleton. Custom scorers retain the ordinary path unless
+   they explicitly declare interchangeable input classes. Neither classes nor score
+   maps persist beyond the analysis.
 6. **Cluster & rank**: union-find over accepted pairs/runs forms clone groups, which
    are grouped into **families** and sorted by refactoring value (removable lines
    × similarity × cross-directory/-file/-language spread). See [usage](usage.md) for how the
@@ -222,8 +230,11 @@ Normal product queries have no implicit candidate-count ceiling. Above one milli
 unique pairs, stable batches replace the full candidate/rejected-score arrays while
 preserving accepted evidence and the connected-seed selection policy. The source/unit
 cache remains reusable, but large product populations bypass persistent pair indexes.
-The 262,144-pair emission batch is scored in 4,096-pair parallel chunks. These internal
-sizes control execution, not recall; accepted evidence can still be large.
+The ordinary 262,144-pair emission batch is scored in 4,096-pair parallel chunks.
+Repeated-input rows retain one bounded score map per worker and compact potential
+connected seeds after each internal batch. The row/bucket/source-span indexes are
+linear in the input and its memberships; accepted evidence can still be large.
+These internal execution choices do not change recall or explicit budget accounting.
 
 `--max-candidate-pairs` and `NOSE_MAX_CANDIDATE_PAIRS` optionally impose a positive
 work ceiling. This preflight counts the unique union across channels, excludes

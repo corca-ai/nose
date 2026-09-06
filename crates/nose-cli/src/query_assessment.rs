@@ -56,21 +56,38 @@ pub(crate) fn scope(location: &Loc) -> Value {
     json!({"scope":if test { "test" } else { "prod" },"reasons":reasons})
 }
 
-pub(crate) fn selection_reason(
-    f: &RefactorFamily,
-    groups: &crate::query_opportunities::OpportunityGroups,
-    selection: &[&RefactorFamily],
-) -> Option<Value> {
-    let id = crate::baseline::family_id(f);
-    let primary = groups.primary_of.get(&id)?;
-    if selection
-        .iter()
-        .any(|f| crate::baseline::family_id(f) == *primary)
-    {
-        return None;
+/// Build the membership index only if a displayed slice needs a primary lookup.
+pub(crate) struct SelectionReasons<'a> {
+    families: &'a [&'a RefactorFamily],
+    ids: std::sync::OnceLock<std::collections::HashSet<String>>,
+}
+
+impl<'a> SelectionReasons<'a> {
+    pub(crate) fn new(families: &'a [&'a RefactorFamily]) -> Self {
+        Self {
+            families,
+            ids: std::sync::OnceLock::new(),
+        }
     }
-    Some(json!({"kind":"recovered-overlap","primary_id":primary,
-        "meaning":"This overlapping slice matches the current selection; its fuller primary is outside the selected filters or surface."}))
+
+    pub(crate) fn reason(
+        &self,
+        id: &str,
+        groups: &crate::query_opportunities::OpportunityGroups,
+    ) -> Option<Value> {
+        let primary = groups.primary_of.get(id)?;
+        let ids = self.ids.get_or_init(|| {
+            self.families
+                .iter()
+                .map(|f| crate::baseline::family_id(f))
+                .collect()
+        });
+        if ids.contains(primary) {
+            return None;
+        }
+        Some(json!({"kind":"recovered-overlap","primary_id":primary,
+            "meaning":"This overlapping slice matches the current selection; its fuller primary is outside the selected filters or surface."}))
+    }
 }
 
 /// Report known source boundaries without inferring that a span is extractable.

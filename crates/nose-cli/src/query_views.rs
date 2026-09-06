@@ -19,6 +19,7 @@ use crate::schema_versions;
 use crate::source_lines::FileLineCache;
 use crate::style;
 use crate::surfaces::{effective_surface, SurfaceOverrides};
+use rayon::prelude::*;
 
 pub(super) fn print_query_prelude() {
     println!("nose finds duplication in code and docs.");
@@ -352,11 +353,18 @@ fn query_list_json(view: &QueryListView<'_>) -> serde_json::Value {
     let top = query_row_limit(query.top);
     let shown = selection.len().min(top);
     let mut lines = FileLineCache::default();
-    let fams: Vec<_> = selection
+    let reasons = crate::query_assessment::SelectionReasons::new(selection);
+    let counts: Vec<_> = selection
         .iter()
         .take(top)
         .map(|f| {
             let (shared, params) = all_copies_shared_cached(f, &mut lines);
+            (*f, shared, params)
+        })
+        .collect();
+    let fams: Vec<_> = counts
+        .into_par_iter()
+        .map(|(f, shared, params)| {
             let mut row = query_family_json_with_counts(
                 f,
                 overrides,
@@ -367,15 +375,13 @@ fn query_list_json(view: &QueryListView<'_>) -> serde_json::Value {
                 shared,
                 params,
             );
-            if let Some(reason) =
-                crate::query_assessment::selection_reason(f, opportunities, selection)
-            {
+            if let Some(reason) = reasons.reason(row["id"].as_str().unwrap(), opportunities) {
                 row["selection_reason"] = reason;
             }
             row
         })
         .collect();
-    with_semantic_packs(
+    let mut output = with_semantic_packs(
         serde_json::json!({
             "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
             "tool": "nose",
@@ -385,18 +391,22 @@ fn query_list_json(view: &QueryListView<'_>) -> serde_json::Value {
             "summary": { "families": selection.len(), "shown": shown, "widened": widen },
             "actions":fams.iter().take(8).map(|f| serde_json::json!({"kind":"open-family", "id":f["id"],
                 "command":format!("{} id={} --format json", base_cmd(view.terms, view.navigation_path), f["id"].as_str().unwrap())})).collect::<Vec<_>>(),
-            "families": fams,
             "next": [format!("{} group=dir --format json", base_cmd(view.terms, view.navigation_path)), format!("{} group=witness --format json", base_cmd(view.terms, view.navigation_path))],
         }),
         semantic_packs,
-    )
+    );
+    output["families"] = serde_json::Value::Array(fams);
+    output
 }
 
 pub(super) fn render_query_list(view: QueryListView<'_>) {
     let top = query_row_limit(view.query.top);
     let shown = view.selection.len().min(top);
     if view.json {
-        println!("{}", query_list_json(&view));
+        println!(
+            "{}",
+            serde_json::to_string(&query_list_json(&view)).expect("query JSON serialization")
+        );
         return;
     }
     println!(
@@ -425,6 +435,7 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
         .collect();
     let wl = cells.iter().map(|c| c.1).max().unwrap_or(0);
     let wm = cells.iter().map(|c| c.3).max().unwrap_or(0);
+    let reasons = crate::query_assessment::SelectionReasons::new(view.selection);
     for (f, (loc, lw, metrics, mw)) in shown_rows.iter().zip(&cells) {
         // When widened past the default surface, label why a demoted family is here.
         let surf = if view.widen {
@@ -456,9 +467,7 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
             " ".repeat(wl - lw),
             " ".repeat(wm - mw),
         );
-        if let Some(reason) =
-            crate::query_assessment::selection_reason(f, view.opportunities, view.selection)
-        {
+        if let Some(reason) = reasons.reason(&baseline::family_id(f), view.opportunities) {
             println!(
                 "       ↳ {} Open primary: nose query {} id={}",
                 reason["meaning"].as_str().unwrap(),

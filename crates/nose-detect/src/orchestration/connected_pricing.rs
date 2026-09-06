@@ -132,6 +132,8 @@ pub(crate) fn same_unit_seed_indices(units: &[UnitFeat], bound_product_work: boo
     selected
 }
 
+pub(super) const MIN_PRODUCT_SEED_NODES: usize = 18;
+
 /// The raw audit interface evaluates every seed. Product queries instead price the
 /// expensive pair-local proof only for the strongest ordinary near misses, while always
 /// retaining nested seeds because they are the sole route to disjoint descendants.
@@ -143,7 +145,6 @@ pub(crate) fn connected_seed_indices(
     threshold: f64,
     bound_product_work: bool,
 ) -> Vec<usize> {
-    const MIN_PRODUCT_SEED_NODES: usize = 18;
     const PRODUCT_GENERAL_SEED_CAP: usize = 2_048;
     const PRODUCT_NESTED_SEED_CAP: usize = 512;
     const PRODUCT_NESTED_PER_FILE_CAP: usize = 64;

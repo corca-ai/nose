@@ -344,8 +344,8 @@ pub(super) fn query_family_json_with_counts(
         "assessment": crate::query_assessment::assessment(f, shared, params),
         "same_symbol": family_same_symbol(f),
         "folds": opp.slices_of.get(&id).map(Vec::len).unwrap_or(0),
-        "locations": locations,
     });
+    obj["locations"] = serde_json::Value::Array(locations);
     if let Some(provenance) = generated_provenance_json(f, ov) {
         obj["generated_provenance"] = provenance;
     }
