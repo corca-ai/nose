@@ -344,16 +344,21 @@ nose capabilities
     },
     "member_navigation": {
       "default_top": 30,
-      "full_source": {
-        "scope": "selected-members",
-        "source": "live-unverified",
-        "member_limit": 8,
-        "line_limit_per_member": 120
-      },
       "formats": [
         "human",
         "json"
       ],
+      "full_source": {
+        "context": {
+          "action": "inspect-context",
+          "meaning": "Non-negative nearby-line count; bounded source display only. Reported member coordinates and evidence do not change.",
+          "term": "member-context=N"
+        },
+        "line_limit_per_member": 120,
+        "member_limit": 8,
+        "scope": "selected-members",
+        "source": "live-unverified"
+      },
       "metrics_scope": "complete-family",
       "requires": [
         "id=ID",
@@ -366,6 +371,7 @@ nose capabilities
         "member-path~TEXT",
         "member-lang=LANG",
         "member-scope=prod|test",
+        "member-context=N",
         "top=N",
         "full"
       ]

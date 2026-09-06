@@ -12,6 +12,7 @@ pub(crate) struct Members {
     pub dir: Option<String>,
     pub lang: Option<String>,
     pub scope: Option<String>,
+    pub context: Option<usize>,
 }
 impl Members {
     pub(crate) fn parse(&mut self, term: &str) -> anyhow::Result<bool> {
@@ -25,11 +26,16 @@ impl Members {
         }
         let (field, value) = term.split_once('=').ok_or_else(|| {
             anyhow::anyhow!(
-                "expected member-id=, member-group=, member-dir=, member-lang=, member-scope= or member-path~"
+                "expected member-id=, member-group=, member-dir=, member-lang=, member-scope=, member-context= or member-path~"
             )
         })?;
         anyhow::ensure!(!value.is_empty(), "member filter needs a value");
         match field {
+            "context" => {
+                self.context = Some(value.parse().map_err(|_| {
+                    anyhow::anyhow!("member-context= needs a non-negative line count")
+                })?)
+            }
             "id" => self.id = Some(value.into()),
             "group" => {
                 anyhow::ensure!(
@@ -48,7 +54,7 @@ impl Members {
                 self.scope = Some(value.into());
             }
             _ => anyhow::bail!(
-                "unknown member field `{field}`; use id, group, dir, lang, scope or path~"
+                "unknown member field `{field}`; use id, group, dir, lang, scope, context or path~"
             ),
         }
         Ok(true)
@@ -60,6 +66,7 @@ impl Members {
             || self.path.is_some()
             || self.lang.is_some()
             || self.scope.is_some()
+            || self.context.is_some()
     }
     pub(crate) fn keeps(&self, loc: &Loc) -> bool {
         self.id
@@ -78,6 +85,9 @@ impl Members {
     }
     fn terms(&self) -> Vec<String> {
         let mut terms = Vec::new();
+        if let Some(context) = self.context {
+            terms.push(format!("member-context={context}"));
+        }
         if let Some(id) = &self.id {
             terms.push(format!("member-id={id}"));
         }
@@ -117,6 +127,11 @@ pub(crate) fn view(
         || family_base.clone(),
         |top| format!("{family_base} top={top}"),
     );
+    let member_context = q
+        .member_view
+        .context
+        .map(|n| format!(" member-context={n}"))
+        .unwrap_or_default();
     let command = |suffix: Vec<String>| {
         let base = if suffix.iter().any(|term| term.starts_with("top=")) {
             &family_base
@@ -171,17 +186,20 @@ pub(crate) fn view(
         .collect::<Vec<_>>();
     expand.push("top=0".into());
     let source = (q.id_full && q.member_view.active() && q.member_view.group.is_none())
-        .then(|| crate::query_source_evidence::selected_sources(&selected));
+        .then(|| crate::query_source_evidence::selected_sources(&selected, q.member_view.context));
     let mut actions = vec![
         json!({"kind":"return-selection","label":"Back to filtered families","command":return_command}),
     ];
     if q.member_view.active() {
         actions.push(json!({"kind":"return-family","label":"Back to this family","command":format!("{base}{}", if q.id_full { " full" } else { "" })}));
     }
+    if q.member_view.id.is_some() && q.member_view.context.is_none() {
+        actions.push(json!({"kind":"inspect-context","label":"Inspect surrounding code (up to 20 lines each side; enclosing/file bounds apply)","command":command(vec!["member-context=20".into(), "full".into()])}));
+    }
     actions.push(json!({"kind":"resume-selection","label":"Resume this selection","command":command(q.member_view.group.iter().map(|g| format!("member-group={g}")).chain(q.top.map(|top| format!("top={top}"))).chain(q.id_full.then(|| "full".into())).collect())}));
     json!({"source_bodies":source,"total":f.locations.len(),"selected":selected.len(),"shown":if q.member_view.group.is_some() {0} else {selected.len().min(top)},
         "group":q.member_view.group,"groups":group_rows,"groups_total":groups.len(),
-        "locations":if q.member_view.group.is_some() {Vec::new()} else {selected.into_iter().take(top).map(|l| json!({"id":baseline::member_id(l),"file":l.file,"start":l.start_line,"end":l.end_line,"name":l.name,"lang":l.lang,"region":l.source_region,"boundary":crate::query_assessment::boundary(l),"scope_evidence":crate::query_assessment::scope(l),"next":[format!("{base} {} full",shell_quote(&format!("member-id={}",baseline::member_id(l))))]})).collect::<Vec<_>>()},
+        "locations":if q.member_view.group.is_some() {Vec::new()} else {selected.into_iter().take(top).map(|l| json!({"id":baseline::member_id(l),"file":l.file,"start":l.start_line,"end":l.end_line,"name":l.name,"lang":l.lang,"region":l.source_region,"boundary":crate::query_assessment::boundary(l),"scope_evidence":crate::query_assessment::scope(l),"next":[format!("{base} {} full{member_context}",shell_quote(&format!("member-id={}",baseline::member_id(l))))]})).collect::<Vec<_>>()},
         "actions":actions,
         "next":[return_command,command(vec!["member-group=dir".into()]),command(vec!["member-group=lang".into()]),command(vec!["member-group=scope".into()]),command(expand),format!("{base} full"),base],
         "meaning":"Member selection only; family identity, evidence, metrics and assessment describe the complete family."})
@@ -289,6 +307,7 @@ fn directory(loc: &Loc) -> String {
 }
 
 pub(crate) fn capabilities() -> Value {
-    json!({"requires":["id=ID", "at=FILE:LINE"],"terms":["member-id=ID", "member-group=dir|lang|scope", "member-dir=DIR", "member-path~TEXT", "member-lang=LANG", "member-scope=prod|test", "top=N", "full"],
-        "formats":["human","json"],"metrics_scope":"complete-family","default_top":30,"full_source":{"scope":"selected-members","source":"live-unverified","member_limit":8,"line_limit_per_member":120}})
+    json!({"requires":["id=ID", "at=FILE:LINE"],"terms":["member-id=ID", "member-group=dir|lang|scope", "member-dir=DIR", "member-path~TEXT", "member-lang=LANG", "member-scope=prod|test", "member-context=N", "top=N", "full"],
+        "formats":["human","json"],"metrics_scope":"complete-family","default_top":30,"full_source":{"scope":"selected-members","source":"live-unverified","member_limit":8,"line_limit_per_member":120,
+            "context":{"term":"member-context=N", "action":"inspect-context", "meaning":"Non-negative nearby-line count; bounded source display only. Reported member coordinates and evidence do not change."}}})
 }

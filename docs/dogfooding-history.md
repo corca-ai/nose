@@ -1918,3 +1918,49 @@ introduced to suppress this syntax-only match. The campaign baseline and current
 binaries produce byte-identical self-query JSON on the updated source (SHA-256
 `63f3b357550fa0a377b97d75183f351d0427c6974a6a5ffe96d442ec2d659365`).
 This is round 3 of 10; final campaign-wide qualification remains pending.
+
+## Independent usability campaign: round 4 (2026-09-06)
+
+Fresh Alacritty and fastlane evaluators completed fifteen and thirteen task calls
+without command failures. Both needed source outside the reported member span.
+Fastlane's surrounding function signature distinguished `action` from `named`,
+which was material to the caller's decision to defer. Alacritty required separate
+trait and caller inspection; local context alone cannot establish those contracts.
+The fresh fastlane evaluator also reopened the round-3 live family handle from a
+new capture without prior instruction, providing an independent follow-up to the
+previous learned replay.
+
+Member detail now offers a named surrounding-code action, using the existing
+`full` source view with `member-context=N`. It reads bounded live source, clips
+to valid enclosing-unit and file bounds, marks the original reported member
+lines, and reports truncation. Source/member coordinates, region and review keys,
+family evidence, and source verification contracts are unchanged. Invalid or
+unavailable member ranges remain unavailable. Context does not infer caller
+contracts or turn surrounding lines into clone evidence. Existing query filters,
+limits and navigation destinations are preserved.
+
+The composed member/context/resume test fails before implementation and passes
+afterward. All 2,368 workspace tests, strict clippy, formatting, docs and the
+1,053-file Rust length check pass. Bounds tests cover zero/large padding, missing
+source, missing member lines and oversized content. The substantial-near gate
+reports eighteen families within the unchanged budget of twenty, with no new
+family. Unchanged numeric-policy pair `60f0dd6d98436972` leaves the reported set
+when the scanned corpus changes; this is not a deduplication. Both numeric
+implementations are byte-identical to the campaign baseline. Baseline/current
+binaries produce identical self-query JSON on the updated source (SHA-256
+`fdbd16c707d0fb8a3e351ab5cd0d7dacbb4ef7926e3ca478100d1b4af4b8da5c`).
+The exact admission cause is not established by this comparison.
+
+Both evaluators completed their learned replays without command failures:
+Alacritty used fifteen task calls (eleven CLI, four external source reads), while
+fastlane used thirteen CLI calls and no external source read. Both found the
+context action from current CLI guidance, distinguished surrounding source from
+clone evidence, and retained the original family/list navigation. Fastlane
+verified its saved sources and reopened an applicable defer decision. External
+trait/caller investigation remains necessary for Alacritty. The context-action
+label was then clarified to say "up to" twenty lines within enclosing/file bounds,
+addressing fastlane's observation that the displayed function ends sooner.
+
+These are learned replays, not new-user or aggregate speed measurements. Raw
+evidence is under `target/ux-campaign-20260906/round04/`. Campaign-wide runtime
+qualification remains pending.

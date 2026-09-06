@@ -302,3 +302,86 @@ fn grouped_top_limits_rows_and_expands_without_changing_counts() {
     let expanded = follow(&p, limited["next"][0].as_str().unwrap());
     assert_eq!(expanded["groups"], full["groups"]);
 }
+
+#[test]
+fn member_context_opens_surrounding_contract_without_changing_the_member() {
+    let p = Project::new();
+    for (file, name, guard) in [
+        ("a.rs", "left", "value < 0"),
+        ("b.rs", "right", "value > 99"),
+    ] {
+        p.write(
+            file,
+            &format!("fn {name}(value: i32) {{\n    if {guard} {{ return; }}\n{RUST_BODY}}}\n"),
+        );
+    }
+    let list = p.query(&["--mode", "syntax", "all", "top=0"]);
+    let family = list["families"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|f| {
+            f["locations"].as_array().unwrap().iter().any(|loc| {
+                loc["start"].as_u64().unwrap() > 1 && !loc["boundary"]["enclosing_unit"].is_null()
+            })
+        })
+        .expect("an inner repeated region with enclosing control flow");
+    let id = format!("id={}", family["id"].as_str().unwrap());
+    let detail = p.query(&["--mode", "syntax", "all", "top=5", &id]);
+    let member = follow(
+        &p,
+        detail["member_view"]["locations"][0]["next"][0]
+            .as_str()
+            .unwrap(),
+    );
+    let inspect = member["member_view"]["actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|a| a["kind"] == "inspect-context")
+        .expect("member offers surrounding source");
+    let context = follow(&p, inspect["command"].as_str().unwrap());
+    assert_eq!(context["family"]["id"], member["family"]["id"]);
+    assert_eq!(
+        context["family"]["review_key"],
+        member["family"]["review_key"]
+    );
+    for field in [
+        "id",
+        "file",
+        "start",
+        "end",
+        "region",
+        "boundary",
+        "scope_evidence",
+    ] {
+        assert_eq!(
+            context["member_view"]["locations"][0][field],
+            member["member_view"]["locations"][0][field]
+        );
+    }
+    assert!(context["member_view"]["locations"][0]["next"][0]
+        .as_str()
+        .unwrap()
+        .contains("member-context=20"));
+    let body = &context["member_view"]["source_bodies"]["members"][0];
+    assert!(body["context"]["start"].as_u64().unwrap() < body["start"].as_u64().unwrap());
+    assert!(body["lines"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|line| line["text"].as_str().unwrap().contains("value: i32")
+            && line["in_member"] == false));
+    assert!(body["lines"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|line| line["in_member"] == true));
+    let resume = context["member_view"]["actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|a| a["kind"] == "resume-selection")
+        .unwrap();
+    assert_eq!(follow(&p, resume["command"].as_str().unwrap()), context);
+}

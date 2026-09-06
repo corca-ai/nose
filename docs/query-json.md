@@ -488,6 +488,19 @@ family identity, assessment and family-wide evidence remain unchanged. Use narro
 member filters to inspect omitted bodies. Human structural spots explicitly name unavailable
 locations/excerpts instead of displaying internal `None` values.
 
+`member-context=N full` expands the selected source display by a non-negative
+number of nearby lines. A member's `inspect-context` action requests 20 lines on
+each side. Known valid enclosing bounds and the file edges constrain the window;
+unclassified ranges remain unclassified. The existing 120-line and 64-KiB limits
+still apply. Large requests prioritize the selected member over preceding context.
+Each body retains its original `start`, `end`, `region` and `member_id`, and adds
+`context={requested_lines_each_side,requested_start,start,end,shown_end,meaning}`.
+Context lines add `in_member`, indicating membership in the reported source range,
+not a new equivalence claim. `truncated` includes omitted preceding context as well
+as a missing tail. Normal source-only output is unchanged. Resume and member links
+retain the context setting; returning to the full family/list removes member settings.
+This reads live source only; saved-source verification remains a separate workflow.
+
 Ordinary dashboard/list/group navigation preserves analysis options while retaining the
 original `path` metadata. Group rows add `next[]`; an unfilterable diagnostic bucket opens
 its exemplar instead. Invalid numeric filters return a nonzero error, not a successful

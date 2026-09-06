@@ -11,8 +11,8 @@ const MEMBER_LIMIT: usize = 8;
 const LINE_LIMIT: usize = 120;
 const FILE_LIMIT: u64 = 16 * 1024 * 1024;
 
-fn read_member(loc: &Loc) -> Result<Vec<String>, &'static str> {
-    let file = std::fs::File::open(&loc.file).map_err(|_| "source-unavailable")?;
+fn read_source(path: &str) -> Result<String, &'static str> {
+    let file = std::fs::File::open(path).map_err(|_| "source-unavailable")?;
     if !file
         .metadata()
         .is_ok_and(|m| m.is_file() && m.len() <= FILE_LIMIT)
@@ -26,7 +26,11 @@ fn read_member(loc: &Loc) -> Result<Vec<String>, &'static str> {
     if bytes.len() as u64 > FILE_LIMIT {
         return Err("file-limit");
     }
-    let text = String::from_utf8(bytes).map_err(|_| "non-utf8")?;
+    String::from_utf8(bytes).map_err(|_| "non-utf8")
+}
+
+fn read_member(loc: &Loc) -> Result<Vec<String>, &'static str> {
+    let text = read_source(&loc.file)?;
     if loc.start_line == 0 || loc.end_line < loc.start_line {
         return Err("invalid-range");
     }
@@ -224,11 +228,14 @@ pub(crate) fn render_structural(f: &RefactorFamily) {
     }
 }
 
-pub(crate) fn selected_sources(locations: &[&Loc]) -> Value {
+pub(crate) fn selected_sources(locations: &[&Loc], context: Option<usize>) -> Value {
     let members: Vec<_> = locations
         .iter()
         .take(MEMBER_LIMIT)
         .map(|loc| {
+            if let Some(padding) = context {
+                return surrounding::read(loc, padding);
+            }
             let (mut body, lines) = read_observation(loc);
             if let Some(lines) = lines {
                 body["lines"] = json!(lines
@@ -257,6 +264,9 @@ pub(crate) fn render_selected_sources(source: &Value) {
             member["start"],
             member["end"]
         );
+        if let Some(context) = member.get("context") {
+            println!("      context: lines {}-{}; > marks the reported member range, surrounding lines are not clone evidence", context["start"], context["shown_end"]);
+        }
         println!(
             "      boundary: {}",
             member["boundary"]["meaning"].as_str().unwrap()
@@ -264,13 +274,21 @@ pub(crate) fn render_selected_sources(source: &Value) {
         if let Some(lines) = member["lines"].as_array() {
             for line in lines {
                 println!(
-                    "      {} │ {}",
+                    "      {}{} │ {}",
+                    if line["in_member"] == true { "> " } else { "" },
                     line["line"],
                     line["text"].as_str().unwrap()
                 );
             }
             if member["truncated"] == true {
-                println!("      source truncated after {LINE_LIMIT} lines");
+                if let Some(context) = member.get("context") {
+                    println!(
+                        "      context truncated; requested lines {}-{}, {} lines shown",
+                        context["requested_start"], context["end"], member["lines_shown"]
+                    );
+                } else {
+                    println!("      source truncated after {LINE_LIMIT} lines");
+                }
             }
         } else {
             println!(
@@ -286,6 +304,8 @@ pub(crate) fn render_selected_sources(source: &Value) {
         );
     }
 }
+
+mod surrounding;
 
 fn spot_side(lines: Option<(u32, u32)>, text: &str) -> String {
     let location = lines.map_or_else(
