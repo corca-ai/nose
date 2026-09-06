@@ -797,6 +797,230 @@
       },
       "issue": "https://github.com/corca-ai/nose/issues/984",
       "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            30315
+          ],
+          "current": [
+            40136
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "52e8b3b99bb013a33955faf7d5ea65abebab8f9712411d5629846d35be9fb8b2"
+          ],
+          "current": [
+            "61e19368e304449d6a858573021347bff69c09be02c104505b6e7275bf09c229"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "alacritty",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            241664
+          ],
+          "current": [
+            613148
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "7cf0d0f0e60f73f8d781ce5da383566a174f11b4a71ea4f17627dd93a53b4056"
+          ],
+          "current": [
+            "35294d54df757e7cea3822d0fecf074fdb371441722c5475a8c32cd5c7912e96"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "asciidoctor",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            70301
+          ],
+          "current": [
+            230910
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "5d11e736ca17a1a447f8307ab5e8a7d24c85c55e32338e06141c5f445be62dc6"
+          ],
+          "current": [
+            "62f17f6818e3f72e476aa01b03c6ad95574117200f52e50462573d5aaa9f9ce6"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "fastlane",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            500736
+          ],
+          "current": [
+            1811122
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "dcd61d838d0f696e18f5e61b52c004b1380b05e796c1675834303e00eaaf5645"
+          ],
+          "current": [
+            "ebed8d362eef4c34146331bac62fd3fd486e273b2f051c596960ac93f0c70cff"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "junit5",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            220766
+          ],
+          "current": [
+            658884
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "4b861a6bfb815dc2f5b99d54b3876e875b11b8ef718937af47a9907da621288e"
+          ],
+          "current": [
+            "9c67e42d8255e3803307c6b5d90cd2ec05099556c2dca5072ed37fc3e09aefd9"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "prettier",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            34474
+          ],
+          "current": [
+            66172
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "ef990af4e8fdd3a061d1a9820122711985f8bd49b04ab8c76f1a1ac5e0e9cbb2"
+          ],
+          "current": [
+            "63628ea5dabb4bbb654d24985fc39d1f9080f08c4040db4237864402c067a79a"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "requests",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            31952
+          ],
+          "current": [
+            50295
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "2c05c98d963f26851e09dfc708c10cd4f44632d2a5cb6337938b63b0a6146bb6"
+          ],
+          "current": [
+            "12ed2206e9c572a790f515f40258ac423b550bc4fa14c42c6b8a537edaebd296"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "sidekiq",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
     }
   ],
   "schema": "nose.semantic_regression_expected_drift.v1"

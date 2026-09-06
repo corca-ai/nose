@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Prepared on 2026-09-06. Release decision: **pending**. The feature scope is frozen;
+Prepared on 2026-09-06. Release decision: **NO-GO (performance blocker reproduced)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -58,3 +58,26 @@ context, then removes only that argument before comparing the complete JSON payl
 This accounts for the new context-preserving navigation contract; detector fields,
 source evidence and all other command arguments remain compared. Raw output hashes
 are retained alongside the explicit `nose.query-cache-navigation/v1` comparison hash.
+
+## Candidate blocker found during qualification
+
+Candidate `283f9e1d` passes local full CI (2,371 optimized tests, 89.39% line
+coverage, MSRV, dependency checks and Lean) and native package smoke on all four
+targets. Its complete 120-repository semantic output audit preserves all family
+and member identities. The audited JSON v9-to-v10 changes are explicitly recorded
+in the CI drift ledger; runtime checks remain enforced independently.
+
+The pinned Alamofire near query takes 1.59 seconds on the checksum-verified
+published 0.20 binary; the candidate exceeds a 30-second isolated timeout.
+Profiling locates the cost in complete dense-candidate scoring. The old release
+used a chain/star shortcut that omitted non-hub bucket pairs, so reinstating that
+shortcut would discard required candidates. A bounded cross-batch score-cache
+prototype passes focused equivalence tests but still takes 114.40 seconds on this
+query. Its patch and measurements are retained locally and are excluded from the
+release candidate. The default/near output audits were stopped to isolate this
+blocker; the preregistered performance campaign cannot qualify this candidate.
+
+Remote CI also observes material rendering signals on the larger v10 payload.
+Its initial output-ledger failure is retained; the exact seven audited schema
+changes are declared without weakening any timing threshold. A passing historical
+or semantic-only check must not be represented as a passing release comparison.
