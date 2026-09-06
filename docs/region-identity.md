@@ -189,7 +189,8 @@ necessarily restore an unavailable source selector. Missing evidence continues t
 block transfer between captures, including when a different family is affected.
 
 Self-comparison is labeled saved-analysis exploration. The `resume-selection` action
-retains comparison inputs, filters, selected change, view, format and review files.
+retains comparison inputs, filters, selected change, view, format, review files and
+explicit source directories.
 It is a command to resume that view, not a stored editing session. Human source
 inspection displays identical verified text once and omits unchanged diffs. Bodies
 are limited to 120 displayed lines; JSON retains complete verified bodies within

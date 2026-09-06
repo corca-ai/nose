@@ -1808,5 +1808,10 @@ only the bounded top-level `open-family` actions were added to the semantic list
 every pre-existing JSON field, family identity, ordering and surface is unchanged.
 The exact seven-repository byte/hash deltas are declared against `33ecb863`.
 Raw outputs, executable navigation transcripts and the review boundary checks are
-in `target/usability-fixes-2026-09-06/`. Runtime qualification is recorded separately
-when the controlled smoke completes.
+in `target/usability-fixes-2026-09-06/`. The bounded semantic regression smoke passes against product commit `156e164d`
+after its one permitted focused rerun for asciidoctor, fastlane and junit5. It reports
+seven exactly declared navigation-output changes and zero unexpected drifts; all
+runtime signals finish within the unchanged thresholds. Ruby scaling passes with
+exponent 0.69. This qualifies this usability change against `33ecb863`, not the earlier
+optimization against its older baseline. Type-4 retains 54 exact groups, zero false
+merges and zero canonicalization violations; only its product-tree binding changes.
