@@ -108,7 +108,9 @@ group with its `expand-view` action preserves the group; changing views is a sep
 labeled action. A capture's initial
 next command compares it with itself, so its evidence is immediately explorable.
 
-`--save-analysis` writes a new `nose.analysis/v1` file and never overwrites an
+Run `--save-analysis` as a separate query without selection or display terms;
+adding it to an `id=` or `scope=` inspection command is rejected. It writes a new
+`nose.analysis/v1` file and never overwrites an
 existing one. It captures every admitted code family from the normal dataset
 before display limits, surface classification, opportunity folding, and structured
 ignore/baseline application. It accepts normal analysis modes, config, roots and
@@ -542,7 +544,8 @@ are in the ignored `target/analysis-changes/b2-audit.json`.
 
 ## Human comparison reading flow
 
-The human comparison opens with observation, recheck and retained-evidence counts.
+The human comparison opens with observation, recheck and unchanged-evidence counts.
+Unchanged evidence does not imply that a caller review record exists.
 Retained observations are not called edits. Ordinary lists show paths and reason codes;
 `full` reveals capture paths, roots, profiles, reason explanations and member evidence.
 Incomplete source diagnostics remain visible without `full`. Group rows appear when

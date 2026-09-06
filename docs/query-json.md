@@ -450,13 +450,20 @@ The added executable `next` command opens this detail and preserves analysis opt
 
 Locations add `scope_evidence={scope,reasons}`. Reasons preserve recognizable frontend,
 enclosing-context and naming/path evidence without claiming arbitrary configuration resolution.
+The dashboard's `prod` route is non-test classification, not a determination of
+product intent. Any additional directory exclusions are navigation hints over
+observed names, not a complete taxonomy of evaluation or tooling code.
 
 A family view adds `member_view` with total/selected/shown member counts, optional grouped
 counts, selected locations and executable `next` commands. With explicit `member-*` terms,
 `family.locations` contains the shown member selection (empty for group views); family ID,
 review key, metrics and assessment still refer to the complete family. Without member terms,
 `family.locations` retains its existing complete population. Member navigation preserves
-analysis options, quotes paths/filters and retains JSON. Filtered lists may add
+analysis options, quotes paths/filters and retains JSON.
+Member group, copy, parent and return actions also retain an explicit `top=N`;
+only an explicit expand action replaces that limit. The limit affects presentation,
+not the complete family's evidence or identity.
+Filtered lists may add
 `selection_reason={kind:"recovered-overlap",primary_id,meaning}` to explain why a folded slice
 reappears when its fuller primary is outside the current selection.
 

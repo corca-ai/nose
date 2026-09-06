@@ -1848,3 +1848,33 @@ same evaluators and is not counted as another fresh-user experiment. The protoco
 raw commands, outputs, accepted/deferred decisions and progress ledger are in
 `target/ux-campaign-20260906/`. Campaign-wide runtime/oracle qualification follows
 the final product changes.
+
+## Independent usability campaign: round 2 (2026-09-06)
+
+Fresh independent evaluators explored craken-agents and pinned Requests using
+CLI guidance only. Both completed their tasks, but the first manually restored
+`top=8` after member grouping; the second recovered from capture/selection and
+live/saved-ID incompatibilities. The accepted change preserves explicit display
+limits through member groups, copies and parent/return actions. A composed CLI
+journey fails before the fix and passes afterward. Explicit expansion can still
+replace the limit.
+
+Landing guidance now describes `prod` as non-test classification with product
+intent unassessed; directory exclusions remain bounded navigation hints. Save help
+states the separate no-terms invocation. Comparison starts with unchanged evidence,
+without suggesting a caller review already exists. Classification, identities,
+ranking, correspondence and review applicability are unchanged.
+
+The same evaluators replayed tasks without an implementation explanation.
+Craken completed eleven calls without manual recovery and returned to the same
+eight families in the same order. Only positional versus explicit-root spelling
+differs in generated next commands. Requests completed ten task calls, verified
+four source reads and reopened its defer record; the evaluator explicitly credits
+some avoided errors to prior experience. Neither call-count reduction establishes
+a causal product improvement. Path-matching member visibility and live-to-saved
+selection handoff remain open. Raw pre/post records and decisions are under
+`target/ux-campaign-20260906/round02/`.
+
+All 2,364 workspace tests, strict clippy, docs and file-length checks pass. The
+substantial-near gate retains eighteen families within budget twenty. This is
+round 2 of 10; final campaign-wide qualification remains pending.

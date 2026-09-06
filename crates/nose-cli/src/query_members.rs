@@ -112,8 +112,17 @@ pub(crate) fn view(
     } else {
         q.top.unwrap_or(30)
     };
-    let (base, return_command) = family_commands(f, args, terms);
+    let (family_base, return_command) = family_commands(f, args, terms);
+    let base = q.top.map_or_else(
+        || family_base.clone(),
+        |top| format!("{family_base} top={top}"),
+    );
     let command = |suffix: Vec<String>| {
+        let base = if suffix.iter().any(|term| term.starts_with("top=")) {
+            &family_base
+        } else {
+            &base
+        };
         let mut terms = q.member_view.terms();
         terms.extend(suffix);
         format!(

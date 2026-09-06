@@ -247,6 +247,31 @@ fn detail_roundtrip_keeps_filters_and_opens_one_member() {
         member["family"]["review_key"],
         detail["family"]["review_key"]
     );
+    // A whole journey must preserve the list limit, not only its first back link.
+    let grouped = follow(&p, detail["member_view"]["next"][1].as_str().unwrap());
+    let narrowed = follow(
+        &p,
+        grouped["member_view"]["groups"][0]["next"][0]
+            .as_str()
+            .unwrap(),
+    );
+    let copy = follow(
+        &p,
+        narrowed["member_view"]["locations"][0]["next"][0]
+            .as_str()
+            .unwrap(),
+    );
+    for view in [&member, &family, &grouped, &narrowed, &copy] {
+        let command = view["member_view"]["actions"][0]["command"]
+            .as_str()
+            .unwrap();
+        let returned = follow(&p, command);
+        assert!(command.contains("top=5"), "{command}");
+        // Generated commands spell the same positional root as --root.
+        for (key, expected) in back.as_object().unwrap() {
+            assert_eq!(expected, &returned[key], "returned {key}: {command}");
+        }
+    }
 }
 
 #[test]

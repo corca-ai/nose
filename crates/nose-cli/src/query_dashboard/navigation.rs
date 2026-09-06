@@ -34,7 +34,12 @@ pub(super) fn routes(
     product.extend(evaluation.iter().map(|dir| format!("path!~{dir}/")));
     let mut routes = vec![
         (
-            "Production outside evaluation/fixture directories".into(),
+            if evaluation.is_empty() {
+                "Non-test scope (prod); product intent unassessed".into()
+            } else {
+                "Non-test scope (prod), excluding listed directory hints; product intent unassessed"
+                    .into()
+            },
             command(product),
         ),
         ("Tests".into(), command(vec!["scope=test".into()])),

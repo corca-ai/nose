@@ -16,7 +16,7 @@ use std::path::PathBuf;
 
 #[derive(clap::Args)]
 pub(crate) struct AnalysisArgs {
-    /// Save all admitted code families before presentation/ignore filtering. Never overwrites.
+    /// Save all admitted code families in a separate query without query terms. Never overwrites.
     #[arg(long, value_name = "FILE", conflicts_with_all = ["before", "after"])]
     pub(crate) save_analysis: Option<PathBuf>,
     /// Compare saved analyses offline; source reads require explicit --before-source/--after-source.

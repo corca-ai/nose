@@ -29,7 +29,7 @@ pub(super) fn reason(code: &str) -> &str {
 pub(super) fn render(output: &Value, full: bool) {
     let s = &output["summary"];
     println!(
-        "{}: {} · {} recheck · {} retain review evidence.",
+        "{}: {} · {} recheck · {} evidence unchanged.",
         if output["exploration"] == true {
             "Saved analysis exploration"
         } else {
