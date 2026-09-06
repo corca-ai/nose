@@ -502,8 +502,12 @@ with `selected`, `shown`, `omitted`, `member_limit=8`, `line_limit_per_member=12
 and `{line,text}` source lines. Missing bodies retain a reason. The source is
 `live-unverified`, subject to the existing 16 MiB/file and 64 KiB/region limits;
 family identity, assessment and family-wide evidence remain unchanged. Use narrower
-member filters to inspect omitted bodies. Human structural spots explicitly name unavailable
-locations/excerpts instead of displaying internal `None` values.
+member filters to inspect omitted bodies. Human member lists expose the existing
+location `next` commands as **Open** links, including multi-member source views;
+a single already-open source does not repeat its own Open link. Human structural
+comparison stays in the full-family view, rather than repeating a family pair during
+member inspection. JSON retains the same family evidence. Structural spots explicitly
+name unavailable locations/excerpts instead of displaying internal `None` values.
 
 `member-context=N full` expands the selected source display by a non-negative
 number of nearby lines. A member's `inspect-context` action requests 20 lines on

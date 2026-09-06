@@ -8,6 +8,9 @@ fn run(p: &Project, args: &[&str]) -> std::process::Output {
         .unwrap()
 }
 fn follow(p: &Project, command: &str) -> Value {
+    serde_json::from_slice(&follow_output(p, command).stdout).unwrap()
+}
+fn follow_output(p: &Project, command: &str) -> std::process::Output {
     let binary_dir = PathBuf::from(env!("CARGO_BIN_EXE_nose"));
     let path = format!(
         "{}:{}",
@@ -25,7 +28,7 @@ fn follow(p: &Project, command: &str) -> Value {
         "{command}: {}",
         String::from_utf8_lossy(&output.stderr)
     );
-    serde_json::from_slice(&output.stdout).unwrap()
+    output
 }
 fn project() -> Project {
     let p = Project::new();
@@ -149,6 +152,11 @@ fn selected_full_member_view_contains_only_selected_source_bodies() {
         ],
     );
     let text = String::from_utf8(human.stdout).unwrap();
+    assert!(!text.contains("structural correspondence:"), "{text}");
+    let family_output = run(&p, &["query", ".", "--mode", "syntax", &id, "full"]);
+    assert!(String::from_utf8(family_output.stdout)
+        .unwrap()
+        .contains("structural correspondence:"));
     assert!(
         text.contains("selected source: 1 / 1") && text.contains("│"),
         "{text}"
@@ -270,6 +278,39 @@ fn detail_roundtrip_keeps_filters_and_opens_one_member() {
         // Generated commands spell the same positional root as --root.
         for (key, expected) in back.as_object().unwrap() {
             assert_eq!(expected, &returned[key], "returned {key}: {command}");
+        }
+    }
+}
+
+#[test]
+fn member_directory_rows_offer_executable_source_links() {
+    let p = project();
+    let list = p.query(&["--mode", "syntax", "files>1"]);
+    let id = format!("id={}", list["families"][0]["id"].as_str().unwrap());
+    for full in [false, true] {
+        let mut args = vec!["query", ".", "--mode", "syntax", &id, "member-dir=src"];
+        if full {
+            args.push("full");
+        }
+        let output = run(&p, &args);
+        assert!(output.status.success());
+        let text = String::from_utf8(output.stdout).unwrap();
+        let commands: Vec<_> = text
+            .lines()
+            .filter_map(|line| line.trim().strip_prefix("Open: "))
+            .collect();
+        assert_eq!(commands.len(), 2, "each listed copy can be opened: {text}");
+        for command in commands {
+            let opened = follow_output(&p, command);
+            let source = String::from_utf8(opened.stdout).unwrap();
+            assert!(
+                source.contains("selected source: 1 / 1") && source.contains("│"),
+                "{source}"
+            );
+            assert!(
+                !source.contains("Open: "),
+                "an already open single copy needs no repeated open link"
+            );
         }
     }
 }

@@ -2117,3 +2117,41 @@ a location list whose human output has no command to open the listed source, des
 that command being present in JSON. This and repeated family-wide explanations remain
 for the next cycle. Raw reports are under `target/ux-campaign-20260906/round08/`.
 This completes round 8 of 10; final campaign qualification remains pending.
+
+## Independent usability campaign: round 9 (2026-09-06)
+
+Fresh Cortex and Prettier evaluators each completed 15 calls without errors, but both
+had to reconstruct a source-opening command after directory grouping. Cortex manually
+added full/context terms; Prettier reused earlier family output for a member ID, even
+after a full directory view printed three bodies. Both also found selected-member
+inspection repeated a structural comparison of other family members.
+
+Human member lists now print their existing JSON Open commands, including full lists
+of multiple source bodies. A single already-open body does not repeat its own Open
+link. Human family structural comparison remains in the full-family view rather than
+member inspection. JSON family evidence, identity, metrics, original source boundaries
+and caller-owned assessment are unchanged. No option or navigation state was added.
+
+Both regression checks fail before the change. The link test executes emitted human
+commands from compact and full directory lists and opens exactly one source; the
+selected-source test also verifies full-family structural evidence remains available.
+All 2,371 workspace tests, 24 exploration tests, strict clippy, docs and the 1,054-file
+length gate pass. Six original real commands produce byte-identical JSON. Cortex full
+family output is unchanged; its compact directory view adds one Open command. Prettier
+multi-member full output changes from 315 to 301 lines with three Open commands, while
+its selected short member changes from 68 to 51 lines (6,574 to 3,537 bytes) by omitting
+the other pair's structural comparison. These are exact output measurements, not
+first-use or performance claims. The same 19 substantial default families remain within
+budget 20; before/current self-query output is byte-identical with SHA-256
+`5ada2cad300f0e076acfc445e164503aef4bb71b18944032613318e7aec6d0a1`.
+
+Both learned replays completed 15 calls with zero errors. Cortex followed directory
+Open → Inspect surrounding code for production and E2E copies without constructing
+syntax; Prettier opened its short third member directly from the directory row. Both
+restored their original 10/14-family selections. The selected-member view omitted the
+other pair's structural comparison, while full-family evidence remained accessible.
+Long bodies and distant/cross-file contracts still required external source reads;
+remaining general headers, scope evidence and unavailable family anchors were recorded.
+No causal first-use or speed improvement is claimed from learned replays. Raw evidence
+is under `target/ux-campaign-20260906/round09/`. This completes round 9 of 10;
+final campaign qualification remains pending.

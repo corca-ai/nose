@@ -106,13 +106,12 @@ pub(super) fn render_query_family(
         assessment["support"].as_str().unwrap(),
         assessment["explanation"].as_str().unwrap()
     );
-    if full {
-        crate::query_source_evidence::render_structural(f);
-    }
-
     if query.member_view.active() {
         crate::query_members::render(&member_view);
         return;
+    }
+    if full {
+        crate::query_source_evidence::render_structural(f);
     }
     print_copies(f, full);
     if let Some(locations) = member_view["locations"].as_array() {

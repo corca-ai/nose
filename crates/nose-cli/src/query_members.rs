@@ -271,7 +271,9 @@ pub(crate) fn render(view: &Value) {
             group["next"][0].as_str().unwrap()
         );
     }
-    for loc in view["locations"].as_array().unwrap() {
+    let locations = view["locations"].as_array().unwrap();
+    let show_open = view["source_bodies"].is_null() || locations.len() > 1;
+    for loc in locations {
         println!(
             "    {}:{}-{} · {}",
             loc["file"].as_str().unwrap(),
@@ -279,6 +281,9 @@ pub(crate) fn render(view: &Value) {
             loc["end"],
             loc["scope_evidence"]
         );
+        if show_open {
+            println!("      Open: {}", loc["next"][0].as_str().unwrap());
+        }
     }
     if !view["source_bodies"].is_null() {
         crate::query_source_evidence::render_selected_sources(&view["source_bodies"]);
