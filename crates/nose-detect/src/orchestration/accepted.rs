@@ -391,7 +391,6 @@ impl PartialEq<Vec<AcceptedPair>> for AcceptedPairs {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, Interner, Lang};
 
     fn assert_projection_matches(
         rows: &AcceptedPairs,
@@ -444,27 +443,11 @@ mod tests {
 
     #[test]
     fn row_relation_preserves_order_scores_exclusions_and_membership() {
-        let interner = Interner::new();
-        let il = nose_frontend::lower_source(
-            FileId(0),
-            "f.py",
-            b"def f(x):\n    return x * x + 1\n",
-            Lang::Python,
-            &interner,
-        )
-        .unwrap();
-        let opts = crate::DetectOptions {
-            min_tokens: 1,
-            min_lines: 1,
-            ..Default::default()
-        };
-        let mut units = Vec::new();
-        for i in 0..128 {
-            let mut unit = crate::units_of_file(&il, &interner, &opts).remove(0);
+        let mut units = crate::test_support::scoring_units(128);
+        for (i, unit) in units.iter_mut().enumerate() {
             unit.path = format!("{}.py", i % 7);
             unit.start_line = (i / 14) as u32;
             unit.end_line = unit.start_line + if i % 3 == 0 { 4 } else { 1 };
-            units.push(unit);
         }
         let paths = (0..units.len()).map(|i| i % 7).collect::<Vec<_>>();
         let members = (0..4)

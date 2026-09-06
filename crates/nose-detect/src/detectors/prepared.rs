@@ -359,23 +359,9 @@ mod tests {
 
     #[test]
     fn sparse_rows_with_long_repeated_fingerprints_keep_direct_scores() {
-        let interner = Interner::new();
-        let il = nose_frontend::lower_source(
-            FileId(0),
-            "f.py",
-            b"def f(x):\n    return x * x + 1\n",
-            Lang::Python,
-            &interner,
-        )
-        .unwrap();
-        let opts = DetectOptions {
-            min_lines: 1,
-            min_tokens: 1,
-            ..Default::default()
-        };
-        let units = (0..128)
-            .map(|_| {
-                let mut unit = crate::units_of_file(&il, &interner, &opts).remove(0);
+        let units = crate::test_support::scoring_units(128)
+            .into_iter()
+            .map(|mut unit| {
                 unit.value = vec![7; 4096];
                 unit.exact_safe = false;
                 unit
@@ -396,41 +382,14 @@ mod tests {
 
     #[test]
     fn alignment_classes_ignore_only_the_existing_unread_suffix() {
-        let interner = Interner::new();
-        let il = nose_frontend::lower_source(
-            FileId(0),
-            "f.py",
-            b"def f(x):\n    return x * x + 1\n",
-            Lang::Python,
-            &interner,
-        )
-        .unwrap();
-        let mut left = crate::units_of_file(
-            &il,
-            &interner,
-            &DetectOptions {
-                min_lines: 1,
-                min_tokens: 1,
-                ..Default::default()
-            },
-        )
-        .remove(0);
+        let mut units = crate::test_support::scoring_units(2);
+        let (left, right) = units.split_at_mut(1);
+        let (left, right) = (&mut left[0], &mut right[0]);
         left.linear = vec![7; 4096];
-        let mut right = crate::units_of_file(
-            &il,
-            &interner,
-            &DetectOptions {
-                min_lines: 1,
-                min_tokens: 1,
-                ..Default::default()
-            },
-        )
-        .remove(0);
         right.linear = left.linear.clone();
         let limit = crate::align::alignment_input(&left.linear).len();
         right.linear[limit..].fill(11);
         let detector = StructuralDetector::strict(0.75);
-        let mut units = vec![left, right];
         let classes = detector.score_classes(&units).unwrap();
         assert_eq!(classes[0], classes[1]);
         assert_eq!(

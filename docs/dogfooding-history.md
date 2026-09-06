@@ -2228,3 +2228,23 @@ qualification remains unresolved. The exact measurements are in
 interpreting the generated summary's generic focused-rerun sentence as a confirmed
 slowdown. Longer resume commands, distant contract inspection and the cost of
 repeated live exploration remain future work, not additional completed outcomes.
+
+
+## Exact scoring optimization test-fixture cleanup (2026-09-07)
+
+The release check found a new twelve-line fixture overlap between
+`row_relation_preserves_order_scores_exclusions_and_membership` and
+`alignment_classes_ignore_only_the_existing_unread_suffix` (family
+`5a511862f08767e7`). Both independently lowered the same arithmetic source and
+extracted owned features. `test_support::scoring_units` now owns that setup and
+also serves the sparse scoring test. Each test retains its own mutations and
+assertions; the helper is compiled only for tests. The new family disappears.
+
+The existing numeric-policy family `60f0dd6d98436972` is no longer reported on
+this changed source tree. Neither `int_bin` nor `float_bin` changed, and their
+separate numeric policies remain intentional. This is source-corpus sensitivity,
+not a claim that their overlap was removed. Both the preceding frozen binary
+and the scoring candidate produce byte-identical self-query JSON after cleanup.
+The accepted list now contains eighteen default families; the budget stays twenty
+and no new family is accepted. The original failing CI and the before/after
+queries are retained under `target/release-scoring-20260907/`.

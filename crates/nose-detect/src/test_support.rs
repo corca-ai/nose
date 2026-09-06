@@ -121,3 +121,24 @@ impl BindingDomainContainsFixture {
 fn span(line: u32) -> Span {
     Span::new(FileId(0), line, line, line, line)
 }
+
+/// Independent owned units with the same small arithmetic body.
+pub(crate) fn scoring_units(count: usize) -> Vec<crate::UnitFeat> {
+    let interner = Interner::new();
+    let il = nose_frontend::lower_source(
+        FileId(0),
+        "f.py",
+        b"def f(x):\n    return x * x + 1\n",
+        Lang::Python,
+        &interner,
+    )
+    .unwrap();
+    let options = crate::DetectOptions {
+        min_lines: 1,
+        min_tokens: 1,
+        ..Default::default()
+    };
+    (0..count)
+        .map(|_| crate::units_of_file(&il, &interner, &options).remove(0))
+        .collect()
+}
