@@ -143,8 +143,8 @@
       "validator": "./scripts/check-ci-local.sh --gate runtime-soundness-evidence",
       "consumers": ["release workflow and published quality claims"],
       "retention_policy": "Release-bound evidence is immutable and retained for release reconstruction.",
-      "artifact_count": 5,
-      "inventory_sha256": "d8ff84e1ca15da1a8492d0ffd4cbba790022c12bc40e838b9ab67ddb51b27e08"
+      "artifact_count": 6,
+      "inventory_sha256": "d2d7c61acc285635a2af870887f8681a160ec38bbb59d4d7560ecee5936be740"
     },
     {
       "id": "review-evidence",

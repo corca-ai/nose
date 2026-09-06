@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Prepared on 2026-09-06. Release decision: **NO-GO (performance blocker reproduced)**. The feature scope is frozen;
+Updated on 2026-09-07. Release decision: **NO-GO (performance regressions confirmed)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -25,7 +25,56 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Performance follow-up
+## Latest candidate: deferred evidence
+
+The [lazy follow-up record](../bench/release/0.21.0/lazy-followup.v1.json) binds
+product `bbc91b01`, proof commit `1be93eda` and harness commit `ce94f372` to their
+actual binaries and completed checks. The default Alamofire diagnostic now takes
+5.23 seconds with about 2.03 GB peak physical footprint; near:0.8 takes 2.36 seconds.
+All 360 outputs match the preceding candidate. These diagnostics do not qualify
+the release's runtime comparison.
+
+| Requirement | Current candidate result |
+| --- | --- |
+| Full local CI | Passed: 2,385 optimized tests, 89.51% line coverage, strict Clippy, MSRV, supply-chain checks and Lean |
+| Remote CI | [Passed on the proof commit](https://github.com/corca-ai/nose/actions/runs/34040129650), including its single Asciidoctor focus; [harness commit also passed](https://github.com/corca-ai/nose/actions/runs/34042267663) |
+| Output review | All 120 repositories in three modes and all 17 base workloads audited; exact intentional differences declared |
+| Published 0.20 semantic runtime | Failed after the registered primary/control and single focused pair |
+| Other query runtime workloads | Unqualified; stopped after semantic rejected this candidate |
+| Cache correctness and latency | Passed: 2,100 mutation rows and 180 paired SymPy rows; all three cache modes within unchanged timing limits |
+| Watch and recovery | Passed: 30 revisions each at 10k/100k files, fresh-query equality and forced restart; ready p95 75.94/398.49 ms |
+| Saved analysis, sources and reviews | Passed: moves, copies, verified/stale sources, legacy metadata, no overwrite and 0.20 cache upgrade |
+| Type-4 and soundness | Passed: 54 exact groups, no false merges/canon violations, PR/deep/120-repository nightly checks |
+| Packages and installer | Four native packages and the actual generated installer independently verified; later harness-only package builds also passed |
+
+The 120-repository semantic primary's total median sum decreases by 0.36%, but
+individual regressions remain. The six-block focus confirms these wall-time
+increases after the same-binary adjustment:
+
+| Repository | Baseline median | Candidate median | Adjusted increase |
+| --- | ---: | ---: | ---: |
+| Delve | 328.78 ms | 626.50 ms | 294.16 ms / 89.5% |
+| Raylib | 2,154.10 ms | 2,522.50 ms | 370.10 ms / 17.2% |
+| libGDX | 1,461.47 ms | 1,644.90 ms | 183.27 ms / 12.5% |
+
+The focus also confirms group construction, score, ranking or rendering signals
+in Alamofire, Guava, Hugo, RxJava and RxSwift. Rack, Vim and zstd retain
+inconclusive signals. Both confirmed and inconclusive outcomes reject the
+candidate under the unchanged policy. Every semantic output hash matches the
+reviewed declaration; output correctness does not waive runtime requirements.
+
+All four semantic phase reports completed before the failed candidate's
+coordinator was terminated. Its measured child ran uninterrupted. The remaining
+base/default/near timings are explicitly unqualified, and no failed observation
+was replaced. A changed candidate must complete the entire registered campaign.
+
+The base-view harness now uses stable, exclusively reserved worktrees so emitted
+navigation commands retain the same absolute working directory across phases.
+Controls and focused runs must match the producer hashes and workspace root.
+Invalid-command and random-path probes are retained separately from qualifying
+observations. See the [runtime harness contract](semantic-regression-smoke.md).
+
+## Earlier performance follow-up
 
 Product `d8744855` reduces the isolated dense Alamofire observation from 111.89
 to 8.91 seconds with identical output. All 120 semantic outputs, 16 additional
@@ -163,5 +212,6 @@ line coverage), all 360 output checks, Type-4 validation, saved-analysis journey
 120-repository soundness, independent deep checks, four native packages and the
 actual installer. The remote runtime gate remains inconclusive for Asciidoctor
 normalization after its single focus. Full timing and current-candidate cache/watch
-qualification are still pending. Later lazy-projection and interner improvements
-are separate prototypes until their own candidate and evidence are frozen.
+qualification were still pending for that product. Later lazy-projection and
+interner improvements belong to the separately evaluated `bbc91b01` candidate
+described above; its completed checks and rejection do not rewrite this history.
