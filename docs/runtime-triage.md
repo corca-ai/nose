@@ -340,5 +340,61 @@ Exploratory variants and raw measurements are retained under
 replacement for release qualification. The intermediate class-row and quotient
 Alamofire outputs match the complete pre-existing diagnostic output byte for byte;
 that comparison alone does not establish a passing release performance gate.
-Final candidate verification and remaining limitations are recorded below after
-measurement.
+The final product is `d8744855`, crates tree
+`333f18c66b8b43bd9c38f974139ac7edd5a3e847`, binary SHA-256
+`bce2cd46a3f917979c18039e7352b0e4013e9cd2ed488224b9488b8d0bcd3d9a`.
+The checked [performance follow-up](../bench/release/0.21.0/performance-followup.v1.json)
+retains source/binary bindings, every semantic replay hash and raw evidence seals.
+
+One isolated Alamofire `all top=0 --mode near:0.8 --format json` observation took
+111.89 seconds on the frozen pre-change candidate and 8.91 seconds on the new
+candidate. The complete output bytes match. Scoring moved 109,783.1 → 7,541.5 ms;
+rendering moved 961.9 → 270.9 ms. These are diagnostic observations, not paired
+release qualification or a general speed guarantee. The published v0.20.0 binary
+still took 1.61 seconds under its earlier incomplete candidate policy. A bitmap
+neighbor experiment and a branchless Jaccard experiment were excluded; the latter
+made scoring slower in the exploratory comparison.
+
+Local `--full` passes: 2,373 optimized tests, 89.39% line coverage, strict Clippy,
+MSRV, Lean and the unchanged 19-family duplication result (budget 20). All 120
+semantic outputs match the frozen candidate byte for byte. Default and near
+outputs also match on the seven smoke repositories and Cortex `0baac123`, plus
+the dense Alamofire near case. The source-class tests compare against exhaustive
+pairs, including asymmetric scores, nesting, equal spans, mixed bucket membership,
+connected eligibility, overflow ties and multiple thread/batch sizes.
+
+Cache correctness passes all 2,100 mutation rows and 180 paired SymPy rows.
+Thirty alternating replays per binary measure the following elapsed times:
+
+| SymPy phase | Published/candidate p50 | p50 change | Published/candidate p95 |
+| --- | --- | --- | --- |
+| Clean | 2,393.53 / 2,507.41 ms | +4.76% | 2,479.98 / 2,663.68 ms |
+| Empty cache | 2,593.66 / 2,698.68 ms | +4.05% | 2,706.55 / 2,842.23 ms |
+| History reuse | 315.21 / 310.10 ms | −1.62% | 334.47 / 323.84 ms |
+
+The history-reuse regression clears, but clean and empty-cache p95 still exceed
+the unchanged 5%/5 ms limits. Watch passes 30 revisions each at 10k/100k files,
+full fresh-query equivalence and forced restart, with ready p95 76.39/383.22 ms.
+
+Release qualification remains **NO-GO**. The local seven-repository runtime gate
+has no confirmed material signal but remains inconclusive after its single
+focused run, including Asciidoctor/JUnit5 frontend stages. The
+[remote CI](https://github.com/corca-ai/nose/actions/runs/34027976008) focused run
+confirms Asciidoctor `normalize+extract` +12.90 ms/+10.82% and Sidekiq `lower`
++6.20 ms/+7.00%, with additional inconclusive signals. Neither gate reports
+unexpected output drift. The reviewed schema changes were also bound to the
+actual published tag `47adbab7`; the previous ledger covered PR base `de43f4b4`.
+The existing primary/control measurements were rechecked without replacing them,
+then exactly one focused run was performed. Thresholds and retry policy remain
+unchanged.
+
+The same product tree passes fresh [120-repository soundness](https://github.com/corca-ai/nose/actions/runs/34028031591)
+with zero false merges/canonicalization violations and
+[independent deep checks](https://github.com/corca-ai/nose/actions/runs/34028033026).
+All [four native packages](https://github.com/corca-ai/nose/actions/runs/34027976126)
+and the actual CI installer pass checksum/extraction/execution checks.
+
+The registered full 120-repository timing and 17-repository base campaign remain
+unqualified. Dense class-to-class scoring and frontend/normalization costs still
+need work before a replacement candidate can close those release conditions.
+No release tag or Homebrew update was published.

@@ -25,7 +25,20 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Qualification requirements
+## Performance follow-up
+
+Product `d8744855` reduces the isolated dense Alamofire observation from 111.89
+to 8.91 seconds with identical output. All 120 semantic outputs, 16 additional
+mode comparisons, 2,373 tests, cache/watch correctness, fresh soundness and four
+native packages pass. History-cache timing improves, but clean-cache tail latency,
+dense analysis and frontend runtime signals still prevent release.
+
+The [follow-up record](../bench/release/0.21.0/performance-followup.v1.json) retains the new candidate's measurements.
+See [runtime triage](runtime-triage.md#v0210-candidate-performance-follow-up-2026-09-06) for the remaining conditions. The table below
+is the retained qualification of initial candidate `283f9e1d`; its passing
+checks do not independently qualify a later product tree.
+
+## Initial candidate qualification
 
 | Requirement | Status | Evidence |
 | --- | --- | --- |
@@ -43,8 +56,8 @@ No release tag or Homebrew publication is part of this preparation.
 The checked [qualification record](../bench/release/0.21.0/qualification.v1.json)
 contains source/binary identities, platform checksums, measured outcomes and raw
 artifact seals. The tested product `crates` tree is
-`8d0e11903a2b685f0bf7904385963ef731f07760`; subsequent qualification-document and
-harness changes retain that product tree. The measured local distribution binary
+`8d0e11903a2b685f0bf7904385963ef731f07760`; initial qualification-document and
+harness commits through `78f9feac` retain that product tree. The measured local distribution binary
 SHA-256 is `b499631fb90867b37c9e8adbaa8eb31e53cea727d62859cf9778b449d1b98fcb`.
 
 The local plan in `target/release-0.21.0/plan.md` fixes query comparisons before

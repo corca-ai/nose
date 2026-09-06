@@ -8,6 +8,10 @@ break.
 
 ## [0.21.0] - 2026-09-06
 
+- Compress repeated candidate relations while preserving every accepted edge,
+  source constraint and connected-seed rule. Reduce query JSON copying and
+  repeated navigation lookups, preserving all fields and output order.
+
 - Avoid repeated Rust scope traversal for type references without a matching Tokio
   runtime import, preserving the existing type-evidence and shadowing checks.
 
