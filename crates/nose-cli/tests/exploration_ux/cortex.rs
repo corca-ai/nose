@@ -312,7 +312,7 @@ fn member_context_opens_surrounding_contract_without_changing_the_member() {
     ] {
         p.write(
             file,
-            &format!("fn {name}(value: i32) {{\n    if {guard} {{ return; }}\n{RUST_BODY}}}\n"),
+            &format!("// Contract for {name}: preserve validation.\nfn {name}(value: i32) {{\n    if {guard} {{ return; }}\n{RUST_BODY}}}\n"),
         );
     }
     let list = p.query(&["--mode", "syntax", "all", "top=0"]);
@@ -365,6 +365,17 @@ fn member_context_opens_surrounding_contract_without_changing_the_member() {
         .unwrap()
         .contains("member-context=20"));
     let body = &context["member_view"]["source_bodies"]["members"][0];
+    assert!(
+        body["lines"].as_array().unwrap().iter().any(|line| {
+            line["text"]
+                .as_str()
+                .unwrap()
+                .starts_with("// Contract for")
+                && line["line"] == 1
+                && line["in_member"] == false
+        }),
+        "surrounding source must include the adjacent contract comment: {body}"
+    );
     assert!(body["context"]["start"].as_u64().unwrap() < body["start"].as_u64().unwrap());
     assert!(body["lines"]
         .as_array()

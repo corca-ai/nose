@@ -47,22 +47,11 @@ fn lines(loc: &Loc, padding: usize) -> Result<Window, &'static str> {
     if loc.end_line > total {
         return Err("range-unavailable");
     }
-    let (mut low, mut high) = (1, total);
-    if let Some(parent) = &loc.enclosing_unit {
-        if parent.file == loc.file
-            && parent.start_line > 0
-            && parent.start_line <= loc.start_line
-            && parent.end_line >= loc.end_line
-            && parent.end_line <= total
-        {
-            (low, high) = (parent.start_line, parent.end_line);
-        }
-    }
     let padding = u32::try_from(padding).unwrap_or(u32::MAX);
-    let requested_start = loc.start_line.saturating_sub(padding).max(low);
+    let requested_start = loc.start_line.saturating_sub(padding).max(1);
     // Do not spend the entire display budget on preceding context.
     let start = requested_start.max(loc.start_line.saturating_sub((LINE_LIMIT / 3) as u32));
-    let end = loc.end_line.saturating_add(padding).min(high);
+    let end = loc.end_line.saturating_add(padding).min(total);
     let lines: Vec<_> = text
         .lines()
         .skip(start as usize - 1)

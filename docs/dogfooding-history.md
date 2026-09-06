@@ -2040,3 +2040,40 @@ byte-identical self-query JSON on the updated source (SHA-256
 `d04206725a0d6526a6049b35d9e6694ee452ff4138e4795db9b7650ad3ba6e50`).
 Raw evidence is under `target/ux-campaign-20260906/round06/`. This completes round
 6 of 10; final campaign-wide qualification remains pending.
+
+## Independent usability campaign: round 7 (2026-09-06)
+
+Fresh evaluators on fastlane and craken-agents each completed 15 calls without an
+execution error, but explicit surrounding-source inspection failed to expose adjacent
+contract comments. In fastlane it added no source lines at all. This separates command
+success from evidence acquisition: the enclosing function was a mistaken display
+boundary even when the limitation was documented.
+
+Member context now crosses enclosing-unit boundaries while retaining file edges,
+120 displayed lines, 64 KiB per region, and the existing file-read limit. The original
+member coordinates, region and review identity, boundary metadata, and marked member
+lines are unchanged. This adds no new navigation term or judgement. The regression
+fixture fails before the change because the contract comment at line 1 is omitted,
+then passes with the comment explicitly outside the detected member.
+
+All 2,369 workspace tests, 23 exploration tests, strict clippy, docs and the
+1,054-file length check pass. Seven original real-repository member commands were
+replayed with both binaries: three ordinary views differ only by the context-action
+label; four context views differ only in their source window fields. Fastlane windows
+expand from 13–34 to 1–54 and 40–61 to 20–81; craken windows expand from 145–159 to
+128–178 and 90–103 to 72–109. Non-body fields and in-member source remain identical.
+The substantial-near gate retains the same 19 families within budget 20. Previous and
+current binaries produce byte-identical self-query output on the updated tree,
+SHA-256 `5ada2cad300f0e076acfc445e164503aef4bb71b18944032613318e7aec6d0a1`.
+
+Both learned replays completed 15 calls with no execution failures and returned to
+the same filtered list and dashboard. Fastlane acquired both adjacent API contract
+comments through the CLI; craken inspected the FTS-deletion helper outside the selected
+function and used it to distinguish production and test responsibilities. Both still
+needed external source reads for distant or cross-file contracts. Larger context
+requests exposed a remaining issue: the fixed allowance for preceding lines can
+truncate a window even when the full request would fit the display budget. Repeated
+family/analysis explanations also remained low-value during source inspection.
+No speed or first-use success improvement is claimed from these learned replays.
+Reports and raw transcripts are in `target/ux-campaign-20260906/round07/`.
+This completes round 7 of 10; final campaign qualification remains pending.

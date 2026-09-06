@@ -194,7 +194,7 @@ pub(crate) fn view(
         actions.push(json!({"kind":"return-family","label":"Back to this family","command":format!("{base}{}", if q.id_full { " full" } else { "" })}));
     }
     if q.member_view.id.is_some() && q.member_view.context.is_none() {
-        actions.push(json!({"kind":"inspect-context","label":"Inspect surrounding code (up to 20 lines each side; enclosing/file bounds apply)","command":command(vec!["member-context=20".into(), "full".into()])}));
+        actions.push(json!({"kind":"inspect-context","label":"Inspect surrounding code (up to 20 lines each side; file/display limits apply)","command":command(vec!["member-context=20".into(), "full".into()])}));
     }
     actions.push(json!({"kind":"resume-selection","label":"Resume this selection","command":command(q.member_view.group.iter().map(|g| format!("member-group={g}")).chain(q.top.map(|top| format!("top={top}"))).chain(q.id_full.then(|| "full".into())).collect())}));
     json!({"source_bodies":source,"total":f.locations.len(),"selected":selected.len(),"shown":if q.member_view.group.is_some() {0} else {selected.len().min(top)},

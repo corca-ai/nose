@@ -507,8 +507,9 @@ locations/excerpts instead of displaying internal `None` values.
 
 `member-context=N full` expands the selected source display by a non-negative
 number of nearby lines. A member's `inspect-context` action requests 20 lines on
-each side. Known valid enclosing bounds and the file edges constrain the window;
-unclassified ranges remain unclassified. The existing 120-line and 64-KiB limits
+each side. The window can cross enclosing-unit boundaries to include adjacent
+comments and code, bounded by file edges; unclassified ranges remain unclassified.
+The existing 120-line and 64-KiB limits
 still apply. Large requests prioritize the selected member over preceding context.
 Each body retains its original `start`, `end`, `region` and `member_id`, and adds
 `context={requested_lines_each_side,requested_start,start,end,shown_end,meaning}`.
