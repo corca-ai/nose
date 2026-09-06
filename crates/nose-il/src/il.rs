@@ -12,6 +12,7 @@ mod evidence_index;
 use evidence_index::EvidenceIndex;
 mod evidence_edit;
 pub use evidence_edit::EvidenceEdit;
+mod parent_index;
 mod scope_index;
 
 /// One lowered source file. `nodes` is the arena; child links live out-of-line in
@@ -32,6 +33,8 @@ pub struct Il {
     /// scopes without repeating a whole-arena span scan for every reference.
     #[serde(skip)]
     scope_parent_index: std::sync::OnceLock<Vec<Option<NodeId>>>,
+    #[serde(skip)]
+    unique_parent_index: std::sync::OnceLock<Vec<Option<NodeId>>>,
     /// Lazy byte-span → node-ids index (see [`Il::nodes_spanning`]).
     #[serde(skip)]
     span_index: std::sync::OnceLock<std::collections::HashMap<(u32, u32), Vec<u32>>>,
@@ -105,6 +108,7 @@ impl Clone for Il {
             // mutated — start fresh.
             scope_index: std::sync::OnceLock::new(),
             scope_parent_index: std::sync::OnceLock::new(),
+            unique_parent_index: std::sync::OnceLock::new(),
             span_index: std::sync::OnceLock::new(),
             assign_scope_index: std::sync::OnceLock::new(),
             param_cid_index: std::sync::OnceLock::new(),
@@ -139,6 +143,7 @@ impl Il {
             },
             scope_index: std::sync::OnceLock::new(),
             scope_parent_index: std::sync::OnceLock::new(),
+            unique_parent_index: std::sync::OnceLock::new(),
             span_index: std::sync::OnceLock::new(),
             assign_scope_index: std::sync::OnceLock::new(),
             param_cid_index: std::sync::OnceLock::new(),
@@ -153,6 +158,7 @@ impl Il {
     pub fn edit(&mut self) -> &mut IlContents {
         self.scope_index.take();
         self.scope_parent_index.take();
+        self.unique_parent_index.take();
         self.span_index.take();
         self.assign_scope_index.take();
         self.param_cid_index.take();

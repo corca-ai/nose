@@ -1,6 +1,9 @@
 use crate::{detectors::Detector, locations::is_nested, units::UnitFeat};
 use rayon::prelude::*;
 
+#[cfg(test)]
+mod tests;
+
 pub(crate) type AcceptedPair = (usize, usize, f64);
 
 #[derive(Clone, Copy, Debug)]
@@ -17,10 +20,42 @@ pub(super) fn score_ordinary_candidates(
     detector: &dyn Detector,
     threshold: f64,
 ) -> (Vec<ScoredCandidate>, Vec<AcceptedPair>) {
-    let mut scored = Vec::with_capacity(candidates.len());
-    let mut accepted = Vec::new();
-    for batch in candidates.chunks(4096) {
-        let batch = batch
+    score_with_classes(units, candidates, detector, threshold, None)
+}
+
+pub(super) fn score_with_classes(
+    units: &[UnitFeat],
+    candidates: &[(usize, usize)],
+    detector: &dyn Detector,
+    threshold: f64,
+    classes: Option<&[usize]>,
+) -> (Vec<ScoredCandidate>, Vec<AcceptedPair>) {
+    let scored = if let Some(classes) = classes {
+        candidates
+            .par_chunks(4096)
+            .map(|chunk| {
+                // Private to this parallel chunk: no shared locks, and at most one
+                // score entry per candidate. Argument order matters to RANSAC.
+                let mut memo = rustc_hash::FxHashMap::default();
+                chunk
+                    .iter()
+                    .map(|&(left, right)| ScoredCandidate {
+                        left,
+                        right,
+                        ordinary_score: (!is_nested(&units[left], &units[right])).then(|| {
+                            *memo
+                                .entry((classes[left], classes[right]))
+                                .or_insert_with(|| detector.score(&units[left], &units[right]))
+                        }),
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>()
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
+    } else {
+        candidates
             .par_iter()
             .map(|&(left, right)| ScoredCandidate {
                 left,
@@ -28,14 +63,16 @@ pub(super) fn score_ordinary_candidates(
                 ordinary_score: (!is_nested(&units[left], &units[right]))
                     .then(|| detector.score(&units[left], &units[right])),
             })
-            .collect::<Vec<_>>();
-        accepted.extend(batch.iter().filter_map(|candidate| {
+            .collect::<Vec<_>>()
+    };
+    let accepted = scored
+        .iter()
+        .filter_map(|candidate| {
             candidate
                 .ordinary_score
                 .filter(|&score| score >= threshold)
                 .map(|score| (candidate.left, candidate.right, score))
-        }));
-        scored.extend(batch);
-    }
+        })
+        .collect();
     (scored, accepted)
 }

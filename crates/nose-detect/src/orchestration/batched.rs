@@ -1,7 +1,6 @@
 //! Preserve candidate order and all accepted edges without retaining rejected pairs.
 use super::{
-    connected_pricing::connected_seed_indices, scoring::score_ordinary_candidates,
-    stages::DetectionStages,
+    connected_pricing::connected_seed_indices, scoring::score_with_classes, stages::DetectionStages,
 };
 use crate::{
     candidates::{source_span_groups, structural_buckets},
@@ -33,8 +32,17 @@ fn score_with_batch_size(
         .map(|unit| unit.connected_tokens.len())
         .collect::<Vec<_>>();
     let mut result = DetectionStages::fresh(Vec::new(), Vec::new(), Vec::new());
+    let classes = detector.score_classes(units).filter(|ids| {
+        assert_eq!(
+            ids.len(),
+            units.len(),
+            "score classes must cover every unit"
+        );
+        ids.iter().collect::<rustc_hash::FxHashSet<_>>().len() <= units.len() / 2
+    });
     crate::lsh::visit_batches(units.len(), &buckets, &groups, batch_size, |batch| {
-        let (scored, accepted) = score_ordinary_candidates(units, batch, detector, opts.threshold);
+        let (scored, accepted) =
+            score_with_classes(units, batch, detector, opts.threshold, classes.as_deref());
         result.candidate_count += batch.len();
         result.accepted.extend(accepted);
         if opts.connected_witnesses {
@@ -61,6 +69,7 @@ fn retain_connected_seeds(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::orchestration::scoring::score_ordinary_candidates;
     use crate::{candidates::structural_candidates, StructuralDetector};
     use nose_il::{Corpus, FileId, Interner, Lang};
 

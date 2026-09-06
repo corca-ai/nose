@@ -62,6 +62,11 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    multiset of subtree-shape hashes, a value-graph fingerprint, a pre-order linearization
    for alignment, a MinHash signature, plus literal- and return-value multisets used by
    the strict precision gates.
+   Corpus extraction defers MinHash until the owned feature arrays are available, then
+   signs each equal multiset once in parallel. Full slice equality resolves hash collisions.
+   Signatures are copied for repeated users and moved into their last user, keeping the
+   signature-buffer count within the final output's requirements. Every public corpus or
+   per-file extraction result is fully signed; serialized feature layouts stay the same.
 4. **Candidate generation**: the selected detection channels decide which candidates exist.
    `semantic` uses value-fingerprint MinHash signatures plus exact-value buckets, `near`
    uses shape MinHash signatures, experimental `abstraction` reuses the near candidate
@@ -78,7 +83,9 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    existing frequency and per-bucket caps. No bucket is reduced to a connectivity skeleton.
    Product analyses above one million pairs automatically stream stable candidate batches.
    Every eligible ordinary pair is still scored, retaining accepted edges and only the
-   existing top/first connected seeds globally and per file. Prefix compaction preserves
+   existing top/first connected seeds globally and per file. Each bounded batch is scored
+   by one indexed parallel traversal, preserving candidate order without repeated small-batch
+   synchronization. Prefix compaction preserves
    score ties and nested-seed order. This bounds temporary candidate/rejected-score storage,
    not source features or accepted output. Smaller analyses retain the indexed path; raw
    diagnostic dumps still materialize the requested candidates. There is no implicit
@@ -103,6 +110,15 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    by anti-unifying representative copies' value graphs — "equal except *k* holes", each
    a candidate parameter or named transformation such as `async-mirror`, with a
    soundness-relevant referent check ([graded-witness](graded-witness.md)).
+   Large batched analyses may reuse a score for exactly equal scoring inputs. Builtin
+   scorers expose analysis-local input classes; structural scoring reads only the same
+   complete input view whose equality defines those classes. Hashes accelerate lookup,
+   while full equality checks all score fields. Channel composition intersects class
+   partitions, and custom scorers opt out by default. Reuse activates when at least half
+   the units repeat an input class. Private per-chunk maps keep ordered argument pairs
+   and every rejected score; nesting, candidate order, accepted edges, and connected-seed
+   selection still operate on the original locations. Neither class ids nor score maps
+   persist beyond the analysis.
 6. **Cluster & rank**: union-find over accepted pairs/runs forms clone groups, which
    are grouped into **families** and sorted by refactoring value (removable lines
    × similarity × cross-directory/-file/-language spread). See [usage](usage.md) for how the
@@ -117,6 +133,10 @@ and `Il::edit` invalidate those indexes before granting an exclusive borrow.
 only evidence lookups. For repeated record updates, `evidence_record_mut` retains
 the index when id and anchor stay unchanged, avoiding a whole-evidence rebuild
 per metadata update. Serialization keeps the existing flat arena representation.
+The lazy unique-parent index covers the whole arena, including unreachable nodes.
+Repeated edges from one parent remain unique; multiple distinct parents return no
+answer. Object-key-view evidence uses this index after checking the call's API shape,
+preserving its ambiguity and `with`-scope guards without repeated arena scans.
 
 `DetectOptions::validate` produces an immutable execution plan and rejects invalid
 thresholds, MinHash layouts, and incompatible channel prerequisites before detection.

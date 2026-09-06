@@ -13,6 +13,7 @@ use nose_il::Corpus;
 
 mod batched;
 mod features;
+mod signatures;
 pub use features::{
     corpus_features, corpus_features_with_normalized, file_stream, units_of_file, CorpusFeatures,
 };

@@ -17,6 +17,24 @@ impl nose_detect::Detector for ChannelDetector {
             .map(|d| d.score(a, b))
             .fold(0.0, f64::max)
     }
+
+    fn score_classes(&self, units: &[nose_detect::UnitFeat]) -> Option<Vec<usize>> {
+        let classes = self
+            .detectors
+            .iter()
+            .map(|detector| detector.score_classes(units))
+            .collect::<Option<Vec<_>>>()?;
+        assert!(classes.iter().all(|ids| ids.len() == units.len()));
+        let mut seen = std::collections::HashMap::new();
+        Some(
+            (0..units.len())
+                .map(|i| {
+                    let key = classes.iter().map(|ids| ids[i]).collect::<Vec<_>>();
+                    *seen.entry(key).or_insert(i)
+                })
+                .collect(),
+        )
+    }
 }
 
 /// Detection options for the resolved query channels — shared by `analysis` and `divergence`.

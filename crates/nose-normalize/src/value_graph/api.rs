@@ -3,7 +3,7 @@ use super::*;
 /// A heavy sub-DAG anchor: a shared sub-computation's structural `hash`, its `weight` (sub-DAG
 /// size), and the source line range (`line_start..=line_end`) of the IL subtree that produced it —
 /// so a partial / sub-DAG clone can report WHERE the shared computation lives in each unit.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Hash, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Anchor {
     pub hash: u64,
     pub weight: u32,

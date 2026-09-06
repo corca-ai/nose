@@ -19,7 +19,9 @@ use occurrences::occurrences_for_contract;
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct SemanticPackDependencyEvidenceId(pub u32);
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Clone, PartialEq, Hash, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize,
+)]
 pub struct SemanticPackDependencySource {
     pub declared_path: String,
     pub content_digest: String,

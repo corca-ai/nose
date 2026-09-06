@@ -26,7 +26,7 @@ pub fn units_of_file(il: &Il, interner: &Interner, opts: &DetectOptions) -> Vec<
         ..Default::default()
     };
     let seeds = minhash::seeds(opts.minhash_k);
-    extract_units_of_file(il, interner, opts, &norm_opts, &seeds)
+    extract_units_of_file(il, interner, opts, &norm_opts, Some(&seeds))
 }
 
 /// Corpus features ready for detection. The caller may attach query-local evidence to
@@ -56,7 +56,7 @@ pub fn corpus_features(corpus: &Corpus, opts: &DetectOptions) -> CorpusFeatures 
         .par_iter()
         .map(|il| {
             let units = if opts.structural {
-                extract_units_of_file(il, &corpus.interner, opts, &norm_opts, &seeds)
+                extract_units_of_file(il, &corpus.interner, opts, &norm_opts, None)
             } else {
                 Vec::new()
             };
@@ -82,6 +82,7 @@ pub fn corpus_features(corpus: &Corpus, opts: &DetectOptions) -> CorpusFeatures 
             streams.push(stream);
         }
     }
+    super::signatures::finish(&mut units, opts.shape_features, &seeds);
     CorpusFeatures {
         units,
         streams,
@@ -113,13 +114,7 @@ pub fn corpus_features_with_normalized(
         .par_iter()
         .map(|il| {
             let (units, normalized, context) = if opts.structural {
-                extract_units_of_file_with_normalized(
-                    il,
-                    &corpus.interner,
-                    opts,
-                    &norm_opts,
-                    &seeds,
-                )
+                extract_units_of_file_with_normalized(il, &corpus.interner, opts, &norm_opts, None)
             } else {
                 (Vec::new(), None, None)
             };
@@ -154,6 +149,7 @@ pub fn corpus_features_with_normalized(
             normalized.push(file_normalized);
         }
     }
+    super::signatures::finish(&mut units, opts.shape_features, &seeds);
     (
         CorpusFeatures {
             units,
@@ -175,7 +171,7 @@ fn extract_units_of_file(
     interner: &Interner,
     opts: &DetectOptions,
     norm_opts: &NormalizeOptions,
-    seeds: &[u64],
+    seeds: Option<&[u64]>,
 ) -> Vec<UnitFeat> {
     if units::raw_il_is_empty_module(il) || units::large_test_file(il) {
         return Vec::new();
@@ -203,7 +199,7 @@ fn extract_units_of_file_with_normalized(
     interner: &Interner,
     opts: &DetectOptions,
     norm_opts: &NormalizeOptions,
-    seeds: &[u64],
+    seeds: Option<&[u64]>,
 ) -> (
     Vec<UnitFeat>,
     Option<Il>,

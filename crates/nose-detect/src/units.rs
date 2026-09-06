@@ -57,7 +57,8 @@ pub(crate) struct ExtractFeatures {
 struct UnitExtractCtx<'a> {
     il: &'a Il,
     interner: &'a Interner,
-    seeds: &'a [u64],
+    /// `None` defers signatures until the corpus finalizes its owned feature arrays.
+    seeds: Option<&'a [u64]>,
     min_lines: u32,
     min_tokens: usize,
     features: ExtractFeatures,
@@ -92,7 +93,7 @@ struct GatedUnit {
 pub(crate) fn extract(
     il: &Il,
     interner: &Interner,
-    seeds: &[u64],
+    seeds: Option<&[u64]>,
     min_lines: u32,
     min_tokens: usize,
     block_units: bool,
@@ -113,7 +114,7 @@ pub(crate) fn extract(
 pub(crate) fn extract_with_context(
     il: &Il,
     interner: &Interner,
-    seeds: &[u64],
+    seeds: Option<&[u64]>,
     min_lines: u32,
     min_tokens: usize,
     block_units: bool,
@@ -472,7 +473,10 @@ fn extract_unit(
 
     // Candidate generation keys on the value graph when present (so clones
     // that converge only semantically still become candidates).
-    let minhash = unit_minhash(&value, &shapes, ctx.features.shape_features, ctx.seeds);
+    let minhash = ctx
+        .seeds
+        .map(|seeds| unit_minhash(&value, &shapes, ctx.features.shape_features, seeds))
+        .unwrap_or_default();
 
     let display_name = uname
         .map(|s| ctx.interner.resolve(s).to_string())

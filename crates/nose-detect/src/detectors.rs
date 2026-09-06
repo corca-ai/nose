@@ -1,17 +1,26 @@
 use crate::{
     align,
     candidates::shared_anchor_weight,
-    exact_policy::{candidate_value_floor_met, exact_value_match_eligible},
+    exact_policy::{exact_claim_eligible_parts, exact_value_match_eligible, exact_value_rich},
     strict_exact,
     units::UnitFeat,
 };
 use nose_il::{Il, Interner, NodeId};
 use std::collections::HashMap;
 
+mod inputs;
+use inputs::ScoreInputs;
+
 /// Pluggable similarity scorer. Returns a score in `[0, 1]` for a candidate pair.
 pub trait Detector: Sync {
     fn name(&self) -> &str;
     fn score(&self, a: &UnitFeat, b: &UnitFeat) -> f64;
+    /// Optional exact equivalence classes: one id per unit in this immutable slice. Equal ids
+    /// must be interchangeable in either score argument, including rejected scores.
+    /// Return `None` for scorers that depend on location, history, or other state.
+    fn score_classes(&self, _units: &[UnitFeat]) -> Option<Vec<usize>> {
+        None
+    }
 }
 
 /// A no-op scorer used when a mode intentionally runs only the contiguous
@@ -68,6 +77,12 @@ impl Detector for ExactBehaviorDetector {
         } else {
             0.0
         }
+    }
+
+    fn score_classes(&self, units: &[UnitFeat]) -> Option<Vec<usize>> {
+        Some(inputs::classes(
+            units.iter().map(|unit| (&unit.value, unit.exact_safe)),
+        ))
     }
 }
 
@@ -145,8 +160,9 @@ impl Detector for StructuralDetector {
     }
 
     fn score(&self, a: &UnitFeat, b: &UnitFeat) -> f64 {
-        let protocol_match = self.candidate_mode && external_near_protocol_match(a, b);
-        let score = self.base_score(a, b, protocol_match);
+        let (a, b) = (ScoreInputs::from(a), ScoreInputs::from(b));
+        let protocol_match = self.candidate_mode && external_near_protocol_match(&a, &b);
+        let score = self.base_score(&a, &b, protocol_match);
         if protocol_match && score >= 0.60 {
             // A reviewed protocol row is supporting near evidence, never an exact proof.
             // Move an already-substantial existing candidate only one quarter of the
@@ -156,9 +172,13 @@ impl Detector for StructuralDetector {
             score
         }
     }
+
+    fn score_classes(&self, units: &[UnitFeat]) -> Option<Vec<usize>> {
+        Some(inputs::classes(units.iter().map(ScoreInputs::from)))
+    }
 }
 
-fn external_near_protocol_match(a: &UnitFeat, b: &UnitFeat) -> bool {
+fn external_near_protocol_match(a: &ScoreInputs<'_>, b: &ScoreInputs<'_>) -> bool {
     a.semantic_pack_near_protocols.iter().any(|left| {
         left.provenance.is_some()
             && b.semantic_pack_near_protocols
@@ -173,7 +193,7 @@ fn external_near_protocol_match(a: &UnitFeat, b: &UnitFeat) -> bool {
 }
 
 impl StructuralDetector {
-    fn base_score(&self, a: &UnitFeat, b: &UnitFeat, protocol_match: bool) -> f64 {
+    fn base_score(&self, a: &ScoreInputs<'_>, b: &ScoreInputs<'_>, protocol_match: bool) -> f64 {
         // Oracle-certified fast path (§AJ): an identical value-graph fingerprint means
         // behaviorally-equal — `nose verify` proved fingerprint-equality ⟹ behavior
         // -equality across the corpus (0 false merges). So accept an exact match
@@ -181,7 +201,11 @@ impl StructuralDetector {
         // Type-4 clone (loop ≡ reduce ≡ comprehension) be detected even though its
         // shapes differ. Guarded by a minimum fingerprint size so trivial units don't
         // collapse. The size gate (min_tokens) already excludes tiny units upstream.
-        if self.exact_behavior && exact_value_match_eligible(a, b) {
+        if self.exact_behavior
+            && exact_claim_eligible_parts(a.exact_safe, a.value.len())
+            && exact_claim_eligible_parts(b.exact_safe, b.value.len())
+            && a.value == b.value
+        {
             return 1.0;
         }
         // Score = wv·vj + ws·sj + wr·ransac (defaults reproduce the prior
@@ -198,7 +222,7 @@ impl StructuralDetector {
         } else {
             self.scoring.strict_weights
         };
-        let vj = align::multiset_jaccard(&a.value, &b.value);
+        let vj = align::multiset_jaccard(a.value, b.value);
         // Candidate mode trusts the value graph: a near-identical value fingerprint — produced
         // AFTER semantic canonicalization (a `.then`-chain ≡ await code, a loop ≡ a
         // comprehension) — is the strongest refactoring signal there is, even when the
@@ -207,7 +231,8 @@ impl StructuralDetector {
         // directly. Impure units never reach the exact channel, so this is the only place such
         // behaviorally-convergent pairs can surface. Tight threshold + size floor keep it precise.
         if self.candidate_mode
-            && candidate_value_floor_met(a, b)
+            && exact_value_rich(a.value.len())
+            && exact_value_rich(b.value.len())
             && vj >= self.scoring.candidate_value_accept
         {
             return vj;
@@ -215,13 +240,13 @@ impl StructuralDetector {
         // Shape overlap is only needed after the value-graph fast path above. Corpus profiling
         // showed many candidate-mode pairs exit there; computing shapes first spent measurable
         // time without changing any accepted score.
-        let sj = align::multiset_jaccard(&a.shapes, &b.shapes);
+        let sj = align::multiset_jaccard(a.shapes, b.shapes);
         // Partial / sub-DAG clone: the units share a rare heavy anchor (an extractable common
         // sub-computation) even though the whole-unit blend is low. Surface it for inspection at a
         // score above the near floor but below a full clone — it's a real refactor lead (pull
         // the shared computation into a helper), just a partial one. Keep the higher of the two.
         if self.candidate_mode {
-            let shared = shared_anchor_weight(&a.anchors, &b.anchors);
+            let shared = shared_anchor_weight(a.anchors, b.anchors);
             if shared > 0 {
                 return (wv * vj + ws * sj).max(self.scoring.anchor_score(shared));
             }
@@ -235,7 +260,7 @@ impl StructuralDetector {
         if !protocol_match && wv * vj + ws * sj + wr < self.accept_threshold {
             return wv * vj + ws * sj + wr;
         }
-        let l = align::ransac_ratio(&a.linear, &b.linear);
+        let l = align::ransac_ratio(a.linear, b.linear);
         let score = wv * vj + ws * sj + wr * l;
         // Near-candidate mode keeps the raw similarity — the gates below
         // demote precisely the near-duplicate families that are good refactor targets.
@@ -250,13 +275,13 @@ impl StructuralDetector {
         // different data" false positives without touching algorithmic clones (which
         // have few constants, so the gate never triggers; recall is unaffected).
         let (dh_ratio, dh_abs) = (self.scoring.data_heavy_ratio, self.scoring.data_heavy_count);
-        let data_heavy = |u: &UnitFeat| {
+        let data_heavy = |u: &ScoreInputs<'_>| {
             !u.value.is_empty()
                 && (u.lits.len() as f64 / u.value.len() as f64 >= dh_ratio
                     || u.lits.len() >= dh_abs)
         };
         if data_heavy(a) && data_heavy(b) {
-            return score.min(align::multiset_jaccard(&a.lits, &b.lits));
+            return score.min(align::multiset_jaccard(a.lits, b.lits));
         }
         // Return-signature gate: two units that return DIFFERENT computed values are
         // not behavioral clones, however similar their bodies. When both return
@@ -264,7 +289,7 @@ impl StructuralDetector {
         // total return mismatch (e.g. `<` vs `<=`, an extra effect) caps below the
         // operating threshold while a return match leaves the score untouched.
         if !a.returns.is_empty() && !b.returns.is_empty() {
-            let rj = align::multiset_jaccard(&a.returns, &b.returns);
+            let rj = align::multiset_jaccard(a.returns, b.returns);
             let base = self.scoring.return_base;
             return score.min(base + (1.0 - base) * rj);
         }
