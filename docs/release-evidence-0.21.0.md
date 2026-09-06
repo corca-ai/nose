@@ -25,7 +25,29 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: exact score reuse
+## Latest candidate: bounded C admission parsing
+
+Product `42cb52a6`, proof `cd3d1971`, and binary SHA-256
+`f2bd191f85a6bd0fdedd2959991b57b394deb247c3d9d524785b6dac66872741`
+stop a hinted-header clean-C check once every surviving parse requires a syntax
+error. The narrow vendored parser patch leaves grammar and completed parsing
+unchanged, resets canceled pooled parsers, and retains clean-tree resource budgets.
+Type-4 proof now binds Cargo and vendor inputs as well as application crates.
+
+All 360 ordinary and 17 base outputs match the previous candidate. Saved-analysis
+and review journeys, stale source checks, legacy captures and the 0.20 cache
+upgrade pass. Type-4 probes retain 76 cells, 54 exact groups, zero false merges
+and zero canonicalization violations. The initial full CI run passes its tests
+but exposes cargo-machete scanning the upstream feature-only `regex-syntax`
+dependency. The unused-dependency scan is corrected to first-party crates;
+full-graph advisory/license/source checks remain. The tool update workflow also
+reports two outdated auxiliary pins, which are refreshed and revalidated.
+
+Full CI revalidation, current-candidate cache/watch timing, remote native
+packages and the broad registered runtime matrix remain pending. Prototype
+site-block indexing is separate and does not qualify this candidate.
+
+## Previous candidate: exact score reuse
 
 The [scoring follow-up record](../bench/release/0.21.0/scoring-followup.v1.json)
 binds optimization `25230ae5`, test cleanup `deeb1eaa` and proof `5d1610f7`.

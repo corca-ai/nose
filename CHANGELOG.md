@@ -19,6 +19,11 @@ break.
   `GroupEdges` coordinates. Large site graphs materialize once when their edges
   are read; CLI JSON and pair-evidence policies are preserved.
 
+- Stop C-header admission parsing when every remaining parse necessarily contains
+  a syntax error, while preserving clean-tree validation and parser reuse safety.
+- Reuse exact scoring inputs and repeated score sums without changing sequential
+  floating-point rounding or complete accepted-pair evidence.
+
 - Avoid repeated Rust scope traversal for type references without a matching Tokio
   runtime import, preserving the existing type-evidence and shadowing checks.
 

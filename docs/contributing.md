@@ -114,6 +114,13 @@ builds it into the same self-contained binary. Upstream source is excluded from
 the application Rust workspace's formatting/lint ratchets, while ordinary builds
 and frontend tests consume the patched dependency.
 
+The unused-dependency check runs on first-party `crates/`. The upstream parser's
+`regex-syntax` dependency enables Unicode through a Cargo feature; cargo-machete's
+source-name scan reports it incorrectly. Preserve the upstream manifest rather
+than removing that feature dependency. `cargo deny` still checks the entire
+resolved dependency graph, including the vendored parser, for advisories,
+licenses and sources.
+
 Treat a vendor edit as an engine change: full CI and the Soundness Lab apply.
 Preserve the upstream provenance/license and review the import against its archive
 when updating it. The current Type-4 blind receipt binds `Cargo.toml`, `Cargo.lock`
