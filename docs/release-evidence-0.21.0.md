@@ -52,7 +52,14 @@ Alamofire semantic grouping falls from 38.35 to 18.15 ms and whole-query time
 from 960.64 to 917.05 ms; near grouping falls from 81.60 to 67.75 ms. Other
 whole-query effects are small or mixed. Three smaller follow-ups (small-site input elision, interval-based
 same-file projection and inline edge rows) were not adopted after weak or mixed
-results. Release-workspace validation and performance qualification remain pending.
+results. The [preflight record](../bench/release/0.21.0/uniform-relations-preflight.v1.json)
+binds product `e2d5559e`, crates tree `e0b09de9` and the actual release-workspace
+binary. All 360 ordinary and 17 base outputs match the reference; the eight
+saved-analysis/review/upgrade journeys and Type-4 checks pass. The self-query
+reports nineteen reviewed families within the unchanged budget of twenty.
+The [dogfooding history](dogfooding-history.md#uniform-relation-release-check-2026-09-07) explains the retained numeric policies.
+Full local CI, cache/watch measurements, registered timing and remote qualification
+remain pending for this product.
 
 ## Previous candidate: complete relations and JSON list encoding
 

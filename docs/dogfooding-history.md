@@ -2248,3 +2248,19 @@ and the scoring candidate produce byte-identical self-query JSON after cleanup.
 The accepted list now contains eighteen default families; the budget stays twenty
 and no new family is accepted. The original failing CI and the before/after
 queries are retained under `target/release-scoring-20260907/`.
+
+## Uniform-relation release check (2026-09-07)
+
+The self-query reports nineteen substantial default families, including the
+previously reviewed numeric-dispatch family `60f0dd6d98436972` again. Its two
+members remain `int_bin` and `float_bin` in `nose-normalize/src/interp/ops.rs`;
+the entire source file has the same Git blob `098abbd842c9ea0888114e9300bba3e639180885`
+at the preceding `852a6399` proof and the `e2d5559e` product. The current finding
+has value 41.14, score 0.748 and ten shared source lines.
+
+The retained judgment is to keep the dispatchers separate: integer wrapping,
+flooring and bitwise rules differ from IEEE floating-point arithmetic and NaN
+comparisons. Shared comparison arms do not justify merging those numeric
+policies. This restores the reviewed family ID without increasing the budget
+of twenty or suppressing the finding in nose. The original failed check and
+full source comparison are retained in `target/release-uniform-groups-20260907/`.
