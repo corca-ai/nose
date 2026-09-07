@@ -171,6 +171,10 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    × similarity × cross-directory/-file/-language spread). See [usage](usage.md) for how the
    ranked report reads — and [`nose query`](usage.md#nose-query) for exploring the same
    families dataset interactively.
+   After joining an accepted row's admitted targets, component certification
+   rechecks only same-file targets that may have been excluded by nesting.
+   Cross-file targets were already joined. Existing file-position indexes locate
+   the remaining checks without changing union order or the represented edges.
 
 ## Crates
 

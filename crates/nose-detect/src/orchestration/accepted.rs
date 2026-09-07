@@ -207,9 +207,15 @@ impl AcceptedPairs {
                         }
                     }
                     let root = union.find(left);
-                    uniform[row] = targets[start..]
+                    // Every admitted target was just joined to left. Only same-file
+                    // targets could have been excluded by nesting and remain outside.
+                    let local = rows.by_path[row]
+                        .get(&rows.locations[left].0)
+                        .map_or(&[][..], Vec::as_slice);
+                    let local_start = local.partition_point(|&position| position < start);
+                    uniform[row] = local[local_start..]
                         .iter()
-                        .all(|&(right, _)| union.find(right) == root);
+                        .all(|&position| union.find(targets[position].0) == root);
                 }
             }
         } else {
@@ -468,6 +474,33 @@ mod tests {
             assert_eq!(total.0.to_bits(), start.to_bits());
             assert_eq!(total.1, 0);
         }
+    }
+
+    #[test]
+    fn row_component_certificate_rechecks_excluded_nested_targets() {
+        let mut units = crate::test_support::scoring_units(4);
+        for (unit, (path, start, end)) in units.iter_mut().zip([
+            ("a.py", 0, 10),
+            ("a.py", 0, 1),
+            ("a.py", 5, 6),
+            ("b.py", 0, 10),
+        ]) {
+            unit.path = path.into();
+            unit.start_line = start;
+            unit.end_line = end;
+        }
+        let members = vec![vec![0, 1], vec![2], vec![3]];
+        let rows = AcceptedPairs::rows(
+            &units,
+            &[0, 0, 0, 1],
+            &members,
+            vec![(0, 1, 1.0), (0, 2, 1.0)],
+        );
+        // First left joins only 3: nested 2 must keep the row uncertified.
+        // The second left must join both 2 and 3, not just its first target.
+        assert_eq!(rows.components(4), vec![vec![0, 1, 2, 3]]);
+        let explicit = AcceptedPairs::from(rows.iter().collect::<Vec<_>>());
+        assert_eq!(rows.components(4), explicit.components(4));
     }
 
     #[test]
