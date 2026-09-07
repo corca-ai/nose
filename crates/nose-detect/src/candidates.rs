@@ -7,6 +7,7 @@ use crate::{
     model::{EnclosingUnit, EquivalenceWitness, Group},
     options::DetectOptions,
     units::{self, UnitFeat},
+    ExactValueClasses,
 };
 use nose_semantics::ValueLaw;
 use rayon::prelude::*;
@@ -114,12 +115,27 @@ pub(crate) fn source_span_groups(units: &[UnitFeat]) -> Vec<usize> {
 /// One union owns both budget counting and clean candidate generation. Bucket
 /// membership deduplication preserves every pair, including non-hub edges.
 pub(crate) fn structural_buckets(units: &[UnitFeat], opts: &DetectOptions) -> Vec<Vec<u32>> {
+    prepared_candidates(units, opts).buckets
+}
+
+pub(crate) struct PreparedCandidates<'a> {
+    pub buckets: Vec<Vec<u32>>,
+    pub exact_values: Option<ExactValueClasses<'a>>,
+}
+
+pub(crate) fn prepared_candidates<'a>(
+    units: &'a [UnitFeat],
+    opts: &DetectOptions,
+) -> PreparedCandidates<'a> {
     let mut buckets = Vec::new();
+    let mut exact_values = None;
     if opts.value_candidates {
         if opts.value_lsh_candidates {
             buckets.extend(lsh::buckets(units.len(), |i| &units[i].minhash, opts.bands));
         }
-        buckets.extend(exact_value_buckets(units));
+        let (exact_buckets, classes) = exact_value_buckets(units);
+        buckets.extend(exact_buckets);
+        exact_values = Some(ExactValueClasses { units, classes });
     }
     if opts.shape_candidates {
         buckets.extend(lsh::buckets(
@@ -136,7 +152,10 @@ pub(crate) fn structural_buckets(units: &[UnitFeat], opts: &DetectOptions) -> Ve
     }
     buckets.par_sort_unstable();
     buckets.dedup();
-    buckets
+    PreparedCandidates {
+        buckets,
+        exact_values,
+    }
 }
 
 /// Build the report's `groups` from the clustered components.
@@ -295,20 +314,25 @@ fn semantic_laws_for_members(members: &[usize], units: &[UnitFeat]) -> Vec<Value
     laws
 }
 
-fn exact_value_buckets(units: &[UnitFeat]) -> Vec<Vec<u32>> {
+fn exact_value_buckets(units: &[UnitFeat]) -> (Vec<Vec<u32>>, Vec<usize>) {
     let mut buckets: FxHashMap<&[u64], Vec<u32>> = FxHashMap::default();
+    let mut classes = vec![0; units.len()];
     for (idx, unit) in units.iter().enumerate() {
         if exact_claim_eligible(unit) {
-            buckets
-                .entry(unit.value.as_slice())
-                .or_default()
-                .push(idx as u32);
+            let members = buckets.entry(unit.value.as_slice()).or_default();
+            members.push(idx as u32);
+            // Zero is the common rejected-score class. Eligible singleton classes
+            // survive even when their bucket produces no candidate pairs.
+            classes[idx] = members[0] as usize + 1;
         }
     }
-    buckets
-        .into_values()
-        .filter(|members| members.len() >= 2)
-        .collect()
+    (
+        buckets
+            .into_values()
+            .filter(|members| members.len() >= 2)
+            .collect(),
+        classes,
+    )
 }
 
 /// An anchor present in more than this many units is boilerplate (a common idiom), not a

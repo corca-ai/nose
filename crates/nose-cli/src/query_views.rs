@@ -1,5 +1,6 @@
 mod base_json;
 mod base_navigation;
+mod list_encoding;
 pub(super) use base_navigation::{actions as base_actions, BaseViewOptions};
 mod group;
 
@@ -405,7 +406,7 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
     if view.json {
         println!(
             "{}",
-            serde_json::to_string(&query_list_json(&view)).expect("query JSON serialization")
+            list_encoding::encode(&query_list_json(&view)).expect("query JSON serialization")
         );
         return;
     }

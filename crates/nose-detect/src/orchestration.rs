@@ -1,5 +1,5 @@
 use crate::{
-    candidates::{build_connected_groups, build_groups, source_span_groups, structural_buckets},
+    candidates::{build_connected_groups, build_groups, prepared_candidates, source_span_groups},
     contiguous::Stream,
     detectors::Detector,
     locations::enclosing_units,
@@ -269,7 +269,8 @@ fn detect_from_units_inner(request: DetectionRequest<'_>) -> (Report, Dump) {
     let stages = if request.opts.structural {
         // Admission counting and scoring consume the same immutable relation inputs.
         // Do not rebuild the bucket union and source-span index after preflight.
-        let buckets = structural_buckets(request.units, request.opts);
+        let prepared = prepared_candidates(request.units, request.opts);
+        let buckets = prepared.buckets;
         let spans = source_span_groups(request.units);
         let batch = matches!(request.output.dump, DumpSelection::None)
             && crate::candidate_budget::prefers_batched_buckets(
@@ -286,6 +287,7 @@ fn detect_from_units_inner(request: DetectionRequest<'_>) -> (Report, Dump) {
                 request.detector,
                 &buckets,
                 &spans,
+                prepared.exact_values,
             )
         } else {
             let candidates = crate::lsh::pairs(request.units.len(), &buckets, &spans);

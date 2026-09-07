@@ -5,6 +5,7 @@ use crate::UnitFeat;
 use rustc_hash::FxHashMap;
 
 mod score_runs;
+mod site_cliques;
 mod site_runs;
 use score_runs::ScoreRuns;
 pub(crate) use site_runs::SiteEvidence;
@@ -233,9 +234,13 @@ impl AcceptedPairs {
             self.iter().for_each(|pair| visit(SiteEvidence::Pair(pair)));
             return;
         };
+        let cliques = site_cliques::prepare(rows, keys, exact);
+        for clique in cliques.iter().flatten() {
+            clique.visit(&mut visit);
+        }
         let mut seen = rustc_hash::FxHashSet::default();
         let mut targets = rows
-            .site_targets(keys)
+            .site_targets(keys, &cliques)
             .into_iter()
             .map(|targets| site_runs::TargetRuns::new(targets, keys, exact, &rows.locations))
             .collect::<Vec<_>>();
@@ -244,7 +249,7 @@ impl AcceptedPairs {
                 continue;
             };
             let row = rows.row_of[left];
-            if seen.insert((row, key, rows.locations[left].0)) {
+            if cliques[row].is_none() && seen.insert((row, key, rows.locations[left].0)) {
                 targets[row].visit(left, key, exact[left], &rows.locations, &mut visit);
             }
             if let Some(positions) = rows.by_path[row].get(&rows.locations[left].0) {
@@ -340,7 +345,11 @@ fn accumulate_scores(
 }
 
 impl RowPairs {
-    fn site_targets(&self, keys: &[Option<(usize, u32, usize)>]) -> Vec<Vec<(usize, f64)>> {
+    fn site_targets(
+        &self,
+        keys: &[Option<(usize, u32, usize)>],
+        cliques: &[Option<site_cliques::SiteClique>],
+    ) -> Vec<Vec<(usize, f64)>> {
         let mut needed = vec![false; self.targets.len()];
         for (left, key) in keys.iter().enumerate() {
             if key.is_some() {
@@ -351,7 +360,7 @@ impl RowPairs {
             .iter()
             .enumerate()
             .map(|(row, targets)| {
-                if !needed[row] {
+                if !needed[row] || cliques[row].is_some() {
                     return Vec::new();
                 }
                 let mut latest = FxHashMap::default();

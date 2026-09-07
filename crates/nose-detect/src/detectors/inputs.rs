@@ -81,6 +81,27 @@ mod tests {
             .collect::<Vec<_>>();
         let detector = ExactBehaviorDetector;
         let classes = detector.score_classes(&units).unwrap();
+        let prepared = crate::candidates::prepared_candidates(
+            &units,
+            &DetectOptions {
+                value_candidates: true,
+                value_lsh_candidates: false,
+                shape_candidates: false,
+                ..opts
+            },
+        );
+        assert_eq!(prepared.buckets, vec![vec![4, 5]]);
+        let evidence = prepared.exact_values.unwrap();
+        assert!(std::ptr::eq(evidence.units(), units.as_slice()));
+        let reused = detector.score_classes_from_exact(evidence).unwrap();
+        for left in 0..units.len() {
+            for right in 0..units.len() {
+                assert_eq!(
+                    classes[left] == classes[right],
+                    reused[left] == reused[right]
+                );
+            }
+        }
         for index in [1, 2, 3, 7] {
             assert_eq!(classes[index], classes[0]);
         }

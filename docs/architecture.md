@@ -116,7 +116,12 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    Large batched analyses may reuse a score for exactly equal scoring inputs. Builtin
    scorers expose analysis-local input classes; structural scoring reads only the same
    complete input view whose equality defines those classes. Hashes accelerate lookup,
-   while full equality checks all score fields. Channel composition intersects class
+   while full equality checks all score fields. Exact scoring can consume the immutable
+   value partition already proven during candidate generation, avoiding a second hash
+   and equality pass over the same fingerprints. Ineligible units share one zero-score
+   class; eligible singleton classes remain distinct even without candidate edges.
+   Custom scorers retain their own class rules unless they explicitly reuse this evidence.
+   Channel composition intersects class
    partitions, and custom scorers opt out by default. Reuse activates when at least half
    the units repeat an input class. A row further requires identical membership in
    every candidate bucket and equal eligibility for connected-seed pricing. That
@@ -295,6 +300,13 @@ exclusions are always evaluated for the individual occurrence. Equivalent cross-
 right targets retain their latest occurrence, which covers every earlier left
 endpoint. Equivalence compares site, score, exact-value eligibility and the ordered
 anchor hashes/weights used by pair witnesses; source metadata is kept separately.
+A complete homogeneous accepted row can project cross-file edges directly into
+canonical-site blocks after proving full membership equality, one finite score,
+one exact-value class, a single source file per site, and every mapped member of
+that group belonging to the same row. The last condition preserves first-winner
+order even for signed-zero and unordered score comparisons. Sparse or mixed rows
+retain the general visitor, and same-file nesting still uses individual source
+occurrences. Completeness is never inferred from connectivity alone.
 Distinct accepted rows and reported site graphs can still be large; these
 representations introduce no evidence cap or candidate omission.
 These internal execution choices do not change recall or explicit budget accounting.
@@ -349,3 +361,8 @@ Source digest serialization writes hexadecimal digits from a fixed-size stack
 buffer; its public 64-character lowercase representation stays unchanged. Site
 edge construction reuses its last exact palette entry before consulting the
 palette map, preserving score bits and witness categories.
+
+Large JSON list responses encode independent family rows in parallel chunks. The
+ordinary JSON serializer still owns every key and value encoding; ordered chunk
+assembly preserves the complete serialized bytes, including escapes, float values,
+field order and family order. Small lists retain serial encoding.

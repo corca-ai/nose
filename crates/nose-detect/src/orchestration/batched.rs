@@ -3,8 +3,8 @@ use super::{
     connected_pricing::connected_seed_indices, scoring::score_with_classes, stages::DetectionStages,
 };
 #[cfg(test)]
-use crate::candidates::{source_span_groups, structural_buckets};
-use crate::{DetectOptions, Detector, UnitFeat};
+use crate::candidates::{prepared_candidates, source_span_groups};
+use crate::{DetectOptions, Detector, ExactValueClasses, UnitFeat};
 mod class_rows;
 mod disjoint;
 
@@ -14,8 +14,17 @@ pub(super) fn score(
     detector: &dyn Detector,
     buckets: &[Vec<u32>],
     groups: &[usize],
+    exact_values: Option<ExactValueClasses<'_>>,
 ) -> DetectionStages {
-    score_prepared(units, opts, detector, buckets, groups, 262_144)
+    score_prepared(
+        units,
+        opts,
+        detector,
+        buckets,
+        groups,
+        exact_values,
+        262_144,
+    )
 }
 
 #[cfg(test)]
@@ -25,9 +34,17 @@ fn score_with_batch_size(
     detector: &dyn Detector,
     batch_size: usize,
 ) -> DetectionStages {
-    let buckets = structural_buckets(units, opts);
+    let prepared = prepared_candidates(units, opts);
     let groups = source_span_groups(units);
-    score_prepared(units, opts, detector, &buckets, &groups, batch_size)
+    score_prepared(
+        units,
+        opts,
+        detector,
+        &prepared.buckets,
+        &groups,
+        prepared.exact_values,
+        batch_size,
+    )
 }
 
 fn score_prepared(
@@ -36,9 +53,14 @@ fn score_prepared(
     detector: &dyn Detector,
     buckets: &[Vec<u32>],
     groups: &[usize],
+    exact_values: Option<ExactValueClasses<'_>>,
     batch_size: usize,
 ) -> DetectionStages {
-    let classes = detector.score_classes(units).inspect(|ids| {
+    let classes = match exact_values {
+        Some(evidence) => detector.score_classes_from_exact(evidence),
+        None => detector.score_classes(units),
+    }
+    .inspect(|ids| {
         assert_eq!(
             ids.len(),
             units.len(),

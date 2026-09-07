@@ -13,6 +13,24 @@ mod prepared;
 use inputs::ScoreInputs;
 pub use prepared::PreparedScores;
 
+/// Exact-value partition established by candidate generation on one immutable input.
+/// Equal nonzero ids prove eligible value equality; zero contains every ineligible
+/// unit. Only the engine constructs this evidence, binding it to its source slice.
+pub struct ExactValueClasses<'a> {
+    pub(crate) units: &'a [UnitFeat],
+    pub(crate) classes: Vec<usize>,
+}
+
+impl<'a> ExactValueClasses<'a> {
+    pub fn units(&self) -> &'a [UnitFeat] {
+        self.units
+    }
+
+    pub fn classes(&self) -> &[usize] {
+        &self.classes
+    }
+}
+
 /// Pluggable similarity scorer. Returns a score in `[0, 1]` for a candidate pair.
 pub trait Detector: Sync {
     fn name(&self) -> &str;
@@ -22,6 +40,11 @@ pub trait Detector: Sync {
     /// Return `None` for scorers that depend on location, history, or other state.
     fn score_classes(&self, _units: &[UnitFeat]) -> Option<Vec<usize>> {
         None
+    }
+    /// Reuse candidate equality evidence only if it implies this scorer's complete
+    /// input equivalence. The default preserves custom scorers' own partition.
+    fn score_classes_from_exact(&self, evidence: ExactValueClasses<'_>) -> Option<Vec<usize>> {
+        self.score_classes(evidence.units())
     }
     /// Optional immutable index for evaluating rows of exactly the same scores.
     /// Indices address the supplied representatives; location admission remains separate.
@@ -94,6 +117,10 @@ impl Detector for ExactBehaviorDetector {
         units: &[&'a UnitFeat],
     ) -> Option<Box<dyn PreparedScores + 'a>> {
         Some(Box::new(prepared::ExactScores::new(units)))
+    }
+
+    fn score_classes_from_exact(&self, evidence: ExactValueClasses<'_>) -> Option<Vec<usize>> {
+        Some(evidence.classes)
     }
 
     fn score_classes(&self, units: &[UnitFeat]) -> Option<Vec<usize>> {
