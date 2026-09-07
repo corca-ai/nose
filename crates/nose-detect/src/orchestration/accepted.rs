@@ -4,6 +4,7 @@ use super::AcceptedPair;
 use crate::UnitFeat;
 use rustc_hash::FxHashMap;
 
+mod prepare;
 mod score_runs;
 mod site_cliques;
 mod site_runs;
@@ -51,28 +52,11 @@ impl AcceptedPairs {
                 row_of[unit] = row;
             }
         }
-        let mut targets = vec![Vec::new(); members.len()];
-        for (left, right, score) in relations {
-            targets[left].extend(members[right].iter().map(|&unit| (unit, score)));
-        }
-        for row in &mut targets {
-            row.sort_unstable_by_key(|&(unit, _)| unit);
-            debug_assert!(row.windows(2).all(|pair| pair[0].0 != pair[1].0));
-        }
+        let prepare::PreparedRows { targets, by_path } = prepare::rows(members, relations, paths);
         let locations = units
             .iter()
             .zip(paths)
             .map(|(unit, &path)| (path, unit.start_line, unit.end_line))
-            .collect();
-        let by_path = targets
-            .iter()
-            .map(|targets| {
-                let mut by_path: FxHashMap<_, Vec<_>> = FxHashMap::default();
-                for (position, &(right, _)) in targets.iter().enumerate() {
-                    by_path.entry(paths[right]).or_default().push(position);
-                }
-                by_path
-            })
             .collect();
         let mut rows = RowPairs {
             row_of,
