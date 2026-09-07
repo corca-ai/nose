@@ -1,0 +1,69 @@
+{
+  "registered_at_utc": "2026-09-07T17:54:46.791275+00:00",
+  "candidate": {
+    "source_sha": "ac68a58309bfdaae491d252978b4083e689084fd",
+    "crates_tree": "2a30fe496ce64e71770842157c43b5463da61dd4",
+    "product_dependencies": {
+      "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+      "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+      "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+    },
+    "binary": "/Users/ak/prjs/cc/nose/target/release-row-qualification-20260908/candidate-nose",
+    "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+    "build_log": "/Users/ak/prjs/cc/nose/target/release-row-qualification-20260908/build.log",
+    "binary_sha256": "2968048735a1c2625c41c7a397145e4ebe0575f3f7835f8f3b8452f9a1492035"
+  },
+  "repositories": [
+    "alamofire"
+  ],
+  "workload": "query {repo} all top=0 --format json",
+  "purpose": "Prospective early blocker check on one existing release workload. A confirmed per-repository regression blocks release; a pass cannot qualify the complete 120-repository/three-mode plus 17-base campaign. This is the first controlled elapsed check on this product candidate.",
+  "protocol": {
+    "primary_blocks": 5,
+    "focused_blocks": 6,
+    "samples_per_observation": 5,
+    "warmups": 1,
+    "same_binary_control": "candidate against itself, required in primary and focused phases",
+    "materiality": "5% AND 5ms",
+    "runtime_policy": "order-aware-v1",
+    "runtime_gate": "elapsed-v1",
+    "focused_comparisons_max": 1,
+    "unchanged_retry": "not permitted",
+    "stage_signals": "warnings only; retained unchanged",
+    "inconclusive": "whole-query signals fail closed"
+  },
+  "prerequisites": [
+    "full local CI",
+    "377 complete output comparisons",
+    "8 user journeys",
+    "Type4 and duplication",
+    "cache and watch complete",
+    "quiet local boundary"
+  ],
+  "producers": [
+    {
+      "path": "scripts/query-regression-harness.py",
+      "sha256": "bd9da5bd070a265d73cc41678a5a4ea041e504342e2346d7ec440fb730c5f551"
+    },
+    {
+      "path": "scripts/check-query-regression.py",
+      "sha256": "df622d1ad39f4082df2357d19e7110b2dc4fff69a5c7264bb2f2d4cea3fa1624"
+    },
+    {
+      "path": "scripts/query_regression_control.py",
+      "sha256": "0bbc959d05da7b0a4cbc1903ccea956f796ff0f78835dd06ec20020b8610912d"
+    },
+    {
+      "path": "target/release-row-qualification-20260908/run-blocker-comparison.py",
+      "sha256": "5afa3a19fa42e58e2cfef6a6174f899d7ea1b0478fb58fb49ea450744f6baf2e"
+    },
+    {
+      "path": "target/release-row-qualification-20260908/run-blocker.py",
+      "sha256": "ae75caedec8bd26bef613b02121c797a2d964fb3d90b099fdcd9ae51ad0bc61d"
+    },
+    {
+      "path": "target/release-row-qualification-20260908/blocker-expected-drift.json",
+      "sha256": "95a47b1f94aa8be4620fe963b880c8ea550470974ca27298266aea99444002ee"
+    }
+  ]
+}

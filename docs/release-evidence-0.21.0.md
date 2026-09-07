@@ -42,10 +42,19 @@ identical prototype tree passes 279 optimized detector tests and strict Clippy.
 A requested-only overlap-ratio experiment passed correctness but lacked convincing
 latency gains, so it was reverted and remains recorded separately.
 
-Actual-candidate full CI, cache/watch, remote/native verification and final elapsed
-qualification remain outstanding. The previous official-0.20 diagnostic remains
-historical evidence of a real elapsed bottleneck; these memory gains do not qualify
-the release or authorize publication.
+Full local CI at `759f4533` passes 2,432 optimized tests and 89.69% line coverage.
+Cache correctness passes 2,100 mutation and 180 paired SymPy runs. Candidate
+clean/empty/history p50 is 2,258/2,432/292 ms versus official 0.20 at
+2,289/2,466/312 ms; all three p95 values also improve. Watch passes thirty
+replays at p95 74.42/337.45 ms for 10k/100k files, including crash recovery.
+
+The [registered early blocker check](../bench/release/0.21.0/row-blocker-design.v1.json)
+measures this candidate's Alamofire default query using the unchanged elapsed-v1
+protocol: primary five blocks, up to one focused six-block comparison, five samples
+per observation and candidate-against-itself controls. A confirmed per-repository
+regression blocks release; a pass cannot qualify the complete campaign. Remote/native
+verification and final elapsed qualification remain outstanding. Earlier failed
+candidates retain their own verdicts; these memory gains do not authorize publication.
 
 ## Previous candidate: dense scoring and accepted-target preparation
 
