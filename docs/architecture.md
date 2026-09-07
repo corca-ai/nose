@@ -116,7 +116,10 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    Large batched analyses may reuse a score for exactly equal scoring inputs. Builtin
    scorers expose analysis-local input classes; structural scoring reads only the same
    complete input view whose equality defines those classes. Hashes accelerate lookup,
-   while full equality checks all score fields. Exact scoring can consume the immutable
+   while full equality checks all score fields. Anchor class equality compares
+   each ordered hash and weight, including duplicate occurrences, but excludes
+   source lines and locality flags that scoring never reads. Original anchors and
+   their source evidence remain intact for candidate admission and witnesses. Exact scoring can consume the immutable
    value partition already proven during candidate generation, avoiding a second hash
    and equality pass over the same fingerprints. Ineligible units share one zero-score
    class; eligible singleton classes remain distinct even without candidate edges.

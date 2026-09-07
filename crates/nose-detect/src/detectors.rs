@@ -317,7 +317,7 @@ impl StructuralDetector {
         // the shared computation into a helper), just a partial one. Keep the higher of the two.
         if self.candidate_mode {
             let shared = overlap.map_or_else(
-                || shared_anchor_weight(a.anchors, b.anchors),
+                || shared_anchor_weight(a.anchors.0, b.anchors.0),
                 |x| x.shared_anchor,
             );
             if shared > 0 {

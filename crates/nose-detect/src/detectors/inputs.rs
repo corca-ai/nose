@@ -2,7 +2,7 @@ use crate::UnitFeat;
 use std::hash::Hash;
 
 /// The complete input surface available to structural scoring. Class equality
-/// compares every field, including metadata stricter than the score requires.
+/// compares every field, preserving ordered anchor hashes and weights but excluding their source metadata.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub(super) struct ScoreInputs<'a> {
     pub value: &'a [u64],
@@ -11,8 +11,33 @@ pub(super) struct ScoreInputs<'a> {
     pub lits: &'a [u64],
     pub returns: &'a [u64],
     pub exact_safe: bool,
-    pub anchors: &'a [nose_normalize::Anchor],
+    pub anchors: ScoreAnchors<'a>,
     pub semantic_pack_near_protocols: &'a [nose_semantics::SemanticPackNearProtocol],
+}
+
+/// Source locations do not participate in shared-anchor scoring. Keep the
+/// original slice for witnesses; quotient only its ordered scoring projection.
+#[derive(Clone, Copy)]
+pub(super) struct ScoreAnchors<'a>(pub(super) &'a [nose_normalize::Anchor]);
+
+impl PartialEq for ScoreAnchors<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.len() == other.0.len()
+            && self
+                .0
+                .iter()
+                .zip(other.0)
+                .all(|(a, b)| (a.hash, a.weight) == (b.hash, b.weight))
+    }
+}
+impl Eq for ScoreAnchors<'_> {}
+impl Hash for ScoreAnchors<'_> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.len().hash(state);
+        for anchor in self.0 {
+            (anchor.hash, anchor.weight).hash(state);
+        }
+    }
 }
 
 impl<'a> From<&'a UnitFeat> for ScoreInputs<'a> {
@@ -24,7 +49,7 @@ impl<'a> From<&'a UnitFeat> for ScoreInputs<'a> {
             lits: &unit.lits,
             returns: &unit.returns,
             exact_safe: unit.exact_safe,
-            anchors: &unit.anchors,
+            anchors: ScoreAnchors(&unit.anchors),
             semantic_pack_near_protocols: &unit.semantic_pack_near_protocols,
         }
     }
@@ -127,6 +152,64 @@ mod tests {
         }
     }
 
+    #[test]
+    fn relocated_anchors_share_scores_without_erasing_source_evidence() {
+        use crate::{DetectOptions, Detector, StructuralDetector};
+        use nose_il::{FileId, Interner, Lang};
+        let interner = Interner::new();
+        let il = nose_frontend::lower_source(
+            FileId(0),
+            "f.py",
+            b"def f(x):\n    a = x * x\n    return a + 7\n",
+            Lang::Python,
+            &interner,
+        )
+        .unwrap();
+        let opts = DetectOptions {
+            min_tokens: 1,
+            min_lines: 1,
+            shape_features: true,
+            ..Default::default()
+        };
+        let mut units = (0..6)
+            .map(|_| crate::units_of_file(&il, &interner, &opts).remove(0))
+            .collect::<Vec<_>>();
+        for (i, unit) in units.iter_mut().enumerate() {
+            unit.anchors = vec![nose_normalize::Anchor {
+                hash: 42,
+                weight: 32,
+                line_start: i as u32 + 1,
+                line_end: i as u32 + 2,
+                source_is_local: i % 2 == 0,
+            }];
+        }
+        units[2].anchors[0].hash += 1;
+        units[3].anchors[0].weight += 1;
+        let duplicate = units[0].anchors[0];
+        units[4].anchors.push(duplicate);
+        units[5].value.push(u64::MAX);
+        let detector = StructuralDetector::candidates(0.5).without_exact_behavior();
+        let classes = detector.score_classes(&units).unwrap();
+        for other in &units {
+            assert_eq!(
+                detector.score(&units[0], other).to_bits(),
+                detector.score(&units[1], other).to_bits()
+            );
+            assert_eq!(
+                detector.score(other, &units[0]).to_bits(),
+                detector.score(other, &units[1]).to_bits()
+            );
+        }
+        assert_ne!(units[0].anchors, units[1].anchors);
+        assert_eq!(
+            classes[0], classes[1],
+            "source-only anchor metadata must not repeat scoring"
+        );
+        for class in &classes[2..] {
+            assert_ne!(classes[0], *class);
+        }
+    }
+
     #[derive(PartialEq, Eq)]
     struct Collision<T>(T);
 
@@ -145,7 +228,7 @@ mod tests {
             lits: &[],
             returns: &[],
             exact_safe: false,
-            anchors: &[],
+            anchors: ScoreAnchors(&[]),
             semantic_pack_near_protocols: &[],
         };
         let anchors = [nose_normalize::Anchor {
@@ -186,7 +269,7 @@ mod tests {
                 ..empty
             },
             ScoreInputs {
-                anchors: &anchors,
+                anchors: ScoreAnchors(&anchors),
                 ..empty
             },
             ScoreInputs {

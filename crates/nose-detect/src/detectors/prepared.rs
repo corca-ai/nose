@@ -241,7 +241,7 @@ impl<'a> StructuralScores<'a> {
         let linear_count = linear_ids.len();
         let anchors = detector
             .candidate_mode
-            .then(|| Anchors::new(inputs.iter().map(|i| i.anchors)));
+            .then(|| Anchors::new(inputs.iter().map(|i| i.anchors.0)));
         Self {
             detector,
             inputs,
