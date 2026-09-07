@@ -55,6 +55,12 @@ soundness were not rerun on this failed candidate and are not inherited from its
 predecessors. Further qualification requires a changed product; this unchanged
 failed binary will not be retried.
 
+The subsequent [score-block experiments](../bench/release/0.21.0/score-block-experiments.v1.json)
+preserve exact ordered floating-point results but do not sufficiently improve
+the measured workload. Both isolated variants are reverted after full-output
+screens and 290/291 detector tests, respectively. Neither changes this product
+or its NO-GO verdict; no RSS improvement is claimed.
+
 ## Previous candidate: short-feature comparisons
 
 Product `aea64b61` retains the incident-site implementation and uses conditional

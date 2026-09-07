@@ -37,6 +37,25 @@ unchanged failed candidate will not be retried. A separate deterministic
 sample of 265,219 requested Alamofire pairs finds no opportunities for a proposed
 pre-value anchor-dominance bound; no such shortcut is added to the product.
 
+## Ordered score-block experiments (2026-09-08)
+
+The [score-block record](../bench/release/0.21.0/score-block-experiments.v1.json) retains
+two reverted numerical experiments. Within one positive normal floating-point
+exponent interval, two parity transitions can reproduce a nonnegative block's
+ordered additions exactly. Boundary crossings and unsupported values retain the
+original scalar fold. Independent tests cover every normal exponent, halfway
+ties, changing input sums, mixed-score slices and nested source exclusions.
+
+The initial variant passes 290 detector tests, strict Clippy/docs and six full
+outputs, but has no convincing group-time improvement. A second variant chooses
+between contiguous runs and 64-score blocks by their segment counts. It passes
+291 tests and six full outputs; Alamofire default elapsed changes only -0.27%
+and libGDX increases 2.50%. Other effects are small and mixed. Neither variant
+justifies its additional cache and code, so both are removed. These exploratory
+screens have no same-binary controls; neither prepared RSS campaign was run.
+The numerical proof remains research evidence, not a retained engine improvement
+or a resolution of the component candidate's official elapsed failure.
+
 ## Short-feature follow-up (2026-09-08)
 
 The [sealed follow-up](../bench/release/0.21.0/feature-followup.v1.json) retains

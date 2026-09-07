@@ -1,0 +1,591 @@
+{
+  "schema": "nose.release-score-block-experiments/v1",
+  "version": "0.21.0",
+  "decision": "NOT RETAINED: both exact ordered-score block variants reverted for insufficient practical benefit; actual component candidate remains NO-GO",
+  "product": "0c4143e299e14bf3d4243267bb4ede82d5307d30",
+  "crates_tree": "ac4404a8bc5575f3fa866f805520320ec44eb6a9",
+  "initial_variant": {
+    "decision": "Do not adopt the initial dispatch: it always prefers the pre-existing contiguous-run index and shows no Alamofire/RxSwift grouping improvement. Test a distinct cost selector before deciding the numerical block implementation.",
+    "identity": {
+      "source": "71ad43e638eeefcf9a3ce9e0a9de2d0908ca755d",
+      "crates_tree": "6b1cfe92eb265e644781108aa4cfff9c477bbe40",
+      "binary_sha256": "c590a3e6d4a4216097599274f5d337b71de5e73daba6d9dc9e7a990d501502e7"
+    },
+    "results": [
+      {
+        "repo": "alamofire",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2720.8543745800853,
+            "score": 970.1,
+            "cluster": 82.6,
+            "groups": 343.4,
+            "query_opp": 18.6
+          },
+          "current": {
+            "elapsed": 2731.4362498000264,
+            "score": 986.9,
+            "cluster": 81.9,
+            "groups": 347.4,
+            "query_opp": 18.6
+          }
+        }
+      },
+      {
+        "repo": "libgdx",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2238.796583376825,
+            "score": 706.5,
+            "cluster": 3.4,
+            "groups": 59.4,
+            "query_opp": 1.6
+          },
+          "current": {
+            "elapsed": 2287.523875012994,
+            "score": 724.7,
+            "cluster": 3.6,
+            "groups": 62.0,
+            "query_opp": 1.7
+          }
+        }
+      },
+      {
+        "repo": "guava",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2612.116209231317,
+            "score": 433.1,
+            "cluster": 2.9,
+            "groups": 31.2,
+            "query_opp": 3.4
+          },
+          "current": {
+            "elapsed": 2646.4221673086286,
+            "score": 420.1,
+            "cluster": 3.1,
+            "groups": 31.3,
+            "query_opp": 3.3
+          }
+        }
+      },
+      {
+        "repo": "rxswift",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 845.2622909098864,
+            "score": 221.9,
+            "cluster": 6.4,
+            "groups": 89.2,
+            "query_opp": 7.5
+          },
+          "current": {
+            "elapsed": 880.1269168034196,
+            "score": 250.3,
+            "cluster": 6.2,
+            "groups": 89.1,
+            "query_opp": 8.0
+          }
+        }
+      },
+      {
+        "repo": "rxswift",
+        "mode": "semantic",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 384.8424581810832,
+            "score": 3.2,
+            "cluster": 2.0,
+            "groups": 6.7,
+            "query_opp": 1.8
+          },
+          "current": {
+            "elapsed": 396.0483744740486,
+            "score": 3.0,
+            "cluster": 2.1,
+            "groups": 6.2,
+            "query_opp": 1.6
+          }
+        }
+      },
+      {
+        "repo": "alamofire",
+        "mode": "near:0.8",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2177.6107093319297,
+            "score": 854.9,
+            "cluster": 6.9,
+            "groups": 71.3,
+            "query_opp": 14.0
+          },
+          "current": {
+            "elapsed": 2139.2965000122786,
+            "score": 848.3,
+            "cluster": 6.2,
+            "groups": 70.6,
+            "query_opp": 13.9
+          }
+        }
+      }
+    ],
+    "scope": "Six complete outputs equal, 290 detector tests/Clippy/docs pass. Three-block exploratory screen only, not release qualification. Memory producer prepared but not run."
+  },
+  "selection_variant": {
+    "decision": "reject both block variants: exact numerical transitions preserve all outputs but do not sufficiently reduce the measured bottleneck to justify the cache and implementation complexity",
+    "identity": {
+      "source": "44806e17637e77775535d0adc0c7330b8fde81eb",
+      "crates_tree": "5870d89a745441d0102562334c1195df0b7b7b66",
+      "binary_sha256": "7fd6509500372367c9c91572a9a10619e0bfe6ecf9aee643b47c2e38c14d1ac9"
+    },
+    "results": [
+      {
+        "repo": "alamofire",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2768.881542608142,
+            "score": 995.9,
+            "cluster": 80.4,
+            "groups": 356.3,
+            "query_opp": 19.0
+          },
+          "current": {
+            "elapsed": 2761.4273745566607,
+            "score": 970.4,
+            "cluster": 84.6,
+            "groups": 347.8,
+            "query_opp": 18.5
+          }
+        }
+      },
+      {
+        "repo": "libgdx",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2218.6885001137853,
+            "score": 688.0,
+            "cluster": 3.4,
+            "groups": 65.7,
+            "query_opp": 1.6
+          },
+          "current": {
+            "elapsed": 2274.142208509147,
+            "score": 734.4,
+            "cluster": 4.0,
+            "groups": 63.0,
+            "query_opp": 1.7
+          }
+        }
+      },
+      {
+        "repo": "guava",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2655.9543339535594,
+            "score": 416.6,
+            "cluster": 3.2,
+            "groups": 31.5,
+            "query_opp": 3.6
+          },
+          "current": {
+            "elapsed": 2709.501958452165,
+            "score": 423.9,
+            "cluster": 2.8,
+            "groups": 29.8,
+            "query_opp": 3.4
+          }
+        }
+      },
+      {
+        "repo": "rxswift",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 869.7182089090347,
+            "score": 237.1,
+            "cluster": 6.5,
+            "groups": 89.4,
+            "query_opp": 8.3
+          },
+          "current": {
+            "elapsed": 874.1445001214743,
+            "score": 227.8,
+            "cluster": 6.9,
+            "groups": 90.7,
+            "query_opp": 8.1
+          }
+        }
+      },
+      {
+        "repo": "rxswift",
+        "mode": "semantic",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 437.95616645365953,
+            "score": 3.6,
+            "cluster": 2.8,
+            "groups": 8.1,
+            "query_opp": 1.8
+          },
+          "current": {
+            "elapsed": 423.38379193097353,
+            "score": 3.7,
+            "cluster": 2.8,
+            "groups": 7.3,
+            "query_opp": 1.9
+          }
+        }
+      },
+      {
+        "repo": "alamofire",
+        "mode": "near:0.8",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2328.0535405501723,
+            "score": 897.8,
+            "cluster": 7.0,
+            "groups": 74.9,
+            "query_opp": 15.3
+          },
+          "current": {
+            "elapsed": 2294.1539166495204,
+            "score": 895.9,
+            "cluster": 6.9,
+            "groups": 74.3,
+            "query_opp": 15.0
+          }
+        }
+      }
+    ],
+    "scope": "291 detector tests, strict Clippy/docs and six complete outputs pass. Alamofire default elapsed -0.27% and groups 356.3 to347.8ms; libGDX elapsed +2.50%; other effects small and mixed. Initial variant also lacked benefit. Three-block screens without same-binary controls do not qualify release. Neither prepared memory producer was run; no RSS claims. Preserve the numerical oracles and source patches, remove both isolated product changes."
+  },
+  "mathematical_scope": "For fixed positive normal exponent and nonnegative inputs, even-ULP translations preserve rounding, with two parity transitions. Apply a composed block only if its complete sum remains inside that exponent interval; otherwise use the original ordered additions. Both source implementations are removed despite passing independent sequential-addition bit oracles.",
+  "validation": "Standalone oracle covers every normal exponent and boundaries, 100000 arbitrary positive sequences, 100000 score sequences and special-value fallbacks. Initial product prototype passes 290 tests and the cost-selector variant 291; both strict Clippy/docs and six full-output screens pass. Memory producers were prepared but not run.",
+  "artifact_note": "The initial component-verdict documentation commit failed only for a link-only line; its corrected contextual line and mandatory fast pre-push pass are preserved. No product or runtime criterion changed.",
+  "artifacts": [
+    {
+      "path": "target/release-default-score-20260908/record-score-blocks.py",
+      "bytes": 3000,
+      "sha256": "4eed490fcb3660ec7c4fd6ea5742f6953dee31358369333a860f956afa37109f"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-build.log",
+      "bytes": 247,
+      "sha256": "4db369c3ff390c98d3197ff9e20604c498da9019cc6886cf6f86316f335ab696"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-clippy.log",
+      "bytes": 651,
+      "sha256": "87784f6dd081158f7b6c7151b2eb3ffce6b3624f1b7675e3200f4593ef24b958"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-commit.log",
+      "bytes": 2646,
+      "sha256": "a5f2aa350b4d49a5bc972dab6477da2ba511ea84cd5968a601afd82133273e51"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-identity.json",
+      "bytes": 207,
+      "sha256": "d3bbeeb2bce55c65ef42a8e50c41bf1495a64900c1787bd04058ccbfef59ad5b"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-initial-decision.json",
+      "bytes": 3596,
+      "sha256": "40a569bc3c0e9c687cdd1afbbc90df1c6166419a857c8baf255afe64f87f6ae1"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-memory.py",
+      "bytes": 2105,
+      "sha256": "adca5e4cecc70f78059ca6f53a074bb3eda22c01f6dd646e7fd4eb80b9b38241"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-revert.log",
+      "bytes": 539,
+      "sha256": "3b10afff5b6d8e81538ca20739600242cbe143b1cf8ce6e21099342123cf3fa7"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-alamofire-default.json",
+      "bytes": 21141,
+      "sha256": "1e02ed1380fec79980c3e0a4fcf251f31bc47a31c29ecbbbc6e2580e4636e379"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-alamofire-near-0.8.json",
+      "bytes": 21163,
+      "sha256": "710bc55016b23fbfe56ce299714a5ed3d55a5990cbec1c2c965c0c9525719a56"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-design.json",
+      "bytes": 824,
+      "sha256": "e3fbece11fbe385d488caba5775695e6a62c71a69b6bced26a7590ee14fd5a27"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-guava-default.json",
+      "bytes": 21533,
+      "sha256": "28a9ba7422cdb468c02d776c87da2715f182d598525b4b9b538c0d90d83b2158"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-libgdx-default.json",
+      "bytes": 21278,
+      "sha256": "fda1284b9270ce55a797ce59cf70ade29d66f46f0c2bbaea00e5d96ba33b37ac"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-results.json",
+      "bytes": 3855,
+      "sha256": "5704834f1dc8907a770aa87376a7fb65d762f1ee38f26622d1bf922ab7ab83d9"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-rxswift-default.json",
+      "bytes": 21206,
+      "sha256": "12db96e2f194bf00460951ac3f9afa4f3b0517eaa632beb5d913da89bf5a7d94"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-rxswift-semantic.json",
+      "bytes": 20694,
+      "sha256": "53d641763ddc116c06d3856d80fa479a0c00384e4818e6f4c81a3274f45841d7"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen.log",
+      "bytes": 2005,
+      "sha256": "84bd10b293a4c42a3e77639bb333a50a10069081406acc92986cf1c5cebaff03"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-screen.py",
+      "bytes": 2866,
+      "sha256": "92d7ea0e06bb6a9ca48af1446a6746de8ec6256d41a4a054911cc25bf948edc3"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-source.patch",
+      "bytes": 12150,
+      "sha256": "cbc4c6e4d2b8b1ad39da6976bc6f4301eef3da6b34596e45c459c330f24e6364"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-tests-final.log",
+      "bytes": 28205,
+      "sha256": "f87e2d2959735241fa28cb3f6508ee6ac6180691f3d2f9c96c4a41dda00d2477"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-blocks-tests.log",
+      "bytes": 28080,
+      "sha256": "c004458a0cfa4c626c77b04f882325193f2bdd50cb32352eb88df0efa514235e"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-build.log",
+      "bytes": 247,
+      "sha256": "2348c111c70d19f82890bc295a6c407fbddd827e3c44e71e1059efb35f68c4c1"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-clippy.log",
+      "bytes": 219,
+      "sha256": "def243b2cd303c037cf075e1a44bfbb52ee29f8ea35d0206936c50024cf3f09d"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-commit.log",
+      "bytes": 2471,
+      "sha256": "35bf87a4dbe34f030a81295b841cbd9de7c826f4550e6dbd3f3d1be7e34a632a"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-decision.json",
+      "bytes": 3829,
+      "sha256": "225e387ffaeed2ec435b74a0955a4ce5add3b012df604d461c32d11337c12842"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-identity.json",
+      "bytes": 207,
+      "sha256": "5951527572d90c31bac897263b6f7f3c788b393f9cfa7f1c47a43af5a1011ac5"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-memory.py",
+      "bytes": 2141,
+      "sha256": "48a97e31dbbd31b564a2f685d55b47c2976bdbdf6d69ff8ddbca6fbe46a7242f"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-alamofire-default.json",
+      "bytes": 21166,
+      "sha256": "548138e03ed09dadebcbd6d672cd15f8af37d79e1dc8c3c66cd1f1a611cd588e"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-alamofire-near-0.8.json",
+      "bytes": 21191,
+      "sha256": "e5d8153201ba85626c890e4aa81257b2ed6f14c6d4323470e3b1d6227016731a"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-design.json",
+      "bytes": 824,
+      "sha256": "02b1da5c9e337377acf4db2cbd14d7780ac7c15f583c3242fea48a2d8fa0264f"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-guava-default.json",
+      "bytes": 21556,
+      "sha256": "49d7ade07f463fc33e28ca1feb274993784ef3ddb08df13be4483c7fda6ab052"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-libgdx-default.json",
+      "bytes": 21310,
+      "sha256": "1156e4be2280a6c5e01ad53f0ecc2b6f8306a2ae44fb5023091a4da7bf70d5dc"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-results.json",
+      "bytes": 3857,
+      "sha256": "0664b28ad4fc7671efb7f6f3c1cd1be9caacc520050b6dcb0616ea715508003c"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-rxswift-default.json",
+      "bytes": 21231,
+      "sha256": "bbb61570279c7b5ec7b33a6eafba2b70bef6b3412b91537c76eb0a1a7e8dc642"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-rxswift-semantic.json",
+      "bytes": 20731,
+      "sha256": "f31acfdadf013393255d4ccf7c589e97826cdafaaa727c624c1bfd8a99a1b3f1"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen.log",
+      "bytes": 2007,
+      "sha256": "d3b84cc9083887a039947027c4fcd2fbe457615e7718fb3373facd56e7b41009"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-screen.py",
+      "bytes": 2911,
+      "sha256": "ec91d5c1bca30c1ddd4ab09b335871562a3733b42b6e3700418d6c9afb60158f"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-source.patch",
+      "bytes": 3916,
+      "sha256": "b8f8d44a96d5674635e01c0469412d40901220cb9d3e4b5ba1b280a101839329"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-selection-tests.log",
+      "bytes": 28371,
+      "sha256": "dfd75324acd200a3068531bb17cb0d9aad2060087abf6ff7039aa8e80cd1fae7"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-oracle-tests.log",
+      "bytes": 287,
+      "sha256": "cc05ddab79136b2b9606978e83861bb2ad029dc930843afde24b21f1ff18e4a2"
+    },
+    {
+      "path": "target/release-default-score-20260908/score-block-oracle.rs",
+      "bytes": 2719,
+      "sha256": "49a4acc476897b99d32ed6598289f3faacdc1c6b6c85222f62837800b2c10170"
+    },
+    {
+      "path": "target/release-default-score-20260908/freeze-score-blocks.py",
+      "bytes": 785,
+      "sha256": "cec167c57b9bd49da422458aa0f85daf2da10eda3ceb2b623b6644aae633998b"
+    },
+    {
+      "path": "target/release-default-score-20260908/freeze-score-block-selection.py",
+      "bytes": 803,
+      "sha256": "88877e69c57a116d652f0d8238301f994feae7133c1fdce708262f5f6381abd3"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/verdict-commit.log",
+      "bytes": 2777,
+      "sha256": "21c7509127f6c3f4a52ba7883ac2ed9a806dc21eaf6334439d751d08fdc7c7c8"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/verdict-commit-corrected.log",
+      "bytes": 2541,
+      "sha256": "c509acd6348b53d03a5a14467f50f2c47a49b9a2ffa0377003d20287530c4826"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/verdict-push.log",
+      "bytes": 192709,
+      "sha256": "1b7a4f24bd50e59037064bd2ea678692948572458486e99ec7d8597bda837f37"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/pr-verdict-update.log",
+      "bytes": 42,
+      "sha256": "e4dd158a78b6e6926274b28a52d68cd8e106715ec86e9f6675613e58c2d5cb88"
+    }
+  ]
+}
