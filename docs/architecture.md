@@ -285,7 +285,9 @@ rounding ties, overflow, sparse slices and the exact sequential result are teste
 Sparse same-file exclusions divide accepted targets
 into slices, so accumulation needs no source or group lookup for every cross-file
 pair. Large accepted relations prepare independent target rows in parallel,
-with exact capacity allocation before sorting and file indexing. Small relations
+with exact capacity allocation before sorting. File-position indexes retain only
+files containing a left endpoint in that row, because only those files can have
+same-file exclusions; all cross-file targets remain in the complete relation. Small relations
 retain serial preparation. Source-pair order and each score bit remain unchanged. Connected pricing looks up only its selected pair
 questions instead of copying the entire accepted graph into a hash set.
 Before materializing coverage, the detector applies ranking's existing site

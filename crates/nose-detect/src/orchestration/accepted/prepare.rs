@@ -22,7 +22,7 @@ pub(super) fn rows(
         work = work.saturating_add(members[right].len());
         grouped[left].push((right, score));
     }
-    let prepare = |relations: Vec<(usize, f64)>| {
+    let prepare = |(left, relations): (usize, Vec<(usize, f64)>)| {
         let capacity = relations
             .iter()
             .map(|&(right, _)| members[right].len())
@@ -33,16 +33,22 @@ pub(super) fn rows(
         }
         targets.sort_unstable_by_key(|&(unit, _)| unit);
         debug_assert!(targets.windows(2).all(|pair| pair[0].0 != pair[1].0));
-        let mut by_path: ByPath = FxHashMap::default();
+        // Only files containing a left endpoint can have a same-file exclusion.
+        let mut by_path: ByPath = members[left]
+            .iter()
+            .map(|&unit| (paths[unit], Vec::new()))
+            .collect();
         for (position, &(right, _)) in targets.iter().enumerate() {
-            by_path.entry(paths[right]).or_default().push(position);
+            if let Some(positions) = by_path.get_mut(&paths[right]) {
+                positions.push(position);
+            }
         }
         (targets, by_path)
     };
     let (targets, by_path) = if work < 16_384 {
-        grouped.into_iter().map(prepare).unzip()
+        grouped.into_iter().enumerate().map(prepare).unzip()
     } else {
-        grouped.into_par_iter().map(prepare).unzip()
+        grouped.into_par_iter().enumerate().map(prepare).unzip()
     };
     PreparedRows { targets, by_path }
 }

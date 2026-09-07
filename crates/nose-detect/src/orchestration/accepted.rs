@@ -458,13 +458,19 @@ mod tests {
 
     #[test]
     fn row_relation_preserves_order_scores_exclusions_and_membership() {
+        for files in [4, 7] {
+            check_row_relation(files);
+        }
+    }
+
+    fn check_row_relation(files: usize) {
         let mut units = crate::test_support::scoring_units(128);
         for (i, unit) in units.iter_mut().enumerate() {
-            unit.path = format!("{}.py", i % 7);
+            unit.path = format!("{}.py", i % files);
             unit.start_line = (i / 14) as u32;
             unit.end_line = unit.start_line + if i % 3 == 0 { 4 } else { 1 };
         }
-        let paths = (0..units.len()).map(|i| i % 7).collect::<Vec<_>>();
+        let paths = (0..units.len()).map(|i| i % files).collect::<Vec<_>>();
         let members = (0..4)
             .map(|row| (row..units.len()).step_by(4).collect())
             .collect::<Vec<_>>();
