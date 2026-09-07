@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-08. Release decision: **NOT READY (short-feature candidate passes correctness and full CI; final qualification remains outstanding)**. The feature scope is frozen;
+Updated on 2026-09-08. Release decision: **NOT READY (component optimization candidate is undergoing qualification)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -25,7 +25,20 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: short-feature comparisons
+## Latest candidate: component certification
+
+Product `0c4143e2`, crates tree `ac4404a8`, retains the short-feature candidate
+below and two component optimizations. A same-file-only proof checks precisely
+the targets that nesting may have excluded; subsequent joins reuse their current
+union-find root. Scores, admitted relations and representative selection remain
+unchanged. The [component record](../bench/release/0.21.0/component-experiments.v1.json)
+preserves the diagnostic counters, source patches, separate six-workload screens,
+285 detector tests and rejection of an additional target-class cache. The
+controlled near check includes that rejected cache and is not evidence for this
+actual binary. Actual-product validation and final release qualification remain
+outstanding; the predecessor's passes below retain their original source binding.
+
+## Previous candidate: short-feature comparisons
 
 Product `aea64b61` retains the incident-site implementation and uses conditional
 index increments for sorted multisets only when both inputs have at most 32

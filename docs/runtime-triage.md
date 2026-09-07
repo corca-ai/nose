@@ -4,6 +4,28 @@ Runtime triage turns a query-regression report into a reproducible performance d
 which repos are expected capability cost, which are noisy, and which need a focused fix.
 Use it before optimizing a slow repo by hand.
 
+## Component certification (2026-09-08)
+
+The [component experiments](../bench/release/0.21.0/component-experiments.v1.json)
+retain the intrusive work census and its removal, three source patches and their
+separate paired comparisons. Alamofire previously rechecked 36,817,516 target
+connections after joining admitted edges. Only same-file targets can have been
+excluded by nesting, so checking that subset proves the same remaining-row
+connectivity. Reusing the current union-find root further avoids repeated lookups
+while preserving the original rank choices and effective union order.
+
+The separate exploratory comparisons reduce Alamofire clustering from 141.0 to
+104.6 ms, then 102.8 to 81.9 ms. Their whole-query improvements are 1.81% and
+1.44%; other effects are small and mixed. These percentages must not be added
+or interpreted as an official release comparison. Both retained changes pass
+285 detector tests, strict Clippy/docs and six complete query-output comparisons.
+
+A third target-class connectivity cache is reverted: its direct comparison
+increases clustering from 82.3 to 100.1 ms without a convincing elapsed benefit.
+The combined three-change near-mode controlled check passes, but includes this
+rejected cache and does not qualify the retained two-change product. Actual
+product `0c4143e2` requires its own remaining release checks.
+
 ## Short-feature follow-up (2026-09-08)
 
 The [sealed follow-up](../bench/release/0.21.0/feature-followup.v1.json) retains
