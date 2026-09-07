@@ -30,6 +30,17 @@ seed bound, admission change or memory improvement from these experiments is
 part of the retained product. Kernel timings and overlapping row-census intervals
 are diagnostic only; the paired CLI screens have no same-binary controls.
 
+## Row scheduling experiment (2026-09-08)
+
+Splitting work into sixteen rather than four chunks per worker preserves all six
+complete query outputs and passes 283 detector tests and corrected strict Clippy.
+The [scheduling record](../bench/release/0.21.0/row-scheduling-experiment.v1.json)
+retains the original line-limit lint failure and its equivalent formatting fix.
+Alamofire default elapsed is effectively flat (-0.20%); RxSwift semantic increases
+4.97% and Alamofire near increases 0.16%. Other effects are small and mixed.
+Revert the isolated scheduling change; no memory campaign was run after rejection.
+These three-block screens have no same-binary control and do not qualify release.
+
 ## Scalar multiset merge experiments (2026-09-08)
 
 Two isolated follow-ups keep all six complete outputs and pass 283 optimized
