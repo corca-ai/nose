@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-08. Release decision: **NOT READY (component optimization candidate is undergoing qualification)**. The feature scope is frozen;
+Updated on 2026-09-08. Release decision: **NOT READY (component candidate passes correctness and full CI; official runtime qualification remains outstanding)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -35,8 +35,15 @@ unchanged. The [component record](../bench/release/0.21.0/component-experiments.
 preserves the diagnostic counters, source patches, separate six-workload screens,
 285 detector tests and rejection of an additional target-class cache. The
 controlled near check includes that rejected cache and is not evidence for this
-actual binary. Actual-product validation and final release qualification remain
-outstanding; the predecessor's passes below retain their original source binding.
+actual binary. The [actual-product validation](../bench/release/0.21.0/component-validation.v1.json)
+binds frozen binary `cc27040f`: all 360 ordinary and 17 base outputs match the
+retained reference, eight user journeys pass, and Type-4 reports zero soundness
+bugs or blind false merges/canonicalization violations. The self-query retains
+eighteen reviewed families within budget twenty; the existing detect/Markdown
+union-find representative change is reviewed with byte-identical old/new binary
+outputs on the current tree. Full local CI passes 2,440 optimized tests and
+89.73% line coverage. Official runtime and remaining cache/watch/remote/native
+qualification are separate; the predecessor's passes below retain their source binding.
 
 ## Previous candidate: short-feature comparisons
 

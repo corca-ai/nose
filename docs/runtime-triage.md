@@ -23,8 +23,13 @@ or interpreted as an official release comparison. Both retained changes pass
 A third target-class connectivity cache is reverted: its direct comparison
 increases clustering from 82.3 to 100.1 ms without a convincing elapsed benefit.
 The combined three-change near-mode controlled check passes, but includes this
-rejected cache and does not qualify the retained two-change product. Actual
-product `0c4143e2` requires its own remaining release checks.
+rejected cache and does not qualify the retained two-change product. The
+[actual validation](../bench/release/0.21.0/component-validation.v1.json) for product
+`0c4143e2` passes 377 complete outputs, eight journeys, Type-4, reviewed self-analysis
+and full local CI (2,440 optimized tests, 89.73% line coverage). Official elapsed
+and remaining resource/native checks are still outstanding. A separate deterministic
+sample of 265,219 requested Alamofire pairs finds no opportunities for a proposed
+pre-value anchor-dominance bound; no such shortcut is added to the product.
 
 ## Short-feature follow-up (2026-09-08)
 
