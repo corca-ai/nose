@@ -256,3 +256,34 @@ fn existing_root_suppresses_a_pair_redundant_carrier() {
         "an existing visible root already covers both endpoints of the carrier's accepted edge"
     );
 }
+
+#[test]
+fn invalid_accepted_endpoint_prevents_suppression_even_when_every_site_is_covered() {
+    for direct in [false, true] {
+        for invalid_left in [false, true] {
+            let primary = fam_at(&[("t/a.go", 1, 40), ("t/b.go", 1, 40)]);
+            let mut slice = fam_at(&[("t/a.go", 10, 30), ("t/b.go", 10, 30)]);
+            let mut edges = accepted_pair(slice.locations.clone()).edges;
+            edges.push(nose_detect::AcceptedEdge {
+                left: if invalid_left { u32::MAX } else { 0 },
+                right: if invalid_left { 1 } else { 2 },
+                score: 1.0,
+                witness_kind: "exact-value-graph",
+            });
+            if direct {
+                slice.direct_edges = edges;
+                preserve_query_accepted_coverage(std::slice::from_mut(&mut slice));
+            } else {
+                slice.accepted_coverage.push(nose_detect::AcceptedCoverage {
+                    sites: slice.locations.clone(),
+                    edges,
+                });
+            }
+            let groups = OpportunityGroups::from_ranked(&[&primary, &slice]);
+            assert!(
+                !groups.is_slice(&slice),
+                "direct={direct}, invalid_left={invalid_left}"
+            );
+        }
+    }
+}

@@ -120,12 +120,20 @@ fn projected_edges(
             let projection = projection.clone();
             // A connected member graph mapped entirely onto two or more sites
             // necessarily has a cross-site edge. Unmapped members need an explicit check.
-            let has_edges = projection.has_edges(group, &raw_groups[group]);
-            GroupEdges::Sites(crate::AcceptedEdges::deferred(has_edges, move || {
-                projection.materialize(|selected| selected == group)[group]
-                    .take()
-                    .unwrap()
-            }))
+            let incident_sites = projection.incident_sites(group, &raw_groups[group]);
+            let has_edges = incident_sites.map_or_else(
+                || projection.has_edges(group, &raw_groups[group]),
+                |count| count > 0,
+            );
+            GroupEdges::Sites(crate::AcceptedEdges::deferred(
+                has_edges,
+                incident_sites,
+                move || {
+                    projection.materialize(|selected| selected == group)[group]
+                        .take()
+                        .unwrap()
+                },
+            ))
         })
         .collect()
 }
@@ -175,6 +183,24 @@ impl Projection {
             floor: nose_normalize::anchor_min_weight(),
             sizes,
         }
+    }
+
+    // `members` is a connected component of `accepted`. Its total, surjective
+    // projection is connected too, so every site is incident when size >= 2.
+    fn incident_sites(&self, group: usize, members: &[usize]) -> Option<usize> {
+        let size = self.sizes[group];
+        if size < 2 {
+            return Some(0);
+        }
+        let mut represented = vec![false; size];
+        for &unit in members {
+            let (owner, site, _) = self.keys.get(unit).copied().flatten()?;
+            if owner != group {
+                return None;
+            }
+            *represented.get_mut(site as usize)? = true;
+        }
+        represented.iter().all(|&present| present).then_some(size)
     }
 
     fn has_edges(&self, group: usize, members: &[usize]) -> bool {

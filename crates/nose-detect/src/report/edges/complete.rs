@@ -9,6 +9,14 @@ pub(super) struct Complete {
 }
 
 impl Complete {
+    pub(super) fn incident_sites(&self) -> usize {
+        if self.sites < 2 {
+            0
+        } else {
+            self.sites as usize
+        }
+    }
+
     pub(super) fn iter(&self) -> impl Iterator<Item = AcceptedEdge> + '_ {
         (0..self.sites).flat_map(move |left| {
             (left + 1..self.sites).map(move |right| AcceptedEdge {

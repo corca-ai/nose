@@ -5,6 +5,7 @@ use rustc_hash::FxHashMap;
 use std::sync::{Arc, OnceLock};
 
 mod complete;
+mod incidence;
 mod uniform;
 pub(crate) use uniform::uniform_source_edges;
 
@@ -37,6 +38,7 @@ impl From<Vec<AcceptedEdge>> for AcceptedEdges {
 
 struct DeferredEdges {
     has_edges: bool,
+    incident_sites: Option<usize>,
     edges: OnceLock<Arc<SiteEdges>>,
     build: Box<dyn Fn() -> Arc<SiteEdges> + Send + Sync>,
 }
@@ -59,14 +61,18 @@ impl AcceptedEdges {
         }
     }
 
+    /// `incident_sites`, when known, is the exact endpoint set `0..count`,
+    /// certified by the producer rather than merely a bound on valid indices.
     pub(crate) fn deferred(
         has_edges: bool,
+        incident_sites: Option<usize>,
         build: impl Fn() -> Arc<SiteEdges> + Send + Sync + 'static,
     ) -> Self {
         Self {
             packed: None,
             deferred: Some(Arc::new(DeferredEdges {
                 has_edges,
+                incident_sites,
                 edges: OnceLock::new(),
                 build: Box::new(build),
             })),
@@ -367,7 +373,7 @@ mod tests {
         use std::sync::atomic::{AtomicUsize, Ordering};
         let builds = Arc::new(AtomicUsize::new(0));
         let counter = builds.clone();
-        let mut edges = AcceptedEdges::deferred(true, move || {
+        let mut edges = AcceptedEdges::deferred(true, None, move || {
             counter.fetch_add(1, Ordering::SeqCst);
             let mut builder = SiteEdgeBuilder::new(3);
             builder.insert(

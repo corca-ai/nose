@@ -105,10 +105,15 @@ fn unmapped_bridge_does_not_claim_direct_site_evidence() {
         floor: 1,
         sizes: vec![2],
     };
+    assert_eq!(projection.incident_sites(0, &[0, 1, 2]), None);
     assert!(!projection.has_edges(0, &[0, 1, 2]));
     let edges = projection.materialize(|_| true)[0].take().unwrap();
     assert!(crate::AcceptedEdges::from_packed(edges).is_empty());
     projection.keys[1] = Some((0, 0, 0));
+    assert_eq!(projection.incident_sites(0, &[0, 1, 2]), Some(2));
+    projection.sizes[0] = 3;
+    assert_eq!(projection.incident_sites(0, &[0, 1, 2]), None);
+    projection.sizes[0] = 2;
     assert!(projection.has_edges(0, &[0, 1, 2]));
     let edges = projection.materialize(|_| true)[0].take().unwrap();
     assert_eq!(crate::AcceptedEdges::from_packed(edges).len(), 1);
@@ -173,6 +178,15 @@ fn deferred_large_site_graph_matches_expanded_reference_after_sources_are_droppe
         unreachable!()
     };
     assert!(!edges.is_empty());
+    let incident = edges
+        .known_incident_sites()
+        .unwrap()
+        .collect::<std::collections::BTreeSet<_>>();
+    let expected_incident = expected
+        .iter()
+        .flat_map(|edge| [edge.left as usize, edge.right as usize])
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(incident, expected_incident);
     assert_eq!(edges.len(), expected.len());
     assert_eq!(edges.iter().collect::<Vec<_>>(), expected);
 }
@@ -258,4 +272,49 @@ fn projecting_before_materialization_keeps_the_same_direct_site_evidence() {
     let projected = projected.iter().collect::<Vec<_>>();
     assert_eq!(projected, collapse(&expanded));
     assert!(projected.len() < expanded.len());
+}
+
+#[test]
+fn incident_proof_matches_projected_edges_for_total_and_partial_connected_mappings() {
+    for pairs in [
+        vec![(0, 1, 0.8), (1, 2, 0.8), (2, 3, 0.8)],
+        vec![(0, 1, 0.8), (0, 2, 0.8), (0, 3, 0.8)],
+    ] {
+        for mapping in 0usize..256 {
+            let keys = (0..4)
+                .map(|unit| {
+                    let site = (mapping >> (unit * 2)) & 3;
+                    (site < 3).then_some((0, site as u32, 0))
+                })
+                .collect::<Vec<_>>();
+            let projection = Projection {
+                accepted: pairs.clone().into(),
+                keys,
+                exact: vec![None; 4],
+                anchors: vec![Vec::new()],
+                floor: 1,
+                sizes: vec![3],
+            };
+            let proof = projection.incident_sites(0, &[0, 1, 2, 3]);
+            let total_surjective = projection.keys.iter().all(Option::is_some)
+                && (0..3).all(|site| {
+                    projection
+                        .keys
+                        .iter()
+                        .any(|key| key.is_some_and(|(_, actual, _)| actual == site))
+                });
+            assert_eq!(proof.is_some(), total_surjective);
+            if let Some(count) = proof {
+                let edges = projection.materialize(|_| true)[0].take().unwrap();
+                let actual = edges
+                    .iter()
+                    .flat_map(|edge| [edge.left as usize, edge.right as usize])
+                    .collect::<std::collections::BTreeSet<_>>();
+                assert_eq!(
+                    (0..count).collect::<std::collections::BTreeSet<_>>(),
+                    actual
+                );
+            }
+        }
+    }
 }

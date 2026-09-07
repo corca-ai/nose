@@ -292,6 +292,10 @@ workers retain accepted relations by their existing left row, avoiding a full fl
 triple array and subsequent regrouping. The serial/parallel work check stops when
 its existing threshold is met. Small relations retain serial preparation. Source-pair order and each score bit remain unchanged. Connected pricing looks up only its selected pair
 questions instead of copying the entire accepted graph into a hash set.
+Opportunity suppression evaluates source containment once per referenced endpoint
+within each accepted graph when no incident-set proof is available. This fallback
+validates every edge and rejects invalid indices; sites without incident edges
+impose no new coverage obligation.
 Before materializing coverage, the detector applies ranking's existing site
 collapse and retains the strongest original edge per site pair, with the same
 witness tie rule. Each retained site edge is backed by an actually accepted source
@@ -304,7 +308,13 @@ without allocating a second graph. Graphs with more than one million possible
 reported-site pairs defer this final projection until a consumer reads their edges.
 The owned recipe retains complete accepted rows, site mappings and witness inputs,
 including the query's anchor floor. An exact nonempty fact lets ranking transfer
-coverage obligations without forcing projection; concurrent readers share one
+coverage obligations without forcing projection. A total, surjective mapping of a
+connected accepted component also certifies its exact incident site set. Coverage
+can inspect those sites without expanding edges: one primary must cover every
+incident site, or one visible root must cover the entire set. An uncovered incident
+site disproves coverage; mixed-root cases retain exact per-edge intersections.
+Unmapped members or unrepresented sites keep the original fallback. Appended edges
+outside the certified set invalidate the shortcut. Concurrent readers share one
 materialized graph. Small graphs retain eager construction. This postpones only
 the internal edge representation, never scoring, grouping or coverage decisions. Repeated rows reuse connectivity only after
 all remaining targets are in one component, so skipped unions are redundant.
