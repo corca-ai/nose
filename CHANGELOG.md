@@ -21,6 +21,10 @@ break.
 - Prepare independent site mappings in parallel and batch identical exact
   evidence into sparse block masks, retaining ordered scores and witness winners.
 
+- Reuse candidate inputs and established exact-group proofs, avoid hashing
+  ineligible exact-scoring inputs, and construct evidence by group. Preserve
+  alignment scores and identity bytes while reducing allocation and repeated work.
+
 - Stop C-header admission parsing when every remaining parse necessarily contains
   a syntax error, while preserving clean-tree validation and parser reuse safety.
 - Reuse exact scoring inputs and repeated score sums without changing sequential

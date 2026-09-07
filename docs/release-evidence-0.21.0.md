@@ -36,13 +36,18 @@ preserve file exclusions and every source cutoff. Alignment voting and identity
 serialization retain their exact scores and bytes while reducing allocation.
 The mechanisms and limits are documented in [runtime triage](runtime-triage.md).
 
-The isolated product sources pass 262 optimized detector tests, strict Clippy
-and the documentation gate. All 360 default/semantic/near outputs match the
-previous candidate byte for byte. Balanced diagnostics confirm reductions in
+Product `ee779371` and the [preflight record](../bench/release/0.21.0/proof-reuse-preflight.v1.json)
+bind the replacement to crates tree `e3231dde`. The isolated product sources pass
+262 optimized detector tests, strict Clippy and the documentation gate. Both the
+isolated and release-workspace binaries match all 360 default/semantic/near
+outputs byte for byte. The release binary also matches all 17 base outputs and
+passes saved-analysis/review/cache-upgrade journeys. Type-4 probing retains 41
+covered cells, 17 hard-negative cells, 18 known gaps and zero soundness bugs;
+the blind oracle reports zero false merges or canonicalization violations. Balanced diagnostics confirm reductions in
 homogeneous scoring and several grouping/ranking workloads; their smaller,
 mixed effects are not full release qualification. The replacement still needs
-full local CI, base-output and user-journey checks, cache/watch measurements,
-published-baseline timing, remote soundness and native package verification.
+full local CI, cache/watch measurements, published-baseline timing, remote
+soundness and native package verification.
 The failed exact-mask qualification below remains retained. Release stays NO-GO
 until the replacement satisfies every unchanged gate.
 
