@@ -2,10 +2,13 @@
 use super::{AcceptedPairs, RowPairs};
 use crate::{candidates::round3, Group, WitnessEvidence};
 
+mod explicit;
+
 impl AcceptedPairs {
     pub(crate) fn uniform_groups(&self, raw: &[Vec<usize>], groups: &[Group]) -> Vec<Option<f64>> {
-        let Self::Rows(rows) = self else {
-            return vec![None; raw.len()];
+        let rows = match self {
+            Self::Explicit(pairs) => return explicit::uniform_groups(pairs, raw, groups),
+            Self::Rows(rows) => rows,
         };
         let mut counts = vec![0; rows.targets.len()];
         for &row in &rows.row_of {
@@ -19,9 +22,7 @@ impl AcceptedPairs {
         raw.iter()
             .zip(groups)
             .map(|(members, group)| {
-                if !group.witness.as_ref().is_some_and(|witness| {
-                    matches!(&witness.evidence, WitnessEvidence::ExactValueGraph { .. })
-                }) {
+                if !exact_group(group) {
                     return None;
                 }
                 let row = rows.row_of[*members.first()?];
@@ -33,6 +34,13 @@ impl AcceptedPairs {
             })
             .collect()
     }
+}
+
+fn exact_group(group: &Group) -> bool {
+    group
+        .witness
+        .as_ref()
+        .is_some_and(|witness| matches!(&witness.evidence, WitnessEvidence::ExactValueGraph { .. }))
 }
 
 fn uniform_score(rows: &RowPairs, row: usize, count: usize) -> Option<f64> {
@@ -92,7 +100,14 @@ mod tests {
                         vec![expected; 2]
                     );
                     let explicit = AcceptedPairs::Explicit(pairs.iter().collect());
-                    assert_eq!(explicit.uniform_groups(&members, &groups), vec![None; 2]);
+                    assert_eq!(
+                        explicit
+                            .uniform_groups(&members, &groups)
+                            .into_iter()
+                            .map(|score| score.map(f64::to_bits))
+                            .collect::<Vec<_>>(),
+                        vec![expected; 2]
+                    );
                 }
             }
         }

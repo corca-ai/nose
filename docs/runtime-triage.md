@@ -4,6 +4,26 @@ Runtime triage turns a query-regression report into a reproducible performance d
 which repos are expected capability cost, which are noisy, and which need a focused fix.
 Use it before optimizing a slow repo by hand.
 
+## Complete explicit source relations experiment (2026-09-07)
+
+A public-API census of RxSwift's 685 source files finds 511,571 accepted
+semantic edges in 1,637 groups, all stored as explicit member-edge arrays.
+One 660-member group alone stores 217,351 edges. The previous compact source
+relation proof only handles the engine's repeated-row representation.
+
+The follow-up also checks explicit relations. It requires exact whole-group
+evidence, unique ordered source pairs, valid group membership, the original
+nesting exclusions and one finite, bit-identical score. A strict source-span
+ordering count computes the complete non-nested relation's cardinality without
+enumerating every possible pair. Equal starts and ends remain exclusions;
+cross-file pairs remain eligible. A valid unique subset with equal cardinality
+is complete, so it can reuse the existing `AllNonNested` representation.
+Missing, duplicate, forbidden, mixed-score or unproven relations retain the
+original representation. Group scores still accumulate in their original order.
+Scalar tests compare canonical edge winners and score bits, adversarial incomplete
+relations, and source-span counts through 513 members. This remains an isolated
+experiment awaiting performance comparison and actual-candidate qualification.
+
 ## Small-group location collection experiment (2026-09-07)
 
 The context candidate's full semantic qualification retains one confirmed
@@ -17,8 +37,11 @@ parallel granularity. Independent groups still run in parallel, and larger
 groups keep their ordered parallel collector. Each member retains its existing
 complete analysis-key inputs, source bytes, enclosing context and output order.
 The scalar oracle checks empty, small and boundary-sized groups through 513
-members with one and three workers. Timing remains exploratory until the actual
-release candidate completes its independent qualification.
+members with one and three workers. Five-block, five-sample diagnostics preserve
+all five complete workload outputs. RxSwift semantic grouping changes from
+8.15 to 7.85 ms, while default grouping changes from 94.03 to 87.25 ms. This
+small semantic improvement alone is insufficient for the release blocker.
+The diagnostics have no same-binary control and do not qualify the release.
 
 ## Evidence classification and site ranking preparation (2026-09-07)
 
