@@ -287,6 +287,7 @@ checker_args=(
   --max-runtime-delta-pct 5
   --min-runtime-delta-ms 5
   --min-focused-iterations 6
+  --runtime-gate elapsed-v1
   --status-output "$artifact_dir/check-status.json"
   --markdown-output "$artifact_dir/summary.md"
 )

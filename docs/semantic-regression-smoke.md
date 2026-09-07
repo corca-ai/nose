@@ -106,13 +106,21 @@ Exact sign-test support is also required to confirm a regression. The declared
 block-order strata remain diagnostics: each multi-sample observation already
 balances actual process position. A material point estimate without sufficient
 block support remains inconclusive. The checker evaluates the aggregate, each
-repository, and each reported stage, so a stage can fail despite a faster total.
+repository, and each reported stage. The smoke explicitly selects
+`--runtime-gate elapsed-v1`: aggregate and per-repository elapsed time block release;
+internal stages retain their measured states as diagnostic warnings. A faster
+aggregate cannot hide a slower repository. The independent scaling tripwire below
+and correctness/resource gates remain mandatory.
 
-A first-pass threshold crossing or inconclusive result requests the affected
+A first-pass elapsed-time threshold crossing or inconclusive result requests the affected
 repositories (or the whole slice for an aggregate signal). Exactly one focused
 comparison uses six independent blocks after one warmup, with the same five
 samples per observation and its own matching same-binary control. Confirmed and
-remaining inconclusive signals fail. There is no second focused loop.
+remaining inconclusive elapsed signals fail. There is no second focused loop.
+Stage-only warnings do not request focus, and primary warnings outside the focused
+subset remain visible. Historical checker invocations default to `all-metrics-v1`
+and preserve their original verdicts. The prospective scope and rationale are
+recorded in the [control contract](order-aware-performance-controls.md).
 
 This prospective sampling change follows the retained single-sample failure in
 [the 0.21 release evidence](release-evidence-0.21.0.md). It does not reclassify that

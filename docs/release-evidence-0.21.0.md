@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-07. Release decision: **NO-GO (confirmed RxSwift grouping regression)**. The feature scope is frozen;
+Updated on 2026-09-07. Release decision: **PENDING (latest candidate requires qualification under elapsed-v1)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -25,7 +25,24 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: context preparation and evidence mapping
+## Latest candidate: explicit relation certificates and elapsed-time qualification
+
+Product `437c3795` includes the small-group serial location collector and a
+certificate for complete, homogeneous explicit source relations. It preserves
+the accepted edge set, score bits and scalar fallback while avoiding redundant
+edge expansion. The isolated implementation passes 277 optimized detector tests,
+strict Clippy and all five complete diagnostic output comparisons. RxSwift semantic
+grouping falls from 8.05 to 5.78 ms in that exploratory comparison; near-mode whole
+query time increases about 1.5%. These are diagnostics, not release qualification.
+
+The [prospective runtime scope](order-aware-performance-controls.md#prospective-release-scope-elapsed-v1-2026-09-07)
+now distinguishes user-visible elapsed-time blockers from internal-stage warnings.
+Correctness, resource/scaling, cache/watch and package requirements remain intact.
+The latest actual binary must complete all four runtime workloads under the new
+policy. All preceding failed verdicts below remain historical failures; their
+successful checks do not automatically qualify changed product code.
+
+## Previous candidate: context preparation and evidence mapping
 
 The next candidate resolves enclosing parents independently by file and restores
 original unit order, reduces canonical-site indexing and two-site edge sorting,

@@ -6,6 +6,43 @@ the new estimator. The existing 5% and 5 ms materiality thresholds do not change
 
 ## Applicability and compatibility
 
+### Prospective release scope: elapsed-v1 (2026-09-07)
+
+New merge-smoke and v0.21 release campaigns explicitly select
+`--runtime-gate elapsed-v1`. This changes which measurements block release, not
+the estimator below. Per-repository and aggregate whole-query elapsed signals
+retain the 5% AND 5 ms thresholds, support test, one focused comparison, and
+fail-closed handling of insufficient focused evidence. A faster corpus aggregate
+cannot waive a slower individual repository.
+
+Internal-stage triggers and inconclusive measurements remain in the JSON with
+their original effects and statistical states, and appear as warnings in Markdown.
+They do not request focus or block release by themselves. Warnings from primary
+repositories outside the focused subset remain visible. A stage warning warrants
+investigation; it becomes a release blocker when evidence establishes a whole-query,
+memory-budget, or scaling failure. Additional diagnostic measurements cannot replace
+the registered release observations or erase a failed gate.
+
+Correctness, complete output, provenance, soundness, cache mutation/recovery and
+native package checks remain mandatory. The existing independent cache/watch
+latency, memory/resource tests and Ruby scaling budgets remain enforced; this
+query-time checker does not establish memory safety or general scaling by itself.
+Known resource exhaustion or incomplete analysis blocks release regardless of a
+passing elapsed-time comparison.
+
+The reason for this distinction is product impact: the preceding context candidate
+improved the 120-repository semantic total by about 5.2% and focused RxSwift elapsed
+time by about 8.5%, while its grouping step had a real, repeatable 6.05 ms increase.
+An internal tradeoff alone is not equivalent to a slower product. These observations
+motivate the prospective policy; they do not qualify the latest implementation.
+
+Historical commands default to `all-metrics-v1`, preserving their decisions and
+serialized status shape. The failed v0.21 records remain unchanged. The replacement
+candidate must be frozen and measured under the explicit new scope across semantic,
+base, default and near workloads; old stage-only failures are not relabeled passes.
+`runtime_policy` names the estimator; `runtime_gate` independently names the release
+scope and is recorded in every new decision's thresholds.
+
 The contract applies automatically to `nose.query_regression_harness.v3` reports.
 Historical v1 and v2 reports retain their original decisions unless an explicit
 historical-evaluation command selects this policy. Such a replay is a decision ledger,
