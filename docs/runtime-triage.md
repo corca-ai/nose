@@ -4,6 +4,18 @@ Runtime triage turns a query-regression report into a reproducible performance d
 which repos are expected capability cost, which are noisy, and which need a focused fix.
 Use it before optimizing a slow repo by hand.
 
+## Accepted-row controlled elapsed blocker (2026-09-08)
+
+The frozen `29680487` binary passes correctness, cache/watch, remote soundness and
+native-package verification, but fails the registered Alamofire default blocker.
+Primary/control gives +1,228.62 ms/+65.66%; its one six-block focus confirms
++1,573.88 ms/+68.88%, with all six blocks and both execution orders supporting the
+regression. Complete output changes match the registered review. The
+[sealed verdict](../bench/release/0.21.0/row-verdict.v1.json) retains the raw
+primary, control and focused observations. This is a per-repository release blocker,
+not an extrapolated full-corpus aggregate verdict. The unchanged failed candidate
+will not be retried. Further work must reduce product cost before qualification.
+
 ## Complete explicit source relations experiment (2026-09-07)
 
 A public-API census of RxSwift's 685 source files finds 511,571 accepted

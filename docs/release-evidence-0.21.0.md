@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-08. Release decision: **PENDING (accepted-row candidate passed correctness preflight; release runtime remains unqualified)**. The feature scope is frozen;
+Updated on 2026-09-08. Release decision: **NO-GO (confirmed Alamofire default elapsed regression after focus)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -52,9 +52,25 @@ The [registered early blocker check](../bench/release/0.21.0/row-blocker-design.
 measures this candidate's Alamofire default query using the unchanged elapsed-v1
 protocol: primary five blocks, up to one focused six-block comparison, five samples
 per observation and candidate-against-itself controls. A confirmed per-repository
-regression blocks release; a pass cannot qualify the complete campaign. Remote/native
-verification and final elapsed qualification remain outstanding. Earlier failed
-candidates retain their own verdicts; these memory gains do not authorize publication.
+regression blocks release; a pass cannot qualify the complete campaign.
+
+The [final verdict](../bench/release/0.21.0/row-verdict.v1.json) is **NO-GO**.
+Primary adjusted elapsed is +1,228.62 ms/+65.66%, supported by all five blocks.
+The single registered focus confirms +1,573.88 ms/+68.88%, supported by all six
+blocks (sign-test p=0.015625), with material regressions in both execution orders.
+All output drift matches the registered review. This one-repository counterexample
+blocks release; it is not a full-corpus aggregate verdict. The complete four-workload
+campaign was not run on this failed candidate, which will not be retried unchanged.
+
+All five remote CI/release/soundness workflows at `759f4533` pass. Full nightly
+covers 120 pinned repositories with zero false merges or canonicalization changes;
+deep equivalence, multi-seed falsification and runtime calibration pass. All four
+actual native archives and the generated installer pass independent checksum,
+installation and execution checks. Their recorded merge checkout `9d142e68` has
+the frozen candidate's product and dependency trees. Candidate SymPy peak RSS
+remains higher than official 0.20 and is recorded alongside the elapsed gains.
+Earlier candidates retain their own verdicts; these passes do not waive the runtime
+failure or authorize publication.
 
 ## Previous candidate: dense scoring and accepted-target preparation
 
