@@ -42,6 +42,18 @@ The latest actual binary must complete all four runtime workloads under the new
 policy. All preceding failed verdicts below remain historical failures; their
 successful checks do not automatically qualify changed product code.
 
+The [registered design](../bench/release/0.21.0/elapsed-design.v1.json) binds the
+explicit scope, unchanged measurement protocol and producers before timing.
+The [actual-binary preflight](../bench/release/0.21.0/elapsed-preflight.v1.json)
+binds source `46ed8bef`, crates tree `4e087079` and binary `c6f204c5`.
+All 360 ordinary and 17 base outputs match the retained reference, and all eight
+saved-analysis/review/source/upgrade journeys pass. The reviewed base-view field
+changes are unchanged; only the isolated worktree path-bound hashes regenerate.
+Type-4 retains 41 covered cells, 17 hard negatives, 18 known gaps and zero observed
+soundness bugs; 54 blind exact groups have zero false merges or canonicalization
+violations. Self-analysis retains the same nineteen reviewed families within the
+budget of twenty. Full CI, cache/watch, runtime and remote qualification are pending.
+
 ## Previous candidate: context preparation and evidence mapping
 
 The next candidate resolves enclosing parents independently by file and restores

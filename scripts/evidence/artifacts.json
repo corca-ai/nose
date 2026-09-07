@@ -143,8 +143,8 @@
       "validator": "./scripts/check-ci-local.sh --gate runtime-soundness-evidence",
       "consumers": ["release workflow and published quality claims"],
       "retention_policy": "Release-bound evidence is immutable and retained for release reconstruction.",
-      "artifact_count": 17,
-      "inventory_sha256": "751844b05cadf0819b66766e16e7cd85fb39fee71c49ec7fee10dc0c69be690b"
+      "artifact_count": 19,
+      "inventory_sha256": "a6c4f3a40689adeaf822e1a9aeb1b98b596aa4820501799f644a165e0884f0a6"
     },
     {
       "id": "review-evidence",
@@ -188,7 +188,7 @@
       "consumers": ["Type-4 frontier, query-regression, and adversarial gates"],
       "retention_policy": "Preserve current gold/frontier inputs and any sealed or closeout evidence.",
       "artifact_count": 29,
-      "inventory_sha256": "539561ced159c6850c9e2a579a3a1c1a59f9bed83dde2c04d35d34e3b3e570b2"
+      "inventory_sha256": "c62da4cc08a02ff237f2f2d6aae6ade10a80c4299488580f17d1ac867394975d"
     },
     {
       "id": "documentation-policy",
