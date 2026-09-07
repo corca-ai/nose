@@ -72,8 +72,8 @@ fn score_prepared(
             return result;
         }
     }
-    let classes = classes
-        .filter(|ids| ids.iter().collect::<rustc_hash::FxHashSet<_>>().len() <= units.len() / 2);
+    // Prepared rows share feature intersections even when scoring classes are
+    // mostly unique; class repetition alone does not estimate that work.
     if let Some(classes) = &classes {
         return class_rows::score(units, opts, detector, buckets, groups, classes);
     }

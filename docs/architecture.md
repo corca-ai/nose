@@ -125,8 +125,9 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    class; eligible singleton classes remain distinct even without candidate edges.
    Custom scorers retain their own class rules unless they explicitly reuse this evidence.
    Channel composition intersects class
-   partitions, and custom scorers opt out by default. Reuse activates when at least half
-   the units repeat an input class. A row further requires identical membership in
+   partitions, and custom scorers opt out by default. Large batched queries prepare
+   rows even when most input classes are unique: feature intersections can still
+   be shared across distinct comparisons. A row further requires identical membership in
    every candidate bucket and equal eligibility for connected-seed pricing. That
    refinement makes its candidate relation complete: an outside endpoint reaches all
    row members or none. Row sizes give the exact unordered pair count; sparse
