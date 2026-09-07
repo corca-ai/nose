@@ -261,10 +261,13 @@ impl PreparedScores for StructuralScores<'_> {
         let direct = right.len() < 8
             || (right.len() < self.inputs.len() / 8 && {
                 let a = &self.inputs[left];
+                // A sorted merge can traverse both inputs, even if one is short.
                 let merges = right.iter().fold(0usize, |work, &right| {
                     let b = &self.inputs[right];
-                    work.saturating_add(a.value.len().min(b.value.len()))
-                        .saturating_add(a.shapes.len().min(b.shapes.len()))
+                    work.saturating_add(a.value.len())
+                        .saturating_add(b.value.len())
+                        .saturating_add(a.shapes.len())
+                        .saturating_add(b.shapes.len())
                 });
                 let indexed = self
                     .values

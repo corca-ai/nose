@@ -144,7 +144,8 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    Structural input and alignment classes use precisely the existing 600-entry
    alignment prefix; differences beyond that already unread suffix do not trigger
    another identical score calculation. The stored source features remain complete.
-   Sparse rows compare estimated feature-merge work with posting traversal and
+   Sparse rows estimate merge work from both input lengths and compare it with
+   posting traversal and
    class-array work before choosing direct scoring. A low representative count
    alone cannot make long repeated fingerprint scans cheap. Prepared exact scores
    and the structural exact shortcut reuse full-equality-checked value classes,
