@@ -7,6 +7,9 @@ use crate::{DetectOptions, Detector, UnitFeat};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 
+mod neighbors;
+use neighbors::{Neighborhoods, Scratch};
+
 #[cfg(test)]
 mod tests;
 
@@ -27,26 +30,6 @@ struct PairSources<'a> {
 }
 
 impl Row {
-    fn neighbors(
-        &self,
-        rows: &[Row],
-        buckets: &[Vec<usize>],
-        seen: &mut [usize],
-        out: &mut Vec<usize>,
-    ) {
-        out.clear();
-        for &bucket in &self.buckets {
-            for &right in &buckets[bucket] {
-                if seen[right] != self.members[0] {
-                    seen[right] = self.members[0];
-                    if self.members[0] < *rows[right].members.last().unwrap() {
-                        out.push(right);
-                    }
-                }
-            }
-        }
-    }
-
     fn collect_seeds(
         &self,
         other: &Row,
@@ -111,7 +94,7 @@ fn rows(
     buckets: &[Vec<u32>],
     spans: &[usize],
     classes: &[usize],
-) -> (Vec<Row>, Vec<Vec<usize>>) {
+) -> (Vec<Row>, Neighborhoods) {
     let membership = crate::lsh::membership(units.len(), buckets);
     let mut ids = FxHashMap::default();
     let mut rows: Vec<Row> = Vec::new();
@@ -154,6 +137,12 @@ fn rows(
             bucket_rows[bucket].push(id);
         }
     }
+    let bucket_rows = Neighborhoods::new(
+        rows.iter()
+            .map(|row| *row.members.last().unwrap())
+            .collect(),
+        bucket_rows,
+    );
     (rows, bucket_rows)
 }
 
@@ -197,13 +186,13 @@ pub(super) fn score(
         .map(|(chunk_id, chunk)| {
             let mut result = DetectionStages::fresh(Vec::new(), Vec::new(), Vec::new());
             let mut relations = Vec::new();
-            let mut seen = vec![usize::MAX; rows.len()];
+            let mut scratch = Scratch::new(rows.len());
             let mut neighbors = Vec::new();
             let mut memo = FxHashMap::default();
             let mut seeds = SeedSelection::new(&path_ids, &weights, opts.threshold);
             for (offset, row) in chunk.iter().enumerate() {
                 let row_id = chunk_id * chunk_size + offset;
-                row.neighbors(&rows, &bucket_rows, &mut seen, &mut neighbors);
+                bucket_rows.collect(row.members[0], &row.buckets, &mut scratch, &mut neighbors);
                 memo.clear();
                 let row_scores = prepared.as_ref().map(|p| p.row(row_id, &neighbors));
                 for (position, &right_id) in neighbors.iter().enumerate() {

@@ -130,7 +130,10 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    be shared across distinct comparisons. A row further requires identical membership in
    every candidate bucket and equal eligibility for connected-seed pricing. That
    refinement makes its candidate relation complete: an outside endpoint reaches all
-   row members or none. Row sizes give the exact unordered pair count; sparse
+   row members or none. Dense bucket neighborhoods share exact bitsets; their union
+   visits each resulting row once, while sparse neighborhoods retain marker-based
+   enumeration. A compact last-member array applies the same source-order admission
+   before scoring. No candidate is sampled or truncated. Row sizes give the exact unordered pair count; sparse
    shared-span counts subtract only excluded pairs. Rejected ordinary pairs that
    cannot seed a connected witness need no location-pair expansion. Structural
    scorers can prepare inverted multiset indexes: each feature contributes the
