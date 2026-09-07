@@ -34,6 +34,9 @@ break.
   edge classification, and reduce duplicate evidence directly for two reported sites.
   Avoid redundant file tables and per-node child copies during parameter inference;
   preserve source identities, admission rules and ordered evidence winners.
+- Certify complete uniform explicit relations before expanding their edges, and
+  collect small groups without nested parallel setup. Preserve source exclusions,
+  exact scores and complete query output.
 
 - Stop C-header admission parsing when every remaining parse necessarily contains
   a syntax error, while preserving clean-tree validation and parser reuse safety.

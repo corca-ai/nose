@@ -1708,7 +1708,10 @@ def markdown_summary(status: dict[str, Any], report: dict[str, Any]) -> str:
     ]
     if elapsed_gate and status["focused"] is not None:
         # Focus can omit repositories with only stage warnings. Do not hide them.
-        measured = {(signal["repo"], signal["stage"]) for signal in signals}
+        measured = {
+            (signal["repo"], signal["stage"])
+            for signal in result_phase["runtime"]["signals"]
+        }
         signals += [
             signal for signal in primary["runtime"]["warnings"]
             if (signal["repo"], signal["stage"]) not in measured

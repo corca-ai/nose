@@ -85,6 +85,12 @@ def run_self_test(checker) -> None:
     rendered = checker.markdown_summary(status, mixed)
     assert "`repo-b:lower`" in rendered and "warning (primary; triggered)" in rendered
     assert "warning (focused; triggered)" in rendered
+    cleared = checker.evaluate_gate(
+        mixed, runtime_gate="elapsed-v1",
+        focused_report=report(iterations=6, stages=[0.0] * 6),
+    )
+    rendered = checker.markdown_summary(cleared, mixed)
+    assert "`repo-a:lower`" not in rendered and "`repo-b:lower`" in rendered
 
     # Output, provenance and raw timing validation precede the scope decision.
     check_failure(report(changed=True), "unexpected product output drift")
