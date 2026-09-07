@@ -675,3 +675,39 @@ seed pruning and a strict anchor-bound/lazy-shape experiment also preserved outp
 but did not produce useful latency gains and were reverted. The actual root build
 passes all 360 ordinary output comparisons, 17 base comparisons and eight source,
 review and upgrade journeys. Full release qualification remains separate.
+
+
+## Accepted-row memory (2026-09-08)
+
+The next two changes preserve all accepted targets and source-pair order. A row's
+file-position index now contains only files represented by its left endpoints:
+other files cannot require same-file exclusion lookups. Workers also retain their
+existing row structure rather than flattening accepted triples and then grouping
+them again. This removes unnecessary index entries and transient copies.
+
+The first change's separate three-block peak-RSS comparison records the following
+medians in decimal MB. This resource comparison does not replace its six-workload
+elapsed screen, whose time effects were small and mixed.
+
+| Default query | Before | After |
+|---|---:|---:|
+| Alamofire | 2,752.2 | 2,337.8 |
+| libGDX | 999.1 | 978.8 |
+| Guava | 1,310.6 | 1,264.1 |
+| RxSwift | 549.3 | 515.1 |
+
+The second change's own resource comparison reduces peak RSS by a further
+22.3/27.5/22.7/8.8 MB on those four workloads. Its elapsed effects are also small
+and mixed; neither experiment establishes a release performance pass. Each
+six-workload paired screen preserves every complete JSON hash. The explicit
+relation oracle now covers rows confined to one file as well as rows spanning
+multiple files, retaining score bits, source exclusions, connectivity and projected
+evidence. Both prototypes pass 279 optimized detector tests and strict Clippy.
+
+A third experiment retained intersection counts and computed Jaccard ratios only
+for requested candidate classes. It also preserved all six outputs and passed the
+tests, but did not show a convincing whole-query benefit and slowed scoring on
+some workloads. It was reverted. The [row preflight](../bench/release/0.21.0/row-preflight.v1.json)
+keeps the accepted and rejected experiments separate and binds validation to the
+new actual root binary. The earlier official-0.20 diagnostic still establishes a
+need for elapsed optimization; these memory gains do not resolve that release task.

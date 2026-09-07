@@ -43,6 +43,11 @@ break.
   lengths. Prepare large accepted targets in parallel and union dense candidate
   neighborhoods with exact bitsets, preserving complete query output.
 
+- Index accepted target positions only for files represented by the source row,
+  and retain row structure through scoring instead of flattening and regrouping
+  every relation. Reduce dense-analysis memory while preserving every target,
+  ordered score, source exclusion and complete query output.
+
 - Stop C-header admission parsing when every remaining parse necessarily contains
   a syntax error, while preserving clean-tree validation and parser reuse safety.
 - Reuse exact scoring inputs and repeated score sums without changing sequential

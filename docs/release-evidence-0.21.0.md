@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-08. Release decision: **PENDING (dense-score candidate passed correctness preflight; release runtime remains unqualified)**. The feature scope is frozen;
+Updated on 2026-09-08. Release decision: **PENDING (accepted-row candidate passed correctness preflight; release runtime remains unqualified)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -25,7 +25,29 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: dense scoring and accepted-target preparation
+## Latest candidate: accepted-row memory
+
+Product `ac68a583` limits file-position indexes to files represented by each source
+row and retains row structure through accepted-score preparation. It preserves all
+targets, ordered scores, source exclusions and complete output. The separate
+[resource comparisons](runtime-triage.md#accepted-row-memory-2026-09-08) show lower
+peak RSS, including 414 MB/15% for Alamofire in the first comparison. Time effects
+are small and mixed; no material whole-query latency gain is claimed.
+
+The [actual-binary preflight](../bench/release/0.21.0/row-preflight.v1.json) binds
+source `ac68a583`, crates tree `2a30fe49` and binary `29680487`. All **360 ordinary
+and 17 base outputs** match the retained reference byte for byte. All eight user
+journeys, Type-4 checks and nineteen reviewed self-analysis families pass. The
+identical prototype tree passes 279 optimized detector tests and strict Clippy.
+A requested-only overlap-ratio experiment passed correctness but lacked convincing
+latency gains, so it was reverted and remains recorded separately.
+
+Actual-candidate full CI, cache/watch, remote/native verification and final elapsed
+qualification remain outstanding. The previous official-0.20 diagnostic remains
+historical evidence of a real elapsed bottleneck; these memory gains do not qualify
+the release or authorize publication.
+
+## Previous candidate: dense scoring and accepted-target preparation
 
 Product `c82fef52` reuses structural scores across relocated anchor metadata,
 prepares feature intersections even when input classes are mostly unique, estimates
