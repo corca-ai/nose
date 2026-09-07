@@ -186,3 +186,5 @@ including when both occur in one focused comparison. Passing stages stay omitted
 whole-query and aggregate rows remain visible. A completed focused comparison is
 reported neutrally and does not itself claim confirmation or a passing result.
 The raw status JSON and original measurements remain authoritative.
+Checked-in derived summaries are regenerated with this renderer; their original
+measurement reports, checked status JSON and numeric result rows stay unchanged.

@@ -9,7 +9,7 @@
 | `netty` | 849.63 ms | 828.81 ms | -12.83 ms / -1.51% | within threshold |
 | `prometheus` | 370.64 ms | 369.31 ms | -8.70 ms / -2.35% | within threshold |
 
-Initial material signal confirmed with a focused rerun of: `curl`, `netty`, `prometheus`.
+Focused comparison completed for: `curl`, `netty`, `prometheus`.
 
 Output drift: 1 declared, 0 unexpected.
 
