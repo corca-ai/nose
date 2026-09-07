@@ -4,6 +4,19 @@ Runtime triage turns a query-regression report into a reproducible performance d
 which repos are expected capability cost, which are noisy, and which need a focused fix.
 Use it before optimizing a slow repo by hand.
 
+## Scalar multiset merge experiments (2026-09-08)
+
+Two isolated follow-ups keep all six complete outputs and pass 283 optimized
+detector tests, strict Clippy and docs, including independent frequency-count
+oracles. Moving union arithmetic outside the scalar merge has no convincing
+elapsed gain, with scorer medians rising in every workload. A separate eightfold
+length-imbalance path uses exponential search while preserving duplicate counts.
+It modestly reduces libGDX scoring, but its whole query improves only 0.74%;
+Alamofire default and near elapsed increase 2.73% and 3.49%. Both experiments are
+reverted. These short screens have no same-binary controls and are not formal
+regression verdicts. The [validation record](../bench/release/0.21.0/incidence-validation.v1.json)
+retains all measurements and the unchanged incident-site product's full CI pass.
+
 ## Exact incident-site coverage (2026-09-08)
 
 Native profiling finds deferred graph materialization inside opportunity coverage.

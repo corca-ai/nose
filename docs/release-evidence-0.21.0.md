@@ -49,8 +49,11 @@ coverage falling from 94.0 to 7.7 ms. Other elapsed effects are small and mixed.
 Separate RSS changes are -46 MB for Alamofire, nearly flat for RxSwift, +6 MB for
 libGDX and +38 MB for Guava. No universal memory reduction is claimed.
 These screens have no same-binary control and do not qualify release against
-0.20. Final-product CI, cache/watch, remote/native checks and the complete elapsed
-campaign remain outstanding. The preceding candidate's confirmed failure remains
+0.20. The [validation follow-up](../bench/release/0.21.0/incidence-validation.v1.json)
+records full local CI at `5c566491`: 2,437 optimized tests and 89.71% line coverage.
+Two later scalar-merge experiments preserve outputs but show no sufficient practical
+benefit, so both are reverted. Final-product cache/watch, remote/native checks and
+the complete elapsed campaign remain outstanding. The preceding candidate's confirmed failure remains
 preserved below; the measured coverage improvement does not waive that blocker.
 
 ## Previous candidate: accepted-row memory

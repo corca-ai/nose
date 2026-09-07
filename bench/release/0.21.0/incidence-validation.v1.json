@@ -1,0 +1,569 @@
+{
+  "schema": "nose.release-incidence-validation/v1",
+  "version": "0.21.0",
+  "decision": "NOT READY: incident-site product passes full local CI and correctness; final cache/watch, remote/native and elapsed qualification remain outstanding",
+  "candidate": {
+    "source_sha": "9c0eb82572325b2ce58da6d9d684a74fd41613dc",
+    "crates_tree": "e00714dd9b2afdb7afda4aeeba919c7d7be65017",
+    "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+    "binary": "/Users/ak/prjs/cc/nose/target/release-incidence-qualification-20260908/candidate-nose",
+    "binary_sha256": "6f51b3ff019bb2070980110d633e08c6f9c99a01ba4a115cbb4e1b581bcc6931",
+    "build_log": "/Users/ak/prjs/cc/nose/target/release-incidence-qualification-20260908/build.log",
+    "product_dependencies": {
+      "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+      "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+      "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+    }
+  },
+  "full_local_ci": {
+    "source_sha": "5c56649134534b80b44e21e06dbab91cf183d7d6",
+    "product": "9c0eb82572325b2ce58da6d9d684a74fd41613dc",
+    "crates_tree": "e00714dd9b2afdb7afda4aeeba919c7d7be65017",
+    "status": "passed",
+    "release_tests": 2437,
+    "coverage_total": "TOTAL                                                                                                    176022             20383    88.42%       11524              1174    89.81%      112727             11594    89.71%           0                 0         -",
+    "log": "/Users/ak/prjs/cc/nose/target/release-incidence-qualification-20260908/full-ci.log",
+    "sha256": "2d396fe9fa84ac6f48b09e32467ff832d97879d58a3a5e5e1c4131547f8da790",
+    "scope": "full local CI; cache/watch, remote/native and final elapsed qualification remain separate"
+  },
+  "rejected_experiments": {
+    "multiset-count": {
+      "decision": "reject: no convincing elapsed improvement; do not adopt the count-only merge change",
+      "identity": {
+        "source": "13f7195408ed822bd3b83b307ec483bb9a378cff",
+        "crates_tree": "ac4ced766524c8df705e808056b387c443315dc6",
+        "binary_sha256": "2ba94332b9c9a9cb3312a88ebd8dc56b827d629644ff415c0d59197790ea3df4"
+      },
+      "results": [
+        {
+          "repo": "alamofire",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 3003.916250541806,
+              "score": 1065.9,
+              "groups": 391.8,
+              "query_opp": 18.3
+            },
+            "current": {
+              "elapsed": 3070.306209847331,
+              "score": 1102.4,
+              "groups": 403.8,
+              "query_opp": 18.5
+            }
+          }
+        },
+        {
+          "repo": "libgdx",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2578.3109171316028,
+              "score": 917.4,
+              "groups": 71.7,
+              "query_opp": 1.8
+            },
+            "current": {
+              "elapsed": 2588.88787496835,
+              "score": 928.3,
+              "groups": 72.3,
+              "query_opp": 1.8
+            }
+          }
+        },
+        {
+          "repo": "guava",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2991.512500680983,
+              "score": 514.2,
+              "groups": 34.9,
+              "query_opp": 3.7
+            },
+            "current": {
+              "elapsed": 2980.723666958511,
+              "score": 523.0,
+              "groups": 34.3,
+              "query_opp": 3.6
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 967.1387504786253,
+              "score": 256.0,
+              "groups": 105.5,
+              "query_opp": 9.1
+            },
+            "current": {
+              "elapsed": 963.2666250690818,
+              "score": 264.6,
+              "groups": 105.2,
+              "query_opp": 9.1
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "semantic",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 445.16837503761053,
+              "score": 3.6,
+              "groups": 7.5,
+              "query_opp": 2.0
+            },
+            "current": {
+              "elapsed": 452.6105411350727,
+              "score": 3.8,
+              "groups": 7.6,
+              "query_opp": 2.2
+            }
+          }
+        },
+        {
+          "repo": "alamofire",
+          "mode": "near:0.8",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2424.9546248465776,
+              "score": 933.5,
+              "groups": 82.0,
+              "query_opp": 16.4
+            },
+            "current": {
+              "elapsed": 2420.9251245483756,
+              "score": 948.3,
+              "groups": 82.0,
+              "query_opp": 16.5
+            }
+          }
+        }
+      ],
+      "scope": "Exploratory three paired blocks, one sample per observation, no same-binary controls. All six complete outputs match; scorer medians increase in every workload. Preserve this attempt and revert before testing a different algorithm."
+    },
+    "multiset-skew": {
+      "decision": "reject: no material whole-query gain; primary Alamofire default and near bottlenecks become slower in the exploratory screen",
+      "identity": {
+        "source": "88b294fe8c6020be3e3d9a11f37168e9d9b631a8",
+        "crates_tree": "a0a553b5f5f6548689dbccabc28ac9b2a94f2037",
+        "binary_sha256": "79aceb5ff01cb62cba256d865c6ae2342e3248a9c6d2a09ed608954d66ee67aa"
+      },
+      "results": [
+        {
+          "repo": "alamofire",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2739.077292382717,
+              "score": 913.5,
+              "groups": 342.4,
+              "query_opp": 18.3
+            },
+            "current": {
+              "elapsed": 2813.73024918139,
+              "score": 960.7,
+              "groups": 349.9,
+              "query_opp": 18.4
+            }
+          }
+        },
+        {
+          "repo": "libgdx",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2281.5482076257467,
+              "score": 795.8,
+              "groups": 59.4,
+              "query_opp": 1.6
+            },
+            "current": {
+              "elapsed": 2264.6369161084294,
+              "score": 767.9,
+              "groups": 60.3,
+              "query_opp": 1.6
+            }
+          }
+        },
+        {
+          "repo": "guava",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2819.7016660124063,
+              "score": 493.9,
+              "groups": 36.5,
+              "query_opp": 3.5
+            },
+            "current": {
+              "elapsed": 2750.720207579434,
+              "score": 490.6,
+              "groups": 33.3,
+              "query_opp": 3.4
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 915.1049172505736,
+              "score": 261.4,
+              "groups": 98.1,
+              "query_opp": 8.6
+            },
+            "current": {
+              "elapsed": 911.4261250942945,
+              "score": 244.2,
+              "groups": 100.0,
+              "query_opp": 8.7
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "semantic",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 430.1327923312783,
+              "score": 3.7,
+              "groups": 7.5,
+              "query_opp": 2.0
+            },
+            "current": {
+              "elapsed": 444.78445779532194,
+              "score": 3.6,
+              "groups": 7.7,
+              "query_opp": 2.0
+            }
+          }
+        },
+        {
+          "repo": "alamofire",
+          "mode": "near:0.8",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2379.326958209276,
+              "score": 923.5,
+              "groups": 80.0,
+              "query_opp": 16.8
+            },
+            "current": {
+              "elapsed": 2462.324541993439,
+              "score": 961.1,
+              "groups": 82.8,
+              "query_opp": 16.4
+            }
+          }
+        }
+      ],
+      "scope": "Exploratory three paired blocks, one sample per observation, no same-binary controls. All six complete outputs match. Keep the retained incidence implementation as the next baseline; do not adopt or retry this unchanged skew experiment."
+    }
+  },
+  "interpretation": "Both subsequent scalar-merge experiments preserve six complete outputs and pass 283 detector tests, strict Clippy and docs. Neither shows sufficient practical benefit, so both are reverted in the isolated prototype. The shipping product remains 9c0eb825. These exploratory screens do not replace the registered release measurements or waive the previous candidate failure.",
+  "artifacts": [
+    {
+      "path": "target/release-incidence-qualification-20260908/record-validation.py",
+      "bytes": 3763,
+      "sha256": "d86c5cdd635bccbc14a81831b4ed9361d9e5f49cb47a52461a367b53f81ac2f1"
+    },
+    {
+      "path": "bench/release/0.21.0/incidence-preflight.v1.json",
+      "bytes": 26727,
+      "sha256": "c2cd45642dabdbc07fcf150948a3d60217a6c6141145d8307a8f58ee72fc5bbc"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/full-ci.log",
+      "bytes": 779804,
+      "sha256": "2d396fe9fa84ac6f48b09e32467ff832d97879d58a3a5e5e1c4131547f8da790"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/full-ci-receipt.json",
+      "bytes": 790,
+      "sha256": "387b10dd1c6ee079a4af487de937c7bb4affd6f3d2174a3f21a337b21d6db866"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/preflight-commit.log",
+      "bytes": 2776,
+      "sha256": "5ec98f27b330c57e48d84e8332078ebc034300d931e12eb139895e7290774f73"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/preflight-commit-corrected.log",
+      "bytes": 2559,
+      "sha256": "081ada414576dd24929b6a711f419835780f01b0ac4479880c0e44088501c21b"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/preflight-push.log",
+      "bytes": 193003,
+      "sha256": "f627ec0929c98ccb26b8113e8107711da155834be64c7130b415ef733dbbe48c"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-decision.json",
+      "bytes": 3207,
+      "sha256": "11cc1339f69fc14c5193e0d6f0ae54ccac80683ac7b67004794bae17b41a4df8"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-identity.json",
+      "bytes": 207,
+      "sha256": "b9fce5e963ce8a09c7481d5a1936c1cc07a3186adf86c6ca8c30a9c6e6eda6fa"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-alamofire-default.json",
+      "bytes": 21144,
+      "sha256": "4a471fd25492324cec266e0aaef8b1b5573d46ca5ecdea32714a6b448e7340df"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-alamofire-near-0.8.json",
+      "bytes": 21169,
+      "sha256": "cf7f8466462343afd49238939b1ff0596ae146632973247672cba639316c3387"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-design.json",
+      "bytes": 824,
+      "sha256": "319cb0e57c76d0669e72baea67d7d4830d03b64084d4b47b453656bd16c823f8"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-guava-default.json",
+      "bytes": 21526,
+      "sha256": "ca2e4fd035e7bff013e4c6293323738d810544cd07795eb339f09cab5fb3c4a7"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-libgdx-default.json",
+      "bytes": 21275,
+      "sha256": "69a0217662d2bf05e5c31316fdc0f843891a99fc7afe4aee30728e2dea89bea6"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-results.json",
+      "bytes": 3543,
+      "sha256": "7d283f26ea01d0cbf07888d31589035845338e92c522d13d8454f0041f671de6"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-rxswift-default.json",
+      "bytes": 21231,
+      "sha256": "df4d9a51c18ffbff8c7b5739bf529d41fb1732c54eb895766a93c52d8da1d13a"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-rxswift-semantic.json",
+      "bytes": 20700,
+      "sha256": "66bca63d44606001652776a2f185cf33d897450fdaf6fb9e2d8461ecd79c9861"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen.py",
+      "bytes": 2861,
+      "sha256": "944e533a36428a2fad4a64d50364d254aa4bd6e83173315b8dd5ca366e68d240"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-build.log",
+      "bytes": 247,
+      "sha256": "3bc7e54ca3da766f3b3abc67a455cc201ffe2e3a8ba58ad147308fece94337a2"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-clippy.log",
+      "bytes": 157,
+      "sha256": "d41b8deb744dff8c08d8f09207d7964957c2fd35c48ae06b1dfaba90f6e2f6b3"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-commit.log",
+      "bytes": 2470,
+      "sha256": "28838b888fe3d392a2d2f3a5737264733e3d472f553f70907eeb95a39a78fc48"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-revert.log",
+      "bytes": 181,
+      "sha256": "039ed1dd328786dbaa69e7f5b86dac768512ac7e2e0ad59a2575561d217e6fa5"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-screen.log",
+      "bytes": 1813,
+      "sha256": "1349a597907aa5e3f252b5901d57b1c1d479125697b2e7f2ea1ccc2c855ec257"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-count-tests.log",
+      "bytes": 27428,
+      "sha256": "d038ba591267b40b51655e854f3b4f319c68536c752106e5886e37a22643e37d"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-decision.json",
+      "bytes": 3250,
+      "sha256": "c2fabc21fd9e1c6aaa8381a2e6e48c71bbcad95414c9b3bc72384c8dc319a4dd"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-identity.json",
+      "bytes": 207,
+      "sha256": "e598bde413d95d131861d14348b9c3ecd468b318d6ba556cf9177d1514343156"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-alamofire-default.json",
+      "bytes": 21120,
+      "sha256": "bf741973f02426a49040b6080b2874e5bd8e7af4ee3b2f98cff1a2dd009f88ce"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-alamofire-near-0.8.json",
+      "bytes": 21154,
+      "sha256": "aa397ea9d3910d2a382c42a2aace047012107a04bd9851d13d67c48c7b935098"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-design.json",
+      "bytes": 824,
+      "sha256": "edbb393fee36b10f6ae57b46e3ad5e09c74709892c24dbd39d3a8eaec5ccba8c"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-guava-default.json",
+      "bytes": 21520,
+      "sha256": "f5f4dd525407af5674d690cf1a7f50b3067505cac229dabf4b5e29354c90ccca"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-libgdx-default.json",
+      "bytes": 21280,
+      "sha256": "79a83562ad273b1a5c6c6775339de001272fbafe65826c7b0578496a34642762"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-results.json",
+      "bytes": 3540,
+      "sha256": "e1980b8ea899db32b9f56f7d0f32bda3ecefda8a863fc42128d8826149c602d5"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-rxswift-default.json",
+      "bytes": 21214,
+      "sha256": "2c005a54e771178cd163d59a8b949da240bc4ff4dc81c782e7b65fda76662274"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-rxswift-semantic.json",
+      "bytes": 20698,
+      "sha256": "75864a4aa5170b20cd35bf58af5a897335801257bc84e8606c10c11854459c5f"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen.py",
+      "bytes": 2856,
+      "sha256": "7c080444b261ff4cb43812624a397933ff0f5d8e9dfc0203b5909aa5c8ea629d"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-build.log",
+      "bytes": 247,
+      "sha256": "c232704b8fb04846314b162ef316ae1c1b8083ea4a5fa72766cacc66585c72e5"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-clippy.log",
+      "bytes": 157,
+      "sha256": "ba1378100db551c3ea8d5fbc8679d19b97a4e3cec5de43df2ffc405c2d3bb4ff"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-commit.log",
+      "bytes": 2451,
+      "sha256": "db70b7071b64c67de8b72260cdff094f23bf662cc70d82faea33664d6ee9909d"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-final-tests.log",
+      "bytes": 27428,
+      "sha256": "355a5119d4afc55e394492ea4f5ea30dd5d53918704593080096f667bd2ef9d1"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-revert.log",
+      "bytes": 161,
+      "sha256": "1cb4076f1338087625403af040dbe531e23e7def160e037eb39f9b5024935b70"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-screen.log",
+      "bytes": 1810,
+      "sha256": "44e6ea91fdb77b31743283417cf5e23a812723bd139f637f5ed5943beccec636"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-tests.log",
+      "bytes": 27428,
+      "sha256": "41c34f787b21b39ed83f7b0612f3618c75868ad458522e735cdca150fdb61ecc"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-frequency-oracle.rs",
+      "bytes": 1720,
+      "sha256": "6592ce0544be93f2b6d6567a376eddbada24b07f4317e2a01f993b659853f2d5"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-frequency-oracle.rs",
+      "bytes": 1926,
+      "sha256": "fea42b3a1e5f7a7ffcf7ffd8f52b46b9ca57aaca21c4572ef26485af8d7aeea8"
+    }
+  ]
+}
