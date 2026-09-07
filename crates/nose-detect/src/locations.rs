@@ -7,6 +7,9 @@ use nose_il::UnitKind;
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 
+#[cfg(test)]
+mod tests;
+
 pub(crate) fn loc_of(u: &UnitFeat, enclosing_unit: Option<EnclosingUnit>) -> Loc {
     loc_with_analysis_key(u, enclosing_unit, crate::regions::unit_analysis_key(u))
 }
@@ -68,9 +71,8 @@ fn can_enclose_fragment(u: &UnitFeat) -> bool {
         )
 }
 
-fn contains_span(parent: &UnitFeat, child: &UnitFeat) -> bool {
-    parent.path == child.path
-        && parent.start_line <= child.start_line
+fn contains_same_file_span(parent: &UnitFeat, child: &UnitFeat) -> bool {
+    parent.start_line <= child.start_line
         && parent.end_line >= child.end_line
         // Strict containment, except that a DIFFERENT-kind parent may share the
         // exact span: a method and its whole-body block are one region in two
@@ -184,44 +186,51 @@ pub(crate) fn enclosing_unit_indices(units: &[UnitFeat]) -> Vec<Option<usize>> {
         by_file.entry(unit.path.as_str()).or_default().push(idx);
     }
 
+    let assignments: Vec<(usize, usize)> = by_file
+        .into_par_iter()
+        .flat_map_iter(|(_, indices)| enclosing_file_indices(units, indices))
+        .collect();
     let mut out = vec![None; units.len()];
-    for indices in by_file.values() {
-        let mut parents: Vec<usize> = indices
-            .iter()
-            .copied()
-            .filter(|&idx| can_enclose_fragment(&units[idx]))
-            .collect();
-        parents.sort_by_key(|&idx| {
-            (
-                LineSpan::new(units[idx].start_line, units[idx].end_line).line_count(),
-                units[idx].start_line,
-                units[idx].end_line,
-            )
-        });
-
-        for &idx in indices {
-            // Fragments AND plain Block units get their enclosing
-            // function/method recovered — an agent cannot even NAME the region
-            // of a block family without it (#225: every sampled block location
-            // had `name: null`). Whole function/method/class units need none.
-            if units[idx].fragment_kind.is_none() && units[idx].kind != UnitKind::Block {
-                continue;
-            }
-            if let Some(parent) = parents
-                .iter()
-                .copied()
-                .find(|&parent_idx| contains_span(&units[parent_idx], &units[idx]))
-            {
-                out[idx] = Some(parent);
-            }
-        }
+    for (index, parent) in assignments {
+        out[index] = Some(parent);
     }
     out
 }
 
+fn enclosing_file_indices(
+    units: &[UnitFeat],
+    indices: Vec<usize>,
+) -> impl Iterator<Item = (usize, usize)> + '_ {
+    let mut parents: Vec<usize> = indices
+        .iter()
+        .copied()
+        .filter(|&index| can_enclose_fragment(&units[index]))
+        .collect();
+    // Stable ties retain original unit order within this file.
+    parents.sort_by_key(|&index| {
+        (
+            LineSpan::new(units[index].start_line, units[index].end_line).line_count(),
+            units[index].start_line,
+            units[index].end_line,
+        )
+    });
+    indices.into_iter().filter_map(move |index| {
+        let child = &units[index];
+        if child.fragment_kind.is_none() && child.kind != UnitKind::Block {
+            return None;
+        }
+        let parent = parents
+            .iter()
+            .copied()
+            .find(|&parent| contains_same_file_span(&units[parent], child))?;
+        Some((index, parent))
+    })
+}
+
 pub(crate) fn enclosing_units(units: &[UnitFeat]) -> Vec<Option<EnclosingUnit>> {
     enclosing_unit_indices(units)
-        .into_iter()
+        .into_par_iter()
+        .with_min_len(256)
         .map(|parent| parent.map(|index| enclosing_unit_of(&units[index])))
         .collect()
 }

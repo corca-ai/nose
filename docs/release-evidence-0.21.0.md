@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-07. Release decision: **NO-GO (confirmed local stage regressions; remote normalization inconclusive)**. The feature scope is frozen;
+Updated on 2026-09-07. Release decision: **NO-GO (new candidate unqualified; prior performance blockers retained)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -25,7 +25,21 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: uniform source and site relations
+## Latest candidate: context preparation and evidence mapping
+
+The next candidate resolves enclosing parents independently by file and restores
+original unit order, reduces canonical-site indexing and two-site edge sorting,
+reuses whole-group exact evidence for explicit edge classification, and avoids
+copying immutable child lists during parameter-domain inference. Mixed witness
+groups, overlap ties, score bits and all admission rules retain their old behavior.
+The [runtime triage record](runtime-triage.md) distinguishes the three isolated
+comparisons and their mixed whole-query outcomes. The prototypes pass relevant
+optimized tests, strict Clippy, documentation and all compared complete outputs.
+Their results are exploratory; this actual release-workspace candidate still
+needs its own complete validation. The previous candidate's failures below remain
+unchanged. The release decision is still **NO-GO**.
+
+## Previous candidate: uniform source and site relations
 
 Groups with exact-value evidence and one complete, homogeneous source row carry
 their non-nested-pair rule directly to ranking through `GroupEdges::AllNonNested`.

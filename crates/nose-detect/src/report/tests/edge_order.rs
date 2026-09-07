@@ -1,10 +1,10 @@
 use super::support::loc;
 use crate::{AcceptedEdge, Group};
 
-fn scalar_winners(input: &[AcceptedEdge]) -> Vec<AcceptedEdge> {
+fn scalar_winners(input: &[AcceptedEdge], sites: u32) -> Vec<AcceptedEdge> {
     let mut edges = input
         .iter()
-        .filter(|edge| edge.left < 8 && edge.right < 8 && edge.left != edge.right)
+        .filter(|edge| edge.left < sites && edge.right < sites && edge.left != edge.right)
         .map(|edge| AcceptedEdge {
             left: edge.left.min(edge.right),
             right: edge.left.max(edge.right),
@@ -24,9 +24,9 @@ fn scalar_winners(input: &[AcceptedEdge]) -> Vec<AcceptedEdge> {
 
 #[test]
 fn parallel_site_order_preserves_scalar_winners_and_float_bits() {
-    let group = Group {
+    let make_group = |sites| Group {
         score: 1.0,
-        members: (0..8)
+        members: (0..sites)
             .map(|i| loc(&format!("{i}.rs"), 1, 10, "rust"))
             .collect(),
         semantic_laws: Vec::new(),
@@ -82,11 +82,14 @@ fn parallel_site_order_preserves_scalar_winners_and_float_bits() {
                     witness_kind: kinds[(next() as usize) % kinds.len()],
                 })
                 .collect::<Vec<_>>();
-            let expected = scalar_winners(&edges);
-            let actual = pool.install(|| {
-                crate::report::collapsed_accepted_edges(&group, &group.members, &edges)
-            });
-            assert_eq!(bits(&actual), bits(&expected));
+            for sites in [0, 1, 2, 8] {
+                let group = make_group(sites);
+                let expected = scalar_winners(&edges, sites);
+                let actual = pool.install(|| {
+                    crate::report::collapsed_accepted_edges(&group, &group.members, &edges)
+                });
+                assert_eq!(bits(&actual), bits(&expected));
+            }
         }
     }
 }

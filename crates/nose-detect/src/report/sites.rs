@@ -15,16 +15,16 @@ pub(crate) fn collapsed_sites(group: &Group) -> Vec<Loc> {
             .then_with(|| a.start_line.cmp(&b.start_line))
     });
     let mut kept: Vec<Loc> = Vec::with_capacity(locs.len());
-    let mut kept_by_file: rustc_hash::FxHashMap<String, Vec<usize>> =
-        rustc_hash::FxHashMap::default();
+    let mut file_start = 0;
     for l in locs {
-        let subsumed = kept_by_file
-            .get(l.file.as_str())
-            .is_some_and(|idxs| idxs.iter().any(|&i| overlap_frac(&kept[i], &l) >= 0.5));
+        if kept.last().is_some_and(|previous| previous.file != l.file) {
+            file_start = kept.len();
+        }
+        let subsumed = kept[file_start..]
+            .iter()
+            .any(|previous| overlap_frac(previous, &l) >= 0.5);
         if !subsumed {
-            let file = l.file.clone();
             kept.push(l);
-            kept_by_file.entry(file).or_default().push(kept.len() - 1);
         }
     }
     let mut locs = kept;
@@ -33,6 +33,22 @@ pub(crate) fn collapsed_sites(group: &Group) -> Vec<Loc> {
 }
 
 pub(crate) fn member_sites(group: &Group, collapsed_sites: &[Loc]) -> Vec<Option<u32>> {
+    if collapsed_sites.len() <= 2 {
+        return group
+            .members
+            .iter()
+            .map(|member| {
+                best_overlap(
+                    member,
+                    collapsed_sites
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, site)| site.file == member.file)
+                        .map(|(index, site)| (index as u32, site)),
+                )
+            })
+            .collect();
+    }
     let mut sites_by_file: rustc_hash::FxHashMap<&str, Vec<(u32, &Loc)>> =
         rustc_hash::FxHashMap::default();
     for (index, site) in collapsed_sites.iter().enumerate() {
@@ -45,15 +61,26 @@ pub(crate) fn member_sites(group: &Group, collapsed_sites: &[Loc]) -> Vec<Option
         .members
         .iter()
         .map(|member| {
-            sites_by_file
-                .get(member.file.as_str())
-                .into_iter()
-                .flatten()
-                .map(|&(index, site)| (index, overlap_frac(site, member)))
-                .filter(|(_, overlap)| *overlap >= 0.5)
-                .max_by(|a, b| a.1.total_cmp(&b.1))
-                .map(|(index, _)| index)
+            best_overlap(
+                member,
+                sites_by_file
+                    .get(member.file.as_str())
+                    .into_iter()
+                    .flatten()
+                    .copied(),
+            )
         })
         .collect();
     site_of
 }
+
+fn best_overlap<'a>(member: &Loc, sites: impl Iterator<Item = (u32, &'a Loc)>) -> Option<u32> {
+    sites
+        .map(|(index, site)| (index, overlap_frac(site, member)))
+        .filter(|(_, overlap)| *overlap >= 0.5)
+        .max_by(|a, b| a.1.total_cmp(&b.1))
+        .map(|(index, _)| index)
+}
+
+#[cfg(test)]
+mod tests;

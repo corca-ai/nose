@@ -125,35 +125,48 @@ pub(crate) fn collapsed_accepted_edges(
     collapsed_sites: &[Loc],
     group_edges: &[AcceptedEdge],
 ) -> Vec<AcceptedEdge> {
+    if collapsed_sites.len() < 2 {
+        return Vec::new();
+    }
     let site_of = super::sites::member_sites(group, collapsed_sites);
-    let mut edges: Vec<AcceptedEdge> = group_edges
-        .iter()
-        .filter_map(|edge| {
-            let left = site_of.get(edge.left as usize).copied().flatten()?;
-            let right = site_of.get(edge.right as usize).copied().flatten()?;
-            (left != right).then_some(AcceptedEdge {
-                left: left.min(right),
-                right: left.max(right),
-                score: edge.score,
-                witness_kind: edge.witness_kind,
-            })
+    let mapped = group_edges.iter().filter_map(|edge| {
+        let left = site_of.get(edge.left as usize).copied().flatten()?;
+        let right = site_of.get(edge.right as usize).copied().flatten()?;
+        (left != right).then_some(AcceptedEdge {
+            left: left.min(right),
+            right: left.max(right),
+            score: edge.score,
+            witness_kind: edge.witness_kind,
         })
-        .collect();
+    });
+    if collapsed_sites.len() == 2 {
+        return mapped
+            .reduce(|mut kept, next| {
+                retain_best_edge(&next, &mut kept);
+                kept
+            })
+            .into_iter()
+            .collect();
+    }
+    let mut edges: Vec<AcceptedEdge> = mapped.collect();
     edges.par_sort_unstable_by_key(|edge| (u64::from(edge.left) << 32) | u64::from(edge.right));
     edges.dedup_by(|next, kept| {
         if next.left != kept.left || next.right != kept.right {
             return false;
         }
-        // Retain the original total-order winner, including signed zero and NaN
-        // payloads. Order among otherwise identical edges is unobservable.
-        let order = next.score.total_cmp(&kept.score);
-        if order.is_gt() || (order.is_eq() && next.witness_kind < kept.witness_kind) {
-            kept.score = next.score;
-            kept.witness_kind = next.witness_kind;
-        }
+        retain_best_edge(next, kept);
         true
     });
     edges
+}
+
+// Preserve the total-order winner, including signed zero and NaN payloads.
+fn retain_best_edge(next: &AcceptedEdge, kept: &mut AcceptedEdge) {
+    let order = next.score.total_cmp(&kept.score);
+    if order.is_gt() || (order.is_eq() && next.witness_kind < kept.witness_kind) {
+        kept.score = next.score;
+        kept.witness_kind = next.witness_kind;
+    }
 }
 
 /// Rank a detection report's groups as refactoring opportunities, highest value
@@ -277,11 +290,11 @@ fn same_sites(left: &RefactorFamily, right: &RefactorFamily) -> bool {
 fn merge_accepted_coverage(existing: &mut Vec<AcceptedCoverage>, incoming: Vec<AcceptedCoverage>) {
     for obligation in incoming {
         let duplicate = existing.iter().any(|current| {
-            current.edges == obligation.edges
-                && current.sites.len() == obligation.sites.len()
+            current.sites.len() == obligation.sites.len()
                 && current.sites.iter().zip(&obligation.sites).all(|(a, b)| {
                     a.file == b.file && a.start_line == b.start_line && a.end_line == b.end_line
                 })
+                && current.edges == obligation.edges
         });
         if !duplicate {
             existing.push(obligation);

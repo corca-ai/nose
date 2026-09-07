@@ -195,14 +195,17 @@ impl OperatorSemantics {
                     })
             })
             .collect::<Vec<_>>();
+        if params.is_empty() {
+            return Vec::new();
+        }
         let mut evidence: FxHashMap<u32, ValueDomain> = FxHashMap::default();
         for _ in 0..params.len() + 1 {
             let mut next = evidence.clone();
             let mut stack = vec![root];
             while let Some(node) = stack.pop() {
-                let kids = il.children(node).to_vec();
-                self.note_param_domain_evidence(il, node, &kids, &evidence, &mut next);
-                stack.extend(kids);
+                let kids = il.children(node);
+                self.note_param_domain_evidence(il, node, kids, &evidence, &mut next);
+                stack.extend_from_slice(kids);
             }
             if next == evidence {
                 break;

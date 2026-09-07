@@ -30,6 +30,10 @@ break.
 - Store certified complete site relations as a site count and one exact score,
   preserving ordered edges while avoiding redundant graph construction. Carry
   uniform non-nested source relations to ranking to reuse its existing site mapping.
+- Resolve enclosing contexts per file in parallel, reuse group evidence for exact
+  edge classification, and reduce duplicate evidence directly for two reported sites.
+  Avoid redundant file tables and per-node child copies during parameter inference;
+  preserve source identities, admission rules and ordered evidence winners.
 
 - Stop C-header admission parsing when every remaining parse necessarily contains
   a syntax error, while preserving clean-tree validation and parser reuse safety.

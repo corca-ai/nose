@@ -4,6 +4,48 @@ Runtime triage turns a query-regression report into a reproducible performance d
 which repos are expected capability cost, which are noisy, and which need a focused fix.
 Use it before optimizing a slow repo by hand.
 
+## Evidence classification and site ranking preparation (2026-09-07)
+
+The context prototype's CPU profiles identify repeated exact-value comparisons
+in RxSwift's expanded edge classification, canonical-site allocations in Guava,
+and parameter-domain inference in Asciidoctor. Explicit edges may reuse a
+whole-group exact witness while mixed groups retain per-pair classification.
+No edge is added or omitted. Canonical sites consume their existing file sort
+without a second file table; one/two-site mappings use direct overlap selection
+with the original last-on-equal winner. Two canonical sites can have only one
+reported edge, so a direct reduction retains its total-order score/category winner
+without allocating and sorting all duplicate edge records. Zero/one-site inputs
+have no cross-site edge. Coverage compares source coordinates
+before materializing equal-edge checks. Parameter inference borrows immutable
+child slices and returns an empty domain vector immediately when no parameter
+can appear in its result. The original fixed point and evidence rules remain.
+The combined prototype passes 920 optimized detector/normalizer/semantics tests,
+strict Clippy, docs and all eleven complete-output comparisons (ten workloads
+plus Asciidoctor with two workers). In separate four-block diagnostics, Alamofire
+semantic ranking changes from 81.10 to 77.15 ms and two-worker Asciidoctor
+normalization from 83.95 to 81.25 ms. The subsequent two-site reduction preserves
+the scalar winner oracle across zero/one/two/eight sites, invalid edge indices,
+signed zero, infinity and NaN payloads, plus all ten query outputs. Guava ranking
+mapping changes from 6.40 to 5.40 ms. Other workloads and stages are mixed,
+including an 85.78 ms (3.88%) higher Alamofire near whole-query median in the
+last diagnostic. These comparisons motivate qualification; they do not qualify
+the release or establish a universal speedup.
+
+## Parent context and review-label preparation (2026-09-07)
+
+The follow-up prototype resolves enclosing units independently per file and
+materializes their report context in ordered parallel batches. Parent choice
+retains the smallest source span, original unit order for ties, strict same-kind
+containment and the existing equal-span allowance for different unit kinds.
+File membership proves the path equality once before scanning parent candidates.
+The source-span lookup table for review occurrence labels uses the existing
+internal hash-table implementation; first-use ordinals and fingerprint bytes
+retain their existing meaning. No content-digest algorithm changes.
+The isolated comparison passes 554 optimized tests and preserves all ten complete
+JSON outputs. Guava grouping changes from 20.60 to 12.95 ms; RxSwift remains
+nearly flat. Whole-query and normalization effects are mixed. The actual release
+candidate still requires independent output, soundness, cache and runtime checks.
+
 ## Rust import prescreen follow-up (2026-09-06)
 
 The ten-cycle usability campaign left Alacritty `parse+lower` qualification
