@@ -312,6 +312,12 @@ each file have strictly increasing starts and ends, every canonical pair has a
 direct non-nested exact witness. The homogeneous relation then stores one score
 and a site count, and reconstructs the same ordered edges on iteration. Failed
 representative checks retain ordinary site blocks and occurrence exclusions.
+An exact group whose members occupy one complete, homogeneous source row can
+carry that uniform non-nested-pair rule directly to ranking. Such groups reuse
+ranking's canonical site selection instead of building the same mapping earlier.
+Ranking still verifies its representatives before using a complete graph; unusual
+report spans fall back to explicit source exclusions. Other groups retain the
+ordinary projection path. `GroupEdges::AllNonNested` names this source rule.
 Distinct accepted rows and reported site graphs can still be large; these
 representations introduce no evidence cap or candidate omission.
 These internal execution choices do not change recall or explicit budget accounting.

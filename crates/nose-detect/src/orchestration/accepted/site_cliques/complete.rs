@@ -10,17 +10,13 @@ pub(super) fn size(rows: &RowPairs, sites: &[(u32, usize, usize)]) -> Option<u32
     {
         return None;
     }
-    let mut spans = sites
+    let spans = sites
         .iter()
         .map(|&(_, unit, _)| rows.locations[unit])
         .collect::<Vec<_>>();
-    spans.sort_unstable();
     // Across files every pair is admitted. Within each file, strictly increasing
     // starts AND ends prove that no representative contains another one.
-    if spans
-        .windows(2)
-        .any(|pair| pair[0].0 == pair[1].0 && (pair[0].1 >= pair[1].1 || pair[0].2 >= pair[1].2))
-    {
+    if !crate::locations::all_non_nested(spans) {
         return None;
     }
     sites.len().try_into().ok()

@@ -25,7 +25,13 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: complete site relations
+## Latest candidate: uniform source and site relations
+
+Groups with exact-value evidence and one complete, homogeneous source row carry
+their non-nested-pair rule directly to ranking through `GroupEdges::AllNonNested`.
+Ranking reuses its existing canonical site selection, avoiding the same mapping
+and repeated edge classification earlier in the pipeline. Rust consumers with
+exhaustive `GroupEdges` matches must handle this new variant. CLI JSON is unchanged.
 
 An isolated homogeneous row can retain its canonical graph as one exact score
 and a site count when actual source representatives prove every site pair is
@@ -33,12 +39,18 @@ non-nested. The proof requires dense coordinates and strictly increasing starts
 and ends within each file, in addition to the existing membership, exact-value
 and whole-group isolation checks. Failed proofs retain the previous visitor.
 Iteration reconstructs every original ordered edge and score bit.
+Invalid cached span lengths or reversed report spans retain explicit source
+exclusions instead of manufacturing edges from the compact rule.
 
 The isolated implementation passes 267 optimized detector tests, strict Clippy,
 docs and all nine diagnostic output comparisons. Alamofire grouping medians fall
 from 50.30 to 38.65 ms in semantic mode and from 105.10 to 86.90 ms in near mode.
 Whole-query and peak-memory effects are mixed; these diagnostics do not qualify
-the release. Three smaller follow-ups (small-site input elision, interval-based
+the release. The uniform-source follow-up passes 269 detector tests, strict Clippy
+and nine diagnostic output comparisons. In its separate balanced comparison,
+Alamofire semantic grouping falls from 38.35 to 18.15 ms and whole-query time
+from 960.64 to 917.05 ms; near grouping falls from 81.60 to 67.75 ms. Other
+whole-query effects are small or mixed. Three smaller follow-ups (small-site input elision, interval-based
 same-file projection and inline edge rows) were not adopted after weak or mixed
 results. Release-workspace validation and performance qualification remain pending.
 

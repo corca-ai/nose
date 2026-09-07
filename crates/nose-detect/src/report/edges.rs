@@ -5,11 +5,15 @@ use rustc_hash::FxHashMap;
 use std::sync::{Arc, OnceLock};
 
 mod complete;
+mod uniform;
+pub(crate) use uniform::uniform_source_edges;
 
 #[derive(Debug)]
 pub enum GroupEdges {
     Members(Vec<AcceptedEdge>),
     Sites(AcceptedEdges),
+    /// Every non-nested raw member pair has this exact-value score.
+    AllNonNested(f64),
 }
 
 /// Ordered direct evidence. Large immutable graphs remain shared when a family

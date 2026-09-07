@@ -82,6 +82,9 @@ fn family_of_with_edges(group: &Group, group_edges: Option<&crate::GroupEdges>) 
             collapsed_accepted_edges(group, &locs, edges).into()
         }
         Some(crate::GroupEdges::Sites(edges)) => edges.clone(),
+        Some(crate::GroupEdges::AllNonNested(score)) => {
+            super::edges::uniform_source_edges(group, &locs, *score)
+        }
         None => Default::default(),
     };
     RefactorFamily {

@@ -233,3 +233,11 @@ pub(crate) fn is_nested(a: &UnitFeat, b: &UnitFeat) -> bool {
         && ((a.start_line <= b.start_line && a.end_line >= b.end_line)
             || (b.start_line <= a.start_line && b.end_line >= a.end_line))
 }
+
+/// Every pair has distinct files or strictly increasing starts and ends.
+pub(crate) fn all_non_nested<F: Ord>(mut spans: Vec<(F, u32, u32)>) -> bool {
+    spans.sort_unstable();
+    !spans
+        .windows(2)
+        .any(|pair| pair[0].0 == pair[1].0 && (pair[0].1 >= pair[1].1 || pair[0].2 >= pair[1].2))
+}

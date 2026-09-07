@@ -7,6 +7,7 @@ use rustc_hash::FxHashMap;
 mod score_runs;
 mod site_cliques;
 mod site_runs;
+mod uniform;
 use score_runs::ScoreRuns;
 pub(crate) use site_runs::SiteEvidence;
 

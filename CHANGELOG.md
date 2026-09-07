@@ -28,7 +28,8 @@ break.
   reported sites, and encode large JSON lists in parallel without changing bytes
   or first-winner evidence rules.
 - Store certified complete site relations as a site count and one exact score,
-  preserving ordered edges while avoiding redundant graph construction.
+  preserving ordered edges while avoiding redundant graph construction. Carry
+  uniform non-nested source relations to ranking to reuse its existing site mapping.
 
 - Stop C-header admission parsing when every remaining parse necessarily contains
   a syntax error, while preserving clean-tree validation and parser reuse safety.

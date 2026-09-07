@@ -19,19 +19,30 @@ pub(super) fn accepted_edges_by_group(
     groups: &[Group],
     accepted: &AcceptedPairs,
 ) -> Vec<GroupEdges> {
-    if accepted.len() <= 1_000_000 {
-        return expanded_edges(units, raw_groups, accepted);
+    let uniform = accepted.uniform_groups(raw_groups, groups);
+    if uniform.iter().all(Option::is_some) {
+        return uniform
+            .into_iter()
+            .map(|score| GroupEdges::AllNonNested(score.unwrap()))
+            .collect();
     }
-    projected_edges(units, raw_groups, groups, accepted)
+    if accepted.len() <= 1_000_000 {
+        return expanded_edges(units, raw_groups, accepted, &uniform);
+    }
+    projected_edges(units, raw_groups, groups, accepted, &uniform)
 }
 
 fn expanded_edges(
     units: &[UnitFeat],
     raw_groups: &[Vec<usize>],
     accepted: &AcceptedPairs,
+    uniform: &[Option<f64>],
 ) -> Vec<GroupEdges> {
     let mut position = vec![None; units.len()];
     for (group, members) in raw_groups.iter().enumerate() {
+        if uniform[group].is_some() {
+            continue;
+        }
         for (local, &unit) in members.iter().enumerate() {
             position[unit] = Some((group, local as u32));
         }
@@ -50,7 +61,11 @@ fn expanded_edges(
     // and classified arrays followed by another serial copy into every group.
     by_group
         .into_par_iter()
-        .map(|pairs| {
+        .enumerate()
+        .map(|(group, pairs)| {
+            if let Some(score) = uniform[group] {
+                return GroupEdges::AllNonNested(score);
+            }
             GroupEdges::Members(
                 pairs
                     .into_par_iter()
@@ -72,16 +87,22 @@ fn projected_edges(
     raw_groups: &[Vec<usize>],
     groups: &[Group],
     accepted: &AcceptedPairs,
+    uniform: &[Option<f64>],
 ) -> Vec<GroupEdges> {
-    let projection = std::sync::Arc::new(Projection::new(units, raw_groups, groups, accepted));
+    let projection = std::sync::Arc::new(Projection::new(
+        units, raw_groups, groups, accepted, uniform,
+    ));
     let large = projection
         .sizes
         .iter()
         .map(|&n| n.saturating_mul(n.saturating_sub(1)) / 2 > 1_000_000)
         .collect::<Vec<_>>();
-    let mut ready = projection.materialize(|group| !large[group]);
+    let mut ready = projection.materialize(|group| !large[group] && uniform[group].is_none());
     (0..groups.len())
         .map(|group| {
+            if let Some(score) = uniform[group] {
+                return GroupEdges::AllNonNested(score);
+            }
             if let Some(edges) = ready[group].take() {
                 return GroupEdges::Sites(crate::AcceptedEdges::from_packed(edges));
             }
@@ -113,11 +134,16 @@ impl Projection {
         raw: &[Vec<usize>],
         groups: &[Group],
         accepted: &AcceptedPairs,
+        uniform: &[Option<f64>],
     ) -> Self {
         let mut position = vec![None; units.len()];
         let mappings = groups
             .par_iter()
-            .map(|group| {
+            .enumerate()
+            .map(|(index, group)| {
+                if uniform[index].is_some() {
+                    return (0, Vec::new());
+                }
                 let collapsed = sites::collapsed_sites(group);
                 (collapsed.len(), sites::member_sites(group, &collapsed))
             })
@@ -351,7 +377,7 @@ mod tests {
             groups[1].witness.as_ref().unwrap().kind(),
             "exact-value-graph"
         );
-        let projection = Projection::new(&units, &raw, &groups, &accepted);
+        let projection = Projection::new(&units, &raw, &groups, &accepted, &vec![None; raw.len()]);
         assert!(projection.keys[..4]
             .iter()
             .all(|key| key.unwrap().2 == projection.keys[0].unwrap().2));
@@ -441,7 +467,7 @@ mod tests {
             &opts,
             false,
         );
-        let projected = projected_edges(&units, &raw, &groups, &accepted);
+        let projected = projected_edges(&units, &raw, &groups, &accepted, &vec![None; raw.len()]);
         let expanded = pairs
             .iter()
             .map(|&(left, right, score)| AcceptedEdge {
@@ -523,7 +549,7 @@ mod tests {
             &opts,
             false,
         );
-        let projected = projected_edges(&units, &raw, &groups, &accepted);
+        let projected = projected_edges(&units, &raw, &groups, &accepted, &vec![None; raw.len()]);
         let expanded = pairs
             .iter()
             .map(|&(left, right, score)| AcceptedEdge {
@@ -533,7 +559,9 @@ mod tests {
                 witness_kind: witness_kind(&[left, right], &units),
             })
             .collect::<Vec<_>>();
-        let GroupEdges::Members(actual) = &expanded_edges(&units, &raw, &accepted)[0] else {
+        let GroupEdges::Members(actual) =
+            &expanded_edges(&units, &raw, &accepted, &vec![None; raw.len()])[0]
+        else {
             unreachable!()
         };
         assert_eq!(actual, &expanded);
