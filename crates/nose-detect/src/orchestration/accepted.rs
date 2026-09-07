@@ -201,12 +201,12 @@ impl AcceptedPairs {
                         union.union(left, right);
                     }
                 } else {
+                    let mut root = union.find(left);
                     for &(right, _) in &targets[start..] {
                         if rows.admits(left, right) {
-                            union.union(left, right);
+                            root = union.union_from_root(root, right);
                         }
                     }
-                    let root = union.find(left);
                     // Every admitted target was just joined to left. Only same-file
                     // targets could have been excluded by nesting and remain outside.
                     let local = rows.by_path[row]

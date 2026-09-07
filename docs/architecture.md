@@ -175,6 +175,9 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    rechecks only same-file targets that may have been excluded by nesting.
    Cross-file targets were already joined. Existing file-position indexes locate
    the remaining checks without changing union order or the represented edges.
+   A row also reuses its current component root between joins, replacing it with
+   the returned root whenever rank changes choose another representative. The
+   original rank rule, target order and resulting representatives stay unchanged.
 
 ## Crates
 
