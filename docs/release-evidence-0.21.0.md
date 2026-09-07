@@ -45,9 +45,21 @@ zero false merges or canonicalization violations. Self-analysis retains nineteen
 reviewed families within budget twenty. The identical prototype crates tree passes
 279 optimized detector tests, strict Clippy and the documentation gate.
 
-Full candidate CI, cache/watch and elapsed-time release qualification remain
-outstanding. Short exploratory comparisons show useful reductions, but do not
-qualify the release or erase the preceding candidate's withdrawal.
+The [validation follow-up](../bench/release/0.21.0/score-validation.v1.json) records
+full local CI at `7efe5a25`: 2,432 optimized tests and 89.69% line coverage. All
+2,100 cache mutation runs and 180 paired SymPy runs preserve output equivalence.
+SymPy clean/empty/history p50 is 2,435/2,595/309 ms versus official 0.20 at
+2,444/2,656/333 ms; all three p95 comparisons remain inside the existing materiality
+limits. Candidate peak RSS is higher and remains recorded. Watch passes thirty
+replays at p95 74.62/363.20 ms for 10k/100k files, including crash recovery.
+
+A separate six-workload exploratory comparison against official 0.20 still finds
+large elapsed slowdowns: Alamofire default +62.4%, libGDX default +34.7%, RxSwift
+default +37.0% and Alamofire near +26.2%; Guava default is +8.9%, while RxSwift
+semantic improves 5.6%. This short screen has no same-binary control and is not a
+formal release verdict. It supports further optimization, not repeating an unchanged
+candidate in search of a passing result. Final-candidate elapsed qualification,
+remote CI and native-package validation remain outstanding. No release is qualified.
 
 ## Previous candidate: explicit relation certificates and elapsed-time qualification
 
