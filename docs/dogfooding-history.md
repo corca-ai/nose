@@ -2279,3 +2279,18 @@ reports four shared common-syntax lines, zero substantive shared-line weight,
 by this observation. Replace the navigation ID, preserve the keep-separate
 judgment, and keep both the reviewed family count and budget unchanged. The
 original failed gate and the full inspection are retained with release evidence.
+
+
+## Incident-site coverage release check (2026-09-08)
+
+The changed source corpus reports eighteen substantial default families within
+budget twenty. The previously reviewed numeric-policy family `60f0dd6d98436972`
+is no longer reported above the gate. Neither `int_bin` nor `float_bin` changed:
+`nose-normalize/src/interp/ops.rs` has the same blob at products `ac68a583` and
+`9c0eb825`. The preceding frozen binary and the incident-site candidate produce
+byte-identical complete self-query JSON on this current tree (88 all-surface
+families). This is source-corpus sensitivity, not removal of numeric duplication
+or a detector regression. Preserve the separate integer and floating-point policies,
+remove the stale baseline ID and retain the budget of twenty. The original failed
+gate, complete self-queries and source comparison are retained under
+`target/release-incidence-qualification-20260908/`.

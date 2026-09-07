@@ -45,7 +45,7 @@
       "consumers": ["local and hosted quality-gate orchestration"],
       "retention_policy": "Keep current policy plus any receipt required to interpret a checked release or gate result.",
       "artifact_count": 7,
-      "inventory_sha256": "e22e3c3aad744d3a42260f0d10a7245ea4c5828a6242cfc7460cdd22d2f8ca92"
+      "inventory_sha256": "404a77cffa1005c0fe1a04291cdf6221434345f479c7d3501710588c94bcf834"
     },
     {
       "id": "benchmark-root",
@@ -143,8 +143,8 @@
       "validator": "./scripts/check-ci-local.sh --gate runtime-soundness-evidence",
       "consumers": ["release workflow and published quality claims"],
       "retention_policy": "Release-bound evidence is immutable and retained for release reconstruction.",
-      "artifact_count": 26,
-      "inventory_sha256": "ef3ee1432f8d141a4b111414cc69d72031cff719619a052e6ef01b2604f13aec"
+      "artifact_count": 27,
+      "inventory_sha256": "57cd669493738c219d1b580a486e641ee0ca8eca0cac53d0e14c8f3d64cb0db9"
     },
     {
       "id": "review-evidence",
@@ -188,7 +188,7 @@
       "consumers": ["Type-4 frontier, query-regression, and adversarial gates"],
       "retention_policy": "Preserve current gold/frontier inputs and any sealed or closeout evidence.",
       "artifact_count": 29,
-      "inventory_sha256": "99591b42f2af9f5a2e0a0730b3c0adf8a947dafb23690f9bf2d3f081833a2d04"
+      "inventory_sha256": "84f8914006b573a718bb5b3d4b6bc2002ad0106243b0c93bb0945a88d5e666fd"
     },
     {
       "id": "documentation-policy",

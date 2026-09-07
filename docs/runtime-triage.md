@@ -4,6 +4,26 @@ Runtime triage turns a query-regression report into a reproducible performance d
 which repos are expected capability cost, which are noisy, and which need a focused fix.
 Use it before optimizing a slow repo by hand.
 
+## Exact incident-site coverage (2026-09-08)
+
+Native profiling finds deferred graph materialization inside opportunity coverage.
+A total, surjective projection of a connected component certifies the exact incident
+site set without enumerating edges. The implementation checks this proof, retains
+partial-mapping and mixed-root fallbacks, and invalidates it for outside appended
+endpoints. Scalar and 512 mapping comparisons preserve the original edge obligations.
+
+The six-workload exploratory comparison keeps all complete outputs. Alamofire default
+coverage changes from 187.9 to 18.3 ms and whole query from 2,924.70 to 2,755.50 ms;
+RxSwift default coverage changes from 94.0 to 7.7 ms and elapsed improves 9.84%.
+Other effects are small and mixed. The separate RSS comparison retains the +6 MB
+libGDX and +38 MB Guava observations alongside Alamofire's -46 MB. This screen has
+no same-binary control and does not qualify a release. The
+[actual-product preflight](../bench/release/0.21.0/incidence-preflight.v1.json) records
+all 377 reference outputs, user journeys, soundness and the reviewed
+self-analysis baseline change. Follow-up profiles still find substantial structural
+scoring and fingerprint merge costs; no claim is made that coverage was the entire
+release blocker.
+
 ## Accepted-row controlled elapsed blocker (2026-09-08)
 
 The frozen `29680487` binary passes correctness, cache/watch, remote soundness and

@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-08. Release decision: **NO-GO (confirmed Alamofire default elapsed regression after focus)**. The feature scope is frozen;
+Updated on 2026-09-08. Release decision: **NOT READY (incident-site candidate passes correctness; final qualification remains outstanding)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -25,7 +25,35 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: accepted-row memory
+## Latest candidate: incident-site coverage
+
+Product `9c0eb825` answers accepted-coverage questions from an exact incident-site
+set when the connected source graph has a total, surjective site mapping. This
+avoids materializing large graphs just to prove or disprove containment. Partial
+mappings, outside appended endpoints and mixed-root cases retain exact fallbacks.
+Every accepted edge, score and output remains available with its original meaning.
+
+The [actual-binary preflight](../bench/release/0.21.0/incidence-preflight.v1.json)
+binds crates tree `e00714dd` and binary `6f51b3ff`. All 360 ordinary and 17 base
+outputs match the retained reference byte for byte. Eight user journeys, Type-4
+checks and eighteen reviewed self-analysis families pass. The preceding binary
+and current binary also produce identical complete self-query outputs on the changed
+source tree; one unchanged numeric-policy family leaves the substantial baseline.
+The isolated product passes 1,108 optimized CLI tests, 282 final detector tests,
+strict Clippy and docs, including 512 total/partial connected mapping comparisons.
+
+A six-workload, three-block exploratory screen preserves every complete output.
+Alamofire default elapsed improves 5.78% (2,924.70 to 2,755.50 ms), with opportunity
+coverage falling from 187.9 to 18.3 ms. RxSwift default elapsed improves 9.84%, with
+coverage falling from 94.0 to 7.7 ms. Other elapsed effects are small and mixed.
+Separate RSS changes are -46 MB for Alamofire, nearly flat for RxSwift, +6 MB for
+libGDX and +38 MB for Guava. No universal memory reduction is claimed.
+These screens have no same-binary control and do not qualify release against
+0.20. Final-product CI, cache/watch, remote/native checks and the complete elapsed
+campaign remain outstanding. The preceding candidate's confirmed failure remains
+preserved below; the measured coverage improvement does not waive that blocker.
+
+## Previous candidate: accepted-row memory
 
 Product `ac68a583` limits file-position indexes to files represented by each source
 row and retains row structure through accepted-score preparation. It preserves all

@@ -1,0 +1,712 @@
+{
+  "schema": "nose.release-incidence-preflight/v1",
+  "version": "0.21.0",
+  "decision": "NOT READY: full correctness preflight passes and targeted latency improves; final-product CI, cache/watch, native-package and elapsed qualification remain separate",
+  "candidate": {
+    "source_sha": "9c0eb82572325b2ce58da6d9d684a74fd41613dc",
+    "crates_tree": "e00714dd9b2afdb7afda4aeeba919c7d7be65017",
+    "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+    "binary": "/Users/ak/prjs/cc/nose/target/release-incidence-qualification-20260908/candidate-nose",
+    "binary_sha256": "6f51b3ff019bb2070980110d633e08c6f9c99a01ba4a115cbb4e1b581bcc6931",
+    "build_log": "/Users/ak/prjs/cc/nose/target/release-incidence-qualification-20260908/build.log",
+    "product_dependencies": {
+      "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+      "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+      "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+    }
+  },
+  "checks": {
+    "ordinary_outputs": {
+      "passed": 360,
+      "reference": "bbc91b01b69a71cd65ed18fd8645f24ba7abf377"
+    },
+    "base_outputs": {
+      "passed": 17,
+      "reviewed_field_drift_unchanged": true
+    },
+    "journeys": {
+      "direct_review": "applicable",
+      "unique_move": "applicable",
+      "verified_sources": {
+        "unavailable": 0,
+        "verified": 4
+      },
+      "stale_source_rejected": true,
+      "added_copy": "recheck",
+      "legacy_optional_metadata": true,
+      "review_no_overwrite": true,
+      "v0_20_cache_upgrade": true
+    },
+    "type4": {
+      "cells": 76,
+      "covered": 41,
+      "hard_negatives": 17,
+      "gaps": 18,
+      "observed_bugs": 0,
+      "blind_exact_groups": 54,
+      "false_merges": 0,
+      "canonicalization_violations": 0
+    },
+    "duplication": {
+      "families": 18,
+      "budget": 20
+    },
+    "detector_tests_on_identical_prototype_crates_tree": 282
+  },
+  "experiment": {
+    "decision": "retain: exact incident-site proofs avoid unnecessary accepted-graph materialization; no release qualification claimed",
+    "source": "17a90ba5c5becefb4201a5e4fcdbf18f3c15c4ae",
+    "complete_output_workloads_equal": 6,
+    "elapsed_screen": [
+      {
+        "repo": "alamofire",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2924.696541391313,
+            "score": 934.2,
+            "groups": 359.5,
+            "query_opp": 187.9
+          },
+          "current": {
+            "elapsed": 2755.50483353436,
+            "score": 933.0,
+            "groups": 347.6,
+            "query_opp": 18.3
+          }
+        }
+      },
+      {
+        "repo": "libgdx",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2273.8455422222614,
+            "score": 804.5,
+            "groups": 65.4,
+            "query_opp": 1.6
+          },
+          "current": {
+            "elapsed": 2240.3673324733973,
+            "score": 763.1,
+            "groups": 60.3,
+            "query_opp": 1.6
+          }
+        }
+      },
+      {
+        "repo": "guava",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2527.2123338654637,
+            "score": 438.9,
+            "groups": 29.8,
+            "query_opp": 3.6
+          },
+          "current": {
+            "elapsed": 2533.417166210711,
+            "score": 432.4,
+            "groups": 32.3,
+            "query_opp": 3.4
+          }
+        }
+      },
+      {
+        "repo": "rxswift",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 903.368541970849,
+            "score": 215.0,
+            "groups": 87.9,
+            "query_opp": 94.0
+          },
+          "current": {
+            "elapsed": 814.4427910447121,
+            "score": 211.4,
+            "groups": 84.2,
+            "query_opp": 7.7
+          }
+        }
+      },
+      {
+        "repo": "rxswift",
+        "mode": "semantic",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 376.36495754122734,
+            "score": 2.9,
+            "groups": 6.0,
+            "query_opp": 2.0
+          },
+          "current": {
+            "elapsed": 378.5597924143076,
+            "score": 3.0,
+            "groups": 5.8,
+            "query_opp": 1.6
+          }
+        }
+      },
+      {
+        "repo": "alamofire",
+        "mode": "near:0.8",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 1987.0361248031259,
+            "score": 748.1,
+            "groups": 61.3,
+            "query_opp": 14.6
+          },
+          "current": {
+            "elapsed": 1971.1750410497189,
+            "score": 741.9,
+            "groups": 57.6,
+            "query_opp": 12.5
+          }
+        }
+      }
+    ],
+    "peak_rss_median_bytes": {
+      "rxswift": {
+        "baseline": 517390336,
+        "current": 516898816
+      },
+      "guava": {
+        "baseline": 1237843968,
+        "current": 1275969536
+      },
+      "alamofire": {
+        "baseline": 2329411584,
+        "current": 2283175936
+      },
+      "libgdx": {
+        "baseline": 965296128,
+        "current": 971161600
+      }
+    },
+    "interpretation": "Exploratory three-block screen without same-binary controls: Alamofire default elapsed improves 5.78% and query_opp 187.9 to 18.3 ms; RxSwift default elapsed improves 9.84% and query_opp 94.0 to 7.7 ms. Other elapsed effects are small and mixed. Separate RSS improves for Alamofire by 46 MB and is nearly flat for RxSwift, but increases by 6 MB for libGDX and 38 MB for Guava. These are retained observations, not a universal memory reduction or an official-0.20 runtime verdict.",
+    "tests": "Initial combined optimized CLI/detector run: 1389 passed. Final detector source with added 512-mapping oracle: 282 passed; strict release Clippy across both crates/all targets and docs passed. Initial pre-incidence coverage-memo fixture failure is preserved; the fixture now executes ordinary-query coverage preparation."
+  },
+  "self_analysis": {
+    "status": "reviewed",
+    "same_current_tree_outputs_equal": true,
+    "removed_baseline_id": "60f0dd6d98436972",
+    "reason": "Previously reviewed int_bin/float_bin numeric-policy family is no longer reported on the changed source corpus; source file is unchanged and old/new binaries have identical complete self-query outputs. No deduplication or detector loss is claimed.",
+    "numeric_source_blobs": {
+      "ac68a583": "098abbd842c9ea0888114e9300bba3e639180885",
+      "9c0eb825": "098abbd842c9ea0888114e9300bba3e639180885"
+    },
+    "runs": [
+      {
+        "side": "baseline",
+        "command": [
+          "/Users/ak/prjs/cc/nose/target/release-row-qualification-20260908/candidate-nose",
+          "query",
+          "crates",
+          "all",
+          "top=0",
+          "--mode",
+          "near",
+          "--min-value",
+          "40",
+          "--format",
+          "json"
+        ],
+        "sha256": "d55700bc4539e6ddfd99bfc04babedaf1603b728c43ef516909628a642f85ed0",
+        "families": 88
+      },
+      {
+        "side": "current",
+        "command": [
+          "/Users/ak/prjs/cc/nose/target/release-incidence-qualification-20260908/candidate-nose",
+          "query",
+          "crates",
+          "all",
+          "top=0",
+          "--mode",
+          "near",
+          "--min-value",
+          "40",
+          "--format",
+          "json"
+        ],
+        "sha256": "d55700bc4539e6ddfd99bfc04babedaf1603b728c43ef516909628a642f85ed0",
+        "families": 88
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "target/release-incidence-qualification-20260908/record-preflight.py",
+      "bytes": 6375,
+      "sha256": "094646e421de41df4b3a6bca285b38e179c051083188eba037c3aa8b3ee873ef"
+    },
+    {
+      "path": "bench/type4/blind_attack.v1.json",
+      "bytes": 974,
+      "sha256": "d46bec853b2c2960bb94f8e17c988976c1e4f3e5c9b12205c0444aed830ca5a2"
+    },
+    {
+      "path": "scripts/duplication-baseline.json",
+      "bytes": 689,
+      "sha256": "2b8a451868f08d1600c84011bae6dd2e4f8250c1c23eeba82dd4db2d63745af0"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/build-source.json",
+      "bytes": 208,
+      "sha256": "6ce9fac17a5401d79aa8dee24b8e5fb0c944a4c8b9ecf8b5432ee991875536a5"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/build.log",
+      "bytes": 211,
+      "sha256": "3d702b398a33770a0e56801034c48b5acba5757a4d44a4c576381ae06a53bda2"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/candidate-identity.json",
+      "bytes": 709,
+      "sha256": "9a3a426a099f07d632ba9cfe1541f078f940141b82199e5713cd24b4615576ec"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/audit-base.py",
+      "bytes": 3876,
+      "sha256": "67a5151d07e3dc911801935e431b463a6bf82f82ffe1678340d72edeeb46f07c"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/audit-candidate.py",
+      "bytes": 1806,
+      "sha256": "9b1e89ca811697e1f035fc8be5817867e45e272e24ffc4023d52003bf7720c8f"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/candidate-output-audit.json",
+      "bytes": 115910,
+      "sha256": "d16f2727aa94010af25878d4f09743220fda424ebc8c1faca04a9b42f26bd371"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/candidate-output-audit.log",
+      "bytes": 9008,
+      "sha256": "e8d4c1e163843b7ccdbd83a4df3f62a7e2376019d1754439ad08da13da46e195"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/output-audit-base.json",
+      "bytes": 42943,
+      "sha256": "8a8986a9c9fa696b3416ec00cc8efa74009d5209eca942c6799bb1557e749789"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/output-audit-base.log",
+      "bytes": 1029,
+      "sha256": "99429358a025425969c02d47c7871f4a483865494ccf9620b918f6215c55ca94"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/review-base.py",
+      "bytes": 1370,
+      "sha256": "cb14651000125747e8daa16c5f0a26c60197479a7e4aa9a2228115d21569cb1f"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/base-drift-review-verdict.json",
+      "bytes": 323,
+      "sha256": "e2cde073934d2c2ec23aeec7a59e6e345635da589d64c7aab36325b7a37ce90a"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/base-drift-review.json",
+      "bytes": 10781,
+      "sha256": "95c54192af8a32ed6d0d811188be440d1fa5cd40583a781c40236a205046c062"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/base-expected-drift.json",
+      "bytes": 12974,
+      "sha256": "cb5306e8b90541e8b7a28957f289e13cb6ae073ec4f779e6752305dd72e072e4"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/base-review.log",
+      "bytes": 72,
+      "sha256": "99bc35c9d034258154c1503072eb9ff93f7dd236373f53f1fa0e0ddee7546da8"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/correctness-progress.json",
+      "bytes": 868,
+      "sha256": "98cac8fc19e656393cc2878f06c6a40ec565fb092a7a555183bffdc2f1ca850c"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/correctness.log",
+      "bytes": 150,
+      "sha256": "fe1ab944e9dddb39250249ca5f3ca406b63d3c288a1cc77bbddf4824ee92a82b"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/correctness.py",
+      "bytes": 962,
+      "sha256": "3a0de757cc9f98c081a6fc2c670c35a4cf425e6e71726c1bc3b488556e4ef673"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/journeys.py",
+      "bytes": 4319,
+      "sha256": "958c1ce6e7d1182ecfb54428a7f461ad5e711a0328f447e4f942206fa4598cd4"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/journeys.json",
+      "bytes": 13156,
+      "sha256": "13a0cb021d14f3fc82f383f0116496964fc78dfce3f5bf3474e98667867caee8"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/journeys.log",
+      "bytes": 264,
+      "sha256": "74b2d8713ee2c327ff26c0f0c840f4e456390da54d5355bbce72aed91862f2c7"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/type4-probe.log",
+      "bytes": 5149,
+      "sha256": "d1603bea4bb1b25010ef290b601bcd509cc33c6334ffd053bc6cd021990b6c1e"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/duplication-reviewed.log",
+      "bytes": 101,
+      "sha256": "b721cb05ecb1210c2cb67c7a8681405962478a546bc75e3e6fb07f0d2bf8a135"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/duplication.log",
+      "bytes": 320,
+      "sha256": "d8475afd03bdac41378a3651edeeb9203662cf6e77c4379edbe615767d303177"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/self-query-baseline.json",
+      "bytes": 717717,
+      "sha256": "d55700bc4539e6ddfd99bfc04babedaf1603b728c43ef516909628a642f85ed0"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/self-query-current.json",
+      "bytes": 717717,
+      "sha256": "d55700bc4539e6ddfd99bfc04babedaf1603b728c43ef516909628a642f85ed0"
+    },
+    {
+      "path": "target/release-incidence-qualification-20260908/self-query-review.json",
+      "bytes": 1423,
+      "sha256": "94b71d34c455d87549461aedeb89f78c9cf403420872db66769b08fd953b2be9"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory.py",
+      "bytes": 2096,
+      "sha256": "8024a6e54a59fd49b79bbac0364ae8d7879612b7b5c52dca77b0779a44edd976"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-profile.py",
+      "bytes": 1500,
+      "sha256": "b34779d63a271fcc80f1d14bd5d71834d98fb26a1d3b1991c390a977c56d5164"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen.py",
+      "bytes": 2844,
+      "sha256": "86fe768f3efa0fafe31cddc96090c47f7127a692a5f3367143b6959e145a176e"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-decision.json",
+      "bytes": 4061,
+      "sha256": "54e7894f35aada3be9c01456ffd81afad83f989182bf52f5a0175bc6728b8aaa"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-identity.json",
+      "bytes": 207,
+      "sha256": "b1cbc32315365775ab1b354f3637de1eb33293d0ec9faf5f45a69fd5ee0ade98"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-design.json",
+      "bytes": 987,
+      "sha256": "cb556af189dd238c2c0461b41cd884eee7bb9b79505accedf2e3d9163cc5acfd"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-results.json",
+      "bytes": 16113,
+      "sha256": "ee633f225c1feda8525ad9b8359929b94285fb36b1fd39bdd14af033651da054"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-profile.json",
+      "bytes": 1973,
+      "sha256": "9b7ac9e8d96d832479b775f184ca65e62408b8343eb99fe44e24051329a2317d"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-alamofire-default.json",
+      "bytes": 21135,
+      "sha256": "84f3c6bea86c55f720f30f4e9e5829e067a19db6c70fcde661d8ffb5b5323d20"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-alamofire-near-0.8.json",
+      "bytes": 21145,
+      "sha256": "fbfb10ed459d722f016d4e32059e1cafcb0759b04affb61f84e00fa34abbf5ed"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-design.json",
+      "bytes": 824,
+      "sha256": "59ce8d0776706df183b0bc9aca7cbd4fd755bfbece0bbf18678fe4930e5696eb"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-guava-default.json",
+      "bytes": 21516,
+      "sha256": "02bae9a52fe4f447e0f73ad5bd3534f25f9aea4f2ec403251a7fb5c200cac40e"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-libgdx-default.json",
+      "bytes": 21282,
+      "sha256": "8c3e066d3f3e10378128ce75a0ea871f40a57ff501220fe64500bf1c5f3893b3"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-results.json",
+      "bytes": 3542,
+      "sha256": "74b52063261a341b9c4d4c9ce8f126ce3ff03a2a4e6cdb9640b3972cb8ccf08e"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-rxswift-default.json",
+      "bytes": 21201,
+      "sha256": "e99cbd32764fa27875d07109d111c1e806bc05fb1bde774324a15ca513c6907c"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-rxswift-semantic.json",
+      "bytes": 20695,
+      "sha256": "8dabdf0808fbb36031209f356e6570ffaa957017c83c4ec8dd963ca3bd0b88bc"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-alamofire-query.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-alamofire-sample.log",
+      "bytes": 267,
+      "sha256": "4964dedbd407b5c72c12b50fca2c402d16b3ddfd7a75e404d3c9ff8c4080515e"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-build.log",
+      "bytes": 247,
+      "sha256": "b5ce31f308ae21e4c641339e24c38851ad08bb58cdd0aa4f00fa43a6d7391483"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-cherry-pick.log",
+      "bytes": 241,
+      "sha256": "8d043c6eeab2aab5d7568525f1f24d521c2bd47e2f67b35987741c201f8902a0"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-clippy.log",
+      "bytes": 1097,
+      "sha256": "27a58a19ead79f6a572cbb48f747fefe97ace064bb1265e3f825e9951dff2be1"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-commit.log",
+      "bytes": 2537,
+      "sha256": "ff27d9373c0fec4f038b5662d541a9bbae50408a9266f2c329c2834792daab9f"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-final-detector-tests.log",
+      "bytes": 27351,
+      "sha256": "aadc477da34b9b189426a15474f485eb5a33e9b41115f89833ba3a65d4beacb3"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-libgdx-query.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-libgdx-sample.log",
+      "bytes": 264,
+      "sha256": "35930f0cabc9492a41ef3c3e9f84e89c2ba77f33f1298f484a3920ecf672e054"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-alamofire-0-baseline.log",
+      "bytes": 777,
+      "sha256": "24de92d745301f009bee20b60a94eea8d96938bdc6990ce625373c2357c497c0"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-alamofire-0-current.log",
+      "bytes": 777,
+      "sha256": "e24c890b029449a29f92ec99f41f6f257587e401cfe7ffc747cd4d05e7810fc3"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-alamofire-1-baseline.log",
+      "bytes": 777,
+      "sha256": "cfad8b4fc28257eeb2b2669ed7e3d0cbf8dec843867d114afb2b0af7e756e130"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-alamofire-1-current.log",
+      "bytes": 777,
+      "sha256": "dbf8f8c8dea01460061399410c0b44ff4765cf3c61941430b97387debae07044"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-alamofire-2-baseline.log",
+      "bytes": 777,
+      "sha256": "acb6d43d1efe3c2934df16675f224bceaaa19b99d65dcfcfd1d27bba6017cfcc"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-alamofire-2-current.log",
+      "bytes": 777,
+      "sha256": "db051c2f1ee29158dfec1a5e7cf18ee5671df4f6347e855d15b1917d1321f05f"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-guava-0-baseline.log",
+      "bytes": 777,
+      "sha256": "ac082697d238d03b765a54d683632462e5dccd11418a93517f6a394c8b833d79"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-guava-0-current.log",
+      "bytes": 777,
+      "sha256": "9e7fc5daf83cfa0a7263d3f263c38d6911ae75d773577dd0e0da2c53341cb4e7"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-guava-1-baseline.log",
+      "bytes": 777,
+      "sha256": "1e042f5f9da056a89bef7ace7cb57f804ca629f38196dd6057758eb99435a993"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-guava-1-current.log",
+      "bytes": 777,
+      "sha256": "f91c01a3a8de8c273088c5860838a5f74e5a77c94f9400ec0717741ab2cc41af"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-guava-2-baseline.log",
+      "bytes": 777,
+      "sha256": "e57f8ae07143a55b43c2abdb11ca2be51f95a7de25555224f7c43b30cdd90d2c"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-guava-2-current.log",
+      "bytes": 777,
+      "sha256": "0e52b0c3e37d68ce1736dcfbaaef0bebba9eb011ea87fa81312c56b35ab9a00b"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-libgdx-0-baseline.log",
+      "bytes": 777,
+      "sha256": "102133332a29a65351f58f173ed4b0a971b6482e360cf72e9ad545fad5881fbc"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-libgdx-0-current.log",
+      "bytes": 777,
+      "sha256": "6f4b6233a632d10819d86cfcc60d308c39cdaf048f8a5cf9044c4f2a11428cd7"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-libgdx-1-baseline.log",
+      "bytes": 777,
+      "sha256": "df2124c7d61be16c0177b2d600766570f69604055162f5d000001600b7dbba0d"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-libgdx-1-current.log",
+      "bytes": 777,
+      "sha256": "9ff10ee4d8aae3d840d338a9c8bbbb69dd147117ec26a48cff5a44f07724ecc7"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-libgdx-2-baseline.log",
+      "bytes": 777,
+      "sha256": "7c501b7f78be5edddd1cf61e7e6ea77e53ad671109bbe0f535decf7b51673a77"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-libgdx-2-current.log",
+      "bytes": 777,
+      "sha256": "30be40a75885e7e73b0678511c6f4dbf7f73a9df693e9dba7f2a9eb63d943ea7"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-rxswift-0-baseline.log",
+      "bytes": 777,
+      "sha256": "72c374b349b3bb94d67e0b7a855c41cbca1582634b2e7d1578cbdb5120f750df"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-rxswift-0-current.log",
+      "bytes": 777,
+      "sha256": "30b507e8589215c2c3c7102ac43d4039a4a27fa7d9ecf9d9cb7e7281dc9f8f5c"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-rxswift-1-baseline.log",
+      "bytes": 777,
+      "sha256": "2bc2ae6b34844763aecc263a2286c7a024051f43a2e75ee4ec0899c02b27aef3"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-rxswift-1-current.log",
+      "bytes": 777,
+      "sha256": "8ea64a1a3726d72c51dafccb694583558fc1ef61e648b7423e6ec223be465e0b"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-rxswift-2-baseline.log",
+      "bytes": 777,
+      "sha256": "a280d2534f05ec0812b779ae2ea0bc93776eaee7bdcbf1efb886bb4698177b12"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory-rxswift-2-current.log",
+      "bytes": 777,
+      "sha256": "50b0e4563a7c1bfeddf3df5cd9abd021bf4c1cc350ede813a5622812b66e8fcc"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-memory.log",
+      "bytes": 219,
+      "sha256": "f25836c2b30efb1a2a49dd9f51fa68f1b26ee42b2ea4e43a99a6ffafd7dd20df"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-profile.log",
+      "bytes": 51,
+      "sha256": "5ded798fed1e49d20de1ea005f019371be160c52b612d4312fe1fc24f3300de6"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-screen.log",
+      "bytes": 1812,
+      "sha256": "361876ec2fdc417c50b2d216c89e70f5db4b35bb92abf5571ba82cf66ec84d28"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-tests.log",
+      "bytes": 135091,
+      "sha256": "c8b5f41b51261d5c0ac8062a04b7659f7fade1babd78bb49c43a7e6e419cb447"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-alamofire.sample.txt",
+      "bytes": 3944785,
+      "sha256": "c0bfd716d2c0df13384aca549b94797f6168a43f7af645519f65ef7166fa2c45"
+    },
+    {
+      "path": "target/release-default-score-20260908/incidence-libgdx.sample.txt",
+      "bytes": 9477657,
+      "sha256": "c74319db9dd7d43051c76c6e9447c027d00620b69509826085ca33f6ac622751"
+    },
+    {
+      "path": "target/release-default-score-20260908/coverage-memo-unmeasured.patch",
+      "bytes": 5090,
+      "sha256": "efe08b7cbaf17e966ab5664daa2be627dc14f663bd8bc41bf02e2a81184a0603"
+    },
+    {
+      "path": "target/release-default-score-20260908/coverage-memo-tests.log",
+      "bytes": 32565,
+      "sha256": "4d9824f21a1f5f867110a88b9652121e69c895a4d651e3e4bf7c6ad5007dfd34"
+    }
+  ]
+}
