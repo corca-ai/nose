@@ -42,10 +42,27 @@ fn pair_count(n: usize) -> usize {
 /// Large product queries retain accepted evidence and bounded connected seeds,
 /// rather than a quadratic persistent index of every rejected pair.
 pub fn prefers_batched_detection(units: &[UnitFeat], opts: &DetectOptions) -> bool {
+    if !opts.structural || opts.emit_pairs {
+        return false;
+    }
+    prefers_batched_buckets(
+        units.len(),
+        opts,
+        &crate::candidates::structural_buckets(units, opts),
+        &crate::candidates::source_span_groups(units),
+    )
+}
+
+pub(crate) fn prefers_batched_buckets(
+    units: usize,
+    opts: &DetectOptions,
+    buckets: &[Vec<u32>],
+    spans: &[usize],
+) -> bool {
     const MAX_INDEXED_PAIRS: usize = 1_000_000;
     opts.structural
         && !opts.emit_pairs
-        && count_with_limit(units, opts, MAX_INDEXED_PAIRS).is_none()
+        && crate::lsh::candidate_count(units, buckets, spans, MAX_INDEXED_PAIRS).is_none()
 }
 
 fn count_with_limit(units: &[UnitFeat], opts: &DetectOptions, limit: usize) -> Option<usize> {

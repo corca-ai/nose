@@ -4,9 +4,41 @@ use crate::{
     FragmentKind,
 };
 use nose_il::UnitKind;
-use std::collections::HashMap;
+use rayon::prelude::*;
+use rustc_hash::FxHashMap;
 
 pub(crate) fn loc_of(u: &UnitFeat, enclosing_unit: Option<EnclosingUnit>) -> Loc {
+    loc_with_analysis_key(u, enclosing_unit, crate::regions::unit_analysis_key(u))
+}
+
+pub(crate) fn group_locations(
+    units: &[UnitFeat],
+    members: &[usize],
+    enclosing: &[Option<EnclosingUnit>],
+    equal_values: bool,
+) -> Vec<Loc> {
+    let Some(&first) = members.first() else {
+        return Vec::new();
+    };
+    let analysis = crate::regions::AnalysisKeyReference::new(&units[first]);
+    members
+        .par_iter()
+        .with_min_len(256)
+        .map(|&index| {
+            loc_with_analysis_key(
+                &units[index],
+                enclosing[index].clone(),
+                analysis.key_for(&units[index], equal_values),
+            )
+        })
+        .collect()
+}
+
+fn loc_with_analysis_key(
+    u: &UnitFeat,
+    enclosing_unit: Option<EnclosingUnit>,
+    analysis_key: nose_il::ContentDigest,
+) -> Loc {
     let fragment_kind = u.fragment_kind;
     let mut loc = Loc::new(LocInit {
         file: u.path.clone(),
@@ -19,7 +51,7 @@ pub(crate) fn loc_of(u: &UnitFeat, enclosing_unit: Option<EnclosingUnit>) -> Loc
         span_tokens: u.token_count,
     });
     loc.source_region = u.source_region.clone();
-    loc.analysis_digest = Some(crate::regions::unit_analysis_key(u));
+    loc.analysis_digest = Some(analysis_key);
     loc.is_fragment = fragment_kind.is_some();
     loc.fragment_kind = fragment_kind;
     loc.reason_code = fragment_kind.map(FragmentKind::reason_code);
@@ -98,7 +130,7 @@ pub(crate) fn connected_loc_of(
 /// locations (all contiguous) carried `name: null` with nothing to anchor a
 /// discussion to (#225). A run that crosses unit boundaries keeps `None`.
 pub(crate) fn attach_enclosing_units(groups: &mut [Group], units: &[UnitFeat]) {
-    let mut by_file: HashMap<&str, Vec<usize>> = HashMap::new();
+    let mut by_file: FxHashMap<&str, Vec<usize>> = FxHashMap::default();
     for (idx, unit) in units.iter().enumerate() {
         if can_enclose_fragment(unit) {
             by_file.entry(unit.path.as_str()).or_default().push(idx);
@@ -147,7 +179,7 @@ pub(crate) fn attach_enclosing_units(groups: &mut [Group], units: &[UnitFeat]) {
 }
 
 pub(crate) fn enclosing_unit_indices(units: &[UnitFeat]) -> Vec<Option<usize>> {
-    let mut by_file: HashMap<&str, Vec<usize>> = HashMap::new();
+    let mut by_file: FxHashMap<&str, Vec<usize>> = FxHashMap::default();
     for (idx, unit) in units.iter().enumerate() {
         by_file.entry(unit.path.as_str()).or_default().push(idx);
     }

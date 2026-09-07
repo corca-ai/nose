@@ -93,6 +93,79 @@ before another group, left site, block, score bit pattern or non-exact witness.
 Uniform and mixed blocks retain the existing score/category winner rule;
 no candidate or evidence edge is omitted.
 
+For disjoint candidate buckets whose members share an exact scorer class,
+ordinary scoring can retain one homogeneous row per bucket. The shortcut is
+available only without connected witnesses; mixed classes or overlapping buckets
+use general refinement. Candidate counts still exclude equal source spans, and
+the existing accepted-row representation preserves every location-based admission
+and ordered score. A shared empty row covers noncandidate units. This optimization
+requires scalar pair/count tests and measured qualification before release.
+
+Exact scoring assigns one zero-score class to all units excluded by its existing
+safety/value-size gate. Such a unit scores zero in either argument position against
+every other unit, so hashing its full value graph cannot distinguish scores.
+Eligible units retain value-specific classes. An exhaustive substitution oracle
+covers both argument directions and the four-node eligibility boundary.
+
+Fresh detection reuses the immutable candidate buckets and source-span index
+already constructed for its bounded index-admission check. Both the explicit
+and batched paths consume these exact inputs, eliminating their second creation.
+The indexed-pair ceiling, candidate ordering, scoring and exclusions are unchanged.
+
+Group location construction may reuse the first member's analysis digest only
+when all six serialized inputs match: selected review values, returns, conditional
+sinks, exact-admission flag, fragment proof facts and semantic laws. Unequal inputs
+retain the original calculation. The reuse is local to immutable group inputs;
+there is no persistent cache, schema change or change to the MessagePack/SHA-256
+identity protocol. An existing whole-group exact witness can supply raw-value
+equality without comparing the same arrays again. This applies only when neither
+member selects review-value overrides; returns, conditional sinks, safety, proof
+facts and semantic laws are still compared independently. This optimization still requires measured qualification.
+
+Identity encoding writes named MessagePack into a 512-byte local buffer, spilling
+to an ordinary owned vector for larger records. Allocation strategy changes only;
+the serialized bytes, domain and length-framed SHA-256 digest remain identical.
+There is no retained per-thread buffer. Enclosing-location lookup uses the existing
+fast hash implementation; each file still resolves parents in the original stable
+span order and writes its results to the same unit indices.
+
+Member evidence remapping sorts the canonical site-pair key in parallel, then
+reduces each equal-pair run to its original winner. Score comparison remains
+`total_cmp`, followed by witness-kind order, so signed zero, NaN payloads and
+thread scheduling cannot alter the reported edge sequence. The scalar ordering
+oracle checks finite/nonfinite scores and invalid endpoints under multiple pools.
+
+Alignment voting uses a fixed array for the 1,199 possible offsets within the
+existing 600-token cap. Per-token positions retain the first eight vote sources
+inline, while the full capped sequence still determines inliers. The largest
+offset wins equal vote counts, preserving directional scores bit for bit against
+an independent scalar oracle, including empty and over-cap sequences.
+
+Consecutive target runs with one exact class, group and score bit pattern retain
+the latest two source occurrences from distinct files for each canonical site.
+For any source index and excluded source file, these two extrema determine exactly
+whether the remaining suffix has a cross-file target. This includes partial
+suffixes and sites interleaved across 64-site blocks, without rescanning every
+occurrence. Masks normalize either endpoint orientation and exclude self edges.
+Short runs, nonfinite scores and mismatched classes keep scalar admission. Runs
+retain score-bit order; within-file nesting continues through its original check.
+As source indices advance, ordered expiry events update each block's active and
+file-exclusion masks once per event. Repeated queries read the masks directly.
+Scalar oracles cover repeated file owners, suffix boundaries and mixed blocks.
+These optimizations require measured qualification before release.
+
+Projection reuses the existing whole-group exact-value witness when it already
+proves that every member is eligible and has the same value graph. Such a group
+needs one local class and no anchor classification, because all admitted pairs
+stay inside their component. Mixed groups retain full value/safety/anchor inputs
+and independent exact classes; unreported units receive neither class. Class
+namespaces remain disjoint. This reuses an existing proof, not a new merge rule.
+
+Bounded expanded evidence is partitioned into source-ordered groups before
+parallel witness classification. This removes the global classified intermediate
+and its serial copy, retaining group and edge order. The same scalar coverage
+oracle checks both expanded and packed output.
+
 ## When Required
 
 Run this process when a PR, release candidate, or post-release follow-up changes semantic

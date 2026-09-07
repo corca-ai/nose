@@ -1,6 +1,6 @@
 //! Project direct evidence to ranking's canonical sites, preserving the winning
 //! accepted score and witness. The coordinate domain is explicit in GroupEdges.
-use super::{exact_claim_eligible, round3, witness_kind, AcceptedPairs, Group, UnitFeat};
+use super::{round3, witness_kind, AcceptedPairs, Group, UnitFeat};
 use crate::{
     report::{
         edges::{Evidence, SiteEdgeBuilder},
@@ -9,9 +9,9 @@ use crate::{
     AcceptedEdge, GroupEdges,
 };
 use rayon::prelude::*;
-use rustc_hash::FxHashMap;
 
 mod exact_blocks;
+mod inputs;
 
 pub(super) fn accepted_edges_by_group(
     units: &[UnitFeat],
@@ -36,33 +36,35 @@ fn expanded_edges(
             position[unit] = Some((group, local as u32));
         }
     }
-    // Keep the ordinary parallel classification path within a bounded allocation.
-    let pairs = accepted.iter().collect::<Vec<_>>();
-    let classified = pairs
-        .par_iter()
-        .filter_map(|&(left, right, score)| {
-            let (Some((group, a)), Some((other, b))) = (position[left], position[right]) else {
-                return None;
-            };
-            debug_assert_eq!(group, other);
-            (group == other).then(|| {
-                (
-                    group,
-                    AcceptedEdge {
-                        left: a,
-                        right: b,
+    let mut by_group = vec![Vec::new(); raw_groups.len()];
+    for (left, right, score) in accepted.iter() {
+        let (Some((group, _)), Some((other, _))) = (position[left], position[right]) else {
+            continue;
+        };
+        debug_assert_eq!(group, other);
+        if group == other {
+            by_group[group].push((left, right, score));
+        }
+    }
+    // Each group owns its source-ordered evidence directly. Avoid global pair
+    // and classified arrays followed by another serial copy into every group.
+    by_group
+        .into_par_iter()
+        .map(|pairs| {
+            GroupEdges::Members(
+                pairs
+                    .into_par_iter()
+                    .with_min_len(256)
+                    .map(|(left, right, score)| AcceptedEdge {
+                        left: position[left].unwrap().1,
+                        right: position[right].unwrap().1,
                         score: round3(score),
                         witness_kind: witness_kind(&[left, right], units),
-                    },
-                )
-            })
+                    })
+                    .collect(),
+            )
         })
-        .collect::<Vec<_>>();
-    let mut edges = vec![Vec::new(); raw_groups.len()];
-    for (group, edge) in classified {
-        edges[group].push(edge);
-    }
-    edges.into_iter().map(GroupEdges::Members).collect()
+        .collect()
 }
 
 fn projected_edges(
@@ -127,35 +129,12 @@ impl Projection {
                 position[unit] = site.map(|site| (group_id, site));
             }
         }
-        let mut witnesses = FxHashMap::default();
-        let mut anchors = Vec::new();
-        let keys = units
-            .iter()
-            .zip(position)
-            .map(|(unit, position)| {
-                let (group, site) = position?;
-                let next = witnesses.len();
-                let class = *witnesses
-                    .entry((
-                        &unit.value,
-                        unit.exact_safe,
-                        unit.anchors
-                            .iter()
-                            .map(|a| (a.hash, a.weight))
-                            .collect::<Vec<_>>(),
-                    ))
-                    .or_insert(next);
-                if class == next {
-                    anchors.push(unit.anchors.clone());
-                }
-                Some((group, site, class))
-            })
-            .collect();
+        let inputs = inputs::WitnessInputs::new(units, &position, groups);
         Self {
             accepted: accepted.clone(),
-            keys,
-            exact: exact_classes(units),
-            anchors,
+            keys: inputs.keys,
+            exact: inputs.exact,
+            anchors: inputs.anchors,
             floor: nose_normalize::anchor_min_weight(),
             sizes,
         }
@@ -195,7 +174,28 @@ impl Projection {
         let mut kinds = vec![None; self.anchors.len()];
         let mut exact_blocks = exact_blocks::ExactBlocks::default();
         self.accepted
-            .visit_site_evidence(&keys, |(left, right, score)| {
+            .visit_projected_evidence(&keys, &self.exact, |evidence| {
+                use crate::orchestration::accepted::SiteEvidence;
+                let (left, right, score) = match evidence {
+                    SiteEvidence::Pair(pair) => pair,
+                    SiteEvidence::ExactMask {
+                        left,
+                        block,
+                        mask,
+                        score,
+                    } => {
+                        let (group, site, _) = keys[left].unwrap();
+                        exact_blocks.push_sites(
+                            &mut edges,
+                            group,
+                            site,
+                            block,
+                            mask,
+                            round3(score),
+                        );
+                        return;
+                    }
+                };
                 let (Some((group, a, left_class)), Some((other, b, right_class))) =
                     (keys[left], keys[right])
                 else {
@@ -235,16 +235,7 @@ impl Projection {
                 {
                     kind
                 } else {
-                    let kind = if super::shared_anchor_weight_at_floor(
-                        &self.anchors[left_class],
-                        &self.anchors[right_class],
-                        self.floor,
-                    ) > 0
-                    {
-                        "shared-sub-dag"
-                    } else {
-                        "structural-similarity"
-                    };
+                    let kind = self.anchor_witness_kind(left_class, right_class);
                     kinds[right_class] = Some((left_class, kind));
                     kind
                 };
@@ -265,26 +256,114 @@ impl Projection {
             .map(|builder| builder.map(SiteEdgeBuilder::into_edges))
             .collect()
     }
-}
 
-fn exact_classes(units: &[UnitFeat]) -> Vec<Option<usize>> {
-    let mut classes = FxHashMap::default();
-    units
-        .iter()
-        .map(|unit| {
-            if !exact_claim_eligible(unit) {
-                return None;
-            }
-            let next = classes.len();
-            Some(*classes.entry(&unit.value).or_insert(next))
-        })
-        .collect()
+    fn anchor_witness_kind(&self, left_class: usize, right_class: usize) -> &'static str {
+        if super::shared_anchor_weight_at_floor(
+            &self.anchors[left_class],
+            &self.anchors[right_class],
+            self.floor,
+        ) > 0
+        {
+            "shared-sub-dag"
+        } else {
+            "structural-similarity"
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use nose_il::{FileId, Interner, Lang};
+
+    #[test]
+    fn exact_group_proof_reuse_preserves_mixed_group_witnesses() {
+        let interner = Interner::new();
+        let il = nose_frontend::lower_source(
+            FileId(0),
+            "f.py",
+            b"def f(x):\n    return x * x + 7\n",
+            Lang::Python,
+            &interner,
+        )
+        .unwrap();
+        let opts = crate::DetectOptions {
+            min_tokens: 1,
+            min_lines: 1,
+            ..Default::default()
+        };
+        let units = (0..9)
+            .map(|i| {
+                let mut unit = crate::units_of_file(&il, &interner, &opts).remove(0);
+                unit.path = format!("{i}.py");
+                unit.exact_safe = i < 4 || i % 2 == 0;
+                if i % 2 == 1 {
+                    unit.anchors.clear();
+                }
+                unit
+            })
+            .collect::<Vec<_>>();
+        let raw = vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7]];
+        let pairs = raw
+            .iter()
+            .flat_map(|members| {
+                members.iter().enumerate().flat_map(|(index, &left)| {
+                    members[index + 1..]
+                        .iter()
+                        .map(move |&right| (left, right, 0.75 + right as f64 / 100.0))
+                })
+            })
+            .collect::<Vec<_>>();
+        let accepted = AcceptedPairs::from(pairs.clone());
+        let (groups, _) = crate::candidates::build_groups(
+            &units,
+            &accepted,
+            &raw,
+            &vec![None; units.len()],
+            &opts,
+            false,
+        );
+        assert_eq!(
+            groups[0].witness.as_ref().unwrap().kind(),
+            "exact-value-graph"
+        );
+        assert_ne!(
+            groups[1].witness.as_ref().unwrap().kind(),
+            "exact-value-graph"
+        );
+        let projection = Projection::new(&units, &raw, &groups, &accepted);
+        assert!(projection.keys[..4]
+            .iter()
+            .all(|key| key.unwrap().2 == projection.keys[0].unwrap().2));
+        assert_ne!(projection.exact[0], projection.exact[4]);
+        assert_eq!(projection.keys[8], None);
+        assert_eq!(projection.exact[8], None);
+        let actual = projection.materialize(|_| true);
+        for (group, members) in raw.iter().enumerate() {
+            let expected = pairs
+                .iter()
+                .filter_map(|&(left, right, score)| {
+                    let a = members.iter().position(|&index| index == left)?;
+                    let b = members.iter().position(|&index| index == right)?;
+                    Some(AcceptedEdge {
+                        left: a as u32,
+                        right: b as u32,
+                        score: round3(score),
+                        witness_kind: witness_kind(&[left, right], &units),
+                    })
+                })
+                .collect::<Vec<_>>();
+            let expected = crate::report::collapsed_accepted_edges(
+                &groups[group],
+                &sites::collapsed_sites(&groups[group]),
+                &expected,
+            );
+            assert_eq!(
+                actual[group].as_ref().unwrap().iter().collect::<Vec<_>>(),
+                expected
+            );
+        }
+    }
 
     #[test]
     fn unmapped_bridge_does_not_claim_direct_site_evidence() {
@@ -434,6 +513,10 @@ mod tests {
                 witness_kind: witness_kind(&[left, right], &units),
             })
             .collect::<Vec<_>>();
+        let GroupEdges::Members(actual) = &expanded_edges(&units, &raw, &accepted)[0] else {
+            unreachable!()
+        };
+        assert_eq!(actual, &expanded);
         let sites = sites::collapsed_sites(&groups[0]);
         let collapse = |edges: &[AcceptedEdge]| {
             crate::report::collapsed_accepted_edges(&groups[0], &sites, edges)

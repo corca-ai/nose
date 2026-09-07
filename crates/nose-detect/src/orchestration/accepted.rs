@@ -5,7 +5,9 @@ use crate::UnitFeat;
 use rustc_hash::FxHashMap;
 
 mod score_runs;
+mod site_runs;
 use score_runs::ScoreRuns;
+pub(crate) use site_runs::SiteEvidence;
 
 #[derive(Clone, Debug)]
 pub(crate) enum AcceptedPairs {
@@ -221,40 +223,51 @@ impl AcceptedPairs {
     /// Keys identify the same reported site and complete pair-witness inputs.
     /// Earlier members of an identical scoring row cover every later cross-file
     /// target. Within-file exclusions remain specific to each source occurrence.
-    pub(crate) fn visit_site_evidence(
+    pub(crate) fn visit_projected_evidence(
         &self,
         keys: &[Option<(usize, u32, usize)>],
-        mut visit: impl FnMut(AcceptedPair),
+        exact: &[Option<usize>],
+        mut visit: impl FnMut(SiteEvidence),
     ) {
         let Self::Rows(rows) = self else {
-            self.iter().for_each(visit);
+            self.iter().for_each(|pair| visit(SiteEvidence::Pair(pair)));
             return;
         };
         let mut seen = rustc_hash::FxHashSet::default();
-        let targets = rows.site_targets(keys);
+        let mut targets = rows
+            .site_targets(keys)
+            .into_iter()
+            .map(|targets| site_runs::TargetRuns::new(targets, keys, exact, &rows.locations))
+            .collect::<Vec<_>>();
         for (left, &key) in keys.iter().enumerate() {
             let Some(key) = key else {
                 continue;
             };
             let row = rows.row_of[left];
             if seen.insert((row, key, rows.locations[left].0)) {
-                let targets = &targets[row];
-                let start = targets.partition_point(|&(right, _)| right <= left);
-                for &(right, score) in &targets[start..] {
-                    if rows.locations[left].0 != rows.locations[right].0 {
-                        visit((left, right, score));
-                    }
-                }
+                targets[row].visit(left, key, exact[left], &rows.locations, &mut visit);
             }
             if let Some(positions) = rows.by_path[row].get(&rows.locations[left].0) {
                 for &position in positions {
                     let &(right, score) = &rows.targets[row][position];
                     if rows.admits(left, right) {
-                        visit((left, right, score));
+                        visit(SiteEvidence::Pair((left, right, score)));
                     }
                 }
             }
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn visit_site_evidence(
+        &self,
+        keys: &[Option<(usize, u32, usize)>],
+        mut visit: impl FnMut(AcceptedPair),
+    ) {
+        self.visit_projected_evidence(keys, &vec![None; keys.len()], |evidence| match evidence {
+            SiteEvidence::Pair(pair) => visit(pair),
+            SiteEvidence::ExactMask { .. } => unreachable!("no exact classes supplied"),
+        });
     }
 
     pub(crate) fn extend(&mut self, pairs: impl IntoIterator<Item = AcceptedPair>) {

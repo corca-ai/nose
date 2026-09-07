@@ -253,3 +253,134 @@ fn repeated_content_uses_local_indexes_with_linear_candidate_cost() {
     assert_eq!(result.candidates_examined, 1000);
     assert!(result.correspondences.iter().all(|r| r.unchanged_evidence));
 }
+
+#[test]
+fn shared_analysis_key_checks_every_serialized_input() {
+    let mut reference = units(&[("a.py", SOURCE)]).pop().unwrap();
+    reference.review_value = None;
+    reference.proof_facts = Some(crate::fragment::ProofFacts::self_field_body());
+    let shared = AnalysisKeyReference::new(&reference);
+    let legacy = digest(
+        b"nose.region-analysis/v1",
+        &(
+            &reference.value,
+            &reference.returns,
+            &reference.cond_sinks,
+            reference.exact_safe,
+            &reference.proof_facts,
+            &reference.semantic_laws,
+        ),
+    );
+    assert_eq!(shared.key_for(&reference, false), legacy);
+    for field in 0..6 {
+        let mut changed = units(&[("a.py", SOURCE)]).pop().unwrap();
+        changed.path = "moved.py".into();
+        changed.review_value = None;
+        changed.proof_facts = reference.proof_facts;
+        assert_eq!(shared.key_for(&changed, false), legacy);
+        match field {
+            0 => changed.value.push(u64::MAX),
+            1 => changed.returns.push(u64::MAX),
+            2 => changed.cond_sinks.push(u64::MAX),
+            3 => changed.exact_safe = !changed.exact_safe,
+            4 => changed.proof_facts.as_mut().unwrap().context_safe = true,
+            5 => changed
+                .semantic_laws
+                .push(nose_semantics::ValueLaw::AddCommutativity),
+            _ => unreachable!(),
+        }
+        assert_ne!(unit_analysis_key(&changed), legacy);
+        assert_eq!(shared.key_for(&changed, false), unit_analysis_key(&changed));
+        if field != 0 {
+            assert_eq!(shared.key_for(&changed, true), unit_analysis_key(&changed));
+        }
+    }
+}
+
+#[test]
+fn shared_analysis_key_uses_the_selected_review_values() {
+    let mut source = units(&[("a.py", SOURCE), ("b.py", SOURCE)]);
+    let mut changed = source.pop().unwrap();
+    let mut reference = source.pop().unwrap();
+    reference.review_value = None;
+    changed.review_value = Some(nose_normalize::ReviewValueFingerprint {
+        values: reference.value.clone(),
+        returns: reference.returns.clone(),
+        cond_sinks: reference.cond_sinks.clone(),
+    });
+    changed.value.push(u64::MAX);
+    changed.returns.push(u64::MAX);
+    changed.cond_sinks.push(u64::MAX);
+    let shared = AnalysisKeyReference::new(&reference);
+    assert_eq!(
+        shared.key_for(&changed, false),
+        unit_analysis_key(&reference)
+    );
+    changed
+        .review_value
+        .as_mut()
+        .unwrap()
+        .returns
+        .push(u64::MAX);
+    assert_ne!(
+        shared.key_for(&changed, false),
+        unit_analysis_key(&reference)
+    );
+    assert_eq!(shared.key_for(&changed, false), unit_analysis_key(&changed));
+}
+
+#[test]
+fn group_locations_preserve_each_members_key_and_order() {
+    let mut source = units(&[("a.py", SOURCE), ("b.py", SOURCE), ("c.py", SOURCE)]);
+    source[1].exact_safe = !source[1].exact_safe;
+    let enclosing = vec![None; source.len()];
+    let members = [2, 0, 1, 2];
+    let actual = crate::locations::group_locations(&source, &members, &enclosing, true);
+    let expected = members
+        .iter()
+        .map(|&index| crate::locations::loc_of(&source[index], None))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        actual
+            .iter()
+            .map(|loc| loc.analysis_digest)
+            .collect::<Vec<_>>(),
+        expected
+            .iter()
+            .map(|loc| loc.analysis_digest)
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        rmp_serde::to_vec(&actual).unwrap(),
+        rmp_serde::to_vec(&expected).unwrap()
+    );
+    assert!(crate::locations::group_locations(&source, &[], &enclosing, true).is_empty());
+}
+
+#[test]
+fn exact_value_evidence_keeps_selected_review_overrides() {
+    let mut reference = units(&[("a.py", SOURCE)]).pop().unwrap();
+    let mut changed = units(&[("b.py", SOURCE)]).pop().unwrap();
+    reference.review_value = None;
+    changed.review_value = None;
+    assert_eq!(reference.value, changed.value);
+    assert_eq!(
+        AnalysisKeyReference::new(&reference).key_for(&changed, true),
+        unit_analysis_key(&changed)
+    );
+    changed.review_value = Some(nose_normalize::ReviewValueFingerprint {
+        values: vec![u64::MAX],
+        returns: vec![1],
+        cond_sinks: vec![2],
+    });
+    assert_ne!(unit_analysis_key(&changed), unit_analysis_key(&reference));
+    assert_eq!(
+        AnalysisKeyReference::new(&reference).key_for(&changed, true),
+        unit_analysis_key(&changed)
+    );
+    // An override on the reference side likewise prevents raw-value reuse.
+    assert_eq!(
+        AnalysisKeyReference::new(&changed).key_for(&reference, true),
+        unit_analysis_key(&reference)
+    );
+}

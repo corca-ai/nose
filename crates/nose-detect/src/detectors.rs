@@ -97,15 +97,17 @@ impl Detector for ExactBehaviorDetector {
     }
 
     fn score_classes(&self, units: &[UnitFeat]) -> Option<Vec<usize>> {
-        Some(inputs::classes(
-            units.iter().map(|unit| (&unit.value, unit.exact_safe)),
-        ))
+        Some(inputs::classes(units.iter().map(|unit| {
+            // Ineligible units score zero in both argument positions against
+            // every other unit; their value contents cannot distinguish scores.
+            exact_claim_eligible_parts(unit.exact_safe, unit.value.len()).then_some(&unit.value)
+        })))
     }
 }
 
-/// The v1 default: weighted multiset Jaccard over subtree shapes, blended with an
-/// LCS alignment over the linearized IL. A cheap Jaccard prefilter skips the
-/// (more expensive) LCS for obviously-dissimilar pairs.
+/// The v1 default: weighted multiset Jaccard over subtree shapes, blended with
+/// translation-consensus alignment over the linearized IL. A cheap Jaccard
+/// prefilter skips alignment for obviously-dissimilar pairs.
 pub struct StructuralDetector {
     scoring: crate::ScoreConfig,
     pub jaccard_weight: f64,
@@ -296,11 +298,11 @@ impl StructuralDetector {
             }
         }
         if 0.6 * vj + 0.4 * sj < 0.15 {
-            return 0.6 * vj + 0.4 * sj; // prefilter: not worth the alignment DP
+            return 0.6 * vj + 0.4 * sj; // prefilter: not worth the alignment
         }
         // Score-preserving early-exit: RANSAC (≤1) and the gates only lower the
         // score, so if the upper bound `wv·vj+ws·sj+wr` can't reach threshold the
-        // pair is rejected anyway — skip the alignment DP.
+        // pair is rejected anyway — skip the alignment.
         if !protocol_match && wv * vj + ws * sj + wr < self.accept_threshold {
             return wv * vj + ws * sj + wr;
         }

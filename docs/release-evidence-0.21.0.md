@@ -25,7 +25,28 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: exact evidence masks
+## Latest candidate: exact proof and evidence reuse
+
+The replacement candidate removes repeated candidate-input construction, gives
+ineligible exact-scoring units one proven zero-score class, and scores disjoint
+homogeneous buckets without general row refinement. Group evidence is built in
+source order, canonical edge ranking retains the original winner rule, and
+projection reuses already-established whole-group exact evidence. Suffix masks
+preserve file exclusions and every source cutoff. Alignment voting and identity
+serialization retain their exact scores and bytes while reducing allocation.
+The mechanisms and limits are documented in [runtime triage](runtime-triage.md).
+
+The isolated product sources pass 262 optimized detector tests, strict Clippy
+and the documentation gate. All 360 default/semantic/near outputs match the
+previous candidate byte for byte. Balanced diagnostics confirm reductions in
+homogeneous scoring and several grouping/ranking workloads; their smaller,
+mixed effects are not full release qualification. The replacement still needs
+full local CI, base-output and user-journey checks, cache/watch measurements,
+published-baseline timing, remote soundness and native package verification.
+The failed exact-mask qualification below remains retained. Release stays NO-GO
+until the replacement satisfies every unchanged gate.
+
+## Previous candidate: exact evidence masks
 
 Product `5e46ec4b` batches consecutive identical exact evidence into a 64-site
 mask before updating sparse edge storage. Scores, witness winners, source

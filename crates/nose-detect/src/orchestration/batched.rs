@@ -2,20 +2,23 @@
 use super::{
     connected_pricing::connected_seed_indices, scoring::score_with_classes, stages::DetectionStages,
 };
-use crate::{
-    candidates::{source_span_groups, structural_buckets},
-    DetectOptions, Detector, UnitFeat,
-};
+#[cfg(test)]
+use crate::candidates::{source_span_groups, structural_buckets};
+use crate::{DetectOptions, Detector, UnitFeat};
 mod class_rows;
+mod disjoint;
 
 pub(super) fn score(
     units: &[UnitFeat],
     opts: &DetectOptions,
     detector: &dyn Detector,
+    buckets: &[Vec<u32>],
+    groups: &[usize],
 ) -> DetectionStages {
-    score_with_batch_size(units, opts, detector, 262_144)
+    score_prepared(units, opts, detector, buckets, groups, 262_144)
 }
 
+#[cfg(test)]
 fn score_with_batch_size(
     units: &[UnitFeat],
     opts: &DetectOptions,
@@ -24,16 +27,33 @@ fn score_with_batch_size(
 ) -> DetectionStages {
     let buckets = structural_buckets(units, opts);
     let groups = source_span_groups(units);
-    let classes = detector.score_classes(units).filter(|ids| {
+    score_prepared(units, opts, detector, &buckets, &groups, batch_size)
+}
+
+fn score_prepared(
+    units: &[UnitFeat],
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+    buckets: &[Vec<u32>],
+    groups: &[usize],
+    batch_size: usize,
+) -> DetectionStages {
+    let classes = detector.score_classes(units).inspect(|ids| {
         assert_eq!(
             ids.len(),
             units.len(),
             "score classes must cover every unit"
         );
-        ids.iter().collect::<rustc_hash::FxHashSet<_>>().len() <= units.len() / 2
     });
     if let Some(classes) = &classes {
-        return class_rows::score(units, opts, detector, &buckets, &groups, classes);
+        if let Some(result) = disjoint::score(units, opts, detector, buckets, groups, classes) {
+            return result;
+        }
+    }
+    let classes = classes
+        .filter(|ids| ids.iter().collect::<rustc_hash::FxHashSet<_>>().len() <= units.len() / 2);
+    if let Some(classes) = &classes {
+        return class_rows::score(units, opts, detector, buckets, groups, classes);
     }
     let paths = units
         .iter()
@@ -44,7 +64,7 @@ fn score_with_batch_size(
         .map(|unit| unit.connected_tokens.len())
         .collect::<Vec<_>>();
     let mut result = DetectionStages::fresh(Vec::new(), Vec::new(), Vec::new());
-    crate::lsh::visit_batches(units.len(), &buckets, &groups, batch_size, |batch| {
+    crate::lsh::visit_batches(units.len(), buckets, groups, batch_size, |batch| {
         let (scored, accepted) =
             score_with_classes(units, batch, detector, opts.threshold, classes.as_deref());
         result.candidate_count += batch.len();

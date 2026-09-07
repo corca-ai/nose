@@ -136,14 +136,20 @@ pub(crate) fn collapsed_accepted_edges(
             })
         })
         .collect();
-    edges.sort_by(|a, b| {
-        a.left
-            .cmp(&b.left)
-            .then(a.right.cmp(&b.right))
-            .then_with(|| b.score.total_cmp(&a.score))
-            .then(a.witness_kind.cmp(b.witness_kind))
+    edges.par_sort_unstable_by_key(|edge| (u64::from(edge.left) << 32) | u64::from(edge.right));
+    edges.dedup_by(|next, kept| {
+        if next.left != kept.left || next.right != kept.right {
+            return false;
+        }
+        // Retain the original total-order winner, including signed zero and NaN
+        // payloads. Order among otherwise identical edges is unobservable.
+        let order = next.score.total_cmp(&kept.score);
+        if order.is_gt() || (order.is_eq() && next.witness_kind < kept.witness_kind) {
+            kept.score = next.score;
+            kept.witness_kind = next.witness_kind;
+        }
+        true
     });
-    edges.dedup_by(|a, b| a.left == b.left && a.right == b.right);
     edges
 }
 

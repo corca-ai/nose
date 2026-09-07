@@ -2,9 +2,9 @@ use crate::{
     align,
     detectors::env_or,
     exact_policy::exact_claim_eligible,
-    locations::{connected_loc_of, loc_of},
+    locations::{connected_loc_of, group_locations},
     lsh,
-    model::{EnclosingUnit, EquivalenceWitness, Group, Loc},
+    model::{EnclosingUnit, EquivalenceWitness, Group},
     options::DetectOptions,
     units::{self, UnitFeat},
 };
@@ -83,6 +83,7 @@ fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn structural_candidates(
     units: &[UnitFeat],
     opts: &DetectOptions,
@@ -168,11 +169,12 @@ pub(crate) fn build_groups(
         .map(|(group_index, members)| {
             let (sum, n) = by_group[group_index];
             let score = if n == 0 { 0.0 } else { sum / n as f64 };
-            let mut locs: Vec<Loc> = members
-                .par_iter()
-                .with_min_len(256)
-                .map(|&m| loc_of(&units[m], enclosing[m].clone()))
-                .collect();
+            let witness = group_witness(members, units);
+            let equal_values = matches!(
+                &witness.evidence,
+                crate::WitnessEvidence::ExactValueGraph { .. }
+            );
+            let mut locs = group_locations(units, members, enclosing, equal_values);
             // If every member shares a heavy sub-DAG (a partial / sub-DAG clone), annotate each
             // site with its OWN source range for that shared computation — so the report can point
             // at where the shared logic lives in each copy, not just that one exists.
@@ -199,7 +201,7 @@ pub(crate) fn build_groups(
                 } else {
                     None
                 },
-                witness: Some(group_witness(members, units)),
+                witness: Some(witness),
             }
         })
         .collect();

@@ -11,31 +11,74 @@ pub use snapshot::{RegionRecord, RegionSnapshot};
 
 use crate::{Loc, RefactorFamily, UnitFeat};
 use nose_il::ContentDigest;
-use serde::Serialize;
 
-pub(crate) fn digest(domain: &[u8], value: &impl Serialize) -> ContentDigest {
-    let bytes = rmp_serde::to_vec_named(value).expect("identity records serialize");
-    ContentDigest::derive(domain, &[&bytes])
-}
+mod encoding;
+pub(crate) use encoding::digest;
 
-pub(crate) fn unit_analysis_key(unit: &UnitFeat) -> ContentDigest {
+type AnalysisInputs<'a> = (
+    &'a [u64],
+    &'a [u64],
+    &'a [u64],
+    bool,
+    &'a Option<crate::fragment::ProofFacts>,
+    &'a [nose_semantics::ValueLaw],
+);
+
+fn analysis_inputs(unit: &UnitFeat) -> AnalysisInputs<'_> {
     let (values, returns, cond_sinks) = unit
         .review_value
         .as_ref()
         .map_or((&unit.value, &unit.returns, &unit.cond_sinks), |review| {
             (&review.values, &review.returns, &review.cond_sinks)
         });
-    digest(
-        b"nose.region-analysis/v1",
-        &(
-            values,
-            returns,
-            cond_sinks,
-            unit.exact_safe,
-            &unit.proof_facts,
-            &unit.semantic_laws,
-        ),
+    (
+        values,
+        returns,
+        cond_sinks,
+        unit.exact_safe,
+        &unit.proof_facts,
+        &unit.semantic_laws,
     )
+}
+
+pub(crate) fn unit_analysis_key(unit: &UnitFeat) -> ContentDigest {
+    digest(b"nose.region-analysis/v1", &analysis_inputs(unit))
+}
+
+/// Reuse a group member's digest only for identical complete serialized inputs.
+pub(crate) struct AnalysisKeyReference<'a> {
+    inputs: AnalysisInputs<'a>,
+    raw_values: bool,
+    digest: ContentDigest,
+}
+
+impl<'a> AnalysisKeyReference<'a> {
+    pub(crate) fn new(unit: &'a UnitFeat) -> Self {
+        Self {
+            inputs: analysis_inputs(unit),
+            raw_values: unit.review_value.is_none(),
+            digest: unit_analysis_key(unit),
+        }
+    }
+
+    /// `equal_values` must come from evidence that raw unit values are equal.
+    /// Selected review overrides and all other serialized inputs remain independent.
+    pub(crate) fn key_for(&self, unit: &UnitFeat, equal_values: bool) -> ContentDigest {
+        let inputs = analysis_inputs(unit);
+        let known_values = equal_values && self.raw_values && unit.review_value.is_none();
+        debug_assert!(!known_values || self.inputs.0 == inputs.0);
+        if (known_values || self.inputs.0 == inputs.0)
+            && self.inputs.1 == inputs.1
+            && self.inputs.2 == inputs.2
+            && self.inputs.3 == inputs.3
+            && self.inputs.4 == inputs.4
+            && self.inputs.5 == inputs.5
+        {
+            self.digest
+        } else {
+            unit_analysis_key(unit)
+        }
+    }
 }
 
 /// Pathless source/region signature, shared by identical occurrences. Byte

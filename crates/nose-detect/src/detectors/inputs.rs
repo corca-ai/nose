@@ -42,6 +42,70 @@ pub(super) fn classes<T: Eq + Hash>(inputs: impl Iterator<Item = T>) -> Vec<usiz
 mod tests {
     use super::*;
 
+    #[test]
+    fn exact_zero_class_is_interchangeable_in_both_arguments() {
+        use crate::{DetectOptions, Detector, ExactBehaviorDetector};
+        use nose_il::{FileId, Interner, Lang};
+        let interner = Interner::new();
+        let il = nose_frontend::lower_source(
+            FileId(0),
+            "f.py",
+            b"def f(x):\n    return x * x + 7\n",
+            Lang::Python,
+            &interner,
+        )
+        .unwrap();
+        let opts = DetectOptions {
+            min_tokens: 1,
+            min_lines: 1,
+            ..Default::default()
+        };
+        let cases = [
+            (false, vec![]),
+            (false, (0..1000).collect()),
+            (true, vec![]),
+            (true, vec![1, 2, 3]),
+            (true, vec![1, 2, 3, 4]),
+            (true, vec![1, 2, 3, 4]),
+            (true, vec![1, 2, 3, 5]),
+            (false, vec![1, 2, 3, 4]),
+        ];
+        let units = cases
+            .into_iter()
+            .map(|(safe, values)| {
+                let mut unit = crate::units_of_file(&il, &interner, &opts).remove(0);
+                unit.exact_safe = safe;
+                unit.value = values;
+                unit
+            })
+            .collect::<Vec<_>>();
+        let detector = ExactBehaviorDetector;
+        let classes = detector.score_classes(&units).unwrap();
+        for index in [1, 2, 3, 7] {
+            assert_eq!(classes[index], classes[0]);
+        }
+        assert_eq!(classes[4], classes[5]);
+        assert_ne!(classes[0], classes[4]);
+        assert_ne!(classes[4], classes[6]);
+        for (left, original) in units.iter().enumerate() {
+            for (right, replacement) in units.iter().enumerate() {
+                if classes[left] != classes[right] {
+                    continue;
+                }
+                for other in &units {
+                    assert_eq!(
+                        detector.score(original, other).to_bits(),
+                        detector.score(replacement, other).to_bits()
+                    );
+                    assert_eq!(
+                        detector.score(other, original).to_bits(),
+                        detector.score(other, replacement).to_bits()
+                    );
+                }
+            }
+        }
+    }
+
     #[derive(PartialEq, Eq)]
     struct Collision<T>(T);
 

@@ -1,5 +1,5 @@
 use crate::{
-    candidates::{build_connected_groups, build_groups, structural_candidates},
+    candidates::{build_connected_groups, build_groups, source_span_groups, structural_buckets},
     contiguous::Stream,
     detectors::Detector,
     locations::enclosing_units,
@@ -266,27 +266,38 @@ fn detect_from_units_inner(request: DetectionRequest<'_>) -> (Report, Dump) {
     };
     let mut clk = StageTimer::new();
 
-    let stages = if matches!(request.output.dump, DumpSelection::None)
-        && crate::prefers_batched_detection(request.units, request.opts)
-    {
-        clk.lap("candidates");
-        batched::score(request.units, request.opts, request.detector)
-    } else if request.opts.structural {
-        // 3. LSH candidate generation. Semantic runs use the value-graph signature;
-        //    near-duplicate runs also use shape signatures so Type-3 edits that
-        //    change behavior-defining values still reach the scorer. When both
-        //    channels run, score the union once.
-        let candidates = structural_candidates(request.units, request.opts);
-        clk.lap("candidates");
-
-        // 4. Score candidates in parallel; keep accepted pairs.
-        let (scored, accepted) = score_ordinary_candidates(
-            request.units,
-            &candidates,
-            request.detector,
-            request.opts.threshold,
-        );
-        DetectionStages::fresh(candidates, scored, accepted)
+    let stages = if request.opts.structural {
+        // Admission counting and scoring consume the same immutable relation inputs.
+        // Do not rebuild the bucket union and source-span index after preflight.
+        let buckets = structural_buckets(request.units, request.opts);
+        let spans = source_span_groups(request.units);
+        let batch = matches!(request.output.dump, DumpSelection::None)
+            && crate::candidate_budget::prefers_batched_buckets(
+                request.units.len(),
+                request.opts,
+                &buckets,
+                &spans,
+            );
+        if batch {
+            clk.lap("candidates");
+            batched::score(
+                request.units,
+                request.opts,
+                request.detector,
+                &buckets,
+                &spans,
+            )
+        } else {
+            let candidates = crate::lsh::pairs(request.units.len(), &buckets, &spans);
+            clk.lap("candidates");
+            let (scored, accepted) = score_ordinary_candidates(
+                request.units,
+                &candidates,
+                request.detector,
+                request.opts.threshold,
+            );
+            DetectionStages::fresh(candidates, scored, accepted)
+        }
     } else {
         clk.lap("candidates");
         DetectionStages::fresh(Vec::new(), Vec::new(), Vec::new())
