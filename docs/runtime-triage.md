@@ -15,8 +15,11 @@ an independent 7,225-pair frequency oracle. The isolated implementation passes
 LibGDX and RxSwift default elapsed decrease 2.41% and 2.20% in the exploratory
 screen; Guava elapsed is flat. Alamofire default/near and RxSwift semantic rise
 0.52%/0.75%/0.77%. Retain the small short-input improvement without claiming an
-Alamofire fix or a release pass. Product `aea64b61` still needs actual-binary
-qualification; the earlier incident-site CI belongs to its predecessor.
+Alamofire fix or a release pass. The [actual-binary validation](../bench/release/0.21.0/short-merge-validation.v1.json)
+for product `aea64b61` records 377 complete reference outputs, eight journeys,
+Type-4, eighteen reviewed
+self-analysis families and full CI with 2,438 optimized tests/89.72% line coverage.
+Final cache/watch, remote/native and elapsed qualification remain separate.
 
 Three other experiments are reverted: prepared shape multiplicity counts,
 8 MiB of popular indexed shape rows, and a whole-row bound for nested seed

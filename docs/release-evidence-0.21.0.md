@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-08. Release decision: **NOT READY (short-feature candidate awaits actual-product qualification)**. The feature scope is frozen;
+Updated on 2026-09-08. Release decision: **NOT READY (short-feature candidate passes correctness and full CI; final qualification remains outstanding)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -36,9 +36,13 @@ a 7,225-pair independent frequency oracle and six byte-identical query outputs.
 Exploratory libGDX and RxSwift default elapsed improve 2.41% and 2.20%; other
 changes are small and mixed, including higher Alamofire medians. Three additional
 experiments are reverted for insufficient benefit. These screens do not resolve
-the release blocker or replace actual-binary correctness, CI, cache/watch,
-remote/native and the registered elapsed campaign. Predecessor passes below
-remain historical evidence until the final product is independently qualified.
+the release blocker. The [actual-binary validation](../bench/release/0.21.0/short-merge-validation.v1.json)
+binds binary `6da81315`: all 360 ordinary and 17 base outputs match the retained
+reference byte for byte; eight user journeys, Type-4 and eighteen reviewed
+self-analysis families pass. Full local CI passes 2,438 optimized tests with
+89.72% line coverage. Its start/completion metadata commits and unchanged crates
+tree are recorded. Final-product cache/watch, remote/native and the registered
+elapsed campaign remain outstanding; no predecessor runtime pass is inherited.
 
 ## Previous candidate: incident-site coverage
 
