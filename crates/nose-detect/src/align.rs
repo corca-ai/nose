@@ -12,6 +12,18 @@ pub fn multiset_jaccard(a: &[u64], b: &[u64]) -> f64 {
     if a.is_empty() && b.is_empty() {
         return 1.0;
     }
+    // Short inputs benefit from conditional increments; longer repeated runs
+    // retain the scalar merge below, where predictable branches are cheaper.
+    if a.len() <= 32 && b.len() <= 32 {
+        let (mut i, mut j, mut shared) = (0, 0, 0usize);
+        while i < a.len() && j < b.len() {
+            let (x, y) = (a[i], b[j]);
+            shared += usize::from(x == y);
+            i += usize::from(x <= y);
+            j += usize::from(x >= y);
+        }
+        return shared as f64 / (a.len() + b.len() - shared) as f64;
+    }
     let (mut i, mut j) = (0, 0);
     let (mut inter, mut union) = (0usize, 0usize);
     while i < a.len() && j < b.len() {
@@ -115,6 +127,72 @@ pub(crate) fn ransac_ratio(a: &[u64], b: &[u64]) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn multiset_scores_match_independent_frequency_counts() {
+        use std::collections::BTreeMap;
+        let counts = |values: &[u64]| {
+            let mut result = BTreeMap::<u64, usize>::new();
+            for &value in values {
+                *result.entry(value).or_default() += 1;
+            }
+            result
+        };
+        let mut cases = (0..64)
+            .map(|pattern| {
+                (0..3)
+                    .flat_map(|value| {
+                        std::iter::repeat_n(value as u64, (pattern >> (value * 2)) & 3)
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        cases.extend([
+            vec![u64::MAX; 1024],
+            (0..4096).collect(),
+            vec![0, 0, u64::MAX],
+        ]);
+        cases.extend([
+            (0..64).map(|value| value * 64).collect(),
+            (0..64).map(|value| value * 127 + 1).collect(),
+            (0..4096).map(|value| value * 2).collect(),
+        ]);
+        for len in [31, 32, 33] {
+            cases.extend([
+                vec![0; len],
+                vec![u64::MAX; len],
+                (0..len as u64).collect(),
+                (0..len as u64).map(|value| value / 3).collect(),
+                (0..len as u64)
+                    .map(|value| u64::MAX - len as u64 + value)
+                    .collect(),
+            ]);
+        }
+        for a in &cases {
+            let ac = counts(a);
+            for b in &cases {
+                let bc = counts(b);
+                let keys = ac
+                    .keys()
+                    .chain(bc.keys())
+                    .copied()
+                    .collect::<std::collections::BTreeSet<_>>();
+                let (mut shared, mut total) = (0, 0);
+                for key in keys {
+                    let x = ac.get(&key).copied().unwrap_or(0);
+                    let y = bc.get(&key).copied().unwrap_or(0);
+                    shared += x.min(y);
+                    total += x.max(y);
+                }
+                let expected: f64 = if total == 0 {
+                    1.0
+                } else {
+                    shared as f64 / total as f64
+                };
+                assert_eq!(multiset_jaccard(a, b).to_bits(), expected.to_bits());
+            }
+        }
+    }
 
     /// Pins the consensus-offset tie-break that keeps `ransac_ratio` deterministic.
     /// The scorer's reused thread-local vote map is cleared but not shrunk between calls,

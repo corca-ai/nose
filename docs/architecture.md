@@ -140,6 +140,9 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    minimum of its two multiplicities to the intersection. Value and shape classes
    share these integer counts across a row, retaining the original floating-point
    formula, every accepted and rejected score, and all subsequent scoring gates.
+   Direct comparisons of two multisets with at most 32 features use conditional
+   index increments to count their exact intersection; larger inputs retain the
+   scalar merge. Both paths preserve multiplicity and the same Jaccard score.
    Common features record absent classes instead of repeatedly visiting present
    classes. Anchor postings preserve duplicate-hash occurrence order and the exact
    maximum shared weight; source-line metadata remains outside that calculation.
