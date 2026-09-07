@@ -25,7 +25,34 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: exact proof and evidence reuse
+## Latest candidate: complete relations and JSON list encoding
+
+Product `12ad58a2` reuses exact-value classes established during candidate
+creation, projects proven complete rows directly onto canonical sites, and
+encodes independent JSON list rows in parallel. Clique projection requires every
+mapped member of its report group to belong to that row. A reproduced signed-zero
+and NaN first-winner counterexample verifies the fallback for intersecting rows.
+The ordinary serializer still owns key/value encoding and output bytes.
+
+The isolated implementation passes 265 optimized detector tests, the JSON byte
+oracle across thread counts, strict Clippy, and docs checks. Nine balanced diagnostic
+workloads preserve all output bytes. Candidate-class reuse reduces Alamofire's
+semantic scoring median from 14.55 to 8.30 ms. List encoding reduces Guava's
+rendering median from 41.60 to 32.15 ms and Alamofire's from 268.05 to 215.85 ms.
+These are separate prototype comparisons, not a combined release speed guarantee.
+The location-copy/explicit-witness follow-up was rejected after grouping stayed
+flat. Every original diagnostic and the reproduced correctness failure is retained.
+
+The [preflight record](../bench/release/0.21.0/relation-encoding-preflight.v1.json)
+binds the actual release-workspace binary to crates tree `4c1ff40a`. All 360
+ordinary and 17 base outputs match the retained reference, the eight saved-analysis
+journeys pass, and Type-4 probing reports zero soundness bugs. Duplication remains
+18 substantial families within the unchanged budget of 20. Full local CI, cache/watch measurements,
+registered published-baseline timing, remote soundness and package verification
+remain pending for this product. Diagnostic grouping costs still exceed the old
+baseline; this candidate is **not qualified for release**.
+
+## Previous candidate: exact proof and evidence reuse
 
 The replacement candidate removes repeated candidate-input construction, gives
 ineligible exact-scoring units one proven zero-score class, and scores disjoint
@@ -45,9 +72,11 @@ passes saved-analysis/review/cache-upgrade journeys. Type-4 probing retains 41
 covered cells, 17 hard-negative cells, 18 known gaps and zero soundness bugs;
 the blind oracle reports zero false merges or canonicalization violations. Balanced diagnostics confirm reductions in
 homogeneous scoring and several grouping/ranking workloads; their smaller,
-mixed effects are not full release qualification. The replacement still needs
-full local CI, cache/watch measurements, published-baseline timing, remote
-soundness and native package verification.
+mixed effects are not full release qualification. Full local CI subsequently
+passes at `11637118` with 2,414 release tests and 89.63% line coverage. The
+published-baseline diagnostic still has grouping and other stage costs. Cache/watch
+measurements, registered timing, remote soundness and native package verification
+were not completed for this superseded candidate.
 The failed exact-mask qualification below remains retained. Release stays NO-GO
 until the replacement satisfies every unchanged gate.
 

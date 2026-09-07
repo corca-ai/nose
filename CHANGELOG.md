@@ -24,6 +24,9 @@ break.
 - Reuse candidate inputs and established exact-group proofs, avoid hashing
   ineligible exact-scoring inputs, and construct evidence by group. Preserve
   alignment scores and identity bytes while reducing allocation and repeated work.
+- Reuse proven exact-value candidate classes, project complete isolated rows onto
+  reported sites, and encode large JSON lists in parallel without changing bytes
+  or first-winner evidence rules.
 
 - Stop C-header admission parsing when every remaining parse necessarily contains
   a syntax error, while preserving clean-tree validation and parser reuse safety.
