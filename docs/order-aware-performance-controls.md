@@ -49,6 +49,15 @@ process-position conflicts and failed its only focused rerun, despite recording 
 triggered regression. Its failed artifacts remain part of the release audit and are
 not reused in the replacement decision.
 
+The prospective merge-smoke design fixed on 2026-09-07 also uses five samples per
+observation and one warmup in every primary, same-binary control, and focused run.
+It retains five independent primary blocks, six focused blocks, and at most one
+focused comparison. CI run `34084916982` remains a failed single-sample observation:
+its focused Asciidoctor normalization signal was inconclusive. The replacement
+measurement uses the existing position-neutral estimator without changing its
+materiality limits, sign-test support, or fail-closed policy. Historical samples
+are not combined with the replacement campaign or repeatedly replayed until green.
+
 The v0.20 release qualification also applies this design to the frozen 17-repository
 `base=<ref>` workload in `bench/base_view_release_workload.v1.json`. The manifest binds
 each repository to an exact checked-out commit, ancestor base, source sample, and source

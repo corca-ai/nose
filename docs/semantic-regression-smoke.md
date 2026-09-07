@@ -86,35 +86,39 @@ declares its cost acceptable.
 
 ## Runtime policy
 
-The first pass takes five paired measurements, running base and head back-to-back
-within each repository and reversing that pair order on every iteration. Five is the
-smallest sample that can satisfy the exact one-sided sign test. This prevents runner
-load, process position, or temperature changes from accumulating on only one binary.
-It also runs a base-vs-base same-binary control with the same repo-local pairing. The
-harness records each block's order and position, wall time, and every stage emitted by
-`NOSE_TIME=1`.
+The first pass takes five independent paired blocks after one warmup. Every
+observation contains five command samples: odd samples follow the block's declared
+base/head order and even samples reverse it. Each binary therefore runs in both
+process positions. The harness takes the median at each position and averages the
+two medians; all raw times and exact output observations remain in the report.
+The base-vs-base control uses the same design. The sign test still has five
+independent blocks, not twenty-five independent samples.
 
-The [order-aware control contract](order-aware-performance-controls.md) computes the
-median current-minus-base movement within each execution order and averages those two
-strata. A positive same-binary movement may reduce the result; a negative control is
-diagnostic only and can never inflate it. A signal crosses the material threshold only
-when its adjusted point estimate, exact sign-test support, and both execution-order
-strata agree that the increase is both:
+The [order-aware control contract](order-aware-performance-controls.md) evaluates
+these position-neutral observations. A positive same-binary movement may reduce the
+result; a negative control is diagnostic only and can never inflate it. A signal
+crosses the material threshold only when the adjusted point estimate exceeds both:
 
-- greater than 5%; and
-- greater than 5 ms.
+- 5%; and
+- 5 ms.
 
-The checker evaluates the aggregate, each repository, and each reported stage.
-A repository or stage can therefore fail even when faster controls dilute the
-aggregate.
+Exact sign-test support is also required to confirm a regression. The declared
+block-order strata remain diagnostics: each multi-sample observation already
+balances actual process position. A material point estimate without sufficient
+block support remains inconclusive. The checker evaluates the aggregate, each
+repository, and each reported stage, so a stage can fail despite a faster total.
 
-A first-pass threshold crossing or statistically inconclusive order split is not yet a
-hard regression failure. It exits with the dedicated focused-rerun status, selects the
-affected repositories (or the whole slice for an aggregate signal), and repeats six
-measurements after one warmup with another same-binary control. Six samples give base
-and head exactly three first-in-pair measurements each. A material signal confirmed by
-that balanced focused run fails, as does evidence that remains inconclusive. There is
-no second focused loop.
+A first-pass threshold crossing or inconclusive result requests the affected
+repositories (or the whole slice for an aggregate signal). Exactly one focused
+comparison uses six independent blocks after one warmup, with the same five
+samples per observation and its own matching same-binary control. Confirmed and
+remaining inconclusive signals fail. There is no second focused loop.
+
+This prospective sampling change follows the retained single-sample failure in
+[the 0.21 release evidence](release-evidence-0.21.0.md). It does not reclassify that
+run or alter the estimator, thresholds, output policy, or independent-block count.
+The CI job allows 45 minutes for the larger fixed measurement workload and both
+release builds; that job timeout is separate from product performance limits.
 
 ## Deterministic Ruby scaling tripwire
 

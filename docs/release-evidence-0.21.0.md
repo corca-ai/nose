@@ -58,8 +58,29 @@ binary. All 360 ordinary and 17 base outputs match the reference; the eight
 saved-analysis/review/upgrade journeys and Type-4 checks pass. The self-query
 reports nineteen reviewed families within the unchanged budget of twenty.
 The [dogfooding history](dogfooding-history.md#uniform-relation-release-check-2026-09-07) explains the retained numeric policies.
-Full local CI, cache/watch measurements, registered timing and remote qualification
-remain pending for this product.
+The [follow-up record](../bench/release/0.21.0/uniform-relations-followup.v1.json)
+seals 87 subsequent artifacts. Full local CI passes 2,422 optimized tests and
+89.66% line coverage. Cache checks pass 2,100 mutation runs and 180 paired SymPy
+runs. Thirty-replay watch checks pass at p95 76.09 ms for 10,000 files and
+388.07 ms for 100,000 files, within the existing 250/1,000 ms limits, including
+crash recovery. Remote PR, deep and complete 120-repository soundness checks
+pass; all four native archives and the actual generated installer are verified.
+The PR merge checkout has the same product and dependency trees as this candidate.
+
+The original [remote runtime check](https://github.com/corca-ai/nose/actions/runs/34084916982)
+fails closed on focused Asciidoctor `normalize+extract` evidence: +13.50 ms/+11.05%,
+four supporting blocks of six, no confirmed signal. Seven declared output changes
+and zero unexpected changes are retained. The prospective merge-smoke design now
+uses the existing five-sample position-neutral measurement with one warmup in every
+phase. Its five/six independent blocks, one focused comparison, materiality limits
+and fail-closed policy remain unchanged; see the [measurement contract](order-aware-performance-controls.md).
+The old failed run is not reclassified. The new remote measurement is pending.
+
+The local published-0.20 semantic primary finishes all 120 repositories with 1,200
+observations and five samples per observation. Its control and final gate remain
+pending, as do base, default and near timing. The orchestrator waits between phases
+for infrastructure checks and package verification; the completed primary is not
+replayed. Raw command samples determine performance, independently of this gap.
 
 ## Previous candidate: complete relations and JSON list encoding
 

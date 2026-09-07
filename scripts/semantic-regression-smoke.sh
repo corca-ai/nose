@@ -255,6 +255,7 @@ run_harness() {
     --current-source-sha "$source_head_sha" \
     --repos-root "$repos_root" \
     --iterations "$iterations" \
+    --samples-per-observation 5 \
     --warmups "$warmups" \
     "${corpus_args[@]}" \
     "$@" \
@@ -269,11 +270,11 @@ scaling_rc=$?
 set -e
 
 run_harness \
-  "$artifact_dir/primary.json" "$baseline_binary" "$current_binary" 5 0 \
+  "$artifact_dir/primary.json" "$baseline_binary" "$current_binary" 5 1 \
   "$base_ref" "$head_ref" "$base_sha" "$head_sha" \
   "${repo_args[@]}"
 run_harness \
-  "$artifact_dir/primary-control.json" "$baseline_binary" "$baseline_binary" 5 0 \
+  "$artifact_dir/primary-control.json" "$baseline_binary" "$baseline_binary" 5 1 \
   "$base_ref" "$base_ref" "$base_sha" "$base_sha" \
   "${repo_args[@]}"
 
