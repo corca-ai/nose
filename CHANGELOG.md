@@ -27,6 +27,8 @@ break.
 - Reuse proven exact-value candidate classes, project complete isolated rows onto
   reported sites, and encode large JSON lists in parallel without changing bytes
   or first-winner evidence rules.
+- Store certified complete site relations as a site count and one exact score,
+  preserving ordered edges while avoiding redundant graph construction.
 
 - Stop C-header admission parsing when every remaining parse necessarily contains
   a syntax error, while preserving clean-tree validation and parser reuse safety.

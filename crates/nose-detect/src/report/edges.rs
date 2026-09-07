@@ -4,6 +4,8 @@ use super::AcceptedEdge;
 use rustc_hash::FxHashMap;
 use std::sync::{Arc, OnceLock};
 
+mod complete;
+
 #[derive(Debug)]
 pub enum GroupEdges {
     Members(Vec<AcceptedEdge>),
@@ -304,6 +306,7 @@ impl SiteEdgeBuilder {
                 })
                 .collect(),
             values: self.values,
+            complete: None,
         })
     }
 }
@@ -315,32 +318,39 @@ pub struct SiteEdges {
     count: usize,
     rows: Vec<Vec<(u32, Block)>>,
     values: Vec<Evidence>,
+    complete: Option<complete::Complete>,
 }
 
 impl SiteEdges {
     pub fn iter(&self) -> impl Iterator<Item = AcceptedEdge> + '_ {
-        self.rows
+        self.complete
             .iter()
-            .enumerate()
-            .flat_map(move |(left, blocks)| {
-                blocks.iter().flat_map(move |(base, block)| {
-                    let mut mask = block.mask;
-                    std::iter::from_fn(move || {
-                        if mask == 0 {
-                            return None;
-                        }
-                        let offset = mask.trailing_zeros();
-                        mask &= mask - 1;
-                        let evidence = self.values[block.get(offset as usize).unwrap() as usize];
-                        Some(AcceptedEdge {
-                            left: left as u32,
-                            right: base * 64 + offset,
-                            score: evidence.score,
-                            witness_kind: evidence.witness_kind,
+            .flat_map(|complete| complete.iter())
+            .chain(
+                self.rows
+                    .iter()
+                    .enumerate()
+                    .flat_map(move |(left, blocks)| {
+                        blocks.iter().flat_map(move |(base, block)| {
+                            let mut mask = block.mask;
+                            std::iter::from_fn(move || {
+                                if mask == 0 {
+                                    return None;
+                                }
+                                let offset = mask.trailing_zeros();
+                                mask &= mask - 1;
+                                let evidence =
+                                    self.values[block.get(offset as usize).unwrap() as usize];
+                                Some(AcceptedEdge {
+                                    left: left as u32,
+                                    right: base * 64 + offset,
+                                    score: evidence.score,
+                                    witness_kind: evidence.witness_kind,
+                                })
+                            })
                         })
-                    })
-                })
-            })
+                    }),
+            )
     }
 }
 

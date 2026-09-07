@@ -307,6 +307,11 @@ that group belonging to the same row. The last condition preserves first-winner
 order even for signed-zero and unordered score comparisons. Sparse or mixed rows
 retain the general visitor, and same-file nesting still uses individual source
 occurrences. Completeness is never inferred from connectivity alone.
+When canonical coordinates have no holes and actual source representatives in
+each file have strictly increasing starts and ends, every canonical pair has a
+direct non-nested exact witness. The homogeneous relation then stores one score
+and a site count, and reconstructs the same ordered edges on iteration. Failed
+representative checks retain ordinary site blocks and occurrence exclusions.
 Distinct accepted rows and reported site graphs can still be large; these
 representations introduce no evidence cap or candidate omission.
 These internal execution choices do not change recall or explicit budget accounting.

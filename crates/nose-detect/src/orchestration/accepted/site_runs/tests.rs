@@ -21,6 +21,9 @@ fn masks_preserve_cross_file_sites_and_partial_prefixes() {
             exact[left],
             &locations,
             &mut |event| match event {
+                SiteEvidence::Complete { .. } => {
+                    panic!("a target run does not certify a whole group")
+                }
                 SiteEvidence::Pair((_, right, score)) => {
                     let other = keys[right].unwrap().1;
                     if site != other {
@@ -82,7 +85,9 @@ fn consecutive_score_bits_keep_their_event_order() {
                     assert_eq!(mask, 2);
                     observed.push(score.to_bits());
                 }
-                SiteEvidence::Pair(_) => panic!("long complete exact runs should use masks"),
+                SiteEvidence::Pair(_) | SiteEvidence::Complete { .. } => {
+                    panic!("long complete exact runs should use masks")
+                }
             },
         );
         assert_eq!(observed, scores.map(f64::to_bits));
@@ -109,7 +114,9 @@ fn short_and_nonfinite_runs_keep_scalar_events() {
             &locations,
             &mut |event| match event {
                 SiteEvidence::Pair((_, right, score)) => observed.push((right, score.to_bits())),
-                SiteEvidence::ExactMask { .. } => panic!("short or nonfinite run was packed"),
+                SiteEvidence::ExactMask { .. } | SiteEvidence::Complete { .. } => {
+                    panic!("short or nonfinite run was packed")
+                }
             },
         );
         let expected = targets

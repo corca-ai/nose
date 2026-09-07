@@ -10,6 +10,11 @@ type RunKey = (usize, usize, u64);
 
 pub(crate) enum SiteEvidence {
     Pair(AcceptedPair),
+    Complete {
+        left: usize,
+        sites: u32,
+        score: f64,
+    },
     ExactMask {
         left: usize,
         block: u32,

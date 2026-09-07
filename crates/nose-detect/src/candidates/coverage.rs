@@ -173,11 +173,19 @@ impl Projection {
             .collect::<Vec<_>>();
         let mut kinds = vec![None; self.anchors.len()];
         let mut exact_blocks = exact_blocks::ExactBlocks::default();
+        let mut complete = vec![None; self.sizes.len()];
         self.accepted
             .visit_projected_evidence(&keys, &self.exact, |evidence| {
                 use crate::orchestration::accepted::SiteEvidence;
                 let (left, right, score) = match evidence {
                     SiteEvidence::Pair(pair) => pair,
+                    SiteEvidence::Complete { left, sites, score } => {
+                        let group = keys[left].unwrap().0;
+                        // The producer proves this group has no competing row.
+                        complete[group] = Some(crate::SiteEdges::complete(sites, round3(score)));
+                        edges[group] = None;
+                        return;
+                    }
                     SiteEvidence::ExactMask {
                         left,
                         block,
@@ -228,17 +236,8 @@ impl Projection {
                 {
                     return;
                 }
-                let kind = if is_exact {
-                    best_kind
-                } else if let Some((_, kind)) =
-                    kinds[right_class].filter(|&(class, _)| class == left_class)
-                {
-                    kind
-                } else {
-                    let kind = self.anchor_witness_kind(left_class, right_class);
-                    kinds[right_class] = Some((left_class, kind));
-                    kind
-                };
+                let kind =
+                    self.projected_witness_kind(is_exact, left_class, right_class, &mut kinds);
                 if previous.is_none_or(|edge| score > edge.score || kind < edge.witness_kind) {
                     builder.insert(
                         a,
@@ -253,8 +252,29 @@ impl Projection {
         exact_blocks.flush(&mut edges);
         edges
             .into_iter()
-            .map(|builder| builder.map(SiteEdgeBuilder::into_edges))
+            .zip(complete)
+            .map(|(builder, complete)| {
+                complete.or_else(|| builder.map(SiteEdgeBuilder::into_edges))
+            })
             .collect()
+    }
+
+    fn projected_witness_kind(
+        &self,
+        is_exact: bool,
+        left_class: usize,
+        right_class: usize,
+        cache: &mut [Option<(usize, &'static str)>],
+    ) -> &'static str {
+        if is_exact {
+            return "exact-value-graph";
+        }
+        if let Some((_, kind)) = cache[right_class].filter(|&(class, _)| class == left_class) {
+            return kind;
+        }
+        let kind = self.anchor_witness_kind(left_class, right_class);
+        cache[right_class] = Some((left_class, kind));
+        kind
     }
 
     fn anchor_witness_kind(&self, left_class: usize, right_class: usize) -> &'static str {

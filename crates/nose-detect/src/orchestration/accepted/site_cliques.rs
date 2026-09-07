@@ -3,12 +3,15 @@
 use super::{RowPairs, SiteEvidence};
 use rustc_hash::FxHashMap;
 
+mod complete;
+
 type SiteKey = (usize, u32, usize);
 
 pub(super) struct SiteClique {
     score: f64,
     sites: Vec<(u32, usize, usize)>,
     blocks: Vec<Block>,
+    complete: Option<u32>,
 }
 
 struct Block {
@@ -94,6 +97,16 @@ impl SiteClique {
             if entry.1 != path {
                 return None;
             }
+            // Prefer a wide actual occurrence, then explicitly check all chosen
+            // representatives; canonical labels alone never prove non-nesting.
+            let span = |index: usize| {
+                rows.locations[index]
+                    .2
+                    .saturating_sub(rows.locations[index].1)
+            };
+            if span(unit) > span(entry.0) {
+                entry.0 = unit;
+            }
         }
         if sites.len() < 8 {
             return None;
@@ -103,8 +116,9 @@ impl SiteClique {
             .map(|(site, (unit, path))| (site, unit, path))
             .collect::<Vec<_>>();
         sites.sort_unstable_by_key(|&(site, _, _)| site);
+        let complete = complete::size(rows, &sites);
         let mut blocks: Vec<Block> = Vec::new();
-        for &(site, _, path) in &sites {
+        for &(site, _, path) in sites.iter().filter(|_| complete.is_none()) {
             let index = site / 64;
             if blocks.last().is_none_or(|block| block.index != index) {
                 blocks.push(Block {
@@ -122,10 +136,19 @@ impl SiteClique {
             score,
             sites,
             blocks,
+            complete,
         })
     }
 
     pub(super) fn visit(&self, visit: &mut impl FnMut(SiteEvidence)) {
+        if let Some(sites) = self.complete {
+            visit(SiteEvidence::Complete {
+                left: self.sites[0].1,
+                sites,
+                score: self.score,
+            });
+            return;
+        }
         for &(site, left, path) in &self.sites {
             for block in self
                 .blocks
@@ -146,6 +169,10 @@ impl SiteClique {
                 }
             }
         }
+    }
+
+    pub(super) fn is_complete(&self) -> bool {
+        self.complete.is_some()
     }
 }
 

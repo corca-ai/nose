@@ -249,6 +249,12 @@ impl AcceptedPairs {
                 continue;
             };
             let row = rows.row_of[left];
+            if cliques[row]
+                .as_ref()
+                .is_some_and(site_cliques::SiteClique::is_complete)
+            {
+                continue;
+            }
             if cliques[row].is_none() && seen.insert((row, key, rows.locations[left].0)) {
                 targets[row].visit(left, key, exact[left], &rows.locations, &mut visit);
             }
@@ -271,7 +277,9 @@ impl AcceptedPairs {
     ) {
         self.visit_projected_evidence(keys, &vec![None; keys.len()], |evidence| match evidence {
             SiteEvidence::Pair(pair) => visit(pair),
-            SiteEvidence::ExactMask { .. } => unreachable!("no exact classes supplied"),
+            SiteEvidence::ExactMask { .. } | SiteEvidence::Complete { .. } => {
+                unreachable!("no exact classes supplied")
+            }
         });
     }
 

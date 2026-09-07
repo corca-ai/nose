@@ -11,6 +11,13 @@ fn projected(
 ) -> BTreeSet<Edge> {
     let mut found = BTreeSet::new();
     pairs.visit_projected_evidence(keys, exact, |evidence| match evidence {
+        SiteEvidence::Complete { sites, score, .. } => {
+            for left in 0..sites {
+                for right in left + 1..sites {
+                    found.insert((left, right, score.to_bits()));
+                }
+            }
+        }
         SiteEvidence::Pair((left, right, score)) => {
             if let (Some((group, a, _)), Some((other, b, _))) = (keys[left], keys[right]) {
                 if group == other && a != b {
@@ -116,6 +123,13 @@ fn first_winners(
         keys,
         &vec![Some(0); keys.len()],
         |evidence| match evidence {
+            SiteEvidence::Complete { sites, score, .. } => {
+                for left in 0..sites {
+                    for right in left + 1..sites {
+                        add(left, right, score);
+                    }
+                }
+            }
             SiteEvidence::Pair((left, right, score)) => {
                 add(keys[left].unwrap().1, keys[right].unwrap().1, score)
             }
@@ -160,5 +174,63 @@ fn intersecting_rows_preserve_first_winning_float_bits() {
         let winners = first_winners(&expected, &keys);
         assert_eq!(winners.len(), 32 * 31 / 2);
         assert_eq!(first_winners(&pairs, &keys), winners);
+    }
+}
+
+#[test]
+fn complete_site_proof_requires_dense_coordinates_and_non_nested_representatives() {
+    let mut units = crate::test_support::scoring_units(128);
+    let paths = (0..units.len()).map(|index| index % 4).collect::<Vec<_>>();
+    let keys = (0..units.len())
+        .map(|index| Some((0, (index % 16) as u32, 0)))
+        .collect::<Vec<_>>();
+    let exact = vec![Some(0); units.len()];
+    for variation in 0..5 {
+        for (index, unit) in units.iter_mut().enumerate() {
+            unit.start_line = (index % 16) as u32 * 10;
+            unit.end_line = unit.start_line + if index >= 16 { 4 } else { 1 };
+            if variation == 1 {
+                unit.start_line = 0;
+            }
+            if variation == 2 {
+                unit.end_line = 200;
+            }
+            if variation == 4 {
+                unit.end_line = unit.start_line + 150;
+            }
+        }
+        let keys = keys
+            .iter()
+            .map(|key| {
+                key.map(|(group, site, class)| {
+                    (group, if variation == 3 { site * 2 } else { site }, class)
+                })
+            })
+            .collect::<Vec<_>>();
+        for score in [-0.0, 0.0, 0.875] {
+            let pairs = AcceptedPairs::rows(
+                &units,
+                &paths,
+                &[(0..units.len()).collect()],
+                vec![(0, 0, score)],
+            );
+            let AcceptedPairs::Rows(rows) = &pairs else {
+                unreachable!()
+            };
+            let cliques = prepare(rows, &keys, &exact);
+            assert_eq!(
+                cliques[0].as_ref().unwrap().is_complete(),
+                variation == 0 || variation == 4
+            );
+            let expected = AcceptedPairs::Explicit(pairs.iter().collect());
+            assert_eq!(
+                projected(&pairs, &keys, &exact),
+                projected(&expected, &keys, &exact)
+            );
+            assert_eq!(
+                first_winners(&pairs, &keys),
+                first_winners(&expected, &keys)
+            );
+        }
     }
 }

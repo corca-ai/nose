@@ -25,7 +25,24 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: complete relations and JSON list encoding
+## Latest candidate: complete site relations
+
+An isolated homogeneous row can retain its canonical graph as one exact score
+and a site count when actual source representatives prove every site pair is
+non-nested. The proof requires dense coordinates and strictly increasing starts
+and ends within each file, in addition to the existing membership, exact-value
+and whole-group isolation checks. Failed proofs retain the previous visitor.
+Iteration reconstructs every original ordered edge and score bit.
+
+The isolated implementation passes 267 optimized detector tests, strict Clippy,
+docs and all nine diagnostic output comparisons. Alamofire grouping medians fall
+from 50.30 to 38.65 ms in semantic mode and from 105.10 to 86.90 ms in near mode.
+Whole-query and peak-memory effects are mixed; these diagnostics do not qualify
+the release. Three smaller follow-ups (small-site input elision, interval-based
+same-file projection and inline edge rows) were not adopted after weak or mixed
+results. Release-workspace validation and performance qualification remain pending.
+
+## Previous candidate: complete relations and JSON list encoding
 
 Product `12ad58a2` reuses exact-value classes established during candidate
 creation, projects proven complete rows directly onto canonical sites, and
@@ -47,9 +64,10 @@ The [preflight record](../bench/release/0.21.0/relation-encoding-preflight.v1.js
 binds the actual release-workspace binary to crates tree `4c1ff40a`. All 360
 ordinary and 17 base outputs match the retained reference, the eight saved-analysis
 journeys pass, and Type-4 probing reports zero soundness bugs. Duplication remains
-18 substantial families within the unchanged budget of 20. Full local CI, cache/watch measurements,
-registered published-baseline timing, remote soundness and package verification
-remain pending for this product. Diagnostic grouping costs still exceed the old
+18 substantial families within the unchanged budget of 20. Full local CI subsequently
+passes at `852a6399` with 2,418 release tests and 89.65% line coverage. Cache/watch
+measurements, registered published-baseline timing, remote soundness and package
+verification were not completed for this product. Diagnostic grouping costs still exceed the old
 baseline; this candidate is **not qualified for release**.
 
 ## Previous candidate: exact proof and evidence reuse
