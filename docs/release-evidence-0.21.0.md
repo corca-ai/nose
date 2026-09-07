@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-07. Release decision: **PENDING (latest candidate requires qualification under elapsed-v1)**. The feature scope is frozen;
+Updated on 2026-09-08. Release decision: **NO-GO (candidate withdrawn after material default-query regressions)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -68,8 +68,14 @@ stopped in the checker because it required ordinary prune-state metadata for a p
 base workload. Strict validation now checks the actual base manifest, source selection,
 ordered head/base tuples and producer/root identities; no provenance flag is waived.
 The original measurements and error are retained. The corrected base decision passes
-without focus and retains ten stage warnings. Default and near runtime qualification
-remain pending; neither the sampling protocol nor performance decision rules change.
+without focus and retains ten stage warnings. Default primary/control subsequently
+finds an aggregate elapsed regression of 9.77%, including Alamofire +103.95% and
+libGDX +63.66%. All 120 outputs match their reviewed drift declarations. The
+candidate is conservatively withdrawn for optimization: its one focused comparison
+was interrupted before completion, so it has **no final focused verdict**. Near
+remains unmeasured. Completed samples are preserved and this unchanged candidate
+will not be retried. The [withdrawal record](../bench/release/0.21.0/elapsed-withdrawal.v1.json)
+seals those measurements and the interruption without changing any decision rules.
 The [provenance correction and continuation record](../bench/release/0.21.0/elapsed-base-provenance.v1.json)
 seals the original error, unchanged raw measurements, reproduced semantic verdict,
 strict base decision and registered continuation. It also binds the completed CI,
