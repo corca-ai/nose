@@ -71,6 +71,14 @@ controls and focused reruns must preserve them.
 This preserves complete navigation output without filtering commands or changing
 sampling and timing limits.
 
+Strict provenance checks recognize the pinned base-workload contract separately
+from ordinary pruned-corpus state. They require the workload manifest path/digest,
+source-selection provenance, exact ordered repository/head/base tuples, a rebuilt
+selection digest, and the harness/worktree producer hashes and reserved root.
+Focused base reports must preserve the primary head and ancestor for every selected
+repository. Missing or substituted fields fail; the absence of unrelated ordinary
+prune-state fields does not invalidate a complete base-workload report.
+
 An intentional change passes only when
 `.github/semantic-regression-expected-drift.json` contains an exact declaration
 for the comparison base SHA and repository. A declaration includes every changed

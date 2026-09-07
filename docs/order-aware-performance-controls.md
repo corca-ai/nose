@@ -109,6 +109,14 @@ drift declaration, while a second hash removes only `targets` and per-site
 raw observations and fails if baseline and candidate differ after that projection.
 Timing never waives either the raw drift declaration or normalized equality.
 
+The strict checker validates base workloads through their manifest, source selection,
+ordered head/base tuples and producer/root identities. Ordinary reports instead
+require their checked and expected post-prune corpus state. A checker error exposed
+during v0.21 qualification required the ordinary state for both kinds and stopped
+after the complete base primary/control. Correcting that provenance dispatch does
+not change the estimator, sampling or output rules. The completed reports and error
+are retained; their decisions can be reconstructed without repeating measurements.
+
 For a single-sample observation, a material median in only one declared pair order is
 still an inconclusive order conflict. A multi-sample position-neutral observation has
 already exposed each label to both actual process positions and averaged their position

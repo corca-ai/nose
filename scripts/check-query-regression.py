@@ -176,6 +176,51 @@ def validate_output_compatibility(
         raise CheckFailed(f"{label}: normalized output compatibility failed for {failed}")
 
 
+def base_selection_rows(corpus: dict[str, Any]) -> list[dict[str, str]]:
+    bases = {row["repo"]: row["base"] for row in corpus["base_revisions"]}
+    return [{**row, "base": bases[row["repo"]]} for row in corpus["repositories"]]
+
+
+def validate_base_corpus(report: dict[str, Any], corpus: dict[str, Any], label: str) -> bool:
+    """Validate the alternate pinned workload contract, without inventing prune state."""
+    provenance = require_provenance(report, label)
+    command_is_base = "base=<base>" in report["command"].split()
+    if not (command_is_base or "base_revisions" in corpus or any(
+        provenance.get(key) is not None
+        for key in ("base_workload_manifest", "base_workload_manifest_sha256")
+    )):
+        return False
+    if not command_is_base:
+        raise CheckFailed(f"{label}: base workload requires a base=<base> command")
+    for key in ("base_workload_manifest_sha256", "harness_sha256", "worktree_helper_sha256"):
+        require_hex(provenance, key, 64, f"{label}.provenance")
+    for key in ("base_workload_manifest", "worktrees_root"):
+        require_string(provenance, key, f"{label}.provenance")
+    for key, corpus_key in (("base_workload_manifest", "corpus_manifest"),
+                            ("base_workload_manifest_sha256", "corpus_manifest_sha256")):
+        if provenance[key] != corpus[corpus_key]:
+            raise CheckFailed(f"{label}.provenance.{key}: does not match corpus manifest")
+    require_string(corpus, "selection", f"{label}.corpus")
+    bases = corpus.get("base_revisions")
+    if not isinstance(bases, list):
+        raise CheckFailed(f"{label}.corpus.base_revisions: expected an array")
+    repos = []
+    for index, row in enumerate(bases):
+        where = f"{label}.corpus.base_revisions[{index}]"
+        if not isinstance(row, dict):
+            raise CheckFailed(f"{where}: expected an object")
+        repos.append(require_string(row, "repo", where))
+        require_hex(row, "base", 40, where)
+    if repos != report["repos"]:
+        raise CheckFailed(f"{label}.corpus.base_revisions: selection does not match repos")
+    digest = hashlib.sha256(json.dumps(
+        base_selection_rows(corpus), sort_keys=True, separators=(",", ":")
+    ).encode()).hexdigest()
+    if digest != corpus["selection_sha256"]:
+        raise CheckFailed(f"{label}.corpus.selection_sha256: does not match base revision selection")
+    return True
+
+
 def validate_structured_report(
     report: dict[str, Any], label: str, *, require_corpus_provenance: bool = False
 ) -> None:
@@ -289,7 +334,7 @@ def validate_structured_report(
                 raise CheckFailed(f"{label}.corpus: incomplete expected subset state provenance")
             require_string(corpus, "expected_corpus_state", f"{label}.corpus")
             require_hex(corpus, "expected_corpus_state_sha256", 64, f"{label}.corpus")
-        if require_corpus_provenance:
+        if require_corpus_provenance and not validate_base_corpus(report, corpus, label):
             required_state_keys = state_keys | expected_state_keys
             missing_state_keys = sorted(required_state_keys - corpus.keys())
             if missing_state_keys:
@@ -901,6 +946,10 @@ def validate_focused_report(
         ):
             if focused_corpus.get(key) != primary_corpus.get(key):
                 raise CheckFailed(f"focused rerun corpus `{key}` does not match primary report")
+        if require_corpus_provenance and "base_revisions" in primary_corpus:
+            expected = {row["repo"]: row for row in base_selection_rows(primary_corpus)}
+            if any(row != expected.get(row["repo"]) for row in base_selection_rows(focused_corpus)):
+                raise CheckFailed("focused rerun base revisions do not match primary report")
     measurement = require_object(focused, "measurement", "focused report")
     iterations = measurement.get("iterations")
     if isinstance(iterations, bool) or not isinstance(iterations, int) or iterations < min_iterations:
@@ -1335,7 +1384,9 @@ def expected_manifest(hash_current: str = SAMPLE_CHANGED_HASH) -> dict[str, Any]
 
 def run_self_test() -> None:
     from query_regression_gate_tests import run_self_test as run_elapsed_gate_self_test
+    from query_regression_base_tests import run_self_test as run_base_self_test
 
+    run_base_self_test(sys.modules[__name__])
     run_elapsed_gate_self_test(sys.modules[__name__])
     run_order_aware_self_test()
     run_markdown_self_test()

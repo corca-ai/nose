@@ -52,7 +52,22 @@ changes are unchanged; only the isolated worktree path-bound hashes regenerate.
 Type-4 retains 41 covered cells, 17 hard negatives, 18 known gaps and zero observed
 soundness bugs; 54 blind exact groups have zero false merges or canonicalization
 violations. Self-analysis retains the same nineteen reviewed families within the
-budget of twenty. Full CI, cache/watch, runtime and remote qualification are pending.
+budget of twenty. Full local CI at `7367a277` passes 2,430 optimized tests and
+89.68% line coverage. Cache passes 2,100 mutation runs and 180 paired SymPy runs;
+watch passes thirty replays at p95 74.50 ms/345.52 ms for 10k/100k files, including
+crash recovery. Remote CI, PR, full nightly, deep and native package workflows at
+that preparation all pass; independent native archive/installer verification remains.
+
+The registered semantic comparison passes without focus: aggregate elapsed improves
+4.25% and RxSwift elapsed improves 7.39%. Two internal normalization signals remain
+inconclusive warnings. Its status JSON and Markdown reproduce byte for byte after
+the base-provenance checker correction. The complete base primary/control initially
+stopped in the checker because it required ordinary prune-state metadata for a pinned
+base workload. Strict validation now checks the actual base manifest, source selection,
+ordered head/base tuples and producer/root identities; no provenance flag is waived.
+The original measurements and error are retained. The corrected base decision passes
+without focus and retains ten stage warnings. Default and near runtime qualification
+remain pending; neither the sampling protocol nor performance decision rules change.
 
 ## Previous candidate: context preparation and evidence mapping
 
