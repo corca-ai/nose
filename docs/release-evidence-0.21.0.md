@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-08. Release decision: **NOT READY (component candidate passes correctness and full CI; official runtime qualification remains outstanding)**. The feature scope is frozen;
+Updated on 2026-09-08. Release decision: **NO-GO (component candidate has a confirmed elapsed regression after focus)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -42,8 +42,18 @@ bugs or blind false merges/canonicalization violations. The self-query retains
 eighteen reviewed families within budget twenty; the existing detect/Markdown
 union-find representative change is reviewed with byte-identical old/new binary
 outputs on the current tree. Full local CI passes 2,440 optimized tests and
-89.73% line coverage. Official runtime and remaining cache/watch/remote/native
-qualification are separate; the predecessor's passes below retain their source binding.
+89.73% line coverage.
+
+The [controlled verdict](../bench/release/0.21.0/component-verdict.v1.json) is
+**NO-GO**. Primary/control confirms +1,091.33 ms/+52.02%; the one registered
+six-block focus confirms +1,425.68 ms/+56.15%, supported by all six blocks and
+both execution orders. Focused whole-query medians are 2,538.91 ms for official
+0.20.0 and 3,959.98 ms for this candidate. All output drift matches the review.
+This repository counterexample blocks release; it is not a full-corpus aggregate
+verdict. Remaining cache/watch, independent native verification and full remote
+soundness were not rerun on this failed candidate and are not inherited from its
+predecessors. Further qualification requires a changed product; this unchanged
+failed binary will not be retried.
 
 ## Previous candidate: short-feature comparisons
 

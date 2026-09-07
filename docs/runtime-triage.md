@@ -26,8 +26,14 @@ The combined three-change near-mode controlled check passes, but includes this
 rejected cache and does not qualify the retained two-change product. The
 [actual validation](../bench/release/0.21.0/component-validation.v1.json) for product
 `0c4143e2` passes 377 complete outputs, eight journeys, Type-4, reviewed self-analysis
-and full local CI (2,440 optimized tests, 89.73% line coverage). Official elapsed
-and remaining resource/native checks are still outstanding. A separate deterministic
+and full local CI (2,440 optimized tests, 89.73% line coverage). Its subsequent
+[official elapsed comparison](../bench/release/0.21.0/component-verdict.v1.json) fails:
+primary/control confirms +52.02%/+1,091.33 ms and the one six-block focus
+confirms +56.15%/+1,425.68 ms, with all blocks and both orders supporting the
+regression. Scoring and ordered group-score accumulation remain large diagnostic
+costs. The repository failure blocks release without claiming a full-corpus
+aggregate result. Remaining cache/watch/native checks are not inherited and the
+unchanged failed candidate will not be retried. A separate deterministic
 sample of 265,219 requested Alamofire pairs finds no opportunities for a proposed
 pre-value anchor-dominance bound; no such shortcut is added to the product.
 
