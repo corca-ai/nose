@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-07. Release decision: **NO-GO (performance qualification remains incomplete)**. The feature scope is frozen;
+Updated on 2026-09-07. Release decision: **NO-GO (confirmed local stage regressions; remote normalization inconclusive)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -74,13 +74,24 @@ and zero unexpected changes are retained. The prospective merge-smoke design now
 uses the existing five-sample position-neutral measurement with one warmup in every
 phase. Its five/six independent blocks, one focused comparison, materiality limits
 and fail-closed policy remain unchanged; see the [measurement contract](order-aware-performance-controls.md).
-The old failed run is not reclassified. The new remote measurement is pending.
+The old failed run is not reclassified. The five-sample [remote comparison](https://github.com/corca-ai/nose/actions/runs/34088948033)
+also fails closed on Asciidoctor normalization: +6.45 ms/+5.36%, four supporting
+blocks of six. No confirmed remote signal remains, but inconclusive evidence
+still fails. Both remote runs retain seven declared and zero unexpected output
+changes. The current preparation's four archives and generated installer also
+pass independent checksum and native installation/execution checks.
 
-The local published-0.20 semantic primary finishes all 120 repositories with 1,200
-observations and five samples per observation. Its control and final gate remain
-pending, as do base, default and near timing. The orchestrator waits between phases
-for infrastructure checks and package verification; the completed primary is not
-replayed. Raw command samples determine performance, independently of this gap.
+The [final verdict record](../bench/release/0.21.0/uniform-relations-verdict.v1.json)
+seals the complete local semantic primary/control and single focused/control.
+Guava has confirmed increases in `groups` (+6.90 ms/+38.47%), `rank_families`
+(+5.66 ms/+93.98%) and `rank_map` (+5.56 ms/+206.02%); RxSwift has a confirmed
+`groups` increase (+6.90 ms/+167.78%). Alamofire `rank_dedup` (+5.20 ms/+9.77%)
+and `rank_families` (+6.29 ms/+6.44%) remain inconclusive. Focused whole-query measurements remain
+within limits. There are 120 declared output changes and zero unexpected changes.
+The campaign stops at this failed workload: base/default/near runtime qualification
+has not run for this candidate. No unchanged retry is planned. The completed
+primary was preserved across the documented between-phase verification gap;
+raw command samples, not orchestration elapsed time, determine the verdict.
 
 ## Previous candidate: complete relations and JSON list encoding
 
