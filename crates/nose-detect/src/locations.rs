@@ -24,17 +24,18 @@ pub(crate) fn group_locations(
         return Vec::new();
     };
     let analysis = crate::regions::AnalysisKeyReference::new(&units[first]);
-    members
-        .par_iter()
-        .with_min_len(256)
-        .map(|&index| {
-            loc_with_analysis_key(
-                &units[index],
-                enclosing[index].clone(),
-                analysis.key_for(&units[index], equal_values),
-            )
-        })
-        .collect()
+    let location = |&index: &usize| {
+        loc_with_analysis_key(
+            &units[index],
+            enclosing[index].clone(),
+            analysis.key_for(&units[index], equal_values),
+        )
+    };
+    if members.len() < 256 {
+        members.iter().map(location).collect()
+    } else {
+        members.par_iter().with_min_len(256).map(location).collect()
+    }
 }
 
 fn loc_with_analysis_key(

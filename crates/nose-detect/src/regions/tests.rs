@@ -334,27 +334,39 @@ fn group_locations_preserve_each_members_key_and_order() {
     let mut source = units(&[("a.py", SOURCE), ("b.py", SOURCE), ("c.py", SOURCE)]);
     source[1].exact_safe = !source[1].exact_safe;
     let enclosing = vec![None; source.len()];
-    let members = [2, 0, 1, 2];
-    let actual = crate::locations::group_locations(&source, &members, &enclosing, true);
-    let expected = members
-        .iter()
-        .map(|&index| crate::locations::loc_of(&source[index], None))
-        .collect::<Vec<_>>();
-    assert_eq!(
-        actual
-            .iter()
-            .map(|loc| loc.analysis_digest)
-            .collect::<Vec<_>>(),
-        expected
-            .iter()
-            .map(|loc| loc.analysis_digest)
-            .collect::<Vec<_>>()
-    );
-    assert_eq!(
-        rmp_serde::to_vec(&actual).unwrap(),
-        rmp_serde::to_vec(&expected).unwrap()
-    );
-    assert!(crate::locations::group_locations(&source, &[], &enclosing, true).is_empty());
+    for threads in [1, 3] {
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build()
+            .unwrap();
+        for count in [0, 1, 4, 255, 256, 257, 513] {
+            let members = [2, 0, 1, 2]
+                .into_iter()
+                .cycle()
+                .take(count)
+                .collect::<Vec<_>>();
+            let actual = pool
+                .install(|| crate::locations::group_locations(&source, &members, &enclosing, true));
+            let expected = members
+                .iter()
+                .map(|&index| crate::locations::loc_of(&source[index], None))
+                .collect::<Vec<_>>();
+            assert_eq!(
+                actual
+                    .iter()
+                    .map(|loc| loc.analysis_digest)
+                    .collect::<Vec<_>>(),
+                expected
+                    .iter()
+                    .map(|loc| loc.analysis_digest)
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(
+                rmp_serde::to_vec(&actual).unwrap(),
+                rmp_serde::to_vec(&expected).unwrap()
+            );
+        }
+    }
 }
 
 #[test]

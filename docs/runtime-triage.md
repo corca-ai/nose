@@ -4,6 +4,22 @@ Runtime triage turns a query-regression report into a reproducible performance d
 which repos are expected capability cost, which are noisy, and which need a focused fix.
 Use it before optimizing a slow repo by hand.
 
+## Small-group location collection experiment (2026-09-07)
+
+The context candidate's full semantic qualification retains one confirmed
+RxSwift grouping regression after focus. Its CPU profile includes location
+construction and collection costs. An isolated private-constructor inlining
+experiment preserves five workload outputs but has mixed timing, including a
+higher RxSwift semantic grouping median, so it is not adopted.
+
+The next experiment collects locations serially below the existing 256-member
+parallel granularity. Independent groups still run in parallel, and larger
+groups keep their ordered parallel collector. Each member retains its existing
+complete analysis-key inputs, source bytes, enclosing context and output order.
+The scalar oracle checks empty, small and boundary-sized groups through 513
+members with one and three workers. Timing remains exploratory until the actual
+release candidate completes its independent qualification.
+
 ## Evidence classification and site ranking preparation (2026-09-07)
 
 The context prototype's CPU profiles identify repeated exact-value comparisons
