@@ -56,7 +56,9 @@ budget of twenty. Full local CI at `7367a277` passes 2,430 optimized tests and
 89.68% line coverage. Cache passes 2,100 mutation runs and 180 paired SymPy runs;
 watch passes thirty replays at p95 74.50 ms/345.52 ms for 10k/100k files, including
 crash recovery. Remote CI, PR, full nightly, deep and native package workflows at
-that preparation all pass; independent native archive/installer verification remains.
+that preparation all pass. The four actual native archives and generated installer
+also pass independent checksum, installation and execution checks; the recorded
+merge checkout has the frozen candidate's product and dependency trees.
 
 The registered semantic comparison passes without focus: aggregate elapsed improves
 4.25% and RxSwift elapsed improves 7.39%. Two internal normalization signals remain
@@ -68,6 +70,10 @@ ordered head/base tuples and producer/root identities; no provenance flag is wai
 The original measurements and error are retained. The corrected base decision passes
 without focus and retains ten stage warnings. Default and near runtime qualification
 remain pending; neither the sampling protocol nor performance decision rules change.
+The [provenance correction and continuation record](../bench/release/0.21.0/elapsed-base-provenance.v1.json)
+seals the original error, unchanged raw measurements, reproduced semantic verdict,
+strict base decision and registered continuation. It also binds the completed CI,
+cache/watch, soundness and native package evidence to the same product.
 
 ## Previous candidate: context preparation and evidence mapping
 
