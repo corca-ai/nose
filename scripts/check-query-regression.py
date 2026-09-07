@@ -1312,6 +1312,7 @@ def expected_manifest(hash_current: str = SAMPLE_CHANGED_HASH) -> dict[str, Any]
 
 def run_self_test() -> None:
     run_order_aware_self_test()
+    run_markdown_self_test()
     evaluate_gate(sample_report())
     v3_primary = sample_v3(sample_report(delta=2.0, iterations=2))
     v3_control = sample_v3(sample_control(delta=-3.0, iterations=2))
@@ -1627,6 +1628,33 @@ def run_self_test() -> None:
     print("query regression checker self-test passed")
 
 
+def run_markdown_self_test() -> None:
+    report = sample_report()
+    for focused in (False, True):
+        status = evaluate_gate(report)
+        phase = status["primary"]
+        example = phase["runtime"]["signals"][0]
+        stages = [
+            dict(example, repo="fixture", scope="stage", stage="confirmed_stage", triggered=True, inconclusive=False),
+            dict(example, repo="fixture", scope="stage", stage="uncertain_stage", triggered=False, inconclusive=True),
+            dict(example, repo="fixture", scope="stage", stage="passing_stage", triggered=False, inconclusive=False),
+        ]
+        phase["runtime"]["signals"].extend(stages)
+        phase["runtime"]["triggered"] = stages[:1]
+        phase["runtime"]["inconclusive"] = stages[1:2]
+        if focused:
+            status["focused"] = phase
+            status["focused_repos"] = ["fixture"]
+        rendered = markdown_summary(status, report)
+        assert rendered.count("`fixture:confirmed_stage`") == 1
+        assert rendered.count("`fixture:uncertain_stage`") == 1
+        assert "`fixture:passing_stage`" not in rendered
+        uncertain = next(line for line in rendered.splitlines() if "`fixture:uncertain_stage`" in line)
+        assert uncertain.endswith("| inconclusive |")
+        if focused:
+            assert "Focused comparison completed for:" in rendered
+
+
 def markdown_summary(status: dict[str, Any], report: dict[str, Any]) -> str:
     primary = status["primary"]
     result_phase = status["focused"] or primary
@@ -1642,7 +1670,8 @@ def markdown_summary(status: dict[str, Any], report: dict[str, Any]) -> str:
         signal for signal in result_phase["runtime"]["signals"] if signal["scope"] != "stage"
     ]
     signals += [
-        signal for signal in result_phase["runtime"]["triggered"] if signal["scope"] == "stage"
+        signal for signal in result_phase["runtime"]["signals"]
+        if signal["scope"] == "stage" and (signal["triggered"] or signal.get("inconclusive"))
     ]
     for signal in signals:
         label = signal["repo"] or "aggregate"
@@ -1661,7 +1690,7 @@ def markdown_summary(status: dict[str, Any], report: dict[str, Any]) -> str:
     if status["focused"] is not None:
         lines += [
             "",
-            "Initial material signal confirmed with a focused rerun of: "
+            "Focused comparison completed for: "
             + ", ".join(f"`{repo}`" for repo in status["focused_repos"])
             + ".",
         ]

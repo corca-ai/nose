@@ -180,3 +180,9 @@ state, invoke the generic harness/checker mode directly; it is not merge evidenc
 Use the broader 120-repository query regression and the
 [runtime triage runbook](runtime-triage.md) when the bounded smoke identifies a
 change that needs product-wide classification.
+
+The Markdown summary lists confirmed and inconclusive stage signals together,
+including when both occur in one focused comparison. Passing stages stay omitted;
+whole-query and aggregate rows remain visible. A completed focused comparison is
+reported neutrally and does not itself claim confirmation or a passing result.
+The raw status JSON and original measurements remain authoritative.
