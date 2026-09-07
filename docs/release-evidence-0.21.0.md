@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-08. Release decision: **NOT READY (incident-site candidate passes correctness; final qualification remains outstanding)**. The feature scope is frozen;
+Updated on 2026-09-08. Release decision: **NOT READY (short-feature candidate awaits actual-product qualification)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -25,7 +25,22 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: incident-site coverage
+## Latest candidate: short-feature comparisons
+
+Product `aea64b61` retains the incident-site implementation and uses conditional
+index increments for sorted multisets only when both inputs have at most 32
+features. Larger inputs keep the previous scalar merge. The
+[feature follow-up](../bench/release/0.21.0/feature-followup.v1.json) binds crates
+tree `ea2e833d`, the isolated binary, 283 detector tests, strict Clippy/docs,
+a 7,225-pair independent frequency oracle and six byte-identical query outputs.
+Exploratory libGDX and RxSwift default elapsed improve 2.41% and 2.20%; other
+changes are small and mixed, including higher Alamofire medians. Three additional
+experiments are reverted for insufficient benefit. These screens do not resolve
+the release blocker or replace actual-binary correctness, CI, cache/watch,
+remote/native and the registered elapsed campaign. Predecessor passes below
+remain historical evidence until the final product is independently qualified.
+
+## Previous candidate: incident-site coverage
 
 Product `9c0eb825` answers accepted-coverage questions from an exact incident-site
 set when the connected source graph has a total, surjective site mapping. This

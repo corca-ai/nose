@@ -4,6 +4,29 @@ Runtime triage turns a query-regression report into a reproducible performance d
 which repos are expected capability cost, which are noisy, and which need a focused fix.
 Use it before optimizing a slow repo by hand.
 
+## Short-feature follow-up (2026-09-08)
+
+The [sealed follow-up](../bench/release/0.21.0/feature-followup.v1.json) retains
+145 diagnostic artifacts and source patches. Actual requested pairs have much
+shorter feature vectors than class-wide averages suggest. A conditional-index
+merge limited to two inputs of at most 32 features preserves all score bits in
+an independent 7,225-pair frequency oracle. The isolated implementation passes
+283 detector tests, strict Clippy, docs and all six complete query outputs.
+LibGDX and RxSwift default elapsed decrease 2.41% and 2.20% in the exploratory
+screen; Guava elapsed is flat. Alamofire default/near and RxSwift semantic rise
+0.52%/0.75%/0.77%. Retain the small short-input improvement without claiming an
+Alamofire fix or a release pass. Product `aea64b61` still needs actual-binary
+qualification; the earlier incident-site CI belongs to its predecessor.
+
+Three other experiments are reverted: prepared shape multiplicity counts,
+8 MiB of popular indexed shape rows, and a whole-row bound for nested seed
+reservations. They preserve complete outputs but do not sufficiently reduce the
+primary bottleneck. The latter bound differs from the earlier rejected per-source
+file-loop experiment; it also fails to produce a useful elapsed gain. No cache,
+seed bound, admission change or memory improvement from these experiments is
+part of the retained product. Kernel timings and overlapping row-census intervals
+are diagnostic only; the paired CLI screens have no same-binary controls.
+
 ## Scalar multiset merge experiments (2026-09-08)
 
 Two isolated follow-ups keep all six complete outputs and pass 283 optimized
