@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-07. Release decision: **NO-GO (new candidate unqualified; prior performance blockers retained)**. The feature scope is frozen;
+Updated on 2026-09-07. Release decision: **NO-GO (confirmed RxSwift grouping regression)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -44,9 +44,28 @@ blind exact groups with zero false merges or canonicalization violations.
 Self-analysis retains nineteen reviewed families within the budget of twenty.
 The [representative review](dogfooding-history.md#context-preparation-release-check-2026-09-07)
 replaces one changed navigation ID without changing the keep-separate policy.
-Full local CI, cache/watch, registered runtime and remote/package qualification
-remain pending for this candidate. The previous candidate's failures below remain
-unchanged. The release decision is still **NO-GO**.
+The [final context verdict](../bench/release/0.21.0/context-verdict.v1.json) records
+full local CI passing 2,426 optimized tests and 89.65% line coverage. Cache checks
+pass 2,100 mutation runs and 180 paired SymPy runs. Thirty-replay watch checks
+pass at p95 74.11 ms for 10,000 files and 338.39 ms for 100,000 files, including
+crash recovery and equality to clean analysis. All remote CI, PR, deep and
+complete 120-repository soundness checks pass. The remote runtime comparison
+has no triggered or inconclusive signals, seven declared output changes and no
+unexpected changes. Four native archives and the actual generated installer
+pass independent checksum, installation and execution checks. The merge checkout
+has the same product and dependency trees as the frozen candidate.
+
+The registered local semantic primary/control and single focused/control retain
+one confirmed regression: RxSwift `groups` increases by 6.05 ms/148.92%, with
+support in all six focused blocks. Guava and Alamofire's prior signals are within
+limits. The primary libsodium and SQLite normalization signals clear in focus;
+no focused inconclusive signal remains. There are 120 declared and zero unexpected
+output changes in the primary, and three declared/zero unexpected changes in focus.
+Qualification stops at this failed semantic workload; base/default/near runtime
+qualification has not run for this candidate. No unchanged retry is planned.
+The completed primary was preserved across a preregistered package-verification
+gap before control; raw command samples determine the verdict. Earlier failure
+receipts remain unchanged. The release decision is still **NO-GO**.
 
 ## Previous candidate: uniform source and site relations
 
