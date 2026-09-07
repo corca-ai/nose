@@ -287,8 +287,10 @@ into slices, so accumulation needs no source or group lookup for every cross-fil
 pair. Large accepted relations prepare independent target rows in parallel,
 with exact capacity allocation before sorting. File-position indexes retain only
 files containing a left endpoint in that row, because only those files can have
-same-file exclusions; all cross-file targets remain in the complete relation. Small relations
-retain serial preparation. Source-pair order and each score bit remain unchanged. Connected pricing looks up only its selected pair
+same-file exclusions; all cross-file targets remain in the complete relation. Scoring
+workers retain accepted relations by their existing left row, avoiding a full flat
+triple array and subsequent regrouping. The serial/parallel work check stops when
+its existing threshold is met. Small relations retain serial preparation. Source-pair order and each score bit remain unchanged. Connected pricing looks up only its selected pair
 questions instead of copying the entire accepted graph into a hash set.
 Before materializing coverage, the detector applies ranking's existing site
 collapse and retains the strongest original edge per site pair, with the same

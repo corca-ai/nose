@@ -11,16 +11,26 @@ pub(super) struct PreparedRows {
     pub by_path: Vec<ByPath>,
 }
 
+pub(super) fn group(rows: usize, relations: Vec<AcceptedPair>) -> Vec<Vec<(usize, f64)>> {
+    let mut grouped = vec![Vec::new(); rows];
+    for (left, right, score) in relations {
+        grouped[left].push((right, score));
+    }
+    grouped
+}
+
 pub(super) fn rows(
     members: &[Vec<usize>],
-    relations: Vec<AcceptedPair>,
+    grouped: Vec<Vec<(usize, f64)>>,
     paths: &[usize],
 ) -> PreparedRows {
-    let mut grouped = vec![Vec::new(); members.len()];
+    debug_assert_eq!(members.len(), grouped.len());
     let mut work = 0usize;
-    for (left, right, score) in relations {
+    for &(right, _) in grouped.iter().flatten() {
         work = work.saturating_add(members[right].len());
-        grouped[left].push((right, score));
+        if work >= 16_384 {
+            break;
+        }
     }
     let prepare = |(left, relations): (usize, Vec<(usize, f64)>)| {
         let capacity = relations

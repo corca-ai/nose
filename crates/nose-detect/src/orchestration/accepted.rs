@@ -46,6 +46,20 @@ impl AcceptedPairs {
         members: &[Vec<usize>],
         relations: Vec<AcceptedPair>,
     ) -> Self {
+        Self::from_rows(
+            units,
+            paths,
+            members,
+            prepare::group(members.len(), relations),
+        )
+    }
+
+    pub(crate) fn from_rows(
+        units: &[UnitFeat],
+        paths: &[usize],
+        members: &[Vec<usize>],
+        relations: Vec<Vec<(usize, f64)>>,
+    ) -> Self {
         let mut row_of = vec![0; units.len()];
         for (row, members) in members.iter().enumerate() {
             for &unit in members {

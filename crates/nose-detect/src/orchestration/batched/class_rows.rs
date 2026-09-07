@@ -185,7 +185,7 @@ pub(super) fn score(
         .enumerate()
         .map(|(chunk_id, chunk)| {
             let mut result = DetectionStages::fresh(Vec::new(), Vec::new(), Vec::new());
-            let mut relations = Vec::new();
+            let mut relations = vec![Vec::new(); chunk.len()];
             let mut scratch = Scratch::new(rows.len());
             let mut neighbors = Vec::new();
             let mut memo = FxHashMap::default();
@@ -212,7 +212,7 @@ pub(super) fn score(
                     let connected =
                         opts.connected_witnesses && row.connected && right_row.connected;
                     if score >= opts.threshold {
-                        relations.push((row_id, right_id, score));
+                        relations[offset].push((right_id, score));
                         if !connected {
                             continue;
                         }
@@ -246,7 +246,7 @@ pub(super) fn score(
         }
     }
     result.scored = seeds.finish();
-    result.accepted = super::super::accepted::AcceptedPairs::rows(
+    result.accepted = super::super::accepted::AcceptedPairs::from_rows(
         units,
         &path_ids,
         &rows.into_iter().map(|row| row.members).collect::<Vec<_>>(),
