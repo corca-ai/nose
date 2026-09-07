@@ -2294,3 +2294,20 @@ or a detector regression. Preserve the separate integer and floating-point polic
 remove the stale baseline ID and retain the budget of twenty. The original failed
 gate, complete self-queries and source comparison are retained under
 `target/release-incidence-qualification-20260908/`.
+
+## Component-root release check (2026-09-08)
+
+The self-query still reports eighteen substantial default families within budget
+twenty. Adding the detector's current-root union operation changes the reviewed
+detect/Markdown `UnionFind` representative from `3e7649541676178b` to
+`cad1fc2eb22587f4`. Its members remain those same two implementations; the entire
+Markdown source file is unchanged. The old short-feature binary and the new
+component binary produce byte-identical complete self-query JSON on this tree,
+including all 88 all-surface families (SHA-256 `68f39de72bbb34d05b3dac9b657f5f1b55010f2fc4531246077ae5074b874d25`).
+
+Retain the existing cross-crate utility debt: detector rank/representative behavior
+and its new current-root contract remain separate from Markdown's private
+implementation. This change does not introduce a second copy or justify a new
+shared dependency solely to remove a finding. Replace the reviewed navigation ID
+without changing the budget. The original failure, both complete self-queries and
+the source/member review are retained in `target/release-components-qualification-20260908/`.
