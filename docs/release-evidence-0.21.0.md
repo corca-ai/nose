@@ -1,6 +1,6 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-08. Release decision: **NO-GO (candidate withdrawn after material default-query regressions)**. The feature scope is frozen;
+Updated on 2026-09-08. Release decision: **PENDING (dense-score candidate passed correctness preflight; release runtime remains unqualified)**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
 
@@ -25,7 +25,31 @@ No release tag or Homebrew publication is part of this preparation.
   the bound alone does not authorize external-exact influence. Shipped examples
   are revalidated on this candidate.
 
-## Latest candidate: explicit relation certificates and elapsed-time qualification
+## Latest candidate: dense scoring and accepted-target preparation
+
+Product `c82fef52` reuses structural scores across relocated anchor metadata,
+prepares feature intersections even when input classes are mostly unique, estimates
+sparse merge work from both inputs, prepares large accepted target rows in parallel,
+and unions dense candidate neighborhoods with exact bitsets. Source admission,
+ordered scores, complete edge evidence and navigation output remain unchanged.
+The [diagnostic comparisons](runtime-triage.md#dense-score-optimization-2026-09-08)
+keep each experiment's baseline and rejected alternatives explicit.
+
+The [actual-binary preflight](../bench/release/0.21.0/score-preflight.v1.json) binds
+source `c82fef52`, crates tree `31856d64` and binary `7ec35a11`.
+All **360 ordinary outputs and 17 base outputs** match the retained reference byte
+for byte. Base field changes match the previously reviewed declarations. All eight
+saved-analysis/review/source/upgrade journeys pass. Type-4 retains 41 covered cells,
+17 hard negatives, 18 known gaps and zero observed bugs; 54 blind exact groups have
+zero false merges or canonicalization violations. Self-analysis retains nineteen
+reviewed families within budget twenty. The identical prototype crates tree passes
+279 optimized detector tests, strict Clippy and the documentation gate.
+
+Full candidate CI, cache/watch and elapsed-time release qualification remain
+outstanding. Short exploratory comparisons show useful reductions, but do not
+qualify the release or erase the preceding candidate's withdrawal.
+
+## Previous candidate: explicit relation certificates and elapsed-time qualification
 
 Product `437c3795` includes the small-group serial location collector and a
 certificate for complete, homogeneous explicit source relations. It preserves

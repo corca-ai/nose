@@ -644,3 +644,34 @@ optimized tests, 89.49% line coverage, MSRV and Lean. Its full 360-output audit 
 saved-analysis/cache-upgrade journeys also pass. Its remote runtime smoke remains
 inconclusive for Asciidoctor normalization after the single focused run. These
 results remain bound to that earlier candidate, rather than to ongoing prototypes.
+
+
+## Dense-score optimization (2026-09-08)
+
+The elapsed-v1 candidate was withdrawn after material default-query regressions.
+CPU sampling and a public-API census identify repeated structural scoring,
+source-only anchor metadata splitting equivalent inputs, and serial accepted-target
+preparation. Alamofire's complete candidate relation has about 2.28 billion pairs;
+the scorer already reduces it to about 67.9 million row comparisons. libGDX's
+mostly unique classes previously disabled prepared feature intersections entirely.
+
+Each row below is a separate exploratory comparison against its own preceding
+candidate: three paired blocks, one sample per observation, one warmup and no
+same-binary control. Values are whole-query median milliseconds. These are not
+comparisons against published 0.20.0 and do not establish release qualification.
+
+| Change | Diagnostic workload | Before | After |
+|---|---|---:|---:|
+| Ignore source-only anchor metadata in score classes | Guava default | 3,662 | 3,113 |
+| Prepare rows without requiring repeated classes | libGDX default | 3,054 | 2,554 |
+| Estimate merges from both feature lengths | RxSwift default | 1,173 | 1,096 |
+| Prepare accepted targets in parallel with exact capacity | Alamofire default | 3,576 | 3,116 |
+| Union dense row neighborhoods with exact bitsets | Alamofire default | 3,064 | 3,008 |
+
+Every six-workload screen preserves complete JSON hashes. Effects are mixed outside
+the highlighted workloads; all raw comparisons remain sealed in the
+[preflight record](../bench/release/0.21.0/score-preflight.v1.json). File-based connected
+seed pruning and a strict anchor-bound/lazy-shape experiment also preserved output,
+but did not produce useful latency gains and were reverted. The actual root build
+passes all 360 ordinary output comparisons, 17 base comparisons and eight source,
+review and upgrade journeys. Full release qualification remains separate.

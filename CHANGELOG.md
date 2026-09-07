@@ -38,6 +38,11 @@ break.
   collect small groups without nested parallel setup. Preserve source exclusions,
   exact scores and complete query output.
 
+- Share scoring across relocated anchor evidence, retain prepared intersections
+  for mostly unique inputs, and estimate sparse comparisons from both feature
+  lengths. Prepare large accepted targets in parallel and union dense candidate
+  neighborhoods with exact bitsets, preserving complete query output.
+
 - Stop C-header admission parsing when every remaining parse necessarily contains
   a syntax error, while preserving clean-tree validation and parser reuse safety.
 - Reuse exact scoring inputs and repeated score sums without changing sequential
