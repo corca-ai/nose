@@ -2264,3 +2264,18 @@ comparisons. Shared comparison arms do not justify merging those numeric
 policies. This restores the reviewed family ID without increasing the budget
 of twenty or suppressing the finding in nose. The original failed check and
 full source comparison are retained in `target/release-uniform-groups-20260907/`.
+
+## Context-preparation release check (2026-09-07)
+
+The current self-query retains nineteen families within the unchanged budget of
+twenty. Editing parameter-domain inference changes the broad `OperatorSemantics`
+implementation representative from `f1d4dd2de41aca2e` to `5ef15dff43bd6611`.
+This is the previously reviewed implementation/callback-literal relation. The
+17-line callback matcher in `operators/callback_effects.rs` is unchanged; its
+Number/BigInt and effect-closure constraints remain independent from the broader
+operator value-domain and fixed-point inference policy. The full inspection
+reports four shared common-syntax lines, zero substantive shared-line weight,
+64 structural holes and caller review required. No shared extraction is justified
+by this observation. Replace the navigation ID, preserve the keep-separate
+judgment, and keep both the reviewed family count and budget unchanged. The
+original failed gate and the full inspection are retained with release evidence.

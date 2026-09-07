@@ -35,8 +35,17 @@ groups, overlap ties, score bits and all admission rules retain their old behavi
 The [runtime triage record](runtime-triage.md) distinguishes the three isolated
 comparisons and their mixed whole-query outcomes. The prototypes pass relevant
 optimized tests, strict Clippy, documentation and all compared complete outputs.
-Their results are exploratory; this actual release-workspace candidate still
-needs its own complete validation. The previous candidate's failures below remain
+Their timings are exploratory. The [actual-binary preflight](../bench/release/0.21.0/context-preflight.v1.json)
+binds product `7b239a41`, crates tree `15499ec6` and binary `b62005ba`.
+All 360 ordinary and 17 base outputs match the retained reference; all eight
+saved-analysis/review/source/upgrade journeys pass. Type-4 retains 41 covered
+cells, 17 hard negatives, 18 known gaps, zero observed soundness bugs, and 54
+blind exact groups with zero false merges or canonicalization violations.
+Self-analysis retains nineteen reviewed families within the budget of twenty.
+The [representative review](dogfooding-history.md#context-preparation-release-check-2026-09-07)
+replaces one changed navigation ID without changing the keep-separate policy.
+Full local CI, cache/watch, registered runtime and remote/package qualification
+remain pending for this candidate. The previous candidate's failures below remain
 unchanged. The release decision is still **NO-GO**.
 
 ## Previous candidate: uniform source and site relations
