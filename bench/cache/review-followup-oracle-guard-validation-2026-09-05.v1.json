@@ -1,0 +1,108 @@
+{
+  "binary": {
+    "code_sha256": "3d80872bcc74977841b81e872a969c7473f96d801def06ab25cf2996836b0932",
+    "code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1",
+    "file_sha256": "5f842458ae3f28111e8e3d8b92c73a4863cee058d6d43b532812f09ee9d0f67d"
+  },
+  "debug_blind_oracle": {
+    "advisory_disagreements": 86,
+    "attacker": "blind-oracle",
+    "corpus": "bench/type4/coverage_probes",
+    "corpus_files": 284,
+    "corpus_sha256": "7ae580a154ca51863fb7ebb36913dffb7c5a7d36dc3bb5fe4f264a6391dfbab2",
+    "hard_gate": {
+      "canon_preservation_violations": 0,
+      "false_merges": 0,
+      "fingerprint_groups": 54,
+      "gate_passed": true
+    },
+    "oracle_exclusions": {
+      "battery-bail": 0,
+      "core-missing": 2,
+      "empty-fingerprint": 0,
+      "path-bail": 0,
+      "uninterpretable": 160
+    },
+    "product_crates_tree": "ecfd0bb396dacc1b617fc17d911523fc1c5edc74",
+    "schema_version": 1,
+    "summary": {
+      "admission_rejections": 28,
+      "canon_checked": 267,
+      "excluded_units": 162,
+      "interpretable_units": 321,
+      "total_units": 483
+    }
+  },
+  "measured_profile_sha256": "047dbdac2acea6ebe34e2046400484ea54ba8c35ec50dcdf44979dc03a92e9f3",
+  "purpose": "post-profile-correctness-check-no-performance-claim",
+  "query_equivalence": [
+    {
+      "equal_to_measured_revision": true,
+      "output_sha256": "72ad9e60f5c8e065c8f0dce5326a8da186a1571394de3e640310cf1603d66ca1",
+      "repository": "sympy"
+    },
+    {
+      "equal_to_measured_revision": true,
+      "output_sha256": "9a33f37e361a9cd8a489c34d2b90aafeb888e07cc4359244531ddec46648ffb2",
+      "repository": "prettier"
+    },
+    {
+      "equal_to_measured_revision": true,
+      "output_sha256": "953c25a74fbb74595d2c8df6d664731e487e2017e80e5660bdfcef74ce23e4db",
+      "repository": "netty"
+    },
+    {
+      "equal_to_measured_revision": true,
+      "output_sha256": "4880087602033cf4c252cd0ea1d8fabf464b36756a943d7712cf7791bf6119df",
+      "repository": "fastlane"
+    }
+  ],
+  "query_flags": [
+    "--min-lines",
+    "5",
+    "--min-size",
+    "24"
+  ],
+  "query_modes": [
+    "syntax",
+    "semantic",
+    "near"
+  ],
+  "query_terms": [
+    "all",
+    "top=0"
+  ],
+  "release_blind_oracle": {
+    "advisory_disagreements": 86,
+    "attacker": "blind-oracle",
+    "corpus": "bench/type4/coverage_probes",
+    "corpus_files": 284,
+    "corpus_sha256": "7ae580a154ca51863fb7ebb36913dffb7c5a7d36dc3bb5fe4f264a6391dfbab2",
+    "hard_gate": {
+      "canon_preservation_violations": 0,
+      "false_merges": 0,
+      "fingerprint_groups": 54,
+      "gate_passed": true
+    },
+    "oracle_exclusions": {
+      "battery-bail": 0,
+      "core-missing": 2,
+      "empty-fingerprint": 0,
+      "path-bail": 0,
+      "uninterpretable": 160
+    },
+    "product_crates_tree": "ecfd0bb396dacc1b617fc17d911523fc1c5edc74",
+    "schema_version": 1,
+    "summary": {
+      "admission_rejections": 28,
+      "canon_checked": 267,
+      "excluded_units": 162,
+      "interpretable_units": 321,
+      "total_units": 483
+    }
+  },
+  "revision": "45d7da37501b82202183921d1431a371fc5e7e35",
+  "schema": "nose.review_followup_oracle_guard_validation/v1",
+  "source_tree_sha256": "72690c4495eeedfb52552b78c643cb4c297fb90c5d1cb935c67b5fe81f2c00c5",
+  "status": "passed"
+}

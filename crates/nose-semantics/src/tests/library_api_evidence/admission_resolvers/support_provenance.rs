@@ -100,15 +100,13 @@ pub(crate) fn assert_rust_std_map_factory_requires_pack_provenance(
             .expect("Rust std::collections HashMap::from contract");
 
     let (mut missing_dependency, interner, call, callee) = rust_std_map_factory_call_il();
-    missing_dependency
-        .evidence
-        .push(rust_stdlib_map_factory_record(
-            0,
-            missing_dependency.node(call).span,
-            contract,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(rust_stdlib_map_factory_record(
+        0,
+        missing_dependency.node(call).span,
+        contract,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     admission.assert_rejected(
         &missing_dependency,
         &interner,
@@ -119,7 +117,7 @@ pub(crate) fn assert_rust_std_map_factory_requires_pack_provenance(
 
     let (mut wrong_pack, interner, call, callee) = rust_std_map_factory_call_il();
     push_rust_std_map_factory_symbol_dependency(&mut wrong_pack, callee);
-    wrong_pack.evidence.push(library_api_record_with_provenance(
+    wrong_pack.push_evidence(library_api_record_with_provenance(
         1,
         wrong_pack.node(call).span,
         contract.id,
@@ -139,18 +137,16 @@ pub(crate) fn assert_rust_std_map_factory_requires_pack_provenance(
 
     let (mut wrong_producer, interner, call, callee) = rust_std_map_factory_call_il();
     push_rust_std_map_factory_symbol_dependency(&mut wrong_producer, callee);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[0],
-            RUST_STDLIB_MAP_FACTORY_PACK_ID,
-            "wrong.rust.stdlib.map-factory-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+        RUST_STDLIB_MAP_FACTORY_PACK_ID,
+        "wrong.rust.stdlib.map-factory-api",
+    ));
     admission.assert_rejected(
         &wrong_producer,
         &interner,
@@ -161,7 +157,7 @@ pub(crate) fn assert_rust_std_map_factory_requires_pack_provenance(
 
     let (mut admitted, interner, call, callee) = rust_std_map_factory_call_il();
     push_rust_std_map_factory_symbol_dependency(&mut admitted, callee);
-    admitted.evidence.push(rust_stdlib_map_factory_record(
+    admitted.push_evidence(rust_stdlib_map_factory_record(
         1,
         admitted.node(call).span,
         contract,
@@ -172,7 +168,7 @@ pub(crate) fn assert_rust_std_map_factory_requires_pack_provenance(
 }
 
 fn push_rust_std_map_factory_symbol_dependency(il: &mut Il, callee: NodeId) {
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(il.node(callee).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -290,16 +286,14 @@ pub(crate) fn assert_java_map_factory_requires_pack_provenance(admission: JavaMa
         library_java_map_factory_contract(Lang::Java, "Map", "of").expect("Map.of contract");
 
     let (mut missing_dependency, interner, call, callee, receiver) = java_map_factory_call_il();
-    missing_dependency
-        .evidence
-        .push(java_stdlib_map_factory_record(
-            0,
-            missing_dependency.node(call).span,
-            contract,
-            2,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(java_stdlib_map_factory_record(
+        0,
+        missing_dependency.node(call).span,
+        contract,
+        2,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     admission.assert_rejected(
         &missing_dependency,
         &interner,
@@ -311,19 +305,17 @@ pub(crate) fn assert_java_map_factory_requires_pack_provenance(admission: JavaMa
 
     let (mut wrong_pack, interner, call, callee, receiver) = java_map_factory_call_il();
     push_java_map_import_dependencies(&mut wrong_pack, receiver);
-    wrong_pack
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            2,
-            wrong_pack.node(call).span,
-            contract.id,
-            contract.callee,
-            2,
-            EvidenceStatus::Asserted,
-            &[1],
-            BUILTIN_COMPAT_PACK_ID,
-            JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID,
-        ));
+    wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+        2,
+        wrong_pack.node(call).span,
+        contract.id,
+        contract.callee,
+        2,
+        EvidenceStatus::Asserted,
+        &[1],
+        BUILTIN_COMPAT_PACK_ID,
+        JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID,
+    ));
     admission.assert_rejected(
         &wrong_pack,
         &interner,
@@ -335,19 +327,17 @@ pub(crate) fn assert_java_map_factory_requires_pack_provenance(admission: JavaMa
 
     let (mut wrong_producer, interner, call, callee, receiver) = java_map_factory_call_il();
     push_java_map_import_dependencies(&mut wrong_producer, receiver);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            2,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            2,
-            EvidenceStatus::Asserted,
-            &[1],
-            JAVA_STDLIB_MAP_FACTORY_PACK_ID,
-            "wrong.java.stdlib.map-factory-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance_and_arity(
+        2,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        2,
+        EvidenceStatus::Asserted,
+        &[1],
+        JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+        "wrong.java.stdlib.map-factory-api",
+    ));
     admission.assert_rejected(
         &wrong_producer,
         &interner,
@@ -359,7 +349,7 @@ pub(crate) fn assert_java_map_factory_requires_pack_provenance(admission: JavaMa
 
     let (mut admitted, interner, call, callee, receiver) = java_map_factory_call_il();
     push_java_map_import_dependencies(&mut admitted, receiver);
-    admitted.evidence.push(java_stdlib_map_factory_record(
+    admitted.push_evidence(java_stdlib_map_factory_record(
         2,
         admitted.node(call).span,
         contract,
@@ -451,16 +441,14 @@ pub(crate) fn assert_js_collection_constructor_requires_pack_provenance(
 
     let (mut missing_dependency, interner, call, _callee) =
         js_global_constructor_call_il(kind.name());
-    missing_dependency
-        .evidence
-        .push(js_like_builtin_collection_constructor_record(
-            0,
-            missing_dependency.node(call).span,
-            contract_id,
-            callee_contract,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(js_like_builtin_collection_constructor_record(
+        0,
+        missing_dependency.node(call).span,
+        contract_id,
+        callee_contract,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     kind.assert_rejected(
         &missing_dependency,
         &interner,
@@ -470,7 +458,7 @@ pub(crate) fn assert_js_collection_constructor_requires_pack_provenance(
 
     let (mut wrong_pack, interner, call, callee) = js_global_constructor_call_il(kind.name());
     push_js_global_constructor_dependencies(&mut wrong_pack, call, callee, kind.name());
-    wrong_pack.evidence.push(library_api_record_with_provenance(
+    wrong_pack.push_evidence(library_api_record_with_provenance(
         2,
         wrong_pack.node(call).span,
         contract_id,
@@ -489,18 +477,16 @@ pub(crate) fn assert_js_collection_constructor_requires_pack_provenance(
 
     let (mut wrong_producer, interner, call, callee) = js_global_constructor_call_il(kind.name());
     push_js_global_constructor_dependencies(&mut wrong_producer, call, callee, kind.name());
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance(
-            2,
-            wrong_producer.node(call).span,
-            contract_id,
-            callee_contract,
-            EvidenceStatus::Asserted,
-            &[0, 1],
-            JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID,
-            "wrong.javascript.builtins.collection-constructor-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance(
+        2,
+        wrong_producer.node(call).span,
+        contract_id,
+        callee_contract,
+        EvidenceStatus::Asserted,
+        &[0, 1],
+        JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID,
+        "wrong.javascript.builtins.collection-constructor-api",
+    ));
     kind.assert_rejected(
         &wrong_producer,
         &interner,
@@ -519,7 +505,7 @@ pub(crate) fn assert_js_collection_constructor_requires_pack_provenance(
         &[0, 1],
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     kind.assert_rejected(
         &wrong_emitter,
         &interner,
@@ -529,15 +515,13 @@ pub(crate) fn assert_js_collection_constructor_requires_pack_provenance(
 
     let (mut admitted, interner, call, callee) = js_global_constructor_call_il(kind.name());
     push_js_global_constructor_dependencies(&mut admitted, call, callee, kind.name());
-    admitted
-        .evidence
-        .push(js_like_builtin_collection_constructor_record(
-            2,
-            admitted.node(call).span,
-            contract_id,
-            callee_contract,
-            EvidenceStatus::Asserted,
-            &[0, 1],
-        ));
+    admitted.push_evidence(js_like_builtin_collection_constructor_record(
+        2,
+        admitted.node(call).span,
+        contract_id,
+        callee_contract,
+        EvidenceStatus::Asserted,
+        &[0, 1],
+    ));
     kind.assert_admitted(&admitted, &interner, call, callee);
 }

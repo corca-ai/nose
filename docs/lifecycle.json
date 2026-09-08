@@ -2,7 +2,7 @@
   "schema_version": 1,
   "inventory": {
     "glob": "**/*.md",
-    "sha256": "e83e6c0dbac9b4f20cb86b7e79d126c37389cf1c079390a96102a4aedcd1093c"
+    "sha256": "15029561633a03ead38a4c1da425d20e9b1cd550c9b32c41e6b1bd668deaf0d0"
   },
   "default": {
     "kind": "reference",
@@ -141,6 +141,7 @@
         "release-evidence-0.18.0.md",
         "release-evidence-0.19.0.md",
         "release-evidence-0.20.0.md",
+        "release-evidence-0.21.0.md",
         "residual-ranking-calibration-845.md",
         "ruby-string-affix-closeout-551.md",
         "runtime-performance-20-optimizations-2026-07-02.md",

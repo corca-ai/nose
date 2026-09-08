@@ -59,6 +59,26 @@ example, `fastlane`) to nose. Since family/member ids include path identity, thi
 stable relative invocation is what makes exact output declarations portable between
 a workstation and GitHub Actions. Unexpected drift fails.
 
+Base-view campaigns use `query . base=<commit> top=0 --format json`; the general-list
+term `all` is not valid in that view. Their isolated worktree path is stable across
+primary, control and focused phases because navigation commands retain the real
+working directory. `--worktrees-root` can select a campaign-specific root; use the
+same root for all phases and exact output audits. The default is
+`target/query-regression-worktrees`. Each checkout is exclusively reserved and
+removed after use. Existing paths and reservations fail closed rather than being
+replaced. Producer hashes and the resolved root are recorded in report provenance;
+controls and focused reruns must preserve them.
+This preserves complete navigation output without filtering commands or changing
+sampling and timing limits.
+
+Strict provenance checks recognize the pinned base-workload contract separately
+from ordinary pruned-corpus state. They require the workload manifest path/digest,
+source-selection provenance, exact ordered repository/head/base tuples, a rebuilt
+selection digest, and the harness/worktree producer hashes and reserved root.
+Focused base reports must preserve the primary head and ancestor for every selected
+repository. Missing or substituted fields fail; the absence of unrelated ordinary
+prune-state fields does not invalidate a complete base-workload report.
+
 An intentional change passes only when
 `.github/semantic-regression-expected-drift.json` contains an exact declaration
 for the comparison base SHA and repository. A declaration includes every changed
@@ -74,35 +94,47 @@ declares its cost acceptable.
 
 ## Runtime policy
 
-The first pass takes five paired measurements, running base and head back-to-back
-within each repository and reversing that pair order on every iteration. Five is the
-smallest sample that can satisfy the exact one-sided sign test. This prevents runner
-load, process position, or temperature changes from accumulating on only one binary.
-It also runs a base-vs-base same-binary control with the same repo-local pairing. The
-harness records each block's order and position, wall time, and every stage emitted by
-`NOSE_TIME=1`.
+The first pass takes five independent paired blocks after one warmup. Every
+observation contains five command samples: odd samples follow the block's declared
+base/head order and even samples reverse it. Each binary therefore runs in both
+process positions. The harness takes the median at each position and averages the
+two medians; all raw times and exact output observations remain in the report.
+The base-vs-base control uses the same design. The sign test still has five
+independent blocks, not twenty-five independent samples.
 
-The [order-aware control contract](order-aware-performance-controls.md) computes the
-median current-minus-base movement within each execution order and averages those two
-strata. A positive same-binary movement may reduce the result; a negative control is
-diagnostic only and can never inflate it. A signal crosses the material threshold only
-when its adjusted point estimate, exact sign-test support, and both execution-order
-strata agree that the increase is both:
+The [order-aware control contract](order-aware-performance-controls.md) evaluates
+these position-neutral observations. A positive same-binary movement may reduce the
+result; a negative control is diagnostic only and can never inflate it. A signal
+crosses the material threshold only when the adjusted point estimate exceeds both:
 
-- greater than 5%; and
-- greater than 5 ms.
+- 5%; and
+- 5 ms.
 
-The checker evaluates the aggregate, each repository, and each reported stage.
-A repository or stage can therefore fail even when faster controls dilute the
-aggregate.
+Exact sign-test support is also required to confirm a regression. The declared
+block-order strata remain diagnostics: each multi-sample observation already
+balances actual process position. A material point estimate without sufficient
+block support remains inconclusive. The checker evaluates the aggregate, each
+repository, and each reported stage. The smoke explicitly selects
+`--runtime-gate elapsed-v1`: aggregate and per-repository elapsed time block release;
+internal stages retain their measured states as diagnostic warnings. A faster
+aggregate cannot hide a slower repository. The independent scaling tripwire below
+and correctness/resource gates remain mandatory.
 
-A first-pass threshold crossing or statistically inconclusive order split is not yet a
-hard regression failure. It exits with the dedicated focused-rerun status, selects the
-affected repositories (or the whole slice for an aggregate signal), and repeats six
-measurements after one warmup with another same-binary control. Six samples give base
-and head exactly three first-in-pair measurements each. A material signal confirmed by
-that balanced focused run fails, as does evidence that remains inconclusive. There is
-no second focused loop.
+A first-pass elapsed-time threshold crossing or inconclusive result requests the affected
+repositories (or the whole slice for an aggregate signal). Exactly one focused
+comparison uses six independent blocks after one warmup, with the same five
+samples per observation and its own matching same-binary control. Confirmed and
+remaining inconclusive elapsed signals fail. There is no second focused loop.
+Stage-only warnings do not request focus, and primary warnings outside the focused
+subset remain visible. Historical checker invocations default to `all-metrics-v1`
+and preserve their original verdicts. The prospective scope and rationale are
+recorded in the [control contract](order-aware-performance-controls.md).
+
+This prospective sampling change follows the retained single-sample failure in
+[the 0.21 release evidence](release-evidence-0.21.0.md). It does not reclassify that
+run or alter the estimator, thresholds, output policy, or independent-block count.
+The CI job allows 45 minutes for the larger fixed measurement workload and both
+release builds; that job timeout is separate from product performance limits.
 
 ## Deterministic Ruby scaling tripwire
 
@@ -164,3 +196,11 @@ state, invoke the generic harness/checker mode directly; it is not merge evidenc
 Use the broader 120-repository query regression and the
 [runtime triage runbook](runtime-triage.md) when the bounded smoke identifies a
 change that needs product-wide classification.
+
+The Markdown summary lists confirmed and inconclusive stage signals together,
+including when both occur in one focused comparison. Passing stages stay omitted;
+whole-query and aggregate rows remain visible. A completed focused comparison is
+reported neutrally and does not itself claim confirmation or a passing result.
+The raw status JSON and original measurements remain authoritative.
+Checked-in derived summaries are regenerated with this renderer; their original
+measurement reports, checked status JSON and numeric result rows stay unchanged.

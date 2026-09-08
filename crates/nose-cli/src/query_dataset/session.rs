@@ -16,7 +16,7 @@ pub(crate) struct QueryAnalysisUpdate {
 impl QueryAnalysisSession {
     pub(crate) fn open(args: &QueryArgs, refs: &[&std::path::Path]) -> Result<Option<Self>> {
         let (settings, semantic_packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
-        let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+        let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines)?;
         let detector = detection_engine(settings.channels, &opts);
         let Some(dir) = args.cache_dir.as_ref() else {
             return Ok(None);
@@ -55,7 +55,7 @@ impl QueryAnalysisSession {
         path: &std::path::Path,
     ) -> Result<Option<QueryAnalysisUpdate>> {
         let (settings, semantic_packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
-        let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+        let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines)?;
         if opts != self.opts {
             return Ok(None);
         }
@@ -76,7 +76,7 @@ impl QueryAnalysisSession {
         refs: &[&std::path::Path],
     ) -> Result<QueryDataset> {
         let (settings, semantic_packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
-        let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
+        let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines)?;
         anyhow::ensure!(
             opts == self.opts,
             "watch analysis options changed during startup"
@@ -93,26 +93,44 @@ impl QueryAnalysisSession {
         opts: nose_detect::DetectOptions,
     ) -> Result<QueryDataset> {
         let detector = detection_engine(settings.channels, &opts);
-        let (report, state, stats) =
-            nose_detect::detect_from_units_incremental_session_with_accepted_coverage(
+        crate::detect_pipeline::ensure_candidate_budget(
+            self.units.units(),
+            &opts,
+            args.max_candidate_pairs,
+        )?;
+        let report = if nose_detect::prefers_batched_detection(self.units.units(), &opts) {
+            self.detection_state = None;
+            nose_detect::detect_from_borrowed_units_with_accepted_coverage(
                 self.units.units(),
                 self.units.files(),
                 self.units.streams(),
                 &opts,
                 detector.as_ref(),
-                self.detection_state.take(),
-                Some(self.units.unit_keys()),
-            );
-        self.detection_state = Some(state);
-        if std::env::var_os("NOSE_CACHE_STATS").is_some() {
-            eprintln!(
-                "  [detection] {}",
-                cache::incremental_detection_stats_json(&stats)
-            );
-        }
+            )
+        } else {
+            let (report, state, stats) =
+                nose_detect::detect_from_units_incremental_session_with_accepted_coverage(
+                    self.units.units(),
+                    self.units.files(),
+                    self.units.streams(),
+                    &opts,
+                    detector.as_ref(),
+                    self.detection_state.take(),
+                    Some(self.units.unit_keys()),
+                );
+            self.detection_state = Some(state);
+            if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+                eprintln!(
+                    "  [detection] {}",
+                    cache::incremental_detection_stats_json(&stats)
+                );
+            }
+            report
+        };
         let detection = (
             report,
-            QueryScope::from_langs(self.units.langs().to_vec()),
+            QueryScope::from_langs(self.units.langs().to_vec())
+                .with_sources(&self.units.line_context().source_files),
             nose_semantics::SemanticPackNearRegistry::default(),
             nose_semantics::SemanticPackExternalExactRegistry::default(),
             Some(self.units.line_context()),

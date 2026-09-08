@@ -16,7 +16,7 @@ fn manifest_json() -> String {
     "license":"MIT",
     "repository":"https://example.invalid/guava"
   },
-  "compatibility":{"nose":">=0.19.0 <0.21.0"},
+  "compatibility":{"nose":">=0.19.0 <0.22.0"},
   "supported_languages":["java"],
   "packages":[{
     "ecosystem":"maven",

@@ -18,6 +18,19 @@ Integration rule: branch on `schema_version`, ignore unknown fields, and test ca
 flags before passing optional query arguments. A wrapper that does this can run against older
 and newer nose binaries without scraping help text or guessing from the package version.
 
+Analysis capture/comparison support is advertised by `query_analysis_capture_v1` and
+`query_analysis_changes_v1`. `schemas.analysis` lists the three versioned capture/artifact/
+comparison contracts; `query.analysis` describes its commands, views, fields, enum values,
+formats and limits. This is separate from baseline `since=` and region-snapshot schemas.
+`query.analysis.family_lookup` advertises `id=` lookup through recorded live
+family handles; older captures without handle metadata still require path browsing.
+`query_analysis_diagnostics_v1` advertises saved skipped-source details and input-specific
+coverage. `query_analysis_navigation_v1` advertises labeled `actions`, format-preserving
+next commands and recheck-first presentation. `query_analysis_member_changes_v1`
+advertises detailed member correspondence summaries. `query_base_evidence_navigation_v1`
+advertises the base view's context-preserving full JSON evidence action.
+See [analysis comparison](region-identity.md#explore-changes-between-saved-analyses).
+
 ## Example
 
 ```sh
@@ -42,30 +55,92 @@ nose capabilities
     "doctor_json": false
   },
   "commands": {
-    "stable": ["cache", "capabilities", "il", "query", "semantic-pack", "stats"],
+    "stable": [
+      "cache",
+      "capabilities",
+      "il",
+      "query",
+      "regions",
+      "semantic-pack",
+      "stats"
+    ],
     "deprecated": []
   },
   "schemas": {
-    "capabilities": [8],
-    "cache_status": ["nose.cache-status/v1"],
-    "cache_prune": ["nose.cache-prune/v1"],
-    "cache_clear": ["nose.cache-clear/v1"],
-    "query_json": [8, 9],
-    "query_watch_jsonl": ["nose.query-watch/v1"],
-    "semantic_packs": ["nose.semantic-pack.v0", "nose.semantic-pack.v1"],
-    "semantic_pack_locks": ["nose.semantic-pack-lock.v1"],
-    "semantic_pack_receipts": ["nose.semantic-pack-conformance-receipt.v1"],
-    "semantic_pack_lock_status": [1],
-    "semantic_pack_conformance": [4],
-    "semantic_pack_inventory": [1],
-    "semantic_pack_adoption_gates": [2],
-    "semantic_pack_compatibility": [2]
+    "capabilities": [
+      8
+    ],
+    "cache_status": [
+      "nose.cache-status/v1"
+    ],
+    "cache_prune": [
+      "nose.cache-prune/v1"
+    ],
+    "cache_clear": [
+      "nose.cache-clear/v1"
+    ],
+    "query_json": [
+      8,
+      10
+    ],
+    "query_watch_jsonl": [
+      "nose.query-watch/v1"
+    ],
+    "analysis": [
+      "nose.analysis/v1",
+      "nose.analysis-capture/v1",
+      "nose.analysis-changes/v1"
+    ],
+    "semantic_packs": [
+      "nose.semantic-pack.v0",
+      "nose.semantic-pack.v1"
+    ],
+    "semantic_pack_locks": [
+      "nose.semantic-pack-lock.v1"
+    ],
+    "semantic_pack_receipts": [
+      "nose.semantic-pack-conformance-receipt.v1"
+    ],
+    "semantic_pack_lock_status": [
+      1
+    ],
+    "semantic_pack_conformance": [
+      4
+    ],
+    "semantic_pack_inventory": [
+      1
+    ],
+    "semantic_pack_adoption_gates": [
+      2
+    ],
+    "semantic_pack_compatibility": [
+      2
+    ]
   },
   "query": {
-    "modes": ["syntax", "semantic", "near"],
-    "default_modes": ["syntax", "semantic", "near"],
-    "output_formats": ["human", "json", "jsonl", "markdown", "sarif"],
-    "sort_keys": ["extractability", "value", "sites", "hazard"],
+    "modes": [
+      "syntax",
+      "semantic",
+      "near"
+    ],
+    "default_modes": [
+      "syntax",
+      "semantic",
+      "near"
+    ],
+    "output_formats": [
+      "human",
+      "json",
+      "jsonl",
+      "markdown",
+      "sarif"
+    ],
+    "sort_keys": [
+      "extractability",
+      "value",
+      "sites",
+      "hazard"
+    ],
     "config_keys": [
       "cache-max-bytes",
       "exclude",
@@ -91,34 +166,239 @@ nose capabilities
       "family_drilldown": true,
       "inline_suppression": true,
       "multi_root": true,
+      "query_analysis_capture_v1": true,
+      "query_analysis_changes_v1": true,
+      "query_analysis_diagnostics_v1": true,
+      "query_analysis_member_changes_v1": true,
+      "query_analysis_navigation_v1": true,
+      "query_analysis_verified_source_v1": true,
+      "query_base_evidence_navigation_v1": true,
       "query_base_gate_fail_default": true,
       "query_base_json_v8": true,
+      "query_base_region_candidates_v1": true,
       "query_base_sarif": true,
       "query_base_structured_ignores": true,
+      "query_extraction_assessment_v1": true,
+      "query_source_evidence_v1": true,
+      "query_member_navigation_v1": true,
+      "query_region_identity_v1": true,
+      "query_review_key_v1": true,
+      "query_review_records_v1": true,
+      "query_scope_evidence_v1": true,
+      "query_analysis_context_v1": true,
+      "query_source_boundaries_v1": true,
+      "query_candidate_budget_v1": true,
       "query_watch": true,
       "query_watch_full_snapshot": true,
       "query_watch_jsonl_v1": true,
+      "region_correspondence_v1": true,
+      "region_snapshots_v1": true,
       "reinvented_view": true,
       "semantic_pack_dependency_evidence": true,
       "semantic_pack_external_claim_exact": true,
       "semantic_pack_kernel_conformance_receipt": true,
-      "semantic_pack_locked_near_influence": true,
       "semantic_pack_loading": true,
+      "semantic_pack_locked_near_influence": true,
       "semantic_pack_project_lock": true,
       "structured_ignores": true
+    },
+    "analysis": {
+      "actions": [
+        "resume-selection",
+        "reset-filters",
+        "increase-budget",
+        "recheck",
+        "group-reason",
+        "group-evidence",
+        "expand-view",
+        "return-selection",
+        "inspect-source",
+        "review-selection",
+        "inspect-review"
+      ],
+      "capture": "nose query <path> --save-analysis FILE",
+      "compare": "nose query --before FILE --after FILE [terms...]",
+      "correspondence_values": [
+        "matched",
+        "candidate",
+        "ambiguous",
+        "unresolved",
+        "unmatched-current",
+        "budget-exceeded"
+      ],
+      "default_max_candidates": 100000,
+      "evidence_values": [
+        "retained",
+        "recheck"
+      ],
+      "family_lookup": {
+        "legacy": "unavailable when handles were not recorded",
+        "meaning": "Navigation within supplied captures; not content identity, ancestry or approval.",
+        "source": "captured family_handles",
+        "term": "id=ID"
+      },
+      "fields": [
+        "reason",
+        "correspondence",
+        "evidence",
+        "scope",
+        "lang",
+        "path",
+        "witness"
+      ],
+      "formats": [
+        "human",
+        "json"
+      ],
+      "max_input_bytes": 134217728,
+      "member_change_statuses": [
+        "same-content",
+        "same-content-new-location",
+        "candidate",
+        "ambiguous",
+        "unresolved",
+        "unmatched-current",
+        "budget-exceeded",
+        "unavailable"
+      ],
+      "order": "recheck-first-then-observation-id",
+      "population": "admitted-query-families",
+      "reason_values": [
+        "profile-changed",
+        "incomplete-coverage",
+        "membership-changed",
+        "evidence-population-changed",
+        "member-content-changed",
+        "source-address-changed",
+        "scope-changed",
+        "witness-changed",
+        "analysis-changed",
+        "packs-changed",
+        "laws-changed",
+        "abstraction-changed",
+        "review-evidence-changed",
+        "evidence-unavailable",
+        "review-evidence-retained",
+        "candidate",
+        "ambiguous",
+        "unresolved",
+        "unmatched-current",
+        "budget-exceeded"
+      ],
+      "review_decisions": [
+        "keep-separate",
+        "refactor",
+        "defer"
+      ],
+      "review_filter": "review=applicable|recheck|unreviewed",
+      "review_options": [
+        "--reviews FILE",
+        "--write-review FILE --decision VALUE --reason TEXT"
+      ],
+      "review_schema": "nose.review/v1",
+      "review_statuses": [
+        "applicable",
+        "recheck",
+        "unreviewed"
+      ],
+      "source_bodies": "not-stored",
+      "source_limits": {
+        "diff_lines_per_side": 120,
+        "file_bytes": 16777216,
+        "region_bytes": 65536,
+        "total_bytes_per_side": 67108864
+      },
+      "source_options": [
+        "--before-source DIR",
+        "--after-source DIR"
+      ],
+      "source_verification": "containing-buffer-and-selected-content-sha256",
+      "terms": [
+        "group=FIELD",
+        "change=ID",
+        "id=LIVE_FAMILY_ID",
+        "FIELD=VALUE",
+        "FIELD!=VALUE",
+        "path~TEXT",
+        "path!~TEXT",
+        "top=N",
+        "full",
+        "all",
+        "review=STATUS"
+      ],
+      "views": [
+        "dashboard",
+        "list",
+        "group",
+        "change"
+      ],
+      "witness_values": [
+        "exact-value-graph",
+        "shared-sub-dag",
+        "copy-paste-run",
+        "structural-similarity",
+        "connected-mapped-sub-dag",
+        "bounded-same-unit-window",
+        "unavailable"
+      ]
+    },
+    "member_navigation": {
+      "default_top": 30,
+      "formats": [
+        "human",
+        "json"
+      ],
+      "full_source": {
+        "context": {
+          "action": "inspect-context",
+          "meaning": "Non-negative nearby-line count; bounded source display only. Reported member coordinates and evidence do not change.",
+          "term": "member-context=N"
+        },
+        "line_limit_per_member": 120,
+        "member_limit": 8,
+        "scope": "selected-members",
+        "source": "live-unverified"
+      },
+      "metrics_scope": "complete-family",
+      "requires": [
+        "id=ID",
+        "at=FILE:LINE"
+      ],
+      "terms": [
+        "member-id=ID",
+        "member-group=dir|lang|scope",
+        "member-dir=DIR",
+        "member-path~TEXT",
+        "member-lang=LANG",
+        "member-scope=prod|test",
+        "member-context=N",
+        "top=N",
+        "full"
+      ]
     }
   },
   "semantic_packs": {
-    "api_versions": ["nose.semantic-pack.v0", "nose.semantic-pack.v1"],
-    "lock_api_versions": ["nose.semantic-pack-lock.v1"],
+    "api_versions": [
+      "nose.semantic-pack.v0",
+      "nose.semantic-pack.v1"
+    ],
+    "lock_api_versions": [
+      "nose.semantic-pack-lock.v1"
+    ],
     "loading": [
       "compiled-builtin",
       "local-manifest-file",
       "local-manifest-directory",
       "local-project-lock"
     ],
-    "project_lock": ["create", "status"],
-    "project_lock_output_formats": ["human", "json"],
+    "project_lock": [
+      "create",
+      "status"
+    ],
+    "project_lock_output_formats": [
+      "human",
+      "json"
+    ],
     "conformance": [
       "local-manifest-file",
       "local-manifest-directory",
@@ -126,13 +406,31 @@ nose capabilities
       "v1-kernel-source-analysis",
       "receipt-output"
     ],
-    "conformance_output_formats": ["human", "json"],
-    "inventory": ["compiled-builtin"],
-    "inventory_output_formats": ["human", "json"],
-    "adoption_gates": ["compiled-builtin"],
-    "adoption_gate_output_formats": ["human", "json"],
-    "compatibility": ["policy"],
-    "compatibility_output_formats": ["human", "json"],
+    "conformance_output_formats": [
+      "human",
+      "json"
+    ],
+    "inventory": [
+      "compiled-builtin"
+    ],
+    "inventory_output_formats": [
+      "human",
+      "json"
+    ],
+    "adoption_gates": [
+      "compiled-builtin"
+    ],
+    "adoption_gate_output_formats": [
+      "human",
+      "json"
+    ],
+    "compatibility": [
+      "policy"
+    ],
+    "compatibility_output_formats": [
+      "human",
+      "json"
+    ],
     "trust": [
       "builtin-default",
       "builtin-optional",
@@ -140,7 +438,9 @@ nose capabilities
     ],
     "external_packs_enabled_by_default": false,
     "external_pack_influence": "metadata-or-locked-near-or-receipt-backed-external-claim-exact",
-    "external_exact_operations": ["collection-factory"],
+    "external_exact_operations": [
+      "collection-factory"
+    ],
     "external_influence_blockers": [
       "data-only-registration",
       "dependency-backed-evidence-unavailable",
@@ -151,12 +451,18 @@ nose capabilities
     "external_pack_execution": "none"
   },
   "il": {
-    "output_formats": ["sexpr", "json"],
+    "output_formats": [
+      "sexpr",
+      "json"
+    ],
     "normalized": true,
     "cfg_norm_toggle": true
   },
   "stats": {
-    "output_formats": ["human", "json"]
+    "output_formats": [
+      "human",
+      "json"
+    ]
   }
 }
 ```
@@ -263,6 +569,7 @@ Version 8 defines these `query.capabilities` keys:
 | `multi_root` | `nose query --root <path>` / `-r <path>` repeatable root analysis is supported. |
 | `query_base_gate_fail_default` | `base=<ref>` emits `gate.fail_default` and uses it for the default divergent-edit CI gate. |
 | `query_base_json_v8` | `base=<ref> --format json` emits schema v8. Wrappers should also verify `schemas.query_json` contains `8`. |
+| `query_base_region_candidates_v1` | Optional `semantic_change.region_matches` reports bounded original-byte candidates under `nose.changed-region-candidates/v1`; it cannot establish ancestry or change the gate. |
 | `query_base_sarif` | `base=<ref> --format sarif` emits divergent-edit SARIF results. Wrappers should also verify `query.output_formats` contains `sarif`. |
 | `query_base_structured_ignores` | Structured ignores are applied before the `base=<ref>` divergent-edit gate. |
 | `query_watch` | `nose query <root> --watch --format jsonl` is supported. |
@@ -276,3 +583,28 @@ Version 8 defines these `query.capabilities` keys:
 | `semantic_pack_loading` | local v0 manifests can be loaded as metadata and typed v1 manifests can be compiled for metadata/digest reporting. |
 | `semantic_pack_project_lock` | local v1 project locks can be created, validated, and supplied to query before analysis. |
 | `structured_ignores` | `nose.ignore.json` / `--ignore-file` audited suppressions are supported. |
+
+## Region identity and correspondence
+
+`query_region_identity_v1` and `query_review_key_v1` advertise the nullable source
+and content-signature fields in query JSON v10. `region_snapshots_v1` and
+`region_correspondence_v1` advertise `nose regions snapshot` and `nose regions
+compare`. These capabilities do not promise historical certainty or automatic
+review approval. See [region identity](region-identity.md).
+
+The additive flags `query_analysis_verified_source_v1`, `query_review_records_v1`,
+`query_extraction_assessment_v1`, `query_member_navigation_v1` and `query_scope_evidence_v1`
+advertise the source/review and family-inspection surfaces. `query.analysis` publishes
+source options/limits, review options, decision/status values and the `nose.review/v1`
+record schema. See [region identity](region-identity.md) and [query JSON](query-json.md).
+
+`query_source_evidence_v1` advertises bounded live-source coverage, member-bound pair diffs,
+and selected-family graded enrichment on `id=ID full`; see [query JSON](query-json.md).
+
+`query.member_navigation.full_source` documents selected-member source scope and limits
+for `full`. Basic filter operators and `at=FILE:LINE` are also discoverable in
+`nose query --help`; unknown numeric syntax fails before detection.
+
+`query_analysis_context_v1` exposes the effective live analysis population in every
+exploration view. `query_source_boundaries_v1` adds known member-boundary metadata, and
+`query_candidate_budget_v1` advertises explicit `--max-candidate-pairs` work limits.

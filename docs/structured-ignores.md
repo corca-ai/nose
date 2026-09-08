@@ -79,6 +79,16 @@ entry with both `paths` and `languages` suppresses only families whose every
 member matches one of those paths and one of those languages. If several entries match the same
 family, the first active entry supplies the metadata.
 
+Path selectors support both the invocation directory and the ignore file's directory as
+relative bases. For example, a file stored at `suppressions/nose.ignore.json` can still
+use `src/generated/**` relative to the invocation directory; an explicitly supplied
+ignore file in another project can use paths relative to that file. Absolute and relative
+spellings of the same source location are matched consistently, with `.` and `..`
+components normalized before matching. Full absolute paths are also checked for
+compatibility, so broad patterns such as `**/*.py` are not limited to the ignore file's
+directory. Gitignore directory patterns such as `vendor/` cover all files below a
+matching directory; `/vendor/` anchors that directory to a relative base.
+
 ## Family IDs
 
 `family_id` is the same 16-hex family handle recorded in baselines. It is derived from the sorted

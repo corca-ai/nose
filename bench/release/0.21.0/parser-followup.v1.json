@@ -1,0 +1,224 @@
+{
+  "schema": "nose.release-parser-followup/v1",
+  "version": "0.21.0",
+  "decision": "NO-GO",
+  "candidate": {
+    "source_sha": "42cb52a64803586ee5257dd368b527cd525059a7",
+    "crates_tree": "1ee0c7a7edaf9fdf31f4f52a7e9e848f9bb67689",
+    "product_dependencies": {
+      "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+      "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+      "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+    },
+    "binary_sha256": "f2bd191f85a6bd0fdedd2959991b57b394deb247c3d9d524785b6dac66872741",
+    "binary": "/Users/ak/prjs/cc/nose/target/release-error-frontier-20260907/candidate-nose",
+    "build_command": "CARGO_BUILD_JOBS=8 cargo build --release --locked -p nose-cli",
+    "build_log": "target/release-error-frontier-20260907/build.log"
+  },
+  "proof_commit": "cd3d1971e787937d08ba3cc24d98cc4f5de4d52c",
+  "tooling_and_gate_commit": "b1acf5d1b54c5987e6feb12ebdef2f573443110a",
+  "local": {
+    "full_ci": "passed after first-party unused-dependency scan correction",
+    "tests": 2395,
+    "line_coverage_percent": 89.57,
+    "initial_failure": "cargo-machete scanned upstream feature-only regex-syntax dependency; original failed run retained",
+    "tool_versions": {
+      "cargo-llvm-cov": "0.9.1",
+      "elan": "4.2.4"
+    },
+    "security_license_source_checks": "entire resolved graph; passed"
+  },
+  "outputs": {
+    "ordinary": 360,
+    "base": 17,
+    "identical_to_previous": true
+  },
+  "journeys": {
+    "direct_review": "applicable",
+    "unique_move": "applicable",
+    "verified_sources": {
+      "unavailable": 0,
+      "verified": 4
+    },
+    "stale_source_rejected": true,
+    "added_copy": "recheck",
+    "legacy_optional_metadata": true,
+    "review_no_overwrite": true,
+    "v0_20_cache_upgrade": true
+  },
+  "remote": {
+    "ci": {
+      "run": 34056679238,
+      "status": "failure"
+    },
+    "packages": {
+      "run": 34056679345,
+      "status": "success"
+    },
+    "pr-soundness": {
+      "run": 34056679237,
+      "status": "success"
+    },
+    "nightly": {
+      "run": 34056712168,
+      "status": "success"
+    },
+    "deep": {
+      "run": 34056713783,
+      "status": "success"
+    }
+  },
+  "runtime": {
+    "registered_broad_matrix": "not run on this intermediate candidate",
+    "cache_watch_timing": "not run on this intermediate candidate",
+    "remote_focus": [
+      {
+        "adjusted_delta_ms": 7.450000000000003,
+        "adjusted_delta_pct": 6.029947389720763,
+        "baseline_ms": 123.55,
+        "control_delta_ms": -3.8000000000000043,
+        "current_ms": 131.0,
+        "evidence": {
+          "adjusted_effect_ms": 7.450000000000003,
+          "adjusted_effect_pct": 6.029947389720763,
+          "blocks": 6,
+          "by_order": {
+            "baseline-current": {
+              "adjusted_median_ms": 6.300000000000011,
+              "adjusted_median_pct": 5.06024096385543,
+              "blocks": 3,
+              "material": true
+            },
+            "current-baseline": {
+              "adjusted_median_ms": 8.599999999999994,
+              "adjusted_median_pct": 7.014681892332786,
+              "blocks": 3,
+              "material": true
+            }
+          },
+          "control_correction_ms": 0.0,
+          "control_effect_ms": -3.8000000000000043,
+          "declared_order_conflict_ignored": false,
+          "order_conflict": false,
+          "order_consistent": true,
+          "policy": "paired-alternating-sign-v1",
+          "position_neutral_samples": false,
+          "raw_effect_ms": 7.450000000000003,
+          "sign_test_p": 0.34375,
+          "state": "inconclusive",
+          "supported": false,
+          "supporting_blocks": 4
+        },
+        "inconclusive": true,
+        "raw_delta_ms": 7.450000000000003,
+        "repo": "asciidoctor",
+        "scope": "stage",
+        "stage": "normalize+extract",
+        "triggered": false
+      }
+    ],
+    "confirmed_focus_triggers": [],
+    "same_binary_retry": "none"
+  },
+  "experiments": {
+    "indexed_site_blocks": "rejected: added storage machinery without convincing whole-query benefit; near median slower",
+    "parallel_site_mapping": "adopted separately in a56a5c6b; not part of parser binary or this qualification"
+  },
+  "retained_artifacts": [
+    {
+      "path": "target/release-error-frontier-20260907/candidate-identity.json",
+      "sha256": "1bdb2d5eff92cf9a792db3eb9615f4bc627e534ef105c3869dc78804fe4c0a60",
+      "bytes": 668
+    },
+    {
+      "path": "target/release-error-frontier-20260907/candidate-output-audit.json",
+      "sha256": "5f7c74ee924d0fa891fbe18dbc8ac09ade22eab167bd3710df0714803f73f500",
+      "bytes": 115823
+    },
+    {
+      "path": "target/release-error-frontier-20260907/output-audit-base.json",
+      "sha256": "52c87ee1af532b3db954b7b442fa103b976580169fa3357a1bb3ec5f709c835c",
+      "bytes": 42943
+    },
+    {
+      "path": "target/release-error-frontier-20260907/journeys.json",
+      "sha256": "2e6b89b0077ed6677723566ed0a588e58aac95eb2551e75a6d596c9c98bd61b8",
+      "bytes": 13093
+    },
+    {
+      "path": "target/release-error-frontier-20260907/type4.log",
+      "sha256": "d1603bea4bb1b25010ef290b601bcd509cc33c6334ffd053bc6cd021990b6c1e",
+      "bytes": 5149
+    },
+    {
+      "path": "target/release-error-frontier-20260907/full-ci.log",
+      "sha256": "6a4c254495821c940af49897a2a703fffe2f2d721009cce5269c1727857ea9e1",
+      "bytes": 515174
+    },
+    {
+      "path": "target/release-error-frontier-20260907/full-ci-final.log",
+      "sha256": "6f290cded48856a5a9c120265f9df62121200c3765a0d666d2a9d63ef6d76c00",
+      "bytes": 770982
+    },
+    {
+      "path": "target/release-error-frontier-20260907/vendor-import.json",
+      "sha256": "d79c243ac6dfd30bc75bbea8d5e6bc7cd04e3b4b26f88c7e4420b716ff92766e",
+      "bytes": 14632
+    },
+    {
+      "path": "target/release-error-frontier-20260907/remote-package-verification.json",
+      "sha256": "68062ac656b054428adc8435c8d1f8a33f18927252d7c0d66b68859156fa6bb8",
+      "bytes": 2560
+    },
+    {
+      "path": "target/release-error-frontier-20260907/remote-smoke/check-status.json",
+      "sha256": "4d0785bf42082d1adb7a05ead7b2a0dc6cf2485e858bd737764b41440ec3c04f",
+      "bytes": 390099
+    },
+    {
+      "path": "target/release-error-frontier-20260907/site-block-diagnostic.json",
+      "sha256": "1fd0ca102c5c3e75cac1a629f63f87678c39c043cc1c615b79cc3da2a4eac487",
+      "bytes": 69598
+    },
+    {
+      "path": "target/release-error-frontier-20260907/site-map-diagnostic.json",
+      "sha256": "3722f6e820a52859e442d85d939d35f936576cf9d4e9f65d6b396d68cba97292",
+      "bytes": 69591
+    },
+    {
+      "path": "target/release-error-frontier-20260907/elan-assets-verified.json",
+      "sha256": "09de5883013174a0db4957ac3739934ac865775fc3999168bbc2732c360e338f",
+      "bytes": 1019
+    },
+    {
+      "path": "target/release-error-frontier-20260907/auxiliary-updates/report.md",
+      "sha256": "e5bec020c75a650e8b21e231ad1e037c8e0fb95078386b725ac73356dc879514",
+      "bytes": 300
+    },
+    {
+      "path": "target/release-error-frontier-20260907/ci-jobs.json",
+      "sha256": "6595a52581a5a1c19c6f2e6517c2c4afbb22dfeee928968620f4124ddf940cf8",
+      "bytes": 28190
+    },
+    {
+      "path": "target/release-error-frontier-20260907/packages-jobs.json",
+      "sha256": "27b032ca0615f51ce540cdfee92bfc3111eb588c93adee358d2b7a03dfeca5e8",
+      "bytes": 13975
+    },
+    {
+      "path": "target/release-error-frontier-20260907/pr-soundness-jobs.json",
+      "sha256": "fda99e7aa6410f82e77c7b4d37a2012ed66ad710ff1d2ea71229c8e8a9b0906d",
+      "bytes": 4653
+    },
+    {
+      "path": "target/release-error-frontier-20260907/nightly-jobs.json",
+      "sha256": "c6fd8c430430b37a9c84832ad1c1aa334a9d1da32fdaf55eeb85beb1b11d260a",
+      "bytes": 16640
+    },
+    {
+      "path": "target/release-error-frontier-20260907/deep-jobs.json",
+      "sha256": "5837ff2be062a7f3764ecbe08e6932abe3829d6f14fc7b47d4b1136c0842c798",
+      "bytes": 5976
+    }
+  ]
+}

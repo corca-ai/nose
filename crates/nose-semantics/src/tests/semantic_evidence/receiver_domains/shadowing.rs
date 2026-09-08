@@ -49,7 +49,7 @@ fn named_receiver_domain_stops_at_intervening_destructured_shadow() {
         &[outer_param, outer_body],
     );
     let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(span(5, 6, 1)),
         EvidenceKind::Domain(DomainEvidence::Number),
@@ -95,7 +95,7 @@ fn cid_receiver_domain_stops_at_fresh_function_namespace() {
         &[outer_param, outer_body],
     );
     let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(span(5, 6, 1)),
         EvidenceKind::Domain(DomainEvidence::Number),
@@ -136,7 +136,7 @@ fn cid_receiver_domain_rejects_nested_param_shadow_in_same_function() {
         &[function_param, body],
     );
     let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(span(5, 6, 1)),
         EvidenceKind::Domain(DomainEvidence::Number),

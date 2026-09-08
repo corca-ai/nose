@@ -67,7 +67,7 @@ is_relevant_path() {
     bench/semantic_regression_corpus.v1.json|bench/setup_repos.sh|\
     bench/prune_corpus.py|bench/corpus_prune/*|\
     .github/semantic-regression-expected-drift.json|.github/workflows/ci.yml|\
-    scripts/query-regression-harness.py|scripts/query_regression_control.py|\
+    scripts/query-regression-harness.py|scripts/query_regression_*.py|scripts/performance_baseline.py|\
     scripts/check-query-regression.py|\
     scripts/ruby-redefinition-scaling.py|scripts/semantic-regression-smoke.sh|\
     scripts/semantic-regression-summary.py)
@@ -255,6 +255,7 @@ run_harness() {
     --current-source-sha "$source_head_sha" \
     --repos-root "$repos_root" \
     --iterations "$iterations" \
+    --samples-per-observation 5 \
     --warmups "$warmups" \
     "${corpus_args[@]}" \
     "$@" \
@@ -269,11 +270,11 @@ scaling_rc=$?
 set -e
 
 run_harness \
-  "$artifact_dir/primary.json" "$baseline_binary" "$current_binary" 5 0 \
+  "$artifact_dir/primary.json" "$baseline_binary" "$current_binary" 5 1 \
   "$base_ref" "$head_ref" "$base_sha" "$head_sha" \
   "${repo_args[@]}"
 run_harness \
-  "$artifact_dir/primary-control.json" "$baseline_binary" "$baseline_binary" 5 0 \
+  "$artifact_dir/primary-control.json" "$baseline_binary" "$baseline_binary" 5 1 \
   "$base_ref" "$base_ref" "$base_sha" "$base_sha" \
   "${repo_args[@]}"
 
@@ -286,6 +287,7 @@ checker_args=(
   --max-runtime-delta-pct 5
   --min-runtime-delta-ms 5
   --min-focused-iterations 6
+  --runtime-gate elapsed-v1
   --status-output "$artifact_dir/check-status.json"
   --markdown-output "$artifact_dir/summary.md"
 )

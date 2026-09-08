@@ -67,60 +67,33 @@ pub(super) fn origin_extract_hint(f: &nose_detect::RefactorFamily) -> Option<&'s
     let facts = OriginFactSummary::from_family(f)?;
 
     if facts.all_style {
-        return Some(
-            "merge selectors or move the declarations to a shared class/token if these elements should be coupled",
-        );
+        return Some("compare style declarations and selector contexts");
     }
     if facts.all_markup {
-        return Some("share a component/template only if the data shape matches");
+        return Some("compare template structure and data shapes");
     }
     if facts.all_preprocessor {
-        return Some("divergence macro expansion and conditional context before sharing");
+        return Some("compare macro expansion and conditional contexts");
     }
     if facts.all_type_contract && !facts.any_implementation_type {
         if facts.all_interface_trait_protocol {
-            return Some("consolidate one shared interface/protocol contract");
+            return Some("compare interface/protocol contracts");
         }
-        return Some("consolidate one shared type/API contract");
+        return Some("compare type/API contracts");
     }
     if facts.all_type_contract && facts.any_implementation_type {
-        return Some(
-            "consolidate the type contract; divergence whether shared behavior should move too",
-        );
+        return Some("compare type contracts and implementation bodies");
     }
     if facts.all_implementation_type {
         if facts.all_class && (facts.any_implementation_body || facts.any_mixed_body) {
-            return Some("extract a shared base class / mixin");
+            return Some("compare class behavior and dependencies");
         }
-        return Some("consolidate shared type implementation");
+        return Some("compare type implementations");
     }
     if facts.all_imperative {
-        return Some("extract a helper");
+        return Some("compare callable bodies and their differing regions");
     }
     None
-}
-
-pub(crate) fn proposal_action_label(f: &nose_detect::RefactorFamily) -> &'static str {
-    use nose_il::UnitKind;
-
-    if let Some(origin_hint) = origin_extract_hint(f) {
-        return match origin_hint {
-            "extract a helper" => "extract a shared helper",
-            other => other,
-        };
-    }
-    let all_classes = f.locations.iter().all(|loc| loc.kind == UnitKind::Class);
-    let all_blocks = f.locations.iter().all(|loc| loc.kind == UnitKind::Block);
-    let type_decl = all_classes && f.mean_sem < 12.0;
-    if type_decl {
-        "consolidate into one shared type"
-    } else if all_classes {
-        "extract a shared base class / mixin"
-    } else if all_blocks {
-        "extract a method from the repeated block"
-    } else {
-        "extract a shared helper"
-    }
 }
 
 pub(crate) fn hint_reasons(f: &nose_detect::RefactorFamily) -> Vec<String> {

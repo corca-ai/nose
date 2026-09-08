@@ -141,7 +141,7 @@ pub fn default_product_oracle_fragment_candidates(
     let ctx = UnitExtractCtx {
         il: normalized_il,
         interner,
-        seeds: &[],
+        seeds: None,
         min_lines: opts.min_lines,
         min_tokens: opts.min_tokens,
         features: ExtractFeatures {

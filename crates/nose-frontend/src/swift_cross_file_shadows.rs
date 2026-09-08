@@ -157,7 +157,7 @@ fn close_shadowed_swift_string_parameters(
         .map(|record| record.anchor.span())
         .collect();
     let mut ambiguous = FxHashSet::default();
-    for record in &mut il.evidence {
+    for record in &mut (*il.evidence_mut()) {
         if record.status == EvidenceStatus::Asserted
             && spans.contains(&record.anchor.span())
             && (matches!(record.anchor, nose_il::EvidenceAnchor::Param { .. }))
@@ -183,7 +183,7 @@ fn close_shadowed_swift_string_bindings(
     close_qualified: bool,
 ) {
     let mut ambiguous = FxHashSet::default();
-    for record in &mut il.evidence {
+    for record in &mut (*il.evidence_mut()) {
         if record.status != EvidenceStatus::Asserted {
             continue;
         }
@@ -217,7 +217,7 @@ fn close_shadowed_swift_dictionary_parameters(
     close_all: bool,
 ) {
     let mut ambiguous = FxHashSet::default();
-    for record in &mut il.evidence {
+    for record in &mut (*il.evidence_mut()) {
         if record.status != EvidenceStatus::Asserted {
             continue;
         }
@@ -368,7 +368,7 @@ fn insert_stdlib_factory_name_hash(
 
 fn close_shadowed_unshadowed_globals(il: &mut Il, shadowed: &FxHashSet<u64>) {
     let mut ambiguous = FxHashSet::default();
-    for record in &mut il.evidence {
+    for record in &mut (*il.evidence_mut()) {
         if record.status != EvidenceStatus::Asserted {
             continue;
         }
@@ -405,7 +405,7 @@ fn close_shadowed_swift_method(il: &mut Il, method: &str, arity: usize) {
         arity: arity as u16,
     });
     let mut ambiguous = FxHashSet::default();
-    for record in &mut il.evidence {
+    for record in &mut (*il.evidence_mut()) {
         if record.status == EvidenceStatus::Asserted && record.kind == expected {
             record.status = EvidenceStatus::Ambiguous;
             ambiguous.insert(record.id);
@@ -420,7 +420,7 @@ fn propagate_ambiguity(il: &mut Il, mut ambiguous: FxHashSet<EvidenceId>) {
     }
     loop {
         let mut changed = false;
-        for record in &mut il.evidence {
+        for record in &mut (*il.evidence_mut()) {
             if record.status != EvidenceStatus::Asserted {
                 continue;
             }

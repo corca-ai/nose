@@ -2,6 +2,7 @@ use super::surface_hints::{fam, fam_kind};
 use super::*;
 
 mod accepted_coverage;
+mod exploration_ux;
 mod type_contracts;
 
 fn loc_at(file: &str, start: u32, end: u32, kind: nose_il::UnitKind) -> Loc {
@@ -207,10 +208,7 @@ fn query_family_json_carries_proof_depth() {
     // Exact channel: how much is proven identical (the shared value-multiset size).
     let mut exact = fam(1, 2, &[Some("a"), Some("b")]);
     exact.witness = Some(nose_detect::EquivalenceWitness {
-        kind: "exact-value-graph",
-        value_nodes: Some(12),
-        mean_value_jaccard: None,
-        mean_shape_jaccard: None,
+        evidence: nose_detect::WitnessEvidence::ExactValueGraph { value_nodes: 12 },
         graded: None,
         graded_pair: None,
     });
@@ -287,7 +285,7 @@ fn hint_prefers_calling_the_existing_helper() {
     ];
     assert_eq!(
         family_hint(&f),
-        "2 sites reimplement `clamp` — call the existing helper (core/math.ts)"
+        "existing helper candidate `clamp` (core/math.ts); compare its call contract and the inline regions — callability is not established"
     );
 }
 
@@ -325,10 +323,10 @@ fn spotclass_grades_near_family_holes() {
     let graded = |spots: Vec<WitnessHole>, referent: Vec<String>| {
         let mut f = fam(1, 2, &[Some("x"), Some("y")]);
         f.witness = Some(EquivalenceWitness {
-            kind: "structural-similarity",
-            value_nodes: None,
-            mean_value_jaccard: None,
-            mean_shape_jaccard: None,
+            evidence: nose_detect::WitnessEvidence::StructuralSimilarity {
+                mean_value_jaccard: 0.0,
+                mean_shape_jaccard: 0.0,
+            },
             graded: Some(GradedWitness {
                 holes: spots.len(),
                 spots,
@@ -375,7 +373,7 @@ fn spotclass_grades_near_family_holes() {
 #[test]
 fn helper_hint_never_points_prod_at_a_test_helper() {
     // Coevo C2: the named function lives in test code while the inline
-    // copies are production — "call the existing helper" would be wrong-
+    // copies are production — "existing helper candidate" would be wrong-
     // direction advice, so the hint falls back to plain extraction.
     let mut f = fam(1, 2, &[None, None, None]);
     f.scope = "mixed";
@@ -390,14 +388,14 @@ fn helper_hint_never_points_prod_at_a_test_helper() {
     ];
     let hint = family_hint(&f);
     assert!(
-        !hint.contains("call the existing helper"),
+        !hint.contains("existing helper candidate"),
         "a test-code helper must not be recommended to prod copies: {hint}"
     );
     // All-test families may keep the recommendation: tests calling a test
     // helper is exactly the refactor.
     f.scope = "test";
     assert!(
-        family_hint(&f).contains("call the existing helper"),
+        family_hint(&f).contains("existing helper candidate"),
         "an all-test family may still consolidate on its test helper"
     );
 }
@@ -417,26 +415,19 @@ fn helper_hint_allows_test_copies_to_call_a_prod_helper() {
         loc_at("tests/model.spec.ts", 80, 84, nose_il::UnitKind::Block),
     ];
     assert!(
-        family_hint(&f).contains("call the existing helper"),
+        family_hint(&f).contains("existing helper candidate"),
         "prod helper recommended to test copies is the right direction"
     );
 }
 
 #[test]
-fn high_parameter_caution_boundary_is_six() {
-    // S3-C5 gap: the >= boundary itself was untested.
+fn varying_region_count_does_not_imply_signature_cost() {
     let mut f = fam(1, 1, &[None, None]);
     f.shared_lines = 30;
     f.params = 5;
-    assert!(
-        !family_hint(&f).contains("high-parameter"),
-        "five spots is below the caution boundary"
-    );
+    let hint = family_hint(&f);
     f.params = 6;
-    assert!(
-        family_hint(&f).contains("high-parameter (6 varying spots)"),
-        "six spots is the boundary and must carry the caution"
-    );
+    assert_eq!(family_hint(&f), hint);
 }
 
 #[test]
@@ -457,7 +448,8 @@ fn helper_hint_carries_the_high_parameter_caution() {
     ];
     let hint = family_hint(&f);
     assert!(
-        hint.contains("call the existing helper") && hint.contains("high-parameter (8"),
+        hint.contains("existing helper candidate")
+            && hint.contains("callability is not established"),
         "helper advice at 8 varying spots must carry the caution: {hint}"
     );
 }
@@ -476,31 +468,30 @@ fn helper_hint_never_points_at_generated_code() {
     ];
     let hint = family_hint(&f);
     assert!(
-        !hint.contains("call the existing helper"),
+        !hint.contains("existing helper candidate"),
         "a generated-file helper is not the maintainer's API: {hint}"
     );
 }
 
 #[test]
-fn hint_flags_high_parameter_extractions() {
+fn varying_regions_remain_observations_in_assessment() {
     let mut f = fam(1, 1, &[None, None]);
-    f.params = 8;
+    f.display_params = Some(8);
     f.shared_lines = 12;
-    let hint = family_hint(&f);
-    assert!(
-        hint.contains("high-parameter (8 varying spots)"),
-        "an 8-spot extraction must carry the readability caution: {hint}"
+    let assessment = crate::query_assessment::assessment(&f, 12, 8);
+    assert_eq!(assessment["varying_regions"], 8);
+    assert_eq!(
+        assessment["checks"][0],
+        "varying-regions-are-not-proven-parameters"
     );
+    assert_eq!(assessment["verdict"], "caller-review-required");
 }
 
 #[test]
 fn summary_names_the_equivalence_evidence() {
     let mut f = fam(1, 1, &[None, None]);
     f.witness = Some(nose_detect::EquivalenceWitness {
-        kind: "exact-value-graph",
-        value_nodes: Some(12),
-        mean_value_jaccard: None,
-        mean_shape_jaccard: None,
+        evidence: nose_detect::WitnessEvidence::ExactValueGraph { value_nodes: 12 },
         graded: None,
         graded_pair: None,
     });

@@ -17,6 +17,10 @@ pub struct UnitFeat {
     pub name: Option<String>,
     pub start_line: u32,
     pub end_line: u32,
+    pub source_region: Option<nose_il::SourceRegion>,
+    /// Shared original bytes; restored from the per-file stream on cache hits.
+    #[serde(skip)]
+    pub source_document: Option<std::sync::Arc<nose_il::SourceDocument>>,
     pub token_count: usize,
     /// Sorted multiset of local shape hashes (syntactic structure).
     pub shapes: Vec<u64>,
@@ -26,6 +30,8 @@ pub struct UnitFeat {
     /// is invariant to temporaries, statement order, and common-subexpression
     /// duplication.
     pub value: Vec<u64>,
+    /// Coordinate-free replay of occurrence-salted values; never used for detection.
+    pub review_value: Option<nose_normalize::ReviewValueFingerprint>,
     /// MinHash signature for candidate generation (over the value graph when
     /// available, else shapes).
     pub minhash: Vec<u64>,
@@ -124,7 +130,7 @@ impl serde::Serialize for UnitFeat {
     {
         use serde::ser::SerializeStruct;
 
-        let mut state = serializer.serialize_struct("UnitFeat", 28)?;
+        let mut state = serializer.serialize_struct("UnitFeat", 30)?;
         state.serialize_field("path", &self.path)?;
         state.serialize_field("lang", &self.lang)?;
         state.serialize_field("kind", &self.kind)?;
@@ -132,10 +138,12 @@ impl serde::Serialize for UnitFeat {
         state.serialize_field("name", &self.name)?;
         state.serialize_field("start_line", &self.start_line)?;
         state.serialize_field("end_line", &self.end_line)?;
+        state.serialize_field("source_region", &self.source_region)?;
         state.serialize_field("token_count", &self.token_count)?;
         state.serialize_field("shapes", &self.shapes)?;
         state.serialize_field("shape_minhash", &self.shape_minhash)?;
         state.serialize_field("value", &self.value)?;
+        state.serialize_field("review_value", &self.review_value)?;
         state.serialize_field("minhash", &self.minhash)?;
         state.serialize_field("linear", &self.linear)?;
         state.serialize_field("connected_tokens", &self.connected_tokens)?;

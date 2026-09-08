@@ -27,7 +27,7 @@ fn java_collections_singleton_list_value_graph_uses_fixed_element_result() {
         eval_proven_collection_op(&il, &interner, call).is_none(),
         "java.util import proof alone must not prove Collections.singletonList"
     );
-    il.evidence.push(java_stdlib_collection_factory_evidence(
+    il.push_evidence(java_stdlib_collection_factory_evidence(
         2,
         sp(144),
         contract,
@@ -69,7 +69,7 @@ fn java_collections_singleton_list_value_graph_rejects_wrong_arity() {
         library_java_collection_factory_contract(Lang::Java, "Collections", "singletonList")
             .expect("Collections.singletonList contract");
     push_imported_binding_use(&mut il, 0, sp(145), 1, sp(146), "java.util", "Collections");
-    il.evidence.push(java_stdlib_collection_factory_evidence(
+    il.push_evidence(java_stdlib_collection_factory_evidence(
         2,
         sp(148),
         contract,
@@ -104,7 +104,7 @@ fn java_collections_empty_set_value_graph_uses_empty_sequence_result() {
     let contract = library_java_collection_factory_contract(Lang::Java, "Collections", "emptySet")
         .expect("Collections.emptySet contract");
     push_imported_binding_use(&mut il, 0, sp(150), 1, sp(151), "java.util", "Collections");
-    il.evidence.push(java_stdlib_collection_factory_evidence(
+    il.push_evidence(java_stdlib_collection_factory_evidence(
         2,
         sp(153),
         contract,
@@ -149,7 +149,7 @@ fn java_collections_empty_map_value_graph_uses_map_pack_evidence() {
         !matches!(eval_op(&il, &interner, call), ValOp::Seq(SEQ_VALUE_MAP)),
         "java.util import proof alone must not prove Collections.emptyMap"
     );
-    il.evidence.push(java_stdlib_map_factory_evidence(
+    il.push_evidence(java_stdlib_map_factory_evidence(
         2,
         sp(163),
         contract,
@@ -199,7 +199,7 @@ fn java_collections_singleton_map_value_graph_uses_positional_entry_result() {
     let contract = library_java_map_factory_contract(Lang::Java, "Collections", "singletonMap")
         .expect("Collections.singletonMap contract");
     push_imported_binding_use(&mut il, 0, sp(170), 1, sp(171), "java.util", "Collections");
-    il.evidence.push(java_stdlib_map_factory_evidence(
+    il.push_evidence(java_stdlib_map_factory_evidence(
         2,
         sp(175),
         contract,

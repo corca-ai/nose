@@ -140,11 +140,17 @@ fn kernel_check_receipt_and_exact_lock_open_only_external_claim_lane() {
     let lock_json: serde_json::Value = serde_json::from_slice(&locked.stdout).unwrap();
     assert_eq!(lock_json["influence"], "external-claim-exact");
 
+    fs::create_dir_all(dir.join("application")).unwrap();
+    fs::copy(
+        dir.join("packs/fixtures/positive/Fixture.java"),
+        dir.join("application/Fixture.java"),
+    )
+    .unwrap();
     let query = |locked: bool| {
         let mut command = Command::new(bin());
         command.args([
             "query",
-            "packs/fixtures/positive",
+            "application",
             "all",
             "top=0",
             "--mode",
@@ -194,6 +200,32 @@ fn kernel_check_receipt_and_exact_lock_open_only_external_claim_lane() {
     assert_eq!(
         pack["external_exact_influence"]["influential_occurrences"],
         1
+    );
+
+    let keys = review_keys_for_pack(&with, "semantic_pack_external_exact");
+    let original = fs::read_to_string(dir.join("application/Fixture.java")).unwrap();
+    fs::write(
+        dir.join("application/Fixture.java"),
+        format!("// shifted α\r\n{original}"),
+    )
+    .unwrap();
+    fs::rename(
+        dir.join("application/Fixture.java"),
+        dir.join("application/Moved.java"),
+    )
+    .unwrap();
+    assert_eq!(
+        review_keys_for_pack(&query(true), "semantic_pack_external_exact"),
+        keys
+    );
+    fs::write(
+        dir.join("application/Moved.java"),
+        original.replace("return FastList", "return  FastList"),
+    )
+    .unwrap();
+    assert_ne!(
+        review_keys_for_pack(&query(true), "semantic_pack_external_exact"),
+        keys
     );
     let _ = fs::remove_dir_all(&dir);
 }

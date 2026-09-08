@@ -529,3 +529,37 @@ fn c_integer_tokens(tokens: &[&str]) -> bool {
         )
     })
 }
+
+/// Retained primitive element identity; aliases, unions, nested arrays, conflicting
+/// evidence and non-TypeScript sources cannot enter this bounded oracle lane.
+pub fn array_element_domain_for_param(
+    il: &nose_il::Il,
+    param: nose_il::NodeId,
+) -> Option<DomainEvidence> {
+    if il.meta.lang != Lang::TypeScript
+        || crate::domain_evidence_for_param(il, param) != Some(DomainEvidence::Array)
+    {
+        return None;
+    }
+    let mut result = None;
+    for record in il.evidence_anchored_at(il.node(param).span) {
+        if let nose_il::EvidenceKind::Type(nose_il::TypeEvidenceKind::ArrayElementDomain {
+            element,
+        }) = record.kind
+        {
+            if record.status != nose_il::EvidenceStatus::Asserted
+                || !matches!(
+                    element,
+                    DomainEvidence::Boolean | DomainEvidence::Number | DomainEvidence::String
+                )
+            {
+                return None;
+            }
+            if result.is_some_and(|previous| previous != element) {
+                return None;
+            }
+            result = Some(element);
+        }
+    }
+    result
+}

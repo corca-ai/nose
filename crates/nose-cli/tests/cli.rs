@@ -28,3 +28,6 @@ mod semantic_core;
 mod semantic_idioms;
 #[path = "cli/watch.rs"]
 mod watch;
+
+#[path = "cli/review_regressions.rs"]
+mod review_regressions;

@@ -230,6 +230,41 @@ fn locked_near_row_changes_only_the_supported_near_family_with_provenance() {
     let semantic_without = query(false, "semantic", false);
     let semantic_with = query(true, "semantic", false);
     assert_eq!(semantic_without["families"], semantic_with["families"]);
+    let keys = review_keys_for_pack(&with, "semantic_pack_near");
+    let original = fs::read_to_string(dir.join("External.java")).unwrap();
+    fs::write(
+        dir.join("External.java"),
+        format!("// shifted α\r\n{original}"),
+    )
+    .unwrap();
+    fs::rename(dir.join("External.java"), dir.join("Moved.java")).unwrap();
+    let moved = query(true, "near", false);
+    assert_eq!(review_keys_for_pack(&moved, "semantic_pack_near"), keys);
+    for _ in 0..2 {
+        assert_eq!(moved["families"], query(true, "near", true)["families"]);
+    }
+    fs::write(
+        dir.join("Moved.java"),
+        original.replace("int size =", "int size  ="),
+    )
+    .unwrap();
+    assert_ne!(
+        review_keys_for_pack(&query(true, "near", false), "semantic_pack_near"),
+        keys
+    );
+    fs::write(dir.join("Moved.java"), original).unwrap();
+    let dependency = fs::read_to_string(dir.join("pom.xml")).unwrap();
+    fs::write(
+        dir.join("pom.xml"),
+        dependency.replace("33.0.0-jre", "33.1.0-jre"),
+    )
+    .unwrap();
+    assert!(create_lock(&dir, "human").status.success());
+    assert_ne!(
+        review_keys_for_pack(&query(true, "near", false), "semantic_pack_near"),
+        keys
+    );
+    let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]

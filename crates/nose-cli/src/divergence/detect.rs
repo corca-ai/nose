@@ -178,7 +178,7 @@ fn flag_divergences(
         // all flagged families together below so a file shared by several families is
         // lowered once, rather than once per family.
         graded_inputs.push(orig.clone());
-        let witness_kind = fam.witness.as_ref().map(|w| w.kind);
+        let witness_kind = fam.witness.as_ref().map(|w| w.kind());
         // A family is a transitive component, not a propagation-target list. Build
         // only changed -> skipped pairs that the detector accepted directly, then
         // compute shared-line contact against that exact sibling.
@@ -323,7 +323,7 @@ fn flag_new_copy_divergences(
         {
             continue;
         }
-        let witness_kind = fam.witness.as_ref().map(|w| w.kind);
+        let witness_kind = fam.witness.as_ref().map(|w| w.kind());
         flagged.push(Divergence {
             lane: DivergenceLane::NewCopy,
             family_id: crate::baseline::family_id(fam),

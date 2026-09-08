@@ -1,3 +1,4 @@
+use super::assert_same_analysis;
 use std::fs;
 use std::path::Path;
 
@@ -242,4 +243,14 @@ pub(crate) fn assert_query_json_reports_semantic_packs(json: &serde_json::Value)
             "query JSON should report builtin semantic pack {id}: {json}"
         );
     }
+}
+
+pub(crate) fn assert_same_analysis_output(
+    left: &std::process::Output,
+    right: &std::process::Output,
+) {
+    assert_same_analysis(
+        &serde_json::from_slice(&left.stdout).expect("left query JSON"),
+        &serde_json::from_slice(&right.stdout).expect("right query JSON"),
+    );
 }

@@ -59,6 +59,7 @@ Human-readable output is for interactive use. Integrations should inspect
 [query JSON](query-json.md) contract.
 
 - [Watch mode](query-watch.md) — complete JSONL snapshots after source changes.
+- [Region identity](region-identity.md) — source addresses, content keys, and explicit snapshot correspondence.
 - [Agent recipe](agent-recipe.md) — a validated exploration and batch protocol
   for coding agents.
 

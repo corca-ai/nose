@@ -13,8 +13,8 @@ at a different address. The six stable stage identities are:
 
 | Stage | 0.20 development state | Identity / consumer |
 | --- | --- | --- |
-| source snapshot | actively read and written | clean Git blob id or exact content SHA-256 |
-| raw lowered IL | actively read and written | source snapshot; current path/`FileId` rebound |
+| source snapshot | actively read and written | exact working-file content SHA-256 plus frontend extension profile |
+| raw lowered IL | actively read and written | source snapshot and frontend profile; current path/`FileId` rebound |
 | export/dependency summary | actively written and checksummed | deterministic export graph and SCC closure |
 | resolved IL | actively read and written | raw IL plus the region's dependency context |
 | units and syntax streams | actively read and written | resolved IL plus unit-affecting options |
@@ -24,16 +24,39 @@ Raw and resolved IL use independently bounded Zstandard-framed MessagePack regio
 shared envelope; the decoder rejects a region above 512 MiB before decompression. Keeping regions
 independent avoids inflating every file in a parallel warm load. Units and global acceleration
 state use envelope-level Zstandard compression because they dominate the remaining store size.
-Discovery still walks the selected roots so additions and deletions are visible, but a clean
-tracked raw hit needs no source read or parse in the lowering stage. Dependency summaries scan raw
+Discovery still walks the selected roots so additions and deletions are visible, and every working file is read and hashed before reuse; a raw hit skips parsing and lowering. Dependency summaries scan raw
 IL, compute consumer-visible literal surfaces, collapse cycles deterministically, and resolve
 imports against current module/package facts. Only resolved misses run corpus mutation; hits are
 rebound afterward. Global detection state uses CAS-derived per-unit identities, updates changed
 bucket memberships, stores one pair plus its bucket contribution count, and rebuilds components
-whose accepted edges changed or disappeared. Syntax runs use the same delete-capable rule over
+whose accepted edges changed or disappeared. Detection-state schema 8 invalidates older
+pair indexes that included equal-span same-file pairs; raw IL and unit features remain
+reusable where their stage keys match. Unit/stream schema 7 additionally stores raw
+syntactic containers so syntax-only boundary metadata agrees across clean, cold, warm
+and moved-source queries; an older stream is rebuilt from cached IL. Incremental bucket updates stream pairs into contribution counts. Syntax runs use the same delete-capable rule over
 shared k-grams. A small source manifest lets an unchanged run reuse line-IDF and family
 diff/weight state without rereading the full line index. Query filtering, formatting, and final
 presentation remain per invocation.
+
+Large candidate populations automatically use the same batched product detector for clean,
+cached and watch queries. Their source/unit cache is retained, while a quadratic persistent
+pair index is bypassed. Smaller populations continue to reuse incremental detection state.
+This execution choice does not change analysis scope or the connected-seed policy.
+
+Git index flags (`assume-unchanged`, `skip-worktree`), clean/smudge filters, and
+concurrent edits cannot substitute a Git blob for the bytes actually analyzed.
+Raw IL schema 6 and source-analysis identity v3 include the extension profile and
+the retained primitive-key evidence used by the offline oracle,
+so TS/TSX dialect changes and C/header classification cannot reuse incompatible
+artifacts. Checkout-local directory names remain outside this identity.
+
+Markdown preprocessing and complete dashboard results also use checksummed CAS
+state records. Document entries bind source bytes; report entries bind ordered
+paths and document digests. Changed documents alone need new normalization and
+fingerprints; unchanged reports skip candidate generation and ranking.
+
+Automatic pruning tries the exclusive lease without blocking a live watch
+session. Explicit `cache prune` and `cache clear` still wait for active readers.
 
 ## Dependency-aware invalidation
 

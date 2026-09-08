@@ -12,6 +12,18 @@ pub fn multiset_jaccard(a: &[u64], b: &[u64]) -> f64 {
     if a.is_empty() && b.is_empty() {
         return 1.0;
     }
+    // Short inputs benefit from conditional increments; longer repeated runs
+    // retain the scalar merge below, where predictable branches are cheaper.
+    if a.len() <= 32 && b.len() <= 32 {
+        let (mut i, mut j, mut shared) = (0, 0, 0usize);
+        while i < a.len() && j < b.len() {
+            let (x, y) = (a[i], b[j]);
+            shared += usize::from(x == y);
+            i += usize::from(x <= y);
+            j += usize::from(x >= y);
+        }
+        return shared as f64 / (a.len() + b.len() - shared) as f64;
+    }
     let (mut i, mut j) = (0, 0);
     let (mut inter, mut union) = (0usize, 0usize);
     while i < a.len() && j < b.len() {
@@ -43,6 +55,10 @@ pub fn multiset_jaccard(a: &[u64], b: &[u64]) -> f64 {
 /// on pathological units.
 const ALIGN_CAP: usize = 600;
 
+pub(crate) fn alignment_input(sequence: &[u64]) -> &[u64] {
+    &sequence[..sequence.len().min(ALIGN_CAP)]
+}
+
 /// RANSAC-style geometric verification (computer vision): treat token matches as
 /// point correspondences, find the dominant position-offset (a 1-D "translation"
 /// consensus), and score by the fraction of `a` positions consistent with it.
@@ -50,64 +66,133 @@ const ALIGN_CAP: usize = 600;
 pub(crate) fn ransac_ratio(a: &[u64], b: &[u64]) -> f64 {
     use rustc_hash::FxHashMap;
     use std::cell::RefCell;
-    // Reusable per-thread scratch: this is the detector's hot path (~300k calls on
-    // a large corpus), so we clear-and-reuse the maps instead of allocating two
-    // HashMaps (and a Vec per token) on every call.
-    thread_local! {
-        static POS: RefCell<FxHashMap<u64, Vec<i32>>> = RefCell::new(FxHashMap::default());
-        static VOTES: RefCell<FxHashMap<i32, u32>> = RefCell::new(FxHashMap::default());
+    // Only the first eight occurrences cast votes. Keep them inline while reusing
+    // the token map's buckets across calls; later occurrences still count as inliers.
+    #[derive(Default)]
+    struct Positions {
+        indices: [u16; 8],
+        len: usize,
     }
-    let a = &a[..a.len().min(ALIGN_CAP)];
-    let b = &b[..b.len().min(ALIGN_CAP)];
+    thread_local! {
+        static POS: RefCell<FxHashMap<u64, Positions>> = RefCell::new(FxHashMap::default());
+    }
+    const OFFSET_ORIGIN: usize = ALIGN_CAP - 1;
+    const {
+        assert!(ALIGN_CAP <= u16::MAX as usize);
+    }
+    let a = alignment_input(a);
+    let b = alignment_input(b);
     let maxlen = a.len().max(b.len());
     if maxlen == 0 {
         return 1.0;
     }
     POS.with(|pos_cell| {
-        VOTES.with(|votes_cell| {
-            let mut pos = pos_cell.borrow_mut();
-            let mut votes = votes_cell.borrow_mut();
-            pos.clear();
-            votes.clear();
-            for (j, &t) in b.iter().enumerate() {
-                pos.entry(t).or_default().push(j as i32);
+        let mut pos = pos_cell.borrow_mut();
+        pos.clear();
+        for (j, &token) in b.iter().enumerate() {
+            let positions = pos.entry(token).or_default();
+            if positions.len < positions.indices.len() {
+                positions.indices[positions.len] = j as u16;
+                positions.len += 1;
             }
-            // vote offsets (capped per token to bound cost)
-            for (i, &t) in a.iter().enumerate() {
-                if let Some(js) = pos.get(&t) {
-                    for &j in js.iter().take(8) {
-                        *votes.entry(j - i as i32).or_default() += 1;
-                    }
+        }
+        let mut votes = [0u32; 2 * ALIGN_CAP - 1];
+        let mut best = (0u32, 0usize);
+        for (i, token) in a.iter().enumerate() {
+            if let Some(positions) = pos.get(token) {
+                for &j in &positions.indices[..positions.len] {
+                    let index = usize::from(j) + OFFSET_ORIGIN - i;
+                    votes[index] += 1;
+                    // Counts only increase, so the greatest (count, offset) seen
+                    // so far is also the final winner. Larger offsets win ties.
+                    best = best.max((votes[index], index));
                 }
             }
-            // Consensus offset = most-voted alignment shift. Break vote-count ties by
-            // the offset value (a unique map key), NOT by `max_by_key`'s "last max
-            // wins" — `votes` is a reused thread-local `FxHashMap` whose capacity (and
-            // thus iteration order on ties) depends on how many prior pairs this worker
-            // handled, which varies with the thread count. Without the tie-break, a tied
-            // offset resolved differently across thread schedules, flipping marginal
-            // pairs' scores and breaking byte-identical output (seen on clap/nushell/
-            // h2database).
-            let off = match votes.iter().max_by_key(|(&o, &c)| (c, o)).map(|(&o, _)| o) {
-                Some(o) => o,
-                None => return 0.0,
-            };
-            // inliers: a positions whose match exists at the consensus offset
-            let mut inliers = 0usize;
-            for (i, &t) in a.iter().enumerate() {
-                let bj = i as i32 + off;
-                if bj >= 0 && (bj as usize) < b.len() && b[bj as usize] == t {
-                    inliers += 1;
-                }
+        }
+        if best.0 == 0 {
+            return 0.0;
+        }
+        let offset = best.1 as i32 - OFFSET_ORIGIN as i32;
+        let mut inliers = 0usize;
+        for (i, &token) in a.iter().enumerate() {
+            let j = i as i32 + offset;
+            if j >= 0 && (j as usize) < b.len() && b[j as usize] == token {
+                inliers += 1;
             }
-            inliers as f64 / maxlen as f64
-        })
+        }
+        inliers as f64 / maxlen as f64
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn multiset_scores_match_independent_frequency_counts() {
+        use std::collections::BTreeMap;
+        let counts = |values: &[u64]| {
+            let mut result = BTreeMap::<u64, usize>::new();
+            for &value in values {
+                *result.entry(value).or_default() += 1;
+            }
+            result
+        };
+        let mut cases = (0..64)
+            .map(|pattern| {
+                (0..3)
+                    .flat_map(|value| {
+                        std::iter::repeat_n(value as u64, (pattern >> (value * 2)) & 3)
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        cases.extend([
+            vec![u64::MAX; 1024],
+            (0..4096).collect(),
+            vec![0, 0, u64::MAX],
+        ]);
+        cases.extend([
+            (0..64).map(|value| value * 64).collect(),
+            (0..64).map(|value| value * 127 + 1).collect(),
+            (0..4096).map(|value| value * 2).collect(),
+        ]);
+        for len in [31, 32, 33] {
+            cases.extend([
+                vec![0; len],
+                vec![u64::MAX; len],
+                (0..len as u64).collect(),
+                (0..len as u64).map(|value| value / 3).collect(),
+                (0..len as u64)
+                    .map(|value| u64::MAX - len as u64 + value)
+                    .collect(),
+            ]);
+        }
+        for a in &cases {
+            let ac = counts(a);
+            for b in &cases {
+                let bc = counts(b);
+                let keys = ac
+                    .keys()
+                    .chain(bc.keys())
+                    .copied()
+                    .collect::<std::collections::BTreeSet<_>>();
+                let (mut shared, mut total) = (0, 0);
+                for key in keys {
+                    let x = ac.get(&key).copied().unwrap_or(0);
+                    let y = bc.get(&key).copied().unwrap_or(0);
+                    shared += x.min(y);
+                    total += x.max(y);
+                }
+                let expected: f64 = if total == 0 {
+                    1.0
+                } else {
+                    shared as f64 / total as f64
+                };
+                assert_eq!(multiset_jaccard(a, b).to_bits(), expected.to_bits());
+            }
+        }
+    }
 
     /// Pins the consensus-offset tie-break that keeps `ransac_ratio` deterministic.
     /// The scorer's reused thread-local vote map is cleared but not shrunk between calls,
@@ -132,5 +217,78 @@ mod tests {
         let big: Vec<u64> = (0..500u64).flat_map(|x| [x, x ^ 0x5a5a]).collect();
         let _ = ransac_ratio(&big, &big);
         assert_eq!(ransac_ratio(&a, &b), 0.2);
+    }
+
+    // Independent scalar oracle: keep every occurrence and select the winner only
+    // after constructing an ordered offset map, matching the established contract.
+    fn scalar_alignment(a: &[u64], b: &[u64]) -> f64 {
+        use std::collections::BTreeMap;
+        let a = alignment_input(a);
+        let b = alignment_input(b);
+        if a.is_empty() && b.is_empty() {
+            return 1.0;
+        }
+        let mut positions: BTreeMap<u64, Vec<i32>> = BTreeMap::new();
+        for (j, &token) in b.iter().enumerate() {
+            positions.entry(token).or_default().push(j as i32);
+        }
+        let mut votes: BTreeMap<i32, u32> = BTreeMap::new();
+        for (i, token) in a.iter().enumerate() {
+            if let Some(indices) = positions.get(token) {
+                for &j in indices.iter().take(8) {
+                    *votes.entry(j - i as i32).or_default() += 1;
+                }
+            }
+        }
+        let Some((&offset, _)) = votes.iter().max_by_key(|&(offset, count)| (count, offset)) else {
+            return 0.0;
+        };
+        let inliers = a
+            .iter()
+            .enumerate()
+            .filter(|&(i, token)| {
+                let j = i as i32 + offset;
+                j >= 0 && b.get(j as usize) == Some(token)
+            })
+            .count();
+        inliers as f64 / a.len().max(b.len()) as f64
+    }
+
+    #[test]
+    fn bounded_alignment_matches_scalar_contract() {
+        let mut cases = vec![
+            (vec![], vec![]),
+            (vec![], vec![1]),
+            (vec![1], vec![]),
+            (vec![1; 601], vec![2; 601]),
+            (vec![5, 9], vec![5, 5, 5, 5, 5, 5, 5, 5, 5, 9]),
+            (vec![7; 601], vec![7; 601]),
+            ((0..600).collect(), (599..1199).collect()),
+            ((0..601).collect(), (600..1201).collect()),
+        ];
+        let mut seed = 0x5261_6e73_6163_u64;
+        let mut next = || {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            seed
+        };
+        for alphabet in [1, 2, 8, 64, 1024] {
+            for _ in 0..80 {
+                let a_len = (next() % 620) as usize;
+                let b_len = (next() % 620) as usize;
+                let a = (0..a_len).map(|_| next() % alphabet).collect();
+                let b = (0..b_len).map(|_| next() % alphabet).collect();
+                cases.push((a, b));
+            }
+        }
+        for (a, b) in cases {
+            for (left, right) in [(&a, &b), (&b, &a)] {
+                assert_eq!(
+                    ransac_ratio(left, right).to_bits(),
+                    scalar_alignment(left, right).to_bits()
+                );
+            }
+        }
     }
 }

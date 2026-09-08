@@ -31,6 +31,13 @@ pub struct Loc {
     pub file: String,
     pub start_line: u32,
     pub end_line: u32,
+    #[serde(skip)]
+    pub source_region: Option<nose_il::SourceRegion>,
+    #[serde(skip)]
+    pub analysis_digest: Option<nose_il::ContentDigest>,
+    /// Original bytes selected by a shared computation, including inlined callees.
+    #[serde(skip)]
+    pub shared_source_region: Option<nose_il::SourceRegion>,
     pub lang: String,
     /// What kind of syntactic unit this site is (function/method/class/block) —
     /// lets the report suggest the right refactor (helper vs base class).
@@ -147,6 +154,9 @@ impl Loc {
             file,
             start_line: source_span.start_line,
             end_line: source_span.end_line,
+            source_region: None,
+            analysis_digest: None,
+            shared_source_region: None,
             lang,
             kind,
             origin,
@@ -233,22 +243,8 @@ pub struct Group {
 /// audit's top gap); this names it without re-plumbing the scorer.
 #[derive(Clone, Serialize)]
 pub struct EquivalenceWitness {
-    /// `exact-value-graph` (every member strict-exact-safe with one identical
-    /// value multiset), `shared-sub-dag` (a common heavy anchor — see each
-    /// location's `shared_subdag` span), `copy-paste-run` (token-identical
-    /// contiguous run), or `structural-similarity` (the fuzzy near channel).
-    pub kind: &'static str,
-    /// For `exact-value-graph`: the size of the shared value multiset.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub value_nodes: Option<usize>,
-    /// For `structural-similarity`: mean value-graph Jaccard vs the first member
-    /// — high here with low shape similarity means behaviorally-driven
-    /// convergence, not surface likeness.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mean_value_jaccard: Option<f64>,
-    /// For `structural-similarity`: mean shape Jaccard vs the first member.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mean_shape_jaccard: Option<f64>,
+    #[serde(flatten)]
+    pub evidence: crate::WitnessEvidence,
     /// For same-language near/shared-core families: the anti-unification grade of the
     /// two representative copies — "equal except these k holes", with each hole's value
     /// class and a referent check (#315). Computed by the presentation layer, which has
@@ -281,10 +277,11 @@ pub struct Report {
     /// Reinvented-helper containment findings — see [`ReinventedHelper`].
     pub reinvented: Vec<ReinventedHelper>,
     pub metrics: Metrics,
-    /// For each structural `groups` entry, direct accepted edges as local
-    /// member-index pairs. Empty outside query's suppression-provenance path.
+    /// Direct accepted evidence for each structural group. `GroupEdges` distinguishes
+    /// raw member coordinates from canonical reported-site coordinates. Empty
+    /// outside query's suppression-provenance path.
     #[serde(skip)]
-    pub accepted_group_edges: Vec<Vec<crate::AcceptedEdge>>,
+    pub accepted_group_edges: Vec<crate::GroupEdges>,
 }
 
 fn unit_kind_name(kind: UnitKind) -> &'static str {

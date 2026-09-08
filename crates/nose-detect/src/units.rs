@@ -57,7 +57,8 @@ pub(crate) struct ExtractFeatures {
 struct UnitExtractCtx<'a> {
     il: &'a Il,
     interner: &'a Interner,
-    seeds: &'a [u64],
+    /// `None` defers signatures until the corpus finalizes its owned feature arrays.
+    seeds: Option<&'a [u64]>,
     min_lines: u32,
     min_tokens: usize,
     features: ExtractFeatures,
@@ -74,6 +75,7 @@ struct GatedUnit {
     pre: Vec<NodeId>,
     exact_safe: bool,
     value: Vec<u64>,
+    review_value: Option<nose_normalize::ReviewValueFingerprint>,
     lits: Vec<u64>,
     returns: Vec<u64>,
     pure_single_return: bool,
@@ -91,7 +93,7 @@ struct GatedUnit {
 pub(crate) fn extract(
     il: &Il,
     interner: &Interner,
-    seeds: &[u64],
+    seeds: Option<&[u64]>,
     min_lines: u32,
     min_tokens: usize,
     block_units: bool,
@@ -112,7 +114,7 @@ pub(crate) fn extract(
 pub(crate) fn extract_with_context(
     il: &Il,
     interner: &Interner,
-    seeds: &[u64],
+    seeds: Option<&[u64]>,
     min_lines: u32,
     min_tokens: usize,
     block_units: bool,
@@ -164,7 +166,7 @@ pub(crate) fn extract_with_context(
         unit_timer.report_summary(&il.meta.path);
         return (out, value_context);
     }
-    let test_module_spans = inline_test_module_spans(il, interner);
+    let test_module_spans = test_context_spans(il, interner);
     for unit in &mut out {
         unit.in_test_module = test_module_spans
             .iter()
@@ -221,12 +223,24 @@ fn fill_called_helper_returns(
     }
 }
 
-/// Source-line spans of inline test modules (`mod tests` / `mod test`) — the Rust
-/// convention for in-file test scaffolding. Module nodes keep their names through
-/// lowering, so a span check is enough; other languages simply have no named
-/// `tests` module inside a file.
-fn inline_test_module_spans(il: &Il, interner: &Interner) -> Vec<(u32, u32)> {
-    let mut spans = Vec::new();
+/// Source spans of frontend test-context evidence and conventional test functions/modules.
+/// Nested regions inherit these facts even when their own unit has no name.
+pub(crate) fn test_context_spans(il: &Il, interner: &Interner) -> Vec<(u32, u32)> {
+    let mut spans: Vec<_> = il
+        .units
+        .iter()
+        .filter(|unit| {
+            unit.origin
+                .has_evidence(nose_il::UnitEvidenceFlag::TestContext)
+                || unit
+                    .name
+                    .is_some_and(|name| crate::test_paths::is_test_name(interner.resolve(name)))
+        })
+        .map(|unit| {
+            let span = il.node(unit.root).span;
+            (span.start_line, span.end_line)
+        })
+        .collect();
     for node in &il.nodes {
         if node.kind != NodeKind::Module {
             continue;
@@ -265,6 +279,27 @@ fn bind_optional_fragment_control_identity(
     if let Some(kind) = fragment_kind {
         crate::fragment::bind_fragment_control_identity(il, root, kind, value);
     }
+}
+
+fn unit_fingerprints(
+    ctx: &UnitExtractCtx<'_>,
+    root: NodeId,
+    fragment: Option<FragmentKind>,
+) -> (
+    nose_normalize::FingerprintLawBundle,
+    Option<nose_normalize::ReviewValueFingerprint>,
+) {
+    let (mut features, mut review) = nose_normalize::value_fingerprint_with_review(
+        ctx.il,
+        root,
+        ctx.interner,
+        ctx.value_context,
+    );
+    bind_optional_fragment_control_identity(ctx.il, root, fragment, &mut features.0);
+    if let Some(review) = &mut review {
+        bind_optional_fragment_control_identity(ctx.il, root, fragment, &mut review.values);
+    }
+    (features, review)
 }
 
 fn gate_unit(
@@ -336,23 +371,16 @@ fn gate_unit(
     // gate so the gate can consult semantic richness (below).
     let value_start = unit_timer.start();
     let (
-        mut value,
-        lits,
-        returns,
-        anchors,
-        semantic_laws,
-        (pure_single_return, cond_sinks, used_length_contract),
-    ) = if let Some(context) = ctx.value_context {
-        nose_normalize::value_fingerprint_lits_anchors_laws_with_context(
-            ctx.il,
-            root,
-            ctx.interner,
-            context,
-        )
-    } else {
-        nose_normalize::value_fingerprint_lits_anchors_laws(ctx.il, root, ctx.interner)
-    };
-    bind_optional_fragment_control_identity(ctx.il, root, fragment_kind, &mut value);
+        (
+            value,
+            lits,
+            returns,
+            anchors,
+            semantic_laws,
+            (pure_single_return, cond_sinks, used_length_contract),
+        ),
+        review_value,
+    ) = unit_fingerprints(ctx, root, fragment_kind);
     let value_ms = UnitTimer::elapsed(value_start);
 
     // Size gate. A short unit normally isn't a meaningful clone — EXCEPT a
@@ -390,6 +418,7 @@ fn gate_unit(
         pre,
         exact_safe,
         value,
+        review_value,
         lits,
         returns,
         pure_single_return,
@@ -421,6 +450,7 @@ fn extract_unit(
         pre,
         exact_safe,
         value,
+        review_value,
         lits,
         returns,
         pure_single_return,
@@ -443,7 +473,10 @@ fn extract_unit(
 
     // Candidate generation keys on the value graph when present (so clones
     // that converge only semantically still become candidates).
-    let minhash = unit_minhash(&value, &shapes, ctx.features.shape_features, ctx.seeds);
+    let minhash = ctx
+        .seeds
+        .map(|seeds| unit_minhash(&value, &shapes, ctx.features.shape_features, seeds))
+        .unwrap_or_default();
 
     let display_name = uname
         .map(|s| ctx.interner.resolve(s).to_string())
@@ -476,10 +509,17 @@ fn extract_unit(
         name: uname.map(|s| ctx.interner.resolve(s).to_string()),
         start_line: span.start_line,
         end_line: span.end_line,
+        source_region: ctx
+            .il
+            .source
+            .as_ref()
+            .and_then(|source| source.region(span.start_byte, span.end_byte)),
+        source_document: ctx.il.source.clone(),
         token_count: pre.len(),
         shapes,
         shape_minhash,
         value,
+        review_value,
         minhash,
         linear,
         connected_tokens,

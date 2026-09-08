@@ -39,7 +39,7 @@ fn node_timers_settimeout_without_options_recovers_fulfilled_payload_boundary() 
         &[continuation_call, sync_add],
     );
     let mut il = finish_test_il(b, root, Lang::TypeScript);
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         100,
         Lang::TypeScript,
         EvidenceAnchor::binding(sp(299), stable_symbol_hash("delay")),
@@ -107,7 +107,7 @@ fn node_timers_setimmediate_without_options_recovers_fulfilled_payload_boundary(
         &[continuation_call, sync_add],
     );
     let mut il = finish_test_il(b, root, Lang::TypeScript);
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         100,
         Lang::TypeScript,
         EvidenceAnchor::binding(sp(319), stable_symbol_hash("immediate")),
@@ -170,7 +170,7 @@ fn node_timers_safe_payload_contract_respects_thenable_guard() {
         &[then_callee, callback],
     );
     let mut il = finish_test_il(b, continuation_call, Lang::TypeScript);
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         100,
         Lang::TypeScript,
         EvidenceAnchor::binding(sp(339), stable_symbol_hash("delay")),
@@ -236,7 +236,7 @@ fn node_timers_with_options_stays_domain_only() {
         &[then_callee, callback],
     );
     let mut il = finish_test_il(b, continuation_call, Lang::TypeScript);
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         100,
         Lang::TypeScript,
         EvidenceAnchor::binding(sp(299), stable_symbol_hash("delay")),
@@ -285,7 +285,7 @@ fn node_timers_commonjs_imported_binding_dependency_opens_promise_like_domain() 
     let timeout = b.add(NodeKind::Lit, Payload::LitInt(0), sp(301), &[]);
     let producer_call = b.add(NodeKind::Call, Payload::None, sp(303), &[delay, timeout]);
     let mut il = finish_test_il(b, producer_call, Lang::TypeScript);
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         100,
         Lang::TypeScript,
         EvidenceAnchor::node(sp(298), NodeKind::Var),
@@ -293,17 +293,16 @@ fn node_timers_commonjs_imported_binding_dependency_opens_promise_like_domain() 
             name_hash: stable_symbol_hash("require"),
         },
     ));
-    il.evidence
-        .push(language_core_symbol_evidence_with_dependencies(
-            101,
-            Lang::TypeScript,
-            EvidenceAnchor::binding(sp(299), stable_symbol_hash("delay")),
-            SymbolEvidenceKind::ImportedBinding {
-                module_hash: stable_symbol_hash("timers/promises"),
-                exported_hash: stable_symbol_hash("setTimeout"),
-            },
-            vec![EvidenceId(100)],
-        ));
+    il.push_evidence(language_core_symbol_evidence_with_dependencies(
+        101,
+        Lang::TypeScript,
+        EvidenceAnchor::binding(sp(299), stable_symbol_hash("delay")),
+        SymbolEvidenceKind::ImportedBinding {
+            module_hash: stable_symbol_hash("timers/promises"),
+            exported_hash: stable_symbol_hash("setTimeout"),
+        },
+        vec![EvidenceId(100)],
+    ));
 
     crate::library_api_evidence::run(&mut il, &interner);
 
@@ -336,18 +335,17 @@ fn node_timers_commonjs_imported_binding_requires_asserted_dependency() {
         },
     );
     require.status = EvidenceStatus::Ambiguous;
-    il.evidence.push(require);
-    il.evidence
-        .push(language_core_symbol_evidence_with_dependencies(
-            101,
-            Lang::TypeScript,
-            EvidenceAnchor::binding(sp(299), stable_symbol_hash("delay")),
-            SymbolEvidenceKind::ImportedBinding {
-                module_hash: stable_symbol_hash("timers/promises"),
-                exported_hash: stable_symbol_hash("setTimeout"),
-            },
-            vec![EvidenceId(100)],
-        ));
+    il.push_evidence(require);
+    il.push_evidence(language_core_symbol_evidence_with_dependencies(
+        101,
+        Lang::TypeScript,
+        EvidenceAnchor::binding(sp(299), stable_symbol_hash("delay")),
+        SymbolEvidenceKind::ImportedBinding {
+            module_hash: stable_symbol_hash("timers/promises"),
+            exported_hash: stable_symbol_hash("setTimeout"),
+        },
+        vec![EvidenceId(100)],
+    ));
 
     crate::library_api_evidence::run(&mut il, &interner);
 

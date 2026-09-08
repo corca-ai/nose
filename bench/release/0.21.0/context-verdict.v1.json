@@ -1,0 +1,1185 @@
+{
+  "schema": "nose.release-context-verdict/v1",
+  "version": "0.21.0",
+  "decision": "NO-GO: confirmed local RxSwift grouping regression",
+  "candidate": {
+    "source_sha": "7b239a412ffd5d4a66fb9f669ebf1ce5121e7fcf",
+    "crates_tree": "15499ec676fe382c0f2e3a37b537940c6e203f9d",
+    "product_dependencies": {
+      "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+      "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+      "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+    },
+    "binary_sha256": "b62005ba585dcbe9f55fc12514b8edb93201d02613ca8e369aa941e956348fa8",
+    "binary": "/Users/ak/prjs/cc/nose/target/release-context-qualification-20260907/candidate-nose",
+    "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+    "build_log": "/Users/ak/prjs/cc/nose/target/release-context-qualification-20260907/build.log"
+  },
+  "local_ci_cache_watch": {
+    "candidate": {
+      "source_sha": "7b239a412ffd5d4a66fb9f669ebf1ce5121e7fcf",
+      "crates_tree": "15499ec676fe382c0f2e3a37b537940c6e203f9d",
+      "product_dependencies": {
+        "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+        "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+        "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+      },
+      "binary_sha256": "b62005ba585dcbe9f55fc12514b8edb93201d02613ca8e369aa941e956348fa8",
+      "binary": "/Users/ak/prjs/cc/nose/target/release-context-qualification-20260907/candidate-nose",
+      "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+      "build_log": "/Users/ak/prjs/cc/nose/target/release-context-qualification-20260907/build.log"
+    },
+    "local_ci": {
+      "source_sha": "6165b14190f271f3ebe1d72faf7dc199172e1e8d",
+      "product": "7b239a412ffd5d4a66fb9f669ebf1ce5121e7fcf",
+      "status": "passed",
+      "release_tests": 2426,
+      "coverage_total": "TOTAL                                                                                                    175131             20412    88.34%       11464              1175    89.75%      112206             11618    89.65%           0                 0         -",
+      "log": "/Users/ak/prjs/cc/nose/target/release-context-qualification-20260907/full-ci.log",
+      "sha256": "a9aef14b61f547bb4510881d2024111cd835fabe3be45c067e345f70dde46b89",
+      "scope": "full local CI; runtime/cache/watch/remote qualification pending",
+      "initial_failure_retained": "full-ci-summary-mismatch.log"
+    },
+    "cache_campaign": [
+      {
+        "name": "matrix",
+        "exit_code": 0,
+        "seconds": 38.28158402442932
+      },
+      {
+        "name": "sympy",
+        "exit_code": 0,
+        "seconds": 296.56273674964905
+      },
+      {
+        "name": "watch",
+        "exit_code": 0,
+        "seconds": 204.30409002304077
+      }
+    ],
+    "cache_sympy_elapsed_ms": {
+      "candidate": {
+        "clean-after": {
+          "p50": 2140.7558331266046,
+          "p95": 2305.677792057395
+        },
+        "empty-store-after": {
+          "p50": 2319.774396251887,
+          "p95": 2476.6962910071015
+        },
+        "history-after": {
+          "p50": 290.5690628103912,
+          "p95": 307.28637520223856
+        }
+      },
+      "official": {
+        "clean-after": {
+          "p50": 2247.9988331906497,
+          "p95": 2407.456999644637
+        },
+        "empty-store-after": {
+          "p50": 2434.8579170182347,
+          "p95": 2624.7790418565273
+        },
+        "history-after": {
+          "p50": 307.0921250618994,
+          "p95": 328.60929146409035
+        }
+      }
+    },
+    "watch": [
+      {
+        "files": 10000,
+        "replays": 30,
+        "passed": true,
+        "latency_ms": {
+          "p50": 71.565688,
+          "p95": 74.108333
+        },
+        "end_to_end_ms": {
+          "p50": 82.90043752640486,
+          "p95": 86.79016772657633
+        },
+        "target_p95_ms": 250.0,
+        "crash_recovery": true,
+        "equivalent_to_clean": true
+      },
+      {
+        "files": 100000,
+        "replays": 30,
+        "passed": true,
+        "latency_ms": {
+          "p50": 297.83552099999997,
+          "p95": 338.38516699999997
+        },
+        "end_to_end_ms": {
+          "p50": 308.36827121675014,
+          "p95": 360.9148748219013
+        },
+        "target_p95_ms": 1000.0,
+        "crash_recovery": true,
+        "equivalent_to_clean": true
+      }
+    ],
+    "runtime_status": "registered semantic primary running; no decision yet",
+    "remote_package_build": "all four native builds and global packaging passed; local artifact verification pending",
+    "release_decision": "NO-GO: incomplete qualification"
+  },
+  "local": {
+    "status": "fail",
+    "thresholds": {
+      "max_runtime_delta_pct": 5.0,
+      "min_focused_iterations": 5,
+      "min_runtime_delta_ms": 5.0,
+      "runtime_policy": "order-aware-v1"
+    },
+    "primary": {
+      "output_drift_counts": {
+        "authorized_drifts": 120,
+        "unexpected_drifts": 0,
+        "unused_declarations": 0
+      },
+      "triggered": [
+        {
+          "adjusted_delta_ms": 5.875,
+          "adjusted_delta_pct": 145.06172839506172,
+          "baseline_ms": 4.05,
+          "control_delta_ms": 0.10000000000000053,
+          "current_ms": 10.125,
+          "evidence": {
+            "adjusted_effect_ms": 5.875,
+            "adjusted_effect_pct": 145.06172839506172,
+            "blocks": 5,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 6.2,
+                "adjusted_median_pct": 155.9748427672956,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 5.549999999999999,
+                "adjusted_median_pct": 124.36974789915962,
+                "blocks": 2,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.10000000000000053,
+            "control_effect_ms": 0.10000000000000053,
+            "declared_order_conflict_ignored": false,
+            "order_conflict": false,
+            "order_consistent": true,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 5.9750000000000005,
+            "sign_test_p": 0.03125,
+            "state": "triggered",
+            "supported": true,
+            "supporting_blocks": 5
+          },
+          "inconclusive": false,
+          "raw_delta_ms": 5.9750000000000005,
+          "repo": "rxswift",
+          "scope": "stage",
+          "stage": "groups",
+          "triggered": true
+        }
+      ],
+      "inconclusive": [
+        {
+          "adjusted_delta_ms": 5.306250000000006,
+          "adjusted_delta_pct": 5.892559689061639,
+          "baseline_ms": 90.05,
+          "control_delta_ms": 0.07499999999999929,
+          "current_ms": 92.675,
+          "evidence": {
+            "adjusted_effect_ms": 5.306250000000006,
+            "adjusted_effect_pct": 5.892559689061639,
+            "blocks": 5,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 6.1250000000000036,
+                "adjusted_median_pct": 6.8569829275119,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 4.487500000000008,
+                "adjusted_median_pct": 4.955141476880616,
+                "blocks": 2,
+                "material": false
+              }
+            },
+            "control_correction_ms": 0.07499999999999929,
+            "control_effect_ms": 0.07499999999999929,
+            "declared_order_conflict_ignored": true,
+            "order_conflict": true,
+            "order_consistent": false,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 5.381250000000005,
+            "sign_test_p": 0.5,
+            "state": "inconclusive",
+            "supported": false,
+            "supporting_blocks": 3
+          },
+          "inconclusive": true,
+          "raw_delta_ms": 5.381250000000005,
+          "repo": "libsodium",
+          "scope": "stage",
+          "stage": "normalize+extract",
+          "triggered": false
+        },
+        {
+          "adjusted_delta_ms": 18.14375000000001,
+          "adjusted_delta_pct": 5.30363928675826,
+          "baseline_ms": 342.1,
+          "control_delta_ms": -23.018750000000026,
+          "current_ms": 353.725,
+          "evidence": {
+            "adjusted_effect_ms": 18.14375000000001,
+            "adjusted_effect_pct": 5.30363928675826,
+            "blocks": 5,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 11.625,
+                "adjusted_median_pct": 3.393912853076418,
+                "blocks": 3,
+                "material": false
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 24.662500000000023,
+                "adjusted_median_pct": 7.537438875305631,
+                "blocks": 2,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -23.018750000000026,
+            "declared_order_conflict_ignored": true,
+            "order_conflict": true,
+            "order_consistent": false,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 18.14375000000001,
+            "sign_test_p": 0.8125,
+            "state": "inconclusive",
+            "supported": false,
+            "supporting_blocks": 2
+          },
+          "inconclusive": true,
+          "raw_delta_ms": 18.14375000000001,
+          "repo": "sqlite",
+          "scope": "stage",
+          "stage": "normalize+extract",
+          "triggered": false
+        }
+      ]
+    },
+    "focused_repos": [
+      "libsodium",
+      "rxswift",
+      "sqlite"
+    ],
+    "focused": {
+      "output_drift_counts": {
+        "authorized_drifts": 3,
+        "unexpected_drifts": 0,
+        "unused_declarations": 0
+      },
+      "triggered": [
+        {
+          "adjusted_delta_ms": 6.049999999999999,
+          "adjusted_delta_pct": 148.9230769230769,
+          "baseline_ms": 4.0625,
+          "control_delta_ms": -0.0625,
+          "current_ms": 10.125,
+          "evidence": {
+            "adjusted_effect_ms": 6.049999999999999,
+            "adjusted_effect_pct": 148.9230769230769,
+            "blocks": 6,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 6.099999999999999,
+                "adjusted_median_pct": 149.69325153374234,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 6.0,
+                "adjusted_median_pct": 148.14814814814815,
+                "blocks": 3,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -0.0625,
+            "declared_order_conflict_ignored": false,
+            "order_conflict": false,
+            "order_consistent": true,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 6.049999999999999,
+            "sign_test_p": 0.015625,
+            "state": "triggered",
+            "supported": true,
+            "supporting_blocks": 6
+          },
+          "inconclusive": false,
+          "raw_delta_ms": 6.049999999999999,
+          "repo": "rxswift",
+          "scope": "stage",
+          "stage": "groups",
+          "triggered": true
+        }
+      ],
+      "inconclusive": []
+    },
+    "unqualified": [
+      "base",
+      "default",
+      "near-no-pack"
+    ],
+    "retry_policy": "One primary/control and one focused/control completed. Stop at failed semantic workload; no unchanged retry.",
+    "orchestration_note": "Primary orchestration seconds include the preregistered package-verification gap. Raw command samples alone determine the verdict."
+  },
+  "remote": {
+    "candidate": {
+      "source_sha": "7b239a412ffd5d4a66fb9f669ebf1ce5121e7fcf",
+      "crates_tree": "15499ec676fe382c0f2e3a37b537940c6e203f9d",
+      "product_dependencies": {
+        "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+        "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+        "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+      },
+      "binary_sha256": "b62005ba585dcbe9f55fc12514b8edb93201d02613ca8e369aa941e956348fa8",
+      "binary": "/Users/ak/prjs/cc/nose/target/release-context-qualification-20260907/candidate-nose",
+      "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+      "build_log": "/Users/ak/prjs/cc/nose/target/release-context-qualification-20260907/build.log"
+    },
+    "verified_preparation": "6165b14190f271f3ebe1d72faf7dc199172e1e8d",
+    "merge_context": {
+      "head_sha": "6165b14190f271f3ebe1d72faf7dc199172e1e8d",
+      "merge_commit": "13716ebdb2a2323af7f1cf90cc393b32c85b9a53",
+      "product": "7b239a412ffd5d4a66fb9f669ebf1ce5121e7fcf",
+      "crates_tree": "15499ec676fe382c0f2e3a37b537940c6e203f9d",
+      "product_and_dependencies_match": true
+    },
+    "status": "passed",
+    "workflows": {
+      "ci": {
+        "run_id": 34097828608,
+        "url": "https://github.com/corca-ai/nose/actions/runs/34097828608",
+        "head": "6165b14190f271f3ebe1d72faf7dc199172e1e8d",
+        "status": "passed"
+      },
+      "packages": {
+        "run_id": 34097828975,
+        "url": "https://github.com/corca-ai/nose/actions/runs/34097828975",
+        "head": "6165b14190f271f3ebe1d72faf7dc199172e1e8d",
+        "status": "passed"
+      },
+      "pr-soundness": {
+        "run_id": 34097828750,
+        "url": "https://github.com/corca-ai/nose/actions/runs/34097828750",
+        "head": "6165b14190f271f3ebe1d72faf7dc199172e1e8d",
+        "status": "passed"
+      },
+      "nightly": {
+        "run_id": 34097900101,
+        "url": "https://github.com/corca-ai/nose/actions/runs/34097900101",
+        "head": "6165b14190f271f3ebe1d72faf7dc199172e1e8d",
+        "status": "passed"
+      },
+      "deep": {
+        "run_id": 34097902778,
+        "url": "https://github.com/corca-ai/nose/actions/runs/34097902778",
+        "head": "6165b14190f271f3ebe1d72faf7dc199172e1e8d",
+        "status": "passed"
+      }
+    },
+    "runtime": {
+      "status": "pass",
+      "thresholds": {
+        "max_runtime_delta_pct": 5.0,
+        "min_focused_iterations": 6,
+        "min_runtime_delta_ms": 5.0,
+        "runtime_policy": "order-aware-v1"
+      },
+      "focused_repos": [],
+      "triggered": [],
+      "inconclusive": [],
+      "output_changes": {
+        "authorized_drifts": 7,
+        "unexpected_drifts": 0,
+        "unused_declarations": 0
+      },
+      "ruby_scaling": {
+        "delta_ms": 21.236572000020715,
+        "growth_exponent": 0.9464517359684373,
+        "material": true,
+        "max_growth_exponent": 1.35,
+        "min_material_delta_ms": 5.0,
+        "status": "within-threshold"
+      }
+    },
+    "nightly": {
+      "complete": true,
+      "totals": {
+        "advisory": 12015,
+        "canon_changes": 0,
+        "failed_repositories": 0,
+        "false_merges": 0,
+        "repositories": 120
+      },
+      "all_pinned_commits_match": true
+    },
+    "deep": {
+      "metamorphic_equivalence": true,
+      "multi_seed_falsification": true,
+      "source_runtime_calibration": true
+    },
+    "native_packages_and_installer": {
+      "status": "passed",
+      "workflow_run": 34097828975,
+      "source_commit": "6165b14190f271f3ebe1d72faf7dc199172e1e8d",
+      "compared_checkout": "13716ebdb2a2323af7f1cf90cc393b32c85b9a53",
+      "packages": [
+        {
+          "status": "passed",
+          "version": "0.21.0",
+          "target": "aarch64-apple-darwin",
+          "archive_sha256": "f073ee413e4dfc67924b6eb1d72ab941649e6e9053cc02a5d2127ebfef19ded7",
+          "binary_sha256": "db4a8c1e315501c654ba92d95738d95a2384d70f3a5cb3d8e4f477484b839771",
+          "checks": {
+            "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+            "families": 1,
+            "clean_cold_warm_equal": true,
+            "saved_analysis_view": "dashboard"
+          }
+        },
+        {
+          "status": "passed",
+          "version": "0.21.0",
+          "target": "aarch64-unknown-linux-gnu",
+          "archive_sha256": "f7134dc1bead48e305dffe70fa337fcdd224530295aa0b23d704e46a4952736a",
+          "binary_sha256": "da2417a309413d9e00bdac9e8ebf404fc7cb88968e766285d52450c12f15f844",
+          "checks": {
+            "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+            "families": 1,
+            "clean_cold_warm_equal": true,
+            "saved_analysis_view": "dashboard"
+          }
+        },
+        {
+          "status": "passed",
+          "version": "0.21.0",
+          "target": "x86_64-apple-darwin",
+          "archive_sha256": "f3cd40ef000a7d861f17293cc3417372811d22513ca3f6907d7fd59a3bb97d13",
+          "binary_sha256": "44c61f3e4fe874097adb377f99944a063de3bb06ab5c338425a25869d3d04379",
+          "checks": {
+            "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+            "families": 1,
+            "clean_cold_warm_equal": true,
+            "saved_analysis_view": "dashboard"
+          }
+        },
+        {
+          "status": "passed",
+          "version": "0.21.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "archive_sha256": "834e05d797bcc4996b4993ed8d15b8845f5dc1b52f30c1b83af03b0c9817bef5",
+          "binary_sha256": "ace1fbaceb60d83fb3596512a3efcf42a08b864b641c3e622ff4a8d45011a039",
+          "checks": {
+            "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+            "families": 1,
+            "clean_cold_warm_equal": true,
+            "saved_analysis_view": "dashboard"
+          }
+        }
+      ],
+      "installer": {
+        "sha256": "e225447efc4e2b3cf8bd90a5c0d1f7c098c99e224195f1cb4c11df80332cde20",
+        "embedded_checksum_verified": true,
+        "native_execution": {
+          "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+          "families": 1,
+          "clean_cold_warm_equal": true,
+          "saved_analysis_view": "dashboard"
+        }
+      }
+    },
+    "release_decision": "NO-GO: registered local performance matrix still in progress"
+  },
+  "previous_receipts_preserved": [
+    "context-preflight.v1.json",
+    "uniform-relations-verdict.v1.json"
+  ],
+  "artifacts": [
+    {
+      "path": "target/release-context-qualification-20260907/audit-base.py",
+      "bytes": 3874,
+      "sha256": "6fcf115710b584febfb2218ce1f1f948f13b15719485d6a96c84a2cdea8dfa21"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/audit-candidate.py",
+      "bytes": 1804,
+      "sha256": "555b57e1fe89b44a378bda3f4c83199b131b877271a80afbf50730869b0fabb1"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/base-drift-review.json",
+      "bytes": 10781,
+      "sha256": "57b5a6d25169b9c94939092529ee7013bc4b8453bb2a1b7f0daf8c53bc7a8dbe"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/base-expected-drift.json",
+      "bytes": 19198,
+      "sha256": "fe55b58c8d053e53a82a508239baa8bae88fdc6833d0d8c036a67b05ef98e95a"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/build.log",
+      "bytes": 458,
+      "sha256": "d8a042e903b22a5d3f1f8d533f01bd524aa137bf65090b5f2925f6f796584b8b"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/cache-campaign-matrix.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/cache-campaign-status.json",
+      "bytes": 2896,
+      "sha256": "cad5a3b4d1467498454290f0af99262a0dd53d13254b0b6eac39d5d5d9d6c6f2"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/cache-campaign-sympy.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/cache-campaign-watch.log",
+      "bytes": 572,
+      "sha256": "97d7156bf3e69e3603dc7eca5d518d526a58e140cd232016245bca03f9efbd0c"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/cache-campaign.log",
+      "bytes": 74,
+      "sha256": "256f8de0733e12f4878b08e46d0728a2566bcb7b7d778c218a8f6ecda666e794"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/cache-campaign.py",
+      "bytes": 1970,
+      "sha256": "feb749aab93733af5932aa8d78bf0d70db7d69dcfc090ce59183e778bea06b1c"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/cache-matrix-30.json",
+      "bytes": 4963303,
+      "sha256": "7a83f86a064dad5d66e0053054f2a57b52be84231062c92435e829cdb90895a5"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/cache-sympy-30.json",
+      "bytes": 411305,
+      "sha256": "94e8ca1def32a051a33f6f44c3c18138fe4b30368bcf80152e100acd964c5f69"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/cache-watch-followup.json",
+      "bytes": 3552,
+      "sha256": "2ad8140032409a2224a7f1755c735c5330fd0443c3708bd2ddecf7ccef50c8f7"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/candidate-identity.json",
+      "bytes": 705,
+      "sha256": "6d8e22332dd7a491a3887252a177dd2a305d8fbfd6218c136945dc8911025797"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/candidate-output-audit.json",
+      "bytes": 115907,
+      "sha256": "df875bbee6003440d06c5b090f66fc5e2f33f4a8aede1d7bba02d03189439e28"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/candidate-output-audit.log",
+      "bytes": 9013,
+      "sha256": "6cffe06fec7fbd905ee40a2148bd7b9ded5d7f96ee9e9cf5fb7c0a49d58f74e0"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/check-remote-packages.py",
+      "bytes": 2884,
+      "sha256": "82694037b96fe3e31a804c3fbd87b704409393c0f7a3b01eabcf9a31973cc950"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/correctness-progress.json",
+      "bytes": 817,
+      "sha256": "5865a34c69220c8841df174934a7cd126d760fae28d255091c0dba0a4eb9b85c"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/default-expected-drift.json",
+      "bytes": 251063,
+      "sha256": "c9b8770a859191be3cab3642ec185b28de9d99c36006533bd2f767915ea2f4ec"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/derived-summary-accepted-pair-check.log",
+      "bytes": 278,
+      "sha256": "fe52a421750d1aa3f02dc0f022256e11df5be10d30882824fdbd12ff1267c4b1"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/derived-summary-commit.log",
+      "bytes": 2456,
+      "sha256": "9732e9274c24a437b50546a670d12cb995005282c60c163e02f257834c3af507"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/derived-summary-frontier-check.log",
+      "bytes": 13271,
+      "sha256": "13f0edfd2c8976994d8d01770ad880b07d3501a4b9877b81d30a37c766b4399b"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/derived-summary-refresh.json",
+      "bytes": 1079,
+      "sha256": "856d4c833edd3af551bc0a99f02312a01787acd944301d7243024a841ad37beb"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/duplication-family-detail.json",
+      "bytes": 51660,
+      "sha256": "a667c1e9344e835c8cd7e1316182cca119994263288f8f2e72b3fd370311fb9c"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/duplication-family-detail.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/duplication-review.json",
+      "bytes": 509,
+      "sha256": "d96bdb86f79b6598e1fd4ad0f9463b0493f2277ad3adc1977522ba933f019ce2"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/duplication-reviewed.log",
+      "bytes": 101,
+      "sha256": "432282ff5e28d807c63030a4134ff88210731e2c57d5c359be850effaf16a735"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/duplication.log",
+      "bytes": 372,
+      "sha256": "620f1819d6c98f8c8de70bc4504289ef83b3618f52351d6f5e1aed9f02016593"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/full-ci-initial-failure.json",
+      "bytes": 341,
+      "sha256": "e0262ab0cecc0ce96d080c35a7d1c1ff5dfb48ccb28e3b4f8dd495f6bd38badd"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/full-ci-receipt.json",
+      "bytes": 763,
+      "sha256": "22fefa936aebc262d82d91519d1b94f4b18a2c083e4bcbbcbbe25cb23a3bb8c5"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/full-ci-summary-mismatch.log",
+      "bytes": 22440,
+      "sha256": "27d9f6f9ed0a849f88add986559550a92196e52ad252bf2069ca1bc5df9116d1"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/full-ci.log",
+      "bytes": 776628,
+      "sha256": "a9aef14b61f547bb4510881d2024111cd835fabe3be45c067e345f70dde46b89"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/journeys.json",
+      "bytes": 13142,
+      "sha256": "9ba31f369b699b15949ee0be6f8ca2e3b5d3647781189df6b85ccd82eda5ddab"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/journeys.log",
+      "bytes": 264,
+      "sha256": "74b2d8713ee2c327ff26c0f0c840f4e456390da54d5355bbce72aed91862f2c7"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/journeys.py",
+      "bytes": 4317,
+      "sha256": "2d1c98591bcafa8ee73debe3a9f7a8d45f8f3ab0bac1f3a32cfc0f145e3cd321"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/near-no-pack-expected-drift.json",
+      "bytes": 229412,
+      "sha256": "8c79b54d543cb5e297de4107d2c012c7ebd3efc2d7d715b9c3de51c2bfd8f526"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/output-audit-base.json",
+      "bytes": 42943,
+      "sha256": "47f154413e5c11c4bcf9d050dc01862fbeb551038dfcd2b6bec0857eacb74ae1"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/output-audit-base.log",
+      "bytes": 1029,
+      "sha256": "99429358a025425969c02d47c7871f4a483865494ccf9620b918f6215c55ca94"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/phase-boundary-plan.json",
+      "bytes": 592,
+      "sha256": "b422149784b35336c2e257c4ab192924981e05031587abdf03c5af4a9a2c011c"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/phase-boundary-primary.json",
+      "bytes": 535,
+      "sha256": "2b14e1940a044ea10e95ab17a02b12c6fd271c9fe354276555ba785665586161"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/phase-boundary-resumed.json",
+      "bytes": 205,
+      "sha256": "fc40eba8468cd83684b43009b5c7d24f535f93c88122a5c59971d70220273c43"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/pr-body-post-ci.md",
+      "bytes": 3657,
+      "sha256": "2d4629c5e70753fc530879816270085df97d6f5fcaf6228d7ab85d1ee8484986"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/pr-body-post-packages.md",
+      "bytes": 3944,
+      "sha256": "f900ed41abfe64b2af0f250e1d536c8af32fa11e119c1c68203ca771896c3bff"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/pr-body.md",
+      "bytes": 3030,
+      "sha256": "7323fa71798fb3e780eefbfa6d7591a07db0fe6d00a80ad14995ebf49781149c"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/preflight-artifacts.log",
+      "bytes": 99,
+      "sha256": "19c87fb88d478311b0f71c6e1696b2c6e40d83a7ea6e81a26bbd40bd95548f32"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/preflight-commit.log",
+      "bytes": 2537,
+      "sha256": "d749932d368797974dba654982e49c318836d2a55520ea600a486fe012df3a46"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/preflight-docs-fixed.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/preflight-docs.log",
+      "bytes": 2751,
+      "sha256": "82d71e992208d5b5ba72d99a47af3f2ce158e57418ae9e79f6c5fca667596071"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/push.log",
+      "bytes": 192841,
+      "sha256": "f7600c3b45b942df7f90b2a367efa3e0ae93f68d07071ae27a3ac336ac99e2a0"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/qualification-design.json",
+      "bytes": 3481,
+      "sha256": "82f2ea8efe6b5846f4fe0a36430ff69464c19e2e9896237d4787268cf4729b9d"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/qualification-progress.json",
+      "bytes": 2700,
+      "sha256": "d1a95830e4c4b721d70f0a1d4cc9313807ebaacf6151fc0f5f18ae5bc1d63f78"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/qualification.log",
+      "bytes": 300,
+      "sha256": "0a090ef264980bc5a71eca86dc70776f62a8cbc734d00d0c590b4cd2236e035f"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/qualify.py",
+      "bytes": 4205,
+      "sha256": "46d16c6385ccb651656d7da80fdc5f0a94ad8b09d6003ef73ea017f9ffe0388f"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/query-semantic-control.json",
+      "bytes": 7472051,
+      "sha256": "db11047ca29522e34fdf0026f0799ea648dd32d8f148b10faea7b54ed6083ccc"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/query-semantic-control.log",
+      "bytes": 1094,
+      "sha256": "e7b92dcdc87836511f903bb757926a8e22f032fbdf34198bc6c9d165a2624197"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/query-semantic-focused-control.json",
+      "bytes": 228451,
+      "sha256": "4e2fc2d8df434d00804bdcff8cc06a9d7f672f71e3926c048d36ecab31c5660e"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/query-semantic-focused-control.log",
+      "bytes": 1151,
+      "sha256": "11c985bda933ad82b0dd1d40e3c4c81dbc5b2cc54a626d2bd0f908b46aae4b85"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/query-semantic-focused.json",
+      "bytes": 228273,
+      "sha256": "064a923eb2f207903a2115b8c23c80d6216522ffeb89ce33bb936dc83c164a62"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/query-semantic-focused.log",
+      "bytes": 1115,
+      "sha256": "5e9e010275ae265a7ccd5a902eda55a8c8c3ecd4c30ac59c7c1c6c6c0ab487b0"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/query-semantic-gate.json",
+      "bytes": 5264505,
+      "sha256": "5b1310ddc645e080610d66952e5dc7c63045c3197e7a8e56bbe7664140b92c5f"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/query-semantic-gate.log",
+      "bytes": 87,
+      "sha256": "117ab9baf9b01a841e4b2fddc44ddf35dda3344478ad9e511528f0bee98f77e4"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/query-semantic-gate.md",
+      "bytes": 749,
+      "sha256": "12605fea121d992981d409b16835013df9101ee0f6d0f2fc6080a9bdb053162b"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/query-semantic-primary-inspection.json",
+      "bytes": 4646957,
+      "sha256": "5b9e3d5d25e45d690fb89cf894fb79f57c03710a88d13816b6724c882790220e"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/query-semantic-primary.json",
+      "bytes": 7472585,
+      "sha256": "5e61c73f48c61994a210cc5f1a3e6809946ac2579ec81cf7020ef452afa41672"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/query-semantic-primary.log",
+      "bytes": 1066,
+      "sha256": "d73c43e29a98d1370fb8af5e41a6c8aa8939ae2c8eb17e63050846dc98dae48b"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/quiet-boundary-cache.json",
+      "bytes": 352,
+      "sha256": "49b415458a6e59cacae0d1a3f41a9664ba26165227e3ad273d399a4d8200ce46"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/quiet-boundary-control.json",
+      "bytes": 82170,
+      "sha256": "54bfd609bc7c5e7b987581f397d1fbb7cc9112aaabc874042abd8aac1fd4c613"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/quiet-boundary-qualification.json",
+      "bytes": 79318,
+      "sha256": "a2099b081e9a98076f8b73f56e7ed2ecc4721eb9679c9741bf72de86122e2bbf"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-ci-run.json",
+      "bytes": 28231,
+      "sha256": "88c9416fb22ee9b755c9a3f1e0e6287c237bf9a2f755d9f6b98a34fa4c97cfbf"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-deep-evidence/build.log",
+      "bytes": 976,
+      "sha256": "f98026e588fcfd79f74f8a9f799d889f6312fb0ca0f0cc0538605303d4f03485"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-deep-evidence/domain.log",
+      "bytes": 56,
+      "sha256": "0048767c6a17aaabd2b6959c0941e238254f7ba922eaf2f539f2e858b66d1f6b"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-deep-evidence/equivalence.log",
+      "bytes": 37483,
+      "sha256": "0ca588b93fef215ba89f86cff155161ac10245aa2420073e22109e0d2b1a5ad7"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-deep-evidence/evidence.json",
+      "bytes": 246,
+      "sha256": "390a6b05f8bae313c4618ea389ab2ded2a576c43500f34dedb295e976cc8e1f6"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-deep-evidence/falsify-1.log",
+      "bytes": 4273,
+      "sha256": "d33db490596e63285f7f3cf8cd9d7d9da91f9d187b3feb5df644d8eaceeb52af"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-deep-evidence/falsify-11400714819323198485.log",
+      "bytes": 4273,
+      "sha256": "d33db490596e63285f7f3cf8cd9d7d9da91f9d187b3feb5df644d8eaceeb52af"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-deep-evidence/falsify-13787848793156543929.log",
+      "bytes": 4273,
+      "sha256": "d33db490596e63285f7f3cf8cd9d7d9da91f9d187b3feb5df644d8eaceeb52af"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-deep-run.json",
+      "bytes": 6017,
+      "sha256": "a7a336fad16727547643f8d82fe187f14dfe86ae5eb1fde722a612651aad47f4"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-dispatch.json",
+      "bytes": 661,
+      "sha256": "8c859bd10052a6eb543340b142e4a2f4f8bd77690767376842258ffa2042ea51"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-installer.log",
+      "bytes": 280,
+      "sha256": "e83191d45ec6a1232c0d18390004ce4b270a4961a2549ff0376c37abd8eb205f"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-merge-context.json",
+      "bytes": 283,
+      "sha256": "acc3bdd6a866a005b9bcab7ceedcdc5541396f57094a2fa5bb864f493a97b978"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-merge-tree.json",
+      "bytes": 5616,
+      "sha256": "7d73cfd2fc33f86d8e47bef6ed72df7258ddfa08cf4b260412cd4b4e3caa88c1"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-nightly-evidence/corpus-evidence.json",
+      "bytes": 53099,
+      "sha256": "72ad72912d6e4f68d0682115120588f66fe2d5125bef56e0d19bcd034bf41de5"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-nightly-evidence/merge.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-nightly-evidence/summary.md",
+      "bytes": 252,
+      "sha256": "68d8b0e52c24c2f8853ad0adaa0f3984b2f14e2aebe2baa8e8eee7e58da655f1"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-nightly-run.json",
+      "bytes": 16681,
+      "sha256": "73d16ee3e046f435be6469fa5488b6937b5edf02b23057c1afe46261f2ee3e2c"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-package-verification.json",
+      "bytes": 2627,
+      "sha256": "8c7c48596f393ac289010f80f7139c703e16761727ab2dcf2cf384bbf22e24f7"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-package-verification.log",
+      "bytes": 160,
+      "sha256": "4c443e9265c20095d1910b24aa8016780845bce2120792f33b92280f9b00337a"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-global/global-dist-manifest.json",
+      "bytes": 37905,
+      "sha256": "99045575c8bf62f92e25dcb6e07835457a29c7e3eb614c7e7477d9bce15e38d6"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-global/nose-cli-installer.sh",
+      "bytes": 52690,
+      "sha256": "e225447efc4e2b3cf8bd90a5c0d1f7c098c99e224195f1cb4c11df80332cde20"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-global/nose.rb",
+      "bytes": 2369,
+      "sha256": "ce83cdadf3cd562b3836e18667016970a8fdfc81819112e3e6e2910d88922572"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-global/sha256.sum",
+      "bytes": 501,
+      "sha256": "221eb324700a6786f40fef315d2a0817225589913c967ed6ca026b19072aa67c"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-global/source.tar.gz",
+      "bytes": 25156835,
+      "sha256": "728894feb888eaf275521e8f325ebe7c09833443869b9072c498706cde80f1f6"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-global/source.tar.gz.sha256",
+      "bytes": 81,
+      "sha256": "7be24dd74dd68063df1bb12fd78d573170212c7818423887a3680c4f64925b4d"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-aarch64-apple-darwin/aarch64-apple-darwin-dist-manifest.json",
+      "bytes": 32231,
+      "sha256": "9c195d9d294ed4571baa3df929e838dca5bde4d9a089be9224af471ac1b57e11"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-aarch64-apple-darwin/nose-cli-aarch64-apple-darwin.tar.xz",
+      "bytes": 5407784,
+      "sha256": "f073ee413e4dfc67924b6eb1d72ab941649e6e9053cc02a5d2127ebfef19ded7"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-aarch64-apple-darwin/nose-cli-aarch64-apple-darwin.tar.xz.sha256",
+      "bytes": 104,
+      "sha256": "d55ffa2532648f666484ce81990cf0daa78d3bfcfaf8bf418fc5981d2eaae7e9"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-aarch64-apple-darwin/package-smoke-aarch64-apple-darwin.json",
+      "bytes": 459,
+      "sha256": "898ea05fd7383d55b61fa7a4177dc53172218fbb0529fa87200174faaac9b27e"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-aarch64-unknown-linux-gnu/aarch64-unknown-linux-gnu-dist-manifest.json",
+      "bytes": 32141,
+      "sha256": "1c55060321320118fbf7c528aa07535f77d1429bbeb93c74efa9439f6fb4e158"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-aarch64-unknown-linux-gnu/nose-cli-aarch64-unknown-linux-gnu.tar.xz",
+      "bytes": 5557384,
+      "sha256": "f7134dc1bead48e305dffe70fa337fcdd224530295aa0b23d704e46a4952736a"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-aarch64-unknown-linux-gnu/nose-cli-aarch64-unknown-linux-gnu.tar.xz.sha256",
+      "bytes": 109,
+      "sha256": "353a5b1e7d7c108f76ae4cf5cf619ee3556ed04f9edcf736e73418ccfb2e8d70"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-aarch64-unknown-linux-gnu/package-smoke-aarch64-unknown-linux-gnu.json",
+      "bytes": 464,
+      "sha256": "c3656829bde19b0310e30785a37705ba141880b50f71f7fbcff98547b10d2777"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-x86_64-apple-darwin/nose-cli-x86_64-apple-darwin.tar.xz",
+      "bytes": 6145424,
+      "sha256": "f3cd40ef000a7d861f17293cc3417372811d22513ca3f6907d7fd59a3bb97d13"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-x86_64-apple-darwin/nose-cli-x86_64-apple-darwin.tar.xz.sha256",
+      "bytes": 103,
+      "sha256": "9f46feaeb65a0fc8cacaaeddcfec2646f2f4d1522e32b2417e0d870943425934"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-x86_64-apple-darwin/package-smoke-x86_64-apple-darwin.json",
+      "bytes": 458,
+      "sha256": "5843e037cf3d02a82bed3d32d5275e3e50a27477195908430580219782422425"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-x86_64-apple-darwin/x86_64-apple-darwin-dist-manifest.json",
+      "bytes": 32226,
+      "sha256": "27d287db7eb9d51040af3e0d124721bcf45f1c9c036b11636df72ae8abe9e801"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-x86_64-unknown-linux-gnu/nose-cli-x86_64-unknown-linux-gnu.tar.xz",
+      "bytes": 6306372,
+      "sha256": "834e05d797bcc4996b4993ed8d15b8845f5dc1b52f30c1b83af03b0c9817bef5"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-x86_64-unknown-linux-gnu/nose-cli-x86_64-unknown-linux-gnu.tar.xz.sha256",
+      "bytes": 108,
+      "sha256": "a51d982b7a3033e3ac4e7239e520538993fe307b1827486a956d109b6a445e4c"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-x86_64-unknown-linux-gnu/package-smoke-x86_64-unknown-linux-gnu.json",
+      "bytes": 463,
+      "sha256": "4047d31b649f2f647fe9034283411a0a4d636ab857656ccd522bf7ed69505d99"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages/artifacts-build-local-x86_64-unknown-linux-gnu/x86_64-unknown-linux-gnu-dist-manifest.json",
+      "bytes": 32123,
+      "sha256": "8bb5361acb18b0a73738a4c2f5563e4345a7ea7c1e6305fe8830ee2a47488191"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-packages-run.json",
+      "bytes": 14016,
+      "sha256": "a95b02dbb0095a81b71ccfd2cf96d14adf08b4d1e90960f2f59b1b867dde7abc"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-pr-evidence/batteries.log",
+      "bytes": 37910,
+      "sha256": "33af7b3b3ad3255d262656bc0d760228e08d3e5784a8ce96649d2eb6281d315a"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-pr-evidence/build.log",
+      "bytes": 976,
+      "sha256": "de56ab4b1066b020b41076c581fa625ee2fd7fd07fea96ddb6023ac129b614f0"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-pr-evidence/plan.json",
+      "bytes": 31260,
+      "sha256": "a3103fa7e199314c95b22ec0faa41fd426b4706244e52c8253378dfa272d9cfb"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-pr-evidence/plan.md",
+      "bytes": 576,
+      "sha256": "b41a02330f0023210818402fb0a7fe279278513f1d24d282d2faffcb74a29cbf"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-pr-evidence/proofs.log",
+      "bytes": 2719,
+      "sha256": "b6e9c032ca8d7627507666ad272d8110f5bb91bd06089847bde2ad8aff53dcd3"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-pr-evidence/self-tests.log",
+      "bytes": 250,
+      "sha256": "2e9b46089296e40aa679a850b74970abb9838f55d3f66b1a951542668a5651eb"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-pr-soundness-run.json",
+      "bytes": 4742,
+      "sha256": "3f3c4f33c06c7154b512a2190c424905a462beb54d92cb76e34a423f79a4c13e"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-qualification.json",
+      "bytes": 6127,
+      "sha256": "7779f5d12b18619134631af80f93fe2d4f737820c431260a7edc79a66d980d25"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-runs-initial.json",
+      "bytes": 1722,
+      "sha256": "2218ee310c2685045c604b723f7e6be68e3e4a5f94f512ca85c43f6565e56fd2"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-smoke/check-status.json",
+      "bytes": 302385,
+      "sha256": "db65f4f719519eb65d317f2a887ce8cace23acb154fc4dc340e316558bd12074"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-smoke/context.json",
+      "bytes": 1128,
+      "sha256": "5bba0e065cf20f7f0341c4f188b2963a43c67642a60543b0b0edf1b1a1816e47"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-smoke/primary-control.json",
+      "bytes": 441908,
+      "sha256": "272987ce2811e2f8c5e3829fd226f22b513141fe817f9893bfc81a59b5bcd219"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-smoke/primary.json",
+      "bytes": 441591,
+      "sha256": "ca532b371a551236d72d2d0691d52ac84fd920e324d009e41729e363a374a3eb"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-smoke/ruby-scaling.json",
+      "bytes": 1738,
+      "sha256": "332dfb357b03e2c81e29987bc3e4cf1b5fa68ba33c3efbfed57a7e9319857fdb"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/remote-smoke/summary.md",
+      "bytes": 995,
+      "sha256": "2988f4986b61eb667453b6bc98fe5ed2ea69aa30f53a3d3c88f9fccf25b4cb3b"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/run-comparison.py",
+      "bytes": 2368,
+      "sha256": "d0ed2f920cdd72db1fe8e5a413bc2350049ad5ce98c46181db13db59ade5b42a"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/seal-preflight.py",
+      "bytes": 3735,
+      "sha256": "ab3d907d625514f200aa1977bba5e06033f40a42502f5b4f1a1273f551d42ac8"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/seal-verdict.py",
+      "bytes": 2890,
+      "sha256": "bde993fde1dce096de107736254f2a8291f776ffb08bcf948ee45790f84d33ad"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/semantic-expected-drift.json",
+      "bytes": 178085,
+      "sha256": "748b7fcf4d5357a39c81170572383a2f70129495fd1c5c0303d759853e0163d6"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/type4-probe.log",
+      "bytes": 5149,
+      "sha256": "d1603bea4bb1b25010ef290b601bcd509cc33c6334ffd053bc6cd021990b6c1e"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/validation-identity.json",
+      "bytes": 705,
+      "sha256": "6d8e22332dd7a491a3887252a177dd2a305d8fbfd6218c136945dc8911025797"
+    },
+    {
+      "path": "target/release-context-qualification-20260907/watch-30.json",
+      "bytes": 47972,
+      "sha256": "7ed539a2178a2504835ea5cda258b6aea0c67997ae6025d28f890e119735a9d3"
+    }
+  ]
+}

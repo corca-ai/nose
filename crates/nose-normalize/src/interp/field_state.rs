@@ -45,4 +45,39 @@ impl<'a> Interp<'a> {
         }
         Ok(matches!(self.eval(receiver, env)?, Value::Err))
     }
+    pub(super) fn eval_field(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
+        let Some(&receiver) = self.il.children(node).first() else {
+            return Err(Unsupported::il("il.field-receiver-missing"));
+        };
+        // Proven self-field reads keep their concrete store semantics; an
+        // UNWRITTEN self-field reads its (symbolic) initial state.
+        if let Some(key) = self.exact_field_key(node) {
+            if self.field_receiver_errored(receiver, env)? {
+                return Ok(Value::Err);
+            }
+            return match self.fields.get(&key) {
+                Some(v) => Ok(v.clone()),
+                None => Ok(Value::Sym(sym_id(0x00F1_E1D0, &[key.field]))),
+            };
+        }
+        // Any other field read is a symbolic projection keyed by the field
+        // name and the receiver VALUE (pure-read convention, applied to both
+        // sides of a merge alike).
+        let Payload::Name(field) = self.il.node(node).payload else {
+            return Err(Unsupported::il("il.field-name-missing"));
+        };
+        let rv = self.eval(receiver, env)?;
+        if let Value::KeySet(keys) = &rv {
+            if self.interner.resolve(field) == "size" {
+                return Ok(Value::Int(keys.len() as i64));
+            }
+        }
+        if matches!(rv, Value::Err) {
+            return Ok(Value::Err);
+        }
+        Ok(Value::Sym(sym_id(
+            0x00F1_E1D1,
+            &[hashed(&self.interner.resolve(field)), vhash(&rv)],
+        )))
+    }
 }

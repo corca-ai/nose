@@ -2184,7 +2184,7 @@
       "gen_axis": "literal_collection_membership",
       "hard_negatives": 61,
       "hard_negatives_merged": 0,
-      "oracle_under_merged": 1,
+      "oracle_under_merged": 2,
       "oracle_completeness_pct": 89,
       "oracle_canon_changed_budget": null
     },
@@ -2193,8 +2193,8 @@
       "gen_axis": "map_key_membership",
       "hard_negatives": 24,
       "hard_negatives_merged": 0,
-      "oracle_under_merged": 1,
-      "oracle_completeness_pct": 89,
+      "oracle_under_merged": 3,
+      "oracle_completeness_pct": 94,
       "oracle_canon_changed_budget": null
     },
     {

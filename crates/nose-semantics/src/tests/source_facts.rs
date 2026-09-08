@@ -13,19 +13,19 @@ fn source_fact_contracts_are_span_keyed_evidence() {
         &[call, regex, await_boundary],
     );
     let mut il = finish_il(b, root, Lang::JavaScript);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::source_span(sp(7)),
         EvidenceKind::Source(SourceFactKind::Call(SourceCallKind::Construct)),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::source_span(sp(8)),
         EvidenceKind::Source(SourceFactKind::Literal(SourceLiteralKind::Regex)),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         2,
         EvidenceAnchor::source_span(sp(9)),
         EvidenceKind::Source(SourceFactKind::Protocol(SourceProtocolKind::Await)),
@@ -51,7 +51,7 @@ fn source_fact_evidence_conflicts_fail_closed() {
     let op = b.add(NodeKind::BinOp, Payload::Op(Op::Eq), sp(9), &[]);
     let root = b.add(NodeKind::Block, Payload::None, sp(9), &[op]);
     let mut il = finish_il(b, root, Lang::JavaScript);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::source_span(sp(9)),
         EvidenceKind::Source(SourceFactKind::Operator(SourceOperatorKind::StrictEquality)),
@@ -62,7 +62,7 @@ fn source_fact_evidence_conflicts_fail_closed() {
         Some(SourceOperatorKind::StrictEquality)
     );
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::source_span(sp(9)),
         EvidenceKind::Source(SourceFactKind::Operator(SourceOperatorKind::LooseEquality)),
@@ -81,7 +81,7 @@ fn c_unsigned_32_cast_fact_requires_c_language_pack_provenance() {
     };
 
     let (mut wrong_pack, cast) = build();
-    wrong_pack.evidence.push(evidence(
+    wrong_pack.push_evidence(evidence(
         0,
         EvidenceAnchor::source_span(sp(10)),
         EvidenceKind::Source(SourceFactKind::Cast(SourceCastKind::CUnsigned32)),
@@ -97,11 +97,11 @@ fn c_unsigned_32_cast_fact_requires_c_language_pack_provenance() {
         Vec::new(),
     );
     record.provenance.rule_hash = Some(stable_symbol_hash("c.source.cast.other"));
-    wrong_producer.evidence.push(record);
+    wrong_producer.push_evidence(record);
     assert_eq!(source_cast_at_node(&wrong_producer, cast), None);
 
     let (mut admitted, cast) = build();
-    admitted.evidence.push(c_unsigned_32_source_cast_evidence(
+    admitted.push_evidence(c_unsigned_32_source_cast_evidence(
         0,
         EvidenceAnchor::source_span(sp(10)),
         EvidenceStatus::Asserted,
@@ -120,7 +120,7 @@ fn source_range_and_pattern_facts_are_span_keyed_evidence() {
     let pattern = b.add(NodeKind::Raw, Payload::None, sp(13), &[]);
     let root = b.add(NodeKind::Block, Payload::None, sp(12), &[range, pattern]);
     let mut il = finish_il(b, root, Lang::Rust);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::source_span(sp(12)),
         EvidenceKind::Source(SourceFactKind::Range(
@@ -128,7 +128,7 @@ fn source_range_and_pattern_facts_are_span_keyed_evidence() {
         )),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::source_span(sp(13)),
         EvidenceKind::Source(SourceFactKind::Pattern(
@@ -163,7 +163,7 @@ fn source_range_fact_conflicts_fail_closed() {
     let range = b.add(NodeKind::Seq, Payload::None, sp(14), &[]);
     let root = b.add(NodeKind::Block, Payload::None, sp(14), &[range]);
     let mut il = finish_il(b, root, Lang::Rust);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::source_span(sp(14)),
         EvidenceKind::Source(SourceFactKind::Range(
@@ -176,7 +176,7 @@ fn source_range_fact_conflicts_fail_closed() {
         Some(SourceRangeKind::RustHalfOpenRangeExpression)
     );
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::source_span(sp(14)),
         EvidenceKind::Source(SourceFactKind::Range(
@@ -194,7 +194,7 @@ fn source_fact_evidence_requires_live_dependencies() {
     let cast = b.add(NodeKind::Call, Payload::None, sp(11), &[]);
     let root = b.add(NodeKind::Block, Payload::None, sp(10), &[call, cast]);
     let mut il = finish_il(b, root, Lang::Rust);
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         0,
         EvidenceAnchor::source_span(sp(10)),
         EvidenceKind::Source(SourceFactKind::Call(SourceCallKind::MacroInvocation)),
@@ -208,7 +208,7 @@ fn source_fact_evidence_requires_live_dependencies() {
         call,
         SourceFactKind::Call(SourceCallKind::MacroInvocation),
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::source_span(sp(11)),
         EvidenceKind::Source(SourceFactKind::Cast(SourceCastKind::CUnsigned32)),

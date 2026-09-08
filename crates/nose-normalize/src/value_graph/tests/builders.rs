@@ -28,7 +28,7 @@ fn builder_append_candidate_requires_contract_or_effect_and_seed_context() {
     );
 
     let mut api_il = il.clone();
-    api_il.evidence.push(evidence(
+    api_il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(sp(1), NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Collection),
@@ -43,7 +43,7 @@ fn builder_append_candidate_requires_contract_or_effect_and_seed_context() {
         .iter()
         .any(|candidate| candidate.cid == 1 && candidate.kind == BuilderKind::List));
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         2,
         EvidenceAnchor::node(sp(4), NodeKind::Call),
         EvidenceKind::Effect(EffectEvidenceKind::BuilderAppendCall),
@@ -110,7 +110,7 @@ fn map_builder_index_write_requires_write_evidence_and_map_seed() {
         "raw index assignment shape must not prove a dict builder"
     );
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(sp(4), NodeKind::Assign),
         EvidenceKind::Effect(EffectEvidenceKind::BindingWrite),
@@ -166,7 +166,7 @@ fn nullish_global_value_requires_symbol_evidence() {
         "raw undefined spelling must not prove the nullish constant"
     );
 
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         Lang::JavaScript,
         EvidenceAnchor::node(sp(1), NodeKind::Var),
@@ -209,8 +209,7 @@ fn raw_sequence_tags_do_not_prove_value_graph_surfaces() {
         ValOp::Seq(SEQ_VALUE_COLLECTION)
     ));
 
-    il.evidence
-        .push(collection_sequence_evidence(0, Lang::JavaScript, sp(21)));
+    il.push_evidence(collection_sequence_evidence(0, Lang::JavaScript, sp(21)));
     let mut builder = Builder::new(&il, &interner);
     let proven = builder.eval(seq, &FxHashMap::default());
     assert!(matches!(

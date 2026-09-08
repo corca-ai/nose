@@ -47,7 +47,7 @@ fn semantic_pack_manifest(id: &str) -> String {
     "license": "MIT",
     "repository": "https://example.invalid/semantic-pack"
   }},
-  "compatibility": {{ "nose": ">=0.19.0 <0.21.0" }},
+  "compatibility": {{ "nose": ">=0.19.0 <0.22.0" }},
   "supported_languages": [{{ "id": "python" }}],
   "declares": {{
     "evidence_producers": [{{
@@ -204,3 +204,21 @@ mod external_exact;
 mod project_lock;
 #[path = "config_packs/reference_vavr.rs"]
 mod reference_vavr;
+
+fn review_keys_for_pack(report: &serde_json::Value, field: &str) -> Vec<String> {
+    let mut keys: Vec<_> = report["families"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|f| f.get(field).is_some())
+        .map(|f| {
+            f["review_key"]
+                .as_str()
+                .expect("pack family has a review key")
+                .to_owned()
+        })
+        .collect();
+    assert!(!keys.is_empty());
+    keys.sort();
+    keys
+}

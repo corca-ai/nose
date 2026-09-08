@@ -393,7 +393,7 @@ pub(crate) fn ruby_set_factory_call_il() -> (Il, Interner, NodeId, NodeId) {
 }
 
 pub(crate) fn push_ruby_set_require_dependencies(il: &mut Il, receiver: NodeId) {
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(il.node(receiver).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -403,7 +403,7 @@ pub(crate) fn push_ruby_set_require_dependencies(il: &mut Il, receiver: NodeId) 
         &[],
         Lang::Ruby,
     ));
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         1,
         EvidenceAnchor::node(sp(70), NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -413,7 +413,7 @@ pub(crate) fn push_ruby_set_require_dependencies(il: &mut Il, receiver: NodeId) 
         &[],
         Lang::Ruby,
     ));
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         2,
         EvidenceAnchor::source_span(span(70, 72, 1)),
         EvidenceKind::Import(ImportEvidenceKind::Require {
@@ -478,7 +478,7 @@ pub(crate) fn push_python_math_namespace_dependencies(il: &mut Il, receiver: Nod
     let namespace_symbol = SymbolEvidenceKind::ImportedNamespace {
         module_hash: stable_symbol_hash("math"),
     };
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::binding(sp(66), stable_symbol_hash("math")),
         namespace_symbol,
@@ -486,7 +486,7 @@ pub(crate) fn push_python_math_namespace_dependencies(il: &mut Il, receiver: Nod
         &[],
         Lang::Python,
     ));
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         1,
         EvidenceAnchor::node(il.node(receiver).span, NodeKind::Var),
         namespace_symbol,

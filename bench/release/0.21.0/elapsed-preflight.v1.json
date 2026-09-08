@@ -1,0 +1,705 @@
+{
+  "schema": "nose.release-elapsed-preflight/v1",
+  "version": "0.21.0",
+  "decision": "PENDING: full local CI, cache/watch, registered runtime and remote qualification",
+  "candidate": {
+    "source_sha": "46ed8beff78a91a8b6b2191d7f208c23774dc9e1",
+    "crates_tree": "4e087079e55711c7b03601fbdcc2d8e3e5cf9dff",
+    "product_dependencies": {
+      "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+      "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+      "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+    },
+    "binary_sha256": "c6f204c5dab5490290418510177b53341d9782b96455b4f9c087758a7dc2bc30",
+    "binary": "/Users/ak/prjs/cc/nose/target/release-elapsed-qualification-20260907/candidate-nose",
+    "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+    "build_log": "/Users/ak/prjs/cc/nose/target/release-elapsed-qualification-20260907/build.log"
+  },
+  "design": "bench/release/0.21.0/elapsed-design.v1.json",
+  "checks": {
+    "ordinary_outputs": 360,
+    "base_outputs": 17,
+    "reference": "bbc91b01b69a71cd65ed18fd8645f24ba7abf377",
+    "journeys": {
+      "direct_review": "applicable",
+      "unique_move": "applicable",
+      "verified_sources": {
+        "unavailable": 0,
+        "verified": 4
+      },
+      "stale_source_rejected": true,
+      "added_copy": "recheck",
+      "legacy_optional_metadata": true,
+      "review_no_overwrite": true,
+      "v0_20_cache_upgrade": true
+    },
+    "type4": {
+      "covered": 41,
+      "hard_negative": 17,
+      "known_gaps": 18,
+      "soundness_bugs": 0,
+      "blind_groups": 54,
+      "false_merges": 0,
+      "canon_violations": 0
+    },
+    "duplication": {
+      "families": 19,
+      "budget": 20,
+      "reviewed_baseline_unchanged": true
+    },
+    "isolated_detector_tests": 277
+  },
+  "prior_failed_qualification": "bench/release/0.21.0/context-verdict.v1.json",
+  "artifacts": [
+    {
+      "path": "target/release-elapsed-qualification-20260907/audit-base.py",
+      "bytes": 3874,
+      "sha256": "f65fb830334b5ee97f097826485277ef8d1586efd0ea7ced744f923778c59884"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/audit-candidate.py",
+      "bytes": 1804,
+      "sha256": "136f323ed0e82bbc216c2115587ff64dc95f80744eafe210399972038151d07a"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/base-drift-review-verdict.json",
+      "bytes": 431,
+      "sha256": "1cbcbdbf64dbc121181c4db01fc95d1f6db1577e3fbaebecd0f8e67b44627e8a"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/base-drift-review.json",
+      "bytes": 10781,
+      "sha256": "f861000071a885957927b22439a25bc6956b514be37ed5a75a40d7c2d6979d51"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/base-expected-drift.json",
+      "bytes": 19368,
+      "sha256": "3b179467498ff033de56df6664a6d1c9ce59d5ca101dc653544a7fdc9b6c3cd6"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/build.log",
+      "bytes": 211,
+      "sha256": "3d702b398a33770a0e56801034c48b5acba5757a4d44a4c576381ae06a53bda2"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/cache-campaign.py",
+      "bytes": 1970,
+      "sha256": "ebe218b816ff8e125f3b3ba9e2efdc9af867505859705dfc590ff03de96fa33b"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/candidate-identity.json",
+      "bytes": 705,
+      "sha256": "93f41a2ec99bc4d8e74d9eb2bfcb32129c8188f2f744892427967199f581184d"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/candidate-output-audit.json",
+      "bytes": 115911,
+      "sha256": "fb2c0b3818782ce7d9bef3debb428c59afa1d0bc93149e5bfad3df479a5f0767"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/candidate-output-audit.log",
+      "bytes": 9012,
+      "sha256": "dce3e92dddd2979bde62ea4af732b0172518afd8b248aaaf0326d5d0e7301c4a"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/check-remote-packages.py",
+      "bytes": 2884,
+      "sha256": "858d87feae3d072aca5df2eaa900ee8393aeb3c96dcd1dfd7bb9ea0fea8224b2"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/correctness-progress.json",
+      "bytes": 862,
+      "sha256": "e3e57c49b29c589d0ef74e0d5c1e66b96d4b5f83655a53a715406a4659970eba"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/correctness.log",
+      "bytes": 150,
+      "sha256": "7448e28da92c85a66ee99ed0b1f8e807e078c7b59e61dbaed36e342a3367988a"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/correctness.py",
+      "bytes": 960,
+      "sha256": "7f6c541daf79ac2df2584d85ea7096928219f6eb6fe0a8d41b68e88f67548d7a"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/default-expected-drift.json",
+      "bytes": 251063,
+      "sha256": "c9b8770a859191be3cab3642ec185b28de9d99c36006533bd2f767915ea2f4ec"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/duplication.log",
+      "bytes": 101,
+      "sha256": "432282ff5e28d807c63030a4134ff88210731e2c57d5c359be850effaf16a735"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/journeys.json",
+      "bytes": 13142,
+      "sha256": "aa8fd55147eb8b058f755a0f8625c6164d59d8237f8141a987404699c0e674db"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/journeys.log",
+      "bytes": 264,
+      "sha256": "74b2d8713ee2c327ff26c0f0c840f4e456390da54d5355bbce72aed91862f2c7"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/journeys.py",
+      "bytes": 4317,
+      "sha256": "863eb537ce6464b25575d86606eb06d3b7d645bbb9e0d0c80822d60ee5ba4374"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/near-no-pack-expected-drift.json",
+      "bytes": 229412,
+      "sha256": "8c79b54d543cb5e297de4107d2c012c7ebd3efc2d7d715b9c3de51c2bfd8f526"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/axios.json.gz",
+      "bytes": 4260,
+      "sha256": "bdb04c0fca1429d8297fc78da9b81b47b301ad7d1ad2623400d5bc506a84ca5b"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/clap.json.gz",
+      "bytes": 3265,
+      "sha256": "c0076cfd51fde8548c3d46acccf347a46d4d987839bd0afc2a0a7311cb09c334"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/cobra.json.gz",
+      "bytes": 3344,
+      "sha256": "d77b899b827f5a35e3081f676f60734c5d6ee0c3267f5271a8f570c1159cb2d2"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/curl.json.gz",
+      "bytes": 3375,
+      "sha256": "39d3384c799723f661cd2bcfd3a90b5055c7c659d270fecf886b795deedecc3e"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/date-fns.json.gz",
+      "bytes": 3615,
+      "sha256": "eadaed806a857ea72844a8120b9c522fdea50150d3062532a847b72aed044cc2"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/git.json.gz",
+      "bytes": 3423,
+      "sha256": "31d3938784ec713a8ec7e0ec4a07d2d3384998bd93758f5b505645acbf96eb80"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/gson.json.gz",
+      "bytes": 3855,
+      "sha256": "150862a79a1e9e656fd4aab029a6044fbd538a74bc1cf4084c056a2ea361c425"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/jest.json.gz",
+      "bytes": 3180,
+      "sha256": "c33fe186ea17d9b2642c5df9c4bf9c60d95aeeb64890d27edc14560ae95bb9c9"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/netty.json.gz",
+      "bytes": 3686,
+      "sha256": "b1daa81825687572e47c5125a3a46b13cc210fa0fd310314c7ee5c52d511fe4f"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/prometheus.json.gz",
+      "bytes": 3876,
+      "sha256": "d703891e0bf01157539960f3479b1b03a1fee1cb094acdf7610f1fdd714798c5"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/regex.json.gz",
+      "bytes": 4535,
+      "sha256": "e469de6b5b5901bc29e9c8418c5a08177cfea37c3299a147b9cc2428cbad01a7"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/requests.json.gz",
+      "bytes": 3161,
+      "sha256": "12b472245a47e49f6ec258bbca956fca6cc3382e02a722205d7a494006bc0c46"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/rubocop.json.gz",
+      "bytes": 3443,
+      "sha256": "4837c7231e069a64d0ea8fcc17ca7f33a0a34756e1f26bd2fdcbdae197fc25e7"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/rxjava.json.gz",
+      "bytes": 4224,
+      "sha256": "c7bce8c7acbcd95023f03be8126fc826af41865cdd56ba1d165bb7ec924d9668"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/rxjs.json.gz",
+      "bytes": 3449,
+      "sha256": "7482898a52f0303e541c70e95bcded30e4bd5caed09a9546a58d9db8f104168d"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/scrapy.json.gz",
+      "bytes": 5722,
+      "sha256": "c550a03173905ca9af75b60a2a29b91e0423a850097a7996c7be0c3924f51944"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/baseline/tokio.json.gz",
+      "bytes": 4235,
+      "sha256": "7f191b9747c2fab986d29f22a0df1698b0d8c04f579a59ff06ac7e7736d601cb"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/axios.json.gz",
+      "bytes": 4540,
+      "sha256": "99f8bf070c5b00eb087a1dabf83b11660db84f29196d00c85fab1f679da2ea4e"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/clap.json.gz",
+      "bytes": 3531,
+      "sha256": "9ac0e9e04061f6e7a29908852284631e71db5e600b8c7baa1ddba91e3dad8b2a"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/cobra.json.gz",
+      "bytes": 3611,
+      "sha256": "12b59ca3c2a88a96fbe1b2897aed32223d139646b9a07b5f85c7f20166be23b3"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/curl.json.gz",
+      "bytes": 3630,
+      "sha256": "728bc09ce7d50801e51418a8330be3b5482794975e3735cfe1956ddc050d8dec"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/date-fns.json.gz",
+      "bytes": 3888,
+      "sha256": "e4c27a7540c5f68b742bae11694e19c1cc178b9812392f6ca9b0829b1a1290cc"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/git.json.gz",
+      "bytes": 3686,
+      "sha256": "c196d605af82bf87feb83bded3ad27d53fcf89c09ecaede76a2312e46d2a0963"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/gson.json.gz",
+      "bytes": 4115,
+      "sha256": "2fbb95fc86a75b266765e74766b927aefdabfb4d84b7c3d6ed73b1b0ef51ee0f"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/jest.json.gz",
+      "bytes": 3440,
+      "sha256": "59a9ebaa265da26c8b83d8670844197669596e64e76e59c00aa6b6f760ae7f57"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/netty.json.gz",
+      "bytes": 3953,
+      "sha256": "80c25cbdc449b90ccc705b7d32f078cded802c44bc2c846805072da6e003cb5f"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/prometheus.json.gz",
+      "bytes": 4151,
+      "sha256": "95b90b5955f43a234ae3558e3af0c394d0d2224f5794e863f632e77163ee45fc"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/regex.json.gz",
+      "bytes": 4811,
+      "sha256": "ad2e5023f66aac92c3d0500c3841cd8a3babfad7469f01cf3c94caa94d9773fa"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/requests.json.gz",
+      "bytes": 3435,
+      "sha256": "ed3cb4d71bb1f21017ed29c29abe6b20e5943c6f73278f616842cd8c2d4a2382"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/rubocop.json.gz",
+      "bytes": 3706,
+      "sha256": "38251223e75f0a8c2320dfc6fb1f5bc15507370b84ca25c71d527b7743d5490d"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/rxjava.json.gz",
+      "bytes": 4646,
+      "sha256": "17435f724d74e4b93eb77745652d888dccaace3ba667f6b551fd3ec3fd2f1b59"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/rxjs.json.gz",
+      "bytes": 3716,
+      "sha256": "b7ed3a850654f1665f67b907b0323445553c3c836a3e1edfe9df1836bca19c94"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/scrapy.json.gz",
+      "bytes": 6136,
+      "sha256": "b5fe306a162f0af7315d82f36a8443e72cc3ab780a8321e37195ea88c2a0280b"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/current/tokio.json.gz",
+      "bytes": 4494,
+      "sha256": "bd6db76c990794aa78b48dc01deb1f56057979cf2e728285a0f1d72127a827b6"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/axios.json.gz",
+      "bytes": 4540,
+      "sha256": "99f8bf070c5b00eb087a1dabf83b11660db84f29196d00c85fab1f679da2ea4e"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/clap.json.gz",
+      "bytes": 3531,
+      "sha256": "9ac0e9e04061f6e7a29908852284631e71db5e600b8c7baa1ddba91e3dad8b2a"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/cobra.json.gz",
+      "bytes": 3611,
+      "sha256": "12b59ca3c2a88a96fbe1b2897aed32223d139646b9a07b5f85c7f20166be23b3"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/curl.json.gz",
+      "bytes": 3630,
+      "sha256": "728bc09ce7d50801e51418a8330be3b5482794975e3735cfe1956ddc050d8dec"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/date-fns.json.gz",
+      "bytes": 3888,
+      "sha256": "e4c27a7540c5f68b742bae11694e19c1cc178b9812392f6ca9b0829b1a1290cc"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/git.json.gz",
+      "bytes": 3686,
+      "sha256": "c196d605af82bf87feb83bded3ad27d53fcf89c09ecaede76a2312e46d2a0963"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/gson.json.gz",
+      "bytes": 4115,
+      "sha256": "2fbb95fc86a75b266765e74766b927aefdabfb4d84b7c3d6ed73b1b0ef51ee0f"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/jest.json.gz",
+      "bytes": 3440,
+      "sha256": "59a9ebaa265da26c8b83d8670844197669596e64e76e59c00aa6b6f760ae7f57"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/netty.json.gz",
+      "bytes": 3953,
+      "sha256": "80c25cbdc449b90ccc705b7d32f078cded802c44bc2c846805072da6e003cb5f"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/prometheus.json.gz",
+      "bytes": 4151,
+      "sha256": "95b90b5955f43a234ae3558e3af0c394d0d2224f5794e863f632e77163ee45fc"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/regex.json.gz",
+      "bytes": 4811,
+      "sha256": "ad2e5023f66aac92c3d0500c3841cd8a3babfad7469f01cf3c94caa94d9773fa"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/requests.json.gz",
+      "bytes": 3435,
+      "sha256": "ed3cb4d71bb1f21017ed29c29abe6b20e5943c6f73278f616842cd8c2d4a2382"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/rubocop.json.gz",
+      "bytes": 3706,
+      "sha256": "38251223e75f0a8c2320dfc6fb1f5bc15507370b84ca25c71d527b7743d5490d"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/rxjava.json.gz",
+      "bytes": 4646,
+      "sha256": "17435f724d74e4b93eb77745652d888dccaace3ba667f6b551fd3ec3fd2f1b59"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/rxjs.json.gz",
+      "bytes": 3716,
+      "sha256": "b7ed3a850654f1665f67b907b0323445553c3c836a3e1edfe9df1836bca19c94"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/scrapy.json.gz",
+      "bytes": 6136,
+      "sha256": "b5fe306a162f0af7315d82f36a8443e72cc3ab780a8321e37195ea88c2a0280b"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit/base/reference/tokio.json.gz",
+      "bytes": 4494,
+      "sha256": "bd6db76c990794aa78b48dc01deb1f56057979cf2e728285a0f1d72127a827b6"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit-base.json",
+      "bytes": 42943,
+      "sha256": "5fe139d992ac6ffc73d320f989b18a307a4c18e349409fd91bf783d42460f535"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/output-audit-base.log",
+      "bytes": 1029,
+      "sha256": "99429358a025425969c02d47c7871f4a483865494ccf9620b918f6215c55ca94"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/qualification-design.initial.json",
+      "bytes": 4265,
+      "sha256": "573105fb6bf3005626930b599d32f487199566f838a0e3bb2e4e4c4c3680df4a"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/qualification-design.json",
+      "bytes": 4605,
+      "sha256": "3aede6d0a21c12ca62bc6cc41762c5235f14a15057b8818f2d0b16fd4654da91"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/qualify.py",
+      "bytes": 4620,
+      "sha256": "d81fe37923e373fb935c067d832c4b0ecf4ec188d15a42e97d6ba628a89beaec"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/run-comparison.py",
+      "bytes": 2368,
+      "sha256": "ba6f6ac1f8b87cbe3efaa20a113888de5356077ded4e0c676e0b9279d756f83c"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/semantic-expected-drift.json",
+      "bytes": 178085,
+      "sha256": "748b7fcf4d5357a39c81170572383a2f70129495fd1c5c0303d759853e0163d6"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/type4-probe.log",
+      "bytes": 5149,
+      "sha256": "d1603bea4bb1b25010ef290b601bcd509cc33c6334ffd053bc6cd021990b6c1e"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/validation-identity.json",
+      "bytes": 705,
+      "sha256": "93f41a2ec99bc4d8e74d9eb2bfcb32129c8188f2f744892427967199f581184d"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-census-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-census-identity.json",
+      "bytes": 414,
+      "sha256": "816aaeeeb73eafeb2ad2bbc37f07275a02f908ba0a2c8a4948255ef33ddb3eb5"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-census.json",
+      "bytes": 299652,
+      "sha256": "879b61c7b70121a2506953d92f605ee693541b8432f7a9e041c071969c03e72e"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-census.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-alamofire-semantic.json",
+      "bytes": 68721,
+      "sha256": "5d36522a1f7bc134c283f87d1b970261cd2b1bc53bf843a009444c28685ac3da"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-alamofire-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-build.log",
+      "bytes": 235,
+      "sha256": "b65352289ecd10d2b4bb3299d6d9e5c130cf0c28b80e3353778e9c71032a66d0"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-clippy-fixed.log",
+      "bytes": 161,
+      "sha256": "efed5c856f65b0171363b9e867cfb22f960b8a836610690cc6ba3a87021e3a32"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-clippy.log",
+      "bytes": 843,
+      "sha256": "6a4af15c55c4228f808b6ff7fcaa6c127744d20514a1cf1aace2c39e605e3247"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-commit.log",
+      "bytes": 2752,
+      "sha256": "a15eace8e1dd1740f3c2925aedd1c8946f914dddd98856306f68e3efb32ac2bb"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-design.json",
+      "bytes": 1681,
+      "sha256": "becff5290c3cd156678738c8d2b5029e84844460cfbe7d5ed1d64f714476cd15"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-diagnostic.json",
+      "bytes": 4063,
+      "sha256": "2c75c6f7eb49de960ed8d0b5886cbf5dfbd6e21bec1b759aa79412de854c5735"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-diagnostic.log",
+      "bytes": 1427,
+      "sha256": "82be3bd17c87ac274e0a6b2b0e6d1bcd4b0d7333b266103e02665b60b6e7fe63"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-diagnostic.py",
+      "bytes": 2983,
+      "sha256": "9afe854b4c8b5b4528939c6904f0c4ead61391868986c292695a72554bb0244a"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-guava-semantic.json",
+      "bytes": 68166,
+      "sha256": "6234919b673b5bfefe69100083d26f9a1a5175fc2f07a59ae877d58583312604"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-guava-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-identity.json",
+      "bytes": 399,
+      "sha256": "a7ab1e0513e24ff07e3a5f63eba01f3e78a87d7f00d1c056646e0344e8b88e9b"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-quiet.json",
+      "bytes": 82854,
+      "sha256": "b098c5c1eb72cabd792733db2b1878746900bd2b4c4dc748c9d91aee9c0052c6"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-rxswift-default.json",
+      "bytes": 68821,
+      "sha256": "cfb915e5d82a88cd50d2b28ba619ea689d220b0f7e257dc39118543c452fef15"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-rxswift-near-0.8.json",
+      "bytes": 68681,
+      "sha256": "2fcbd2e063fd1e9cf45795c62e7e0f8e50d7edba08a429e5b6b128276778d007"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-rxswift-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-rxswift-semantic.json",
+      "bytes": 67834,
+      "sha256": "5e496572f85750d1a1aca4347f5ad3fd1e7f6aa74be633727bf1a0d885c0e741"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-tests-final.log",
+      "bytes": 26755,
+      "sha256": "fff3474e319a2e6167f10842df8707624772f26280203d588a91de9bbb080f11"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform-tests.log",
+      "bytes": 26755,
+      "sha256": "5df389ff0416c3a9f4177ad6ee662834a300bbd93fb2694361e082b957a589be"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/explicit-uniform.patch",
+      "bytes": 21460,
+      "sha256": "21b01996d6221590d0ada2a122423f94b878a0d771a1f8d7581a94d759bc586d"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/inline-locations-decision.json",
+      "bytes": 427,
+      "sha256": "9ffa13432603c09c867dc09bc4e9324adb8835f47f50539564f96229d9c84376"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-alamofire-semantic.json",
+      "bytes": 68924,
+      "sha256": "b9cad05e0b89486ba0cd5ac46fe121f6169fee0d2c2470d54a514494d3e1fa23"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-alamofire-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-build.log",
+      "bytes": 235,
+      "sha256": "0271b0e1df8c5b2d2c5f009e2b6045489c8fa7988c4879c101765a6771fe5c1c"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-clippy.log",
+      "bytes": 615,
+      "sha256": "133a721ec8643463fb2550041e0996f9dc6dfae2125fd9a74df5541bf778319a"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-commit.log",
+      "bytes": 2472,
+      "sha256": "b6c0ddc9799174c042d775043f2b6c9df6bba4b9ff38359a2687c735dcc66c66"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-design.json",
+      "bytes": 1457,
+      "sha256": "2af9aca78df855a6aabf33b5807d9bb2db7339339072645550a0b15f28d923fc"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-diagnostic.json",
+      "bytes": 86185,
+      "sha256": "05d9135be7ba3c726613bff2bb2d592bd3b3d52802a6d69eb6a1f95d1116e00c"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-diagnostic.log",
+      "bytes": 1369,
+      "sha256": "d2b7c080a5b7100b1c5c650379295083ca3125d18722fdfcdc020c6322dbdada"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-diagnostic.py",
+      "bytes": 2955,
+      "sha256": "4c26e3941ba3494ae1c4d5d8ba831f32b6d743a8ce82ef225a4ae5da8e4b8b55"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-guava-semantic.json",
+      "bytes": 68343,
+      "sha256": "3be57488ac1296d43635dce7a0efa9cd4a26ab1f844afddfe11f3be890ea266d"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-guava-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-identity.json",
+      "bytes": 82597,
+      "sha256": "d6651ef5e0f9c3b177d2ec01851b0a0ace6e39b725987a376914a0a587dbec87"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-rxswift-default.json",
+      "bytes": 68859,
+      "sha256": "da8f60dfe902a2bc69698a7c064cf899bf6ac1d281b9ae09085972556a6d1c46"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-rxswift-near-0.8.json",
+      "bytes": 68784,
+      "sha256": "a72198eb95e69bbdc161d53a56e963d7728ed0f5519ab1bba61abbd272c1d2b7"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-rxswift-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-rxswift-semantic.json",
+      "bytes": 67845,
+      "sha256": "20d471251d88d3a6656952ac0b568e0818b49087448cd084338ad0e918ac7237"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups-tests.log",
+      "bytes": 26680,
+      "sha256": "3b7bd522c826374b1d6835e0ce4b1c35ce4249b0ad4be543b2548f318df0e449"
+    },
+    {
+      "path": "target/release-rxswift-groups-20260907/small-groups.patch",
+      "bytes": 5044,
+      "sha256": "29d32df3ae7ea996f65903c639b43871204aa9371a141658773d1154f29fac42"
+    }
+  ]
+}

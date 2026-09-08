@@ -5,8 +5,8 @@ use std::collections::HashMap;
 
 /// One reinvented-helper containment finding: `container` computes, as an interior
 /// sub-DAG, exactly the whole body of the pure single-return `helper` — WITHOUT calling
-/// it. The actionable fix is the inverse of extract-method: replace the matched lines
-/// with a call to the existing helper.
+/// it. This establishes a shared computation. Language compatibility, visibility,
+/// dependencies and calling conventions still require review before reuse.
 ///
 /// The claim is exact-grade and one-sided: both units pass the strict exact gate, and
 /// an equal value-graph node hash is the same hash-consed canonical-structure guarantee
@@ -17,6 +17,8 @@ use std::collections::HashMap;
 #[derive(Serialize, Clone)]
 pub struct ReinventedHelper {
     pub helper_file: String,
+    pub helper_lang: nose_il::Lang,
+    pub container_lang: nose_il::Lang,
     pub helper_name: Option<String>,
     pub helper_start_line: u32,
     pub helper_end_line: u32,
@@ -112,7 +114,14 @@ pub fn reinvented_helpers(units: &[UnitFeat]) -> Vec<ReinventedHelper> {
                 .filter(|&h| {
                     h != ci && c.value.len() > units[h].value.len() && guards_present(&units[h])
                 })
-                .min_by_key(|&h| (&units[h].path, units[h].start_line));
+                .min_by_key(|&h| {
+                    (
+                        units[h].lang != c.lang,
+                        report::is_test_path(&units[h].path) || units[h].in_test_module,
+                        &units[h].path,
+                        units[h].start_line,
+                    )
+                });
             let Some(h) = rep else { continue };
             let h = &units[h];
             // A matched anchor with a REAL (non-zero) source span must lie inside the
@@ -139,10 +148,12 @@ pub fn reinvented_helpers(units: &[UnitFeat]) -> Vec<ReinventedHelper> {
             };
             out.push(ReinventedHelper {
                 helper_file: h.path.clone(),
+                helper_lang: h.lang,
+                container_lang: c.lang,
                 helper_name: h.name.clone(),
                 helper_start_line: h.start_line,
                 helper_end_line: h.end_line,
-                helper_in_test: report::is_test_path(&h.path),
+                helper_in_test: report::is_test_path(&h.path) || h.in_test_module,
                 container_file: c.path.clone(),
                 container_name: c.name.clone(),
                 container_start_line: c.start_line,
@@ -150,7 +161,7 @@ pub fn reinvented_helpers(units: &[UnitFeat]) -> Vec<ReinventedHelper> {
                 site_start_line: site_start,
                 site_end_line: site_end,
                 site_approximate,
-                container_in_test: report::is_test_path(&c.path),
+                container_in_test: report::is_test_path(&c.path) || c.in_test_module,
                 weight: anchor.weight,
             });
         }

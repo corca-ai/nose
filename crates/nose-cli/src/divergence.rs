@@ -343,6 +343,8 @@ pub(crate) struct SemanticChangeWitness {
     pub(crate) sink_deltas: Vec<SemanticSinkDelta>,
     pub(crate) caveats: Vec<SemanticWitnessCaveat>,
     pub(crate) caps: SemanticWitnessCaps,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) region_matches: Option<change_witness::RegionMatches>,
 }
 
 impl SemanticChangeWitness {
@@ -353,7 +355,7 @@ impl SemanticChangeWitness {
             .map(|facet| facet.as_str())
             .collect::<Vec<_>>()
             .join("+");
-        if facets.is_empty() {
+        let label = if facets.is_empty() {
             format!("{} {}", self.status.as_str(), self.change_kind.as_str())
         } else {
             format!(
@@ -361,6 +363,10 @@ impl SemanticChangeWitness {
                 self.status.as_str(),
                 self.change_kind.as_str()
             )
+        };
+        match &self.region_matches {
+            Some(regions) => format!("{label}; {}", regions.concise_label()),
+            None => label,
         }
     }
 }

@@ -626,3 +626,13 @@ channel scores by structure — "the same component shell with different content
 the exact value lives only in the declarative fingerprint. HTML and CSS hashes carry
 distinct domain tags, so the language-blind exact channel can never merge HTML with CSS or
 with imperative code.
+
+
+## Arena mutation and derived indexes
+
+Alpha-renaming and final branch orientation take one exclusive arena edit for
+all of their mutations. That edit invalidates derived indexes once; the pass
+reads and writes the borrowed contents without rebuilding or repeatedly clearing
+indexes. The borrow ends before normal index queries resume. Traversal order,
+binding decisions and canonical output remain unchanged. See the
+[analysis architecture](architecture.md) for the wider pipeline.

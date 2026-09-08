@@ -24,7 +24,7 @@ fn family(langs: &[&str]) -> RefactorFamily {
     )
 }
 
-fn family_with_locations(locations: &[(String, &str)]) -> RefactorFamily {
+pub(super) fn family_with_locations(locations: &[(String, &str)]) -> RefactorFamily {
     RefactorFamily {
         value: 1.0,
         members: locations.len(),
@@ -41,7 +41,7 @@ fn family_with_locations(locations: &[(String, &str)]) -> RefactorFamily {
             .iter()
             .map(|(file, lang)| loc(file, lang))
             .collect(),
-        direct_edges: Vec::new(),
+        direct_edges: Default::default(),
         accepted_coverage: Vec::new(),
         display_params: None,
         mean_sem: 24.0,
@@ -225,6 +225,15 @@ fn empty_selector_entries_are_rejected() {
 
 #[test]
 fn invalid_path_and_language_selectors_are_rejected() {
+    let invalid_glob = load_error(
+        "invalid_glob",
+        r#"{"ignores":[{"paths":["["],"reason":"bad path"}]}"#,
+    );
+    assert!(
+        invalid_glob.contains("invalid glob"),
+        "malformed globs must remain hard errors: {invalid_glob}"
+    );
+
     let negative = load_error(
         "negative_path",
         "{\"ignores\":[{\"paths\":[\"!vendor/**\"],\"reason\":\"bad path\"}]}\n",

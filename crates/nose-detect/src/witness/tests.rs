@@ -1,3 +1,4 @@
+mod source_locations;
 use super::{graded_witness, model::MAX_NODES};
 use nose_normalize::{ValueDag, VgNode, VgOp, VgReferent, VgSink, VgSinkKind, VG_PROTOCOL_AWAIT};
 

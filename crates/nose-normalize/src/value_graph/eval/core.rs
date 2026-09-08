@@ -16,6 +16,9 @@ impl<'a> Builder<'a> {
         let prev_kind = self.cur_il_kind;
         self.cur_il_kind = Some(self.il.node(expr).kind);
         let v = self.eval_inner(expr, env);
+        if let Some(spans) = &mut self.witness_spans {
+            spans.observe(v, self.il.node(expr).span);
+        }
         self.cur_span = prev;
         self.cur_il_kind = prev_kind;
         v

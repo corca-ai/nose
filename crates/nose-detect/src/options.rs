@@ -1,5 +1,6 @@
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DetectOptions {
+    pub scoring: crate::ScoreConfig,
     pub min_lines: u32,
     pub min_tokens: usize,
     pub threshold: f64,
@@ -37,6 +38,9 @@ pub struct DetectOptions {
     /// Type-4 path: loop/reduce/comprehension rewrites converge here even when their
     /// surface shape differs.
     pub value_candidates: bool,
+    /// Generate fuzzy value-LSH candidates in addition to equal value graphs.
+    /// Exact-only scorers cannot accept unequal fingerprints and can disable this.
+    pub value_lsh_candidates: bool,
     /// Generate structural candidates from syntactic shape fingerprints. This is the
     /// near Type-3 path: code can reach scoring even when behavior-defining literals or
     /// operators differ and therefore the value fingerprint no longer matches.
@@ -59,6 +63,7 @@ pub struct DetectOptions {
 impl Default for DetectOptions {
     fn default() -> Self {
         DetectOptions {
+            scoring: crate::ScoreConfig::default(),
             min_lines: 5,
             min_tokens: 24,
             // 0.86: balanced operating point chosen from the unbiased precision
@@ -79,11 +84,114 @@ impl Default for DetectOptions {
             contiguous: false,
             structural: true,
             value_candidates: true,
+            value_lsh_candidates: true,
             shape_candidates: false,
             shape_features: true,
             connected_witnesses: false,
             abstraction_witnesses: false,
             emit_pairs: true,
         }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct InvalidDetectOptions(pub(crate) String);
+
+impl std::fmt::Display for InvalidDetectOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for InvalidDetectOptions {}
+
+/// A checked execution snapshot. Mutable input options cannot alter this plan.
+pub struct DetectionPlan(DetectOptions);
+
+impl std::ops::Deref for DetectionPlan {
+    type Target = DetectOptions;
+    fn deref(&self) -> &DetectOptions {
+        &self.0
+    }
+}
+
+impl DetectOptions {
+    pub fn validate(&self) -> Result<DetectionPlan, InvalidDetectOptions> {
+        let checks = [
+            (
+                self.threshold.is_finite() && (0.0..=1.0).contains(&self.threshold),
+                "threshold must be finite and between 0 and 1",
+            ),
+            (
+                self.jaccard_weight.is_finite() && (0.0..=1.0).contains(&self.jaccard_weight),
+                "Jaccard weight must be finite and between 0 and 1",
+            ),
+            (
+                self.minhash_k > 0
+                    && self.bands > 0
+                    && self.bands <= self.minhash_k
+                    && self.minhash_k % self.bands == 0,
+                "MinHash size must be a positive multiple of bands",
+            ),
+            (
+                self.structural || self.contiguous,
+                "at least one detection channel must be enabled",
+            ),
+            (
+                !self.structural || self.value_candidates || self.shape_candidates,
+                "structural detection requires value or shape candidates",
+            ),
+            (
+                !self.structural
+                    || !(self.shape_candidates || self.connected_witnesses)
+                    || self.shape_features,
+                "shape candidates and connected witnesses require shape features",
+            ),
+            (
+                !self.abstraction_witnesses || (self.structural && self.connected_witnesses),
+                "abstraction witnesses require connected structural detection",
+            ),
+        ];
+        for (valid, message) in checks {
+            if !valid {
+                return Err(InvalidDetectOptions(message.into()));
+            }
+        }
+        Ok(DetectionPlan(*self))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_unexecutable_detection_plans() {
+        for opts in [
+            DetectOptions {
+                threshold: f64::NAN,
+                ..Default::default()
+            },
+            DetectOptions {
+                bands: 0,
+                ..Default::default()
+            },
+            DetectOptions {
+                minhash_k: 127,
+                ..Default::default()
+            },
+            DetectOptions {
+                shape_candidates: true,
+                shape_features: false,
+                ..Default::default()
+            },
+            DetectOptions {
+                abstraction_witnesses: true,
+                ..Default::default()
+            },
+        ] {
+            assert!(opts.validate().is_err());
+        }
+        assert!(DetectOptions::default().validate().is_ok());
     }
 }

@@ -2,7 +2,7 @@
 """Validate the current query JSON contract without rewriting frozen evidence.
 
 Historical quality artifacts bind the v7 adapter by content hash. This module
-layers the live v9 envelope and generated provenance on that frozen structural
+layers the live v10 envelope and generated provenance on that frozen structural
 validator so old measurements remain reproducible as the product advances.
 """
 
@@ -19,7 +19,7 @@ from typing import Any
 import query_schema as frozen
 
 
-QUERY_SCHEMA_VERSION = 9
+QUERY_SCHEMA_VERSION = 10
 GENERATED_PROVENANCE_BASES = ("all-members", "compiled-css-pipeline")
 GENERATED_PROVENANCE_SOURCES = ("caller-path", "nose-inferred")
 QuerySchemaError = frozen.QuerySchemaError
@@ -78,9 +78,33 @@ def validate_generated_provenance(
         )
 
 
+def validate_region_identity(family: dict[str, Any], *, source: str, path: str) -> None:
+    def digest(value: object) -> bool:
+        return isinstance(value, str) and len(value) == 64 and all(c in "0123456789abcdef" for c in value)
+
+    if "review_key" not in family or (family["review_key"] is not None and not digest(family["review_key"])):
+        raise fail(source, path + ".review_key", "expected a SHA-256 key or null")
+    for index, location in enumerate(family["locations"]):
+        where = f"{path}.locations[{index}]"
+        if "region" not in location or "region_key" not in location:
+            raise fail(source, where, "missing region identity fields")
+        region, key = location["region"], location["region_key"]
+        if region is None:
+            if key is not None:
+                raise fail(source, where, "region_key requires source provenance")
+            continue
+        if not isinstance(region, dict) or set(region) != {"source_digest", "content_digest", "start_byte", "end_byte"}:
+            raise fail(source, where, "invalid source region fields")
+        if not all(digest(value) for value in (key, region["source_digest"], region["content_digest"])):
+            raise fail(source, where, "invalid region digest")
+        if not all(is_int(region[k]) for k in ("start_byte", "end_byte")) or not 0 <= region["start_byte"] < region["end_byte"] <= 2**32 - 1:
+            raise fail(source, where, "invalid half-open byte range")
+
+
 def validate_family(family: object, *, source: str, index: int) -> dict[str, Any]:
     frozen._validate_family(family, source=source, index=index)
     assert isinstance(family, dict)
+    validate_region_identity(family, source=source, path=f"families[{index}]")
     validate_generated_provenance(family, source=source, path=f"families[{index}]")
     return family
 
@@ -156,10 +180,11 @@ def dashboard_query(
 def example_family() -> dict[str, Any]:
     return {
         "id": "0123456789abcdef",
+        "review_key": None,
         "scope": "prod",
         "surface": "default",
         "value": 42.0,
-        "locations": [{"file": "example/a.py", "start": 3, "end": 8}],
+        "locations": [{"file": "example/a.py", "start": 3, "end": 8, "region": None, "region_key": None}],
     }
 
 
@@ -233,7 +258,7 @@ def run_self_test(nose: Path | None = None) -> None:
     assert query_families(json.dumps(listing))[0]["id"] == family["id"]
     wrong_version = json.loads(json.dumps(listing))
     wrong_version["schema_version"] = 8
-    expect_error(wrong_version, "expected 9")
+    expect_error(wrong_version, "expected 10")
 
     generated = json.loads(json.dumps(listing))
     generated["families"][0].update(
@@ -268,7 +293,7 @@ def run_self_test(nose: Path | None = None) -> None:
 
     if nose is not None:
         check_live_binary(nose.resolve())
-    print("live query schema v9 self-test passed")
+    print("live query schema v10 self-test passed")
 
 
 def main() -> int:

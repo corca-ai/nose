@@ -17,15 +17,13 @@ fn strict_exact_swift_factories_use_library_api_evidence_and_shape_boundaries() 
     ));
     let array_contract = library_free_name_collection_factory_contract(Lang::Swift, "Array")
         .expect("Swift Array contract");
-    array_il
-        .evidence
-        .push(swift_stdlib_collection_factory_evidence(
-            3,
-            sp(53),
-            array_contract,
-            1,
-            vec![EvidenceId(1)],
-        ));
+    array_il.push_evidence(swift_stdlib_collection_factory_evidence(
+        3,
+        sp(53),
+        array_contract,
+        1,
+        vec![EvidenceId(1)],
+    ));
     let facts = StrictFacts::collect(&array_il, &interner);
     assert!(!strict_exact_swift_collection_factory_safe(
         &array_il, &interner, &facts, array_call
@@ -34,15 +32,13 @@ fn strict_exact_swift_factories_use_library_api_evidence_and_shape_boundaries() 
     let (mut set_il, set_call) = swift_collection_factory_il(&interner, "Set");
     let set_contract = library_free_name_collection_factory_contract(Lang::Swift, "Set")
         .expect("Swift Set contract");
-    set_il
-        .evidence
-        .push(swift_stdlib_collection_factory_evidence(
-            3,
-            sp(53),
-            set_contract,
-            1,
-            vec![EvidenceId(1)],
-        ));
+    set_il.push_evidence(swift_stdlib_collection_factory_evidence(
+        3,
+        sp(53),
+        set_contract,
+        1,
+        vec![EvidenceId(1)],
+    ));
     let facts = StrictFacts::collect(&set_il, &interner);
     assert!(strict_exact_swift_collection_factory_safe(
         &set_il, &interner, &facts, set_call
@@ -56,7 +52,7 @@ fn strict_exact_swift_factories_use_library_api_evidence_and_shape_boundaries() 
     let map_contract =
         library_swift_map_factory_contract(Lang::Swift, "Dictionary", "uniqueKeysWithValues")
             .expect("Swift Dictionary contract");
-    map_il.evidence.push(swift_stdlib_map_factory_evidence(
+    map_il.push_evidence(swift_stdlib_map_factory_evidence(
         5,
         sp(63),
         map_contract,
@@ -69,7 +65,7 @@ fn strict_exact_swift_factories_use_library_api_evidence_and_shape_boundaries() 
     ));
 
     let (mut duplicate, duplicate_call) = swift_dictionary_unique_keys_il(&interner, true);
-    duplicate.evidence.push(swift_stdlib_map_factory_evidence(
+    duplicate.push_evidence(swift_stdlib_map_factory_evidence(
         5,
         sp(63),
         map_contract,
@@ -186,13 +182,13 @@ fn swift_collection_factory_il(interner: &Interner, factory: &str) -> (Il, NodeI
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(sequence_surface_evidence(
+    il.push_evidence(sequence_surface_evidence(
         0,
         Lang::Swift,
         sp(52),
         SequenceSurfaceKind::Collection,
     ));
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         1,
         Lang::Swift,
         EvidenceAnchor::node(sp(50), NodeKind::Var),
@@ -261,25 +257,25 @@ fn swift_dictionary_unique_keys_il(interner: &Interner, duplicate: bool) -> (Il,
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(sequence_surface_evidence(
+    il.push_evidence(sequence_surface_evidence(
         0,
         Lang::Swift,
         sp(61),
         SequenceSurfaceKind::Tuple,
     ));
-    il.evidence.push(sequence_surface_evidence(
+    il.push_evidence(sequence_surface_evidence(
         1,
         Lang::Swift,
         sp(62),
         SequenceSurfaceKind::Tuple,
     ));
-    il.evidence.push(sequence_surface_evidence(
+    il.push_evidence(sequence_surface_evidence(
         2,
         Lang::Swift,
         sp(63),
         SequenceSurfaceKind::Collection,
     ));
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         4,
         Lang::Swift,
         EvidenceAnchor::node(sp(60), NodeKind::Var),

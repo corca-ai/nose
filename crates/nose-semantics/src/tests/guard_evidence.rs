@@ -19,7 +19,7 @@ fn push_bound_order_evidence(
     dependencies: Vec<EvidenceId>,
 ) {
     let (lower, upper) = operands;
-    il.evidence.push(language_core_evidence_with_dependencies(
+    il.push_evidence(language_core_evidence_with_dependencies(
         id,
         EvidenceAnchor::node(il.node(cond).span, NodeKind::BinOp),
         EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {
@@ -152,7 +152,7 @@ fn bound_order_guard_evidence_fails_closed_on_conflict_or_dead_dependency() {
 #[test]
 fn bound_order_guard_evidence_requires_language_core_provenance() {
     let (mut il, cond, lower, upper) = bound_order_fixture(Op::Le);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(il.node(cond).span, NodeKind::BinOp),
         EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {

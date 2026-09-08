@@ -15,8 +15,8 @@ fn emits_promise_like_domain_for_direct_method_returning_promise_like() {
     let target_evidence =
         direct_method_target_record(&il, &interner, target_evidence_id, call, target, method);
     let return_domain = promise_like_domain_record(&il, return_domain_id, return_expr);
-    il.evidence.push(target_evidence);
-    il.evidence.push(return_domain);
+    il.push_evidence(target_evidence);
+    il.push_evidence(return_domain);
 
     run(&mut il, &interner);
 
@@ -44,10 +44,10 @@ fn emits_promise_like_domain_for_branching_direct_method_returns() {
     let else_domain_id = EvidenceId(501);
     let target_evidence =
         direct_method_target_record(&il, &interner, target_evidence_id, call, target, method);
-    il.evidence.push(target_evidence);
+    il.push_evidence(target_evidence);
     for (id, expr) in [(then_domain_id, then_expr), (else_domain_id, else_expr)] {
         let record = promise_like_domain_record(&il, id, expr);
-        il.evidence.push(record);
+        il.push_evidence(record);
     }
 
     run(&mut il, &interner);
@@ -72,7 +72,7 @@ fn direct_method_return_domain_requires_return_expression_domain_proof() {
     } = direct_method_return_call_fixture();
     let target_evidence =
         direct_method_target_record(&il, &interner, EvidenceId(400), call, target, method);
-    il.evidence.push(target_evidence);
+    il.push_evidence(target_evidence);
 
     run(&mut il, &interner);
 

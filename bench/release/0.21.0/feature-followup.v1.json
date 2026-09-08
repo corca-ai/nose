@@ -1,0 +1,1239 @@
+{
+  "schema": "nose.release-feature-followup/v1",
+  "version": "0.21.0",
+  "decision": "NOT READY: local optimization experiments do not replace actual-product correctness, resource, native and elapsed qualification",
+  "current_product": {
+    "source": "aea64b61e59c820071c26f16e24c30b30ecc56a4",
+    "crates_tree": "ea2e833d8bd2a87342b9f6b359573cb3eacbd394"
+  },
+  "experiments": {
+    "shape-counts": {
+      "decision": "reject: prepared shape multiplicities add complexity without whole-query benefit on the measured bottlenecks",
+      "identity": {
+        "source": "94ebf33cc6e8e686d1a95129bdeb87271dec6dfd",
+        "crates_tree": "1edff5fee3fc32c1766f644508ec595c52e00ea6",
+        "binary_sha256": "18b19c558d7745977cce1472186f115574353a7a9e110db04b066e98af8b0a99"
+      },
+      "results": [
+        {
+          "repo": "alamofire",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2739.7843757644296,
+              "score": 909.3,
+              "groups": 355.0,
+              "query_opp": 18.4
+            },
+            "current": {
+              "elapsed": 2778.8542499765754,
+              "score": 967.8,
+              "groups": 342.5,
+              "query_opp": 18.5
+            }
+          }
+        },
+        {
+          "repo": "libgdx",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2206.406875513494,
+              "score": 757.5,
+              "groups": 58.8,
+              "query_opp": 1.6
+            },
+            "current": {
+              "elapsed": 2227.2355826571584,
+              "score": 759.9,
+              "groups": 59.7,
+              "query_opp": 1.6
+            }
+          }
+        },
+        {
+          "repo": "guava",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2462.7428743988276,
+              "score": 416.1,
+              "groups": 27.8,
+              "query_opp": 3.3
+            },
+            "current": {
+              "elapsed": 2540.1302920654416,
+              "score": 427.9,
+              "groups": 32.0,
+              "query_opp": 3.3
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 804.9670839682221,
+              "score": 202.9,
+              "groups": 82.2,
+              "query_opp": 7.4
+            },
+            "current": {
+              "elapsed": 814.3556248396635,
+              "score": 220.8,
+              "groups": 84.3,
+              "query_opp": 7.4
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "semantic",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 375.7675001397729,
+              "score": 2.9,
+              "groups": 5.6,
+              "query_opp": 1.5
+            },
+            "current": {
+              "elapsed": 371.76487501710653,
+              "score": 3.0,
+              "groups": 5.8,
+              "query_opp": 1.5
+            }
+          }
+        },
+        {
+          "repo": "alamofire",
+          "mode": "near:0.8",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 1884.5976246520877,
+              "score": 708.3,
+              "groups": 50.8,
+              "query_opp": 11.9
+            },
+            "current": {
+              "elapsed": 1917.0236671343446,
+              "score": 748.6,
+              "groups": 53.0,
+              "query_opp": 12.0
+            }
+          }
+        }
+      ],
+      "scope": "Exploratory three paired blocks, one sample per observation, no same-binary controls. All six complete outputs match and 284 detector tests plus corrected strict Clippy/docs pass. Preserve initial type-complexity lint failure and its alias-only correction. Revert this isolated experiment and collect actual prepared-row workload diagnostics before another optimization."
+    },
+    "bounded-merge": {
+      "decision": "retain: small exact short-input kernel reduces libGDX and RxSwift default elapsed in the exploratory screen; this does not resolve the Alamofire blocker",
+      "identity": {
+        "source": "c4428aeb957b45cdb47e4899631479125c38ae93",
+        "crates_tree": "ea2e833d8bd2a87342b9f6b359573cb3eacbd394",
+        "binary_sha256": "a6184982d8c4fa89cf011f7f7e8c3470f7523bf9a49d90684ccd93c08518b2b7"
+      },
+      "results": [
+        {
+          "repo": "alamofire",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2747.6806668564677,
+              "score": 927.0,
+              "groups": 353.6,
+              "query_opp": 18.4
+            },
+            "current": {
+              "elapsed": 2761.927000246942,
+              "score": 945.1,
+              "groups": 353.4,
+              "query_opp": 18.8
+            }
+          }
+        },
+        {
+          "repo": "libgdx",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2186.0820427536964,
+              "score": 734.8,
+              "groups": 59.5,
+              "query_opp": 1.6
+            },
+            "current": {
+              "elapsed": 2133.3995424211025,
+              "score": 683.5,
+              "groups": 58.9,
+              "query_opp": 1.6
+            }
+          }
+        },
+        {
+          "repo": "guava",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2515.8620830625296,
+              "score": 434.6,
+              "groups": 28.5,
+              "query_opp": 3.4
+            },
+            "current": {
+              "elapsed": 2513.1810000166297,
+              "score": 400.9,
+              "groups": 29.0,
+              "query_opp": 3.5
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 819.9373753741384,
+              "score": 215.1,
+              "groups": 84.5,
+              "query_opp": 7.5
+            },
+            "current": {
+              "elapsed": 801.922082901001,
+              "score": 206.3,
+              "groups": 85.0,
+              "query_opp": 7.6
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "semantic",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 371.3782075792551,
+              "score": 3.1,
+              "groups": 5.6,
+              "query_opp": 1.5
+            },
+            "current": {
+              "elapsed": 374.21933375298977,
+              "score": 3.0,
+              "groups": 5.9,
+              "query_opp": 1.5
+            }
+          }
+        },
+        {
+          "repo": "alamofire",
+          "mode": "near:0.8",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 1920.5604996532202,
+              "score": 736.0,
+              "groups": 53.3,
+              "query_opp": 12.1
+            },
+            "current": {
+              "elapsed": 1934.8986661061645,
+              "score": 749.9,
+              "groups": 53.9,
+              "query_opp": 12.2
+            }
+          }
+        }
+      ],
+      "scope": "Three paired alternating blocks, one sample per observation, no same-binary controls. Six full outputs equal, 283 detector tests and strict Clippy/docs pass. Independent frequency-count oracle has 85 datasets (7225 ordered pairs), including 31/32/33 feature boundaries. Do not claim release qualification or a general latency improvement: Alamofire default and near medians rise 0.52% and 0.75%, RxSwift semantic rises 0.77%, Guava elapsed is effectively flat."
+    },
+    "reused-shape": {
+      "decision": "reject: retained shape rows add memory and synchronization complexity without sufficient improvement to the primary Alamofire bottleneck",
+      "identity": {
+        "source": "0de9f83f516fb2ee0c80dcf7fc32e0203741e4da",
+        "crates_tree": "3db9596bbda7e731baa3407f350dd7f6581bcaf2",
+        "binary_sha256": "26ad07508076775f98bdd925b595da98bdab0086173ab24a6527f8c47827cd03"
+      },
+      "results": [
+        {
+          "repo": "alamofire",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2756.92883413285,
+              "score": 921.4,
+              "groups": 351.7,
+              "query_opp": 18.6
+            },
+            "current": {
+              "elapsed": 2735.3346664458513,
+              "score": 915.6,
+              "groups": 346.9,
+              "query_opp": 18.4
+            }
+          }
+        },
+        {
+          "repo": "libgdx",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2117.8627917543054,
+              "score": 653.5,
+              "groups": 59.8,
+              "query_opp": 1.6
+            },
+            "current": {
+              "elapsed": 2123.8854993134737,
+              "score": 679.5,
+              "groups": 60.1,
+              "query_opp": 1.6
+            }
+          }
+        },
+        {
+          "repo": "guava",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2512.557875365019,
+              "score": 411.0,
+              "groups": 29.3,
+              "query_opp": 3.5
+            },
+            "current": {
+              "elapsed": 2520.227000117302,
+              "score": 407.8,
+              "groups": 28.7,
+              "query_opp": 3.5
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 816.3808323442936,
+              "score": 214.8,
+              "groups": 85.5,
+              "query_opp": 7.6
+            },
+            "current": {
+              "elapsed": 798.9931656047702,
+              "score": 201.9,
+              "groups": 80.4,
+              "query_opp": 7.6
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "semantic",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 370.9795428439975,
+              "score": 2.9,
+              "groups": 5.6,
+              "query_opp": 1.5
+            },
+            "current": {
+              "elapsed": 377.5843745097518,
+              "score": 3.0,
+              "groups": 5.8,
+              "query_opp": 1.5
+            }
+          }
+        },
+        {
+          "repo": "alamofire",
+          "mode": "near:0.8",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 1933.6829585954547,
+              "score": 750.2,
+              "groups": 52.6,
+              "query_opp": 12.6
+            },
+            "current": {
+              "elapsed": 1920.9182923659682,
+              "score": 726.3,
+              "groups": 56.6,
+              "query_opp": 12.2
+            }
+          }
+        }
+      ],
+      "scope": "Exploratory three paired blocks, one sample per observation, no same-binary controls; six complete outputs equal, 284 detector tests and strict Clippy/docs pass. Alamofire default improves only 0.78%, near 0.66%; RxSwift default improves 2.13% but other elapsed effects are small and mixed. Revert the isolated experiment. The memory campaign producer was prepared but not run after this rejection."
+    },
+    "nested-row-bound": {
+      "decision": "reject: whole-row nested reservation bound does not materially reduce the primary bottleneck",
+      "identity": {
+        "source": "82ae95e9e530b1ca13228fdc4a08cce41ae19287",
+        "crates_tree": "ab1742ad590be82d5ed27dcba32f0ef2f0889e9a",
+        "binary_sha256": "9c76562887fccac7648f6cdb5de46553fc8dd5b68a7e22a7c0377d27202ba917"
+      },
+      "results": [
+        {
+          "repo": "alamofire",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2752.2956673055887,
+              "score": 916.1,
+              "groups": 351.4,
+              "query_opp": 18.5
+            },
+            "current": {
+              "elapsed": 2751.526708714664,
+              "score": 923.4,
+              "groups": 352.2,
+              "query_opp": 18.5
+            }
+          }
+        },
+        {
+          "repo": "libgdx",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2126.6230838373303,
+              "score": 657.4,
+              "groups": 60.8,
+              "query_opp": 1.6
+            },
+            "current": {
+              "elapsed": 2121.383832767606,
+              "score": 671.8,
+              "groups": 58.4,
+              "query_opp": 1.6
+            }
+          }
+        },
+        {
+          "repo": "guava",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2499.8299162834883,
+              "score": 406.5,
+              "groups": 28.9,
+              "query_opp": 3.4
+            },
+            "current": {
+              "elapsed": 2513.4867504239082,
+              "score": 401.2,
+              "groups": 28.8,
+              "query_opp": 3.3
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 815.6655421480536,
+              "score": 209.8,
+              "groups": 83.7,
+              "query_opp": 7.5
+            },
+            "current": {
+              "elapsed": 807.9629996791482,
+              "score": 214.2,
+              "groups": 83.8,
+              "query_opp": 7.4
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "semantic",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 368.36408264935017,
+              "score": 2.9,
+              "groups": 5.9,
+              "query_opp": 1.5
+            },
+            "current": {
+              "elapsed": 361.539208330214,
+              "score": 2.8,
+              "groups": 5.9,
+              "query_opp": 1.5
+            }
+          }
+        },
+        {
+          "repo": "alamofire",
+          "mode": "near:0.8",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 1946.8611655756831,
+              "score": 737.0,
+              "groups": 53.2,
+              "query_opp": 12.7
+            },
+            "current": {
+              "elapsed": 1936.1967500299215,
+              "score": 734.4,
+              "groups": 54.9,
+              "query_opp": 12.5
+            }
+          }
+        }
+      ],
+      "scope": "Six complete outputs equal, 284 final detector tests, strict Clippy and docs pass. Three paired blocks without same-binary controls show Alamofire default effectively unchanged (-0.03%), with small mixed effects elsewhere. Revert this distinct whole-row experiment; it is not the earlier per-source-pair file-seeds implementation. No seed policy or output changes are retained."
+    }
+  },
+  "interpretation": "Kernel microbenchmarks use deterministic one-in-256 samples of actual requested pairs and compare every sampled score bit. Their timings are not CLI timings. Row-census intervals overlap and are not whole-query elapsed or CPU totals. Hypothetical shape reuse counts are an upper opportunity estimate using broad rows; actual selection includes all representatives. Each CLI screen uses three paired blocks with no same-binary controls, so no release pass or statistically confirmed regression follows from these screens. Source patches preserve rejected implementations without adopting them. The previous registered row candidate failure remains unchanged.",
+  "artifacts": [
+    {
+      "path": "target/release-default-score-20260908/record-feature-followup.py",
+      "bytes": 2437,
+      "sha256": "fcd08935b307dc708355037ecd8b6e24f471adee4358bafe5f307fb53e81f32c"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-build.log",
+      "bytes": 247,
+      "sha256": "e70798500522a810a340bf37c93e88cbe33db55d78b767a8c1507d5971e46f34"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-clippy-corrected.log",
+      "bytes": 157,
+      "sha256": "7f82c36a62cf98bb0c68ce1c871763479660da52b0e60410d5f0a616c45ec582"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-clippy.log",
+      "bytes": 814,
+      "sha256": "9675613b02ad7f6e5b31c42af14cfa5404eb5450098e50a8f8943fbbabd18382"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-commit.log",
+      "bytes": 2549,
+      "sha256": "e9734dc16069793185e33deba45b606c96c71d470f4abe24c37afb9e46c3068a"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-decision.json",
+      "bytes": 3372,
+      "sha256": "49e9297cafcad7ce1a875e109fb1e6984782210287ddee032ece462e1dbeb5be"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-identity.json",
+      "bytes": 207,
+      "sha256": "0e10bc394cf7049dce51a3167223514f4e2452db18fade0c4726957dc389f1c7"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-revert.log",
+      "bytes": 260,
+      "sha256": "556fdc5381ca51bacc88ca221e5aad8b5040451a0c116564f4175ee82ec5034f"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-alamofire-default.json",
+      "bytes": 21136,
+      "sha256": "af8aa4949cea5fd5b1f869f96bbe441e0270c6949fc551821578c583f7ea5773"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-alamofire-near-0.8.json",
+      "bytes": 21137,
+      "sha256": "40b35a4c1c1b49595192381ddd48e861a28689de7fec0bb642750173a8a4c986"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-design.json",
+      "bytes": 824,
+      "sha256": "594f9c7a9f99473bcc8192356f43608eecd7822a9d4730f642c3bc5d4fccc2be"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-guava-default.json",
+      "bytes": 21507,
+      "sha256": "e736a58daa45ce3163bdbb15afe76886f06c5fbaa459465ae4290b71e3188c65"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-libgdx-default.json",
+      "bytes": 21266,
+      "sha256": "fcc5d9243f1e7840ff46ffd265f6827cfe0b4fcfaca179260f5fcb970fe69534"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-results.json",
+      "bytes": 3544,
+      "sha256": "60c7b54afc5fda4e800ebaa645a422a9a9850dab58907e3f0ee59faec4af29ff"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-rxswift-default.json",
+      "bytes": 21194,
+      "sha256": "76fc8bae067b8092da0645e99b74d10cf7fe61f0b99907e2186296d9e784ac3c"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-rxswift-semantic.json",
+      "bytes": 20689,
+      "sha256": "ff5b781dd7f9ab1f44606cefa8b14b99aa503a1022ead76ecdf265ed0dce912d"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen.log",
+      "bytes": 1814,
+      "sha256": "e50754462064ffc2ea09e96b85b9fdca49054b7fd31581b2252713768f1fc8fe"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-screen.py",
+      "bytes": 2851,
+      "sha256": "c198ae21069d52d0a3a2085dc0776686b916c9889cef5b4247e75616fbdf03fb"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-source.patch",
+      "bytes": 14605,
+      "sha256": "2b9ce01b88d31f88874b77126a86c2606e1dd496ba0288636e26d192266eeae4"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-counts-tests.log",
+      "bytes": 27559,
+      "sha256": "453125464fadd82cc278148809aad7ddec158aeb445175f785a6de30fd0ad46b"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-build.log",
+      "bytes": 247,
+      "sha256": "3e33ebd5104fef106eb6dd3cbdbbff72ceac4825b97aa47b1b135f77626bb340"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-census-alamofire.json",
+      "bytes": 13736,
+      "sha256": "4482daaaf1660ad880b2c3d171f717d9fe6addc3d0701039144fc3729c93345a"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-census-alamofire.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-census-build-command.json",
+      "bytes": 1364,
+      "sha256": "85473366064058c852017b8fd3e4912cebdb5e2e5b75fe7dc4076874646e1a47"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-census-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-census-libgdx.json",
+      "bytes": 15280,
+      "sha256": "cb9d629d2e0018a1ebf3d25eed27ab12c87c8f105590425dc6d996b388743a99"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-census-libgdx.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-census.rs",
+      "bytes": 7072,
+      "sha256": "1aa63590b16df091382ea7c0b7bf046b9401b97fe5e2d2b38698ee132c739a2c"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-cherry-pick.log",
+      "bytes": 163,
+      "sha256": "a6fd4475ec1f74f9c5a5a4b711e216156f97f7094358afd8c18409ea894b9f5c"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-clippy.log",
+      "bytes": 157,
+      "sha256": "b29e8719ecc3ea7442c7e7ae75fabad3e30c735aff087287a13ada6491d72882"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-commit.log",
+      "bytes": 2459,
+      "sha256": "ca75a5bba117bed081bf04af3fd89c3129d4415bc5f876fa3f907d505aa6e2c2"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-decision.json",
+      "bytes": 3505,
+      "sha256": "a5ffd74e3b40ce5a8fc7fcce44e36844a2fd8a6398209107dd0e98e2fbf229d0"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-identity.json",
+      "bytes": 207,
+      "sha256": "eba724c35dc20b24fac6ce82e8584c1e2315f5a9a2ad73849c64a796dea1475b"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-alamofire-default.json",
+      "bytes": 21144,
+      "sha256": "b39006dfe2ac43a80948ffe68d41e1e2d19393cc9d3d1f423c2e8d98423881ff"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-alamofire-near-0.8.json",
+      "bytes": 21141,
+      "sha256": "81e692f130c308dac6fd71e26fc95561d2529676202cc8c77bab68ed23c03ed8"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-design.json",
+      "bytes": 824,
+      "sha256": "ee067b9e1cca48658a1043c9277c830e00fd1b339d737d55934f31eca4e25319"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-guava-default.json",
+      "bytes": 21513,
+      "sha256": "b4da42f8ed4a2f3e93fe60b37c3a5409226e6d2d67c319cc1fa96abe670d4b30"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-libgdx-default.json",
+      "bytes": 21275,
+      "sha256": "7b21d41e32ab66eb48e93020afd84ba9122f80231f27d7b74f295c7c70e64104"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-results.json",
+      "bytes": 3543,
+      "sha256": "602ad97d5bc3ef7ec39fde60b1696ba0d491a23eb34b2cb9c7f47cd332705637"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-rxswift-default.json",
+      "bytes": 21196,
+      "sha256": "fc99796fca527ed00933bba24093f1963f85a7bf7bc2d9eb24cd4cbeae21e062"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-rxswift-semantic.json",
+      "bytes": 20688,
+      "sha256": "904a1d0ba34a4074c79352cf581a82d4a2a9a7876447e0511369dfd7dce51a48"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen.log",
+      "bytes": 1813,
+      "sha256": "c3911341effdc5184d6a9fe8fb4369b6a248b77731b4bb7f8d89b7d9dd0de2a7"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-screen.py",
+      "bytes": 2856,
+      "sha256": "8e8498f3c4073f6e9900a05aae84a76287cd2cd916efaa97a180e2c019f87075"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-source.patch",
+      "bytes": 5023,
+      "sha256": "86c580eed7998bd985b15577a86e234f3cf2cdb1729f624b088c78a233af8f68"
+    },
+    {
+      "path": "target/release-default-score-20260908/bounded-merge-tests.log",
+      "bytes": 27428,
+      "sha256": "71d5ec1a2335bf80d1c73ccca13d21df680bbb7c2be7a71c28a85163907d5fa2"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-build.log",
+      "bytes": 247,
+      "sha256": "b5ce31f308ae21e4c641339e24c38851ad08bb58cdd0aa4f00fa43a6d7391483"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-clippy.log",
+      "bytes": 157,
+      "sha256": "7f950af45af45d35d1207a860751d08896753c8a9a9b7187530da65d484a170d"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-commit.log",
+      "bytes": 2543,
+      "sha256": "697f8608861e6899026dd182f5511701ad49015ec786fe30a5571d1913eacd02"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-decision.json",
+      "bytes": 3424,
+      "sha256": "4431e819ae3ffc4c541be06dedcb45b746b5d57eea9e3bebec80da9559346c7c"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-identity.json",
+      "bytes": 207,
+      "sha256": "60db88f2bfff08c69fd2c0b5fe9440bba4e4cbc42382ab4d90ad536a4c313ec6"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-memory.py",
+      "bytes": 2104,
+      "sha256": "7afae1f336ffc36ac2d53a099bdf3c057688fa235537d8900a14c87adf0303a3"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-revert.log",
+      "bytes": 254,
+      "sha256": "c00f365efabdd27afa74413435721dd2b273bfac96421de23f87ad9664f4c9bd"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-alamofire-default.json",
+      "bytes": 21145,
+      "sha256": "10a0c66696ca6a5d297d37234e85b1536a745ee3520e40f6af62638e21f953b5"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-alamofire-near-0.8.json",
+      "bytes": 21150,
+      "sha256": "870884d090ceb875f74f7f101446e19f2d263e5779bf31c730147dfe864b172a"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-design.json",
+      "bytes": 824,
+      "sha256": "30c7eb496ee202e7dd9d23d1ae8fe8d94bebc04ee14d4393c8e51184687831ef"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-guava-default.json",
+      "bytes": 21510,
+      "sha256": "160e9986e5900c535ab1f16b7f34ecb6c5dfcf37d916a4a86a653b1229dbee0a"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-libgdx-default.json",
+      "bytes": 21281,
+      "sha256": "4fb1994c2fc63dda4be2b93063ee0562909ed6809d99f8fedf7fc454c7310e72"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-results.json",
+      "bytes": 3540,
+      "sha256": "022496ecf126f0b0b8d0ea6877999eaa794b3e066c478075b860a53c379bf206"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-rxswift-default.json",
+      "bytes": 21204,
+      "sha256": "d6aaf11282339c273d508b3f6de6655ea563e181e66e2f41ee4c48379be37136"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-rxswift-semantic.json",
+      "bytes": 20689,
+      "sha256": "4e0ef00e4f7f9088ed2040bfd601ff73059bb1359411a99403b3adb11549be3a"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen.log",
+      "bytes": 1810,
+      "sha256": "d1c43abf42cca42a9a00b11d41beb46cf2ecb368542a51ccce869a5942fff7ba"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-screen.py",
+      "bytes": 2855,
+      "sha256": "a134af94aabbde08630196decaa7354831a36cfe9fcfb12155b0b66fd45e6363"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-source.patch",
+      "bytes": 6880,
+      "sha256": "dd8219beaec7347687ef13ef5efed4734f6367e7341cdd9c6e779026d3ddd47c"
+    },
+    {
+      "path": "target/release-default-score-20260908/reused-shape-tests.log",
+      "bytes": 27523,
+      "sha256": "a4c50dd17c8725f1870329370eb7e8337a91480579163c3caaf63e8cc40b5f67"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-build.log",
+      "bytes": 247,
+      "sha256": "3e33ebd5104fef106eb6dd3cbdbbff72ceac4825b97aa47b1b135f77626bb340"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-clippy.log",
+      "bytes": 157,
+      "sha256": "a853b430382a56b1761d3fa614a9d70315455576810dc91a1421be198fb6d240"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-commit.log",
+      "bytes": 2470,
+      "sha256": "2e74d7e378f99d9eadf81573e088d5da28bff3f47199878b71c45a604e53357f"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-decision.json",
+      "bytes": 3361,
+      "sha256": "73a8d844c1b222316dfd7f4a9b65b109397a20b183b3d8b033bdb2282c3c3cf9"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-identity.json",
+      "bytes": 207,
+      "sha256": "ed523c40d51a599f0562778c3afeb55bd1459db175d463bd8cf9f2de98e5e333"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-revert.log",
+      "bytes": 181,
+      "sha256": "9279eb34d9f4573c4ec7b53b81c57b16866a4eb5e4750b692f4c07a3446d839f"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-alamofire-default.json",
+      "bytes": 21161,
+      "sha256": "35d11b317861e09eb2cf2a889a647a1a989b25c214773ca2b2dd1d742ba4df6c"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-alamofire-near-0.8.json",
+      "bytes": 21162,
+      "sha256": "ba1793df419109e156e8eabb62e87205e51094689cbab90a73f9321a9177a0b5"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-design.json",
+      "bytes": 824,
+      "sha256": "3eb54d62f0a1706a21f39ae8443d68b7d6c00e627b69618796fdfdb4256b5cd2"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-guava-default.json",
+      "bytes": 21519,
+      "sha256": "5206e7276e18842d0cf254fbabefbd1d315cd371fd4f99ce70dfd1ccd4b385d6"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-libgdx-default.json",
+      "bytes": 21292,
+      "sha256": "805aebe5b6e8f0f2c1cae5402b15b90079aa3586f6f97b2266cc5fdb8733f84b"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-results.json",
+      "bytes": 3542,
+      "sha256": "25acbb53c4852f2e3197cfd1e6dc47b230e8bc3d421d2c75e013d253de7d2bca"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-rxswift-default.json",
+      "bytes": 21216,
+      "sha256": "c677b75ae6a12c63bb8e8c333ef2120844164ff46e4fba3178d9d776ce1e78e2"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-rxswift-semantic.json",
+      "bytes": 20704,
+      "sha256": "382d0cbc233b3ae71a56a96a404b512a6c845cd6a53f79be7633372778bd9311"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen.log",
+      "bytes": 1812,
+      "sha256": "060141a70712074fdfa2710c32087049cec9c030271c2a9cbe62b52eb4222f3c"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-screen.py",
+      "bytes": 2875,
+      "sha256": "1eed0bc35a8470602e05030393e2fcc5213e5d722901fc3771a28a13f79a4a7a"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-source.patch",
+      "bytes": 6220,
+      "sha256": "db7ae11e8207acd23bb67760656feeedb573235de2056db6c5930ea8d23192bd"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-tests-final.log",
+      "bytes": 27557,
+      "sha256": "a087c7ebc8de644478dec2fbb5664d70ae2771842cd52b60def35337ba371b84"
+    },
+    {
+      "path": "target/release-default-score-20260908/nested-row-bound-tests.log",
+      "bytes": 27557,
+      "sha256": "b3d7901cd2fccf0d1f5c7eb9cf32bde3521b9f2ce767b3fb47b453d3cd81a040"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiplicity-census-build-command.json",
+      "bytes": 1128,
+      "sha256": "4dd66f2910600b39c8bfcfb2b42da07180771d097165d19f3e3e81766462852f"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiplicity-census-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiplicity-census.log",
+      "bytes": 1099,
+      "sha256": "38a9313fc1732629f3949e475e2810523986a7162080eec6e15d34b86f48326f"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiplicity-census.rs",
+      "bytes": 1215,
+      "sha256": "e4e2c05c115ac93588c866f5ee4c14d454f30fdf6faed5d9646f1dada9761a40"
+    },
+    {
+      "path": "target/release-default-score-20260908/row-cost-census-alamofire.json",
+      "bytes": 11964,
+      "sha256": "88aa93afb79c84c577fa07e79b899d5d5e6849b9e3ea8ad7263c6a016cad390c"
+    },
+    {
+      "path": "target/release-default-score-20260908/row-cost-census-alamofire.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/row-cost-census-build-command.json",
+      "bytes": 1354,
+      "sha256": "411a027f00291af5c25cf873ef8ff4cbc3eef3a1ec53c8a14a1027588a02f2c6"
+    },
+    {
+      "path": "target/release-default-score-20260908/row-cost-census-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/row-cost-census-guava.json",
+      "bytes": 12459,
+      "sha256": "d352cb62ccf97b8ecb8a7227fd28e29669d9fde228ab28f27c8f2df62dc362d2"
+    },
+    {
+      "path": "target/release-default-score-20260908/row-cost-census-guava.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/row-cost-census-libgdx.json",
+      "bytes": 13289,
+      "sha256": "ab79c9515bb22b3c072c70ff70596edec0246bd9c6bb4777f730a7b2249d4ef7"
+    },
+    {
+      "path": "target/release-default-score-20260908/row-cost-census-libgdx.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/row-cost-census-rxswift.json",
+      "bytes": 11814,
+      "sha256": "58ded2d32baeba7a7c01b060a5275a94fc4070d1360ede7b5fd729bed1c1a727"
+    },
+    {
+      "path": "target/release-default-score-20260908/row-cost-census-rxswift.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/row-cost-census.rs",
+      "bytes": 4691,
+      "sha256": "54a7b2ffa7b486a9e10079d33406e0dad86440055dc99ba66783705f45b21f2e"
+    },
+    {
+      "path": "target/release-default-score-20260908/short-merge-census-alamofire.json",
+      "bytes": 13591,
+      "sha256": "f5bf5a31850db6747398fe885cdf83b4b093f18eacdd50fc85ce46e8a429f2be"
+    },
+    {
+      "path": "target/release-default-score-20260908/short-merge-census-alamofire.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/short-merge-census-build-command.json",
+      "bytes": 1360,
+      "sha256": "e4b601729355efbb507e53d74749f5c16f3eedacd2019b4b2958c7f33335a2a5"
+    },
+    {
+      "path": "target/release-default-score-20260908/short-merge-census-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/short-merge-census-libgdx.json",
+      "bytes": 15295,
+      "sha256": "3d26ed21f05a68ec70b8e001055cd0c89935be764f55323a59f61acd7a384783"
+    },
+    {
+      "path": "target/release-default-score-20260908/short-merge-census-libgdx.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/short-merge-census.rs",
+      "bytes": 6959,
+      "sha256": "6b271c253cd2b6b92b2346e6aac2665274ebd5ffe357a5013dba802922fbeddd"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-reuse-census-alamofire.json",
+      "bytes": 12606,
+      "sha256": "55ce6c468a9114a3251b507c5baebfddb365f6088b29eec44e14af961c2f84b9"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-reuse-census-alamofire.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-reuse-census-build-command.json",
+      "bytes": 1360,
+      "sha256": "798dec55f9d1e37a445eadd77cc611f1ec71d37c76899bed774e01a30615502f"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-reuse-census-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-reuse-census-libgdx.json",
+      "bytes": 13466,
+      "sha256": "2771f334fa4fffd64e723e89526ab80406202a638c5e45d048ffd7b5f35795f1"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-reuse-census-libgdx.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-reuse-census-rxswift.json",
+      "bytes": 12590,
+      "sha256": "389f7d8d186523fb86e0d8cc36bf5451a4e63df390daf02faa5b2896d8309387"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-reuse-census-rxswift.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/shape-reuse-census.rs",
+      "bytes": 5680,
+      "sha256": "cd7fe96a67ee3fbbbe48bb5ec70cf4a1ced09cbd6d99013ca8fc93e666aed6ee"
+    },
+    {
+      "path": "target/release-default-score-20260908/freeze-bounded-merge.py",
+      "bytes": 787,
+      "sha256": "564537a6c098648a7b11a2417c85d4690fd4b0206dfc6e5458842cf7dc566a9a"
+    },
+    {
+      "path": "target/release-default-score-20260908/freeze-reused-shape.py",
+      "bytes": 785,
+      "sha256": "6adb49fc3cee78987ed6f9fbd4fd9aa4ff593a2df4c84d818ae80faf896ec076"
+    },
+    {
+      "path": "target/release-default-score-20260908/freeze-nested-row-bound.py",
+      "bytes": 793,
+      "sha256": "79d22c366b4f9b1cb4a033e28bcdafbc0f5dd6a32812fa5462b661805f093a60"
+    },
+    {
+      "path": "target/release-default-score-20260908/multiset-skew-frequency-oracle.rs",
+      "bytes": 1926,
+      "sha256": "fea42b3a1e5f7a7ffcf7ffd8f52b46b9ca57aaca21c4572ef26485af8d7aeea8"
+    }
+  ]
+}

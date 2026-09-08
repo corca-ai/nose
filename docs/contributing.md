@@ -105,6 +105,29 @@ no-family-growth cases, name the measured stage before changing code. Link the
 focused artifact from the issue, PR, or release evidence page so future maintainers
 can distinguish expected semantic expansion cost from accidental degradation.
 
+### Vendored parser dependency
+
+`vendor/tree-sitter` is a checksum-verified copy of the pinned upstream crate
+with one C progress-reporting delta. Its `NOSE_PATCH.md` records the original
+archive, upstream commit, license and exact changed file. The local Cargo patch
+builds it into the same self-contained binary. Upstream source is excluded from
+the application Rust workspace's formatting/lint ratchets, while ordinary builds
+and frontend tests consume the patched dependency.
+
+The unused-dependency check runs on first-party `crates/`. The upstream parser's
+`regex-syntax` dependency enables Unicode through a Cargo feature; cargo-machete's
+source-name scan reports it incorrectly. Preserve the upstream manifest rather
+than removing that feature dependency. `cargo deny` still checks the entire
+resolved dependency graph, including the vendored parser, for advisories,
+licenses and sources.
+
+Treat a vendor edit as an engine change: full CI and the Soundness Lab apply.
+Preserve the upstream provenance/license and review the import against its archive
+when updating it. The current Type-4 blind receipt binds `Cargo.toml`, `Cargo.lock`
+and the optional vendor Git tree alongside `crates`, so a dependency-only change
+cannot reuse a stale current receipt. Historical release receipts retain their
+original source bindings.
+
 ### One-time tool install
 
 Python 3.10.0 or newer, Node.js, `cargo-machete`, `cargo-deny`,
@@ -271,6 +294,13 @@ git push origin vX.Y.Z
 The tag is what triggers CI, so the CHANGELOG and version bump must land **before**
 it — a tag pushed against a stale `[Unreleased]` ships a release the changelog never
 records.
+
+Candidate pull requests build and upload the four platform archives with
+`pr-run-mode = "upload"`. Their package smoke checks validate checksums and run
+the extracted binary on the native build runner. These artifacts allow release
+verification before a publishing tag is pushed; the existing publication quality
+gate remains required. See the [0.21 candidate qualification](release-evidence-0.21.0.md)
+for the current preparation status.
 
 The cargo-dist pipeline lives in `dist-workspace.toml`; the artifact-building jobs in
 `.github/workflows/release.yml` are generated from it. The repository-owned quality-gate

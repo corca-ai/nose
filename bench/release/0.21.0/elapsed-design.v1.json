@@ -1,0 +1,118 @@
+{
+  "registered_at_utc": "2026-09-07T11:02:41.529734+00:00",
+  "candidate": {
+    "source_sha": "46ed8beff78a91a8b6b2191d7f208c23774dc9e1",
+    "crates_tree": "4e087079e55711c7b03601fbdcc2d8e3e5cf9dff",
+    "product_dependencies": {
+      "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+      "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+      "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+    },
+    "binary_sha256": "c6f204c5dab5490290418510177b53341d9782b96455b4f9c087758a7dc2bc30",
+    "binary": "/Users/ak/prjs/cc/nose/target/release-elapsed-qualification-20260907/candidate-nose",
+    "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+    "build_log": "/Users/ak/prjs/cc/nose/target/release-elapsed-qualification-20260907/build.log"
+  },
+  "published_baseline": {
+    "url": "https://github.com/corca-ai/nose/releases/tag/v0.20.0",
+    "published_at": "2026-07-22T17:34:36Z",
+    "commit_sha": "47adbab743067e7ab0977d1be4a935a043dd769b",
+    "dist_manifest": {
+      "url": "https://github.com/corca-ai/nose/releases/download/v0.20.0/dist-manifest.json",
+      "sha256": "aa9108dcdd273ffcab319c6e46a03a0d7ebef4d5c8818fadfbb6963b3a54a291"
+    }
+  },
+  "status": "registered before replacement candidate qualification measurements; correctness and full CI pending",
+  "workloads": [
+    {
+      "name": "semantic",
+      "repositories": 120
+    },
+    {
+      "name": "base",
+      "repositories": 17
+    },
+    {
+      "name": "default",
+      "repositories": 120
+    },
+    {
+      "name": "near-no-pack",
+      "repositories": 120
+    }
+  ],
+  "protocol": {
+    "primary_blocks": 5,
+    "focused_blocks": 6,
+    "samples_per_observation": 5,
+    "warmups": 1,
+    "same_binary_control": "required in primary and focused phases",
+    "materiality": "5% AND 5ms",
+    "runtime_policy": "order-aware-v1",
+    "inconclusive": "whole-query elapsed signals fail closed; stage signals remain warnings",
+    "focused_comparisons_max": 1,
+    "stop_at_first_failed_workload": true,
+    "unchanged_retry": "not permitted",
+    "runtime_gate": "elapsed-v1",
+    "stage_signals": "retained unchanged; do not request focus or block release without independent whole-query/resource/scaling failure"
+  },
+  "prerequisites": [
+    "completed full local CI",
+    "377 complete output comparisons",
+    "8 saved-analysis/review/source/upgrade journeys",
+    "Type4 proof checks",
+    "reviewed duplication gate",
+    "cache mutations and paired SymPy checks",
+    "watch latency and crash recovery checks",
+    "quiet local measurement boundary"
+  ],
+  "workload_commands": {
+    "semantic": "query {repo} all top=0 --mode semantic --format json",
+    "base": "query {repo} base={base} top=0 --format json",
+    "default": "query {repo} all top=0 --format json",
+    "near-no-pack": "query {repo} all top=0 --mode near:0.8 --format json"
+  },
+  "producer_files": [
+    {
+      "path": "scripts/query-regression-harness.py",
+      "sha256": "bd9da5bd070a265d73cc41678a5a4ea041e504342e2346d7ec440fb730c5f551"
+    },
+    {
+      "path": "scripts/check-query-regression.py",
+      "sha256": "ced8270b930a4ddebcfbb6a8321d9c4c4d77c180b01ad495af70ea2662491422"
+    },
+    {
+      "path": "scripts/query_regression_control.py",
+      "sha256": "0bbc959d05da7b0a4cbc1903ccea956f796ff0f78835dd06ec20020b8610912d"
+    },
+    {
+      "path": "scripts/query_regression_gate_tests.py",
+      "sha256": "4d86d8c7e5b03450b9d4b5c9ded1e8ff709bdf3698c0fcfb8889a2916efc8f3e"
+    },
+    {
+      "path": "docs/order-aware-performance-controls.md",
+      "sha256": "02885d6ae297da274eb6887b6fce0d6f552eab243d98c261f0732c096606c4e3"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/run-comparison.py",
+      "sha256": "ba6f6ac1f8b87cbe3efaa20a113888de5356077ded4e0c676e0b9279d756f83c"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/qualify.py",
+      "sha256": "d81fe37923e373fb935c067d832c4b0ecf4ec188d15a42e97d6ba628a89beaec"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/cache-campaign.py",
+      "sha256": "ebe218b816ff8e125f3b3ba9e2efdc9af867505859705dfc590ff03de96fa33b"
+    }
+  ],
+  "decision_source_sha": "1b31ee4d593e699dc73adf74c3784d14326f8390",
+  "amendment": {
+    "supersedes": "qualification-design.initial.json",
+    "sha256": "573105fb6bf3005626930b599d32f487199566f838a0e3bb2e4e4c4c3680df4a",
+    "reason": "Before any qualification measurement: correct copied producer indentation and enforce registered producer hashes. No workload, measurement or decision rule changes."
+  },
+  "schema": "nose.release-elapsed-design/v1",
+  "version": "0.21.0",
+  "prior_failed_qualification": "bench/release/0.21.0/context-verdict.v1.json"
+}

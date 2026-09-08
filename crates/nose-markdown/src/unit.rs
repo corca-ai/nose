@@ -12,7 +12,7 @@ use std::sync::LazyLock;
 
 static HEADING: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^#{1,6}\s+").unwrap());
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, serde::Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum UnitKind {
     Document,
@@ -20,7 +20,7 @@ pub enum UnitKind {
 }
 
 /// One detection unit: a span of one Markdown file with its normalized prose substrate.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Unit {
     pub path: String,
     /// 1-based inclusive line range in the source file.

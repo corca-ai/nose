@@ -16,6 +16,7 @@ pub(super) fn truthy(v: &Value) -> Option<bool> {
         Value::Int(i) => *i != 0,
         Value::Float(f) => f.0 != 0.0, // 0.0/-0.0 falsy; nonzero incl. NaN truthy (self-consistent)
         Value::List(xs) => !xs.is_empty(),
+        Value::KeySet(_) => true,
         Value::Str(v) => !v.is_empty(),
         Value::Null | Value::Err => false,
         Value::Sym(_) => return None,

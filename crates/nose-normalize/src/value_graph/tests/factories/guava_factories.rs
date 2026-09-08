@@ -40,15 +40,14 @@ fn java_guava_factory_value_graph_uses_library_api_evidence() {
         eval_proven_collection_op(&il, &interner, call).is_none(),
         "Guava import proof alone must not prove the factory"
     );
-    il.evidence
-        .push(java_guava_immutable_collection_factory_evidence(
-            2,
-            sp(81),
-            contract.id,
-            contract.callee,
-            2,
-            vec![EvidenceId(1)],
-        ));
+    il.push_evidence(java_guava_immutable_collection_factory_evidence(
+        2,
+        sp(81),
+        contract.id,
+        contract.callee,
+        2,
+        vec![EvidenceId(1)],
+    ));
     let admitted = eval_proven_collection_op(&il, &interner, call)
         .expect("admitted Guava LibraryApi evidence should prove the factory");
     assert!(matches!(admitted, ValOp::Seq(SEQ_VALUE_COLLECTION)));
@@ -86,15 +85,14 @@ fn java_guava_map_factory_value_graph_uses_library_api_evidence() {
         !matches!(eval_op(&il, &interner, call), ValOp::Seq(SEQ_VALUE_MAP)),
         "Guava import proof alone must not canonicalize the map factory"
     );
-    il.evidence
-        .push(java_guava_immutable_collection_factory_evidence(
-            2,
-            sp(117),
-            contract.id,
-            contract.callee,
-            4,
-            vec![EvidenceId(1)],
-        ));
+    il.push_evidence(java_guava_immutable_collection_factory_evidence(
+        2,
+        sp(117),
+        contract.id,
+        contract.callee,
+        4,
+        vec![EvidenceId(1)],
+    ));
     assert!(
         matches!(eval_op(&il, &interner, call), ValOp::Seq(SEQ_VALUE_MAP)),
         "admitted Guava LibraryApi evidence should canonicalize ImmutableMap.of"
@@ -159,15 +157,14 @@ fn java_guava_collection_factory_rejects_static_null_elements() {
         "com.google.common.collect",
         "ImmutableList",
     );
-    il.evidence
-        .push(java_guava_immutable_collection_factory_evidence(
-            2,
-            sp(185),
-            contract.id,
-            contract.callee,
-            2,
-            vec![EvidenceId(1)],
-        ));
+    il.push_evidence(java_guava_immutable_collection_factory_evidence(
+        2,
+        sp(185),
+        contract.id,
+        contract.callee,
+        2,
+        vec![EvidenceId(1)],
+    ));
 
     assert!(
         eval_proven_collection_op(&il, &interner, call).is_none(),

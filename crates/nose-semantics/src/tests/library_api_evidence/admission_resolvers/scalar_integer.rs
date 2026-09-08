@@ -29,7 +29,7 @@ fn rust_integer_method_call_il(method: &str, arg_count: usize) -> (Il, Interner,
 }
 
 fn push_integer_receiver_dependency(il: &mut Il, receiver: NodeId) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
         EvidenceKind::Domain(DomainEvidence::Integer),
@@ -71,7 +71,7 @@ fn java_math_call_il(method: &str, arg_count: usize) -> (Il, Interner, NodeId, N
 }
 
 fn push_java_math_receiver_dependency(il: &mut Il, math: NodeId) {
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(il.node(math).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -89,7 +89,7 @@ fn push_java_math_arg_dependencies(il: &mut Il, call: NodeId, first_id: u32) -> 
         .enumerate()
         .map(|(idx, arg)| {
             let id = first_id + idx as u32;
-            il.evidence.push(evidence(
+            il.push_evidence(evidence(
                 id,
                 EvidenceAnchor::node(il.node(arg).span, il.kind(arg)),
                 EvidenceKind::Domain(DomainEvidence::Integer),
@@ -121,17 +121,15 @@ fn admitted_rust_scalar_integer_method_requires_integer_method_builtin_pack_prov
 
     let (mut missing_dependency, interner, call, _receiver) =
         rust_integer_method_call_il("clamp", 2);
-    missing_dependency
-        .evidence
-        .push(rust_stdlib_integer_method_record(
-            1,
-            missing_dependency.node(call).span,
-            contract.id,
-            contract.callee,
-            2,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(rust_stdlib_integer_method_record(
+        1,
+        missing_dependency.node(call).span,
+        contract.id,
+        contract.callee,
+        2,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     assert!(
         admitted_scalar_integer_method_at_call(&missing_dependency, &interner, call).is_none(),
         "same-span Rust integer method evidence without integer receiver proof is rejected"
@@ -139,19 +137,17 @@ fn admitted_rust_scalar_integer_method_requires_integer_method_builtin_pack_prov
 
     let (mut wrong_pack, interner, call, receiver) = rust_integer_method_call_il("clamp", 2);
     push_integer_receiver_dependency(&mut wrong_pack, receiver);
-    wrong_pack
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            wrong_pack.node(call).span,
-            contract.id,
-            contract.callee,
-            2,
-            EvidenceStatus::Asserted,
-            &[0],
-            BUILTIN_COMPAT_PACK_ID,
-            RUST_STDLIB_INTEGER_METHOD_PRODUCER_ID,
-        ));
+    wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        wrong_pack.node(call).span,
+        contract.id,
+        contract.callee,
+        2,
+        EvidenceStatus::Asserted,
+        &[0],
+        BUILTIN_COMPAT_PACK_ID,
+        RUST_STDLIB_INTEGER_METHOD_PRODUCER_ID,
+    ));
     assert!(
         admitted_scalar_integer_method_at_call(&wrong_pack, &interner, call).is_none(),
         "Rust integer method evidence under the compatibility pack is rejected"
@@ -159,19 +155,17 @@ fn admitted_rust_scalar_integer_method_requires_integer_method_builtin_pack_prov
 
     let (mut wrong_producer, interner, call, receiver) = rust_integer_method_call_il("clamp", 2);
     push_integer_receiver_dependency(&mut wrong_producer, receiver);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            2,
-            EvidenceStatus::Asserted,
-            &[0],
-            RUST_STDLIB_INTEGER_METHOD_PACK_ID,
-            "wrong.rust.stdlib.integer-method-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        2,
+        EvidenceStatus::Asserted,
+        &[0],
+        RUST_STDLIB_INTEGER_METHOD_PACK_ID,
+        "wrong.rust.stdlib.integer-method-api",
+    ));
     assert!(
         admitted_scalar_integer_method_at_call(&wrong_producer, &interner, call).is_none(),
         "Rust integer method evidence with the wrong producer is rejected"
@@ -189,7 +183,7 @@ fn admitted_rust_scalar_integer_method_requires_integer_method_builtin_pack_prov
         &[0],
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     assert!(
         admitted_scalar_integer_method_at_call(&wrong_emitter, &interner, call).is_none(),
         "Rust integer method evidence from an external emitter is rejected"
@@ -197,7 +191,7 @@ fn admitted_rust_scalar_integer_method_requires_integer_method_builtin_pack_prov
 
     let (mut admitted, interner, call, receiver) = rust_integer_method_call_il("clamp", 2);
     push_integer_receiver_dependency(&mut admitted, receiver);
-    admitted.evidence.push(rust_stdlib_integer_method_record(
+    admitted.push_evidence(rust_stdlib_integer_method_record(
         1,
         admitted.node(call).span,
         contract.id,
@@ -220,7 +214,7 @@ fn assert_admitted_java_math_method(method: &str, arg_count: usize, semantic: Sc
     let dependencies = push_java_math_dependencies(&mut il, call, math);
     let contract = library_scalar_integer_method_contract(Lang::Java, method, arg_count)
         .expect("Java Math scalar integer contract");
-    il.evidence.push(java_stdlib_math_record(
+    il.push_evidence(java_stdlib_math_record(
         10,
         il.node(call).span,
         contract.id,
@@ -251,7 +245,7 @@ fn admitted_java_scalar_integer_method_requires_math_builtin_pack_provenance() {
         .expect("Java Math.abs contract");
 
     let (mut missing_dependency, interner, call, _math) = java_math_call_il("abs", 1);
-    missing_dependency.evidence.push(java_stdlib_math_record(
+    missing_dependency.push_evidence(java_stdlib_math_record(
         1,
         missing_dependency.node(call).span,
         contract.id,
@@ -267,7 +261,7 @@ fn admitted_java_scalar_integer_method_requires_math_builtin_pack_provenance() {
 
     let (mut missing_arg_domain, interner, call, math) = java_math_call_il("abs", 1);
     push_java_math_receiver_dependency(&mut missing_arg_domain, math);
-    missing_arg_domain.evidence.push(java_stdlib_math_record(
+    missing_arg_domain.push_evidence(java_stdlib_math_record(
         1,
         missing_arg_domain.node(call).span,
         contract.id,
@@ -283,7 +277,7 @@ fn admitted_java_scalar_integer_method_requires_math_builtin_pack_provenance() {
 
     let (mut wrong_pack, interner, call, math) = java_math_call_il("abs", 1);
     let dependencies = push_java_math_dependencies(&mut wrong_pack, call, math);
-    wrong_pack.evidence.push(library_api_record_with_provenance(
+    wrong_pack.push_evidence(library_api_record_with_provenance(
         10,
         wrong_pack.node(call).span,
         contract.id,
@@ -300,18 +294,16 @@ fn admitted_java_scalar_integer_method_requires_math_builtin_pack_provenance() {
 
     let (mut wrong_producer, interner, call, math) = java_math_call_il("abs", 1);
     let dependencies = push_java_math_dependencies(&mut wrong_producer, call, math);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance(
-            10,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &dependencies,
-            JAVA_STDLIB_MATH_PACK_ID,
-            "wrong.java.stdlib.math-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance(
+        10,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &dependencies,
+        JAVA_STDLIB_MATH_PACK_ID,
+        "wrong.java.stdlib.math-api",
+    ));
     assert!(
         admitted_scalar_integer_method_at_call(&wrong_producer, &interner, call).is_none(),
         "Java Math evidence with the wrong producer is rejected"
@@ -329,7 +321,7 @@ fn admitted_java_scalar_integer_method_requires_math_builtin_pack_provenance() {
         &dependencies,
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     assert!(
         admitted_scalar_integer_method_at_call(&wrong_emitter, &interner, call).is_none(),
         "Java Math evidence from an external emitter is rejected"
@@ -356,7 +348,7 @@ fn java_math_receiver_dependency_rejects_conflicting_symbol_identity() {
         )
     );
 
-    il.evidence.push(language_core_symbol_record(
+    il.push_evidence(language_core_symbol_record(
         9,
         EvidenceAnchor::node(il.node(math).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -378,7 +370,7 @@ fn forged_java_scalar_integer_method_evidence_does_not_open_unsupported_arity() 
         .expect("Java Math.abs contract");
     let (mut unsupported_arity, interner, call, math) = java_math_call_il("abs", 2);
     let dependencies = push_java_math_dependencies(&mut unsupported_arity, call, math);
-    unsupported_arity.evidence.push(java_stdlib_math_record(
+    unsupported_arity.push_evidence(java_stdlib_math_record(
         10,
         unsupported_arity.node(call).span,
         contract.id,

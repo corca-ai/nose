@@ -1,9 +1,11 @@
+mod query_limits;
 use crate::query_options::{
-    parse_bands, parse_min_value, parse_minhash_k, parse_threshold, DetectionMode, FailOn,
-    ReportFormat, SortKey,
+    parse_bands, parse_minhash_k, parse_threshold, DetectionMode, FailOn, ReportFormat, SortKey,
 };
+pub(crate) use crate::region_commands::RegionCmd;
 use crate::semantic_pack;
 use clap::{Parser, Subcommand};
+pub(crate) use query_limits::QueryLimits;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -22,6 +24,11 @@ pub(crate) struct Cli {
 
 #[derive(Subcommand)]
 pub(crate) enum Cmd {
+    /// Capture source regions or compare two explicit region snapshots.
+    Regions {
+        #[command(subcommand)]
+        cmd: RegionCmd,
+    },
     /// Research interface for raw unit clone pairs/groups.
     /// Hidden: `query` is the user-facing command; `detect` is the strict/research
     /// and benchmark interface (`--bench-schema`, `--dump`, …).
@@ -91,10 +98,29 @@ pub(crate) enum Cmd {
     /// nose finds duplication in code and docs.
     ///
     /// nose finds; you judge. Filter, group, sort, or open families to explore.
+    /// Start: nose query <path> → group=dir → id=ID full.
+    /// Filters: scope=prod|test|mixed, witness=exact|similar, 'files>1', 'shared>5', 'path~api'.
+    /// Operators: = != > < ~ !~; comma means OR, separate terms mean AND. Quote < and > in your shell.
+    /// Numbers must be finite; >= and <= are unsupported and return errors.
+    /// dir= matches the representative's parent directory; path~ matches any copy, including cross-directory families.
+    /// Navigate: group=dir|file|scope|witness, id=ID, at=FILE:LINE, sort=value|sites, top=N, all.
+    /// Details: full shows source comparisons; member-id=ID full shows one copy; member-path~TEXT full selects source by path.
+    /// Context: on a member, follow Inspect surrounding code or add member-context=20 full for bounded nearby lines.
+    ///
+    /// Save with --save-analysis FILE. Compare saved populations with --before/--after;
+    /// follow next commands, group=reason, evidence=recheck, change=ID and full.
+    /// New captures also accept the original live id=ID; it selects recorded observations, not edit ancestry.
+    /// On id=, follow member-group=dir|lang|scope to explore copies within a family.
+    /// On change=, --before-source/--after-source DIR verify historical source bytes.
+    /// Record your judgment with --write-review FILE --decision VALUE --reason TEXT;
+    /// supply --reviews FILE later and filter review=applicable|recheck|unreviewed.
+    /// Use nose capabilities for comparison fields and reason values.
     #[command(
-        override_usage = "nose query <path> [terms...] [OPTIONS]\n       nose query --root <path> --root <path> [terms...] [OPTIONS]"
+        override_usage = "nose query <path> [terms...] [OPTIONS]\n       nose query --root <path> --root <path> [terms...] [OPTIONS]\n       nose query --before FILE --after FILE [terms...] [OPTIONS]"
     )]
     Query {
+        #[command(flatten)]
+        analysis: Box<crate::query_evolution::AnalysisArgs>,
         /// Additional root path to analyze; repeat for multi-root queries.
         #[arg(short = 'r', long = "root", value_name = "PATH")]
         roots: Vec<PathBuf>,
@@ -112,18 +138,8 @@ pub(crate) enum Cmd {
         /// or repeat the flag; fuzzy channels take an inline threshold (`near:0.8`).
         #[arg(long, value_delimiter = ',')]
         mode: Vec<DetectionMode>,
-        /// Ignore units smaller than this size, in IL tokens (the unit's node count). [default: 24]
-        #[arg(long)]
-        min_size: Option<usize>,
-        /// Advanced: also require this many source lines (most uses only need --min-size). [default: 5]
-        #[arg(long, hide = true)]
-        min_lines: Option<u32>,
-        /// Hide families whose refactoring value is below this (noise floor on large repos).
-        #[arg(long, value_parser = parse_min_value)]
-        min_value: Option<f64>,
-        /// Keep only families with at least this many duplicated copies. [default: 2]
-        #[arg(long)]
-        min_members: Option<usize>,
+        #[command(flatten)]
+        limits: Box<QueryLimits>,
         /// Skip paths matching a gitignore-style glob (repeatable). (.gitignore is already respected.)
         #[arg(long)]
         exclude: Vec<String>,
@@ -148,6 +164,12 @@ pub(crate) enum Cmd {
         /// Read defaults from this config file (else `nose.toml`/`.nose.toml`).
         #[arg(long, value_name = "FILE")]
         config: Option<PathBuf>,
+        /// Find configuration at the common analysis root (instead of the working directory).
+        #[arg(long, conflicts_with = "config")]
+        config_root: bool,
+        /// Print the effective analysis settings and their config source, then exit.
+        #[arg(long, conflicts_with = "watch")]
+        show_config: bool,
         /// CI gate — exit non-zero when default-surface families are reported: `any`, or
         /// `new` (only new/changed vs `--baseline`).
         #[arg(long, value_name = "WHAT")]
@@ -479,6 +501,7 @@ pub(crate) enum StatsFormat {
 
 #[derive(Clone)]
 pub(crate) struct QueryArgs {
+    pub(crate) max_candidate_pairs: Option<usize>,
     pub(crate) paths: Vec<PathBuf>,
     pub(crate) min_members: Option<usize>,
     pub(crate) min_value: Option<f64>,

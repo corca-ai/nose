@@ -24,6 +24,8 @@ fn query_with_limit(project: &Path, cache: &Path, limit: Option<&str>) -> Output
         project.to_str().unwrap(),
         "all",
         "top=0",
+        "--mode",
+        "semantic",
         "--format",
         "json",
         "--cache-dir",
@@ -69,6 +71,8 @@ fn concurrent_processes_publish_one_readable_store() {
             project.path().to_str().unwrap(),
             "all",
             "top=0",
+            "--mode",
+            "semantic",
             "--format",
             "json",
             "--cache-dir",
@@ -83,12 +87,9 @@ fn concurrent_processes_publish_one_readable_store() {
     let second = second.wait_with_output().expect("join second cache writer");
     assert!(first.status.success());
     assert!(second.status.success());
-    assert_eq!(first.stdout, clean.stdout);
-    assert_eq!(second.stdout, clean.stdout);
-    assert_eq!(
-        query_with_limit(project.path(), &cache, None).stdout,
-        clean.stdout
-    );
+    assert_same_analysis_output(&first, &clean);
+    assert_same_analysis_output(&second, &clean);
+    assert_same_analysis_output(&query_with_limit(project.path(), &cache, None), &clean);
 }
 
 #[test]
@@ -96,10 +97,7 @@ fn corruption_and_truncation_recompute_without_changing_output() {
     let project = clone_project("cache_corruption_v2");
     let cache = project.path().join(".cache");
     let clean = query(project.path(), None);
-    assert_eq!(
-        query_with_limit(project.path(), &cache, None).stdout,
-        clean.stdout
-    );
+    assert_same_analysis_output(&query_with_limit(project.path(), &cache, None), &clean);
     let files = managed_files(&cache);
     assert!(files
         .iter()
@@ -124,7 +122,7 @@ fn corruption_and_truncation_recompute_without_changing_output() {
         fs::write(path, bytes).unwrap();
     }
     let repaired = query_with_limit(project.path(), &cache, None);
-    assert_eq!(repaired.stdout, clean.stdout);
+    assert_same_analysis_output(&repaired, &clean);
     assert!(
         String::from_utf8_lossy(&repaired.stderr).contains("ignoring corrupt cache"),
         "corrupt entries should produce actionable warnings"
@@ -137,7 +135,7 @@ fn eviction_and_cache_commands_affect_performance_only() {
     let cache = project.path().join(".cache");
     let clean = query(project.path(), None);
     let bounded = query_with_limit(project.path(), &cache, Some("1KiB"));
-    assert_eq!(bounded.stdout, clean.stdout);
+    assert_same_analysis_output(&bounded, &clean);
 
     let status = Command::new(bin())
         .args([
@@ -169,10 +167,7 @@ fn eviction_and_cache_commands_affect_performance_only() {
         .output()
         .unwrap();
     assert!(cleared.status.success());
-    assert_eq!(
-        query_with_limit(project.path(), &cache, None).stdout,
-        clean.stdout
-    );
+    assert_same_analysis_output(&query_with_limit(project.path(), &cache, None), &clean);
 }
 
 #[cfg(unix)]
@@ -181,24 +176,21 @@ fn read_only_store_hits_and_computes_misses() {
     let project = clone_project("cache_read_only");
     let cache = project.path().join(".cache");
     let clean = query(project.path(), None);
-    assert_eq!(
-        query_with_limit(project.path(), &cache, None).stdout,
-        clean.stdout
-    );
+    assert_same_analysis_output(&query_with_limit(project.path(), &cache, None), &clean);
     let protected = Command::new("chmod")
         .args(["-R", "a-w", cache.to_str().unwrap()])
         .status()
         .unwrap();
     assert!(protected.success());
     let warm = query_with_limit(project.path(), &cache, None);
-    assert_eq!(warm.stdout, clean.stdout);
+    assert_same_analysis_output(&warm, &clean);
     project.write(
         "c/three.py",
         "def three(items):\n    return sum(item * item for item in items if item > 0)\n",
     );
     let clean_changed = query(project.path(), None);
     let read_only_miss = query_with_limit(project.path(), &cache, None);
-    assert_eq!(read_only_miss.stdout, clean_changed.stdout);
+    assert_same_analysis_output(&read_only_miss, &clean_changed);
     let _ = Command::new("chmod")
         .args(["-R", "u+w", cache.to_str().unwrap()])
         .status();

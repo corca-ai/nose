@@ -7,6 +7,7 @@ pub(super) fn render(
     path: &str,
     top: Option<usize>,
     semantic_packs: &[serde_json::Value],
+    actions: &[serde_json::Value],
 ) {
     let limit = query_row_limit(top);
     let items: Vec<_> = divergence::divergence_items_json(flagged)
@@ -36,7 +37,8 @@ pub(super) fn render(
                     "strict": flagged.iter().filter(|d| d.gate_fail_default()).count(),
                 },
                 "items": items,
-                "next": [format!("nose query {path} base={base_ref} --fail-on any")],
+                "next": actions.iter().map(|a| &a["command"]).collect::<Vec<_>>(),
+                "actions":actions,
             }),
             semantic_packs
         )

@@ -13,13 +13,18 @@ use crate::schema_versions;
 use crate::style;
 use crate::surfaces::{surface_omission_note, SurfaceOverrides};
 
+mod navigation;
+mod population;
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn query_dashboard_json(
+    analysis: &serde_json::Value,
     families: &[nose_detect::RefactorFamily],
     ov: &SurfaceOverrides,
     opp: &OpportunityGroups,
     scope: &QueryScope,
     path: &str,
+    navigation_path: &str,
     reinvented_prod: usize,
     baseline_cmp: Option<&BaselineComparison>,
     since: Option<&BaselineComparison>,
@@ -33,7 +38,7 @@ pub(crate) fn query_dashboard_json(
     let count = |kind: &str| {
         def.iter()
             .filter(|family| {
-                witness_token(family.witness.as_ref().map(|witness| witness.kind)) == kind
+                witness_token(family.witness.as_ref().map(|witness| witness.kind())) == kind
             })
             .count()
     };
@@ -42,17 +47,28 @@ pub(crate) fn query_dashboard_json(
         .take(5)
         .map(|family| query_family_json(family, ov, opp, false, baseline_cmp, since))
         .collect::<Vec<_>>();
+    let mut next: Vec<_> = navigation::routes(&def, analysis, navigation_path, true)
+        .into_iter()
+        .map(|(_, command)| command)
+        .collect();
+    next.extend(
+        ["sort=extractability", "group=dir", "witness=exact", "all"]
+            .map(|term| format!("nose query {navigation_path} {term} --format json")),
+    );
     with_semantic_packs(
         serde_json::json!({
             "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
             "tool": "nose",
             "view": "dashboard",
+            "analysis": analysis,
             "path": path,
+            "population": population::describe(families, ov, opp),
             "summary": {
                 "scanned_files": scope.files,
+                "skipped_sources": scope.skipped_sources,
                 "families": def.len(),
                 "by_confidence": {"exact": count("exact"), "subdag": count("subdag"),
-                    "bounded_window": count("bounded-window"),
+                    "bounded_window": count("bounded-window"), "connected": count("connected"),
                     "copy_paste": count("copy-paste"), "similar": count("similar")},
                 "reinvented": reinvented_prod,
                 "shown": top.len(),
@@ -60,8 +76,7 @@ pub(crate) fn query_dashboard_json(
             "families": top,
             "top_candidates": top,
             "markdown": markdown.dashboard_json(),
-            "next": [format!("nose query {path} sort=extractability"), format!("nose query {path} group=dir"),
-                format!("nose query {path} witness=exact"), format!("nose query {path} all")],
+            "next": next,
         }),
         semantic_packs,
     )
@@ -106,11 +121,13 @@ fn print_candidates(rows: &[&nose_detect::RefactorFamily], path: &str, opp: &Opp
 #[allow(clippy::too_many_lines)]
 #[allow(clippy::too_many_arguments)] // a self-describing landing view over several dataset facets
 pub(super) fn render_query_dashboard(
+    analysis: &serde_json::Value,
     families: &[nose_detect::RefactorFamily],
     ov: &SurfaceOverrides,
     opp: &OpportunityGroups,
     scope: &QueryScope,
     path: &str,
+    navigation_path: &str,
     reinvented_prod: usize,
     json: bool,
     baseline_cmp: Option<&BaselineComparison>,
@@ -128,18 +145,20 @@ pub(super) fn render_query_dashboard(
     // filter, never a demotion.
     let count = |k: &str| {
         def.iter()
-            .filter(|f| witness_token(f.witness.as_ref().map(|w| w.kind)) == k)
+            .filter(|f| witness_token(f.witness.as_ref().map(|w| w.kind())) == k)
             .count()
     };
     if json {
         println!(
             "{}",
             query_dashboard_json(
+                analysis,
                 families,
                 ov,
                 opp,
                 scope,
                 path,
+                navigation_path,
                 reinvented_prod,
                 baseline_cmp,
                 since,
@@ -149,20 +168,24 @@ pub(super) fn render_query_dashboard(
         );
         return;
     }
+    let path = navigation_path;
     println!("{}", scope.summary());
-    let n_proven = count("exact") + count("subdag") + count("bounded-window");
+    let n_proven = count("exact") + count("subdag") + count("connected") + count("bounded-window");
     println!(
         "\n{} duplicated-code {}.",
         style::bold(&def.len().to_string()),
         plural(def.len(), "family", "families"),
     );
+    population::render(&population::describe(families, ov, opp));
     println!(
-        "  {} {n_proven} ({} {} · {} {} · {} {}) · {} {} · {} {}",
+        "  {} {n_proven} ({} {} · {} {} · {} {} · {} {}) · {} {} · {} {}",
         style::bold_green("verified"),
         style::green("exact"),
         count("exact"),
         style::green("shared-core"),
         count("subdag"),
+        style::green("connected-core"),
+        count("connected"),
         style::green("bounded-window"),
         count("bounded-window"),
         style::yellow("copy-paste"),
@@ -174,6 +197,10 @@ pub(super) fn render_query_dashboard(
         "  {}",
         style::dim("verified = machine-checked evidence · exact = same unit behavior · shared-core = shared computation · bounded-window = disjoint regions in one unit")
     );
+    println!("\nChoose a starting point (directory hints; findings remain available):");
+    for (label, command) in navigation::routes(&def, analysis, path, false) {
+        println!("  {label}: {command}");
+    }
     // The "best candidates" lead only makes sense when the default surface has
     // something on it. With an empty surface we skip it (a `sort=extractability` link into
     // an empty list is a dead end); the closing footer still offers `all` when families
@@ -188,19 +215,16 @@ pub(super) fn render_query_dashboard(
         );
     }
 
-    let kind_of = |k: &str| {
-        def.iter()
-            .filter(|f| f.witness.as_ref().map(|w| w.kind) == Some(k))
-            .count()
-    };
-    let n_exact = kind_of("exact-value-graph");
-    let n_subdag = kind_of("shared-sub-dag") + kind_of("connected-mapped-sub-dag");
-    let n_bounded = kind_of("bounded-same-unit-window");
+    let selected_count = |witness| navigation::witness_count(families, ov, opp, path, witness);
+    let n_exact = selected_count("exact");
+    let n_subdag = selected_count("shared-core");
+    let n_connected = selected_count("connected");
+    let n_bounded = selected_count("bounded-window");
     let proven: Vec<_> = def
         .iter()
         .filter(|f| {
             matches!(
-                f.witness.as_ref().map(|w| w.kind),
+                f.witness.as_ref().map(|w| w.kind()),
                 Some("exact-value-graph")
                     | Some("shared-sub-dag")
                     | Some("connected-mapped-sub-dag")
@@ -215,6 +239,7 @@ pub(super) fn render_query_dashboard(
         );
         let top: Vec<&nose_detect::RefactorFamily> = proven.iter().take(3).map(|f| **f).collect();
         print_candidates(&top, path, opp);
+        println!("  Filter counts include overlapping families exposed when their representative is outside the selection.");
         if n_exact > 0 {
             println!(
                 "  nose query {path} witness=exact             {}",
@@ -232,6 +257,9 @@ pub(super) fn render_query_dashboard(
                     plural(n_bounded, "family", "families")
                 ))
             );
+        }
+        if n_connected > 0 {
+            println!("  nose query {path} witness=connected         # the {n_connected} connected-core families");
         }
         if n_subdag > 0 {
             println!(
@@ -259,7 +287,8 @@ pub(super) fn render_query_dashboard(
         println!("\n{}", style::bold("most-duplicated directories:"));
         for (d, (_dup, n)) in dirs.iter().take(3) {
             println!(
-                "  nose query {path} path~{d}   {}",
+                "  nose query {path} {}   {}",
+                crate::path_utils::shell_quote(&format!("path~{d}")),
                 style::dim(&format!("# {n} {}", plural(*n, "family", "families")))
             );
         }
@@ -272,13 +301,13 @@ pub(super) fn render_query_dashboard(
         println!(
             "\n{}",
             style::bold(&format!(
-                "{reinvented_prod} place{} reimplement an existing helper — call it instead:",
+                "{reinvented_prod} place{} match an existing helper computation — inspect reuse:",
                 if reinvented_prod == 1 { "" } else { "s" }
             ))
         );
         println!(
             "  nose query {path} reinvented                 {}",
-            style::dim("# the call-the-helper findings")
+            style::dim("# shared computations and reuse candidates")
         );
     }
     // Repo-level magnitude + what the default surface omitted.
@@ -292,7 +321,7 @@ pub(super) fn render_query_dashboard(
     );
     println!(
         "\n{}",
-        style::bold("next commands — replace <path> with your path; terms combine with AND:")
+        style::bold("next commands — terms combine with AND:")
     );
     for (verb, cmd, note) in [
         (
@@ -302,7 +331,7 @@ pub(super) fn render_query_dashboard(
         ),
         (
             "",
-            "nose query <path> members>3 path~api",
+            "nose query <path> 'members>3' path~api",
             "compare with > < , ~ (contains), != (negate)",
         ),
         (
@@ -312,8 +341,8 @@ pub(super) fn render_query_dashboard(
         ),
         (
             "open",
-            "nose query <path> id=<id> full",
-            "one family: every copy + the extraction skeleton",
+            "nose query <path> id=ID full",
+            "one family: every copy + the bounded source comparison",
         ),
         (
             "sort",
@@ -326,6 +355,7 @@ pub(super) fn render_query_dashboard(
             "include families held back below the default surface",
         ),
     ] {
+        let cmd = cmd.replace("<path>", path);
         println!(
             "  {}  {cmd:<37}  {}",
             style::bold(&format!("{verb:<6}")),

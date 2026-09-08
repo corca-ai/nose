@@ -143,7 +143,7 @@ impl SemanticPackExternalExactRegistry {
                     continue;
                 };
                 let api_id = EvidenceId(next_id);
-                il.evidence.push(EvidenceRecord::new(
+                il.push_evidence(EvidenceRecord::new(
                     api_id,
                     EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
                     EvidenceKind::LibraryApi(LibraryApiEvidenceKind::ExternalCollectionFactory {
@@ -157,7 +157,7 @@ impl SemanticPackExternalExactRegistry {
                     EvidenceStatus::Asserted,
                 ));
                 next_id = next_id.saturating_add(1);
-                il.evidence.push(EvidenceRecord::new(
+                il.push_evidence(EvidenceRecord::new(
                     EvidenceId(next_id),
                     EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
                     EvidenceKind::Domain(DomainEvidence::Collection),

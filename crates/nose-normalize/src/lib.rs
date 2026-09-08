@@ -37,8 +37,8 @@ mod value_graph;
 
 pub use commutative::{node_tag, node_tag_valued, subtree_hashes, valued_tree_hash};
 pub use interp::{
-    behavior_equiv, behavior_has_sym, run_unit, run_unit_observing_exit, run_unit_paths,
-    run_unit_paths_diagnostic, run_unit_paths_diagnostic_with_module_strings,
+    behavior_equiv, behavior_has_sym, keyed_membership_value, run_unit, run_unit_observing_exit,
+    run_unit_paths, run_unit_paths_diagnostic, run_unit_paths_diagnostic_with_module_strings,
     run_unit_paths_observing_exit_diagnostic,
     run_unit_paths_observing_exit_diagnostic_with_module_strings, Behavior, InterpreterBlocker,
     InterpreterBlockerFrame, PreparedInterpreter, UnitExit, Value, F64, MAX_SYM_BRANCH_SITES,
@@ -49,8 +49,9 @@ pub use value_graph::{
     value_fingerprint_contracts, value_fingerprint_lits, value_fingerprint_lits_anchors,
     value_fingerprint_lits_anchors_laws, value_fingerprint_lits_anchors_laws_with_context,
     value_fingerprint_lits_anchors_with_context, value_fingerprint_lits_with_context,
-    value_graph_opaque_census, Anchor, Anchors, FingerprintBundle, FingerprintLawBundle,
-    ValueFingerprintContext, ANCHOR_MIN_WEIGHT, CONTAINMENT_ANCHOR_MIN_WEIGHT,
+    value_fingerprint_with_review, value_graph_opaque_census, Anchor, Anchors, FingerprintBundle,
+    FingerprintLawBundle, ReviewValueFingerprint, ValueFingerprintContext, ANCHOR_MIN_WEIGHT,
+    CONTAINMENT_ANCHOR_MIN_WEIGHT,
 };
 pub use value_graph::{
     bin_is_commutative, value_dag, FileReferents, ValueDag, VgNode, VgOp, VgReferent, VgSink,
@@ -115,25 +116,26 @@ pub(crate) fn collect_scope(
     params: &mut FxHashSet<u32>,
     nested: &mut Vec<NodeId>,
 ) {
-    let kind = il.kind(node);
-    if kind == NodeKind::Func && !is_root {
-        nested.push(node);
-        return; // scope boundary
-    }
-    if kind == NodeKind::Param {
-        if let Payload::Cid(c) = il.node(node).payload {
-            params.insert(c);
+    let mut pending = vec![(node, is_root)];
+    while let Some((node, is_root)) = pending.pop() {
+        let kind = il.kind(node);
+        if kind == NodeKind::Func && !is_root {
+            nested.push(node);
+            continue;
         }
-    }
-    if kind == NodeKind::Assign {
-        if let Some(&lhs) = il.children(node).first() {
-            if il.kind(lhs) == NodeKind::Var {
-                defs.insert(lhs.0);
+        if kind == NodeKind::Param {
+            if let Payload::Cid(c) = il.node(node).payload {
+                params.insert(c);
             }
         }
-    }
-    for &c in il.children(node) {
-        collect_scope(il, c, false, defs, params, nested);
+        if kind == NodeKind::Assign {
+            if let Some(&lhs) = il.children(node).first() {
+                if il.kind(lhs) == NodeKind::Var {
+                    defs.insert(lhs.0);
+                }
+            }
+        }
+        pending.extend(il.children(node).iter().rev().map(|&child| (child, false)));
     }
 }
 
@@ -174,7 +176,7 @@ pub(crate) fn finalize_rebuild(
         lang: old.meta.lang,
     };
     let mut out = builder.finish(new_root, meta, units, cid_names);
-    out.evidence = old.evidence.clone();
+    (*out.evidence_mut()) = old.evidence.clone();
     out
 }
 
@@ -262,6 +264,12 @@ pub(crate) fn declarative_fingerprint(
 }
 
 pub fn normalize(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
+    let mut out = normalize_inner(il, interner, opts);
+    out.source = il.source.clone();
+    out
+}
+
+fn normalize_inner(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
     let mut timer = NormalizeTimer::new(&il.meta.path);
     let mut out = desugar::run(il, interner, opts);
     timer.lap("desugar");

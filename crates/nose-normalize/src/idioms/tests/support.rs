@@ -101,7 +101,7 @@ pub(super) fn push_sequence_surface_evidence(
     surface: SequenceSurfaceKind,
 ) -> EvidenceId {
     let id = next_evidence_id(il);
-    il.evidence.push(sequence_surface_evidence(
+    il.push_evidence(sequence_surface_evidence(
         id,
         il.meta.lang,
         il.node(node).span,
@@ -129,7 +129,7 @@ pub(super) fn push_imported_namespace_use(
     let symbol = SymbolEvidenceKind::ImportedNamespace {
         module_hash: stable_symbol_hash(module),
     };
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         binding_id,
         il.meta.lang,
         EvidenceAnchor::binding(sp(), stable_symbol_hash(module)),
@@ -144,7 +144,7 @@ pub(super) fn push_imported_namespace_use(
         EvidenceStatus::Asserted,
     );
     occurrence.dependencies = vec![EvidenceId(binding_id)];
-    il.evidence.push(occurrence);
+    il.push_evidence(occurrence);
 }
 
 pub(super) fn push_receiver_method_library_api_evidence(
@@ -188,7 +188,7 @@ pub(super) fn push_receiver_method_library_api_evidence(
     );
     record.provenance.pack_hash = Some(stable_symbol_hash(contract.pack_id));
     record.provenance.rule_hash = Some(stable_symbol_hash(contract.rule));
-    il.evidence.push(record);
+    il.push_evidence(record);
     Some(EvidenceId(id))
 }
 
@@ -208,7 +208,7 @@ pub(super) fn push_free_function_builtin_library_api_evidence(
     let name = interner.resolve(symbol);
     let contract = library_free_function_builtin_contract(il.meta.lang, name, arg_count)?;
     let symbol_id = next_evidence_id(il);
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         symbol_id,
         il.meta.lang,
         EvidenceAnchor::node(callee_span, NodeKind::Var),
@@ -218,7 +218,7 @@ pub(super) fn push_free_function_builtin_library_api_evidence(
         EvidenceStatus::Asserted,
     ));
     let id = next_evidence_id(il);
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         id,
         EvidenceAnchor::node(call_span, NodeKind::Call),
         EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
@@ -254,7 +254,7 @@ pub(super) fn push_free_function_hof_library_api_evidence(
     let contract = library_free_function_hof_contract(il.meta.lang, name, arg_count)?;
     let source = args.get(contract.result.source_arg).copied()?;
     let symbol_id = next_evidence_id(il);
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         symbol_id,
         il.meta.lang,
         EvidenceAnchor::node(callee_span, NodeKind::Var),
@@ -264,7 +264,7 @@ pub(super) fn push_free_function_hof_library_api_evidence(
         EvidenceStatus::Asserted,
     ));
     let source_id = next_evidence_id(il);
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         source_id,
         il.meta.lang,
         EvidenceAnchor::node(il.node(source).span, il.kind(source)),
@@ -272,7 +272,7 @@ pub(super) fn push_free_function_hof_library_api_evidence(
         EvidenceStatus::Asserted,
     ));
     let id = next_evidence_id(il);
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         id,
         EvidenceAnchor::node(call_span, NodeKind::Call),
         EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {

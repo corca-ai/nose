@@ -63,7 +63,7 @@ fn push_canonical_java_minmax_builtin_evidence(il: &mut Il, first_id: u32) {
             .expect("min/max integer contract");
         let math_id = next_id;
         next_id += 1;
-        il.evidence.push(language_core_symbol_evidence(
+        il.push_evidence(language_core_symbol_evidence(
             math_id,
             il.meta.lang,
             EvidenceAnchor::node(il.node(node).span, NodeKind::Var),
@@ -79,14 +79,14 @@ fn push_canonical_java_minmax_builtin_evidence(il: &mut Il, first_id: u32) {
             }
             let arg_id = next_id;
             next_id += 1;
-            il.evidence.push(evidence(
+            il.push_evidence(evidence(
                 arg_id,
                 EvidenceAnchor::node(il.node(arg).span, il.kind(arg)),
                 EvidenceKind::Domain(DomainEvidence::Integer),
             ));
             dependencies.push(EvidenceId(arg_id));
         }
-        il.evidence.push(java_stdlib_math_evidence(
+        il.push_evidence(java_stdlib_math_evidence(
             next_id,
             il.node(node).span,
             contract.id,
@@ -107,7 +107,7 @@ fn push_bound_order_guard_evidence(
     activation: BoundOrderGuardActivation,
     dependencies: Vec<EvidenceId>,
 ) {
-    il.evidence.push(language_core_evidence_with_dependencies(
+    il.push_evidence(language_core_evidence_with_dependencies(
         id,
         il.meta.lang,
         EvidenceAnchor::node(il.node(cond).span, NodeKind::BinOp),
@@ -275,7 +275,7 @@ fn guarded_function(
     );
     for (idx, semantic) in semantics.into_iter().enumerate() {
         if let Some(semantic) = semantic {
-            il.evidence.push(evidence(
+            il.push_evidence(evidence(
                 idx as u32,
                 EvidenceAnchor::param(sp(idx as u32 + 1)),
                 EvidenceKind::Domain(DomainEvidence::from_param_semantic(semantic)),
@@ -352,7 +352,7 @@ fn positive_branch_guarded_function(
     );
     for (idx, semantic) in semantics.into_iter().enumerate() {
         if let Some(semantic) = semantic {
-            il.evidence.push(evidence(
+            il.push_evidence(evidence(
                 idx as u32,
                 EvidenceAnchor::param(sp(idx as u32 + 1)),
                 EvidenceKind::Domain(DomainEvidence::from_param_semantic(semantic)),
@@ -406,7 +406,7 @@ fn literal_bound_function(
         }],
         Vec::new(),
     );
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(sp(1)),
         EvidenceKind::Domain(DomainEvidence::Integer),

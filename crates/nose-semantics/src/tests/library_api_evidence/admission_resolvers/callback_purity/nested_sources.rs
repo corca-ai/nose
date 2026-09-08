@@ -77,19 +77,19 @@ fn nested_effectful_source_il(normalized: bool) -> (Il, Interner, NodeId, NodeId
     );
     let root = b.add(NodeKind::Func, Payload::None, sp(918), &[outer_call]);
     let mut il = finish_il(b, root, Lang::JavaScript);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(il.node(outer_receiver).span, NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Array),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::node(il.node(nested_source).span, NodeKind::Seq),
         EvidenceKind::Domain(DomainEvidence::Array),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         4,
         EvidenceAnchor::sequence(il.node(nested_source).span),
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
@@ -98,30 +98,28 @@ fn nested_effectful_source_il(normalized: bool) -> (Il, Interner, NodeId, NodeId
     ));
     let map_contract = library_method_call_contract(Lang::JavaScript, "map", 1)
         .expect("JavaScript Array.map contract");
-    il.evidence
-        .push(library_api_record_with_provenance_and_arity(
-            2,
-            il.node(inner).span,
-            map_contract.id,
-            map_contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[1],
-            map_contract.pack_id,
-            map_contract.producer_id,
-        ));
-    il.evidence
-        .push(library_api_record_with_provenance_and_arity(
-            3,
-            il.node(outer_call).span,
-            map_contract.id,
-            map_contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            map_contract.pack_id,
-            map_contract.producer_id,
-        ));
+    il.push_evidence(library_api_record_with_provenance_and_arity(
+        2,
+        il.node(inner).span,
+        map_contract.id,
+        map_contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[1],
+        map_contract.pack_id,
+        map_contract.producer_id,
+    ));
+    il.push_evidence(library_api_record_with_provenance_and_arity(
+        3,
+        il.node(outer_call).span,
+        map_contract.id,
+        map_contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+        map_contract.pack_id,
+        map_contract.producer_id,
+    ));
     (il, interner, outer_call, inner)
 }
 

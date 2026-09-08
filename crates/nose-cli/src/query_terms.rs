@@ -2,10 +2,29 @@ use anyhow::Result;
 
 use crate::query_options::SortKey;
 
+pub(crate) fn family_by_id<'a>(
+    families: &'a [nose_detect::RefactorFamily],
+    prefix: &str,
+) -> Result<&'a nose_detect::RefactorFamily> {
+    anyhow::ensure!(!prefix.is_empty(), "family id must not be empty");
+    let mut matches = families
+        .iter()
+        .filter(|family| crate::baseline::family_id(family).starts_with(prefix));
+    let family = matches
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("no family whose id starts with `{prefix}`"))?;
+    anyhow::ensure!(
+        matches.next().is_none(),
+        "ambiguous family id `{prefix}`; use a longer id"
+    );
+    Ok(family)
+}
+
 /// A parsed query: in-memory filters over the family dataset, plus the chosen view.
 #[derive(Default)]
 pub(crate) struct Query {
     pub(crate) filters: Vec<QFilter>,
+    pub(crate) member_view: crate::query_members::Members,
     pub(crate) group: Option<String>,
     pub(crate) id: Option<String>,
     /// `at=file:line` — open the family whose member span covers that source location (a
@@ -125,6 +144,9 @@ fn qfilter(field: &str, op: QOp, value: &str, negate: bool) -> QFilter {
 pub(crate) fn parse_query(terms: &[String]) -> Result<Query> {
     let mut q = Query::default();
     for t in terms {
+        if q.member_view.parse(t)? {
+            continue;
+        }
         if t == "full" {
             q.id_full = true;
         } else if t == "all" {
@@ -168,6 +190,8 @@ pub(crate) fn parse_query(terms: &[String]) -> Result<Query> {
             );
         }
     }
+    anyhow::ensure!(!q.member_view.active() || ((q.id.is_some() || q.at.is_some()) && q.group.is_none() && !q.reinvented && q.base.is_none()),
+        "member navigation requires id= or at=; family grouping, reinvented and base= are separate views");
     for flt in &q.filters {
         validate_field(&flt.field, &flt.op)?;
         validate_filter_values(flt)?;
@@ -179,20 +203,33 @@ pub(crate) fn parse_query(terms: &[String]) -> Result<Query> {
 /// typo errors instead of silently matching nothing (which reads as "no such clones exist").
 /// Each comma-part is a member of the OR set and is checked independently.
 fn validate_filter_values(flt: &QFilter) -> Result<()> {
+    if NUM_FIELDS.contains(&flt.field.as_str()) {
+        anyhow::ensure!(
+            !matches!(flt.op, QOp::Has),
+            "numeric field `{}` does not support substring matching",
+            flt.field
+        );
+        let values = if matches!(flt.op, QOp::Eq) {
+            flt.value.split(',').collect::<Vec<_>>()
+        } else {
+            vec![flt.value.as_str()]
+        };
+        for value in values {
+            anyhow::ensure!(value.parse::<f64>().is_ok_and(f64::is_finite),
+                "numeric filter `{}` needs a finite number, got `{value}`; supported operators: = != > < (>= and <= are not supported)", flt.field);
+        }
+        return Ok(());
+    }
     if !matches!(flt.op, QOp::Eq) {
         return Ok(());
     }
+    let witness_values: Vec<_> = crate::query_model::WITNESS_ALIASES
+        .iter()
+        .flat_map(|(alias, kind)| [*alias, *kind])
+        .collect();
     let valid: Option<&[&str]> = match flt.field.as_str() {
         "scope" => Some(&["prod", "test", "mixed"]),
-        "witness" => Some(&[
-            "exact",
-            "subdag",
-            "copy-paste",
-            "similar",
-            "shared-core",
-            "copypaste",
-            "structural",
-        ]),
+        "witness" => Some(&witness_values),
         "shape" | "extraction_shape" => Some(&[
             "call-existing-helper",
             "extract-helper",

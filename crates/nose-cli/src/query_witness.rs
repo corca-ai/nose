@@ -13,7 +13,7 @@ pub(crate) fn enrich_graded_witnesses(
     let is_enrichable = |f: &nose_detect::RefactorFamily| {
         f.locations.len() >= 2
             && matches!(
-                f.witness.as_ref().map(|w| w.kind),
+                f.witness.as_ref().map(|w| w.kind()),
                 Some("structural-similarity" | "shared-sub-dag" | "connected-mapped-sub-dag")
             )
     };

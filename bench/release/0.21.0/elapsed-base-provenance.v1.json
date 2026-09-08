@@ -1,0 +1,494 @@
+{
+  "schema": "nose.release-base-provenance-correction/v1",
+  "version": "0.21.0",
+  "decision": "PENDING: semantic and base passed; default/near remain unmeasured",
+  "candidate": {
+    "source_sha": "46ed8beff78a91a8b6b2191d7f208c23774dc9e1",
+    "crates_tree": "4e087079e55711c7b03601fbdcc2d8e3e5cf9dff",
+    "product_dependencies": {
+      "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+      "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+      "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+    },
+    "binary_sha256": "c6f204c5dab5490290418510177b53341d9782b96455b4f9c087758a7dc2bc30",
+    "binary": "/Users/ak/prjs/cc/nose/target/release-elapsed-qualification-20260907/candidate-nose",
+    "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+    "build_log": "/Users/ak/prjs/cc/nose/target/release-elapsed-qualification-20260907/build.log"
+  },
+  "checker_fix_source": "c8cb6a2f6cb3b0d5bbd464dbfd5982271b900f62",
+  "bug": "Strict provenance dispatch required ordinary prune-state metadata for a pinned base workload. Correctly validate the workload manifest, source selection, ordered head/base tuples and producer/root identities instead.",
+  "policy_changed": false,
+  "measurement_repeated": false,
+  "semantic_verdict_reproduced_byte_for_byte": true,
+  "resume_design": {
+    "registered_at_utc": "2026-09-07T13:15:02.547471+00:00",
+    "candidate": {
+      "source_sha": "46ed8beff78a91a8b6b2191d7f208c23774dc9e1",
+      "crates_tree": "4e087079e55711c7b03601fbdcc2d8e3e5cf9dff",
+      "product_dependencies": {
+        "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+        "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+        "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+      },
+      "binary_sha256": "c6f204c5dab5490290418510177b53341d9782b96455b4f9c087758a7dc2bc30",
+      "binary": "/Users/ak/prjs/cc/nose/target/release-elapsed-qualification-20260907/candidate-nose",
+      "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+      "build_log": "/Users/ak/prjs/cc/nose/target/release-elapsed-qualification-20260907/build.log"
+    },
+    "published_baseline": {
+      "url": "https://github.com/corca-ai/nose/releases/tag/v0.20.0",
+      "published_at": "2026-07-22T17:34:36Z",
+      "commit_sha": "47adbab743067e7ab0977d1be4a935a043dd769b",
+      "dist_manifest": {
+        "url": "https://github.com/corca-ai/nose/releases/download/v0.20.0/dist-manifest.json",
+        "sha256": "aa9108dcdd273ffcab319c6e46a03a0d7ebef4d5c8818fadfbb6963b3a54a291"
+      }
+    },
+    "status": "Resume after a corrected provenance validator; original semantic and base measurements preserved",
+    "workloads": [
+      {
+        "name": "semantic",
+        "repositories": 120
+      },
+      {
+        "name": "base",
+        "repositories": 17
+      },
+      {
+        "name": "default",
+        "repositories": 120
+      },
+      {
+        "name": "near-no-pack",
+        "repositories": 120
+      }
+    ],
+    "protocol": {
+      "primary_blocks": 5,
+      "focused_blocks": 6,
+      "samples_per_observation": 5,
+      "warmups": 1,
+      "same_binary_control": "required in primary and focused phases",
+      "materiality": "5% AND 5ms",
+      "runtime_policy": "order-aware-v1",
+      "inconclusive": "whole-query elapsed signals fail closed; stage signals remain warnings",
+      "focused_comparisons_max": 1,
+      "stop_at_first_failed_workload": true,
+      "unchanged_retry": "not permitted",
+      "runtime_gate": "elapsed-v1",
+      "stage_signals": "retained unchanged; do not request focus or block release without independent whole-query/resource/scaling failure"
+    },
+    "prerequisites": [
+      "completed full local CI",
+      "377 complete output comparisons",
+      "8 saved-analysis/review/source/upgrade journeys",
+      "Type4 proof checks",
+      "reviewed duplication gate",
+      "cache mutations and paired SymPy checks",
+      "watch latency and crash recovery checks",
+      "quiet local measurement boundary"
+    ],
+    "workload_commands": {
+      "semantic": "query {repo} all top=0 --mode semantic --format json",
+      "base": "query {repo} base={base} top=0 --format json",
+      "default": "query {repo} all top=0 --format json",
+      "near-no-pack": "query {repo} all top=0 --mode near:0.8 --format json"
+    },
+    "producer_files": [
+      {
+        "path": "scripts/query-regression-harness.py",
+        "sha256": "bd9da5bd070a265d73cc41678a5a4ea041e504342e2346d7ec440fb730c5f551"
+      },
+      {
+        "path": "scripts/query_regression_worktree.py",
+        "sha256": "b53cb31213f35b700767eb3caf2bf7d5a7bcc181ed41c577c85cd2536db83504"
+      },
+      {
+        "path": "scripts/check-query-regression.py",
+        "sha256": "df622d1ad39f4082df2357d19e7110b2dc4fff69a5c7264bb2f2d4cea3fa1624"
+      },
+      {
+        "path": "scripts/query_regression_control.py",
+        "sha256": "0bbc959d05da7b0a4cbc1903ccea956f796ff0f78835dd06ec20020b8610912d"
+      },
+      {
+        "path": "scripts/query_regression_gate_tests.py",
+        "sha256": "4d86d8c7e5b03450b9d4b5c9ded1e8ff709bdf3698c0fcfb8889a2916efc8f3e"
+      },
+      {
+        "path": "scripts/query_regression_base_tests.py",
+        "sha256": "4b5100b81e4a7d2a55ef09ac371ad17b4eaac9ed2df40976a365973b1e7f9cc4"
+      },
+      {
+        "path": "docs/order-aware-performance-controls.md",
+        "sha256": "fbfccff9e288486830b9edc214d241da7110a593d1d5ac681b91f1222a0ca71e"
+      },
+      {
+        "path": "target/release-elapsed-qualification-20260907/run-comparison.py",
+        "sha256": "ba6f6ac1f8b87cbe3efaa20a113888de5356077ded4e0c676e0b9279d756f83c"
+      },
+      {
+        "path": "target/release-elapsed-qualification-20260907/resume-qualification.py",
+        "sha256": "017bfbe2cc430e94848f0ed881816ec08c538a34e1f73968368f7c9ccd173630"
+      },
+      {
+        "path": "target/release-elapsed-qualification-20260907/cache-campaign.py",
+        "sha256": "ebe218b816ff8e125f3b3ba9e2efdc9af867505859705dfc590ff03de96fa33b"
+      }
+    ],
+    "decision_source_sha": "c8cb6a2f6cb3b0d5bbd464dbfd5982271b900f62",
+    "amendment": {
+      "supersedes": "qualification-design.initial.json",
+      "sha256": "573105fb6bf3005626930b599d32f487199566f838a0e3bb2e4e4c4c3680df4a",
+      "reason": "Before any qualification measurement: correct copied producer indentation and enforce registered producer hashes. No workload, measurement or decision rule changes."
+    },
+    "continuation": {
+      "original_design_sha256": "3aede6d0a21c12ca62bc6cc41762c5235f14a15057b8818f2d0b16fd4654da91",
+      "stop_record": "base-provenance-tooling-stop.json",
+      "completed_primary_control": [
+        "semantic",
+        "base"
+      ],
+      "remaining_measurements": [
+        "default",
+        "near-no-pack"
+      ],
+      "base_decision": "reconstruct with strict base provenance; one focus remains allowed only if elapsed signals require it",
+      "unchanged": [
+        "candidate binary and product/dependencies",
+        "harness and worktree helper",
+        "workloads and commands",
+        "sampling and warmups",
+        "materiality and estimator",
+        "elapsed-v1 release scope",
+        "output declarations",
+        "one focused comparison maximum"
+      ],
+      "pause": "after complete base primary/control; validator repair and native verification before any remaining workload"
+    }
+  },
+  "checks": {
+    "full_local_ci": {
+      "source_sha": "7367a2772819d172d24a0e09b2053e8b7eacfaef",
+      "product": "437c3795d56329c06c767beb4ea1f81acf13bb5b",
+      "status": "passed",
+      "release_tests": 2430,
+      "coverage_total": "TOTAL                                                                                                    175457             20385    88.38%       11485              1174    89.78%      112385             11600    89.68%           0                 0         -",
+      "log": "/Users/ak/prjs/cc/nose/target/release-elapsed-qualification-20260907/full-ci.log",
+      "sha256": "72074c7ba676869c0bf4e44ab181820768e4c5ab50decef01b341dd8284cd252",
+      "scope": "full local CI; cache/watch, registered runtime and remote checks remain separate"
+    },
+    "cache_mutation_runs": 2100,
+    "paired_sympy_runs": 180,
+    "watch": {
+      "status": "pass",
+      "replays": 30,
+      "p95_ms": {
+        "10000": 74.4955,
+        "100000": 345.516375
+      }
+    },
+    "semantic": {
+      "status": "pass",
+      "warnings": 2,
+      "focused": false
+    },
+    "base": {
+      "status": "pass",
+      "warnings": 10,
+      "focused": false
+    },
+    "remote": {
+      "source_commit": "7367a2772819d172d24a0e09b2053e8b7eacfaef",
+      "all_five_workflows_pass": true,
+      "whole_query_blockers": 0,
+      "stage_warnings": 0,
+      "nightly_totals": {
+        "advisory": 12015,
+        "canon_changes": 0,
+        "failed_repositories": 0,
+        "false_merges": 0,
+        "repositories": 120
+      },
+      "deep": {
+        "metamorphic_equivalence": true,
+        "multi_seed_falsification": true,
+        "source_runtime_calibration": true
+      },
+      "native_archives_and_generated_installer": "independently verified",
+      "product_tree_matches_frozen_binary": true
+    }
+  },
+  "artifacts": [
+    {
+      "path": "target/release-elapsed-qualification-20260907/base-provenance-commit.log",
+      "bytes": 2540,
+      "sha256": "138f160ebab587b7b9ca52c91237fca345e89c3ebe2f1069a43b63071396cdb0"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/base-provenance-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/base-provenance-reproduction.log",
+      "bytes": 2264,
+      "sha256": "523506462f174b189f3894a18d7496ae82b099ac2eb98cfd0007e254b426ed97"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/base-provenance-tests.log",
+      "bytes": 42,
+      "sha256": "39a287ec8c5f50456ea3040517f59c218da5016b4a3010fd7850250835f82f3b"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/base-provenance-tooling-stop.json",
+      "bytes": 1814,
+      "sha256": "5e6409538a52f3fbe774e4787eccd5b6f368baa292f8fb79abbc7360384bc349"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/cache-campaign-status.json",
+      "bytes": 2896,
+      "sha256": "b660a9aea86dc5a07e7dbea24473d98541b504097fe5067e9971971350f40db6"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/cache-matrix-30.json",
+      "bytes": 4963297,
+      "sha256": "a66e4475771262a6aedd9deb3fa579aeb84d5ab6d3aaf5ea6f4c37e6e1c6b78f"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/cache-sympy-30.json",
+      "bytes": 411274,
+      "sha256": "eff4e333980fd9b8086241170330d6d0b072c167de4f8c8ad15310ec5918c999"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/full-ci-receipt.json",
+      "bytes": 718,
+      "sha256": "f6e2f8ba236864defbca0b7520372ea9dda8a8c427a557324779f0701e5e24ac"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/full-ci.log",
+      "bytes": 777464,
+      "sha256": "72074c7ba676869c0bf4e44ab181820768e4c5ab50decef01b341dd8284cd252"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/push.log",
+      "bytes": 192594,
+      "sha256": "a13315c242e7e04d02c1a7bf472b8a62b3d476aee2a1f6f15fe6b89a59ed8af6"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/query-base-precheck.json",
+      "bytes": 768070,
+      "sha256": "a77e85bea78e6c7d9937c45287376d947cadcaadf9c877f60bb228b9d57de324"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/query-base-precheck.log",
+      "bytes": 85,
+      "sha256": "d76dac056a3d3f2e6b6d46f28c308e46e7b35d29402c2a59d8850a3093cad627"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/query-base-precheck.md",
+      "bytes": 2832,
+      "sha256": "b45cf4fc1734d8e91eb874aeccc5ff5883e7e712517c620bfad290d6598f395e"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/query-semantic-gate.json",
+      "bytes": 5133187,
+      "sha256": "cbd1172923d92a8bf40d7b408ed345627228c52f1d7a87abc4f2ece1a1d59509"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/query-semantic-gate.md",
+      "bytes": 9960,
+      "sha256": "1519105325d0597b56e2d5e5f6177c343e9c1e915cb9cd5b46c9f9704a21176d"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-deep/build.log",
+      "bytes": 976,
+      "sha256": "c552bb36a2c6517b3c2c4c665abf5b2dc9aef2cb523cf394828c5e9cf03f71d8"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-deep/domain.log",
+      "bytes": 56,
+      "sha256": "0048767c6a17aaabd2b6959c0941e238254f7ba922eaf2f539f2e858b66d1f6b"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-deep/equivalence.log",
+      "bytes": 37483,
+      "sha256": "b89a77033e49ebfdcd3558817cf87aa1fc3c49205024404ae9e8ceb40f438a52"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-deep/evidence.json",
+      "bytes": 246,
+      "sha256": "89374fda08780adba64a13f52a6d3bfe963756bf20f03b39727d289019a55837"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-deep/falsify-1.log",
+      "bytes": 4273,
+      "sha256": "aa1e576769cb154e852a0dc568cff9019b5b979b6f4fd59b3eab00575e5634a7"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-deep/falsify-11400714819323198485.log",
+      "bytes": 4273,
+      "sha256": "aa1e576769cb154e852a0dc568cff9019b5b979b6f4fd59b3eab00575e5634a7"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-deep/falsify-13787848793156543929.log",
+      "bytes": 4273,
+      "sha256": "aa1e576769cb154e852a0dc568cff9019b5b979b6f4fd59b3eab00575e5634a7"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-merge-context.json",
+      "bytes": 2765,
+      "sha256": "5b6b60977f1203f86d3d5613105ccae09e6dc399c8b4f300bd061062819b66eb"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-merge-tree.json",
+      "bytes": 7057,
+      "sha256": "d3859aad8465d16e387da259979918e5935b2c0ea5a4989873f0493b1fbf0ee4"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-nightly/corpus-evidence.json",
+      "bytes": 53099,
+      "sha256": "9c747abd4b65604df942cd26ac7122445fc799f84c956d2d4d0f4484cd0ffe41"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-nightly/merge.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-nightly/summary.md",
+      "bytes": 252,
+      "sha256": "68d8b0e52c24c2f8853ad0adaa0f3984b2f14e2aebe2baa8e8eee7e58da655f1"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-package-plan.log",
+      "bytes": 74774,
+      "sha256": "a7a095cf0658b7c550fb04c0a1cb062579df6314e2d87204211d6901ab1a040f"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-package-source.json",
+      "bytes": 439,
+      "sha256": "3d9fb412d5f256ccfd55c5a8360d6cf96ca93539f33955641098f146d1d2d29c"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-package-verification.json",
+      "bytes": 2627,
+      "sha256": "e02e7312985f92ea0e88b42c08fc40745348524ec1d83324d6f780cff7902036"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-package-verification.log",
+      "bytes": 160,
+      "sha256": "506be944ab62b08545972178189a2c2930faba92e8c1d56a4f96d1d6f81296ec"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-pr/batteries.log",
+      "bytes": 37910,
+      "sha256": "b9cf20334a09b68407b8758b05eab36469665fecaa9ca234cd105bf409b862ca"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-pr/build.log",
+      "bytes": 976,
+      "sha256": "c1372bb9f29d14a1390b39664e5e590b6f64c2b59cde388cd3dac3ceba37bb73"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-pr/plan.json",
+      "bytes": 31699,
+      "sha256": "3e304042e7b1c96b134a7e9c8e119b73546d9141f55f9b69aeb58db5efbf45c6"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-pr/plan.md",
+      "bytes": 576,
+      "sha256": "7b608c74da7a4b444579418471275094af6bda3b8bcda67f1f494730dfeb32a7"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-pr/proofs.log",
+      "bytes": 2719,
+      "sha256": "b6e9c032ca8d7627507666ad272d8110f5bb91bd06089847bde2ad8aff53dcd3"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-pr/self-tests.log",
+      "bytes": 250,
+      "sha256": "2e9b46089296e40aa679a850b74970abb9838f55d3f66b1a951542668a5651eb"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-run-34115551416.json",
+      "bytes": 4773,
+      "sha256": "dd0448e7f940bec2bc03a073ecf4cf6505cb235cb294f181dca51a64414fee93"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-run-34115551426.json",
+      "bytes": 28299,
+      "sha256": "31339c531aa351e1b14d18dacd4082a34f630ef1467c31f9e9107faa4c8cb5a7"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-run-34115551674.json",
+      "bytes": 14089,
+      "sha256": "e9c191e6d40ab9cd8451d14b3f83f88d0583e28523c91f716162681acb020b26"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-run-34115642553.json",
+      "bytes": 16765,
+      "sha256": "1e7b1b1db10e42f5f72d90f0b09aa0b214aa27147e64af41ea034bcb53464487"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-run-34115645244.json",
+      "bytes": 6101,
+      "sha256": "3d56da3ddd5e18625425363594a22ddaa332fc8d7f2702ca48ebfde9cf1813e4"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-smoke/check-status.json",
+      "bytes": 302929,
+      "sha256": "8eff62d395cba948502c2c0574982a279a7196973083c3bd798c0d8887d59a4b"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-smoke/context.json",
+      "bytes": 1128,
+      "sha256": "98faed3b6f21b01340bff6334889e181ce9ad3378c92a564efd8a47671812f73"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-smoke/primary-control.json",
+      "bytes": 442028,
+      "sha256": "3296c7b932ec8333711b700a04eddc547abf6a26ee0309e9ed2f1965ef52800e"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-smoke/primary.json",
+      "bytes": 441799,
+      "sha256": "0480df7dab08131a25683ab75a5ec8f136ff140e21c4ee21dfa85dff9fe0e4ce"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-smoke/ruby-scaling.json",
+      "bytes": 1736,
+      "sha256": "0218d77c1bc11e93997dca4d57941f4099140a7ecb7bd63bfa743b86efe2861f"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/remote-smoke/summary.md",
+      "bytes": 1157,
+      "sha256": "068967fae5030619460b16d28e9f15bc93518f11993b9db3bcfd557f19875996"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/resume-design.json",
+      "bytes": 5808,
+      "sha256": "502f5bdffd6bff8915dbd733a5c54435a86faf9abb9cfc093ae2c2d7e36b92fb"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/resume-qualification.py",
+      "bytes": 5561,
+      "sha256": "017bfbe2cc430e94848f0ed881816ec08c538a34e1f73968368f7c9ccd173630"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/semantic-verdict-reproduction.log",
+      "bytes": 86,
+      "sha256": "67a2bb47dc004f76e608c1253332715866eaa844eda0479ba4966bb8e619a97b"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/verify-current-remote-packages.py",
+      "bytes": 3013,
+      "sha256": "b87f40dc970ed25f36a8a262555a6a200487eecac63d2ba4526e5f1444e68ca6"
+    },
+    {
+      "path": "target/release-elapsed-qualification-20260907/watch-30.json",
+      "bytes": 47984,
+      "sha256": "6c7a256968ca7e2b4fdb90c8a6c8ceed3a9e206e8b8ab8c59c6f21d9d75aae83"
+    }
+  ]
+}

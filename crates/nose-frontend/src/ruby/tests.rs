@@ -4,6 +4,7 @@ fn nodes(src: &str) -> Vec<nose_il::Node> {
     let interner = Interner::new();
     lower(FileId(0), "t.rb", src.as_bytes(), &interner)
         .expect("lower")
+        .into_contents()
         .nodes
 }
 

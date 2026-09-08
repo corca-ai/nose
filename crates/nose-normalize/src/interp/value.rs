@@ -65,6 +65,9 @@ pub enum Value {
     /// behavior containing a `Sym` must never feed the hard SOUND gate — the verify
     /// report routes Sym-bearing disagreements to a separate advisory lane.
     Sym(u64),
+    /// Unique primitive keys. Only source-proven membership/size projections
+    /// may bind collections to this representation; order and values are erased.
+    KeySet(Vec<Value>),
 }
 
 /// Stable hash of a runtime value (deterministic: `FxHasher` carries no random
@@ -162,7 +165,7 @@ pub fn behavior_equiv(a: &Behavior, b: &Behavior) -> bool {
 pub(super) fn contains_sym(v: &Value) -> bool {
     match v {
         Value::Sym(_) => true,
-        Value::List(xs) => xs.iter().any(contains_sym),
+        Value::List(xs) | Value::KeySet(xs) => xs.iter().any(contains_sym),
         _ => false,
     }
 }

@@ -7,6 +7,8 @@ members = ["cargo:."]
 cargo-dist-version = "0.32.0"
 # CI backends to support
 ci = "github"
+# Candidate PRs build installable artifacts for all supported platforms.
+pr-run-mode = "upload"
 # The installers to generate for each app
 installers = ["homebrew", "shell"]
 # A GitHub repo to push Homebrew formulas to

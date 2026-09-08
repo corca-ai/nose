@@ -40,14 +40,15 @@ pub(super) fn unit_shape_features(
             shapes.push(shape);
         }
         shapes.sort_unstable();
-        let mut distinct_shapes = shapes.clone();
-        distinct_shapes.dedup();
-        (
-            shapes,
-            crate::minhash::sign(&distinct_shapes, ctx.seeds),
-            linear,
-            abstraction_tokens,
-        )
+        let signature = ctx
+            .seeds
+            .map(|seeds| {
+                let mut distinct = shapes.clone();
+                distinct.dedup();
+                crate::minhash::sign(&distinct, seeds)
+            })
+            .unwrap_or_default();
+        (shapes, signature, linear, abstraction_tokens)
     } else if features.abstraction_witnesses {
         let abstraction_tokens = pre
             .iter()

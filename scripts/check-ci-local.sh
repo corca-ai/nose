@@ -275,7 +275,7 @@ run_coverage_gate() {
 
 run_supply_chain_checks() {
     audit_aux_tools cargo-machete,cargo-deny
-    cargo machete
+    cargo machete crates
     cargo deny check
 }
 

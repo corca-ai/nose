@@ -4,6 +4,383 @@ Runtime triage turns a query-regression report into a reproducible performance d
 which repos are expected capability cost, which are noisy, and which need a focused fix.
 Use it before optimizing a slow repo by hand.
 
+## Component certification (2026-09-08)
+
+The [component experiments](../bench/release/0.21.0/component-experiments.v1.json)
+retain the intrusive work census and its removal, three source patches and their
+separate paired comparisons. Alamofire previously rechecked 36,817,516 target
+connections after joining admitted edges. Only same-file targets can have been
+excluded by nesting, so checking that subset proves the same remaining-row
+connectivity. Reusing the current union-find root further avoids repeated lookups
+while preserving the original rank choices and effective union order.
+
+The separate exploratory comparisons reduce Alamofire clustering from 141.0 to
+104.6 ms, then 102.8 to 81.9 ms. Their whole-query improvements are 1.81% and
+1.44%; other effects are small and mixed. These percentages must not be added
+or interpreted as an official release comparison. Both retained changes pass
+285 detector tests, strict Clippy/docs and six complete query-output comparisons.
+
+A third target-class connectivity cache is reverted: its direct comparison
+increases clustering from 82.3 to 100.1 ms without a convincing elapsed benefit.
+The combined three-change near-mode controlled check passes, but includes this
+rejected cache and does not qualify the retained two-change product. The
+[actual validation](../bench/release/0.21.0/component-validation.v1.json) for product
+`0c4143e2` passes 377 complete outputs, eight journeys, Type-4, reviewed self-analysis
+and full local CI (2,440 optimized tests, 89.73% line coverage). Its subsequent
+[official elapsed comparison](../bench/release/0.21.0/component-verdict.v1.json) fails:
+primary/control confirms +52.02%/+1,091.33 ms and the one six-block focus
+confirms +56.15%/+1,425.68 ms, with all blocks and both orders supporting the
+regression. Scoring and ordered group-score accumulation remain large diagnostic
+costs. The repository failure blocks release without claiming a full-corpus
+aggregate result. Remaining cache/watch/native checks are not inherited and the
+unchanged failed candidate will not be retried. A separate deterministic
+sample of 265,219 requested Alamofire pairs finds no opportunities for a proposed
+pre-value anchor-dominance bound; no such shortcut is added to the product.
+
+## Ordered score-block experiments (2026-09-08)
+
+The [score-block record](../bench/release/0.21.0/score-block-experiments.v1.json) retains
+two reverted numerical experiments. Within one positive normal floating-point
+exponent interval, two parity transitions can reproduce a nonnegative block's
+ordered additions exactly. Boundary crossings and unsupported values retain the
+original scalar fold. Independent tests cover every normal exponent, halfway
+ties, changing input sums, mixed-score slices and nested source exclusions.
+
+The initial variant passes 290 detector tests, strict Clippy/docs and six full
+outputs, but has no convincing group-time improvement. A second variant chooses
+between contiguous runs and 64-score blocks by their segment counts. It passes
+291 tests and six full outputs; Alamofire default elapsed changes only -0.27%
+and libGDX increases 2.50%. Other effects are small and mixed. Neither variant
+justifies its additional cache and code, so both are removed. These exploratory
+screens have no same-binary controls; neither prepared RSS campaign was run.
+The numerical proof remains research evidence, not a retained engine improvement
+or a resolution of the component candidate's official elapsed failure.
+
+## Short-feature follow-up (2026-09-08)
+
+The [sealed follow-up](../bench/release/0.21.0/feature-followup.v1.json) retains
+145 diagnostic artifacts and source patches. Actual requested pairs have much
+shorter feature vectors than class-wide averages suggest. A conditional-index
+merge limited to two inputs of at most 32 features preserves all score bits in
+an independent 7,225-pair frequency oracle. The isolated implementation passes
+283 detector tests, strict Clippy, docs and all six complete query outputs.
+LibGDX and RxSwift default elapsed decrease 2.41% and 2.20% in the exploratory
+screen; Guava elapsed is flat. Alamofire default/near and RxSwift semantic rise
+0.52%/0.75%/0.77%. Retain the small short-input improvement without claiming an
+Alamofire fix or a release pass. The [actual-binary validation](../bench/release/0.21.0/short-merge-validation.v1.json)
+for product `aea64b61` records 377 complete reference outputs, eight journeys,
+Type-4, eighteen reviewed
+self-analysis families and full CI with 2,438 optimized tests/89.72% line coverage.
+Final cache/watch, remote/native and elapsed qualification remain separate.
+
+Three other experiments are reverted: prepared shape multiplicity counts,
+8 MiB of popular indexed shape rows, and a whole-row bound for nested seed
+reservations. They preserve complete outputs but do not sufficiently reduce the
+primary bottleneck. The latter bound differs from the earlier rejected per-source
+file-loop experiment; it also fails to produce a useful elapsed gain. No cache,
+seed bound, admission change or memory improvement from these experiments is
+part of the retained product. Kernel timings and overlapping row-census intervals
+are diagnostic only; the paired CLI screens have no same-binary controls.
+
+## Row scheduling experiment (2026-09-08)
+
+Splitting work into sixteen rather than four chunks per worker preserves all six
+complete query outputs and passes 283 detector tests and corrected strict Clippy.
+The [scheduling record](../bench/release/0.21.0/row-scheduling-experiment.v1.json)
+retains the original line-limit lint failure and its equivalent formatting fix.
+Alamofire default elapsed is effectively flat (-0.20%); RxSwift semantic increases
+4.97% and Alamofire near increases 0.16%. Other effects are small and mixed.
+Revert the isolated scheduling change; no memory campaign was run after rejection.
+These three-block screens have no same-binary control and do not qualify release.
+
+## Scalar multiset merge experiments (2026-09-08)
+
+Two isolated follow-ups keep all six complete outputs and pass 283 optimized
+detector tests, strict Clippy and docs, including independent frequency-count
+oracles. Moving union arithmetic outside the scalar merge has no convincing
+elapsed gain, with scorer medians rising in every workload. A separate eightfold
+length-imbalance path uses exponential search while preserving duplicate counts.
+It modestly reduces libGDX scoring, but its whole query improves only 0.74%;
+Alamofire default and near elapsed increase 2.73% and 3.49%. Both experiments are
+reverted. These short screens have no same-binary controls and are not formal
+regression verdicts. The [validation record](../bench/release/0.21.0/incidence-validation.v1.json)
+retains all measurements and the unchanged incident-site product's full CI pass.
+
+## Exact incident-site coverage (2026-09-08)
+
+Native profiling finds deferred graph materialization inside opportunity coverage.
+A total, surjective projection of a connected component certifies the exact incident
+site set without enumerating edges. The implementation checks this proof, retains
+partial-mapping and mixed-root fallbacks, and invalidates it for outside appended
+endpoints. Scalar and 512 mapping comparisons preserve the original edge obligations.
+
+The six-workload exploratory comparison keeps all complete outputs. Alamofire default
+coverage changes from 187.9 to 18.3 ms and whole query from 2,924.70 to 2,755.50 ms;
+RxSwift default coverage changes from 94.0 to 7.7 ms and elapsed improves 9.84%.
+Other effects are small and mixed. The separate RSS comparison retains the +6 MB
+libGDX and +38 MB Guava observations alongside Alamofire's -46 MB. This screen has
+no same-binary control and does not qualify a release. The
+[actual-product preflight](../bench/release/0.21.0/incidence-preflight.v1.json) records
+all 377 reference outputs, user journeys, soundness and the reviewed
+self-analysis baseline change. Follow-up profiles still find substantial structural
+scoring and fingerprint merge costs; no claim is made that coverage was the entire
+release blocker.
+
+## Accepted-row controlled elapsed blocker (2026-09-08)
+
+The frozen `29680487` binary passes correctness, cache/watch, remote soundness and
+native-package verification, but fails the registered Alamofire default blocker.
+Primary/control gives +1,228.62 ms/+65.66%; its one six-block focus confirms
++1,573.88 ms/+68.88%, with all six blocks and both execution orders supporting the
+regression. Complete output changes match the registered review. The
+[sealed verdict](../bench/release/0.21.0/row-verdict.v1.json) retains the raw
+primary, control and focused observations. This is a per-repository release blocker,
+not an extrapolated full-corpus aggregate verdict. The unchanged failed candidate
+will not be retried. Further work must reduce product cost before qualification.
+
+## Complete explicit source relations experiment (2026-09-07)
+
+A public-API census of RxSwift's 685 source files finds 511,571 accepted
+semantic edges in 1,637 groups, all stored as explicit member-edge arrays.
+One 660-member group alone stores 217,351 edges. The previous compact source
+relation proof only handles the engine's repeated-row representation.
+
+The follow-up also checks explicit relations. It requires exact whole-group
+evidence, unique ordered source pairs, valid group membership, the original
+nesting exclusions and one finite, bit-identical score. A strict source-span
+ordering count computes the complete non-nested relation's cardinality without
+enumerating every possible pair. Equal starts and ends remain exclusions;
+cross-file pairs remain eligible. A valid unique subset with equal cardinality
+is complete, so it can reuse the existing `AllNonNested` representation.
+Missing, duplicate, forbidden, mixed-score or unproven relations retain the
+original representation. Group scores still accumulate in their original order.
+Scalar tests compare canonical edge winners and score bits, adversarial incomplete
+relations, and source-span counts through 513 members. This remains an isolated
+experiment awaiting performance comparison and actual-candidate qualification.
+
+## Small-group location collection experiment (2026-09-07)
+
+The context candidate's full semantic qualification retains one confirmed
+RxSwift grouping regression after focus. Its CPU profile includes location
+construction and collection costs. An isolated private-constructor inlining
+experiment preserves five workload outputs but has mixed timing, including a
+higher RxSwift semantic grouping median, so it is not adopted.
+
+The next experiment collects locations serially below the existing 256-member
+parallel granularity. Independent groups still run in parallel, and larger
+groups keep their ordered parallel collector. Each member retains its existing
+complete analysis-key inputs, source bytes, enclosing context and output order.
+The scalar oracle checks empty, small and boundary-sized groups through 513
+members with one and three workers. Five-block, five-sample diagnostics preserve
+all five complete workload outputs. RxSwift semantic grouping changes from
+8.15 to 7.85 ms, while default grouping changes from 94.03 to 87.25 ms. This
+small semantic improvement alone is insufficient for the release blocker.
+The diagnostics have no same-binary control and do not qualify the release.
+
+## Evidence classification and site ranking preparation (2026-09-07)
+
+The context prototype's CPU profiles identify repeated exact-value comparisons
+in RxSwift's expanded edge classification, canonical-site allocations in Guava,
+and parameter-domain inference in Asciidoctor. Explicit edges may reuse a
+whole-group exact witness while mixed groups retain per-pair classification.
+No edge is added or omitted. Canonical sites consume their existing file sort
+without a second file table; one/two-site mappings use direct overlap selection
+with the original last-on-equal winner. Two canonical sites can have only one
+reported edge, so a direct reduction retains its total-order score/category winner
+without allocating and sorting all duplicate edge records. Zero/one-site inputs
+have no cross-site edge. Coverage compares source coordinates
+before materializing equal-edge checks. Parameter inference borrows immutable
+child slices and returns an empty domain vector immediately when no parameter
+can appear in its result. The original fixed point and evidence rules remain.
+The combined prototype passes 920 optimized detector/normalizer/semantics tests,
+strict Clippy, docs and all eleven complete-output comparisons (ten workloads
+plus Asciidoctor with two workers). In separate four-block diagnostics, Alamofire
+semantic ranking changes from 81.10 to 77.15 ms and two-worker Asciidoctor
+normalization from 83.95 to 81.25 ms. The subsequent two-site reduction preserves
+the scalar winner oracle across zero/one/two/eight sites, invalid edge indices,
+signed zero, infinity and NaN payloads, plus all ten query outputs. Guava ranking
+mapping changes from 6.40 to 5.40 ms. Other workloads and stages are mixed,
+including an 85.78 ms (3.88%) higher Alamofire near whole-query median in the
+last diagnostic. These comparisons motivate qualification; they do not qualify
+the release or establish a universal speedup.
+
+## Parent context and review-label preparation (2026-09-07)
+
+The follow-up prototype resolves enclosing units independently per file and
+materializes their report context in ordered parallel batches. Parent choice
+retains the smallest source span, original unit order for ties, strict same-kind
+containment and the existing equal-span allowance for different unit kinds.
+File membership proves the path equality once before scanning parent candidates.
+The source-span lookup table for review occurrence labels uses the existing
+internal hash-table implementation; first-use ordinals and fingerprint bytes
+retain their existing meaning. No content-digest algorithm changes.
+The isolated comparison passes 554 optimized tests and preserves all ten complete
+JSON outputs. Guava grouping changes from 20.60 to 12.95 ms; RxSwift remains
+nearly flat. Whole-query and normalization effects are mixed. The actual release
+candidate still requires independent output, soundness, cache and runtime checks.
+
+## Rust import prescreen follow-up (2026-09-06)
+
+The ten-cycle usability campaign left Alacritty `parse+lower` qualification
+inconclusive. This follow-up targets an independently observed frontend cost;
+it does not reclassify that earlier result as a confirmed regression.
+A native single-worker `stats` sample of the unchanged 88-file Alacritty corpus
+shows runtime-type lookup repeatedly traversing enclosing CST scopes and their
+children. Ordinary unqualified types enter Tokio import/shadow checks even when
+no matching runtime import exists.
+
+Rust lowering now first checks for an asserted imported-binding record with the
+same local name, module and export required by the existing resolver. Absence
+cannot produce an accepted runtime domain, so it can return before CST traversal.
+Possible matches still undergo all original visibility, namespace shadowing,
+local type shadowing, ambiguity and dependency checks. The local type-shadow
+check follows successful import resolution. There is no cached negative result;
+each lookup sees the current evidence, including newly lowered imports. Qualified
+Tokio paths retain their original path. No admission rule or cache schema changes.
+
+The pre-change binary is retained from `c5dad268` in
+`target/frontend-performance-20260906/baseline-nose`. The exploratory six-pair
+Alacritty query comparison records median `parse+lower` 91.80 → 53.25 ms and
+whole-query 166.15 → 133.65 ms. These are unadjusted medians; a positive control
+movement is not counted as additional speedup. All twelve semantic output hashes
+match. The exploratory checker requests a focused rerun for `normalize+extract`,
+whose +3.95 ms order-adjusted movement has conflicting order strata; this is not
+an all-stages-passing result. Final pinned-corpus qualification is recorded below
+after the source commit and remaining verification.
+
+Raw IL JSON is byte-identical for all 88 Alacritty Rust files and 25 runtime-type
+fixtures, including import aliases and shadowing negatives. Existing frontend
+runtime-domain tests and all 2,371 workspace tests pass. The native sample,
+original commands, paired/control runs, raw IL hash ledger and candidate patch
+are retained under `target/frontend-performance-20260906/`. The exploratory
+measurement records the dirty candidate tree explicitly; final smoke binds
+committed source SHAs and binary digests.
+
+Final qualification compares `c5dad268` with product commit `fe069b3f` using
+`scripts/semantic-regression-smoke.sh` and the seven pinned repositories, after
+other verification workloads finish. It **passes on the primary run**, with
+zero declared/unexpected output drift and no triggered or inconclusive runtime
+signals. Alacritty median `parse+lower` is 87.90 → 54.40 ms (38.1% reduction);
+whole-query median is 168.59 → 132.11 ms (21.6% reduction). These are raw median
+comparisons on this corpus and machine, not a general Rust speed guarantee.
+Ruby scaling passes at exponent 0.68. The exploratory order conflict and the
+earlier campaign's failed qualification remain historical results; neither was
+rewritten or retried until green. Final raw measurements, provenance and the
+checker result are in `target/frontend-performance-20260906/smoke/`.
+
+Strict clippy, docs, the 1,054-file length gate and the unchanged 19-family
+duplication baseline (budget 20) pass. Type-4 records 54 exact groups with zero
+false merges/canonicalization violations; `4bf44b83` binds the receipt to the
+new crates tree. Fast local CI completed its product/test gates, then found the
+corresponding stale Type-4 inventory digest. After reviewing that sole receipt
+binding change, `1fa45bb8` updates only the inventory digest; the focused evidence
+artifact gate passes. No quality threshold, evidence result or public contract
+was relaxed.
+
+## Site mapping work
+
+Group-local canonical-site collapse and member-to-site mapping are independent.
+Projection prepares these mappings in parallel while preserving input group
+order, then writes the disjoint unit positions in order. Units with no reported
+site do not receive unused pair-witness classes. Mapped units retain their full
+witness inputs, source exclusions and exact evidence projection. A balanced
+four-block diagnostic reduces Alamofire semantic group construction from
+156.9 to 130.5 ms and default grouping from 381.85 to 364.65 ms. Complete query
+gains are smaller, and near-mode wall time increases by 32.23 ms (1.31%) despite
+faster grouping. All compared JSON bytes match. This diagnostic is not a release
+gate; the changed candidate still needs full output and runtime qualification.
+
+A separate indexed-block table experiment is rejected: its extra storage
+machinery produced negligible whole-query gains and a slower near-mode median.
+The original sparse block representation remains.
+
+The exact-mask diagnostic preserves all nine complete JSON outputs. Alamofire
+semantic groups decrease from 128.45 to 102.10 ms and near-mode groups from
+161.25 to 131.90 ms. Semantic whole-query median decreases from 1,152.91 to
+1,108.40 ms; default increases 8.97 ms (0.23%) and near increases 19.71 ms
+(0.82%). These balanced four-block observations justify testing the lower
+projection cost, but do not qualify the release or establish a general speedup.
+
+
+Identical consecutive exact-evidence updates to a single 64-site block can
+merge one mask instead of repeating a hash lookup per edge. The mask is flushed
+before another group, left site, block, score bit pattern or non-exact witness.
+Uniform and mixed blocks retain the existing score/category winner rule;
+no candidate or evidence edge is omitted.
+
+For disjoint candidate buckets whose members share an exact scorer class,
+ordinary scoring can retain one homogeneous row per bucket. The shortcut is
+available only without connected witnesses; mixed classes or overlapping buckets
+use general refinement. Candidate counts still exclude equal source spans, and
+the existing accepted-row representation preserves every location-based admission
+and ordered score. A shared empty row covers noncandidate units. This optimization
+requires scalar pair/count tests and measured qualification before release.
+
+Exact scoring assigns one zero-score class to all units excluded by its existing
+safety/value-size gate. Such a unit scores zero in either argument position against
+every other unit, so hashing its full value graph cannot distinguish scores.
+Eligible units retain value-specific classes. An exhaustive substitution oracle
+covers both argument directions and the four-node eligibility boundary.
+
+Fresh detection reuses the immutable candidate buckets and source-span index
+already constructed for its bounded index-admission check. Both the explicit
+and batched paths consume these exact inputs, eliminating their second creation.
+The indexed-pair ceiling, candidate ordering, scoring and exclusions are unchanged.
+
+Group location construction may reuse the first member's analysis digest only
+when all six serialized inputs match: selected review values, returns, conditional
+sinks, exact-admission flag, fragment proof facts and semantic laws. Unequal inputs
+retain the original calculation. The reuse is local to immutable group inputs;
+there is no persistent cache, schema change or change to the MessagePack/SHA-256
+identity protocol. An existing whole-group exact witness can supply raw-value
+equality without comparing the same arrays again. This applies only when neither
+member selects review-value overrides; returns, conditional sinks, safety, proof
+facts and semantic laws are still compared independently. This optimization still requires measured qualification.
+
+Identity encoding writes named MessagePack into a 512-byte local buffer, spilling
+to an ordinary owned vector for larger records. Allocation strategy changes only;
+the serialized bytes, domain and length-framed SHA-256 digest remain identical.
+There is no retained per-thread buffer. Enclosing-location lookup uses the existing
+fast hash implementation; each file still resolves parents in the original stable
+span order and writes its results to the same unit indices.
+
+Member evidence remapping sorts the canonical site-pair key in parallel, then
+reduces each equal-pair run to its original winner. Score comparison remains
+`total_cmp`, followed by witness-kind order, so signed zero, NaN payloads and
+thread scheduling cannot alter the reported edge sequence. The scalar ordering
+oracle checks finite/nonfinite scores and invalid endpoints under multiple pools.
+
+Alignment voting uses a fixed array for the 1,199 possible offsets within the
+existing 600-token cap. Per-token positions retain the first eight vote sources
+inline, while the full capped sequence still determines inliers. The largest
+offset wins equal vote counts, preserving directional scores bit for bit against
+an independent scalar oracle, including empty and over-cap sequences.
+
+Consecutive target runs with one exact class, group and score bit pattern retain
+the latest two source occurrences from distinct files for each canonical site.
+For any source index and excluded source file, these two extrema determine exactly
+whether the remaining suffix has a cross-file target. This includes partial
+suffixes and sites interleaved across 64-site blocks, without rescanning every
+occurrence. Masks normalize either endpoint orientation and exclude self edges.
+Short runs, nonfinite scores and mismatched classes keep scalar admission. Runs
+retain score-bit order; within-file nesting continues through its original check.
+As source indices advance, ordered expiry events update each block's active and
+file-exclusion masks once per event. Repeated queries read the masks directly.
+Scalar oracles cover repeated file owners, suffix boundaries and mixed blocks.
+These optimizations require measured qualification before release.
+
+Projection reuses the existing whole-group exact-value witness when it already
+proves that every member is eligible and has the same value graph. Such a group
+needs one local class and no anchor classification, because all admitted pairs
+stay inside their component. Mixed groups retain full value/safety/anchor inputs
+and independent exact classes; unreported units receive neither class. Class
+namespaces remain disjoint. This reuses an existing proof, not a new merge rule.
+
+Bounded expanded evidence is partitioned into source-ordered groups before
+parallel witness classification. This removes the global classified intermediate
+and its serial copy, retaining group and edge order. The same scalar coverage
+oracle checks both expanded and packed output.
+
 ## When Required
 
 Run this process when a PR, release candidate, or post-release follow-up changes semantic
@@ -28,7 +405,15 @@ different actions.
 
 ## Harness
 
-For a post-release stabilization or performance pass, use the official binary
+For v0.21 prospective release comparisons, the maintainer has explicitly adopted
+the [current capability baseline](release-evidence-0.21.0.md#adopted-performance-baseline-2026-09-08).
+Use the query harness's `--performance-baseline-manifest` option to verify and
+record that frozen artifact. Preserve the official 0.20 measurements as accepted
+upgrade-cost evidence and retain its binaries for compatibility testing. A
+baseline change never waives correctness or resource limits and cannot be
+automatically repeated after a future regression.
+
+Otherwise, for a post-release stabilization or performance pass, use the official binary
 asset from the most recent non-prerelease GitHub release as the product
 baseline. Verify the published archive checksum, record the extracted binary's
 SHA-256, and name the release tag and commit in the harness provenance. A local
@@ -145,3 +530,326 @@ The [20-optimization runtime pass](runtime-performance-20-optimizations-2026-07-
 records the first longer optimization sequence using this process, including the
 same-binary noise control, all-120-repo before/after artifact, and focused recheck of
 the largest apparent regressions.
+
+## Cortex first-analysis follow-up (2026-09-06)
+
+The local comparison is `71b44a89` to `d55665b2`, on Cortex
+`0baac1230c442aeb7109aadbe035bec729321ff1`. It measures a new process without
+nose analysis-cache reuse; the operating-system page cache was not flushed.
+The query is `nose query cortex --format json` from the repositories' parent.
+Both binaries use the same root, modes, thresholds, and automatic candidate policy.
+
+Six alternating pairs reduced median elapsed time from 8,963.22 ms to 5,449.67 ms
+(39.20%). The paired order-aware movement was -3,487.53 ms (-38.91%); the
+same-binary control had a -20.53 ms movement, which cannot inflate an improvement.
+All twelve result byte hashes match. The contiguous stage fell from 3,499.45 ms
+to 65.00 ms. Sampling and stage timings identified repeated token extension of
+long runs whose remaining source spans could never satisfy the existing line floor.
+Conservative suffix bounds avoid that extension while retaining first-occurrence
+seeds, including seeds in one-line code that can match later multiline code.
+The bounds include the whole current block to tolerate nonmonotonic source spans.
+
+A separate comparison of `all top=0` in the default mode set preserved every
+output byte on Cortex and all seven pinned smoke repositories. Regression tests
+also preserve first-seed behavior and exercise valid runs with nonmonotonic spans,
+empty streams, and streams without operations. All 2,352 workspace tests, strict
+Clippy, formatting, docs, file-length, and the unchanged 18-family duplication
+ratchet passed. No source/feature cache schema changed. An additional equal-slice
+Jaccard shortcut was measured, showed no product speed improvement, and was removed.
+
+The required seven-repository semantic smoke preserved output exactly and passed
+Ruby scaling (exponent 0.67). Its runtime gate did **not** pass: after its single
+permitted focused rerun, asciidoctor remained inconclusive at +4.53 ms (+3.35%)
+with order strata of +7.78 ms (+5.66%) and +1.28 ms (+0.98%). No confirmed
+material regression was found, and no threshold or retry policy was changed.
+
+The Cortex focused check also remains **inconclusive**, despite the repeated total
+improvement (8,993.10 ms to 5,576.83 ms). Its adjusted stage movements were
++16.33 ms (+4.91%) for rendering, +9.70 ms (+5.22%) for family ranking, and
++9.63 ms (+5.54%) for rank mapping; their order strata disagree. The first six
+focused blocks were insufficient because the primary already used six. Exactly
+two more blocks were appended to each focused comparison to satisfy the checker's
+strictly larger-sample requirement. Original reports were preserved, and extension
+provenance records the reason, script hash, environment, and appended iterations.
+No observations were replaced, and no further performance rerun was attempted.
+The blind attacker retained 54 exact groups with zero false merges or canonicalization
+violations. These correctness results do not convert the runtime gates into passes.
+
+Raw measurements, code/binary identities, controls, complete output comparisons,
+and smoke reports are retained in `target/first-analysis-performance-2026-09-06/`.
+The process-local timing and sampling originals are in `/tmp/nose-first-run-perf/`.
+Candidate scoring still takes about 2.3 seconds and parsing/normalization about
+2 seconds on Cortex; this improvement does not establish interactive latency or
+lower peak memory use.
+
+## Scoring and feature extraction follow-up (2026-09-06)
+
+The next local product comparison is `8d939004` to `0696c0b5`, using the same
+clean Cortex commit and query as above. Every observation starts a new process
+without nose analysis-cache reuse; the operating-system page cache is not flushed.
+This measures the next optimization against the preceding local product, not a
+release-baseline qualification. Five alternating pairs and a separate five-pair
+same-binary control were followed by exactly one six-pair focused comparison and
+control, each with one warmup. No thresholds, observations, or retry limits changed.
+
+| Stage | Primary baseline/current median | Focused baseline/current median |
+| --- | --- | --- |
+| Whole query | 5,589.89 / 4,840.73 ms | 5,904.43 / 5,082.16 ms |
+| Candidate scoring | 2,318.80 / 1,620.00 ms | 2,465.85 / 1,658.65 ms |
+| Parse and lower | 866.80 / 825.60 ms | 919.25 / 903.55 ms |
+| Normalize and extract | 1,148.30 / 1,087.20 ms | 1,192.50 / 1,177.30 ms |
+
+The whole-query median reduction is 13.40% in the primary and 13.93% in the
+focused comparison. The focused paired order-aware movement is -812.29 ms
+(-13.76%); its same-binary movement is -16.58 ms and does not inflate improvement.
+Scoring improves consistently. The normalization benefit is small and does not
+hold in every aggregation: its focused paired movement is +9.70 ms, despite the
+lower marginal median. These results do not establish uniformly faster stages.
+
+Profiling identified repeated scoring of exactly equal feature inputs, sequential
+joins between small parallel batches, repeated MinHash work, and whole-arena
+parent searches in the Object.keys guard. The implementation uses complete typed
+score-input equality (including metadata), private bounded ordered-pair memo maps,
+parallel chunks without sequential joins, corpus-wide shared signature computation,
+and a lazy unique-parent index. Full equality checks resolve hash collisions;
+custom scorers opt out by default. Candidate order, nesting checks, rejected scores,
+thresholds, semantic guards, and connected-seed selection remain intact. No feature
+or persistent-cache schema changes. The [architecture](architecture.md) owns the
+implementation and lifetime contracts.
+
+All 22 primary/focused output hashes match. Full `all top=0` output also matches
+byte-for-byte on Cortex and all seven pinned smoke repositories. Four Cortex cache
+paths agree: uncached, previous-binary cold cache, current-binary reuse of that
+cache, and current-binary cold cache. Only the expected cache argument in suggested
+`next` commands differs across cache locations; reuse of the same cache is byte-identical.
+All 2,356 workspace tests, strict Clippy, formatting, docs, file-length checks, and
+the reviewed 18-family duplication ratchet pass. The blind attacker retains 54 exact
+groups, zero false merges, and zero canonicalization violations.
+
+Both runtime qualification gates remain **failed due to inconclusive evidence**.
+Cortex's focused contiguous stage moves +4.10 ms (+6.11%) with disagreeing order
+strata; groups moves +14.25 ms (+9.93%) with insufficient sign-test support.
+The seven-repository smoke preserves output exactly and passes Ruby scaling
+(exponent 0.68), but focused asciidoctor remains inconclusive at +5.31 ms (+4.09%),
+with order strata +11.95 and -1.32 ms. Neither inconclusive result is proof of a
+regression or a passing performance result. No further performance rerun was made.
+
+Commands, source/binary identities, raw reports, output comparisons, sampling,
+and validation logs are retained in `target/scoring-first-analysis-performance-2026-09-06/`.
+Original experiments remain in `/tmp/nose-score-perf/`. The improvement reduces
+first-analysis work; it does not establish interactive latency or lower peak memory.
+
+## v0.21.0 candidate performance follow-up (2026-09-06)
+
+The release candidate's NO-GO remains the starting point for this optimization.
+The immutable pre-change product binary is `target/release-0.21.0/candidate-nose`,
+bound to `283f9e1d` (the same crates tree as preparation commit `78f9feac`).
+The checksum-verified published v0.20.0 remains the release baseline; the older
+incomplete dense-bucket candidate policy is not restored to recover its timing.
+
+Sampling attributed the dense Alamofire near-query cost to repeated structural
+scores and expanding/sorting overlapping candidate neighborhoods. Exact input
+classes alone still repeated work at batch boundaries. The new compressed rows
+also require identical candidate-bucket membership and connected-seed eligibility.
+They count rejected, ineligible location pairs without materializing them; original
+location checks, all accepted edges, score direction, source order, connected ties,
+and explicit candidate budgets remain intact. The [architecture](architecture.md)
+owns the full execution and memory contracts.
+
+Query-list rendering now indexes primary membership lazily once per selection,
+constructs independent JSON rows in indexed parallel order, and moves completed
+location/family arrays into the report. The final JSON is serialized into one
+output buffer. Every field, navigation command and row order remains part of the
+byte-equivalence comparison; no payload fields are omitted to recover throughput.
+
+Exploratory variants and raw measurements are retained under
+`target/release-performance-20260906/`. They are diagnostic observations, not a
+replacement for release qualification. The intermediate class-row and quotient
+Alamofire outputs match the complete pre-existing diagnostic output byte for byte;
+that comparison alone does not establish a passing release performance gate.
+The final product is `d8744855`, crates tree
+`333f18c66b8b43bd9c38f974139ac7edd5a3e847`, binary SHA-256
+`bce2cd46a3f917979c18039e7352b0e4013e9cd2ed488224b9488b8d0bcd3d9a`.
+The checked [performance follow-up](../bench/release/0.21.0/performance-followup.v1.json)
+retains source/binary bindings, every semantic replay hash and raw evidence seals.
+
+One isolated Alamofire `all top=0 --mode near:0.8 --format json` observation took
+111.89 seconds on the frozen pre-change candidate and 8.91 seconds on the new
+candidate. The complete output bytes match. Scoring moved 109,783.1 → 7,541.5 ms;
+rendering moved 961.9 → 270.9 ms. These are diagnostic observations, not paired
+release qualification or a general speed guarantee. The published v0.20.0 binary
+still took 1.61 seconds under its earlier incomplete candidate policy. A bitmap
+neighbor experiment and a branchless Jaccard experiment were excluded; the latter
+made scoring slower in the exploratory comparison.
+
+Local `--full` passes: 2,373 optimized tests, 89.39% line coverage, strict Clippy,
+MSRV, Lean and the unchanged 19-family duplication result (budget 20). All 120
+semantic outputs match the frozen candidate byte for byte. Default and near
+outputs also match on the seven smoke repositories and Cortex `0baac123`, plus
+the dense Alamofire near case. The source-class tests compare against exhaustive
+pairs, including asymmetric scores, nesting, equal spans, mixed bucket membership,
+connected eligibility, overflow ties and multiple thread/batch sizes.
+
+Cache correctness passes all 2,100 mutation rows and 180 paired SymPy rows.
+Thirty alternating replays per binary measure the following elapsed times:
+
+| SymPy phase | Published/candidate p50 | p50 change | Published/candidate p95 |
+| --- | --- | --- | --- |
+| Clean | 2,393.53 / 2,507.41 ms | +4.76% | 2,479.98 / 2,663.68 ms |
+| Empty cache | 2,593.66 / 2,698.68 ms | +4.05% | 2,706.55 / 2,842.23 ms |
+| History reuse | 315.21 / 310.10 ms | −1.62% | 334.47 / 323.84 ms |
+
+The history-reuse regression clears, but clean and empty-cache p95 still exceed
+the unchanged 5%/5 ms limits. Watch passes 30 revisions each at 10k/100k files,
+full fresh-query equivalence and forced restart, with ready p95 76.39/383.22 ms.
+
+Release qualification remains **NO-GO**. The local seven-repository runtime gate
+has no confirmed material signal but remains inconclusive after its single
+focused run, including Asciidoctor/JUnit5 frontend stages. The
+[remote CI](https://github.com/corca-ai/nose/actions/runs/34027976008) focused run
+confirms Asciidoctor `normalize+extract` +12.90 ms/+10.82% and Sidekiq `lower`
++6.20 ms/+7.00%, with additional inconclusive signals. Neither gate reports
+unexpected output drift. The reviewed schema changes were also bound to the
+actual published tag `47adbab7`; the previous ledger covered PR base `de43f4b4`.
+The existing primary/control measurements were rechecked without replacing them,
+then exactly one focused run was performed. Thresholds and retry policy remain
+unchanged.
+
+The same product tree passes fresh [120-repository soundness](https://github.com/corca-ai/nose/actions/runs/34028031591)
+with zero false merges/canonicalization violations and
+[independent deep checks](https://github.com/corca-ai/nose/actions/runs/34028033026).
+All [four native packages](https://github.com/corca-ai/nose/actions/runs/34027976126)
+and the actual CI installer pass checksum/extraction/execution checks.
+
+The registered full 120-repository timing and 17-repository base campaign remain
+unqualified. Dense class-to-class scoring and frontend/normalization costs still
+need work before a replacement candidate can close those release conditions.
+No release tag or Homebrew update was published.
+
+
+## v0.21.0 release completion work (2026-09-06)
+
+The follow-up candidate `d8744855` remains the frozen comparison for correctness;
+its failed release qualification above is retained. New diagnostic work lives in
+`target/release-completion-20260906/`. Release baselines, timing limits and the
+registered full-corpus campaign remain unchanged.
+
+The current work removes redundant syntax-budget traversal using stored subtree
+counts, shares exact multiset intersections across dense score rows, and counts
+source-admitted candidate pairs from row sizes and sparse span multiplicities.
+It also reduces connected-seed selection costs without changing caps or tie rules,
+and batches arena invalidation during alpha-renaming and branch orientation.
+These mechanisms are documented in [architecture](architecture.md) and
+[normalization](normalization.md). Intermediate binaries and single observations
+are diagnostic only; replacement candidate qualification is still pending.
+
+The first completion candidate `843bd52e` passes full local CI and matches 359 of
+the 360 default/semantic/near outputs from `d8744855`. The Alamofire default-mode
+comparison was interrupted for sustained paging: sampled peak physical footprints
+were 43.5 GiB for the previous candidate and 15.9 GiB for the new one. Both were
+in accepted-edge concatenation; their empty interrupted outputs are not equality
+evidence. The near:0.8 diagnostic improves from about 8.9 seconds to 2.4 seconds
+with identical complete JSON. Full timing qualification remains pending.
+
+The default-mode discovery motivates sharing accepted rows through aggregation
+and applying the existing site-evidence projection before allocating coverage
+edges. The complete accepted relation, candidate accounting and group score
+addition order must remain unchanged. This second optimization is under validation.
+
+
+The compressed-relation prototype completes the previously paging default query.
+Keeping projected evidence packed through ranking reduces its diagnostic elapsed
+time from 68.86 to 37.32 seconds and peak physical footprint from 35.94 to
+6.36 GB. Sharing equivalent cross-file site targets and pair-witness classifications
+reduces the next diagnostic to 25.43 seconds. The complete 77,113,827-byte default
+JSON remains identical between these completed prototypes (SHA-256
+`99983d3e49d60b221d5efd0c1eba1bf090f6c03f1963cec34460236385c72fd5`).
+The latest near:0.8 diagnostic is 2.57 seconds with the earlier identical output.
+These are diagnostic observations, not the registered paired timing campaign.
+The 37.32-second prototype passes all 360 three-mode output checks; the additional
+site-target optimization is undergoing the same full audit. Explicit scalar
+reference tests compare complete ordered relations, connectivity, exclusions and
+all projected witness-class/score facts, including sparse and mixed site blocks.
+
+
+A subsequent owned, lazy site-projection recipe reduces the same default query
+to 8.14 seconds and 2.01 GB peak physical footprint. Accumulating admitted target
+slices without repeated per-edge location/group checks reduces the next diagnostic
+to 5.33 seconds; near:0.8 is 2.44 seconds. Both complete JSON hashes remain unchanged.
+Every score addition still occurs in the original order. Deferred evidence retains
+its query's witness inputs and anchor floor, survives source-data destruction, and
+materializes at most once for concurrent readers. Dense selected-edge access still
+pays the projection cost when those edges are actually needed; it is not a recall cap.
+
+Candidate `73b45837` (before these later prototypes) passed full local CI: 2,382
+optimized tests, 89.49% line coverage, MSRV and Lean. Its full 360-output audit and
+saved-analysis/cache-upgrade journeys also pass. Its remote runtime smoke remains
+inconclusive for Asciidoctor normalization after the single focused run. These
+results remain bound to that earlier candidate, rather than to ongoing prototypes.
+
+
+## Dense-score optimization (2026-09-08)
+
+The elapsed-v1 candidate was withdrawn after material default-query regressions.
+CPU sampling and a public-API census identify repeated structural scoring,
+source-only anchor metadata splitting equivalent inputs, and serial accepted-target
+preparation. Alamofire's complete candidate relation has about 2.28 billion pairs;
+the scorer already reduces it to about 67.9 million row comparisons. libGDX's
+mostly unique classes previously disabled prepared feature intersections entirely.
+
+Each row below is a separate exploratory comparison against its own preceding
+candidate: three paired blocks, one sample per observation, one warmup and no
+same-binary control. Values are whole-query median milliseconds. These are not
+comparisons against published 0.20.0 and do not establish release qualification.
+
+| Change | Diagnostic workload | Before | After |
+|---|---|---:|---:|
+| Ignore source-only anchor metadata in score classes | Guava default | 3,662 | 3,113 |
+| Prepare rows without requiring repeated classes | libGDX default | 3,054 | 2,554 |
+| Estimate merges from both feature lengths | RxSwift default | 1,173 | 1,096 |
+| Prepare accepted targets in parallel with exact capacity | Alamofire default | 3,576 | 3,116 |
+| Union dense row neighborhoods with exact bitsets | Alamofire default | 3,064 | 3,008 |
+
+Every six-workload screen preserves complete JSON hashes. Effects are mixed outside
+the highlighted workloads; all raw comparisons remain sealed in the
+[preflight record](../bench/release/0.21.0/score-preflight.v1.json). File-based connected
+seed pruning and a strict anchor-bound/lazy-shape experiment also preserved output,
+but did not produce useful latency gains and were reverted. The actual root build
+passes all 360 ordinary output comparisons, 17 base comparisons and eight source,
+review and upgrade journeys. Full release qualification remains separate.
+
+
+## Accepted-row memory (2026-09-08)
+
+The next two changes preserve all accepted targets and source-pair order. A row's
+file-position index now contains only files represented by its left endpoints:
+other files cannot require same-file exclusion lookups. Workers also retain their
+existing row structure rather than flattening accepted triples and then grouping
+them again. This removes unnecessary index entries and transient copies.
+
+The first change's separate three-block peak-RSS comparison records the following
+medians in decimal MB. This resource comparison does not replace its six-workload
+elapsed screen, whose time effects were small and mixed.
+
+| Default query | Before | After |
+|---|---:|---:|
+| Alamofire | 2,752.2 | 2,337.8 |
+| libGDX | 999.1 | 978.8 |
+| Guava | 1,310.6 | 1,264.1 |
+| RxSwift | 549.3 | 515.1 |
+
+The second change's own resource comparison reduces peak RSS by a further
+22.3/27.5/22.7/8.8 MB on those four workloads. Its elapsed effects are also small
+and mixed; neither experiment establishes a release performance pass. Each
+six-workload paired screen preserves every complete JSON hash. The explicit
+relation oracle now covers rows confined to one file as well as rows spanning
+multiple files, retaining score bits, source exclusions, connectivity and projected
+evidence. Both prototypes pass 279 optimized detector tests and strict Clippy.
+
+A third experiment retained intersection counts and computed Jaccard ratios only
+for requested candidate classes. It also preserved all six outputs and passed the
+tests, but did not show a convincing whole-query benefit and slowed scoring on
+some workloads. It was reverted. The [row preflight](../bench/release/0.21.0/row-preflight.v1.json)
+keeps the accepted and rejected experiments separate and binds validation to the
+new actual root binary. The earlier official-0.20 diagnostic still establishes a
+need for elapsed optimization; these memory gains do not resolve that release task.

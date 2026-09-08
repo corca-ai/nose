@@ -1,0 +1,825 @@
+# 0.21.0 candidate qualification
+
+Updated on 2026-09-08. Release qualification: **GO under the adopted capability baseline**. The feature scope is frozen;
+remaining changes address qualification, packaging or a reproduced release blocker.
+The maintainer authorized publication after qualification. The publishing workflow
+must still pass its own quality gates and native package checks.
+
+## Final qualification (2026-09-08)
+
+The [final qualification record](../bench/release/0.21.0/final-qualification.v1.json)
+seals the remaining checks for product `0c4143e2`, crates `ac4404a8` and frozen
+binary `cc27040f`. Remote checks and native artifacts bind branch source
+`21b412a2`, whose product objects match the adopted baseline. Subsequent release
+record/changelog edits do not change those product objects.
+
+- General [CI](https://github.com/corca-ai/nose/actions/runs/34178064710), including
+  semantic output/runtime smoke, passes.
+- Full [nightly soundness](https://github.com/corca-ai/nose/actions/runs/34178491752)
+  covers all 120 pinned repositories: zero false merges, canonicalization changes
+  or failed repositories. The 12,015 advisory findings remain visible.
+- The [deep campaign](https://github.com/corca-ai/nose/actions/runs/34178493133)
+  passes source-runtime calibration, metamorphic equivalence and multi-seed falsification.
+- All four [native packages](https://github.com/corca-ai/nose/actions/runs/34178064875)
+  pass on their native runners. Downloaded archive and binary checksums are
+  independently verified, and the actual CI installer passes an isolated native install.
+- All 14 cache mutation cases pass 30 replays (2,100 rows). SymPy passes 30 paired
+  official/candidate replays (180 rows), with complete clean/cold/history equality
+  within each binary. Candidate p50 is 2.20 s clean, 2.31 s empty-store and 294 ms
+  with history. Official-version timing remains upgrade-cost evidence.
+- Watch passes 30 replays at both scale tiers, exact clean-query equivalence and
+  forced-crash recovery. The 10k/100k p95 latencies are 74.60/367.49 ms against
+  unchanged 250/1,000 ms limits; peak RSS is 169.3 MB/1.585 GB.
+
+Absolute query characterization uses one warmup and three measured samples per
+workload on the frozen macOS ARM binary. Every sample matches the certified output.
+These are descriptive observations, not a relative speedup or a p95 estimate:
+
+| Workload | Repositories | Sum of repository medians | Slowest median | Peak RSS |
+| --- | ---: | ---: | ---: | ---: |
+| Default | 120 | 61.69 s | 3.56 s (SymPy) | 2.246 GB |
+| Semantic | 120 | 36.45 s | 2.20 s (SymPy) | 1.055 GB |
+| Near, no pack | 120 | 61.20 s | 3.71 s (SymPy) | 1.413 GB |
+| Base | 17 | 11.79 s | 2.03 s (Netty) | 1.071 GB |
+
+The initial base warmup exposed a measurement-workspace mismatch: navigation
+commands embed the absolute working directory. The retained diagnostic proves
+that replacing only that directory reproduces the exact reference bytes. The
+17 base workloads were then measured in the original stable workspace with raw
+byte equality; no output fields were ignored. All 360 ordinary observations and
+the original interruption remain preserved. The final record binds both designs.
+
+The earlier 377-output audit, eight user journeys, Type-4 checks, reviewed
+self-duplication and full local CI (2,440 optimized tests, 89.73% line coverage)
+remain valid for the identical product objects. No additional product change is
+being qualified by a self-comparison. Historical official-0.20 failures remain
+unchanged and the accepted capability-cost decision below remains explicit.
+
+## Adopted performance baseline (2026-09-08)
+
+The maintainer explicitly accepted the increased analysis cost and authorized a
+baseline reset. The [active performance baseline](../bench/release/0.21.0/performance-baseline.v1.json)
+pins product `0c4143e299e14bf3d4243267bb4ede82d5307d30`, crates tree `ac4404a8`,
+dependencies and the frozen macOS ARM binary `cc27040f`. Subsequent product changes
+compare against this fixed capability set; the baseline does not follow HEAD.
+The query harness consumes and verifies this manifest before measuring.
+
+The accepted cost includes the recorded Alamofire default focus: official 0.20
+median 2,538.91 ms, candidate median 3,959.98 ms, control-adjusted +56.15%.
+This is an explicit product tradeoff, not a speedup or proof that all of the
+difference is caused by additional work. Historical failures and raw observations
+remain unchanged. Their official-version relative cost no longer vetoes this
+accepted capability transition. A comparison of this frozen binary with itself
+does not establish an independent timing pass.
+
+The unchanged 5% AND 5 ms limit, paired controls and one-focus rule apply to
+subsequent same-capability regressions. Official 0.20 artifacts remain the upgrade
+compatibility reference. Existing cache/watch official-version timing reports
+describe upgrade cost; they are not same-capability performance comparisons.
+At adoption, cache correctness, recovery, watch latency/resource limits, native
+archives, full remote soundness and absolute workload characterization remained
+outstanding. They are completed in the final qualification above. The recorded
+single-repository upgrade cost is not a corpus estimate; adoption alone did not
+establish release readiness.
+
+For prospective query measurements, add `--performance-baseline-manifest` to the
+existing [controlled harness design](order-aware-performance-controls.md). It
+selects this manifest by default; `--baseline-binary` may relocate the exact
+artifact but cannot substitute a rebuild with a different digest. Only macOS ARM
+is currently registered. Other platforms need reviewed artifact registrations.
+Ordinary PR merge smoke continues comparing its declared base and head.
+
+## Upgrade from 0.20.0
+
+- Ordinary query JSON uses schema 10; base queries retain schema 8. Integrations
+  should inspect `nose capabilities`, support nullable region/review keys and
+  read the [query contract](query-json.md). Do not parse human output.
+- Existing family/member navigation handles retain their meaning. A content key
+  is not occurrence identity, ancestry or review approval. See [region identity](region-identity.md).
+- Cache artifacts whose versions changed rebuild automatically. The first cached
+  run after upgrade can cost a full analysis. Preserve unrelated files and use
+  the existing cache commands; manual deletion is not required.
+- Saved analyses are separate from rebuildable caches. Retain original captures
+  referenced by caller reviews. Older captures without optional handle/diagnostic
+  metadata remain readable with explicit unavailable/not-recorded status; older
+  strict readers can reject newly extended artifacts. Do not rewrite captures to
+  make a review appear applicable.
+- Semantic packs with a compatibility upper bound below 0.21 remain incompatible.
+  Providers should revalidate before extending their range. Changed manifests
+  require regenerated project locks and applicable conformance receipts; changing
+  the bound alone does not authorize external-exact influence. Shipped examples
+  are revalidated on this candidate.
+
+## Latest candidate: component certification
+
+Product `0c4143e2`, crates tree `ac4404a8`, retains the short-feature candidate
+below and two component optimizations. A same-file-only proof checks precisely
+the targets that nesting may have excluded; subsequent joins reuse their current
+union-find root. Scores, admitted relations and representative selection remain
+unchanged. The [component record](../bench/release/0.21.0/component-experiments.v1.json)
+preserves the diagnostic counters, source patches, separate six-workload screens,
+285 detector tests and rejection of an additional target-class cache. The
+controlled near check includes that rejected cache and is not evidence for this
+actual binary. The [actual-product validation](../bench/release/0.21.0/component-validation.v1.json)
+binds frozen binary `cc27040f`: all 360 ordinary and 17 base outputs match the
+retained reference, eight user journeys pass, and Type-4 reports zero soundness
+bugs or blind false merges/canonicalization violations. The self-query retains
+eighteen reviewed families within budget twenty; the existing detect/Markdown
+union-find representative change is reviewed with byte-identical old/new binary
+outputs on the current tree. Full local CI passes 2,440 optimized tests and
+89.73% line coverage.
+
+The historical [controlled verdict](../bench/release/0.21.0/component-verdict.v1.json) is
+**NO-GO under the preceding official-0.20 baseline**. Primary/control confirms +1,091.33 ms/+52.02%; the one registered
+six-block focus confirms +1,425.68 ms/+56.15%, supported by all six blocks and
+both execution orders. Focused whole-query medians are 2,538.91 ms for official
+0.20.0 and 3,959.98 ms for this candidate. All output drift matches the review.
+This repository counterexample blocked release under that policy; it is not a full-corpus aggregate
+verdict. Remaining cache/watch, independent native verification and full remote
+soundness were not rerun on this failed candidate and are not inherited from its
+predecessors. Baseline adoption above supersedes the requirement to change the
+product before further qualification; the failed comparison will not be retried
+or rewritten as a pass.
+
+The subsequent [score-block experiments](../bench/release/0.21.0/score-block-experiments.v1.json)
+preserve exact ordered floating-point results but do not sufficiently improve
+the measured workload. Both isolated variants are reverted after full-output
+screens and 290/291 detector tests, respectively. Neither changes this product
+or its historical verdict; no RSS improvement is claimed.
+
+## Previous candidate: short-feature comparisons
+
+Product `aea64b61` retains the incident-site implementation and uses conditional
+index increments for sorted multisets only when both inputs have at most 32
+features. Larger inputs keep the previous scalar merge. The
+[feature follow-up](../bench/release/0.21.0/feature-followup.v1.json) binds crates
+tree `ea2e833d`, the isolated binary, 283 detector tests, strict Clippy/docs,
+a 7,225-pair independent frequency oracle and six byte-identical query outputs.
+Exploratory libGDX and RxSwift default elapsed improve 2.41% and 2.20%; other
+changes are small and mixed, including higher Alamofire medians. Three additional
+experiments are reverted for insufficient benefit. These screens do not resolve
+the release blocker. The [actual-binary validation](../bench/release/0.21.0/short-merge-validation.v1.json)
+binds binary `6da81315`: all 360 ordinary and 17 base outputs match the retained
+reference byte for byte; eight user journeys, Type-4 and eighteen reviewed
+self-analysis families pass. Full local CI passes 2,438 optimized tests with
+89.72% line coverage. Its start/completion metadata commits and unchanged crates
+tree are recorded. Final-product cache/watch, remote/native and the registered
+elapsed campaign remain outstanding; no predecessor runtime pass is inherited.
+
+## Previous candidate: incident-site coverage
+
+Product `9c0eb825` answers accepted-coverage questions from an exact incident-site
+set when the connected source graph has a total, surjective site mapping. This
+avoids materializing large graphs just to prove or disprove containment. Partial
+mappings, outside appended endpoints and mixed-root cases retain exact fallbacks.
+Every accepted edge, score and output remains available with its original meaning.
+
+The [actual-binary preflight](../bench/release/0.21.0/incidence-preflight.v1.json)
+binds crates tree `e00714dd` and binary `6f51b3ff`. All 360 ordinary and 17 base
+outputs match the retained reference byte for byte. Eight user journeys, Type-4
+checks and eighteen reviewed self-analysis families pass. The preceding binary
+and current binary also produce identical complete self-query outputs on the changed
+source tree; one unchanged numeric-policy family leaves the substantial baseline.
+The isolated product passes 1,108 optimized CLI tests, 282 final detector tests,
+strict Clippy and docs, including 512 total/partial connected mapping comparisons.
+
+A six-workload, three-block exploratory screen preserves every complete output.
+Alamofire default elapsed improves 5.78% (2,924.70 to 2,755.50 ms), with opportunity
+coverage falling from 187.9 to 18.3 ms. RxSwift default elapsed improves 9.84%, with
+coverage falling from 94.0 to 7.7 ms. Other elapsed effects are small and mixed.
+Separate RSS changes are -46 MB for Alamofire, nearly flat for RxSwift, +6 MB for
+libGDX and +38 MB for Guava. No universal memory reduction is claimed.
+These screens have no same-binary control and do not qualify release against
+0.20. The [validation follow-up](../bench/release/0.21.0/incidence-validation.v1.json)
+records full local CI at `5c566491`: 2,437 optimized tests and 89.71% line coverage.
+Two later scalar-merge experiments preserve outputs but show no sufficient practical
+benefit, so both are reverted. Final-product cache/watch, remote/native checks and
+the complete elapsed campaign remain outstanding. The preceding candidate's confirmed failure remains
+preserved below; the measured coverage improvement does not waive that blocker.
+
+## Previous candidate: accepted-row memory
+
+Product `ac68a583` limits file-position indexes to files represented by each source
+row and retains row structure through accepted-score preparation. It preserves all
+targets, ordered scores, source exclusions and complete output. The separate
+[resource comparisons](runtime-triage.md#accepted-row-memory-2026-09-08) show lower
+peak RSS, including 414 MB/15% for Alamofire in the first comparison. Time effects
+are small and mixed; no material whole-query latency gain is claimed.
+
+The [actual-binary preflight](../bench/release/0.21.0/row-preflight.v1.json) binds
+source `ac68a583`, crates tree `2a30fe49` and binary `29680487`. All **360 ordinary
+and 17 base outputs** match the retained reference byte for byte. All eight user
+journeys, Type-4 checks and nineteen reviewed self-analysis families pass. The
+identical prototype tree passes 279 optimized detector tests and strict Clippy.
+A requested-only overlap-ratio experiment passed correctness but lacked convincing
+latency gains, so it was reverted and remains recorded separately.
+
+Full local CI at `759f4533` passes 2,432 optimized tests and 89.69% line coverage.
+Cache correctness passes 2,100 mutation and 180 paired SymPy runs. Candidate
+clean/empty/history p50 is 2,258/2,432/292 ms versus official 0.20 at
+2,289/2,466/312 ms; all three p95 values also improve. Watch passes thirty
+replays at p95 74.42/337.45 ms for 10k/100k files, including crash recovery.
+
+The [registered early blocker check](../bench/release/0.21.0/row-blocker-design.v1.json)
+measures this candidate's Alamofire default query using the unchanged elapsed-v1
+protocol: primary five blocks, up to one focused six-block comparison, five samples
+per observation and candidate-against-itself controls. A confirmed per-repository
+regression blocks release; a pass cannot qualify the complete campaign.
+
+The [final verdict](../bench/release/0.21.0/row-verdict.v1.json) is **NO-GO**.
+Primary adjusted elapsed is +1,228.62 ms/+65.66%, supported by all five blocks.
+The single registered focus confirms +1,573.88 ms/+68.88%, supported by all six
+blocks (sign-test p=0.015625), with material regressions in both execution orders.
+All output drift matches the registered review. This one-repository counterexample
+blocks release; it is not a full-corpus aggregate verdict. The complete four-workload
+campaign was not run on this failed candidate, which will not be retried unchanged.
+
+All five remote CI/release/soundness workflows at `759f4533` pass. Full nightly
+covers 120 pinned repositories with zero false merges or canonicalization changes;
+deep equivalence, multi-seed falsification and runtime calibration pass. All four
+actual native archives and the generated installer pass independent checksum,
+installation and execution checks. Their recorded merge checkout `9d142e68` has
+the frozen candidate's product and dependency trees. Candidate SymPy peak RSS
+remains higher than official 0.20 and is recorded alongside the elapsed gains.
+Earlier candidates retain their own verdicts; these passes do not waive the runtime
+failure or authorize publication.
+
+## Previous candidate: dense scoring and accepted-target preparation
+
+Product `c82fef52` reuses structural scores across relocated anchor metadata,
+prepares feature intersections even when input classes are mostly unique, estimates
+sparse merge work from both inputs, prepares large accepted target rows in parallel,
+and unions dense candidate neighborhoods with exact bitsets. Source admission,
+ordered scores, complete edge evidence and navigation output remain unchanged.
+The [diagnostic comparisons](runtime-triage.md#dense-score-optimization-2026-09-08)
+keep each experiment's baseline and rejected alternatives explicit.
+
+The [actual-binary preflight](../bench/release/0.21.0/score-preflight.v1.json) binds
+source `c82fef52`, crates tree `31856d64` and binary `7ec35a11`.
+All **360 ordinary outputs and 17 base outputs** match the retained reference byte
+for byte. Base field changes match the previously reviewed declarations. All eight
+saved-analysis/review/source/upgrade journeys pass. Type-4 retains 41 covered cells,
+17 hard negatives, 18 known gaps and zero observed bugs; 54 blind exact groups have
+zero false merges or canonicalization violations. Self-analysis retains nineteen
+reviewed families within budget twenty. The identical prototype crates tree passes
+279 optimized detector tests, strict Clippy and the documentation gate.
+
+The [validation follow-up](../bench/release/0.21.0/score-validation.v1.json) records
+full local CI at `7efe5a25`: 2,432 optimized tests and 89.69% line coverage. All
+2,100 cache mutation runs and 180 paired SymPy runs preserve output equivalence.
+SymPy clean/empty/history p50 is 2,435/2,595/309 ms versus official 0.20 at
+2,444/2,656/333 ms; all three p95 comparisons remain inside the existing materiality
+limits. Candidate peak RSS is higher and remains recorded. Watch passes thirty
+replays at p95 74.62/363.20 ms for 10k/100k files, including crash recovery.
+
+A separate six-workload exploratory comparison against official 0.20 still finds
+large elapsed slowdowns: Alamofire default +62.4%, libGDX default +34.7%, RxSwift
+default +37.0% and Alamofire near +26.2%; Guava default is +8.9%, while RxSwift
+semantic improves 5.6%. This short screen has no same-binary control and is not a
+formal release verdict. It supports further optimization, not repeating an unchanged
+candidate in search of a passing result. Final-candidate elapsed qualification,
+remote CI and native-package validation remain outstanding. No release is qualified.
+
+## Previous candidate: explicit relation certificates and elapsed-time qualification
+
+Product `437c3795` includes the small-group serial location collector and a
+certificate for complete, homogeneous explicit source relations. It preserves
+the accepted edge set, score bits and scalar fallback while avoiding redundant
+edge expansion. The isolated implementation passes 277 optimized detector tests,
+strict Clippy and all five complete diagnostic output comparisons. RxSwift semantic
+grouping falls from 8.05 to 5.78 ms in that exploratory comparison; near-mode whole
+query time increases about 1.5%. These are diagnostics, not release qualification.
+
+The [prospective runtime scope](order-aware-performance-controls.md#prospective-release-scope-elapsed-v1-2026-09-07)
+now distinguishes user-visible elapsed-time blockers from internal-stage warnings.
+Correctness, resource/scaling, cache/watch and package requirements remain intact.
+The latest actual binary must complete all four runtime workloads under the new
+policy. All preceding failed verdicts below remain historical failures; their
+successful checks do not automatically qualify changed product code.
+
+The [registered design](../bench/release/0.21.0/elapsed-design.v1.json) binds the
+explicit scope, unchanged measurement protocol and producers before timing.
+The [actual-binary preflight](../bench/release/0.21.0/elapsed-preflight.v1.json)
+binds source `46ed8bef`, crates tree `4e087079` and binary `c6f204c5`.
+All 360 ordinary and 17 base outputs match the retained reference, and all eight
+saved-analysis/review/source/upgrade journeys pass. The reviewed base-view field
+changes are unchanged; only the isolated worktree path-bound hashes regenerate.
+Type-4 retains 41 covered cells, 17 hard negatives, 18 known gaps and zero observed
+soundness bugs; 54 blind exact groups have zero false merges or canonicalization
+violations. Self-analysis retains the same nineteen reviewed families within the
+budget of twenty. Full local CI at `7367a277` passes 2,430 optimized tests and
+89.68% line coverage. Cache passes 2,100 mutation runs and 180 paired SymPy runs;
+watch passes thirty replays at p95 74.50 ms/345.52 ms for 10k/100k files, including
+crash recovery. Remote CI, PR, full nightly, deep and native package workflows at
+that preparation all pass. The four actual native archives and generated installer
+also pass independent checksum, installation and execution checks; the recorded
+merge checkout has the frozen candidate's product and dependency trees.
+
+The registered semantic comparison passes without focus: aggregate elapsed improves
+4.25% and RxSwift elapsed improves 7.39%. Two internal normalization signals remain
+inconclusive warnings. Its status JSON and Markdown reproduce byte for byte after
+the base-provenance checker correction. The complete base primary/control initially
+stopped in the checker because it required ordinary prune-state metadata for a pinned
+base workload. Strict validation now checks the actual base manifest, source selection,
+ordered head/base tuples and producer/root identities; no provenance flag is waived.
+The original measurements and error are retained. The corrected base decision passes
+without focus and retains ten stage warnings. Default primary/control subsequently
+finds an aggregate elapsed regression of 9.77%, including Alamofire +103.95% and
+libGDX +63.66%. All 120 outputs match their reviewed drift declarations. The
+candidate is conservatively withdrawn for optimization: its one focused comparison
+was interrupted before completion, so it has **no final focused verdict**. Near
+remains unmeasured. Completed samples are preserved and this unchanged candidate
+will not be retried. The [withdrawal record](../bench/release/0.21.0/elapsed-withdrawal.v1.json)
+seals those measurements and the interruption without changing any decision rules.
+The [provenance correction and continuation record](../bench/release/0.21.0/elapsed-base-provenance.v1.json)
+seals the original error, unchanged raw measurements, reproduced semantic verdict,
+strict base decision and registered continuation. It also binds the completed CI,
+cache/watch, soundness and native package evidence to the same product.
+
+## Previous candidate: context preparation and evidence mapping
+
+The next candidate resolves enclosing parents independently by file and restores
+original unit order, reduces canonical-site indexing and two-site edge sorting,
+reuses whole-group exact evidence for explicit edge classification, and avoids
+copying immutable child lists during parameter-domain inference. Mixed witness
+groups, overlap ties, score bits and all admission rules retain their old behavior.
+The [runtime triage record](runtime-triage.md) distinguishes the three isolated
+comparisons and their mixed whole-query outcomes. The prototypes pass relevant
+optimized tests, strict Clippy, documentation and all compared complete outputs.
+Their timings are exploratory. The [actual-binary preflight](../bench/release/0.21.0/context-preflight.v1.json)
+binds product `7b239a41`, crates tree `15499ec6` and binary `b62005ba`.
+All 360 ordinary and 17 base outputs match the retained reference; all eight
+saved-analysis/review/source/upgrade journeys pass. Type-4 retains 41 covered
+cells, 17 hard negatives, 18 known gaps, zero observed soundness bugs, and 54
+blind exact groups with zero false merges or canonicalization violations.
+Self-analysis retains nineteen reviewed families within the budget of twenty.
+The [representative review](dogfooding-history.md#context-preparation-release-check-2026-09-07)
+replaces one changed navigation ID without changing the keep-separate policy.
+The [final context verdict](../bench/release/0.21.0/context-verdict.v1.json) records
+full local CI passing 2,426 optimized tests and 89.65% line coverage. Cache checks
+pass 2,100 mutation runs and 180 paired SymPy runs. Thirty-replay watch checks
+pass at p95 74.11 ms for 10,000 files and 338.39 ms for 100,000 files, including
+crash recovery and equality to clean analysis. All remote CI, PR, deep and
+complete 120-repository soundness checks pass. The remote runtime comparison
+has no triggered or inconclusive signals, seven declared output changes and no
+unexpected changes. Four native archives and the actual generated installer
+pass independent checksum, installation and execution checks. The merge checkout
+has the same product and dependency trees as the frozen candidate.
+
+The registered local semantic primary/control and single focused/control retain
+one confirmed regression: RxSwift `groups` increases by 6.05 ms/148.92%, with
+support in all six focused blocks. Guava and Alamofire's prior signals are within
+limits. The primary libsodium and SQLite normalization signals clear in focus;
+no focused inconclusive signal remains. There are 120 declared and zero unexpected
+output changes in the primary, and three declared/zero unexpected changes in focus.
+Qualification stops at this failed semantic workload; base/default/near runtime
+qualification has not run for this candidate. No unchanged retry is planned.
+The completed primary was preserved across a preregistered package-verification
+gap before control; raw command samples determine the verdict. Earlier failure
+receipts remain unchanged. The release decision is still **NO-GO**.
+
+## Previous candidate: uniform source and site relations
+
+Groups with exact-value evidence and one complete, homogeneous source row carry
+their non-nested-pair rule directly to ranking through `GroupEdges::AllNonNested`.
+Ranking reuses its existing canonical site selection, avoiding the same mapping
+and repeated edge classification earlier in the pipeline. Rust consumers with
+exhaustive `GroupEdges` matches must handle this new variant. CLI JSON is unchanged.
+
+An isolated homogeneous row can retain its canonical graph as one exact score
+and a site count when actual source representatives prove every site pair is
+non-nested. The proof requires dense coordinates and strictly increasing starts
+and ends within each file, in addition to the existing membership, exact-value
+and whole-group isolation checks. Failed proofs retain the previous visitor.
+Iteration reconstructs every original ordered edge and score bit.
+Invalid cached span lengths or reversed report spans retain explicit source
+exclusions instead of manufacturing edges from the compact rule.
+
+The isolated implementation passes 267 optimized detector tests, strict Clippy,
+docs and all nine diagnostic output comparisons. Alamofire grouping medians fall
+from 50.30 to 38.65 ms in semantic mode and from 105.10 to 86.90 ms in near mode.
+Whole-query and peak-memory effects are mixed; these diagnostics do not qualify
+the release. The uniform-source follow-up passes 269 detector tests, strict Clippy
+and nine diagnostic output comparisons. In its separate balanced comparison,
+Alamofire semantic grouping falls from 38.35 to 18.15 ms and whole-query time
+from 960.64 to 917.05 ms; near grouping falls from 81.60 to 67.75 ms. Other
+whole-query effects are small or mixed. Three smaller follow-ups (small-site input elision, interval-based
+same-file projection and inline edge rows) were not adopted after weak or mixed
+results. The [preflight record](../bench/release/0.21.0/uniform-relations-preflight.v1.json)
+binds product `e2d5559e`, crates tree `e0b09de9` and the actual release-workspace
+binary. All 360 ordinary and 17 base outputs match the reference; the eight
+saved-analysis/review/upgrade journeys and Type-4 checks pass. The self-query
+reports nineteen reviewed families within the unchanged budget of twenty.
+The [dogfooding history](dogfooding-history.md#uniform-relation-release-check-2026-09-07) explains the retained numeric policies.
+The [follow-up record](../bench/release/0.21.0/uniform-relations-followup.v1.json)
+seals 87 subsequent artifacts. Full local CI passes 2,422 optimized tests and
+89.66% line coverage. Cache checks pass 2,100 mutation runs and 180 paired SymPy
+runs. Thirty-replay watch checks pass at p95 76.09 ms for 10,000 files and
+388.07 ms for 100,000 files, within the existing 250/1,000 ms limits, including
+crash recovery. Remote PR, deep and complete 120-repository soundness checks
+pass; all four native archives and the actual generated installer are verified.
+The PR merge checkout has the same product and dependency trees as this candidate.
+
+The original [remote runtime check](https://github.com/corca-ai/nose/actions/runs/34084916982)
+fails closed on focused Asciidoctor `normalize+extract` evidence: +13.50 ms/+11.05%,
+four supporting blocks of six, no confirmed signal. Seven declared output changes
+and zero unexpected changes are retained. The prospective merge-smoke design now
+uses the existing five-sample position-neutral measurement with one warmup in every
+phase. Its five/six independent blocks, one focused comparison, materiality limits
+and fail-closed policy remain unchanged; see the [measurement contract](order-aware-performance-controls.md).
+The old failed run is not reclassified. The five-sample [remote comparison](https://github.com/corca-ai/nose/actions/runs/34088948033)
+also fails closed on Asciidoctor normalization: +6.45 ms/+5.36%, four supporting
+blocks of six. No confirmed remote signal remains, but inconclusive evidence
+still fails. Both remote runs retain seven declared and zero unexpected output
+changes. The current preparation's four archives and generated installer also
+pass independent checksum and native installation/execution checks.
+
+The [final verdict record](../bench/release/0.21.0/uniform-relations-verdict.v1.json)
+seals the complete local semantic primary/control and single focused/control.
+Guava has confirmed increases in `groups` (+6.90 ms/+38.47%), `rank_families`
+(+5.66 ms/+93.98%) and `rank_map` (+5.56 ms/+206.02%); RxSwift has a confirmed
+`groups` increase (+6.90 ms/+167.78%). Alamofire `rank_dedup` (+5.20 ms/+9.77%)
+and `rank_families` (+6.29 ms/+6.44%) remain inconclusive. Focused whole-query measurements remain
+within limits. There are 120 declared output changes and zero unexpected changes.
+The campaign stops at this failed workload: base/default/near runtime qualification
+has not run for this candidate. No unchanged retry is planned. The completed
+primary was preserved across the documented between-phase verification gap;
+raw command samples, not orchestration elapsed time, determine the verdict.
+
+## Previous candidate: complete relations and JSON list encoding
+
+Product `12ad58a2` reuses exact-value classes established during candidate
+creation, projects proven complete rows directly onto canonical sites, and
+encodes independent JSON list rows in parallel. Clique projection requires every
+mapped member of its report group to belong to that row. A reproduced signed-zero
+and NaN first-winner counterexample verifies the fallback for intersecting rows.
+The ordinary serializer still owns key/value encoding and output bytes.
+
+The isolated implementation passes 265 optimized detector tests, the JSON byte
+oracle across thread counts, strict Clippy, and docs checks. Nine balanced diagnostic
+workloads preserve all output bytes. Candidate-class reuse reduces Alamofire's
+semantic scoring median from 14.55 to 8.30 ms. List encoding reduces Guava's
+rendering median from 41.60 to 32.15 ms and Alamofire's from 268.05 to 215.85 ms.
+These are separate prototype comparisons, not a combined release speed guarantee.
+The location-copy/explicit-witness follow-up was rejected after grouping stayed
+flat. Every original diagnostic and the reproduced correctness failure is retained.
+
+The [preflight record](../bench/release/0.21.0/relation-encoding-preflight.v1.json)
+binds the actual release-workspace binary to crates tree `4c1ff40a`. All 360
+ordinary and 17 base outputs match the retained reference, the eight saved-analysis
+journeys pass, and Type-4 probing reports zero soundness bugs. Duplication remains
+18 substantial families within the unchanged budget of 20. Full local CI subsequently
+passes at `852a6399` with 2,418 release tests and 89.65% line coverage. Cache/watch
+measurements, registered published-baseline timing, remote soundness and package
+verification were not completed for this product. Diagnostic grouping costs still exceed the old
+baseline; this candidate is **not qualified for release**.
+
+## Previous candidate: exact proof and evidence reuse
+
+The replacement candidate removes repeated candidate-input construction, gives
+ineligible exact-scoring units one proven zero-score class, and scores disjoint
+homogeneous buckets without general row refinement. Group evidence is built in
+source order, canonical edge ranking retains the original winner rule, and
+projection reuses already-established whole-group exact evidence. Suffix masks
+preserve file exclusions and every source cutoff. Alignment voting and identity
+serialization retain their exact scores and bytes while reducing allocation.
+The mechanisms and limits are documented in [runtime triage](runtime-triage.md).
+
+Product `ee779371` and the [preflight record](../bench/release/0.21.0/proof-reuse-preflight.v1.json)
+bind the replacement to crates tree `e3231dde`. The isolated product sources pass
+262 optimized detector tests, strict Clippy and the documentation gate. Both the
+isolated and release-workspace binaries match all 360 default/semantic/near
+outputs byte for byte. The release binary also matches all 17 base outputs and
+passes saved-analysis/review/cache-upgrade journeys. Type-4 probing retains 41
+covered cells, 17 hard-negative cells, 18 known gaps and zero soundness bugs;
+the blind oracle reports zero false merges or canonicalization violations. Balanced diagnostics confirm reductions in
+homogeneous scoring and several grouping/ranking workloads; their smaller,
+mixed effects are not full release qualification. Full local CI subsequently
+passes at `11637118` with 2,414 release tests and 89.63% line coverage. The
+published-baseline diagnostic still has grouping and other stage costs. Cache/watch
+measurements, registered timing, remote soundness and native package verification
+were not completed for this superseded candidate.
+The failed exact-mask qualification below remains retained. Release stays NO-GO
+until the replacement satisfies every unchanged gate.
+
+## Previous candidate: exact evidence masks
+
+Product `5e46ec4b` batches consecutive identical exact evidence into a 64-site
+mask before updating sparse edge storage. Scores, witness winners, source
+exclusions and every admitted edge remain unchanged. The ordered scalar oracle
+test covers mixed, uniform and sparse blocks, including signed-zero scores.
+The [exact-mask follow-up record](../bench/release/0.21.0/exact-mask-followup.v1.json)
+binds proof `60151de6` and binary
+`96eb0e223c183ae739d9ce38edeca55edc7a43c792e13874cf6fef02d317b4fd`.
+Full local CI passes 2,396 tests and 89.58% line coverage. All 360 ordinary and
+17 base output comparisons, saved-analysis/review journeys and Type-4 checks
+pass. The initial CI's final worktree guard rejected an evidence commit made
+during that run; the original log is retained and the clean fixed-commit rerun
+passes. PR, nightly and deep soundness, four native packages and the actual
+generated installer pass independent verification.
+
+Cache correctness passes 2,100 mutation rows and 180 paired SymPy observations;
+all three cache modes remain within unchanged p50/p95 limits. Watch passes 30
+revisions each at 10k/100k files, fresh-query equality and forced restart; ready
+p95 is 75.96/395.84 ms. The [remote runtime gate](https://github.com/corca-ai/nose/actions/runs/34060630327)
+passes its primary comparison without a focused run.
+
+The registered published-0.20 semantic campaign fails after its primary/control
+and single focused pair. It confirms group-construction costs in Alamofire,
+Guava, Hugo, libGDX, RxJava and RxSwift; scoring in Alamofire/libGDX; clustering
+in libGDX; ranking in Guava/RxSwift; and rendering in Guava. Rack's whole-query
+signal remains inconclusive. Neither result qualifies the release. All 120
+output changes match the reviewed declaration, with no unexpected drift.
+Base/default/near timing remains unqualified because the failed semantic gate
+stops this candidate. The original preflight provenance-schema assertion was
+corrected before any timing sample; its traceback is retained.
+
+The [runtime record](runtime-triage.md#site-mapping-work) retains the smaller
+diagnostic gains and their limits. A borrowed-location collapse experiment is
+rejected despite matching all nine output hashes: its timing benefit is not
+convincing. No same-binary retry replaces a failed observation.
+
+## Previous candidate: parallel site mapping
+
+Product `a56a5c6b` prepares independent group-to-site mappings in parallel and
+omits witness classes for units with no reported site. The underlying sparse
+edge storage and complete evidence rules remain unchanged. The balanced
+prototype comparison and its limits are recorded in [runtime triage](runtime-triage.md#site-mapping-work).
+The [mapping follow-up record](../bench/release/0.21.0/site-mapping-followup.v1.json)
+binds proof `add9276a` and binary
+`fc4b202fac93445b56bcf9c112a66d70ddb361a28146979c874672ced72e50b3`.
+Full local CI passes 2,395 tests and 89.57% line coverage. All 360 ordinary and
+17 base output comparisons, saved-analysis/review journeys and Type-4 checks
+pass. PR, nightly and deep soundness pass; four native packages and the actual
+generated installer are independently verified.
+
+Cache correctness passes 2,100 mutation rows and 180 paired SymPy observations.
+Clean, empty-store and history-reuse p50/p95 remain within unchanged limits.
+Watch passes 30 revisions each at 10k/100k files, fresh-query equality and forced
+restart; ready p95 is 81.94/395.41 ms.
+
+The [remote runtime gate](https://github.com/corca-ai/nose/actions/runs/34058102141)
+has no confirmed focused regression, but remains inconclusive for Fastlane
+lowering/parsing and Prettier discovery/shared-lines stages because their order
+strata disagree. Their aggregate effects do not exceed both materiality limits;
+the unchanged policy still rejects insufficient evidence. Asciidoctor passes.
+The original failure is retained without a same-binary retry. The broad
+published-0.20 runtime matrix was not run for this intermediate candidate.
+
+## Previous candidate: bounded C admission parsing
+
+Product `42cb52a6`, proof `cd3d1971`, and binary SHA-256
+`f2bd191f85a6bd0fdedd2959991b57b394deb247c3d9d524785b6dac66872741`
+stop a hinted-header clean-C check once every surviving parse requires a syntax
+error. The narrow vendored parser patch leaves grammar and completed parsing
+unchanged, resets canceled pooled parsers, and retains clean-tree resource budgets.
+Type-4 proof now binds Cargo and vendor inputs as well as application crates.
+
+All 360 ordinary and 17 base outputs match the previous candidate. Saved-analysis
+and review journeys, stale source checks, legacy captures and the 0.20 cache
+upgrade pass. Type-4 probes retain 76 cells, 54 exact groups, zero false merges
+and zero canonicalization violations. The initial full CI run passes its tests
+but exposes cargo-machete scanning the upstream feature-only `regex-syntax`
+dependency. The unused-dependency scan is corrected to first-party crates;
+full-graph advisory/license/source checks remain. The tool update workflow also
+reports two outdated auxiliary pins, which are refreshed and revalidated.
+
+The [parser follow-up record](../bench/release/0.21.0/parser-followup.v1.json)
+retains full local CI after tooling correction: 2,395 tests and 89.57% line
+coverage, with security, licenses, MSRV, Clippy and Lean passing. PR, deep and
+120-repository nightly soundness pass. All four native archives and the actual
+installer are independently verified. The remote runtime focus remains
+inconclusive for Asciidoctor normalization: +7.45 ms/+6.03%, four supporting
+blocks of six, sign-test p=0.34375. There is no confirmed focused regression,
+but the unchanged gate rejects insufficient evidence. No same-binary retry
+replaces that result. Cache/watch timing and the broad registered runtime matrix
+were not run for this intermediate candidate.
+
+## Previous candidate: exact score reuse
+
+The [scoring follow-up record](../bench/release/0.21.0/scoring-followup.v1.json)
+binds optimization `25230ae5`, test cleanup `deeb1eaa` and proof `5d1610f7`.
+It avoids redundant unhinted-header parsing, reuses exact scoring inputs and
+accelerates repeated additions while retaining sequential IEEE-754 results.
+The fixture cleanup produces a byte-identical executable. All 360 ordinary and
+17 base outputs match the preceding candidate; saved-analysis/review journeys
+and 0.20 cache upgrade also pass.
+
+Full local CI passes 2,392 tests, 89.56% line coverage, strict Clippy, MSRV,
+supply-chain checks and Lean. The original full run's duplicated test setup was
+removed through a shared fixture; eighteen accepted families remain within
+budget twenty. The original failure is retained. Cache passes 2,100 mutation
+rows and 180 paired SymPy observations. Watch passes 30 revisions at both sizes,
+fresh-query equality and forced restart, with ready p95 81.08/386.29 ms.
+
+[Remote CI](https://github.com/corca-ai/nose/actions/runs/34053175158) remains
+inconclusive after its single Asciidoctor/Fastlane focus. Asciidoctor
+`normalize+extract` has an adjusted +9.40 ms/+7.53% movement, four supporting
+blocks of six and sign-test p=0.34375; no focused signal is a confirmed regression.
+This still fails the unchanged gate. PR, nightly and deep soundness pass. All
+four native packages and the actual installer are independently verified. The
+Intel Mac package's first upload failed with GitHub DNS ENOTFOUND after its
+build/smoke passed; only that failed package job was retried.
+
+Balanced semantic diagnostics reduce Raylib from 2.42 to 2.02 seconds and libGDX
+from 1.66 to 1.47 seconds against the previous candidate. Delve remains 0.50
+seconds versus published 0.20's 0.26 seconds. Group/ranking stage costs also
+remain. The new broad release runtime campaign is unqualified; these diagnostics
+never replace its registered primary/control and focused policy.
+
+An isolated parser experiment reduces the Delve diagnostic from 0.50 to 0.24
+seconds with identical output. Its admission decisions match complete parsing
+for 6,294 C/header files and 10,000 token mutations; all 360 product outputs
+also match. This dependency experiment is not in the candidate above and still
+requires integration, provenance and release verification before adoption.
+
+## Previous candidate: deferred evidence
+
+The [lazy follow-up record](../bench/release/0.21.0/lazy-followup.v1.json) binds
+product `bbc91b01`, proof commit `1be93eda` and harness commit `ce94f372` to their
+actual binaries and completed checks. The default Alamofire diagnostic now takes
+5.23 seconds with about 2.03 GB peak physical footprint; near:0.8 takes 2.36 seconds.
+All 360 outputs match the preceding candidate. These diagnostics do not qualify
+the release's runtime comparison.
+
+| Requirement | Current candidate result |
+| --- | --- |
+| Full local CI | Passed: 2,385 optimized tests, 89.51% line coverage, strict Clippy, MSRV, supply-chain checks and Lean |
+| Remote CI | [Passed on the proof commit](https://github.com/corca-ai/nose/actions/runs/34040129650), including its single Asciidoctor focus; [harness commit also passed](https://github.com/corca-ai/nose/actions/runs/34042267663) |
+| Output review | All 120 repositories in three modes and all 17 base workloads audited; exact intentional differences declared |
+| Published 0.20 semantic runtime | Failed after the registered primary/control and single focused pair |
+| Other query runtime workloads | Unqualified; stopped after semantic rejected this candidate |
+| Cache correctness and latency | Passed: 2,100 mutation rows and 180 paired SymPy rows; all three cache modes within unchanged timing limits |
+| Watch and recovery | Passed: 30 revisions each at 10k/100k files, fresh-query equality and forced restart; ready p95 75.94/398.49 ms |
+| Saved analysis, sources and reviews | Passed: moves, copies, verified/stale sources, legacy metadata, no overwrite and 0.20 cache upgrade |
+| Type-4 and soundness | Passed: 54 exact groups, no false merges/canon violations, PR/deep/120-repository nightly checks |
+| Packages and installer | Four native packages and the actual generated installer independently verified; later harness-only package builds also passed |
+
+The 120-repository semantic primary's total median sum decreases by 0.36%, but
+individual regressions remain. The six-block focus confirms these wall-time
+increases after the same-binary adjustment:
+
+| Repository | Baseline median | Candidate median | Adjusted increase |
+| --- | ---: | ---: | ---: |
+| Delve | 328.78 ms | 626.50 ms | 294.16 ms / 89.5% |
+| Raylib | 2,154.10 ms | 2,522.50 ms | 370.10 ms / 17.2% |
+| libGDX | 1,461.47 ms | 1,644.90 ms | 183.27 ms / 12.5% |
+
+The focus also confirms group construction, score, ranking or rendering signals
+in Alamofire, Guava, Hugo, RxJava and RxSwift. Rack, Vim and zstd retain
+inconclusive signals. Both confirmed and inconclusive outcomes reject the
+candidate under the unchanged policy. Every semantic output hash matches the
+reviewed declaration; output correctness does not waive runtime requirements.
+
+All four semantic phase reports completed before the failed candidate's
+coordinator was terminated. Its measured child ran uninterrupted. The remaining
+base/default/near timings are explicitly unqualified, and no failed observation
+was replaced. A changed candidate must complete the entire registered campaign.
+
+The base-view harness now uses stable, exclusively reserved worktrees so emitted
+navigation commands retain the same absolute working directory across phases.
+Controls and focused runs must match the producer hashes and workspace root.
+Invalid-command and random-path probes are retained separately from qualifying
+observations. See the [runtime harness contract](semantic-regression-smoke.md).
+
+## Earlier performance follow-up
+
+Product `d8744855` reduces the isolated dense Alamofire observation from 111.89
+to 8.91 seconds with identical output. All 120 semantic outputs, 16 additional
+mode comparisons, 2,373 tests, cache/watch correctness, fresh soundness and four
+native packages pass. History-cache timing improves, but clean-cache tail latency,
+dense analysis and frontend runtime signals still prevent release.
+
+The [follow-up record](../bench/release/0.21.0/performance-followup.v1.json) retains the new candidate's measurements.
+See [runtime triage](runtime-triage.md#v0210-candidate-performance-follow-up-2026-09-06) for the remaining conditions. The table below
+is the retained qualification of initial candidate `283f9e1d`; its passing
+checks do not independently qualify a later product tree.
+
+## Initial candidate qualification
+
+| Requirement | Status | Evidence |
+| --- | --- | --- |
+| Versioned candidate and local `--full` | Passed: 2,371 optimized tests, 89.39% lines | Candidate `283f9e1d`; compact record below |
+| Exact candidate remote CI | Failed: runtime, including the permitted focused rerun | [Audited CI run](https://github.com/corca-ai/nose/actions/runs/34024046297) |
+| Published v0.20.0 comparison | Failed: dense-candidate and cache timing blockers | 120-repo semantic identities match; broad timing remains unqualified |
+| Cache mutation correctness | Passed: 14 cases × 30 replays × 5 phases = 2,100 rows | Complete payload equality with verified navigation context |
+| Paired real-repository cache | Correctness passed; timing failed | SymPy, 30 alternating replays per binary |
+| Watch recovery | Passed: 30 revisions each at 10k/100k files | Fresh-query equality and forced crash/restart |
+| Saved-analysis/source/review workflows | Passed | Verified/stale source, moves, copies, legacy metadata, no overwrite |
+| Soundness Lab | Passed: 120 repositories, zero false merges/canon violations | [Nightly](https://github.com/corca-ai/nose/actions/runs/34023008275), [deep](https://github.com/corca-ai/nose/actions/runs/34023009587) |
+| Four native packages | Passed; downloaded archives independently rechecked | [Package workflow](https://github.com/corca-ai/nose/actions/runs/34023009854) |
+| Installer and upgrade compatibility | Passed | Actual CI installer, embedded checksums, isolated install, 0.20 cache reuse |
+
+The checked [qualification record](../bench/release/0.21.0/qualification.v1.json)
+contains source/binary identities, platform checksums, measured outcomes and raw
+artifact seals. The tested product `crates` tree is
+`8d0e11903a2b685f0bf7904385963ef731f07760`; initial qualification-document and
+harness commits through `78f9feac` retain that product tree. The measured local distribution binary
+SHA-256 is `b499631fb90867b37c9e8adbaa8eb31e53cea727d62859cf9778b449d1b98fcb`.
+
+The local plan in `target/release-0.21.0/plan.md` fixes query comparisons before
+measurement: all 120 pinned repositories in default, semantic and near/no-pack
+modes, plus the frozen 17-repository base workload. Primary/control observations
+use five samples and five paired blocks, with at most one six-block focused
+rerun under the unchanged 5%/5 ms policy. Intentional schema or behavior changes
+need a reviewed, exact drift declaration. Historical failures are retained.
+
+The [0.20 release evidence](release-evidence-0.20.0.md) is historical context;
+its successful checks do not qualify this candidate. Current source, binary,
+corpus, package and result identities are recorded in the qualification record.
+
+The cache and watch harnesses accept `--official-baseline` for a selected,
+checksum-pinned release manifest. Their default remains the historical 0.19
+baseline; old reports remain readable. New watch reports label the baseline
+`official` with its version, rather than naming every release as 0.19.
+
+Cache and watch equivalence verify each emitted navigation cache argument against its query
+context, then remove only that argument before comparing the complete JSON payload.
+This accounts for the new context-preserving navigation contract; detector fields,
+source evidence and all other command arguments remain compared. Raw output hashes
+are retained alongside the explicit `nose.query-cache-navigation/v1` comparison hash.
+
+## Candidate blocker found during qualification
+
+Candidate `283f9e1d` passes local full CI (2,371 optimized tests, 89.39% line
+coverage, MSRV, dependency checks and Lean) and native package smoke on all four
+targets. Its complete 120-repository semantic output audit preserves all 15,819 family
+and 120,641 member identities, including multiplicity. The audited JSON v9-to-v10 changes are explicitly recorded
+in the CI drift ledger; runtime checks remain enforced independently.
+
+The pinned Alamofire near query takes 1.59 seconds on the checksum-verified
+published 0.20 binary; the candidate exceeds a 30-second isolated timeout.
+Profiling locates the cost in complete dense-candidate scoring. The old release
+used a chain/star shortcut that omitted non-hub bucket pairs, so reinstating that
+shortcut would discard required candidates. A bounded cross-batch score-cache
+prototype passes focused equivalence tests but still takes 114.40 seconds on this
+query. Its patch and measurements are retained locally and are excluded from the
+release candidate. The default/near output audits were stopped to isolate this
+blocker; the preregistered performance campaign cannot qualify this candidate.
+
+Remote CI also observes material rendering signals on the larger v10 payload.
+Its initial output-ledger failure is retained; the exact seven audited schema
+changes are declared without weakening any timing threshold. A passing historical
+or semantic-only check must not be represented as a passing release comparison.
+
+
+## Measured cache and watch outcomes
+
+SymPy's 30 paired replays preserve complete clean/empty/history payload equality
+on each binary. That correctness result does not imply a performance pass:
+
+| SymPy phase | Official 0.20 p50 | Candidate p50 | Delta | p95 delta |
+| --- | ---: | ---: | ---: | ---: |
+| Clean analysis | 2,425.20 ms | 2,560.55 ms | +5.58% | +6.40% |
+| Empty cache | 2,611.95 ms | 2,731.90 ms | +4.59% | +2.25% |
+| History cache | 317.10 ms | 345.15 ms | +8.85% | +5.64% |
+
+Clean and history phases exceed both unchanged materiality thresholds, 5% and
+5 ms. No extra replay was used to replace those results.
+
+Watch passes its existing ready-latency limits, 250 ms at 10k files and 1,000 ms
+at 100k. Ready p95 is 75.72/394.45 ms respectively; end-to-end p95 is
+88.43/407.01 ms. All 60 snapshots match fresh queries and both forced restarts
+recover correctly. The watch report binds its one-shot evidence to the exact
+same candidate source and binary.
+
+## Required before a new release decision
+
+Reduce dense candidate work while preserving complete accepted-edge and connected
+witness behavior; reduce v10 rendering and clean/history overhead. Then freeze a
+replacement candidate and complete the preregistered 120-repository three-mode and
+17-repository base timing campaign, cache comparisons and exact candidate CI.
+The current default/near audits were stopped at the blocker, and base timing was
+not run. No result here authorizes a GO decision or substitutes for those checks.
+
+
+## First completion candidate
+
+The [completion follow-up record](../bench/release/0.21.0/completion-followup.v1.json)
+retains candidate `843bd52e` / proof commit `0de3169b` separately from the earlier
+failed qualifications. It passes full local CI (2,379 tests, 89.44% line coverage),
+Type-4 checks, 120-repository soundness, deep checks, four native packages and the
+actual generated installer. Cache correctness passes 2,100 mutation and 180 SymPy
+rows; all three SymPy p95 comparisons fall below the unchanged materiality limits.
+The remote runtime gate remains inconclusive for Asciidoctor normalization after
+its single focused run. The full timing campaign remains unqualified.
+
+The output audit matches 359 of 360 comparisons. Both old and new candidates were
+interrupted during the Alamofire default query because accepted-edge allocation
+caused sustained paging; empty outputs are not equality evidence. This motivates
+the subsequent compressed-relation implementation described in
+[runtime triage](runtime-triage.md). Results from that implementation must bind a
+new candidate; they cannot retroactively qualify `843bd52e`.
+
+
+## Compressed relation candidate
+
+The [dense follow-up record](../bench/release/0.21.0/dense-followup.v1.json) binds
+product `73b45837` / proof commit `a155a379` to full local CI (2,382 tests, 89.49%
+line coverage), all 360 output checks, Type-4 validation, saved-analysis journeys,
+120-repository soundness, independent deep checks, four native packages and the
+actual installer. The remote runtime gate remains inconclusive for Asciidoctor
+normalization after its single focus. Full timing and current-candidate cache/watch
+qualification were still pending for that product. Later lazy-projection and
+interner improvements belong to the separately evaluated `bbc91b01` candidate
+described above; its completed checks and rejection do not rewrite this history.

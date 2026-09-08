@@ -33,7 +33,7 @@ fn js_regex_test_call_il() -> (Il, Interner, NodeId, NodeId, NodeId) {
 }
 
 fn push_regex_literal_dependency(il: &mut Il, regex: NodeId) {
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         0,
         EvidenceAnchor::source_span(il.node(regex).span),
         EvidenceKind::Source(SourceFactKind::Literal(SourceLiteralKind::Regex)),
@@ -54,16 +54,14 @@ fn admitted_regex_test_resolver_requires_regex_builtin_pack_provenance() {
         library_regex_test_contract(Lang::JavaScript, "test", 1).expect("regex test contract");
 
     let (mut missing_dependency, interner, call, _callee, _regex) = js_regex_test_call_il();
-    missing_dependency
-        .evidence
-        .push(js_like_builtin_regex_record(
-            0,
-            missing_dependency.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(js_like_builtin_regex_record(
+        0,
+        missing_dependency.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     assert!(
         admitted_regex_test_at_call(&missing_dependency, &interner, call).is_none(),
         "same-span regex .test evidence without regex-literal dependency is rejected"
@@ -71,7 +69,7 @@ fn admitted_regex_test_resolver_requires_regex_builtin_pack_provenance() {
 
     let (mut wrong_pack, interner, call, _callee, regex) = js_regex_test_call_il();
     push_regex_literal_dependency(&mut wrong_pack, regex);
-    wrong_pack.evidence.push(library_api_record_with_provenance(
+    wrong_pack.push_evidence(library_api_record_with_provenance(
         1,
         wrong_pack.node(call).span,
         contract.id,
@@ -88,18 +86,16 @@ fn admitted_regex_test_resolver_requires_regex_builtin_pack_provenance() {
 
     let (mut wrong_producer, interner, call, _callee, regex) = js_regex_test_call_il();
     push_regex_literal_dependency(&mut wrong_producer, regex);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[0],
-            JS_LIKE_BUILTIN_REGEX_PACK_ID,
-            "wrong.javascript.builtins.regex-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+        JS_LIKE_BUILTIN_REGEX_PACK_ID,
+        "wrong.javascript.builtins.regex-api",
+    ));
     assert!(
         admitted_regex_test_at_call(&wrong_producer, &interner, call).is_none(),
         "regex .test evidence with the wrong producer is rejected"
@@ -116,7 +112,7 @@ fn admitted_regex_test_resolver_requires_regex_builtin_pack_provenance() {
         &[0],
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     assert!(
         admitted_regex_test_at_call(&wrong_emitter, &interner, call).is_none(),
         "regex .test evidence from an external emitter is rejected"
@@ -124,7 +120,7 @@ fn admitted_regex_test_resolver_requires_regex_builtin_pack_provenance() {
 
     let (mut admitted, interner, call, callee, regex) = js_regex_test_call_il();
     push_regex_literal_dependency(&mut admitted, regex);
-    admitted.evidence.push(js_like_builtin_regex_record(
+    admitted.push_evidence(js_like_builtin_regex_record(
         1,
         admitted.node(call).span,
         contract.id,

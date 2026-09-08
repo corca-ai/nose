@@ -181,8 +181,8 @@ fn large_cold_store_consolidates_units_and_restores_every_region() {
     let cold = query(project.path(), Some(&cache));
     let warm = query(project.path(), Some(&cache));
 
-    assert_eq!(cold.stdout, clean.stdout);
-    assert_eq!(warm.stdout, clean.stdout);
+    assert_same_analysis_output(&cold, &clean);
+    assert_same_analysis_output(&warm, &clean);
     let packs = artifact_paths(&cache.join("cas-v2/units-syntax"));
     assert_eq!(
         packs.len(),
@@ -202,7 +202,7 @@ fn large_cold_store_consolidates_units_and_restores_every_region() {
     *corrupted.last_mut().unwrap() ^= 0xff;
     fs::write(&packs[0], corrupted).unwrap();
     let recovered = query(project.path(), Some(&cache));
-    assert_eq!(recovered.stdout, clean.stdout);
+    assert_same_analysis_output(&recovered, &clean);
     assert_eq!(
         cache_stats(&recovered),
         CacheStats {
@@ -213,7 +213,7 @@ fn large_cold_store_consolidates_units_and_restores_every_region() {
         "a corrupt pack must be a miss and be regenerated"
     );
     let warm_after_recovery = query(project.path(), Some(&cache));
-    assert_eq!(warm_after_recovery.stdout, clean.stdout);
+    assert_same_analysis_output(&warm_after_recovery, &clean);
     assert_eq!(
         cache_stats(&warm_after_recovery),
         CacheStats {
@@ -241,8 +241,8 @@ fn clone_shaped_files_keep_their_own_names_on_a_warm_hit() {
     let cold = query(project.path(), Some(&cache));
     let warm = query(project.path(), Some(&cache));
 
-    assert_eq!(cold.stdout, clean.stdout);
-    assert_eq!(warm.stdout, clean.stdout);
+    assert_same_analysis_output(&cold, &clean);
+    assert_same_analysis_output(&warm, &clean);
     assert_warm_detection_reused(&warm);
     let warm_invalidation = invalidation_report(&warm);
     assert_eq!(
@@ -267,7 +267,7 @@ fn clone_shaped_files_keep_their_own_names_on_a_warm_hit() {
     let clean_after = query(project.path(), None);
     let cached_after = query(project.path(), Some(&cache));
     assert_ne!(clean_after.stdout, clean.stdout);
-    assert_eq!(cached_after.stdout, clean_after.stdout);
+    assert_same_analysis_output(&cached_after, &clean_after);
     let changed_detection = detection_stats(&cached_after);
     assert!(changed_detection.state_hit);
     assert!(changed_detection.units_added > 0);
@@ -300,7 +300,7 @@ fn provider_edit_keeps_issue_275_output_equal_and_invalidates_the_importer() {
 
     let clean_seed = query(project.path(), None);
     let cached_seed = query(project.path(), Some(&cache));
-    assert_eq!(cached_seed.stdout, clean_seed.stdout);
+    assert_same_analysis_output(&cached_seed, &clean_seed);
     assert_eq!(
         cache_stats(&cached_seed),
         CacheStats {
@@ -317,7 +317,7 @@ fn provider_edit_keeps_issue_275_output_equal_and_invalidates_the_importer() {
         clean_after.stdout, clean_seed.stdout,
         "the mutation must affect the result"
     );
-    assert_eq!(cached_after.stdout, clean_after.stdout);
+    assert_same_analysis_output(&cached_after, &clean_after);
     assert_eq!(
         cache_stats(&cached_after),
         CacheStats {
@@ -329,7 +329,7 @@ fn provider_edit_keeps_issue_275_output_equal_and_invalidates_the_importer() {
     );
 
     let warm_after = query(project.path(), Some(&cache));
-    assert_eq!(warm_after.stdout, clean_after.stdout);
+    assert_same_analysis_output(&warm_after, &clean_after);
     assert_eq!(
         cache_stats(&warm_after),
         CacheStats {
@@ -464,7 +464,7 @@ fn unknown_imports_fail_safe_and_report_over_invalidation() {
 }
 
 #[test]
-fn clean_tracked_sources_use_git_blob_identity_but_dirty_sources_use_content() {
+fn all_sources_use_exact_worktree_content_identity() {
     let project = TempProject::new("cache_git_identity");
     project.write("tracked.py", "def value(x):\n    return x + 1\n");
     for args in [
@@ -485,8 +485,8 @@ fn clean_tracked_sources_use_git_blob_identity_but_dirty_sources_use_content() {
     let cache = project.path().join(".cache");
     let clean = query(project.path(), Some(&cache));
     let clean_report = invalidation_report(&clean);
-    assert_eq!(clean_report.source_identities.git_blob, 1);
-    assert_eq!(clean_report.source_identities.content_sha256, 0);
+    assert_eq!(clean_report.source_identities.git_blob, 0);
+    assert_eq!(clean_report.source_identities.content_sha256, 1);
 
     project.write("tracked.py", "def value(x):\n    return x - 1\n");
     let dirty = query(project.path(), Some(&cache));
@@ -509,7 +509,7 @@ fn a_new_ambiguous_provider_invalidates_the_import_consumer_fail_safe() {
     project.write("duplicate/tables.py", "VALUE = {\"answer\": 1}\n");
     let clean = query(project.path(), None);
     let cached = query(project.path(), Some(&cache));
-    assert_eq!(cached.stdout, clean.stdout);
+    assert_same_analysis_output(&cached, &clean);
     let report = invalidation_report(&cached);
     assert!(report.invalidated.iter().any(|region| {
         region.path.ends_with("consumer.py")
@@ -544,7 +544,7 @@ fn a_new_go_namespace_export_invalidates_a_partially_resolved_consumer() {
     );
     let clean = query(project.path(), None);
     let cached = query(project.path(), Some(&cache));
-    assert_eq!(cached.stdout, clean.stdout);
+    assert_same_analysis_output(&cached, &clean);
     let report = invalidation_report(&cached);
     assert!(report.invalidated.iter().any(|region| {
         region.path.ends_with("consumer.go")

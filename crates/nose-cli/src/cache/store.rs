@@ -156,10 +156,6 @@ impl LayeredCas {
         if self.read_existing && self.load(key).is_some() {
             return Ok(0);
         }
-        #[cfg(not(unix))]
-        if target.is_file() {
-            return Ok(0);
-        }
         if !self.write_portable_il
             && matches!(key.stage, ArtifactStage::RawIl | ArtifactStage::ResolvedIl)
         {
@@ -312,18 +308,9 @@ pub(super) fn write_complete(path: &Path, bytes: &[u8]) -> std::io::Result<File>
     Ok(file)
 }
 
-#[cfg(unix)]
 pub(super) fn publish(temp: &Path, target: &Path) -> std::io::Result<()> {
-    // POSIX replacement is atomic. Concurrent writers of one content key
-    // converge on identical bytes.
-    std::fs::rename(temp, target)
-}
-
-#[cfg(not(unix))]
-pub(super) fn publish(temp: &Path, target: &Path) -> std::io::Result<()> {
-    if target.exists() {
-        std::fs::remove_file(target)?;
-    }
+    // Replace in one operation; deleting first exposes a missing entry to readers.
+    // Concurrent writers of one content key converge on identical verified bytes.
     std::fs::rename(temp, target)
 }
 
@@ -511,6 +498,7 @@ mod tests {
         assert!(cas.load(key).is_none());
 
         cas.store(key, b"portable payload").unwrap();
+        assert_eq!(cas.load(key).unwrap().payload, b"portable payload");
         let mut truncated = std::fs::read(&path).unwrap();
         truncated.truncate(HEADER_LEN + 3);
         std::fs::write(&path, truncated).unwrap();

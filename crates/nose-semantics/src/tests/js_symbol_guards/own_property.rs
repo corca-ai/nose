@@ -72,10 +72,10 @@ fn own_property_guard_requires_dedicated_guard_evidence() {
 
     assert!(!own_property_guard_for_node(&il, &interner, guard));
 
-    il.evidence.push(own_property_surface_evidence(0, sp(22)));
+    il.push_evidence(own_property_surface_evidence(0, sp(22)));
     assert!(!own_property_guard_for_node(&il, &interner, guard));
 
-    il.evidence.push(qualified_global_dependency(
+    il.push_evidence(qualified_global_dependency(
         1,
         sp(22),
         "Object.hasOwn",
@@ -84,20 +84,20 @@ fn own_property_guard_requires_dedicated_guard_evidence() {
     ));
     assert!(!own_property_guard_for_node(&il, &interner, guard));
 
-    il.evidence.push(qualified_global_dependency(
+    il.push_evidence(qualified_global_dependency(
         2,
         sp(22),
         "Object.hasOwn",
         EvidenceStatus::Asserted,
         Some(3),
     ));
-    il.evidence.push(unshadowed_global_source_dependency(
+    il.push_evidence(unshadowed_global_source_dependency(
         3,
         sp(22),
         "Object",
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(own_property_guard_record(
+    il.push_evidence(own_property_guard_record(
         4,
         sp(22),
         "Object.hasOwn",
@@ -112,15 +112,15 @@ fn own_property_guard_requires_dedicated_guard_evidence() {
 fn own_property_guard_validates_api_dependencies() {
     let interner = Interner::new();
     let (mut il, guard) = js_own_property_guard_il(&interner);
-    il.evidence.push(own_property_surface_evidence(0, sp(22)));
-    il.evidence.push(qualified_global_dependency(
+    il.push_evidence(own_property_surface_evidence(0, sp(22)));
+    il.push_evidence(qualified_global_dependency(
         1,
         sp(22),
         "Array.from",
         EvidenceStatus::Asserted,
         None,
     ));
-    il.evidence.push(own_property_guard_record(
+    il.push_evidence(own_property_guard_record(
         2,
         sp(22),
         "Object.hasOwn",
@@ -130,15 +130,15 @@ fn own_property_guard_validates_api_dependencies() {
     assert!(!own_property_guard_for_node(&il, &interner, guard));
 
     let (mut il, guard) = js_own_property_guard_il(&interner);
-    il.evidence.push(own_property_surface_evidence(0, sp(22)));
-    il.evidence.push(qualified_global_dependency(
+    il.push_evidence(own_property_surface_evidence(0, sp(22)));
+    il.push_evidence(qualified_global_dependency(
         1,
         sp(22),
         "Object.hasOwn",
         EvidenceStatus::Ambiguous,
         None,
     ));
-    il.evidence.push(own_property_guard_record(
+    il.push_evidence(own_property_guard_record(
         2,
         sp(22),
         "Object.hasOwn",
@@ -148,15 +148,15 @@ fn own_property_guard_validates_api_dependencies() {
     assert!(!own_property_guard_for_node(&il, &interner, guard));
 
     let (mut il, guard) = js_own_property_guard_il(&interner);
-    il.evidence.push(own_property_surface_evidence(0, sp(22)));
-    il.evidence.push(qualified_global_dependency(
+    il.push_evidence(own_property_surface_evidence(0, sp(22)));
+    il.push_evidence(qualified_global_dependency(
         1,
         sp(22),
         "value.hasOwnProperty",
         EvidenceStatus::Asserted,
         None,
     ));
-    il.evidence.push(own_property_guard_record(
+    il.push_evidence(own_property_guard_record(
         2,
         sp(22),
         "value.hasOwnProperty",
@@ -170,41 +170,41 @@ fn own_property_guard_validates_api_dependencies() {
 fn own_property_guard_rejects_ambiguous_guard_evidence() {
     let interner = Interner::new();
     let (mut il, guard) = js_own_property_guard_il(&interner);
-    il.evidence.push(own_property_surface_evidence(0, sp(22)));
-    il.evidence.push(qualified_global_dependency(
+    il.push_evidence(own_property_surface_evidence(0, sp(22)));
+    il.push_evidence(qualified_global_dependency(
         1,
         sp(22),
         "Object.hasOwn",
         EvidenceStatus::Asserted,
         Some(5),
     ));
-    il.evidence.push(qualified_global_dependency(
+    il.push_evidence(qualified_global_dependency(
         2,
         sp(22),
         "Object.prototype.hasOwnProperty.call",
         EvidenceStatus::Asserted,
         Some(6),
     ));
-    il.evidence.push(unshadowed_global_source_dependency(
+    il.push_evidence(unshadowed_global_source_dependency(
         5,
         sp(22),
         "Object",
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(unshadowed_global_source_dependency(
+    il.push_evidence(unshadowed_global_source_dependency(
         6,
         sp(22),
         "Object",
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(own_property_guard_record(
+    il.push_evidence(own_property_guard_record(
         3,
         sp(22),
         "Object.hasOwn",
         EvidenceStatus::Asserted,
         &[1],
     ));
-    il.evidence.push(own_property_guard_record(
+    il.push_evidence(own_property_guard_record(
         4,
         sp(22),
         "Object.prototype.hasOwnProperty.call",

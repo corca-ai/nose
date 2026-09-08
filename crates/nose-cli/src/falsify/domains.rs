@@ -187,6 +187,16 @@ pub(crate) fn domains_are_hosted_with_projections(
             nose_detect::OracleInputProjection::Cardinality => {
                 matches!(domain, Some(D::Array | D::Collection | D::Iterable))
             }
+            nose_detect::OracleInputProjection::ScalarArray(element) => {
+                lang == Lang::TypeScript
+                    && *domain == Some(D::Array)
+                    && matches!(element, D::Boolean | D::Number | D::String)
+            }
+            nose_detect::OracleInputProjection::KeyedMembership(key) => {
+                lang == Lang::TypeScript
+                    && matches!(domain, Some(D::Map | D::Set))
+                    && matches!(key, D::Boolean | D::Number | D::String)
+            }
             nose_detect::OracleInputProjection::Declared => match domain {
                 None => nose_semantics::semantics(lang).is_dynamically_typed(),
                 Some(D::Boolean | D::String) => true,
@@ -235,6 +245,31 @@ pub(super) fn projected_domain_pool(
             }
             values
         }
+        nose_detect::OracleInputProjection::ScalarArray(element) => {
+            let elements = domain_pool(Some(element), probes);
+            let mut values = vec![Value::List(Vec::new())];
+            for a in &elements {
+                values.push(Value::List(vec![a.clone()]));
+                for b in &elements {
+                    values.push(Value::List(vec![a.clone(), b.clone()]));
+                }
+            }
+            values
+        }
+        nose_detect::OracleInputProjection::KeyedMembership(key) => projected_domain_pool(
+            domain,
+            nose_detect::OracleInputProjection::ScalarArray(key),
+            probes,
+        )
+        .into_iter()
+        .filter_map(|value| match value {
+            Value::List(keys) => nose_normalize::keyed_membership_value(keys),
+            _ => None,
+        })
+        .fold(Vec::new(), |mut values, value| {
+            push_unique(&mut values, value);
+            values
+        }),
         nose_detect::OracleInputProjection::Declared => domain_pool(domain, probes),
         nose_detect::OracleInputProjection::UnusedTrailing => vec![Value::Null],
     }
@@ -272,6 +307,12 @@ pub(super) fn relation_rows(
             .unwrap_or(nose_detect::OracleInputProjection::Declared)
         {
             nose_detect::OracleInputProjection::Cardinality => matches!(value, Value::List(_)),
+            nose_detect::OracleInputProjection::ScalarArray(element) => {
+                matches!(value, Value::List(values) if values.iter().all(|v| value_conforms(v, Some(element))))
+            }
+            nose_detect::OracleInputProjection::KeyedMembership(key) => {
+                matches!(value, Value::KeySet(values) if values.iter().all(|v| value_conforms(v, Some(key))))
+            }
             nose_detect::OracleInputProjection::Declared => value_conforms(value, domain),
             nose_detect::OracleInputProjection::UnusedTrailing => false,
         }

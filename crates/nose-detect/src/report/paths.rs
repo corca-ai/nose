@@ -38,8 +38,12 @@ pub fn is_test_loc(l: &Loc) -> bool {
     let name_test = l
         .name
         .as_deref()
-        .is_some_and(|n| n.starts_with("Test") || n.starts_with("test_"));
-    is_test_path(&l.file) || name_test || l.in_test_module
+        .is_some_and(crate::test_paths::is_test_name);
+    is_test_path(&l.file)
+        || name_test
+        || l.in_test_module
+        || l.origin
+            .has_evidence(nose_il::UnitEvidenceFlag::TestContext)
 }
 
 /// Is this site vendored / generated / third-party code — not the maintainer's to

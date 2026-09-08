@@ -1,0 +1,656 @@
+{
+  "schema": "nose.release-proof-reuse-preflight/v1",
+  "version": "0.21.0",
+  "decision": "NO-GO: replacement qualification pending",
+  "candidate": {
+    "source_sha": "ee7793718c9070685c2c0119d4ab8c7098458084",
+    "crates_tree": "e3231dde9d1a502cbfa868cdb02b84c6143b3c30",
+    "product_dependencies": {
+      "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+      "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+      "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+    },
+    "binary_sha256": "dfb241295f3ce90dd84e42ca3f1ce29906d9b3f3d66e6899a7e670e4c32e47fe",
+    "binary": "/Users/ak/prjs/cc/nose/target/release-proof-reuse-20260907/candidate-nose",
+    "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+    "build_log": "/Users/ak/prjs/cc/nose/target/release-proof-reuse-20260907/build.log"
+  },
+  "isolated_product_commit": "c22640c0c6e2f7b0651fa6dd362a3c0e9e9cfd1f",
+  "checks": {
+    "detector_tests": 262,
+    "strict_clippy": "passed",
+    "docs": "passed",
+    "isolated_ordinary_output_comparisons": 360,
+    "release_ordinary_output_comparisons": 360,
+    "base_output_comparisons": 17,
+    "journeys": {
+      "direct_review": "applicable",
+      "unique_move": "applicable",
+      "verified_sources": {
+        "unavailable": 0,
+        "verified": 4
+      },
+      "stale_source_rejected": true,
+      "added_copy": "recheck",
+      "legacy_optional_metadata": true,
+      "review_no_overwrite": true,
+      "v0_20_cache_upgrade": true
+    },
+    "type4": {
+      "canon_preservation_violations": 0,
+      "false_merges": 0,
+      "fingerprint_groups": 54,
+      "gate_passed": true
+    },
+    "duplication": "18 substantial families within unchanged budget 20"
+  },
+  "pending": [
+    "full local CI",
+    "cache/watch qualification",
+    "registered published-baseline runtime matrix",
+    "remote soundness/runtime and native-package verification"
+  ],
+  "previous_failed_qualification": "bench/release/0.21.0/exact-mask-followup.v1.json",
+  "profiling": {
+    "source": {
+      "kind": "diagnostic symbols only; not release qualification",
+      "source_sha": "60151de66c84b7b8e55363fdf61b9b6cbc7ebca6",
+      "patch_sha256": "78f5f70e8c29d15c96d3bbcf35feb91bf4334016485d640a036f423e5b1771de",
+      "binary_sha256": "f8964656d0fea8eb9b537d0a59610a6ce16a921142a41c997bcffe0d21a57f67",
+      "uuid": "3F8B5BA1-D8B3-3589-8921-F87B069FB116",
+      "build_command": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "-p",
+        "nose-cli",
+        "--config",
+        "profile.release.package.nose-detect.debug=2",
+        "--config",
+        "profile.release.package.nose-cli.debug=1"
+      ]
+    },
+    "individual_pc_trace": "target/release-site-mask-20260907/profile-pc-attach-alamofire.trace",
+    "limitations": "CPU samples are diagnostic, not elapsed-time qualification. Earlier sample callgraphs coalesce PCs. Instruments launch traces hit their limits without query output; the attach trace completed with equal output."
+  },
+  "experiments": [
+    {
+      "name": "disjoint",
+      "identity": {
+        "kind": "isolated uncommitted prototype; not release qualification",
+        "source_sha": "60151de66c84b7b8e55363fdf61b9b6cbc7ebca6",
+        "patch_sha256": "4e6026c5f6f5ca885142982729c9bcb16031ea59afce750dd3889aaa0404de3b",
+        "binary_sha256": "d79fd9144b650a145d889a1e6eb7a7a515501c9f82ba9c674db16aad80e651b6",
+        "reference_binary_sha256": "96eb0e223c183ae739d9ce38edeca55edc7a43c792e13874cf6fef02d317b4fd",
+        "build_log": "disjoint-build.log",
+        "tests_log": "disjoint-tests.log",
+        "validation": "246 detector tests passed; test-only clone cleanup rechecked (2 tests), strict Clippy passed, rebuilt CLI is byte-identical",
+        "initial_lint_failure": "disjoint-clippy-initial.log"
+      },
+      "decision": {
+        "status": "diagnostic only; superseded by a changed routing experiment before adoption",
+        "reason": "Alamofire scoring improves, but the existing global class-count filter can prevent this valid disjoint fast path when noncandidate units dominate. Next experiment moves the proof-based disjoint check before the unchanged general-row heuristic."
+      }
+    },
+    {
+      "name": "disjoint-active",
+      "identity": {
+        "kind": "isolated uncommitted prototype; not release qualification",
+        "source_sha": "60151de66c84b7b8e55363fdf61b9b6cbc7ebca6",
+        "patch_sha256": "2217412c73fb405f1935a68817130a20ca88b3a8822ba0bf8cdc114a87e35918",
+        "binary_sha256": "d830bc8e8d20b6ee0890fb41d82341eae1baf77cf104d1a77149e1fa8e11eedb",
+        "reference_binary_sha256": "96eb0e223c183ae739d9ce38edeca55edc7a43c792e13874cf6fef02d317b4fd",
+        "tests": 247,
+        "clippy": "passed"
+      },
+      "decision": {
+        "status": "retain optimization in the next combined prototype; not release qualification",
+        "reason": "Alamofire and libGDX scoring improve, including reduced libGDX clustering/grouping; all nine output hashes match. Next experiment removes redundant preflight input construction and reuses identical complete analysis-key inputs."
+      }
+    },
+    {
+      "name": "prepared-keys",
+      "identity": {
+        "kind": "isolated uncommitted prototype; not release qualification",
+        "source_sha": "60151de66c84b7b8e55363fdf61b9b6cbc7ebca6",
+        "patch_sha256": "3c6d5830c4989e39ef83e3fddebe19ceff5606b91d7121a3c0eb44643e2f9bb3",
+        "binary_sha256": "f7ed8fb5a4a3be997750dfef41d6f334e689ecd0537e4c149e4e3b9c005f7412",
+        "reference_binary_sha256": "d830bc8e8d20b6ee0890fb41d82341eae1baf77cf104d1a77149e1fa8e11eedb",
+        "tests": 250,
+        "clippy": "passed",
+        "initial_failures": [
+          "prepared-keys-tests-initial.log",
+          "prepared-keys-clippy-initial.log"
+        ]
+      },
+      "decision": {
+        "status": "diagnostic only; selection pending detailed remaining-cost profile",
+        "reason": "Preflight reuse reduces Alamofire semantic/near scoring. Group-key benefits are smaller and mixed; no universal whole-query claim. All nine outputs are byte-identical. Do not qualify release performance from these observations."
+      }
+    },
+    {
+      "name": "pair-sort",
+      "identity": {
+        "kind": "isolated uncommitted prototype; not release qualification",
+        "source_sha": "60151de66c84b7b8e55363fdf61b9b6cbc7ebca6",
+        "patch_sha256": "b5ef4fba4610db95aeaeb449d894e2e464357cd67165483a6a2af74dcd97c4d5",
+        "binary_sha256": "bd8858f70286ad094f729106a7fa71dfe2a94e306c2070753a9c8b2bdfdca1e8",
+        "reference_binary_sha256": "f7ed8fb5a4a3be997750dfef41d6f334e689ecd0537e4c149e4e3b9c005f7412",
+        "tests": 251,
+        "clippy": "passed"
+      },
+      "decision": {
+        "status": "retain in next candidate; not release qualification",
+        "reason": "Symbolicated profile identified collapsed-edge sorting as dominant active Guava ranking work. Pair-key parallel sort plus original total-order winner reduction reduces Guava rank_map27.45\u21926.5ms and RxSwift5.8\u21923.75ms. All nine outputs identical; whole-query gains remain workload-dependent."
+      }
+    },
+    {
+      "name": "site-runs",
+      "identity": {
+        "kind": "isolated uncommitted prototype; not release qualification",
+        "source_sha": "60151de66c84b7b8e55363fdf61b9b6cbc7ebca6",
+        "patch_sha256": "4bfcb3935fd0af1bfe383fd3adb0274fd2a6b85382da96274f7e882b9bd81fd4",
+        "binary_sha256": "2cb4aef15c653f42961eda9c0aed3c71f8e117ab7c6d5d778be4d55e3de4ca15",
+        "reference_binary_sha256": "bd8858f70286ad094f729106a7fa71dfe2a94e306c2070753a9c8b2bdfdca1e8",
+        "tests": 254,
+        "clippy": "passed"
+      },
+      "decision": {
+        "status": "extend canonical orientation before adoption; not release qualification",
+        "reason": "Complete outputs match on nine workloads. Alamofire grouping improves semantic96.3 to84.35ms and near163.85 to141.95ms; default and total-query gains remain mixed. Next prototype extends exact normalized masks to either canonical orientation and separately preserves alignment score semantics."
+      }
+    },
+    {
+      "name": "mask-alignment",
+      "identity": {
+        "kind": "isolated uncommitted prototype; not release qualification",
+        "source_sha": "60151de66c84b7b8e55363fdf61b9b6cbc7ebca6",
+        "patch_sha256": "867d357c517a5e41240d5b8fa31b1bdb797c9b9d65169e2305bd287ead07a36a",
+        "binary_sha256": "0383542d89fbdc1776dc5245e7d9503d42f23f184bd561f8527eb5593e9b6ae7",
+        "reference_binary_sha256": "2cb4aef15c653f42961eda9c0aed3c71f8e117ab7c6d5d778be4d55e3de4ca15",
+        "tests": 256,
+        "clippy": "passed",
+        "docs": "passed"
+      },
+      "decision": {
+        "status": "retain bounded alignment; extend suffix projection before adoption; not release qualification",
+        "reason": "Nine outputs equal. Alamofire default score1785.5 to1725.75ms, wall3874.29 to3857.68ms; near wall2694.74 to2634.02ms. Canonical-orientation change alone has no convincing grouping benefit. Whole-query effects are mixed; broad baseline qualification remains pending."
+      }
+    },
+    {
+      "name": "suffix-sites",
+      "identity": {
+        "kind": "isolated uncommitted prototype; not release qualification",
+        "source_sha": "60151de66c84b7b8e55363fdf61b9b6cbc7ebca6",
+        "patch_sha256": "f1a3b1ef096bbb3efed300fa9c17ce30b1bd3ae51aba887bb11535777a1ada55",
+        "binary_sha256": "0c594817b1aadf68069d8bc7ac63fd339ef2074abdd37db197d9cfbd6d909bc0",
+        "reference_binary_sha256": "0383542d89fbdc1776dc5245e7d9503d42f23f184bd561f8527eb5593e9b6ae7",
+        "tests": 257,
+        "clippy": "passed"
+      },
+      "decision": {
+        "status": "modest reduction retained for next candidate; not release qualification",
+        "reason": "Nine output hashes identical. Alamofire semantic groups85.0 to80.7ms; near162.0 to156.9ms; default382.15 to382.85ms. Whole-query observations remain mixed and drifted over this campaign; no broad speedup established."
+      }
+    },
+    {
+      "name": "identity-buffer",
+      "identity": {
+        "kind": "isolated uncommitted prototype; not release qualification",
+        "source_sha": "60151de66c84b7b8e55363fdf61b9b6cbc7ebca6",
+        "patch_sha256": "78f5f70e8c29d15c96d3bbcf35feb91bf4334016485d640a036f423e5b1771de",
+        "binary_sha256": "379ea1b0e6418f1524dc397f8d9ae22dcc1f9824416ee3e4f620b97171b5ff83",
+        "reference_binary_sha256": "0c594817b1aadf68069d8bc7ac63fd339ef2074abdd37db197d9cfbd6d909bc0",
+        "tests": 259,
+        "clippy": "passed",
+        "docs": "passed"
+      },
+      "decision": {
+        "status": "retain in next candidate; not release qualification",
+        "reason": "Named MessagePack local buffer and lookup-only FxHashMap preserve nine complete outputs. Semantic groups: Alamofire82 to76.6ms, Guava24.1 to20.9ms, RxJava10.75 to9.15ms. Near groups159.4 to145.7ms and wall2875.76 to2808.37ms. Whole-query effects remain mixed; pending broad qualification."
+      }
+    },
+    {
+      "name": "expiry-groups",
+      "identity": {
+        "kind": "isolated uncommitted prototype; not release qualification",
+        "source_sha": "60151de66c84b7b8e55363fdf61b9b6cbc7ebca6",
+        "patch_sha256": "0203ef7fcdacaa96949f406d6d7d25577975273ebb953852900cce7af779daf0",
+        "binary_sha256": "3f5bc4f052ef902b217488bb91dc5972c0de32aad6c4748ef8325586899d6ce9",
+        "reference_binary_sha256": "379ea1b0e6418f1524dc397f8d9ae22dcc1f9824416ee3e4f620b97171b5ff83",
+        "tests": 259,
+        "clippy": "passed"
+      },
+      "decision": {
+        "status": "retain grouped expansion; expiry-mask ROI remains small; not release qualification",
+        "reason": "Nine outputs identical. GroupingGuava20.1 to16.7ms,Hugo12 to7ms,RxJava11.7 to7.6ms,RxSwift12.75 to8.2ms. Alamofire75.05 to73.85ms shows no convincing isolated expiry benefit; near137.5 to130.7ms, but whole near wall+0.29%. Profile caveat: sample coalesces multiple PCs into some callgraph nodes; source-frame labels there identify represented locations, not exact per-instruction sample counts."
+      }
+    },
+    {
+      "name": "group-proof",
+      "identity": {
+        "kind": "isolated uncommitted prototype; not release qualification",
+        "source_sha": "60151de66c84b7b8e55363fdf61b9b6cbc7ebca6",
+        "patch_sha256": "afcf93354fac4077544e266cf233d0df149dfa20419ad2d8f47456643fa260e3",
+        "binary_sha256": "5761e814174fb88cde6eb50471a15c60894d92c932b4f42ff87d626a7795a215",
+        "reference_binary_sha256": "3f5bc4f052ef902b217488bb91dc5972c0de32aad6c4748ef8325586899d6ce9",
+        "tests": 260,
+        "clippy": "passed"
+      },
+      "decision": {
+        "status": "retain whole-group proof reuse; not release qualification",
+        "reason": "Nine complete outputs identical. Alamofire semantic groups73.5 to62.65ms and wall1066.34 to1040.67ms. Near groups101.15 to93.0ms; whole-query effects remain workload-dependent. Existing exact witness proves reuse without weakening mixed-group classification."
+      }
+    },
+    {
+      "name": "zero-class",
+      "identity": {
+        "kind": "isolated uncommitted prototype; not release qualification",
+        "source_sha": "60151de66c84b7b8e55363fdf61b9b6cbc7ebca6",
+        "patch_sha256": "2d06e93df90f15baede0f69ed9897cba016b76b451edd7ca580cddac8640139d",
+        "binary_sha256": "40af06d0a77de7b8f68f1f37b84ff37530b95b017420b3a2da2d84386d6d6f8b",
+        "reference_binary_sha256": "5761e814174fb88cde6eb50471a15c60894d92c932b4f42ff87d626a7795a215",
+        "tests": 261,
+        "clippy": "passed"
+      },
+      "decision": {
+        "status": "retain exact zero-score class; not release qualification",
+        "reason": "Nine outputs identical. libGDX semantic score8.6 to2.45ms and wall1181.44 to1157.64ms. Alamofire score16.05 to14.9ms. Near unchanged scorer shows noisy wall+2.6%; no broad runtime claim. Ineligible zero-score equivalence tested exhaustively in both arguments."
+      }
+    },
+    {
+      "name": "value-evidence",
+      "identity": {
+        "kind": "isolated uncommitted prototype; not release qualification",
+        "source_sha": "60151de66c84b7b8e55363fdf61b9b6cbc7ebca6",
+        "patch_sha256": "cb5cf9372b09ba94199a0eff0e69bfeba50be0fa7f10142b33bb97d040e323ac",
+        "binary_sha256": "abafcccef6f96ee12587adb04c7bd52ae29af6834ad2db673f39eedc6df0ade1",
+        "reference_binary_sha256": "40af06d0a77de7b8f68f1f37b84ff37530b95b017420b3a2da2d84386d6d6f8b",
+        "tests": 262,
+        "clippy": "passed"
+      },
+      "decision": {
+        "status": "retain proven raw-value reuse with limited measured benefit; not release qualification",
+        "reason": "Nine outputs identical. Semantic group61.2 to60.35ms and wallflat; default groups388.3 to378.2ms while wallflat; near groups135.6 to139.9ms and wholewall3032.25 to2995.16ms. Removing a duplicate proven comparison has workload-dependent small effects; not a general speedup claim. Full360-outputaudit is underway."
+      }
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "target/release-site-mask-20260907/disjoint-identity.json",
+      "bytes": 678,
+      "sha256": "3d936c6e01b74a0e63a2540f37f68e1ab329dd3241ba384524b1cef935080a05"
+    },
+    {
+      "path": "target/release-site-mask-20260907/disjoint-decision.json",
+      "bytes": 4947,
+      "sha256": "7543317489a07658e8944123d335f0ca97eed24e3602cfc2d192bdf2ce73aade"
+    },
+    {
+      "path": "target/release-site-mask-20260907/disjoint-diagnostic.json",
+      "bytes": 69619,
+      "sha256": "e64bc29d91be3987925dfcfcfe56fb6e505003b14074d7fc777896b65ed81929"
+    },
+    {
+      "path": "target/release-site-mask-20260907/disjoint-diagnostic.py",
+      "bytes": 2022,
+      "sha256": "dfe6827743aae9e1f776a83623eb110f131eadb94d2c119ea3c4e493e2be2009"
+    },
+    {
+      "path": "target/release-site-mask-20260907/disjoint.patch",
+      "bytes": 8855,
+      "sha256": "4e6026c5f6f5ca885142982729c9bcb16031ea59afce750dd3889aaa0404de3b"
+    },
+    {
+      "path": "target/release-site-mask-20260907/disjoint-active-identity.json",
+      "bytes": 442,
+      "sha256": "18d159b309eac710eace4f28a5d7c0352c6cf08272a1071f6e8783b18700a6d8"
+    },
+    {
+      "path": "target/release-site-mask-20260907/disjoint-active-decision.json",
+      "bytes": 4973,
+      "sha256": "c52838de1543dbc8c94f0bb7f615f32b7d40400380ef9494479ce22404aeb565"
+    },
+    {
+      "path": "target/release-site-mask-20260907/disjoint-active-diagnostic.json",
+      "bytes": 69625,
+      "sha256": "7d72d30858ca6594a8ce8b6c5b7c949b9e9172f31145769019573225a540d480"
+    },
+    {
+      "path": "target/release-site-mask-20260907/disjoint-active-diagnostic.py",
+      "bytes": 2036,
+      "sha256": "9f727d3fe7b5f2b86ca9865b19aee1ddae730ead4c383ee6ebf6a7e5af102e25"
+    },
+    {
+      "path": "target/release-site-mask-20260907/disjoint-active.patch",
+      "bytes": 11292,
+      "sha256": "2217412c73fb405f1935a68817130a20ca88b3a8822ba0bf8cdc114a87e35918"
+    },
+    {
+      "path": "target/release-site-mask-20260907/prepared-keys-identity.json",
+      "bytes": 549,
+      "sha256": "71a94af169b251dd19bb960b6a7d297f483a0407be9464861e7049dbd379a047"
+    },
+    {
+      "path": "target/release-site-mask-20260907/prepared-keys-decision.json",
+      "bytes": 4945,
+      "sha256": "c221f367e779998b47649e5edb0b952a241fec1a7314710dc53fe82eae10feda"
+    },
+    {
+      "path": "target/release-site-mask-20260907/prepared-keys-diagnostic.json",
+      "bytes": 69583,
+      "sha256": "b2c9e1369ac2e7ac7c3f97afb2b7ed0ea092cfeb0efb3d2537f2c7b2abcb5ac8"
+    },
+    {
+      "path": "target/release-site-mask-20260907/prepared-keys-diagnostic.py",
+      "bytes": 2038,
+      "sha256": "d8613f02566ef1c2d5279c783f8502748350c475404e4e8801596351dda387ed"
+    },
+    {
+      "path": "target/release-site-mask-20260907/prepared-keys.patch",
+      "bytes": 27840,
+      "sha256": "3c6d5830c4989e39ef83e3fddebe19ceff5606b91d7121a3c0eb44643e2f9bb3"
+    },
+    {
+      "path": "target/release-site-mask-20260907/pair-sort-identity.json",
+      "bytes": 442,
+      "sha256": "face6b478f7983aa18e2646cc0193cef0b43868f6117eb1084c9e2deb801cf65"
+    },
+    {
+      "path": "target/release-site-mask-20260907/pair-sort-decision.json",
+      "bytes": 4940,
+      "sha256": "170516cd1ec22d7b145d2b89c871f94714a750c93093479f1b8a6d00c9feaa9e"
+    },
+    {
+      "path": "target/release-site-mask-20260907/pair-sort-diagnostic.json",
+      "bytes": 69554,
+      "sha256": "0edb8729420108ad693607fda0970b1f8a766e0ea4a2faff5beba830ec95201d"
+    },
+    {
+      "path": "target/release-site-mask-20260907/pair-sort-diagnostic.py",
+      "bytes": 2028,
+      "sha256": "be184754ef6fc912051e6452c362b8ef7567640b7ec4908a7f1d1086bdaadf3a"
+    },
+    {
+      "path": "target/release-site-mask-20260907/pair-sort.patch",
+      "bytes": 33099,
+      "sha256": "b5ef4fba4610db95aeaeb449d894e2e464357cd67165483a6a2af74dcd97c4d5"
+    },
+    {
+      "path": "target/release-site-mask-20260907/site-runs-identity.json",
+      "bytes": 442,
+      "sha256": "326996e4ee41d8ea1c93c11ab2849a26de094e77066a431103a2531bf3a69045"
+    },
+    {
+      "path": "target/release-site-mask-20260907/site-runs-decision.json",
+      "bytes": 4885,
+      "sha256": "2dd53266c25f490dd7a46e3d5323e34b4db9d235fdf2a34782e5193a1a55f2b4"
+    },
+    {
+      "path": "target/release-site-mask-20260907/site-runs-diagnostic.json",
+      "bytes": 69561,
+      "sha256": "64d1949f102e977c7cf1bac0a53f7d2b781471049b0a066fea6eb9887214cdac"
+    },
+    {
+      "path": "target/release-site-mask-20260907/site-runs-diagnostic.py",
+      "bytes": 2024,
+      "sha256": "7e54040561c4edaae34cca8ef4ceffcc1eb3fcf897a297d00a67e5a381d4ba67"
+    },
+    {
+      "path": "target/release-site-mask-20260907/site-runs.patch",
+      "bytes": 49732,
+      "sha256": "4bfcb3935fd0af1bfe383fd3adb0274fd2a6b85382da96274f7e882b9bd81fd4"
+    },
+    {
+      "path": "target/release-site-mask-20260907/mask-alignment-identity.json",
+      "bytes": 461,
+      "sha256": "02c3eecca878e7cbdd8581b097fa6367608b7da010b48dd660e95e5d98d8e5a5"
+    },
+    {
+      "path": "target/release-site-mask-20260907/mask-alignment-decision.json",
+      "bytes": 5020,
+      "sha256": "d66b62cc074e7ca2b75f39f5da9bd81d8f53874f8293511bd0965f5100b27e70"
+    },
+    {
+      "path": "target/release-site-mask-20260907/mask-alignment-diagnostic.json",
+      "bytes": 69552,
+      "sha256": "201073eaf845e87c34145cb513e827c58ac4c9db2ff3fefab5302b75a0a9f787"
+    },
+    {
+      "path": "target/release-site-mask-20260907/mask-alignment-diagnostic.py",
+      "bytes": 2034,
+      "sha256": "3ba1aab2c982305d3182afbed303a012beb3bfec495c735d412a96933bf505e0"
+    },
+    {
+      "path": "target/release-site-mask-20260907/mask-alignment.patch",
+      "bytes": 64128,
+      "sha256": "867d357c517a5e41240d5b8fa31b1bdb797c9b9d65169e2305bd287ead07a36a"
+    },
+    {
+      "path": "target/release-site-mask-20260907/suffix-sites-identity.json",
+      "bytes": 441,
+      "sha256": "eb06248f79464e4339578d89492782c2aecaf1de1960c6bb0faeaa87e4b521ae"
+    },
+    {
+      "path": "target/release-site-mask-20260907/suffix-sites-decision.json",
+      "bytes": 4877,
+      "sha256": "91a32b249c6dbf06a1fa9d64ec568170203fd9afeeb76126de3ef8a2bf74f404"
+    },
+    {
+      "path": "target/release-site-mask-20260907/suffix-sites-diagnostic.json",
+      "bytes": 69558,
+      "sha256": "41cbb0ce186b5b0fd5d674bb0ade7a792525ce3de0344adafbad3e5a1f61092b"
+    },
+    {
+      "path": "target/release-site-mask-20260907/suffix-sites-diagnostic.py",
+      "bytes": 2035,
+      "sha256": "3fb6f1f2273d66ae59e5d07e177b47ff7224bdd252fc586abbbf781a2186e074"
+    },
+    {
+      "path": "target/release-site-mask-20260907/suffix-sites.patch",
+      "bytes": 66077,
+      "sha256": "f1a3b1ef096bbb3efed300fa9c17ce30b1bd3ae51aba887bb11535777a1ada55"
+    },
+    {
+      "path": "target/release-site-mask-20260907/identity-buffer-identity.json",
+      "bytes": 461,
+      "sha256": "ef99dac33af2bbf139cce945ba649eb9420526bc392689951c4239455d74db53"
+    },
+    {
+      "path": "target/release-site-mask-20260907/identity-buffer-decision.json",
+      "bytes": 5011,
+      "sha256": "7f01309f27662aee0211539ece787ff36859ee06715f8553781eb77c1f256b96"
+    },
+    {
+      "path": "target/release-site-mask-20260907/identity-buffer-diagnostic.json",
+      "bytes": 69559,
+      "sha256": "0d5ad5893baf3f5f9d243c2ea5be8a9b2121d2c71cff4c5a5c3d3611375f00e3"
+    },
+    {
+      "path": "target/release-site-mask-20260907/identity-buffer-diagnostic.py",
+      "bytes": 2039,
+      "sha256": "380921fb7c16b26fc4a130f41d48b8280a8e56c44cbe70d929c1d839fe306a37"
+    },
+    {
+      "path": "target/release-site-mask-20260907/identity-buffer.patch",
+      "bytes": 71479,
+      "sha256": "78f5f70e8c29d15c96d3bbcf35feb91bf4334016485d640a036f423e5b1771de"
+    },
+    {
+      "path": "target/release-site-mask-20260907/expiry-groups-identity.json",
+      "bytes": 441,
+      "sha256": "27dbbe018904919e34ceb8604ce3a8cc650b9aceca1a0e76e6f728cfbc1d5a97"
+    },
+    {
+      "path": "target/release-site-mask-20260907/expiry-groups-decision.json",
+      "bytes": 5061,
+      "sha256": "953fdb4f7dd0ff9929aa1a1e33d0318a20920e8a07cf67bba4406c96ab249e5a"
+    },
+    {
+      "path": "target/release-site-mask-20260907/expiry-groups-diagnostic.json",
+      "bytes": 69542,
+      "sha256": "d312c49c43ba8f6b55f2e87ef0c6b7c474769467787713fac964a4fce76a9fea"
+    },
+    {
+      "path": "target/release-site-mask-20260907/expiry-groups-diagnostic.py",
+      "bytes": 2038,
+      "sha256": "bd107eeaa9fb9fd45002b61f586c791c27adfdab6c6ea0308c9a9f0042dd3c21"
+    },
+    {
+      "path": "target/release-site-mask-20260907/expiry-groups.patch",
+      "bytes": 76509,
+      "sha256": "0203ef7fcdacaa96949f406d6d7d25577975273ebb953852900cce7af779daf0"
+    },
+    {
+      "path": "target/release-site-mask-20260907/group-proof-identity.json",
+      "bytes": 441,
+      "sha256": "7e5e2b12e6bd69485fb6f5b28439477915975fd05e177973425c12cb6e0e5d17"
+    },
+    {
+      "path": "target/release-site-mask-20260907/group-proof-decision.json",
+      "bytes": 4828,
+      "sha256": "7ddfb38ce74a9071b62bfb662992ccc2fbb72740dc654709571d280b8a6eba12"
+    },
+    {
+      "path": "target/release-site-mask-20260907/group-proof-diagnostic.json",
+      "bytes": 69520,
+      "sha256": "eecac312257eb20fbb705acb84f793bc40736e6ffe429ad2ad665c1ceb11e029"
+    },
+    {
+      "path": "target/release-site-mask-20260907/group-proof-diagnostic.py",
+      "bytes": 2032,
+      "sha256": "657fcf10c7f1919f6b46beb25e9d09c3bea45b737f831194b54eaccdf3ad2a20"
+    },
+    {
+      "path": "target/release-site-mask-20260907/group-proof.patch",
+      "bytes": 86084,
+      "sha256": "afcf93354fac4077544e266cf233d0df149dfa20419ad2d8f47456643fa260e3"
+    },
+    {
+      "path": "target/release-site-mask-20260907/zero-class-identity.json",
+      "bytes": 441,
+      "sha256": "4ff99e7ec647e54b632e5aea2456aceee67a09995f2fccaa4ed5709b3238cd7b"
+    },
+    {
+      "path": "target/release-site-mask-20260907/zero-class-decision.json",
+      "bytes": 4990,
+      "sha256": "a8385b501f07e9a3c130c057dbe743bce19e6097614835b64c4a74373d2a6a7c"
+    },
+    {
+      "path": "target/release-site-mask-20260907/zero-class-diagnostic.json",
+      "bytes": 69542,
+      "sha256": "dc1c2bee0ea86df7a2918aefc12f37ad45bf7def30009e5368adc3963a63b10c"
+    },
+    {
+      "path": "target/release-site-mask-20260907/zero-class-diagnostic.py",
+      "bytes": 2028,
+      "sha256": "01c633752a43db8551a80ea954446bafe67eb47be6951cb4dcce802dc2a07c9b"
+    },
+    {
+      "path": "target/release-site-mask-20260907/zero-class.patch",
+      "bytes": 89756,
+      "sha256": "2d06e93df90f15baede0f69ed9897cba016b76b451edd7ca580cddac8640139d"
+    },
+    {
+      "path": "target/release-site-mask-20260907/value-evidence-identity.json",
+      "bytes": 441,
+      "sha256": "b57cd6bab9c4289d71e80bc87f42565846d7dfeb037c79ffe4c6cb2d51331dc7"
+    },
+    {
+      "path": "target/release-site-mask-20260907/value-evidence-decision.json",
+      "bytes": 4955,
+      "sha256": "38ce848f87abd793688bb281240b9fef6df6ffe62a22cb7495627e67390ab076"
+    },
+    {
+      "path": "target/release-site-mask-20260907/value-evidence-diagnostic.json",
+      "bytes": 69536,
+      "sha256": "eb50a7b5dcf03272a6243b5bc4842495b4fd2fedd2bc5c1555b34a5cb96f1097"
+    },
+    {
+      "path": "target/release-site-mask-20260907/value-evidence-diagnostic.py",
+      "bytes": 2035,
+      "sha256": "f3ae0f42813cad35e51946ed59f6b14e51f923387f96a9ad919b9d5708285073"
+    },
+    {
+      "path": "target/release-site-mask-20260907/value-evidence.patch",
+      "bytes": 92561,
+      "sha256": "cb5cf9372b09ba94199a0eff0e69bfeba50be0fa7f10142b33bb97d040e323ac"
+    },
+    {
+      "path": "target/release-site-mask-20260907/value-evidence-test.log",
+      "bytes": 24847,
+      "sha256": "11413d0df766cd3e342aba8856d96e40040952f8601c7ca62578459a3bbb30cc"
+    },
+    {
+      "path": "target/release-site-mask-20260907/value-evidence-clippy.log",
+      "bytes": 152,
+      "sha256": "0943e55dba7329006a6875a11e5506325901ada8ba5236b80f4f310af464d5ae"
+    },
+    {
+      "path": "target/release-site-mask-20260907/value-evidence-build.log",
+      "bytes": 237,
+      "sha256": "4c469c42b86ff7ea6785f3735342e456e07b256e1a0700c940a123407e9b3039"
+    },
+    {
+      "path": "target/release-site-mask-20260907/value-evidence-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-site-mask-20260907/value-evidence-output-audit.json",
+      "bytes": 115622,
+      "sha256": "50e51fa61190cfdbbdfda76ad6fe7dcb8732a72ef0b9db377b956ddec1ca5e8d"
+    },
+    {
+      "path": "target/release-site-mask-20260907/profile-current-identity.json",
+      "bytes": 590,
+      "sha256": "57065e96feb2fe3c29bd60d23fffcf944963dcfe78ac13a966c56ed5ca84198e"
+    },
+    {
+      "path": "target/release-site-mask-20260907/profile-pc-attach-alamofire-groups.json",
+      "bytes": 54566,
+      "sha256": "f402cbdd32fec47ed9f7b7a56bbe5edbd30cde18847ac4024f3a837480ef44bf"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/validation-identity.json",
+      "bytes": 684,
+      "sha256": "aa659826863c13c18a99fc36f5e7ce1de18781589dce44c942016ea3f54cf9bf"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/build.log",
+      "bytes": 211,
+      "sha256": "42e0970b9dd2baa0779979df910b3202d468c181b15428023a56c120ffd4be2e"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/candidate-output-audit.json",
+      "bytes": 115915,
+      "sha256": "2061e0f852a1d0b5a36aa2410b3e3f50feb22d5730a59cd8c076b1514e1ea164"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/output-audit-base.json",
+      "bytes": 42943,
+      "sha256": "0a3ec0cfa1632adeb840e51e9622671843f0f6776be79a354665e5afc1b50487"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/base-expected-drift.json",
+      "bytes": 19347,
+      "sha256": "8c86e3fde80c430abe14075babdd8dc1b1e2f76124c35d29825f5b5ac9d55bc1"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/journeys.json",
+      "bytes": 13072,
+      "sha256": "11f9639f0ce93de54fd9f8f8704107757750006e7b0bb940b6caf4b0d15d9a16"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/type4-probe.log",
+      "bytes": 5149,
+      "sha256": "d1603bea4bb1b25010ef290b601bcd509cc33c6334ffd053bc6cd021990b6c1e"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/duplication.log",
+      "bytes": 101,
+      "sha256": "b721cb05ecb1210c2cb67c7a8681405962478a546bc75e3e6fb07f0d2bf8a135"
+    }
+  ]
+}

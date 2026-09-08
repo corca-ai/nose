@@ -11,7 +11,7 @@ use nose_il::UnitKind;
 /// literal-sensitive subtree hash for the whole IL, and opaque raw/lambda values need a
 /// structural subtree hash for the same file. Doing either once per unit turns a
 /// file-level proof into the dominant cost. This context keeps the reusable proof result
-/// and lazily shares structural subtree hashes. Each per-unit builder still interns
+/// and lazily shares structural and literal-sensitive subtree hashes. Each per-unit builder still interns
 /// the corresponding lambda values into its own value arena, so value ids never cross
 /// builder boundaries.
 pub struct ValueFingerprintContext {
@@ -26,19 +26,21 @@ pub struct ValueFingerprintContext {
     /// need a change witness.
     witness_inline_candidates: OnceLock<Vec<InlineCandidate>>,
     subtree_hashes: OnceLock<Vec<u64>>,
+    valued_subtree_hashes: OnceLock<Vec<u64>>,
 }
 
 impl ValueFingerprintContext {
     pub fn new(il: &Il, interner: &Interner) -> Self {
         let module = ModuleSeedContext::new(il, interner);
         let subtree_hashes = OnceLock::new();
+        let valued_subtree_hashes = OnceLock::new();
         let (function_bindings, inline_candidates) = {
             let mut b = Builder::new_with_local_scope_nodes(
                 il,
                 interner,
                 Cow::Borrowed(&module.local_scope),
             )
-            .with_shared_subtree_hashes(&subtree_hashes);
+            .with_shared_subtree_hashes(&subtree_hashes, &valued_subtree_hashes);
             b.seed_module_value_bindings_from_context(&module, None);
             (
                 b.collect_function_binding_hashes(),
@@ -51,6 +53,7 @@ impl ValueFingerprintContext {
             inline_candidates,
             witness_inline_candidates: OnceLock::new(),
             subtree_hashes,
+            valued_subtree_hashes,
         }
     }
 }
@@ -186,7 +189,7 @@ impl ValueFingerprintContext {
                 interner,
                 Cow::Borrowed(&self.module.local_scope),
             )
-            .with_shared_subtree_hashes(&self.subtree_hashes);
+            .with_shared_subtree_hashes(&self.subtree_hashes, &self.valued_subtree_hashes);
             b.await_transparent = false;
             b.seed_module_value_bindings_from_context(&self.module, None);
             b.collect_inline_candidates()
@@ -205,11 +208,16 @@ impl<'a> Builder<'a> {
             interner,
             Cow::Borrowed(&context.module.local_scope),
         )
-        .with_shared_subtree_hashes(&context.subtree_hashes)
+        .with_shared_subtree_hashes(&context.subtree_hashes, &context.valued_subtree_hashes)
     }
 
-    pub(super) fn with_shared_subtree_hashes(mut self, hashes: &'a OnceLock<Vec<u64>>) -> Self {
+    pub(super) fn with_shared_subtree_hashes(
+        mut self,
+        hashes: &'a OnceLock<Vec<u64>>,
+        valued: &'a OnceLock<Vec<u64>>,
+    ) -> Self {
         self.shared_subtree_hashes = Some(hashes);
+        self.shared_valued_subtree_hashes = Some(valued);
         self
     }
 }

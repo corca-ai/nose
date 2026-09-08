@@ -1,0 +1,445 @@
+{
+  "schema": "nose.release-score-validation/v1",
+  "version": "0.21.0",
+  "decision": "PENDING: correctness, full local CI and cache/watch pass; material diagnostic elapsed regressions require further optimization before release qualification",
+  "candidate": {
+    "source_sha": "c82fef526c15eb133f365197eee2d25c9f0a351f",
+    "crates_tree": "31856d643ddf943f75fc4c3e532d8eb570e9ce11",
+    "product_dependencies": {
+      "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+      "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+      "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+    },
+    "binary": "/Users/ak/prjs/cc/nose/target/release-score-qualification-20260908/candidate-nose",
+    "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+    "build_log": "/Users/ak/prjs/cc/nose/target/release-score-qualification-20260908/build.log",
+    "binary_sha256": "7ec35a11b73c0e86ac37e61c6cf5a4a6bb32be8908bf31d8417d27a15250774c"
+  },
+  "checks": {
+    "full_local_ci": {
+      "source_sha": "7efe5a256674d16ad4cdb96000b624fdd0555efc",
+      "product": "c82fef526c15eb133f365197eee2d25c9f0a351f",
+      "crates_tree": "31856d643ddf943f75fc4c3e532d8eb570e9ce11",
+      "status": "passed",
+      "release_tests": 2432,
+      "coverage_total": "TOTAL                                                                                                    175726             20384    88.40%       11501              1174    89.79%      112550             11600    89.69%           0                 0         -",
+      "log": "/Users/ak/prjs/cc/nose/target/release-score-qualification-20260908/full-ci.log",
+      "sha256": "66880f0289481b88feadce18ad3ca3436e02fb5c00896ce41c3ef13ed34738c6",
+      "scope": "full local CI; cache/watch, registered runtime and remote checks remain separate"
+    },
+    "cache_matrix": {
+      "status": "passed",
+      "scenarios": 14,
+      "runs": 2100
+    },
+    "sympy": {
+      "status": "passed",
+      "runs": 180,
+      "phases": {
+        "clean-after": {
+          "candidate": {
+            "elapsed_ms": {
+              "p50": 2435.013750102371,
+              "p95": 2682.79470782727
+            },
+            "peak_rss_bytes": {
+              "p50": 977133568.0,
+              "p95": 999374848
+            }
+          },
+          "official": {
+            "elapsed_ms": {
+              "p50": 2444.225999992341,
+              "p95": 2596.361625008285
+            },
+            "peak_rss_bytes": {
+              "p50": 921001984.0,
+              "p95": 962871296
+            }
+          },
+          "elapsed_delta_percent": {
+            "p50": -0.3768984492431793,
+            "p95": 3.329007869568601
+          }
+        },
+        "empty-store-after": {
+          "candidate": {
+            "elapsed_ms": {
+              "p50": 2595.3115834854543,
+              "p95": 2710.8840830624104
+            },
+            "peak_rss_bytes": {
+              "p50": 1010262016.0,
+              "p95": 1045643264
+            }
+          },
+          "official": {
+            "elapsed_ms": {
+              "p50": 2656.0806459747255,
+              "p95": 2824.3078347295523
+            },
+            "peak_rss_bytes": {
+              "p50": 955523072.0,
+              "p95": 982728704
+            }
+          },
+          "elapsed_delta_percent": {
+            "p50": -2.2879223408131977,
+            "p95": -4.015984032349751
+          }
+        },
+        "history-after": {
+          "candidate": {
+            "elapsed_ms": {
+              "p50": 309.10739628598094,
+              "p95": 335.40495950728655
+            },
+            "peak_rss_bytes": {
+              "p50": 506101760.0,
+              "p95": 508166144
+            }
+          },
+          "official": {
+            "elapsed_ms": {
+              "p50": 332.8082915395498,
+              "p95": 368.9659582450986
+            },
+            "peak_rss_bytes": {
+              "p50": 468172800.0,
+              "p95": 472006656
+            }
+          },
+          "elapsed_delta_percent": {
+            "p50": -7.121485809121541,
+            "p95": -9.095960748638488
+          }
+        }
+      }
+    },
+    "watch": {
+      "status": "pass",
+      "tiers": [
+        {
+          "files": 10000,
+          "passed": true,
+          "latency_ms": {
+            "p50": 72.21352100000001,
+            "p95": 74.624375
+          },
+          "crash_recovery": true
+        },
+        {
+          "files": 100000,
+          "passed": true,
+          "latency_ms": {
+            "p50": 347.9465205,
+            "p95": 363.20187500000003
+          },
+          "crash_recovery": true
+        }
+      ]
+    }
+  },
+  "official_diagnostic": {
+    "design": {
+      "kind": "exploratory screen; not release qualification; no same-binary control",
+      "registered_at": "2026-09-07T17:05:58.844382+00:00",
+      "baseline_sha256": "8ee79b8be2ba84893daad563776165d192ab2717ac3fa24e24d6cc03e6df77da",
+      "candidate": {
+        "source_sha": "c82fef526c15eb133f365197eee2d25c9f0a351f",
+        "crates_tree": "31856d643ddf943f75fc4c3e532d8eb570e9ce11",
+        "product_dependencies": {
+          "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+          "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+          "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+        },
+        "binary": "/Users/ak/prjs/cc/nose/target/release-score-qualification-20260908/candidate-nose",
+        "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+        "build_log": "/Users/ak/prjs/cc/nose/target/release-score-qualification-20260908/build.log",
+        "binary_sha256": "7ec35a11b73c0e86ac37e61c6cf5a4a6bb32be8908bf31d8417d27a15250774c",
+        "source": "c82fef526c15eb133f365197eee2d25c9f0a351f"
+      },
+      "workloads": [
+        [
+          "alamofire",
+          "default"
+        ],
+        [
+          "libgdx",
+          "default"
+        ],
+        [
+          "guava",
+          "default"
+        ],
+        [
+          "rxswift",
+          "default"
+        ],
+        [
+          "rxswift",
+          "semantic"
+        ],
+        [
+          "alamofire",
+          "near:0.8"
+        ]
+      ],
+      "blocks": 3,
+      "samples_per_observation": 1,
+      "warmups": 1
+    },
+    "results": [
+      {
+        "repo": "alamofire",
+        "mode": "default",
+        "complete_outputs_equal": false,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2388.4199587628245,
+            "score": 482.8,
+            "groups": 48.9
+          },
+          "current": {
+            "elapsed": 3879.0623750537634,
+            "score": 1455.4,
+            "groups": 469.3
+          }
+        }
+      },
+      {
+        "repo": "libgdx",
+        "mode": "default",
+        "complete_outputs_equal": false,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2157.7038755640388,
+            "score": 280.7,
+            "groups": 18.0
+          },
+          "current": {
+            "elapsed": 2906.3485404476523,
+            "score": 1030.5,
+            "groups": 90.7
+          }
+        }
+      },
+      {
+        "repo": "guava",
+        "mode": "default",
+        "complete_outputs_equal": false,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 3006.556916050613,
+            "score": 284.1,
+            "groups": 27.1
+          },
+          "current": {
+            "elapsed": 3274.3800841271877,
+            "score": 558.2,
+            "groups": 39.5
+          }
+        }
+      },
+      {
+        "repo": "rxswift",
+        "mode": "default",
+        "complete_outputs_equal": false,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 841.5682911872864,
+            "score": 129.8,
+            "groups": 8.3
+          },
+          "current": {
+            "elapsed": 1152.7562094852328,
+            "score": 275.5,
+            "groups": 111.3
+          }
+        }
+      },
+      {
+        "repo": "rxswift",
+        "mode": "semantic",
+        "complete_outputs_equal": false,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 518.206374719739,
+            "score": 1.7,
+            "groups": 4.2
+          },
+          "current": {
+            "elapsed": 489.00874983519316,
+            "score": 3.8,
+            "groups": 8.3
+          }
+        }
+      },
+      {
+        "repo": "alamofire",
+        "mode": "near:0.8",
+        "complete_outputs_equal": false,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 1996.335125528276,
+            "score": 321.9,
+            "groups": 29.2
+          },
+          "current": {
+            "elapsed": 2519.7409177199006,
+            "score": 991.3,
+            "groups": 87.0
+          }
+        }
+      }
+    ],
+    "interpretation": "Exploratory only: three paired blocks, one sample per observation, no same-binary control; not a formal release verdict. Versioned output drift is validated by the separate complete-output preflight. Material whole-query slowdowns remain; no repeated unchanged-candidate screen or full campaign was used to seek a passing result."
+  },
+  "outstanding": [
+    "Reduce material default and near elapsed regressions against official 0.20.0.",
+    "Freeze the next product candidate and bind required correctness, cache/watch, remote and native-package checks to it.",
+    "Complete the prospectively registered four-workload elapsed-v1 campaign on the final candidate."
+  ],
+  "artifacts": [
+    {
+      "path": "bench/release/0.21.0/score-preflight.v1.json",
+      "bytes": 10225,
+      "sha256": "ef40ba535b43a82d5db4eae3f8b8f5c6bb8feed109ac021fa4226c75e852b567"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/full-ci.log",
+      "bytes": 778453,
+      "sha256": "66880f0289481b88feadce18ad3ca3436e02fb5c00896ce41c3ef13ed34738c6"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/full-ci-receipt.json",
+      "bytes": 777,
+      "sha256": "9cf00c1d88794c699699f09c3c6a25394579d911e284da7dd7d83439fba0fb56"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/cache-campaign.py",
+      "bytes": 1968,
+      "sha256": "9cb92da67eb77ecc1ad4a8ad5d030262cf929378f7de53782774148d07a17829"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/cache-campaign.log",
+      "bytes": 74,
+      "sha256": "256f8de0733e12f4878b08e46d0728a2566bcb7b7d778c218a8f6ecda666e794"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/cache-campaign-status.json",
+      "bytes": 2877,
+      "sha256": "a8d8fbd2892c61aaca9380ae9620afa80b437bbcbce908eba6144b1df3718241"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/cache-matrix-30.json",
+      "bytes": 4963299,
+      "sha256": "96dff2a00f05fda1db744817029e9bec13104fa3bbfd3b902b8b78fca01d1036"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/cache-sympy-30.json",
+      "bytes": 411331,
+      "sha256": "f885a3ba5e536ab8b0e2a990029dffa6335c3e49aaf14b5299eda0c88233d170"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/watch-30.json",
+      "bytes": 48003,
+      "sha256": "32c98637da72282e0fc870dfb8bfa1c16bfe62405bde767a890050192244a2cd"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/cache-campaign-matrix.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/cache-campaign-sympy.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/cache-campaign-watch.log",
+      "bytes": 557,
+      "sha256": "36adb312604ed94439404d4d23d0f4fc036c5ee45075c7b524f2e16ea22f5f59"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen.py",
+      "bytes": 2740,
+      "sha256": "69fc6e05e3de43a5849eebf6e5be9225c3f2002156eb96814afe94b41aa87c3f"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-design.json",
+      "bytes": 1392,
+      "sha256": "42161dafda38e2cd1a76fe5cf62f5c9ca571b3092560e6fe9ecf0897197aada6"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-results.json",
+      "bytes": 3796,
+      "sha256": "be26277895b849459e471319c3619afc0a25c001eb13534318f680b7539365a0"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen.log",
+      "bytes": 1600,
+      "sha256": "6053395773859086e6d11c428392f221b13aea764b57beac288460145c45aca7"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-alamofire-default.json",
+      "bytes": 21183,
+      "sha256": "75a406bb50dfd281e69acab191a13a3d14ceb98d77a36e4233a0113747f9a099"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-alamofire-near-0.8.json",
+      "bytes": 21188,
+      "sha256": "d053db6143c69353ae4df0f89f9e3882c8a3fb7572c28af108d42ebce9a853a1"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-guava-default.json",
+      "bytes": 21546,
+      "sha256": "efe4fdd07e2fd0bb672ef9671a3afec6854028471f4321eda85ade46b110aa89"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-libgdx-default.json",
+      "bytes": 21328,
+      "sha256": "289fe0f9c6eb729910349b1db865aef62ba428dc0cc263baef3e91950decafce"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-rxswift-default.json",
+      "bytes": 21259,
+      "sha256": "b23ca02136ee072c6f232a384e63870dc0efff013a7339123c309ccfa2c9be5a"
+    },
+    {
+      "path": "target/release-score-qualification-20260908/official-screen-rxswift-semantic.json",
+      "bytes": 20737,
+      "sha256": "53dd2c37743e964ebbe18ef6012403c1611bd496531fd415d17fdc2d72a2c5a7"
+    }
+  ]
+}

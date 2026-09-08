@@ -67,7 +67,7 @@ pub(super) fn typed_method_shadowed_by_untyped_inner_param_il() -> (Il, Interner
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::param(outer_param_span),
         EvidenceKind::Domain(DomainEvidence::from_param_semantic(
@@ -118,7 +118,7 @@ pub(super) fn console_log_il(shadow_console: bool) -> (Il, Interner, NodeId) {
         cid_names,
     );
     if !shadow_console {
-        il.evidence.push(language_core_evidence(
+        il.push_evidence(language_core_evidence(
             0,
             Lang::JavaScript,
             EvidenceAnchor::node(il.node(receiver).span, NodeKind::Var),
@@ -183,7 +183,7 @@ pub(super) fn go_math_abs_il(with_import: bool) -> (Il, Interner, NodeId) {
         Vec::new(),
     );
     if with_import {
-        il.evidence.push(evidence(
+        il.push_evidence(evidence(
             0,
             EvidenceAnchor::sequence(sp()),
             EvidenceKind::Import(ImportEvidenceKind::Namespace {
@@ -191,7 +191,7 @@ pub(super) fn go_math_abs_il(with_import: bool) -> (Il, Interner, NodeId) {
             }),
             EvidenceStatus::Asserted,
         ));
-        il.evidence.push(evidence(
+        il.push_evidence(evidence(
             1,
             EvidenceAnchor::binding(sp(), stable_symbol_hash("math")),
             EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
@@ -199,7 +199,7 @@ pub(super) fn go_math_abs_il(with_import: bool) -> (Il, Interner, NodeId) {
             }),
             EvidenceStatus::Asserted,
         ));
-        il.evidence.push(evidence_with_dependencies(
+        il.push_evidence(evidence_with_dependencies(
             2,
             EvidenceAnchor::node(sp(), NodeKind::Var),
             EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {

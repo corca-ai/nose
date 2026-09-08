@@ -295,8 +295,7 @@ fn query_dashboard_filter_and_family() {
             && !dash.contains("proven families (same behavior"),
         "dashboard must not flatten exact and shared-core evidence: {dash}"
     );
-    // Suggested commands echo the path so they're runnable verbatim (the surface takes
-    // the path positionally) — every drill link is `nose query <path> id=…`.
+    // Dashboard drill links carry the target path.
     assert!(
         dash.contains(&format!("nose query {p} id=")),
         "dashboard's drill links carry the path: {dash}"
@@ -313,8 +312,7 @@ fn query_dashboard_filter_and_family() {
     // An unknown term is a hard error (a typo must not silently widen the result).
     assert!(run_fail(&["query", p, "wat"]).contains("unrecognized term"));
 
-    // Negation (`!~`): a path substring matched by every copy drops the family; a
-    // non-matching one keeps it (so a typo'd exclusion can't silently empty the result).
+    // Negation drops matching families and preserves a nonmatching selection.
     let excluded = run(&["query", p, "path!~m.py"]);
     assert!(
         excluded.contains("0 families") || !excluded.contains("nose query"),
@@ -326,7 +324,8 @@ fn query_dashboard_filter_and_family() {
         "query --fail-on any gates the filtered selection, not hidden families"
     );
     assert!(
-        run(&["query", p, "path!~zzz_absent"]).contains(&format!("nose query {p} id=")),
+        run(&["query", p, "path!~zzz_absent"])
+            .contains(&format!("nose query {p} 'path!~zzz_absent' id=")),
         "path!~<absent> keeps the family"
     );
     // Negated equality still validates the value (a typo errors, never silently matches).
@@ -336,18 +335,23 @@ fn query_dashboard_filter_and_family() {
     // includes `similar` keeps it and one that excludes it drops it — and a typo in any
     // comma-part errors (never silently narrows the set).
     assert!(
-        run(&["query", p, "witness=exact,similar", "--mode", "near"])
-            .contains(&format!("nose query {p} id=")),
+        run(&["query", p, "witness=exact,similar", "--mode", "near"]).contains(&format!(
+            "nose query {p} '--mode' 'near' 'witness=exact,similar' id="
+        )),
         "witness=exact,similar matches the similar fixture (OR)"
     );
     let none = run(&["query", p, "witness=exact,copy-paste", "--mode", "near"]);
     assert!(
-        none.contains("0 families") || !none.contains(&format!("nose query {p} id=")),
+        none.contains("0 families")
+            || !none.contains(&format!(
+                "nose query {p} '--mode' 'near' 'witness=exact,copy-paste' id="
+            )),
         "a set without `similar` excludes the only family"
     );
     assert!(
-        run(&["query", p, "witness!=exact,copy-paste", "--mode", "near"])
-            .contains(&format!("nose query {p} id=")),
+        run(&["query", p, "witness!=exact,copy-paste", "--mode", "near"]).contains(&format!(
+            "nose query {p} '--mode' 'near' 'witness!=exact,copy-paste' id="
+        )),
         "witness!=<set> keeps a family outside the set"
     );
     assert!(
@@ -368,8 +372,9 @@ fn query_dashboard_filter_and_family() {
 
     // same_symbol: the three `process` copies share a name → the parallel-variant signal.
     assert!(
-        run(&["query", p, "same_symbol=true", "--mode", "near"])
-            .contains(&format!("nose query {p} id=")),
+        run(&["query", p, "same_symbol=true", "--mode", "near"]).contains(&format!(
+            "nose query {p} '--mode' 'near' 'same_symbol=true' id="
+        )),
         "same_symbol=true matches the same-named family"
     );
     assert!(
@@ -407,8 +412,8 @@ fn query_dashboard_filter_and_family() {
     let dash: serde_json::Value =
         serde_json::from_str(&run_raw(&["query", p, "--format", "json"])).unwrap();
     assert_eq!(
-        dash["schema_version"], 9,
-        "dashboard json is schema v9: {dash}"
+        dash["schema_version"], 10,
+        "dashboard json is schema v10: {dash}"
     );
     assert_eq!(dash["view"], "dashboard");
     assert_query_json_reports_semantic_packs(&dash);
@@ -438,14 +443,17 @@ fn query_dashboard_filter_and_family() {
     // A filtered list emits structured family objects (not human `where` strings).
     let list: serde_json::Value =
         serde_json::from_str(&run(&["query", p, "members>1", "--format", "json"])).unwrap();
-    assert_eq!(list["schema_version"], 9, "list json is schema v9: {list}");
+    assert_eq!(
+        list["schema_version"], 10,
+        "list json is schema v10: {list}"
+    );
     assert_eq!(list["view"], "list");
     assert_query_json_reports_semantic_packs(&list);
     let grouped: serde_json::Value =
         serde_json::from_str(&run(&["query", p, "group=dir", "--format", "json"])).unwrap();
     assert_eq!(
-        grouped["schema_version"], 9,
-        "group json is schema v9: {grouped}"
+        grouped["schema_version"], 10,
+        "group json is schema v10: {grouped}"
     );
     assert_eq!(grouped["view"], "group");
     assert_query_json_reports_semantic_packs(&grouped);
@@ -466,8 +474,8 @@ fn query_dashboard_filter_and_family() {
     ]))
     .unwrap();
     assert_eq!(
-        opened["schema_version"], 9,
-        "family json is schema v9: {opened}"
+        opened["schema_version"], 10,
+        "family json is schema v10: {opened}"
     );
     assert_eq!(opened["view"], "family");
     assert_query_json_reports_semantic_packs(&opened);
@@ -508,7 +516,7 @@ fn query_dashboard_filter_and_family() {
     );
     // #422: the bulk markdown report stays a compact location list (no per-family skeleton)…
     assert!(
-        !md.contains("**proposal**"),
+        !md.contains("**source comparison**"),
         "bulk markdown stays compact — no extraction skeleton: {md}"
     );
     // …but `id=<fam>` drills into one family and renders the extraction skeleton, and `full`
@@ -520,7 +528,7 @@ fn query_dashboard_filter_and_family() {
     };
     let drill = run(&["query", p, &format!("id={fid}"), "--format", "markdown"]);
     assert!(
-        drill.contains("**proposal**") && drill.contains("⟨param"),
+        drill.contains("**source comparison**") && drill.contains("⟨region"),
         "id=<fam> markdown renders the extraction skeleton with parameter slots: {drill}"
     );
     assert!(
@@ -536,7 +544,7 @@ fn query_dashboard_filter_and_family() {
         "markdown",
     ]);
     assert!(
-        drill_full.contains("**proposal**") && drill_full.contains("**diff**"),
+        drill_full.contains("**source comparison**") && drill_full.contains("**diff**"),
         "id=<fam> full markdown adds the representative diff: {drill_full}"
     );
     let sarif: serde_json::Value =

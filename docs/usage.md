@@ -31,12 +31,14 @@ from-source `./target/release/nose`.
 |---|---|
 | Inspect duplication and act on it | `nose query <path> [terms…]` |
 | Inspect disjoint roots together | `nose query --root <path> --root <path> [terms…]` |
-| Open one family with its extraction skeleton | `nose query <path> id=<fam> full` |
+| Open one family with its bounded source comparison | `nose query <path> id=<fam> full` |
 | Catch a missed sibling edit in a diff or PR | `nose query <path> base=<ref>` |
 | Gate CI on duplication | `nose query <path> --fail-on any` |
 | Inspect or reclaim a query cache | `nose cache status|prune|clear --dir <cache>` |
 | Read the result as machine-readable JSON | `nose query <path> --format json` ([query-json](query-json.md)) |
 | Refresh a local integration after each save | `nose query <path> --watch --format jsonl` ([query-watch](query-watch.md)) |
+| Save a complete admitted code-family analysis | `nose query <path> --save-analysis FILE` |
+| Explore changes without the source workspace | `nose query --before BEFORE --after AFTER [terms…]` — [analysis comparison](region-identity.md#explore-changes-between-saved-analyses) |
 | Ask what an installed binary supports | `nose capabilities` |
 | Check a local semantic-pack manifest | `nose semantic-pack check <file-or-dir>` |
 | Create or inspect a content-pinned semantic-pack decision | `nose semantic-pack lock …` / `nose semantic-pack status <lock>` |
@@ -56,6 +58,51 @@ evidence, the best candidates to inspect first, verified-evidence families, dupl
 directory hotspots, and next commands. Add terms to filter, group, sort, or open one
 family; every result includes a runnable `nose query …` command.
 
+`query --help` starts with the filter and navigation grammar. Numeric filter errors
+fail before analysis and never become a successful empty result. Dashboard, list, group,
+family, helper and watch navigation replay analysis options (`--mode`, exclusions,
+thresholds, config, packs, cache and read-only baseline) with shell quoting. Query JSON's
+`path` still describes only the roots. Group JSON includes per-row executable `next` links.
+
+When an explicitly configured candidate-work limit is exceeded, the query fails without partial clone findings. The
+error adds a source-file inventory and up to eight directory-root commands. Counts describe
+files directly in each directory, not candidate work or the cause of the overload. The
+commands retain settings but select a smaller root, which also changes the scope of
+root-relative excludes; no mode or exclusion is changed automatically. `scope=` and
+`path~` filter completed findings and cannot fix a candidate-budget failure.
+
+Every live dashboard, list, group, family and helper view repeats its effective analysis
+population: roots, scanned-file count, modes, exclusion patterns and size/member floors.
+Query filters select findings inside that population; they do not change the analyzed files.
+JSON exposes the same information in `analysis`, including skipped-source diagnostics.
+
+Large queries automatically process candidates in batches; a normal `nose query <root>`
+needs no candidate-count option. Roots, modes, every eligible ordinary pair and the existing
+connected-seed policy stay the same. Accepted evidence is retained; rejected pairs are not
+all kept in memory. Runtime still grows with candidate work and accepted output size.
+
+`--max-candidate-pairs N` is an optional positive work ceiling for automation, including
+cached/watch queries. It overrides `NOSE_MAX_CANDIDATE_PAIRS`; with neither set there is
+no candidate-count ceiling. Navigation preserves an explicit limit. An explicit-budget
+failure returns no partial findings and offers smaller-root and higher-limit commands.
+The engine chooses batching independently of this ceiling; users need not tune batch sizes.
+
+The landing page offers production, test, mixed-scope, and discovered evaluation/fixture
+directory routes. Directory names are navigation hints, not proof of code purpose; no findings
+are hidden by these routes until selected. Production routes exclude the listed evaluation
+paths explicitly. Cross-directory relationships remain available through the full population.
+Rust `#[test]` and unconditional `#[cfg(test)]` attributes propagate test context into nested
+regions, as do existing test-name/module conventions. This classification does not evaluate
+arbitrary conditional compilation or third-party test macros. Conventional `_tests` file and
+directory names also classify out-of-line test helpers, without pretending to resolve every
+custom module graph.
+
+The dashboard accounts for the report's code families before row limits: unfolded
+default families, folded default overlaps, and families on other surfaces. It also
+shows unfolded/folded totals for `all`, which widens surfaces but retains overlap
+folding. These counts follow baseline/ignore processing; saved analyses precede
+that processing and include folded overlaps. Markdown findings are separate.
+
 To analyze disjoint trees in one run, pass every root explicitly:
 `nose query --root packages --root scripts [terms…]` (short: `-r`). When
 `--root`/`-r` is present, bare arguments are query terms; use `-r` for each
@@ -72,17 +119,34 @@ nose query --root <path> --root <path> [FILTER … | group=FIELD | id=FAM | at=F
 
 | part | meaning |
 |---|---|
-| `field=value` | keep families where the field equals the value (terms AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring; **set OR** with a comma — `witness=exact,shared-core` matches either; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a directory; `witness!=exact,shared-core` drops both) |
-| `group=FIELD` | facet the selection by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`, `status`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
-| `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, overlapping-family links (`subsumes`/`subsumed_by`), and navigation |
+| `field=value` | keep families where the field equals the value (terms AND-ed); `field>N`/`field<N` for finite numbers (`>=`, `<=`, NaN, infinity and malformed numeric values are errors); `path~substr` for a path substring; **set OR** with a comma — `witness=exact,shared-core` matches either; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a directory; `witness!=exact,shared-core` drops both) |
+| `group=FIELD` | aggregate **all matching families**, with `top=N` limiting displayed groups rather than input families; facet by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`, `status`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
+| `id=FAM` | open one family (any unambiguous id prefix): its copies, a bounded source comparison, overlapping-family links (`subsumes`/`subsumed_by`), and navigation |
+| `member-id=ID` | select one exact member ID within an opened family; generated copy links provide the ID |
+| `member-group=dir` / `lang` / `scope` | with `id=` or `at=`, group copies inside the family; follow emitted commands to narrow members, then **Open** a listed copy. Full family identity and metrics are retained. |
+| `member-dir=DIR`, `member-path~TEXT`, `member-lang=LANG`, `member-scope=prod` / `test` | with `id=` or `at=`, select member locations; `member-dir` is exact, `member-path` is a substring; `top=N` limits member rows/groups and `full` or `top=0` expands them. With a member filter, `full` also shows bounded selected source bodies with line numbers; grouping shows counts. Human/JSON inspection only. |
+| `member-context=N full` | with a selected family/member, inspect nearby live-source lines; follow **Inspect surrounding code** on a member for up to 20 lines each side, including code and comments outside its enclosing unit. File and display limits apply; the member receives the line budget first, then surrounding lines share the remainder. Reported member coordinates and evidence stay unchanged; output marks truncation. |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
-| `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (the action is "call it"). Production findings are shown only when the helper is also production code; matches that point production code at a test-only helper are omitted with a count, because the safe action is to rehome/extract a production helper first. Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
+| `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (a computation match requires a separate reuse decision). Production findings are shown only when the helper is also production code; matches that point production code at a test-only helper are omitted with a count, because the safe action is to rehome/extract a production helper first. Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
 | `base=REF` | the **divergent-edit** view: detect families at the git ref, flag the ones a diff changed in one copy but not its siblings — a likely un-propagated fix. It is its own view, so combine it only with `top=N`, detection flags, `--format`, or `--fail-on any`; ordinary family filters are for the non-`base=` query views. Each item carries legacy `fire_eligible` evidence plus the v2 `strict` / `review` / `report-only` / `suppressed` tier contract; `base=REF --fail-on any` fails only on unsuppressed `strict` findings. See [divergent edits](divergent-edits.md). |
 | `since=FILE` | compare to a saved snapshot (written with `--baseline FILE --write-baseline`) and expose each family's **`status`** (`new`/`changed`/`unchanged`) as a queryable field — the temporal lens. Hides nothing (unlike `--baseline`); `since=B status!=unchanged --fail-on any` is the composable gate |
 | `sort=KEY` | `extractability` (default), `value`, `members` (also `sites` and the experimental `hazard` — see [Ranking](#ranking)) |
-| `top=N` | show the first N rows (default 30); `top=0` shows **all** |
-| `full` | on `id=` or a list, render the all-copies extraction skeletons inline (batched); each varying spot is `⟨param N: class⟩` — a coarse value-class hint (`literal`/`name`/`call`/`expr`/`block`) for the helper signature |
+| `top=N` | show the first N rows or groups (default 30); `top=0` shows **all** |
+| `full` | on `id=` or a list, render bounded source comparisons inline; holes are `⟨region N: class⟩` text observations, not proven parameters. With a member filter, show selected source bodies |
 | `all` | widen past the curated default surface to the full raw universe (demoted families labeled) |
+
+Family details explain extraction support separately from the detector witness: measured
+shared source, no shared source, common syntax, cross-language comparison, or unavailable
+source measurements. Review checks name dependency/ownership, call-contract, effects and
+varying-region questions; they do not assert that a helper is safe to extract. Full locations
+show their scope evidence (path/name convention, frontend or enclosing test context, or
+absence of recognized test evidence). Recognized scope is not a full build-configuration model.
+
+For saved comparisons, use explicit `--before-source DIR` / `--after-source DIR` on
+`change=ID` to inspect hash-verified source. Record caller judgments using `--write-review
+FILE --decision keep-separate|refactor|defer --reason TEXT`; reload with `--reviews FILE` and
+narrow with `review=applicable|recheck|unreviewed`. See [source inspection and review
+conditions](region-identity.md#inspect-source-and-carry-caller-decisions-forward).
 
 Fields: `scope` (prod\|test\|mixed), `witness`
 (exact\|shared-core\|connected\|bounded-window\|copy-paste\|similar — `shared-core` is spelled
@@ -102,10 +166,21 @@ error (so a typo can't read as "no duplication").
 Quote comparison terms in shell commands (`'dup>80'`, `'lines>25'`) because bare `>` is a
 redirection operator.
 
+`dir=DIR` selects by the representative copy's parent directory. `path~TEXT`
+selects a family when any copy's path contains the text, including families whose
+representative is outside that directory. These can yield different counts;
+use `path~` when exploring relationships across a directory boundary.
+
 `spotclass` reads the [graded witness](graded-witness.md), which is presentation-layer
 enrichment (the dominant extra analysis cost), so `query` computes it **on demand** — only when a term
 filters or groups by `spotclass`. The common query path pays nothing; a `spotclass=` /
 `group=spotclass` query re-derives the witness for alignable near/shared-core families first.
+
+A `copy-paste` witness measures matching tokens, while `shared` measures invariant whole
+source lines across the bounded member alignment. A matching token run can span parts
+of differing lines and therefore have zero shared whole lines. The row explains this case.
+Detailed members expose their source-boundary classification and any known enclosing unit.
+An unclassified region may cross declarations; a detected region is not an extraction plan.
 
 A typical loop: `nose query .` → `nose query . witness=exact` → `nose query . id=<id> full`.
 
@@ -155,7 +230,9 @@ Markdown prose findings are displayed as a separate dashboard domain and dashboa
 
 ## Ranking
 
-`sort=` chooses what "most worth your attention first" means.
+`sort=` chooses what "most worth your attention first" means. Changing sort order preserves the selected family IDs,
+counts and overlap-fold relationships. Representatives are chosen using one canonical
+extractability order before applying a display sort, including configured and watch sorts.
 `--min-value` is a noise floor on raw value and applies under every sort. `nose query`
 accepts `extractability`, `value`, `sites`, the alias `members`, and the experimental `hazard`.
 (The query dashboard's
@@ -163,23 +240,20 @@ accepts `extractability`, `value`, `sites`, the alias `members`, and the experim
 
 | key | ranks by | use when |
 |---|---|---|
-| `extractability` *(default)* | invariant (shared) lines × copies × spread, weighted by tightness (shared/total) and penalized by parameter count and by member-span heterogeneity (copies of unlike length aren't one shape). Cross-language families have no comparable source lines, so they fall back to semantic repeated volume and display as `cross-language · ~N repeated` instead of `~N removable`. | you want the duplication that folds *cleanly* into one helper — not the biggest block that merely looks similar |
-| `value` | raw duplicated volume: duplicated lines (mean span × copies) × similarity × spread — ranks by repeated *volume*, not the `removable` field (a structural Type-4 family can rank high here yet show `removable=0` when no literal lines survive all copies) | you want the most *code* deleted, accepting that divergent copies cost more to merge |
+| `extractability` *(default)* | invariant (shared) lines × copies × spread, weighted by tightness (shared/total) and penalized by parameter count and by member-span heterogeneity (copies of unlike length aren't one shape). Cross-language families have no comparable source lines, so they fall back to semantic repeated volume and display as `cross-language · ~N repeated` instead of `~N removable`. | prioritize inspection by shared-line density; reuse feasibility remains a caller decision |
+| `value` | raw duplicated volume: duplicated lines (mean span × copies) × similarity × spread — ranks by repeated *volume*, not the `removable` field (a structural Type-4 family can rank high here yet show `removable=0` when no literal lines survive all copies) | inspect the largest repeated volume; this does not predict deletions |
 | `sites` / `members` | number of copies | hunting the most-repeated patterns |
 | `hazard` *(experimental)* | divergent-edit *propensity*: line span × spread × invisibility × scope | you want a view of which clones tend to get edited inconsistently — **not yet a validated *harm* ranker** (see [hazard-ranking](hazard-ranking.md)) |
 
-Extractability is the default because raw volume over-rewards a large block whose
-copies share little: a 384-line family that shares only 22 lines across 14 varying
-spots is mostly scaffolding (6% invariant), not an extraction — it ranks far below a
-tight `15/15`-shared, zero-parameter pair. The honest `N/M shared · Pp` cell in the
-report is the same signal the ranking uses. Same-language families with **no** shared
-invariant lines (a language idiom, or two unrelated type literals with the same shape)
-have nothing to extract and sink to the bottom, even at `sim 1.00`. Extractability also
-demotes families whose copies **vary widely in length**: 25 same-shaped-but-different
-`Serializer` methods are not one helper waiting to happen, however many copies there
-are — a measured proxy for signature heterogeneity (see [experiments](experiments.md)).
-For cross-language families, source-line overlap is not meaningful; the row says
-`cross-language · ~N repeated`, and query JSON marks `source_comparable: false`.
+Extractability is a deterministic inspection-cost heuristic. It weights literal overlap,
+spread, differing regions and member-span heterogeneity; it does not establish that a
+helper is callable, desirable or safe. The displayed counts use a bounded sample;
+`id=ID full` reports actual source coverage and pair-local differences. A family with no
+literal shared lines can still have a strong semantic witness. Cross-language families
+use repeated volume as a fallback (`source_comparable: false`), not a language-based
+judgment about whether their projects can share code. Test scope does not impose a
+worthiness penalty. Ranking changes require separate evaluation against labeled data.
+
 
 `sort=hazard` is an **experimental** severity-style ranking calibrated on mined
 divergent-edit history. It predicts *which clones get edited inconsistently* (divergence
@@ -348,3 +422,18 @@ hard soundness gate; the checked-in baseline and diff workflow are in
 [recall-loss-recovery-loop](recall-loss-recovery-loop.md). They are hidden from
 `--help` because `query` is the command for everyday use; the
 [benchmark](benchmark.md) page documents them.
+
+## nose regions
+
+`nose regions snapshot <path>` emits a JSON census of admitted source regions,
+including singletons. `nose regions compare <before.json> <after.json>
+[--max-candidates N]` compares explicit snapshots with a bounded candidate search.
+The default candidate budget is 100,000. Results distinguish content matches,
+modification/copy candidates, ambiguity, and unavailable correspondence. They do
+not modify source or approve reviews. See [region identity](region-identity.md).
+
+Family list links retain their filters when opening details. The detail's return
+and resume actions preserve that selection; each member supplies a direct
+`member-id=ID full` link. The first dashboard also offers bounded top-level
+directory routes from the actual roots. These are caller-selected navigation
+hints, not ownership classifications or automatic exclusions.

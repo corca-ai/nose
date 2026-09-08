@@ -76,7 +76,7 @@ fn rust_binding_patterns_lower_without_raw() {
 }
 
 #[test]
-fn query_reinvented_view_lists_call_the_helper_findings() {
+fn query_reinvented_view_names_computation_matches_for_reuse_review() {
     // A function that reimplements an existing pure helper inline (the reinvented channel),
     // surfaced as a query view — the action is "call the helper", complementing the clustered
     // `shape=call-existing-helper` families.
@@ -104,8 +104,10 @@ fn query_reinvented_view_lists_call_the_helper_findings() {
         "1",
     ]);
     assert!(
-        human.contains("call big") && human.contains("reimplements an existing helper"),
-        "reinvented view names the helper to call: {human}"
+        human.contains("inspect reuse of big")
+            && human.contains("matched helper computations")
+            && human.contains("does not establish visibility"),
+        "reinvented view identifies a reuse candidate without asserting callability: {human}"
     );
     let j: serde_json::Value = serde_json::from_str(&run(&[
         "query",
@@ -119,7 +121,10 @@ fn query_reinvented_view_lists_call_the_helper_findings() {
         "json",
     ]))
     .unwrap();
-    assert_eq!(j["schema_version"], 9, "reinvented json is schema v9: {j}");
+    assert_eq!(
+        j["schema_version"], 10,
+        "reinvented json is schema v10: {j}"
+    );
     assert_eq!(j["view"], "reinvented");
     assert_query_json_reports_semantic_packs(&j);
     assert_eq!(

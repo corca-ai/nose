@@ -4,7 +4,7 @@ use crate::tree_sitter_ext::child_at;
 pub(super) fn lower_func(lo: &mut Lowering, node: TsNode, method: bool) -> NodeId {
     let is_async = rust_function_has_async_modifier(node);
     let span = lo.span(node);
-    crate::lower::function_unit(lo, node, method, lower_params, |lo, body| {
+    let func = crate::lower::function_unit(lo, node, method, lower_params, |lo, body| {
         let body = lower_fn_body(lo, body);
         if is_async {
             lo.protocol_boundary(
@@ -16,7 +16,13 @@ pub(super) fn lower_func(lo: &mut Lowering, node: TsNode, method: bool) -> NodeI
         } else {
             body
         }
-    })
+    });
+    if test_context::contains(lo, node) {
+        if let Some(unit) = lo.units.iter_mut().find(|unit| unit.root == func) {
+            unit.origin = unit.origin.with_evidence(UnitEvidenceFlag::TestContext);
+        }
+    }
+    func
 }
 fn rust_function_has_async_modifier(node: TsNode) -> bool {
     (0..node.child_count()).any(|index| {
@@ -95,9 +101,6 @@ pub(super) fn rust_tokio_runtime_nominal_type_domain(
             Some((rust_tokio_runtime_nominal_domain("Handle"), Vec::new()))
         }
         _ if !head.contains("::") => {
-            if rust_type_reference_scope_defines_type_name(lo, node, &head) {
-                return None;
-            }
             let mut matches = Vec::new();
             for exported in ["Runtime", "Handle"] {
                 if let Some(dependencies) =
@@ -109,6 +112,9 @@ pub(super) fn rust_tokio_runtime_nominal_type_domain(
             let [(domain, dependencies)] = matches.as_slice() else {
                 return None;
             };
+            if rust_type_reference_scope_defines_type_name(lo, node, &head) {
+                return None;
+            }
             Some((*domain, dependencies.clone()))
         }
         _ => None,
@@ -125,12 +131,24 @@ fn rust_imported_runtime_type_dependencies(
     local: &str,
     exported: &str,
 ) -> Option<Vec<nose_il::EvidenceId>> {
-    if rust_type_reference_scope_shadows_qualified_root(lo, param, "tokio") {
-        return None;
-    }
     let local_hash = nose_il::stable_symbol_hash(local);
     let module_hash = nose_il::stable_symbol_hash("tokio::runtime");
     let exported_hash = nose_il::stable_symbol_hash(exported);
+    // Most type references cannot name a runtime import. Exclude those before
+    // walking enclosing CST scopes; candidates still undergo every scope check.
+    let has_candidate = lo.evidence.iter().any(|record| {
+        matches!(record.anchor, nose_il::EvidenceAnchor::Binding { local_hash: anchor, .. }
+            if anchor == local_hash)
+            && record.status == nose_il::EvidenceStatus::Asserted
+            && record.kind
+                == nose_il::EvidenceKind::Symbol(nose_il::SymbolEvidenceKind::ImportedBinding {
+                    module_hash,
+                    exported_hash,
+                })
+    });
+    if !has_candidate || rust_type_reference_scope_shadows_qualified_root(lo, param, "tokio") {
+        return None;
+    }
 
     for scope in rust_type_reference_visible_scopes(param) {
         let mut dependencies = Vec::new();

@@ -1,0 +1,628 @@
+{
+  "schema": "nose.release_qualification/v1",
+  "release": "0.21.0",
+  "date": "2026-09-06",
+  "decision": "NO-GO",
+  "candidate": {
+    "commit": "283f9e1d29e2f98a44c0646af5f5d327aeaf9245",
+    "crates_tree": "8d0e11903a2b685f0bf7904385963ef731f07760",
+    "binary_sha256": "b499631fb90867b37c9e8adbaa8eb31e53cea727d62859cf9778b449d1b98fcb",
+    "packaged_binary_sha256": "b499631fb90867b37c9e8adbaa8eb31e53cea727d62859cf9778b449d1b98fcb",
+    "build_manifest": "target/release-0.21.0/dist-build-final.json"
+  },
+  "official_baseline": {
+    "manifest": "bench/cache/official-v0.20.0-binaries.v1.json",
+    "sha256": "ed1e964f91896014888d69b8cf9199e17b126d1d9e2359ab24145a6a42175a47"
+  },
+  "local_ci": {
+    "status": "passed",
+    "commit": "283f9e1d29e2f98a44c0646af5f5d327aeaf9245",
+    "release_tests": 2371,
+    "line_coverage_pct": 89.39
+  },
+  "remote_ci": {
+    "run": 34024046297,
+    "source_commit": "db29999b17b2d7c0599f2f006294b504ec0328ca",
+    "product_tree": "8d0e11903a2b685f0bf7904385963ef731f07760",
+    "status": "failed",
+    "semantic_smoke": {
+      "status": "fail",
+      "thresholds": {
+        "max_runtime_delta_pct": 5.0,
+        "min_focused_iterations": 6,
+        "min_runtime_delta_ms": 5.0,
+        "runtime_policy": "order-aware-v1"
+      },
+      "focused_repos": [
+        "asciidoctor",
+        "fastlane",
+        "junit5",
+        "prettier",
+        "sidekiq"
+      ],
+      "primary": {
+        "unexpected_drifts": 0,
+        "unused_declarations": 0,
+        "triggered": [
+          {
+            "repo": "asciidoctor",
+            "scope": "repo",
+            "stage": null,
+            "adjusted_delta_ms": 49.740940749984475,
+            "adjusted_delta_pct": 13.193880618303188
+          },
+          {
+            "repo": "asciidoctor",
+            "scope": "stage",
+            "stage": "query_render",
+            "adjusted_delta_ms": 12.45,
+            "adjusted_delta_pct": 185.82089552238804
+          },
+          {
+            "repo": "junit5",
+            "scope": "stage",
+            "stage": "query_render",
+            "adjusted_delta_ms": 34.449999999999996,
+            "adjusted_delta_pct": 302.1929824561403
+          },
+          {
+            "repo": "prettier",
+            "scope": "stage",
+            "stage": "query_render",
+            "adjusted_delta_ms": 8.425,
+            "adjusted_delta_pct": 165.1960784313726
+          }
+        ],
+        "inconclusive": [
+          {
+            "repo": "asciidoctor",
+            "scope": "stage",
+            "stage": "lower",
+            "adjusted_delta_ms": 24.0,
+            "adjusted_delta_pct": 11.278195488721805
+          },
+          {
+            "repo": "asciidoctor",
+            "scope": "stage",
+            "stage": "normalize+extract",
+            "adjusted_delta_ms": 10.124999999999996,
+            "adjusted_delta_pct": 8.319638455217746
+          },
+          {
+            "repo": "asciidoctor",
+            "scope": "stage",
+            "stage": "parse+lower",
+            "adjusted_delta_ms": 23.950000000000003,
+            "adjusted_delta_pct": 11.481303930968362
+          },
+          {
+            "repo": "fastlane",
+            "scope": "stage",
+            "stage": "lower",
+            "adjusted_delta_ms": 35.67499999999998,
+            "adjusted_delta_pct": 4.5376494530653755
+          },
+          {
+            "repo": "fastlane",
+            "scope": "stage",
+            "stage": "parse+lower",
+            "adjusted_delta_ms": 29.549999999999983,
+            "adjusted_delta_pct": 3.9107993647432484
+          },
+          {
+            "repo": "junit5",
+            "scope": "repo",
+            "stage": null,
+            "adjusted_delta_ms": 93.94656224992559,
+            "adjusted_delta_pct": 6.057500137083615
+          },
+          {
+            "repo": "junit5",
+            "scope": "stage",
+            "stage": "lower",
+            "adjusted_delta_ms": 33.599999999999994,
+            "adjusted_delta_pct": 4.965272646667651
+          },
+          {
+            "repo": "junit5",
+            "scope": "stage",
+            "stage": "normalize+extract",
+            "adjusted_delta_ms": 32.12499999999997,
+            "adjusted_delta_pct": 4.789057841383419
+          },
+          {
+            "repo": "junit5",
+            "scope": "stage",
+            "stage": "parse+lower",
+            "adjusted_delta_ms": 29.85000000000001,
+            "adjusted_delta_pct": 5.920269734232449
+          },
+          {
+            "repo": "sidekiq",
+            "scope": "stage",
+            "stage": "lower",
+            "adjusted_delta_ms": 6.349999999999998,
+            "adjusted_delta_pct": 6.970362239297473
+          },
+          {
+            "repo": "sidekiq",
+            "scope": "stage",
+            "stage": "parse+lower",
+            "adjusted_delta_ms": 5.974999999999998,
+            "adjusted_delta_pct": 6.955762514551801
+          }
+        ]
+      },
+      "focused": {
+        "unexpected_drifts": 0,
+        "unused_declarations": 0,
+        "triggered": [
+          {
+            "repo": "asciidoctor",
+            "scope": "repo",
+            "stage": null,
+            "adjusted_delta_ms": 39.21603900005266,
+            "adjusted_delta_pct": 10.886467563124302
+          },
+          {
+            "repo": "asciidoctor",
+            "scope": "stage",
+            "stage": "lower",
+            "adjusted_delta_ms": 14.349999999999994,
+            "adjusted_delta_pct": 7.1428571428571415
+          },
+          {
+            "repo": "asciidoctor",
+            "scope": "stage",
+            "stage": "parse+lower",
+            "adjusted_delta_ms": 14.450000000000003,
+            "adjusted_delta_pct": 7.379979570990808
+          },
+          {
+            "repo": "asciidoctor",
+            "scope": "stage",
+            "stage": "query_render",
+            "adjusted_delta_ms": 10.100000000000001,
+            "adjusted_delta_pct": 174.1379310344828
+          },
+          {
+            "repo": "junit5",
+            "scope": "stage",
+            "stage": "parse+lower",
+            "adjusted_delta_ms": 32.99999999999997,
+            "adjusted_delta_pct": 6.641175286778019
+          },
+          {
+            "repo": "junit5",
+            "scope": "stage",
+            "stage": "query_render",
+            "adjusted_delta_ms": 33.1,
+            "adjusted_delta_pct": 296.86098654708525
+          },
+          {
+            "repo": "prettier",
+            "scope": "stage",
+            "stage": "query_render",
+            "adjusted_delta_ms": 9.600000000000001,
+            "adjusted_delta_pct": 190.09900990099013
+          }
+        ],
+        "inconclusive": [
+          {
+            "repo": null,
+            "scope": "aggregate",
+            "stage": null,
+            "adjusted_delta_ms": 278.5903455001062,
+            "adjusted_delta_pct": 5.160059497957302
+          },
+          {
+            "repo": "asciidoctor",
+            "scope": "stage",
+            "stage": "normalize+extract",
+            "adjusted_delta_ms": 10.950000000000003,
+            "adjusted_delta_pct": 8.920570264765788
+          },
+          {
+            "repo": "junit5",
+            "scope": "repo",
+            "stage": null,
+            "adjusted_delta_ms": 86.81848249995028,
+            "adjusted_delta_pct": 5.600167099209584
+          },
+          {
+            "repo": "junit5",
+            "scope": "stage",
+            "stage": "lower",
+            "adjusted_delta_ms": 35.44999999999999,
+            "adjusted_delta_pct": 5.316038089525379
+          },
+          {
+            "repo": "junit5",
+            "scope": "stage",
+            "stage": "normalize+extract",
+            "adjusted_delta_ms": 28.599999999999966,
+            "adjusted_delta_pct": 4.083672449489536
+          },
+          {
+            "repo": "prettier",
+            "scope": "repo",
+            "stage": null,
+            "adjusted_delta_ms": 90.25801500001762,
+            "adjusted_delta_pct": 5.63055806447879
+          },
+          {
+            "repo": "prettier",
+            "scope": "stage",
+            "stage": "normalize+extract",
+            "adjusted_delta_ms": 53.25,
+            "adjusted_delta_pct": 17.842184620539456
+          },
+          {
+            "repo": "sidekiq",
+            "scope": "stage",
+            "stage": "lower",
+            "adjusted_delta_ms": 6.700000000000003,
+            "adjusted_delta_pct": 7.570621468926557
+          },
+          {
+            "repo": "sidekiq",
+            "scope": "stage",
+            "stage": "parse+lower",
+            "adjusted_delta_ms": 6.399999999999999,
+            "adjusted_delta_pct": 7.683073229291715
+          }
+        ]
+      }
+    }
+  },
+  "semantic_identity": {
+    "status": "passed",
+    "repositories": 120,
+    "families": 15819,
+    "members": 120641,
+    "comparison": "multiset of family identity and complete sorted member-identity multiset",
+    "source_audit_sha256": "f10ae66ce1a1ed6e17faad48a8237e2308eeca1daa946e66e0996c2e53703bfb"
+  },
+  "cache": {
+    "equivalence": "passed",
+    "matrix_cases": 14,
+    "matrix_replays": 30,
+    "matrix_rows": 2100,
+    "paired_repository": "sympy",
+    "paired_replays": 30,
+    "paired_rows": 180,
+    "timing_status": "failed",
+    "materiality": {
+      "delta_pct": 5,
+      "delta_ms": 5
+    },
+    "timing": [
+      {
+        "phase": "clean-after",
+        "quantile": "p50",
+        "official_ms": 2425.1968963071704,
+        "candidate_ms": 2560.5515618808568,
+        "delta_ms": 135.35466557368636,
+        "delta_pct": 5.581182533252864,
+        "material": true
+      },
+      {
+        "phase": "clean-after",
+        "quantile": "p95",
+        "official_ms": 2599.9275827780366,
+        "candidate_ms": 2766.2076661363244,
+        "delta_ms": 166.2800833582878,
+        "delta_pct": 6.3955659557493,
+        "material": true
+      },
+      {
+        "phase": "empty-store-after",
+        "quantile": "p50",
+        "official_ms": 2611.950270831585,
+        "candidate_ms": 2731.8960204720497,
+        "delta_ms": 119.94574964046478,
+        "delta_pct": 4.592191167647186,
+        "material": false
+      },
+      {
+        "phase": "empty-store-after",
+        "quantile": "p95",
+        "official_ms": 2812.692791223526,
+        "candidate_ms": 2875.953499227762,
+        "delta_ms": 63.26070800423622,
+        "delta_pct": 2.249115445584006,
+        "material": false
+      },
+      {
+        "phase": "history-after",
+        "quantile": "p50",
+        "official_ms": 317.0985416509211,
+        "candidate_ms": 345.15262488275766,
+        "delta_ms": 28.054083231836557,
+        "delta_pct": 8.84711833923222,
+        "material": true
+      },
+      {
+        "phase": "history-after",
+        "quantile": "p95",
+        "official_ms": 345.3396251425147,
+        "candidate_ms": 364.82787504792213,
+        "delta_ms": 19.48824990540743,
+        "delta_pct": 5.643212793019342,
+        "material": true
+      }
+    ],
+    "output_equivalence": "full payload after verification and removal of only cache navigation arguments; raw hashes retained"
+  },
+  "watch": {
+    "status": "passed",
+    "tiers": [
+      {
+        "files": 10000,
+        "replays": 30,
+        "latency_ms": {
+          "p50": 72.22872899999999,
+          "p95": 75.72095900000001
+        },
+        "end_to_end_ms": {
+          "p50": 84.10300081595778,
+          "p95": 88.42550031840801
+        },
+        "peak_rss_bytes": 167100416,
+        "store": {
+          "bytes": 34170305,
+          "files": 11
+        },
+        "crash_recovery": true,
+        "equivalent_to_clean": true
+      },
+      {
+        "files": 100000,
+        "replays": 30,
+        "latency_ms": {
+          "p50": 371.2093125,
+          "p95": 394.449292
+        },
+        "end_to_end_ms": {
+          "p50": 383.87635350227356,
+          "p95": 407.01341535896063
+        },
+        "peak_rss_bytes": 1591427072,
+        "store": {
+          "bytes": 328827348,
+          "files": 10
+        },
+        "crash_recovery": true,
+        "equivalent_to_clean": true
+      }
+    ]
+  },
+  "journeys": {
+    "direct_review": "applicable",
+    "unique_move": "applicable",
+    "verified_sources": {
+      "unavailable": 0,
+      "verified": 4
+    },
+    "stale_source_rejected": true,
+    "added_copy": "recheck",
+    "legacy_optional_metadata": true,
+    "review_no_overwrite": true,
+    "v0_20_cache_upgrade": true
+  },
+  "soundness": {
+    "nightly_run": 34023008275,
+    "deep_run": 34023009587,
+    "source_commit": "283f9e1d29e2f98a44c0646af5f5d327aeaf9245",
+    "totals": {
+      "advisory": 12015,
+      "canon_changes": 0,
+      "failed_repositories": 0,
+      "false_merges": 0,
+      "repositories": 120
+    },
+    "canonical_result_sha256": "d2526ed7a4998f90d5df759f12083b8bec98463ac67fa62e766c3b113f2be960",
+    "deep_checks": {
+      "metamorphic_equivalence": true,
+      "multi_seed_falsification": true,
+      "source_runtime_calibration": true
+    }
+  },
+  "packages": {
+    "status": "passed",
+    "workflow_run": 34023009854,
+    "source_commit": "283f9e1d29e2f98a44c0646af5f5d327aeaf9245",
+    "packages": [
+      {
+        "status": "passed",
+        "version": "0.21.0",
+        "target": "aarch64-apple-darwin",
+        "archive_sha256": "a05694573647bda3f9dde271f9d034c0b2819a907ff9450ddbd11ebc9d3e53c1",
+        "binary_sha256": "b6733f107e24dff8eaaca97cbac82e48ef2c17f48022e9338b60f95341f19d34",
+        "checks": {
+          "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+          "families": 1,
+          "clean_cold_warm_equal": true,
+          "saved_analysis_view": "dashboard"
+        }
+      },
+      {
+        "status": "passed",
+        "version": "0.21.0",
+        "target": "aarch64-unknown-linux-gnu",
+        "archive_sha256": "9a5e33fb3949f587059a4f7ae3e59aafc273c655666962f98a069b7c80c12768",
+        "binary_sha256": "2c39f8ef528d78141710837d5b94724602f185af82f0803d17ce02abc4bcfc09",
+        "checks": {
+          "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+          "families": 1,
+          "clean_cold_warm_equal": true,
+          "saved_analysis_view": "dashboard"
+        }
+      },
+      {
+        "status": "passed",
+        "version": "0.21.0",
+        "target": "x86_64-apple-darwin",
+        "archive_sha256": "9c0fe3eca39f14fea606b2c3330def972ba03863e431b419504453bb2dfc163e",
+        "binary_sha256": "57b635b58ac7078f896b1a278670e70c8221f6fe76dd69170cc09ce06d4a4db9",
+        "checks": {
+          "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+          "families": 1,
+          "clean_cold_warm_equal": true,
+          "saved_analysis_view": "dashboard"
+        }
+      },
+      {
+        "status": "passed",
+        "version": "0.21.0",
+        "target": "x86_64-unknown-linux-gnu",
+        "archive_sha256": "5b5edf0cd90ae35d84e42d13c8b9c961ebb52cf2fd9bd79219e8f80597585caa",
+        "binary_sha256": "26f59fd65977f24847f6366f2cdc8cab598c586c61c5b2dda531b12ee873ac65",
+        "checks": {
+          "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+          "families": 1,
+          "clean_cold_warm_equal": true,
+          "saved_analysis_view": "dashboard"
+        }
+      }
+    ],
+    "installer": {
+      "sha256": "f746261afbd16fddd42eddb6b1f81e7826592007623c4ea388453ad41f04c51b",
+      "embedded_checksum_verified": true,
+      "native_execution": {
+        "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+        "families": 1,
+        "clean_cold_warm_equal": true,
+        "saved_analysis_view": "dashboard"
+      }
+    }
+  },
+  "blockers": [
+    {
+      "id": "dense-candidate-scoring",
+      "repo": "alamofire",
+      "official_ms": 1587.4823750928044,
+      "candidate_timeout_seconds": 30,
+      "scope": "isolated diagnostic, not a completed paired performance campaign",
+      "cause": "Complete dense candidate traversal replaces the published chain/star shortcut that omitted non-hub pairs."
+    },
+    {
+      "id": "cached-query-cost",
+      "repo": "sympy",
+      "basis": "30 paired replays exceed unchanged 5% and 5 ms materiality"
+    },
+    {
+      "id": "remote-semantic-runtime",
+      "basis": "CI remains non-passing after auditing exact schema drift and running its one permitted focused comparison"
+    }
+  ],
+  "unqualified_workloads": {
+    "all_120_default_near_output": "stopped at dense-candidate blocker",
+    "registered_all_120_query_timing": "not qualified; no pass inferred from semantic output or historical checks",
+    "frozen_17_base_timing": "not run after release blocker"
+  },
+  "diagnostic_experiment": {
+    "candidate": false,
+    "elapsed_seconds": 114.40146500058472,
+    "source_binding": "Uncommitted experiment; not used to qualify the release. Retained patch includes subsequent unmeasured refinements.",
+    "patch": {
+      "path": "target/release-0.21.0/score-cache-prototype.patch",
+      "bytes": 11913,
+      "sha256": "443b48a6bb66668bcc87e73d6ea68a38454f6cbd836b4ea712f27f5e244c7421"
+    },
+    "binary_sha256": "d163fd0515da36e3f84076e909143fe545fcd593d04c2153cb062587b8c4466f"
+  },
+  "evidence": [
+    {
+      "path": "target/release-0.21.0/candidate-identity-final.json",
+      "bytes": 370,
+      "sha256": "2c3e637da582a2bd92dbfd4265d82a79c7f5cecf9349fe0fb249018e3e638b9e"
+    },
+    {
+      "path": "target/release-0.21.0/full-ci-final.log",
+      "bytes": 766933,
+      "sha256": "1dd0d4a5536599576be7c19c734450b390e1f492dc3c7f22932877fdb6442278"
+    },
+    {
+      "path": "target/release-0.21.0/full-ci-receipt.json",
+      "bytes": 248,
+      "sha256": "fc532fded60e0ef2577098d9ab45bb9338adeb63edafd668ef4ed5897d99fa35"
+    },
+    {
+      "path": "target/release-0.21.0/output-audit-semantic.json",
+      "bytes": 116440,
+      "sha256": "f10ae66ce1a1ed6e17faad48a8237e2308eeca1daa946e66e0996c2e53703bfb"
+    },
+    {
+      "path": "target/release-0.21.0/semantic-identity-verification.json",
+      "bytes": 275,
+      "sha256": "09dd6dfa5bef3f674e628ab0a38e6bc93a620af6346547b52cdefba339da2090"
+    },
+    {
+      "path": "target/release-0.21.0/alamofire-diagnostic.json",
+      "bytes": 3908,
+      "sha256": "fd42f5163a01c952bc43624551340ef40ea8b9edf23af475281f8464b3710b7d"
+    },
+    {
+      "path": "target/release-0.21.0/alamofire-isolated-reproduction.json",
+      "bytes": 369,
+      "sha256": "e3210d5e2f540200e3f3d455af2d52d9c0765826f6b15abd19009923a7d0e7a2"
+    },
+    {
+      "path": "target/release-0.21.0/alamofire-score-cache-prototype-reproduction.json",
+      "bytes": 1082,
+      "sha256": "a1db95af0e0de6a88305196ee5d1708399f3fbd2b9289c6a043885c06cb64d34"
+    },
+    {
+      "path": "target/release-0.21.0/output-audit-interruption.json",
+      "bytes": 960,
+      "sha256": "869b3d5538766e6b283b4ea4675ca5b93f41efd552f2bdce744112c23d984e3f"
+    },
+    {
+      "path": "target/release-0.21.0/cache-matrix-30.json",
+      "bytes": 4963256,
+      "sha256": "38517d9983457b566258239f0440f82c52acd27ad63e9fc8d27e77bbaee83cab"
+    },
+    {
+      "path": "target/release-0.21.0/cache-sympy-30.json",
+      "bytes": 411495,
+      "sha256": "74835154bffd735b21761e8b0d89c304b9af5627109ac963e1eb04c316db0d1a"
+    },
+    {
+      "path": "target/release-0.21.0/watch-30.json",
+      "bytes": 47911,
+      "sha256": "2480d7b811a3b6ad28593b289a66643268dffed3cb1f9da353979de580b8553c"
+    },
+    {
+      "path": "target/release-0.21.0/journeys.json",
+      "bytes": 12974,
+      "sha256": "b859a98b95e364749ef305e596668a0d80b57ebf4518c20ccb24470b6bcc1fd1"
+    },
+    {
+      "path": "target/release-0.21.0/remote-package-verification.json",
+      "bytes": 2560,
+      "sha256": "f2dc7f45b9d1864fdb285b9b867fb5e64c5270bd97e85d0fa1d11ca8afae082c"
+    },
+    {
+      "path": "target/release-0.21.0/remote-nightly/corpus-evidence.json",
+      "bytes": 53099,
+      "sha256": "b044b8e787fd6b98e8a644962b9f436058e1c08a1f16c099dd17d203648728d0"
+    },
+    {
+      "path": "target/release-0.21.0/remote-deep/soundness-deep-283f9e1d29e2f98a44c0646af5f5d327aeaf9245/evidence.json",
+      "bytes": 246,
+      "sha256": "0c94b5e4b19daff38a9826d92461f4619b04f3ab057644440ce1d0923d1c65e9"
+    },
+    {
+      "path": "target/release-0.21.0/remote-semantic-audited/check-status.json",
+      "bytes": 558511,
+      "sha256": "cc61075f1469656d9fefd98e7f2cf07d3165bbbe3eb7522fb9de7ea1b8b5b050"
+    },
+    {
+      "path": "target/release-0.21.0/plan.md",
+      "bytes": 1577,
+      "sha256": "ec775a3ef17733c3d61146c5c5f467a5eecb96881739338aa7cd0fd9320c03c3"
+    }
+  ],
+  "release_pr": "https://github.com/corca-ai/nose/pull/988"
+}

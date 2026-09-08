@@ -9,7 +9,7 @@ fn canonical_builtin_admission_requires_language_core_or_library_api_evidence() 
     let contract = library_free_function_builtin_contract(Lang::Python, "len", 1)
         .expect("Python len contract");
     push_canonical_unshadowed_symbol_dependency(&mut il, 9, call, "len");
-    il.evidence.push(free_function_builtin_protocol_record(
+    il.push_evidence(free_function_builtin_protocol_record(
         10,
         il.node(call).span,
         contract,
@@ -26,7 +26,7 @@ fn canonical_builtin_admission_rejects_broad_unshadowed_symbol_dependency() {
     let (mut il, call) = python_len_canonical_call_il();
     let contract = library_free_function_builtin_contract(Lang::Python, "len", 1)
         .expect("Python len contract");
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         9,
         EvidenceAnchor::node(il.node(call).span, NodeKind::Var),
         EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
@@ -34,7 +34,7 @@ fn canonical_builtin_admission_rejects_broad_unshadowed_symbol_dependency() {
         }),
         EvidenceStatus::Asserted,
     ));
-    il.evidence.push(free_function_builtin_protocol_record(
+    il.push_evidence(free_function_builtin_protocol_record(
         10,
         il.node(call).span,
         contract,
@@ -59,29 +59,27 @@ fn canonical_builtin_admission_requires_language_core_namespace_dependency() {
     let namespace = EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
         module_hash: stable_symbol_hash("fmt"),
     });
-    broad_namespace.evidence.push(evidence(
+    broad_namespace.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(48), stable_symbol_hash("fmt")),
         namespace,
         EvidenceStatus::Asserted,
     ));
-    broad_namespace.evidence.push(evidence_with_dependencies(
+    broad_namespace.push_evidence(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(broad_namespace.node(call).span, NodeKind::Var),
         namespace,
         EvidenceStatus::Asserted,
         vec![EvidenceId(0)],
     ));
-    broad_namespace
-        .evidence
-        .push(builtin_method_call_protocol_record(
-            2,
-            broad_namespace.node(call).span,
-            contract,
-            1,
-            EvidenceStatus::Asserted,
-            &[1],
-        ));
+    broad_namespace.push_evidence(builtin_method_call_protocol_record(
+        2,
+        broad_namespace.node(call).span,
+        contract,
+        1,
+        EvidenceStatus::Asserted,
+        &[1],
+    ));
     assert!(
         !admitted_builtin_semantics_at_call_with_interner(
             &broad_namespace,
@@ -94,19 +92,17 @@ fn canonical_builtin_admission_requires_language_core_namespace_dependency() {
 
     let (mut wrong_pack, call) = go_print_canonical_call_il();
     push_canonical_imported_namespace_dependency(&mut wrong_pack, 0, 1, call, "fmt");
-    wrong_pack
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            2,
-            wrong_pack.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[1],
-            BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
-            BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
-        ));
+    wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+        2,
+        wrong_pack.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[1],
+        BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
+        BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
+    ));
     assert!(
         !admitted_builtin_semantics_at_call_with_interner(
             &wrong_pack,
@@ -119,7 +115,7 @@ fn canonical_builtin_admission_requires_language_core_namespace_dependency() {
 
     let (mut admitted, call) = go_print_canonical_call_il();
     push_canonical_imported_namespace_dependency(&mut admitted, 0, 1, call, "fmt");
-    admitted.evidence.push(builtin_method_call_protocol_record(
+    admitted.push_evidence(builtin_method_call_protocol_record(
         2,
         admitted.node(call).span,
         contract,
@@ -145,7 +141,7 @@ fn canonical_builtin_admission_requires_import_backed_namespace_dependency() {
     };
 
     let (mut missing_binding, call) = go_print_canonical_call_il();
-    missing_binding.evidence.push(language_core_symbol_record(
+    missing_binding.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(missing_binding.node(call).span, NodeKind::Var),
         symbol,
@@ -153,16 +149,14 @@ fn canonical_builtin_admission_requires_import_backed_namespace_dependency() {
         &[],
         Lang::Go,
     ));
-    missing_binding
-        .evidence
-        .push(builtin_method_call_protocol_record(
-            1,
-            missing_binding.node(call).span,
-            contract,
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-        ));
+    missing_binding.push_evidence(builtin_method_call_protocol_record(
+        1,
+        missing_binding.node(call).span,
+        contract,
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
     assert!(
         !admitted_builtin_semantics_at_call_with_interner(
             &missing_binding,
@@ -195,7 +189,7 @@ fn go_strings_contains_canonical_builtin_requires_namespace_pack_provenance() {
     let root = b.add(NodeKind::Func, Payload::None, sp(41), &[call]);
     let mut il = finish_il(b, root, Lang::Go);
     push_canonical_imported_namespace_dependency(&mut il, 0, 1, call, "strings");
-    il.evidence.push(builtin_method_call_protocol_record(
+    il.push_evidence(builtin_method_call_protocol_record(
         2,
         il.node(call).span,
         contract,
@@ -246,7 +240,7 @@ fn canonical_builtin_admission_rejects_namespace_dependency_from_other_call() {
     );
     let mut il = finish_il(b, root, Lang::Go);
     push_canonical_imported_namespace_dependency(&mut il, 0, 1, first_call, "fmt");
-    il.evidence.push(builtin_method_call_protocol_record(
+    il.push_evidence(builtin_method_call_protocol_record(
         2,
         il.node(second_call).span,
         contract,
@@ -279,25 +273,23 @@ fn rust_integer_canonical_builtin_requires_integer_method_pack_provenance() {
         let (mut wrong_pack, call) =
             rust_integer_canonical_builtin_call_il(builtin, canonical_arg_count);
         let receiver = wrong_pack.children(call)[0];
-        wrong_pack.evidence.push(evidence(
+        wrong_pack.push_evidence(evidence(
             0,
             EvidenceAnchor::node(wrong_pack.node(receiver).span, wrong_pack.kind(receiver)),
             EvidenceKind::Domain(DomainEvidence::Integer),
             EvidenceStatus::Asserted,
         ));
-        wrong_pack
-            .evidence
-            .push(library_api_record_with_provenance_and_arity(
-                1,
-                wrong_pack.node(call).span,
-                contract.id,
-                contract.callee,
-                source_arity as u16,
-                EvidenceStatus::Asserted,
-                &[0],
-                BUILTIN_COMPAT_PACK_ID,
-                RUST_STDLIB_INTEGER_METHOD_PRODUCER_ID,
-            ));
+        wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+            1,
+            wrong_pack.node(call).span,
+            contract.id,
+            contract.callee,
+            source_arity as u16,
+            EvidenceStatus::Asserted,
+            &[0],
+            BUILTIN_COMPAT_PACK_ID,
+            RUST_STDLIB_INTEGER_METHOD_PRODUCER_ID,
+        ));
         assert!(
             !admitted_builtin_semantics_at_call(&wrong_pack, call, builtin),
             "canonical Rust {method} builtin must reject compatibility-pack evidence"
@@ -306,13 +298,13 @@ fn rust_integer_canonical_builtin_requires_integer_method_pack_provenance() {
         let (mut admitted, call) =
             rust_integer_canonical_builtin_call_il(builtin, canonical_arg_count);
         let receiver = admitted.children(call)[0];
-        admitted.evidence.push(evidence(
+        admitted.push_evidence(evidence(
             0,
             EvidenceAnchor::node(admitted.node(receiver).span, admitted.kind(receiver)),
             EvidenceKind::Domain(DomainEvidence::Integer),
             EvidenceStatus::Asserted,
         ));
-        admitted.evidence.push(rust_stdlib_integer_method_record(
+        admitted.push_evidence(rust_stdlib_integer_method_record(
             1,
             admitted.node(call).span,
             contract.id,
@@ -340,7 +332,7 @@ fn java_math_canonical_builtin_requires_math_pack_provenance() {
 
         let (mut missing_dependency, call) =
             java_math_canonical_builtin_call_il(builtin, canonical_arg_count);
-        missing_dependency.evidence.push(java_stdlib_math_record(
+        missing_dependency.push_evidence(java_stdlib_math_record(
             1,
             missing_dependency.node(call).span,
             contract.id,
@@ -357,19 +349,17 @@ fn java_math_canonical_builtin_requires_math_pack_provenance() {
         let (mut wrong_pack, call) =
             java_math_canonical_builtin_call_il(builtin, canonical_arg_count);
         let dependencies = push_java_math_canonical_dependencies(&mut wrong_pack, call);
-        wrong_pack
-            .evidence
-            .push(library_api_record_with_provenance_and_arity(
-                10,
-                wrong_pack.node(call).span,
-                contract.id,
-                contract.callee,
-                source_arity as u16,
-                EvidenceStatus::Asserted,
-                &dependencies,
-                BUILTIN_COMPAT_PACK_ID,
-                JAVA_STDLIB_MATH_PRODUCER_ID,
-            ));
+        wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+            10,
+            wrong_pack.node(call).span,
+            contract.id,
+            contract.callee,
+            source_arity as u16,
+            EvidenceStatus::Asserted,
+            &dependencies,
+            BUILTIN_COMPAT_PACK_ID,
+            JAVA_STDLIB_MATH_PRODUCER_ID,
+        ));
         assert!(
             !admitted_builtin_semantics_at_call(&wrong_pack, call, builtin),
             "canonical Java Math {method} builtin must reject compatibility-pack evidence"
@@ -389,7 +379,7 @@ fn java_math_canonical_builtin_requires_math_pack_provenance() {
         let (mut unresolved_callee_il, call) =
             java_math_canonical_builtin_call_il(builtin, canonical_arg_count);
         let dependencies = push_java_math_canonical_dependencies(&mut unresolved_callee_il, call);
-        unresolved_callee_il.evidence.push(java_stdlib_math_record(
+        unresolved_callee_il.push_evidence(java_stdlib_math_record(
             10,
             unresolved_callee_il.node(call).span,
             contract.id,
@@ -406,7 +396,7 @@ fn java_math_canonical_builtin_requires_math_pack_provenance() {
         let (mut admitted, call) =
             java_math_canonical_builtin_call_il(builtin, canonical_arg_count);
         let dependencies = push_java_math_canonical_dependencies(&mut admitted, call);
-        admitted.evidence.push(java_stdlib_math_record(
+        admitted.push_evidence(java_stdlib_math_record(
             10,
             admitted.node(call).span,
             contract.id,
@@ -454,7 +444,7 @@ fn rust_map_get_unwrap_or_fixture(
         library_method_call_contract(Lang::Rust, "unwrap_or", 1).expect("Rust unwrap_or contract");
     let proven_map = unrelated_map.unwrap_or(map);
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         9,
         EvidenceAnchor::node(il.node(proven_map).span, il.kind(proven_map)),
         EvidenceKind::Domain(DomainEvidence::Map),
@@ -472,8 +462,8 @@ fn rust_map_get_unwrap_or_fixture(
             &[9],
         )
     };
-    il.evidence.push(map_get_evidence);
-    il.evidence.push(builtin_method_call_protocol_record(
+    il.push_evidence(map_get_evidence);
+    il.push_evidence(builtin_method_call_protocol_record(
         11,
         il.node(call).span,
         unwrap_or,

@@ -1,0 +1,308 @@
+{
+  "schema": "nose.release-component-verdict/v1",
+  "version": "0.21.0",
+  "decision": "NO-GO: confirmed Alamofire default elapsed regression after the single registered focus",
+  "candidate": {
+    "source_sha": "0c4143e299e14bf3d4243267bb4ede82d5307d30",
+    "product": "0c4143e299e14bf3d4243267bb4ede82d5307d30",
+    "crates_tree": "ac4404a8bc5575f3fa866f805520320ec44eb6a9",
+    "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+    "source_record_note": "Captured during the build; worktree remained clean and HEAD unchanged from build start.",
+    "binary": "/Users/ak/prjs/cc/nose/target/release-components-qualification-20260908/candidate-nose",
+    "binary_sha256": "cc27040f7d174fbdaf558313eb34af2053a6b546c255a1612c7814102eb59035",
+    "build_log": "/Users/ak/prjs/cc/nose/target/release-components-qualification-20260908/build.log",
+    "product_dependencies": {
+      "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+      "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+      "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+    }
+  },
+  "checks": {
+    "full_local_ci": {
+      "source_at_start": "eff9e444f741029ffc49b3f9477a62ad6152c527",
+      "source_at_completion": "eff9e444f741029ffc49b3f9477a62ad6152c527",
+      "product": "0c4143e299e14bf3d4243267bb4ede82d5307d30",
+      "crates_tree": "ac4404a8bc5575f3fa866f805520320ec44eb6a9",
+      "status": "passed",
+      "release_tests": 2440,
+      "coverage_total": "TOTAL                                                                                                    176289             20382    88.44%       11537              1174    89.82%      112862             11593    89.73%           0                 0         -",
+      "log": "/Users/ak/prjs/cc/nose/target/release-components-qualification-20260908/full-ci.log",
+      "sha256": "b35366807904373806d0c64193e0a4448b235ab6599ebd6b39559566e9e8eadd",
+      "scope": "Full local CI after committing the Type-4 binder and reviewed existing self-duplication family. Product crates remain identical to the clean frozen candidate. Cache/watch, remote/native and final elapsed qualification remain separate."
+    },
+    "ordinary_and_base_outputs": 377,
+    "user_journeys": 8,
+    "type4_and_reviewed_duplication": "passed",
+    "automatic_remote_jobs": [
+      {
+        "conclusion": "",
+        "databaseId": 34165533381,
+        "headSha": "aeb5e2ea9fb3f39d91a6a73d4f9efbe8d452f96d",
+        "status": "in_progress",
+        "workflowName": "ci"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 34165533386,
+        "headSha": "aeb5e2ea9fb3f39d91a6a73d4f9efbe8d452f96d",
+        "status": "completed",
+        "workflowName": "Auxiliary tool updates"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 34165533428,
+        "headSha": "aeb5e2ea9fb3f39d91a6a73d4f9efbe8d452f96d",
+        "status": "completed",
+        "workflowName": "Soundness Lab"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 34165533602,
+        "headSha": "aeb5e2ea9fb3f39d91a6a73d4f9efbe8d452f96d",
+        "status": "completed",
+        "workflowName": "Release"
+      }
+    ],
+    "remaining": "Cache/watch, independent native archives and full remote soundness were not rerun on this failed candidate. Prior candidates' passes are not inherited."
+  },
+  "runtime": {
+    "scope": "One-repository default counterexample; sufficient to reject release, not a full-corpus aggregate verdict. Full 120-repository/three-mode and 17-base timing campaign was not run.",
+    "policy": {
+      "max_runtime_delta_pct": 5.0,
+      "min_focused_iterations": 5,
+      "min_runtime_delta_ms": 5.0,
+      "runtime_gate": "elapsed-v1",
+      "runtime_policy": "order-aware-v1"
+    },
+    "status": "fail",
+    "primary": {
+      "elapsed": {
+        "adjusted_delta_ms": 1091.334700526204,
+        "adjusted_delta_pct": 52.02088340255629,
+        "baseline_ms": 2097.878061933443,
+        "control_delta_ms": -37.474880286026746,
+        "current_ms": 3220.1366040389985,
+        "evidence": {
+          "adjusted_effect_ms": 1091.334700526204,
+          "adjusted_effect_pct": 52.02088340255629,
+          "blocks": 5,
+          "by_order": {
+            "baseline-current": {
+              "adjusted_median_ms": 1122.2585421055555,
+              "adjusted_median_pct": 53.49493673961495,
+              "blocks": 3,
+              "material": true
+            },
+            "current-baseline": {
+              "adjusted_median_ms": 1060.4108589468524,
+              "adjusted_median_pct": 52.47399187322116,
+              "blocks": 2,
+              "material": true
+            }
+          },
+          "control_correction_ms": 0.0,
+          "control_effect_ms": -37.474880286026746,
+          "declared_order_conflict_ignored": false,
+          "order_conflict": false,
+          "order_consistent": true,
+          "policy": "paired-position-neutral-sign-v2",
+          "position_neutral_samples": true,
+          "raw_effect_ms": 1091.334700526204,
+          "sign_test_p": 0.03125,
+          "state": "triggered",
+          "supported": true,
+          "supporting_blocks": 5
+        },
+        "inconclusive": false,
+        "raw_delta_ms": 1091.334700526204,
+        "repo": "alamofire",
+        "scope": "repo",
+        "stage": null,
+        "triggered": true
+      },
+      "authorized_output_drifts": 1,
+      "unexpected_output_drifts": 0
+    },
+    "focused": {
+      "elapsed": {
+        "adjusted_delta_ms": 1425.6809583166614,
+        "adjusted_delta_pct": 56.15328947743754,
+        "baseline_ms": 2538.9090676326305,
+        "control_delta_ms": 16.293364809826016,
+        "current_ms": 3959.980838582851,
+        "evidence": {
+          "adjusted_effect_ms": 1425.6809583166614,
+          "adjusted_effect_pct": 56.15328947743754,
+          "blocks": 6,
+          "by_order": {
+            "baseline-current": {
+              "adjusted_median_ms": 1445.9525106940418,
+              "adjusted_median_pct": 56.89976429089767,
+              "blocks": 3,
+              "material": true
+            },
+            "current-baseline": {
+              "adjusted_median_ms": 1405.409405939281,
+              "adjusted_median_pct": 55.43223644857985,
+              "blocks": 3,
+              "material": true
+            }
+          },
+          "control_correction_ms": 16.293364809826016,
+          "control_effect_ms": 16.293364809826016,
+          "declared_order_conflict_ignored": false,
+          "order_conflict": false,
+          "order_consistent": true,
+          "policy": "paired-position-neutral-sign-v2",
+          "position_neutral_samples": true,
+          "raw_effect_ms": 1441.9743231264874,
+          "sign_test_p": 0.015625,
+          "state": "triggered",
+          "supported": true,
+          "supporting_blocks": 6
+        },
+        "inconclusive": false,
+        "raw_delta_ms": 1441.9743231264874,
+        "repo": "alamofire",
+        "scope": "repo",
+        "stage": null,
+        "triggered": true
+      },
+      "authorized_output_drifts": 1,
+      "unexpected_output_drifts": 0
+    }
+  },
+  "next": "Preserve this failed candidate and evidence; optimize changed product before new qualification. Do not retry unchanged, waive thresholds or publish.",
+  "artifacts": [
+    {
+      "path": "bench/release/0.21.0/component-validation.v1.json",
+      "bytes": 24332,
+      "sha256": "84c80f6029a8c170d9f38a7e08e2b3957cc86532116557d892f23482e59b4164"
+    },
+    {
+      "path": "bench/release/0.21.0/component-experiments.v1.json",
+      "bytes": 41609,
+      "sha256": "40ecb7f1386c1c83e031d9816d1b5fca22f59873154336e0704a8029a105d6a6"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/record-verdict.py",
+      "bytes": 2542,
+      "sha256": "751462bba5119294f63bc5ffa57aaf59beedbd4a81edca037b1fa35fb3c66350"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/prepare-blocker.py",
+      "bytes": 3091,
+      "sha256": "9a9f52f5a34e41dce29394d3f407dd607a9527171cb242d3fd5a4c88427f273d"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/push.log",
+      "bytes": 192857,
+      "sha256": "50ee6b20da7deb88881d467520d2137e3603144b0e12ab60a55e1bfbb17772d3"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/validation-commit.log",
+      "bytes": 2545,
+      "sha256": "2d6a8832438ba6604f07acafe7a83a164618559dc39d4a1ea65cdc7a8f131bd0"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/remote-status.json",
+      "bytes": 1221,
+      "sha256": "f32a8baa890d8489b0a13003ff166036fab36ed076014bc330f639ac159cf7c4"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-default-control.json",
+      "bytes": 69235,
+      "sha256": "6525a6713a9d2058fec38bb195f97aa8b2afc37998cf6a57fd9e738ec7c25c32"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-default-control.log",
+      "bytes": 1096,
+      "sha256": "9ea908a7046abf0f50795d8054324ed7baf002b5424be1bd3e824d4ea809a971"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-default-focused-control.json",
+      "bytes": 81740,
+      "sha256": "214845d65ef0d72b4b8c44fa6031381660947290da1bd30df73341860813f6ba"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-default-focused-control.log",
+      "bytes": 1104,
+      "sha256": "3fe4df6171f601723801873ad305293bea2fa371746c4300029e9ec224d966c3"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-default-focused.json",
+      "bytes": 81451,
+      "sha256": "e8afe13c57234788556f9242389f6532600d3d935e07dabec88170a1f005e5f7"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-default-focused.log",
+      "bytes": 1065,
+      "sha256": "e19503b2d767d4405bc6dc709599b041429c1ced3366061419862e525c1b5aa6"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-default-gate.json",
+      "bytes": 147689,
+      "sha256": "4c1253af3f71768826bc51adb6317d71a6a79d07aada956794a628c43032025a"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-default-gate.log",
+      "bytes": 93,
+      "sha256": "fa2aa7c553b9bfedcb2009c19cee501bdd4cbc18e069b81d533fdc81d4249d7a"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-default-gate.md",
+      "bytes": 1281,
+      "sha256": "ed16197ab0fdb35c82ad389dd043f1d7c00f43ee45ad0d5d94910e3ef8de457c"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-default-primary.json",
+      "bytes": 68894,
+      "sha256": "3bf41cfd4c1bccc87333f62a5a5beae815611ae23d58c4110bfa24ca9ca48d36"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-default-primary.log",
+      "bytes": 1065,
+      "sha256": "093f2a3aba39e493d32c5b5175ec2a17e05715687be5de908ca391389b195e21"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-design.json",
+      "bytes": 3280,
+      "sha256": "a97c6c808666d100bdad88f4031f08fe879f285eb09cd254f6a72f9c5f6935ba"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-expected-drift.json",
+      "bytes": 4188,
+      "sha256": "ba4cbfed0067f48737f237a04e5f0fd8a85888f0fca9aac71421a3582ec6bf14"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-primary-inspection.json",
+      "bytes": 69487,
+      "sha256": "a364d5b3cba5cb4ddb5ca774fe250c8f8956b905cc297e6552b8fe0851170271"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker-progress.json",
+      "bytes": 2756,
+      "sha256": "e77d25c0d1e5d89abdff7809f6a3fb0e59388541a499b82e93c0c631a542d0b3"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/blocker.log",
+      "bytes": 409,
+      "sha256": "b19f7f3f7d5dcb0ff09df6da5e879259138e5f4874ff092a40c30ef1b417ef8e"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/run-blocker-comparison.py",
+      "bytes": 2373,
+      "sha256": "84ead806bd1f1601b531b6eb7e465102577d7cd38db9eb3bf6b310ab33c8d8f5"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/run-blocker.py",
+      "bytes": 3851,
+      "sha256": "35ecc8645d4008671e187a8ba6d74960b4da9a98c337dd717b128b669fa2f123"
+    },
+    {
+      "path": "target/release-components-qualification-20260908/timing-ready",
+      "bytes": 65,
+      "sha256": "ec762609083eef6c002c900e5a9257ff917d8473afaa288f4341ebbba1f8ab11"
+    }
+  ]
+}

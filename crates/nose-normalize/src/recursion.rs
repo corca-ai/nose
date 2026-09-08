@@ -523,7 +523,7 @@ mod tests {
         );
         if with_target_evidence {
             let (pack_id, producer_id) = language_core_evidence_provenance(Lang::Python);
-            il.evidence.push(EvidenceRecord {
+            il.push_evidence(EvidenceRecord {
                 id: nose_il::EvidenceId(0),
                 anchor: EvidenceAnchor::node(il.node(self_call).span, NodeKind::Call),
                 kind: EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {

@@ -1,0 +1,1597 @@
+{
+  "schema": "nose.release-relation-encoding-preflight/v1",
+  "version": "0.21.0",
+  "decision": "NO-GO: diagnostic cost signals and outstanding qualification",
+  "candidate": {
+    "source_sha": "12ad58a20909e134a2f70ac78a060fc6e57b1ebf",
+    "crates_tree": "4c1ff40a96a9f01c9888cb63b8d50b23381d5f89",
+    "product_dependencies": {
+      "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+      "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+      "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+    },
+    "binary_sha256": "fdb6878ca7c38623ccbd7b2922759d20e53dc48d83c6fce23e5d9f797ad8cee4",
+    "binary": "/Users/ak/prjs/cc/nose/target/release-relation-encoding-20260907/candidate-nose",
+    "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+    "build_log": "/Users/ak/prjs/cc/nose/target/release-relation-encoding-20260907/build.log"
+  },
+  "isolated_product_commit": "bf701a61d8615045613f4460f4e74a2d17984f04",
+  "checks": {
+    "detector_tests": 265,
+    "json_encoding_oracle": "passed; serde bytes across boundaries and one/three threads",
+    "strict_clippy": "passed on isolated implementation",
+    "docs": "passed at isolated commit",
+    "ordinary_outputs": {
+      "passed": 360,
+      "reference": "bbc91b01"
+    },
+    "base_outputs": {
+      "passed": 17,
+      "review": "same field change counts as prior reviewed drift; new path-dependent hashes reviewed"
+    },
+    "journeys": "8 passed",
+    "type4": {
+      "covered": 41,
+      "hard_negative": 17,
+      "known_gaps": 18,
+      "soundness_bugs": 0,
+      "blind_groups": 54,
+      "false_merges": 0,
+      "canon_violations": 0
+    },
+    "duplication": {
+      "families": 18,
+      "unchanged_budget": 20
+    }
+  },
+  "pending": [
+    "full local CI on this product",
+    "cache/watch qualification",
+    "registered published-baseline runtime matrix",
+    "remote soundness/runtime and native-package verification"
+  ],
+  "previous_candidate_ci": {
+    "product": "ee779371",
+    "proof_commit": "11637118",
+    "status": "passed",
+    "release_tests": 2414,
+    "line_coverage_pct": 89.63,
+    "qualifies_current_candidate": false
+  },
+  "previous_failed_qualification": "bench/release/0.21.0/exact-mask-followup.v1.json",
+  "profiling": {
+    "identity": {
+      "kind": "diagnostic symbols only; not release qualification",
+      "source_sha": "c22640c0c6e2f7b0651fa6dd362a3c0e9e9cfd1f",
+      "patch_sha256": "4f972a2e781f882f7cc14ac99ba7d3b72c099fcb52b432685d8b84c0af4e2f9a",
+      "binary_sha256": "0fa01fa08fa6db03497d095e760a732935d58ae9fd5e97aa4d27a265da1829b7",
+      "uuid": "86BF0EBC-D487-3FC0-A3AD-959784AF6319",
+      "build_command": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "-p",
+        "nose-cli",
+        "--config",
+        "profile.release.package.nose-detect.debug=2",
+        "--config",
+        "profile.release.package.nose-cli.debug=1"
+      ]
+    },
+    "scope": "CPU sample weights, not elapsed-time qualification; source precedes final group isolation fix; both corpus outputs equal",
+    "findings": "Location construction/collapse dominate parallel work; projection and finalization retain serial costs. Do not assign the entire serial interval to same-file nesting."
+  },
+  "experiments": [
+    {
+      "name": "candidate-classes",
+      "identity": {
+        "base": "c22640c0c6e2f7b0651fa6dd362a3c0e9e9cfd1f",
+        "patch_sha256": "30c34de8358d1a864967b724a463a495e9e31585d0f6e6f5ffd2474fd263b207",
+        "binary_sha256": "888c8b7947564d390dbf357ac04078ae02be0dd221573d88792762fae92411c8",
+        "source": "owned worktree base plus full patch; isolated prototype"
+      },
+      "decision": {
+        "decision": "retain for broader qualification: duplicate exact classification removed",
+        "outputs_identical": true,
+        "binaries": {
+          "reference": "abafcccef6f96ee12587adb04c7bd52ae29af6834ad2db673f39eedc6df0ade1",
+          "prototype": "888c8b7947564d390dbf357ac04078ae02be0dd221573d88792762fae92411c8"
+        },
+        "summary": [
+          {
+            "repo": "alamofire",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 1008.1655206158757,
+                "candidates": 18.1,
+                "score": 14.55,
+                "groups": 58.85,
+                "rank_map": 12.350000000000001
+              },
+              "prototype": {
+                "wall": 987.0958542451262,
+                "candidates": 18.3,
+                "score": 8.3,
+                "groups": 59.150000000000006,
+                "rank_map": 12.1
+              }
+            }
+          },
+          {
+            "repo": "libgdx",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 1138.1681244820356,
+                "candidates": 4.95,
+                "score": 2.45,
+                "groups": 11.05,
+                "rank_map": 1.6
+              },
+              "prototype": {
+                "wall": 1146.7221453785896,
+                "candidates": 5.2,
+                "score": 1.65,
+                "groups": 11.25,
+                "rank_map": 1.5499999999999998
+              }
+            }
+          },
+          {
+            "repo": "guava",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 1668.5996451415122,
+                "candidates": 11.3,
+                "score": 2.9,
+                "groups": 16.8,
+                "rank_map": 6.15
+              },
+              "prototype": {
+                "wall": 1639.3116456456482,
+                "candidates": 11.45,
+                "score": 2.9,
+                "groups": 16.8,
+                "rank_map": 6.1
+              }
+            }
+          },
+          {
+            "repo": "hugo",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 380.4728542454541,
+                "candidates": 2.95,
+                "score": 2.6,
+                "groups": 7.15,
+                "rank_map": 2.9
+              },
+              "prototype": {
+                "wall": 374.6737912297249,
+                "candidates": 3.25,
+                "score": 2.6500000000000004,
+                "groups": 7.300000000000001,
+                "rank_map": 2.7
+              }
+            }
+          },
+          {
+            "repo": "rxjava",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 854.7096876427531,
+                "candidates": 5.15,
+                "score": 1.2000000000000002,
+                "groups": 7.800000000000001,
+                "rank_map": 1.6
+              },
+              "prototype": {
+                "wall": 876.0546036064625,
+                "candidates": 5.75,
+                "score": 1.25,
+                "groups": 8.05,
+                "rank_map": 1.55
+              }
+            }
+          },
+          {
+            "repo": "rxswift",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 382.41229113191366,
+                "candidates": 8.55,
+                "score": 2.95,
+                "groups": 8.75,
+                "rank_map": 3.7
+              },
+              "prototype": {
+                "wall": 391.22422970831394,
+                "candidates": 8.25,
+                "score": 2.8499999999999996,
+                "groups": 8.850000000000001,
+                "rank_map": 3.7
+              }
+            }
+          },
+          {
+            "repo": "asciidoctor",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 116.84154160320759,
+                "candidates": 0.4,
+                "score": 0.0,
+                "groups": 0.5,
+                "rank_map": 0.2
+              },
+              "prototype": {
+                "wall": 117.1458545140922,
+                "candidates": 0.45,
+                "score": 0.1,
+                "groups": 0.5,
+                "rank_map": 0.3
+              }
+            }
+          },
+          {
+            "repo": "alamofire",
+            "mode": "default",
+            "medians": {
+              "reference": {
+                "wall": 3717.5071868114173,
+                "candidates": 90.3,
+                "score": 1665.0,
+                "groups": 354.5,
+                "rank_map": 31.65
+              },
+              "prototype": {
+                "wall": 3704.6268130652606,
+                "candidates": 92.19999999999999,
+                "score": 1653.85,
+                "groups": 360.25,
+                "rank_map": 32.2
+              }
+            }
+          },
+          {
+            "repo": "alamofire",
+            "mode": "near:0.8",
+            "medians": {
+              "reference": {
+                "wall": 2180.9508949518204,
+                "candidates": 96.15,
+                "score": 883.05,
+                "groups": 92.2,
+                "rank_map": 10.3
+              },
+              "prototype": {
+                "wall": 2257.562499959022,
+                "candidates": 93.25,
+                "score": 921.15,
+                "groups": 101.1,
+                "rank_map": 10.6
+              }
+            }
+          }
+        ],
+        "limitations": "Nine-workload diagnostic only. Alamofire semantic score 14.55 to 8.30 ms; other full-query medians mixed, including near increase. No formal qualification claim. Initial Clippy clone-on-Copy warning corrected; original log retained."
+      },
+      "qualification": "diagnostic only; early clique versions superseded by the final whole-group isolation proof"
+    },
+    {
+      "name": "site-cliques",
+      "identity": {
+        "base": "c22640c0c6e2f7b0651fa6dd362a3c0e9e9cfd1f",
+        "patch_sha256": "7b98ba21dff282e33f6bfa5c7e6f25cbf229bfe474eb729d9c992ee9f7e22de2",
+        "binary_sha256": "f9f86d18e7c1b4894a155504e8f401bcf693c9e9ab042deb829a5827ea798609",
+        "source": "owned worktree base plus full patch including new modules"
+      },
+      "decision": {
+        "decision": "retain for broader qualification: exact complete-row site projection reduces grouping",
+        "outputs_identical": true,
+        "binaries": {
+          "reference": "888c8b7947564d390dbf357ac04078ae02be0dd221573d88792762fae92411c8",
+          "prototype": "f9f86d18e7c1b4894a155504e8f401bcf693c9e9ab042deb829a5827ea798609"
+        },
+        "summary": [
+          {
+            "repo": "alamofire",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 978.8379175588489,
+                "candidates": 19.450000000000003,
+                "score": 8.45,
+                "groups": 57.8,
+                "rank_map": 13.100000000000001
+              },
+              "prototype": {
+                "wall": 979.5987079851329,
+                "candidates": 18.25,
+                "score": 8.350000000000001,
+                "groups": 47.5,
+                "rank_map": 12.55
+              }
+            }
+          },
+          {
+            "repo": "libgdx",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 1125.7725832983851,
+                "candidates": 5.1,
+                "score": 1.7,
+                "groups": 10.850000000000001,
+                "rank_map": 1.55
+              },
+              "prototype": {
+                "wall": 1129.8129591159523,
+                "candidates": 5.0,
+                "score": 1.6,
+                "groups": 10.45,
+                "rank_map": 1.65
+              }
+            }
+          },
+          {
+            "repo": "guava",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 1655.836125370115,
+                "candidates": 10.95,
+                "score": 2.8499999999999996,
+                "groups": 16.700000000000003,
+                "rank_map": 5.65
+              },
+              "prototype": {
+                "wall": 1643.6245208606124,
+                "candidates": 11.05,
+                "score": 2.8499999999999996,
+                "groups": 16.85,
+                "rank_map": 6.05
+              }
+            }
+          },
+          {
+            "repo": "hugo",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 363.2644787430763,
+                "candidates": 3.25,
+                "score": 2.7,
+                "groups": 7.65,
+                "rank_map": 2.75
+              },
+              "prototype": {
+                "wall": 377.06997944042087,
+                "candidates": 3.05,
+                "score": 2.55,
+                "groups": 7.1,
+                "rank_map": 2.5
+              }
+            }
+          },
+          {
+            "repo": "rxjava",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 848.5433547757566,
+                "candidates": 5.5,
+                "score": 1.2,
+                "groups": 8.2,
+                "rank_map": 1.65
+              },
+              "prototype": {
+                "wall": 847.6008344441652,
+                "candidates": 5.45,
+                "score": 1.2,
+                "groups": 8.25,
+                "rank_map": 1.65
+              }
+            }
+          },
+          {
+            "repo": "rxswift",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 390.1568539440632,
+                "candidates": 7.6,
+                "score": 3.05,
+                "groups": 8.850000000000001,
+                "rank_map": 4.05
+              },
+              "prototype": {
+                "wall": 390.4103119857609,
+                "candidates": 8.45,
+                "score": 2.75,
+                "groups": 8.850000000000001,
+                "rank_map": 3.5
+              }
+            }
+          },
+          {
+            "repo": "asciidoctor",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 117.54168756306171,
+                "candidates": 0.4,
+                "score": 0.05,
+                "groups": 0.5,
+                "rank_map": 0.25
+              },
+              "prototype": {
+                "wall": 122.85902118310332,
+                "candidates": 0.4,
+                "score": 0.1,
+                "groups": 0.55,
+                "rank_map": 0.2
+              }
+            }
+          },
+          {
+            "repo": "alamofire",
+            "mode": "default",
+            "medians": {
+              "reference": {
+                "wall": 3759.844812564552,
+                "candidates": 94.75,
+                "score": 1674.85,
+                "groups": 362.85,
+                "rank_map": 32.55
+              },
+              "prototype": {
+                "wall": 3757.125813048333,
+                "candidates": 90.65,
+                "score": 1687.3,
+                "groups": 355.3,
+                "rank_map": 31.7
+              }
+            }
+          },
+          {
+            "repo": "alamofire",
+            "mode": "near:0.8",
+            "medians": {
+              "reference": {
+                "wall": 2211.9209999218583,
+                "candidates": 95.4,
+                "score": 907.25,
+                "groups": 96.2,
+                "rank_map": 10.7
+              },
+              "prototype": {
+                "wall": 2226.095624268055,
+                "candidates": 93.0,
+                "score": 912.15,
+                "groups": 80.4,
+                "rank_map": 10.7
+              }
+            }
+          }
+        ],
+        "limitations": "Nine-workload diagnostic only. Alamofire semantic grouping57.8to47.5ms;near96.2to80.4ms. Whole-query medians mixed. Not formal qualification."
+      },
+      "qualification": "diagnostic only; early clique versions superseded by the final whole-group isolation proof"
+    },
+    {
+      "name": "list-encoding",
+      "identity": {
+        "base": "c22640c0c6e2f7b0651fa6dd362a3c0e9e9cfd1f",
+        "patch_sha256": "4f972a2e781f882f7cc14ac99ba7d3b72c099fcb52b432685d8b84c0af4e2f9a",
+        "binary_sha256": "52fcedcb9598f5f28c5bfe9ba316a4b0aa719f9e783a2705ef4c135d65ab6e82",
+        "source": "owned worktree base plus full patch including new modules"
+      },
+      "decision": {
+        "decision": "retain for broader qualification: exact JSON row encoding in parallel",
+        "outputs_identical": true,
+        "binaries": {
+          "reference": "f9f86d18e7c1b4894a155504e8f401bcf693c9e9ab042deb829a5827ea798609",
+          "prototype": "52fcedcb9598f5f28c5bfe9ba316a4b0aa719f9e783a2705ef4c135d65ab6e82"
+        },
+        "summary": [
+          {
+            "repo": "alamofire",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 1067.3037497326732,
+                "score": 10.25,
+                "groups": 55.6,
+                "rank_map": 13.8,
+                "query_render": 268.04999999999995
+              },
+              "prototype": {
+                "wall": 1003.3363541588187,
+                "score": 9.5,
+                "groups": 53.75,
+                "rank_map": 15.25,
+                "query_render": 215.85
+              }
+            }
+          },
+          {
+            "repo": "libgdx",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 1271.9979165121913,
+                "score": 2.05,
+                "groups": 13.95,
+                "rank_map": 1.85,
+                "query_render": 29.0
+              },
+              "prototype": {
+                "wall": 1267.6502922549844,
+                "score": 2.15,
+                "groups": 15.2,
+                "rank_map": 2.0,
+                "query_render": 22.65
+              }
+            }
+          },
+          {
+            "repo": "guava",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 1868.9017500728369,
+                "score": 3.6,
+                "groups": 23.45,
+                "rank_map": 7.9,
+                "query_render": 41.599999999999994
+              },
+              "prototype": {
+                "wall": 1849.795208312571,
+                "score": 3.85,
+                "groups": 23.15,
+                "rank_map": 7.949999999999999,
+                "query_render": 32.15
+              }
+            }
+          },
+          {
+            "repo": "hugo",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 424.9584791250527,
+                "score": 3.2,
+                "groups": 8.649999999999999,
+                "rank_map": 3.6,
+                "query_render": 6.45
+              },
+              "prototype": {
+                "wall": 426.944375038147,
+                "score": 3.3,
+                "groups": 9.05,
+                "rank_map": 3.3,
+                "query_render": 6.5
+              }
+            }
+          },
+          {
+            "repo": "rxjava",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 960.1749377325177,
+                "score": 1.4,
+                "groups": 10.2,
+                "rank_map": 2.2,
+                "query_render": 21.35
+              },
+              "prototype": {
+                "wall": 954.5624377205968,
+                "score": 1.5,
+                "groups": 9.8,
+                "rank_map": 2.3,
+                "query_render": 17.4
+              }
+            }
+          },
+          {
+            "repo": "rxswift",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 445.60854136943817,
+                "score": 3.6500000000000004,
+                "groups": 10.4,
+                "rank_map": 4.2,
+                "query_render": 36.2
+              },
+              "prototype": {
+                "wall": 436.31208362057805,
+                "score": 3.55,
+                "groups": 10.05,
+                "rank_map": 4.3,
+                "query_render": 28.05
+              }
+            }
+          },
+          {
+            "repo": "asciidoctor",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 139.28018789738417,
+                "score": 0.1,
+                "groups": 0.6,
+                "rank_map": 0.2,
+                "query_render": 3.1
+              },
+              "prototype": {
+                "wall": 142.80360378324986,
+                "score": 0.1,
+                "groups": 0.6,
+                "rank_map": 0.25,
+                "query_render": 2.55
+              }
+            }
+          },
+          {
+            "repo": "alamofire",
+            "mode": "default",
+            "medians": {
+              "reference": {
+                "wall": 4154.203354381025,
+                "score": 2067.9,
+                "groups": 363.75,
+                "rank_map": 33.95,
+                "query_render": 350.35
+              },
+              "prototype": {
+                "wall": 4178.364999592304,
+                "score": 2059.95,
+                "groups": 364.6,
+                "rank_map": 32.55,
+                "query_render": 346.7
+              }
+            }
+          },
+          {
+            "repo": "alamofire",
+            "mode": "near:0.8",
+            "medians": {
+              "reference": {
+                "wall": 2728.482937440276,
+                "score": 1107.1999999999998,
+                "groups": 108.7,
+                "rank_map": 12.3,
+                "query_render": 316.55
+              },
+              "prototype": {
+                "wall": 2655.9974374249578,
+                "score": 1129.4,
+                "groups": 106.4,
+                "rank_map": 13.3,
+                "query_render": 239.5
+              }
+            }
+          }
+        ],
+        "limitations": "Nine-workload balanced diagnostic only. All compared JSON bytes equal. Serialization stage improvements are corpus-specific; no formal qualification claim."
+      },
+      "qualification": "diagnostic only; early clique versions superseded by the final whole-group isolation proof"
+    },
+    {
+      "name": "group-coordinates",
+      "identity": {
+        "base": "c22640c0c6e2f7b0651fa6dd362a3c0e9e9cfd1f",
+        "patch_sha256": "117c7e3ac560f4336bc734f35a5bdda4b1a19313c40a0cdd39e83736452c2043",
+        "binary_sha256": "4c39e5c1027c7567d6062e7366bc1a4adc2e0db13fc3541fb0c9a560466d83c7",
+        "source": "owned worktree base plus full patch including new modules"
+      },
+      "decision": {
+        "decision": "rejected: no convincing grouping improvement to justify extra paths",
+        "outputs_identical": true,
+        "binaries": {
+          "reference": "52fcedcb9598f5f28c5bfe9ba316a4b0aa719f9e783a2705ef4c135d65ab6e82",
+          "prototype": "4c39e5c1027c7567d6062e7366bc1a4adc2e0db13fc3541fb0c9a560466d83c7"
+        },
+        "summary": [
+          {
+            "repo": "alamofire",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 944.1417707130313,
+                "score": 8.3,
+                "groups": 49.55,
+                "rank_map": 12.95,
+                "query_render": 201.05
+              },
+              "prototype": {
+                "wall": 929.3272290378809,
+                "score": 9.350000000000001,
+                "groups": 50.15,
+                "rank_map": 11.75,
+                "query_render": 203.95
+              }
+            }
+          },
+          {
+            "repo": "libgdx",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 1080.0617076456547,
+                "score": 1.65,
+                "groups": 10.6,
+                "rank_map": 1.55,
+                "query_render": 20.25
+              },
+              "prototype": {
+                "wall": 1113.496667239815,
+                "score": 1.55,
+                "groups": 10.8,
+                "rank_map": 1.4,
+                "query_render": 22.15
+              }
+            }
+          },
+          {
+            "repo": "guava",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 1640.0536047294736,
+                "score": 2.9,
+                "groups": 16.9,
+                "rank_map": 7.550000000000001,
+                "query_render": 31.15
+              },
+              "prototype": {
+                "wall": 1650.9019783698022,
+                "score": 3.0,
+                "groups": 17.0,
+                "rank_map": 6.25,
+                "query_render": 31.0
+              }
+            }
+          },
+          {
+            "repo": "hugo",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 372.37410387024283,
+                "score": 2.6500000000000004,
+                "groups": 7.7,
+                "rank_map": 2.75,
+                "query_render": 5.199999999999999
+              },
+              "prototype": {
+                "wall": 382.2343749925494,
+                "score": 2.6500000000000004,
+                "groups": 7.3,
+                "rank_map": 2.7,
+                "query_render": 5.15
+              }
+            }
+          },
+          {
+            "repo": "rxjava",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 845.4352710396051,
+                "score": 1.25,
+                "groups": 7.5,
+                "rank_map": 1.75,
+                "query_render": 15.95
+              },
+              "prototype": {
+                "wall": 839.1663543879986,
+                "score": 1.25,
+                "groups": 7.6,
+                "rank_map": 1.7000000000000002,
+                "query_render": 14.8
+              }
+            }
+          },
+          {
+            "repo": "rxswift",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 385.5547709390521,
+                "score": 2.9,
+                "groups": 8.899999999999999,
+                "rank_map": 3.8,
+                "query_render": 25.1
+              },
+              "prototype": {
+                "wall": 389.9432918988168,
+                "score": 3.0,
+                "groups": 8.65,
+                "rank_map": 3.3499999999999996,
+                "query_render": 26.299999999999997
+              }
+            }
+          },
+          {
+            "repo": "asciidoctor",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 120.8323952741921,
+                "score": 0.1,
+                "groups": 0.5,
+                "rank_map": 0.2,
+                "query_render": 1.8
+              },
+              "prototype": {
+                "wall": 126.9660210236907,
+                "score": 0.1,
+                "groups": 0.5,
+                "rank_map": 0.2,
+                "query_render": 1.85
+              }
+            }
+          },
+          {
+            "repo": "alamofire",
+            "mode": "default",
+            "medians": {
+              "reference": {
+                "wall": 3762.867708224803,
+                "score": 1697.75,
+                "groups": 355.0,
+                "rank_map": 31.799999999999997,
+                "query_render": 335.54999999999995
+              },
+              "prototype": {
+                "wall": 3746.1892501451075,
+                "score": 1677.2,
+                "groups": 353.35,
+                "rank_map": 31.15,
+                "query_render": 349.45
+              }
+            }
+          },
+          {
+            "repo": "alamofire",
+            "mode": "near:0.8",
+            "medians": {
+              "reference": {
+                "wall": 2135.7096252031624,
+                "score": 889.25,
+                "groups": 73.7,
+                "rank_map": 10.149999999999999,
+                "query_render": 193.35
+              },
+              "prototype": {
+                "wall": 2134.98333375901,
+                "score": 886.5999999999999,
+                "groups": 76.35,
+                "rank_map": 9.3,
+                "query_render": 193.8
+              }
+            }
+          }
+        ],
+        "validation": "265detector tests, strict Clippy and docs passed; owned source restored exactly to list-encoding patch4f972a2e781f882f7cc14ac99ba7d3b72c099fcb52b432685d8b84c0af4e2f9a",
+        "limitations": "Nine-workload diagnostic only; all original samples retained. Never used for qualification."
+      },
+      "qualification": "diagnostic only; early clique versions superseded by the final whole-group isolation proof"
+    },
+    {
+      "name": "site-cliques-isolated",
+      "identity": {
+        "base": "c22640c0c6e2f7b0651fa6dd362a3c0e9e9cfd1f",
+        "patch_sha256": "4f486526fd4b88a998822a0abf0988ac2e6ab1a02ae96cd1f7066962900519e6",
+        "binary_sha256": "6dfe17161e45b346b33229bfa09a49d9caee8d90c46f48414610ff88cd8bff1d",
+        "source": "owned worktree base plus full patch including new modules; whole-group isolation fixes first-winner order"
+      },
+      "decision": {
+        "decision": "required correctness fix: isolate all mapped members before reordering clique evidence",
+        "outputs_identical": true,
+        "binaries": {
+          "reference": "52fcedcb9598f5f28c5bfe9ba316a4b0aa719f9e783a2705ef4c135d65ab6e82",
+          "prototype": "6dfe17161e45b346b33229bfa09a49d9caee8d90c46f48414610ff88cd8bff1d"
+        },
+        "summary": [
+          {
+            "repo": "alamofire",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 982.8878752887249,
+                "score": 8.350000000000001,
+                "groups": 49.05,
+                "rank_map": 13.6,
+                "query_render": 212.95
+              },
+              "prototype": {
+                "wall": 975.5841665901244,
+                "score": 8.350000000000001,
+                "groups": 51.150000000000006,
+                "rank_map": 12.8,
+                "query_render": 215.55
+              }
+            }
+          },
+          {
+            "repo": "libgdx",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 1140.5585412867367,
+                "score": 1.5,
+                "groups": 10.55,
+                "rank_map": 1.7,
+                "query_render": 21.6
+              },
+              "prototype": {
+                "wall": 1113.8866255059838,
+                "score": 1.55,
+                "groups": 10.8,
+                "rank_map": 1.6,
+                "query_render": 21.9
+              }
+            }
+          },
+          {
+            "repo": "guava",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 1671.6161663644016,
+                "score": 3.05,
+                "groups": 17.5,
+                "rank_map": 5.9,
+                "query_render": 37.3
+              },
+              "prototype": {
+                "wall": 1720.9403533488512,
+                "score": 3.05,
+                "groups": 16.95,
+                "rank_map": 6.5,
+                "query_render": 34.55
+              }
+            }
+          },
+          {
+            "repo": "hugo",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 400.8615631610155,
+                "score": 2.7,
+                "groups": 7.85,
+                "rank_map": 2.95,
+                "query_render": 5.05
+              },
+              "prototype": {
+                "wall": 395.1444164849818,
+                "score": 2.8,
+                "groups": 7.8,
+                "rank_map": 2.7,
+                "query_render": 4.95
+              }
+            }
+          },
+          {
+            "repo": "rxjava",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 874.2339164018631,
+                "score": 1.3,
+                "groups": 7.95,
+                "rank_map": 1.75,
+                "query_render": 15.75
+              },
+              "prototype": {
+                "wall": 853.6688322201371,
+                "score": 1.2,
+                "groups": 7.5,
+                "rank_map": 1.7,
+                "query_render": 14.55
+              }
+            }
+          },
+          {
+            "repo": "rxswift",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 409.2688546516001,
+                "score": 3.1500000000000004,
+                "groups": 9.4,
+                "rank_map": 3.95,
+                "query_render": 25.95
+              },
+              "prototype": {
+                "wall": 393.69575027376413,
+                "score": 3.2,
+                "groups": 10.45,
+                "rank_map": 3.45,
+                "query_render": 24.9
+              }
+            }
+          },
+          {
+            "repo": "asciidoctor",
+            "mode": "semantic",
+            "medians": {
+              "reference": {
+                "wall": 124.08247869461775,
+                "score": 0.0,
+                "groups": 0.5,
+                "rank_map": 0.2,
+                "query_render": 1.8
+              },
+              "prototype": {
+                "wall": 124.78804122656584,
+                "score": 0.05,
+                "groups": 0.5,
+                "rank_map": 0.2,
+                "query_render": 1.8
+              }
+            }
+          },
+          {
+            "repo": "alamofire",
+            "mode": "default",
+            "medians": {
+              "reference": {
+                "wall": 3793.5313540510833,
+                "score": 1716.15,
+                "groups": 361.29999999999995,
+                "rank_map": 33.4,
+                "query_render": 342.1
+              },
+              "prototype": {
+                "wall": 3818.2401042431593,
+                "score": 1728.4,
+                "groups": 361.05,
+                "rank_map": 35.849999999999994,
+                "query_render": 350.3
+              }
+            }
+          },
+          {
+            "repo": "alamofire",
+            "mode": "near:0.8",
+            "medians": {
+              "reference": {
+                "wall": 2469.880999997258,
+                "score": 1067.8000000000002,
+                "groups": 91.3,
+                "rank_map": 12.4,
+                "query_render": 202.45
+              },
+              "prototype": {
+                "wall": 2471.65060415864,
+                "score": 1082.6,
+                "groups": 94.94999999999999,
+                "rank_map": 12.0,
+                "query_render": 207.8
+              }
+            }
+          }
+        ],
+        "validation": "265 detector tests, including reproduced first-winner signed-zero/NaN order failure; strict Clippy passes",
+        "limitations": "Nine-workload diagnostic only; no release qualification. Original failing repro and initial compilation log retained."
+      },
+      "qualification": "diagnostic only; early clique versions superseded by the final whole-group isolation proof"
+    }
+  ],
+  "unmeasured_experiment": {
+    "base": "bf701a61d8615045613f4460f4e74a2d17984f04",
+    "patch_sha256": "6688acb148ad09f82ae6bfdc5c4ed100baffd691a346dae6ff8f2e084244deb3",
+    "binary_sha256": "ed8607a3de81ab6f040b1d2021981a8176550ba1a25c57bf5ea4eb198008a8ea",
+    "decision": "not measured or adopted; qualification of the committed candidate takes priority"
+  },
+  "artifacts": [
+    {
+      "path": "bench/type4/blind_attack.v1.json",
+      "bytes": 974,
+      "sha256": "68e2a750c3fea18cff355588d2cd8b7dbd90b79c348a20dcedf99f1e918d7aca"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/candidate-classes-build.log",
+      "bytes": 237,
+      "sha256": "4b10d6ef287a84ecf93d570ccc2b252fc86924ae12a8efe3534c1e798260861f"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/candidate-classes-clippy-final.log",
+      "bytes": 152,
+      "sha256": "4d18a3e0d4407b0f43a391bdfa659d06385db364b4765972421d616a32351b4c"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/candidate-classes-clippy.log",
+      "bytes": 681,
+      "sha256": "fd79f4c249ca925c4bdbec8cc832a974f32b30f6a0f64ac1a4ab82bdd3b58b01"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/candidate-classes-decision.json",
+      "bytes": 4767,
+      "sha256": "541d813a8e872785b3c2977d6e7cff38290ba09f97d19317c482a554585ea655"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/candidate-classes-diagnostic.json",
+      "bytes": 69498,
+      "sha256": "2916cbd8734a0f256fabae96602d0c9d8544c0a70fefc30c460e3fc3aefa29bb"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/candidate-classes-diagnostic.log",
+      "bytes": 4823,
+      "sha256": "cc81d598b119c41929dad0b20f5e73dc7dbffbd9f6f92c3a9bdae9637952affe"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/candidate-classes-diagnostic.py",
+      "bytes": 2082,
+      "sha256": "d00bdbe9cdba1b51f562f1b3620dc7460fa89c7013deb42c6a7889f218191727"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/candidate-classes-identity.json",
+      "bytes": 301,
+      "sha256": "1ea759104be6ae87ab6770cd9877125d7b50c0fc6ebd248684f4e724b5971d15"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/candidate-classes-tests-final.log",
+      "bytes": 24847,
+      "sha256": "9c8eb987adcff0a13e8356f273aba753891154440c9dcbc490e39a89a13d6352"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/candidate-classes-tests.log",
+      "bytes": 24847,
+      "sha256": "93c92e84ea1abe7852310ebfc01ccf97602a4ab525f0dd345c24080d64a2cc09"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/candidate-classes.patch",
+      "bytes": 12539,
+      "sha256": "30c34de8358d1a864967b724a463a495e9e31585d0f6e6f5ffd2474fd263b207"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/full-ci.log",
+      "bytes": 771617,
+      "sha256": "75cd899c8c699a7e34097b7dfc3154aeeef7bbbf580a00e7e152f596a729a4a9"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/group-coordinates-build.log",
+      "bytes": 237,
+      "sha256": "e0d37f6015753964994e92705c2492301aa7423c61ba04b28a09b85ab01de80f"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/group-coordinates-clippy.log",
+      "bytes": 152,
+      "sha256": "6bb34b5f7d43572b5d073c17cd2adecf11ff34b71ee8f573125a21b6e96ca767"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/group-coordinates-decision.json",
+      "bytes": 4885,
+      "sha256": "f8b8d3d81766fae2ba896e88a439c50650800fa12f52751f6ac137fd3df18a60"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/group-coordinates-diagnostic.json",
+      "bytes": 69505,
+      "sha256": "c670a7492b0a579cd42d2ca4943940741c66916c063c1f559d2d6d4924779a8f"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/group-coordinates-diagnostic.log",
+      "bytes": 5236,
+      "sha256": "94b9faa80f52b8363e4d6281937bac11155cbe2fe885c004ef1f138f57188208"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/group-coordinates-diagnostic.py",
+      "bytes": 2061,
+      "sha256": "d302c6746e5b79068427aa7143f84e0d807a0ce9b10eba8380f318f4b22cd488"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/group-coordinates-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/group-coordinates-identity.json",
+      "bytes": 303,
+      "sha256": "af74771060b1d47da4cef1a993c300b4f9d799f12d8d6dee536338d8d148f7cc"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/group-coordinates-tests.log",
+      "bytes": 25170,
+      "sha256": "2363291011b0550ea3b465eedfaec907cfc15cb440c0cf6080b7d7c250f16915"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/group-coordinates.patch",
+      "bytes": 39642,
+      "sha256": "117c7e3ac560f4336bc734f35a5bdda4b1a19313c40a0cdd39e83736452c2043"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/inspect-groups-alamofire.log",
+      "bytes": 2406,
+      "sha256": "8ead80499944fd00698e4e84e8dabf5cc05c5fd292d6fac693f51d5823ab43e8"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/inspect-groups-alamofire.py",
+      "bytes": 2764,
+      "sha256": "d194496fdc4dd6e308d87fb8465cbccb4d8ee5cff590aa013ddbac3563812968"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/inspect-groups-guava.log",
+      "bytes": 2200,
+      "sha256": "91795fc308ab4f37eff679ac9a2d968bcb9a717aefd71fbe63e23427cedbad63"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/inspect-groups-guava.py",
+      "bytes": 2760,
+      "sha256": "e4ca64578a88db5ac8d245f3237b9933e93d64d4f0484b36b2bcd1f6545cf1c3"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/list-encoding-build.log",
+      "bytes": 62,
+      "sha256": "765f1396d07f30f3a451cd3f9d9cad4e83c92c8e0aecf955ffc09061a6cf1e02"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/list-encoding-clippy.log",
+      "bytes": 2604,
+      "sha256": "b17900ef9094b1d0bf083651a1df7f31105763a022c447bda57e906d7dc97434"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/list-encoding-decision.json",
+      "bytes": 4676,
+      "sha256": "3bd032922303f581d9f130d533d4f5a18b39e7d8b9bf67b1ee7a4a8f5a7caa92"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/list-encoding-diagnostic.json",
+      "bytes": 69568,
+      "sha256": "63f3bd64179472396582ed116563409dfbac1b9898600e412c6e1770daa56cfa"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/list-encoding-diagnostic.log",
+      "bytes": 5127,
+      "sha256": "6579ca73ccbbf822389ed5d5beefa0efddac158102d6974da3f0e4da0203ecad"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/list-encoding-diagnostic.py",
+      "bytes": 2052,
+      "sha256": "764bd41a598ae693e0893cb6a19522b6e006a0e084c2cffb1f18e9f3d63d0356"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/list-encoding-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/list-encoding-identity.json",
+      "bytes": 303,
+      "sha256": "c04ecd2ad3ff5c802cff75af30e17f98f9af393ab445c38a2297df89b97a0cf6"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/list-encoding-tests.log",
+      "bytes": 3164,
+      "sha256": "59db6a1e30f5fc5442c30eaf95f5e8ec60ab522d326361f4aeef23b9d04c02f5"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/list-encoding.patch",
+      "bytes": 29333,
+      "sha256": "4f972a2e781f882f7cc14ac99ba7d3b72c099fcb52b432685d8b84c0af4e2f9a"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-alamofire-groups.json",
+      "bytes": 50782,
+      "sha256": "eaaf38eaa0137ad8c46b0598802afa622e246ca23b55df6d3b7ffab0c356b1eb"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-alamofire-inline-frames.txt",
+      "bytes": 1115104,
+      "sha256": "a65d6904d831dae403fb995607f3cd475a5b36d9c417ca53d87c9e189bd26dbb"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-alamofire-query.log",
+      "bytes": 980,
+      "sha256": "3e26d4053b7aa24b28a0885f5994bba1dfdb16386ea3ec840276b2c8741b7611"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-alamofire-samples.xml",
+      "bytes": 3685269,
+      "sha256": "8bf98b994c59460383068a9a1e71bb499e3200f578d3e1f31cbad8353f8080d1"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-alamofire-symbolicate.log",
+      "bytes": 255,
+      "sha256": "19abaaeb4bfba727f66d16e49b873d126400a954495712187852da4807fc7096"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-alamofire-trace.log",
+      "bytes": 278,
+      "sha256": "8d21f73610dfc4803df8b9f2ec3c144185dc77c682205f2a42a02595c8957a50"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-build.log",
+      "bytes": 237,
+      "sha256": "39f4e1da21440b6be7c265bc28b220e68de3cb51b1cf1b0c6332aa0e22459983"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-dsym.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-guava-groups.json",
+      "bytes": 9124,
+      "sha256": "134898fe178f31b627e1242b632b3240a8303d14c2e5ff7c6e2033032532e52c"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-guava-inline-frames.txt",
+      "bytes": 1051595,
+      "sha256": "4d9a9e2871266c2a6b4bc2ec97b047ad7654000db6b36a355691948124136c04"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-guava-query.log",
+      "bytes": 981,
+      "sha256": "10c29c5a869b521dbac85ec14dbbe1fc3896a53fb677e4a2069392f319896d42"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-guava-samples.xml",
+      "bytes": 8632344,
+      "sha256": "42f859ff5a7dbe4a6a024728bf3bbe712dc7994d24931400f380ede8dd5843c0"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-guava-symbolicate.log",
+      "bytes": 251,
+      "sha256": "323a10e9bd02ae8e529c5332f557ec439af691912b4e95ff33fe7daf9404cd25"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-guava-trace.log",
+      "bytes": 274,
+      "sha256": "8e7e0e43d418d8e842acb1dfb07d7c402bd327340b931c0cfcfd3deac0058a30"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups-identity.json",
+      "bytes": 590,
+      "sha256": "4c04ff75e0c3d7d1d2340cae533315ccdaa5f245ee5173dd6637d9949a98ef30"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups.log",
+      "bytes": 368,
+      "sha256": "a831c9e5ccb5a8290e3e5e5140e01db8a2c5eb2df349560b2d77ed032319e6ee"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/profile-groups.py",
+      "bytes": 3377,
+      "sha256": "8edf6d93b7c625d06df1467797cd7e4a0f259fcf9e48bf1eff7319aa1dba0908"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/published-diagnostic-decision.json",
+      "bytes": 4559,
+      "sha256": "1a242e9917cbdf721f0173c1c3d2fba6f120dfa5d7fb40c9502d046f7221fa9f"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/published-diagnostic.json",
+      "bytes": 61542,
+      "sha256": "e29561c35265093449cca10b0ab0012adcc938b4882c160451be143983d105b6"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-build.log",
+      "bytes": 237,
+      "sha256": "4b10d6ef287a84ecf93d570ccc2b252fc86924ae12a8efe3534c1e798260861f"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-clippy.log",
+      "bytes": 152,
+      "sha256": "0943e55dba7329006a6875a11e5506325901ada8ba5236b80f4f310af464d5ae"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-decision.json",
+      "bytes": 4673,
+      "sha256": "aaee49d3e25ccf15af1ad2aa46beb4541a6735a094fa8658e31c9e190b1dd41c"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-diagnostic.json",
+      "bytes": 69499,
+      "sha256": "468f40a51b58af476e42ebec9f16e9ec4d742ddf8cc3e9087d46ed92afa75b4b"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-diagnostic.log",
+      "bytes": 4779,
+      "sha256": "2b1fa9f6def2461ebabbeff7b47acb93b1d58a1a73a7932ce124c43582f1056d"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-diagnostic.py",
+      "bytes": 2040,
+      "sha256": "2e068be2ba4bf79fba621484a8948abd92e526f9f0687782a86345917301c805"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-identity.json",
+      "bytes": 303,
+      "sha256": "e7272590915264b92931e2ffdad078ad2ff40341deffd50b6f5b7880204ceb66"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-isolated-build.log",
+      "bytes": 237,
+      "sha256": "de75ed11173ae2df19bbcfb3273955e88d7b5f80467753607dfd90e4074046e2"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-isolated-clippy.log",
+      "bytes": 152,
+      "sha256": "be0f3b1eef3fecf537c56a5b0f5315bcdfad0c445bdf61edd550c8627b518f87"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-isolated-decision.json",
+      "bytes": 4799,
+      "sha256": "62fe405ecd5f572ba7873f30b3092eac35c44a74b5d7e791940dc69e5d14e0fb"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-isolated-diagnostic.json",
+      "bytes": 69525,
+      "sha256": "90390d032d04fa61f47e4074a146a40717e70de13cd49dcfe31aed5a7b1de110"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-isolated-diagnostic.log",
+      "bytes": 5171,
+      "sha256": "97c2ecdb4622e7c9fbaaf34d0d68e0d30cf94267377854fddbeb131da8d4210f"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-isolated-diagnostic.py",
+      "bytes": 2069,
+      "sha256": "fcdd1df6588e706e9ad39aff89c921167198b288caf2042501bf641bad5d1190"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-isolated-identity.json",
+      "bytes": 351,
+      "sha256": "54960c1654c79cb245b400e98ef1be01339aad3f95391a1b5dadd63be5ebbb8f"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-isolated-tests-final.log",
+      "bytes": 25190,
+      "sha256": "4c1d5b018aed25b2f7f91c5b1a65848f3b44f83200baa61d00092041eed55be7"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-isolated-tests.log",
+      "bytes": 1273,
+      "sha256": "8d30157d50a3cd6f7f618350c6b78d66b0bd9bf6878c0048a914bf437995e643"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-isolated.patch",
+      "bytes": 32440,
+      "sha256": "4f486526fd4b88a998822a0abf0988ac2e6ab1a02ae96cd1f7066962900519e6"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-order-repro.log",
+      "bytes": 22353,
+      "sha256": "d2dc52e1dc498b60f94024077a31a26fb58b698293063e31936180c4f00af645"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques-tests.log",
+      "bytes": 25080,
+      "sha256": "7210a5a36e50a77b7bd493548a75b817a385cf2d0261d1210507c26f854ad7ba"
+    },
+    {
+      "path": "target/release-proof-reuse-20260907/site-cliques.patch",
+      "bytes": 24485,
+      "sha256": "7b98ba21dff282e33f6bfa5c7e6f25cbf229bfe474eb729d9c992ee9f7e22de2"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/audit-base.py",
+      "bytes": 3870,
+      "sha256": "830897644a8cfab227c10ddf86ecad943991efc3e159650b7359d2059a123915"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/audit-candidate.py",
+      "bytes": 1800,
+      "sha256": "d4b4c95096902a334355107f7e145a2f2881663a43c773a31e56eb816807be4e"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/base-expected-drift.json",
+      "bytes": 19198,
+      "sha256": "a05e63513ae1f032d70fe552a17495c247a9f4a3154a5eb2f6d5467c861973a8"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/build.log",
+      "bytes": 211,
+      "sha256": "3d702b398a33770a0e56801034c48b5acba5757a4d44a4c576381ae06a53bda2"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/candidate-identity.json",
+      "bytes": 697,
+      "sha256": "62650e21530ac95273465070720bfafe1a40c50955e4a82cdc4e37e1344b6fb8"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/candidate-output-audit.json",
+      "bytes": 115897,
+      "sha256": "7b1e81dfeeb090d2838587935f25d2bc5474750cb427eb2f3d9d5e18807ba5d9"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/candidate-output-audit.log",
+      "bytes": 9015,
+      "sha256": "b1a6f81ce547dc19fa798b0ca96ab1b6ed13775e26f6f321327f9c7e67988b93"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/duplication.log",
+      "bytes": 101,
+      "sha256": "b721cb05ecb1210c2cb67c7a8681405962478a546bc75e3e6fb07f0d2bf8a135"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/inline-location-build.log",
+      "bytes": 237,
+      "sha256": "d11934dc470f2cdb2ed71be37cfaf6ff0bf7a047d564510478fbfe5c2d7a1930"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/inline-location-identity.json",
+      "bytes": 328,
+      "sha256": "7c9d4771315709cc5fefaf82456f6fc82f3b58c32973b92511bf4246529bc5e9"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/inline-location.patch",
+      "bytes": 378,
+      "sha256": "6688acb148ad09f82ae6bfdc5c4ed100baffd691a346dae6ff8f2e084244deb3"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/journeys.json",
+      "bytes": 13114,
+      "sha256": "babc4afe7c80bbd38e76667f52f6c7f92eb12c5f57829199258de31c96888ae3"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/journeys.log",
+      "bytes": 264,
+      "sha256": "74b2d8713ee2c327ff26c0f0c840f4e456390da54d5355bbce72aed91862f2c7"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/journeys.py",
+      "bytes": 4313,
+      "sha256": "7866c465b0e040df3ca2a9dd0a1a10bd9cd83e0f3a42e67f55361b2d1f810fac"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/output-audit-base.json",
+      "bytes": 42943,
+      "sha256": "05208b02e09ae2417d688310dcb2d903225fb5ccf7397627beea78764f7715f6"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/output-audit-base.log",
+      "bytes": 1029,
+      "sha256": "99429358a025425969c02d47c7871f4a483865494ccf9620b918f6215c55ca94"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/published-diagnostic-decision.json",
+      "bytes": 5391,
+      "sha256": "c5a8cc7d22038ad2cf17fcc13e23bc76043a16dcc4ab800473e935fe5389eb48"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/published-diagnostic.json",
+      "bytes": 61570,
+      "sha256": "20c0622504e68bd91ec8a4604faca9215a854ba97754c1cfc1562759661ad630"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/published-diagnostic.log",
+      "bytes": 3938,
+      "sha256": "cfa6b4784a4b80b8cbd2c2524e6488668684a8d0ee7e39346eb6615b0d587a26"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/published-diagnostic.py",
+      "bytes": 2206,
+      "sha256": "57669c944a1b7e02b2f27e5b02037d2c63049f6ba8f378ad849cc4ba765cda6e"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/type4-probe.log",
+      "bytes": 5149,
+      "sha256": "d1603bea4bb1b25010ef290b601bcd509cc33c6334ffd053bc6cd021990b6c1e"
+    },
+    {
+      "path": "target/release-relation-encoding-20260907/validation-identity.json",
+      "bytes": 697,
+      "sha256": "62650e21530ac95273465070720bfafe1a40c50955e4a82cdc4e37e1344b6fb8"
+    }
+  ]
+}

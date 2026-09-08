@@ -55,14 +55,14 @@ pub(super) fn rust_hash_map_from_call(
         "array" => SequenceSurfaceKind::Collection,
         other => panic!("unexpected test entry surface: {other}"),
     };
-    il.evidence.push(sequence_surface_evidence(
+    il.push_evidence(sequence_surface_evidence(
         0,
         Lang::Rust,
         entry_span,
         entry_kind,
     ));
     if with_entries_surface {
-        il.evidence.push(sequence_surface_evidence(
+        il.push_evidence(sequence_surface_evidence(
             1,
             Lang::Rust,
             entries_span,
@@ -77,7 +77,7 @@ pub(super) fn push_rust_hash_map_library_api_evidence(il: &mut Il) {
         library_free_name_map_factory_contract(Lang::Rust, "std::collections::HashMap::from")
             .expect("Rust HashMap::from contract");
     let symbol_id = next_evidence_id(il);
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         symbol_id,
         Lang::Rust,
         EvidenceAnchor::node(sp(), NodeKind::Var),
@@ -102,5 +102,5 @@ pub(super) fn push_rust_hash_map_library_api_evidence(il: &mut Il) {
     record.provenance.rule_hash = Some(stable_symbol_hash(
         nose_semantics::RUST_STDLIB_MAP_FACTORY_PRODUCER_ID,
     ));
-    il.evidence.push(record);
+    il.push_evidence(record);
 }

@@ -1,45 +1,6 @@
+pub(super) use nose_il::ContentDigest;
 use sha2::{Digest as _, Sha256};
 use std::hash::Hasher;
-
-/// A collision-resistant content identity used by every cache layer.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub(super) struct ContentDigest([u8; 32]);
-
-impl ContentDigest {
-    pub(super) fn sha256(bytes: &[u8]) -> Self {
-        Self(Sha256::digest(bytes).into())
-    }
-
-    /// Hash length-framed components under a domain separator. Framing prevents
-    /// ambiguous concatenations (`["ab", "c"]` vs `["a", "bc"]`).
-    pub(super) fn derive(domain: &[u8], components: &[&[u8]]) -> Self {
-        let mut digest = Sha256::new();
-        digest.update((domain.len() as u64).to_be_bytes());
-        digest.update(domain);
-        for component in components {
-            digest.update((component.len() as u64).to_be_bytes());
-            digest.update(component);
-        }
-        Self(digest.finalize().into())
-    }
-
-    pub(super) fn from_bytes(bytes: [u8; 32]) -> Self {
-        Self(bytes)
-    }
-
-    pub(super) fn as_bytes(&self) -> &[u8; 32] {
-        &self.0
-    }
-
-    pub(super) fn hex(self) -> String {
-        let mut out = String::with_capacity(64);
-        for byte in self.0 {
-            use std::fmt::Write as _;
-            write!(&mut out, "{byte:02x}").expect("writing to String cannot fail");
-        }
-        out
-    }
-}
 
 /// A deterministic [`Hasher`] backed by SHA-256. Rust's derived [`Hash`]
 /// implementations can feed this without falling back to a 64-bit cache key.
@@ -54,7 +15,7 @@ impl StableSha256 {
     }
 
     pub(super) fn finish_digest(self) -> ContentDigest {
-        ContentDigest(self.0.finalize().into())
+        ContentDigest::from_bytes(self.0.finalize().into())
     }
 }
 

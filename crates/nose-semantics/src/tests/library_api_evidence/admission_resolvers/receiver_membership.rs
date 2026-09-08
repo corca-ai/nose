@@ -11,7 +11,7 @@ fn receiver_membership_call_il(
 }
 
 fn push_receiver_domain_dependency(il: &mut Il, receiver: NodeId, domain: DomainEvidence) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
         EvidenceKind::Domain(domain),
@@ -50,7 +50,7 @@ fn receiver_membership_can_consume_safe_api_result_domain_record() {
 
     let key_set =
         library_map_key_view_contract(Lang::Java, "keySet", 0).expect("Java Map.keySet contract");
-    il.evidence.push(map_key_view_protocol_record(
+    il.push_evidence(map_key_view_protocol_record(
         1,
         il.node(key_set_call).span,
         key_set,
@@ -59,7 +59,7 @@ fn receiver_membership_can_consume_safe_api_result_domain_record() {
     ));
     let contains = library_receiver_membership_contract(Lang::Java, "contains", 1)
         .expect("Java collection membership contract");
-    il.evidence.push(receiver_membership_protocol_record(
+    il.push_evidence(receiver_membership_protocol_record(
         2,
         il.node(contains_call).span,
         contains,
@@ -95,7 +95,7 @@ fn assert_admitted_receiver_membership(
     push_receiver_domain_dependency(&mut il, receiver, domain);
     let contract = library_receiver_membership_contract(lang, method, 1)
         .expect("receiver-membership contract");
-    il.evidence.push(receiver_membership_protocol_record(
+    il.push_evidence(receiver_membership_protocol_record(
         1,
         il.node(call).span,
         contract,
@@ -132,15 +132,13 @@ fn admitted_receiver_membership_requires_protocol_pack_provenance() {
 
     let (mut missing_dependency, interner, call, _receiver) =
         receiver_membership_call_il(Lang::Java, "containsKey", 1);
-    missing_dependency
-        .evidence
-        .push(receiver_membership_protocol_record(
-            1,
-            missing_dependency.node(call).span,
-            contract,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(receiver_membership_protocol_record(
+        1,
+        missing_dependency.node(call).span,
+        contract,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     assert!(
         admitted_library_method_call_at_call(&missing_dependency, &interner, call).is_none(),
         "receiver-membership evidence without receiver proof is rejected"
@@ -149,7 +147,7 @@ fn admitted_receiver_membership_requires_protocol_pack_provenance() {
     let (mut wrong_pack, interner, call, receiver) =
         receiver_membership_call_il(Lang::Java, "containsKey", 1);
     push_receiver_domain_dependency(&mut wrong_pack, receiver, DomainEvidence::Map);
-    wrong_pack.evidence.push(library_api_record_with_provenance(
+    wrong_pack.push_evidence(library_api_record_with_provenance(
         1,
         wrong_pack.node(call).span,
         contract.id,
@@ -167,18 +165,16 @@ fn admitted_receiver_membership_requires_protocol_pack_provenance() {
     let (mut wrong_producer, interner, call, receiver) =
         receiver_membership_call_il(Lang::Java, "containsKey", 1);
     push_receiver_domain_dependency(&mut wrong_producer, receiver, DomainEvidence::Map);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[0],
-            RECEIVER_MEMBERSHIP_PROTOCOL_PACK_ID,
-            "wrong.protocols.receiver-membership-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+        RECEIVER_MEMBERSHIP_PROTOCOL_PACK_ID,
+        "wrong.protocols.receiver-membership-api",
+    ));
     assert!(
         admitted_library_method_call_at_call(&wrong_producer, &interner, call).is_none(),
         "receiver-membership evidence with the wrong producer is rejected"
@@ -195,7 +191,7 @@ fn admitted_receiver_membership_requires_protocol_pack_provenance() {
         &[0],
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     assert!(
         admitted_library_method_call_at_call(&wrong_emitter, &interner, call).is_none(),
         "receiver-membership evidence from an external emitter is rejected"
@@ -270,15 +266,13 @@ fn forged_receiver_membership_evidence_does_not_open_unsupported_arity() {
     let (mut unsupported_arity, interner, call, receiver) =
         receiver_membership_call_il(Lang::Java, "containsKey", 2);
     push_receiver_domain_dependency(&mut unsupported_arity, receiver, DomainEvidence::Map);
-    unsupported_arity
-        .evidence
-        .push(receiver_membership_protocol_record(
-            1,
-            unsupported_arity.node(call).span,
-            contract,
-            EvidenceStatus::Asserted,
-            &[0],
-        ));
+    unsupported_arity.push_evidence(receiver_membership_protocol_record(
+        1,
+        unsupported_arity.node(call).span,
+        contract,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
     assert!(
         admitted_library_method_call_at_call(&unsupported_arity, &interner, call).is_none(),
         "forged receiver-membership evidence cannot open unsupported source arity"

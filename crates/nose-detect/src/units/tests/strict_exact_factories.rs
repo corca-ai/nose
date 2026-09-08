@@ -83,13 +83,13 @@ fn strict_exact_java_collection_factory_uses_library_api_evidence() {
         module_hash: stable_symbol_hash("java.util"),
         exported_hash: stable_symbol_hash("List"),
     });
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::binding(sp(20), stable_symbol_hash("List")),
         binding_symbol,
         Vec::new(),
     ));
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::node(sp(21), NodeKind::Var),
         binding_symbol,
@@ -153,7 +153,7 @@ fn strict_exact_java_map_provider_proof_does_not_replace_receiver_identity() {
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(sp(34), NodeKind::Call),
         EvidenceKind::Import(ImportEvidenceKind::ImmutableLiteralExport {
@@ -291,14 +291,14 @@ fn push_guava_import_symbol(il: &mut Il, exported: &str, binding_span: Span, rec
         module_hash: stable_symbol_hash("com.google.common.collect"),
         exported_hash: stable_symbol_hash(exported),
     };
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         0,
         Lang::Java,
         EvidenceAnchor::binding(binding_span, stable_symbol_hash(exported)),
         symbol,
         Vec::new(),
     ));
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         1,
         Lang::Java,
         EvidenceAnchor::node(receiver_span, NodeKind::Var),
@@ -317,14 +317,14 @@ fn push_java_util_import_symbol(
         module_hash: stable_symbol_hash("java.util"),
         exported_hash: stable_symbol_hash(exported),
     };
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         0,
         Lang::Java,
         EvidenceAnchor::binding(binding_span, stable_symbol_hash(exported)),
         symbol,
         Vec::new(),
     ));
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         1,
         Lang::Java,
         EvidenceAnchor::node(receiver_span, NodeKind::Var),
@@ -348,7 +348,7 @@ fn push_java_stdlib_api_evidence(
         library_api_contract_evidence(id, span, contract_id, callee, arity, vec![EvidenceId(1)]);
     record.provenance.pack_hash = Some(stable_symbol_hash(pack_id));
     record.provenance.rule_hash = Some(stable_symbol_hash(producer_id));
-    il.evidence.push(record);
+    il.push_evidence(record);
 }
 
 fn push_guava_api_evidence(
@@ -367,5 +367,5 @@ fn push_guava_api_evidence(
     record.provenance.rule_hash = Some(stable_symbol_hash(
         JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
     ));
-    il.evidence.push(record);
+    il.push_evidence(record);
 }

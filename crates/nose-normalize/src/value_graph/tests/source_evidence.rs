@@ -64,7 +64,7 @@ fn pure_inline_caller_il(interner: &Interner, with_target_evidence: bool) -> (Il
         Vec::new(),
     );
     if with_target_evidence {
-        il.evidence.push(language_core_evidence(
+        il.push_evidence(language_core_evidence(
             0,
             Lang::Python,
             EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
@@ -165,7 +165,7 @@ fn async_inline_caller_il(interner: &Interner) -> (Il, NodeId) {
         ],
         Vec::new(),
     );
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         Lang::Rust,
         EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
@@ -266,7 +266,7 @@ fn value_dag_referents_use_only_admitted_call_target_evidence() {
         exported_hash: stable_symbol_hash("prod"),
         local_hash: interner.symbol_hash(prod),
     });
-    legacy_il.evidence.push(evidence(
+    legacy_il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(legacy_il.node(call).span, NodeKind::Call),
         target,
@@ -283,7 +283,7 @@ fn value_dag_referents_use_only_admitted_call_target_evidence() {
 
     let mut admitted_il = legacy_il.clone();
     admitted_il.evidence.clear();
-    admitted_il.evidence.push(language_core_evidence(
+    admitted_il.push_evidence(language_core_evidence(
         0,
         Lang::Python,
         EvidenceAnchor::node(admitted_il.node(call).span, NodeKind::Call),
@@ -352,7 +352,7 @@ fn raw_library_builtin_payloads_do_not_fold_without_admission() {
 
     let contract = library_free_function_builtin_contract(Lang::Python, "abs", 1)
         .expect("Python abs contract");
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         0,
         Lang::Python,
         EvidenceAnchor::node(il.node(call).span, NodeKind::Var),
@@ -360,7 +360,7 @@ fn raw_library_builtin_payloads_do_not_fold_without_admission() {
             name_hash: stable_symbol_hash("abs"),
         },
     ));
-    il.evidence.push(library_api_contract_evidence(
+    il.push_evidence(library_api_contract_evidence(
         1,
         il.node(call).span,
         contract.id,
@@ -438,7 +438,7 @@ fn rust_full_range_seq_requires_source_range_evidence() {
     let mut il = finish_test_il(b, root, Lang::Python);
     let len_contract =
         library_free_function_builtin_contract(Lang::Python, "len", 1).expect("len contract");
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         0,
         Lang::Python,
         EvidenceAnchor::node(il.node(len).span, NodeKind::Var),
@@ -446,7 +446,7 @@ fn rust_full_range_seq_requires_source_range_evidence() {
             name_hash: stable_symbol_hash("len"),
         },
     ));
-    il.evidence.push(library_api_contract_evidence(
+    il.push_evidence(library_api_contract_evidence(
         1,
         il.node(len).span,
         len_contract.id,

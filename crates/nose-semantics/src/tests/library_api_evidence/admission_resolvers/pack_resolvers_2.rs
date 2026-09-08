@@ -11,15 +11,13 @@ fn admitted_collection_factory_resolver_requires_api_occurrence_evidence() {
     let contract = library_free_name_collection_factory_contract(Lang::Python, "list")
         .expect("Python list factory contract");
     let (mut missing_dependency, interner, call, _callee) = python_list_factory_call_il();
-    missing_dependency
-        .evidence
-        .push(python_builtin_collection_factory_record(
-            0,
-            missing_dependency.node(call).span,
-            contract,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(python_builtin_collection_factory_record(
+        0,
+        missing_dependency.node(call).span,
+        contract,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     assert!(
         admitted_free_name_collection_factory_at_call(&missing_dependency, &interner, call)
             .is_none(),
@@ -27,7 +25,7 @@ fn admitted_collection_factory_resolver_requires_api_occurrence_evidence() {
     );
 
     let (mut wrong_pack, interner, call, callee) = python_list_factory_call_il();
-    wrong_pack.evidence.push(language_core_symbol_record(
+    wrong_pack.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(wrong_pack.node(callee).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -37,7 +35,7 @@ fn admitted_collection_factory_resolver_requires_api_occurrence_evidence() {
         &[],
         Lang::Python,
     ));
-    wrong_pack.evidence.push(library_api_record_with_provenance(
+    wrong_pack.push_evidence(library_api_record_with_provenance(
         1,
         wrong_pack.node(call).span,
         contract.id,
@@ -53,7 +51,7 @@ fn admitted_collection_factory_resolver_requires_api_occurrence_evidence() {
     );
 
     let (mut wrong_producer, interner, call, callee) = python_list_factory_call_il();
-    wrong_producer.evidence.push(language_core_symbol_record(
+    wrong_producer.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(wrong_producer.node(callee).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -63,25 +61,23 @@ fn admitted_collection_factory_resolver_requires_api_occurrence_evidence() {
         &[],
         Lang::Python,
     ));
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[0],
-            PYTHON_BUILTIN_COLLECTION_FACTORY_PACK_ID,
-            "wrong.python.builtin.collection-factory-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+        PYTHON_BUILTIN_COLLECTION_FACTORY_PACK_ID,
+        "wrong.python.builtin.collection-factory-api",
+    ));
     assert!(
         admitted_free_name_collection_factory_at_call(&wrong_producer, &interner, call).is_none(),
         "Python builtin collection factory evidence with the wrong producer is rejected"
     );
 
     let (mut admitted, interner, call, callee) = python_list_factory_call_il();
-    admitted.evidence.push(language_core_symbol_record(
+    admitted.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(admitted.node(callee).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -91,15 +87,13 @@ fn admitted_collection_factory_resolver_requires_api_occurrence_evidence() {
         &[],
         Lang::Python,
     ));
-    admitted
-        .evidence
-        .push(python_builtin_collection_factory_record(
-            1,
-            admitted.node(call).span,
-            contract,
-            EvidenceStatus::Asserted,
-            &[0],
-        ));
+    admitted.push_evidence(python_builtin_collection_factory_record(
+        1,
+        admitted.node(call).span,
+        contract,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
 
     let occurrence =
         admitted_free_name_collection_factory_at_call(&admitted, &interner, call).unwrap();
@@ -127,15 +121,13 @@ fn admitted_rust_std_collection_factory_resolver_requires_pack_provenance() {
     .expect("Rust std::collections HashSet::from contract");
 
     let (mut missing_dependency, interner, call, _callee) = rust_std_collection_factory_call_il();
-    missing_dependency
-        .evidence
-        .push(rust_stdlib_collection_factory_record(
-            0,
-            missing_dependency.node(call).span,
-            contract,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(rust_stdlib_collection_factory_record(
+        0,
+        missing_dependency.node(call).span,
+        contract,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     assert!(
         admitted_free_name_collection_factory_at_call(&missing_dependency, &interner, call)
             .is_none(),
@@ -143,7 +135,7 @@ fn admitted_rust_std_collection_factory_resolver_requires_pack_provenance() {
     );
 
     let (mut wrong_pack, interner, call, callee) = rust_std_collection_factory_call_il();
-    wrong_pack.evidence.push(language_core_symbol_record(
+    wrong_pack.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(wrong_pack.node(callee).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -153,7 +145,7 @@ fn admitted_rust_std_collection_factory_resolver_requires_pack_provenance() {
         &[],
         Lang::Rust,
     ));
-    wrong_pack.evidence.push(library_api_record_with_provenance(
+    wrong_pack.push_evidence(library_api_record_with_provenance(
         1,
         wrong_pack.node(call).span,
         contract.id,
@@ -169,7 +161,7 @@ fn admitted_rust_std_collection_factory_resolver_requires_pack_provenance() {
     );
 
     let (mut wrong_producer, interner, call, callee) = rust_std_collection_factory_call_il();
-    wrong_producer.evidence.push(language_core_symbol_record(
+    wrong_producer.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(wrong_producer.node(callee).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -179,25 +171,23 @@ fn admitted_rust_std_collection_factory_resolver_requires_pack_provenance() {
         &[],
         Lang::Rust,
     ));
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[0],
-            RUST_STDLIB_COLLECTION_FACTORY_PACK_ID,
-            "wrong.rust.stdlib.collection-factory-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+        RUST_STDLIB_COLLECTION_FACTORY_PACK_ID,
+        "wrong.rust.stdlib.collection-factory-api",
+    ));
     assert!(
         admitted_free_name_collection_factory_at_call(&wrong_producer, &interner, call).is_none(),
         "Rust std::collections evidence with the wrong producer is rejected"
     );
 
     let (mut admitted, interner, call, callee) = rust_std_collection_factory_call_il();
-    admitted.evidence.push(language_core_symbol_record(
+    admitted.push_evidence(language_core_symbol_record(
         0,
         EvidenceAnchor::node(admitted.node(callee).span, NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
@@ -207,15 +197,13 @@ fn admitted_rust_std_collection_factory_resolver_requires_pack_provenance() {
         &[],
         Lang::Rust,
     ));
-    admitted
-        .evidence
-        .push(rust_stdlib_collection_factory_record(
-            1,
-            admitted.node(call).span,
-            contract,
-            EvidenceStatus::Asserted,
-            &[0],
-        ));
+    admitted.push_evidence(rust_stdlib_collection_factory_record(
+        1,
+        admitted.node(call).span,
+        contract,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
 
     let occurrence =
         admitted_free_name_collection_factory_at_call(&admitted, &interner, call).unwrap();

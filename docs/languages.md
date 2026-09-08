@@ -217,3 +217,11 @@ convergence-test discipline that keeps each one honest is in [contributing](cont
 
 For the current pack-based language onboarding contract, see
 [semantic-pack architecture](semantic-pack-architecture.md) for the owner rules.
+
+## Source classification and resource errors
+
+A clean C parse takes precedence over C++ lexical hints in `.h` files. Legal C
+identifiers such as `namespace` or `class` therefore do not exclude a header.
+Excluded artifacts are listed in the query dashboard's `summary.skipped_sources`.
+Syntax depth and node-count limits are checked before recursive lowering; an
+exceeded limit fails the analysis explicitly. See [architecture](architecture.md#analysis-resource-boundaries).

@@ -3,12 +3,14 @@ use super::*;
 /// A heavy sub-DAG anchor: a shared sub-computation's structural `hash`, its `weight` (sub-DAG
 /// size), and the source line range (`line_start..=line_end`) of the IL subtree that produced it —
 /// so a partial / sub-DAG clone can report WHERE the shared computation lives in each unit.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Hash, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Anchor {
     pub hash: u64,
     pub weight: u32,
     pub line_start: u32,
     pub line_end: u32,
+    /// Whether the anchor span belongs to this IL file’s original source.
+    pub source_is_local: bool,
 }
 
 /// A unit's heavy sub-DAG anchors, sorted/deduped by hash.
@@ -193,7 +195,7 @@ pub fn containment_anchor_min_weight() -> u32 {
     })
 }
 
-fn finish_fingerprint_law_bundle(mut b: Builder<'_>) -> FingerprintLawBundle {
+pub(super) fn finish_fingerprint_law_bundle(mut b: Builder<'_>) -> FingerprintLawBundle {
     let (v, l, r, a) =
         b.fingerprint_lits_anchors(containment_anchor_min_weight().min(anchor_min_weight()));
     b.value_laws.sort_unstable();

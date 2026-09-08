@@ -33,7 +33,7 @@ fn same_spelled_function_call_requires_direct_call_target_evidence() {
         "same spelling alone must not prove a direct function callee"
     );
 
-    il.evidence.push(call_target_evidence(
+    il.push_evidence(call_target_evidence(
         0,
         Lang::TypeScript,
         sp(52),
@@ -72,7 +72,7 @@ fn imported_function_call_target_opens_opaque_exact_identity() {
         "same local function spelling must not prove imported call identity"
     );
 
-    il.evidence.push(call_target_evidence(
+    il.push_evidence(call_target_evidence(
         0,
         Lang::Python,
         sp(82),
@@ -115,7 +115,7 @@ fn ambiguous_call_target_evidence_blocks_parameter_callee_fallback() {
     let facts = StrictFacts::collect(&il, &interner);
     assert!(strict_exact_safe_tree(&il, &interner, &facts, call));
 
-    il.evidence.push(call_target_evidence(
+    il.push_evidence(call_target_evidence(
         0,
         Lang::Python,
         sp(94),
@@ -126,7 +126,7 @@ fn ambiguous_call_target_evidence_blocks_parameter_callee_fallback() {
         },
         Vec::new(),
     ));
-    il.evidence.push(call_target_evidence(
+    il.push_evidence(call_target_evidence(
         1,
         Lang::Python,
         sp(94),
@@ -179,7 +179,7 @@ fn imported_member_call_target_opens_static_member_identity() {
         "namespace/member spelling without proof is not exact call identity"
     );
 
-    il.evidence.push(call_target_evidence(
+    il.push_evidence(call_target_evidence(
         0,
         Lang::Python,
         sp(103),
@@ -222,7 +222,7 @@ fn imported_member_call_target_opens_scoped_var_member_identity() {
         "scoped spelling alone must not prove a static member call target"
     );
 
-    il.evidence.push(call_target_evidence(
+    il.push_evidence(call_target_evidence(
         0,
         Lang::Rust,
         sp(171),
@@ -313,7 +313,7 @@ fn direct_method_call_target_does_not_skip_receiver_identity() {
         Vec::new(),
         Vec::new(),
     );
-    il.evidence.push(call_target_evidence(
+    il.push_evidence(call_target_evidence(
         0,
         Lang::TypeScript,
         sp(114),

@@ -15,6 +15,7 @@ pub(super) fn cmd_features(
 ) -> Result<()> {
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
+    corpus.ensure_complete()?;
     warn_if_empty(&corpus, &paths);
     let opts = nose_detect::DetectOptions {
         min_lines,
@@ -43,6 +44,7 @@ pub(super) fn cmd_value_census(paths: Vec<PathBuf>, no_cfg_norm: bool) -> Result
     use std::collections::{BTreeMap, HashSet};
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
+    corpus.ensure_complete()?;
     warn_if_empty(&corpus, &paths);
     let opts = nose_normalize::NormalizeOptions {
         cfg_norm: !no_cfg_norm,
@@ -208,6 +210,7 @@ pub(super) fn cmd_stats(paths: Vec<PathBuf>, top: usize, json: bool) -> Result<(
     require_paths_exist(&paths)?;
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
+    corpus.ensure_complete()?;
     warn_if_empty(&corpus, &paths);
     let report = nose_frontend::coverage(&corpus, top);
 
@@ -305,6 +308,7 @@ pub(super) fn cmd_gap_impact(paths: Vec<PathBuf>, top: usize, json: bool) -> Res
     require_paths_exist(&paths)?;
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
+    corpus.ensure_complete()?;
     warn_if_empty(&corpus, &paths);
 
     let coverage = nose_frontend::coverage(&corpus, usize::MAX);

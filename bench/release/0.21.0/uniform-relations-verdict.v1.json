@@ -1,0 +1,1157 @@
+{
+  "schema": "nose.release-uniform-relations-verdict/v1",
+  "version": "0.21.0",
+  "decision": "NO-GO: local confirmed stage regressions and remote inconclusive normalization",
+  "candidate": {
+    "source_sha": "e2d5559e0fc411e61138451fed2b0f4a3efd7cc5",
+    "crates_tree": "e0b09de9ecc07acbbd37828e7852ffa2b0cee2ba",
+    "product_dependencies": {
+      "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+      "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+      "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+    },
+    "binary_sha256": "bd8dff4d8350e6ceab3ebde829f97bce9628c01c6cb593b77e19e362256133ca",
+    "binary": "/Users/ak/prjs/cc/nose/target/release-uniform-groups-20260907/candidate-nose",
+    "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli",
+    "build_log": "/Users/ak/prjs/cc/nose/target/release-uniform-groups-20260907/build.log"
+  },
+  "local": {
+    "status": "fail",
+    "thresholds": {
+      "max_runtime_delta_pct": 5.0,
+      "min_focused_iterations": 5,
+      "min_runtime_delta_ms": 5.0,
+      "runtime_policy": "order-aware-v1"
+    },
+    "primary": {
+      "output_drift_counts": {
+        "authorized_drifts": 120,
+        "unexpected_drifts": 0,
+        "unused_declarations": 0
+      },
+      "triggered": [
+        {
+          "adjusted_delta_ms": 6.4749999999999925,
+          "adjusted_delta_pct": 37.48191027496378,
+          "baseline_ms": 17.275,
+          "control_delta_ms": 1.987500000000006,
+          "current_ms": 25.525,
+          "evidence": {
+            "adjusted_effect_ms": 6.4749999999999925,
+            "adjusted_effect_pct": 37.48191027496378,
+            "blocks": 5,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 6.937499999999991,
+                "adjusted_median_pct": 40.15918958031833,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 6.012499999999994,
+                "adjusted_median_pct": 34.604316546762554,
+                "blocks": 2,
+                "material": true
+              }
+            },
+            "control_correction_ms": 1.987500000000006,
+            "control_effect_ms": 1.987500000000006,
+            "declared_order_conflict_ignored": false,
+            "order_conflict": false,
+            "order_consistent": true,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 8.462499999999999,
+            "sign_test_p": 0.03125,
+            "state": "triggered",
+            "supported": true,
+            "supporting_blocks": 5
+          },
+          "inconclusive": false,
+          "raw_delta_ms": 8.462499999999999,
+          "repo": "guava",
+          "scope": "stage",
+          "stage": "groups",
+          "triggered": true
+        },
+        {
+          "adjusted_delta_ms": 5.862500000000001,
+          "adjusted_delta_pct": 96.900826446281,
+          "baseline_ms": 6.050000000000001,
+          "control_delta_ms": -1.2062500000000003,
+          "current_ms": 11.875,
+          "evidence": {
+            "adjusted_effect_ms": 5.862500000000001,
+            "adjusted_effect_pct": 96.900826446281,
+            "blocks": 5,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 6.000000000000002,
+                "adjusted_median_pct": 99.17355371900828,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 5.7250000000000005,
+                "adjusted_median_pct": 93.46938775510205,
+                "blocks": 2,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -1.2062500000000003,
+            "declared_order_conflict_ignored": false,
+            "order_conflict": false,
+            "order_consistent": true,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 5.862500000000001,
+            "sign_test_p": 0.03125,
+            "state": "triggered",
+            "supported": true,
+            "supporting_blocks": 5
+          },
+          "inconclusive": false,
+          "raw_delta_ms": 5.862500000000001,
+          "repo": "guava",
+          "scope": "stage",
+          "stage": "rank_families",
+          "triggered": true
+        },
+        {
+          "adjusted_delta_ms": 7.262500000000001,
+          "adjusted_delta_pct": 166.0,
+          "baseline_ms": 4.375,
+          "control_delta_ms": -0.10000000000000053,
+          "current_ms": 11.725000000000001,
+          "evidence": {
+            "adjusted_effect_ms": 7.262500000000001,
+            "adjusted_effect_pct": 166.0,
+            "blocks": 5,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 7.275000000000002,
+                "adjusted_median_pct": 163.48314606741582,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 7.25,
+                "adjusted_median_pct": 170.58823529411765,
+                "blocks": 2,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -0.10000000000000053,
+            "declared_order_conflict_ignored": false,
+            "order_conflict": false,
+            "order_consistent": true,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 7.262500000000001,
+            "sign_test_p": 0.03125,
+            "state": "triggered",
+            "supported": true,
+            "supporting_blocks": 5
+          },
+          "inconclusive": false,
+          "raw_delta_ms": 7.262500000000001,
+          "repo": "rxswift",
+          "scope": "stage",
+          "stage": "groups",
+          "triggered": true
+        }
+      ],
+      "inconclusive": [
+        {
+          "adjusted_delta_ms": 5.493749999999999,
+          "adjusted_delta_pct": 13.70867124142233,
+          "baseline_ms": 40.075,
+          "control_delta_ms": -2.1625000000000014,
+          "current_ms": 44.400000000000006,
+          "evidence": {
+            "adjusted_effect_ms": 5.493749999999999,
+            "adjusted_effect_pct": 13.70867124142233,
+            "blocks": 5,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 4.475000000000001,
+                "adjusted_median_pct": 11.180512179887572,
+                "blocks": 3,
+                "material": false
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 6.512499999999996,
+                "adjusted_median_pct": 16.23558741040822,
+                "blocks": 2,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -2.1625000000000014,
+            "declared_order_conflict_ignored": true,
+            "order_conflict": true,
+            "order_consistent": false,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 5.493749999999999,
+            "sign_test_p": 0.96875,
+            "state": "inconclusive",
+            "supported": false,
+            "supporting_blocks": 1
+          },
+          "inconclusive": true,
+          "raw_delta_ms": 5.493749999999999,
+          "repo": "alamofire",
+          "scope": "stage",
+          "stage": "rank_dedup",
+          "triggered": false
+        },
+        {
+          "adjusted_delta_ms": 8.143749999999997,
+          "adjusted_delta_pct": 10.920214549111629,
+          "baseline_ms": 74.575,
+          "control_delta_ms": -2.4000000000000057,
+          "current_ms": 81.9,
+          "evidence": {
+            "adjusted_effect_ms": 8.143749999999997,
+            "adjusted_effect_pct": 10.920214549111629,
+            "blocks": 5,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 7.549999999999997,
+                "adjusted_median_pct": 10.124036205162584,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 8.737499999999997,
+                "adjusted_median_pct": 11.759757738896363,
+                "blocks": 2,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -2.4000000000000057,
+            "declared_order_conflict_ignored": false,
+            "order_conflict": false,
+            "order_consistent": true,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 8.143749999999997,
+            "sign_test_p": 0.5,
+            "state": "inconclusive",
+            "supported": false,
+            "supporting_blocks": 3
+          },
+          "inconclusive": true,
+          "raw_delta_ms": 8.143749999999997,
+          "repo": "alamofire",
+          "scope": "stage",
+          "stage": "rank_families",
+          "triggered": false
+        },
+        {
+          "adjusted_delta_ms": 5.56875,
+          "adjusted_delta_pct": 202.5,
+          "baseline_ms": 2.75,
+          "control_delta_ms": -0.8187499999999992,
+          "current_ms": 8.3,
+          "evidence": {
+            "adjusted_effect_ms": 5.56875,
+            "adjusted_effect_pct": 202.5,
+            "blocks": 5,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 5.6,
+                "adjusted_median_pct": 203.63636363636363,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 5.5375000000000005,
+                "adjusted_median_pct": 202.28310502283108,
+                "blocks": 2,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -0.8187499999999992,
+            "declared_order_conflict_ignored": false,
+            "order_conflict": false,
+            "order_consistent": true,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 5.56875,
+            "sign_test_p": 0.1875,
+            "state": "inconclusive",
+            "supported": false,
+            "supporting_blocks": 4
+          },
+          "inconclusive": true,
+          "raw_delta_ms": 5.56875,
+          "repo": "guava",
+          "scope": "stage",
+          "stage": "rank_map",
+          "triggered": false
+        },
+        {
+          "adjusted_delta_ms": 6.881250000000001,
+          "adjusted_delta_pct": 6.381868768838397,
+          "baseline_ms": 107.825,
+          "control_delta_ms": -1.1187500000000021,
+          "current_ms": 117.55000000000001,
+          "evidence": {
+            "adjusted_effect_ms": 6.881250000000001,
+            "adjusted_effect_pct": 6.381868768838397,
+            "blocks": 5,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 5.325000000000003,
+                "adjusted_median_pct": 4.9615653389238314,
+                "blocks": 3,
+                "material": false
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 8.4375,
+                "adjusted_median_pct": 7.640932759791713,
+                "blocks": 2,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -1.1187500000000021,
+            "declared_order_conflict_ignored": true,
+            "order_conflict": true,
+            "order_consistent": false,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 6.881250000000001,
+            "sign_test_p": 0.5,
+            "state": "inconclusive",
+            "supported": false,
+            "supporting_blocks": 3
+          },
+          "inconclusive": true,
+          "raw_delta_ms": 6.881250000000001,
+          "repo": "poetry",
+          "scope": "stage",
+          "stage": "lower",
+          "triggered": false
+        },
+        {
+          "adjusted_delta_ms": 6.568749999999994,
+          "adjusted_delta_pct": 7.796735905044503,
+          "baseline_ms": 84.25,
+          "control_delta_ms": -1.3749999999999893,
+          "current_ms": 93.85,
+          "evidence": {
+            "adjusted_effect_ms": 6.568749999999994,
+            "adjusted_effect_pct": 7.796735905044503,
+            "blocks": 5,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 4.849999999999994,
+                "adjusted_median_pct": 5.794504181600948,
+                "blocks": 3,
+                "material": false
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 8.287499999999994,
+                "adjusted_median_pct": 9.608695652173907,
+                "blocks": 2,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -1.3749999999999893,
+            "declared_order_conflict_ignored": true,
+            "order_conflict": true,
+            "order_consistent": false,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 6.568749999999994,
+            "sign_test_p": 0.5,
+            "state": "inconclusive",
+            "supported": false,
+            "supporting_blocks": 3
+          },
+          "inconclusive": true,
+          "raw_delta_ms": 6.568749999999994,
+          "repo": "poetry",
+          "scope": "stage",
+          "stage": "parse+lower",
+          "triggered": false
+        }
+      ]
+    },
+    "focused_repos": [
+      "alamofire",
+      "guava",
+      "poetry",
+      "rxswift"
+    ],
+    "focused": {
+      "output_drift_counts": {
+        "authorized_drifts": 4,
+        "unexpected_drifts": 0,
+        "unused_declarations": 0
+      },
+      "triggered": [
+        {
+          "adjusted_delta_ms": 6.9,
+          "adjusted_delta_pct": 38.46689895470383,
+          "baseline_ms": 17.9375,
+          "control_delta_ms": -0.47499999999999964,
+          "current_ms": 24.950000000000003,
+          "evidence": {
+            "adjusted_effect_ms": 6.9,
+            "adjusted_effect_pct": 38.46689895470383,
+            "blocks": 6,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 7.324999999999999,
+                "adjusted_median_pct": 41.79743223965763,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 6.475000000000001,
+                "adjusted_median_pct": 35.142469470827685,
+                "blocks": 3,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -0.47499999999999964,
+            "declared_order_conflict_ignored": false,
+            "order_conflict": false,
+            "order_consistent": true,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 6.9,
+            "sign_test_p": 0.015625,
+            "state": "triggered",
+            "supported": true,
+            "supporting_blocks": 6
+          },
+          "inconclusive": false,
+          "raw_delta_ms": 6.9,
+          "repo": "guava",
+          "scope": "stage",
+          "stage": "groups",
+          "triggered": true
+        },
+        {
+          "adjusted_delta_ms": 5.662499999999999,
+          "adjusted_delta_pct": 93.98340248962653,
+          "baseline_ms": 6.025,
+          "control_delta_ms": 8.881784197001252e-16,
+          "current_ms": 11.8875,
+          "evidence": {
+            "adjusted_effect_ms": 5.662499999999999,
+            "adjusted_effect_pct": 93.98340248962653,
+            "blocks": 6,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 5.499999999999999,
+                "adjusted_median_pct": 90.5349794238683,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 5.824999999999998,
+                "adjusted_median_pct": 97.48953974895396,
+                "blocks": 3,
+                "material": true
+              }
+            },
+            "control_correction_ms": 8.881784197001252e-16,
+            "control_effect_ms": 8.881784197001252e-16,
+            "declared_order_conflict_ignored": false,
+            "order_conflict": false,
+            "order_consistent": true,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 5.6625,
+            "sign_test_p": 0.015625,
+            "state": "triggered",
+            "supported": true,
+            "supporting_blocks": 6
+          },
+          "inconclusive": false,
+          "raw_delta_ms": 5.6625,
+          "repo": "guava",
+          "scope": "stage",
+          "stage": "rank_families",
+          "triggered": true
+        },
+        {
+          "adjusted_delta_ms": 5.5625,
+          "adjusted_delta_pct": 206.0185185185185,
+          "baseline_ms": 2.7,
+          "control_delta_ms": -0.012500000000000178,
+          "current_ms": 8.274999999999999,
+          "evidence": {
+            "adjusted_effect_ms": 5.5625,
+            "adjusted_effect_pct": 206.0185185185185,
+            "blocks": 6,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 5.675000000000001,
+                "adjusted_median_pct": 210.18518518518522,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 5.449999999999998,
+                "adjusted_median_pct": 201.85185185185176,
+                "blocks": 3,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -0.012500000000000178,
+            "declared_order_conflict_ignored": false,
+            "order_conflict": false,
+            "order_consistent": true,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 5.5625,
+            "sign_test_p": 0.015625,
+            "state": "triggered",
+            "supported": true,
+            "supporting_blocks": 6
+          },
+          "inconclusive": false,
+          "raw_delta_ms": 5.5625,
+          "repo": "guava",
+          "scope": "stage",
+          "stage": "rank_map",
+          "triggered": true
+        },
+        {
+          "adjusted_delta_ms": 6.9,
+          "adjusted_delta_pct": 167.78115501519758,
+          "baseline_ms": 4.1125,
+          "control_delta_ms": -0.09999999999999964,
+          "current_ms": 11.225000000000001,
+          "evidence": {
+            "adjusted_effect_ms": 6.9,
+            "adjusted_effect_pct": 167.78115501519758,
+            "blocks": 6,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 7.025,
+                "adjusted_median_pct": 171.34146341463418,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 6.775,
+                "adjusted_median_pct": 163.25301204819277,
+                "blocks": 3,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -0.09999999999999964,
+            "declared_order_conflict_ignored": false,
+            "order_conflict": false,
+            "order_consistent": true,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 6.9,
+            "sign_test_p": 0.015625,
+            "state": "triggered",
+            "supported": true,
+            "supporting_blocks": 6
+          },
+          "inconclusive": false,
+          "raw_delta_ms": 6.9,
+          "repo": "rxswift",
+          "scope": "stage",
+          "stage": "groups",
+          "triggered": true
+        }
+      ],
+      "inconclusive": [
+        {
+          "adjusted_delta_ms": 5.199999999999996,
+          "adjusted_delta_pct": 9.769844997651472,
+          "baseline_ms": 53.225,
+          "control_delta_ms": -0.287500000000005,
+          "current_ms": 58.2625,
+          "evidence": {
+            "adjusted_effect_ms": 5.199999999999996,
+            "adjusted_effect_pct": 9.769844997651472,
+            "blocks": 6,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 4.8999999999999915,
+                "adjusted_median_pct": 9.210526315789457,
+                "blocks": 3,
+                "material": false
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 5.5,
+                "adjusted_median_pct": 10.328638497652582,
+                "blocks": 3,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -0.287500000000005,
+            "declared_order_conflict_ignored": true,
+            "order_conflict": true,
+            "order_consistent": false,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 5.199999999999996,
+            "sign_test_p": 0.65625,
+            "state": "inconclusive",
+            "supported": false,
+            "supporting_blocks": 3
+          },
+          "inconclusive": true,
+          "raw_delta_ms": 5.199999999999996,
+          "repo": "alamofire",
+          "scope": "stage",
+          "stage": "rank_dedup",
+          "triggered": false
+        },
+        {
+          "adjusted_delta_ms": 6.287500000000001,
+          "adjusted_delta_pct": 6.437987968770001,
+          "baseline_ms": 97.6625,
+          "control_delta_ms": -1.624999999999993,
+          "current_ms": 103.8,
+          "evidence": {
+            "adjusted_effect_ms": 6.287500000000001,
+            "adjusted_effect_pct": 6.437987968770001,
+            "blocks": 6,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 5.75,
+                "adjusted_median_pct": 5.95546349041947,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 6.825000000000003,
+                "adjusted_median_pct": 6.928934010152288,
+                "blocks": 3,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -1.624999999999993,
+            "declared_order_conflict_ignored": false,
+            "order_conflict": false,
+            "order_consistent": true,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 6.287500000000001,
+            "sign_test_p": 0.34375,
+            "state": "inconclusive",
+            "supported": false,
+            "supporting_blocks": 4
+          },
+          "inconclusive": true,
+          "raw_delta_ms": 6.287500000000001,
+          "repo": "alamofire",
+          "scope": "stage",
+          "stage": "rank_families",
+          "triggered": false
+        }
+      ]
+    },
+    "unqualified": [
+      "base",
+      "default",
+      "near-no-pack"
+    ],
+    "retry_policy": "One primary/control and one focused/control completed. Candidate stopped at failed semantic gate; no extra unchanged retry.",
+    "orchestration_note": "Primary progress seconds include the documented between-phase orchestration pause. Raw command samples alone drive performance decisions."
+  },
+  "remote": {
+    "workflow_run": 34088948033,
+    "preparation_commit": "6c87f9035627484eaf7591e28d74983109e8b868",
+    "compared_checkout": "bede96bc66f888fd1cdfdae8910084c283f154d4",
+    "product_and_dependencies_match": true,
+    "status": "fail",
+    "thresholds": {
+      "max_runtime_delta_pct": 5.0,
+      "min_focused_iterations": 6,
+      "min_runtime_delta_ms": 5.0,
+      "runtime_policy": "order-aware-v1"
+    },
+    "primary": {
+      "output_drift_counts": {
+        "authorized_drifts": 7,
+        "unexpected_drifts": 0,
+        "unused_declarations": 0
+      },
+      "triggered": [],
+      "inconclusive": [
+        {
+          "adjusted_delta_ms": 6.368749999999995,
+          "adjusted_delta_pct": 5.298460898502492,
+          "baseline_ms": 120.19999999999999,
+          "control_delta_ms": -2.043750000000003,
+          "current_ms": 126.175,
+          "evidence": {
+            "adjusted_effect_ms": 6.368749999999995,
+            "adjusted_effect_pct": 5.298460898502492,
+            "blocks": 5,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 7.999999999999986,
+                "adjusted_median_pct": 6.705783738474421,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 4.737500000000004,
+                "adjusted_median_pct": 3.936435396759455,
+                "blocks": 2,
+                "material": false
+              }
+            },
+            "control_correction_ms": 0.0,
+            "control_effect_ms": -2.043750000000003,
+            "declared_order_conflict_ignored": true,
+            "order_conflict": true,
+            "order_consistent": false,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 6.368749999999995,
+            "sign_test_p": 0.8125,
+            "state": "inconclusive",
+            "supported": false,
+            "supporting_blocks": 2
+          },
+          "inconclusive": true,
+          "raw_delta_ms": 6.368749999999995,
+          "repo": "asciidoctor",
+          "scope": "stage",
+          "stage": "normalize+extract",
+          "triggered": false
+        }
+      ]
+    },
+    "focused": {
+      "output_drift_counts": {
+        "authorized_drifts": 1,
+        "unexpected_drifts": 0,
+        "unused_declarations": 0
+      },
+      "triggered": [],
+      "inconclusive": [
+        {
+          "adjusted_delta_ms": 6.449999999999989,
+          "adjusted_delta_pct": 5.364382991995,
+          "baseline_ms": 120.2375,
+          "control_delta_ms": 0.8000000000000043,
+          "current_ms": 127.8625,
+          "evidence": {
+            "adjusted_effect_ms": 6.449999999999989,
+            "adjusted_effect_pct": 5.364382991995,
+            "blocks": 6,
+            "by_order": {
+              "baseline-current": {
+                "adjusted_median_ms": 6.849999999999987,
+                "adjusted_median_pct": 5.692915021815905,
+                "blocks": 3,
+                "material": true
+              },
+              "current-baseline": {
+                "adjusted_median_ms": 6.04999999999999,
+                "adjusted_median_pct": 5.035372451102781,
+                "blocks": 3,
+                "material": true
+              }
+            },
+            "control_correction_ms": 0.8000000000000043,
+            "control_effect_ms": 0.8000000000000043,
+            "declared_order_conflict_ignored": false,
+            "order_conflict": false,
+            "order_consistent": true,
+            "policy": "paired-position-neutral-sign-v2",
+            "position_neutral_samples": true,
+            "raw_effect_ms": 7.249999999999993,
+            "sign_test_p": 0.34375,
+            "state": "inconclusive",
+            "supported": false,
+            "supporting_blocks": 4
+          },
+          "inconclusive": true,
+          "raw_delta_ms": 7.249999999999993,
+          "repo": "asciidoctor",
+          "scope": "stage",
+          "stage": "normalize+extract",
+          "triggered": false
+        }
+      ]
+    },
+    "original_single_sample_failure_retained": "uniform-relations-followup.v1.json",
+    "native_packages_and_actual_installer": {
+      "status": "passed",
+      "workflow_run": 34088948267,
+      "source_commit": "6c87f9035627484eaf7591e28d74983109e8b868",
+      "compared_checkout": "bede96bc66f888fd1cdfdae8910084c283f154d4",
+      "packages": [
+        {
+          "status": "passed",
+          "version": "0.21.0",
+          "target": "aarch64-apple-darwin",
+          "archive_sha256": "ce8aae338aa6e2b79f2de453a932fc28980cc9c56146b30d567673570a5013b2",
+          "binary_sha256": "9938a7b44d177bc47c4bb299d5e392d88ae5223b5be88d5c1b7929dec24b677f",
+          "checks": {
+            "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+            "families": 1,
+            "clean_cold_warm_equal": true,
+            "saved_analysis_view": "dashboard"
+          }
+        },
+        {
+          "status": "passed",
+          "version": "0.21.0",
+          "target": "aarch64-unknown-linux-gnu",
+          "archive_sha256": "3a9f6d69a9cc551570796c9ae0a7502e23a48ef6a84034230eec526ce46f2ba5",
+          "binary_sha256": "4e8a3f1394149417f6f41c6e0196de19082241feacdf6443d0ae32cbf9d29f5a",
+          "checks": {
+            "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+            "families": 1,
+            "clean_cold_warm_equal": true,
+            "saved_analysis_view": "dashboard"
+          }
+        },
+        {
+          "status": "passed",
+          "version": "0.21.0",
+          "target": "x86_64-apple-darwin",
+          "archive_sha256": "88f4e14e0ea7a671d9c2ac426d1bfe349d718a297d8d531964acb158c2c28cf5",
+          "binary_sha256": "343fcc4d6562162b607295f46f6dcfd5525acc716f1740a0fa4a50944b1eed6d",
+          "checks": {
+            "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+            "families": 1,
+            "clean_cold_warm_equal": true,
+            "saved_analysis_view": "dashboard"
+          }
+        },
+        {
+          "status": "passed",
+          "version": "0.21.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "archive_sha256": "51244f200d57507cb2d9903af3e42df46359d4fdb50f1234cfd6307238995372",
+          "binary_sha256": "d24265c4f5582b2ab997f432d4ea436c4ba0ea47b1bfb3f96de11235f1f293b8",
+          "checks": {
+            "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+            "families": 1,
+            "clean_cold_warm_equal": true,
+            "saved_analysis_view": "dashboard"
+          }
+        }
+      ],
+      "installer": {
+        "sha256": "ab75ba4e9d39e80b3a01e0eb5c0409cdcf546cca251c78809075740a6322a8e5",
+        "embedded_checksum_verified": true,
+        "native_execution": {
+          "query_sha256": "f8196aa5dafe53a203e2d6dd9f6dbc96a7f551fdb9d905f1e963e15e9344b98b",
+          "families": 1,
+          "clean_cold_warm_equal": true,
+          "saved_analysis_view": "dashboard"
+        }
+      }
+    }
+  },
+  "artifacts": [
+    {
+      "path": "target/release-uniform-groups-20260907/candidate-identity.json",
+      "bytes": 691,
+      "sha256": "71161191c15d0b9362f49db7dc2c43413f8d298af6141aefe8eae03858bb7af3"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/check-remote-sampling-packages.py",
+      "bytes": 2931,
+      "sha256": "8be5b4d4704c0cb183ca77b50496f3ac42b7f6ad82306156db98b1498f0cf13a"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/phase-boundary-primary.json",
+      "bytes": 914,
+      "sha256": "6bc5156a962c19092cc10e4e4ecf26f92a691ab33c352fd6bcfd960e0b745abe"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/qualification-progress.json",
+      "bytes": 2685,
+      "sha256": "5be42fd316eec490b923daa1338efd5ab1ffef7c7118081c7989d4e22a3188b7"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/qualify.py",
+      "bytes": 4198,
+      "sha256": "54a7aadaea8b4491b84a58a6d3c6faba8e782757770e95e44426c55689264fa8"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/query-semantic-control.json",
+      "bytes": 7477288,
+      "sha256": "9427a9ee53846a48da8a6f4c8be18f015bbc656aee3f3a4763529d5053599714"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/query-semantic-control.log",
+      "bytes": 1073,
+      "sha256": "877dc6d10fc385c046ebcf74c5be7524dbeb0bca8a92bf46f1a2e86000bf6ff1"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/query-semantic-focused-control.json",
+      "bytes": 306441,
+      "sha256": "d473c880e0235caf4a22bf83ec47e0812924b5c760251b468dcf3d538a2addde"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/query-semantic-focused-control.log",
+      "bytes": 1149,
+      "sha256": "6b44cd932c79fdcdb563bc50a3e2d889842c94231ee95ec0bb42e204eedf6d28"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/query-semantic-focused.json",
+      "bytes": 306271,
+      "sha256": "57c51d3d5c1d9d38fba137154041865f5415696ffff09a0db5795018b1e03700"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/query-semantic-focused.log",
+      "bytes": 1120,
+      "sha256": "1c3c18f7093d6fe6011b9227c799e68345e01e8cfc138b3a83a216f964e86e8c"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/query-semantic-gate.json",
+      "bytes": 5330894,
+      "sha256": "f2b6b6e0d10b54968e0c55f5bda4e7598f61801d8e0af4519ac3cef086e9fcc7"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/query-semantic-gate.log",
+      "bytes": 126,
+      "sha256": "d6788b1b92445ec94836087fbe9a3b85063e4a5ed6e7ec6da36d6fcb7907f0a3"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/query-semantic-gate.md",
+      "bytes": 1095,
+      "sha256": "d865d264d3226e958d9dfdb6806ec873b284e26f5e2441916689bbdc6f2a74b0"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/query-semantic-primary-inspection.json",
+      "bytes": 4659395,
+      "sha256": "40e9952de9786eb0d3f1b67e8c933db9f12f1a23420cdde212a574fbc9cfca8a"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/query-semantic-primary.json",
+      "bytes": 7472650,
+      "sha256": "b13f8846337ba4434d408c86b803b2b2bf8e9c591149eb9c402354fd96995b1d"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/query-semantic-primary.log",
+      "bytes": 1052,
+      "sha256": "d16ed38039f21893883fc8b0138633567f85d1cefcea348edaa5b0754e5fec44"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/quiet-boundary-control.json",
+      "bytes": 81314,
+      "sha256": "0ccac1fae3861db4685384f0c86134071924ad06913fb1be132d221f370eae47"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-ci-failed.log",
+      "bytes": 20479,
+      "sha256": "41d27c974bc50502fb302847cb6cd7e071e15be8070a5f00d71d8527e9f68219"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-ci-run.json",
+      "bytes": 28291,
+      "sha256": "30f021604507d50bdacb41bc0fd38e50ca72923ea930a4afc468ea0e8b5cd6cc"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-installer.log",
+      "bytes": 282,
+      "sha256": "737ee9c24b1c4721b0826843af8743d4caccc9a8b66a9ae5fc9f21ce51b0b7d1"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-merge-tree.json",
+      "bytes": 5616,
+      "sha256": "d0b31649462395e4e3c3c2ce0ff2c1bc9d48aa2008337c59f437b419b0dd1ad8"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-package-verification.json",
+      "bytes": 2627,
+      "sha256": "c8e3c581e59cd653fc0d42b1079eee3e2b7b48cf4a04f6fec1ba0f12f90df735"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-package-verification.log",
+      "bytes": 160,
+      "sha256": "1576c67c7b80b81bdd55855e6ad7f88fa4ff6e630128154752f77bd63adffbb8"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-global/global-dist-manifest.json",
+      "bytes": 37241,
+      "sha256": "2f5320ab1ed7ddc9fd29d61708afe9e7eeed83337846d25507f0ab57c888f32d"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-global/nose-cli-installer.sh",
+      "bytes": 52690,
+      "sha256": "ab75ba4e9d39e80b3a01e0eb5c0409cdcf546cca251c78809075740a6322a8e5"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-global/nose.rb",
+      "bytes": 2369,
+      "sha256": "99a57a341307d7dea2b3f3bf7eb1c5f0d2aeb4497156097e54499eef6976113d"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-global/sha256.sum",
+      "bytes": 501,
+      "sha256": "ae9f875ddf46eff06e01111b98777fc7c7cbc4bf7a1d89253c10e259839d41e8"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-global/source.tar.gz",
+      "bytes": 25132745,
+      "sha256": "280ad4eb1ae2199df9013a110c3cdbf2f1b5a495c0366add570d80e90957d5cb"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-global/source.tar.gz.sha256",
+      "bytes": 81,
+      "sha256": "3250eb56e9ab795582d18d6afdc4326d390deed7ce7e4ea006641857f32b3c8f"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-aarch64-apple-darwin/aarch64-apple-darwin-dist-manifest.json",
+      "bytes": 31567,
+      "sha256": "bf57fdb8e982883fd7d55586c5c591655f671f59c6a9cab7f52ab5c56c2aa35a"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-aarch64-apple-darwin/nose-cli-aarch64-apple-darwin.tar.xz",
+      "bytes": 5404896,
+      "sha256": "ce8aae338aa6e2b79f2de453a932fc28980cc9c56146b30d567673570a5013b2"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-aarch64-apple-darwin/nose-cli-aarch64-apple-darwin.tar.xz.sha256",
+      "bytes": 104,
+      "sha256": "6ce85b0e0430d7bc692c3d26f2f10a2dbcb7433e7a215a223037084b98b9494f"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-aarch64-apple-darwin/package-smoke-aarch64-apple-darwin.json",
+      "bytes": 459,
+      "sha256": "57834591592a929cda87d93f8d2447d3b1a32c8fd10127ffc76ac5c8613821d6"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-aarch64-unknown-linux-gnu/aarch64-unknown-linux-gnu-dist-manifest.json",
+      "bytes": 31477,
+      "sha256": "30d23dc8b11d822fd5062260409b990c725d4eeb2546df42741a4ea46cff7237"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-aarch64-unknown-linux-gnu/nose-cli-aarch64-unknown-linux-gnu.tar.xz",
+      "bytes": 5553668,
+      "sha256": "3a9f6d69a9cc551570796c9ae0a7502e23a48ef6a84034230eec526ce46f2ba5"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-aarch64-unknown-linux-gnu/nose-cli-aarch64-unknown-linux-gnu.tar.xz.sha256",
+      "bytes": 109,
+      "sha256": "f6cb4b91a5ee45ff56d49439c302b1f6311ba45e051f7af64b7c70e61f90ae53"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-aarch64-unknown-linux-gnu/package-smoke-aarch64-unknown-linux-gnu.json",
+      "bytes": 464,
+      "sha256": "30e7f30afe0192509830d22f5c9447e22e4ac667bed91d899e9b844b5fc28233"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-x86_64-apple-darwin/nose-cli-x86_64-apple-darwin.tar.xz",
+      "bytes": 6139088,
+      "sha256": "88f4e14e0ea7a671d9c2ac426d1bfe349d718a297d8d531964acb158c2c28cf5"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-x86_64-apple-darwin/nose-cli-x86_64-apple-darwin.tar.xz.sha256",
+      "bytes": 103,
+      "sha256": "e4706545b2d57909a97cbaf81bf1a69bbef8242d1c3e8a1df627f434a78c8e74"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-x86_64-apple-darwin/package-smoke-x86_64-apple-darwin.json",
+      "bytes": 458,
+      "sha256": "103a921f24e8bb56fd30219e6ef37fff5e7a32451d353ff0c5898aaaf291ebca"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-x86_64-apple-darwin/x86_64-apple-darwin-dist-manifest.json",
+      "bytes": 31562,
+      "sha256": "8b954f861beca9e04353d43fe1571f802a7ef0d618b9e43bd9e8aa50531af8a3"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-x86_64-unknown-linux-gnu/nose-cli-x86_64-unknown-linux-gnu.tar.xz",
+      "bytes": 6301124,
+      "sha256": "51244f200d57507cb2d9903af3e42df46359d4fdb50f1234cfd6307238995372"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-x86_64-unknown-linux-gnu/nose-cli-x86_64-unknown-linux-gnu.tar.xz.sha256",
+      "bytes": 108,
+      "sha256": "b6e88d08d1f3ab1e0c2696e1bde79ae741496b792d2fb0b3e834ea4758dfb14a"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-x86_64-unknown-linux-gnu/package-smoke-x86_64-unknown-linux-gnu.json",
+      "bytes": 463,
+      "sha256": "e728f2ff76d4b4b10d555504b07677e5b5c5f5c48b135293255e93f4f2618a07"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages/artifacts-build-local-x86_64-unknown-linux-gnu/x86_64-unknown-linux-gnu-dist-manifest.json",
+      "bytes": 31459,
+      "sha256": "f2fe7fb090d1d9bf7193f2f657c91d84963d070116ad714ea55c1699427751f5"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-packages-run.json",
+      "bytes": 14081,
+      "sha256": "afe6a5d53281aaf2fc467924330875055284f7811a30459dc2d067d9a577c23b"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-smoke/check-status.json",
+      "bytes": 349283,
+      "sha256": "7da4f7d86e2498df3495081575b3d136a6b253e661fdc82364c3cc44539c578c"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-smoke/context.json",
+      "bytes": 1128,
+      "sha256": "ef6b387d41d52efbf49c3fc483a8c4993a7c57c0f74b9b2b32d6612c3d4b6c27"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-smoke/focused-control.json",
+      "bytes": 79342,
+      "sha256": "0648d792a749e970db27f8b66cf23e5d78f52cde9a61088be310dfb95a172c94"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-smoke/focused.json",
+      "bytes": 79127,
+      "sha256": "b688e295a7a4f65f9c7a89e2484be856a2ed836182abd2928336e46dcd4408f3"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-smoke/primary-control.json",
+      "bytes": 441585,
+      "sha256": "966cd2cb23dd7ec3448f7fdc2a6ba7d5326ac90e915037e81055c7f9eb5a4e1b"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-smoke/primary.json",
+      "bytes": 441028,
+      "sha256": "47576bbbb5897f59e8db19f9f62889600185994170665a3bdeece1458cb495ca"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-smoke/ruby-scaling.json",
+      "bytes": 1740,
+      "sha256": "dcf90a3306de97d2449289099c048cd2b212db83f03f15e6c8a3364051d9d046"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/remote-sampling-smoke/summary.md",
+      "bytes": 591,
+      "sha256": "82efc6250b377486c58a1bf358670cd4cff3b1ec37e5ccc986ec18f70aac91b0"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/run-comparison.py",
+      "bytes": 2361,
+      "sha256": "76f67cfd6085ddae78ae89561a6fb540b55772db64d5f948724f932999487ba8"
+    },
+    {
+      "path": "target/release-uniform-groups-20260907/seal-verdict.py",
+      "bytes": 3774,
+      "sha256": "89d411d0b1752e8ddb5e0db953178ce26488ee97f2fd9355055e113f291e0abc"
+    }
+  ]
+}

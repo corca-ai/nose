@@ -1,0 +1,53 @@
+{
+  "schema": "nose.official_binary_baseline/v1",
+  "version": "0.20.0",
+  "release": {
+    "url": "https://github.com/corca-ai/nose/releases/tag/v0.20.0",
+    "published_at": "2026-07-22T17:34:36Z",
+    "commit_sha": "47adbab743067e7ab0977d1be4a935a043dd769b",
+    "dist_manifest": {
+      "url": "https://github.com/corca-ai/nose/releases/download/v0.20.0/dist-manifest.json",
+      "sha256": "aa9108dcdd273ffcab319c6e46a03a0d7ebef4d5c8818fadfbb6963b3a54a291"
+    }
+  },
+  "artifacts": [
+    {
+      "target": "aarch64-apple-darwin",
+      "archive": "nose-cli-aarch64-apple-darwin.tar.xz",
+      "archive_sha256": "c737cb0e571f1a9b91020d7610443b8d3c885a552f690375315d1ce29330e6a5",
+      "binary_sha256": "8ee79b8be2ba84893daad563776165d192ab2717ac3fa24e24d6cc03e6df77da",
+      "binary_code_sha256": "19b80d0191472954100e2abc9eb25dcb2599338f3b41e2329e44e7dd8d57b83e",
+      "binary_code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1"
+    },
+    {
+      "target": "aarch64-unknown-linux-gnu",
+      "archive": "nose-cli-aarch64-unknown-linux-gnu.tar.xz",
+      "archive_sha256": "d98f95398655bdcadfd849c71088361358058b660d7f702b5ac8bd12db205454",
+      "binary_sha256": "d6e4b57dce8f9bb698de23165b63a418bf844ee5b53047f7bcebe25aca00f27e",
+      "binary_code_sha256": "d6e4b57dce8f9bb698de23165b63a418bf844ee5b53047f7bcebe25aca00f27e",
+      "binary_code_sha256_algorithm": "sha256/full-file-v1"
+    },
+    {
+      "target": "x86_64-apple-darwin",
+      "archive": "nose-cli-x86_64-apple-darwin.tar.xz",
+      "archive_sha256": "a2fd52a09dcfdb1ae84cada859d4b5a824af8e8dd93a37809ff1c61336134505",
+      "binary_sha256": "445e75bb5a84eb1a3efbb6fbe299570b985e567e4613e6bb65ce9d336e534e42",
+      "binary_code_sha256": "36c888d9d8f2f59f7f885f4a858df5bc2176f0f5612bbe22d07c819d82c6dbcc",
+      "binary_code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1"
+    },
+    {
+      "target": "x86_64-unknown-linux-gnu",
+      "archive": "nose-cli-x86_64-unknown-linux-gnu.tar.xz",
+      "archive_sha256": "ae28f5fdd845570c1e9d4d2b2149d25c80952bea0a5ddbe9396b28880c1f4717",
+      "binary_sha256": "05d2a2df2a9f0a1ab92ed91c0032e5cbd1e2098ab5b25f85dfefaa5329956a69",
+      "binary_code_sha256": "05d2a2df2a9f0a1ab92ed91c0032e5cbd1e2098ab5b25f85dfefaa5329956a69",
+      "binary_code_sha256_algorithm": "sha256/full-file-v1"
+    }
+  ],
+  "policy": {
+    "accepted_baseline": "downloaded-published-archive-only",
+    "local_rebuild_accepted": false,
+    "verify_archive_before_extraction": true,
+    "verify_binary_before_measurement": true
+  }
+}

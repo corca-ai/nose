@@ -474,7 +474,7 @@ fn upsert(
         )
     });
     if let Some(idx) = existing {
-        let record = &mut il.evidence[idx as usize];
+        let mut record = il.evidence_record_mut(idx as usize);
         record.provenance.pack_hash = provenance.current.pack_hash;
         record.provenance.rule_hash = provenance.current.rule_hash;
         record.dependencies = dependencies;

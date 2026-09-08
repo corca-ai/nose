@@ -1,0 +1,1138 @@
+{
+  "schema": "nose.release-component-experiments/v1",
+  "version": "0.21.0",
+  "decision": "NOT READY: retain local exclusion proof and current-root reuse; reject target-class cache. Actual-product qualification remains separate.",
+  "product": "0c4143e299e14bf3d4243267bb4ede82d5307d30",
+  "crates_tree": "ac4404a8bc5575f3fa866f805520320ec44eb6a9",
+  "experiments": {
+    "local-component-proof": {
+      "decision": "retain in isolated prototype: exact certificate uses the existing same-file index and reduces Alamofire component work; do not yet adopt into the actual product or claim universal elapsed improvement",
+      "identity": {
+        "source": "59e81ede580a83ed0fb94ba1baefc5cfb6ddb00e",
+        "crates_tree": "a98cc00ea9e1c4d83fc7bcf62278de4756a0efb8",
+        "binary_sha256": "c9ab62cc57b3be9c9f366c8d4bfd3660994a557807534db06528e68fabbb2d7b"
+      },
+      "results": [
+        {
+          "repo": "alamofire",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2751.4539156109095,
+              "score": 932.0,
+              "groups": 346.0,
+              "query_opp": 18.7
+            },
+            "current": {
+              "elapsed": 2701.5453334897757,
+              "score": 922.4,
+              "groups": 341.9,
+              "query_opp": 18.4
+            }
+          }
+        },
+        {
+          "repo": "libgdx",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2133.059624582529,
+              "score": 678.7,
+              "groups": 60.0,
+              "query_opp": 1.6
+            },
+            "current": {
+              "elapsed": 2108.185541816056,
+              "score": 675.1,
+              "groups": 58.5,
+              "query_opp": 1.6
+            }
+          }
+        },
+        {
+          "repo": "guava",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2499.20233245939,
+              "score": 395.5,
+              "groups": 29.2,
+              "query_opp": 3.4
+            },
+            "current": {
+              "elapsed": 2503.9030415937304,
+              "score": 398.6,
+              "groups": 28.8,
+              "query_opp": 3.4
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 819.6334587410092,
+              "score": 204.2,
+              "groups": 83.8,
+              "query_opp": 7.5
+            },
+            "current": {
+              "elapsed": 834.1041672974825,
+              "score": 208.1,
+              "groups": 83.9,
+              "query_opp": 7.6
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "semantic",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 377.88287457078695,
+              "score": 3.0,
+              "groups": 6.0,
+              "query_opp": 1.5
+            },
+            "current": {
+              "elapsed": 384.0856244787574,
+              "score": 3.1,
+              "groups": 5.9,
+              "query_opp": 1.5
+            }
+          }
+        },
+        {
+          "repo": "alamofire",
+          "mode": "near:0.8",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 1888.86349927634,
+              "score": 712.5,
+              "groups": 55.4,
+              "query_opp": 12.4
+            },
+            "current": {
+              "elapsed": 1980.9119580313563,
+              "score": 746.9,
+              "groups": 54.1,
+              "query_opp": 12.5
+            }
+          }
+        }
+      ],
+      "cluster": {
+        "scope": "Exploratory stage attribution from the same three paired blocks; not release qualification or a new timing campaign.",
+        "results": [
+          {
+            "repo": "alamofire",
+            "mode": "default",
+            "cluster_medians_ms": {
+              "baseline": 141.0,
+              "current": 104.6
+            }
+          },
+          {
+            "repo": "libgdx",
+            "mode": "default",
+            "cluster_medians_ms": {
+              "baseline": 3.7,
+              "current": 3.9
+            }
+          },
+          {
+            "repo": "guava",
+            "mode": "default",
+            "cluster_medians_ms": {
+              "baseline": 2.4,
+              "current": 2.7
+            }
+          },
+          {
+            "repo": "rxswift",
+            "mode": "default",
+            "cluster_medians_ms": {
+              "baseline": 8.2,
+              "current": 6.9
+            }
+          },
+          {
+            "repo": "rxswift",
+            "mode": "semantic",
+            "cluster_medians_ms": {
+              "baseline": 2.2,
+              "current": 2.2
+            }
+          },
+          {
+            "repo": "alamofire",
+            "mode": "near:0.8",
+            "cluster_medians_ms": {
+              "baseline": 4.2,
+              "current": 4.7
+            }
+          }
+        ]
+      },
+      "scope": "All six complete outputs and 284 detector tests/strict Clippy/docs pass. Three paired blocks without same-binary controls observe Alamofire default cluster 141.0 to 104.6 ms and elapsed -1.81%, but near elapsed rises 4.87% and other effects are mixed. Preserve the near concern for final combined-candidate comparison. Do not extrapolate a release pass. Exact proof: after joining admitted targets, only same-file targets can remain unjoined because of nesting. Source union order and all edge data are preserved."
+    },
+    "component-root": {
+      "decision": "retain in isolated prototype: reuse the actual component root across joins; combined-candidate elapsed qualification remains necessary before actual-product adoption",
+      "identity": {
+        "source": "a4e90b34c5c2472ab1553eebebe0b622d44461ae",
+        "crates_tree": "ac4404a8bc5575f3fa866f805520320ec44eb6a9",
+        "binary_sha256": "b7c9d2d728a32fe1ce2e3dda6f591823a24e58f5ee6795faf4dc04fd627a8565"
+      },
+      "results": [
+        {
+          "repo": "alamofire",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2711.0233744606376,
+              "score": 924.3,
+              "groups": 349.4,
+              "query_opp": 18.3
+            },
+            "current": {
+              "elapsed": 2671.862667426467,
+              "score": 920.7,
+              "groups": 352.6,
+              "query_opp": 19.2
+            }
+          }
+        },
+        {
+          "repo": "libgdx",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2173.980957828462,
+              "score": 696.1,
+              "groups": 58.9,
+              "query_opp": 1.7
+            },
+            "current": {
+              "elapsed": 2186.878750100732,
+              "score": 680.6,
+              "groups": 58.9,
+              "query_opp": 1.9
+            }
+          }
+        },
+        {
+          "repo": "guava",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2477.370584383607,
+              "score": 401.5,
+              "groups": 28.1,
+              "query_opp": 3.4
+            },
+            "current": {
+              "elapsed": 2514.975916594267,
+              "score": 396.7,
+              "groups": 28.7,
+              "query_opp": 3.4
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 819.515666924417,
+              "score": 212.9,
+              "groups": 83.5,
+              "query_opp": 7.6
+            },
+            "current": {
+              "elapsed": 818.5745403170586,
+              "score": 232.1,
+              "groups": 83.0,
+              "query_opp": 7.6
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "semantic",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 367.63895861804485,
+              "score": 2.9,
+              "groups": 5.6,
+              "query_opp": 1.5
+            },
+            "current": {
+              "elapsed": 373.39733354747295,
+              "score": 3.0,
+              "groups": 5.8,
+              "query_opp": 1.5
+            }
+          }
+        },
+        {
+          "repo": "alamofire",
+          "mode": "near:0.8",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 1947.2076250240207,
+              "score": 737.4,
+              "groups": 54.8,
+              "query_opp": 12.4
+            },
+            "current": {
+              "elapsed": 1947.3278746008873,
+              "score": 713.5,
+              "groups": 53.6,
+              "query_opp": 12.4
+            }
+          }
+        }
+      ],
+      "cluster": {
+        "scope": "Exploratory stage attribution from the same three paired blocks, not release qualification.",
+        "results": [
+          {
+            "repo": "alamofire",
+            "mode": "default",
+            "cluster_medians_ms": {
+              "baseline": 102.8,
+              "current": 81.9
+            }
+          },
+          {
+            "repo": "libgdx",
+            "mode": "default",
+            "cluster_medians_ms": {
+              "baseline": 3.6,
+              "current": 3.6
+            }
+          },
+          {
+            "repo": "guava",
+            "mode": "default",
+            "cluster_medians_ms": {
+              "baseline": 2.9,
+              "current": 2.9
+            }
+          },
+          {
+            "repo": "rxswift",
+            "mode": "default",
+            "cluster_medians_ms": {
+              "baseline": 7.4,
+              "current": 6.1
+            }
+          },
+          {
+            "repo": "rxswift",
+            "mode": "semantic",
+            "cluster_medians_ms": {
+              "baseline": 2.2,
+              "current": 2.1
+            }
+          },
+          {
+            "repo": "alamofire",
+            "mode": "near:0.8",
+            "cluster_medians_ms": {
+              "baseline": 4.8,
+              "current": 4.7
+            }
+          }
+        ]
+      },
+      "scope": "Six complete outputs equal, 285 detector tests and strict Clippy/docs pass. Three paired blocks without same-binary controls observe Alamofire cluster 102.8 to 81.9 ms and elapsed -1.44%; other elapsed effects are small and mixed (Guava +1.52%, RxSwift semantic +1.57%). Rank and union order remain unchanged; returned roots are checked against ordinary unions through multiple rank changes. This does not resolve or waive the official release blocker."
+    },
+    "component-classes": {
+      "decision": "reject: target-class connectivity cache increases Alamofire clustering from 82.3 to 100.1 ms; whole-query effects are small and mixed, insufficient to justify extra state and scans",
+      "identity": {
+        "source": "742b9b20c6460960a5ed5a7aa842e319cc374b86",
+        "crates_tree": "21a223f84c80c40850262c7d0835cf2ff4f08be0",
+        "binary_sha256": "34236fae28778e008ca2a33ca10aa665211aed7a055460d8af7fb615159da758"
+      },
+      "results": [
+        {
+          "repo": "alamofire",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2742.219042032957,
+              "score": 913.3,
+              "groups": 351.5,
+              "query_opp": 18.8
+            },
+            "current": {
+              "elapsed": 2726.525583304465,
+              "score": 927.6,
+              "groups": 354.4,
+              "query_opp": 18.8
+            }
+          }
+        },
+        {
+          "repo": "libgdx",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2182.83533398062,
+              "score": 665.0,
+              "groups": 64.6,
+              "query_opp": 1.6
+            },
+            "current": {
+              "elapsed": 2166.3333754986525,
+              "score": 684.6,
+              "groups": 60.1,
+              "query_opp": 1.7
+            }
+          }
+        },
+        {
+          "repo": "guava",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 2561.080915853381,
+              "score": 413.2,
+              "groups": 31.0,
+              "query_opp": 3.5
+            },
+            "current": {
+              "elapsed": 2556.827957741916,
+              "score": 418.8,
+              "groups": 28.2,
+              "query_opp": 3.4
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "default",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 827.7958342805505,
+              "score": 222.9,
+              "groups": 86.5,
+              "query_opp": 7.6
+            },
+            "current": {
+              "elapsed": 834.6814587712288,
+              "score": 212.4,
+              "groups": 86.4,
+              "query_opp": 7.6
+            }
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "semantic",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 377.1428754553199,
+              "score": 3.3,
+              "groups": 5.9,
+              "query_opp": 1.5
+            },
+            "current": {
+              "elapsed": 384.02529153972864,
+              "score": 3.0,
+              "groups": 6.2,
+              "query_opp": 1.5
+            }
+          }
+        },
+        {
+          "repo": "alamofire",
+          "mode": "near:0.8",
+          "complete_outputs_equal": true,
+          "medians_ms": {
+            "baseline": {
+              "elapsed": 1982.4175843968987,
+              "score": 772.1,
+              "groups": 56.6,
+              "query_opp": 12.3
+            },
+            "current": {
+              "elapsed": 2006.2311245128512,
+              "score": 753.6,
+              "groups": 53.7,
+              "query_opp": 12.5
+            }
+          }
+        }
+      ],
+      "cluster": [
+        {
+          "repo": "alamofire",
+          "mode": "default",
+          "cluster_ms": {
+            "baseline": 82.3,
+            "current": 100.1
+          }
+        },
+        {
+          "repo": "libgdx",
+          "mode": "default",
+          "cluster_ms": {
+            "baseline": 3.7,
+            "current": 3.5
+          }
+        },
+        {
+          "repo": "guava",
+          "mode": "default",
+          "cluster_ms": {
+            "baseline": 3.4,
+            "current": 2.6
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "default",
+          "cluster_ms": {
+            "baseline": 6.1,
+            "current": 7.6
+          }
+        },
+        {
+          "repo": "rxswift",
+          "mode": "semantic",
+          "cluster_ms": {
+            "baseline": 2.1,
+            "current": 2.1
+          }
+        },
+        {
+          "repo": "alamofire",
+          "mode": "near:0.8",
+          "cluster_ms": {
+            "baseline": 4.9,
+            "current": 5.5
+          }
+        }
+      ],
+      "scope": "Direct comparison against retained two-step component prototype; three paired blocks without controls. All six complete outputs equal. Separate combined near controlled check passed, but does not establish benefit of this added cache or qualify release."
+    }
+  },
+  "combined_near_check": {
+    "candidate_includes_rejected_cache": true,
+    "status": "pass",
+    "scope": "Optimization adoption comparison against bounded-merge prototype, not official release qualification. Its result is not transferred to the retained two-step binary."
+  },
+  "diagnosis": "Intrusive counters locate 36,817,516 Alamofire whole-target component-proof checks. They are removed. Same-file-only certification retains exact source exclusions; root reuse preserves union-rank representatives. Direct cache comparison raises cluster median 82.3 to 100.1 ms despite small mixed elapsed effects, so remove its extra state.",
+  "artifacts": [
+    {
+      "path": "target/release-default-score-20260908/record-components.py",
+      "bytes": 2496,
+      "sha256": "fd6ef1da70da365b9b0f80a1435bf00a09f7151ccb1ea3c26d9a78f18a270bff"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-adoption.log",
+      "bytes": 351,
+      "sha256": "806325018e35cc43fa340d9d3ef247c30a0514203a059be210157f78f6f981be"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census-alamofire.log",
+      "bytes": 178,
+      "sha256": "1a16c7e1cad0ad991d0015ab70645c3a4eb235d3a86be31335bc5a22599d6ab6"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census-build-corrected.log",
+      "bytes": 247,
+      "sha256": "d06ef1ef8a731ceee55aae0436a56be489320fe53e0cdebe747422dbf5b7318f"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census-build.log",
+      "bytes": 788,
+      "sha256": "0135916847846545ff35ba038c27051811936363779d1bc05df4e4286390b71c"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census-corrected.patch",
+      "bytes": 3601,
+      "sha256": "ad648e9a747bd0dcd2da67b38fd48cb4642d579c36ea1d88f83729dcb25719ae"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census-identity.json",
+      "bytes": 858,
+      "sha256": "09b2b87568387d5312f6c9c1ad943349f78203e55c555bcf04b1405d8af9dbde"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census-libgdx.log",
+      "bytes": 166,
+      "sha256": "f73966177b0677f9754bd93df2e14f7724396ba68e778e6a2e5fecf2ce1d9c11"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census-removal.json",
+      "bytes": 164,
+      "sha256": "c7af32df0c34997a5c50beb521bbe09ca1ed836dd774a333d8f8335236c76ea7"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census-results.json",
+      "bytes": 3540,
+      "sha256": "05f3c451e1ef93d84953a1959bf694b91353f6b962a9e0d2918569521300302a"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census-rxswift.log",
+      "bytes": 171,
+      "sha256": "21ecc62d1ee2363ca4d6fdac9a5f05a772e99979a36c1b1627db1210313ec320"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census-source-corrected.json",
+      "bytes": 771,
+      "sha256": "9508560bc4ccf314e99abd286503f175eb7da4cff9d667eb3aaf345709da7439"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census-source.json",
+      "bytes": 532,
+      "sha256": "39c9c4031ab94e4ee43f8a249e1c5c6916d2384638d419d9bf8514e78902608a"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census.log",
+      "bytes": 1717,
+      "sha256": "c48e1151126aec3e3411bec17955413fe43b990a59229354c820bd3c7115c39a"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census.patch",
+      "bytes": 3363,
+      "sha256": "b43f20900d9e8a304981ae7069eb823713638dcf0e4142e77d7e6b612f3fc7c9"
+    },
+    {
+      "path": "target/release-default-score-20260908/accepted-row-census.py",
+      "bytes": 1636,
+      "sha256": "06b8d6c161b7eed70268c5042f39fedc48ba3f5e200f77b477309b3042f293bb"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-build.log",
+      "bytes": 247,
+      "sha256": "3e33ebd5104fef106eb6dd3cbdbbff72ceac4825b97aa47b1b135f77626bb340"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-clippy.log",
+      "bytes": 157,
+      "sha256": "c5ca3880ba151494863c2c36b690d06d68edb2b96b2406bcac24eff54c11ea38"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-cluster-summary.json",
+      "bytes": 1054,
+      "sha256": "473a9b58c944e095ab73d6aab769dbb720598985bbd57ab0c000275e35f51a08"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-commit.log",
+      "bytes": 2473,
+      "sha256": "7fedffee2c6a03ad30c09f9ca4264ae316d9c4e26d389953ebe3d4c49e9ad133"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-decision.json",
+      "bytes": 4773,
+      "sha256": "ed0fce0b2610cbd9911c587575492a388f63e8530bca16e0008b327d910565b1"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-identity.json",
+      "bytes": 207,
+      "sha256": "f53f498cc8fe80773255598d16e7acb5db4bff95f1c66d0a7fe4f26161f813ab"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-alamofire-default.json",
+      "bytes": 21180,
+      "sha256": "1e08f6c1f61ee38c1892120af6a12be9e189e895612884f74e24811e1f44c333"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-alamofire-near-0.8.json",
+      "bytes": 21163,
+      "sha256": "10582c712c88b23ea5ba853ce0022e95ce208cd8deb30e3fd31e35311cb63b33"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-design.json",
+      "bytes": 824,
+      "sha256": "35e711bb0675d434a683a6d856667ddc823bbad16b5b49901488b0e6e626bb31"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-guava-default.json",
+      "bytes": 21532,
+      "sha256": "bef10141e5844e9885cc3e867b9059e34eed41cfaca05e582494b0d050657210"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-libgdx-default.json",
+      "bytes": 21308,
+      "sha256": "5f5087bcb9a4cc7d9c3074162d85c23909eeaf622a6927179aad43ff1d57b849"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-results.json",
+      "bytes": 3539,
+      "sha256": "1e72bd9748cb6eacd8ba93cb200a6f19b092b0f5eef556902d2fd2dc07307455"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-rxswift-default.json",
+      "bytes": 21230,
+      "sha256": "9878edda3664fe443463813db75220c6159e59ab88ba41d5cb03b7dee7366e50"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-rxswift-semantic.json",
+      "bytes": 20725,
+      "sha256": "87ad0b00b3ea00461c9c0bcaa4c34b9af92650a2f98d596ae582992e4548315f"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen.log",
+      "bytes": 1809,
+      "sha256": "6a63dcdeec077e45a6326290bbb8b53e18ba0ec72a2b5c332512afdfee81ccc0"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-screen.py",
+      "bytes": 2900,
+      "sha256": "86a32c171a5680f9f860849aa468ad3c4317b141d72d6ba45a693c4cd1d42170"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-source.patch",
+      "bytes": 3484,
+      "sha256": "8dda7027c8010492aa89a7fea432234376a83a236d3f72f73ae9644bad4544a2"
+    },
+    {
+      "path": "target/release-default-score-20260908/local-component-proof-tests.log",
+      "bytes": 27531,
+      "sha256": "ccbe9e1dad439f7178f093505acaac09dfe16ec7758f84b48d124b3241d66ee1"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-build.log",
+      "bytes": 247,
+      "sha256": "3e33ebd5104fef106eb6dd3cbdbbff72ceac4825b97aa47b1b135f77626bb340"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-clippy.log",
+      "bytes": 157,
+      "sha256": "1e15c967cad8b5116ec76b4e5365d77a6d9cc2371ecff3d6d4c174ed65c7758b"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-cluster-summary.json",
+      "bytes": 1028,
+      "sha256": "f328119670605b5c801690957211e7c19530401165f85018d666beacb73c0ddd"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-commit.log",
+      "bytes": 2470,
+      "sha256": "4873986e271a79ee21250dd99d59b26b57520145abdd8ae3a8bc52c200faa368"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-decision.json",
+      "bytes": 4653,
+      "sha256": "05117dcd0051519a14dddb83aa9ff150ea0eb8df8c3a0be0aad790d8ee03f95e"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-identity.json",
+      "bytes": 207,
+      "sha256": "75536019dc260efaf667d1edc6845ce1af1f1299957a3c9b1a2e4756f312044c"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-alamofire-default.json",
+      "bytes": 21163,
+      "sha256": "9c70754bb82d9558e1394c2766bac1c9b8b21ddbef8dfa06b2306517a835a94f"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-alamofire-near-0.8.json",
+      "bytes": 21174,
+      "sha256": "6516cc4c28879488f43477ad3392f7eea868594817a2abf8dd5730c5f605ac73"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-design.json",
+      "bytes": 824,
+      "sha256": "31f4272d57ca0585496ceed2ca4b369dec5881baa6c073d1ed308d35f879cdb0"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-guava-default.json",
+      "bytes": 21539,
+      "sha256": "ef25786d7b524bcda55f7b8d46677b1227a9a3a12ca42d73766b88b37ca69a04"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-libgdx-default.json",
+      "bytes": 21297,
+      "sha256": "7a26ec88bc0406a7ecd40dff26acce836d0ae65fbc4409f11e639f5e6e90c76c"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-results.json",
+      "bytes": 3540,
+      "sha256": "04d22c50b0de00e4a0283bf06aca89e8b72bc542981355da67d42a0cd58b2357"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-rxswift-default.json",
+      "bytes": 21224,
+      "sha256": "6a14049f55e8a96c0d787a96fd8a6bb7c99cfe6fc0fd7bbbd2861f0e86f6c25f"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-rxswift-semantic.json",
+      "bytes": 20718,
+      "sha256": "8d9588a9fb7eb47997455a7d881d63e872626686dc6b8002e9feaebff4cae6d2"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen.log",
+      "bytes": 1810,
+      "sha256": "d09e501fbbd6dd59ea240c4e47effc9eb0381d88fb1d1f1e76c000f41b657870"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-screen.py",
+      "bytes": 2873,
+      "sha256": "04c05242aec3189da507ca98b18eca26370339fd565fc451619d6eba74cd88d8"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-source.patch",
+      "bytes": 4688,
+      "sha256": "68703cadf17b352d05471a6caf3ed0be6b841d724bd534ecb4aca0945ec7caae"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-root-tests.log",
+      "bytes": 27621,
+      "sha256": "e073304d84207ccdee9617e53541bf656ba59738418c839bd28b28547369e7d5"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-build.log",
+      "bytes": 247,
+      "sha256": "518e0c8c9444dcad3ba1c4b7e28ba336699cdb2b7ece7034138646f397ec912c"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-clippy.log",
+      "bytes": 157,
+      "sha256": "7f950af45af45d35d1207a860751d08896753c8a9a9b7187530da65d484a170d"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-commit.log",
+      "bytes": 2641,
+      "sha256": "ed32ef8dfb700d96e9ecac6a437c75b369671dad1426bb9c98ddc3ad3ae1bd75"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-decision.json",
+      "bytes": 4193,
+      "sha256": "fcef40cedb21fb0ae96f9412323cf86a7de834678bdb9dd65c5cd723ff56f07c"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-identity.json",
+      "bytes": 207,
+      "sha256": "70eeb86f4bcd3b3b591f489bbb370add7fb43b398344abe2139778fd5c46d67a"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-revert.log",
+      "bytes": 352,
+      "sha256": "d8fd953426ef7a0c5213a7bcc9b45257933e45f5d9d96d13ce7b1359b27782f5"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-alamofire-default.json",
+      "bytes": 21159,
+      "sha256": "20966271eac9a97d3fc9a99232d4e7756d11bba72fadea5b303a37bafb982da0"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-alamofire-near-0.8.json",
+      "bytes": 21158,
+      "sha256": "fe6137478b4b080079320dabbc1a7cdf67e768c737a109127757c3d3a90b3ebd"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-design.json",
+      "bytes": 824,
+      "sha256": "04de22c2c122e44b85cfbae3bfd9acf0ec212fbc721155d3b7181a257cdce11d"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-guava-default.json",
+      "bytes": 21526,
+      "sha256": "892d2c34c4969c1a2db18522f8bfa92a1fe5056d4eaa971e70843aa259787d1a"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-libgdx-default.json",
+      "bytes": 21287,
+      "sha256": "10dccad3afb35f576f7a7977cca194c68952a86c098489f5ede5c4c40c0f0cbd"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-results.json",
+      "bytes": 3539,
+      "sha256": "30b03362b274b91524b563b3e10aec3baac5098a922c09e8460ad77edcab64cb"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-rxswift-default.json",
+      "bytes": 21217,
+      "sha256": "07a3bbe8f645ebb1139a86eca700da6a02bfd26463747d86f8cc6fd99d148579"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-rxswift-semantic.json",
+      "bytes": 20706,
+      "sha256": "a1e30ae423784d4f4ae8af0a0615c147281d661569b6d33cacadea6d20fc34b3"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen.log",
+      "bytes": 1809,
+      "sha256": "aa26767e09ac4ebeaba179257b3bcc8502ea2def44e05abecd5e358f08f8ed26"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-screen.py",
+      "bytes": 2881,
+      "sha256": "a69dcd32466f725550a922e438b14cbd33ddd905df2896d360bc9d262d1fc0c6"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-source.patch",
+      "bytes": 19515,
+      "sha256": "a1b723f842a5e42301b1c9d6f384b0423612201f3f6cfa573015f2ff8d2c07e9"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-tests-final.log",
+      "bytes": 27621,
+      "sha256": "5fa81846a08cadde96e166ca1d3503ca3fbc999b3013ef8e1a910d1a36153edb"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-classes-tests.log",
+      "bytes": 27621,
+      "sha256": "85ac90328db8c8dc7c06f0f067d36f1efd2a924a6de371f570feb79fbfe2b0d6"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-alamofire-default-exploratory.json",
+      "bytes": 21168,
+      "sha256": "4907c35dbceecf24cdbf15e4663bd87fd4ce6832d363fcb5c775a0fb27dbee67"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-alamofire-default-exploratory.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-alamofire-near-0.8-control.json",
+      "bytes": 69107,
+      "sha256": "b0b58ae831da6e8aa29ef49ea13d55daa52402eb44c41cafee6abd7c60ee6ac5"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-alamofire-near-0.8-control.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-alamofire-near-0.8-primary.json",
+      "bytes": 69020,
+      "sha256": "34b0733b814f0d4cb5df2889d3ccd71875c5fe057f252c88ad0fa82b5ae12ee4"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-alamofire-near-0.8-primary.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-expected-drift.json",
+      "bytes": 78,
+      "sha256": "5c235dbdd47f304132d2a5173cbd4d8516235ffe2f20c3eef009dce5197faa23"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-guava-default-exploratory.json",
+      "bytes": 21540,
+      "sha256": "5d066aded068be7bfe767a132e2d53c9ab6f2d1dab3c3e1e3e638a0442d86289"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-guava-default-exploratory.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-libgdx-default-exploratory.json",
+      "bytes": 21303,
+      "sha256": "e93568d92fcd6f44eab1f415d044974ca1e3e929f2b72ae776011655162d5c16"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-libgdx-default-exploratory.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-near-gate.json",
+      "bytes": 44198,
+      "sha256": "706273e511ebb8fd57d5a73f189f8c81fdc0c87c41f21a155b63d6cacc97d608"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-near-gate.log",
+      "bytes": 84,
+      "sha256": "c79f93648c5522e9302dfe88f03e01d1ddfdcea7dbf6a3a2ad0e1c704de72494"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-near-primary-inspection.json",
+      "bytes": 41470,
+      "sha256": "eb449b37aed25c0d8ba7099198a72257109e71c8f2c5f4a5e7f06c1f01bd3d98"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-rxswift-default-exploratory.json",
+      "bytes": 21221,
+      "sha256": "b3a7d050500a06b8013a9b31cdaa464374d31f284d289ce416a39fb5b519b537"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-rxswift-default-exploratory.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-rxswift-semantic-exploratory.json",
+      "bytes": 20706,
+      "sha256": "7a01452f89cfe9881361a6923eab0c29f96c54ec34595c66744741ea2c854d60"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-rxswift-semantic-exploratory.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-screen-design.json",
+      "bytes": 1877,
+      "sha256": "b0bad7f87ad6833094e1c9359cb91378023067fb15358cc68729f748e16f1762"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-screen-results.json",
+      "bytes": 6419,
+      "sha256": "3e2f8f197089a98012660dfe0d48d70eae1b308c5d024bb3a88e1c790bc70543"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-screen.log",
+      "bytes": 3461,
+      "sha256": "ea8d06d16cd2bd2eeee92d5b02140accc17549f6258229dc0cdb5101235f0e31"
+    },
+    {
+      "path": "target/release-default-score-20260908/component-combined-screen.py",
+      "bytes": 5632,
+      "sha256": "2760979afe4f57e04d21df090bbc1ad98aa8ae40b5024b137f249d8d5b38fa12"
+    },
+    {
+      "path": "target/release-default-score-20260908/freeze-accepted-row-census.py",
+      "bytes": 701,
+      "sha256": "b6dfcbf742ad9020ea39f944ed10589b19b8902ab18e08e7b79c24585ffcd603"
+    },
+    {
+      "path": "target/release-default-score-20260908/freeze-local-component-proof.py",
+      "bytes": 803,
+      "sha256": "dbcdf9310fe310c8f47528d2b5976210d5c1589f687959143d7b63387ede1ce2"
+    },
+    {
+      "path": "target/release-default-score-20260908/freeze-component-root.py",
+      "bytes": 789,
+      "sha256": "beebecdb261b3b11e785662ec012f9e32e7f76f978b7ef318861ce79f7e3df26"
+    },
+    {
+      "path": "target/release-default-score-20260908/freeze-component-classes.py",
+      "bytes": 795,
+      "sha256": "b8729dd745ba2b42ff827364e25723f3bc9af9c640fa1bc92634c74df9c299fd"
+    }
+  ]
+}

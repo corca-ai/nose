@@ -1,0 +1,313 @@
+{
+  "before_exact_only_lsh_removal": {
+    "binary": {
+      "code_sha256": "96134b91b94765ff22bcb7312c10e46ea2e0a5c148fcff2567468e657960b8eb",
+      "code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1",
+      "file_sha256": "c0c21c1ba81a4eaec52c51022ee4c4e8d2357494492d26a7b2589a0d1293082b"
+    },
+    "failures": {
+      "watch-10000": "watch latency/recovery target failed",
+      "watch-100000": "cache seed failed: Error: candidate work exceeds limit of 16000000 pairs; narrow analysis roots or increase NOSE_MAX_CANDIDATE_PAIRS\n"
+    },
+    "raw_report_sha256": "028557a15c63a6a0eecea79c7602def6c258a744fb41269967f450e21468ed0a",
+    "replays": 6,
+    "source_diff_sha256": "d1dbb0be918b34bf3567f925d96f28b80bc39ca5bdc5f1fc050e8fc1cf5ede55",
+    "watch_10000": {
+      "crash_recovery": true,
+      "end_to_end_ms": {
+        "p50": 1400.385542307049,
+        "p95": 1584.9292073398829
+      },
+      "equivalent_to_clean": true,
+      "files": 10000,
+      "latency_ms": {
+        "p50": 1388.4345835,
+        "p95": 1571.95975
+      },
+      "passed": false,
+      "peak_rss_bytes": 2019328000,
+      "replays": 6,
+      "rows": [
+        {
+          "end_to_end_ms": 1387.824541889131,
+          "equivalent_to_clean": true,
+          "latency_ms": 1374.934209,
+          "reconciliation": "incremental-leaf",
+          "replay": 1,
+          "rss_bytes": 911753216,
+          "sequence": 1,
+          "snapshot_sha256": "482331684fc4fd1f1d3218281b0c91604e01a85c73adbed928f5ad29767caf58",
+          "source_set_digest": "84159fbd647257d4516718db5112be25e159ce1f6676e889bb120513dd56956d"
+        },
+        {
+          "end_to_end_ms": 1584.9292073398829,
+          "equivalent_to_clean": true,
+          "latency_ms": 1571.95975,
+          "reconciliation": "incremental-leaf",
+          "replay": 2,
+          "rss_bytes": 1671348224,
+          "sequence": 2,
+          "snapshot_sha256": "482331684fc4fd1f1d3218281b0c91604e01a85c73adbed928f5ad29767caf58",
+          "source_set_digest": "2396b386ee5dd07788f1ddd9c185af5b2be3dce80d04fba273859238d8fec17a"
+        },
+        {
+          "end_to_end_ms": 1529.5937499031425,
+          "equivalent_to_clean": true,
+          "latency_ms": 1517.721834,
+          "reconciliation": "incremental-leaf",
+          "replay": 3,
+          "rss_bytes": 2019328000,
+          "sequence": 3,
+          "snapshot_sha256": "482331684fc4fd1f1d3218281b0c91604e01a85c73adbed928f5ad29767caf58",
+          "source_set_digest": "84159fbd647257d4516718db5112be25e159ce1f6676e889bb120513dd56956d"
+        },
+        {
+          "end_to_end_ms": 1412.946542724967,
+          "equivalent_to_clean": true,
+          "latency_ms": 1401.934958,
+          "reconciliation": "incremental-leaf",
+          "replay": 4,
+          "rss_bytes": 1306361856,
+          "sequence": 1,
+          "snapshot_sha256": "482331684fc4fd1f1d3218281b0c91604e01a85c73adbed928f5ad29767caf58",
+          "source_set_digest": "2396b386ee5dd07788f1ddd9c185af5b2be3dce80d04fba273859238d8fec17a"
+        },
+        {
+          "end_to_end_ms": 1183.2276666536927,
+          "equivalent_to_clean": true,
+          "latency_ms": 1172.396666,
+          "reconciliation": "incremental-leaf",
+          "replay": 5,
+          "rss_bytes": 1748828160,
+          "sequence": 2,
+          "snapshot_sha256": "482331684fc4fd1f1d3218281b0c91604e01a85c73adbed928f5ad29767caf58",
+          "source_set_digest": "84159fbd647257d4516718db5112be25e159ce1f6676e889bb120513dd56956d"
+        },
+        {
+          "end_to_end_ms": 1141.6220003739,
+          "equivalent_to_clean": true,
+          "latency_ms": 1128.973292,
+          "reconciliation": "incremental-leaf",
+          "replay": 6,
+          "rss_bytes": 1801371648,
+          "sequence": 3,
+          "snapshot_sha256": "482331684fc4fd1f1d3218281b0c91604e01a85c73adbed928f5ad29767caf58",
+          "source_set_digest": "2396b386ee5dd07788f1ddd9c185af5b2be3dce80d04fba273859238d8fec17a"
+        }
+      ],
+      "source_bytes": 387780,
+      "store": {
+        "bytes": 36153999,
+        "files": 11
+      },
+      "target_p95_ms": 250.0
+    }
+  },
+  "candidate_budget": {
+    "charged_pairs": {
+      "netty": 11413646,
+      "sympy": 9285379
+    },
+    "new_limit": 16000000,
+    "previous_limit": 1000000,
+    "probe_binary": {
+      "code_sha256": "96134b91b94765ff22bcb7312c10e46ea2e0a5c148fcff2567468e657960b8eb",
+      "code_sha256_algorithm": "sha256/mach-o-zero-uuid-signature-v1",
+      "file_sha256": "c0c21c1ba81a4eaec52c51022ee4c4e8d2357494492d26a7b2589a0d1293082b"
+    },
+    "query_flags": [
+      "--min-lines",
+      "5",
+      "--min-size",
+      "24"
+    ],
+    "query_modes": [
+      "syntax",
+      "semantic",
+      "near"
+    ],
+    "single_run_probes": [
+      {
+        "elapsed_ms": 1803.1754167750478,
+        "exit": 1,
+        "limit": 2000000,
+        "peak_rss_bytes": 1094631424,
+        "repo": "sympy",
+        "stages_ms": {
+          "discover": 26.9,
+          "import-resolve": 45.4,
+          "lower": 890.1,
+          "normalize+extract": 800.2,
+          "parse+lower": 817.6
+        }
+      },
+      {
+        "elapsed_ms": 1924.9996254220605,
+        "exit": 1,
+        "limit": 4000000,
+        "peak_rss_bytes": 1095598080,
+        "repo": "sympy",
+        "stages_ms": {
+          "discover": 28.4,
+          "import-resolve": 46.1,
+          "lower": 993.3,
+          "normalize+extract": 815.6,
+          "parse+lower": 918.6
+        }
+      },
+      {
+        "elapsed_ms": 1943.0082505568862,
+        "exit": 1,
+        "limit": 8000000,
+        "peak_rss_bytes": 1070039040,
+        "repo": "sympy",
+        "stages_ms": {
+          "discover": 29.8,
+          "import-resolve": 49.5,
+          "lower": 952.6,
+          "normalize+extract": 869.8,
+          "parse+lower": 873.2
+        }
+      },
+      {
+        "elapsed_ms": 3065.6841658055782,
+        "exit": 0,
+        "limit": 16000000,
+        "peak_rss_bytes": 1847033856,
+        "repo": "sympy",
+        "stages_ms": {
+          "cache_commit": 0.0,
+          "candidates": 261.7,
+          "cluster": 1.2,
+          "contiguous": 82.7,
+          "discover": 26.1,
+          "groups": 8.8,
+          "import-resolve": 50.2,
+          "lower": 918.7,
+          "normalize+extract": 824.5,
+          "parse+lower": 842.2,
+          "query_activate": 0.0,
+          "query_filter": 0.0,
+          "query_gate": 3.9,
+          "query_opp": 1.6,
+          "query_rank_sort": 17.1,
+          "query_render": 66.1,
+          "query_since": 0.0,
+          "query_sort": 0.0,
+          "query_surface": 10.5,
+          "rank_dedup": 3.3,
+          "rank_families": 15.8,
+          "rank_map": 8.6,
+          "rank_sort": 3.9,
+          "score": 541.6,
+          "shared_lines": 140.8
+        }
+      },
+      {
+        "elapsed_ms": 1192.9711671546102,
+        "exit": 1,
+        "limit": 2000000,
+        "peak_rss_bytes": 674824192,
+        "repo": "netty",
+        "stages_ms": {
+          "discover": 90.7,
+          "import-resolve": 137.7,
+          "lower": 605.6,
+          "normalize+extract": 514.6,
+          "parse+lower": 376.6
+        }
+      },
+      {
+        "elapsed_ms": 1215.96987452358,
+        "exit": 1,
+        "limit": 4000000,
+        "peak_rss_bytes": 698417152,
+        "repo": "netty",
+        "stages_ms": {
+          "discover": 84.8,
+          "import-resolve": 138.3,
+          "lower": 604.6,
+          "normalize+extract": 499.4,
+          "parse+lower": 380.9
+        }
+      },
+      {
+        "elapsed_ms": 1225.8172500878572,
+        "exit": 1,
+        "limit": 8000000,
+        "peak_rss_bytes": 697548800,
+        "repo": "netty",
+        "stages_ms": {
+          "discover": 81.9,
+          "import-resolve": 142.1,
+          "lower": 615.0,
+          "normalize+extract": 490.2,
+          "parse+lower": 390.3
+        }
+      },
+      {
+        "elapsed_ms": 2632.404750213027,
+        "exit": 0,
+        "limit": 16000000,
+        "peak_rss_bytes": 1558609920,
+        "repo": "netty",
+        "stages_ms": {
+          "cache_commit": 0.0,
+          "candidates": 332.1,
+          "cluster": 1.7,
+          "contiguous": 38.3,
+          "discover": 87.2,
+          "groups": 15.2,
+          "import-resolve": 135.1,
+          "lower": 622.6,
+          "normalize+extract": 497.1,
+          "parse+lower": 399.7,
+          "query_activate": 0.0,
+          "query_filter": 0.0,
+          "query_gate": 5.3,
+          "query_opp": 3.4,
+          "query_rank_sort": 22.2,
+          "query_render": 81.4,
+          "query_since": 0.0,
+          "query_sort": 0.0,
+          "query_surface": 30.7,
+          "rank_dedup": 4.4,
+          "rank_families": 15.9,
+          "rank_map": 5.8,
+          "rank_sort": 5.7,
+          "score": 591.1,
+          "shared_lines": 214.5
+        }
+      }
+    ]
+  },
+  "parse_depth": {
+    "debug_cli_boundary_probes": [
+      {
+        "depth": 8100,
+        "diagnostic": "",
+        "exit": 0
+      },
+      {
+        "depth": 8300,
+        "diagnostic": "Error: incomplete source analysis:\nlowering source /var/folders/b8/j13fl7417hvdbpvjgfmvkwnc0000gn/T/nose-depth-boundary-_hzo3ubh/deep.py: source syntax depth exceeds analysis limit of 8192\n",
+        "exit": 1
+      },
+      {
+        "depth": 40000,
+        "diagnostic": "Error: incomplete source analysis:\nlowering source /var/folders/b8/j13fl7417hvdbpvjgfmvkwnc0000gn/T/nose-depth-boundary-_hzo3ubh/deep.py: source syntax depth exceeds analysis limit of 8192\n",
+        "exit": 1
+      }
+    ],
+    "new_limit": 8192,
+    "observed_trees": [
+      "bench/repos/sympy/sympy/polys/numberfields/resolvent_lookup.py\tdepth=570\tnodes=34874",
+      "bench/repos/netty/example/src/main/java/io/netty/example/http/upload/HttpUploadClient.java\tdepth=591\tnodes=7345",
+      "bench/repos/prettier/tests/format/flow/flow-repo/union-intersection/gen_big_disjoint_union.js\tdepth=1005\tnodes=18027",
+      "bench/repos/prettier/tests/format/flow/flow-repo/union/yuge.js\tdepth=5002\tnodes=15096"
+    ],
+    "previous_limit": 512
+  },
+  "purpose": "development-diagnostics-not-release-acceptance",
+  "schema": "nose.review_resource_tuning/v1"
+}

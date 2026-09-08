@@ -11,7 +11,9 @@ const NEAR_CAVEATS: &[&str] = &[
     "exact-output-unchanged",
 ];
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Clone, PartialEq, Hash, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize,
+)]
 pub struct SemanticPackNearDependency {
     pub coordinate: String,
     pub declared_version: String,
@@ -19,7 +21,9 @@ pub struct SemanticPackNearDependency {
     pub sources: Vec<SemanticPackDependencySource>,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Clone, PartialEq, Hash, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize,
+)]
 pub struct SemanticPackNearProvenance {
     pub pack_id: String,
     pub row_id: String,
@@ -35,7 +39,9 @@ pub struct SemanticPackNearProvenance {
     pub caveats: Vec<String>,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Clone, PartialEq, Hash, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize,
+)]
 pub struct SemanticPackNearProtocol {
     pub operation: SemanticPackV1ProtocolOperation,
     #[serde(skip_serializing_if = "Option::is_none")]

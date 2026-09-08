@@ -277,7 +277,7 @@ fn push_receiver_domain_dependency_with_id(
     receiver: NodeId,
     domain: DomainEvidence,
 ) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         id,
         EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
         EvidenceKind::Domain(domain),
@@ -315,7 +315,7 @@ fn admitted_js_array_hof_requires_array_pack_and_array_receiver_proof() {
         library_method_call_contract(Lang::JavaScript, "map", 1).expect("JS Array.map row");
 
     let (mut missing_dependency, interner, call, _receiver) = js_array_hof_call_il("map", 1);
-    missing_dependency.evidence.push(js_array_hof_record(
+    missing_dependency.push_evidence(js_array_hof_record(
         1,
         &missing_dependency,
         call,
@@ -329,19 +329,17 @@ fn admitted_js_array_hof_requires_array_pack_and_array_receiver_proof() {
 
     let (mut wrong_pack, interner, call, receiver) = js_array_hof_call_il("map", 1);
     push_receiver_domain_dependency(&mut wrong_pack, receiver, DomainEvidence::Array);
-    wrong_pack
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            wrong_pack.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
-            BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
-        ));
+    wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        wrong_pack.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+        BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
+        BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
+    ));
     assert!(
         admitted_library_method_call_at_call(&wrong_pack, &interner, call).is_none(),
         "JS Array HOF evidence under the generic method-call pack is rejected"
@@ -349,19 +347,17 @@ fn admitted_js_array_hof_requires_array_pack_and_array_receiver_proof() {
 
     let (mut wrong_producer, interner, call, receiver) = js_array_hof_call_il("map", 1);
     push_receiver_domain_dependency(&mut wrong_producer, receiver, DomainEvidence::Array);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            JS_LIKE_BUILTIN_ARRAY_PACK_ID,
-            "wrong.javascript.builtins.array-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+        JS_LIKE_BUILTIN_ARRAY_PACK_ID,
+        "wrong.javascript.builtins.array-api",
+    ));
     assert!(
         admitted_library_method_call_at_call(&wrong_producer, &interner, call).is_none(),
         "JS Array HOF evidence with the wrong producer is rejected"
@@ -373,7 +369,7 @@ fn admitted_js_array_hof_requires_array_pack_and_array_receiver_proof() {
         receiver,
         DomainEvidence::Collection,
     );
-    collection_receiver.evidence.push(js_array_hof_record(
+    collection_receiver.push_evidence(js_array_hof_record(
         1,
         &collection_receiver,
         call,
@@ -387,9 +383,7 @@ fn admitted_js_array_hof_requires_array_pack_and_array_receiver_proof() {
 
     let (mut admitted, interner, call, receiver) = js_array_hof_call_il("map", 1);
     push_receiver_domain_dependency(&mut admitted, receiver, DomainEvidence::Array);
-    admitted
-        .evidence
-        .push(js_array_hof_record(1, &admitted, call, contract, &[0]));
+    admitted.push_evidence(js_array_hof_record(1, &admitted, call, contract, &[0]));
     let occurrence = admitted_library_method_call_at_call(&admitted, &interner, call)
         .expect("JS Array.map with Array receiver proof admits");
     assert_eq!(
@@ -413,8 +407,7 @@ fn admitted_js_array_pack_covers_supported_hofs_and_terminals() {
         push_receiver_domain_dependency(&mut il, receiver, DomainEvidence::Array);
         let contract =
             library_method_call_contract(Lang::JavaScript, method, 1).expect("JS Array row");
-        il.evidence
-            .push(js_array_hof_record(1, &il, call, contract, &[0]));
+        il.push_evidence(js_array_hof_record(1, &il, call, contract, &[0]));
         let occurrence = admitted_library_method_call_at_call(&il, &interner, call)
             .expect("supported JS Array HOF/terminal admits");
         assert_eq!(
@@ -467,8 +460,7 @@ fn js_array_hof_pack_rejects_callbacks_that_observe_extra_args() {
         push_receiver_domain_dependency(&mut il, receiver, DomainEvidence::Array);
         let contract =
             library_method_call_contract(Lang::JavaScript, method, 1).expect("JS Array row");
-        il.evidence
-            .push(js_array_hof_record(1, &il, call, contract, &[0]));
+        il.push_evidence(js_array_hof_record(1, &il, call, contract, &[0]));
         assert!(
             admitted_library_method_call_at_call(&il, &interner, call).is_none(),
             "{message}"
@@ -492,8 +484,7 @@ fn js_array_hof_pack_rejects_non_inline_or_effectful_callbacks() {
     ] {
         let (mut il, interner, call, receiver) = js_array_hof_call_with_callback_il("map", shape);
         push_receiver_domain_dependency(&mut il, receiver, DomainEvidence::Array);
-        il.evidence
-            .push(js_array_hof_record(1, &il, call, contract, &[0]));
+        il.push_evidence(js_array_hof_record(1, &il, call, contract, &[0]));
         assert!(
             admitted_library_method_call_at_call(&il, &interner, call).is_none(),
             "{message}"
@@ -508,11 +499,10 @@ fn js_array_hof_result_domain_rechecks_callback_obligation() {
     push_receiver_domain_dependency(&mut il, receiver, DomainEvidence::Array);
     let map_contract =
         library_method_call_contract(Lang::JavaScript, "map", 1).expect("JS Array.map row");
-    il.evidence
-        .push(js_array_hof_record(1, &il, map_call, map_contract, &[0]));
+    il.push_evidence(js_array_hof_record(1, &il, map_call, map_contract, &[0]));
     let filter_contract =
         library_method_call_contract(Lang::JavaScript, "filter", 1).expect("JS Array.filter row");
-    il.evidence.push(js_array_hof_record(
+    il.push_evidence(js_array_hof_record(
         2,
         &il,
         filter_call,
@@ -533,8 +523,7 @@ fn js_array_normalized_hof_rechecks_callback_obligation() {
     push_receiver_domain_dependency(&mut il, receiver, DomainEvidence::Array);
     let contract =
         library_method_call_contract(Lang::JavaScript, "map", 1).expect("JS Array.map row");
-    il.evidence
-        .push(js_array_hof_record(1, &il, hof, contract, &[0]));
+    il.push_evidence(js_array_hof_record(1, &il, hof, contract, &[0]));
 
     assert!(
         !admitted_hof_api_at_node(&il, hof, HoFKind::Map),
@@ -548,11 +537,10 @@ fn js_array_hof_result_domain_can_prove_follow_on_array_receiver() {
     push_receiver_domain_dependency(&mut il, receiver, DomainEvidence::Array);
     let map_contract =
         library_method_call_contract(Lang::JavaScript, "map", 1).expect("JS Array.map row");
-    il.evidence
-        .push(js_array_hof_record(1, &il, map_call, map_contract, &[0]));
+    il.push_evidence(js_array_hof_record(1, &il, map_call, map_contract, &[0]));
     let filter_contract =
         library_method_call_contract(Lang::JavaScript, "filter", 1).expect("JS Array.filter row");
-    il.evidence.push(js_array_hof_record(
+    il.push_evidence(js_array_hof_record(
         2,
         &il,
         filter_call,

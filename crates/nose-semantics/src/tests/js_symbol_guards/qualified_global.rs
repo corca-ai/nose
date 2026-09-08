@@ -60,7 +60,7 @@ fn qualified_global_symbol_requires_matching_node_evidence_and_root_dependency()
 
     assert!(!qualified_global_symbol(&il, field, "Array.from"));
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(sp(27), NodeKind::Field),
         EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
@@ -74,7 +74,7 @@ fn qualified_global_symbol_requires_matching_node_evidence_and_root_dependency()
     );
 
     let (mut il, field) = build();
-    il.evidence.push(evidence_with_dependencies(
+    il.push_evidence(evidence_with_dependencies(
         0,
         EvidenceAnchor::node(sp(27), NodeKind::Field),
         EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
@@ -83,7 +83,7 @@ fn qualified_global_symbol_requires_matching_node_evidence_and_root_dependency()
         EvidenceStatus::Asserted,
         vec![EvidenceId(1)],
     ));
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         1,
         EvidenceAnchor::source_span(sp(27)),
         EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
@@ -100,7 +100,7 @@ fn qualified_global_symbol_requires_matching_node_evidence_and_root_dependency()
     ));
     assert!(!qualified_global_symbol(&il, field, "Array.fromAsync"));
 
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         2,
         EvidenceAnchor::node(sp(27), NodeKind::Field),
         EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {

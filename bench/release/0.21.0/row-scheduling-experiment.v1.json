@@ -1,0 +1,299 @@
+{
+  "schema": "nose.release-scheduling-experiment/v1",
+  "version": "0.21.0",
+  "decision": "NOT READY: scheduling experiment reverted; short-feature product still requires final resource/native/runtime qualification",
+  "product": "aea64b61e59c820071c26f16e24c30b30ecc56a4",
+  "experiment": {
+    "decision": "reject: finer scheduling lacks sufficient whole-query benefit and raises RxSwift semantic elapsed in the exploratory screen",
+    "identity": {
+      "source": "5340f8a764ad36cd45b450d18bfeab0b2817bd98",
+      "crates_tree": "52ba5c981d3c0d33506dad920818d3277202623c",
+      "binary_sha256": "e7eab81c24e97989e7731aaf2eff6bab8f64a9cfafd8248e2fe5bbe3b192203c"
+    },
+    "results": [
+      {
+        "repo": "alamofire",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2831.5874999389052,
+            "score": 987.8,
+            "groups": 356.0,
+            "query_opp": 18.6
+          },
+          "current": {
+            "elapsed": 2825.8837927132845,
+            "score": 971.7,
+            "groups": 360.8,
+            "query_opp": 18.6
+          }
+        }
+      },
+      {
+        "repo": "libgdx",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2121.196124702692,
+            "score": 676.3,
+            "groups": 60.0,
+            "query_opp": 1.6
+          },
+          "current": {
+            "elapsed": 2122.4659169092774,
+            "score": 661.2,
+            "groups": 60.1,
+            "query_opp": 1.6
+          }
+        }
+      },
+      {
+        "repo": "guava",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 2525.407458655536,
+            "score": 409.6,
+            "groups": 30.6,
+            "query_opp": 3.4
+          },
+          "current": {
+            "elapsed": 2500.0427505001426,
+            "score": 417.9,
+            "groups": 29.0,
+            "query_opp": 3.3
+          }
+        }
+      },
+      {
+        "repo": "rxswift",
+        "mode": "default",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 829.0666248649359,
+            "score": 218.2,
+            "groups": 86.9,
+            "query_opp": 7.7
+          },
+          "current": {
+            "elapsed": 816.476040519774,
+            "score": 211.1,
+            "groups": 85.1,
+            "query_opp": 7.5
+          }
+        }
+      },
+      {
+        "repo": "rxswift",
+        "mode": "semantic",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 365.67837465554476,
+            "score": 2.9,
+            "groups": 5.9,
+            "query_opp": 1.5
+          },
+          "current": {
+            "elapsed": 383.86050052940845,
+            "score": 3.1,
+            "groups": 6.9,
+            "query_opp": 1.6
+          }
+        }
+      },
+      {
+        "repo": "alamofire",
+        "mode": "near:0.8",
+        "complete_outputs_equal": true,
+        "medians_ms": {
+          "baseline": {
+            "elapsed": 1977.212124504149,
+            "score": 740.8,
+            "groups": 54.0,
+            "query_opp": 12.7
+          },
+          "current": {
+            "elapsed": 1980.3739171475172,
+            "score": 775.8,
+            "groups": 53.0,
+            "query_opp": 12.5
+          }
+        }
+      }
+    ],
+    "scope": "Three paired alternating blocks without same-binary controls; all six complete outputs equal. Final 283 detector tests and corrected strict Clippy/docs pass. Preserve the original Clippy 101/100-line failure caused by formatting and the equivalent two-binding correction. No same-binary release conclusion follows. The planned memory producer was not run after rejection. Revert the scheduling change."
+  },
+  "interpretation": "The actual short-feature product already passes correctness and full local CI. This subsequent isolated scheduling experiment is not retained. The first validation metadata commit failed only for a link-only documentation line, which was corrected without product changes; preserve both hook logs.",
+  "artifacts": [
+    {
+      "path": "target/release-default-score-20260908/record-scheduling.py",
+      "bytes": 1724,
+      "sha256": "5059ea9eac83b6068943ff492de3c385562068ae0a1cc2580897c608afd30ef9"
+    },
+    {
+      "path": "target/release-default-score-20260908/freeze-fine-row-chunks.py",
+      "bytes": 791,
+      "sha256": "aa1143db74e65f8631240dd3cc93c726bd40eee89077eed660d7a0bd9a3ff3af"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-build.log",
+      "bytes": 247,
+      "sha256": "a490dbe536b8f9187f0dec59f7156329bcb8b76e8eb58ab1eb4aa0e4b1e97068"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-clippy-corrected.log",
+      "bytes": 157,
+      "sha256": "d988723d973cdf9cf09f684a58d887195d838c4ac0d9c820e8694ab020ea20e5"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-clippy.log",
+      "bytes": 925,
+      "sha256": "4b0129cee4fb689f75cc3c6c7a8403a785dc153bb13ccbcd6312b3f0917a8b21"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-commit.log",
+      "bytes": 2466,
+      "sha256": "03af58552682c5cadbb74636a013cbd2571f951dbc0f5d01b26e74ef62016a3a"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-decision.json",
+      "bytes": 3416,
+      "sha256": "c792373de2fc205d121298832e95149e9d699daca9ef764b8669820712b1e7b9"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-docs.log",
+      "bytes": 2289,
+      "sha256": "cf2dac777a581e80e1c8e932cfc03ba68f9690977ae22dd208ce8e71fa4301f8"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-identity.json",
+      "bytes": 207,
+      "sha256": "08a9111a1250909892c5c1e4000a0007d69437467d1baa291a0be70df1f613d1"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-memory.py",
+      "bytes": 2116,
+      "sha256": "48a17945d3eefc344a318484ee55e871b97883862926b7ec5c4a3ed1ce393423"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-revert.log",
+      "bytes": 177,
+      "sha256": "0f8b6cda57c72649aa69c5a0da36a1471f13c3a6808958e52469e0efe44c7961"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-alamofire-default.json",
+      "bytes": 21157,
+      "sha256": "8a01d97e221df8e9b90fec2e3f053fadd4cd4af1ce028bd9469566fe7050784f"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-alamofire-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-alamofire-near-0.8.json",
+      "bytes": 21155,
+      "sha256": "9b21eeebd459d4759249099e48444bd3cb7a835b03c9225c1ca572281e75a1ab"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-alamofire-near-0.8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-design.json",
+      "bytes": 824,
+      "sha256": "b74a1315729099cd042184088021989bd679f8048047ae1cd5d038ff9eade7a2"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-guava-default.json",
+      "bytes": 21516,
+      "sha256": "d16c9c1bdefb4a3f3f17962cf15dd85a69392e9666cd4f5aec84de8d25be85e8"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-guava-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-libgdx-default.json",
+      "bytes": 21289,
+      "sha256": "e064ce4cfb82cffbf1e4330f9da2e0e654e9ba4ebd27765a88d0cb2ee616cb3d"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-libgdx-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-results.json",
+      "bytes": 3542,
+      "sha256": "6fc520b838b128bd31ee3a2f635c0e3298d49d7bb6caf446cce19ff78f9c1c5f"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-rxswift-default.json",
+      "bytes": 21210,
+      "sha256": "4ea50f2cf34183a902c28d231212e00607ebbd33af462ea462c715a1a7cf2d1c"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-rxswift-default.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-rxswift-semantic.json",
+      "bytes": 20707,
+      "sha256": "b567ba72a2810f8b68716b0e1b421d83aa470b361e50b6c35defcadd5b543594"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen-rxswift-semantic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen.log",
+      "bytes": 1812,
+      "sha256": "4797ea2d547e8c7b7a69237a468b14b6b1f4ffd636ed49858aee5767a0b91881"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-screen.py",
+      "bytes": 2870,
+      "sha256": "c1a32d39ce5c6d8581318e137faf98def84add81f80e26f9a6ace8922de800ee"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-source.patch",
+      "bytes": 2075,
+      "sha256": "039200af16dbed42e515133d5c71008cc2a9ce7971918bf07e66f7ba71a8c511"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-tests-final.log",
+      "bytes": 27428,
+      "sha256": "95b153042e07a096c7b81a612d933923bbac35f1f373c2bd2b40c794b540eb88"
+    },
+    {
+      "path": "target/release-default-score-20260908/fine-row-chunks-tests.log",
+      "bytes": 27428,
+      "sha256": "3a1f4e1d24eaaecd56cb762577c2cf41e0965846b65cc57bb595bbf77dcc3408"
+    },
+    {
+      "path": "target/release-short-merge-qualification-20260908/validation-commit.log",
+      "bytes": 2780,
+      "sha256": "9c18fde7aa8d2c51b458cc817bf6e7dd96c0dd4fbf0f834fd9612ffd71b6a536"
+    },
+    {
+      "path": "target/release-short-merge-qualification-20260908/validation-commit-corrected.log",
+      "bytes": 2554,
+      "sha256": "ba66da665c0f7b80c5c57a9f374d3b8b09a9f7ef325e67a77c207eff5f10c4f2"
+    },
+    {
+      "path": "target/release-short-merge-qualification-20260908/validation-artifacts.log",
+      "bytes": 99,
+      "sha256": "25f0ee196fd98e611522851a0d33eed7308600b73b4459e2eabdcf99c840b2c6"
+    }
+  ]
+}

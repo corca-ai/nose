@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "query_roots/completeness.rs"]
+mod completeness;
+
 #[test]
 fn query_accepts_explicit_multi_roots() {
     let dir = make_project("multi_roots");
@@ -50,7 +53,9 @@ fn query_accepts_explicit_multi_roots() {
         "1",
     ]);
     assert!(
-        dash.contains(&format!("nose query -r {a} -r {b} id=")),
+        dash.contains(&format!(
+            "nose query -r {a} -r {b} '--mode' 'semantic' '--min-size' '1' '--min-lines' '1' id="
+        )),
         "multi-root drill links should remain runnable: {dash}"
     );
 

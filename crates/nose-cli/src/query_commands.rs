@@ -41,29 +41,25 @@ fn run_query_base(args: &QueryArgs, base_ref: &str, q: &Query, path_arg: &str) -
     };
     let (flagged, changed_files) =
         divergence::detect_divergences(args, base_ref)?.unwrap_or_default();
-    match args.format {
-        ReportFormat::Json => render_query_base(
-            &flagged,
-            changed_files,
-            base_ref,
-            path_arg,
-            q.top,
-            true,
-            &semantic_packs_json,
-        ),
-        ReportFormat::Sarif => println!(
+    if args.format == ReportFormat::Sarif {
+        println!(
             "{}",
             divergence::divergence_sarif(&flagged, q.top, "top=0")?
-        ),
-        _ => render_query_base(
+        );
+    } else {
+        let actions = crate::query_views::base_actions(args, base_ref)?;
+        render_query_base(
             &flagged,
             changed_files,
             base_ref,
             path_arg,
             q.top,
-            false,
-            &semantic_packs_json,
-        ),
+            crate::query_views::BaseViewOptions {
+                format: args.format,
+                actions: &actions,
+                semantic_packs: &semantic_packs_json,
+            },
+        );
     }
     // The default gate fires on the v2 strict tier.
     if matches!(args.fail_on, Some(FailOn::Any)) && divergence::divergences_fire(&flagged) {
@@ -174,10 +170,19 @@ pub(super) fn query_opportunities(
     families: &[nose_detect::RefactorFamily],
     overrides: &SurfaceOverrides,
 ) -> OpportunityGroups {
-    let default_fams: Vec<&nose_detect::RefactorFamily> = families
+    let mut default_fams: Vec<&nose_detect::RefactorFamily> = families
         .iter()
         .filter(|f| is_default_opportunity_family(f, overrides))
         .collect();
+    // Folding defines the visible population, so its order cannot depend on a
+    // display sort (including a configured default or a watch-session sort).
+    default_fams.sort_by(|a, b| {
+        b.extractability()
+            .total_cmp(&a.extractability())
+            .then(b.value.total_cmp(&a.value))
+            .then_with(|| family_anchor(a).cmp(&family_anchor(b)))
+            .then_with(|| crate::baseline::family_id(a).cmp(&crate::baseline::family_id(b)))
+    });
     OpportunityGroups::from_ranked_with_default(&default_fams, |family| {
         is_default_report_family(family, overrides)
     })
@@ -263,16 +268,17 @@ fn parse_query_with_path_hint(
 }
 
 pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
+    if crate::query_evolution::try_compare(&cmd)? {
+        return Ok(());
+    }
     let Cmd::Query {
+        analysis,
         roots,
         positionals,
         format,
         watch,
         mode,
-        min_size,
-        min_lines,
-        min_value,
-        min_members,
+        limits,
         exclude,
         generated_path,
         cache_dir,
@@ -281,6 +287,8 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         semantic_pack,
         semantic_pack_lock,
         config,
+        config_root,
+        show_config,
         fail_on,
         baseline,
         write_baseline,
@@ -288,10 +296,24 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
     else {
         unreachable!("run_query_cmd requires Cmd::Query")
     };
+    let crate::cli_args::QueryLimits {
+        max_candidate_pairs,
+        min_size,
+        min_lines,
+        min_value,
+        min_members,
+    } = *limits;
     let (paths, terms, path_arg, roots_are_explicit) =
         split_query_roots_and_terms(roots, positionals)?;
     require_paths_exist(&paths)?;
+    let config = if config_root {
+        Some(crate::config::discover_for_roots(&paths)?)
+    } else {
+        config
+    };
     let q = parse_query_with_path_hint(&terms, &paths, &path_arg, roots_are_explicit)?;
+    anyhow::ensure!(!q.member_view.active() || (!watch && matches!(format, ReportFormat::Human | ReportFormat::Json)),
+        "member navigation supports human/json inspection; watch and report formats have separate selection contracts");
     // The path as the user typed it — every suggested next-command echoes it so the links
     // are runnable verbatim. Multi-root commands echo the explicit root flags.
     let args = QueryArgs {
@@ -303,6 +325,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         mode,
         cache_dir,
         cache_max_bytes,
+        max_candidate_pairs,
         fail_on,
         baseline,
         ignore_file,
@@ -316,6 +339,13 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         min_lines,
         scope: ScopeFilter::All,
     };
+    crate::query_evolution::validate_capture(&analysis, &args, &terms, watch || show_config)?;
+    if let Some(path) = &analysis.save_analysis {
+        return crate::query_evolution::capture(&args, path);
+    }
+    if show_config {
+        return crate::config::print_effective(&args);
+    }
     ensure_query_fail_on_is_valid(&args)?;
     if watch {
         return crate::query_watch::run(&args, &terms, &q, &path_arg);
@@ -342,6 +372,23 @@ fn run_regular_query(args: QueryArgs, terms: &[String], q: &Query, path_arg: &st
         time_stage("query_spot", || {
             enrich_graded_witnesses(&mut dataset.families, &dataset.opts)
         });
+    }
+    if q.id_full && !query_needs_spotclass(q) {
+        let selected = if let Some(id) = &q.id {
+            crate::query_terms::family_by_id(&dataset.families, id).ok()
+        } else if let Some(at) = &q.at {
+            crate::query_terms::family_at(&dataset.families, at, path_arg).ok()
+        } else {
+            None
+        };
+        let key = selected.map(crate::baseline::family_id);
+        if let Some(family) = dataset
+            .families
+            .iter_mut()
+            .find(|f| key.as_ref() == Some(&crate::baseline::family_id(f)))
+        {
+            enrich_graded_witnesses(std::slice::from_mut(family), &dataset.opts);
+        }
     }
     let mut since_cmp = None;
     let since = time_stage("query_since", || {

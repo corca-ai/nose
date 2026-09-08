@@ -37,7 +37,7 @@ fn iterator_identity_call_il_with_args(
 }
 
 fn push_protocol_receiver_dependency(il: &mut Il, receiver: NodeId) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
         EvidenceKind::Domain(DomainEvidence::Collection),
@@ -59,17 +59,15 @@ fn admitted_iterator_identity_adapter_requires_protocol_pack_provenance() {
 
     let (mut missing_dependency, interner, call, _receiver) =
         iterator_identity_call_il(Lang::Rust, "iter");
-    missing_dependency
-        .evidence
-        .push(iterator_identity_adapter_record(
-            1,
-            missing_dependency.node(call).span,
-            contract.id,
-            contract.callee,
-            0,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(iterator_identity_adapter_record(
+        1,
+        missing_dependency.node(call).span,
+        contract.id,
+        contract.callee,
+        0,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     assert!(
         admitted_iterator_identity_adapter_at_call(&missing_dependency, &interner, call).is_none(),
         "same-span iterator adapter evidence without protocol receiver proof is rejected"
@@ -77,19 +75,17 @@ fn admitted_iterator_identity_adapter_requires_protocol_pack_provenance() {
 
     let (mut wrong_pack, interner, call, receiver) = iterator_identity_call_il(Lang::Rust, "iter");
     push_protocol_receiver_dependency(&mut wrong_pack, receiver);
-    wrong_pack
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            wrong_pack.node(call).span,
-            contract.id,
-            contract.callee,
-            0,
-            EvidenceStatus::Asserted,
-            &[0],
-            BUILTIN_COMPAT_PACK_ID,
-            ITERATOR_IDENTITY_ADAPTER_PRODUCER_ID,
-        ));
+    wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        wrong_pack.node(call).span,
+        contract.id,
+        contract.callee,
+        0,
+        EvidenceStatus::Asserted,
+        &[0],
+        BUILTIN_COMPAT_PACK_ID,
+        ITERATOR_IDENTITY_ADAPTER_PRODUCER_ID,
+    ));
     assert!(
         admitted_iterator_identity_adapter_at_call(&wrong_pack, &interner, call).is_none(),
         "iterator adapter evidence under the compatibility pack is rejected"
@@ -98,19 +94,17 @@ fn admitted_iterator_identity_adapter_requires_protocol_pack_provenance() {
     let (mut wrong_producer, interner, call, receiver) =
         iterator_identity_call_il(Lang::Rust, "iter");
     push_protocol_receiver_dependency(&mut wrong_producer, receiver);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            0,
-            EvidenceStatus::Asserted,
-            &[0],
-            ITERATOR_IDENTITY_ADAPTER_PACK_ID,
-            "wrong.protocols.iterator-identity-adapter-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        0,
+        EvidenceStatus::Asserted,
+        &[0],
+        ITERATOR_IDENTITY_ADAPTER_PACK_ID,
+        "wrong.protocols.iterator-identity-adapter-api",
+    ));
     assert!(
         admitted_iterator_identity_adapter_at_call(&wrong_producer, &interner, call).is_none(),
         "iterator adapter evidence with the wrong producer is rejected"
@@ -129,7 +123,7 @@ fn admitted_iterator_identity_adapter_requires_protocol_pack_provenance() {
         &[0],
     );
     external_record.provenance.emitter = EvidenceEmitter::External;
-    wrong_emitter.evidence.push(external_record);
+    wrong_emitter.push_evidence(external_record);
     assert!(
         admitted_iterator_identity_adapter_at_call(&wrong_emitter, &interner, call).is_none(),
         "iterator adapter evidence from an external emitter is rejected"
@@ -137,7 +131,7 @@ fn admitted_iterator_identity_adapter_requires_protocol_pack_provenance() {
 
     let (mut admitted, interner, call, receiver) = iterator_identity_call_il(Lang::Rust, "iter");
     push_protocol_receiver_dependency(&mut admitted, receiver);
-    admitted.evidence.push(iterator_identity_adapter_record(
+    admitted.push_evidence(iterator_identity_adapter_record(
         1,
         admitted.node(call).span,
         contract.id,
@@ -164,17 +158,15 @@ fn forged_iterator_identity_adapter_evidence_does_not_open_unsupported_shapes() 
     let (mut unsupported_arity, interner, call, receiver) =
         iterator_identity_call_il_with_args(Lang::Rust, "iter", 1);
     push_protocol_receiver_dependency(&mut unsupported_arity, receiver);
-    unsupported_arity
-        .evidence
-        .push(iterator_identity_adapter_record(
-            1,
-            unsupported_arity.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-        ));
+    unsupported_arity.push_evidence(iterator_identity_adapter_record(
+        1,
+        unsupported_arity.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
     assert!(
         admitted_iterator_identity_adapter_at_call(&unsupported_arity, &interner, call).is_none(),
         "protocol-pack evidence does not open unsupported iterator adapter arities"
@@ -183,17 +175,15 @@ fn forged_iterator_identity_adapter_evidence_does_not_open_unsupported_shapes() 
     let (mut unsupported_language, interner, call, receiver) =
         iterator_identity_call_il(Lang::JavaScript, "collect");
     push_protocol_receiver_dependency(&mut unsupported_language, receiver);
-    unsupported_language
-        .evidence
-        .push(iterator_identity_adapter_record(
-            1,
-            unsupported_language.node(call).span,
-            contract.id,
-            contract.callee,
-            0,
-            EvidenceStatus::Asserted,
-            &[0],
-        ));
+    unsupported_language.push_evidence(iterator_identity_adapter_record(
+        1,
+        unsupported_language.node(call).span,
+        contract.id,
+        contract.callee,
+        0,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
     assert!(
         admitted_iterator_identity_adapter_at_call(&unsupported_language, &interner, call)
             .is_none(),
@@ -207,7 +197,7 @@ fn admitted_java_stream_identity_adapter_uses_same_protocol_pack() {
         .expect("Java stream contract");
     let (mut il, interner, call, receiver) = iterator_identity_call_il(Lang::Java, "stream");
     push_protocol_receiver_dependency(&mut il, receiver);
-    il.evidence.push(iterator_identity_adapter_record(
+    il.push_evidence(iterator_identity_adapter_record(
         1,
         il.node(call).span,
         contract.id,

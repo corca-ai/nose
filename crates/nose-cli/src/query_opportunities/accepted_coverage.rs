@@ -66,46 +66,44 @@ pub(super) fn accepted_obligations_covered(
 ) -> bool {
     edges_covered_by_family(primary, &slice.locations, &slice.direct_edges)
         && slice.accepted_coverage.iter().all(|obligation| {
-            obligation.edges.iter().all(|edge| {
-                let Some(left) = obligation.sites.get(edge.left as usize) else {
-                    return false;
-                };
-                let Some(right) = obligation.sites.get(edge.right as usize) else {
-                    return false;
-                };
-                primary
-                    .locations
-                    .iter()
-                    .any(|loc| site_is_covered(loc, left))
-                    && primary
-                        .locations
-                        .iter()
-                        .any(|loc| site_is_covered(loc, right))
-            })
+            edges_covered_by_family(primary, &obligation.sites, &obligation.edges)
         })
 }
 
 fn edges_covered_by_family(
     primary: &nose_detect::RefactorFamily,
     sites: &[nose_detect::Loc],
-    edges: &[nose_detect::AcceptedEdge],
+    edges: &nose_detect::AcceptedEdges,
 ) -> bool {
-    edges.iter().all(|edge| {
-        let Some(left) = sites.get(edge.left as usize) else {
+    if edges.is_empty() {
+        return true;
+    }
+    if let Some(mut incident) = edges.known_incident_sites() {
+        return incident.all(|index| {
+            sites.get(index).is_some_and(|site| {
+                primary
+                    .locations
+                    .iter()
+                    .any(|loc| site_is_covered(loc, site))
+            })
+        });
+    }
+    let mut covered = vec![None; sites.len()];
+    let mut covers = |index: u32| {
+        let index = index as usize;
+        let Some(cached) = covered.get_mut(index) else {
             return false;
         };
-        let Some(right) = sites.get(edge.right as usize) else {
-            return false;
-        };
-        primary
-            .locations
-            .iter()
-            .any(|loc| site_is_covered(loc, left))
-            && primary
+        *cached.get_or_insert_with(|| {
+            primary
                 .locations
                 .iter()
-                .any(|loc| site_is_covered(loc, right))
-    })
+                .any(|loc| site_is_covered(loc, &sites[index]))
+        })
+    };
+    edges
+        .iter()
+        .all(|edge| covers(edge.left) && covers(edge.right))
 }
 
 pub(super) fn accepted_edges_covered_by_roots(
@@ -119,26 +117,30 @@ pub(super) fn accepted_edges_covered_by_roots(
         coverage_roots,
         by_file,
     ) && carrier.accepted_coverage.iter().all(|obligation| {
-        let roots_by_site = roots_by_site(&obligation.sites, coverage_roots, by_file);
-        obligation.edges.iter().all(|edge| {
-            let Some(left_roots) = roots_by_site.get(edge.left as usize) else {
-                return false;
-            };
-            let Some(right_roots) = roots_by_site.get(edge.right as usize) else {
-                return false;
-            };
-            sorted_lists_intersect(left_roots, right_roots)
-        })
+        edges_covered_by_roots(
+            &obligation.sites,
+            &obligation.edges,
+            coverage_roots,
+            by_file,
+        )
     })
 }
 
 fn edges_covered_by_roots(
     sites: &[nose_detect::Loc],
-    edges: &[nose_detect::AcceptedEdge],
+    edges: &nose_detect::AcceptedEdges,
     coverage_roots: &[bool],
     by_file: &FxHashMap<&str, FileOpportunityBucket>,
 ) -> bool {
+    if edges.is_empty() {
+        return true;
+    }
     let roots_by_site = roots_by_site(sites, coverage_roots, by_file);
+    if let Some(incident) = edges.known_incident_sites() {
+        if let Some(covered) = incident_root_coverage(incident, &roots_by_site) {
+            return covered;
+        }
+    }
     edges.iter().all(|edge| {
         let Some(left_roots) = roots_by_site.get(edge.left as usize) else {
             return false;
@@ -148,6 +150,28 @@ fn edges_covered_by_roots(
         };
         sorted_lists_intersect(left_roots, right_roots)
     })
+}
+
+// A missing root at an incident site disproves coverage. One root covering the
+// entire incident set proves it. All other cases still need per-edge intersections.
+fn incident_root_coverage(incident: std::ops::Range<usize>, roots: &[Vec<usize>]) -> Option<bool> {
+    let Some(sites) = roots.get(incident) else {
+        return Some(false);
+    };
+    if sites.is_empty() {
+        return Some(true);
+    }
+    if sites.iter().any(Vec::is_empty) {
+        return Some(false);
+    }
+    sites[0]
+        .iter()
+        .any(|root| {
+            sites[1..]
+                .iter()
+                .all(|owners| owners.binary_search(root).is_ok())
+        })
+        .then_some(true)
 }
 
 fn roots_by_site(
@@ -215,4 +239,29 @@ fn site_is_covered(outer: &nose_detect::Loc, site: &nose_detect::Loc) -> bool {
     let overlap = hi - lo + 1;
     let site_len = site.end_line - site.start_line + 1;
     overlap * 2 >= site_len
+}
+
+#[cfg(test)]
+mod tests {
+    use super::incident_root_coverage;
+
+    #[test]
+    fn incident_root_proofs_do_not_confuse_independent_or_pairwise_coverage() {
+        assert_eq!(incident_root_coverage(0..0, &[]), Some(true));
+        assert_eq!(incident_root_coverage(0..2, &[vec![1]]), Some(false));
+        assert_eq!(
+            incident_root_coverage(0..2, &[vec![1], vec![]]),
+            Some(false)
+        );
+        assert_eq!(
+            incident_root_coverage(0..2, &[vec![1], vec![1, 2], vec![]]),
+            Some(true)
+        );
+        assert_eq!(incident_root_coverage(0..2, &[vec![1], vec![2]]), None);
+        // Each triangle edge has a common root, but no root owns every site.
+        assert_eq!(
+            incident_root_coverage(0..3, &[vec![1, 2], vec![2, 3], vec![1, 3]]),
+            None
+        );
+    }
 }

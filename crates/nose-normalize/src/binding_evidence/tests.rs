@@ -90,7 +90,7 @@ fn append_call(b: &mut IlBuilder, name: Symbol, span: Span) -> NodeId {
 
 fn finish_with_sequence_evidence_for_lang(b: IlBuilder, root: NodeId, lang: Lang) -> Il {
     let mut il = finish(b, root, lang);
-    il.evidence.push(sequence_evidence(
+    il.push_evidence(sequence_evidence(
         0,
         sp(2),
         SequenceSurfaceKind::Collection,

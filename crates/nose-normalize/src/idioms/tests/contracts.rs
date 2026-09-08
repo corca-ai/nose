@@ -297,7 +297,7 @@ fn method_bool_reduction_consumes_receiver_domain_evidence() {
 
     let (mut il, interner, call, receiver_span) =
         receiver_domain_method_call_il(DomainEvidence::Array);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         next_evidence_id(&il),
         EvidenceAnchor::node(receiver_span, NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Map),

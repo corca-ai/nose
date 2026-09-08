@@ -4,24 +4,33 @@ use crate::family_display::representative_lines;
 use crate::query_baseline_gate::family_status;
 use crate::query_opportunities::OpportunityGroups;
 use crate::query_terms::{QFilter, QOp};
-use crate::source_lines::{anti_unify_all, read_lines, FileLineCache};
+use crate::source_lines::{anti_unify_all, FileLineCache};
 use crate::style;
 use crate::surfaces::{effective_surface, generated_provenance_json, SurfaceOverrides};
 
-/// Canonical `witness.kind` for a friendly filter token (`exact`→`exact-value-graph`, …).
-fn witness_alias(v: &str) -> &str {
-    match v {
-        "exact" => "exact-value-graph",
-        "subdag" | "shared-core" => "shared-sub-dag",
-        "connected" | "connected-core" => "connected-mapped-sub-dag",
-        "bounded-window" | "same-unit" => "bounded-same-unit-window",
-        "copy-paste" | "copypaste" => "copy-paste-run",
-        "similar" | "structural" => "structural-similarity",
-        other => other,
-    }
+/// Accepted filter aliases and their detector evidence kinds. Parsing and matching share this table.
+pub(crate) const WITNESS_ALIASES: &[(&str, &str)] = &[
+    ("exact", "exact-value-graph"),
+    ("subdag", "shared-sub-dag"),
+    ("shared-core", "shared-sub-dag"),
+    ("connected", "connected-mapped-sub-dag"),
+    ("connected-core", "connected-mapped-sub-dag"),
+    ("bounded-window", "bounded-same-unit-window"),
+    ("same-unit", "bounded-same-unit-window"),
+    ("copy-paste", "copy-paste-run"),
+    ("copypaste", "copy-paste-run"),
+    ("similar", "structural-similarity"),
+    ("structural", "structural-similarity"),
+];
+
+pub(crate) fn witness_alias(value: &str) -> &str {
+    WITNESS_ALIASES
+        .iter()
+        .find(|(alias, _)| *alias == value)
+        .map_or(value, |(_, kind)| *kind)
 }
 
-/// The friendly token for a `witness.kind` — the machine value (`--format json`,
+/// The friendly token for a `witness.kind()` — the machine value (`--format json`,
 /// `group=witness` keys, filter matching). Stable; do not change without a schema bump.
 pub(super) fn witness_token(kind: Option<&str>) -> &'static str {
     match kind {
@@ -35,7 +44,7 @@ pub(super) fn witness_token(kind: Option<&str>) -> &'static str {
     }
 }
 
-/// The human-facing DISPLAY label for a `witness.kind` — same as [`witness_token`] except
+/// The human-facing DISPLAY label for a `witness.kind()` — same as [`witness_token`] except
 /// the opaque `subdag` reads as `shared-core` for people. Used only in the terminal report;
 /// the machine token (`witness_token`) stays `subdag`, and `witness=shared-core` is an
 /// accepted filter alias (see [`witness_alias`]), so the two spellings never collide.
@@ -162,7 +171,7 @@ pub(super) fn family_matches(
     // rather than erroring.
     let fval: Option<String> = match field {
         "scope" => Some(f.scope.to_string()),
-        "witness" => Some(witness_token(f.witness.as_ref().map(|w| w.kind)).to_string()),
+        "witness" => Some(witness_token(f.witness.as_ref().map(|w| w.kind())).to_string()),
         "surface" => Some(effective_surface(f, ov).to_string()),
         "shape" | "extraction_shape" => Some(f.extraction_shape().to_string()),
         "dir" => Some(family_dir(f)),
@@ -193,7 +202,7 @@ pub(super) fn family_matches(
             QOp::Eq => match field {
                 "path" | "file" => path_has(val),
                 "lang" | "language" => lang_match(val, true),
-                "witness" => f.witness.as_ref().map(|w| w.kind) == Some(witness_alias(val)),
+                "witness" => f.witness.as_ref().map(|w| w.kind()) == Some(witness_alias(val)),
                 _ => {
                     if let Some(s) = &fval {
                         s == val
@@ -266,6 +275,10 @@ fn query_location_json(
 ) -> serde_json::Value {
     let mut object = serde_json::json!({
         "id": baseline::member_id(location),
+        "region": location.source_region,
+        "region_key": nose_detect::regions::region_key(location),
+        "scope_evidence": crate::query_assessment::scope(location),
+        "boundary": crate::query_assessment::boundary(location),
         "file": location.file, "start": location.start_line, "end": location.end_line,
         "name": location.name, "lang": location.lang.as_str(),
     });
@@ -312,8 +325,9 @@ pub(super) fn query_family_json_with_counts(
         .collect();
     let mut obj = serde_json::json!({
         "id": id.clone(),
+        "review_key": nose_detect::regions::review_key(f),
         "scope": f.scope,
-        "witness": witness_token(f.witness.as_ref().map(|w| w.kind)),
+        "witness": witness_token(f.witness.as_ref().map(|w| w.kind())),
         "surface": effective_surface(f, ov),
         "members": f.members,
         "files": f.files,
@@ -327,17 +341,18 @@ pub(super) fn query_family_json_with_counts(
         "removable": removable,
         "value": f.value,
         "extraction_shape": f.extraction_shape(),
+        "assessment": crate::query_assessment::assessment(f, shared, params),
         "same_symbol": family_same_symbol(f),
         "folds": opp.slices_of.get(&id).map(Vec::len).unwrap_or(0),
-        "locations": locations,
     });
+    obj["locations"] = serde_json::Value::Array(locations);
     if let Some(provenance) = generated_provenance_json(f, ov) {
         obj["generated_provenance"] = provenance;
     }
     // Proof depth: for the exact channel, how much is proven identical — the size of the shared
     // value multiset. Lets a caller act now on the strongest evidence (subdag families carry the
     // proven span per location instead). Evidence, not a verdict.
-    if let Some(n) = f.witness.as_ref().and_then(|w| w.value_nodes) {
+    if let Some(n) = f.witness.as_ref().and_then(|w| w.value_nodes()) {
         obj["value_nodes"] = serde_json::Value::from(n);
     }
     if !f.semantic_pack_near.is_empty() {
@@ -376,8 +391,7 @@ pub(super) fn query_family_json_with_counts(
         let ids: Vec<&str> = slices.iter().map(|s| short_id(s)).collect();
         obj["subsumes"] = serde_json::Value::from(ids);
     }
-    // `call-existing-helper` families: name the helper to call (the action is "call it", not
-    // "extract a new one"). Omitted for every other shape (#374 item 5).
+    // Name the observed helper candidate; calling it requires separate contract checks.
     if let Some(h) = helper {
         obj["existing_helper"] = serde_json::json!({
             "name": h.name, "file": h.file, "start": h.start_line, "end": h.end_line,
@@ -396,10 +410,13 @@ pub(super) fn query_family_json_with_counts(
         obj["graded_pair"] = pair;
     }
     if full {
-        if let Some(skeleton) = family_skeleton(f) {
-            obj["skeleton"] = serde_json::Value::from(skeleton);
+        let evidence = crate::query_source_evidence::collect(f, true);
+        if let Some(skeleton) = evidence.get("skeleton") {
+            obj["skeleton"] = skeleton.clone();
         }
+        obj["source_evidence"] = evidence;
     }
+
     obj
 }
 
@@ -424,26 +441,9 @@ pub(super) fn query_removable_lines(f: &nose_detect::RefactorFamily, shared: u32
     }
 }
 
-/// The all-copies extraction-skeleton lines (the `--show proposal` artifact) for the `full`
-/// JSON contract. `None` when fewer than two copies read. Capped at the same 8 members as
-/// `all_copies_shared`, so the skeleton and the `shared`/`params` counts agree.
-fn family_skeleton(f: &nose_detect::RefactorFamily) -> Option<Vec<String>> {
-    let members: Vec<Vec<String>> = f
-        .locations
-        .iter()
-        .take(8)
-        .filter_map(|l| read_lines(&l.file, l.start_line, l.end_line))
-        .collect();
-    (members.len() >= 2).then(|| anti_unify_all(&members).0)
-}
-
-/// Shared-line and parameter counts aligned across **all** copies (not the pairwise
-/// representative `shared_lines`, which over-counts a family whose 3rd+ copies diverge —
-/// e.g. 25 serializer methods that pairwise share 11 lines but all-25 share 2). Reads the
-/// copies and runs the N-way anti-unification (#360); only ever called on the rows
-/// actually displayed, so it is bounded. The honest `~removable` is then `(copies − 1) ×
-/// all-copies-shared`, which is never more than is truly shared and `0` when nothing is.
-/// Cross-language or unreadable families fall back to the detector's structural estimate.
+/// Legacy display counts from the bounded readable sample (8 members, 120 lines).
+/// These are inspection metrics, not a claim about all members or an edit plan.
+/// Detailed source evidence reports its actual coverage separately.
 pub(super) fn all_copies_shared(f: &nose_detect::RefactorFamily) -> (u32, u32) {
     let mut cache = FileLineCache::default();
     all_copies_shared_cached(f, &mut cache)

@@ -24,12 +24,12 @@ mod unit_evidence;
 mod unit_facets;
 
 pub use builder::IlBuilder;
-pub use corpus::Corpus;
+pub use corpus::{Corpus, IncompleteCorpus, SourceDiagnostic};
 pub use ident::{
     contains_c_identifier, contains_js_identifier, is_c_identifier_continue,
     is_js_identifier_continue,
 };
-pub use il::Il;
+pub use il::{EvidenceEdit, Il, IlContents};
 pub use intern::{stable_symbol_hash, symbol_index, Interner, Symbol, FNV_OFFSET_BASIS, FNV_PRIME};
 pub use node::{
     BoundOrderGuardActivation, Builtin, CTypeTarget, CallTargetEvidenceKind, DomainEvidence,
@@ -49,3 +49,6 @@ pub use unit_evidence::{UnitEvidenceFlag, UnitEvidenceFlags};
 pub use unit_facets::{
     RegionKind, SourceGranularity, UnitBodyKind, UnitContainerKind, UnitSubkind,
 };
+
+mod source;
+pub use source::{ContentDigest, SourceDocument, SourceRegion};

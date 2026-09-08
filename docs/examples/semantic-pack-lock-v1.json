@@ -1,5 +1,4 @@
 {
-  "$schema": "../schemas/semantic-pack-lock-v1.schema.json",
   "api_version": "nose.semantic-pack-lock.v1",
   "dependencies": [
     {
@@ -13,7 +12,7 @@
       "manifest_api_version": "nose.semantic-pack.v1",
       "pack_id": "com.example.java-guava-typed-factories",
       "pack_version": "1.0.0",
-      "nose_compatibility": ">=0.19.0 <0.21.0",
+      "nose_compatibility": ">=0.19.0 <0.22.0",
       "semantic_digest": "sha256:e09ebd7c851c49647237e6bf2ff81e7e6a49d6b5cae66d1e5a4a8dcd30c2c454",
       "allowed_channels": [
         "near"

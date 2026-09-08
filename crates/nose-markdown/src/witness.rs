@@ -11,7 +11,7 @@ use crate::norm;
 use crate::unit::Unit;
 
 /// A duplicated span, in original 1-based inclusive line numbers of each unit's file.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Span {
     pub a_start: u32,
     pub a_end: u32,

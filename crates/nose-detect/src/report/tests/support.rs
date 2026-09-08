@@ -108,7 +108,7 @@ pub(super) fn fam(
         params,
         shared_weight: shared as f64,
         locations: locs,
-        direct_edges: Vec::new(),
+        direct_edges: Default::default(),
         accepted_coverage: Vec::new(),
         display_params: None,
         mean_sem: 50.0,
@@ -144,10 +144,16 @@ pub(super) fn report(groups: Vec<Group>) -> Report {
 
 pub(super) fn witnessed(mut f: RefactorFamily, kind: &'static str) -> RefactorFamily {
     f.witness = Some(crate::EquivalenceWitness {
-        kind,
-        value_nodes: None,
-        mean_value_jaccard: None,
-        mean_shape_jaccard: None,
+        evidence: match kind {
+            "exact-value-graph" => crate::WitnessEvidence::ExactValueGraph { value_nodes: 1 },
+            "copy-paste-run" => crate::WitnessEvidence::CopyPasteRun,
+            "shared-sub-dag" => crate::WitnessEvidence::SharedSubDag,
+            "structural-similarity" => crate::WitnessEvidence::StructuralSimilarity {
+                mean_value_jaccard: 0.8,
+                mean_shape_jaccard: 0.9,
+            },
+            _ => panic!("unsupported fixture witness: {kind}"),
+        },
         graded: None,
         graded_pair: None,
     });

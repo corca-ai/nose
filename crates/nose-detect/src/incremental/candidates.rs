@@ -1,9 +1,9 @@
 use super::*;
-use crate::candidates::{anchor_max_df, ANCHOR_PAIR_CAP, EXACT_VALUE_BUCKET_ALL_PAIRS_CAP};
+use crate::candidates::{anchor_max_df, ANCHOR_PAIR_CAP};
 use crate::detectors::Detector;
 use crate::exact_policy::exact_claim_eligible;
 use crate::locations::is_nested;
-use crate::lsh::{band_hash, BUCKET_ALL_PAIRS_CAP};
+use crate::lsh::band_hash;
 use crate::{DetectOptions, UnitFeat};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
@@ -52,13 +52,26 @@ pub(crate) fn prepare(
             })
         })
         .collect::<FxHashMap<_, _>>();
+    let span_groups: HashMap<_, _> = unit_keys
+        .iter()
+        .copied()
+        .zip(crate::candidates::source_span_groups(units))
+        .collect();
     let buckets = if let Some(state) = previous.as_mut() {
-        update_candidate_buckets(units, &unit_keys, opts, state, &mut counts, stats)
+        update_candidate_buckets(
+            units,
+            &unit_keys,
+            opts,
+            state,
+            &mut counts,
+            stats,
+            &span_groups,
+        )
     } else {
         let memberships = candidate_memberships(units, &unit_keys, opts);
         stats.buckets_rebuilt = memberships.len();
         for (&key, members) in &memberships {
-            adjust_pair_counts(&mut counts, key, members, true);
+            adjust_pair_counts(&mut counts, key, members, true, &span_groups);
         }
         let positions = unit_index(&unit_keys);
         memberships
@@ -140,6 +153,7 @@ fn update_candidate_buckets(
     state: &mut IncrementalDetectionState,
     counts: &mut FxHashMap<UnitPairKey, u16>,
     stats: &mut IncrementalDetectionStats,
+    span_groups: &HashMap<UnitKey, usize>,
 ) -> Vec<CandidateBucket> {
     let current = unit_keys.iter().copied().collect::<BTreeSet<_>>();
     let previous = state.units.iter().copied().collect::<BTreeSet<_>>();
@@ -201,9 +215,9 @@ fn update_candidate_buckets(
             .collect::<Vec<_>>();
         members.sort_unstable_by_key(|member| current_positions[member]);
         members.dedup();
-        adjust_pair_counts(counts, old.key, &old_members, false);
+        adjust_pair_counts(counts, old.key, &old_members, false, span_groups);
         if members.len() >= 2 {
-            adjust_pair_counts(counts, old.key, &members, true);
+            adjust_pair_counts(counts, old.key, &members, true, span_groups);
             buckets.push(store_bucket(old.key, &members, &current_positions));
         }
         stats.buckets_rebuilt += 1;
@@ -212,7 +226,7 @@ fn update_candidate_buckets(
         if members.len() < 2 {
             continue;
         }
-        adjust_pair_counts(counts, key, &members, true);
+        adjust_pair_counts(counts, key, &members, true, span_groups);
         buckets.push(store_bucket(key, &members, &current_positions));
         stats.buckets_rebuilt += 1;
     }
@@ -255,12 +269,13 @@ fn adjust_pair_counts(
     key: BucketKey,
     members: &[UnitKey],
     add: bool,
+    span_groups: &HashMap<UnitKey, usize>,
 ) {
-    for pair in emit_bucket_pairs(key, members) {
-        let count = counts.entry(pair).or_default();
+    for pair in emit_bucket_pairs(key, members, span_groups) {
         if add {
+            let count = counts.entry(pair).or_default();
             *count = count.saturating_add(1);
-        } else {
+        } else if let Some(count) = counts.get_mut(&pair) {
             *count = count.saturating_sub(1);
         }
     }
@@ -479,7 +494,7 @@ fn for_each_bucket_key(
     mut visit: impl FnMut(BucketKey),
 ) {
     if opts.value_candidates {
-        if let Some(rows) = value_rows {
+        if let Some(rows) = value_rows.filter(|_| opts.value_lsh_candidates) {
             visit_lsh_buckets(&unit.minhash, opts.bands, rows, false, &mut visit);
         }
         if exact_claim_eligible(unit) {
@@ -521,44 +536,25 @@ fn visit_lsh_buckets(
     }
 }
 
-fn emit_bucket_pairs(key: BucketKey, members: &[UnitKey]) -> Vec<UnitPairKey> {
-    match key {
-        BucketKey::Anchor(_) if members.len() > anchor_max_df() => Vec::new(),
-        BucketKey::Anchor(_) => all_pairs_capped(members, ANCHOR_PAIR_CAP),
-        BucketKey::ExactValue(_) => connected_pairs(members, EXACT_VALUE_BUCKET_ALL_PAIRS_CAP),
-        BucketKey::ValueBand(_) | BucketKey::ShapeBand(_) => {
-            connected_pairs(members, BUCKET_ALL_PAIRS_CAP)
-        }
-    }
-}
-
-fn connected_pairs(members: &[UnitKey], all_pairs_cap: usize) -> Vec<UnitPairKey> {
-    if members.len() <= all_pairs_cap {
-        return all_pairs_capped(members, usize::MAX);
-    }
-    let mut pairs = members
-        .windows(2)
-        .map(|window| UnitPairKey::new(window[0], window[1]))
-        .collect::<Vec<_>>();
-    pairs.extend(
-        members[1..]
-            .iter()
-            .map(|&member| UnitPairKey::new(members[0], member)),
-    );
-    pairs
-}
-
-fn all_pairs_capped(members: &[UnitKey], cap: usize) -> Vec<UnitPairKey> {
-    let mut pairs = Vec::new();
-    'outer: for left in 0..members.len() {
-        for right in (left + 1)..members.len() {
-            pairs.push(UnitPairKey::new(members[left], members[right]));
-            if pairs.len() >= cap {
-                break 'outer;
-            }
-        }
-    }
-    pairs
+fn emit_bucket_pairs<'a>(
+    key: BucketKey,
+    members: &'a [UnitKey],
+    span_groups: &'a HashMap<UnitKey, usize>,
+) -> impl Iterator<Item = UnitPairKey> + 'a {
+    let cap = match key {
+        BucketKey::Anchor(_) if members.len() > anchor_max_df() => 0,
+        BucketKey::Anchor(_) => ANCHOR_PAIR_CAP,
+        BucketKey::ExactValue(_) | BucketKey::ValueBand(_) | BucketKey::ShapeBand(_) => usize::MAX,
+    };
+    crate::lsh::bucket_pairs(members)
+        .take(cap)
+        .filter(|(left, right)| {
+            span_groups
+                .get(left)
+                .zip(span_groups.get(right))
+                .is_none_or(|(a, b)| a != b)
+        })
+        .map(|(left, right)| UnitPairKey::new(left, right))
 }
 
 fn unit_key(unit: &UnitFeat) -> UnitKey {

@@ -144,14 +144,14 @@ fn normalized_python_free_function_hof_keeps_symbol_dependency() {
         &[source, lambda],
     );
     let mut il = finish_test_il(b, hof, Lang::Python);
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         0,
         Lang::Python,
         EvidenceAnchor::node(sp(70), NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Collection),
     ));
     let contract = library_free_function_hof_contract(Lang::Python, "map", 2).unwrap();
-    il.evidence.push(python_iterator_builtin_protocol_evidence(
+    il.push_evidence(python_iterator_builtin_protocol_evidence(
         1,
         sp(72),
         contract,
@@ -164,7 +164,7 @@ fn normalized_python_free_function_hof_keeps_symbol_dependency() {
         "normalized free-function HOFs must retain the original unshadowed builtin proof"
     );
 
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         2,
         Lang::Python,
         EvidenceAnchor::node(sp(72), NodeKind::Var),
@@ -172,7 +172,7 @@ fn normalized_python_free_function_hof_keeps_symbol_dependency() {
             name_hash: stable_symbol_hash("map"),
         },
     ));
-    il.evidence.push(python_iterator_builtin_protocol_evidence(
+    il.push_evidence(python_iterator_builtin_protocol_evidence(
         3,
         sp(72),
         contract,
@@ -226,7 +226,7 @@ fn python_materialized_map_call_il(
     let root = b.add(NodeKind::Block, Payload::None, sp(59), &[list]);
     let mut il = finish_test_il(b, root, Lang::Python);
 
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         0,
         Lang::Python,
         EvidenceAnchor::node(sp(61), NodeKind::Var),
@@ -234,7 +234,7 @@ fn python_materialized_map_call_il(
             name_hash: stable_symbol_hash("map"),
         },
     ));
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         1,
         Lang::Python,
         EvidenceAnchor::node(sp(63), NodeKind::Var),
@@ -242,7 +242,7 @@ fn python_materialized_map_call_il(
     ));
     if include_map_evidence {
         let map_contract = library_free_function_hof_contract(Lang::Python, "map", 2).unwrap();
-        il.evidence.push(python_iterator_builtin_protocol_evidence(
+        il.push_evidence(python_iterator_builtin_protocol_evidence(
             2,
             sp(61),
             map_contract,
@@ -251,7 +251,7 @@ fn python_materialized_map_call_il(
         ));
     }
 
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         3,
         Lang::Python,
         EvidenceAnchor::node(sp(60), NodeKind::Var),
@@ -262,7 +262,7 @@ fn python_materialized_map_call_il(
     if include_materializer_factory_evidence {
         let list_contract =
             library_free_name_collection_factory_contract(Lang::Python, materializer_name).unwrap();
-        il.evidence.push(python_builtin_collection_factory_evidence(
+        il.push_evidence(python_builtin_collection_factory_evidence(
             4,
             sp(60),
             list_contract,
@@ -342,7 +342,7 @@ fn python_list_zip_call_il(
     let root = b.add(NodeKind::Block, Payload::None, sp(79), &[list]);
     let mut il = finish_test_il(b, root, Lang::Python);
 
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         0,
         Lang::Python,
         EvidenceAnchor::node(sp(81), NodeKind::Var),
@@ -350,13 +350,13 @@ fn python_list_zip_call_il(
             name_hash: stable_symbol_hash("zip"),
         },
     ));
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         1,
         Lang::Python,
         EvidenceAnchor::node(sp(82), NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Collection),
     ));
-    il.evidence.push(language_core_evidence(
+    il.push_evidence(language_core_evidence(
         2,
         Lang::Python,
         EvidenceAnchor::node(sp(83), NodeKind::Var),
@@ -364,17 +364,16 @@ fn python_list_zip_call_il(
     ));
     if include_zip_producer_evidence {
         let zip_contract = library_free_function_builtin_contract(Lang::Python, "zip", 2).unwrap();
-        il.evidence
-            .push(python_iterator_builtin_protocol_builtin_evidence(
-                3,
-                sp(81),
-                zip_contract,
-                2,
-                vec![EvidenceId(0), EvidenceId(1), EvidenceId(2)],
-            ));
+        il.push_evidence(python_iterator_builtin_protocol_builtin_evidence(
+            3,
+            sp(81),
+            zip_contract,
+            2,
+            vec![EvidenceId(0), EvidenceId(1), EvidenceId(2)],
+        ));
     }
 
-    il.evidence.push(language_core_symbol_evidence(
+    il.push_evidence(language_core_symbol_evidence(
         4,
         Lang::Python,
         EvidenceAnchor::node(sp(80), NodeKind::Var),
@@ -385,7 +384,7 @@ fn python_list_zip_call_il(
     if include_list_factory_evidence {
         let list_contract =
             library_free_name_collection_factory_contract(Lang::Python, "list").unwrap();
-        il.evidence.push(python_builtin_collection_factory_evidence(
+        il.push_evidence(python_builtin_collection_factory_evidence(
             5,
             sp(80),
             list_contract,

@@ -189,7 +189,7 @@ pub(super) fn add_import_binding_evidence(
     status: EvidenceStatus,
 ) -> EvidenceId {
     let id = EvidenceId(il.evidence.len() as u32);
-    il.evidence.push(EvidenceRecord {
+    il.push_evidence(EvidenceRecord {
         id,
         anchor: EvidenceAnchor::sequence(span),
         kind: EvidenceKind::Import(ImportEvidenceKind::Binding {
@@ -221,7 +221,7 @@ pub(super) fn provider_with_lookup_export_evidence(interner: &Interner) -> (Il, 
         Vec::new(),
         Vec::new(),
     );
-    provider.evidence.push(EvidenceRecord {
+    provider.push_evidence(EvidenceRecord {
         id: EvidenceId(0),
         anchor: EvidenceAnchor::sequence(span),
         kind: EvidenceKind::SequenceSurface(SequenceSurfaceKind::Map),
@@ -229,7 +229,7 @@ pub(super) fn provider_with_lookup_export_evidence(interner: &Interner) -> (Il, 
         dependencies: Vec::new(),
         status: EvidenceStatus::Asserted,
     });
-    provider.evidence.push(EvidenceRecord {
+    provider.push_evidence(EvidenceRecord {
         id: EvidenceId(1),
         anchor: EvidenceAnchor::node(span, NodeKind::Seq),
         kind: EvidenceKind::Import(ImportEvidenceKind::ImmutableLiteralExport {
@@ -241,7 +241,7 @@ pub(super) fn provider_with_lookup_export_evidence(interner: &Interner) -> (Il, 
         dependencies: vec![EvidenceId(0)],
         status: EvidenceStatus::Asserted,
     });
-    provider.evidence.push(EvidenceRecord {
+    provider.push_evidence(EvidenceRecord {
         id: EvidenceId(2),
         anchor: EvidenceAnchor::binding(span, stable_symbol_hash("LOOKUP")),
         kind: EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
@@ -252,7 +252,7 @@ pub(super) fn provider_with_lookup_export_evidence(interner: &Interner) -> (Il, 
         dependencies: vec![EvidenceId(0)],
         status: EvidenceStatus::Asserted,
     });
-    provider.evidence.push(EvidenceRecord {
+    provider.push_evidence(EvidenceRecord {
         id: EvidenceId(3),
         anchor: EvidenceAnchor::sequence(span),
         kind: EvidenceKind::SequenceSurface(SequenceSurfaceKind::Map),
@@ -292,7 +292,7 @@ pub(super) fn lookup_dict_provider(interner: &Interner, lookup: Symbol) -> Il {
         Vec::new(),
         Vec::new(),
     );
-    provider.evidence.push(EvidenceRecord {
+    provider.push_evidence(EvidenceRecord {
         id: EvidenceId(0),
         anchor: EvidenceAnchor::sequence(provider_span),
         kind: EvidenceKind::SequenceSurface(SequenceSurfaceKind::Map),
@@ -356,7 +356,7 @@ pub(super) fn lookup_import_consumer_with_lang(
         Vec::new(),
         Vec::new(),
     );
-    importer.evidence.push(EvidenceRecord {
+    importer.push_evidence(EvidenceRecord {
         id: EvidenceId(0),
         anchor: EvidenceAnchor::sequence(import_span),
         kind: EvidenceKind::Import(ImportEvidenceKind::Binding {

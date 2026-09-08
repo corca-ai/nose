@@ -6,6 +6,66 @@ the new estimator. The existing 5% and 5 ms materiality thresholds do not change
 
 ## Applicability and compatibility
 
+### Adopted capability baseline (2026-09-08)
+
+For v0.21 prospective release performance, the maintainer approved the expanded
+analysis cost and froze a [capability baseline](../bench/release/0.21.0/performance-baseline.v1.json).
+Use `scripts/query-regression-harness.py --performance-baseline-manifest` with
+the registered workload and current binary. The optional manifest path defaults
+to that record. Before executing the baseline, the harness verifies the host,
+binary digest, source objects and sealed evidence; report provenance records the
+manifest digest and source. Missing or mismatched artifacts fail instead of
+silently rebuilding or selecting HEAD. Without this option, existing harness
+base/head behavior remains unchanged.
+
+This is a reviewed reference change, not an estimator or threshold change.
+Keep five primary blocks, five samples per observation, one warmup, same-binary
+controls and at most one six-block focus for subsequent product differences.
+Select `--runtime-gate elapsed-v1` in the checker as before. Full executable
+identity with the adopted baseline establishes no added binary change; it does
+not establish new absolute latency/resource coverage or release readiness.
+Official-version comparisons remain historical upgrade-cost evidence and
+compatibility checks. See the [current qualification status](release-evidence-0.21.0.md)
+for accepted costs and the outstanding checks. Generic PR merge smoke still
+compares its declared base and head, and no historical failed report is changed.
+
+### Prospective release scope: elapsed-v1 (2026-09-07)
+
+New merge-smoke and v0.21 release campaigns explicitly select
+`--runtime-gate elapsed-v1`. This changes which measurements block release, not
+the estimator below. Per-repository and aggregate whole-query elapsed signals
+retain the 5% AND 5 ms thresholds, support test, one focused comparison, and
+fail-closed handling of insufficient focused evidence. A faster corpus aggregate
+cannot waive a slower individual repository.
+
+Internal-stage triggers and inconclusive measurements remain in the JSON with
+their original effects and statistical states, and appear as warnings in Markdown.
+They do not request focus or block release by themselves. Warnings from primary
+repositories outside the focused subset remain visible. A stage warning warrants
+investigation; it becomes a release blocker when evidence establishes a whole-query,
+memory-budget, or scaling failure. Additional diagnostic measurements cannot replace
+the registered release observations or erase a failed gate.
+
+Correctness, complete output, provenance, soundness, cache mutation/recovery and
+native package checks remain mandatory. The existing independent cache/watch
+latency, memory/resource tests and Ruby scaling budgets remain enforced; this
+query-time checker does not establish memory safety or general scaling by itself.
+Known resource exhaustion or incomplete analysis blocks release regardless of a
+passing elapsed-time comparison.
+
+The reason for this distinction is product impact: the preceding context candidate
+improved the 120-repository semantic total by about 5.2% and focused RxSwift elapsed
+time by about 8.5%, while its grouping step had a real, repeatable 6.05 ms increase.
+An internal tradeoff alone is not equivalent to a slower product. These observations
+motivate the prospective policy; they do not qualify the latest implementation.
+
+Historical commands default to `all-metrics-v1`, preserving their decisions and
+serialized status shape. The failed v0.21 records remain unchanged. The replacement
+candidate must be frozen and measured under the explicit new scope across semantic,
+base, default and near workloads; old stage-only failures are not relabeled passes.
+`runtime_policy` names the estimator; `runtime_gate` independently names the release
+scope and is recorded in every new decision's thresholds.
+
 The contract applies automatically to `nose.query_regression_harness.v3` reports.
 Historical v1 and v2 reports retain their original decisions unless an explicit
 historical-evaluation command selects this policy. Such a replay is a decision ledger,
@@ -49,6 +109,15 @@ process-position conflicts and failed its only focused rerun, despite recording 
 triggered regression. Its failed artifacts remain part of the release audit and are
 not reused in the replacement decision.
 
+The prospective merge-smoke design fixed on 2026-09-07 also uses five samples per
+observation and one warmup in every primary, same-binary control, and focused run.
+It retains five independent primary blocks, six focused blocks, and at most one
+focused comparison. CI run `34084916982` remains a failed single-sample observation:
+its focused Asciidoctor normalization signal was inconclusive. The replacement
+measurement uses the existing position-neutral estimator without changing its
+materiality limits, sign-test support, or fail-closed policy. Historical samples
+are not combined with the replacement campaign or repeatedly replayed until green.
+
 The v0.20 release qualification also applies this design to the frozen 17-repository
 `base=<ref>` workload in `bench/base_view_release_workload.v1.json`. The manifest binds
 each repository to an exact checked-out commit, ancestor base, source sample, and source
@@ -62,6 +131,14 @@ drift declaration, while a second hash removes only `targets` and per-site
 `semantic_change` fields. The checker reconstructs these normalized hash sets from all
 raw observations and fails if baseline and candidate differ after that projection.
 Timing never waives either the raw drift declaration or normalized equality.
+
+The strict checker validates base workloads through their manifest, source selection,
+ordered head/base tuples and producer/root identities. Ordinary reports instead
+require their checked and expected post-prune corpus state. A checker error exposed
+during v0.21 qualification required the ordinary state for both kinds and stopped
+after the complete base primary/control. Correcting that provenance dispatch does
+not change the estimator, sampling or output rules. The completed reports and error
+are retained; their decisions can be reconstructed without repeating measurements.
 
 For a single-sample observation, a material median in only one declared pair order is
 still an inconclusive order conflict. A multi-sample position-neutral observation has

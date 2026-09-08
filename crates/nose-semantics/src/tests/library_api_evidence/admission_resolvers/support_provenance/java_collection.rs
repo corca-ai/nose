@@ -91,16 +91,14 @@ pub(crate) fn assert_java_collection_factory_requires_pack_provenance(
     let (mut missing_dependency, call, _root, _local, contract) =
         java_list_of_import_evidence_il(&interner, true);
     missing_dependency.evidence.clear();
-    missing_dependency
-        .evidence
-        .push(java_stdlib_collection_factory_record(
-            0,
-            missing_dependency.node(call).span,
-            contract,
-            1,
-            EvidenceStatus::Asserted,
-            &[],
-        ));
+    missing_dependency.push_evidence(java_stdlib_collection_factory_record(
+        0,
+        missing_dependency.node(call).span,
+        contract,
+        1,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
     admission.assert_rejected(
         &missing_dependency,
         &interner,
@@ -113,19 +111,17 @@ pub(crate) fn assert_java_collection_factory_requires_pack_provenance(
     wrong_pack
         .evidence
         .retain(|record| record.id != EvidenceId(2));
-    wrong_pack
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            2,
-            wrong_pack.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[1],
-            BUILTIN_COMPAT_PACK_ID,
-            JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
-        ));
+    wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+        2,
+        wrong_pack.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[1],
+        BUILTIN_COMPAT_PACK_ID,
+        JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+    ));
     admission.assert_rejected(
         &wrong_pack,
         &interner,
@@ -138,19 +134,17 @@ pub(crate) fn assert_java_collection_factory_requires_pack_provenance(
     wrong_producer
         .evidence
         .retain(|record| record.id != EvidenceId(2));
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            2,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[1],
-            JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
-            "wrong.java.stdlib.collection-factory-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance_and_arity(
+        2,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[1],
+        JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
+        "wrong.java.stdlib.collection-factory-api",
+    ));
     admission.assert_rejected(
         &wrong_producer,
         &interner,

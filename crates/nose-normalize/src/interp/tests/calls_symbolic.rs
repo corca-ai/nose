@@ -167,7 +167,7 @@ fn self_call_with_error_arg_ignored_by_callee() -> Value {
             origin: Default::default(),
         }],
     );
-    il.evidence.push(test_call_target_record(
+    il.push_evidence(test_call_target_record(
         2000,
         il.node(recursive_call).span,
         il.node(func).span,
@@ -381,7 +381,7 @@ fn cross_function_call_result() -> Value {
             },
         ],
     );
-    il.evidence.push(test_call_target_record(
+    il.push_evidence(test_call_target_record(
         2001,
         il.node(call).span,
         il.node(g_func).span,

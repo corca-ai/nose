@@ -475,7 +475,7 @@ mod tests {
             params: 0,
             shared_weight: 1.0,
             locations: starts.iter().copied().map(fragment_loc).collect(),
-            direct_edges: Vec::new(),
+            direct_edges: Default::default(),
             accepted_coverage: Vec::new(),
             display_params: None,
             mean_sem: 1.0,
@@ -492,6 +492,9 @@ mod tests {
 
     fn fragment_loc(start_line: u32) -> Loc {
         Loc {
+            source_region: None,
+            analysis_digest: None,
+            shared_source_region: None,
             file: "src/main/java/example/DateUtils.java".to_owned(),
             start_line,
             end_line: start_line,

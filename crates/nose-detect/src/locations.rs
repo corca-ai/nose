@@ -4,9 +4,45 @@ use crate::{
     FragmentKind,
 };
 use nose_il::UnitKind;
-use std::collections::HashMap;
+use rayon::prelude::*;
+use rustc_hash::FxHashMap;
+
+#[cfg(test)]
+mod tests;
 
 pub(crate) fn loc_of(u: &UnitFeat, enclosing_unit: Option<EnclosingUnit>) -> Loc {
+    loc_with_analysis_key(u, enclosing_unit, crate::regions::unit_analysis_key(u))
+}
+
+pub(crate) fn group_locations(
+    units: &[UnitFeat],
+    members: &[usize],
+    enclosing: &[Option<EnclosingUnit>],
+    equal_values: bool,
+) -> Vec<Loc> {
+    let Some(&first) = members.first() else {
+        return Vec::new();
+    };
+    let analysis = crate::regions::AnalysisKeyReference::new(&units[first]);
+    let location = |&index: &usize| {
+        loc_with_analysis_key(
+            &units[index],
+            enclosing[index].clone(),
+            analysis.key_for(&units[index], equal_values),
+        )
+    };
+    if members.len() < 256 {
+        members.iter().map(location).collect()
+    } else {
+        members.par_iter().with_min_len(256).map(location).collect()
+    }
+}
+
+fn loc_with_analysis_key(
+    u: &UnitFeat,
+    enclosing_unit: Option<EnclosingUnit>,
+    analysis_key: nose_il::ContentDigest,
+) -> Loc {
     let fragment_kind = u.fragment_kind;
     let mut loc = Loc::new(LocInit {
         file: u.path.clone(),
@@ -18,6 +54,8 @@ pub(crate) fn loc_of(u: &UnitFeat, enclosing_unit: Option<EnclosingUnit>) -> Loc
         sem: u.value.len(),
         span_tokens: u.token_count,
     });
+    loc.source_region = u.source_region.clone();
+    loc.analysis_digest = Some(analysis_key);
     loc.is_fragment = fragment_kind.is_some();
     loc.fragment_kind = fragment_kind;
     loc.reason_code = fragment_kind.map(FragmentKind::reason_code);
@@ -34,9 +72,8 @@ fn can_enclose_fragment(u: &UnitFeat) -> bool {
         )
 }
 
-fn contains_span(parent: &UnitFeat, child: &UnitFeat) -> bool {
-    parent.path == child.path
-        && parent.start_line <= child.start_line
+fn contains_same_file_span(parent: &UnitFeat, child: &UnitFeat) -> bool {
+    parent.start_line <= child.start_line
         && parent.end_line >= child.end_line
         // Strict containment, except that a DIFFERENT-kind parent may share the
         // exact span: a method and its whole-body block are one region in two
@@ -70,10 +107,16 @@ pub(crate) fn connected_loc_of(
 ) -> Loc {
     let mut loc = loc_of(unit, enclosing_unit);
     loc.shared_subdag = Some(span);
+    loc.shared_source_region = unit
+        .source_document
+        .as_ref()
+        .and_then(|source| source.line_region(span.0, span.1));
     if span != (unit.start_line, unit.end_line) {
         if loc.enclosing_unit.is_none() && can_enclose_fragment(unit) {
             loc.enclosing_unit = Some(enclosing_unit_of(unit));
         }
+        // The detector selects complete source lines for mapped windows.
+        loc.source_region = loc.shared_source_region.clone();
         loc.start_line = span.0;
         loc.end_line = span.1;
         loc.span_lines = LineSpan::new(span.0, span.1).line_count();
@@ -90,7 +133,7 @@ pub(crate) fn connected_loc_of(
 /// locations (all contiguous) carried `name: null` with nothing to anchor a
 /// discussion to (#225). A run that crosses unit boundaries keeps `None`.
 pub(crate) fn attach_enclosing_units(groups: &mut [Group], units: &[UnitFeat]) {
-    let mut by_file: HashMap<&str, Vec<usize>> = HashMap::new();
+    let mut by_file: FxHashMap<&str, Vec<usize>> = FxHashMap::default();
     for (idx, unit) in units.iter().enumerate() {
         if can_enclose_fragment(unit) {
             by_file.entry(unit.path.as_str()).or_default().push(idx);
@@ -118,7 +161,7 @@ pub(crate) fn attach_enclosing_units(groups: &mut [Group], units: &[UnitFeat]) {
             });
             if let Some(idx) = parent {
                 loc.enclosing_unit = Some(enclosing_unit_of(&units[idx]));
-                loc.in_test_module = units[idx].in_test_module;
+                loc.in_test_module |= units[idx].in_test_module;
             } else {
                 // A run crossing unit boundaries is test scaffolding iff EVERY
                 // overlapping unit sits in the inline test module (#226 — the
@@ -131,7 +174,7 @@ pub(crate) fn attach_enclosing_units(groups: &mut [Group], units: &[UnitFeat]) {
                         u.start_line <= loc.end_line && loc.start_line <= u.end_line
                     })
                     .collect();
-                loc.in_test_module = !overlapping.is_empty()
+                loc.in_test_module |= !overlapping.is_empty()
                     && overlapping.iter().all(|&idx| units[idx].in_test_module);
             }
         }
@@ -139,49 +182,56 @@ pub(crate) fn attach_enclosing_units(groups: &mut [Group], units: &[UnitFeat]) {
 }
 
 pub(crate) fn enclosing_unit_indices(units: &[UnitFeat]) -> Vec<Option<usize>> {
-    let mut by_file: HashMap<&str, Vec<usize>> = HashMap::new();
+    let mut by_file: FxHashMap<&str, Vec<usize>> = FxHashMap::default();
     for (idx, unit) in units.iter().enumerate() {
         by_file.entry(unit.path.as_str()).or_default().push(idx);
     }
 
+    let assignments: Vec<(usize, usize)> = by_file
+        .into_par_iter()
+        .flat_map_iter(|(_, indices)| enclosing_file_indices(units, indices))
+        .collect();
     let mut out = vec![None; units.len()];
-    for indices in by_file.values() {
-        let mut parents: Vec<usize> = indices
-            .iter()
-            .copied()
-            .filter(|&idx| can_enclose_fragment(&units[idx]))
-            .collect();
-        parents.sort_by_key(|&idx| {
-            (
-                LineSpan::new(units[idx].start_line, units[idx].end_line).line_count(),
-                units[idx].start_line,
-                units[idx].end_line,
-            )
-        });
-
-        for &idx in indices {
-            // Fragments AND plain Block units get their enclosing
-            // function/method recovered — an agent cannot even NAME the region
-            // of a block family without it (#225: every sampled block location
-            // had `name: null`). Whole function/method/class units need none.
-            if units[idx].fragment_kind.is_none() && units[idx].kind != UnitKind::Block {
-                continue;
-            }
-            if let Some(parent) = parents
-                .iter()
-                .copied()
-                .find(|&parent_idx| contains_span(&units[parent_idx], &units[idx]))
-            {
-                out[idx] = Some(parent);
-            }
-        }
+    for (index, parent) in assignments {
+        out[index] = Some(parent);
     }
     out
 }
 
+fn enclosing_file_indices(
+    units: &[UnitFeat],
+    indices: Vec<usize>,
+) -> impl Iterator<Item = (usize, usize)> + '_ {
+    let mut parents: Vec<usize> = indices
+        .iter()
+        .copied()
+        .filter(|&index| can_enclose_fragment(&units[index]))
+        .collect();
+    // Stable ties retain original unit order within this file.
+    parents.sort_by_key(|&index| {
+        (
+            LineSpan::new(units[index].start_line, units[index].end_line).line_count(),
+            units[index].start_line,
+            units[index].end_line,
+        )
+    });
+    indices.into_iter().filter_map(move |index| {
+        let child = &units[index];
+        if child.fragment_kind.is_none() && child.kind != UnitKind::Block {
+            return None;
+        }
+        let parent = parents
+            .iter()
+            .copied()
+            .find(|&parent| contains_same_file_span(&units[parent], child))?;
+        Some((index, parent))
+    })
+}
+
 pub(crate) fn enclosing_units(units: &[UnitFeat]) -> Vec<Option<EnclosingUnit>> {
     enclosing_unit_indices(units)
-        .into_iter()
+        .into_par_iter()
+        .with_min_len(256)
         .map(|parent| parent.map(|index| enclosing_unit_of(&units[index])))
         .collect()
 }
@@ -192,4 +242,12 @@ pub(crate) fn is_nested(a: &UnitFeat, b: &UnitFeat) -> bool {
     a.path == b.path
         && ((a.start_line <= b.start_line && a.end_line >= b.end_line)
             || (b.start_line <= a.start_line && b.end_line >= a.end_line))
+}
+
+/// Every pair has distinct files or strictly increasing starts and ends.
+pub(crate) fn all_non_nested<F: Ord>(mut spans: Vec<(F, u32, u32)>) -> bool {
+    spans.sort_unstable();
+    !spans
+        .windows(2)
+        .any(|pair| pair[0].0 == pair[1].0 && (pair[0].1 >= pair[1].1 || pair[0].2 >= pair[1].2))
 }

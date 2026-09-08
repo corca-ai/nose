@@ -101,13 +101,13 @@ fn push_map_contract_evidence(il: &mut Il, lang: Lang, hof: NodeId, expect_msg: 
         lang,
         Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
     ) {
-        il.evidence.push(evidence(
+        il.push_evidence(evidence(
             0,
             EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
             EvidenceKind::Domain(DomainEvidence::Array),
         ));
     } else {
-        il.evidence.push(language_core_evidence(
+        il.push_evidence(language_core_evidence(
             0,
             lang,
             EvidenceAnchor::sequence(il.node(receiver).span),
@@ -146,7 +146,7 @@ fn push_map_contract_evidence(il: &mut Il, lang: Lang, hof: NodeId, expect_msg: 
             vec![EvidenceId(0)],
         )
     };
-    il.evidence.push(evidence);
+    il.push_evidence(evidence);
 }
 
 fn push_ruby_sequence_hof_contract_evidence(
@@ -157,7 +157,7 @@ fn push_ruby_sequence_hof_contract_evidence(
     dependency: EvidenceId,
 ) {
     let contract = library_method_call_contract(Lang::Ruby, method, 1).expect("Ruby HOF contract");
-    il.evidence.push(rust_sequence_hof_adapter_evidence(
+    il.push_evidence(rust_sequence_hof_adapter_evidence(
         id,
         il.node(hof).span,
         contract.id,
@@ -305,7 +305,7 @@ fn len_of_library_hof_requires_materialized_demand_profile() {
     );
     let contract =
         library_method_call_contract(Lang::Rust, "count", 0).expect("Rust count contract");
-    il.evidence.push(rust_sequence_hof_adapter_evidence(
+    il.push_evidence(rust_sequence_hof_adapter_evidence(
         2,
         il.node(count).span,
         contract.id,
@@ -390,7 +390,7 @@ fn len_of_raw_filter_hof_requires_filter_admission() {
     let mut il = finish_test_il(b, len, Lang::Python);
     let contract =
         library_free_function_builtin_contract(Lang::Python, "len", 1).expect("len contract");
-    il.evidence.push(library_api_contract_evidence(
+    il.push_evidence(library_api_contract_evidence(
         0,
         il.node(len).span,
         contract.id,
@@ -416,7 +416,7 @@ fn ruby_reject_hof_carries_negated_predicate() {
     let reject = predicate_hof(&mut b, HoFKind::Reject, sp(4), coll, pred);
     let root = b.add(NodeKind::Block, Payload::None, sp(5), &[filter, reject]);
     let mut il = finish_test_il(b, root, Lang::Ruby);
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         0,
         EvidenceAnchor::node(il.node(coll).span, il.kind(coll)),
         EvidenceKind::Domain(DomainEvidence::Collection),

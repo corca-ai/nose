@@ -8,13 +8,9 @@ use super::*;
 #[derive(Debug, Default)]
 pub(super) struct EvidenceIndex {
     pub(super) indexed_len: usize,
-    /// `(id, anchor)` of the last record indexed — a cheap staleness sentinel.
-    /// Appends keep it valid; a `clear()`/`retain()`/splice that replaces the
-    /// prefix almost always changes the record at this position, which
-    /// [`Il::with_evidence_index`] detects and answers with a rebuild. (The
-    /// only undetectable rewrite is one that preserves every indexed record's
-    /// `(id, anchor)` pair — and such a rewrite leaves the index correct,
-    /// because those two fields are all it derives buckets from.)
+    /// `(id, anchor)` of the last indexed record, used to check the append
+    /// boundary. Arbitrary edits must invalidate through `Il`; this sentinel
+    /// alone cannot detect changes elsewhere in an existing prefix.
     pub(super) sentinel: Option<(u32, EvidenceAnchor)>,
     pub(super) by_anchor_span: std::collections::HashMap<(u32, u32, u32), Vec<u32>>,
     /// `Binding` anchors are queried by `local_hash` (not span) — see

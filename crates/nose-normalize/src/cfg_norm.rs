@@ -14,7 +14,7 @@
 //! proof-obligation: normalize.control_flow.guard_returns
 
 use crate::commutative::subtree_hashes;
-use nose_il::{Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload};
+use nose_il::{Il, IlBuilder, IlContents, Interner, NodeId, NodeKind, Op, Payload};
 use nose_semantics::semantics;
 use rustc_hash::FxHashMap;
 
@@ -191,6 +191,7 @@ pub(crate) fn run(il: &mut Il, interner: &Interner) {
         return;
     }
     let hashes = subtree_hashes(il, interner);
+    let il = il.edit();
     for i in 0..il.nodes.len() {
         let node = il.nodes[i];
         if node.kind != NodeKind::If || node.child_len != 3 {
@@ -221,7 +222,7 @@ pub(crate) fn run(il: &mut Il, interner: &Interner) {
 /// If `cond` is an equality comparison `BinOp`, return its canonical negation as
 /// `(operator, swap_operands)`. Order comparisons are deliberately excluded here:
 /// they need total-order proof, which is only available in the value graph.
-fn invert_comparison(il: &Il, cond: NodeId) -> Option<(Op, bool)> {
+fn invert_comparison(il: &IlContents, cond: NodeId) -> Option<(Op, bool)> {
     let n = il.node(cond);
     if n.kind != NodeKind::BinOp {
         return None;

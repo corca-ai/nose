@@ -52,7 +52,7 @@ fn push_protocol_receiver_dependency(il: &mut Il, receiver: NodeId) {
 }
 
 fn push_receiver_domain_dependency(il: &mut Il, id: u32, receiver: NodeId, domain: DomainEvidence) {
-    il.evidence.push(evidence(
+    il.push_evidence(evidence(
         id,
         EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
         EvidenceKind::Domain(domain),
@@ -115,7 +115,7 @@ fn assert_sequence_hof_requires_pack_and_ordered_receiver(
     );
 
     let (mut missing_dependency, interner, call, _receiver) = make_call();
-    missing_dependency.evidence.push(sequence_hof_record(
+    missing_dependency.push_evidence(sequence_hof_record(
         1,
         &missing_dependency,
         call,
@@ -131,19 +131,17 @@ fn assert_sequence_hof_requires_pack_and_ordered_receiver(
 
     let (mut wrong_pack, interner, call, receiver) = make_call();
     push_receiver_domain_dependency(&mut wrong_pack, 0, receiver, DomainEvidence::Collection);
-    wrong_pack
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            wrong_pack.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
-            BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
-        ));
+    wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        wrong_pack.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+        BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
+        BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
+    ));
     assert!(
         admitted_library_method_call_at_call(&wrong_pack, &interner, call).is_none(),
         "{}",
@@ -152,19 +150,17 @@ fn assert_sequence_hof_requires_pack_and_ordered_receiver(
 
     let (mut wrong_producer, interner, call, receiver) = make_call();
     push_receiver_domain_dependency(&mut wrong_producer, 0, receiver, DomainEvidence::Collection);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
-            "wrong.protocols.sequence-hof-adapter-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+        SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+        "wrong.protocols.sequence-hof-adapter-api",
+    ));
     assert!(
         admitted_library_method_call_at_call(&wrong_producer, &interner, call).is_none(),
         "{}",
@@ -174,8 +170,7 @@ fn assert_sequence_hof_requires_pack_and_ordered_receiver(
     for &(domain, message) in rejected_domains {
         let (mut il, interner, call, receiver) = make_call();
         push_receiver_domain_dependency(&mut il, 0, receiver, domain);
-        il.evidence
-            .push(sequence_hof_record(1, &il, call, contract, 1, &[0]));
+        il.push_evidence(sequence_hof_record(1, &il, call, contract, 1, &[0]));
         assert!(
             admitted_library_method_call_at_call(&il, &interner, call).is_none(),
             "{message}"
@@ -184,9 +179,7 @@ fn assert_sequence_hof_requires_pack_and_ordered_receiver(
 
     let (mut admitted, interner, call, receiver) = make_call();
     push_receiver_domain_dependency(&mut admitted, 0, receiver, DomainEvidence::Collection);
-    admitted
-        .evidence
-        .push(sequence_hof_record(1, &admitted, call, contract, 1, &[0]));
+    admitted.push_evidence(sequence_hof_record(1, &admitted, call, contract, 1, &[0]));
     let occurrence =
         admitted_library_method_call_at_call(&admitted, &interner, call).expect(messages.admitted);
     assert_eq!(
@@ -213,7 +206,7 @@ fn admitted_rust_iterator_hof_requires_sequence_hof_pack_provenance() {
     let contract = library_method_call_contract(Lang::Rust, "map", 1).expect("Rust map row");
 
     let (mut missing_dependency, interner, call, _receiver) = sequence_hof_call_il("map", 1);
-    missing_dependency.evidence.push(sequence_hof_record(
+    missing_dependency.push_evidence(sequence_hof_record(
         1,
         &missing_dependency,
         call,
@@ -228,19 +221,17 @@ fn admitted_rust_iterator_hof_requires_sequence_hof_pack_provenance() {
 
     let (mut wrong_pack, interner, call, receiver) = sequence_hof_call_il("map", 1);
     push_protocol_receiver_dependency(&mut wrong_pack, receiver);
-    wrong_pack
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            wrong_pack.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
-            BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
-        ));
+    wrong_pack.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        wrong_pack.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+        BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
+        BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
+    ));
     assert!(
         admitted_library_method_call_at_call(&wrong_pack, &interner, call).is_none(),
         "Rust iterator HOF evidence under the generic method-call pack is rejected"
@@ -248,19 +239,17 @@ fn admitted_rust_iterator_hof_requires_sequence_hof_pack_provenance() {
 
     let (mut wrong_producer, interner, call, receiver) = sequence_hof_call_il("map", 1);
     push_protocol_receiver_dependency(&mut wrong_producer, receiver);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
-            "wrong.protocols.sequence-hof-adapter-api",
-        ));
+    wrong_producer.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        wrong_producer.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+        SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+        "wrong.protocols.sequence-hof-adapter-api",
+    ));
     assert!(
         admitted_library_method_call_at_call(&wrong_producer, &interner, call).is_none(),
         "Rust iterator HOF evidence with the wrong producer is rejected"
@@ -268,9 +257,7 @@ fn admitted_rust_iterator_hof_requires_sequence_hof_pack_provenance() {
 
     let (mut admitted, interner, call, receiver) = sequence_hof_call_il("map", 1);
     push_protocol_receiver_dependency(&mut admitted, receiver);
-    admitted
-        .evidence
-        .push(sequence_hof_record(1, &admitted, call, contract, 1, &[0]));
+    admitted.push_evidence(sequence_hof_record(1, &admitted, call, contract, 1, &[0]));
     let occurrence = admitted_library_method_call_at_call(&admitted, &interner, call).unwrap();
     assert_eq!(
         occurrence.contract.id,
@@ -302,7 +289,7 @@ fn admitted_rust_iterator_hof_pack_covers_lazy_adapters_and_terminals() {
         push_protocol_receiver_dependency(&mut il, receiver);
         let contract =
             library_method_call_contract(Lang::Rust, method, arity).expect("Rust method row");
-        il.evidence.push(sequence_hof_record(
+        il.push_evidence(sequence_hof_record(
             1,
             &il,
             call,
@@ -337,19 +324,17 @@ fn admitted_rust_zip_requires_pair_argument_protocol_dependency() {
         receiver_method_call_il(Lang::Rust, "zip", 1, 700);
     let pair = missing_pair.children(call)[1];
     push_receiver_domain_dependency(&mut missing_pair, 0, receiver, DomainEvidence::Collection);
-    missing_pair
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            missing_pair.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            contract.pack_id,
-            contract.producer_id,
-        ));
+    missing_pair.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        missing_pair.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+        contract.pack_id,
+        contract.producer_id,
+    ));
     assert!(
         admitted_library_method_call_at_call(&missing_pair, &interner, call).is_none(),
         "Rust zip node-backed admission requires protocol proof for the pair argument"
@@ -377,19 +362,17 @@ fn admitted_rust_zip_requires_pair_argument_protocol_dependency() {
     let pair = admitted.children(call)[1];
     push_receiver_domain_dependency(&mut admitted, 0, receiver, DomainEvidence::Collection);
     push_receiver_domain_dependency(&mut admitted, 1, pair, DomainEvidence::Collection);
-    admitted
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            2,
-            admitted.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[0, 1],
-            contract.pack_id,
-            contract.producer_id,
-        ));
+    admitted.push_evidence(library_api_record_with_provenance_and_arity(
+        2,
+        admitted.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        EvidenceStatus::Asserted,
+        &[0, 1],
+        contract.pack_id,
+        contract.producer_id,
+    ));
     let occurrence = admitted_library_method_call_at_call(&admitted, &interner, call)
         .expect("Rust zip with receiver and pair protocol proofs is admitted");
     assert_eq!(
@@ -419,21 +402,20 @@ fn sequence_hof_pack_does_not_open_unsupported_find_shape() {
     push_protocol_receiver_dependency(&mut il, receiver);
     let forged_contract =
         LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::Contains));
-    il.evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            il.node(call).span,
-            forged_contract,
-            LibraryApiCalleeContract::Method {
-                method: "find",
-                receiver: MethodReceiverContract::ExactProtocol,
-            },
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
-        ));
+    il.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        il.node(call).span,
+        forged_contract,
+        LibraryApiCalleeContract::Method {
+            method: "find",
+            receiver: MethodReceiverContract::ExactProtocol,
+        },
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+        SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+        SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
+    ));
     assert!(
         admitted_library_method_call_at_call(&il, &interner, call).is_none(),
         "sequence-HOF provenance does not mint unsupported Rust find semantics"
@@ -444,22 +426,20 @@ fn sequence_hof_pack_does_not_open_unsupported_find_shape() {
 fn sequence_hof_pack_rejects_custom_methods_and_ecosystem_adapters() {
     let (mut custom_map, interner, call, receiver) = sequence_hof_call_il("map", 1);
     push_protocol_receiver_dependency(&mut custom_map, receiver);
-    custom_map
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            custom_map.node(call).span,
-            LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(HoFKind::Map)),
-            LibraryApiCalleeContract::Method {
-                method: "map",
-                receiver: MethodReceiverContract::ExactMap,
-            },
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
-        ));
+    custom_map.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        custom_map.node(call).span,
+        LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(HoFKind::Map)),
+        LibraryApiCalleeContract::Method {
+            method: "map",
+            receiver: MethodReceiverContract::ExactMap,
+        },
+        1,
+        EvidenceStatus::Asserted,
+        &[0],
+        SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+        SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
+    ));
     assert!(
         admitted_library_method_call_at_call(&custom_map, &interner, call).is_none(),
         "sequence-HOF provenance does not turn a same-named custom map method into an iterator HOF"
@@ -467,22 +447,20 @@ fn sequence_hof_pack_rejects_custom_methods_and_ecosystem_adapters() {
 
     let (mut collect_vec, interner, call, receiver) = sequence_hof_call_il("collect_vec", 0);
     push_protocol_receiver_dependency(&mut collect_vec, receiver);
-    collect_vec
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            collect_vec.node(call).span,
-            LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::Len)),
-            LibraryApiCalleeContract::Method {
-                method: "collect_vec",
-                receiver: MethodReceiverContract::ExactProtocol,
-            },
-            0,
-            EvidenceStatus::Asserted,
-            &[0],
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
-        ));
+    collect_vec.push_evidence(library_api_record_with_provenance_and_arity(
+        1,
+        collect_vec.node(call).span,
+        LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::Len)),
+        LibraryApiCalleeContract::Method {
+            method: "collect_vec",
+            receiver: MethodReceiverContract::ExactProtocol,
+        },
+        0,
+        EvidenceStatus::Asserted,
+        &[0],
+        SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+        SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
+    ));
     assert!(
         admitted_library_method_call_at_call(&collect_vec, &interner, call).is_none(),
         "sequence-HOF provenance does not open ecosystem collect_vec as a std Iterator terminal"

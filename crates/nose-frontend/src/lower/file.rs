@@ -60,7 +60,7 @@ pub(crate) fn lower_file_with_setup(
     let units = std::mem::take(&mut lo.units);
     let evidence = std::mem::take(&mut lo.evidence);
     let mut il = lo.b.finish(module, meta, units, Vec::new());
-    il.evidence = evidence;
+    (*il.evidence_mut()) = evidence;
     record_post_lower_bound_order_guard_evidence(&mut il, interner);
     record_post_lower_library_api_evidence(&mut il, interner);
     drop_suppressed_units(&mut il, src);
@@ -80,14 +80,15 @@ fn drop_suppressed_units(il: &mut Il, src: &[u8]) {
         .map(|u| !unit_suppressed(src, il.node(u.root).span.start_byte as usize))
         .collect();
     // Record suppressed units' byte spans so the contiguous channel excludes them too.
-    for (u, &kept) in il.units.iter().zip(&keep) {
+    let contents = il.edit();
+    for (u, &kept) in contents.units.iter().zip(&keep) {
         if !kept {
-            let sp = il.node(u.root).span;
-            il.suppressed.push((sp.start_byte, sp.end_byte));
+            let sp = contents.nodes[u.root.0 as usize].span;
+            contents.suppressed.push((sp.start_byte, sp.end_byte));
         }
     }
     let mut it = keep.iter();
-    il.units.retain(|_| *it.next().unwrap());
+    contents.units.retain(|_| *it.next().unwrap());
 }
 
 const SUPPRESS_MARKER: &str = "nose-ignore";

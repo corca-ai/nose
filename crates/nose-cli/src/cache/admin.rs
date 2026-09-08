@@ -167,7 +167,14 @@ pub(super) fn enforce_run_budget(run: CacheRun) {
     if started_empty && written_bytes <= max_bytes {
         return;
     }
-    if let Err(error) = prune(&root, max_bytes) {
+    let result = (|| {
+        // A watch session can hold another shared lease in this process. Automatic
+        // maintenance must not wait for it; explicit prune/clear still wait.
+        let lease = open_store_lease(&root)?;
+        FileExt::try_lock_exclusive(&lease)?;
+        prune_locked(&root, max_bytes)
+    })();
+    if let Err(error) = result {
         if std::env::var_os("NOSE_CACHE_STATS").is_some() {
             eprintln!("  [cache-prune] skipped: {error}");
         }
@@ -226,6 +233,12 @@ fn eviction_tier(path: &Path, live: &BTreeSet<PathBuf>) -> u8 {
 }
 
 fn exclusive_store_lease(root: &Path) -> std::io::Result<File> {
+    let file = open_store_lease(root)?;
+    FileExt::lock_exclusive(&file)?;
+    Ok(file)
+}
+
+fn open_store_lease(root: &Path) -> std::io::Result<File> {
     std::fs::create_dir_all(root)?;
     let file = OpenOptions::new()
         .read(true)
@@ -233,7 +246,6 @@ fn exclusive_store_lease(root: &Path) -> std::io::Result<File> {
         .create(true)
         .truncate(false)
         .open(root.join(".nose-cache.lock"))?;
-    FileExt::lock_exclusive(&file)?;
     Ok(file)
 }
 

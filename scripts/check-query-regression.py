@@ -9,6 +9,7 @@ import json
 import math
 import re
 import statistics
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,7 @@ REPORT_SCHEMA_V3 = "nose.query_regression_harness.v3"
 REPORT_SCHEMAS = (REPORT_SCHEMA_V2, REPORT_SCHEMA_V3)
 OUTPUT_KEYS = ("hashes", "bytes", "families", "schema_versions", "surface_counts")
 HEX_RE = re.compile(r"^[0-9a-f]+$")
+RUNTIME_GATES = ("all-metrics-v1", "elapsed-v1")
 
 
 class CheckFailed(Exception):
@@ -174,6 +176,51 @@ def validate_output_compatibility(
         raise CheckFailed(f"{label}: normalized output compatibility failed for {failed}")
 
 
+def base_selection_rows(corpus: dict[str, Any]) -> list[dict[str, str]]:
+    bases = {row["repo"]: row["base"] for row in corpus["base_revisions"]}
+    return [{**row, "base": bases[row["repo"]]} for row in corpus["repositories"]]
+
+
+def validate_base_corpus(report: dict[str, Any], corpus: dict[str, Any], label: str) -> bool:
+    """Validate the alternate pinned workload contract, without inventing prune state."""
+    provenance = require_provenance(report, label)
+    command_is_base = "base=<base>" in report["command"].split()
+    if not (command_is_base or "base_revisions" in corpus or any(
+        provenance.get(key) is not None
+        for key in ("base_workload_manifest", "base_workload_manifest_sha256")
+    )):
+        return False
+    if not command_is_base:
+        raise CheckFailed(f"{label}: base workload requires a base=<base> command")
+    for key in ("base_workload_manifest_sha256", "harness_sha256", "worktree_helper_sha256"):
+        require_hex(provenance, key, 64, f"{label}.provenance")
+    for key in ("base_workload_manifest", "worktrees_root"):
+        require_string(provenance, key, f"{label}.provenance")
+    for key, corpus_key in (("base_workload_manifest", "corpus_manifest"),
+                            ("base_workload_manifest_sha256", "corpus_manifest_sha256")):
+        if provenance[key] != corpus[corpus_key]:
+            raise CheckFailed(f"{label}.provenance.{key}: does not match corpus manifest")
+    require_string(corpus, "selection", f"{label}.corpus")
+    bases = corpus.get("base_revisions")
+    if not isinstance(bases, list):
+        raise CheckFailed(f"{label}.corpus.base_revisions: expected an array")
+    repos = []
+    for index, row in enumerate(bases):
+        where = f"{label}.corpus.base_revisions[{index}]"
+        if not isinstance(row, dict):
+            raise CheckFailed(f"{where}: expected an object")
+        repos.append(require_string(row, "repo", where))
+        require_hex(row, "base", 40, where)
+    if repos != report["repos"]:
+        raise CheckFailed(f"{label}.corpus.base_revisions: selection does not match repos")
+    digest = hashlib.sha256(json.dumps(
+        base_selection_rows(corpus), sort_keys=True, separators=(",", ":")
+    ).encode()).hexdigest()
+    if digest != corpus["selection_sha256"]:
+        raise CheckFailed(f"{label}.corpus.selection_sha256: does not match base revision selection")
+    return True
+
+
 def validate_structured_report(
     report: dict[str, Any], label: str, *, require_corpus_provenance: bool = False
 ) -> None:
@@ -287,7 +334,7 @@ def validate_structured_report(
                 raise CheckFailed(f"{label}.corpus: incomplete expected subset state provenance")
             require_string(corpus, "expected_corpus_state", f"{label}.corpus")
             require_hex(corpus, "expected_corpus_state_sha256", 64, f"{label}.corpus")
-        if require_corpus_provenance:
+        if require_corpus_provenance and not validate_base_corpus(report, corpus, label):
             required_state_keys = state_keys | expected_state_keys
             missing_state_keys = sorted(required_state_keys - corpus.keys())
             if missing_state_keys:
@@ -536,6 +583,9 @@ def validate_same_binary_control(
                 raise CheckFailed("same-binary control output normalizer does not match report")
     report_provenance = require_provenance(report, "report")
     control_provenance = require_provenance(control, "same-binary control")
+    for key in ("harness_sha256", "worktree_helper_sha256", "worktrees_root"):
+        if report_provenance.get(key) != control_provenance.get(key):
+            raise CheckFailed(f"same-binary control provenance `{key}` does not match report")
     baseline_sha = control_provenance.get("baseline_binary_sha256")
     current_sha = control_provenance.get("current_binary_sha256")
     if not isinstance(baseline_sha, str) or not isinstance(current_sha, str):
@@ -863,6 +913,9 @@ def validate_focused_report(
         "current_binary_sha256",
         "baseline_source_sha",
         "current_source_sha",
+        "harness_sha256",
+        "worktree_helper_sha256",
+        "worktrees_root",
     ]
     primary_provenance = require_provenance(primary, "primary report")
     if "baseline_binary_code_sha256" in primary_provenance:
@@ -893,6 +946,10 @@ def validate_focused_report(
         ):
             if focused_corpus.get(key) != primary_corpus.get(key):
                 raise CheckFailed(f"focused rerun corpus `{key}` does not match primary report")
+        if require_corpus_provenance and "base_revisions" in primary_corpus:
+            expected = {row["repo"]: row for row in base_selection_rows(primary_corpus)}
+            if any(row != expected.get(row["repo"]) for row in base_selection_rows(focused_corpus)):
+                raise CheckFailed("focused rerun base revisions do not match primary report")
     measurement = require_object(focused, "measurement", "focused report")
     iterations = measurement.get("iterations")
     if isinstance(iterations, bool) or not isinstance(iterations, int) or iterations < min_iterations:
@@ -1005,6 +1062,21 @@ def report_phase(
     }
 
 
+def apply_runtime_gate(phase: dict[str, Any], runtime_gate: str) -> None:
+    """Keep every measured signal while separating release blockers from diagnostics."""
+    if runtime_gate == "all-metrics-v1":
+        return
+    runtime = phase["runtime"]
+    attention = runtime["triggered"] + runtime.get("inconclusive", [])
+    runtime["blocking"] = [signal for signal in attention if signal["scope"] != "stage"]
+    runtime["warnings"] = [signal for signal in attention if signal["scope"] == "stage"]
+
+
+def blocking_runtime_signals(phase: dict[str, Any]) -> list[dict[str, Any]]:
+    runtime = phase["runtime"]
+    return runtime.get("blocking", runtime["triggered"] + runtime.get("inconclusive", []))
+
+
 def evaluate_gate(
     report: dict[str, Any],
     *,
@@ -1018,6 +1090,7 @@ def evaluate_gate(
     require_same_binary_control: bool = False,
     require_corpus_provenance: bool = False,
     runtime_policy: str = "auto",
+    runtime_gate: str = "all-metrics-v1",
 ) -> dict[str, Any]:
     max_runtime_delta_pct = finite_number(
         max_runtime_delta_pct, "max_runtime_delta_pct"
@@ -1037,6 +1110,8 @@ def evaluate_gate(
         raise CheckFailed("same-binary control is required")
     if runtime_policy not in ("auto", "legacy", "order-aware-v1"):
         raise CheckFailed("runtime_policy: expected auto, legacy, or order-aware-v1")
+    if runtime_gate not in RUNTIME_GATES:
+        raise CheckFailed("runtime_gate: expected all-metrics-v1 or elapsed-v1")
     primary = report_phase(
         report,
         same_binary_control,
@@ -1046,11 +1121,14 @@ def evaluate_gate(
         runtime_policy=runtime_policy,
         require_corpus_provenance=require_corpus_provenance,
     )
+    apply_runtime_gate(primary, runtime_gate)
     thresholds = {
         "max_runtime_delta_pct": max_runtime_delta_pct,
         "min_runtime_delta_ms": min_runtime_delta_ms,
         "min_focused_iterations": min_focused_iterations,
     }
+    if runtime_gate != "all-metrics-v1":
+        thresholds["runtime_gate"] = runtime_gate
     if runtime_policy != "auto" or report.get("schema") == REPORT_SCHEMA_V3:
         thresholds["runtime_policy"] = (
             "order-aware-v1" if uses_order_aware(report, runtime_policy) else "legacy"
@@ -1079,9 +1157,7 @@ def evaluate_gate(
             )
         raise CheckFailed("; ".join(reasons), status=status)
 
-    triggered = primary["runtime"]["triggered"]
-    inconclusive = primary["runtime"].get("inconclusive", [])
-    needs_focus = triggered + inconclusive
+    needs_focus = blocking_runtime_signals(primary)
     if not needs_focus:
         return status
     all_repos = sorted(require_repos(report, "report"))
@@ -1139,29 +1215,31 @@ def evaluate_gate(
         require_corpus_provenance=require_corpus_provenance,
     )
     status["focused"] = focused
+    apply_runtime_gate(focused, runtime_gate)
     focused_output = focused["output"]
     if focused_output["unexpected_drifts"] or focused_output["unused_declarations"]:
         status["status"] = "fail"
         raise CheckFailed("focused rerun output drift is not exactly declared", status=status)
-    if focused["runtime"].get("inconclusive"):
+    focused_blockers = blocking_runtime_signals(focused)
+    if any(signal.get("inconclusive") for signal in focused_blockers):
         status["status"] = "fail"
         labels = [
             signal["repo"] + (f":{signal['stage']}" if signal["stage"] else "")
             if signal["repo"]
             else "aggregate"
-            for signal in focused["runtime"]["inconclusive"]
+            for signal in focused_blockers if signal.get("inconclusive")
         ]
         raise CheckFailed(
             "focused runtime evidence remains insufficient in " + ", ".join(labels),
             status=status,
         )
-    if focused["runtime"]["triggered"]:
+    if any(signal["triggered"] for signal in focused_blockers):
         status["status"] = "fail"
         labels = [
             signal["repo"] + (f":{signal['stage']}" if signal["stage"] else "")
             if signal["repo"]
             else "aggregate"
-            for signal in focused["runtime"]["triggered"]
+            for signal in focused_blockers if signal["triggered"]
         ]
         raise CheckFailed(
             "confirmed material runtime regression in " + ", ".join(labels), status=status
@@ -1305,7 +1383,13 @@ def expected_manifest(hash_current: str = SAMPLE_CHANGED_HASH) -> dict[str, Any]
 
 
 def run_self_test() -> None:
+    from query_regression_gate_tests import run_self_test as run_elapsed_gate_self_test
+    from query_regression_base_tests import run_self_test as run_base_self_test
+
+    run_base_self_test(sys.modules[__name__])
+    run_elapsed_gate_self_test(sys.modules[__name__])
     run_order_aware_self_test()
+    run_markdown_self_test()
     evaluate_gate(sample_report())
     v3_primary = sample_v3(sample_report(delta=2.0, iterations=2))
     v3_control = sample_v3(sample_control(delta=-3.0, iterations=2))
@@ -1319,6 +1403,27 @@ def run_self_test() -> None:
     )
     assert v3_status["status"] == "pass"
     assert v3_status["focused"] is not None
+    for key, value in (
+        ("harness_sha256", "a" * 64),
+        ("worktree_helper_sha256", "b" * 64),
+        ("worktrees_root", "/stable/base-worktrees"),
+    ):
+        changed_control = json.loads(json.dumps(v3_control))
+        changed_control["provenance"][key] = value
+        try:
+            validate_same_binary_control(v3_primary, changed_control)
+        except CheckFailed as error:
+            assert key in str(error)
+        else:
+            raise AssertionError(f"control must preserve {key}")
+        changed_focus = json.loads(json.dumps(v3_focused))
+        changed_focus["provenance"][key] = value
+        try:
+            validate_focused_report(v3_primary, changed_focus, ["repo-a"], 5)
+        except CheckFailed as error:
+            assert key in str(error)
+        else:
+            raise AssertionError(f"focused rerun must preserve {key}")
     assert evaluate_gate(
         sample_v3(sample_report(delta=2.0, iterations=5)),
         same_binary_control=sample_v3(sample_control(delta=0.0, iterations=5)),
@@ -1600,6 +1705,33 @@ def run_self_test() -> None:
     print("query regression checker self-test passed")
 
 
+def run_markdown_self_test() -> None:
+    report = sample_report()
+    for focused in (False, True):
+        status = evaluate_gate(report)
+        phase = status["primary"]
+        example = phase["runtime"]["signals"][0]
+        stages = [
+            dict(example, repo="fixture", scope="stage", stage="confirmed_stage", triggered=True, inconclusive=False),
+            dict(example, repo="fixture", scope="stage", stage="uncertain_stage", triggered=False, inconclusive=True),
+            dict(example, repo="fixture", scope="stage", stage="passing_stage", triggered=False, inconclusive=False),
+        ]
+        phase["runtime"]["signals"].extend(stages)
+        phase["runtime"]["triggered"] = stages[:1]
+        phase["runtime"]["inconclusive"] = stages[1:2]
+        if focused:
+            status["focused"] = phase
+            status["focused_repos"] = ["fixture"]
+        rendered = markdown_summary(status, report)
+        assert rendered.count("`fixture:confirmed_stage`") == 1
+        assert rendered.count("`fixture:uncertain_stage`") == 1
+        assert "`fixture:passing_stage`" not in rendered
+        uncertain = next(line for line in rendered.splitlines() if "`fixture:uncertain_stage`" in line)
+        assert uncertain.endswith("| inconclusive |")
+        if focused:
+            assert "Focused comparison completed for:" in rendered
+
+
 def markdown_summary(status: dict[str, Any], report: dict[str, Any]) -> str:
     primary = status["primary"]
     result_phase = status["focused"] or primary
@@ -1611,12 +1743,30 @@ def markdown_summary(status: dict[str, Any], report: dict[str, Any]) -> str:
         "| Signal | Baseline | Current | Adjusted delta | Result |",
         "| --- | ---: | ---: | ---: | --- |",
     ]
+    elapsed_gate = status["thresholds"].get("runtime_gate") == "elapsed-v1"
+    if elapsed_gate:
+        lines[4:4] = [
+            "Runtime gate: `elapsed-v1`; repository and aggregate elapsed time block release. "
+            "Internal stages are diagnostic warnings; their measured states remain visible.",
+            "",
+        ]
     signals = [
         signal for signal in result_phase["runtime"]["signals"] if signal["scope"] != "stage"
     ]
     signals += [
-        signal for signal in result_phase["runtime"]["triggered"] if signal["scope"] == "stage"
+        signal for signal in result_phase["runtime"]["signals"]
+        if signal["scope"] == "stage" and (signal["triggered"] or signal.get("inconclusive"))
     ]
+    if elapsed_gate and status["focused"] is not None:
+        # Focus can omit repositories with only stage warnings. Do not hide them.
+        measured = {
+            (signal["repo"], signal["stage"])
+            for signal in result_phase["runtime"]["signals"]
+        }
+        signals += [
+            signal for signal in primary["runtime"]["warnings"]
+            if (signal["repo"], signal["stage"]) not in measured
+        ]
     for signal in signals:
         label = signal["repo"] or "aggregate"
         if signal["stage"]:
@@ -1625,16 +1775,20 @@ def markdown_summary(status: dict[str, Any], report: dict[str, Any]) -> str:
         delta = f"{signal['adjusted_delta_ms']:+.2f} ms"
         if pct is not None:
             delta += f" / {pct:+.2f}%"
+        result = "triggered" if signal["triggered"] else "inconclusive" if signal.get("inconclusive") else "within threshold"
+        if elapsed_gate and signal["scope"] == "stage":
+            phase = "focused" if signal in result_phase["runtime"]["signals"] and status["focused"] else "primary"
+            result = f"warning ({phase}; {result})"
         lines.append(
             f"| `{label}` | {signal['baseline_ms']:.2f} ms | {signal['current_ms']:.2f} ms | "
             f"{delta} | "
-            f"{'triggered' if signal['triggered'] else 'inconclusive' if signal.get('inconclusive') else 'within threshold'} |"
+            f"{result} |"
         )
     output = primary["output"]
     if status["focused"] is not None:
         lines += [
             "",
-            "Initial material signal confirmed with a focused rerun of: "
+            "Focused comparison completed for: "
             + ", ".join(f"`{repo}`" for repo in status["focused_repos"])
             + ".",
         ]
@@ -1668,6 +1822,10 @@ def parse_args() -> argparse.Namespace:
         default="auto",
     )
     parser.add_argument("--status-output", type=Path)
+    parser.add_argument(
+        "--runtime-gate", choices=RUNTIME_GATES, default="all-metrics-v1",
+        help="elapsed-v1 gates whole-query latency and retains stages as warnings; default preserves historical decisions",
+    )
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--check-status", type=Path)
     parser.add_argument("--check-markdown", type=Path)
@@ -1714,6 +1872,7 @@ def main() -> int:
         "require_same_binary_control": args.require_same_binary_control,
         "require_corpus_provenance": args.require_corpus_provenance,
         "runtime_policy": args.runtime_policy,
+        "runtime_gate": args.runtime_gate,
     }
     try:
         status = evaluate_gate(report, **kwargs)

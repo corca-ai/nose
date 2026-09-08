@@ -150,6 +150,14 @@ jobs:
           # Actually do builds and make zips and whatnot
           dist build ${{ needs.plan.outputs.tag-flag }} --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
           echo "dist ran successfully"
+      - name: Verify native package
+        run: |
+          python3 scripts/check-release-package.py --self-test
+          python3 scripts/check-release-package.py \
+            --manifest dist-manifest.json \
+            --archive target/distrib/nose-cli-${{ matrix.targets[0] }}.tar.xz \
+            --target ${{ matrix.targets[0] }} \
+            --output target/distrib/package-smoke-${{ matrix.targets[0] }}.json
       - id: cargo-dist
         name: Post-build
         # We force bash here just because github makes it really hard to get values up
@@ -170,6 +178,7 @@ jobs:
           path: |
             ${{ steps.cargo-dist.outputs.paths }}
             ${{ env.BUILD_MANIFEST_NAME }}
+            target/distrib/package-smoke-${{ matrix.targets[0] }}.json
 
   # Build and package all the platform-agnostic(ish) things
   build-global-artifacts:

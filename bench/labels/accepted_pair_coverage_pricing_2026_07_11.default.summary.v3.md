@@ -10,7 +10,7 @@
 | `prometheus` | 585.60 ms | 535.19 ms | -42.00 ms / -7.17% | within threshold |
 | `rubocop` | 424.51 ms | 398.50 ms | -23.62 ms / -5.56% | within threshold |
 
-Initial material signal confirmed with a focused rerun of: `curl`, `nushell`, `prometheus`, `rubocop`.
+Focused comparison completed for: `curl`, `nushell`, `prometheus`, `rubocop`.
 
 Output drift: 7 declared, 0 unexpected.
 

@@ -15,7 +15,7 @@ fn direct_edge(left: u32, right: u32, score: f64, witness_kind: &'static str) ->
 
 fn family_with_direct_edges(locs: Vec<Loc>, edges: Vec<AcceptedEdge>) -> RefactorFamily {
     let mut family = divergence_family(locs);
-    family.direct_edges = edges;
+    family.direct_edges = edges.into();
     family
 }
 

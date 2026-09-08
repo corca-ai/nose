@@ -9,7 +9,8 @@ nose query . --cache-dir .nose-cache
 
 The first run fills the cache. Later runs reuse unchanged analysis and
 recalculate what changed. Caching changes how work is reused, not which
-duplication nose reports.
+duplication nose reports. Test-context extraction changes invalidate raw-IL and derived-unit
+cache versions, so old entries cannot silently retain outdated production/test scope.
 
 ## When to use it
 
@@ -37,6 +38,12 @@ generations. If a query is interrupted, two queries overlap, an entry is
 damaged, or an old format is encountered, nose ignores incomplete or invalid
 data and recalculates it. Source, configuration, and relevant semantic-pack
 changes invalidate the affected work.
+
+Unreadable included sources fail analysis even when an older cached result exists.
+Damaged entries are replaced with a complete checksummed record on every platform,
+without deleting the visible entry before its replacement is ready. Incremental
+score keys include the effective scoring configuration; enabling timing or cache
+diagnostics does not invalidate pair scores.
 
 The default storage limit is 5 GiB. Override it for one run:
 

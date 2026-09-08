@@ -293,6 +293,958 @@
       "issue": "https://github.com/corca-ai/nose/issues/943",
       "reason": "The 0.20.0 version metadata intentionally changes the serialized semantic-pack receipts; family, byte, schema, and surface counts are unchanged",
       "repo": "sidekiq"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            36552
+          ],
+          "current": [
+            39832
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "477bf597693357481d8d19bf15d40de4a5849cc2739ebaafbb41a33204fac51b"
+          ],
+          "current": [
+            "a74841fe9bef0f62a29b1a379949a84fde6a4b1ecab09bc98835a5a9765a17d6"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "alacritty"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            511907
+          ],
+          "current": [
+            611940
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "cf642461abf1cbe323f7071e70541bf637e83fec57918d86d8e303efba79d37f"
+          ],
+          "current": [
+            "efec3c8b45b88d1ed992ffdbadfcfc7d2e4432bccebff582234876881bb079c9"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "asciidoctor"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            169021
+          ],
+          "current": [
+            229726
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "856b905c77e421f97111faa14c54e3901ef953d82cf870b97877cec1a0f4025e"
+          ],
+          "current": [
+            "617f8371b3d9a6682da0018148c7eaf4e48adc026b47872d14500f7a1283e5f5"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "fastlane"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            1260755
+          ],
+          "current": [
+            1809954
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "bd0751323f212efbb46dd8f22a94d99531d917f989ee02e49a0121f66f204e91"
+          ],
+          "current": [
+            "083cec948bfbf4c6f09424e62d66b2e46a2abfbab12eb1e6f6fd01c6ddc51b7d"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "junit5"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            515210
+          ],
+          "current": [
+            657700
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "33af86400220fff3cbd0828295967aec93299cdea479e0df7abf0af363095d2d"
+          ],
+          "current": [
+            "f98a4571abcc69dab579e37ed91592ee04c3738d683a500fba20b5d9a5c7015b"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "prettier"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            53142
+          ],
+          "current": [
+            64988
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "fb8f20eeb114559860e667cb7176a5503c34e4ba53d8428ddb04148ea0d29ec8"
+          ],
+          "current": [
+            "2c41200d4fe6a5416dde0b29e5cfdb5a783614c75cd7da5539a2a22661ad20d2"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "requests"
+    },
+    {
+      "baseline_source_sha": "40abeb2583ffac48bf36d2730bdff1eaf311d579",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            43772
+          ],
+          "current": [
+            49411
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "e9b43bcb428127c40a8eb0b2abc9bebc78a18fda5603efda4c2c6a6c5feea104"
+          ],
+          "current": [
+            "02810277f0a504db6174e25d4913c326536c3025143a28227e5a5e277351cd11"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Cortex exploration follow-up adds analysis population, relation explanation and location boundary metadata. Recursive comparison confirms every pre-existing JSON field, family, ordering and product surface is unchanged.",
+      "repo": "sidekiq"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            229726
+          ],
+          "current": [
+            229722
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "617f8371b3d9a6682da0018148c7eaf4e48adc026b47872d14500f7a1283e5f5"
+          ],
+          "current": [
+            "deec0e2ed49402a78f4e8e377f862e6cd935c7346b697d14f2d5ca9049358df4"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "fastlane"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            611940
+          ],
+          "current": [
+            611936
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "efec3c8b45b88d1ed992ffdbadfcfc7d2e4432bccebff582234876881bb079c9"
+          ],
+          "current": [
+            "47c2197e659a56d014ecca3c9accbf0220b6c34dca0cab6bb09392e0bbab4d7d"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "asciidoctor"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            49411
+          ],
+          "current": [
+            49407
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "02810277f0a504db6174e25d4913c326536c3025143a28227e5a5e277351cd11"
+          ],
+          "current": [
+            "5def8302402bde94965def52eee8c005aa95c812f2d1dce62f5e94757dda0b22"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "sidekiq"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            39832
+          ],
+          "current": [
+            39828
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "a74841fe9bef0f62a29b1a379949a84fde6a4b1ecab09bc98835a5a9765a17d6"
+          ],
+          "current": [
+            "509135f1a1c08484a2cb438055c5b5cca5cae52279835c4768aaadc2523e4d67"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "alacritty"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            64988
+          ],
+          "current": [
+            64984
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "2c41200d4fe6a5416dde0b29e5cfdb5a783614c75cd7da5539a2a22661ad20d2"
+          ],
+          "current": [
+            "d0ecabc04d01884152423b8c8a4bbd98eb22772375c8ba807f25d0818de6d4bd"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "requests"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            1809954
+          ],
+          "current": [
+            1809950
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "083cec948bfbf4c6f09424e62d66b2e46a2abfbab12eb1e6f6fd01c6ddc51b7d"
+          ],
+          "current": [
+            "f2da77a63343da99603517a831ae85f9eaf2d80472779baa472b44fc68bd546d"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "junit5"
+    },
+    {
+      "baseline_source_sha": "9e2f174bfe43be18bc1f0b6c9c66c74afbabb362",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            657700
+          ],
+          "current": [
+            657696
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "f98a4571abcc69dab579e37ed91592ee04c3738d683a500fba20b5d9a5c7015b"
+          ],
+          "current": [
+            "b782386e85fc6c67468a8ca0a69285d7bffd526adec0c58ac804c5c9b36c77de"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Automatic candidate batching removes the implicit work ceiling: analysis.max_candidate_pairs changes from 16000000 to null. Recursive comparison confirms all other fields, family ordering and product surfaces are identical.",
+      "repo": "prettier"
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "fastlane",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            229722
+          ],
+          "current": [
+            230910
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "deec0e2ed49402a78f4e8e377f862e6cd935c7346b697d14f2d5ca9049358df4"
+          ],
+          "current": [
+            "312ee1f99176a8512af116fda0b1a3a9c821c108ad2380fdc91d621b6fd77da8"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "asciidoctor",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            611936
+          ],
+          "current": [
+            613148
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "47c2197e659a56d014ecca3c9accbf0220b6c34dca0cab6bb09392e0bbab4d7d"
+          ],
+          "current": [
+            "84251ab216dc7aba7a94868569fd41ff38fd07affbdb6919b27746b29a4db873"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "sidekiq",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            49407
+          ],
+          "current": [
+            50295
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "5def8302402bde94965def52eee8c005aa95c812f2d1dce62f5e94757dda0b22"
+          ],
+          "current": [
+            "3097e449429d3c4484fb9038d249ca772f557710916a71237f131d0f468d2fdd"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "alacritty",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            39828
+          ],
+          "current": [
+            40136
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "509135f1a1c08484a2cb438055c5b5cca5cae52279835c4768aaadc2523e4d67"
+          ],
+          "current": [
+            "3c71e5590fb482d8cc6ae1111517c59654cf298f6e77d31d6aa1a6858eba4a08"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "requests",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            64984
+          ],
+          "current": [
+            66172
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "d0ecabc04d01884152423b8c8a4bbd98eb22772375c8ba807f25d0818de6d4bd"
+          ],
+          "current": [
+            "887ebdb5aff6d86b26d65a6c331378e80e9c9b7dc51e8d3c1baf1aa0dfe129a1"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "junit5",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            1809950
+          ],
+          "current": [
+            1811122
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "f2da77a63343da99603517a831ae85f9eaf2d80472779baa472b44fc68bd546d"
+          ],
+          "current": [
+            "35a1e2a46ae1a52eb02d2dd6683efcb0259963451c0ddfeb4616534ba845ee59"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "baseline_source_sha": "33ecb86343acacffa493cdda4128fc9ecd6cc643",
+      "repo": "prettier",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            657696
+          ],
+          "current": [
+            658884
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "b782386e85fc6c67468a8ca0a69285d7bffd526adec0c58ac804c5c9b36c77de"
+          ],
+          "current": [
+            "9300ce01e7983f8ca2d11b5fd88b25c1d8ed1b23e2b1e79511729c012dae12e3"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/984",
+      "reason": "Add bounded open-family actions that preserve the query selection. Recursive comparison confirms every pre-existing JSON field, complete family list, identity, ordering and product surface is unchanged."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            30315
+          ],
+          "current": [
+            40136
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "52e8b3b99bb013a33955faf7d5ea65abebab8f9712411d5629846d35be9fb8b2"
+          ],
+          "current": [
+            "61e19368e304449d6a858573021347bff69c09be02c104505b6e7275bf09c229"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "alacritty",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            241664
+          ],
+          "current": [
+            613148
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "7cf0d0f0e60f73f8d781ce5da383566a174f11b4a71ea4f17627dd93a53b4056"
+          ],
+          "current": [
+            "35294d54df757e7cea3822d0fecf074fdb371441722c5475a8c32cd5c7912e96"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "asciidoctor",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            70301
+          ],
+          "current": [
+            230910
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "5d11e736ca17a1a447f8307ab5e8a7d24c85c55e32338e06141c5f445be62dc6"
+          ],
+          "current": [
+            "62f17f6818e3f72e476aa01b03c6ad95574117200f52e50462573d5aaa9f9ce6"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "fastlane",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            500736
+          ],
+          "current": [
+            1811122
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "dcd61d838d0f696e18f5e61b52c004b1380b05e796c1675834303e00eaaf5645"
+          ],
+          "current": [
+            "ebed8d362eef4c34146331bac62fd3fd486e273b2f051c596960ac93f0c70cff"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "junit5",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            220766
+          ],
+          "current": [
+            658884
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "4b861a6bfb815dc2f5b99d54b3876e875b11b8ef718937af47a9907da621288e"
+          ],
+          "current": [
+            "9c67e42d8255e3803307c6b5d90cd2ec05099556c2dca5072ed37fc3e09aefd9"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "prettier",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            34474
+          ],
+          "current": [
+            66172
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "ef990af4e8fdd3a061d1a9820122711985f8bd49b04ab8c76f1a1ac5e0e9cbb2"
+          ],
+          "current": [
+            "63628ea5dabb4bbb654d24985fc39d1f9080f08c4040db4237864402c067a79a"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "requests",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            31952
+          ],
+          "current": [
+            50295
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "2c05c98d963f26851e09dfc708c10cd4f44632d2a5cb6337938b63b0a6146bb6"
+          ],
+          "current": [
+            "12ed2206e9c572a790f515f40258ac423b550bc4fa14c42c6b8a537edaebd296"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "sidekiq",
+      "baseline_source_sha": "de43f4b4eca55e2a0ada0ded076ba50129cc4e89",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            30315
+          ],
+          "current": [
+            40136
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "52e8b3b99bb013a33955faf7d5ea65abebab8f9712411d5629846d35be9fb8b2"
+          ],
+          "current": [
+            "61e19368e304449d6a858573021347bff69c09be02c104505b6e7275bf09c229"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "alacritty",
+      "baseline_source_sha": "47adbab743067e7ab0977d1be4a935a043dd769b",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Published v0.20.0 tag binding: both output hashes and every declared changed value match the already audited v0.20 main comparison for this repository. Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            241664
+          ],
+          "current": [
+            613148
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "7cf0d0f0e60f73f8d781ce5da383566a174f11b4a71ea4f17627dd93a53b4056"
+          ],
+          "current": [
+            "35294d54df757e7cea3822d0fecf074fdb371441722c5475a8c32cd5c7912e96"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "asciidoctor",
+      "baseline_source_sha": "47adbab743067e7ab0977d1be4a935a043dd769b",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Published v0.20.0 tag binding: both output hashes and every declared changed value match the already audited v0.20 main comparison for this repository. Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            70301
+          ],
+          "current": [
+            230910
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "5d11e736ca17a1a447f8307ab5e8a7d24c85c55e32338e06141c5f445be62dc6"
+          ],
+          "current": [
+            "62f17f6818e3f72e476aa01b03c6ad95574117200f52e50462573d5aaa9f9ce6"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "fastlane",
+      "baseline_source_sha": "47adbab743067e7ab0977d1be4a935a043dd769b",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Published v0.20.0 tag binding: both output hashes and every declared changed value match the already audited v0.20 main comparison for this repository. Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            500736
+          ],
+          "current": [
+            1811122
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "dcd61d838d0f696e18f5e61b52c004b1380b05e796c1675834303e00eaaf5645"
+          ],
+          "current": [
+            "ebed8d362eef4c34146331bac62fd3fd486e273b2f051c596960ac93f0c70cff"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "junit5",
+      "baseline_source_sha": "47adbab743067e7ab0977d1be4a935a043dd769b",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Published v0.20.0 tag binding: both output hashes and every declared changed value match the already audited v0.20 main comparison for this repository. Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            220766
+          ],
+          "current": [
+            658884
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "4b861a6bfb815dc2f5b99d54b3876e875b11b8ef718937af47a9907da621288e"
+          ],
+          "current": [
+            "9c67e42d8255e3803307c6b5d90cd2ec05099556c2dca5072ed37fc3e09aefd9"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "prettier",
+      "baseline_source_sha": "47adbab743067e7ab0977d1be4a935a043dd769b",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Published v0.20.0 tag binding: both output hashes and every declared changed value match the already audited v0.20 main comparison for this repository. Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            34474
+          ],
+          "current": [
+            66172
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "ef990af4e8fdd3a061d1a9820122711985f8bd49b04ab8c76f1a1ac5e0e9cbb2"
+          ],
+          "current": [
+            "63628ea5dabb4bbb654d24985fc39d1f9080f08c4040db4237864402c067a79a"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "requests",
+      "baseline_source_sha": "47adbab743067e7ab0977d1be4a935a043dd769b",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Published v0.20.0 tag binding: both output hashes and every declared changed value match the already audited v0.20 main comparison for this repository. Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "changed": {
+        "bytes": {
+          "baseline": [
+            31952
+          ],
+          "current": [
+            50295
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "2c05c98d963f26851e09dfc708c10cd4f44632d2a5cb6337938b63b0a6146bb6"
+          ],
+          "current": [
+            "12ed2206e9c572a790f515f40258ac423b550bc4fa14c42c6b8a537edaebd296"
+          ]
+        },
+        "schema_versions": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            10
+          ]
+        }
+      },
+      "repo": "sidekiq",
+      "baseline_source_sha": "47adbab743067e7ab0977d1be4a935a043dd769b",
+      "issue": "https://github.com/corca-ai/nose/pull/988",
+      "reason": "Published v0.20.0 tag binding: both output hashes and every declared changed value match the already audited v0.20 main comparison for this repository. Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
     }
   ],
   "schema": "nose.semantic_regression_expected_drift.v1"

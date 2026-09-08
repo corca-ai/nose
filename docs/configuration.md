@@ -6,6 +6,24 @@ automatically. The config supplies defaults for supported query settings; most C
 override those defaults, while `exclude` and `generated-paths` globs are additive. Anything
 unset falls back to the built-in default.
 
+## Configuration source and inspection
+
+`--config-root` looks for `nose.toml` or `.nose.toml` at the common canonical
+analysis directory (the containing directory for a file root). Multiple roots
+must share a configuration at that common directory; otherwise the command
+fails and asks for an explicit choice. It does not walk unrelated ancestors or
+silently combine different project policies. `--config` and `--config-root` are
+mutually exclusive. The existing working-directory discovery remains the default.
+
+```sh
+nose query /path/to/project --config-root
+nose query /path/to/project --config-root --show-config
+```
+
+`--show-config` prints `nose.query-config/v1` JSON and exits before analysis.
+It includes the selected config file, roots, cache location and effective query
+settings after CLI overrides, with config-relative resource paths resolved.
+
 ## `nose.toml`
 
 ```toml
@@ -32,6 +50,14 @@ modes, ranking, size/value thresholds, the structured-ignore file, and explicit 
 semantic-pack opt-ins. Keep one-off workflow choices on the command line or in query terms:
 output format, the drill/view terms (`id=`, `group=`, `full`), baselines, cache location, and
 CI failure mode.
+
+Research scoring overrides (`NOSE_WV/WS/WR`, `NOSE_CWV/CWS/CWR`,
+`NOSE_CAND_VJ`, `NOSE_DH`, `NOSE_DHN`, `NOSE_RET`, and `NOSE_ANCHOR_SCORE*`)
+are parsed into one scoring snapshot per analysis. Probabilities and weights must
+be finite and within `[0, 1]`; each weight triple must sum to one. The anchor
+reference weight must be positive and its score floor cannot exceed its cap.
+Invalid values produce an error. Library callers use deterministic `ScoreConfig`
+defaults and can explicitly supply a validated configuration to a detector.
 
 ### Keys
 

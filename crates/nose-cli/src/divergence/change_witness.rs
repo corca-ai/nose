@@ -1,11 +1,12 @@
 //! Bounded base-to-current semantic change witnesses for already-flagged divergences.
 //!
-//! This module is intentionally downstream of candidate detection. It reads only the
-//! changed candidate files and a capped set of their base siblings; it never performs a
-//! second repository discovery. The evidence is advisory in divergent-edit v2.
+//! Reads changed candidate files and bounded base siblings after detection, without
+//! rediscovering the repository. Evidence is advisory in divergent-edit v2.
 
 mod analysis;
 mod loading;
+mod source_matches;
+pub(crate) use source_matches::RegionMatches;
 mod variant_projection;
 
 use self::analysis::{
@@ -244,6 +245,7 @@ struct WitnessBuilder<'a> {
     prepared: HashMap<String, PreparedChange>,
     sibling_nodes: HashMap<String, Vec<u64>>,
     source_lines: FileLineCache,
+    source_match_index: OnceLock<source_matches::SourceMatchIndex>,
 }
 
 struct UnavailableChange {
@@ -302,7 +304,9 @@ impl<'a> WitnessBuilder<'a> {
                         Some((relative_retained_path(base_root, &path)?, context))
                     })
                     .collect();
-                let nose_il::Corpus { interner, files } = retained.corpus;
+                let nose_il::Corpus {
+                    interner, files, ..
+                } = retained.corpus;
                 let files = files
                     .into_iter()
                     .filter_map(|file| {
@@ -330,6 +334,7 @@ impl<'a> WitnessBuilder<'a> {
             prepared: HashMap::new(),
             sibling_nodes: HashMap::new(),
             source_lines: FileLineCache::default(),
+            source_match_index: OnceLock::new(),
         }
     }
 
@@ -338,17 +343,18 @@ impl<'a> WitnessBuilder<'a> {
         if !self.prepared.contains_key(&key) {
             let prepared = match self.prepare_change(site) {
                 Ok(prepared) => prepared,
-                Err(unavailable) => return unavailable.into_witness(),
+                Err(unavailable) => {
+                    let mut witness = unavailable.into_witness();
+                    self.enrich_source_matches(site, &mut witness);
+                    return witness;
+                }
             };
             self.prepared.insert(key.clone(), prepared);
         }
         let sibling_hashes = self.sibling_hashes(siblings);
-        finish_witness(
-            self.prepared
-                .get(&key)
-                .expect("prepared change was inserted"),
-            &sibling_hashes,
-        )
+        let mut witness = finish_witness(&self.prepared[&key], &sibling_hashes);
+        self.enrich_source_matches(site, &mut witness);
+        witness
     }
 
     fn prepare_change(&mut self, site: &Site) -> Result<PreparedChange, UnavailableChange> {

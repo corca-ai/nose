@@ -110,7 +110,7 @@ fn evidence_only_change_misses_then_reuses_resolved_artifact() {
     let mut changed = corpus.clone();
     let il = &mut changed.files[0];
     let span = il.node(il.root).span;
-    il.evidence.push(EvidenceRecord::new(
+    il.push_evidence(EvidenceRecord::new(
         EvidenceId(il.evidence.len() as u32),
         EvidenceAnchor::param(span),
         EvidenceKind::ParameterShape(ParameterShapeEvidenceKind::NonPlain),

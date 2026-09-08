@@ -204,17 +204,17 @@ fn symbols(il: &Il, interner: &Interner) -> Vec<String> {
 }
 
 fn remap_symbols(il: &mut Il, source: &Interner, target: &Interner) {
-    for node in &mut il.nodes {
+    for node in &mut il.edit().nodes {
         if let Payload::Name(symbol) = node.payload {
             node.payload = Payload::Name(target.intern(source.resolve(symbol)));
         }
     }
-    for unit in &mut il.units {
+    for unit in &mut il.edit().units {
         if let Some(symbol) = unit.name {
             unit.name = Some(target.intern(source.resolve(symbol)));
         }
     }
-    for symbol in &mut il.cid_names {
+    for symbol in &mut il.edit().cid_names {
         *symbol = target.intern(source.resolve(*symbol));
     }
 }
@@ -237,12 +237,12 @@ fn validate_symbol_ids(il: &Il, symbols: usize) -> Result<()> {
 }
 
 fn rebind_file(il: &mut Il, file: FileId, path: String) {
-    il.file = file;
-    il.meta.path = path;
-    for node in &mut il.nodes {
+    il.edit().file = file;
+    il.edit().meta.path = path;
+    for node in &mut il.edit().nodes {
         node.span.file = file;
     }
-    for record in &mut il.evidence {
+    for record in &mut il.edit().evidence {
         *record = canonical_evidence(record, file);
     }
 }
@@ -304,7 +304,7 @@ mod tests {
 
     fn add_span_evidence(il: &mut Il) {
         let span = il.node(il.root).span;
-        il.evidence.push(EvidenceRecord::new(
+        il.push_evidence(EvidenceRecord::new(
             EvidenceId(il.evidence.len() as u32),
             EvidenceAnchor::source_span(span),
             EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {

@@ -276,7 +276,7 @@ int set_option(const char *name, const char *value) {
         .groups
         .iter()
         .find(|group| {
-            group.witness.as_ref().map(|witness| witness.kind) == Some("bounded-same-unit-window")
+            group.witness.as_ref().map(|witness| witness.kind()) == Some("bounded-same-unit-window")
         })
         .expect("the two branches should be one bounded same-unit family");
     assert_eq!(family.members.len(), 2);

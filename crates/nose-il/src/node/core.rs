@@ -179,7 +179,7 @@ pub enum Payload {
     Loop(LoopKind),
 }
 
-/// One IL node. Children are stored out-of-line in [`crate::Il::edges`] as a
+/// One IL node. Children are stored out-of-line in [`crate::IlContents::edges`] as a
 /// contiguous slice `[child_start, child_start + child_len)`, keeping `Node`
 /// small and the arena cache-friendly.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
