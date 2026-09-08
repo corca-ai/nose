@@ -1,8 +1,42 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-08. Release decision: **NO-GO (component candidate has a confirmed elapsed regression after focus)**. The feature scope is frozen;
+Updated on 2026-09-08. Release status: **capability baseline adopted; remaining qualification pending**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
 No release tag or Homebrew publication is part of this preparation.
+
+## Adopted performance baseline (2026-09-08)
+
+The maintainer explicitly accepted the increased analysis cost and authorized a
+baseline reset. The [active performance baseline](../bench/release/0.21.0/performance-baseline.v1.json)
+pins product `0c4143e299e14bf3d4243267bb4ede82d5307d30`, crates tree `ac4404a8`,
+dependencies and the frozen macOS ARM binary `cc27040f`. Subsequent product changes
+compare against this fixed capability set; the baseline does not follow HEAD.
+The query harness consumes and verifies this manifest before measuring.
+
+The accepted cost includes the recorded Alamofire default focus: official 0.20
+median 2,538.91 ms, candidate median 3,959.98 ms, control-adjusted +56.15%.
+This is an explicit product tradeoff, not a speedup or proof that all of the
+difference is caused by additional work. Historical failures and raw observations
+remain unchanged. Their official-version relative cost no longer vetoes this
+accepted capability transition. A comparison of this frozen binary with itself
+does not establish an independent timing pass.
+
+The unchanged 5% AND 5 ms limit, paired controls and one-focus rule apply to
+subsequent same-capability regressions. Official 0.20 artifacts remain the upgrade
+compatibility reference. Existing cache/watch official-version timing reports
+describe upgrade cost; they are not same-capability performance comparisons.
+Cache correctness, recovery, watch latency/resource limits, native archives and
+full remote soundness still require current-product qualification. Absolute
+latency and resource characterization across the 120-repository/three-mode and
+17-base workload remains incomplete; the recorded single-repository cost is not
+a corpus estimate. This adoption alone does not authorize a release.
+
+For prospective query measurements, add `--performance-baseline-manifest` to the
+existing [controlled harness design](order-aware-performance-controls.md). It
+selects this manifest by default; `--baseline-binary` may relocate the exact
+artifact but cannot substitute a rebuild with a different digest. Only macOS ARM
+is currently registered. Other platforms need reviewed artifact registrations.
+Ordinary PR merge smoke continues comparing its declared base and head.
 
 ## Upgrade from 0.20.0
 
@@ -44,22 +78,23 @@ union-find representative change is reviewed with byte-identical old/new binary
 outputs on the current tree. Full local CI passes 2,440 optimized tests and
 89.73% line coverage.
 
-The [controlled verdict](../bench/release/0.21.0/component-verdict.v1.json) is
-**NO-GO**. Primary/control confirms +1,091.33 ms/+52.02%; the one registered
+The historical [controlled verdict](../bench/release/0.21.0/component-verdict.v1.json) is
+**NO-GO under the preceding official-0.20 baseline**. Primary/control confirms +1,091.33 ms/+52.02%; the one registered
 six-block focus confirms +1,425.68 ms/+56.15%, supported by all six blocks and
 both execution orders. Focused whole-query medians are 2,538.91 ms for official
 0.20.0 and 3,959.98 ms for this candidate. All output drift matches the review.
-This repository counterexample blocks release; it is not a full-corpus aggregate
+This repository counterexample blocked release under that policy; it is not a full-corpus aggregate
 verdict. Remaining cache/watch, independent native verification and full remote
 soundness were not rerun on this failed candidate and are not inherited from its
-predecessors. Further qualification requires a changed product; this unchanged
-failed binary will not be retried.
+predecessors. Baseline adoption above supersedes the requirement to change the
+product before further qualification; the failed comparison will not be retried
+or rewritten as a pass.
 
 The subsequent [score-block experiments](../bench/release/0.21.0/score-block-experiments.v1.json)
 preserve exact ordered floating-point results but do not sufficiently improve
 the measured workload. Both isolated variants are reverted after full-output
 screens and 290/291 detector tests, respectively. Neither changes this product
-or its NO-GO verdict; no RSS improvement is claimed.
+or its historical verdict; no RSS improvement is claimed.
 
 ## Previous candidate: short-feature comparisons
 

@@ -23,6 +23,7 @@ from typing import Any
 from binary_identity import binary_identity, run_self_test as run_binary_identity_self_test
 from binary_identity import sha256_file
 from query_regression_summary import summarize_runs
+import performance_baseline
 from query_regression_worktree import (
     DEFAULT_ROOT as DEFAULT_WORKTREES_ROOT,
     detached_worktree,
@@ -677,6 +678,7 @@ def corpus_provenance(
 
 
 def run_self_test() -> None:
+    performance_baseline.run_self_test()
     run_binary_identity_self_test()
     run_worktree_self_test()
     assert measurement_order(["a", "b"], 1) == [
@@ -806,7 +808,10 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--baseline-binary", type=Path)
     parser.add_argument("--current-binary", type=Path)
-    parser.add_argument("--baseline-source-ref", default="origin/main")
+    parser.add_argument("--baseline-source-ref")
+    parser.add_argument("--performance-baseline-manifest", type=Path, nargs="?",
+                        const=performance_baseline.DEFAULT_MANIFEST,
+                        help="use the adopted release capability baseline (optional manifest path)")
     parser.add_argument("--current-source-ref", default="HEAD")
     parser.add_argument("--baseline-source-sha")
     parser.add_argument("--current-source-sha")
@@ -834,6 +839,10 @@ def main() -> int:
     if args.self_test:
         run_self_test()
         return 0
+    try:
+        adopted_baseline = performance_baseline.apply(args)
+    except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:
+        raise SystemExit(f"invalid performance baseline: {error}") from error
     if not args.baseline_binary or not args.current_binary or not args.output:
         raise SystemExit("--baseline-binary, --current-binary, and --output are required")
     if (
@@ -986,6 +995,11 @@ def main() -> int:
     if args.output_normalizer != "none":
         output["output_compatibility"] = output_compatibility(
             runs, repo_names, args.output_normalizer
+        )
+    if adopted_baseline is not None:
+        output["provenance"]["capability_performance_baseline"] = adopted_baseline
+        output["provenance"]["performance_baseline_helper_sha256"] = sha256_file(
+            Path(performance_baseline.__file__)
         )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8")

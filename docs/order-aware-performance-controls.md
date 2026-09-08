@@ -6,6 +6,29 @@ the new estimator. The existing 5% and 5 ms materiality thresholds do not change
 
 ## Applicability and compatibility
 
+### Adopted capability baseline (2026-09-08)
+
+For v0.21 prospective release performance, the maintainer approved the expanded
+analysis cost and froze a [capability baseline](../bench/release/0.21.0/performance-baseline.v1.json).
+Use `scripts/query-regression-harness.py --performance-baseline-manifest` with
+the registered workload and current binary. The optional manifest path defaults
+to that record. Before executing the baseline, the harness verifies the host,
+binary digest, source objects and sealed evidence; report provenance records the
+manifest digest and source. Missing or mismatched artifacts fail instead of
+silently rebuilding or selecting HEAD. Without this option, existing harness
+base/head behavior remains unchanged.
+
+This is a reviewed reference change, not an estimator or threshold change.
+Keep five primary blocks, five samples per observation, one warmup, same-binary
+controls and at most one six-block focus for subsequent product differences.
+Select `--runtime-gate elapsed-v1` in the checker as before. Full executable
+identity with the adopted baseline establishes no added binary change; it does
+not establish new absolute latency/resource coverage or release readiness.
+Official-version comparisons remain historical upgrade-cost evidence and
+compatibility checks. See the [current qualification status](release-evidence-0.21.0.md)
+for accepted costs and the outstanding checks. Generic PR merge smoke still
+compares its declared base and head, and no historical failed report is changed.
+
 ### Prospective release scope: elapsed-v1 (2026-09-07)
 
 New merge-smoke and v0.21 release campaigns explicitly select

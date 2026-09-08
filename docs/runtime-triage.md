@@ -405,7 +405,15 @@ different actions.
 
 ## Harness
 
-For a post-release stabilization or performance pass, use the official binary
+For v0.21 prospective release comparisons, the maintainer has explicitly adopted
+the [current capability baseline](release-evidence-0.21.0.md#adopted-performance-baseline-2026-09-08).
+Use the query harness's `--performance-baseline-manifest` option to verify and
+record that frozen artifact. Preserve the official 0.20 measurements as accepted
+upgrade-cost evidence and retain its binaries for compatibility testing. A
+baseline change never waives correctness or resource limits and cannot be
+automatically repeated after a future regression.
+
+Otherwise, for a post-release stabilization or performance pass, use the official binary
 asset from the most recent non-prerelease GitHub release as the product
 baseline. Verify the published archive checksum, record the extracted binary's
 SHA-256, and name the release tag and commit in the harness provenance. A local

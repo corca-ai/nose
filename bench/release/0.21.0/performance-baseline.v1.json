@@ -1,0 +1,76 @@
+{
+  "schema": "nose.capability_performance_baseline/v1",
+  "id": "0.21.0-expanded-analysis-20260908",
+  "release": "0.21.0",
+  "adopted_on": "2026-09-08",
+  "decision": "accepted-capability-cost; release-qualification-pending",
+  "authorization": "Maintainer explicitly approved replacing the baseline because this version performs more analysis.",
+  "rationale": "Preserve complete candidate traversal and the expanded region, review and navigation evidence; compare subsequent regressions against the same capability set.",
+  "source_sha": "0c4143e299e14bf3d4243267bb4ede82d5307d30",
+  "product_objects": {
+    "crates": "ac4404a8bc5575f3fa866f805520320ec44eb6a9",
+    "Cargo.toml": "35de2fcd82c53df7d9f90f3af4246c0df4d88cce",
+    "Cargo.lock": "58de7993d2fdb67dba638f10f32d7d2306b6620d",
+    "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
+  },
+  "artifact": {
+    "kind": "local-frozen-candidate",
+    "system": "Darwin",
+    "machine": "arm64",
+    "target": "aarch64-apple-darwin",
+    "path": "target/release-components-qualification-20260908/candidate-nose",
+    "sha256": "cc27040f7d174fbdaf558313eb34af2053a6b546c255a1612c7814102eb59035",
+    "build_command": "CARGO_BUILD_JOBS=4 cargo build --release --locked -p nose-cli"
+  },
+  "policy": {
+    "scope": "prospective same-capability performance comparisons",
+    "runtime_gate": "elapsed-v1",
+    "runtime_policy": "order-aware-v1",
+    "max_runtime_delta_pct": 5,
+    "min_runtime_delta_ms": 5,
+    "primary_blocks": 5,
+    "focused_blocks": 6,
+    "maximum_focused_comparisons": 1,
+    "samples_per_observation": 5,
+    "warmups": 1,
+    "same_binary_control_required": true,
+    "historical_results_unchanged": true,
+    "automatic_baseline_advance": false
+  },
+  "accepted_previous_version_cost": {
+    "repository": "alamofire",
+    "workload": "default",
+    "official_version": "0.20.0",
+    "focused_official_median_ms": 2538.91,
+    "focused_candidate_median_ms": 3959.98,
+    "control_adjusted_delta_ms": 1425.6809583167,
+    "control_adjusted_delta_pct": 56.1532894774,
+    "interpretation": "Observed total cost accepted by maintainer; not proof that every millisecond is caused by added capability, not a corpus-wide estimate or a new timing pass."
+  },
+  "evidence": [
+    {
+      "path": "bench/release/0.21.0/component-validation.v1.json",
+      "sha256": "84c80f6029a8c170d9f38a7e08e2b3957cc86532116557d892f23482e59b4164"
+    },
+    {
+      "path": "bench/release/0.21.0/component-verdict.v1.json",
+      "sha256": "b4cb3ae198d1a0e090ef4e7e47fb729ca859014b0cbf610d0afd2a330c75625c"
+    }
+  ],
+  "compatibility_baseline": {
+    "path": "bench/cache/official-v0.20.0-binaries.v1.json",
+    "sha256": "ed1e964f91896014888d69b8cf9199e17b126d1d9e2359ab24145a6a42175a47"
+  },
+  "remaining_qualification": [
+    "Current-product cache mutation/recovery and watch latency/resource checks",
+    "Independent native archive verification on every supported target",
+    "Full remote nightly and deep soundness",
+    "Absolute latency/resource characterization across all 120 repositories in three modes and the 17 base workloads; existing one-repository timing is not full coverage"
+  ],
+  "limitations": [
+    "Frozen binary is local and checksum-pinned; missing binaries fail closed, local rebuilds require a separately reviewed artifact registration.",
+    "Only aarch64-apple-darwin is registered; other targets require their own artifact registration.",
+    "Official-version cache/watch comparisons remain upgrade-cost evidence; a prior-version relative slowdown alone no longer blocks this accepted capability transition. Resource and correctness limits remain mandatory.",
+    "Generic PR merge smoke still compares its base and head; this manifest changes release performance attribution, not arbitrary CI failures."
+  ]
+}
