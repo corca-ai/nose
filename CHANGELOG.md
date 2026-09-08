@@ -6,7 +6,14 @@ break.
 
 ## [Unreleased]
 
-## [0.21.0] - 2026-09-06
+## [0.21.0] - 2026-09-08
+
+- Adopt the expanded-analysis implementation as the prospective performance
+  baseline. Complete analysis and additional evidence can cost more than 0.20:
+  the controlled Alamofire default sample measured 2.54 s versus 3.96 s.
+  This accepted tradeoff preserves complete results; subsequent regressions keep
+  the existing 5% and 5 ms limits. See the release qualification for scope and
+  absolute latency/resource measurements.
 
 - Compress repeated candidate relations while preserving every accepted edge,
   source constraint and connected-seed rule. Reduce query JSON copying and

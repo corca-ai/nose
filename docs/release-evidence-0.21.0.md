@@ -1,8 +1,59 @@
 # 0.21.0 candidate qualification
 
-Updated on 2026-09-08. Release status: **capability baseline adopted; remaining qualification pending**. The feature scope is frozen;
+Updated on 2026-09-08. Release qualification: **GO under the adopted capability baseline**. The feature scope is frozen;
 remaining changes address qualification, packaging or a reproduced release blocker.
-No release tag or Homebrew publication is part of this preparation.
+The maintainer authorized publication after qualification. The publishing workflow
+must still pass its own quality gates and native package checks.
+
+## Final qualification (2026-09-08)
+
+The [final qualification record](../bench/release/0.21.0/final-qualification.v1.json)
+seals the remaining checks for product `0c4143e2`, crates `ac4404a8` and frozen
+binary `cc27040f`. Remote checks and native artifacts bind branch source
+`21b412a2`, whose product objects match the adopted baseline. Subsequent release
+record/changelog edits do not change those product objects.
+
+- General [CI](https://github.com/corca-ai/nose/actions/runs/34178064710), including
+  semantic output/runtime smoke, passes.
+- Full [nightly soundness](https://github.com/corca-ai/nose/actions/runs/34178491752)
+  covers all 120 pinned repositories: zero false merges, canonicalization changes
+  or failed repositories. The 12,015 advisory findings remain visible.
+- The [deep campaign](https://github.com/corca-ai/nose/actions/runs/34178493133)
+  passes source-runtime calibration, metamorphic equivalence and multi-seed falsification.
+- All four [native packages](https://github.com/corca-ai/nose/actions/runs/34178064875)
+  pass on their native runners. Downloaded archive and binary checksums are
+  independently verified, and the actual CI installer passes an isolated native install.
+- All 14 cache mutation cases pass 30 replays (2,100 rows). SymPy passes 30 paired
+  official/candidate replays (180 rows), with complete clean/cold/history equality
+  within each binary. Candidate p50 is 2.20 s clean, 2.31 s empty-store and 294 ms
+  with history. Official-version timing remains upgrade-cost evidence.
+- Watch passes 30 replays at both scale tiers, exact clean-query equivalence and
+  forced-crash recovery. The 10k/100k p95 latencies are 74.60/367.49 ms against
+  unchanged 250/1,000 ms limits; peak RSS is 169.3 MB/1.585 GB.
+
+Absolute query characterization uses one warmup and three measured samples per
+workload on the frozen macOS ARM binary. Every sample matches the certified output.
+These are descriptive observations, not a relative speedup or a p95 estimate:
+
+| Workload | Repositories | Sum of repository medians | Slowest median | Peak RSS |
+| --- | ---: | ---: | ---: | ---: |
+| Default | 120 | 61.69 s | 3.56 s (SymPy) | 2.246 GB |
+| Semantic | 120 | 36.45 s | 2.20 s (SymPy) | 1.055 GB |
+| Near, no pack | 120 | 61.20 s | 3.71 s (SymPy) | 1.413 GB |
+| Base | 17 | 11.79 s | 2.03 s (Netty) | 1.071 GB |
+
+The initial base warmup exposed a measurement-workspace mismatch: navigation
+commands embed the absolute working directory. The retained diagnostic proves
+that replacing only that directory reproduces the exact reference bytes. The
+17 base workloads were then measured in the original stable workspace with raw
+byte equality; no output fields were ignored. All 360 ordinary observations and
+the original interruption remain preserved. The final record binds both designs.
+
+The earlier 377-output audit, eight user journeys, Type-4 checks, reviewed
+self-duplication and full local CI (2,440 optimized tests, 89.73% line coverage)
+remain valid for the identical product objects. No additional product change is
+being qualified by a self-comparison. Historical official-0.20 failures remain
+unchanged and the accepted capability-cost decision below remains explicit.
 
 ## Adopted performance baseline (2026-09-08)
 
@@ -25,11 +76,11 @@ The unchanged 5% AND 5 ms limit, paired controls and one-focus rule apply to
 subsequent same-capability regressions. Official 0.20 artifacts remain the upgrade
 compatibility reference. Existing cache/watch official-version timing reports
 describe upgrade cost; they are not same-capability performance comparisons.
-Cache correctness, recovery, watch latency/resource limits, native archives and
-full remote soundness still require current-product qualification. Absolute
-latency and resource characterization across the 120-repository/three-mode and
-17-base workload remains incomplete; the recorded single-repository cost is not
-a corpus estimate. This adoption alone does not authorize a release.
+At adoption, cache correctness, recovery, watch latency/resource limits, native
+archives, full remote soundness and absolute workload characterization remained
+outstanding. They are completed in the final qualification above. The recorded
+single-repository upgrade cost is not a corpus estimate; adoption alone did not
+establish release readiness.
 
 For prospective query measurements, add `--performance-baseline-manifest` to the
 existing [controlled harness design](order-aware-performance-controls.md). It
