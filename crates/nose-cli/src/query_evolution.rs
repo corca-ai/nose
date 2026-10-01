@@ -5,6 +5,7 @@ mod handles;
 mod items;
 mod navigation;
 mod render;
+mod review_recording;
 mod reviews;
 mod selection;
 mod source_view;

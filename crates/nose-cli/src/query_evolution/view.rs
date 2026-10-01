@@ -94,6 +94,7 @@ pub(super) fn run(
         "group_field":group_field,"groups":group_rows,"group_counts_overlap":true,
         "items":if view == "group" { Vec::new() } else { items },"next":next,"actions":actions,
         "candidate_search_complete":search_complete,
+        "review_recording":if selection.change.is_some() { Some(super::review_recording::describe(&rows, &index, &navigation)) } else { None },
         "reviews":{"unrelated":reviews.unrelated(),"written":options.write_review,
             "meaning":"Caller decisions with explicit applicability conditions; no findings are suppressed and no edits are authorized."},
         "order":"recheck-first-then-observation-id",

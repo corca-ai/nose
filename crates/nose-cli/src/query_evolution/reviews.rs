@@ -155,7 +155,7 @@ impl Reviews {
     }
 }
 
-fn source_complete(family: &FamilyObservation) -> bool {
+pub(super) fn source_complete(family: &FamilyObservation) -> bool {
     family.review_key.is_some()
         && family
             .members

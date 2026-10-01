@@ -6,6 +6,9 @@ break.
 
 ## [Unreleased]
 
+- Expose selected-change JSON review recording requirements without choosing a
+  default decision or writing a file during inspection.
+
 - Make candidate-list commands open source comparisons directly and distinguish
   list previews from family detail. Bound long human and Markdown source excerpts
   with explicit clipping notices and a command to inspect collected JSON evidence.
