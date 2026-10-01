@@ -22,6 +22,24 @@ impl Project {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, source).unwrap();
     }
+    fn follow(&self, command: &str) -> std::process::Output {
+        Command::new("sh")
+            .current_dir(&self.0)
+            .env(
+                "PATH",
+                format!(
+                    "{}:{}",
+                    PathBuf::from(env!("CARGO_BIN_EXE_nose"))
+                        .parent()
+                        .unwrap()
+                        .display(),
+                    std::env::var("PATH").unwrap()
+                ),
+            )
+            .args(["-c", command])
+            .output()
+            .unwrap()
+    }
     fn query(&self, terms: &[&str]) -> Value {
         let out = Command::new(env!("CARGO_BIN_EXE_nose"))
             .current_dir(&self.0)
@@ -475,22 +493,7 @@ fn list_source_preview_leads_to_a_runnable_family_comparison() {
             (command.contains("id=") && command.ends_with(" full")).then_some(command)
         })
         .expect("list row offers full family comparison");
-    let detail = Command::new("sh")
-        .current_dir(&p.0)
-        .env(
-            "PATH",
-            format!(
-                "{}:{}",
-                PathBuf::from(env!("CARGO_BIN_EXE_nose"))
-                    .parent()
-                    .unwrap()
-                    .display(),
-                std::env::var("PATH").unwrap()
-            ),
-        )
-        .args(["-c", command])
-        .output()
-        .unwrap();
+    let detail = p.follow(command);
     assert!(detail.status.success());
     let detail = String::from_utf8(detail.stdout).unwrap();
     assert!(detail.contains("diff "), "{detail}");
@@ -505,22 +508,7 @@ fn list_source_preview_leads_to_a_runnable_family_comparison() {
                 .strip_prefix("Unclipped collected source evidence (JSON): ")
         })
         .expect("JSON recovery command");
-    let recovered = Command::new("sh")
-        .current_dir(&p.0)
-        .env(
-            "PATH",
-            format!(
-                "{}:{}",
-                PathBuf::from(env!("CARGO_BIN_EXE_nose"))
-                    .parent()
-                    .unwrap()
-                    .display(),
-                std::env::var("PATH").unwrap()
-            ),
-        )
-        .args(["-c", json_command])
-        .output()
-        .unwrap();
+    let recovered = p.follow(json_command);
     assert!(
         recovered.status.success(),
         "{}",
@@ -538,22 +526,7 @@ fn list_source_preview_leads_to_a_runnable_family_comparison() {
                 .strip_prefix("Start a caller review (save once; choose a new filename): ")
         })
         .expect("first-review capture action");
-    let captured = Command::new("sh")
-        .current_dir(&p.0)
-        .env(
-            "PATH",
-            format!(
-                "{}:{}",
-                PathBuf::from(env!("CARGO_BIN_EXE_nose"))
-                    .parent()
-                    .unwrap()
-                    .display(),
-                std::env::var("PATH").unwrap()
-            ),
-        )
-        .args(["-c", capture_command])
-        .output()
-        .unwrap();
+    let captured = p.follow(capture_command);
     assert!(
         captured.status.success(),
         "{}",

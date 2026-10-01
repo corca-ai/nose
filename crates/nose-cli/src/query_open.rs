@@ -130,7 +130,15 @@ pub(super) fn render_query_family(
     }
     crate::query_source_evidence::render(&crate::query_source_evidence::collect(f, full), false);
 
-    let path = crate::query_navigation::path(ctx.args, path);
+    render_family_next(ctx, f, &member_view);
+}
+
+fn render_family_next(
+    ctx: &crate::query_output::QueryOutput<'_>,
+    f: &nose_detect::RefactorFamily,
+    member_view: &serde_json::Value,
+) {
+    let path = crate::query_navigation::path(ctx.args, ctx.path_arg);
     println!("\nnext:");
     println!(
         "  Start a caller review (save once; choose a new filename): {}",

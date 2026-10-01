@@ -484,13 +484,17 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
             );
         }
     }
+    render_list_next(&view, !shown_rows.is_empty());
+}
+
+fn render_list_next(view: &QueryListView<'_>, has_rows: bool) {
     if !view.query.id_full {
         println!(
             "  {} full   # preview source coverage and shared lines",
             base_cmd(view.terms, view.navigation_path)
         );
     }
-    if !shown_rows.is_empty() {
+    if has_rows {
         println!(
             "  Open a family's command for source comparisons; list previews omit pair diffs."
         );
