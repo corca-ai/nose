@@ -127,6 +127,14 @@ Read the fields in this order — each step either decides or narrows:
 
 ## Acting on a verdict
 
+Before deciding, inspect surrounding code from a live family detail's
+`member_view.actions` entry with `kind="inspect-context"`. It requests up to 20
+lines on each side of selected members within existing source/display limits;
+member filters can narrow the sample. This is current unverified source, not a
+call graph or historical capture evidence. Search callers separately when the
+maintenance decision depends on ownership or invocation contracts. Saved
+comparison source actions verify captured bodies but do not reconstruct callers.
+
 - **Worthy** → propose a refactor after reviewing concrete source and contracts.
   Use `nose query <path> id=<fam> full`; follow member IDs and source coordinates in
   `source_evidence.diffs`. Derive the proposed signature and benefit yourself; neither

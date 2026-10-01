@@ -1,6 +1,61 @@
 use super::{Project, Value};
 
 #[test]
+fn live_family_offers_bounded_surrounding_code_without_manual_member_selection() {
+    let p = Project::new();
+    for file in ["a.py", "b.py"] {
+        p.write(
+            file,
+            &format!(
+                "# Caller contract: keep independent policies\n{}",
+                super::SOURCE
+            ),
+        );
+    }
+    let list = p.json(&[
+        "query",
+        ".",
+        "--mode",
+        "semantic",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+        "top=1",
+        "--format",
+        "json",
+    ]);
+    let id = format!("id={}", list["families"][0]["id"].as_str().unwrap());
+    let view = p.json(&[
+        "query",
+        ".",
+        "--mode",
+        "semantic",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+        &id,
+        "full",
+        "--format",
+        "json",
+    ]);
+    let action = view["member_view"]["actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|a| a["kind"] == "inspect-context")
+        .expect("discover surrounding code from family detail");
+    let context = p.follow(&action["command"]);
+    assert_eq!(context["family"]["id"], view["family"]["id"]);
+    assert!(context["member_view"]["source_bodies"]["members"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|m| m["lines"].to_string().contains("Caller contract")));
+}
+
+#[test]
 fn first_review_capture_replays_detection_without_reporting_suppressions() {
     let p = Project::new();
     p.write("accepted.json", r#"{"schema_version":2,"tool":"nose","baseline_kind":"accepted-duplication","families":[]}"#);

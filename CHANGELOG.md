@@ -6,6 +6,9 @@ break.
 
 ## [Unreleased]
 
+- Offer bounded live surrounding-code inspection directly from family detail
+  without requiring callers to discover a member-ID drilldown first.
+
 - Make live first-review capture commands work with baseline and explicit ignore
   inspection, explaining that captures precede reporting suppressions.
 
