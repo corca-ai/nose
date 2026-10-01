@@ -59,6 +59,66 @@ checked release qualification receipts. Candidate refactor suggestions were not
 implemented or independently adjudicated; no policy for automatic review transfer
 was inferred from task completion.
 
+## Ten additional sequential usability rounds — 2026-10-02
+
+The user requested ten further iterations from `4ff31fa3`; earlier studies above
+are excluded from this count. Ten fresh agents tested seven pinned repositories
+with immutable per-round binaries, without conversation history or previous
+implementation/feedback. Each round was followed by planner judgment, a concrete
+improvement and verification before the next round. The reports are synthetic
+agent-user observations, not human research or a measured adoption rate.
+All ten maintainer goals were eventually completed; command failures, manual
+workarounds and limitations remain in their individual transcripts.
+
+The fixed philosophy is: nose supplies deterministic evidence; the caller owns
+maintenance judgment and edit authorization. Keep triage compact, make detail
+navigable, retain explicit capture-bound decisions and expose uncertainty.
+Requests for automatic approval, inferred substitutes, automatic source copying,
+caller graphs, competing command aliases or relaxed gates were not adopted.
+
+| Round | Corpus | Observed obstacle | Planner-led improvement |
+|---|---|---|---|
+| 1 | radash | JSON review writes required reconstructing flags from help | Describe eligible recording prefix and required caller values |
+| 2 | click | A path-filtered baseline write silently accepted all 165 families | Reject query terms on baseline writes; explain selective structured ignores |
+| 3 | radash | The human review-start command retained an incompatible baseline option | Preserve detection settings but omit reporting suppressions for capture |
+| 4 | boltons | Context required manual source searches | Discover existing bounded live context from family detail; keep caller search separate |
+| 5 | ripgrep | An old change ID failed after a comment edit | Explain comparison address scope and explicit review recovery |
+| 6 | cobra | Earlier manual narrowing exposed a route-dependent saved-review action | Bind reopening to the written target and replace stale status filters |
+| 7 | axios | Configured multi-root JSON still lacked a first-capture entry | Expose explicit capture requirements and the original family lookup term |
+| 8 | curl | Guessed capture/review commands failed; archive layout required preparation | Signpost the actual query workflow and give a concrete archive example |
+| 9 | click | Tiny budget yielded 330 recheck observations on identical inputs | Explain incomplete search before counts; distinguish comparison from capture coverage |
+| 10 | radash | Complete analysis coexisted with unavailable archived source bodies | Summarize explicit source verification separately, with unavailable files and sides |
+
+The round 6 user succeeded through a retained live-ID filter. The preceding
+round 4 user had manually narrowed the write result; an independent regression
+without that live-ID filter reopened a different unreviewed family. Fixing this
+concrete wrong-target route took priority over round 6's capture-entry suggestion,
+which was validated again and implemented in round 7.
+
+Observed boundary cases remain explicit. In round 5 a one-line comment produced
+six recheck observations while 327 retained their evidence; the stored decision
+remained recheck despite the caller's continuing keep-separate judgment. Four
+historical/current body lookups verified. In round 9, increasing the comparison
+budget changed 330 recheck observations into 165 retained observations and zero
+rechecks; successful exit did not establish completed search. Round 10 restored
+two missing CDN files: member-read counts changed from two verified/four unavailable
+to six verified/zero unavailable, independently of analysis completeness. Candidate
+refactor suggestions were recorded as caller intent and not applied to corpus code.
+
+Harness limitations are retained: round 3 briefly resolved `nose` to another PATH
+version; the failing capture action was independently reproduced with the pinned
+binary. Later sessions prepended the pinned binary directory. The round 7 initial
+root and exclusion pattern used `test` instead of the actual `tests`; those parent
+fixture errors were separated from product defects, and the actual roots/policy
+were recorded. These observations support particular navigation and reporting
+changes, not a first-use success-rate or universal usability claim.
+
+Commands, feedback, immutable binary manifests, before/after regression logs and
+the decision ledger live under ignored `target/corpus-ut-ten-rounds/`. The stable
+regressions are in `crates/nose-cli/tests/analysis_changes/ut_cycles.rs`. Source
+verification is a reporting projection over explicit verified reads: it neither
+reads files implicitly nor changes matching, family identities or review reuse.
+
 This page records a qualitative, read-only pass over several unrelated real
 codebases. The project names are intentionally anonymized: the point is whether
 nose's findings are useful in realistic repositories, not to publish details of

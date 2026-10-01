@@ -293,7 +293,14 @@ SHA-256 and the selected byte-range digest before displaying text. A missing fil
 outdated buffer, invalid range, non-UTF-8 selection, or escaping path/symlink yields an
 explicit unavailable reason, with no replacement text. `source_lookup` reports the
 verified and unavailable member reads; `source_body_status` identifies the lookup
-method, not a successful verification. Exact verified selected regions
+method, not a successful verification. `source_verification` summarizes member
+reads across explicitly requested sides for the shown observations, separately
+from capture coverage and comparison completeness. Its status is `complete`,
+`partial`, `unavailable` or `not-attempted`; without explicit lookup it is null.
+`unavailable_files` deduplicates file paths and lists their affected sides and
+reasons. Unavailability can mean missing, stale, invalid or unreadable evidence;
+it does not assert that the underlying file was deleted.
+Exact verified selected regions
 are shown alongside line alignment for uniquely paired members; candidate correspondence
 remains labeled as a candidate. Alignment is capped at 120 lines per side with an explicit
 truncation flag. Source limits are 16 MiB per file, 64 MiB of cached source per side and
@@ -318,6 +325,8 @@ Selected-change JSON exposes `review_recording` with availability, a command
 prefix and the required caller-supplied file, decision and reason arguments.
 Unavailable or ambiguous targets explain why recording is unavailable. This
 prefix is not an executable action until the caller supplies those arguments.
+Human recording guidance uses the same eligibility report and does not invite
+a write when there is no eligible current target.
 The live first-review capture command preserves detection settings and roots,
 but omits baseline and explicit ignore options: captures include admitted
 families before reporting suppressions. Reopen the original live ID in that

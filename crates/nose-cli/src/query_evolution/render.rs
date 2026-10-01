@@ -63,6 +63,7 @@ pub(super) fn render(output: &Value, full: bool) {
     if let Some(message) = output["empty_message"].as_str() {
         println!("{message}");
     }
+    super::source_verification::render(output);
     if full {
         capture_context(output);
     }
@@ -102,9 +103,7 @@ pub(super) fn render(output: &Value, full: bool) {
             text(path)
         );
     }
-    if output["view"] == "change" && output["reviews"]["written"].is_null() {
-        println!("Record your decision: add --write-review FILE --decision keep-separate|refactor|defer --reason TEXT. A new file records this current family; it does not suppress findings.");
-    }
+    super::review_recording::render(output);
     println!("\nRetained evidence is not approval. Unmatched observations do not establish deletion or ancestry.");
     if !full {
         println!("Add `full` to inspect capture context, reason explanations and member evidence.");
@@ -355,7 +354,7 @@ fn observation<'a>(
         }
     }
 }
-fn text(value: &Value) -> &str {
+pub(super) fn text(value: &Value) -> &str {
     value.as_str().unwrap_or("unnamed")
 }
 

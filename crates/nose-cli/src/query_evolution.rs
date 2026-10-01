@@ -8,6 +8,7 @@ mod render;
 mod review_recording;
 mod reviews;
 mod selection;
+mod source_verification;
 mod source_view;
 mod sources;
 mod view;

@@ -2,6 +2,18 @@ use super::{navigation::Navigation, reviews, selection::Observations};
 use nose_detect::regions::evolution::Change;
 use serde_json::{json, Value};
 
+pub(super) fn render(output: &Value) {
+    if output["view"] != "change" || !output["reviews"]["written"].is_null() {
+        return;
+    }
+    let recording = &output["review_recording"];
+    if recording["available"] == true {
+        println!("Record your decision: add --write-review FILE --decision keep-separate|refactor|defer --reason TEXT. A new file records this current family; it does not suppress findings.");
+    } else if let Some(reason) = recording["reason"].as_str() {
+        println!("Review recording unavailable: {reason}");
+    }
+}
+
 pub(super) fn describe(
     rows: &[&Change],
     index: &Observations<'_>,

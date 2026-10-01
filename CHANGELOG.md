@@ -6,32 +6,17 @@ break.
 
 ## [Unreleased]
 
-- Explain incomplete candidate searches before human comparison counts and in
-  JSON, keeping capture coverage separate from comparison completeness.
-
-- Point top-level help to the query capture/review workflow and explain archived
-  source layouts without adding competing capture or review subcommands.
-
-- Connect live family JSON to explicit capture-bound caller reviews while
-  retaining roots and detection settings and requiring a caller-chosen new file.
-
-- Reopen the exact target after recording a review, replacing stale review-status
-  filters instead of navigating to unrelated unreviewed families.
-
-- Explain comparison-specific change addresses and how to revisit saved reviews
-  after a stale change lookup, without selecting a substitute observation.
-
-- Offer bounded live surrounding-code inspection directly from family detail
-  without requiring callers to discover a member-ID drilldown first.
-
-- Make live first-review capture commands work with baseline and explicit ignore
-  inspection, explaining that captures precede reporting suppressions.
-
-- Reject query terms when writing an accepted baseline instead of silently
-  recording the whole analyzed population despite a caller's filter.
-
-- Expose selected-change JSON review recording requirements without choosing a
-  default decision or writing a file during inspection.
+- Guide JSON callers from live family detail through explicit capture and review
+  recording, requiring caller-supplied filenames, decisions and reasons. Reopen
+  the exact written target and replace stale review-status filters.
+- Reject query terms on whole-population baseline writes and make first-review
+  capture commands omit incompatible reporting suppressions. Clarify the query
+  capture/review workflow and archived source layouts in help.
+- Discover bounded live surrounding-code inspection from family detail, and
+  explain stale comparison addresses with explicit review recovery.
+- Distinguish incomplete candidate search, capture coverage and explicit source
+  verification. Explain uncertain observations before human comparison counts;
+  JSON also summarizes unavailable source files and affected capture sides.
 
 - Make candidate-list commands open source comparisons directly and distinguish
   list previews from family detail. Bound long human and Markdown source excerpts

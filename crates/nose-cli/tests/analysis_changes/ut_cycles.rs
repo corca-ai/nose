@@ -1,6 +1,87 @@
 use super::{Project, Value};
 
 #[test]
+fn human_recording_guidance_agrees_with_unavailable_current_target() {
+    let p = Project::new();
+    p.capture("before.json", &[]);
+    std::fs::remove_file(p.0.join("b.py")).unwrap();
+    p.capture("after.json", &[]);
+    let list = p.compare(&[]);
+    let change = format!("change={}", list["items"][0]["id"].as_str().unwrap());
+    let detail = p.compare(&[&change]);
+    assert_eq!(detail["review_recording"]["available"], false);
+    let human = p.run(&[
+        "query",
+        "--before",
+        "before.json",
+        "--after",
+        "after.json",
+        &change,
+    ]);
+    assert!(human.status.success());
+    let text = String::from_utf8(human.stdout).unwrap();
+    assert!(!text.contains("Record your decision: add --write-review"));
+    assert!(text.contains("Review recording unavailable:"));
+}
+
+#[test]
+fn partial_archive_verification_is_separate_from_complete_analysis_and_can_recover() {
+    let p = Project::new();
+    p.capture("before.json", &[]);
+    p.capture("after.json", &[]);
+    let list = p.compare(&[]);
+    let change = format!("change={}", list["items"][0]["id"].as_str().unwrap());
+    std::fs::create_dir(p.0.join("archive")).unwrap();
+    std::fs::copy(p.0.join("a.py"), p.0.join("archive/a.py")).unwrap();
+    let args = [
+        &change,
+        "--before-source",
+        "archive",
+        "--after-source",
+        "archive",
+    ];
+    let partial = p.compare(&args);
+    assert_eq!(partial["complete"], true);
+    let verification = &partial["source_verification"];
+    assert_eq!(verification["status"], "partial");
+    assert_eq!(verification["scope"], "shown-observations");
+    assert_eq!(
+        verification["lookup_counts"],
+        serde_json::json!({"verified":2,"unavailable":2})
+    );
+    assert_eq!(
+        verification["unavailable_files"].as_array().unwrap().len(),
+        1
+    );
+    assert_eq!(verification["unavailable_files"][0]["file"], "b.py");
+    assert_eq!(
+        verification["unavailable_files"][0]["sides"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+    let missing = partial["items"][0]["before_observation"]["members"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|m| m["file"] == "b.py")
+        .unwrap();
+    assert!(missing["source_body"].get("text").is_none());
+    std::fs::copy(p.0.join("b.py"), p.0.join("archive/b.py")).unwrap();
+    let restored = p.compare(&args);
+    assert_eq!(restored["source_verification"]["status"], "complete");
+    assert_eq!(
+        restored["source_verification"]["lookup_counts"],
+        serde_json::json!({"verified":4,"unavailable":0})
+    );
+    assert!(restored["source_verification"]["unavailable_files"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+}
+
+#[test]
 fn exhausted_search_explains_uncertain_observations_without_relabeling_capture_coverage() {
     let p = Project::new();
     p.capture("before.json", &[]);

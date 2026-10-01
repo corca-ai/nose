@@ -417,6 +417,11 @@ An exhausted search also supplies `comparison_notice` with
 `kind="incomplete-search"`: unmatched-current and recheck observations do not
 establish new or changed code. The notice is null after a complete search.
 Exit zero means the requested comparison ran, not that every candidate was examined.
+Likewise, `source_verification` independently reports explicit byte lookup
+availability for shown observations, with member-read counts and deduplicated
+unavailable file paths, sides and reasons. It is null when source lookup was not
+requested. Neither analysis completeness nor exit zero establishes that archived
+source bytes were verified.
 `summary.retained/recheck/total` count the full comparison;
 `selected_retained/selected_recheck/selected` count the current selection, and `shown`
 counts displayed observations. Rows use `order="recheck-first-then-observation-id"`.

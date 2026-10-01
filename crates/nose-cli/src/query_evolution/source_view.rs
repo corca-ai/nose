@@ -37,12 +37,9 @@ pub(super) fn summarize(item: &mut Value) {
         .collect();
     item["source_diffs"] = json!(diffs);
     item["source_body_status"] = json!("explicit-verified-lookup");
-    let members = std::iter::once(&item["before_observation"])
-        .chain(item["after_observations"].as_array().into_iter().flatten())
-        .flat_map(|f| f["members"].as_array().into_iter().flatten());
     let mut verified = 0;
     let mut unavailable = 0;
-    for member in members {
+    for (_, member) in members(item) {
         match member["source_body"]["status"].as_str() {
             Some("verified") => verified += 1,
             Some("unavailable") => unavailable += 1,
@@ -50,6 +47,24 @@ pub(super) fn summarize(item: &mut Value) {
         }
     }
     item["source_lookup"] = json!({"verified":verified,"unavailable":unavailable});
+}
+
+pub(super) fn members(item: &Value) -> impl Iterator<Item = (&'static str, &Value)> {
+    std::iter::once(("before", &item["before_observation"]))
+        .chain(
+            item["after_observations"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|f| ("after", f)),
+        )
+        .flat_map(|(side, f)| {
+            f["members"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(move |m| (side, m))
+        })
 }
 
 fn source_diff(item: &Value, row: &Value) -> Option<Value> {
