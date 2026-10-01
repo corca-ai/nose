@@ -7,6 +7,7 @@ mod navigation;
 mod render;
 mod reviews;
 mod selection;
+mod source_view;
 mod sources;
 mod view;
 use crate::cli_args::{Cmd, QueryArgs};
@@ -132,7 +133,7 @@ pub(crate) fn capabilities() -> serde_json::Value {
         "family_lookup": {"term":"id=ID", "source":"captured family_handles", "meaning":"Navigation within supplied captures; not content identity, ancestry or approval.", "legacy":"unavailable when handles were not recorded"},
         "formats": ["human", "json"], "default_max_candidates": 100_000,
         "max_input_bytes": 128 * 1024 * 1024,
-        "source_limits": {"file_bytes":16*1024*1024,"total_bytes_per_side":64*1024*1024,"region_bytes":64*1024,"diff_lines_per_side":120},
+        "source_limits": {"file_bytes":sources::MAX_FILE_BYTES,"total_bytes_per_side":sources::MAX_TOTAL_BYTES,"region_bytes":sources::MAX_REGION_BYTES,"diff_lines_per_side":crate::source_lines::LINE_DIFF_LIMIT},
         "population": "admitted-query-families", "source_bodies": "not-stored",
         "source_options": ["--before-source DIR", "--after-source DIR"],
         "source_verification": "containing-buffer-and-selected-content-sha256",

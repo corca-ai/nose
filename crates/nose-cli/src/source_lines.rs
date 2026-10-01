@@ -537,12 +537,13 @@ pub(crate) fn read_lines(file: &str, start: u32, end: u32) -> Option<Vec<String>
     (s < e).then(|| lines[s..e].iter().map(|l| l.to_string()).collect())
 }
 
+pub(crate) const LINE_DIFF_LIMIT: usize = 120;
+
 /// Minimal LCS line diff → `(' '|'-'|'+', line)`. Caps each side so the O(n·m)
 /// table stays small on large members (the differing lines are what matter).
 pub(crate) fn line_diff(a: &[&str], b: &[&str]) -> Vec<(char, String)> {
-    const CAP: usize = 120;
-    let a = &a[..a.len().min(CAP)];
-    let b = &b[..b.len().min(CAP)];
+    let a = &a[..a.len().min(LINE_DIFF_LIMIT)];
+    let b = &b[..b.len().min(LINE_DIFF_LIMIT)];
     let (n, m) = (a.len(), b.len());
     let width = m + 1;
     let mut dp = vec![0u16; (n + 1) * width];

@@ -1,16 +1,18 @@
 //! Explicit source lookup: captured addresses must verify before text is exposed.
+#[cfg(test)]
+mod tests;
 use anyhow::{ensure, Context, Result};
 use nose_detect::regions::evolution::{AnalysisSnapshot, MemberObservation};
 use nose_il::ContentDigest;
-use serde_json::{json, Value};
 use std::{
     collections::BTreeMap,
     io::Read,
     path::{Component, Path, PathBuf},
 };
 
-const MAX_FILE_BYTES: u64 = 16 * 1024 * 1024;
-const MAX_REGION_BYTES: usize = 64 * 1024;
+pub(super) const MAX_FILE_BYTES: u64 = 16 * 1024 * 1024;
+pub(super) const MAX_TOTAL_BYTES: usize = 64 * 1024 * 1024;
+pub(super) const MAX_REGION_BYTES: usize = 64 * 1024;
 
 /// Keep the original cwd layout when it contains the roots; external roots need
 /// their own common directory so the explicit source action can reopen them.
@@ -60,7 +62,7 @@ impl Sources {
             root,
             path_base: PathBuf::from(&snapshot.path_base),
             captured_base: base(snapshot),
-            remaining_bytes: 64 * 1024 * 1024,
+            remaining_bytes: MAX_TOTAL_BYTES,
             files: BTreeMap::new(),
         })
     }
@@ -77,7 +79,7 @@ impl Sources {
         );
         Ok(relative.to_owned())
     }
-    fn text(&mut self, member: &MemberObservation) -> Result<String> {
+    pub(super) fn text(&mut self, member: &MemberObservation) -> Result<String> {
         let source = member
             .source
             .as_ref()
@@ -111,17 +113,8 @@ impl Sources {
             .context("selected source is not UTF-8")?
             .to_owned())
     }
-    pub(super) fn member(&mut self, member: &MemberObservation) -> Value {
-        match self.text(member) {
-            Ok(text) => {
-                json!({"file":member.file,"region":member.source,"status":"verified", "text":text})
-            }
-            Err(error) => {
-                json!({"file":member.file,"region":member.source,"status":"unavailable","reason":error.to_string()})
-            }
-        }
-    }
 }
+
 struct SourceBytes {
     bytes: Vec<u8>,
     digest: ContentDigest,
@@ -159,67 +152,4 @@ fn read_file(root: &Path, relative: &Path, remaining: &mut usize) -> Result<Sour
     );
     let digest = ContentDigest::sha256(&bytes);
     Ok(SourceBytes { bytes, digest })
-}
-
-pub(super) fn attach(item: &mut Value, before: &mut Option<Sources>, after: &mut Option<Sources>) {
-    for (key, sources) in [
-        ("before_observation", before),
-        ("after_observations", after),
-    ] {
-        let Some(sources) = sources else { continue };
-        if key == "before_observation" {
-            attach_family(&mut item[key], sources);
-        } else if let Some(families) = item[key].as_array_mut() {
-            for family in families {
-                attach_family(family, sources);
-            }
-        }
-    }
-    let diffs = item["member_changes"]["members"].as_array().into_iter().flatten().filter_map(|row| {
-        let before = body_at(&item["before_observation"], &row["before"])?;
-        let after_locations = row["after"].as_array()?;
-        if after_locations.len() != 1 { return None }
-        let after = item["after_observations"].as_array()?.iter().find_map(|f| body_at(f, &after_locations[0]))?;
-        let a: Vec<_> = before.lines().collect();
-        let b: Vec<_> = after.lines().collect();
-        let lines: Vec<_> = crate::source_lines::line_diff(&a, &b).into_iter().map(|(tag, text)| json!({"tag":tag.to_string(),"text":text})).collect();
-        Some(json!({"before":row["before"],"after":after_locations[0],"correspondence":row["status"],
-            "same_content":before == after,"lines":lines,"truncated":a.len() > 120 || b.len() > 120,"line_limit_per_side":120,
-            "meaning":"Text alignment of verified selected regions; correspondence remains advisory where labeled candidate."}))
-    }).collect::<Vec<_>>();
-    item["source_diffs"] = json!(diffs);
-    item["source_body_status"] = json!("explicit-verified-lookup");
-    let members = std::iter::once(&item["before_observation"])
-        .chain(item["after_observations"].as_array().into_iter().flatten())
-        .flat_map(|f| f["members"].as_array().into_iter().flatten());
-    let mut verified = 0;
-    let mut unavailable = 0;
-    for member in members {
-        match member["source_body"]["status"].as_str() {
-            Some("verified") => verified += 1,
-            Some("unavailable") => unavailable += 1,
-            _ => {}
-        }
-    }
-    item["source_lookup"] = json!({"verified":verified,"unavailable":unavailable});
-}
-fn attach_family(family: &mut Value, sources: &mut Sources) {
-    let Some(members) = family["members"].as_array_mut() else {
-        return;
-    };
-    for member in members {
-        let observation: MemberObservation =
-            serde_json::from_value(member.clone()).expect("captured member serializes");
-        member["observation_id"] = json!(observation.observation_id());
-        member["source_body"] = sources.member(&observation);
-    }
-}
-
-fn body_at<'a>(family: &'a Value, location: &Value) -> Option<&'a str> {
-    let id = location["observation_id"].as_str()?;
-    family["members"]
-        .as_array()?
-        .iter()
-        .find(|m| m["observation_id"].as_str() == Some(id))?["source_body"]["text"]
-        .as_str()
 }

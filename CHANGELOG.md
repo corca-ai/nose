@@ -6,6 +6,10 @@ break.
 
 ## [Unreleased]
 
+- Clarify saved-analysis source differences when bounded line alignment shows
+  no changed lines, and provide a JSON action for complete verified source bodies
+  with the same selection and explicit source directories.
+
 ## [0.21.0] - 2026-09-08
 
 - Adopt the expanded-analysis implementation as the prospective performance

@@ -238,6 +238,133 @@ fn human_group_counts_do_not_report_zero_observations_shown() {
 }
 
 #[test]
+fn hidden_source_changes_offer_complete_verified_json() {
+    let source = SOURCE.replace(
+        "    a =",
+        &format!(
+            "{}    # old explanation\n    a =",
+            "    # shared\n".repeat(125)
+        ),
+    );
+    assert_hidden_source_change(
+        &source,
+        &source.replace("old explanation", "new explanation"),
+        true,
+    );
+}
+
+#[test]
+fn line_ending_changes_are_explicit_when_alignment_has_no_changed_lines() {
+    assert_hidden_source_change(SOURCE, &SOURCE.replace('\n', "\r\n"), false);
+}
+
+fn assert_hidden_source_change(before: &str, after: &str, truncated: bool) {
+    let p = Project::new();
+    std::fs::create_dir(p.0.join("old")).unwrap();
+    for file in ["a.py", "b.py"] {
+        p.write(file, before);
+        p.write(&format!("old/{file}"), before);
+    }
+    p.capture("before.json", &["--exclude", "old/**"]);
+    for file in ["a.py", "b.py"] {
+        p.write(file, after);
+    }
+    p.capture("after.json", &["--exclude", "old/**"]);
+    let listing = p.compare(&[]);
+    let change = format!("change={}", listing["items"][0]["id"].as_str().unwrap());
+    let args = [
+        "query",
+        "--before",
+        "before.json",
+        "--after",
+        "after.json",
+        &change,
+        "--before-source",
+        "old",
+        "--after-source",
+        ".",
+    ];
+    let output = p.run(&args);
+    assert!(output.status.success());
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        text.contains("Verified text differs; no changed lines appear in this alignment."),
+        "{text}"
+    );
+    assert!(
+        !text.contains("verified member bodies are shown above"),
+        "{text}"
+    );
+    let command = text
+        .lines()
+        .find(|line| line.contains("nose query") && line.contains("--format json"))
+        .unwrap();
+    let complete = p.follow(&json!(command.trim()));
+    let row = &complete["items"][0];
+    assert_eq!(
+        row["before_observation"]["members"][0]["source_body"]["text"]
+            .as_str()
+            .unwrap(),
+        before.trim_end_matches(['\r', '\n'])
+    );
+    assert_eq!(
+        row["after_observations"][0]["members"][0]["source_body"]["text"]
+            .as_str()
+            .unwrap(),
+        after.trim_end_matches(['\r', '\n'])
+    );
+    assert_eq!(row["source_lookup"], json!({"verified":4,"unavailable":0}));
+    assert!(row["source_diffs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|diff| diff["same_content"] == false && diff["truncated"] == truncated));
+}
+
+#[test]
+fn source_json_action_preserves_one_sided_lookup_and_comparison_context() {
+    let p = Project::new();
+    p.capture("before.json", &[]);
+    p.capture("after.json", &[]);
+    let listing = p.compare(&[]);
+    let change = format!("change={}", listing["items"][0]["id"].as_str().unwrap());
+    p.compare(&[
+        &change,
+        "--write-review",
+        "review ' $.json",
+        "--decision",
+        "defer",
+        "--reason",
+        "Inspect source",
+    ]);
+    let report = p.compare(&[
+        &change,
+        "scope=prod",
+        "--max-candidates",
+        "12345",
+        "--before-source",
+        ".",
+        "--reviews",
+        "review ' $.json",
+    ]);
+    let command = report["items"][0]["actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|a| a["kind"] == "inspect-source-json")
+        .unwrap();
+    let followed = p.follow(&command["command"]);
+    assert_eq!(followed["inputs"], report["inputs"]);
+    assert_eq!(followed["items"], report["items"]);
+    assert_eq!(followed["max_candidates"], 12345);
+    assert_eq!(
+        followed["items"][0]["source_lookup"],
+        json!({"verified":2,"unavailable":0})
+    );
+    assert_eq!(followed["items"][0]["review_status"], "applicable");
+}
+
+#[test]
 fn saved_exploration_prints_identical_verified_source_once() {
     let p = Project::new();
     p.capture("before.json", &[]);
