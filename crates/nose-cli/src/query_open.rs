@@ -84,6 +84,7 @@ pub(super) fn render_query_family(
                     "hint_reasons": hint_reasons(f),
                     "family": family,
                     "member_view": member_view,
+                    "review_capture":crate::query_navigation::review_capture_request(ctx.args, &id),
                     "next": member_view["next"],
                 }),
                 semantic_packs

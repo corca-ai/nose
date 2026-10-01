@@ -87,13 +87,32 @@ pub(crate) fn source_json(args: &QueryArgs, terms: &[String]) -> String {
 }
 
 pub(crate) fn review_capture(args: &QueryArgs) -> String {
-    let mut capture = args.clone();
-    capture.baseline = None;
-    capture.ignore_file = None;
-    words(&capture)
+    capture_words(args)
         .into_iter()
         .chain(["--save-analysis".into(), "nose-analysis.json".into()])
         .map(|word| crate::path_utils::shell_quote(&word))
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+pub(crate) fn review_capture_request(args: &QueryArgs, family_id: &str) -> serde_json::Value {
+    let prefix = capture_words(args)
+        .into_iter()
+        .chain(["--format".into(), "json".into()])
+        .map(|word| crate::path_utils::shell_quote(&word))
+        .collect::<Vec<_>>()
+        .join(" ");
+    serde_json::json!({
+        "command_prefix":prefix,
+        "required_arguments":{"--save-analysis":"New file path; never overwrites an existing file"},
+        "family_lookup_term":format!("id={family_id}"),
+        "meaning":"Save the admitted population before baseline/ignore suppressions, then append family_lookup_term to the capture's explore command. Follow the selected change's review_recording requirements; no decision is chosen or stored by inspection."
+    })
+}
+
+fn capture_words(args: &QueryArgs) -> Vec<String> {
+    let mut capture = args.clone();
+    capture.baseline = None;
+    capture.ignore_file = None;
+    words(&capture)
 }

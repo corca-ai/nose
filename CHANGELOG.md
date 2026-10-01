@@ -6,6 +6,9 @@ break.
 
 ## [Unreleased]
 
+- Connect live family JSON to explicit capture-bound caller reviews while
+  retaining roots and detection settings and requiring a caller-chosen new file.
+
 - Reopen the exact target after recording a review, replacing stale review-status
   filters instead of navigating to unrelated unreviewed families.
 

@@ -1,6 +1,53 @@
 use super::{Project, Value};
 
 #[test]
+fn live_json_starts_an_explicit_review_capture_with_roots_and_config_preserved() {
+    let p = Project::new();
+    p.write(
+        "policy.toml",
+        "[query]\nmode = [\"semantic\"]\nmin-size = 1\nmin-lines = 1\n",
+    );
+    p.write("accepted.json", r#"{"schema_version":2,"tool":"nose","baseline_kind":"accepted-duplication","families":[]}"#);
+    let options = [
+        "query",
+        "--root",
+        "a.py",
+        "--root",
+        "b.py",
+        "--config",
+        "policy.toml",
+        "--baseline",
+        "accepted.json",
+        "--format",
+        "json",
+    ];
+    let list = p.json(&options);
+    let id = format!("id={}", list["families"][0]["id"].as_str().unwrap());
+    let mut args = options.to_vec();
+    args.extend([&id, "full"]);
+    let live = p.json(&args);
+    let request = &live["review_capture"];
+    assert!(request["required_arguments"]["--save-analysis"].is_string());
+    assert!(!p.0.join("capture with $.json").exists());
+    let saved = p.follow(&Value::String(format!(
+        "{} --save-analysis 'capture with $.json'",
+        request["command_prefix"].as_str().unwrap()
+    )));
+    let comparison = p.follow(&Value::String(format!(
+        "{} {}",
+        saved["next"][0].as_str().unwrap(),
+        request["family_lookup_term"].as_str().unwrap()
+    )));
+    assert_eq!(comparison["summary"]["selected"], 1);
+    assert_eq!(comparison["roots"]["after"].as_array().unwrap().len(), 2);
+    assert_eq!(comparison["profiles"]["after"]["min-size"], "1");
+    assert!(comparison["profiles"]["after"]["channels"]
+        .as_str()
+        .unwrap()
+        .contains("syntax=false,semantic=true,near=false"));
+}
+
+#[test]
 fn written_review_action_reopens_only_its_target_and_replaces_old_status_filter() {
     let p = Project::new();
     for file in ["c.py", "d.py"] {

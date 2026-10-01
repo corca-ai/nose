@@ -396,6 +396,13 @@ records are identical for clean, cold-cache and warm-cache queries.
 
 ## Saved analysis comparison
 
+Live family JSON exposes `review_capture`: a detection-preserving command prefix,
+required caller-supplied `--save-analysis` filename, and `family_lookup_term`.
+Append that term to the saved capture's exploration command to reopen this family,
+then follow the selected change's `review_recording` requirements. Neither prefix
+is a runnable action until the caller supplies its required values. Inspection
+does not write files or choose decisions; captures precede report suppressions.
+
 `query --save-analysis FILE` writes the complete admitted code-family population as
 `nose.analysis/v1`; `query --before FILE --after FILE --format json` explores it through
 `nose.analysis-changes/v1`. These explicitly selected schemas are separate from ordinary
