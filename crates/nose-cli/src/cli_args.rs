@@ -15,7 +15,8 @@ use std::path::PathBuf;
     about = "nose finds duplication in code and docs.\n\
              nose finds; you judge. Run `nose query <path>` to explore.",
     long_about = "nose finds duplication in code and docs.\n\
-                  nose finds; you judge. Run `nose query <path>` to explore."
+                  nose finds; you judge. Run `nose query <path>` to explore.",
+    after_help = "Save analyses and caller decisions through query:\n  nose query <path> --save-analysis FILE\n  nose query --before FILE --after FILE\nSee `nose query --help` for --write-review and archived source verification."
 )]
 pub(crate) struct Cli {
     #[command(subcommand)]
@@ -106,13 +107,15 @@ pub(crate) enum Cmd {
     /// Navigate: group=dir|file|scope|witness, id=ID, at=FILE:LINE, sort=value|sites, top=N, all.
     /// Details: id=ID full shows source comparisons; full on a list previews source coverage and shared lines.
     /// member-id=ID full shows one copy; member-path~TEXT full selects source by path.
-    /// Context: on a member, follow Inspect surrounding code or add member-context=20 full for bounded nearby lines.
+    /// Context: in a family, follow Inspect surrounding code or add member-context=20 full for bounded nearby lines.
     ///
     /// Save with --save-analysis FILE. Compare saved populations with --before/--after;
     /// follow next commands, group=reason, evidence=recheck, change=ID and full.
     /// New captures also accept the original live id=ID; it selects recorded observations, not edit ancestry.
     /// On id=, follow member-group=dir|lang|scope to explore copies within a family.
     /// On change=, --before-source/--after-source DIR verify historical source bytes.
+    /// Archive complete member files in the emitted source action's directory layout.
+    /// For self-comparison, set both source directories to that archive; selected files only are verified.
     /// Record your judgment with --write-review FILE --decision VALUE --reason TEXT;
     /// First review: save once, use that file for both --before and --after, open id=ID then change=ID.
     /// supply --reviews FILE later and filter review=applicable|recheck|unreviewed.

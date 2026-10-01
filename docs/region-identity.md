@@ -281,6 +281,12 @@ without rewriting their identities. For historical checkouts, supply a directory
 the same layout as the emitted source action. Older captures whose canonical roots
 lost the logical member-path alias can remain unavailable; recapture preserves that
 spelling instead of guessing a correspondence.
+For example, if a member is `source/lib/helper.c` and the emitted source directory
+is the session working directory, preserve `archive/source/lib/helper.c` and
+pass `--before-source archive`, not `archive/source`. A self-comparison can use
+that archive for both source options. You may archive only the selected family's
+complete containing files; verifying those files does not establish availability
+of the rest of the captured population.
 The directories can be historical checkouts or exported source trees; nose does not
 choose a Git revision or read source implicitly. It verifies both the containing buffer
 SHA-256 and the selected byte-range digest before displaying text. A missing file,

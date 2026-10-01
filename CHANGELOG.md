@@ -6,6 +6,9 @@ break.
 
 ## [Unreleased]
 
+- Point top-level help to the query capture/review workflow and explain archived
+  source layouts without adding competing capture or review subcommands.
+
 - Connect live family JSON to explicit capture-bound caller reviews while
   retaining roots and detection settings and requiring a caller-chosen new file.
 
