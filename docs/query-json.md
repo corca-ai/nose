@@ -443,6 +443,14 @@ the diffs. Cross-language details omit the skeleton and report
 Human and Markdown use the same observations, showing at most 40 skeleton lines with an
 explicit truncation notice. No skeleton is an extraction proposal or safe-to-apply patch.
 
+Human list `full` previews coverage and shared lines; each row's `id=ID full`
+command opens the pair comparisons. Human and Markdown source previews additionally
+limit each displayed line to 240 Unicode characters and each section to 4,000
+characters, with explicit omission notices. The emitted JSON command recovers the
+collected text without these presentation limits; member, line, file and region
+collection limits still apply. Presentation clipping does not change source evidence,
+family identities, review keys or the machine-readable text.
+
 `id=ID full` also requests existing graded enrichment for the selected family only.
 Unsupported/unavailable grades remain absent; no inferred witness replaces them. Pair IDs
 in `graded_pair` identify the coverage, including when member filters hide those locations.

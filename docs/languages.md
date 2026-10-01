@@ -223,5 +223,12 @@ For the current pack-based language onboarding contract, see
 A clean C parse takes precedence over C++ lexical hints in `.h` files. Legal C
 identifiers such as `namespace` or `class` therefore do not exclude a header.
 Excluded artifacts are listed in the query dashboard's `summary.skipped_sources`.
+Repeated raw ANSI escape bytes normally identify highlighted-output artifacts.
+Rust literals and comments can legitimately contain those bytes, including
+expected-output fixtures. Rust source remains analyzable when every sampled ANSI
+sequence belongs to an error-free string-literal or comment syntax node; escapes
+outside those nodes still identify artifacts. This distinction does not apply to
+other language classifiers. Ordinary files incur no additional parse; Rust files
+that trigger the ANSI heuristic require a syntax check before classification.
 Syntax depth and node-count limits are checked before recursive lowering; an
 exceeded limit fails the analysis explicitly. See [architecture](architecture.md#analysis-resource-boundaries).

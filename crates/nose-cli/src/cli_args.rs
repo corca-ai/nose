@@ -104,7 +104,8 @@ pub(crate) enum Cmd {
     /// Numbers must be finite; >= and <= are unsupported and return errors.
     /// dir= matches the representative's parent directory; path~ matches any copy, including cross-directory families.
     /// Navigate: group=dir|file|scope|witness, id=ID, at=FILE:LINE, sort=value|sites, top=N, all.
-    /// Details: full shows source comparisons; member-id=ID full shows one copy; member-path~TEXT full selects source by path.
+    /// Details: id=ID full shows source comparisons; full on a list previews source coverage and shared lines.
+    /// member-id=ID full shows one copy; member-path~TEXT full selects source by path.
     /// Context: on a member, follow Inspect surrounding code or add member-context=20 full for bounded nearby lines.
     ///
     /// Save with --save-analysis FILE. Compare saved populations with --before/--after;
@@ -113,6 +114,7 @@ pub(crate) enum Cmd {
     /// On id=, follow member-group=dir|lang|scope to explore copies within a family.
     /// On change=, --before-source/--after-source DIR verify historical source bytes.
     /// Record your judgment with --write-review FILE --decision VALUE --reason TEXT;
+    /// First review: save once, use that file for both --before and --after, open id=ID then change=ID.
     /// supply --reviews FILE later and filter review=applicable|recheck|unreviewed.
     /// Use nose capabilities for comparison fields and reason values.
     #[command(

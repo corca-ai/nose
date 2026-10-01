@@ -108,6 +108,10 @@ pub(super) fn render_query_family(
     );
     if query.member_view.active() {
         crate::query_members::render(&member_view);
+        println!(
+            "  Unclipped collected source evidence (JSON): {}",
+            crate::query_navigation::source_json(ctx.args, ctx.terms)
+        );
         return;
     }
     if full {
@@ -128,6 +132,14 @@ pub(super) fn render_query_family(
 
     let path = crate::query_navigation::path(ctx.args, path);
     println!("\nnext:");
+    println!(
+        "  Start a caller review (save once; choose a new filename): {}",
+        crate::query_navigation::review_capture(ctx.args)
+    );
+    println!(
+        "  Unclipped collected source evidence (JSON): {}",
+        crate::query_navigation::source_json(ctx.args, ctx.terms)
+    );
     println!(
         "  Back to filtered families: {}",
         member_view["next"][0].as_str().unwrap()

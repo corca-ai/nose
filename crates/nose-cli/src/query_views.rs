@@ -459,7 +459,7 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
             _ => String::new(),
         };
         let cmd = style::dim(&format!(
-            "{} id={}",
+            "{} id={} full",
             base_cmd(view.terms, view.navigation_path),
             short_id(&baseline::family_id(f))
         ));
@@ -476,8 +476,7 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
                 reason["primary_id"].as_str().unwrap()
             );
         }
-        // `full` on a list/filter batches the bounded source comparisons — triage N candidates
-        // in one stateless call (no per-family id= round-trip).
+        // Keep the list a compact preview; row commands open the pair comparisons.
         if view.query.id_full {
             crate::query_source_evidence::render(
                 &crate::query_source_evidence::collect(f, false),
@@ -487,7 +486,18 @@ pub(super) fn render_query_list(view: QueryListView<'_>) {
     }
     if !view.query.id_full {
         println!(
-            "  {} full   # show bounded source comparisons inline",
+            "  {} full   # preview source coverage and shared lines",
+            base_cmd(view.terms, view.navigation_path)
+        );
+    }
+    if !shown_rows.is_empty() {
+        println!(
+            "  Open a family's command for source comparisons; list previews omit pair diffs."
+        );
+    }
+    if view.query.id_full {
+        println!(
+            "  Unclipped collected source evidence (JSON): {} full --format json",
             base_cmd(view.terms, view.navigation_path)
         );
     }

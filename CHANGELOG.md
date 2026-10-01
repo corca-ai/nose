@@ -6,6 +6,16 @@ break.
 
 ## [Unreleased]
 
+- Make candidate-list commands open source comparisons directly and distinguish
+  list previews from family detail. Bound long human and Markdown source excerpts
+  with explicit clipping notices and a command to inspect collected JSON evidence.
+- Guide first-time caller reviews through one saved analysis, avoiding an unnecessary
+  second identical capture while preserving explicit capture-bound review records.
+- Analyze Rust fixtures containing raw ANSI escapes in valid strings or comments
+  instead of misclassifying their entire source file as highlighted terminal output.
+  Invalidate older source-analysis caches so previously skipped fixtures are
+  rediscovered on warm runs as well as clean analyses.
+
 - Clarify saved-analysis source differences when bounded line alignment shows
   no changed lines, and provide a JSON action for complete verified source bodies
   with the same selection and explicit source directories.

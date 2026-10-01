@@ -125,6 +125,7 @@ pub(crate) fn capture(args: &QueryArgs, path: &Path) -> Result<()> {
             "All admitted surfaces and folded overlaps included; reviews and source bodies are not stored.
 next: {next}
 Append id=ID using a live family ID to reopen its captured observations.
+To record your first decision, follow that observation's change=ID command, then the Record your decision instructions. No second capture is needed.
 Explore this capture; supply a later --after capture to inspect changes."
         );
     }

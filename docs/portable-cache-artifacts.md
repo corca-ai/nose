@@ -45,10 +45,14 @@ This execution choice does not change analysis scope or the connected-seed polic
 
 Git index flags (`assume-unchanged`, `skip-worktree`), clean/smudge filters, and
 concurrent edits cannot substitute a Git blob for the bytes actually analyzed.
-Raw IL schema 6 and source-analysis identity v3 include the extension profile and
+Raw IL schema 7 and source-analysis identity v4 include the extension profile and
 the retained primitive-key evidence used by the offline oracle,
 so TS/TSX dialect changes and C/header classification cannot reuse incompatible
 artifacts. Checkout-local directory names remain outside this identity.
+The v4 analysis identity invalidates older empty raw bundles and warm generations
+that skipped legitimate Rust ANSI fixtures. Corrected source admission must rebuild
+those stages even when the working bytes are unchanged; original source-buffer
+digests and public review identities are separate from this cache identity.
 
 Markdown preprocessing and complete dashboard results also use checksummed CAS
 state records. Document entries bind source bytes; report entries bind ordered

@@ -74,3 +74,23 @@ pub(crate) fn path(args: &QueryArgs, root_expression: &str) -> String {
         format!("{root_expression} {}", options.join(" "))
     }
 }
+
+/// Recover collected source text without human presentation clipping.
+pub(crate) fn source_json(args: &QueryArgs, terms: &[String]) -> String {
+    words(args)
+        .into_iter()
+        .chain(terms.iter().filter(|term| term.as_str() != "full").cloned())
+        .chain(["full".into(), "--format".into(), "json".into()])
+        .map(|word| crate::path_utils::shell_quote(&word))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+pub(crate) fn review_capture(args: &QueryArgs) -> String {
+    words(args)
+        .into_iter()
+        .chain(["--save-analysis".into(), "nose-analysis.json".into()])
+        .map(|word| crate::path_utils::shell_quote(&word))
+        .collect::<Vec<_>>()
+        .join(" ")
+}

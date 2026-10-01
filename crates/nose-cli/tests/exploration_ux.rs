@@ -440,3 +440,129 @@ mod cortex;
 
 #[path = "exploration_ux/context.rs"]
 mod context;
+
+#[test]
+fn list_source_preview_leads_to_a_runnable_family_comparison() {
+    let p = Project::new();
+    p.write("a.js", "function sum(n) {\n let s = 0;\n for (let i = 0; i < n; i++) { s += i * i; }\n return s;\n}\n");
+    p.write("b.ts", "function total(n: number): number {\n let s = 0;\n for (let i = 0; i < n; i++) { s += i * i; }\n return s;\n}\n");
+    let output = Command::new(env!("CARGO_BIN_EXE_nose"))
+        .current_dir(&p.0)
+        .args([
+            "query",
+            ".",
+            "--min-size",
+            "1",
+            "--min-lines",
+            "1",
+            "all",
+            "top=3",
+            "full",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        text.contains("Open a family's command for source comparisons"),
+        "{text}"
+    );
+    let command = text
+        .lines()
+        .find_map(|line| {
+            let start = line.find("nose query ")?;
+            let command = line[start..].trim();
+            (command.contains("id=") && command.ends_with(" full")).then_some(command)
+        })
+        .expect("list row offers full family comparison");
+    let detail = Command::new("sh")
+        .current_dir(&p.0)
+        .env(
+            "PATH",
+            format!(
+                "{}:{}",
+                PathBuf::from(env!("CARGO_BIN_EXE_nose"))
+                    .parent()
+                    .unwrap()
+                    .display(),
+                std::env::var("PATH").unwrap()
+            ),
+        )
+        .args(["-c", command])
+        .output()
+        .unwrap();
+    assert!(detail.status.success());
+    let detail = String::from_utf8(detail.stdout).unwrap();
+    assert!(detail.contains("diff "), "{detail}");
+    assert!(
+        detail.contains("Unclipped collected source evidence (JSON):"),
+        "{detail}"
+    );
+    let json_command = detail
+        .lines()
+        .find_map(|line| {
+            line.trim()
+                .strip_prefix("Unclipped collected source evidence (JSON): ")
+        })
+        .expect("JSON recovery command");
+    let recovered = Command::new("sh")
+        .current_dir(&p.0)
+        .env(
+            "PATH",
+            format!(
+                "{}:{}",
+                PathBuf::from(env!("CARGO_BIN_EXE_nose"))
+                    .parent()
+                    .unwrap()
+                    .display(),
+                std::env::var("PATH").unwrap()
+            ),
+        )
+        .args(["-c", json_command])
+        .output()
+        .unwrap();
+    assert!(
+        recovered.status.success(),
+        "{}",
+        String::from_utf8_lossy(&recovered.stderr)
+    );
+    let recovered: Value = serde_json::from_slice(&recovered.stdout).unwrap();
+    assert_eq!(recovered["view"], "family");
+    assert!(recovered["family"]["source_evidence"]["diffs"]
+        .as_array()
+        .is_some_and(|diffs| !diffs.is_empty()));
+    let capture_command = detail
+        .lines()
+        .find_map(|line| {
+            line.trim()
+                .strip_prefix("Start a caller review (save once; choose a new filename): ")
+        })
+        .expect("first-review capture action");
+    let captured = Command::new("sh")
+        .current_dir(&p.0)
+        .env(
+            "PATH",
+            format!(
+                "{}:{}",
+                PathBuf::from(env!("CARGO_BIN_EXE_nose"))
+                    .parent()
+                    .unwrap()
+                    .display(),
+                std::env::var("PATH").unwrap()
+            ),
+        )
+        .args(["-c", capture_command])
+        .output()
+        .unwrap();
+    assert!(
+        captured.status.success(),
+        "{}",
+        String::from_utf8_lossy(&captured.stderr)
+    );
+    assert!(String::from_utf8_lossy(&captured.stdout).contains("No second capture is needed"));
+    let capture: Value =
+        serde_json::from_slice(&std::fs::read(p.0.join("nose-analysis.json")).unwrap()).unwrap();
+    assert!(capture["family_handles"]
+        .get(recovered["family"]["id"].as_str().unwrap())
+        .is_some());
+}

@@ -152,9 +152,13 @@ pub(crate) fn render(evidence: &Value, markdown: bool) {
             "  {} shared lines · {} varying anchor regions",
             evidence["shared_lines"], evidence["varying_regions"]
         );
-        for line in skeleton.iter().take(40) {
-            println!("       │ {}", line.as_str().unwrap());
-        }
+        display::print_lines(
+            &skeleton
+                .iter()
+                .take(40)
+                .map(|line| format!("       │ {}", line.as_str().unwrap()))
+                .collect::<Vec<_>>(),
+        );
         if skeleton.len() > 40 {
             println!(
                 "  skeleton display truncated: 40 / {} lines",
@@ -173,13 +177,20 @@ pub(crate) fn render(evidence: &Value, markdown: bool) {
                 diff["b"]["start"],
                 diff["truncated"]
             );
-            for line in diff["lines"].as_array().unwrap() {
-                println!(
-                    "       {} {}",
-                    line["tag"].as_str().unwrap(),
-                    line["text"].as_str().unwrap()
-                );
-            }
+            display::print_lines(
+                &diff["lines"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|line| {
+                        format!(
+                            "       {} {}",
+                            line["tag"].as_str().unwrap(),
+                            line["text"].as_str().unwrap()
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            );
         }
     }
 }
@@ -204,28 +215,34 @@ pub(crate) fn render_structural(f: &RefactorFamily) {
         "    {} holes · equal modulo holes: {} · modeled caveat: {}",
         grade.holes, grade.equal_modulo_holes, grade.modeled_caveat
     );
-    for spot in grade.spots.iter().take(12) {
-        println!(
-            "    {} · a {} · b {}",
-            spot.class,
-            spot_side(spot.a_lines, &spot.a_text),
-            spot_side(spot.b_lines, &spot.b_text)
-        );
-    }
+    let mut details: Vec<_> = grade
+        .spots
+        .iter()
+        .take(12)
+        .map(|spot| {
+            format!(
+                "    {} · a {} · b {}",
+                spot.class,
+                spot_side(spot.a_lines, &spot.a_text),
+                spot_side(spot.b_lines, &spot.b_text)
+            )
+        })
+        .collect();
     if grade.spots.len() > 12 {
         println!("    spots truncated: 12 / {}", grade.spots.len());
     }
-    println!(
+    details.push(format!(
         "    patterns: {:?} · caveats: {:?}",
         grade.patterns, grade.caveat_names
-    );
+    ));
     // Referent mismatches are part of the existing grade, not inferred source intent.
     if !grade.referent_mismatches.is_empty() {
-        println!(
+        details.push(format!(
             "    referent mismatches: {}",
             serde_json::to_string(&grade.referent_mismatches).expect("serializable referents")
-        );
+        ));
     }
+    display::print_lines(&details);
 }
 
 pub(crate) fn selected_sources(locations: &[&Loc], context: Option<usize>) -> Value {
@@ -272,14 +289,19 @@ pub(crate) fn render_selected_sources(source: &Value) {
             member["boundary"]["meaning"].as_str().unwrap()
         );
         if let Some(lines) = member["lines"].as_array() {
-            for line in lines {
-                println!(
-                    "      {}{} │ {}",
-                    if line["in_member"] == true { "> " } else { "" },
-                    line["line"],
-                    line["text"].as_str().unwrap()
-                );
-            }
+            display::print_lines(
+                &lines
+                    .iter()
+                    .map(|line| {
+                        format!(
+                            "      {}{} │ {}",
+                            if line["in_member"] == true { "> " } else { "" },
+                            line["line"],
+                            line["text"].as_str().unwrap()
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            );
             if member["truncated"] == true {
                 if let Some(context) = member.get("context") {
                     println!(
@@ -305,6 +327,7 @@ pub(crate) fn render_selected_sources(source: &Value) {
     }
 }
 
+pub(crate) mod display;
 mod surrounding;
 
 fn spot_side(lines: Option<(u32, u32)>, text: &str) -> String {

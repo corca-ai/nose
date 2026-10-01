@@ -156,6 +156,10 @@ fn render_query_report_format(ctx: &QueryOutput<'_>) -> Result<()> {
                 );
             }
         }
+        println!(
+            "\nUnclipped collected source evidence (JSON): `{}`",
+            crate::query_navigation::source_json(ctx.args, ctx.terms)
+        );
     }
     Ok(())
 }

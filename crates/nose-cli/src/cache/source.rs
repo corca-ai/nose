@@ -373,7 +373,9 @@ pub(super) fn analysis_digest(path: &str, lang: Lang, bytes: &[u8]) -> ContentDi
         .and_then(|s| s.to_str())
         .unwrap_or("");
     ContentDigest::derive(
-        b"nose.source-analysis.v3",
+        // Admission changed for raw ANSI bytes in Rust literals/comments. Old
+        // raw bundles and warm-unit snapshots may omit those unchanged files.
+        b"nose.source-analysis.v4",
         &[
             portable_il::source_digest(lang, bytes).as_bytes(),
             extension.as_bytes(),

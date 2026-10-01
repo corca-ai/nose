@@ -1,6 +1,57 @@
 use super::*;
 
 #[test]
+fn human_source_display_bounds_minified_unicode_without_changing_json_evidence() {
+    let dir = std::env::temp_dir().join(format!("nose-source-display-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let file = dir.join("source.rs");
+    let original = format!("/*{}*/", "界".repeat(4_000));
+    std::fs::write(&file, &original).unwrap();
+    let family = fam_at(&[(file.to_str().unwrap(), 1, 1); 2]);
+    let evidence = crate::query_source_evidence::collect(&family, true);
+    let skeleton = evidence["skeleton"][0].as_str().unwrap();
+    let displayed = crate::query_source_evidence::display::bounded_lines(&[skeleton]);
+    assert!(
+        displayed[0].chars().count() < 400,
+        "unbounded human source line"
+    );
+    assert!(displayed[0].contains("characters omitted"));
+    assert!(displayed[0].starts_with("/*界"));
+    assert_eq!(evidence["skeleton"][0], original);
+    assert_eq!(evidence["diffs"][0]["lines"][0]["text"], original);
+    assert_eq!(evidence["status"], "complete");
+    let locations: Vec<_> = family.locations.iter().collect();
+    let sources = crate::query_source_evidence::selected_sources(&locations, Some(20));
+    assert_eq!(sources["members"][0]["lines"][0]["text"], original);
+    assert_eq!(sources["members"][0]["truncated"], false);
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn human_source_display_reports_section_omissions_and_preserves_short_lines() {
+    let lines: Vec<_> = (0..120).map(|_| "x".repeat(200)).collect();
+    let refs: Vec<_> = lines.iter().map(String::as_str).collect();
+    let displayed = crate::query_source_evidence::display::bounded_lines(&refs);
+    assert!(displayed.iter().map(|s| s.chars().count()).sum::<usize>() < 4_200);
+    assert!(displayed
+        .iter()
+        .any(|line| line.contains("100 lines omitted")));
+    assert!(displayed
+        .last()
+        .unwrap()
+        .contains("collection limits still apply"));
+    assert_eq!(
+        crate::query_source_evidence::display::bounded_lines(&["return x;", "界"]),
+        vec!["return x;", "界"]
+    );
+    let boundary = "界".repeat(240);
+    assert_eq!(
+        crate::query_source_evidence::display::bounded_lines(&[&boundary]),
+        vec![boundary]
+    );
+}
+
+#[test]
 fn cross_language_relation_does_not_promise_a_callable_helper() {
     let mut family = fam(2, 2, &[None, None]);
     let mut helper = loc_at("math.py", 1, 15, nose_il::UnitKind::Function);

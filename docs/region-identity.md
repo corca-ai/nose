@@ -580,6 +580,13 @@ are in the ignored `target/analysis-changes/b2-audit.json`.
 
 ## Human comparison reading flow
 
+To record an initial judgment, save one analysis and follow its emitted command,
+which uses that capture on both sides. Append the live `id=ID`, open the selected
+`change=ID`, and follow the Record your decision instructions. A second identical capture is
+unnecessary. Live family details offer a capture command; choose a new output
+filename because captures never overwrite. The review remains bound to the complete
+original capture rather than an implicit current-workspace snapshot.
+
 The human comparison opens with observation, recheck and unchanged-evidence counts.
 Unchanged evidence does not imply that a caller review record exists.
 Retained observations are not called edits. Ordinary lists show paths and reason codes;

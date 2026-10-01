@@ -7,7 +7,9 @@ pub(crate) fn skip_reason(path: &Path, lang: Lang, src: &[u8]) -> Option<&'stati
     if looks_like_binary_source_artifact(src) {
         return Some("binary-source-artifact");
     }
-    if looks_like_ansi_highlight_output(src) {
+    if looks_like_ansi_highlight_output(src)
+        && !(lang == Lang::Rust && rust_csi_is_literal_or_comment(src))
+    {
         return Some("ansi-highlight-output");
     }
     if lang == Lang::C && is_header_path(path) && looks_like_cpp_header(src) {
@@ -32,14 +34,45 @@ fn looks_like_binary_source_artifact(src: &[u8]) -> bool {
 }
 
 fn looks_like_ansi_highlight_output(src: &[u8]) -> bool {
-    // Plain source can mention "\x1b[" textually; syntax-highlight output contains
-    // repeated raw CSI escapes throughout the file.
+    // Repeated raw CSI bytes are an artifact hint, but Rust fixtures can contain
+    // the same bytes in expected-output literals. Verify their syntax separately.
     let sample = sniff_bytes(src);
     memchr::memchr_iter(b'\x1b', sample)
         .filter(|&offset| sample.get(offset + 1) == Some(&b'['))
         .take(3)
         .count()
         >= 3
+}
+
+fn rust_csi_is_literal_or_comment(src: &[u8]) -> bool {
+    let Ok(tree) = crate::lower::parse(
+        crate::lower::grammar::RUST,
+        || tree_sitter_rust::LANGUAGE.into(),
+        src,
+    ) else {
+        return false;
+    };
+    // Parse the complete file: a literal can extend beyond the sniff window.
+    // Error recovery elsewhere need not hide a correctly parsed source literal.
+    memchr::memchr_iter(b'\x1b', sniff_bytes(src))
+        .filter(|&offset| src.get(offset + 1) == Some(&b'['))
+        .all(|offset| {
+            let mut node = tree
+                .root_node()
+                .descendant_for_byte_range(offset, offset + 2);
+            while let Some(current) = node {
+                if !current.has_error()
+                    && matches!(
+                        current.kind(),
+                        "string_literal" | "raw_string_literal" | "line_comment" | "block_comment"
+                    )
+                {
+                    return true;
+                }
+                node = current.parent();
+            }
+            false
+        })
 }
 
 fn is_header_path(path: &Path) -> bool {
@@ -197,6 +230,57 @@ fn is_ident_byte(b: u8) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use nose_il::Lang;
+    use std::path::Path;
+
+    #[test]
+    fn rust_literal_and_comment_csi_bytes_are_source() {
+        for source in [
+            "fn f() { let output = \"\x1b[0m\x1b[31m\x1b[0m\"; }",
+            "fn f() { let output = r###\"\x1b[0m\x1b[31m\x1b[0m\"###; }",
+            "fn f() { let output = b\"\x1b[0m\x1b[31m\x1b[0m\"; }",
+            "fn f() { let output = br#\"\x1b[0m\x1b[31m\x1b[0m\"#; }",
+            "rgtest!(r599, |dir: Dir| { let output = \"\x1b[0m\x1b[31m\x1b[0m\"; });",
+            "// expected: \x1b[0m\x1b[31m\x1b[0m\nfn f() {}",
+            "/* expected: \x1b[0m\x1b[31m\x1b[0m */ fn f() {}",
+        ] {
+            assert_eq!(
+                super::skip_reason(Path::new("a.rs"), Lang::Rust, source.as_bytes()),
+                None,
+                "{source:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn rust_highlight_artifacts_and_mixed_escapes_remain_excluded() {
+        for source in [
+            "\x1b[31mfn\x1b[0m \x1b[32mf\x1b[0m() {}",
+            // Legitimate literals cannot conceal color bytes decorating code.
+            "\x1b[31mfn f() { let output = \"\x1b[0m\x1b[31m\x1b[0m\"; }",
+            // A recovered, unterminated literal cannot prove source content.
+            "fn f() { let output = \"\x1b[0m\x1b[31m\x1b[0m",
+        ] {
+            assert_eq!(
+                super::skip_reason(Path::new("a.rs"), Lang::Rust, source.as_bytes()),
+                Some("ansi-highlight-output"),
+                "{source:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn rust_literal_can_extend_beyond_sniff_window() {
+        let source = format!(
+            "fn f() {{ let output = \"\x1b[0m\x1b[31m\x1b[0m{}\"; }}",
+            "x".repeat(super::SNIFF_BYTES)
+        );
+        assert_eq!(
+            super::skip_reason(Path::new("a.rs"), Lang::Rust, source.as_bytes()),
+            None
+        );
+    }
+
     #[test]
     fn c_tag_names_may_be_cpp_keywords() {
         for kind in ["struct", "union", "enum"] {
@@ -207,11 +291,7 @@ mod tests {
             };
             let source = format!("{kind} namespace {{ {body} }};");
             assert_eq!(
-                super::skip_reason(
-                    std::path::Path::new("a.h"),
-                    nose_il::Lang::C,
-                    source.as_bytes()
-                ),
+                super::skip_reason(Path::new("a.h"), Lang::C, source.as_bytes()),
                 None,
                 "{source}"
             );

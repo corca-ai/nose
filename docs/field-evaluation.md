@@ -1,5 +1,58 @@
 # Field evaluation
 
+## Context-blind agent usability cycles — 2026-10-02
+
+These qualitative studies simulate first-time agent users; they are not human
+validation or statistical adoption evidence. Each fresh agent receives a maintainer
+goal, an isolated export of a pinned corpus repository and an immutable binary.
+Prior conversations, implementation details and previous feedback are withheld.
+CLI help, emitted navigation and ordinary repository source remain available.
+Record commands, outputs, errors, workarounds and unmet goals; independently replay
+reported defects before treating feedback as evidence.
+
+Following [Distorted user-centered design](https://wiki.g15e.com/pages/Distorted%20user-centered%20design),
+the maintainer's requested solution is not the implementation specification.
+Observe how they pursue the goal, identify the underlying obstacle, compare
+solutions against evidence and product contracts, then test the selected change
+with fresh agents. Preserve rejected hypotheses and experiment limitations.
+
+The initial three users on ripgrep, click and radash all completed candidate
+inspection, saved decisions and changed-checkout rechecks. Their comment edits
+also relocated checkout roots, so those effects were confounded. Independent
+replay rejected an alleged successful exit on a failed command: the user's logger
+had captured a later command's status.
+
+The first product cycle retained compact triage lists and made row commands open
+family comparisons, rather than dumping every pair diff into the list. Human and
+Markdown previews now bound long source lines and sections while retaining
+collected JSON text. The same radash family had a longest output line of 12,199
+characters before and 233 afterwards. All non-navigation JSON fields remained
+equal on the three repositories before the separate admission fix below.
+Fresh click and radash users found the comparison and saved their judgments;
+both independently created two identical captures for their initial review.
+
+The next cycle exposed the existing one-capture first-review workflow instead of
+adding implicit live-state writes. Another fresh click user saved and reopened a
+judgment with exactly one capture and no CLI errors. The user still found the
+live-ID to captured-change-ID transition cognitively expensive; guidance improved
+the workaround without establishing that the entire review workflow is optimal.
+
+A fresh ripgrep user correctly distinguished exact-observation decision
+applicability from incomplete population evidence. Byte inspection revealed that
+legitimate ANSI expected-output literals caused an entire Rust source file to be
+skipped. The solution corrects Rust source classification and invalidates stale
+analysis caches, rather than suppressing that source or relaxing review reuse.
+Raw ANSI sequences must all belong to valid literal/comment syntax nodes; real
+highlighted output remains excluded. See [source classification](languages.md#source-classification-and-resource-errors)
+and [cache migration](portable-cache-artifacts.md).
+
+Commands, per-user feedback, immutable binary snapshots and design decisions for
+these local runs are retained under ignored `target/corpus-user-study-2026-10-01/`
+and `target/corpus-user-study-2026-10-02/`. These exploratory artifacts are not
+checked release qualification receipts. Candidate refactor suggestions were not
+implemented or independently adjudicated; no policy for automatic review transfer
+was inferred from task completion.
+
 This page records a qualitative, read-only pass over several unrelated real
 codebases. The project names are intentionally anonymized: the point is whether
 nose's findings are useful in realistic repositories, not to publish details of

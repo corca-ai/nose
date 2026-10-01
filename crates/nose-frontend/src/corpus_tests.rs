@@ -65,6 +65,26 @@ fn discover_unique_paths_keeps_hard_links_distinct() {
 }
 
 #[test]
+fn lower_corpus_keeps_rust_with_raw_ansi_in_expected_output() {
+    let dir = temp_dir("rust_ansi_expected_output");
+    let source = dir.join("regression.rs");
+    let bytes = include_bytes!("corpus_tests/fixtures/ansi_expected.rs");
+    assert_eq!(bytes.iter().filter(|&&b| b == 0x1b).count(), 4);
+    fs::write(&source, bytes).unwrap();
+
+    assert_eq!(source_skip_reason(&source, Lang::Rust, bytes), None);
+    let corpus = lower_corpus_filtered(&[dir.as_path()], &[]);
+    corpus.ensure_complete().unwrap();
+    assert!(corpus.skipped_sources.is_empty());
+    assert_eq!(corpus.files.len(), 1);
+    assert!(corpus.files[0]
+        .units
+        .iter()
+        .any(|unit| unit.name == Some(corpus.interner.intern("expected_output"))));
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn lower_corpus_skips_ansi_highlight_artifacts() {
     let dir = temp_dir("ansi_highlight_artifacts");
     let source = dir.join("keep.go");
