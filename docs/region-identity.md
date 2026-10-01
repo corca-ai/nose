@@ -318,6 +318,9 @@ families before reporting suppressions. Reopen the original live ID in that
 capture rather than treating a filtered report as a complete analysis.
 After a successful write, follow the resume action to inspect the saved record
 and its applicability; the output confirms the saved file.
+The named `inspect-review` action opens that exact change with the new record,
+retains explicit source directories, and removes a prior `review=` status filter
+so recording a decision cannot make its own inspection target disappear.
 
 A record binds the original analysis content, exact family observation, review key and
 scope. Reuse requires the bound artifact as one of the explicit comparison inputs and

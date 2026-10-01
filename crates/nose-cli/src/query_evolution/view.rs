@@ -74,8 +74,8 @@ pub(super) fn run(
         .map(|(key,count)| json!({"key":key,"count":count,"next":[navigation.selected(vec![format!("{group_field}={}", if group_field == "path" { serde_json::to_string(key).unwrap() } else { key.clone() })])]})).collect();
     let view = selection.view(terms.is_empty());
     let mut actions = navigation.actions(&selection, selected, recheck, search_complete);
-    if let Some(path) = &options.write_review {
-        actions.push(json!({"kind":"inspect-review", "label":"Explore the saved caller decision", "command":format!("{} --reviews {}", navigation.selected(Vec::new()), crate::path_utils::shell_quote(&path.to_string_lossy()))}));
+    if let (Some(path), Some(row)) = (&options.write_review, rows.first()) {
+        actions.push(navigation.recorded_review(&row.id.hex(), path));
     }
     let next: Vec<_> = actions.iter().map(|a| a["command"].clone()).collect();
     let output = json!({

@@ -102,6 +102,18 @@ impl<'a> Navigation<'a> {
         self.command(self.budget, &terms)
     }
 
+    pub(super) fn recorded_review(&self, change: &str, path: &Path) -> serde_json::Value {
+        let mut terms: Vec<_> = self
+            .base
+            .iter()
+            .filter(|t| !t.starts_with("review="))
+            .cloned()
+            .collect();
+        terms.extend([format!("change={change}"), "full".into()]);
+        serde_json::json!({"kind":"inspect-review", "label":"Inspect this saved caller decision",
+            "command":format!("{}{} --reviews {}", self.command(self.budget, &terms), self.sources, quote(&path.to_string_lossy()))})
+    }
+
     pub(super) fn source_json(&self, suffix: Vec<String>) -> String {
         let mut terms = self.base.clone();
         terms.extend(suffix);

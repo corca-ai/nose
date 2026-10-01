@@ -1,6 +1,43 @@
 use super::{Project, Value};
 
 #[test]
+fn written_review_action_reopens_only_its_target_and_replaces_old_status_filter() {
+    let p = Project::new();
+    for file in ["c.py", "d.py"] {
+        p.write(file, &super::SOURCE.replace("+ 7", "+ 19"));
+    }
+    p.capture("before.json", &[]);
+    p.capture("after.json", &[]);
+    let list = p.compare(&["top=0"]);
+    assert!(list["items"].as_array().unwrap().len() > 1);
+    let change = format!("change={}", list["items"][0]["id"].as_str().unwrap());
+    let written = p.compare(&[
+        &change,
+        "review=unreviewed",
+        "--write-review",
+        "review.json",
+        "--decision",
+        "keep-separate",
+        "--reason",
+        "Independent policies",
+    ]);
+    let action = written["actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|a| a["kind"] == "inspect-review")
+        .unwrap();
+    let reopened = p.follow(&action["command"]);
+    assert_eq!(reopened["summary"]["selected"], 1);
+    assert_eq!(reopened["items"][0]["id"], list["items"][0]["id"]);
+    assert_eq!(reopened["items"][0]["review_status"], "applicable");
+    assert_eq!(
+        reopened["items"][0]["reviews"][0]["reason"],
+        "Independent policies"
+    );
+}
+
+#[test]
 fn stale_change_address_explains_comparison_scope_and_review_recovery() {
     let p = Project::new();
     p.capture("before.json", &[]);

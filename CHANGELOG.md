@@ -6,6 +6,9 @@ break.
 
 ## [Unreleased]
 
+- Reopen the exact target after recording a review, replacing stale review-status
+  filters instead of navigating to unrelated unreviewed families.
+
 - Explain comparison-specific change addresses and how to revisit saved reviews
   after a stale change lookup, without selecting a substitute observation.
 
