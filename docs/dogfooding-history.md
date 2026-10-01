@@ -2311,3 +2311,20 @@ implementation. This change does not introduce a second copy or justify a new
 shared dependency solely to remove a finding. Replace the reviewed navigation ID
 without changing the budget. The original failure, both complete self-queries and
 the source/member review are retained in `target/release-components-qualification-20260908/`.
+
+## Saved-analysis source inspection check (2026-10-01)
+
+PR #993's optimized product-contract job reports nineteen substantial default
+families within the unchanged budget of twenty. The only new baseline delta is
+`60f0dd6d98436972`, the previously reviewed `int_bin` / `float_bin` numeric-policy
+pair. Its current value is 41.14, score 0.748, with ten shared source lines,
+matching the uniform-relation review above. The source file is byte-identical
+to `origin/main` (SHA-256
+`53404525b09a0efaee9a1496bfeba3f122337e8fcdb442a23313da8c49d111de`).
+
+Retain the established keep-separate judgment: integer wrapping, floor and
+bitwise rules remain distinct from floating-point IEEE and NaN behavior.
+Restore this reviewed family ID; the CLI source-boundary changes and new
+verification tests add no other substantial family. Keep the budget at twenty
+and the detection threshold and surface unchanged. The failure is reproduced
+by the [optimized product-contract job](https://github.com/corca-ai/nose/actions/runs/36846718908/job/110318497551).
