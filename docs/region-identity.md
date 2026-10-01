@@ -308,6 +308,10 @@ Selected-change JSON exposes `review_recording` with availability, a command
 prefix and the required caller-supplied file, decision and reason arguments.
 Unavailable or ambiguous targets explain why recording is unavailable. This
 prefix is not an executable action until the caller supplies those arguments.
+The live first-review capture command preserves detection settings and roots,
+but omits baseline and explicit ignore options: captures include admitted
+families before reporting suppressions. Reopen the original live ID in that
+capture rather than treating a filtered report as a complete analysis.
 After a successful write, follow the resume action to inspect the saved record
 and its applicability; the output confirms the saved file.
 

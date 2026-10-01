@@ -6,6 +6,9 @@ break.
 
 ## [Unreleased]
 
+- Make live first-review capture commands work with baseline and explicit ignore
+  inspection, explaining that captures precede reporting suppressions.
+
 - Reject query terms when writing an accepted baseline instead of silently
   recording the whole analyzed population despite a caller's filter.
 

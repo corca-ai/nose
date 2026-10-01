@@ -87,7 +87,10 @@ pub(crate) fn source_json(args: &QueryArgs, terms: &[String]) -> String {
 }
 
 pub(crate) fn review_capture(args: &QueryArgs) -> String {
-    words(args)
+    let mut capture = args.clone();
+    capture.baseline = None;
+    capture.ignore_file = None;
+    words(&capture)
         .into_iter()
         .chain(["--save-analysis".into(), "nose-analysis.json".into()])
         .map(|word| crate::path_utils::shell_quote(&word))

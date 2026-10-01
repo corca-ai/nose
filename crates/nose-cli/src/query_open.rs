@@ -145,6 +145,9 @@ fn render_family_next(
         crate::query_navigation::review_capture(ctx.args)
     );
     println!(
+        "  The capture includes the admitted population before baseline and ignore suppressions."
+    );
+    println!(
         "  Unclipped collected source evidence (JSON): {}",
         crate::query_navigation::source_json(ctx.args, ctx.terms)
     );
