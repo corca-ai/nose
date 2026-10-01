@@ -1,3 +1,4 @@
+use crate::source_lines::LINE_DIFF_LIMIT;
 use serde_json::Value;
 
 pub(super) fn reason(code: &str) -> &str {
@@ -211,11 +212,18 @@ fn item_summary(item: &Value, full: bool) {
             location(&diff["after"]),
             text(&diff["correspondence"])
         );
-        for line in diff["lines"].as_array().unwrap() {
+        let lines = diff["lines"].as_array().unwrap();
+        for line in lines {
             println!("    {} {}", text(&line["tag"]), text(&line["text"]));
         }
+        if !lines
+            .iter()
+            .any(|line| line["tag"] == "+" || line["tag"] == "-")
+        {
+            println!("    Verified text differs; no changed lines appear in this alignment.");
+        }
         if diff["truncated"] == true {
-            println!("    … alignment limited to 120 lines per side; verified member bodies are shown above");
+            println!("    … alignment limited to {LINE_DIFF_LIMIT} lines per side; inspect complete verified source bodies with the JSON action below.");
         }
     }
     if let Some(reviews) = item["reviews"].as_array() {
@@ -321,11 +329,11 @@ fn observation<'a>(
                         source,
                         format!("{side} {}:{}", text(&member["file"]), member["start_line"]),
                     );
-                    for line in source.lines().take(120) {
+                    for line in source.lines().take(LINE_DIFF_LIMIT) {
                         println!("      {line}");
                     }
-                    if source.lines().count() > 120 {
-                        println!("      … source display limited to 120 lines; --format json includes the complete verified body within the source byte limit.");
+                    if source.lines().count() > LINE_DIFF_LIMIT {
+                        println!("      … source display limited to {LINE_DIFF_LIMIT} lines; --format json includes the complete verified body within the source byte limit.");
                     }
                 }
             } else {

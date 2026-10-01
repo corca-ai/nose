@@ -102,6 +102,23 @@ impl<'a> Navigation<'a> {
         self.command(self.budget, &terms)
     }
 
+    pub(super) fn source_json(&self, suffix: Vec<String>) -> String {
+        let mut terms = self.base.clone();
+        terms.extend(suffix);
+        format!(
+            "{}{}{}",
+            command(
+                self.before,
+                self.after,
+                self.budget,
+                &terms,
+                ReportFormat::Json
+            ),
+            self.reviews.join(""),
+            self.sources
+        )
+    }
+
     fn command(&self, budget: usize, terms: &[String]) -> String {
         format!(
             "{}{}",

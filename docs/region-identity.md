@@ -217,6 +217,12 @@ It is a command to resume that view, not a stored editing session. Human source
 inspection displays identical verified text once and omits unchanged diffs. Bodies
 are limited to 120 displayed lines; JSON retains complete verified bodies within
 the existing byte limits and carries `source_diffs[].same_content`.
+When verified text differs but alignment shows no changed lines (for example,
+a change after the first 120 lines or only different line endings), human output
+says so explicitly. The `inspect-source-json` action opens complete verified
+bodies within the byte limits, preserving the selected change, filters, review
+inputs, candidate budget and explicitly supplied source directories while
+switching the output format to JSON.
 
 Within the CLI, `query_evolution::sources` owns explicit file access, digest
 verification and read budgets. `query_evolution::source_view` projects typed captured
@@ -401,6 +407,7 @@ paths. Source buffers in syntax streams trade cache/storage space for exact
 original-byte provenance; performance evidence must include that cost.
 
 Verification covers byte selectors/Unicode/CRLF, source edits and moves,
+file/region/read-budget boundaries, failed verification without source text,
 multiplicity, order independence, proof changes, repeated identical copies,
 competing matches, scope/profile/dependency changes, missing provenance, and
 candidate caps. CLI tests exercise uncached/cold/warm/edited cache paths and

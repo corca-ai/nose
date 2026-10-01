@@ -1,4 +1,6 @@
 //! Explicit source lookup: captured addresses must verify before text is exposed.
+#[cfg(test)]
+mod tests;
 use anyhow::{ensure, Context, Result};
 use nose_detect::regions::evolution::{AnalysisSnapshot, MemberObservation};
 use nose_il::ContentDigest;

@@ -64,6 +64,11 @@ impl Items<'_> {
                 item["review_status"] = json!(super::reviews::status(&self.assessments[&row.id]));
                 if before_source.is_some() || after_source.is_some() {
                     source_view::summarize(&mut item);
+                    item["actions"].as_array_mut().expect("detailed source actions").push(json!({
+                        "kind":"inspect-source-json",
+                        "label":"Inspect complete verified source bodies as JSON",
+                        "command":self.navigation.source_json(vec![format!("change={}", row.id.hex()), "full".into()])
+                    }));
                 }
                 item
             })
