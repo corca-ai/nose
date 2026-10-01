@@ -1,6 +1,50 @@
 use super::{Project, Value};
 
 #[test]
+fn stale_change_address_explains_comparison_scope_and_review_recovery() {
+    let p = Project::new();
+    p.capture("before.json", &[]);
+    p.capture("after.json", &[]);
+    let initial = p.compare(&[]);
+    let change = format!("change={}", initial["items"][0]["id"].as_str().unwrap());
+    p.compare(&[
+        &change,
+        "--write-review",
+        "review.json",
+        "--decision",
+        "keep-separate",
+        "--reason",
+        "Independent policies",
+    ]);
+    p.write("b.py", &super::SOURCE.replace("+ 7", "+ 11"));
+    std::fs::remove_file(p.0.join("after.json")).unwrap();
+    p.capture("after.json", &[]);
+    let stale = p.run(&[
+        "query",
+        "--before",
+        "before.json",
+        "--after",
+        "after.json",
+        &change,
+        "--reviews",
+        "review.json",
+        "--before-source",
+        ".",
+        "--after-source",
+        ".",
+    ]);
+    assert!(!stale.status.success());
+    let error = String::from_utf8_lossy(&stale.stderr);
+    assert!(
+        error.contains("comparison") && error.contains("review=recheck"),
+        "{error}"
+    );
+    let recovered = p.compare(&["--reviews", "review.json", "review=recheck"]);
+    assert!(recovered["summary"]["selected"].as_u64().unwrap() > 0);
+    assert_eq!(recovered["items"][0]["review_status"], "recheck");
+}
+
+#[test]
 fn live_family_offers_bounded_surrounding_code_without_manual_member_selection() {
     let p = Project::new();
     for file in ["a.py", "b.py"] {

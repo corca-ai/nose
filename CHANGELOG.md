@@ -6,6 +6,9 @@ break.
 
 ## [Unreleased]
 
+- Explain comparison-specific change addresses and how to revisit saved reviews
+  after a stale change lookup, without selecting a substitute observation.
+
 - Offer bounded live surrounding-code inspection directly from family detail
   without requiring callers to discover a member-ID drilldown first.
 

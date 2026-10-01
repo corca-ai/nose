@@ -182,6 +182,10 @@ the selection. `change=ID` selects an unambiguous change-observation prefix, sep
 from existing family `id=` and many-to-one `review_key`. Each detailed item embeds
 its before/after observations, including past members absent from the workspace.
 Source text is explicitly `not-stored`; no implicit filesystem read fills it in.
+Change IDs address the evidence in a particular comparison and can change after
+recapture. If an old `change=ID` no longer matches, remove it and any explicit
+source-directory options, retain the review files, and browse `review=recheck`
+to select a new observation. A failed lookup never chooses a substitute target.
 `member_changes` reuses the already-budgeted region correspondence to summarize member
 counts, identical content at new locations, unresolved/ambiguous candidates, and current
 members without an established predecessor. Multiple candidate families keep separate

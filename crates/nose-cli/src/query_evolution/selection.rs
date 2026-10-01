@@ -192,7 +192,7 @@ impl Selection {
             rows.retain(|r| r.id.hex().starts_with(id));
             ensure!(
                 !rows.is_empty(),
-                "no change matching `{id}` in this selection; remove change= to browse"
+                "no change matching `{id}` in this selection; change IDs address comparison evidence and may change with new captures. Remove change= to browse this pair; keep --reviews inputs and use review=recheck to revisit decisions. Drop explicit source options until selecting a new change."
             );
             ensure!(
                 rows.len() == 1,
