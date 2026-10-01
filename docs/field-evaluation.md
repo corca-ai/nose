@@ -45,6 +45,12 @@ analysis caches, rather than suppressing that source or relaxing review reuse.
 Raw ANSI sequences must all belong to valid literal/comment syntax nodes; real
 highlighted output remains excluded. See [source classification](languages.md#source-classification-and-resource-errors)
 and [cache migration](portable-cache-artifacts.md).
+After that correction, another fresh ripgrep user independently captured the whole
+checkout twice: each run scanned 101 files with zero skipped sources and captured
+333 families. The comparison retained all 333 observations; the saved decision
+was applicable and its eight before/after source lookups verified. The user also
+identified remaining lowering gaps separately from discovery completeness rather
+than claiming complete semantic understanding.
 
 Commands, per-user feedback, immutable binary snapshots and design decisions for
 these local runs are retained under ignored `target/corpus-user-study-2026-10-01/`
