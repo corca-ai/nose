@@ -2344,3 +2344,17 @@ replace its navigation ID, and retain the detection threshold and budget.
 The failed gate and body comparison are retained under
 `target/corpus-ut-ten-rounds/duplication-progress.log` and
 `duplication-delta-proof.json`.
+
+The final optimized check reports eighteen substantial default families. The
+previously reviewed numeric-policy family `60f0dd6d98436972` falls below the gate
+on the final source corpus. The integer/float source file is unchanged from
+`4ff31fa3`, with SHA-256
+`53404525b09a0efaee9a1496bfeba3f122337e8fcdb442a23313da8c49d111de`.
+The frozen initial binary and final release binary report identical family
+objects for all 700 families on this tree. This is source-corpus sensitivity,
+not removal of the numeric duplication or a detector regression. Keep the
+integer and floating-point policies separate, remove the stale baseline ID,
+and retain the budget of twenty. The failed optimized check, both full queries
+and the comparison proof are retained in `target/corpus-ut-ten-rounds/` as
+`final-duplication.log`, `duplication-final-{frozen,current}.json` and
+`duplication-final-delta-proof.json`.
