@@ -2328,3 +2328,19 @@ Restore this reviewed family ID; the CLI source-boundary changes and new
 verification tests add no other substantial family. Keep the budget at twenty
 and the detection threshold and surface unchanged. The failure is reproduced
 by the [optimized product-contract job](https://github.com/corca-ai/nose/actions/runs/36846718908/job/110318497551).
+
+## Ten-round corpus usability continuation (2026-10-02)
+
+The substantial default near set remains nineteen families within the unchanged
+budget of twenty. Adding the usability regression module moves the reviewed
+Project harness representative from `fd725ce4d0186778` to `86707946837ff4b0`.
+The saved-analysis and region-test Project bodies are byte-identical to their
+initial-campaign versions: body SHA-256 values are
+`5083b50fd1e42ca7440d5048494dde88d638bcbf214ddd672560a570ee18ecb7` and
+`7b67ac707598268a1a8f2c8fbd8066bccef6186038953bcf8a585f13a285c6e0`.
+Only the module declaration moves the first body by two lines; the entire
+region-test source file is unchanged. Preserve the existing harness judgment,
+replace its navigation ID, and retain the detection threshold and budget.
+The failed gate and body comparison are retained under
+`target/corpus-ut-ten-rounds/duplication-progress.log` and
+`duplication-delta-proof.json`.
