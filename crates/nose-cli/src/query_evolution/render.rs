@@ -28,6 +28,9 @@ pub(super) fn reason(code: &str) -> &str {
 }
 
 pub(super) fn render(output: &Value, full: bool) {
+    if let Some(notice) = output["comparison_notice"]["meaning"].as_str() {
+        println!("Comparison incomplete: {notice}");
+    }
     let s = &output["summary"];
     println!(
         "{}: {} · {} recheck · {} evidence unchanged.",
@@ -55,7 +58,7 @@ pub(super) fn render(output: &Value, full: bool) {
         "Population: admitted code families ({} before, {} after).",
         s["before_families"], s["after_families"]
     );
-    println!("Profile matches: {}; coverage complete: {}; candidate search complete: {}; candidates: {}/{}.",
+    println!("Profile matches: {}; comparison complete: {}; candidate search complete: {}; candidates: {}/{}.",
         output["profile_matches"], output["complete"], output["candidate_search_complete"], output["candidates_examined"], output["max_candidates"]);
     if let Some(message) = output["empty_message"].as_str() {
         println!("{message}");

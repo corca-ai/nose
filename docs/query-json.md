@@ -413,6 +413,10 @@ owns their profiles, completeness, reasons, filters and executable navigation.
 The comparison's `coverage.before/after` reports scanned files, skipped sources,
 members lacking source evidence, diagnostic availability and the saved diagnostics.
 `candidate_search_complete` reports search budget availability independently.
+An exhausted search also supplies `comparison_notice` with
+`kind="incomplete-search"`: unmatched-current and recheck observations do not
+establish new or changed code. The notice is null after a complete search.
+Exit zero means the requested comparison ran, not that every candidate was examined.
 `summary.retained/recheck/total` count the full comparison;
 `selected_retained/selected_recheck/selected` count the current selection, and `shown`
 counts displayed observations. Rows use `order="recheck-first-then-observation-id"`.

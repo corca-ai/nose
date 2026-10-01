@@ -6,6 +6,9 @@ break.
 
 ## [Unreleased]
 
+- Explain incomplete candidate searches before human comparison counts and in
+  JSON, keeping capture coverage separate from comparison completeness.
+
 - Point top-level help to the query capture/review workflow and explain archived
   source layouts without adding competing capture or review subcommands.
 

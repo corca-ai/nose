@@ -1,6 +1,42 @@
 use super::{Project, Value};
 
 #[test]
+fn exhausted_search_explains_uncertain_observations_without_relabeling_capture_coverage() {
+    let p = Project::new();
+    p.capture("before.json", &[]);
+    p.capture("after.json", &[]);
+    let tiny = p.compare(&["--max-candidates", "0"]);
+    assert_eq!(tiny["complete"], false);
+    assert_eq!(tiny["coverage"]["before"]["complete"], true);
+    assert_eq!(tiny["candidate_search_complete"], false);
+    assert_eq!(tiny["comparison_notice"]["kind"], "incomplete-search");
+    let human = p.run(&[
+        "query",
+        "--before",
+        "before.json",
+        "--after",
+        "after.json",
+        "--max-candidates",
+        "0",
+    ]);
+    assert!(human.status.success());
+    let text = String::from_utf8(human.stdout).unwrap();
+    assert!(text.starts_with("Comparison incomplete:"));
+    assert!(text.contains("comparison complete: false"));
+    assert!(!text.contains("coverage complete: false"));
+    let action = tiny["actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|a| a["kind"] == "increase-budget")
+        .unwrap();
+    let recovered = p.follow(&action["command"]);
+    assert_eq!(recovered["complete"], true);
+    assert!(recovered["comparison_notice"].is_null());
+    assert_eq!(recovered["summary"]["recheck"], 0);
+}
+
+#[test]
 fn live_json_starts_an_explicit_review_capture_with_roots_and_config_preserved() {
     let p = Project::new();
     p.write(
