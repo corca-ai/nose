@@ -51,7 +51,7 @@ copy count. For an existing codebase, ratchet from the current state instead of 
 all historical duplication:
 
 ```sh
-nose query src --mode syntax --min-size 80 'dup>80' \
+nose query src --mode syntax --min-size 80 \
   --baseline .nose-baseline.json --write-baseline
 nose query src --mode syntax --min-size 80 'dup>80' \
   --baseline .nose-baseline.json --fail-on new
@@ -110,8 +110,12 @@ nose query src --baseline .nose-baseline.json
 nose query src --baseline .nose-baseline.json --fail-on new
 ```
 
-Real gates should repeat the same pinned `--mode`, size flags, and query terms in the
-write-baseline and fail-on-new commands; the jscpd-style example above shows that full form.
+Real gates should repeat the same pinned roots, `--mode` and size flags in the
+write-baseline and fail-on-new commands. `--write-baseline` accepts the complete
+analyzed population and rejects query terms, including filters and display terms.
+Apply report filters only to subsequent inspection and gates. To accept selected
+findings, use [structured ignores](structured-ignores.md) with a reason and owner;
+do not manually trim a complete baseline or mistake a screen filter for acceptance.
 
 `--baseline` by itself keeps the historical behavior and reports only families not
 accepted by the baseline (the default whenever `--baseline` is present). Use

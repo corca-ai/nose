@@ -180,7 +180,7 @@ pub(crate) enum Cmd {
         /// duplication is shown and gated.
         #[arg(long, value_name = "FILE")]
         baseline: Option<PathBuf>,
-        /// Write the current families to `--baseline` (accept today's state) and exit.
+        /// Accept the complete analyzed population in `--baseline` and exit. Query terms are rejected.
         #[arg(long, requires = "baseline")]
         write_baseline: bool,
     },

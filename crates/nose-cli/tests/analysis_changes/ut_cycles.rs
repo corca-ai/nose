@@ -1,6 +1,31 @@
 use super::{Project, Value};
 
 #[test]
+fn filtered_baseline_write_cannot_silently_accept_the_whole_population() {
+    let p = Project::new();
+    let out = p.run(&[
+        "query",
+        ".",
+        "path~a.py",
+        "--baseline",
+        "accepted.json",
+        "--write-baseline",
+    ]);
+    assert!(!out.status.success());
+    assert!(!p.0.join("accepted.json").exists());
+    assert!(String::from_utf8_lossy(&out.stderr).contains("structured ignore"));
+    let whole = p.run(&[
+        "query",
+        ".",
+        "--baseline",
+        "accepted.json",
+        "--write-baseline",
+    ]);
+    assert!(whole.status.success());
+    assert!(p.0.join("accepted.json").exists());
+}
+
+#[test]
 fn selected_change_explains_and_executes_caller_review_recording() {
     let p = Project::new();
     p.capture("before.json", &[]);

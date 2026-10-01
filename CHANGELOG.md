@@ -6,6 +6,9 @@ break.
 
 ## [Unreleased]
 
+- Reject query terms when writing an accepted baseline instead of silently
+  recording the whole analyzed population despite a caller's filter.
+
 - Expose selected-change JSON review recording requirements without choosing a
   default decision or writing a file during inspection.
 
