@@ -63,8 +63,7 @@ fn higher_work_retry_preserves_the_original_gate_and_selection() {
     let retry = error
         .lines()
         .map(str::trim)
-        .filter(|line| line.starts_with("nose query "))
-        .next_back()
+        .rfind(|line| line.starts_with("nose query "))
         .unwrap();
     assert!(retry.contains("'--fail-on' 'any'"), "{retry}");
     assert!(retry.contains("'scope=prod'"), "{retry}");
