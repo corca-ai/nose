@@ -181,6 +181,13 @@ replaced it. A subsequent file-length failure was fixed by extracting the
 existing cache-size parser and tests, preserving the 599-line limit. Per-round
 metadata terminators were normalized to valid JSON without changing binary or
 source digests. Failed qualification attempts remain recorded as failures.
+The final fast plan also encountered eight watch integration timeouts. A
+single-thread control reproduced the timeout; both the frozen initial release
+and final release emitted an initial snapshot but no edited-file revision in
+this environment. These observations do not establish a new regression or its
+root cause. Watch failures remain unresolved, and the full fast plan is not
+reported as passing. Non-watch contracts and remaining named gates are checked
+separately; no watch tests or gate thresholds are relaxed.
 
 This page records a qualitative, read-only pass over several unrelated real
 codebases. The project names are intentionally anonymized: the point is whether
