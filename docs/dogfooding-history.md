@@ -2358,3 +2358,15 @@ and retain the budget of twenty. The failed optimized check, both full queries
 and the comparison proof are retained in `target/corpus-ut-ten-rounds/` as
 `final-duplication.log`, `duplication-final-{frozen,current}.json` and
 `duplication-final-delta-proof.json`.
+
+## Further corpus usability cycles — 2026-10-02
+
+The two-line declaration of the continuation regression module relocates the
+accepted Project harness family from `86707946837ff4b0` to `d0d8d7d0a3d81698`.
+Both selected implementation bodies remain byte-identical to `f860e57d`, with
+the same body digests recorded above. Replace this navigation identity only;
+retain eighteen accepted families, value threshold forty and budget twenty.
+The frozen initial binary and final optimized binary are compared on the same
+current source tree; the proof and queries are retained under
+`target/corpus-ut-next-ten-rounds/duplication-{frozen,current}.json` and
+`duplication-delta-proof.json`. No new duplication is accepted.

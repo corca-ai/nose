@@ -38,198 +38,326 @@
   "artifact_sets": [
     {
       "id": "repository-policy",
-      "globs": [".github/*.json", "scripts/*.json", "scripts/**/*.json", "tools/*.json"],
+      "globs": [
+        ".github/*.json",
+        "scripts/*.json",
+        "scripts/**/*.json",
+        "tools/*.json"
+      ],
       "owner": "repository maintainers",
       "producer": "maintainer-authored policy or the command documented beside the receipt",
       "validator": "./scripts/check-ci-local.sh --gate evidence-artifacts",
-      "consumers": ["local and hosted quality-gate orchestration"],
+      "consumers": [
+        "local and hosted quality-gate orchestration"
+      ],
       "retention_policy": "Keep current policy plus any receipt required to interpret a checked release or gate result.",
       "artifact_count": 7,
       "inventory_sha256": "d18345eca62c0632c5d2d438f9c427ec6dad8567f1c40801e0177ad406bd21d2"
     },
     {
       "id": "benchmark-root",
-      "globs": ["bench/*.json", "bench/*.jsonl", "bench/*.sha256"],
+      "globs": [
+        "bench/*.json",
+        "bench/*.jsonl",
+        "bench/*.sha256"
+      ],
       "owner": "benchmark maintainers",
       "producer": "benchmark-specific checked generator",
       "validator": "./scripts/check-ci-local.sh --gate surface-recall-evidence",
-      "consumers": ["benchmark runners and repository quality gates"],
+      "consumers": [
+        "benchmark runners and repository quality gates"
+      ],
       "retention_policy": "Retain gold inputs and active benchmark configuration; audit derived output against consumers.",
       "artifact_count": 3,
       "inventory_sha256": "95d25a8268e5ff308aacf04d771aef331019973c900007154ad88f1242117d38"
     },
     {
       "id": "cache-evidence",
-      "globs": ["bench/cache/*.json", "bench/cache/*.jsonl", "bench/cache/*.sha256"],
+      "globs": [
+        "bench/cache/*.json",
+        "bench/cache/*.jsonl",
+        "bench/cache/*.sha256"
+      ],
       "owner": "cache correctness maintainers",
       "producer": "cache mutation-matrix and baseline measurement commands recorded in each receipt",
       "validator": "./scripts/check-ci-local.sh --gate runtime-soundness-evidence",
-      "consumers": ["cache soundness and incremental-run regression gates"],
+      "consumers": [
+        "cache soundness and incremental-run regression gates"
+      ],
       "retention_policy": "Keep active baselines, mutation manifests, and their receipts as one provenance unit.",
       "artifact_count": 19,
       "inventory_sha256": "7a27cbd1d6f898d3de8cc4d95eb9a14ab0ab6fc0789719c2b182c181b87a5e73"
     },
     {
       "id": "coevolution-evidence",
-      "globs": ["bench/coevo/*.json", "bench/coevo/*.jsonl", "bench/coevo/*.sha256"],
+      "globs": [
+        "bench/coevo/*.json",
+        "bench/coevo/*.jsonl",
+        "bench/coevo/*.sha256"
+      ],
       "owner": "co-evolution benchmark maintainers",
       "producer": "co-evolution benchmark generator",
       "validator": "./scripts/check-ci-local.sh --gate divergence-evidence",
-      "consumers": ["cross-revision semantic evaluation"],
+      "consumers": [
+        "cross-revision semantic evaluation"
+      ],
       "retention_policy": "Retain versioned benchmark inputs while supported by the evaluator.",
       "artifact_count": 1,
       "inventory_sha256": "666f807dc5d2b05baa5c33919ee16b1b98b987acd63f04825f7d497cc5568063"
     },
     {
       "id": "divergent-history-evidence",
-      "globs": ["bench/divergent_history/*.json", "bench/divergent_history/*.jsonl", "bench/divergent_history/*.sha256"],
+      "globs": [
+        "bench/divergent_history/*.json",
+        "bench/divergent_history/*.jsonl",
+        "bench/divergent_history/*.sha256"
+      ],
       "owner": "divergent-history evaluation maintainers",
       "producer": "divergent-history corpus and report generators",
       "validator": "./scripts/check-ci-local.sh --gate divergence-evidence",
-      "consumers": ["divergence-fire quality evaluation"],
+      "consumers": [
+        "divergence-fire quality evaluation"
+      ],
       "retention_policy": "Retain gold history and active evaluation outputs; preserve historical evidence named by a closeout.",
       "artifact_count": 11,
       "inventory_sha256": "51bcc5c3dd116de0ebfbc7d0f02a86f63e940d2cfcc8f733f8692976b34a4f17"
     },
     {
       "id": "benchmark-goldens",
-      "globs": ["bench/goldens/*.json", "bench/goldens/*.jsonl", "bench/goldens/*.sha256"],
+      "globs": [
+        "bench/goldens/*.json",
+        "bench/goldens/*.jsonl",
+        "bench/goldens/*.sha256"
+      ],
       "owner": "benchmark gold-set maintainers",
       "producer": "reviewed human adjudication",
       "validator": "./scripts/check-ci-local.sh --gate surface-recall-evidence",
-      "consumers": ["product precision and recall gates"],
+      "consumers": [
+        "product precision and recall gates"
+      ],
       "retention_policy": "Gold inputs are removed only by an explicit reviewed migration with replay evidence.",
       "artifact_count": 1,
       "inventory_sha256": "7f984365e30997ad8536dc7d8cf8466bd839c3e24e70097c881c1c3d9f350a31"
     },
     {
       "id": "label-evidence",
-      "globs": ["bench/labels/*.json", "bench/labels/*.jsonl", "bench/labels/*.sha256"],
+      "globs": [
+        "bench/labels/*.json",
+        "bench/labels/*.jsonl",
+        "bench/labels/*.sha256"
+      ],
       "owner": "product-quality label maintainers",
       "producer": "the checked bench/labels generator or closeout command corresponding to each family",
       "validator": "./scripts/check-ci-local.sh --gate default-head-evidence",
-      "consumers": ["default-head, accepted-pair, missed-worthy, and residual-ranking gates"],
+      "consumers": [
+        "default-head, accepted-pair, missed-worthy, and residual-ranking gates"
+      ],
       "retention_policy": "Preserve gold, blind, sealed, active-baseline, and closeout evidence; prune only unreferenced reproducible derivatives.",
       "artifact_count": 143,
       "inventory_sha256": "4654f7bbf877f03ebac524400cd8bc8872db60f40bffdb9532ce05cb1ec527a4"
     },
     {
       "id": "markdown-benchmark-evidence",
-      "globs": ["bench/markdown/*.json", "bench/markdown/*.jsonl", "bench/markdown/*.sha256"],
+      "globs": [
+        "bench/markdown/*.json",
+        "bench/markdown/*.jsonl",
+        "bench/markdown/*.sha256"
+      ],
       "owner": "Markdown extraction benchmark maintainers",
       "producer": "Markdown benchmark generator",
       "validator": "./scripts/check-ci-local.sh --gate surface-recall-evidence",
-      "consumers": ["Markdown language quality checks"],
+      "consumers": [
+        "Markdown language quality checks"
+      ],
       "retention_policy": "Retain current gold inputs and any release-bound historical result.",
       "artifact_count": 4,
       "inventory_sha256": "7e365429c38b239561af1cd945525984e404ee9a3ca6d5169b21f32210b28bfb"
     },
     {
       "id": "recall-loss-evidence",
-      "globs": ["bench/recall_loss/*.json", "bench/recall_loss/*.jsonl", "bench/recall_loss/*.sha256"],
+      "globs": [
+        "bench/recall_loss/*.json",
+        "bench/recall_loss/*.jsonl",
+        "bench/recall_loss/*.sha256"
+      ],
       "owner": "recall-loss ledger maintainers",
       "producer": "issue-scoped recall-loss census and verification commands",
       "validator": "./scripts/check-ci-local.sh --gate surface-recall-evidence",
-      "consumers": ["recall attribution, exclusion, and release closeout gates"],
+      "consumers": [
+        "recall attribution, exclusion, and release closeout gates"
+      ],
       "retention_policy": "Retain issue evidence while referenced by an active exclusion, closeout, or release claim.",
       "artifact_count": 221,
       "inventory_sha256": "96d8dc4b2cf28f7227a33d7d1b6d37595a85bc072be49f2e75c0fbf0b7ce36d4"
     },
     {
       "id": "release-evidence",
-      "globs": ["bench/release/*.json", "bench/release/**/*.json", "bench/release/*.jsonl", "bench/release/**/*.jsonl", "bench/release/*.sha256", "bench/release/**/*.sha256"],
+      "globs": [
+        "bench/release/*.json",
+        "bench/release/**/*.json",
+        "bench/release/*.jsonl",
+        "bench/release/**/*.jsonl",
+        "bench/release/*.sha256",
+        "bench/release/**/*.sha256"
+      ],
       "owner": "release quality maintainers",
       "producer": "release quality closeout",
       "validator": "./scripts/check-ci-local.sh --gate runtime-soundness-evidence",
-      "consumers": ["release workflow and published quality claims"],
+      "consumers": [
+        "release workflow and published quality claims"
+      ],
       "retention_policy": "Release-bound evidence is immutable and retained for release reconstruction.",
       "artifact_count": 37,
       "inventory_sha256": "0065d63b932de090e06bf2a66a20c31912b57a30d34ddeba41cf42b98dd192e7"
     },
     {
       "id": "review-evidence",
-      "globs": ["bench/review/*.json", "bench/review/*.jsonl", "bench/review/*.sha256"],
+      "globs": [
+        "bench/review/*.json",
+        "bench/review/*.jsonl",
+        "bench/review/*.sha256"
+      ],
       "owner": "benchmark review maintainers",
       "producer": "review packet generator and adjudication",
       "validator": "./scripts/check-ci-local.sh --gate default-head-evidence",
-      "consumers": ["review and arbitration workflows"],
+      "consumers": [
+        "review and arbitration workflows"
+      ],
       "retention_policy": "Retain decisions and receipts; remove packets only after their decisions retain complete source identity.",
       "artifact_count": 2,
       "inventory_sha256": "49ea02ef214dd120c33db19e4491ee0a3e2d05e802c9abce8b388126fef842a5"
     },
     {
       "id": "semantic-pack-evidence",
-      "globs": ["bench/semantic_pack/*.json", "bench/semantic_pack/*.jsonl", "bench/semantic_pack/*.sha256"],
+      "globs": [
+        "bench/semantic_pack/*.json",
+        "bench/semantic_pack/*.jsonl",
+        "bench/semantic_pack/*.sha256"
+      ],
       "owner": "semantic-pack maintainers",
       "producer": "semantic-pack conformance and pricing generators",
       "validator": "./scripts/check-ci-local.sh --gate semantic-pack-pricing",
-      "consumers": ["semantic-pack conformance and pricing policy"],
+      "consumers": [
+        "semantic-pack conformance and pricing policy"
+      ],
       "retention_policy": "Retain current inputs, expected results, and receipts that bind published pack behavior.",
       "artifact_count": 17,
       "inventory_sha256": "bdd0dbf80b693eaa0918ca63d5473fb1b09de50fb37aeff6226776140f7690d1"
     },
     {
       "id": "soundness-evidence",
-      "globs": ["bench/soundness/*.json", "bench/soundness/**/*.json", "bench/soundness/*.jsonl", "bench/soundness/**/*.jsonl", "bench/soundness/*.sha256", "bench/soundness/**/*.sha256"],
+      "globs": [
+        "bench/soundness/*.json",
+        "bench/soundness/**/*.json",
+        "bench/soundness/*.jsonl",
+        "bench/soundness/**/*.jsonl",
+        "bench/soundness/*.sha256",
+        "bench/soundness/**/*.sha256"
+      ],
       "owner": "Soundness Lab maintainers",
       "producer": "versioned Soundness Lab census and scorecard commands",
       "validator": "./scripts/check-ci-local.sh --gate runtime-soundness-evidence",
-      "consumers": ["soundness scorecard, nightly advisory, and release gates"],
+      "consumers": [
+        "soundness scorecard, nightly advisory, and release gates"
+      ],
       "retention_policy": "Never remove gold ledgers, release manifests, active scorecards, or evidence required to reconstruct a soundness claim.",
       "artifact_count": 25,
       "inventory_sha256": "ec187c1a6946004f7a0f7cd9fba5d403bcdf2b66d1da55a3aa9c9dcff5a6d3be"
     },
     {
       "id": "type4-evidence",
-      "globs": ["bench/type4/*.json", "bench/type4/**/*.json", "bench/type4/*/*/*.json", "bench/type4/*.jsonl", "bench/type4/**/*.jsonl", "bench/type4/*/*/*.jsonl", "bench/type4/*.sha256", "bench/type4/**/*.sha256", "bench/type4/*/*/*.sha256"],
+      "globs": [
+        "bench/type4/*.json",
+        "bench/type4/**/*.json",
+        "bench/type4/*/*/*.json",
+        "bench/type4/*.jsonl",
+        "bench/type4/**/*.jsonl",
+        "bench/type4/*/*/*.jsonl",
+        "bench/type4/*.sha256",
+        "bench/type4/**/*.sha256",
+        "bench/type4/*/*/*.sha256"
+      ],
       "owner": "Type-4 frontier maintainers",
       "producer": "Type-4 frontier and adversarial packet generators",
       "validator": "./scripts/check-ci-local.sh --gate type4-frontier",
-      "consumers": ["Type-4 frontier, query-regression, and adversarial gates"],
+      "consumers": [
+        "Type-4 frontier, query-regression, and adversarial gates"
+      ],
       "retention_policy": "Preserve current gold/frontier inputs and any sealed or closeout evidence.",
       "artifact_count": 29,
       "inventory_sha256": "3d20f1c8779f6d916f1c4279367b3649a0ded2c19aa82274df7ce728ae0f6926"
     },
     {
       "id": "documentation-policy",
-      "globs": ["docs/lifecycle.json"],
+      "globs": [
+        "docs/lifecycle.json"
+      ],
       "owner": "documentation maintainers",
       "producer": "maintainer-authored checked lifecycle policy",
       "validator": "./scripts/check-docs.sh",
-      "consumers": ["documentation lifecycle and freshness gate"],
+      "consumers": [
+        "documentation lifecycle and freshness gate"
+      ],
       "retention_policy": "Keep the current catalog synchronized with every Markdown page; retain supersession metadata while any historical record points to it.",
       "artifact_count": 1,
       "inventory_sha256": "727e468065503f73db1f53ba6326473c6024eb395d773b2b638bb67d7f91eab7"
     },
     {
       "id": "documentation-examples",
-      "globs": ["docs/examples/*.json", "docs/examples/**/*.json", "docs/examples/*/*/*.json", "docs/examples/*.jsonl", "docs/examples/**/*.jsonl", "docs/examples/*/*/*.jsonl", "docs/examples/*.sha256", "docs/examples/**/*.sha256", "docs/examples/*/*/*.sha256"],
+      "globs": [
+        "docs/examples/*.json",
+        "docs/examples/**/*.json",
+        "docs/examples/*/*/*.json",
+        "docs/examples/*.jsonl",
+        "docs/examples/**/*.jsonl",
+        "docs/examples/*/*/*.jsonl",
+        "docs/examples/*.sha256",
+        "docs/examples/**/*.sha256",
+        "docs/examples/*/*/*.sha256"
+      ],
       "owner": "documentation and semantic-pack maintainers",
       "producer": "checked documentation example or conformance receipt generator",
       "validator": "./scripts/check-docs.sh",
-      "consumers": ["documentation tests and semantic-pack examples"],
+      "consumers": [
+        "documentation tests and semantic-pack examples"
+      ],
       "retention_policy": "Keep examples synchronized with supported schemas; keep receipts with the examples they bind.",
       "artifact_count": 10,
       "inventory_sha256": "5afa49db1f3358fc8edad9d4c88f62c5e349bda49bce5ae84f9f3414cd019d85"
     },
     {
       "id": "documentation-schemas",
-      "globs": ["docs/schemas/*.json", "docs/schemas/*.jsonl", "docs/schemas/*.sha256"],
+      "globs": [
+        "docs/schemas/*.json",
+        "docs/schemas/*.jsonl",
+        "docs/schemas/*.sha256"
+      ],
       "owner": "schema maintainers",
       "producer": "reviewed schema evolution",
       "validator": "./scripts/check-docs.sh",
-      "consumers": ["public artifact producers and downstream integrations"],
+      "consumers": [
+        "public artifact producers and downstream integrations"
+      ],
       "retention_policy": "Retain supported schemas and versioned predecessors needed to read checked evidence.",
       "artifact_count": 4,
       "inventory_sha256": "31b73ebb95f52768fa54b9b3cc15c60da6a231c62f97959dcd3c7be663dcc719"
     },
     {
       "id": "evaluation-evidence",
-      "globs": ["eval/*.json", "eval/**/*.json", "eval/*.jsonl", "eval/**/*.jsonl", "eval/*.sha256", "eval/**/*.sha256"],
+      "globs": [
+        "eval/*.json",
+        "eval/**/*.json",
+        "eval/*.jsonl",
+        "eval/**/*.jsonl",
+        "eval/*.sha256",
+        "eval/**/*.sha256"
+      ],
       "owner": "evaluation maintainers",
       "producer": "evaluation protocol and receipt generators",
       "validator": "./scripts/check-ci-local.sh --gate divergence-evidence",
-      "consumers": ["precision, hazard, and divergence-fire quality gates"],
+      "consumers": [
+        "precision, hazard, and divergence-fire quality gates"
+      ],
       "retention_policy": "Retain gold protocols, active results, and their checksum receipts as a unit.",
       "artifact_count": 19,
       "inventory_sha256": "30c608bdfb0b975dce8daf3596a309960f17931d9060b5271e5c8a4836823cd6"
@@ -245,9 +373,17 @@
       "producer": "python3 bench/labels/accepted_pair_coverage.py",
       "producer_exception": null,
       "validator": "./scripts/check-ci-local.sh --gate accepted-pair-coverage",
-      "consumers": ["bench/labels/accepted_pair_coverage_dev_gate_2026_07_11.v1.json"],
-      "source_identity": {"kind": "checked-path", "value": "accepted-pair dev baseline v2"},
-      "supersession": {"status": "current", "by": null},
+      "consumers": [
+        "bench/labels/accepted_pair_coverage_dev_gate_2026_07_11.v1.json"
+      ],
+      "source_identity": {
+        "kind": "checked-path",
+        "value": "accepted-pair dev baseline v2"
+      },
+      "supersession": {
+        "status": "current",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "It is the active fail-closed accepted-pair comparison point.",
@@ -263,9 +399,17 @@
       "producer": null,
       "producer_exception": "Frozen output of the v3 blind heldout panel; regeneration would destroy the historical reveal boundary.",
       "validator": "python3 bench/labels/default_head_heldout_reveal_receipt.py validate",
-      "consumers": ["bench/labels/default_head_heldout_reveal_2026_07_14.heldout.v3.json"],
-      "source_identity": {"kind": "blind-panel-packet", "value": "v3 dedupe heldout reveal"},
-      "supersession": {"status": "sealed", "by": null},
+      "consumers": [
+        "bench/labels/default_head_heldout_reveal_2026_07_14.heldout.v3.json"
+      ],
+      "source_identity": {
+        "kind": "blind-panel-packet",
+        "value": "v3 dedupe heldout reveal"
+      },
+      "supersession": {
+        "status": "sealed",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "The reveal receipt binds this immutable blind-review packet.",
@@ -281,9 +425,17 @@
       "producer": null,
       "producer_exception": "Frozen output of the v3 blind heldout panel; regeneration would destroy the historical reveal boundary.",
       "validator": "python3 bench/labels/default_head_heldout_reveal_receipt.py validate",
-      "consumers": ["bench/labels/default_head_heldout_reveal_2026_07_14.heldout.v3.json"],
-      "source_identity": {"kind": "blind-panel-packet", "value": "v3 pragmatic heldout reveal"},
-      "supersession": {"status": "sealed", "by": null},
+      "consumers": [
+        "bench/labels/default_head_heldout_reveal_2026_07_14.heldout.v3.json"
+      ],
+      "source_identity": {
+        "kind": "blind-panel-packet",
+        "value": "v3 pragmatic heldout reveal"
+      },
+      "supersession": {
+        "status": "sealed",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "The reveal receipt binds this immutable blind-review packet.",
@@ -299,9 +451,17 @@
       "producer": null,
       "producer_exception": "Frozen output of the v3 blind heldout panel; regeneration would destroy the historical reveal boundary.",
       "validator": "python3 bench/labels/default_head_heldout_reveal_receipt.py validate",
-      "consumers": ["bench/labels/default_head_heldout_reveal_2026_07_14.heldout.v3.json"],
-      "source_identity": {"kind": "blind-panel-packet", "value": "v3 skeptic heldout reveal"},
-      "supersession": {"status": "sealed", "by": null},
+      "consumers": [
+        "bench/labels/default_head_heldout_reveal_2026_07_14.heldout.v3.json"
+      ],
+      "source_identity": {
+        "kind": "blind-panel-packet",
+        "value": "v3 skeptic heldout reveal"
+      },
+      "supersession": {
+        "status": "sealed",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "The reveal receipt binds this immutable blind-review packet.",
@@ -317,9 +477,17 @@
       "producer": "python3 bench/labels/label_refresh.py",
       "producer_exception": null,
       "validator": "./scripts/check-ci-local.sh --gate default-head-evidence",
-      "consumers": ["bench/labels/default_head_closeout_2026_07_14.v1.json"],
-      "source_identity": {"kind": "label-runway", "value": "2026-07-13 default-head dev runway v1"},
-      "supersession": {"status": "historical", "by": null},
+      "consumers": [
+        "bench/labels/default_head_closeout_2026_07_14.v1.json"
+      ],
+      "source_identity": {
+        "kind": "label-runway",
+        "value": "2026-07-13 default-head dev runway v1"
+      },
+      "supersession": {
+        "status": "historical",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "The default-head closeout uses the runway to reconstruct label coverage.",
@@ -335,9 +503,17 @@
       "producer": "python3 bench/labels/default_head_taxonomy.py",
       "producer_exception": null,
       "validator": "./scripts/check-ci-local.sh --gate default-head-evidence",
-      "consumers": ["bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json"],
-      "source_identity": {"kind": "taxonomy-core", "value": "2026-07-13 default-head dev core v1"},
-      "supersession": {"status": "historical", "by": null},
+      "consumers": [
+        "bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json"
+      ],
+      "source_identity": {
+        "kind": "taxonomy-core",
+        "value": "2026-07-13 default-head dev core v1"
+      },
+      "supersession": {
+        "status": "historical",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "It is the source-identified core payload of the checked taxonomy closeout.",
@@ -353,9 +529,17 @@
       "producer": "python3 bench/labels/default_head_taxonomy.py",
       "producer_exception": null,
       "validator": "./scripts/check-ci-local.sh --gate default-head-evidence",
-      "consumers": ["bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json"],
-      "source_identity": {"kind": "taxonomy-audit-packets", "value": "2026-07-13 default-head dev audit v1"},
-      "supersession": {"status": "historical", "by": null},
+      "consumers": [
+        "bench/labels/default_head_taxonomy_2026_07_13.dev.v1.json"
+      ],
+      "source_identity": {
+        "kind": "taxonomy-audit-packets",
+        "value": "2026-07-13 default-head dev audit v1"
+      },
+      "supersession": {
+        "status": "historical",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "The audit packets explain the human-review boundary behind the taxonomy.",
@@ -371,9 +555,17 @@
       "producer": null,
       "producer_exception": "Legacy v5 gold generation predates the current checked producer contract.",
       "validator": "python3 bench/labels/check_default_head_baseline.py",
-      "consumers": ["historical default-head regression reconstruction"],
-      "source_identity": {"kind": "versioned-label-set", "value": "refactoring families v5 dev"},
-      "supersession": {"status": "superseded", "by": "bench/labels/refactoring_families.v7.dev.json"},
+      "consumers": [
+        "historical default-head regression reconstruction"
+      ],
+      "source_identity": {
+        "kind": "versioned-label-set",
+        "value": "refactoring families v5 dev"
+      },
+      "supersession": {
+        "status": "superseded",
+        "by": "bench/labels/refactoring_families.v7.dev.json"
+      },
       "retention": {
         "decision": "retain",
         "reason": "It preserves the audit trail for results produced against the v5 development labels.",
@@ -389,9 +581,17 @@
       "producer": null,
       "producer_exception": "Legacy v5 gold generation predates the current checked producer contract.",
       "validator": "python3 bench/labels/check_default_head_baseline.py",
-      "consumers": ["historical default-head regression reconstruction"],
-      "source_identity": {"kind": "versioned-label-set", "value": "refactoring families v5 full"},
-      "supersession": {"status": "superseded", "by": "bench/labels/refactoring_families.v7.json"},
+      "consumers": [
+        "historical default-head regression reconstruction"
+      ],
+      "source_identity": {
+        "kind": "versioned-label-set",
+        "value": "refactoring families v5 full"
+      },
+      "supersession": {
+        "status": "superseded",
+        "by": "bench/labels/refactoring_families.v7.json"
+      },
       "retention": {
         "decision": "retain",
         "reason": "It preserves the audit trail for results produced against the v5 full labels.",
@@ -407,9 +607,17 @@
       "producer": null,
       "producer_exception": "The adjudicated v7 label set is intentionally reviewed and checked rather than regenerated automatically.",
       "validator": "python3 bench/labels/check_default_head_baseline.py",
-      "consumers": ["bench/labels/product_quality_evaluation_v7_dev_runway_2026_07_13.v1.json"],
-      "source_identity": {"kind": "adjudicated-label-set", "value": "refactoring families v7 dev"},
-      "supersession": {"status": "current", "by": null},
+      "consumers": [
+        "bench/labels/product_quality_evaluation_v7_dev_runway_2026_07_13.v1.json"
+      ],
+      "source_identity": {
+        "kind": "adjudicated-label-set",
+        "value": "refactoring families v7 dev"
+      },
+      "supersession": {
+        "status": "current",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "It is the current development gold baseline for default-head quality.",
@@ -425,9 +633,17 @@
       "producer": "python3 bench/labels/label_refresh.py",
       "producer_exception": null,
       "validator": "./scripts/check-ci-local.sh --gate default-head-evidence",
-      "consumers": ["bench/labels/refactoring_label_decisions_2026_07_11.dev.v1.json"],
-      "source_identity": {"kind": "refresh-candidate-packet", "value": "2026-07-11 v1"},
-      "supersession": {"status": "historical", "by": null},
+      "consumers": [
+        "bench/labels/refactoring_label_decisions_2026_07_11.dev.v1.json"
+      ],
+      "source_identity": {
+        "kind": "refresh-candidate-packet",
+        "value": "2026-07-11 v1"
+      },
+      "supersession": {
+        "status": "historical",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "It records the selection boundary for the checked refresh decisions.",
@@ -443,9 +659,17 @@
       "producer": "python3 bench/labels/residual_ranking.py",
       "producer_exception": null,
       "validator": "./scripts/check-ci-local.sh --gate default-head-evidence",
-      "consumers": ["bench/labels/residual_ranking_closeout_2026_07_14.dev.v1.json"],
-      "source_identity": {"kind": "ranking-calibration", "value": "2026-07-14 dev v1"},
-      "supersession": {"status": "historical", "by": null},
+      "consumers": [
+        "bench/labels/residual_ranking_closeout_2026_07_14.dev.v1.json"
+      ],
+      "source_identity": {
+        "kind": "ranking-calibration",
+        "value": "2026-07-14 dev v1"
+      },
+      "supersession": {
+        "status": "historical",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "The residual-ranking closeout names this calibration payload.",
@@ -461,9 +685,17 @@
       "producer": null,
       "producer_exception": "Issue #846 closeout captured an immutable external-corpus verification result.",
       "validator": "python3 bench/labels/default_head_measurement_replay.py validate",
-      "consumers": ["bench/labels/default_head_measurement_provenance_2026_07_14.v1.json"],
-      "source_identity": {"kind": "issue-verification-report", "value": "issue #846 crates verification v1"},
-      "supersession": {"status": "historical", "by": null},
+      "consumers": [
+        "bench/labels/default_head_measurement_provenance_2026_07_14.v1.json"
+      ],
+      "source_identity": {
+        "kind": "issue-verification-report",
+        "value": "issue #846 crates verification v1"
+      },
+      "supersession": {
+        "status": "historical",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "Default-head measurement provenance binds this external-corpus result.",
@@ -479,9 +711,17 @@
       "producer": null,
       "producer_exception": "The closeout preserves the immutable all-120 self-control execution report.",
       "validator": "python3 bench/labels/default_head_closeout.py",
-      "consumers": ["bench/labels/default_head_closeout_2026_07_14.v1.json"],
-      "source_identity": {"kind": "runtime-parity-report", "value": "2026-07-13 self-control all120 v1"},
-      "supersession": {"status": "historical", "by": null},
+      "consumers": [
+        "bench/labels/default_head_closeout_2026_07_14.v1.json"
+      ],
+      "source_identity": {
+        "kind": "runtime-parity-report",
+        "value": "2026-07-13 self-control all120 v1"
+      },
+      "supersession": {
+        "status": "historical",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "It is one side of the runtime-runner parity claim in the default-head closeout.",
@@ -497,9 +737,17 @@
       "producer": null,
       "producer_exception": "The closeout preserves the immutable official-v0.19.0 all-120 execution report.",
       "validator": "python3 bench/labels/default_head_closeout.py",
-      "consumers": ["bench/labels/default_head_closeout_2026_07_14.v1.json"],
-      "source_identity": {"kind": "runtime-parity-report", "value": "2026-07-13 official v0.19.0 all120 v1"},
-      "supersession": {"status": "historical", "by": null},
+      "consumers": [
+        "bench/labels/default_head_closeout_2026_07_14.v1.json"
+      ],
+      "source_identity": {
+        "kind": "runtime-parity-report",
+        "value": "2026-07-13 official v0.19.0 all120 v1"
+      },
+      "supersession": {
+        "status": "historical",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "It is one side of the runtime-runner parity claim in the default-head closeout.",
@@ -515,9 +763,17 @@
       "producer": null,
       "producer_exception": "The release cohort is a frozen canonical input selected under the 0.19.0 protocol.",
       "validator": "python3 scripts/check-soundness-scorecard.py",
-      "consumers": ["bench/soundness/0.19.0/manifest.v1.json"],
-      "source_identity": {"kind": "release-cohort", "value": "Soundness Lab 0.19.0 cohort v1"},
-      "supersession": {"status": "sealed", "by": null},
+      "consumers": [
+        "bench/soundness/0.19.0/manifest.v1.json"
+      ],
+      "source_identity": {
+        "kind": "release-cohort",
+        "value": "Soundness Lab 0.19.0 cohort v1"
+      },
+      "supersession": {
+        "status": "sealed",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "The 0.19.0 soundness claim cannot be reconstructed without its canonical cohort.",
@@ -533,9 +789,17 @@
       "producer": null,
       "producer_exception": "The 0.19.0 manifest freezes the external crates verification report and its digest.",
       "validator": "python3 scripts/check-soundness-scorecard.py",
-      "consumers": ["bench/soundness/0.19.0/manifest.v1.json"],
-      "source_identity": {"kind": "release-corpus-report", "value": "Soundness Lab 0.19.0 crates report v1"},
-      "supersession": {"status": "historical", "by": null},
+      "consumers": [
+        "bench/soundness/0.19.0/manifest.v1.json"
+      ],
+      "source_identity": {
+        "kind": "release-corpus-report",
+        "value": "Soundness Lab 0.19.0 crates report v1"
+      },
+      "supersession": {
+        "status": "historical",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "It is manifest-bound evidence for the 0.19.0 soundness scorecard.",
@@ -551,9 +815,17 @@
       "producer": null,
       "producer_exception": "The 0.19.0 manifest freezes this derived census; the historical environment is not treated as an active regeneration dependency.",
       "validator": "python3 scripts/check-soundness-scorecard.py",
-      "consumers": ["bench/soundness/0.19.0/manifest.v1.json"],
-      "source_identity": {"kind": "release-exclusion-census", "value": "Soundness Lab 0.19.0 exclusion census v2"},
-      "supersession": {"status": "historical", "by": null},
+      "consumers": [
+        "bench/soundness/0.19.0/manifest.v1.json"
+      ],
+      "source_identity": {
+        "kind": "release-exclusion-census",
+        "value": "Soundness Lab 0.19.0 exclusion census v2"
+      },
+      "supersession": {
+        "status": "historical",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "It accounts for excluded mass in the published 0.19.0 soundness claim.",
@@ -569,9 +841,17 @@
       "producer": null,
       "producer_exception": "The exclusion ledger is human-reviewed gold evidence, not an automatically regenerated output.",
       "validator": "python3 scripts/check-soundness-scorecard.py",
-      "consumers": ["bench/soundness/0.19.0/manifest.v1.json"],
-      "source_identity": {"kind": "adjudicated-exclusion-ledger", "value": "Soundness Lab 0.19.0 exclusion ledger v2"},
-      "supersession": {"status": "sealed", "by": null},
+      "consumers": [
+        "bench/soundness/0.19.0/manifest.v1.json"
+      ],
+      "source_identity": {
+        "kind": "adjudicated-exclusion-ledger",
+        "value": "Soundness Lab 0.19.0 exclusion ledger v2"
+      },
+      "supersession": {
+        "status": "sealed",
+        "by": null
+      },
       "retention": {
         "decision": "retain",
         "reason": "It is gold evidence underlying the release soundness denominator and exclusion attribution.",
