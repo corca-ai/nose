@@ -25,6 +25,10 @@ impl WatchProcess {
     }
 
     fn start_with_args(project: &Path, cache: &Path, extra: &[&str]) -> Self {
+        Self::start_with_env(project, cache, extra, &[])
+    }
+
+    fn start_with_env(project: &Path, cache: &Path, extra: &[&str], env: &[(&str, &str)]) -> Self {
         let mut child = Command::new(bin())
             .args([
                 "query",
@@ -42,6 +46,7 @@ impl WatchProcess {
                 cache.to_str().unwrap(),
             ])
             .args(extra)
+            .envs(env.iter().copied())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()
@@ -236,4 +241,34 @@ fn invalid_config_emits_error_and_recovers_in_same_process() {
     assert_eq!(recovered["kind"], "snapshot");
     assert_same_analysis(&recovered["snapshot"], &initial["snapshot"]);
     assert!(recovered["sequence"].as_u64().unwrap() > error["sequence"].as_u64().unwrap());
+}
+
+#[test]
+fn polling_observes_content_edits_with_unchanged_metadata() {
+    let project = project("watch_content_poll");
+    let cache = make_temp_dir("watch_content_poll_cache");
+    let path = project.path().join("b.py");
+    let metadata = fs::metadata(&path).unwrap();
+    let mut watch = WatchProcess::start_with_env(
+        project.path(),
+        &cache,
+        &[],
+        &[("NOSE_WATCH_POLL_INTERVAL_MS", "100")],
+    );
+    let initial = watch.next("initial polling snapshot");
+    project.write("b.py", CHANGED);
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&path)
+        .unwrap()
+        .set_modified(metadata.modified().unwrap())
+        .unwrap();
+    let edited = fs::metadata(&path).unwrap();
+    assert_eq!(edited.len(), metadata.len());
+    assert_eq!(edited.modified().unwrap(), metadata.modified().unwrap());
+    let revision = watch.next("content revision despite unchanged metadata");
+    assert_ne!(revision["source_set_digest"], initial["source_set_digest"]);
+    assert_same_analysis(&revision["snapshot"], &clean_dashboard(project.path()));
+    drop(watch);
+    let _ = fs::remove_dir_all(cache);
 }

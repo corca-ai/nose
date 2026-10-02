@@ -322,6 +322,10 @@ run_parallel_local_plan() {
 run_named_gate() {
     local name="$1"
     shift
+    # Keep the complete test commands intact; real filesystem tests use a portable backend.
+    if [[ "$name" == test-debug-cli || "$name" == test-ci || "$name" == test-release ]]; then
+        export NOSE_WATCH_POLL_INTERVAL_MS="${NOSE_WATCH_POLL_INTERVAL_MS:-100}"
+    fi
     case "$name" in
         change-routing-selftest)
             need_python3

@@ -19,10 +19,9 @@ fn input_files(args: &QueryArgs) -> Result<BTreeSet<PathBuf>> {
 
 pub(super) fn register(
     args: &QueryArgs,
-    watcher: &mut notify::RecommendedWatcher,
+    watcher: &mut dyn notify::Watcher,
     watched: &mut BTreeSet<PathBuf>,
 ) -> Result<BTreeSet<PathBuf>> {
-    use notify::Watcher;
     let files = input_files(args)?;
     for file in &files {
         let mut path = file.parent().unwrap().to_path_buf();

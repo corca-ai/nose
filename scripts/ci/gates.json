@@ -770,7 +770,7 @@
       "parallel_safe": true,
       "resource_group": "cargo-stable",
       "lanes": ["local-fast"],
-      "lane_reason": "Representative no-optimization test feedback for pre-push use.",
+      "lane_reason": "Representative no-optimization test feedback for pre-push use. Real filesystem watch tests use content polling at 100 ms unless explicitly overridden.",
       "focused_command": "./scripts/check-ci-local.sh --gate test-debug-cli",
       "plans": {
         "fast": {"order": 140, "label": "nose-cli tests", "args": [], "depends_on": []}
@@ -804,7 +804,7 @@
       "parallel_safe": true,
       "resource_group": "cargo-stable",
       "lanes": ["pull-request"],
-      "lane_reason": "Runs the full workspace suite after the separately timed unit/integration compile-link gate; Cargo also compiles and runs doctests here.",
+      "lane_reason": "Runs the full workspace suite after the separately timed unit/integration compile-link gate; Cargo also compiles and runs doctests here. Real filesystem watch tests use content polling at 100 ms unless explicitly overridden.",
       "focused_command": "./scripts/check-ci-local.sh --gate test-ci",
       "plans": {}
     },
@@ -838,7 +838,7 @@
       "parallel_safe": true,
       "resource_group": "cargo-stable",
       "lanes": ["local-full", "release", "nightly"],
-      "lane_reason": "Runs the full optimized workspace suite on main, nightly, local-full, and release; Cargo also compiles and runs doctests here.",
+      "lane_reason": "Runs the full optimized workspace suite on main, nightly, local-full, and release; Cargo also compiles and runs doctests here. Real filesystem watch tests use content polling at 100 ms unless explicitly overridden.",
       "focused_command": "./scripts/check-ci-local.sh --gate test-release",
       "plans": {
         "full": {"order": 200, "label": "execute tests (release)", "args": [], "depends_on": ["test-release-compile"]}

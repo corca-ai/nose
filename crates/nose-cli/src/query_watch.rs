@@ -10,7 +10,7 @@ use crate::query_options::ReportFormat;
 use crate::query_terms::Query;
 use crate::schema_versions::QUERY_WATCH_JSONL_SCHEMA;
 use anyhow::{Context, Result};
-use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{Event, EventKind, RecursiveMode, Watcher};
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -21,6 +21,7 @@ use std::time::{Duration, Instant};
 const DEBOUNCE: Duration = Duration::from_millis(40);
 const MAX_BATCH_LATENCY: Duration = Duration::from_millis(250);
 
+mod backend;
 mod inputs;
 
 pub(crate) fn run(
@@ -36,9 +37,12 @@ pub(crate) fn run(
         .clone()
         .context("watch session requires a cache directory")?;
     let roots = watch_root_paths(&watch_args);
-    let (receiver, mut watcher) = watch_roots(&roots)?;
+    let WatchSubscription {
+        receiver,
+        mut watcher,
+    } = watch_roots(&roots)?;
     let mut watched = roots.into_iter().collect::<BTreeSet<_>>();
-    let mut input_files = inputs::register(&watch_args, &mut watcher, &mut watched)?;
+    let mut input_files = inputs::register(&watch_args, watcher.as_mut(), &mut watched)?;
     let refs = paths_as_refs(&watch_args.paths);
 
     // Seed or validate the ordinary transactional cache before the long-lived session takes
@@ -71,7 +75,7 @@ pub(crate) fn run(
         let action = classify(&batch, session.as_ref(), &cache_dir, &input_files);
         let Some(action) = action else { continue };
         let result: Result<_> = (|| {
-            input_files = inputs::register(&watch_args, &mut watcher, &mut watched)?;
+            input_files = inputs::register(&watch_args, watcher.as_mut(), &mut watched)?;
             let update = match (action, session.as_mut()) {
                 (WatchAction::Leaf(path), Some(session)) => {
                     session.refresh_leaf(&watch_args, &refs, &path)?
@@ -272,13 +276,14 @@ impl WatchBatch {
     }
 }
 
-fn watch_roots(
-    roots: &[PathBuf],
-) -> Result<(mpsc::Receiver<notify::Result<Event>>, RecommendedWatcher)> {
+struct WatchSubscription {
+    receiver: mpsc::Receiver<notify::Result<Event>>,
+    watcher: Box<dyn Watcher>,
+}
+
+fn watch_roots(roots: &[PathBuf]) -> Result<WatchSubscription> {
     let (sender, receiver) = mpsc::channel();
-    let mut watcher = notify::recommended_watcher(move |event| {
-        let _ = sender.send(event);
-    })?;
+    let mut watcher = backend::new(sender)?;
     for root in roots {
         let mode = if root.is_dir() {
             RecursiveMode::Recursive
@@ -287,7 +292,7 @@ fn watch_roots(
         };
         watcher.watch(root, mode)?;
     }
-    Ok((receiver, watcher))
+    Ok(WatchSubscription { receiver, watcher })
 }
 
 fn receive_batch(receiver: &mpsc::Receiver<notify::Result<Event>>) -> Option<WatchBatch> {

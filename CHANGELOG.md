@@ -6,6 +6,10 @@ break.
 
 ## [Unreleased]
 
+- Support explicit content polling for query watch sessions on filesystems and
+  restricted runtimes without native notifications. CI test gates use the real
+  polling backend while retaining all watch integration assertions.
+
 - Emit a JSON receipt when accepting a whole-population baseline, and retain
   the original gate and selection in explicit higher-work query recovery.
 - Classify conventional tsd `test-d` paths as test evidence and invalidate

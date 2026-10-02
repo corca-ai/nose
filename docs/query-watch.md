@@ -37,6 +37,29 @@ nose query src --cache-dir .nose-cache --watch --format jsonl
 
 See [faster repeated queries](query-cache.md) for cache storage and cleanup.
 
+## Filesystems without native notifications
+
+The default watcher uses the platform's native notification service. When a
+restricted runtime or filesystem does not deliver those events, explicitly use
+content polling:
+
+```sh
+NOSE_WATCH_POLL_INTERVAL_MS=250 nose query src --watch --format jsonl
+```
+
+The value must be a positive integer in milliseconds; invalid values fail
+startup. Polling compares file contents, so equal sizes and preserved modification
+timestamps do not hide edits. It watches the same roots and external inputs and
+uses the same debounce, source validation and reconciliation pipeline. Each poll
+reads the watched files; choose an interval appropriate for the tree size and
+required refresh latency. Polling is opt-in because of this recurring I/O cost.
+See [notify's known platform limitations](https://docs.rs/notify/8.2.0/notify/#known-problems).
+
+Repository CI uses a 100 ms polling interval for real filesystem integration
+tests, including atomic saves, delete/recreate, Markdown, ignores and config
+recovery. Tests retain their full snapshot and digest assertions rather than
+requiring access to a host event service.
+
 ## Stream contract
 
 Each stdout line is one JSON object with schema `nose.query-watch/v1`. Successful analysis emits `kind: "snapshot"`:

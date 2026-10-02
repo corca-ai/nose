@@ -25,6 +25,12 @@ That runs the common source-quality checks, cheap checked-evidence and runner
 self-tests, the `nose-cli` test suite, and live debug-binary product-contract
 checks. It is the gate meant to catch common CI failures before push.
 
+Test gates select the real content-polling watch backend with
+`NOSE_WATCH_POLL_INTERVAL_MS=100` (an explicit caller override is retained). This
+keeps filesystem integration tests executable in restricted CI runtimes while
+preserving their assertions and timeouts. Ordinary watch commands still default
+to native notifications; see [watch backend selection](query-watch.md#filesystems-without-native-notifications).
+
 Run everything CI runs, locally, with one command:
 
 ```sh
