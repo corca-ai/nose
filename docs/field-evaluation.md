@@ -174,6 +174,13 @@ live under ignored `target/corpus-ut-next-ten-rounds/`. Stable regressions are i
 `crates/nose-cli/tests/analysis_changes/ut_continuation.rs` and the detector's
 bounded test-path tests. Final qualification records identify the actual tested
 source snapshot separately from the original main-workspace HEAD.
+The main workspace Git directory is read-only in the managed environment, so
+source-bound gates run on an identical committed temporary checkout. An initial
+target-directory symlink confused a sealed path check; local binary copies
+replaced it. A subsequent file-length failure was fixed by extracting the
+existing cache-size parser and tests, preserving the 599-line limit. Per-round
+metadata terminators were normalized to valid JSON without changing binary or
+source digests. Failed qualification attempts remain recorded as failures.
 
 This page records a qualitative, read-only pass over several unrelated real
 codebases. The project names are intentionally anonymized: the point is whether

@@ -2365,8 +2365,15 @@ The two-line declaration of the continuation regression module relocates the
 accepted Project harness family from `86707946837ff4b0` to `d0d8d7d0a3d81698`.
 Both selected implementation bodies remain byte-identical to `f860e57d`, with
 the same body digests recorded above. Replace this navigation identity only;
-retain eighteen accepted families, value threshold forty and budget twenty.
+retain value threshold forty and budget twenty.
 The frozen initial binary and final optimized binary are compared on the same
 current source tree; the proof and queries are retained under
 `target/corpus-ut-next-ten-rounds/duplication-{frozen,current}.json` and
 `duplication-delta-proof.json`. No new duplication is accepted.
+
+The parser module extraction makes the already reviewed integer/float policy
+family `60f0dd6d98436972` cross the substantial threshold again. Its source file
+retains SHA-256 `53404525b09a0efaee9a1496bfeba3f122337e8fcdb442a23313da8c49d111de`
+and is byte-identical to the initial HEAD. Restore that earlier accepted policy
+judgment, bringing the current set to nineteen within the unchanged twenty-family
+budget. This is corpus sensitivity, not new numeric-policy code or its removal.
