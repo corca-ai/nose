@@ -7,13 +7,17 @@ use std::borrow::Cow;
 pub fn is_test_path(path: &str) -> bool {
     let p = lowercase_path(path);
     p.contains("/test/")
+        || p.contains("/test-d/")
         || p.contains("/tests/")
         || p.contains("/__tests__/")
         || p.contains("/spec/")
         || p.starts_with("test/")
+        || p.starts_with("test-d/")
         || p.starts_with("tests/")
         || p.starts_with("__tests__/")
         || p.starts_with("spec/")
+        || p.ends_with(".test-d.ts")
+        || p.ends_with(".test-d.tsx")
         || p.ends_with("_test.go")
         || p.ends_with("conftest.py")
         || ["_test.", ".test.", ".spec.", "_spec."]
@@ -67,6 +71,27 @@ mod tests {
         assert!(is_test_path("tests/test_parser.py"));
         assert!(is_test_path("src/parser.spec.ts"));
         assert!(is_test_path("conftest.py"));
+    }
+
+    #[test]
+    fn tsd_type_tests_have_bounded_test_naming_evidence() {
+        for path in [
+            "test-d/helpers.ts",
+            "source/test-d/stdio/option/duplex-object.test-d.ts",
+            "src/result.test-d.ts",
+            "src/result.test-d.tsx",
+            "Test-D/helpers.ts",
+        ] {
+            assert!(is_test_path(path), "type test: {path}");
+        }
+        for path in [
+            "src/test-dashboard/api.ts",
+            "src/contest-d/api.ts",
+            "src/result.test-d.js",
+            "src/test-d.ts",
+        ] {
+            assert!(!is_test_path(path), "ordinary source: {path}");
+        }
     }
 
     #[test]

@@ -13,7 +13,7 @@ replaying it against the human-audited v5 labels (see *Validation* below).
 
 `nose query <path>` is the interactive entry point — a stateless, self-describing surface
 over the same family dataset, built for an agent loop. Start with no terms for a landing
-dashboard, then **follow the runnable `next:` command on each result** rather than
+dashboard, then **follow the labeled `actions` and runnable `next` commands** rather than
 pre-scripting field reads:
 
 ```sh
@@ -48,6 +48,14 @@ fact for your review policy, not approval. Ordinary dashboard JSON is a truncate
 and cannot replace a capture. The [analysis comparison contract](region-identity.md#explore-changes-between-saved-analyses)
 explains profiles, coverage, artifact addresses and the limits of absence-based conclusions.
 
+A completed comparison can still have `profile_matches=false`: completing the
+candidate search does not make two detection policies interchangeable. For
+example, switching an unchanged workspace from default modes to syntax-only may
+remove families and require recheck. Inspect `profile-changed` and the captured
+profiles; disappearance alone proves neither deleted code nor completed
+refactoring. Keep your source-based judgment separate from automatic review
+applicability, or recapture under the same intended policy for continuity.
+
 ## Inputs for the batch / gate path
 
 For non-interactive consumption — a CI gate, a one-shot triage of the whole tree, or feeding
@@ -57,6 +65,10 @@ the versioned contract to other tooling — read the JSON directly:
 nose query <path> --format json                    # the ranked triage surface (query-JSON contract)
 nose query <path> base=origin/main --format json   # PR-time divergence (the base view)
 ```
+
+In JSON lists, `actions` opens the sampled families while `next` offers facets.
+Inspect these labeled actions before reconstructing an `id=` command manually;
+append `full` when you need source comparisons.
 
 Parse `families[]` in the dashboard or list view (dashboard also keeps
 `top_candidates[]` as a compatibility alias). The per-family decision procedure below applies

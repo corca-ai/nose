@@ -24,6 +24,18 @@ nose query /path/to/project --config-root --show-config
 It includes the selected config file, roots, cache location and effective query
 settings after CLI overrides, with config-relative resource paths resolved.
 
+When calling from another directory, choose the project policy explicitly and
+inspect its resolved resources before analysis:
+
+```sh
+nose query --root ../project/src --root ../project/lib \
+  --config ../project/nose.toml --show-config
+```
+
+Emitted relative navigation preserves the invocation's path spellings. Run it
+from the same working directory; a copied command does not infer a new project
+policy or relocate relative roots/resources automatically.
+
 ## `nose.toml`
 
 ```toml

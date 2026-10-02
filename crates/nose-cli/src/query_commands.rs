@@ -364,7 +364,7 @@ fn run_regular_query(args: QueryArgs, terms: &[String], q: &Query, path_arg: &st
         !args.write_baseline || terms.is_empty(),
         "--write-baseline records the complete analyzed population and does not accept query terms; remove terms to accept that population, or use a structured ignore for selected findings"
     );
-    let mut dataset = build_query_dataset(&args, &paths_as_refs(&args.paths))?;
+    let mut dataset = build_query_dataset(&args, &paths_as_refs(&args.paths), terms)?;
     if args.write_baseline {
         return write_query_baseline(&args, &dataset.families);
     }

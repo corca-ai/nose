@@ -119,6 +119,62 @@ regressions are in `crates/nose-cli/tests/analysis_changes/ut_cycles.rs`. Source
 verification is a reporting projection over explicit verified reads: it neither
 reads files implicitly nor changes matching, family identities or review reuse.
 
+## Second set of ten sequential usability rounds — 2026-10-02
+
+This continuation starts at `f860e57d`; the earlier ten rounds are excluded.
+Fresh agents receive pinned exports and frozen per-round binaries, with the same
+philosophy and withheld context. Feedback is evaluated against independent
+replays and existing contracts. These are simulated agent users, not human
+validation. Corpus edits are confined to disposable exports and archives.
+
+| Round | Corpus | Observation | Planner decision |
+|---|---|---|---|
+| 1 | black | Ignore schema required repeated guesses | Show minimal reason-bearing schema; preserve overlapping families |
+| 2 | execa | Conventional tsd type tests appeared as production | Recognize bounded test-d conventions; invalidate derived-unit cache |
+| 3 | fd | Cache reuse inferred from files | Expose existing opt-in stderr diagnostics, keeping JSON deterministic |
+| 4 | ky | Mode change removed a candidate on unchanged source | Document policy compatibility separately from completed comparison |
+| 5 | chi | JSON baseline acceptance emitted no stdout | Return a receipt for the persisted whole population; retain CI semantics |
+| 6 | date-fns | Multi-root caller rebuilt an existing family action | Explain actions and config-relative resources; replay preserved policy |
+| 7 | httpx | all still limited display to thirty rows | Explain top=0 and separate immutable review records |
+| 8 | rich | Higher-work recovery omitted the original CI gate | Preserve original selection and gate; distinguish subset inspection |
+| 9 | bat | Applicable review coexisted with stale archive | Explain independent fields and full-buffer digest; retain existing review action |
+| 10 | httpie | Incomplete analysis and completed gate both exit 1 | Document fail-closed JSON validation; verify acceptance and positive/restored controls |
+
+The test-path regression failed before its fix and passed afterwards. The
+baseline receipt regression first failed on empty stdout. The recovery regression
+first failed because the emitted retry omitted `--fail-on`; the corrected retry
+retains both the gate and query selection and executes against a small fixture.
+No work budget rises automatically and incomplete analysis emits no findings.
+The final fresh caller parsed acceptance for 45 families over 122 Python files,
+verified unchanged pass, introduced exact-copy failure and restored pass, without
+changing the accepted baseline. The planner independently reran its restored CI
+wrapper. All ten assigned goals completed; failures and manual recovery remain
+in the logs. A new incomplete-analysis JSON envelope is deferred until its
+versioning and broader error contract can be evaluated.
+
+Round 4's default-to-syntax change produced 167 versus 156 families with the
+same source; the old decision required rechecking. Round 7 combined two immutable
+records into a 241-family queue with two applicable and 239 unreviewed decisions,
+without suppressing any findings. Round 9 retained 189 captured families with
+sixteen skipped highlighted fixtures: complete candidate search did not establish
+complete coverage. Appending a comment to an archive changed six verified member
+reads into six unavailable reads, while its current-observation decision remained
+applicable. Restoring identical bytes recovered all six reads. Existing
+`inspect-review` navigation reopened the correct applicable record independently.
+
+Requests for new cache counters, automatic profile normalization, redundant
+navigation, mutable aggregate decisions, automatic archive copying and partial
+results were rejected. CLI/help discovery remains a learning cost; successful
+agent completion does not establish universal usability or an adoption rate.
+The round 6 parent initially assumed a conventional src layout before correcting
+the monorepo fixture; this setup error is separate from product feedback.
+
+Commands, feedback, binary/source manifests, regression logs and planner decisions
+live under ignored `target/corpus-ut-next-ten-rounds/`. Stable regressions are in
+`crates/nose-cli/tests/analysis_changes/ut_continuation.rs` and the detector's
+bounded test-path tests. Final qualification records identify the actual tested
+source snapshot separately from the original main-workspace HEAD.
+
 This page records a qualitative, read-only pass over several unrelated real
 codebases. The project names are intentionally anonymized: the point is whether
 nose's findings are useful in realistic repositories, not to publish details of

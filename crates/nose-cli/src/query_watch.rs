@@ -149,7 +149,7 @@ fn watch_root_paths(args: &QueryArgs) -> Vec<PathBuf> {
 }
 
 fn open_session(args: &QueryArgs, refs: &[&Path]) -> Result<(QueryAnalysisSession, QueryDataset)> {
-    build_query_dataset(args, refs)?;
+    build_query_dataset(args, refs, &[])?;
     let mut session = QueryAnalysisSession::open(args, refs)?
         .context("watch session could not open the incremental cache; external semantic-pack influence is not supported in watch mode")?;
     let dataset = session.current_dataset(args, refs)?;

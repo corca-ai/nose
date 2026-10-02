@@ -67,7 +67,8 @@ thresholds, config, packs, cache and read-only baseline) with shell quoting. Que
 When an explicitly configured candidate-work limit is exceeded, the query fails without partial clone findings. The
 error adds a source-file inventory and up to eight directory-root commands. Counts describe
 files directly in each directory, not candidate work or the cause of the overload. The
-commands retain settings but select a smaller root, which also changes the scope of
+smaller-root inspection commands omit query filters, gates and writes; they
+retain detection settings but select a smaller root, which also changes the scope of
 root-relative excludes; no mode or exclusion is changed automatically. `scope=` and
 `path~` filter completed findings and cannot fix a candidate-budget failure.
 
@@ -86,6 +87,9 @@ cached/watch queries. It overrides `NOSE_MAX_CANDIDATE_PAIRS`; with neither set 
 no candidate-count ceiling. Navigation preserves an explicit limit. An explicit-budget
 failure returns no partial findings and offers smaller-root and higher-limit commands.
 The engine chooses batching independently of this ceiling; users need not tune batch sizes.
+Higher-limit same-root retries retain the original query terms and `--fail-on`
+gate. They never replay write operations. A completed inspection of a smaller
+root does not answer the original full-root CI question.
 
 The landing page offers production, test, mixed-scope, and discovered evaluation/fixture
 directory routes. Directory names are navigation hints, not proof of code purpose; no findings
@@ -96,6 +100,9 @@ regions, as do existing test-name/module conventions. This classification does n
 arbitrary conditional compilation or third-party test macros. Conventional `_tests` file and
 directory names also classify out-of-line test helpers, without pretending to resolve every
 custom module graph.
+The conventional tsd `test-d/` directory and `.test-d.ts` / `.test-d.tsx`
+filenames also supply test-path evidence; this does not resolve custom package
+test scripts or establish production ownership for every other path.
 
 The dashboard accounts for the report's code families before row limits: unfolded
 default families, folded default overlaps, and families on other surfaces. It also

@@ -16,6 +16,14 @@ pub(crate) fn write_query_baseline(
         .expect("--write-baseline requires --baseline");
     baseline::write(path, families, family_hint)
         .with_context(|| format!("writing baseline {}", path.display()))?;
+    if args.format == crate::query_options::ReportFormat::Json {
+        println!(
+            "{}",
+            serde_json::json!({"schema":"nose.baseline-write/v1", "file":path,
+                "families":families.len(),
+                "meaning":"Accepted the complete analyzed family population in the named baseline; repeat the same roots and detection policy for a CI ratchet."})
+        );
+    }
     eprintln!(
         "nose: wrote baseline of {} families to {}",
         families.len(),

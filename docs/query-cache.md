@@ -11,6 +11,8 @@ The first run fills the cache. Later runs reuse unchanged analysis and
 recalculate what changed. Caching changes how work is reused, not which
 duplication nose reports. Test-context extraction changes invalidate raw-IL and derived-unit
 cache versions, so old entries cannot silently retain outdated production/test scope.
+Conventional type-test path updates invalidate derived-unit keys because test-path
+evidence also controls large-test-file admission; raw IL remains reusable.
 
 ## When to use it
 
@@ -30,6 +32,19 @@ tree:
 ```sh
 nose query . --cache-dir ../nose-cache/my-project
 ```
+
+## Verify reuse
+
+For explicit reuse and invalidation diagnostics, set `NOSE_CACHE_STATS=1`:
+
+```sh
+NOSE_CACHE_STATS=1 nose query . --cache-dir .nose-cache --format json > findings.json
+```
+
+Diagnostics go to stderr, preserving deterministic query JSON on stdout. They
+report analysis-stage hits/misses and invalidation reasons; `nose cache status`
+reports managed storage, not whether a particular query reused its contents.
+Use the same roots, settings and source when comparing cached and uncached results.
 
 ## Storage and recovery
 

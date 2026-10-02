@@ -136,7 +136,7 @@ pub(crate) fn load(path: &Path) -> Result<IgnoreSet> {
     let bytes =
         std::fs::read(path).with_context(|| format!("reading ignore file {}", path.display()))?;
     let document: Document = serde_json::from_slice(&bytes)
-        .with_context(|| format!("parsing ignore file {}", path.display()))?;
+        .with_context(|| format!("parsing ignore file {}: expected an object with an ignores array, or an entry array; each entry needs a selector and reason (see nose query --help)", path.display()))?;
     let raw_entries = match document {
         Document::Object(document) => document.ignores,
         Document::Entries(entries) => entries,

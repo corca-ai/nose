@@ -16,7 +16,7 @@ use std::path::PathBuf;
              nose finds; you judge. Run `nose query <path>` to explore.",
     long_about = "nose finds duplication in code and docs.\n\
                   nose finds; you judge. Run `nose query <path>` to explore.",
-    after_help = "Save analyses and caller decisions through query:\n  nose query <path> --save-analysis FILE\n  nose query --before FILE --after FILE\nSee `nose query --help` for --write-review and archived source verification."
+    after_help = "Save analyses and caller decisions through query:\n  nose query <path> --save-analysis FILE\n  nose query --before FILE --after FILE\nSee `nose query --help` for --write-review and archived source verification.\nFor CI adoption, use query --baseline FILE --write-baseline, then --baseline FILE --fail-on new; pin --mode syntax or syntax,semantic."
 )]
 pub(crate) struct Cli {
     #[command(subcommand)]
@@ -105,9 +105,16 @@ pub(crate) enum Cmd {
     /// Numbers must be finite; >= and <= are unsupported and return errors.
     /// dir= matches the representative's parent directory; path~ matches any copy, including cross-directory families.
     /// Navigate: group=dir|file|scope|witness, id=ID, at=FILE:LINE, sort=value|sites, top=N, all.
+    /// all widens live surfaces; top=0 removes row/group limits, including saved comparisons.
+    /// JSON lists: actions open families; next continues filtering/grouping.
     /// Details: id=ID full shows source comparisons; full on a list previews source coverage and shared lines.
     /// member-id=ID full shows one copy; member-path~TEXT full selects source by path.
     /// Context: in a family, follow Inspect surrounding code or add member-context=20 full for bounded nearby lines.
+    ///
+    /// To retain one finding, copy its full 16-hex id from --format json into nose.ignore.json:
+    /// {"ignores":[{"family_id":"FULL_ID","reason":"Your rationale","owner":"Your team"}]}
+    /// This file is auto-read from the invocation directory; --ignore-file selects another file.
+    /// Suppression matches that family only; overlapping smaller families can remain reportable.
     ///
     /// Save with --save-analysis FILE. Compare saved populations with --before/--after;
     /// follow next commands, group=reason, evidence=recheck, change=ID and full.
@@ -152,12 +159,14 @@ pub(crate) enum Cmd {
         #[arg(long = "generated-path", value_name = "GLOB")]
         generated_path: Vec<String>,
         /// Cache per-file analysis under this directory; re-runs reuse it for unchanged files.
+        /// Set NOSE_CACHE_STATS=1 for reuse/invalidation diagnostics on stderr.
         #[arg(long, value_name = "DIR")]
         cache_dir: Option<PathBuf>,
         /// Maximum managed cache size; accepts byte counts or KiB/MiB/GiB suffixes. [default: 5GiB]
         #[arg(long, value_name = "SIZE", requires = "cache_dir", value_parser = parse_byte_size)]
         cache_max_bytes: Option<u64>,
         /// Structured-ignore file for suppressed families; auto-read `nose.ignore.json` when present.
+        /// This CLI path is invocation-relative; configured ignore-file paths are config-relative.
         #[arg(long, value_name = "FILE")]
         ignore_file: Option<PathBuf>,
         /// Local semantic-pack v0/v1 manifest file or directory to load (repeatable; explicit opt-in).

@@ -6,6 +6,12 @@ break.
 
 ## [Unreleased]
 
+- Emit a JSON receipt when accepting a whole-population baseline, and retain
+  the original gate and selection in explicit higher-work query recovery.
+- Classify conventional tsd `test-d` paths as test evidence and invalidate
+  older derived-unit caches. Clarify structured ignores, cache diagnostics,
+  bounded navigation and independent archived-source verification.
+
 - Guide JSON callers from live family detail through explicit capture and review
   recording, requiring caller-supplied filenames, decisions and reasons. Reopen
   the exact written target and replace stale review-status filters.

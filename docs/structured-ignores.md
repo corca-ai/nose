@@ -7,6 +7,12 @@ owned by a team that is not ready to refactor it yet. For command basics see
 
 ## Quick start
 
+`nose query --help` includes a minimal entry example for callers without repository
+documentation. Invalid file-shape errors point to that help. Suppression selects the
+reported family; it does not inherit into overlapping smaller families, which may
+become visible when their former parent is suppressed. Inspect those findings
+independently before deciding whether the same rationale applies.
+
 Run nose and copy a family's full `id` field from the JSON report. Do not paste the short
 `id=` prefix shown in the human drill links — that is a drill handle, not a valid `family_id`.
 See [Family IDs](#family-ids).

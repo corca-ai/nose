@@ -10,6 +10,7 @@ pub(crate) fn explain(
     args: &QueryArgs,
     roots: &[&Path],
     exclude: &[String],
+    terms: &[String],
 ) -> anyhow::Error {
     let Some(budget) = error.downcast_ref::<nose_detect::CandidateBudgetExceeded>() else {
         return error;
@@ -28,7 +29,7 @@ pub(crate) fn explain(
     let mut rows: Vec<_> = directories.into_iter().collect();
     rows.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
     let mut lines = vec![format!("Analysis incomplete; no clone findings were returned. Source inventory: {} supported files, {} directories, {} discovery errors.", inventory.paths.len(), rows.len(), inventory.errors.len()),
-        "These are source-file counts, not candidate counts or diagnoses of the overload. Inspect a smaller root (root-relative exclusion scope changes with the root):".into()];
+        "These are source-file counts, not candidate counts or diagnoses of the overload. Inspect a smaller root (root-relative exclusion scope changes; inspection omits query filters, gates and writes):".into()];
     let options: Vec<_> = crate::query_navigation::words(args)
         .into_iter()
         .skip(2 + 2 * args.paths.len())
@@ -77,7 +78,18 @@ pub(crate) fn explain(
         if args.format == crate::query_options::ReportFormat::Json {
             retry.extend(["--format".into(), "json".into()]);
         }
-        lines.push(format!("To retain these roots and modes, explicitly allow more work (more time and memory; completion is not guaranteed):\n    nose query {}", retry.iter().skip(2).map(|w| shell_quote(w)).collect::<Vec<_>>().join(" ")));
+        retry.extend(terms.iter().cloned());
+        if let Some(gate) = &args.fail_on {
+            retry.extend([
+                "--fail-on".into(),
+                match gate {
+                    crate::query_options::FailOn::Any => "any",
+                    crate::query_options::FailOn::New => "new",
+                }
+                .into(),
+            ]);
+        }
+        lines.push(format!("To retry these roots, modes, query selection and gate, explicitly allow more work (writes are not replayed; more time and memory; completion is not guaranteed):\n    nose query {}", retry.iter().skip(2).map(|w| shell_quote(w)).collect::<Vec<_>>().join(" ")));
     }
     lines.push("Scope and path filters run after detection; they do not reduce candidate work. No roots or detection modes were changed automatically.".into());
     error.context(lines.join("\n"))

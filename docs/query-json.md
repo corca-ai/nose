@@ -50,6 +50,11 @@ on-demand family-level `graded` and `graded_pair` evidence for
 reporting field and renamed pack-facing trust/source values from legacy
 first-party spelling to builtin spelling.
 
+`--write-baseline --format json` writes the baseline and emits a separate
+`nose.baseline-write/v1` receipt (`file`, `families`, `meaning`), rather than a
+family-view envelope. It describes the explicit whole-population acceptance;
+query terms remain rejected on writes.
+
 ## Semantic packs
 
 `semantic_packs[]` is assembled once per query response, not per family/member.

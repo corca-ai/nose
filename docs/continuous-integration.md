@@ -12,6 +12,14 @@ An included source or directory that cannot be read causes a non-zero error exit
 It cannot turn an incomplete scan into a passing gate, including with a warm cache.
 Use explicit excludes for directories that should not participate in analysis.
 
+For live `--format json` gates, exit 1 can mean either completed findings or
+an analysis/tool failure. Treat a missing or invalid JSON report as failure,
+never as zero findings. Require `analysis.complete = true` before interpreting
+the report and gate exit; retain stderr for diagnosis. Budget exhaustion returns
+no findings. An explicit higher-work retry keeps the original roots and gate,
+while smaller-root inspection changes scope. Writes are not replayed by recovery
+commands: rerun acceptance explicitly after choosing the work policy.
+
 ## The `--fail-on any` gate
 
 `--fail-on any` makes nose exit non-zero if any family is reported on the **default
@@ -109,6 +117,13 @@ nose query src --baseline .nose-baseline.json
 # 3. Make CI fail only when NEW or CHANGED families exist:
 nose query src --baseline .nose-baseline.json --fail-on new
 ```
+
+With `--format json`, baseline acceptance emits a `nose.baseline-write/v1`
+receipt on stdout with `file`, `families` and `meaning`; the acceptance summary
+also remains on stderr. The persisted baseline is the audit artifact. Validate an
+adoption policy with an unchanged passing control and a known positive in a
+throwaway checkout. Do not regenerate the baseline automatically after a gate
+failure, since that would accept the finding rather than evaluate it.
 
 Real gates should repeat the same pinned roots, `--mode` and size flags in the
 write-baseline and fail-on-new commands. `--write-baseline` accepts the complete

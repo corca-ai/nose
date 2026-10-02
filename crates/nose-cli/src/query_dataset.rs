@@ -44,6 +44,7 @@ pub(super) struct QueryDataset {
 pub(super) fn build_query_dataset(
     args: &QueryArgs,
     refs: &[&std::path::Path],
+    recovery_terms: &[String],
 ) -> Result<QueryDataset> {
     let (settings, semantic_packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
     let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines)?;
@@ -58,7 +59,9 @@ pub(super) fn build_query_dataset(
         cache_max_bytes: settings.cache_max_bytes,
         accepted_coverage: AcceptedCoverage::Query,
     })
-    .map_err(|error| crate::query_recovery::explain(error, args, refs, &settings.exclude))?;
+    .map_err(|error| {
+        crate::query_recovery::explain(error, args, refs, &settings.exclude, recovery_terms)
+    })?;
     finish_query_dataset(args, refs, settings, semantic_packs, opts, detection, true)
 }
 

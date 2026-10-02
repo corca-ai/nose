@@ -41,7 +41,7 @@ pub(crate) fn capture(args: &QueryArgs, path: &Path) -> Result<()> {
         "analysis output already exists: {}; choose a new file",
         path.display()
     );
-    let dataset = build_query_dataset(args, &paths_as_refs(&args.paths))?;
+    let dataset = build_query_dataset(args, &paths_as_refs(&args.paths), &[])?;
     let profile = profile(&dataset)?;
     let mut family_handles: BTreeMap<_, Vec<_>> = BTreeMap::new();
     let mut families: Vec<_> = dataset

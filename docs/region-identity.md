@@ -299,7 +299,11 @@ from capture coverage and comparison completeness. Its status is `complete`,
 `partial`, `unavailable` or `not-attempted`; without explicit lookup it is null.
 `unavailable_files` deduplicates file paths and lists their affected sides and
 reasons. Unavailability can mean missing, stale, invalid or unreadable evidence;
-it does not assert that the underlying file was deleted.
+it does not assert that the underlying file was deleted. Even a comment appended
+outside the selected region changes the containing buffer digest. Review
+applicability binds captured evidence and caller intent; it can remain applicable
+when a supplied archive is unavailable. A successful inspection exit does not
+assert that source verification succeeded: read these fields independently.
 Exact verified selected regions
 are shown alongside line alignment for uniquely paired members; candidate correspondence
 remains labeled as a candidate. Alignment is capped at 120 lines per side with an explicit
@@ -349,6 +353,18 @@ require `recheck`. This is conditional applicability, not proof of historical li
 Records from other captures are listed as unrelated; supply their original capture rather
 than joining by review-key equality alone. Review files remain caller-owned; content
 binding checks consistency, not authorship or authenticity.
+
+Keep independent decisions in separate immutable files and load them together:
+
+```sh
+nose query --before capture.json --after capture.json \
+  --reviews transports.json --reviews multipart.json review=applicable top=0
+```
+
+The queue retains unreviewed findings unless you explicitly filter them; records
+do not suppress findings. `top=0` removes the display limit. Captures already
+include admitted surfaces and folded overlaps, so `all` does not mean every row
+will be displayed in a saved comparison.
 
 Repeat `--reviews FILE` for up to 128 records. `review=applicable|recheck|unreviewed`
 narrows observations separately from detector `evidence=retained|recheck`.
