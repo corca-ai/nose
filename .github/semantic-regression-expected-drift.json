@@ -1245,6 +1245,242 @@
       "baseline_source_sha": "47adbab743067e7ab0977d1be4a935a043dd769b",
       "issue": "https://github.com/corca-ai/nose/pull/988",
       "reason": "Published v0.20.0 tag binding: both output hashes and every declared changed value match the already audited v0.20 main comparison for this repository. Audited v0.21 JSON schema 10 adds region/review/source and caller-assessment evidence plus context-preserving navigation; builtin pack version becomes 0.21.0. The complete 120-repository semantic audit preserves every family identity and member set; scope and presentation changes reflect explicit test-context and exploration fixes. These exact output changes do not waive runtime gates."
+    },
+    {
+      "baseline_source_sha": "c37b88cfae843bd6fdb8a53572ad564c472bde20",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "61e19368e304449d6a858573021347bff69c09be02c104505b6e7275bf09c229"
+          ],
+          "current": [
+            "f9f38803f4db83f77c5f06da645fd0199fc30f9ece783dbffec2e76be9fd1ee5"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/1003",
+      "reason": "Release 0.21.1 updates compiled semantic-pack version metadata; all families and every other field are unchanged.",
+      "repo": "alacritty"
+    },
+    {
+      "baseline_source_sha": "c37b88cfae843bd6fdb8a53572ad564c472bde20",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "35294d54df757e7cea3822d0fecf074fdb371441722c5475a8c32cd5c7912e96"
+          ],
+          "current": [
+            "153ff06ca9590afac2f3ef7c56d3150f57083b0dbe6f501c977a26290d653b99"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/1003",
+      "reason": "Release metadata and review keys change after preserving Ruby literal/symbol identity; the 148 families and all other output fields are unchanged.",
+      "repo": "asciidoctor"
+    },
+    {
+      "baseline_source_sha": "c37b88cfae843bd6fdb8a53572ad564c472bde20",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            230910
+          ],
+          "current": [
+            227689
+          ]
+        },
+        "families": {
+          "baseline": [
+            29
+          ],
+          "current": [
+            28
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "62f17f6818e3f72e476aa01b03c6ad95574117200f52e50462573d5aaa9f9ce6"
+          ],
+          "current": [
+            "e73e7dcef89ed27c1088ae5868f0e9ef55eb453f0302c1240c8c15b24769f855"
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 15,
+              "hidden": 14
+            }
+          ],
+          "current": [
+            {
+              "default": 14,
+              "hidden": 14
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/1003",
+      "reason": "Preserving escaped literal source as opaque removes one same-file available_options exact family containing undecoded escaped quotes; Ruby symbol identity updates review keys. Release pack versions also change.",
+      "repo": "fastlane"
+    },
+    {
+      "baseline_source_sha": "c37b88cfae843bd6fdb8a53572ad564c472bde20",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            1811122
+          ],
+          "current": [
+            1807176
+          ]
+        },
+        "families": {
+          "baseline": [
+            327
+          ],
+          "current": [
+            326
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "ebed8d362eef4c34146331bac62fd3fd486e273b2f051c596960ac93f0c70cff"
+          ],
+          "current": [
+            "1c4f48ee63344e548fe20937774df571a8e6c1541fafbbd96c5d1a8f59ff7ad1"
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 114,
+              "divergence": 6,
+              "hidden": 207
+            }
+          ],
+          "current": [
+            {
+              "default": 114,
+              "divergence": 6,
+              "hidden": 206
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/1003",
+      "reason": "Preserving undecoded escaped literals as opaque removes one hidden exact fragment pair for builder.append of an escaped quote in PreInterruptThreadDumpPrinter; release pack versions also change.",
+      "repo": "junit5"
+    },
+    {
+      "baseline_source_sha": "c37b88cfae843bd6fdb8a53572ad564c472bde20",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            658884
+          ],
+          "current": [
+            692784
+          ]
+        },
+        "families": {
+          "baseline": [
+            142
+          ],
+          "current": [
+            151
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "9c67e42d8255e3803307c6b5d90cd2ec05099556c2dca5072ed37fc3e09aefd9"
+          ],
+          "current": [
+            "7bf0f6d1ba58d1bbc2a6eaa178174995a205a0e6c26057493603b28cbb00cc29"
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 93,
+              "divergence": 7,
+              "hidden": 42
+            }
+          ],
+          "current": [
+            {
+              "default": 102,
+              "divergence": 7,
+              "hidden": 42
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/1009",
+      "reason": "Whole-source equality adds ten byte-identical copy-paste groups, independently verified against complete source buffers. Preserved backtick string content removes the false exact guard pair returning empty string versus two backticks (#1003). Net nine default families; release pack versions also change.",
+      "repo": "prettier"
+    },
+    {
+      "baseline_source_sha": "c37b88cfae843bd6fdb8a53572ad564c472bde20",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            66172
+          ],
+          "current": [
+            54264
+          ]
+        },
+        "families": {
+          "baseline": [
+            9
+          ],
+          "current": [
+            7
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "63628ea5dabb4bbb654d24985fc39d1f9080f08c4040db4237864402c067a79a"
+          ],
+          "current": [
+            "692a13ded40eb0de2f14ed1a87fe3a03965f2c9bef0da9aa238d0415842ef380"
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 2,
+              "hidden": 7
+            }
+          ],
+          "current": [
+            {
+              "default": 2,
+              "hidden": 5
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/1004",
+      "reason": "Preserving assert/context-manager effects removes the hidden assert fragment family and a hidden time.sleep fragment family within context-manager bodies; release pack versions also change.",
+      "repo": "requests"
+    },
+    {
+      "baseline_source_sha": "c37b88cfae843bd6fdb8a53572ad564c472bde20",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "12ed2206e9c572a790f515f40258ac423b550bc4fa14c42c6b8a537edaebd296"
+          ],
+          "current": [
+            "348e5dc8c7e5e3f00fbda3eb2a05232b25f16b78a65d30a8a10858b8203048ac"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/1003",
+      "reason": "Release 0.21.1 updates compiled semantic-pack version metadata; all six families and every other field are unchanged.",
+      "repo": "sidekiq"
     }
   ],
   "schema": "nose.semantic_regression_expected_drift.v1"
