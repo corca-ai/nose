@@ -226,7 +226,7 @@ pub(super) fn const_value_domain(kind: ConstKind) -> ValueDomain {
         ConstKind::Int | ConstKind::Float => ValueDomain::Number,
         ConstKind::Str => ValueDomain::String,
         ConstKind::Bool => ValueDomain::Boolean,
-        ConstKind::Null | ConstKind::Sentinel => ValueDomain::Unknown,
+        ConstKind::Null | ConstKind::Sentinel | ConstKind::Symbol => ValueDomain::Unknown,
     }
 }
 

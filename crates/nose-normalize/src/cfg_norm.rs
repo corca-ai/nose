@@ -22,13 +22,14 @@ use rustc_hash::FxHashMap;
 // structure: conjoined-guard merge + continue-guard unwrap (a rebuild)
 // ----------------------------------------------------------------------------
 
-pub(crate) fn structure(old: &Il) -> Il {
+pub(crate) fn structure(old: &Il, interner: &Interner) -> Il {
     let unit_root_set = old.units.iter().map(|u| u.root.0).collect();
     let mut rb = SRebuilder {
         old,
         b: IlBuilder::with_capacity(old.file, old.nodes.len(), old.edges.len()),
         remap: FxHashMap::default(),
         unit_root_set,
+        interner,
     };
     let new_root = rb.go(old.root);
     crate::finalize_rebuild(old, &rb.remap, rb.b, new_root, old.cid_names.clone())
@@ -39,6 +40,7 @@ struct SRebuilder<'a> {
     b: IlBuilder,
     remap: FxHashMap<u32, NodeId>,
     unit_root_set: rustc_hash::FxHashSet<u32>,
+    interner: &'a Interner,
 }
 
 impl SRebuilder<'_> {
@@ -58,6 +60,15 @@ impl SRebuilder<'_> {
 
     /// `if a { if b { X } }` (no elses) → `if a && b { X }`, chained.
     fn rewrite_if(&mut self, old_id: NodeId) -> NodeId {
+        let kids = self.old.children(old_id);
+        if kids.len() >= 2
+            && kids[1..].iter().all(|&branch| {
+                self.old.kind(branch) == NodeKind::Block && self.old.children(branch).is_empty()
+            })
+        {
+            let condition = self.generic(old_id);
+            return self.condition_evaluation_boundary(condition, self.old.node(old_id).span);
+        }
         if self.old.children(old_id).len() >= 3 {
             return self.generic(old_id); // has an else: don't conjoin
         }
@@ -150,12 +161,30 @@ impl SRebuilder<'_> {
                     let blk = self.b.add(NodeKind::Block, Payload::None, span, &tail);
                     let ifnode = self.b.add(NodeKind::If, Payload::None, span, &[notc, blk]);
                     out.push(ifnode);
+                } else {
+                    // Only the jump is redundant. Evaluating the condition (and
+                    // its truthiness protocol) can still call, mutate, or fail.
+                    let guard = self.go(stmts[i]);
+                    out.push(
+                        self.condition_evaluation_boundary(guard, self.old.node(stmts[i]).span),
+                    );
                 }
-                // else: a trailing `if c { continue }` is a no-op — dropped.
                 return out;
             }
         }
         stmts.iter().map(|&s| self.go(s)).collect()
+    }
+
+    fn condition_evaluation_boundary(&mut self, guard: NodeId, span: nose_il::Span) -> NodeId {
+        // A value graph can omit a condition when no branch emits an outcome.
+        // Until evaluation/truthiness has a purity+totality proof, keep that
+        // evaluation as an opaque statement effect and close exact admission.
+        self.b.add(
+            NodeKind::Raw,
+            Payload::Name(self.interner.intern("condition_evaluation")),
+            span,
+            &[guard],
+        )
     }
 
     /// If `stmt` is `if c { continue }` (no else), return the old condition node.

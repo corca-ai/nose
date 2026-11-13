@@ -71,9 +71,9 @@ pub(super) fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Optio
     let ident = ident?;
     let span = lo.span(node);
     let value = lo.var(&ident, span);
-    let object = lo.str_lit("object", span);
-    let non_null = lo.str_lit("non_null", span);
-    let not_array = lo.str_lit("not_array", span);
+    let object = lo.str_content("object", span);
+    let non_null = lo.str_content("non_null", span);
+    let not_array = lo.str_content("not_array", span);
     let tag = lo.sym("record_guard");
     let guard = lo.add(
         NodeKind::Seq,

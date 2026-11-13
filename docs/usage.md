@@ -278,22 +278,24 @@ against the standard Type-1–4 taxonomy.
 | mode | clone type | detector channel | use when |
 |---|---|---|---|
 | `syntax` | Type-1 / exact token-run floor | same-language jscpd-style contiguous copy-paste runs | replacing jscpd / blocking copy-paste clones in CI |
-| `semantic` | Type-4 | exact value-fingerprint matches | high-confidence semantic clones with no fuzzy threshold |
-| `near` | Type-3 | shape candidates + fuzzy structural/value scoring | finding near-duplicates for triage |
+| `semantic` | Type-4 + whole-source Type-1 | exact value-fingerprint matches + source-copy floor | high-confidence semantic clones with no fuzzy threshold |
+| `near` | Type-3 + whole-source Type-1 | shape candidates + fuzzy structural/value scoring + source-copy floor | finding near-duplicates for triage |
 
 Examples:
 
 ```sh
 nose query src                                  # syntax + semantic + near (the default)
 nose query src --mode syntax --min-size 80 'dup>80' --fail-on any  # jscpd-style gate
-nose query src --mode semantic                  # exact Type-4 only
-nose query src --mode near:0.70                 # Type-3 only
+nose query src --mode semantic                  # exact Type-4 + identical whole-source copies
+nose query src --mode near:0.70                 # Type-3 + identical whole-source copies
 nose query src --mode syntax,semantic           # exact channels only, no fuzzy near
 nose query src --mode syntax --mode semantic    # same as --mode syntax,semantic
 ```
 
 The `near` channel takes its acceptance threshold inline — `--mode near:0.8` (default
 `0.70`). `syntax` and `semantic` are exact channels and take no threshold.
+Semantic and near queries include the narrow [whole-source copy floor](clone-types.md)
+with a `copy-paste` witness. `witness=exact` selects only modeled semantic matches.
 
 There is also a hidden experimental `abstraction[:T]` mode. It reuses the `near`
 candidate stream, defaults to threshold `0.50`, and then keeps only same-language

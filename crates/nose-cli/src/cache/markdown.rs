@@ -22,7 +22,7 @@ pub(crate) fn detect(
             ContentDigest::derive(b"nose.markdown-document.v1", &[source.as_bytes()])
         })
         .collect::<Vec<_>>();
-    let mut components = vec![b"nose.markdown-report.v1".as_slice()];
+    let mut components = vec![b"nose.markdown-report.v2".as_slice()];
     for ((path, _), digest) in docs.iter().zip(&digests) {
         components.push(path.as_bytes());
         components.push(digest.as_bytes());

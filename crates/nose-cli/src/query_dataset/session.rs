@@ -21,17 +21,17 @@ impl QueryAnalysisSession {
         let Some(dir) = args.cache_dir.as_ref() else {
             return Ok(None);
         };
-        let Some(fast) = cache::try_build_units_fast(
+        let Some(mut units) = cache::open_unit_session(
             refs,
             &settings.exclude,
             dir,
             &semantic_packs,
             settings.cache_max_bytes,
             &opts,
-        ) else {
+        )?
+        else {
             return Ok(None);
         };
-        let mut units = cache::FastUnitSession::from_fast(fast);
         let identity = cache::DetectionCacheIdentity::new(
             units.workspace_digest(),
             units.semantic_pack_digest(),
@@ -75,6 +75,7 @@ impl QueryAnalysisSession {
         args: &QueryArgs,
         refs: &[&std::path::Path],
     ) -> Result<QueryDataset> {
+        self.units.begin_revision();
         let (settings, semantic_packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
         let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines)?;
         anyhow::ensure!(
@@ -136,7 +137,10 @@ impl QueryAnalysisSession {
             Some(self.units.line_context()),
             None,
         );
-        finish_query_dataset(args, refs, settings, semantic_packs, opts, detection, false)
+        let dataset =
+            finish_query_dataset(args, refs, settings, semantic_packs, opts, detection, false)?;
+        self.units.finish_revision(&opts);
+        Ok(dataset)
     }
 
     pub(crate) fn source_set_digest(&self) -> String {

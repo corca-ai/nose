@@ -303,6 +303,7 @@ mod tests {
     fn stream(path: &str, tags: &[u64]) -> Stream {
         let mut value = Stream {
             root_is_module: false,
+            complete_source: false,
             test_spans: Vec::new(),
             containers: Vec::new(),
             source: None,

@@ -343,6 +343,13 @@ pub fn source_literal_at_node(il: &Il, node: NodeId) -> Option<SourceLiteralKind
     })
 }
 
+/// A retained literal-name hash is not necessarily a runtime String (symbols
+/// and regexes also retain names for source/provenance contracts).
+pub fn is_concrete_string_literal(il: &Il, node: NodeId) -> bool {
+    matches!(il.node(node).payload, Payload::LitStr(_))
+        && source_literal_at_node(il, node).is_none()
+}
+
 pub fn source_comprehension_at_node(il: &Il, node: NodeId) -> Option<SourceComprehensionKind> {
     source_fact_value_at_node(il, node, |fact| match fact {
         SourceFactKind::Comprehension(comprehension) => Some(comprehension),

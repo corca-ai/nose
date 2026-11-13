@@ -119,7 +119,7 @@ pub(super) fn lower_string(lo: &mut Lowering, node: TsNode) -> NodeId {
         lo.str_lit(lo.text(node), span)
     } else {
         let mut kids = Vec::with_capacity(interpolations.len() + 1);
-        kids.push(lo.str_lit(lo.text(node), span));
+        kids.push(lo.str_content(lo.text(node), span));
         kids.extend(interpolations);
         lo.add(
             NodeKind::Seq,
@@ -255,7 +255,7 @@ pub(super) fn lower_binary_like(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 pub(super) fn lower_special_literal(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let literal = lo.str_lit(lo.text(node), span);
+    let literal = lo.str_content(lo.text(node), span);
     lo.add(
         NodeKind::Seq,
         Payload::Name(lo.sym("swift_special_literal")),
@@ -416,7 +416,7 @@ pub(super) fn lower_prefix_operator_surface(
     op_text: &str,
     operand: NodeId,
 ) -> NodeId {
-    let op = lo.str_lit(op_text, span);
+    let op = lo.str_content(op_text, span);
     lo.add(
         NodeKind::Seq,
         Payload::Name(lo.sym("swift_prefix_operator")),
@@ -426,7 +426,7 @@ pub(super) fn lower_prefix_operator_surface(
 }
 pub(super) fn lower_operator_ref(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let op = lo.str_lit(lo.text(node), span);
+    let op = lo.str_content(lo.text(node), span);
     lo.add(
         NodeKind::Seq,
         Payload::Name(lo.sym("swift_operator_ref")),
@@ -459,7 +459,7 @@ pub(super) fn lower_key_path(lo: &mut Lowering, node: TsNode) -> NodeId {
         .map(|child| lower_pattern_value(lo, child))
         .collect();
     if kids.is_empty() {
-        return lo.str_lit(lo.text(node), span);
+        return lo.str_content(lo.text(node), span);
     }
     lo.add(
         NodeKind::Seq,

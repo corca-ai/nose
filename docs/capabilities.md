@@ -191,6 +191,7 @@ nose capabilities
       "query_watch": true,
       "query_watch_full_snapshot": true,
       "query_watch_jsonl_v1": true,
+      "query_whole_source_copies": true,
       "region_correspondence_v1": true,
       "region_snapshots_v1": true,
       "reinvented_view": true,

@@ -43,6 +43,7 @@ pub(super) enum ConstKind {
     Bool,
     Float,
     Null,
+    Symbol,
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]

@@ -317,7 +317,7 @@ fn normalize_inner(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il 
         timer.lap("dce");
     }
     if opts.cfg_norm {
-        out = cfg_norm::structure(&out);
+        out = cfg_norm::structure(&out, interner);
         timer.lap("cfg-structure");
     }
     out = algebra::run(&out, interner);

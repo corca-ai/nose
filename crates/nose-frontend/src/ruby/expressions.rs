@@ -36,6 +36,12 @@ pub(super) fn lower_assign(lo: &mut Lowering, node: TsNode) -> NodeId {
 pub(super) fn lower_string(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let children = Lowering::named_children(node);
+    if node.kind() == "string" && !children.iter().any(|child| child.kind() == "interpolation") {
+        return lo.str_lit(lo.text(node), span);
+    }
+    if matches!(node.kind(), "bare_string" | "string_content") {
+        return lo.str_content(lo.text(node), span);
+    }
     let has_string_parts = children
         .iter()
         .any(|c| matches!(c.kind(), "string_content" | "interpolation"));
@@ -45,14 +51,14 @@ pub(super) fn lower_string(lo: &mut Lowering, node: TsNode) -> NodeId {
             node.kind(),
             "symbol" | "simple_symbol" | "hash_key_symbol" | "delimited_symbol"
         ) {
-            return lo.str_lit(text.trim_start_matches(':').trim_end_matches(':'), span);
+            return lo.str_content(text.trim_start_matches(':').trim_end_matches(':'), span);
         }
         return lo.str_lit(text, span);
     }
     let mut parts = Vec::new();
     for child in children {
         match child.kind() {
-            "string_content" => parts.push(lo.str_lit(lo.text(child), lo.span(child))),
+            "string_content" => parts.push(lo.str_content(lo.text(child), lo.span(child))),
             "interpolation" => {
                 if let Some(expr) = child.named_child(0) {
                     parts.push(lower_expr(lo, expr));
@@ -64,7 +70,7 @@ pub(super) fn lower_string(lo: &mut Lowering, node: TsNode) -> NodeId {
     parts
         .into_iter()
         .reduce(|acc, part| lo.add(NodeKind::BinOp, Payload::Op(Op::Add), span, &[acc, part]))
-        .unwrap_or_else(|| lo.str_lit("", span))
+        .unwrap_or_else(|| lo.str_content("", span))
 }
 pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
@@ -73,14 +79,33 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         | "self" => lo.var(lo.text(node), span),
         "integer" => lo.int_lit(lo.text(node), span),
         "float" => lo.float_lit(lo.text(node), span),
-        "character" => lo.str_lit(lo.text(node), span),
-        // Ruby symbols are atoms (`:foo`, and the `foo:` key in `{foo: 1}`); lower as
-        // string literals so their value participates in matching like any constant.
+        "character" => {
+            match lo
+                .text(node)
+                .strip_prefix('?')
+                .filter(|text| text.chars().count() == 1 && !text.contains('\\'))
+            {
+                Some(content) => lo.str_content(content, span),
+                None => lo.str_lit(lo.text(node), span),
+            }
+        }
+        // Symbols are distinct from Strings. Retain their structural children,
+        // while recording the atom kind separately from its literal-name hash.
+        "symbol" | "simple_symbol" | "hash_key_symbol" | "delimited_symbol" => {
+            let value = lower_string(lo, node);
+            if lo.b.node(value).kind != NodeKind::Lit {
+                return lo.raw("ruby_symbol_literal", span, &[value]);
+            }
+            lo.record_source_fact(
+                lo.b.node(value).span,
+                nose_il::SourceFactKind::Literal(nose_il::SourceLiteralKind::RubySymbol),
+            );
+            value
+        }
         // Heredocs (`<<~SQL … SQL`) are multi-line strings: tree-sitter splits them
         // into a `heredoc_beginning` (in value position) and a dangling `heredoc_body`
         // (content + `#{…}` interpolations) — both lower like any interpolated string.
-        "string" | "bare_string" | "symbol" | "simple_symbol" | "hash_key_symbol"
-        | "delimited_symbol" | "string_content" | "interpolation" | "string_array"
+        "string" | "bare_string" | "string_content" | "interpolation" | "string_array"
         | "symbol_array" | "heredoc_beginning" | "heredoc_body" => lower_string(lo, node),
         "true" => lo.add(NodeKind::Lit, Payload::LitBool(true), span, &[]),
         "false" => lo.add(NodeKind::Lit, Payload::LitBool(false), span, &[]),
@@ -239,7 +264,8 @@ pub(super) fn lower_arrow_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
 pub(super) fn lower_subshell(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let callee = lo.var("__ruby_subshell__", span);
-    let command = lo.str_lit(lo.text(node), span);
+    // This is a source key for an opaque command, not a decoded string value.
+    let command = lo.str_content(lo.text(node), span);
     lo.add(NodeKind::Call, Payload::None, span, &[callee, command])
 }
 pub(super) fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {

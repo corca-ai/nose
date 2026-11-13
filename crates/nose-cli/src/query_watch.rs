@@ -5,7 +5,7 @@ use crate::query_commands::{
     query_surface_overrides, semantic_packs_for_output,
 };
 use crate::query_dashboard::query_dashboard_json;
-use crate::query_dataset::{build_query_dataset, QueryAnalysisSession, QueryDataset};
+use crate::query_dataset::{QueryAnalysisSession, QueryDataset};
 use crate::query_options::ReportFormat;
 use crate::query_terms::Query;
 use crate::schema_versions::QUERY_WATCH_JSONL_SCHEMA;
@@ -45,9 +45,9 @@ pub(crate) fn run(
     let mut input_files = inputs::register(&watch_args, watcher.as_mut(), &mut watched)?;
     let refs = paths_as_refs(&watch_args.paths);
 
-    // Seed or validate the ordinary transactional cache before the long-lived session takes
-    // ownership of its generation. The session-derived snapshot below closes the startup race:
-    // an edit during this seed pass cannot pair an old snapshot with a new source digest.
+    // Restore a validated generation or build the same corpus/unit features directly.
+    // Startup must not depend on a seed surviving eviction under a tiny budget.
+    // The dataset and source digest come from this single in-memory session.
     let (mut session, initial_dataset) = open_session(&watch_args, &refs)?;
     let initial_invalidation = session.take_initial_invalidation();
     let mut source_set_digest = session.source_set_digest();
@@ -153,7 +153,6 @@ fn watch_root_paths(args: &QueryArgs) -> Vec<PathBuf> {
 }
 
 fn open_session(args: &QueryArgs, refs: &[&Path]) -> Result<(QueryAnalysisSession, QueryDataset)> {
-    build_query_dataset(args, refs, &[])?;
     let mut session = QueryAnalysisSession::open(args, refs)?
         .context("watch session could not open the incremental cache; external semantic-pack influence is not supported in watch mode")?;
     let dataset = session.current_dataset(args, refs)?;

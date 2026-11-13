@@ -212,7 +212,21 @@ pub fn detect_prepared(docs: &[PreparedDocument], opts: &Options) -> Vec<Family>
     let model = time_stage("md_model", || CorpusModel::fit(&fps));
 
     // Stage 1 → Stage 2: score every candidate pair, accept above threshold.
-    let cands = time_stage("md_candidates", || fingerprint::candidate_pairs(&fps));
+    let cands = time_stage("md_candidates", || {
+        let mut pairs = fingerprint::candidate_pairs(&fps);
+        // Frequency caps bound fuzzy search cost; they must not suppress exact
+        // content. A star preserves every copy with only n-1 additional edges.
+        let mut first = rustc_hash::FxHashMap::default();
+        for (index, unit) in units.iter().enumerate() {
+            let representative = first.entry(unit.norm.as_str()).or_insert(index);
+            if *representative != index {
+                pairs.push((*representative, index));
+            }
+        }
+        pairs.sort_unstable();
+        pairs.dedup();
+        pairs
+    });
     let accepted: Vec<(usize, usize, f64)> = time_stage("md_accept", || {
         cands
             .par_iter()
@@ -358,6 +372,36 @@ fn build_family(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn identical_copies_survive_frequency_caps_issue_999() {
+        let body = "Download the binary from the releases page and place it on your PATH. Then run the version command to confirm the installation succeeded correctly.";
+        for copies in [2, 8, 9, 32] {
+            let docs: Vec<_> = (0..copies).map(|i| doc(&format!("{i}.md"), body)).collect();
+            let families = detect(&docs, &Options::default());
+            assert_eq!(families.len(), 1, "copies={copies}");
+            assert_eq!(families[0].members.len(), copies);
+            assert!(families[0].exact);
+        }
+    }
+
+    #[test]
+    fn nospace_prose_uses_script_aware_admission_issue_1002() {
+        for body in [
+            "部署之前请仔细检查服务器配置文件并验证数据库连接是否正常。确认所有服务启动成功之后再开放外部网络访问。发生故障时保留日志并执行恢复步骤。",
+            "デプロイ前にサーバーの設定ファイルを確認し、データベース接続を検証してください。すべてのサービスが正常に起動してから外部アクセスを許可します。障害発生時にはログを保存して復旧手順を実行してください。",
+            "배포하기전에서버설정파일과데이터베이스연결상태를확인하고모든서비스가정상적으로시작하면외부접근을허용합니다",
+            "ก่อนเริ่มใช้งานให้ตรวจสอบการตั้งค่าของระบบและบันทึกข้อมูลให้เรียบร้อยเพื่อให้สามารถกู้คืนได้เมื่อเกิดปัญหา",
+        ] {
+            let families = detect(&[doc("a.md", body), doc("b.md", body)], &Options::default());
+            assert_eq!(families.len(), 1, "{body}");
+        }
+        assert!(detect(
+            &[doc("a.md", "短文"), doc("b.md", "短文")],
+            &Options::default()
+        )
+        .is_empty());
+    }
 
     fn doc(p: &str, s: &str) -> (String, String) {
         (p.to_string(), s.to_string())

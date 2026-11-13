@@ -45,6 +45,17 @@ impl<'a> Builder<'a> {
 
     fn eval_inner(&mut self, expr: NodeId, env: &FxHashMap<u32, ValueId>) -> ValueId {
         let node = *self.il.node(expr);
+        if self.il.meta.lang == Lang::Ruby
+            && matches!(node.kind, NodeKind::Lit | NodeKind::BinOp)
+            && nose_semantics::source_literal_at_node(self.il, expr)
+                == Some(nose_il::SourceLiteralKind::RubySymbol)
+        {
+            // Keep literal-name payloads readable by Ruby's redefinition guards,
+            // while retaining the atom's distinct runtime kind in the graph.
+            if let Payload::LitStr(hash) = node.payload {
+                return self.mk_const(ConstKind::Symbol, hash);
+            }
+        }
         match node.kind {
             NodeKind::Var => self.eval_var_expr(expr, node.payload, env),
             NodeKind::Lit => self.eval_lit_expr(node.payload),

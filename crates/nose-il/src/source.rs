@@ -108,6 +108,13 @@ impl SourceDocument {
             .get_or_init(|| ContentDigest::sha256(&self.bytes))
     }
 
+    /// Number of source lines, without inventing an extra line after a final LF.
+    pub fn line_count(&self) -> u32 {
+        let count = self.bytes.iter().filter(|&&byte| byte == b'\n').count()
+            + usize::from(!self.bytes.is_empty() && self.bytes.last() != Some(&b'\n'));
+        u32::try_from(count).unwrap_or(u32::MAX)
+    }
+
     pub fn region(&self, start_byte: u32, end_byte: u32) -> Option<SourceRegion> {
         if start_byte >= end_byte {
             return None;

@@ -249,7 +249,7 @@ pub(super) fn lower_enum_constant(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let mut kids = Vec::new();
     if let Some(name) = node.child_by_field_name("name") {
-        kids.push(lo.str_lit(lo.text(name), lo.span(name)));
+        kids.push(lo.str_content(lo.text(name), lo.span(name)));
     }
     kids.extend(crate::lower::call_arguments(lo, node, lower_expr));
     if let Some(body) = node.child_by_field_name("body") {

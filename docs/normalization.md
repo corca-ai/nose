@@ -628,6 +628,20 @@ distinct domain tags, so the language-blind exact channel can never merge HTML w
 with imperative code.
 
 
+## Source evaluation boundaries
+
+Literal lowering separates complete source tokens from already-delimited string
+content. Only outer delimiters are removed; quotes within a value survive.
+Prefixes and escape forms without a supported decoder retain source-keyed opaque
+boundaries. Python loop-else, deletion, synchronous context managers and assertions
+also retain opaque statement boundaries rather than losing their effects before
+exact admission. Their lowered children remain available to structural matching.
+CFG normalization preserves trailing continue guards and empty-branch conditions
+as opaque evaluation boundaries: the value graph otherwise has no branch outcome
+to retain their evaluation/truthiness effects. Ruby symbols retain their atom kind
+separately from String values; static name hashes remain readable by redefinition
+guards, and String API evidence cannot be borrowed from a symbol.
+
 ## Arena mutation and derived indexes
 
 Alpha-renaming and final branch orientation take one exclusive arena edit for

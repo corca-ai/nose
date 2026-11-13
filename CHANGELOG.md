@@ -6,6 +6,29 @@ break.
 
 ## [Unreleased]
 
+## [0.21.1] - 2026-11-13
+
+- Build Apple Silicon release archives on the supported macOS 15 runner.
+
+- Update the zstd dependency family to patched releases for RUSTSEC-2026-0391,
+  RUSTSEC-2026-0398, RUSTSEC-2026-0403, and RUSTSEC-2026-0410.
+
+- Preserve string content at delimiter boundaries, including Ruby and JavaScript
+  string fragments. Keep undecoded prefixed/escaped literals opaque rather than
+  aliasing their source spelling with a different string value (#1003). Distinguish
+  Ruby symbols from strings while retaining static-name shadowing guards.
+- Preserve evaluation and truthiness of trailing continue and empty-branch guards
+  through normalization and value-graph extraction (#1005).
+  Keep Python loop-else, deletion, synchronous context managers, and assertions
+  exact-ineligible until their effects are modeled (#1004).
+- Report byte-identical admitted source files in semantic and near queries with
+  a copy-paste witness, including files consisting of small functions (#1009).
+- Preserve identical Markdown families across candidate frequency caps (#999),
+  and use script-aware token counts for prose admission (#1002).
+- Support Markdown-only and empty-root watch sessions (#1000). Commit each watch
+  revision and release its disk lease between revisions so cache budget maintenance
+  and explicit administration can run safely (#1001). Invalidate affected caches.
+
 - Support explicit content polling for query watch sessions on filesystems and
   restricted runtimes without native notifications. CI test gates use the real
   polling backend while retaining all watch integration assertions.

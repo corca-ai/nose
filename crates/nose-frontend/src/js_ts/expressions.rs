@@ -457,7 +457,7 @@ fn lower_object_pair(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn lower_object_pair_key(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     if let Some(key) = static_object_property_key(lo, node) {
-        return lo.str_lit(&key, span);
+        return lo.str_content(&key, span);
     }
     let inner: Vec<NodeId> = Lowering::named_children(node)
         .into_iter()
@@ -491,7 +491,7 @@ fn lower_object_shorthand(lo: &mut Lowering, node: TsNode) -> NodeId {
         let tag = lo.sym("js_escaped_property_identifier");
         lo.add(NodeKind::Seq, Payload::Name(tag), span, &[])
     } else {
-        lo.str_lit(&name, span)
+        lo.str_content(&name, span)
     };
     let value = lo.var(&name, span);
     let tag = lo.sym("pair");
@@ -507,13 +507,13 @@ fn lower_template(lo: &mut Lowering, node: TsNode) -> NodeId {
     for c in Lowering::named_children(node) {
         match c.kind() {
             "string_fragment" | "escape_sequence" => {
-                let lit = lo.str_lit(lo.text(c), lo.span(c));
+                let lit = lo.str_content(lo.text(c), lo.span(c));
                 append_template_part(lo, &mut acc, span, lit);
             }
             "template_substitution" => {
                 if let Some(e) = c.named_child(0) {
                     if acc.is_none() {
-                        acc = Some(lo.str_lit("", span));
+                        acc = Some(lo.str_content("", span));
                     }
                     let sub = lower_expr(lo, e);
                     append_template_part(lo, &mut acc, span, sub);
@@ -522,7 +522,7 @@ fn lower_template(lo: &mut Lowering, node: TsNode) -> NodeId {
             _ => {}
         }
     }
-    acc.unwrap_or_else(|| lo.str_lit("", span))
+    acc.unwrap_or_else(|| lo.str_content("", span))
 }
 
 fn append_template_part(lo: &mut Lowering, acc: &mut Option<NodeId>, span: Span, part: NodeId) {

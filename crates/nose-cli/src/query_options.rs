@@ -23,9 +23,9 @@ pub(crate) enum ReportFormat {
 pub(crate) enum DetectionMode {
     /// CPD-style syntax copy-paste runs (the Type-1/2 floor).
     Syntax,
-    /// Exact value-fingerprint Type-4 semantic clones.
+    /// Exact value-fingerprint clones plus byte-identical whole-source copies.
     Semantic,
-    /// Fuzzy Type-3 near-duplicate candidates, with an optional acceptance threshold.
+    /// Fuzzy Type-3 candidates plus whole-source copies, with an optional threshold.
     Near(Option<f64>),
     /// Experimental weak refactoring-template witnesses over near candidates.
     Abstraction(Option<f64>),

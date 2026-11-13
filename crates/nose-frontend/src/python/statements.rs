@@ -53,8 +53,8 @@ pub(super) fn lower_stmt(lo: &mut Lowering, node: TsNode, in_class: bool) -> Opt
         }
         "try_statement" => Some(lower_try(lo, node)),
         "with_statement" => {
-            // Treat `with ...: body` as its body block (the context manager is
-            // mostly setup/teardown noise for structural matching).
+            // Keep the body available for structural matching, but never erase
+            // context evaluation, binding, enter/exit, or exception suppression.
             let body = node.child_by_field_name("body");
             let lowered = match body {
                 Some(b) => lower_block(lo, b, false),
@@ -68,20 +68,26 @@ pub(super) fn lower_stmt(lo: &mut Lowering, node: TsNode, in_class: bool) -> Opt
                     &[lowered],
                 )
             } else {
-                lowered
+                opaque_statement(lo, node, &[lowered])
             })
         }
         "break_statement" => Some(lo.add(NodeKind::Break, Payload::None, span, &[])),
         "continue_statement" => Some(lo.add(NodeKind::Continue, Payload::None, span, &[])),
         "pass_statement" => Some(lo.empty_block(span)),
         "assert_statement" => {
-            // `assert cond[, msg]` → ExprStmt(cond) (msg is incidental)
-            let cond = first_semantic_named_child(node)
-                .map(|c| lower_expr(lo, c))
-                .unwrap_or_else(|| lo.empty_block(span));
-            Some(lo.add(NodeKind::ExprStmt, Payload::None, span, &[cond]))
+            let kids: Vec<_> = semantic_named_children(node)
+                .into_iter()
+                .map(|child| lower_expr(lo, child))
+                .collect();
+            Some(opaque_statement(lo, node, &kids))
         }
-        "delete_statement" => None,
+        "delete_statement" => {
+            let kids: Vec<_> = semantic_named_children(node)
+                .into_iter()
+                .map(|child| lower_expr(lo, child))
+                .collect();
+            Some(opaque_statement(lo, node, &kids))
+        }
         "expression_statement" => {
             let child = node.named_child(0)?;
             match child.kind() {
@@ -104,6 +110,13 @@ pub(super) fn lower_stmt(lo: &mut Lowering, node: TsNode, in_class: bool) -> Opt
             Some(lo.add(NodeKind::ExprStmt, Payload::None, span, &[e]))
         }
     }
+}
+
+/// Unsupported statement semantics must remain source-keyed and exact-ineligible.
+/// A surface-kind-only Raw would conflate different context managers/targets.
+pub(super) fn opaque_statement(lo: &mut Lowering, node: TsNode, kids: &[NodeId]) -> NodeId {
+    let key = stable_symbol_hash(lo.text(node));
+    lo.raw(&format!("{}:{key:016x}", node.kind()), lo.span(node), kids)
 }
 pub(super) fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     let span = lo.span(node);

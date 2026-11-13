@@ -29,5 +29,8 @@ mod semantic_idioms;
 #[path = "cli/watch.rs"]
 mod watch;
 
+#[path = "cli/whole_file_copies.rs"]
+mod whole_file_copies;
+
 #[path = "cli/review_regressions.rs"]
 mod review_regressions;

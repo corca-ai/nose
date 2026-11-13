@@ -274,6 +274,7 @@ fn query_capability_flags() -> std::collections::BTreeMap<&'static str, bool> {
         ("query_base_sarif", true),
         ("query_base_structured_ignores", true),
         ("query_watch", true),
+        ("query_whole_source_copies", true),
         ("query_watch_full_snapshot", true),
         ("query_watch_jsonl_v1", true),
         ("reinvented_view", true),

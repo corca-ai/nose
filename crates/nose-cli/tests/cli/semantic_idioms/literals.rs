@@ -74,7 +74,7 @@ fn query_mode_semantic_converges_cross_language_map_literals() {
             ),
             (
                 "map.rb",
-                "def build_example(command, description)\n  { command: command, description: description }\nend\n",
+                "def build_example(command, description)\n  { 'command' => command, 'description' => description }\nend\n",
             ),
             (
                 "map_key_negative.ts",

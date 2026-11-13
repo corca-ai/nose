@@ -20,6 +20,7 @@ pub(crate) struct FastUnitSession {
     snapshot: super::super::CachedUnitSnapshot,
     run: CacheRun,
     initial_report: Option<InvalidationReport>,
+    budget: super::super::transaction::SessionBudget,
 }
 
 pub(crate) struct FastUnitSessionRefresh {
@@ -45,6 +46,7 @@ impl FastUnitSession {
             .enumerate()
             .map(|(index, source)| (path_key(Path::new(&source.path)), index))
             .collect();
+        let budget = super::super::transaction::SessionBudget::new(&run);
         Self {
             units: cached.units,
             unit_keys: cached.unit_keys,
@@ -59,6 +61,7 @@ impl FastUnitSession {
             snapshot,
             run,
             initial_report: Some(report),
+            budget,
         }
     }
 
@@ -67,6 +70,7 @@ impl FastUnitSession {
         path: &Path,
         opts: &DetectOptions,
     ) -> Option<FastUnitSessionRefresh> {
+        self.begin_revision();
         let source_index = *self.source_path_indexes.get(&path_key(path))?;
         let path = self.source_files[source_index].path.clone();
         let current = refreshed_source(&self.source_files[source_index])?;
@@ -97,6 +101,15 @@ impl FastUnitSession {
             invalidation,
             source_set_digest: current_lines.hex(),
         })
+    }
+
+    pub(crate) fn begin_revision(&mut self) {
+        self.run.begin_session_revision();
+    }
+
+    pub(crate) fn finish_revision(&mut self, opts: &DetectOptions) {
+        super::store_snapshot(&self.run, opts, &self.snapshot);
+        self.budget.finish_revision(&mut self.run)
     }
 
     fn apply_replacements(

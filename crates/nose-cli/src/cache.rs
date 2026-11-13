@@ -46,6 +46,7 @@ pub(crate) use self::detection::{
     load_detection_state, store_detection_state, DetectionCacheIdentity,
 };
 use self::digest::ContentDigest;
+pub(crate) use self::fast_units::open_session as open_unit_session;
 pub(crate) use self::fast_units::FastCachedUnits;
 pub(crate) use self::fast_units::FastUnitSession;
 pub(crate) use self::lines::{build_line_index, LineIndexStats};
@@ -195,7 +196,7 @@ pub(crate) fn semantic_pack_digest(packs: &nose_semantics::SemanticPackSet) -> C
 }
 
 /// Bump when unit/stream serialization, extraction, or feature hashing changes.
-const UNITS_SYNTAX_SCHEMA: u32 = 8;
+const UNITS_SYNTAX_SCHEMA: u32 = 9;
 const UNITS_PACK_SCHEMA: u32 = 5;
 const UNITS_PACK_MAGIC: &[u8; 8] = b"NOSEUPK2";
 const UNITS_PACK_HEADER_LEN: usize = 8 + 4 + 32 + 32;

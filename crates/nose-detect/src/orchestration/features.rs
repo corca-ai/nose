@@ -63,8 +63,7 @@ pub fn corpus_features(corpus: &Corpus, opts: &DetectOptions) -> CorpusFeatures 
             // Build contiguous copy-paste streams from raw IL. Alpha-renaming is
             // function-scoped, so normalized identifiers would vary by enclosing unit;
             // renamed Type-2/3/4 matches remain the structural channel's job.
-            let stream = opts
-                .contiguous
+            let stream = (opts.structural || opts.contiguous)
                 .then(|| contiguous::stream(il, &corpus.interner));
             (units, stream)
         })
@@ -118,8 +117,7 @@ pub fn corpus_features_with_normalized(
             } else {
                 (Vec::new(), None, None)
             };
-            let stream = opts
-                .contiguous
+            let stream = (opts.structural || opts.contiguous)
                 .then(|| contiguous::stream(il, &corpus.interner));
             (units, stream, normalized, context)
         })

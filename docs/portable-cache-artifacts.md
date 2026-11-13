@@ -31,7 +31,7 @@ rebound afterward. Global detection state uses CAS-derived per-unit identities, 
 bucket memberships, stores one pair plus its bucket contribution count, and rebuilds components
 whose accepted edges changed or disappeared. Detection-state schema 8 invalidates older
 pair indexes that included equal-span same-file pairs; raw IL and unit features remain
-reusable where their stage keys match. Unit/stream schema 7 additionally stores raw
+reusable where their stage keys match. Unit/stream schema 9 stores whole-source admission and raw
 syntactic containers so syntax-only boundary metadata agrees across clean, cold, warm
 and moved-source queries; an older stream is rebuilt from cached IL. Incremental bucket updates stream pairs into contribution counts. Syntax runs use the same delete-capable rule over
 shared k-grams. A small source manifest lets an unchanged run reuse line-IDF and family
@@ -45,22 +45,26 @@ This execution choice does not change analysis scope or the connected-seed polic
 
 Git index flags (`assume-unchanged`, `skip-worktree`), clean/smudge filters, and
 concurrent edits cannot substitute a Git blob for the bytes actually analyzed.
-Raw IL schema 7 and source-analysis identity v4 include the extension profile and
+Raw IL schema 8 and source-analysis identity v5 include the extension profile and
 the retained primitive-key evidence used by the offline oracle,
 so TS/TSX dialect changes and C/header classification cannot reuse incompatible
 artifacts. Checkout-local directory names remain outside this identity.
-The v4 analysis identity invalidates older empty raw bundles and warm generations
-that skipped legitimate Rust ANSI fixtures. Corrected source admission must rebuild
+The v5 analysis identity invalidates older lowering and warm generations, including
+string-content and Python statement-effect omissions and previously skipped Rust ANSI fixtures. Corrected source admission must rebuild
 those stages even when the working bytes are unchanged; original source-buffer
 digests and public review identities are separate from this cache identity.
 
 Markdown preprocessing and complete dashboard results also use checksummed CAS
 state records. Document entries bind source bytes; report entries bind ordered
-paths and document digests. Changed documents alone need new normalization and
+paths and document digests. Report identity v2 invalidates results computed before
+script-aware admission and exact-copy spanning edges. Changed documents alone need new normalization and
 fingerprints; unchanged reports skip candidate generation and ranking.
 
-Automatic pruning tries the exclusive lease without blocking a live watch
-session. Explicit `cache prune` and `cache clear` still wait for active readers.
+Watch revisions commit and release their shared lease between revisions. Their
+byte checkpoint triggers the existing nonblocking automatic pruner at a safe
+boundary when accumulated writes exhaust the remaining budget. Explicit `cache
+prune` and `cache clear` wait for an active revision, rather than the whole watch
+session. The next revision reacquires its lease before reading or writing artifacts.
 
 ## Dependency-aware invalidation
 

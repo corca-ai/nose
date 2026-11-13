@@ -47,11 +47,7 @@ impl Unit {
 
     /// Word count of the normalized prose (used by length floors).
     pub fn prose_words(&self) -> usize {
-        if self.norm.is_empty() {
-            0
-        } else {
-            self.norm.split(' ').filter(|w| !w.is_empty()).count()
-        }
+        norm::word_token_slices(&self.norm).count()
     }
 }
 

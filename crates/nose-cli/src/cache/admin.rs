@@ -82,6 +82,12 @@ pub(crate) fn prune(root: &Path, max_bytes: u64) -> std::io::Result<PruneReport>
     prune_locked(root, max_bytes)
 }
 
+pub(super) fn try_prune(root: &Path, max_bytes: u64) -> std::io::Result<PruneReport> {
+    let lease = open_store_lease(root)?;
+    FileExt::try_lock_exclusive(&lease)?;
+    prune_locked(root, max_bytes)
+}
+
 fn prune_locked(root: &Path, max_bytes: u64) -> std::io::Result<PruneReport> {
     let before = status(root, max_bytes);
     let mut removed_files = 0;
@@ -167,13 +173,8 @@ pub(super) fn enforce_run_budget(run: CacheRun) {
     if started_empty && written_bytes <= max_bytes {
         return;
     }
-    let result = (|| {
-        // A watch session can hold another shared lease in this process. Automatic
-        // maintenance must not wait for it; explicit prune/clear still wait.
-        let lease = open_store_lease(&root)?;
-        FileExt::try_lock_exclusive(&lease)?;
-        prune_locked(&root, max_bytes)
-    })();
+    // Another active reader/writer must never block automatic maintenance.
+    let result = try_prune(&root, max_bytes);
     if let Err(error) = result {
         if std::env::var_os("NOSE_CACHE_STATS").is_some() {
             eprintln!("  [cache-prune] skipped: {error}");

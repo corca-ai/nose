@@ -83,6 +83,12 @@ impl OperatorSemantics {
         node: NodeId,
     ) -> Option<PrimitiveEffectDomain> {
         match il.kind(node) {
+            NodeKind::Lit
+                if matches!(il.node(node).payload, Payload::LitStr(_))
+                    && !crate::is_concrete_string_literal(il, node) =>
+            {
+                None
+            }
             NodeKind::Lit => self.callback_literal_domain(il.node(node).payload),
             NodeKind::Var => {
                 let domain = match interner {

@@ -95,17 +95,17 @@ pub fn extract_code(raw: &str) -> String {
 
 /// Script-aware word tokens: spaced scripts → words; no-space scripts → per-character.
 pub fn word_tokens(norm: &str) -> Vec<String> {
+    word_token_slices(norm).map(str::to_string).collect()
+}
+
+/// The same token boundaries without allocating strings, also used by admission.
+pub(crate) fn word_token_slices(norm: &str) -> impl Iterator<Item = &str> {
     static WORD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\w+").unwrap());
-    let mut toks = Vec::new();
-    for m in WORD.find_iter(norm) {
+    WORD.find_iter(norm).flat_map(|m| {
         let w = m.as_str();
-        if w.chars().any(is_nospace_char) {
-            toks.extend(w.chars().map(|c| c.to_string()));
-        } else {
-            toks.push(w.to_string());
-        }
-    }
-    toks
+        let per_character = w.chars().any(is_nospace_char);
+        w.split_inclusive(move |_| per_character)
+    })
 }
 
 /// Character n-grams over the normalized string (the universal substrate). Operates on
