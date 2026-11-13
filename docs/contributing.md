@@ -308,6 +308,9 @@ verification before a publishing tag is pushed; the existing publication quality
 gate remains required. See the [0.21 candidate qualification](release-evidence-0.21.0.md)
 for the current preparation status.
 
+The Apple Silicon artifact uses the explicit `macos-15` runner in
+`dist-workspace.toml`; cargo-dist 0.32 defaults to the retired macOS 14 image.
+
 The cargo-dist pipeline lives in `dist-workspace.toml`; the artifact-building jobs in
 `.github/workflows/release.yml` are generated from it. The repository-owned quality-gate
 job at the top of that workflow is a local publishing guard; preserve it if regenerating

@@ -8,6 +8,8 @@ break.
 
 ## [0.21.1] - 2026-11-13
 
+- Build Apple Silicon release archives on the supported macOS 15 runner.
+
 - Update the zstd dependency family to patched releases for RUSTSEC-2026-0391,
   RUSTSEC-2026-0398, RUSTSEC-2026-0403, and RUSTSEC-2026-0410.
 
