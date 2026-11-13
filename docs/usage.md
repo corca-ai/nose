@@ -278,8 +278,8 @@ against the standard Type-1–4 taxonomy.
 | mode | clone type | detector channel | use when |
 |---|---|---|---|
 | `syntax` | Type-1 / exact token-run floor | same-language jscpd-style contiguous copy-paste runs | replacing jscpd / blocking copy-paste clones in CI |
-| `semantic` | Type-4 | exact value-fingerprint matches | high-confidence semantic clones with no fuzzy threshold |
-| `near` | Type-3 | shape candidates + fuzzy structural/value scoring | finding near-duplicates for triage |
+| `semantic` | Type-4 + whole-source Type-1 | exact value-fingerprint matches + source-copy floor | high-confidence semantic clones with no fuzzy threshold |
+| `near` | Type-3 + whole-source Type-1 | shape candidates + fuzzy structural/value scoring + source-copy floor | finding near-duplicates for triage |
 
 Examples:
 

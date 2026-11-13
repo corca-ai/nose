@@ -71,6 +71,9 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    signature-buffer count within the final output's requirements. Every public corpus or
    per-file extraction result is fully signed; serialized feature layouts stay the same.
 4. **Candidate generation**: the selected detection channels decide which candidates exist.
+   Semantic and near queries retain a narrow source-identity floor for byte-identical
+   admitted same-language files, with a copy-paste witness and ordinary size/line floors.
+   This is independent of fuzzy syntax search and preserves inline suppression.
    `semantic` uses value-fingerprint MinHash signatures plus exact-value buckets, `near`
    uses shape MinHash signatures, experimental `abstraction` reuses the near candidate
    stream, and `syntax` bypasses unit LSH with a Rabin-Karp token-stream pass.
@@ -93,7 +96,8 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    not source features or accepted output. Smaller analyses retain the indexed path; raw
    diagnostic dumps still materialize the requested candidates. There is no implicit
    user-facing pair ceiling; explicit CLI/environment ceilings remain fail-before-results.
-5. **Accept / score**: `semantic` accepts only exact-safe value-fingerprint equality, `near`
+5. **Accept / score**: semantic witnesses require exact-safe value-fingerprint equality;
+   whole-source equality uses the separate copy-paste witness. `near`
    scores candidates with structural alignment (RANSAC) plus weighted shape/value
    Jaccard and accepts above the inline `near:T` threshold (default `near:0.70`), and
    may separately admit a bounded pair-local connected block/statement-window witness
