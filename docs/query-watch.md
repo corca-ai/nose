@@ -105,6 +105,9 @@ falls back to the ordinary query pipeline when an event is ambiguous, spans
 multiple sources, changes membership or configuration, or requests an overflow
 rescan. Atomic-save rename sequences and delete/recreate bursts converge on the
 final filesystem state after a short debounce.
+Truncating saves can expose a temporarily empty source and therefore require
+full reconciliation even when the final edit changes only one function body.
+Consumers must accept either reconciliation path for a successful revision.
 
 Configuration and ignore files are watched even outside the analysis roots.
 Their containing directories are observed so atomic replacement keeps working.

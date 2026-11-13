@@ -98,6 +98,21 @@ fn project(tag: &str) -> TempProject {
     project
 }
 
+fn write_leaf_edit(project: &TempProject, name: &str, content: &str) {
+    use std::io::Write as _;
+
+    let path = project.path().join(name);
+    assert_eq!(fs::metadata(&path).unwrap().len(), content.len() as u64);
+    // Truncation can expose an empty source and correctly require full
+    // reconciliation. Leaf-path assertions need a stable source shape.
+    fs::OpenOptions::new()
+        .write(true)
+        .open(path)
+        .unwrap()
+        .write_all(content.as_bytes())
+        .unwrap();
+}
+
 fn clean_dashboard(project: &Path) -> serde_json::Value {
     let output = Command::new(bin())
         .args([
@@ -135,7 +150,7 @@ fn leaf_revision_matches_a_clean_query_and_restart() {
         assert_same_analysis(&initial["snapshot"], &clean_dashboard(project.path()));
         first_digest = initial["source_set_digest"].as_str().unwrap().to_owned();
 
-        project.write("b.py", CHANGED);
+        write_leaf_edit(&project, "b.py", CHANGED);
         let revision = watch.next("leaf revision");
         assert_eq!(revision["sequence"], 1);
         assert_eq!(revision["reconciliation"], "incremental-leaf");
