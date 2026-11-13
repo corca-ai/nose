@@ -6,6 +6,9 @@ use nose_detect::{detect, DetectOptions, StructuralDetector};
 use nose_il::{Corpus, FileId, Interner, Lang, NodeId, UnitKind};
 use nose_normalize::{normalize, subtree_hashes, NormalizeOptions};
 
+#[path = "equivalence/source_preservation.rs"]
+mod source_preservation;
+
 /// Normalize `src` and return the structural hash of its first function/method
 /// unit. A shared `interner` keeps field-name symbols comparable across calls.
 fn unit_hash(interner: &Interner, src: &str, lang: Lang) -> u64 {

@@ -108,6 +108,7 @@ pub(super) fn lower_for(lo: &mut Lowering, node: TsNode) -> NodeId {
         span,
         &[pat, iter, body],
     );
+    let loop_id = preserve_loop_else(lo, node, loop_id);
     if crate::lower::node_has_child_kind(node, "async") {
         lo.protocol_boundary(
             span,
@@ -120,7 +121,22 @@ pub(super) fn lower_for(lo: &mut Lowering, node: TsNode) -> NodeId {
     }
 }
 pub(super) fn lower_while(lo: &mut Lowering, node: TsNode) -> NodeId {
-    crate::lower::while_loop(lo, node, lower_expr, |lo, b| lower_block(lo, b, false))
+    let loop_id = crate::lower::while_loop(lo, node, lower_expr, |lo, b| lower_block(lo, b, false));
+    preserve_loop_else(lo, node, loop_id)
+}
+
+fn preserve_loop_else(lo: &mut Lowering, node: TsNode, loop_id: NodeId) -> NodeId {
+    let clause = semantic_named_children(node)
+        .into_iter()
+        .find(|child| child.kind() == "else_clause");
+    let Some(clause) = clause else { return loop_id };
+    let body = clause
+        .child_by_field_name("body")
+        .or_else(|| first_semantic_named_child(clause))
+        .map(|body| lower_block(lo, body, false))
+        .unwrap_or_else(|| lo.empty_block(lo.span(clause)));
+    // Loop completion versus break is not yet modeled by the shared loop IL.
+    opaque_statement(lo, node, &[loop_id, body])
 }
 pub(super) fn lower_match(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);

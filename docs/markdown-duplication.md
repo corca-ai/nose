@@ -54,6 +54,11 @@ matches, then identifies the duplicated line span in each file. The
 the matching pipeline, corpora, and measurements.
 Accepted pairs are assigned to their final component once before family statistics
 are computed; each family does not rescan the entire accepted-pair collection.
+Identical normalized sections are connected independently of the fuzzy search's
+high-frequency bucket caps, using linear-sized spanning edges. Adding copies
+cannot remove their family. Length admission uses the same script-aware tokens
+as verification, including per-character tokens for no-space scripts; short
+prose still has to satisfy the normal substance floors.
 
 ## Repeated queries
 

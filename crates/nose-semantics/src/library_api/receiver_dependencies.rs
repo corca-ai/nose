@@ -279,7 +279,7 @@ pub(in crate::library_api) fn receiver_dependency_ids(
 ) -> Option<Vec<EvidenceId>> {
     match contract {
         MethodReceiverContract::LiteralString => {
-            matches!(il.node(receiver).payload, Payload::LitStr(_)).then_some(Vec::new())
+            is_concrete_string_literal(il, receiver).then_some(Vec::new())
         }
         MethodReceiverContract::RubyCoreNilPredicate => {
             ruby_core_nil_predicate_safe_in_file(il, interner, receiver, cache)

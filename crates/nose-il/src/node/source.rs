@@ -83,6 +83,7 @@ pub enum SourceProtocolKind {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum SourceLiteralKind {
     Regex,
+    RubySymbol,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]

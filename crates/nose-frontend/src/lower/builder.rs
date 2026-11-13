@@ -130,7 +130,22 @@ impl<'a> Lowering<'a> {
     /// distinct in the value-graph. The structural tag stays the abstract `Str`
     /// class (see `node_tag`), so shape similarity is unaffected.
     pub(crate) fn str_lit(&mut self, text: &str, span: Span) -> NodeId {
-        let content = text.trim_matches(|c| c == '"' || c == '\'' || c == '`');
+        // Strip exactly the outer delimiter, never quote characters belonging
+        // to the value. CST string fragments must use str_content instead.
+        let content = ["\"\"\"", "'''", "\"", "'", "`"]
+            .into_iter()
+            .find_map(|delimiter| text.strip_prefix(delimiter)?.strip_suffix(delimiter));
+        match content {
+            Some(content) if !content.contains('\\') => self.str_content(content, span),
+            // Prefixes and escapes require language-specific decoding. Preserve
+            // exact source and fail closed rather than treating token spelling
+            // as a runtime string value (which can alias a quoted token).
+            _ => self.raw(&format!("string_literal:{:?}:{text}", self.lang), span, &[]),
+        }
+    }
+
+    /// Already delimited content (template fragments, symbols, generated keys).
+    pub(crate) fn str_content(&mut self, content: &str, span: Span) -> NodeId {
         let h = stable_symbol_hash(content);
         self.b.add(NodeKind::Lit, Payload::LitStr(h), span, &[])
     }

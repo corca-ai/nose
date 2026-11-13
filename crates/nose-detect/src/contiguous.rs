@@ -20,7 +20,9 @@ use rustc_hash::FxHashMap;
 mod boundaries;
 mod incremental;
 mod run_floors;
+mod whole_source;
 pub(crate) use incremental::{detect_incremental, IncrementalContiguousState};
+pub(crate) use whole_source::detect_whole_sources;
 
 /// One file's normalized-IL token stream, in source (pre-order) order.
 ///
@@ -32,6 +34,8 @@ pub(crate) use incremental::{detect_incremental, IncrementalContiguousState};
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Stream {
     root_is_module: bool,
+    #[serde(default)]
+    complete_source: bool,
     source: Option<std::sync::Arc<nose_il::SourceDocument>>,
     path: String,
     lang: nose_il::Lang,
@@ -81,6 +85,7 @@ fn is_operation(kind: nose_il::NodeKind) -> bool {
 pub(crate) fn stream(il: &Il, interner: &Interner) -> Stream {
     let mut s = Stream {
         root_is_module: false,
+        complete_source: il.suppressed.is_empty(),
         source: il.source.clone(),
         path: il.meta.path.clone(),
         lang: il.meta.lang,
@@ -465,6 +470,7 @@ mod tests {
         let n = tags.len() as u32;
         Stream {
             root_is_module: false,
+            complete_source: false,
             test_spans: Vec::new(),
             containers: Vec::new(),
             source: None,
@@ -533,6 +539,7 @@ mod tests {
             let n = shared.len() as u32;
             Stream {
                 root_is_module: false,
+                complete_source: false,
                 test_spans: Vec::new(),
                 containers: Vec::new(),
                 source: None,

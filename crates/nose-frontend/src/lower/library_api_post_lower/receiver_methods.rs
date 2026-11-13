@@ -207,16 +207,16 @@ fn seed_post_lower_receiver_method_dependencies(
                 module,
             );
         }
-        MethodReceiverContract::ExactString => {
-            if matches!(il.node(receiver_node).payload, Payload::LitStr(_)) {
-                let _ = post_lower_find_or_push_evidence(
-                    il,
-                    EvidenceAnchor::node(il.node(receiver_node).span, il.kind(receiver_node)),
-                    EvidenceKind::Domain(DomainEvidence::String),
-                    "string_literal_receiver_domain",
-                    Vec::new(),
-                );
-            }
+        MethodReceiverContract::ExactString
+            if nose_semantics::is_concrete_string_literal(il, receiver_node) =>
+        {
+            let _ = post_lower_find_or_push_evidence(
+                il,
+                EvidenceAnchor::node(il.node(receiver_node).span, il.kind(receiver_node)),
+                EvidenceKind::Domain(DomainEvidence::String),
+                "string_literal_receiver_domain",
+                Vec::new(),
+            );
         }
         _ => {}
     }

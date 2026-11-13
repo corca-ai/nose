@@ -104,6 +104,18 @@ pub(super) fn append_resolved_contiguous(
             units,
             trace_accepted_coverage,
         );
+    } else if opts.structural {
+        // Whole-source identity remains observable when every function is below
+        // the unit floors. This does not enable fuzzy syntax-run detection or
+        // claim semantic equivalence for unsupported effects.
+        let (groups, edges) = contiguous::detect_whole_sources(
+            streams,
+            opts.contiguous_min_tokens,
+            opts.contiguous_min_lines,
+            &report.groups,
+            trace_accepted_coverage,
+        );
+        append_contiguous_output(report, groups, edges, units, trace_accepted_coverage);
     }
 }
 

@@ -169,7 +169,7 @@ pub(super) fn lower_type_surface_as_value(lo: &mut Lowering, node: TsNode) -> No
             .unwrap_or_else(|| lo.empty_block(span)),
         "type_instantiation_expression" => lower_type_instantiation(lo, node),
         "type_identifier" | "identifier" | "package_identifier" => lo.var(lo.text(node), span),
-        _ if is_type_surface_kind(node.kind()) => lo.str_lit(lo.text(node), span),
+        _ if is_type_surface_kind(node.kind()) => lo.str_content(lo.text(node), span),
         _ => lower_expr(lo, node),
     }
 }
@@ -211,7 +211,7 @@ fn lower_type_argument_container_as_value(lo: &mut Lowering, node: TsNode) -> No
         .into_iter()
         .map(|arg| {
             if arg.id() == node.id() {
-                lo.str_lit(lo.text(arg), lo.span(arg))
+                lo.str_content(lo.text(arg), lo.span(arg))
             } else {
                 lower_type_surface_as_value(lo, arg)
             }

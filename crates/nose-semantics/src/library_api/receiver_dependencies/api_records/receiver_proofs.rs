@@ -92,8 +92,7 @@ pub(super) fn receiver_contract_dependency_match(
     receiver: NodeId,
     contract: MethodReceiverContract,
 ) -> bool {
-    if contract == MethodReceiverContract::LiteralString
-        && matches!(il.node(receiver).payload, Payload::LitStr(_))
+    if contract == MethodReceiverContract::LiteralString && is_concrete_string_literal(il, receiver)
     {
         return true;
     }

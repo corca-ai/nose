@@ -3,8 +3,119 @@ use super::*;
 const PROSE: &str = "# Install\n\nDownload the binary from the releases page and place it on your PATH. Then run the version command to confirm the installation succeeded correctly.\n";
 
 #[test]
+fn watch_survives_tiny_cache_and_idle_eviction() {
+    let project = project("watch_tiny_budget");
+    let cache = make_temp_dir("watch_tiny_budget_cache");
+    let mut watch =
+        WatchProcess::start_with_args(project.path(), &cache, &["--cache-max-bytes", "1KiB"]);
+    let initial = watch.next("initial tiny-budget snapshot");
+    assert_same_analysis(&initial["snapshot"], &clean_dashboard(project.path()));
+    for revision in 1..=3 {
+        let mut clear = Command::new(bin())
+            .args([
+                "cache",
+                "clear",
+                "--dir",
+                cache.to_str().unwrap(),
+                "--format",
+                "json",
+            ])
+            .stdout(Stdio::null())
+            .spawn()
+            .unwrap();
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        loop {
+            if let Some(status) = clear.try_wait().unwrap() {
+                assert!(status.success());
+                break;
+            }
+            if std::time::Instant::now() >= deadline {
+                clear.kill().unwrap();
+                clear.wait().unwrap();
+                panic!("cache clear blocked while the watch session was idle");
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+        project.write(
+            "b.py",
+            &SECOND.replace("total = 0", &format!("total = {revision}")),
+        );
+        let changed = watch.next("tiny-budget edit");
+        assert_same_analysis(&changed["snapshot"], &clean_dashboard(project.path()));
+    }
+    drop(watch);
+    fs::remove_dir_all(cache).unwrap();
+}
+
+#[test]
+fn leaf_watch_enforces_storage_budget_issue_1001() {
+    let project = project("watch_budget");
+    let cache = make_temp_dir("watch_budget_cache");
+    let budget = 40_000u64;
+    let mut watch = WatchProcess::start_with_args(
+        project.path(),
+        &cache,
+        &["--cache-max-bytes", &budget.to_string()],
+    );
+    watch.next("initial bounded snapshot");
+    for revision in 1..=12 {
+        project.write(
+            "b.py",
+            &SECOND.replace("total = 0", &format!("total = {revision}")),
+        );
+        let snapshot = watch.next("bounded leaf revision");
+        assert_eq!(snapshot["reconciliation"], "incremental-leaf");
+        assert_same_analysis(&snapshot["snapshot"], &clean_dashboard(project.path()));
+        let output = Command::new(bin())
+            .args([
+                "cache",
+                "status",
+                "--dir",
+                cache.to_str().unwrap(),
+                "--format",
+                "json",
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let status: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert!(
+            status["bytes"].as_u64().unwrap() <= budget,
+            "revision {revision}: {status}"
+        );
+    }
+    drop(watch);
+    fs::remove_dir_all(cache).unwrap();
+}
+
+#[test]
+fn watch_empty_code_facet_transitions_issue_1000() {
+    let project = TempProject::new("watch_empty");
+    let cache = make_temp_dir("watch_empty_cache");
+    let mut watch = WatchProcess::start(project.path(), &cache);
+    let initial = watch.next("empty root");
+    assert_same_analysis(&initial["snapshot"], &clean_dashboard(project.path()));
+    project.write("a.py", FIRST);
+    let added = watch.next("first code file");
+    assert_same_analysis(&added["snapshot"], &clean_dashboard(project.path()));
+    fs::remove_file(project.path().join("a.py")).unwrap();
+    let removed = watch.next("last code file removed");
+    assert_same_analysis(&removed["snapshot"], &clean_dashboard(project.path()));
+    project.write("a.md", PROSE);
+    project.write("b.md", PROSE);
+    let markdown = watch.next("Markdown after empty code");
+    assert_same_analysis(&markdown["snapshot"], &clean_dashboard(project.path()));
+    drop(watch);
+    fs::remove_dir_all(cache).unwrap();
+}
+
+#[test]
 fn markdown_only_change_refreshes_dashboard() {
-    let project = project("watch_markdown");
+    let project = TempProject::new("watch_markdown");
     project.write("a.md", PROSE);
     project.write("b.md", PROSE);
     let cache = make_temp_dir("watch_markdown_cache");

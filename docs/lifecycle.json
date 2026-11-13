@@ -86,7 +86,7 @@
       "kind": "active-roadmap",
       "status": "active",
       "owner": "semantic and evaluation roadmap maintainers",
-      "last_verified": "2026-07-30",
+      "last_verified": "2026-11-13",
       "review_after_days": 90,
       "pages": [
         "adversarial-coevolution.md",

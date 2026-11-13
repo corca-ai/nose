@@ -71,7 +71,7 @@ pub(super) fn lower_labeled_statement(lo: &mut Lowering, node: TsNode) -> NodeId
     let label = Lowering::named_children(node)
         .into_iter()
         .find(|child| child.kind() == "identifier")
-        .map(|label| lo.str_lit(lo.text(label), lo.span(label)))
+        .map(|label| lo.str_content(lo.text(label), lo.span(label)))
         .unwrap_or_else(|| lo.empty_block(span));
     let body = Lowering::named_children(node)
         .into_iter()
@@ -99,7 +99,7 @@ pub(super) fn lower_break_or_continue(
         (false, None) => lo.add(NodeKind::Break, Payload::None, span, &[]),
         (true, None) => lo.add(NodeKind::Continue, Payload::None, span, &[]),
         (false, Some(label)) => {
-            let label = lo.str_lit(lo.text(label), lo.span(label));
+            let label = lo.str_content(lo.text(label), lo.span(label));
             lo.add(
                 NodeKind::Seq,
                 Payload::Name(lo.sym("java_labeled_break")),
@@ -108,7 +108,7 @@ pub(super) fn lower_break_or_continue(
             )
         }
         (true, Some(label)) => {
-            let label = lo.str_lit(lo.text(label), lo.span(label));
+            let label = lo.str_content(lo.text(label), lo.span(label));
             lo.add(
                 NodeKind::Seq,
                 Payload::Name(lo.sym("java_labeled_continue")),

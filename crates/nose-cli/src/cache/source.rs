@@ -11,7 +11,7 @@ use std::path::Path;
 mod inventory;
 
 const SOURCE_SNAPSHOT_SCHEMA: u32 = 1;
-const RAW_IL_SCHEMA: u32 = 7;
+const RAW_IL_SCHEMA: u32 = 8;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -375,7 +375,7 @@ pub(super) fn analysis_digest(path: &str, lang: Lang, bytes: &[u8]) -> ContentDi
     ContentDigest::derive(
         // Admission changed for raw ANSI bytes in Rust literals/comments. Old
         // raw bundles and warm-unit snapshots may omit those unchanged files.
-        b"nose.source-analysis.v4",
+        b"nose.source-analysis.v5",
         &[
             portable_il::source_digest(lang, bytes).as_bytes(),
             extension.as_bytes(),

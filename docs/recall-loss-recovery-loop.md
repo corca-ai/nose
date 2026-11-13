@@ -6,12 +6,14 @@ semantic admission stricter or equally strict while reducing unattributed recall
 loss. When recall cannot be recovered safely, the loop records the missing
 capability or the intentional unsupported boundary.
 
-## Baselines
+## Recorded baselines
 
+These are dated receipts for the stated source and corpus, rather than assertions
+about a later worktree. Re-run the verifier after lowering or admission changes.
 Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
 
 - [crates baseline](../bench/recall_loss/crates.baseline.v1.json) records the
-  current `crates` surface.
+  recorded `crates` surface.
 - [corpus-slice baseline](../bench/recall_loss/corpus-slice.baseline.v1.json) records a small mixed-language slice across Go, Python, Ruby, TypeScript,
   Rust, and Swift.
 - [#570 cycle log](../bench/recall_loss/issue-570-cycles.v1.json) records the

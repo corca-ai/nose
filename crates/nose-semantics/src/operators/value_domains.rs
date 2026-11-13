@@ -142,6 +142,12 @@ impl OperatorSemantics {
         F: Fn(u32) -> ValueDomain,
     {
         match il.node(node).kind {
+            NodeKind::Lit
+                if matches!(il.node(node).payload, Payload::LitStr(_))
+                    && !is_concrete_string_literal(il, node) =>
+            {
+                ValueDomain::Unknown
+            }
             NodeKind::Lit => self
                 .literal_value_domain(il.node(node).payload)
                 .unwrap_or(ValueDomain::Unknown),

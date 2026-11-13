@@ -23,6 +23,9 @@ use std::path::Path;
 
 const SNAPSHOT_SCHEMA: u32 = 2;
 
+mod bootstrap;
+pub(crate) use bootstrap::open_session;
+
 mod session;
 pub(crate) use session::FastUnitSession;
 
@@ -102,8 +105,6 @@ pub(super) fn try_build(
     if stored.schema != SNAPSHOT_SCHEMA
         || !stored.snapshot.fast_safe
         || stored.snapshot.semantic_pack_digest != semantic_pack_digest
-        || stored.snapshot.source_files.is_empty()
-        || stored.snapshot.contexts.is_empty()
         || stored.snapshot.contexts.len() != stored.snapshot.artifacts.len()
     {
         return None;

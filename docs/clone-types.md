@@ -24,6 +24,15 @@ Whitespace, layout, and comments never enter the IL, so Type-1 fragments produce
 fingerprints. They are caught by the same-language `syntax` CPD floor and by the unit
 fingerprints.
 
+`semantic` and `near` also retain a narrow whole-source equality floor: admitted
+same-language source files with identical bytes can form a `copy-paste` family
+even when their individual functions do not reach the reporting surface. This
+uses source identity and the ordinary size/line floors, without running the wider
+syntax search. Inline suppression excludes a source from this whole-file route.
+An existing unit family covering the same complete source lines remains the
+preferred boundary. `copy-paste` is a source-copy witness; `exact` remains the
+modeled semantic witness. Use `witness=copy-paste` or `witness=exact` to select one.
+
 ## Type-2 — identifiers and types fully; literals on a two-axis split
 
 - **Identifiers** are alpha-renamed to canonical ids in the normalized unit channels, so

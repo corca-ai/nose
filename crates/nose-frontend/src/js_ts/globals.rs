@@ -32,8 +32,8 @@ pub(super) fn lower_own_property_guard_call(lo: &mut Lowering, node: TsNode) -> 
     let span = lo.span(node);
     let receiver = lower_expr(lo, args[0]);
     let key = lower_expr(lo, args[1]);
-    let own = lo.str_lit("own", span);
-    let present = lo.str_lit("present", span);
+    let own = lo.str_content("own", span);
+    let present = lo.str_content("present", span);
     let tag = lo.sym("own_property_guard");
     let guard = lo.add(
         NodeKind::Seq,

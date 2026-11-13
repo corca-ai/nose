@@ -5,6 +5,8 @@ session alive and emits a complete dashboard snapshot whenever the analyzed
 source set or dashboard changes, including Markdown and structured ignores. It is intended for editors, local refactoring loops, and
 other integrations that need fresh results without starting a new process for
 every save.
+Markdown-only and initially empty roots are valid. Adding the first code file or
+removing the last one uses the ordinary full reconciliation path.
 
 ```sh
 nose query src --watch --format jsonl
@@ -36,6 +38,11 @@ nose query src --cache-dir .nose-cache --watch --format jsonl
 ```
 
 See [faster repeated queries](query-cache.md) for cache storage and cleanup.
+Completed revisions commit their cache state and release the shared disk lease
+while idle. Budget maintenance runs at a safe revision boundary when accumulated
+writes reach the remaining budget, using the existing nonblocking pruner. Explicit
+prune/clear can therefore run between revisions; the next revision reacquires its
+lease and treats evicted artifacts as ordinary cache misses.
 
 ## Filesystems without native notifications
 

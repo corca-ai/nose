@@ -77,7 +77,7 @@ pub(super) fn lower_macro_invocation(lo: &mut Lowering, node: TsNode) -> NodeId 
 }
 pub(super) fn lower_diagnostic(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let mut kids = vec![lo.str_lit(lo.text(node), span)];
+    let mut kids = vec![lo.str_content(lo.text(node), span)];
     kids.extend(
         Lowering::named_children(node)
             .into_iter()
@@ -198,7 +198,7 @@ fn lower_navigation_suffix(
 }
 fn lower_case_path(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let source = lo.str_lit(lo.text(node), span);
+    let source = lo.str_content(lo.text(node), span);
     lo.add(
         NodeKind::Seq,
         Payload::Name(lo.sym("swift_case_path")),
@@ -208,7 +208,7 @@ fn lower_case_path(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 pub(super) fn lower_selector_expression(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let source = lo.str_lit(lo.text(node), span);
+    let source = lo.str_content(lo.text(node), span);
     lo.add(
         NodeKind::Seq,
         Payload::Name(lo.sym("swift_selector_expression")),

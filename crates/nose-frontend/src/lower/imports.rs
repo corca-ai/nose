@@ -139,7 +139,7 @@ fn import_fact_with_symbol_evidence(
     coords: &[&str],
 ) -> (NodeId, Option<EvidenceId>) {
     let lhs = lo.var(local, span);
-    let strs: Vec<NodeId> = coords.iter().map(|c| lo.str_lit(c, span)).collect();
+    let strs: Vec<NodeId> = coords.iter().map(|c| lo.str_content(c, span)).collect();
     let rhs = lo.add(NodeKind::Seq, Payload::None, span, &strs);
     let symbol_evidence = record_import_fact_evidence(lo, span, local, kind, coords);
     (

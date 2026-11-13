@@ -29,7 +29,9 @@ pub(super) fn lower_module_declaration(lo: &mut Lowering, node: TsNode) -> NodeI
     let kids: Vec<NodeId> = Lowering::named_children(node)
         .into_iter()
         .filter_map(|child| match child.kind() {
-            "identifier" | "scoped_identifier" => Some(lo.str_lit(lo.text(child), lo.span(child))),
+            "identifier" | "scoped_identifier" => {
+                Some(lo.str_content(lo.text(child), lo.span(child)))
+            }
             "module_body" => Some(lower_module_body(lo, child)),
             _ => None,
         })
@@ -68,7 +70,7 @@ pub(super) fn lower_module_directive(lo: &mut Lowering, node: TsNode) -> NodeId 
         .into_iter()
         .filter_map(|child| match child.kind() {
             "identifier" | "type_identifier" | "scoped_identifier" | "scoped_type_identifier" => {
-                Some(lo.str_lit(lo.text(child), lo.span(child)))
+                Some(lo.str_content(lo.text(child), lo.span(child)))
             }
             "requires_modifier" => Some(lo.add(
                 NodeKind::Seq,

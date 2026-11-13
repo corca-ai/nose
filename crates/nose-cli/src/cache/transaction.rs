@@ -22,6 +22,9 @@ const GENERATION_SCHEMA: u32 = 1;
 const POINTER_SCHEMA: u32 = 1;
 const MAX_POINTER_BYTES: u64 = 64 * 1024;
 
+mod session;
+pub(super) use session::SessionBudget;
+
 #[derive(Clone)]
 pub(crate) struct CacheRun {
     root: PathBuf,
@@ -266,9 +269,13 @@ impl CacheRun {
         next.records.extend(pending);
         inject(fault, CommitFault::BeforeManifest)?;
         let (generation, manifest_digest) = write_manifest(&self.root, &next)?;
+        let manifest_bytes =
+            std::fs::metadata(workspace_dir.join("generations").join(&generation))?.len();
         inject(fault, CommitFault::AfterManifest)?;
         inject(fault, CommitFault::BeforeCurrent)?;
         write_current(&self.root, workspace, &generation, manifest_digest)?;
+        self.written_bytes
+            .fetch_add(manifest_bytes, Ordering::Relaxed);
 
         let mut inner = self.inner.lock().expect("cache run mutex poisoned");
         inner.base = next;

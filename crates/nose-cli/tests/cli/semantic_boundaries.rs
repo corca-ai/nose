@@ -4,6 +4,8 @@ use super::*;
 mod python_async_protocol;
 #[path = "semantic_boundaries/ruby_yield_protocol.rs"]
 mod ruby_yield_protocol;
+#[path = "semantic_boundaries/source_effects.rs"]
+mod source_effects;
 
 #[test]
 fn query_mode_semantic_rejects_cross_receiver_field_state() {
