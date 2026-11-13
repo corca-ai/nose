@@ -50,6 +50,8 @@ fn watch_survives_tiny_cache_and_idle_eviction() {
 #[test]
 fn leaf_watch_enforces_storage_budget_issue_1001() {
     let project = project("watch_budget");
+    let initial = SECOND.replace("total = 0", "total = 100");
+    project.write("b.py", &initial);
     let cache = make_temp_dir("watch_budget_cache");
     let budget = 40_000u64;
     let mut watch = WatchProcess::start_with_args(
@@ -59,10 +61,8 @@ fn leaf_watch_enforces_storage_budget_issue_1001() {
     );
     watch.next("initial bounded snapshot");
     for revision in 1..=12 {
-        project.write(
-            "b.py",
-            &SECOND.replace("total = 0", &format!("total = {revision}")),
-        );
+        let edited = SECOND.replace("total = 0", &format!("total = {}", 100 + revision));
+        write_leaf_edit(&project, "b.py", &edited);
         let snapshot = watch.next("bounded leaf revision");
         assert_eq!(snapshot["reconciliation"], "incremental-leaf");
         assert_same_analysis(&snapshot["snapshot"], &clean_dashboard(project.path()));
