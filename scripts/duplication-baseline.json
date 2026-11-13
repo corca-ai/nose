@@ -5,10 +5,9 @@
     "09685d6df25416a9",
     "117ea7496a47614a",
     "22b278f1f3e6c0e7",
+    "4dc98859316918eb",
     "53dc1560776f2450",
     "5ad08a3c9ab9f5c3",
-    "5ef15dff43bd6611",
-    "60f0dd6d98436972",
     "90373a49a4b8174d",
     "9f4c7edd3f5ece8d",
     "bbbcb53d5f161643",
@@ -17,8 +16,8 @@
     "cf7e3e2870c92ccb",
     "d0d8d7d0a3d81698",
     "ea682c9db2126d8a",
-    "f315bdc04ec06036",
-    "fe157d643fac27b6"
+    "ee3f1774e269c933",
+    "f315bdc04ec06036"
   ],
   "budget": 20,
   "generated_by": "target/release/nose query crates all top=0 --mode near --min-value 40 --format json",

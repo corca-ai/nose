@@ -2377,3 +2377,27 @@ retains SHA-256 `53404525b09a0efaee9a1496bfeba3f122337e8fcdb442a23313da8c49d111d
 and is byte-identical to the initial HEAD. Restore that earlier accepted policy
 judgment, bringing the current set to nineteen within the unchanged twenty-family
 budget. This is corpus sensitivity, not new numeric-policy code or its removal.
+
+## Semantic and watch patch qualification (2026-11-13)
+
+The v0.21.1 candidate reports eighteen substantial default near families within
+the unchanged budget of twenty and value threshold forty. Both the frozen
+`c37b88cf` release binary and the patch binary report exactly the same eighteen
+family IDs on this source tree. No new duplicate implementation is accepted.
+
+Adding the whole-source-copy capability flag relocates the reviewed Report /
+query-capability-table relation from `fe157d643fac27b6` to `ee3f1774e269c933`.
+The report construction and capability inventory serve distinct contracts; the
+additional boolean flag does not justify merging their owners.
+
+Source-literal guards relocate the reviewed OperatorSemantics / callback-literal
+relation from `5ef15dff43bd6611` to `4dc98859316918eb`. The selected seventeen-line
+callback literal matcher is byte-identical to main. Its Number/BigInt and effect
+policy remains separate from general operator-domain inference, preserving the
+earlier keep-separate decision.
+
+The reviewed integer/float family `60f0dd6d98436972` falls below the substantial
+threshold with this corpus for both binaries. Its source file remains byte-identical
+to main, SHA-256 `53404525b09a0efaee9a1496bfeba3f122337e8fcdb442a23313da8c49d111de`.
+Remove that stale ID without changing its established numeric-policy decision.
+The three full queries are retained locally in `/tmp/nose-patch-self-{old-tree,base-engine,analysis}.json`.
